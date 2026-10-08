@@ -3,6 +3,7 @@ name: Release
 on:
   push:
     tags:
+      # Shared with npm-publish.yml (#5365 Prefer-A limb 2 hygiene).
       - "v*.*.*"
   workflow_dispatch:  # manual trigger for smoke-testing without publishing
 

@@ -2,14 +2,21 @@ name: npm publish
 
 # Canonical v1 distribution channel for @deftai/directive* (#1670 Decision-4).
 # pip/PyPI publish is explicitly out of scope for v1 — deferred to #1084.
+#
+# Prefer-A Bound #5365 (comment 6050330747): Environment `npm` + trusted-publisher
+# bind (operator forge steps) before merge; tag glob v*.*.*; tag/dispatch identity;
+# prepare/pack without id-token; OIDC publish consumes same-run tarballs only;
+# post-publish fixture is a downstream non-OIDC job. Provenance stays GitHub-hosted
+# forensics, not an authorization control.
 
 on:
   push:
     tags:
-      - "v*"
+      - "v*.*.*"
   # Manual re-publish of an existing tag without tag surgery (#1916). Use when a
-  # tag-triggered run failed and the fix lives on a later commit: dispatch with
-  # the tag to (re)publish, e.g. v0.55.0.
+  # tag-triggered run failed and the fix lives on a later commit: dispatch from
+  # master with the tag to (re)publish, e.g. v0.55.0. Workflow ref is constrained
+  # separately from the payload tag (#5365 limb 3).
   workflow_dispatch:
     inputs:
       tag:
@@ -17,35 +24,103 @@ on:
         required: true
         type: string
 
+# Default-deny: no workflow-level id-token (#5365 limb 4 / Reject E).
 permissions:
-  id-token: write
   contents: read
 
 jobs:
-  publish:
-    name: Publish @deftai/directive* to npm
-    # GitHub-hosted runner is REQUIRED for npm --provenance (#1916): the registry
-    # rejects Sigstore provenance bundles signed on self-hosted / third-party
-    # runners (e.g. Blacksmith) with HTTP 422 "Unsupported ... runner
-    # environment: self-hosted". Do NOT move this job to a Blacksmith runner.
+  prepare:
+    name: Prepare and pack @deftai/directive*
     runs-on: ubuntu-latest
-    # REF_NAME unifies the tag source across both triggers: github.ref_name for a
-    # push-tag run, inputs.tag for a manual workflow_dispatch re-publish.
-    env:
-      REF_NAME: ${{ inputs.tag || github.ref_name }}
+    permissions:
+      contents: read
+    outputs:
+      tag: ${{ steps.identity.outputs.tag }}
+      version: ${{ steps.identity.outputs.version }}
+      dist_tag: ${{ steps.identity.outputs.dist_tag }}
+      source_sha: ${{ steps.peel.outputs.source_sha }}
     steps:
+      - name: Resolve tag name, SemVer, and dist-tag (#5365)
+        id: identity
+        shell: bash
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+          EVENT_NAME: ${{ github.event_name }}
+          GITHUB_REF: ${{ github.ref }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [ "${EVENT_NAME}" = "workflow_dispatch" ]; then
+            case "${GITHUB_REF}" in
+              refs/heads/master) ;;
+              *)
+                echo "::error::workflow_dispatch must run from refs/heads/master (got ${GITHUB_REF})"
+                exit 1
+                ;;
+            esac
+            TAG="${INPUT_TAG}"
+          else
+            case "${GITHUB_REF}" in
+              refs/tags/*) ;;
+              *)
+                echo "::error::push trigger expected refs/tags/* (got ${GITHUB_REF})"
+                exit 1
+                ;;
+            esac
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          case "${TAG}" in
+            v[0-9]*.[0-9]*.[0-9]*) ;;
+            *)
+              echo "::error::tag must match v*.*.* (got ${TAG})"
+              exit 1
+              ;;
+          esac
+          VERSION="${TAG#v}"
+          if ! [[ "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([+-][0-9A-Za-z.-]+)*$ ]]; then
+            echo "::error::VERSION ${VERSION} is not SemVer"
+            exit 1
+          fi
+          if [[ "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            DIST_TAG=latest
+          elif [[ "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+-([0-9A-Za-z]+) ]]; then
+            DIST_TAG="${BASH_REMATCH[1]}"
+          else
+            DIST_TAG=next
+          fi
+          {
+            echo "tag=${TAG}"
+            echo "version=${VERSION}"
+            echo "dist_tag=${DIST_TAG}"
+          } >> "${GITHUB_OUTPUT}"
+          echo "Resolved tag=${TAG} version=${VERSION} dist_tag=${DIST_TAG}"
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ inputs.tag || github.ref_name }}
+          fetch-depth: 0
+          ref: refs/tags/${{ steps.identity.outputs.tag }}
 
-      # Node 24 LTS pinned via .nvmrc (npm >= 11.5.1 ships with it, required for
-      # OIDC trusted publishing). registry-url points npm at the public registry.
-      # id-token: write (workflow permissions) is used for BOTH the OIDC publish
-      # auth (no NPM_TOKEN needed, #1919) and the --provenance attestations.
+      - name: Peel tag SHA and verify master ancestry (#5365)
+        id: peel
+        shell: bash
+        env:
+          TAG: ${{ steps.identity.outputs.tag }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin master
+          SOURCE_SHA="$(git rev-list -n 1 "refs/tags/${TAG}")"
+          MASTER_SHA="$(git rev-parse origin/master)"
+          if [ "${SOURCE_SHA}" != "${MASTER_SHA}" ] \
+            && ! git merge-base --is-ancestor "${SOURCE_SHA}" origin/master; then
+            echo "::error::tag ${TAG} (${SOURCE_SHA}) is not on origin/master ancestry (${MASTER_SHA})"
+            exit 1
+          fi
+          echo "source_sha=${SOURCE_SHA}" >> "${GITHUB_OUTPUT}"
+          echo "OK: ${TAG} -> ${SOURCE_SHA} (master ${MASTER_SHA})"
+
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
-          registry-url: https://registry.npmjs.org
 
       - name: Enable corepack (pnpm)
         run: corepack enable
@@ -58,21 +133,21 @@ jobs:
 
       - name: Align package versions with release tag
         shell: bash
+        env:
+          VERSION: ${{ steps.identity.outputs.version }}
         run: |
           set -euo pipefail
-          VERSION="${REF_NAME#v}"
-          echo "Publishing npm packages at version ${VERSION}"
+          echo "Packing npm packages at version ${VERSION}"
           for dir in packages/types packages/core packages/content packages/cli; do
             npm version "${VERSION}" --no-git-tag-version --allow-same-version --prefix "${dir}"
           done
 
-      - name: Resolve workspace protocol for npm publish
+      - name: Resolve workspace protocol for npm pack
         shell: bash
         env:
-          VERSION: ${{ env.REF_NAME }}
+          VERSION: ${{ steps.identity.outputs.version }}
         run: |
           set -euo pipefail
-          VERSION="${VERSION#v}"
           node --input-type=commonjs -e "
             const fs = require('node:fs');
             const semver = '^' + process.env.VERSION;
@@ -89,20 +164,77 @@ jobs:
             }
           "
 
+      - name: Pack four @deftai packages
+        shell: bash
+        env:
+          VERSION: ${{ steps.identity.outputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir -p tarballs
+          for dir in packages/types packages/core packages/content packages/cli; do
+            (cd "${dir}" && npm pack --pack-destination "${GITHUB_WORKSPACE}/tarballs")
+          done
+          ls -la tarballs
+          test -f "tarballs/deftai-directive-types-${VERSION}.tgz"
+          test -f "tarballs/deftai-directive-core-${VERSION}.tgz"
+          test -f "tarballs/deftai-directive-content-${VERSION}.tgz"
+          test -f "tarballs/deftai-directive-${VERSION}.tgz"
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: npm-tarballs-${{ steps.identity.outputs.version }}
+          path: tarballs/*.tgz
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish @deftai/directive* to npm
+    needs: prepare
+    # GitHub-hosted runner is REQUIRED for npm --provenance (#1916 / #5365 limb 5):
+    # the registry rejects Sigstore provenance bundles signed on self-hosted /
+    # third-party runners. Do NOT move this job to a Blacksmith runner.
+    # Provenance is forensics / post-hoc attestation, not an authorization control.
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+      DIST_TAG: ${{ needs.prepare.outputs.dist_tag }}
+      SOURCE_SHA: ${{ needs.prepare.outputs.source_sha }}
+    steps:
+      # Checkout the validated source SHA only for working-directory layout /
+      # package.json name reads. No install, build, or script execution here.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.source_sha }}
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          registry-url: https://registry.npmjs.org
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: npm-tarballs-${{ needs.prepare.outputs.version }}
+          path: tarballs
+
       # Dependency order: types -> core -> content -> cli
-      # Idempotent re-publish (#1916): if a prior tag run partially succeeded (e.g.
-      # OIDC flake on the final package), workflow_dispatch / --failed rerun must
-      # not fail on E409 for packages already at this version.
+      # Idempotent re-publish (#1916): if a prior tag run partially succeeded,
+      # workflow_dispatch / --failed rerun must not fail on E409 for packages
+      # already at this version. Lifecycle scripts suppressed on tarball publish.
       - name: Publish @deftai/directive-types
         working-directory: packages/types
         shell: bash
         run: |
           set -euo pipefail
+          TGZ="${GITHUB_WORKSPACE}/tarballs/deftai-directive-types-${VERSION}.tgz"
+          test -f "${TGZ}"
           PKG=$(node -p "require('./package.json').name")
-          VER=$(node -p "require('./package.json').version")
-          npm publish --provenance --access public || {
-            npm view "${PKG}@${VER}" version >/dev/null
-            echo "Already published ${PKG}@${VER}, continuing"
+          npm publish --provenance --access public --tag "${DIST_TAG}" --ignore-scripts "${TGZ}" || {
+            npm view "${PKG}@${VERSION}" version >/dev/null
+            echo "Already published ${PKG}@${VERSION}, continuing"
           }
 
       - name: Publish @deftai/directive-core
@@ -110,11 +242,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          TGZ="${GITHUB_WORKSPACE}/tarballs/deftai-directive-core-${VERSION}.tgz"
+          test -f "${TGZ}"
           PKG=$(node -p "require('./package.json').name")
-          VER=$(node -p "require('./package.json').version")
-          npm publish --provenance --access public || {
-            npm view "${PKG}@${VER}" version >/dev/null
-            echo "Already published ${PKG}@${VER}, continuing"
+          npm publish --provenance --access public --tag "${DIST_TAG}" --ignore-scripts "${TGZ}" || {
+            npm view "${PKG}@${VERSION}" version >/dev/null
+            echo "Already published ${PKG}@${VERSION}, continuing"
           }
 
       - name: Publish @deftai/directive-content
@@ -122,11 +255,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          TGZ="${GITHUB_WORKSPACE}/tarballs/deftai-directive-content-${VERSION}.tgz"
+          test -f "${TGZ}"
           PKG=$(node -p "require('./package.json').name")
-          VER=$(node -p "require('./package.json').version")
-          npm publish --provenance --access public || {
-            npm view "${PKG}@${VER}" version >/dev/null
-            echo "Already published ${PKG}@${VER}, continuing"
+          npm publish --provenance --access public --tag "${DIST_TAG}" --ignore-scripts "${TGZ}" || {
+            npm view "${PKG}@${VERSION}" version >/dev/null
+            echo "Already published ${PKG}@${VERSION}, continuing"
           }
 
       - name: Publish @deftai/directive
@@ -134,23 +268,45 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          TGZ="${GITHUB_WORKSPACE}/tarballs/deftai-directive-${VERSION}.tgz"
+          test -f "${TGZ}"
           PKG=$(node -p "require('./package.json').name")
-          VER=$(node -p "require('./package.json').version")
-          npm publish --provenance --access public || {
-            npm view "${PKG}@${VER}" version >/dev/null
-            echo "Already published ${PKG}@${VER}, continuing"
+          npm publish --provenance --access public --tag "${DIST_TAG}" --ignore-scripts "${TGZ}" || {
+            npm view "${PKG}@${VERSION}" version >/dev/null
+            echo "Already published ${PKG}@${VERSION}, continuing"
           }
 
-      # Bound-remedy 4 (#4271 / #4398): after the four packages publish, run
-      # the two-pass fixture from a clean directory. The fixture retries the
-      # tag-bound registry install with real backoff, then warn-only if the
-      # registry is still propagating. Do not call rehearseNpmInstallAndRun.
-      # Publish-step failure still fails the job. Do not skip --provenance.
+  post-publish:
+    name: Post-publish two-pass fixture
+    needs: [prepare, publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.source_sha }}
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Enable corepack (pnpm)
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build workspace
+        run: pnpm -w run build
+
+      # Bound-remedy 4 (#4271 / #4398 / #5365): after the four packages publish,
+      # run the two-pass fixture from a non-OIDC job. Do not call
+      # rehearseNpmInstallAndRun. Publish-step failure still fails the workflow.
       - name: Post-publish two-pass fixture (#4271)
         shell: bash
-        env:
-          VERSION: ${{ env.REF_NAME }}
         run: |
           set -euo pipefail
-          VERSION="${VERSION#v}"
           node ./packages/core/dist/release-e2e/npm-ops.js --post-publish-two-pass "${VERSION}"
