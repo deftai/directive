@@ -116,7 +116,18 @@
     "metadata": {
       "intended_placement": {
         "schema": "deft.scope.intended_placement.v1",
-        "files": [],
+        "files": [
+          "CHANGELOG.md",
+          "AGENTS.md",
+          "content/docs/decisions/ADR-003-a2a-nuclear-family-topology.md",
+          "content/templates/agents-entry.md",
+          "content/swarm/swarm.md",
+          "content/meta/security.md",
+          "packages/core/src/content-contracts/skills/agents_entry_contract.test.ts",
+          "content/packs/swarm-spec/swarm-spec-pack-0.1.json",
+          "packages/core/src/deposit/stage-content-pack.test.ts",
+          "content/contracts/deposit-required-paths.json"
+        ],
         "module_boundary": ""
       },
       "x-directive/plan-id": {
@@ -134,7 +145,7 @@
       "swarm": {
         "file_scope": [
           "CHANGELOG.md",
-          "Agents.md",
+          "AGENTS.md",
           "content/docs/decisions/ADR-003-a2a-nuclear-family-topology.md",
           "content/templates/agents-entry.md",
           "content/swarm/swarm.md",

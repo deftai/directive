@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "xbriefRelPath": "xbrief/active/2026-10-08-4892-managed-card-cites-adr-003-but-docsdecisions-never-ships.xbrief.json",
   "planId": "github.issue.5540583613",
-  "approvedAt": "2026-10-08T13:57:30Z",
+  "approvedAt": "2026-10-08T14:37:30Z",
   "fileScope": [
-    "Agents.md",
+    "AGENTS.md",
     "CHANGELOG.md",
     "content/contracts/deposit-required-paths.json",
     "content/docs/decisions/ADR-003-a2a-nuclear-family-topology.md",
@@ -15,13 +15,13 @@
     "packages/core/src/content-contracts/skills/agents_entry_contract.test.ts",
     "packages/core/src/deposit/stage-content-pack.test.ts"
   ],
-  "fileScopeDigest": "730bd0f8df21d4cdf7476f6e9f550c4faeb25667f0f2cd6badc2dd239dbb3569",
+  "fileScopeDigest": "5ce27ccee6bddc5801343192ebead8ccad220b6022d617f58804f3eb558a7f79",
   "humanApproval": {
     "kind": "operator",
     "actor": "Scott",
-    "mintedAt": "2026-10-08T13:57:30Z",
+    "mintedAt": "2026-10-08T14:37:30Z",
     "mintedVia": "scope:record-approved-scope"
   },
-  "intentDigest": "0aa669d622d423e504884c66415236a57cc795d6a0289ca06220f56a46ff8d0d",
+  "intentDigest": "3df6b4a651cea60cd3aeedfb1510a31fd3ef123aee3557de9368752459824ba8",
   "digestAlgo": "intent-extract-v1"
 }
