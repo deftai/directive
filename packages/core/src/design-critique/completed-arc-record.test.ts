@@ -5,10 +5,12 @@ import {
   assertCompletedArcAllowsIngest,
   COMPLETED_ARC_BLOCK_REASONS,
   classifyLgtmSeatCensus,
+  commentsInCitedLeanArc,
   DesignCritiqueIngestBlockedError,
   emptyOrFootnoteCensusBindAllowed,
   evaluateCompletedArcRecord,
   evaluateLgtmCompletionConjunct,
+  evaluateMoveForwardThreadAdmission,
   evaluateTargetDigestAdmission,
   extractCitedCommentIds,
   extractOperativeMaterialityBar,
@@ -17,6 +19,7 @@ import {
   isInFlightCritiqueThread,
   isMoveForwardSynthesisShape,
   MOVE_FORWARD_SYNTHESIS_LEAD,
+  mapSeatCensusUnderMaterialityBar,
   materialityBarRecordLine,
   parseOperatorMaterialityBar,
   type ThreadComment,
@@ -2154,6 +2157,79 @@ describe("ship-ready LGTM / move-forward completion (#5488)", () => {
     expect(classifyLgtmSeatCensus("clean-result: yes\n")).toBe("clean-result");
     expect(classifyLgtmSeatCensus("finding-classes: footnote\n")).toBe("footnote-only");
     expect(classifyLgtmSeatCensus("role: critic\nno class tokens\n")).toBe("stub");
+    expect(classifyLgtmSeatCensus("### footnote: wording\n")).toBe("footnote-only");
+    expect(
+      classifyLgtmSeatCensus("clean-result: yes\nNo blocks-the-design findings were raised.\n"),
+    ).toBe("clean-result");
+  });
+
+  it("scopes LGTM admission to the cited lean arc", () => {
+    const priorShip: ThreadComment = {
+      id: 5,
+      body: "materiality-bar: ship-ready\nrole: parent\n",
+    };
+    const priorCritic: ThreadComment = {
+      id: 6,
+      body: "role: critic\nblocks-the-design: old hole\n",
+    };
+    const priorLean: ThreadComment = {
+      id: 10,
+      body: "**Lean:** prior.\n\nTarget-digest: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n",
+    };
+    const bareLean: ThreadComment = {
+      id: LEAN_ID,
+      body: withPlainEnglish("**Lean:** Prefer-A Bound.\n\nmove-forward: yes\n"),
+    };
+    const cleanCritic: ThreadComment = {
+      id: CRITIC_ID,
+      body: "role: critic\nclean-result: yes\n",
+    };
+    const moveForward: ThreadComment = {
+      id: SYNTHESIS_ID,
+      body: withPlainEnglish(
+        "model: grok-4.6\nrole: parent\n\n" +
+          `${MOVE_FORWARD_SYNTHESIS_LEAD}\n\n` +
+          `successor lean ${LEAN_ID}\n`,
+      ),
+    };
+    const thread = [priorShip, priorCritic, priorLean, cleanCritic, bareLean, moveForward];
+    const arc = commentsInCitedLeanArc(thread, bareLean);
+    expect(arc.map((row) => row.id)).not.toContain(priorShip.id);
+    expect(arc.map((row) => row.id)).not.toContain(priorCritic.id);
+    expect(arc.map((row) => row.id)).not.toContain(priorLean.id);
+    expect(
+      evaluateMoveForwardThreadAdmission({
+        comments: thread,
+        synthesis: moveForward,
+        citedLean: bareLean,
+      }),
+    ).toMatchObject({ ok: false, reason: "ship-ready-required" });
+  });
+
+  it("demotes unpromoted sharpens and refuses promoted ones under ship-ready", () => {
+    expect(
+      mapSeatCensusUnderMaterialityBar(
+        "sharpening-present",
+        "ship-ready",
+        "sharpens-framing: wording\n",
+      ),
+    ).toBe("footnote-only");
+    expect(
+      mapSeatCensusUnderMaterialityBar(
+        "sharpening-present",
+        "ship-ready",
+        "sharpens-framing: wording\npromoted: yes\n",
+      ),
+    ).toBe("sharpening-present");
+    expect(
+      evaluateLgtmCompletionConjunct({
+        materialityBar: "ship-ready",
+        acceptedBlockerCount: 0,
+        unresolvedBlockerResidualCount: 0,
+        parentMoveForwardRecorded: true,
+        seatCensus: ["sharpening-present"],
+      }),
+    ).toMatchObject({ ok: false, reason: "stub-or-blank" });
   });
 
   it("completes evaluateCompletedArcRecord for LGTM-complete thread", () => {
