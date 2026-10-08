@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-10-08-5478-bugdesign-critiquewindows-claude-critic-seat-hangs-0-byte-af.xbrief.json",
+  "planId": "github.issue.5754560436",
+  "approvedAt": "2026-10-08T20:11:44Z",
+  "fileScope": [
+    "CHANGELOG.md",
+    "content/contracts/design-critique.md",
+    "content/docs/grok-build-subscription-setup.md",
+    "content/packs/skills/skills-pack-0.1.json",
+    "content/skills/deft-directive-design-critique/SKILL.md",
+    "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+    "packages/core/src/design-critique/critic-spawn-progress.test.ts",
+    "packages/core/src/design-critique/critic-spawn-progress.ts",
+    "packages/core/src/design-critique/panel-seat-families.test.ts",
+    "packages/core/src/design-critique/panel-seat-families.ts"
+  ],
+  "fileScopeDigest": "c963ac016d83053fa5ea50f40022df662bac440f6a76fff4e6db4568def99984",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-10-08T20:11:44Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "7a433b52ca59f92dcec7031a3b7cce1b629fac291ccb76c43eb7a1f15e299b92",
+  "digestAlgo": "intent-extract-v1"
+}
