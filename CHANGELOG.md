@@ -15,11 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-<<<<<<< HEAD
 - Approved-scope mint for #4961 Prefer-A Bound Path B file_scope (membership fence).
-=======
 - Approved-scope mint for #4888 Prefer-A Bound Path B file_scope (membership fence).
->>>>>>> 7080c71ba (chore(scope): approved-scope mint for #4888 Path B file_scope)
 - Remint approved-scope for #5466 Path B to include docs/RULE-MAP.md (rule-map freshness after contract edits).
 - Keep active #5466 Path B activation (bare-arc spend-resolve membership).
 - Approved-scope mint for #5466 Prefer-A Bound Path B file_scope (spend-resolve / ask-deny membership fence).
