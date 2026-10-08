@@ -362,9 +362,7 @@ describe("deposited core-guard detector fragment (#3388)", () => {
     expect(body).toContain("('main', 'master')");
     expect(body).toContain("def safe_branch(n):");
     expect(body).toContain("def fetch_branch(b):");
-    expect(body).toContain(
-      "if fetch_branch(pr_base).returncode != 0: sys.exit(1)",
-    );
+    expect(body).toContain("if fetch_branch(pr_base).returncode != 0: sys.exit(1)");
     expect(body).toContain(
       "return git('fetch', '--quiet', 'origin', '--', 'refs/heads/' + b + ':refs/remotes/origin/' + b)",
     );

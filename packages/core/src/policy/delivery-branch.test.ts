@@ -238,12 +238,9 @@ describe("closed branch-name grammar (#5364 Prefer-A)", () => {
 
   it("private-dest fetch tip is distinct from origin tracking tip (coupling regression)", () => {
     const tracking = trackingFetchArgv("origin", "master");
-    const privateDest = privateDestFetchArgv(
-      "origin",
-      "master",
-      "refs/deft/finalize-owed/master",
-      { force: true },
-    );
+    const privateDest = privateDestFetchArgv("origin", "master", "refs/deft/finalize-owed/master", {
+      force: true,
+    });
     const trackingDest = tracking[tracking.length - 1]!;
     const privateDestRef = privateDest[privateDest.length - 1]!;
     expect(trackingDest).toBe("refs/heads/master:refs/remotes/origin/master");

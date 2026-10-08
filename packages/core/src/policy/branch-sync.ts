@@ -128,8 +128,7 @@ function parseTypedPolicyBranches(jsonText: string): {
     const rec = policyBlock as Record<string, unknown>;
     const destRaw = rec.deliveryBranch;
     const sourceRaw = rec.baseBranch;
-    const dest =
-      typeof destRaw === "string" && destRaw.trim().length > 0 ? destRaw.trim() : null;
+    const dest = typeof destRaw === "string" && destRaw.trim().length > 0 ? destRaw.trim() : null;
     const source =
       typeof sourceRaw === "string" && sourceRaw.trim().length > 0 ? sourceRaw.trim() : null;
     if (dest !== null) {
@@ -167,10 +166,7 @@ export function resolveSyncPolicyFromDestRef(options: {
   const runGit = options.runGit ?? defaultGitRunner;
   const prBase = options.prBase.trim();
   assertSafeBranchName(prBase, "prBase");
-  const fetched = runGit(
-    options.projectRoot,
-    trackingFetchArgv("origin", prBase, { quiet: true }),
-  );
+  const fetched = runGit(options.projectRoot, trackingFetchArgv("origin", prBase, { quiet: true }));
   if (fetched.code !== 0) {
     const dest = resolveGitDefaultDeliveryBranch(options.projectRoot, runGit);
     const developHint =

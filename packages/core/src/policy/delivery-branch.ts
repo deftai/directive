@@ -77,8 +77,11 @@ export function isSafeBranchName(name: string): boolean {
   if (name.endsWith(".lock")) {
     return false;
   }
-  if (/[\u0000-\u001f\u007f]/.test(name)) {
-    return false;
+  for (let i = 0; i < name.length; i += 1) {
+    const code = name.charCodeAt(i);
+    if (code <= 0x1f || code === 0x7f) {
+      return false;
+    }
   }
   if (/\s/.test(name)) {
     return false;
