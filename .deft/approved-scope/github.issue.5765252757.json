@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-10-08-5489-design-critique-later-arcs-on-the-same-ticket-re-litigate-cl.xbrief.json",
+  "planId": "github.issue.5765252757",
+  "approvedAt": "2026-10-08T18:56:12Z",
+  "fileScope": [
+    "CHANGELOG.md",
+    "content/contracts/design-critique.md",
+    "content/skills/deft-directive-design-critique/SKILL.md",
+    "content/templates/design-critique-brief.md",
+    "docs/RULE-MAP.md",
+    "packages/core/src/design-critique/completed-arc-record.test.ts",
+    "packages/core/src/design-critique/completed-arc-record.ts",
+    "packages/core/src/design-critique/leftover-pain.test.ts",
+    "packages/core/src/design-critique/leftover-pain.ts",
+    "packages/core/src/design-critique/parent-audit.test.ts",
+    "packages/core/src/design-critique/parent-audit.ts",
+    "packages/core/src/design-critique/widget-apply-set.test.ts",
+    "packages/core/src/design-critique/widget-apply-set.ts",
+    "packages/core/src/design-critique/yolo-standing.test.ts",
+    "packages/core/src/design-critique/yolo-standing.ts"
+  ],
+  "fileScopeDigest": "dbc76bbeb9d4e7b0feee90c7aa723f9c03c4a879b45ac082292b261df880e8c6",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-10-08T18:56:12Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "f6fec3666b66fc288743006cd227d4520d307c90e673049a6ae5aa588c986b7b",
+  "digestAlgo": "intent-extract-v1"
+}

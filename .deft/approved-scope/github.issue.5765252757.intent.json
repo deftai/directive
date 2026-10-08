@@ -1,0 +1,265 @@
+{
+  "schemaVersion": 1,
+  "algo": "intent-extract-v1",
+  "plan": {
+    "title": "design-critique: later arcs on the same ticket re-litigate closed findings",
+    "narratives": {
+      "Description": "design-critique: later arcs on the same ticket re-litigate closed findings",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5489",
+      "Overview": "## Bound remedy (#5489 Prefer-A 6065006497)\n\n1. Operative closed-findings: on Stop 1 + brief; composite identity (source-comment id + finding id); titles display-only; disposition enum only; Forbidden-inputs carve; freeze list in Round-1 dispatch input.\n2. Closure authority: completed disposition or explicit operator closure; no title-only / unauthenticated suppression.\n3. Match / relation key: composite identity + explicit restates: relation; no NLP clustering.\n4. Critic method MUST demote authorized unchanged restatements to footnote/omit.\n5. Parent unify MUST compose with disposition denominator; no silent drop; ADR-006 on contested equivalence.\n6. Evidence-bearing reopen governs demotion/refusal; paired fixtures including reopen survives residual gate.\n7. Docs + thin skill + fixture-level refuse consumer; live parent-turn MAY stay unenforced in v1.\n8. Keep out: cross-issue memory; auto body rewrite; host LLM memory; resume-only; #5488 absorb; NLP clustering. Auto-seed MAY.\n9. P1 honesty: deliverable remainder is exact declared-relation restatement + product field (P2–P4). Adjacent-polish hydra beyond that is leftover #5493.\n\nReject: B/C/D; silent drop; title-only suppression; closure immunity; claiming full P1 hydra from exact demotion alone.\noperator-deferred: P1 #5493",
+      "Labels": "enhancement, Workflow, agent-experience, process, critic, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Operative closed-findings field + composite identity",
+        "narrative": {
+          "Acceptance": "Operative closed-findings: on Stop 1 + brief; composite identity (source-comment id + finding id); titles display-only; disposition enum only; Forbidden-inputs carve; freeze list in Round-1 dispatch input."
+        },
+        "x-directive/artifact_path": "content/templates/design-critique-brief.md"
+      },
+      {
+        "id": "clause.2",
+        "title": "Closure authority",
+        "narrative": {
+          "Acceptance": "Closure authority: completed disposition or explicit operator closure; no title-only / unauthenticated suppression."
+        },
+        "x-directive/artifact_path": "packages/core/src/design-critique/parent-audit.ts"
+      },
+      {
+        "id": "clause.3",
+        "title": "Match / relation key with restates",
+        "narrative": {
+          "Acceptance": "Match / relation key: composite identity + explicit restates: (or equivalent) relation; no NLP clustering."
+        },
+        "x-directive/artifact_path": "packages/core/src/design-critique/parent-audit.ts"
+      },
+      {
+        "id": "clause.4",
+        "title": "Critic demotion of authorized restatements",
+        "narrative": {
+          "Acceptance": "Critic method MUST demote authorized unchanged restatements to footnote/omit."
+        },
+        "x-directive/artifact_path": "content/skills/deft-directive-design-critique/SKILL.md"
+      },
+      {
+        "id": "clause.5",
+        "title": "Parent unify with disposition denominator",
+        "narrative": {
+          "Acceptance": "Parent unify MUST compose with disposition denominator; no silent drop; ADR-006 on contested equivalence."
+        },
+        "x-directive/artifact_path": "packages/core/src/design-critique/parent-audit.ts"
+      },
+      {
+        "id": "clause.6",
+        "title": "Evidence-bearing reopen + fixtures",
+        "narrative": {
+          "Acceptance": "Evidence-bearing reopen governs demotion/refusal; paired fixtures including reopen survives residual gate."
+        },
+        "x-directive/artifact_path": "packages/core/src/design-critique/parent-audit.test.ts"
+      },
+      {
+        "id": "clause.7",
+        "title": "Docs + thin skill + fixture refuse consumer",
+        "narrative": {
+          "Acceptance": "Docs + thin skill + fixture-level refuse consumer; live parent-turn MAY stay unenforced in v1."
+        },
+        "x-directive/artifact_path": "content/contracts/design-critique.md"
+      },
+      {
+        "id": "clause.8",
+        "title": "Keep-out inventory",
+        "narrative": {
+          "Acceptance": "Keep out: cross-issue memory; auto body rewrite; host LLM memory; resume-only; #5488 absorb; NLP clustering. Auto-seed MAY. Do not solve #5488 here."
+        },
+        "x-directive/artifact_path": "CHANGELOG.md"
+      },
+      {
+        "id": "clause.9",
+        "title": "P1 honesty / leftover #5493",
+        "narrative": {
+          "Acceptance": "P1 honesty: deliverable remainder is exact declared-relation restatement + product field (P2–P4). Adjacent-polish hydra beyond that is leftover #5493 (operator-deferred)."
+        },
+        "x-directive/artifact_path": "packages/core/src/design-critique/leftover-pain.ts"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5489",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5489: design-critique: later arcs on the same ticket re-litigate closed findings"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A Bound limbs hand-stamped after Prefer-A Bound harvest (#4374); clauses bind Bound remedy",
+      "sentences": [
+        "design-critique: later arcs on the same ticket re-litigate closed findings",
+        "(Same limbs 1–8 as Recut 6064938684; limb 9 updated for leftover stamp.) 1.",
+        "Operative `closed-findings:` on Stop 1 + brief; composite identity (source-comment id + finding id); titles display-only; disposition enum only; Forbidden-inputs carve; freeze list in Round-1 dispatch input.",
+        "Closure authority: completed disposition or explicit operator closure; no title-only / unauthenticated suppression.",
+        "Match / relation key: composite identity + explicit `restates:` (or equivalent) relation; no NLP clustering.",
+        "Critic method MUST demote authorized unchanged restatements to footnote/omit.",
+        "Parent unify MUST compose with disposition denominator; no silent drop; ADR-006 on contested equivalence.",
+        "Evidence-bearing reopen governs demotion/refusal; paired fixtures including reopen survives residual gate.",
+        "Docs + thin skill + fixture-level refuse consumer; live parent-turn MAY stay unenforced in v1.",
+        "Keep out: cross-issue memory; auto body rewrite; host LLM memory; resume-only; #5488 absorb; NLP clustering.",
+        "Auto-seed MAY.",
+        "P1 honesty: deliverable remainder is exact declared-relation restatement + product field (P2–P4).",
+        "Adjacent-polish hydra beyond that is leftover #5493."
+      ],
+      "admitted_source_sentences": [
+        "(Same limbs 1–8 as Recut 6064938684; limb 9 updated for leftover stamp.) 1.",
+        "Operative `closed-findings:` on Stop 1 + brief; composite identity (source-comment id + finding id); titles display-only; disposition enum only; Forbidden-inputs carve; freeze list in Round-1 dispatch input.",
+        "Closure authority: completed disposition or explicit operator closure; no title-only / unauthenticated suppression.",
+        "Match / relation key: composite identity + explicit `restates:` (or equivalent) relation; no NLP clustering.",
+        "Critic method MUST demote authorized unchanged restatements to footnote/omit.",
+        "Parent unify MUST compose with disposition denominator; no silent drop; ADR-006 on contested equivalence.",
+        "Evidence-bearing reopen governs demotion/refusal; paired fixtures including reopen survives residual gate.",
+        "Docs + thin skill + fixture-level refuse consumer; live parent-turn MAY stay unenforced in v1.",
+        "Keep out: cross-issue memory; auto body rewrite; host LLM memory; resume-only; #5488 absorb; NLP clustering.",
+        "Auto-seed MAY.",
+        "P1 honesty: deliverable remainder is exact declared-relation restatement + product field (P2–P4).",
+        "Adjacent-polish hydra beyond that is leftover #5493."
+      ],
+      "admitted_source_digest": "eca4621108650dbf6d975f5582c1b35ced7e4bab88b5e45bff8d4d7c9bfed3dc",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Operative closed-findings: on Stop 1 + brief; composite identity (source-comment id + finding id); titles display-only; disposition enum only; Forbidden-inputs carve; freeze list in Round-1 dispatch input.",
+          "artifact_path": "content/templates/design-critique-brief.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Closure authority: completed disposition or explicit operator closure; no title-only / unauthenticated suppression.",
+          "artifact_path": "packages/core/src/design-critique/parent-audit.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Match / relation key: composite identity + explicit restates: (or equivalent) relation; no NLP clustering.",
+          "artifact_path": "packages/core/src/design-critique/parent-audit.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Critic method MUST demote authorized unchanged restatements to footnote/omit.",
+          "artifact_path": "content/skills/deft-directive-design-critique/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Parent unify MUST compose with disposition denominator; no silent drop; ADR-006 on contested equivalence.",
+          "artifact_path": "packages/core/src/design-critique/parent-audit.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Evidence-bearing reopen governs demotion/refusal; paired fixtures including reopen survives residual gate.",
+          "artifact_path": "packages/core/src/design-critique/parent-audit.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Docs + thin skill + fixture-level refuse consumer; live parent-turn MAY stay unenforced in v1.",
+          "artifact_path": "content/contracts/design-critique.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Keep out: cross-issue memory; auto body rewrite; host LLM memory; resume-only; #5488 absorb; NLP clustering. Auto-seed MAY. Do not solve #5488 here.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "P1 honesty: deliverable remainder is exact declared-relation restatement + product field (P2–P4). Adjacent-polish hydra beyond that is leftover #5493 (operator-deferred).",
+          "artifact_path": "packages/core/src/design-critique/leftover-pain.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "CHANGELOG.md",
+          "content/contracts/design-critique.md",
+          "content/skills/deft-directive-design-critique/SKILL.md",
+          "content/templates/design-critique-brief.md",
+          "packages/core/src/design-critique/completed-arc-record.ts",
+          "packages/core/src/design-critique/completed-arc-record.test.ts",
+          "packages/core/src/design-critique/parent-audit.ts",
+          "packages/core/src/design-critique/parent-audit.test.ts",
+          "packages/core/src/design-critique/yolo-standing.ts",
+          "packages/core/src/design-critique/yolo-standing.test.ts",
+          "packages/core/src/design-critique/widget-apply-set.ts",
+          "packages/core/src/design-critique/widget-apply-set.test.ts",
+          "packages/core/src/design-critique/leftover-pain.ts",
+          "packages/core/src/design-critique/leftover-pain.test.ts",
+          "docs/RULE-MAP.md"
+        ],
+        "module_boundary": "design-critique later-arc closed findings",
+        "cohesion_exemption": "CHANGELOG.md shared release notes; Path B remint Unreleased bullet only."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5765252757,
+        "origin": "deftai/directive#5489",
+        "id": "github.issue.5765252757"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "f81438bc87259c645ce9eeec169ac13f4516e93faadf74dbd8c85bcbf8b1d909"
+      },
+      "swarm": {
+        "file_scope": [
+          "CHANGELOG.md",
+          "content/contracts/design-critique.md",
+          "content/skills/deft-directive-design-critique/SKILL.md",
+          "content/templates/design-critique-brief.md",
+          "packages/core/src/design-critique/completed-arc-record.ts",
+          "packages/core/src/design-critique/completed-arc-record.test.ts",
+          "packages/core/src/design-critique/parent-audit.ts",
+          "packages/core/src/design-critique/parent-audit.test.ts",
+          "packages/core/src/design-critique/yolo-standing.ts",
+          "packages/core/src/design-critique/yolo-standing.test.ts",
+          "packages/core/src/design-critique/widget-apply-set.ts",
+          "packages/core/src/design-critique/widget-apply-set.test.ts",
+          "packages/core/src/design-critique/leftover-pain.ts",
+          "packages/core/src/design-critique/leftover-pain.test.ts",
+          "docs/RULE-MAP.md"
+        ],
+        "Traces": [
+          "#5489"
+        ]
+      }
+    },
+    "id": "github.issue.5765252757"
+  },
+  "approvedRepos": [
+    "deftai/directive"
+  ],
+  "unknownPaths": [
+    "items[].x-directive/artifact_path",
+    "metadata.intended_placement",
+    "metadata.swarm.Traces",
+    "metadata.x-directive/admitted-target-digest",
+    "metadata.x-directive/plan-id"
+  ]
+}
