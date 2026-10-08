@@ -16,6 +16,7 @@ import {
   evaluateHatchPresence,
   extractQuestionOptionGroups,
   isHatchAliasText,
+  resolveArcSpendSessionForHook,
 } from "./dispatcher-plan-choice.js";
 
 const READY_RITUAL = {
@@ -564,5 +565,50 @@ describe("spend-recommend gate (#5466)", () => {
       "ask_user_question",
     );
     expect(gate).toBeNull();
+  });
+
+  it("aligns hook session with CLI --session-id via payload when env is empty", () => {
+    const root = tempDir("spend-gate-session-align-");
+    writeArcSpendState(root, {
+      schema: "deft.design-critique.arc-spend-state.v1",
+      status: "in-flight",
+      spendRecommend: null,
+      spend: null,
+      spendAsk: null,
+      askPermitted: true,
+      updatedAt: new Date().toISOString(),
+      utterance: "arc panel",
+      sessionId: "sess-a",
+    });
+    const input = {
+      host: "claude",
+      event: "tool.before" as const,
+      projectRoot: root,
+      environ: {},
+      payload: {
+        session_id: "sess-a",
+        tool_name: "ask_user_question",
+        tool_input: {
+          questions: [
+            {
+              question: "Spend?",
+              options: [{ label: "N=1" }, { label: "Discuss" }, { label: "Back" }],
+            },
+          ],
+        },
+      },
+    };
+    expect(resolveArcSpendSessionForHook(input)).toBe("sess-a");
+    const gate = decideSpendRecommendGate(input, "ask_user_question");
+    expect(gate).toBeNull();
+    const mismatch = decideSpendRecommendGate(
+      {
+        ...input,
+        payload: { ...input.payload, session_id: "other-session" },
+      },
+      "ask_user_question",
+    );
+    expect(mismatch?.verdict).toBe("deny");
+    expect(mismatch?.code).toBe("spend-recommend-required");
   });
 });

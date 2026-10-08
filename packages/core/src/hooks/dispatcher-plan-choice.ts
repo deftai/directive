@@ -16,10 +16,13 @@ import {
   isSpendAskDeniedByArcState,
   optionLabelsLookLikeSpend,
   readArcSpendState,
+  resolveArcSpendSessionId,
+  sanitizeArcSpendSessionId,
 } from "../design-critique/spend.js";
 import { containedRemove, containedRename, containedWrite } from "../fs/contained-write.js";
 import { isQuestionToolName } from "../tool-events/classify.js";
 import { platformUserConfigDir } from "../user-config/resolve-user-md.js";
+import { resolveHookHostIdentity } from "./classify/host-session-identity.js";
 import { fieldString, record, toolInputRecord } from "./classify/payload.js";
 import {
   CURSOR_PLAN_CHOICE_HOST,
@@ -330,6 +333,28 @@ export function spendRecommendRequiredMessage(toolName: string): string {
 }
 
 /**
+ * Session key for arc-spend-state that matches `design-critique:spend-resolve
+ * --session-id` (#5466). Env wins (DEFT_SESSION_ID / DEFT_MONITOR_AGENT_ID /
+ * GROK_SESSION_ID); when env is empty, use the host payload raw id so Claude
+ * `session_id` / Cursor `conversation_id` align with an explicit CLI
+ * `--session-id`. Canonical `host:<provider>:v1:…` forms are not used here —
+ * spend scratch is keyed by the same sanitized raw id the CLI records.
+ */
+export function resolveArcSpendSessionForHook(input: HookDispatchInput): string {
+  const fromEnv = resolveArcSpendSessionId({ env: input.environ });
+  if (fromEnv !== "no-session") return fromEnv;
+  const identity = resolveHookHostIdentity(
+    input.host,
+    input.payload,
+    input.environ ?? process.env,
+  );
+  if (identity.status === "ok") {
+    return sanitizeArcSpendSessionId(identity.rawSessionId);
+  }
+  return "no-session";
+}
+
+/**
  * State-keyed deny for spend-shaped QUESTION_HOOK tools while the session arc
  * gate is open and no spend-recommend is recorded yet (#5466). Not
  * utterance-keyed; no NLP. Option labels N=1 / N≥3 are the spend shape.
@@ -346,7 +371,8 @@ export function decideSpendRecommendGate(
   if (!isQuestionToolName(toolName)) return null;
   const groups = extractQuestionOptionGroups(input.payload);
   const spendShaped = groups.some((group) => optionLabelsLookLikeSpend(group.labels));
-  const state = readArcSpendState(input.projectRoot, { env: input.environ });
+  const sessionId = resolveArcSpendSessionForHook(input);
+  const state = readArcSpendState(input.projectRoot, { sessionId, env: input.environ });
   if (!isSpendAskDeniedByArcState(state, { spendShaped })) return null;
   return decision(
     input,
