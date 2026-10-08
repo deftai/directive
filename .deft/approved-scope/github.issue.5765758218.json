@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-10-08-5492-docsdesign-critiquewindows-name-createprocess-argv-ceiling-f.xbrief.json",
+  "planId": "github.issue.5765758218",
+  "approvedAt": "2026-10-08T19:37:59Z",
+  "fileScope": [
+    "CHANGELOG.md",
+    "content/contracts/design-critique.md",
+    "content/docs/grok-build-subscription-setup.md",
+    "content/packs/skills/skills-pack-0.1.json",
+    "content/skills/deft-directive-design-critique/SKILL.md",
+    "packages/core/src/content-contracts/standards/design_critique_contract.test.ts"
+  ],
+  "fileScopeDigest": "69957810d1298302f6e1f32a0848305c9d30e7187e97cbd525ab163ec7fc91f5",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-10-08T19:37:59Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "e4242c86a2b390afa38d3aea6934df62a0f01b2297746fd0fa3d73791ab7b72b",
+  "digestAlgo": "intent-extract-v1"
+}
