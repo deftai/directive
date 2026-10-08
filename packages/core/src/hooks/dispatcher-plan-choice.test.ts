@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, realpathSync, rmSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { writeArcSpendState } from "../design-critique/spend.js";
 import { cursorPlanChoiceStoreRoot } from "./cursor-plan-choice/index.js";
 import type { CursorPlanChoiceDeps } from "./cursor-plan-choice/types.js";
 import {
@@ -10,7 +11,6 @@ import {
   type HookPolicySeams,
   renderHostDecision,
 } from "./dispatcher.js";
-import { writeArcSpendState } from "../design-critique/spend.js";
 import {
   decideSpendRecommendGate,
   evaluateHatchPresence,

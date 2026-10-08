@@ -531,11 +531,7 @@ describe("parent-defect bare-arc path (#5466 Prefer-A)", () => {
     if (!resolved.ok) return;
     expect(resolved.spend).toBe(N1_SPEND);
     expect(resolved.spendRecommend).toBe(N1_SPEND);
-    expect(resolved.lines).toEqual([
-      "spend-recommend: N=1",
-      "spend: N=1",
-      "spend-ask: resolved",
-    ]);
+    expect(resolved.lines).toEqual(["spend-recommend: N=1", "spend: N=1", "spend-ask: resolved"]);
     expect(isSpendAskDeniedByArcState(resolved.state)).toBe(false);
     expect(readArcSpendState(root)?.spendRecommend).toBe(N1_SPEND);
   });

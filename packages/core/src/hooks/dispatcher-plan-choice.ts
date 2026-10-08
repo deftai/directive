@@ -12,10 +12,7 @@
 import { mkdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import {
-  isSpendAskDeniedByArcState,
-  readArcSpendState,
-} from "../design-critique/spend.js";
+import { isSpendAskDeniedByArcState, readArcSpendState } from "../design-critique/spend.js";
 import { containedRemove, containedRename, containedWrite } from "../fs/contained-write.js";
 import { isQuestionToolName } from "../tool-events/classify.js";
 import { platformUserConfigDir } from "../user-config/resolve-user-md.js";

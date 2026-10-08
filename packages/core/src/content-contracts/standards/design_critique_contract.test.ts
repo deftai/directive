@@ -2066,9 +2066,13 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(stop1).toContain(
       "On bare arc, missing `spend-recommend:` is a parent defect: record then resolve via `design-critique:spend-resolve --recommend`",
     );
-    expect(stop1).toContain("Ask remains only for ambiguous token mixes, bare `panel`, or a parent-declared unclosable recommend");
+    expect(stop1).toContain(
+      "Ask remains only for ambiguous token mixes, bare `panel`, or a parent-declared unclosable recommend",
+    );
     expect(stop1).toContain("Yolo is not a spend token");
-    expect(stop1).toContain("Do not copy `resolveArcRunPostureForHost` missing-token auto-resolve onto spend");
+    expect(stop1).toContain(
+      "Do not copy `resolveArcRunPostureForHost` missing-token auto-resolve onto spend",
+    );
     expect(stop1).toContain("resolveDesignCritiqueSpend");
     expect(stop1).toContain("That recuts the #3846 silence clause");
     expect(stop1).toContain("\u2297 Close #3846");
@@ -2076,9 +2080,7 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(stop1).toContain(
       "\u2297 Grow `evaluatePanelSeatComposition` or `evaluateN3LaunchProbe` as the spend gate",
     );
-    expect(stop1).toContain(
-      "\u2297 Ask for spend on bare arc before recording `spend-recommend:`",
-    );
+    expect(stop1).toContain("\u2297 Ask for spend on bare arc before recording `spend-recommend:`");
     expect(stop2).toContain("unselected until `parseOperatorSpend` resolves");
     expect(stop2).toContain("Those rows are unchanged in behaviour for charter selection only");
     expect(stop2).toContain(
