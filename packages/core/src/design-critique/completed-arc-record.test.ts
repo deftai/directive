@@ -2489,6 +2489,36 @@ describe("ship-ready LGTM / move-forward completion (#5488)", () => {
     ).toMatchObject({ ok: true });
   });
 
+  it("accepts Stop 1 triage materiality-bar fallback in the cited lean arc", () => {
+    const triageShip: ThreadComment = {
+      id: CRITIC_ID - 1,
+      body: "role: triage\nmateriality-bar: ship-ready\n",
+    };
+    const cleanCritic: ThreadComment = {
+      id: CRITIC_ID,
+      body: "role: critic\nclean-result: yes\n",
+    };
+    const bareLean: ThreadComment = {
+      id: LEAN_ID,
+      body: withPlainEnglish("**Lean:** Prefer-A Bound.\n\nmove-forward: yes\n"),
+    };
+    const moveForward: ThreadComment = {
+      id: SYNTHESIS_ID,
+      body: withPlainEnglish(
+        "model: grok-4.6\nrole: parent\n\n" +
+          `${MOVE_FORWARD_SYNTHESIS_LEAD}\n\n` +
+          `successor lean ${LEAN_ID}\n`,
+      ),
+    };
+    expect(
+      evaluateMoveForwardThreadAdmission({
+        comments: [triageShip, cleanCritic, bareLean, moveForward],
+        synthesis: moveForward,
+        citedLean: bareLean,
+      }),
+    ).toMatchObject({ ok: true });
+  });
+
   it("demotes unpromoted sharpens and refuses promoted ones under ship-ready", () => {
     expect(
       mapSeatCensusUnderMaterialityBar(

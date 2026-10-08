@@ -403,9 +403,12 @@ function hasOperativeDispatchFail(body: string): boolean {
   return hasOperativeTokenMatch(body, DISPATCH_FAIL_FIELD_RE, "dispatch-fail");
 }
 
-/** True when the body declares `role: parent` (parent record, not critic data). */
-function isParentRoleBody(body: string): boolean {
-  return /(?:^|\n)\s*role:\s*parent\b/i.test(body);
+/**
+ * True when the body is a parent or Stop 1 triage record that may carry
+ * materiality-bar. Critic English stays data (#5488 Greptile P1).
+ */
+function admitsMaterialityBarFallback(body: string): boolean {
+  return /(?:^|\n)\s*role:\s*(?:parent|triage)\b/i.test(body);
 }
 
 export function classifyLgtmSeatCensus(body: string): LgtmSeatCensus {
@@ -630,9 +633,9 @@ export function evaluateMoveForwardThreadAdmission(input: {
 }): LgtmConjunctVerdict {
   const arcComments = commentsInCitedLeanArc(input.comments, input.citedLean);
   const fromLean = extractOperativeMaterialityBar(input.citedLean.body);
-  // Fallback bar only from parent records — critic text cannot opt the arc in (#5488).
+  // Fallback bar only from parent / Stop 1 triage — critic text cannot opt in (#5488).
   const fromArc = arcComments
-    .filter((comment) => isParentRoleBody(comment.body))
+    .filter((comment) => admitsMaterialityBarFallback(comment.body))
     .map((comment) => extractOperativeMaterialityBar(comment.body))
     .reverse()
     .find((bar) => bar !== null);
