@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Remint approved-scope for #5466 Path B to include docs/RULE-MAP.md (rule-map freshness after contract edits).
 - Keep active #5466 Path B activation (bare-arc spend-resolve membership).
 - Approved-scope mint for #5466 Prefer-A Bound Path B file_scope (spend-resolve / ask-deny membership fence).
 

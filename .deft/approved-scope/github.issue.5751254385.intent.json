@@ -195,7 +195,8 @@
           "content/packs/skills/skills-pack-0.1.json",
           "packages/core/src/hooks/dispatcher.ts",
           "packages/core/src/hooks/dispatcher-plan-choice.ts",
-          "packages/core/src/hooks/dispatcher-plan-choice.test.ts"
+          "packages/core/src/hooks/dispatcher-plan-choice.test.ts",
+          "docs/RULE-MAP.md"
         ],
         "Traces": [
           "#5466"

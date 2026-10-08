@@ -2,13 +2,14 @@
   "schemaVersion": 1,
   "xbriefRelPath": "xbrief/active/2026-10-07-5466-bugdesign-critique-bare-arc-spend-recommend-first-still-asks.xbrief.json",
   "planId": "github.issue.5751254385",
-  "approvedAt": "2026-10-08T00:31:30Z",
+  "approvedAt": "2026-10-08T12:07:30Z",
   "fileScope": [
     "CHANGELOG.md",
     "content/commands.md",
     "content/contracts/design-critique.md",
     "content/packs/skills/skills-pack-0.1.json",
     "content/skills/deft-directive-design-critique/SKILL.md",
+    "docs/RULE-MAP.md",
     "packages/cli/src/cli-router/route-argv.ts",
     "packages/cli/src/design-critique-spend-resolve.test.ts",
     "packages/cli/src/design-critique-spend-resolve.ts",
@@ -22,13 +23,13 @@
     "packages/core/src/hooks/tools.test.ts",
     "packages/core/src/hooks/tools.ts"
   ],
-  "fileScopeDigest": "9504c19ce4f48ad1f8c63b2599c0e30c4b23b60ae7aad5bd6a5ffafe24a1591a",
+  "fileScopeDigest": "37cfe214f6588a6e7cc19927017df3c1d4f3fa08e09a3c0fbf3ff2dbe8888678",
   "humanApproval": {
     "kind": "operator",
     "actor": "Scott",
-    "mintedAt": "2026-10-08T00:31:30Z",
+    "mintedAt": "2026-10-08T12:07:30Z",
     "mintedVia": "scope:record-approved-scope"
   },
-  "intentDigest": "41e363d251fb342efbbbdad6a848ecbb895878624cea3d03fb84550f56419745",
+  "intentDigest": "8b238c13514fb40f0ac6813d3ced56a6f02975a40e7c4b9f4a1a7c22a6e5ac8a",
   "digestAlgo": "intent-extract-v1"
 }
