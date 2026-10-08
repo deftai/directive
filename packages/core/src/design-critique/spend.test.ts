@@ -16,6 +16,7 @@ import {
   N1_SPEND,
   N3_SPEND,
   openArcSpendGate,
+  optionLabelsLookLikeSpend,
   parseOperatorSpend,
   parseRecommendFlag,
   parseSpendRecommend,
@@ -592,6 +593,11 @@ describe("parent-defect bare-arc path (#5466 Prefer-A)", () => {
     expect(resolved.spendRecommend).toBeNull();
     expect(resolved.lines).toEqual(["spend: N=1", "spend-ask: resolved"]);
     expect(isSpendAskDeniedByArcState(resolved.state)).toBe(false);
+  });
+
+  it("recognizes numbered spend option labels", () => {
+    expect(optionLabelsLookLikeSpend(["1. N=1", "2. N≥3", "3. Discuss", "4. Back"])).toBe(true);
+    expect(optionLabelsLookLikeSpend(["1. Alpha", "2. Discuss", "3. Back"])).toBe(false);
   });
 
   it("does not invent spend-recommend from operator n=3", () => {

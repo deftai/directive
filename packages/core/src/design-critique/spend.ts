@@ -491,10 +491,17 @@ export function isSpendAskDeniedByArcState(
   return spendShaped;
 }
 
-/** True when structured-question option labels look like Dual-stop spend choices. */
+/**
+ * True when structured-question option labels look like Dual-stop spend choices.
+ * Strips the canonical leading ``N. `` number prefix used by host widgets so
+ * ``1. N=1`` / ``2. N≥3`` still count as spend-shaped (#5466).
+ */
 export function optionLabelsLookLikeSpend(labels: readonly string[]): boolean {
   for (const label of labels) {
-    const trimmed = label.trim();
+    const trimmed = label
+      .trim()
+      .replace(/^\d+\.\s*/, "")
+      .trim();
     if (/^N=1$/i.test(trimmed)) return true;
     if (/^N(?:>=|\u2265)3$/i.test(trimmed)) return true;
   }
