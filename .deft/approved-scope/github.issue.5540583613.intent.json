@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "algo": "intent-extract-v1",
+  "plan": {
+    "title": "Managed card cites ADR-003 but docs/decisions never ships",
+    "narratives": {
+      "Description": "Managed card cites ADR-003 but docs/decisions never ships in deposit. Prefer-A Bound 6050318913.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4892",
+      "Overview": "## Bound remedy (#4892 Prefer-A 6050318913)\n\n1. Deposit ADR-003 via content/docs flatten.\n2. Update Continuity cites (agents-entry, swarm, security).\n3. Refuse root-docs carve-out.\n4. Leave #3940 tracker; cross-link only.\n\nconflict_group: adr-003-managed-card-deposit-cite",
+      "Labels": "status:child, design-critique:ingest-ready, core-capabilities, promise:continuity"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Deposit ADR-003 via content/docs flatten",
+        "narrative": {
+          "Acceptance": "Place ADR-003 on deposit-reachable path using content/docs -> pack docs -> consumer .deft/core/docs flatten. Include accepted bytes at content/docs/decisions/ADR-003-a2a-nuclear-family-topology.md. Wire deposit-required-paths / link rewrite. Keep maintainer docs/decisions as SoT or document dual-path. No root-docs prepack carve-out."
+        },
+        "x-directive/artifact_path": "content/docs/decisions/ADR-003-a2a-nuclear-family-topology.md"
+      },
+      {
+        "id": "clause.2",
+        "title": "Update Continuity cites to deposit-reachable path",
+        "narrative": {
+          "Acceptance": "Update shipped Continuity cites naming ADR-003 for consumers: agents-entry managed card Depth line, content/swarm/swarm.md, content/meta/security.md. Point at deposit-reachable path after agents:refresh / pack projection."
+        },
+        "x-directive/artifact_path": "content/templates/agents-entry.md"
+      },
+      {
+        "id": "clause.3",
+        "title": "Refuse docs/decisions root-docs prepack carve-out",
+        "narrative": {
+          "Acceptance": "Refuse a docs/decisions root-docs prepack carve-out (same Reject as #4891 Prefer-A Bound)."
+        },
+        "x-directive/artifact_path": "CHANGELOG.md"
+      },
+      {
+        "id": "clause.4",
+        "title": "Leave #3940 tracker; cross-link only",
+        "narrative": {
+          "Acceptance": "Leave parent #3940 as tracker. Cross-link only to #3847 and #4890; do not absorb those scopes."
+        },
+        "x-directive/artifact_path": "CHANGELOG.md"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4892",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4892: Managed card cites ADR-003 but docs/decisions never ships"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "Managed card cites ADR-003 but docs/decisions never ships",
+        "Place ADR-003 on a deposit-reachable path using the existing content/docs/ -> pack docs/ -> consumer .deft/core/docs/ flatten (include accepted bytes at content/docs/decisions/ADR-003-a2a-nuclear-family-topology.md or an equivalent content-tree path).",
+        "Add the consumer path to deposit-required-paths / link rewrite as needed so the packed deposit contains the file.",
+        "Keep maintainer docs/decisions/ADR-003 as heavyweight SoT or document the dual-path rule; do not invent a root-docs prepack carve-out.",
+        "relieves: P1 relieves: P2 2.",
+        "Update shipped Continuity cites that name ADR-003 for consumers — at minimum content/templates/agents-entry.md (managed card Depth line), content/swarm/swarm.md, and content/meta/security.md — so they point at the deposit-reachable path after agents:refresh / pack projection.",
+        "relieves: P1 3.",
+        "Refuse a docs/decisions/ root-docs prepack carve-out (same Reject as #4891 Prefer-A Bound).",
+        "Leave parent #3940 as tracker.",
+        "Cross-link only to #3847 (design-critique ADR-005/006 packed-link class) and #4890 (residual census); do not absorb those scopes into this Bound.",
+        "relieves: P3"
+      ],
+      "admitted_source_sentences": [
+        "Place ADR-003 on a deposit-reachable path using the existing content/docs/ -> pack docs/ -> consumer .deft/core/docs/ flatten (include accepted bytes at content/docs/decisions/ADR-003-a2a-nuclear-family-topology.md or an equivalent content-tree path).",
+        "Add the consumer path to deposit-required-paths / link rewrite as needed so the packed deposit contains the file.",
+        "Keep maintainer docs/decisions/ADR-003 as heavyweight SoT or document the dual-path rule; do not invent a root-docs prepack carve-out.",
+        "relieves: P1 relieves: P2 2.",
+        "Update shipped Continuity cites that name ADR-003 for consumers — at minimum content/templates/agents-entry.md (managed card Depth line), content/swarm/swarm.md, and content/meta/security.md — so they point at the deposit-reachable path after agents:refresh / pack projection.",
+        "relieves: P1 3.",
+        "Refuse a docs/decisions/ root-docs prepack carve-out (same Reject as #4891 Prefer-A Bound).",
+        "Leave parent #3940 as tracker.",
+        "Cross-link only to #3847 (design-critique ADR-005/006 packed-link class) and #4890 (residual census); do not absorb those scopes into this Bound.",
+        "relieves: P3"
+      ],
+      "admitted_source_digest": "d0345f5018ab433bf09cb2a88cc0e9949de673a5248c7e181195703333a0f6c4",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Place ADR-003 on deposit-reachable path using content/docs -> pack docs -> consumer .deft/core/docs flatten. Include accepted bytes at content/docs/decisions/ADR-003-a2a-nuclear-family-topology.md. Wire deposit-required-paths / link rewrite. Keep maintainer docs/decisions as SoT or document dual-path. No root-docs prepack carve-out.",
+          "artifact_path": "content/docs/decisions/ADR-003-a2a-nuclear-family-topology.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Update shipped Continuity cites naming ADR-003 for consumers: agents-entry managed card Depth line, content/swarm/swarm.md, content/meta/security.md. Point at deposit-reachable path after agents:refresh / pack projection.",
+          "artifact_path": "content/templates/agents-entry.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Refuse a docs/decisions root-docs prepack carve-out (same Reject as #4891 Prefer-A Bound).",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Leave parent #3940 as tracker. Cross-link only to #3847 and #4890; do not absorb those scopes.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5540583613,
+        "origin": "deftai/directive#4892",
+        "id": "github.issue.5540583613"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "f3ee267d55283638f48b368e593b26a97ac04c13d18f9c3aad7ddf092f5c3227"
+      },
+      "swarm": {
+        "file_scope": [
+          "CHANGELOG.md",
+          "Agents.md",
+          "content/docs/decisions/ADR-003-a2a-nuclear-family-topology.md",
+          "content/templates/agents-entry.md",
+          "content/swarm/swarm.md",
+          "content/meta/security.md",
+          "packages/core/src/content-contracts/skills/agents_entry_contract.test.ts",
+          "content/packs/swarm-spec/swarm-spec-pack-0.1.json",
+          "packages/core/src/deposit/stage-content-pack.test.ts",
+          "content/contracts/deposit-required-paths.json"
+        ],
+        "Traces": [
+          "#4892"
+        ]
+      }
+    },
+    "id": "github.issue.5540583613"
+  },
+  "approvedRepos": [
+    "deftai/directive"
+  ],
+  "unknownPaths": [
+    "items[].x-directive/artifact_path",
+    "metadata.intended_placement",
+    "metadata.swarm.Traces",
+    "metadata.x-directive/admitted-target-digest",
+    "metadata.x-directive/plan-id"
+  ]
+}
