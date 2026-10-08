@@ -89,5 +89,27 @@ describe("npm_publish_workflow (#5365 Prefer-A Bound)", () => {
     expect(prepare).toContain("merge-base --is-ancestor");
     expect(prepare).toContain("rev-list -n 1");
     expect(code).toContain("workflow_dispatch");
+    expect(prepare).toMatch(
+      /workflow_dispatch must run from refs\/heads\/master[\s\S]*?exit 1/,
+    );
+    expect(prepare).toMatch(
+      /is not on origin\/master ancestry[\s\S]*?exit 1/,
+    );
+  });
+
+  it("maps numeric prerelease identifiers to dist-tag next", () => {
+    expect(prepare).toContain('DIST_TAG=next');
+    expect(prepare).toContain('[[ "${PRE}" =~ ^[0-9]+$ ]]');
+    expect(prepare).not.toContain('DIST_TAG="${BASH_REMATCH[1]}"');
+  });
+
+  it("runs post-publish from prepare-built runner artifact without source_sha checkout", () => {
+    expect(prepare).toContain("post-publish-runner-");
+    expect(postPublish).toContain("post-publish-runner-");
+    expect(postPublish).toContain("download-artifact");
+    expect(postPublish).toContain("--post-publish-two-pass");
+    expect(postPublish).not.toMatch(/ref:\s*\$\{\{\s*needs\.prepare\.outputs\.source_sha\s*\}\}/);
+    expect(postPublish).not.toMatch(/pnpm install/);
+    expect(postPublish).not.toMatch(/pnpm -w run build/);
   });
 });

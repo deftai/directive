@@ -84,7 +84,13 @@ jobs:
           if [[ "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             DIST_TAG=latest
           elif [[ "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+-([0-9A-Za-z]+) ]]; then
-            DIST_TAG="${BASH_REMATCH[1]}"
+            PRE="${BASH_REMATCH[1]}"
+            # npm rejects dist-tags that are valid version ranges (e.g. "1" from v1.2.3-1).
+            if [[ "${PRE}" =~ ^[0-9]+$ ]]; then
+              DIST_TAG=next
+            else
+              DIST_TAG="${PRE}"
+            fi
           else
             DIST_TAG=next
           fi
@@ -187,6 +193,18 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      # Post-publish runner: built at the peeled tag SHA in this job so the
+      # downstream fixture never checkouts source_sha + pnpm install (CodeQL
+      # actions/cache-poisoning/poisonable-step under workflow_dispatch).
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: post-publish-runner-${{ steps.identity.outputs.version }}
+          path: |
+            packages/core/package.json
+            packages/core/dist
+          if-no-files-found: error
+          retention-days: 7
+
   publish:
     name: Publish @deftai/directive* to npm
     needs: prepare
@@ -285,28 +303,23 @@ jobs:
     env:
       VERSION: ${{ needs.prepare.outputs.version }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ needs.prepare.outputs.source_sha }}
-
+      # Bound-remedy 4 (#4271 / #4398 / #5365): after the four packages publish,
+      # run the two-pass fixture from a non-OIDC job. Do not checkout
+      # needs.prepare.outputs.source_sha then pnpm install/build — that is
+      # CodeQL actions/cache-poisoning/poisonable-step under workflow_dispatch
+      # default-branch context. Consume the prepare-built runner artifact only.
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version-file: .nvmrc
+          node-version: 24
 
-      - name: Enable corepack (pnpm)
-        run: corepack enable
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: post-publish-runner-${{ needs.prepare.outputs.version }}
+          path: .
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build workspace
-        run: pnpm -w run build
-
-      # Bound-remedy 4 (#4271 / #4398 / #5365): after the four packages publish,
-      # run the two-pass fixture from a non-OIDC job. Do not call
-      # rehearseNpmInstallAndRun. Publish-step failure still fails the workflow.
       - name: Post-publish two-pass fixture (#4271)
         shell: bash
         run: |
           set -euo pipefail
+          test -f packages/core/dist/release-e2e/npm-ops.js
           node ./packages/core/dist/release-e2e/npm-ops.js --post-publish-two-pass "${VERSION}"
