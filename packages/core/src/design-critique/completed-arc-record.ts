@@ -376,7 +376,7 @@ function operativeFindingClasses(body: string): Set<string> {
   for (const match of body.matchAll(re)) {
     const token = match[1];
     if (typeof token !== "string" || token.length === 0) continue;
-    if (classifyPosition(body, match.index ?? 0) !== null) continue;
+    if (classifyPosition(body, operativeLineStartOffset(match, token)) !== null) continue;
     classes.add(token.toLowerCase());
   }
   return classes;
@@ -463,30 +463,58 @@ export function commentsInCitedLeanArc(
   return comments.filter((comment) => comment.id > priorLeanId && comment.id < nextLeanAfter);
 }
 
+const PANEL_DEPOSIT_TOKEN_RE = /(?:^|\n)\s*panel-deposit\b/gi;
 const PANEL_SEAT_LINE_RE = /(?:^|\n)\s*seat:\s*(\S+)/gi;
-const PANEL_FAMILIES_FIELD_RE = /(?:^|\n)\s*families:\s*([^\n]+)/i;
-const PANEL_SIBLINGS_COUNT_RE = /(?:^|\n)\s*siblings:\s*(\d+)\b/i;
+const PANEL_FAMILIES_FIELD_RE = /(?:^|\n)\s*families:\s*([^\n]+)/gi;
+const PANEL_SIBLINGS_COUNT_RE = /(?:^|\n)\s*siblings:\s*(\d+)\b/gi;
 
-/** Expected Round-1 seat count from the latest panel-deposit in the arc. */
+/** True when an operative panel-deposit marker / siblings field is outside examples. */
+function hasOperativePanelDeposit(body: string): boolean {
+  if (!isPanelDepositBody(body)) return false;
+  const depositRe = new RegExp(PANEL_DEPOSIT_TOKEN_RE.source, "gi");
+  for (const match of body.matchAll(depositRe)) {
+    if (classifyPosition(body, operativeLineStartOffset(match, "panel-deposit")) === null) {
+      return true;
+    }
+  }
+  const siblingsRe = new RegExp(PANEL_SIBLINGS_COUNT_RE.source, "gi");
+  for (const match of body.matchAll(siblingsRe)) {
+    if (classifyPosition(body, operativeLineStartOffset(match, "siblings:")) === null) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Expected Round-1 seat count from the latest operative panel-deposit in the arc. */
 function expectedRound1SeatCount(arcComments: readonly ThreadComment[]): number {
   let max = 0;
   for (const comment of arcComments) {
-    if (!isPanelDepositBody(comment.body)) continue;
+    const body = comment.body;
+    if (!hasOperativePanelDeposit(body)) continue;
     const seatIds = new Set<string>();
     const seatRe = new RegExp(PANEL_SEAT_LINE_RE.source, "gi");
-    for (const match of comment.body.matchAll(seatRe)) {
+    for (const match of body.matchAll(seatRe)) {
+      if (classifyPosition(body, operativeLineStartOffset(match, "seat:")) !== null) continue;
       const id = match[1]?.trim();
       if (id) seatIds.add(id);
     }
     if (seatIds.size === 0) {
-      const familiesRaw = comment.body.match(PANEL_FAMILIES_FIELD_RE)?.[1] ?? "";
-      for (const part of familiesRaw.split(",")) {
-        const id = part.trim();
-        if (id) seatIds.add(id);
+      const familiesRe = new RegExp(PANEL_FAMILIES_FIELD_RE.source, "gi");
+      for (const match of body.matchAll(familiesRe)) {
+        if (classifyPosition(body, operativeLineStartOffset(match, "families:")) !== null) continue;
+        for (const part of (match[1] ?? "").split(",")) {
+          const id = part.trim();
+          if (id) seatIds.add(id);
+        }
       }
     }
-    const siblingsRaw = comment.body.match(PANEL_SIBLINGS_COUNT_RE)?.[1];
-    const siblings = siblingsRaw !== undefined ? Number.parseInt(siblingsRaw, 10) : Number.NaN;
+    let siblings = Number.NaN;
+    const siblingsRe = new RegExp(PANEL_SIBLINGS_COUNT_RE.source, "gi");
+    for (const match of body.matchAll(siblingsRe)) {
+      if (classifyPosition(body, operativeLineStartOffset(match, "siblings:")) !== null) continue;
+      siblings = Number.parseInt(match[1] ?? "", 10);
+    }
     const n = seatIds.size > 0 ? seatIds.size : Number.isFinite(siblings) ? siblings : 0;
     if (n > max) max = n;
   }

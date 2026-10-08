@@ -2161,14 +2161,15 @@ describe("ship-ready LGTM / move-forward completion (#5488)", () => {
     expect(
       classifyLgtmSeatCensus("clean-result: yes\nNo blocks-the-design findings were raised.\n"),
     ).toBe("clean-result");
+    expect(classifyLgtmSeatCensus("role: critic\n```\n### footnote: example only\n```\n")).toBe(
+      "stub",
+    );
     expect(
-      classifyLgtmSeatCensus("role: critic\n```\n### footnote: example only\n```\n"),
-    ).toBe("stub");
-    expect(
-      classifyLgtmSeatCensus(
-        "clean-result: yes\n```\nblocks-the-design: fenced example\n```\n",
-      ),
+      classifyLgtmSeatCensus("clean-result: yes\n```\nblocks-the-design: fenced example\n```\n"),
     ).toBe("clean-result");
+    expect(classifyLgtmSeatCensus("> prior quote\n\n### footnote: wording\n")).toBe(
+      "footnote-only",
+    );
   });
 
   it("scopes LGTM admission to the cited lean arc", () => {
@@ -2279,6 +2280,36 @@ describe("ship-ready LGTM / move-forward completion (#5488)", () => {
         citedLean: leanShip,
       }),
     ).toMatchObject({ ok: false, reason: "stub-or-blank" });
+  });
+
+  it("ignores fenced panel-deposit examples when counting expected seats", () => {
+    const leanWithExample: ThreadComment = {
+      id: LEAN_ID,
+      body: withPlainEnglish(
+        "**Lean:** Prefer-A Bound.\n\nmateriality-bar: ship-ready\nmove-forward: yes\n\n" +
+          "```\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 1\n" +
+          "families: grok, claude, codex\n```\n",
+      ),
+    };
+    const oneCritic: ThreadComment = {
+      id: CRITIC_ID,
+      body: "model: grok\nrole: critic\n\nclean-result: yes\n",
+    };
+    const moveForward: ThreadComment = {
+      id: SYNTHESIS_ID,
+      body: withPlainEnglish(
+        "model: grok-4.6\nrole: parent\n\n" +
+          `${MOVE_FORWARD_SYNTHESIS_LEAD}\n\n` +
+          `successor lean ${LEAN_ID}\n`,
+      ),
+    };
+    expect(
+      evaluateMoveForwardThreadAdmission({
+        comments: [oneCritic, leanWithExample, moveForward],
+        synthesis: moveForward,
+        citedLean: leanWithExample,
+      }),
+    ).toMatchObject({ ok: true });
   });
 
   it("completes evaluateCompletedArcRecord for LGTM-complete thread", () => {
