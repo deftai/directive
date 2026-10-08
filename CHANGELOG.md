@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Leftover-complete #5492 after product #5510.
 - Leftover-complete #5478 after product #5509.
 - Keep active #4961 Path B activation (membership fence).
+- Keep active Path B activation after rebase (PR #5495).
 - Leftover-complete #5488 after product #5498.
 
 ### Added

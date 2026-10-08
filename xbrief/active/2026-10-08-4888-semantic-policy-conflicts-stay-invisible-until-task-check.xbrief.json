@@ -1,0 +1,202 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4888",
+    "updated": "2026-10-08T12:18:11Z"
+  },
+  "plan": {
+    "title": "Semantic policy conflicts stay invisible until task check",
+    "status": "running",
+    "narratives": {
+      "Description": "Semantic policy conflicts stay invisible until task check. Prefer-A Bound 6050812821.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4888",
+      "Overview": "## Bound remedy (#4888 Prefer-A 6050812821)\n\n1. Widen scm three-axis guidance.\n2. Extend evaluateSemanticGreen non-cascade validation.\n3. Lessons pack entry.\n4. Keep #4889 out; no Python SoT.\n5. Disclose #633 forge supersession.\n\nconflict_group: mergeable-state-semantic-policy-invisibility",
+      "Labels": "status:child, design-critique:ingest-ready, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Widen scm cascade stale-base guidance to three-axis model",
+        "status": "pending",
+        "x-directive/artifact_path": "content/scm/github.md",
+        "narrative": {
+          "Acceptance": "Generalize content/scm/github.md #1369/#2385 cascade stale-base caveat beyond --cascade with three-axis model (textual/behavioral/policy). Operative MUST for conflict-resolve/behind-rebase/pre-push in scm + deft-directive-pre-pr. AGENTS/agents-entry pointer + agents:refresh. Frame #4883 CLEAN as axis-1 necessity."
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Extend evaluateSemanticGreen for non-cascade candidate validation",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/pr-wait-mergeable/semantic-green.ts",
+        "narrative": {
+          "Acceptance": "Extend evaluateSemanticGreen stale-base limb so non-cascade routes can require candidate validation keyed to (pr_head_sha, target_head_sha). Additive; do not weaken --cascade absolute refusal. Machine-checkable attestation; fail closed names probe. Primary vehicle TypeScript."
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Land lessons pack entry for three-axis semantic policy",
+        "status": "pending",
+        "x-directive/artifact_path": "content/packs/lessons/lessons-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "Land lessons entry via lessons pack source with ## Title (YYYY-MM) convention + Canonical-encoding line pointing at probe and scm rule, plus content-contract test."
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Keep #4889 out; withdraw Python SoT shape",
+        "status": "pending",
+        "x-directive/artifact_path": "CHANGELOG.md",
+        "narrative": {
+          "Acceptance": "Keep #4889 strictly out. Withdraw #964 optional scripts/check_pr_semantic_drift.py shape; implementers must not satisfy with rejected Python SoT."
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Disclose #633 forge supersession for local probe",
+        "status": "pending",
+        "x-directive/artifact_path": "content/scm/github.md",
+        "narrative": {
+          "Acceptance": "Name #633/#1517 up-to-date-required + Merge gate aggregator as superseding forge-layer control. Scope local probe as interim; state retirement condition. Reject mutating GitHub mergeable_state."
+        }
+      }
+    ],
+    "tags": [
+      "status:child",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4888",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4888: Semantic policy conflicts stay invisible until task check"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "no shell acceptance commands stated in task text; floor until agent derives AC (#3284 ladder)",
+      "sentences": [
+        "Semantic policy conflicts stay invisible until task check",
+        "Parent: #964 ## Finding mergeable_state only reports textual conflicts, so a policy gate that lands after the pull request opens stays invisible until task check runs on the merge result.",
+        "Split out of #964 so the parent stays a tracker and this failure can be triaged on its own.",
+        "A fix for the other findings on that report would not close this one.",
+        "Promise: GATES",
+        "Priority: High (audit scale S2)",
+        "Source: #964"
+      ],
+      "admitted_source_sentences": [
+        "Parent: #964 ## Finding mergeable_state only reports textual conflicts, so a policy gate that lands after the pull request opens stays invisible until task check runs on the merge result.",
+        "Split out of #964 so the parent stays a tracker and this failure can be triaged on its own.",
+        "A fix for the other findings on that report would not close this one.",
+        "Promise: GATES",
+        "Priority: High (audit scale S2)",
+        "Source: #964"
+      ],
+      "admitted_source_digest": "356017d0b91a1234bc42f5d8dea3f8a34443732c85647e29d306f1bb494e627b",
+      "quality_notice": "plan.items is empty after body harvest (checkbox list, Acceptance Criteria heading, or whole-line Requirements: colon-label). Add structured list items on the issue body before promote/activate; bare prose stays under #4374. Example harvestable shape: a `## Acceptance Criteria` heading with a list item such as `- [ ] ship the fix` (fenced command blocks alone are not harvested).",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Generalize content/scm/github.md #1369/#2385 cascade stale-base caveat beyond --cascade with three-axis model (textual/behavioral/policy). Operative MUST for conflict-resolve/behind-rebase/pre-push in scm + deft-directive-pre-pr. AGENTS/agents-entry pointer + agents:refresh. Frame #4883 CLEAN as axis-1 necessity.",
+          "artifact_path": "content/scm/github.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Extend evaluateSemanticGreen stale-base limb so non-cascade routes can require candidate validation keyed to (pr_head_sha, target_head_sha). Additive; do not weaken --cascade absolute refusal. Machine-checkable attestation; fail closed names probe. Primary vehicle TypeScript.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/semantic-green.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Land lessons entry via lessons pack source with ## Title (YYYY-MM) convention + Canonical-encoding line pointing at probe and scm rule, plus content-contract test.",
+          "artifact_path": "content/packs/lessons/lessons-pack-0.1.json",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Keep #4889 strictly out. Withdraw #964 optional scripts/check_pr_semantic_drift.py shape; implementers must not satisfy with rejected Python SoT.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Name #633/#1517 up-to-date-required + Merge gate aggregator as superseding forge-layer control. Scope local probe as interim; state retirement condition. Reject mutating GitHub mergeable_state.",
+          "artifact_path": "content/scm/github.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "CHANGELOG.md",
+          "AGENTS.md",
+          "content/scm/github.md",
+          "content/templates/agents-entry.md",
+          "content/skills/deft-directive-pre-pr/SKILL.md",
+          "content/packs/lessons/lessons-pack-0.1.json",
+          "packages/core/src/pr-wait-mergeable/semantic-green.ts",
+          "packages/core/src/pr-wait-mergeable/semantic-green.test.ts",
+          "content/packs/skills/skills-pack-0.1.json",
+          "meta/lessons.md"
+        ],
+        "module_boundary": "Path B activate #4888",
+        "cohesion_exemption": "CHANGELOG.md shared release notes; Path B activation Keep active bullet only."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5540579955,
+        "origin": "deftai/directive#4888",
+        "id": "github.issue.5540579955"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "0570c935bc09218f9e093fca35ab7f5213c78d4b82fd643106105948b1d1b4d4"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "mergeable-state-semantic-policy-invisibility",
+        "expected_outputs": [
+          "Tracking PR for #4888 Prefer-A Bound semantic-green non-cascade + scm three-axis"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/pr-wait-mergeable/semantic-green.test.ts"
+        ],
+        "file_scope": [
+          "CHANGELOG.md",
+          "AGENTS.md",
+          "content/scm/github.md",
+          "content/templates/agents-entry.md",
+          "content/skills/deft-directive-pre-pr/SKILL.md",
+          "content/packs/lessons/lessons-pack-0.1.json",
+          "packages/core/src/pr-wait-mergeable/semantic-green.ts",
+          "packages/core/src/pr-wait-mergeable/semantic-green.test.ts",
+          "content/packs/skills/skills-pack-0.1.json",
+          "meta/lessons.md"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#4888"
+        ],
+        "parallel_safe": true
+      }
+    },
+    "id": "github.issue.5540579955",
+    "updated": "2026-10-08T12:18:11Z"
+  }
+}
