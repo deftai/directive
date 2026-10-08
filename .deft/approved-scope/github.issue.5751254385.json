@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-10-07-5466-bugdesign-critique-bare-arc-spend-recommend-first-still-asks.xbrief.json",
+  "planId": "github.issue.5751254385",
+  "approvedAt": "2026-10-08T00:31:30Z",
+  "fileScope": [
+    "CHANGELOG.md",
+    "content/commands.md",
+    "content/contracts/design-critique.md",
+    "content/packs/skills/skills-pack-0.1.json",
+    "content/skills/deft-directive-design-critique/SKILL.md",
+    "packages/cli/src/cli-router/route-argv.ts",
+    "packages/cli/src/design-critique-spend-resolve.test.ts",
+    "packages/cli/src/design-critique-spend-resolve.ts",
+    "packages/cli/src/dispatch.ts",
+    "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+    "packages/core/src/design-critique/spend.test.ts",
+    "packages/core/src/design-critique/spend.ts",
+    "packages/core/src/hooks/dispatcher-plan-choice.test.ts",
+    "packages/core/src/hooks/dispatcher-plan-choice.ts",
+    "packages/core/src/hooks/dispatcher.ts",
+    "packages/core/src/hooks/tools.test.ts",
+    "packages/core/src/hooks/tools.ts"
+  ],
+  "fileScopeDigest": "9504c19ce4f48ad1f8c63b2599c0e30c4b23b60ae7aad5bd6a5ffafe24a1591a",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-10-08T00:31:30Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "41e363d251fb342efbbbdad6a848ecbb895878624cea3d03fb84550f56419745",
+  "digestAlgo": "intent-extract-v1"
+}
