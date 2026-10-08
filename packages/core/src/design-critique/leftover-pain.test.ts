@@ -1161,7 +1161,7 @@ describe("closed-findings P1 honesty (#5489 Prefer-A Bound limb 9)", () => {
   });
 
   it("accepts P2–P4 relief with operator-deferred P1 #5493", () => {
-    expect(CLOSED_FINDINGS_ADJACENT_POLISH_LEFTOVER_ISSUE).toBe(5493);
+    expect(CLOSED_FINDINGS_ADJACENT_POLISH_LEFTOVER_ISSUE).toBe("5493");
     expect(
       evaluateClosedFindingsP1Honesty({
         relievesPainIds: ["P2", "P3", "P4"],

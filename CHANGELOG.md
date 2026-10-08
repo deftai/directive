@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Design-critique later-arc closed-findings (#5489).** Operative `closed-findings:` with composite identity, explicit `restates:` demotion that composes with the disposition denominator, and evidence-bearing reopen. Adjacent-polish hydra remainder deferred to #5493. Tracking #5489. Refs Prefer-A Bound 6065006497.
+- **Design-critique later-arc closed-findings (#5489).** Later arcs on the same ticket no longer re-litigate findings the parent already closed: critics demote authorized restatements, and reopen needs evidence. Adjacent-polish hydra remainder deferred to #5493. Tracking #5489. Refs Prefer-A Bound 6065006497.
 
 ### Fixed
 - Approved-scope mint for #5492 Prefer-A Bound Path B file_scope (skills-pack).

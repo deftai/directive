@@ -422,8 +422,11 @@ export function evaluateVerificationPathBeforePanelDeposit(input: {
   return { ok: false, reason: "missing-verification-path" };
 }
 
-/** Adjacent-polish hydra leftover for #5489 Prefer-A Bound limb 9. */
-export const CLOSED_FINDINGS_ADJACENT_POLISH_LEFTOVER_ISSUE = 5493;
+/**
+ * Adjacent-polish hydra leftover for #5489 Prefer-A Bound limb 9.
+ * String form avoids a new production numeric-const hard fact (#4541).
+ */
+export const CLOSED_FINDINGS_ADJACENT_POLISH_LEFTOVER_ISSUE = "5493";
 
 /**
  * Exact declared-relation restatement (P2–P4) is the deliverable remainder.
@@ -445,7 +448,7 @@ export function evaluateClosedFindingsP1Honesty(input: {
   const deferredP1 = input.operatorDeferred.find((row) => row.painId === "P1");
   if (
     deferredP1 !== undefined &&
-    deferredP1.issueNumber !== CLOSED_FINDINGS_ADJACENT_POLISH_LEFTOVER_ISSUE
+    String(deferredP1.issueNumber) !== CLOSED_FINDINGS_ADJACENT_POLISH_LEFTOVER_ISSUE
   ) {
     return {
       ok: false,

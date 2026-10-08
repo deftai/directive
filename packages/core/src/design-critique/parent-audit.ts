@@ -342,8 +342,9 @@ export type ClosedFindingsResidualRefuse = {
 };
 
 const CLOSED_FINDINGS_LINE_RE = /(?:^|\n)[ \t]*closed-findings:[ \t]*([^\n]*)/gi;
+// End-of-token after disposition so accepted-pending is not accepted.
 const CLOSED_FINDING_ENTRY_RE =
-  /(\d{8,})\s*\/\s*([A-Za-z0-9._-]+)\s+(accepted|deferred|skipped|fixed-in-body)(?:\s+"([^"]*)")?/gi;
+  /(\d{8,})\s*\/\s*([A-Za-z0-9._-]+)\s+(accepted|deferred|skipped|fixed-in-body)(?![A-Za-z0-9_-])(?:\s+"([^"]*)")?/gi;
 // End-of-token lookahead (not \b): trailing -/. are valid findingId chars and
 // would otherwise backtrack off the complete token before a word boundary.
 const RESTATES_RE =
