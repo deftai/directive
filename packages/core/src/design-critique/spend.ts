@@ -329,11 +329,14 @@ export type ArcSpendSessionOpts = {
   readonly env?: NodeJS.ProcessEnv;
 };
 
-/** Sanitize session id for scratch path segments (no separators / traversal). */
+/**
+ * Sanitize session id for scratch path segments. Separators / traversal fall
+ * back to no-session (returned-failure shape; no throw).
+ */
 export function sanitizeArcSpendSessionId(sessionId: string | undefined): string {
   const raw = (sessionId ?? "no-session").trim();
   if (raw.includes("..") || /[\\/]/.test(raw)) {
-    throw new Error("arc-spend sessionId rejected: separators or traversal");
+    return "no-session";
   }
   const safe = raw.replace(/[^A-Za-z0-9._-]+/g, "_").slice(0, 80);
   return safe.length > 0 ? safe : "no-session";
