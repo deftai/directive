@@ -344,11 +344,7 @@ export function spendRecommendRequiredMessage(toolName: string): string {
  */
 export function resolveArcSpendSessionForHook(input: HookDispatchInput): string {
   const fromEnv = resolveArcSpendSessionId({ env: input.environ });
-  const identity = resolveHookHostIdentity(
-    input.host,
-    input.payload,
-    input.environ ?? process.env,
-  );
+  const identity = resolveHookHostIdentity(input.host, input.payload, input.environ ?? process.env);
   const fromPayload =
     identity.status === "ok" ? sanitizeArcSpendSessionId(identity.rawSessionId) : null;
   const keyed: string[] = [];
@@ -365,7 +361,7 @@ export function resolveArcSpendSessionForHook(input: HookDispatchInput): string 
     });
     if (state !== null) return candidate;
   }
-  return keyed[0]!;
+  return keyed[0] ?? "no-session";
 }
 
 /**
