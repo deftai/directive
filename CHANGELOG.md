@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Keep active #4961 Path B activation (membership fence).
 - Keep active Path B activation after rebase (PR #5495).
 - Leftover-complete #5488 after product #5498.
+- Cohort PR #5494 Unreleased note after rebase onto master.
 
 ### Added
 - **Design-critique later-arc closed-findings (#5489).** Later arcs on the same ticket no longer re-litigate findings the parent already closed: critics demote authorized restatements, and reopen needs evidence. Adjacent-polish hydra remainder deferred to #5493. Tracking #5489. Refs Prefer-A Bound 6065006497.
