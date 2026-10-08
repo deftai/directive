@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- docs(design-critique,windows): name launcher-dependent CreateProcess/cmd argv ceilings + pointer-required Claude critic spawn; pong proves probe only; keep #5478 adjacent (#5492).
 - chore: leftover-complete #5465 after Tracking PR #5468 (completed xBRIEF + #3675 Prefer-A residual).
 
 ### Fixed

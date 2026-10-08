@@ -1210,6 +1210,39 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(ceiling).toContain("Design-critique dispatch");
   });
 
+  it("locks Windows Claude argv ceiling + pong-only-proves-probe playbook limbs (#5492)", () => {
+    const dispatch = markdownSection(
+      readText("docs/grok-build-subscription-setup.md"),
+      "## Design-critique dispatch",
+    );
+    expect(dispatch).toContain("launcher-dependent");
+    expect(dispatch).toContain("cmd.exe/batch");
+    expect(dispatch).toContain("8,191");
+    expect(dispatch).toContain("CreateProcessW");
+    expect(dispatch).toContain("32,767");
+    expect(dispatch).toContain("terminating null");
+    expect(dispatch).toContain('sole "CreateProcess ~8191"');
+    expect(dispatch).toContain("Do **not** treat a sole");
+    expect(dispatch).toContain("pong-ok proves only");
+    expect(dispatch).toContain("long-prompt transport");
+    expect(dispatch).toContain("envelope read/completion");
+    expect(dispatch).toContain("#5478");
+    expect(dispatch).not.toMatch(/(?:^|[^.])CreateProcess\s+~?\s*8191(?:\s|$)/m);
+    const ceiling = markdownSection(readText(CONTRACT), "### Envelope and ceiling");
+    expect(ceiling).toContain("Windows launcher-dependent command-line limits");
+    expect(ceiling).toContain("pong-only-proves-probe");
+    expect(ceiling).toContain("#5492");
+    expect(ceiling).toContain("#5478");
+    expect(ceiling).toContain("do not collapse with argv empty-exit");
+    const skill = readText(SKILL_REL);
+    expect(skill).toContain("#5478");
+    expect(skill).toContain("pong-only-proves-probe");
+    expect(skill).toContain("do not collapse with argv empty-exit");
+    expect(skill.split("\n").length).toBeLessThanOrEqual(MAX_SKILL_LINES);
+    expect(skill).not.toContain("CreateProcessW");
+    expect(skill).not.toContain("8,191");
+  });
+
   it("locks Grok critic-seat count-select and CLI recovery on the playbook (#4391)", () => {
     const dispatch = markdownSection(
       readText("docs/grok-build-subscription-setup.md"),

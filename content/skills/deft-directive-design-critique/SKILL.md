@@ -69,7 +69,7 @@ After same-round siblings are posted, the parent posts the successor lean; the o
 ⊗ Copy the variant table, synthesis rules, or other contract bodies into this skill.
 
 Seat families and Grok Build launcher: Envelope and ceiling. Grok critic recovery: Design-critique dispatch (dest-rooted grok --cwd --prompt-file after recorded native deny). Native admit without skip-class is not a critic.
-Claude Critic-spawn hygiene + progress (#5478): playbook Critic-spawn hygiene + progress; #5492 adjacent (argv ceiling). Containment first; restoration needs later successful pointer-envelope completion.
+Windows Claude argv/pointer + pong-only-proves-probe: Design-critique dispatch Critic spawn (#5492). Adjacent post-pointer hang: #5478 (do not collapse with argv empty-exit).
 Dispatch-composition miss: offer or file a prevention issue.
 
 ## EXIT

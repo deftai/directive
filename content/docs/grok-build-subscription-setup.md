@@ -173,6 +173,14 @@ Dest is per-arc (`ensureArcDest`) at origin/<default> after fetch. Not primary. 
 
 **Claude** (cwd = dest). Unset Process-scope `ANTHROPIC_API_KEY` and `CLAUDE_API_KEY`.
 
+On every host, write the critic envelope under the arc dest and pass only a short pointer prompt (`claude -p "Read and follow <envelope-path>"`). Do not put the full envelope on argv or stdin.
+
+Windows command-line limits are **launcher-dependent** whole-command ceilings (not a prompt-only allowance): cmd.exe/batch paths have an 8,191-character limit; CreateProcessW permits 32,767 characters including the terminating null. Do **not** treat a sole "CreateProcess ~8191" string as the OS threshold.
+
+Launch-probe pong-ok proves only that the probe invocation under critic argv succeeded. It proves neither long-prompt transport nor envelope read/completion.
+
+Adjacent class (do not collapse): post-pointer 0-byte hang with CPU after a short pointer is already in use — [#5478](https://github.com/deftai/directive/issues/5478). Empty immediate exit from a full-envelope `-p` is this argv/command-line length class.
+
 ```text
 claude -p "Read and follow <envelope-path>" --model opus --permission-mode bypassPermissions --output-format text
 ```
