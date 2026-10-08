@@ -2370,6 +2370,35 @@ describe("ship-ready LGTM / move-forward completion (#5488)", () => {
     ).toMatchObject({ ok: false, reason: "blocker-present" });
   });
 
+  it("counts disagree take after quoted context as unresolved blocker", () => {
+    const cleanCritic: ThreadComment = {
+      id: CRITIC_ID,
+      body: "role: critic\nclean-result: yes\n",
+    };
+    const leanShip: ThreadComment = {
+      id: LEAN_ID,
+      body: withPlainEnglish(
+        "**Lean:** Prefer-A Bound.\n\nmateriality-bar: ship-ready\nmove-forward: yes\n" +
+          "### blocks-the-design: hole\n> prior context\n\ndisagree\n",
+      ),
+    };
+    const moveForward: ThreadComment = {
+      id: SYNTHESIS_ID,
+      body: withPlainEnglish(
+        "model: grok-4.6\nrole: parent\n\n" +
+          `${MOVE_FORWARD_SYNTHESIS_LEAD}\n\n` +
+          `successor lean ${LEAN_ID}\n`,
+      ),
+    };
+    expect(
+      evaluateMoveForwardThreadAdmission({
+        comments: [cleanCritic, leanShip, moveForward],
+        synthesis: moveForward,
+        citedLean: leanShip,
+      }),
+    ).toMatchObject({ ok: false, reason: "unresolved-blocker" });
+  });
+
   it("does not treat explanatory prose mentions as accepted blockers", () => {
     const cleanCritic: ThreadComment = {
       id: CRITIC_ID,

@@ -556,7 +556,20 @@ const UNRESOLVED_BLOCKER_TAKE_ROW_RE =
   /(?:^|\n)[ \t]*blocks-the-design(?:[ \t]*:|[ \t]+)[^\n]*\b(?:disagree|defer|omission|unresolved)\b/gi;
 const ACCEPT_INTO_CONTRACT_LINE_RE = /(?:^|\n)[ \t]*accept-into-contract\b/gi;
 const UNRESOLVED_TAKE_LINE_RE =
-  /(?:^|\n)[ \t]*(?:disagree|defer|omission|unresolved)\b/gi;
+  /(?:^|\n)[ \t]*(disagree|defer|omission|unresolved)\b/gi;
+
+/** Line-start unresolved take; classify the matched word, not a fixed token. */
+function hasOperativeUnresolvedTakeLine(body: string): boolean {
+  const scan = new RegExp(UNRESOLVED_TAKE_LINE_RE.source, "gi");
+  for (const match of body.matchAll(scan)) {
+    const token = match[1];
+    if (typeof token !== "string" || token.length === 0) continue;
+    if (classifyPosition(body, operativeLineStartOffset(match, token)) === null) {
+      return true;
+    }
+  }
+  return false;
+}
 
 /**
  * Accepted blockers: same-line take-map row, or classified `blocks-the-design:`
@@ -585,7 +598,7 @@ function unresolvedBlockerResidualsInBody(body: string): number {
   }
   if (
     operativeFindingClasses(body).has("blocks-the-design") &&
-    hasOperativeTokenMatch(body, UNRESOLVED_TAKE_LINE_RE, "defer") &&
+    hasOperativeUnresolvedTakeLine(body) &&
     !hasOperativeTokenMatch(body, ACCEPT_INTO_CONTRACT_LINE_RE, "accept-into-contract")
   ) {
     return 1;
