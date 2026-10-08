@@ -613,8 +613,8 @@ describe("spend-recommend gate (#5466)", () => {
     expect(mismatch?.code).toBe("spend-recommend-required");
   });
 
-  it("finds CLI default no-session state when payload session has none", () => {
-    const root = tempDir("spend-gate-nosession-fallback-");
+  it("does not borrow no-session askPermitted when payload session is empty", () => {
+    const root = tempDir("spend-gate-nosession-no-borrow-");
     writeArcSpendState(root, {
       schema: "deft.design-critique.arc-spend-state.v1",
       status: "in-flight",
@@ -644,8 +644,10 @@ describe("spend-recommend gate (#5466)", () => {
         },
       },
     };
-    expect(resolveArcSpendSessionForHook(input)).toBe("no-session");
-    expect(decideSpendRecommendGate(input, "ask_user_question")).toBeNull();
+    expect(resolveArcSpendSessionForHook(input)).toBe("sess-b");
+    const gate = decideSpendRecommendGate(input, "ask_user_question");
+    expect(gate?.verdict).toBe("deny");
+    expect(gate?.code).toBe("spend-recommend-required");
   });
 
   it("prefers payload session state over a different env session id", () => {

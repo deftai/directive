@@ -334,13 +334,13 @@ export function spendRecommendRequiredMessage(toolName: string): string {
 
 /**
  * Session key for arc-spend-state that matches `design-critique:spend-resolve`
- * (#5466). Candidates: host payload raw id (Claude `session_id` / Cursor
- * `conversation_id`), then env (`DEFT_SESSION_ID` / `DEFT_MONITOR_AGENT_ID` /
- * `GROK_SESSION_ID`), then `no-session`. Prefer the first candidate that
- * already has in-flight state so CLI `--session-id` raw, env canonical, and
- * CLI default `no-session` stay aligned with the hook. Canonical
- * `host:<provider>:v1:…` forms are not invented here — scratch is keyed by
- * the same sanitized id the CLI records.
+ * (#5466). Candidates are host-owned only: payload raw id (Claude
+ * `session_id` / Cursor `conversation_id`), then env (`DEFT_SESSION_ID` /
+ * `DEFT_MONITOR_AGENT_ID` / `GROK_SESSION_ID`). Prefer the first of those that
+ * already has in-flight state so CLI `--session-id` raw and env keys align.
+ * Never borrow shared `no-session` state when a host/env key exists — that
+ * would let another conversation's `askPermitted` leak. `no-session` is only
+ * the key when neither payload nor env identifies a conversation.
  */
 export function resolveArcSpendSessionForHook(input: HookDispatchInput): string {
   const fromEnv = resolveArcSpendSessionId({ env: input.environ });
@@ -351,12 +351,12 @@ export function resolveArcSpendSessionForHook(input: HookDispatchInput): string 
   );
   const fromPayload =
     identity.status === "ok" ? sanitizeArcSpendSessionId(identity.rawSessionId) : null;
-  const candidates: string[] = [];
-  if (fromPayload !== null && fromPayload !== "no-session") candidates.push(fromPayload);
-  if (fromEnv !== "no-session") candidates.push(fromEnv);
-  candidates.push("no-session");
+  const keyed: string[] = [];
+  if (fromPayload !== null && fromPayload !== "no-session") keyed.push(fromPayload);
+  if (fromEnv !== "no-session") keyed.push(fromEnv);
+  if (keyed.length === 0) return "no-session";
   const seen = new Set<string>();
-  for (const candidate of candidates) {
+  for (const candidate of keyed) {
     if (seen.has(candidate)) continue;
     seen.add(candidate);
     const state = readArcSpendState(input.projectRoot, {
@@ -365,8 +365,7 @@ export function resolveArcSpendSessionForHook(input: HookDispatchInput): string 
     });
     if (state !== null) return candidate;
   }
-  if (fromPayload !== null && fromPayload !== "no-session") return fromPayload;
-  return fromEnv;
+  return keyed[0]!;
 }
 
 /**
