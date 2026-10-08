@@ -2170,9 +2170,9 @@ describe("ship-ready LGTM / move-forward completion (#5488)", () => {
     expect(classifyLgtmSeatCensus("> prior quote\n\n### footnote: wording\n")).toBe(
       "footnote-only",
     );
-    expect(
-      classifyLgtmSeatCensus("clean-result: yes\n```\ndispatch-fail: spawn died\n```\n"),
-    ).toBe("clean-result");
+    expect(classifyLgtmSeatCensus("clean-result: yes\n```\ndispatch-fail: spawn died\n```\n")).toBe(
+      "clean-result",
+    );
   });
 
   it("scopes LGTM admission to the cited lean arc", () => {

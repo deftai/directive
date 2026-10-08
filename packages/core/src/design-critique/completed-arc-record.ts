@@ -454,10 +454,7 @@ export function mapSeatCensusUnderMaterialityBar(
  * True arc boundary: cancel, or a synthesis that cites an existing successor lean.
  * Lone / cite-not-lean synthesis shapes do not close the arc (#5488 Greptile P1).
  */
-function isAdmittedArcBoundary(
-  comment: ThreadComment,
-  thread: readonly ThreadComment[],
-): boolean {
+function isAdmittedArcBoundary(comment: ThreadComment, thread: readonly ThreadComment[]): boolean {
   if (isCancelledShape(comment.body)) return true;
   if (!isSynthesisAcceptedShape(comment.body)) return false;
   const citations = scanCitations(comment.body).citations;
@@ -569,8 +566,7 @@ const ACCEPTED_BLOCKER_TAKE_ROW_RE =
 const UNRESOLVED_BLOCKER_TAKE_ROW_RE =
   /(?:^|\n)[ \t]*blocks-the-design(?:[ \t]*:|[ \t]+)[^\n]*\b(?:disagree|defer|omission|unresolved)\b/gi;
 const ACCEPT_INTO_CONTRACT_LINE_RE = /(?:^|\n)[ \t]*accept-into-contract\b/gi;
-const UNRESOLVED_TAKE_LINE_RE =
-  /(?:^|\n)[ \t]*(disagree|defer|omission|unresolved)\b/gi;
+const UNRESOLVED_TAKE_LINE_RE = /(?:^|\n)[ \t]*(disagree|defer|omission|unresolved)\b/gi;
 
 /** Line-start unresolved take; classify the matched word, not a fixed token. */
 function hasOperativeUnresolvedTakeLine(body: string): boolean {
