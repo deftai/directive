@@ -284,8 +284,12 @@ describe("pinDeliveryTipOid (#4120 R0)", () => {
       "--no-auto-maintenance",
       "--refmap=",
       "origin",
+      "--",
       "+refs/heads/master:refs/deft/update/run-a/delivery-tip",
     ]);
+    expect(() => generationFetchArgs("origin", "--upload-pack=evil", "run-a")).toThrow(
+      /Invalid deliveryBranch/,
+    );
     expect(calls.some((args) => args.includes("fetch"))).toBe(true);
     expect(calls.some((args) => args.includes("update-ref") && args.includes("-d"))).toBe(true);
     expect(calls.every((args) => !args.includes(retiredSingletonTipRef()))).toBe(true);

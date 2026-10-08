@@ -11,8 +11,13 @@
  */
 
 import { defaultGitRunner, type GitRunner, gitIsAncestor } from "../session/git.js";
-import { ORIGIN_DEVELOP_HINT } from "./base-branch.js";
-import { resolveGitDefaultDeliveryBranch } from "./delivery-branch.js";
+import { FIELD_BASE_BRANCH, ORIGIN_DEVELOP_HINT } from "./base-branch.js";
+import {
+  assertSafeBranchName,
+  FIELD_DELIVERY_BRANCH,
+  resolveGitDefaultDeliveryBranch,
+  trackingFetchArgv,
+} from "./delivery-branch.js";
 import { readPlanPolicy } from "./plan-extensions.js";
 
 /** Dest-ref blob used for dest/source. Never the PR working tree (#3388 P1). */
@@ -82,8 +87,11 @@ export function detectBranchSync(input: DetectBranchSyncInput): BranchSyncDetect
     return notSync({ ...input, dest, source }, "base-is-not-dest");
   }
 
+  assertSafeBranchName(dest, FIELD_DELIVERY_BRANCH);
+  assertSafeBranchName(source, FIELD_BASE_BRANCH);
+
   const runGit = input.runGit ?? defaultGitRunner;
-  const fetched = runGit(input.projectRoot, ["fetch", "--quiet", "origin", source]);
+  const fetched = runGit(input.projectRoot, trackingFetchArgv("origin", source, { quiet: true }));
   if (fetched.code !== 0) {
     return notSync({ ...input, dest, source }, "fetch-failed");
   }
@@ -120,12 +128,21 @@ function parseTypedPolicyBranches(jsonText: string): {
     const rec = policyBlock as Record<string, unknown>;
     const destRaw = rec.deliveryBranch;
     const sourceRaw = rec.baseBranch;
-    return {
-      dest: typeof destRaw === "string" && destRaw.trim().length > 0 ? destRaw.trim() : null,
-      source:
-        typeof sourceRaw === "string" && sourceRaw.trim().length > 0 ? sourceRaw.trim() : null,
-    };
-  } catch {
+    const dest =
+      typeof destRaw === "string" && destRaw.trim().length > 0 ? destRaw.trim() : null;
+    const source =
+      typeof sourceRaw === "string" && sourceRaw.trim().length > 0 ? sourceRaw.trim() : null;
+    if (dest !== null) {
+      assertSafeBranchName(dest, FIELD_DELIVERY_BRANCH);
+    }
+    if (source !== null) {
+      assertSafeBranchName(source, FIELD_BASE_BRANCH);
+    }
+    return { dest, source };
+  } catch (err) {
+    if (err instanceof Error && err.name === "InvalidBranchNameError") {
+      throw err;
+    }
     return { dest: null, source: null };
   }
 }
@@ -149,7 +166,11 @@ export function resolveSyncPolicyFromDestRef(options: {
 }): DestRefSyncPolicy {
   const runGit = options.runGit ?? defaultGitRunner;
   const prBase = options.prBase.trim();
-  const fetched = runGit(options.projectRoot, ["fetch", "--quiet", "origin", prBase]);
+  assertSafeBranchName(prBase, "prBase");
+  const fetched = runGit(
+    options.projectRoot,
+    trackingFetchArgv("origin", prBase, { quiet: true }),
+  );
   if (fetched.code !== 0) {
     const dest = resolveGitDefaultDeliveryBranch(options.projectRoot, runGit);
     const developHint =

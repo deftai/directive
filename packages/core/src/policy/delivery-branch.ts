@@ -4,6 +4,9 @@
  * Distinct from typed `plan.policy.baseBranch` (#3388), the integration-branch
  * source for the shared branch-sync detector. deliveryBranch is dest: where
  * shipped work must land for a delivered completion disposition.
+ *
+ * Prefer-A #5364: closed branch-name grammar + safe fetch argv helpers. Do not
+ * equate `git check-ref-format refs/heads/<input>` exit 0 with this grammar.
  */
 
 import { defaultGitRunner, type GitRunner } from "../session/git.js";
@@ -28,6 +31,123 @@ export interface DeliveryBranchResult {
   readonly error: string | null;
 }
 
+/** Terminal configuration error for hostile / invalid present branch policy (#5364). */
+export class InvalidBranchNameError extends Error {
+  readonly branch: string;
+  readonly field: string;
+
+  constructor(branch: string, field = "branch") {
+    super(
+      `Invalid ${field} ${JSON.stringify(branch)}: must match the closed branch-name grammar ` +
+        `(no leading '-', no ':', no '..', no ASCII controls, no spaces, no '@{', no '.lock' suffix)`,
+    );
+    this.name = "InvalidBranchNameError";
+    this.branch = branch;
+    this.field = field;
+  }
+}
+
+/**
+ * Prefer-A #5364 closed branch-name grammar.
+ *
+ * Rejects option-shaped and refspec-shaped names even when
+ * `git check-ref-format refs/heads/<input>` would exit 0 (e.g. `-x`,
+ * `--upload-pack=...`).
+ */
+export function isSafeBranchName(name: string): boolean {
+  if (typeof name !== "string" || name.length === 0) {
+    return false;
+  }
+  // Reject literal input; do not expand revision shorthand or trim-then-accept.
+  if (name !== name.trim()) {
+    return false;
+  }
+  if (name.startsWith("-")) {
+    return false;
+  }
+  if (name.includes(":")) {
+    return false;
+  }
+  if (name.includes("..")) {
+    return false;
+  }
+  if (name.includes("@{")) {
+    return false;
+  }
+  if (name.endsWith(".lock")) {
+    return false;
+  }
+  if (/[\u0000-\u001f\u007f]/.test(name)) {
+    return false;
+  }
+  if (/\s/.test(name)) {
+    return false;
+  }
+  return true;
+}
+
+/** Throw {@link InvalidBranchNameError} unless `name` passes {@link isSafeBranchName}. */
+export function assertSafeBranchName(name: string, field = "branch"): string {
+  if (!isSafeBranchName(name)) {
+    throw new InvalidBranchNameError(name, field);
+  }
+  return name;
+}
+
+export interface SafeFetchArgvOptions {
+  readonly quiet?: boolean;
+  readonly force?: boolean;
+}
+
+/**
+ * Safe tracking-ref fetch argv (#5364 limb 3).
+ *
+ * `git fetch <remote> -- refs/heads/<validated>:refs/remotes/<remote>/<validated>`
+ * places `--` before the refspec and couples the dest to `origin/<branch>` tip readers.
+ */
+export function trackingFetchArgv(
+  remote: string,
+  branch: string,
+  options: SafeFetchArgvOptions = {},
+): string[] {
+  const safe = assertSafeBranchName(branch);
+  const argv = ["fetch"];
+  if (options.force === true) {
+    argv.push("--force");
+  }
+  if (options.quiet === true) {
+    argv.push("--quiet");
+  }
+  argv.push(remote, "--", `refs/heads/${safe}:refs/remotes/${remote}/${safe}`);
+  return argv;
+}
+
+/**
+ * Safe private-dest fetch argv (#5364 limb 4).
+ *
+ * `git fetch <remote> -- refs/heads/<validated>:<destRef>` after gating the branch.
+ */
+export function privateDestFetchArgv(
+  remote: string,
+  branch: string,
+  destRef: string,
+  options: SafeFetchArgvOptions = {},
+): string[] {
+  const safe = assertSafeBranchName(branch);
+  if (destRef.length === 0 || destRef.startsWith("-") || destRef.includes("\0")) {
+    throw new InvalidBranchNameError(destRef, "destRef");
+  }
+  const argv = ["fetch"];
+  if (options.force === true) {
+    argv.push("--force");
+  }
+  if (options.quiet === true) {
+    argv.push("--quiet");
+  }
+  argv.push(remote, "--", `refs/heads/${safe}:${destRef}`);
+  return argv;
+}
+
 function defaultBranchCandidates(projectRoot: string, runGit: GitRunner): string[] {
   const sym = runGit(projectRoot, ["symbolic-ref", "refs/remotes/origin/HEAD", "--short"]);
   if (sym.code === 0 && sym.stdout) {
@@ -35,7 +155,7 @@ function defaultBranchCandidates(projectRoot: string, runGit: GitRunner): string
     // origin/main → main
     const parts = trimmed.split("/");
     const name = (parts.slice(1).join("/") || parts[0] || "").trim();
-    if (name.length > 0) {
+    if (name.length > 0 && isSafeBranchName(name)) {
       return [name];
     }
   }
@@ -79,6 +199,7 @@ export function resolveGitDefaultDeliveryBranch(
  * Resolve the project's delivery branch (#3041).
  *
  * Order: typed plan.policy.deliveryBranch → git remote default → local main/master → "master".
+ * Invalid present typed policy is a terminal configuration error (#5364).
  */
 export function resolveDeliveryBranch(
   projectRoot: string,
@@ -123,7 +244,9 @@ export function resolveDeliveryBranch(
         error: `plan.policy.deliveryBranch must be a non-empty string; got ${typeof raw}`,
       };
     }
-    return { branch: raw.trim(), source: "typed", error: null };
+    const trimmed = raw.trim();
+    assertSafeBranchName(trimmed, FIELD_DELIVERY_BRANCH);
+    return { branch: trimmed, source: "typed", error: null };
   }
 
   const gitDefault = defaultBranchCandidates(projectRoot, runGit)[0];

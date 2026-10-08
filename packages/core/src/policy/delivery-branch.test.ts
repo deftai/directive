@@ -1,13 +1,19 @@
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { GitRunner } from "../session/git.js";
 import {
+  assertSafeBranchName,
   DEFAULT_DELIVERY_BRANCH_FALLBACK,
   FIELD_DELIVERY_BRANCH,
+  InvalidBranchNameError,
+  isSafeBranchName,
+  privateDestFetchArgv,
   resolveDeliveryBranch,
   resolveGitDefaultDeliveryBranch,
+  trackingFetchArgv,
 } from "./delivery-branch.js";
 
 function makeProject(policy?: Record<string, unknown>): string {
@@ -132,5 +138,112 @@ describe("resolveDeliveryBranch (#3041)", () => {
     expect(field.name).toBe(FIELD_DELIVERY_BRANCH);
     expect(field.current).toBe(DEFAULT_DELIVERY_BRANCH_FALLBACK);
     expect(field.source).toBe("default");
+  });
+});
+
+describe("closed branch-name grammar (#5364 Prefer-A)", () => {
+  it("accepts happy-path main/master/release/x", () => {
+    for (const name of ["main", "master", "release/x"]) {
+      expect(isSafeBranchName(name)).toBe(true);
+      expect(assertSafeBranchName(name)).toBe(name);
+    }
+  });
+
+  it("rejects upload-pack, colon rewrite, leading dash, .., @{}, empty/whitespace, .lock", () => {
+    const hostile = [
+      "--upload-pack=evil",
+      "refs/heads/attacker:refs/heads/master",
+      "attacker:master",
+      "-x",
+      "--exec=evil",
+      "foo..bar",
+      "foo@{upstream}",
+      "",
+      "   ",
+      "has space",
+      "ends.lock",
+      "\u0001control",
+    ];
+    for (const name of hostile) {
+      expect(isSafeBranchName(name)).toBe(false);
+      expect(() => assertSafeBranchName(name, FIELD_DELIVERY_BRANCH)).toThrow(
+        InvalidBranchNameError,
+      );
+    }
+  });
+
+  it("rejects leading-dash names even when check-ref-format refs/heads/<input> exits 0", () => {
+    for (const name of ["-x", "--upload-pack=evil"]) {
+      const check = execFileSync("git", ["check-ref-format", `refs/heads/${name}`], {
+        encoding: "utf8",
+      });
+      expect(check).toBe("");
+      expect(isSafeBranchName(name)).toBe(false);
+    }
+  });
+
+  it("typed hostile deliveryBranch is a terminal configuration error (no silent default)", () => {
+    const root = mkdtempSync(join(tmpdir(), "delivery-branch-hostile-"));
+    try {
+      mkdirSync(join(root, "xbrief"), { recursive: true });
+      writeFileSync(
+        join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+        JSON.stringify({
+          plan: {
+            title: "P",
+            status: "running",
+            policy: { deliveryBranch: "--upload-pack=evil" },
+          },
+        }),
+        "utf8",
+      );
+      expect(() =>
+        resolveDeliveryBranch(root, () => ({ code: 1, stdout: "", stderr: "" })),
+      ).toThrow(InvalidBranchNameError);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("safe fetch argv places -- before refs/heads/<validated>:<dest> and couples tracking tip", () => {
+    expect(trackingFetchArgv("origin", "master")).toEqual([
+      "fetch",
+      "origin",
+      "--",
+      "refs/heads/master:refs/remotes/origin/master",
+    ]);
+    expect(trackingFetchArgv("origin", "develop", { quiet: true })).toEqual([
+      "fetch",
+      "--quiet",
+      "origin",
+      "--",
+      "refs/heads/develop:refs/remotes/origin/develop",
+    ]);
+    expect(privateDestFetchArgv("origin", "main", "refs/deft/tip", { force: true })).toEqual([
+      "fetch",
+      "--force",
+      "origin",
+      "--",
+      "refs/heads/main:refs/deft/tip",
+    ]);
+    expect(() => trackingFetchArgv("origin", "--upload-pack=x")).toThrow(InvalidBranchNameError);
+    expect(() => privateDestFetchArgv("origin", "attacker:master", "refs/deft/x")).toThrow(
+      InvalidBranchNameError,
+    );
+  });
+
+  it("private-dest fetch tip is distinct from origin tracking tip (coupling regression)", () => {
+    const tracking = trackingFetchArgv("origin", "master");
+    const privateDest = privateDestFetchArgv(
+      "origin",
+      "master",
+      "refs/deft/finalize-owed/master",
+      { force: true },
+    );
+    const trackingDest = tracking[tracking.length - 1]!;
+    const privateDestRef = privateDest[privateDest.length - 1]!;
+    expect(trackingDest).toBe("refs/heads/master:refs/remotes/origin/master");
+    expect(privateDestRef).toBe("refs/heads/master:refs/deft/finalize-owed/master");
+    expect(trackingDest).not.toBe(privateDestRef);
   });
 });

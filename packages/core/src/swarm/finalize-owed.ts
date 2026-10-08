@@ -20,7 +20,7 @@ import {
   completedTwinRelPath,
   productPullRequestFromPlan,
 } from "../orphan-active/running-briefs.js";
-import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
+import { privateDestFetchArgv, resolveDeliveryBranch } from "../policy/delivery-branch.js";
 import { defaultRunGh } from "../pr-protected-issues/gh.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
 import {
@@ -481,12 +481,13 @@ function remoteClaimMeta(
   }
   // Privately fetch the claim tip; ls-remote alone leaves objects missing locally.
   const privateRef = `refs/deft/finalize-owed-claim/${claimRef.replace(/\//g, "-")}`;
-  const fetch = runGit(projectRoot, [
-    "fetch",
-    "origin",
-    `refs/heads/${claimRef}:${privateRef}`,
-    "--force",
-  ]);
+  let fetchArgv: string[];
+  try {
+    fetchArgv = privateDestFetchArgv("origin", claimRef, privateRef, { force: true });
+  } catch {
+    return { exists: true, stale: true, ageMs: null };
+  }
+  const fetch = runGit(projectRoot, fetchArgv);
   if (fetch.code !== 0) {
     if (isReclaimableClaimFetchFailure(fetch.stderr, fetch.stdout)) {
       // Missing object / remote ref gone after ls-remote → reclaimable.
@@ -572,15 +573,21 @@ export function fetchDeliveryTipPrivate(
   runGit: GitRunner,
   timeoutMs = 30_000,
 ): { tip: string | null; error: string | null } {
-  const privateRef = `refs/deft/finalize-owed/${deliveryBranch}`;
+  // Gate branch before either side of the private refspec (#5364 limb 4).
+  let privateRef: string;
+  let fetchArgv: string[];
+  try {
+    privateRef = `refs/deft/finalize-owed/${deliveryBranch}`;
+    fetchArgv = privateDestFetchArgv("origin", deliveryBranch, privateRef, { force: true });
+  } catch (err: unknown) {
+    return {
+      tip: null,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
   // Prefer injected runner (tests); otherwise bound the live fetch.
   const fetcher = runGit === defaultGitRunner ? timedGitRunner(timeoutMs) : runGit;
-  const fetch = fetcher(projectRoot, [
-    "fetch",
-    "origin",
-    `refs/heads/${deliveryBranch}:${privateRef}`,
-    "--force",
-  ]);
+  const fetch = fetcher(projectRoot, fetchArgv);
   if (fetch.code !== 0) {
     return {
       tip: null,

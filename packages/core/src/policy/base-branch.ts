@@ -7,7 +7,11 @@
  */
 
 import { defaultGitRunner, type GitRunner } from "../session/git.js";
-import { DEFAULT_DELIVERY_BRANCH_FALLBACK, resolveDeliveryBranch } from "./delivery-branch.js";
+import {
+  assertSafeBranchName,
+  DEFAULT_DELIVERY_BRANCH_FALLBACK,
+  resolveDeliveryBranch,
+} from "./delivery-branch.js";
 import { readPlanPolicy } from "./plan-extensions.js";
 import { loadProjectDefinition } from "./resolve.js";
 
@@ -52,8 +56,9 @@ function developHintIfEligible(
 /**
  * Resolve plan.policy.baseBranch (#3388).
  *
- * Unset or invalid values equal dest (deliveryBranch). origin/develop is never
- * substituted as the source.
+ * Unset or empty values equal dest (deliveryBranch). origin/develop is never
+ * substituted as the source. Invalid present typed policy is a terminal
+ * configuration error (#5364).
  */
 export function resolveBaseBranch(
   projectRoot: string,
@@ -103,8 +108,10 @@ export function resolveBaseBranch(
         developHint: developHintIfEligible(projectRoot, false, runGit),
       };
     }
+    const trimmed = raw.trim();
+    assertSafeBranchName(trimmed, FIELD_BASE_BRANCH);
     return {
-      branch: raw.trim(),
+      branch: trimmed,
       dest,
       source: "typed",
       typed: true,

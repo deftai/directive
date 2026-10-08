@@ -10,7 +10,7 @@ import {
   ORIGIN_DEVELOP_HINT,
   resolveBaseBranch,
 } from "./base-branch.js";
-import { DEFAULT_DELIVERY_BRANCH_FALLBACK } from "./delivery-branch.js";
+import { DEFAULT_DELIVERY_BRANCH_FALLBACK, InvalidBranchNameError } from "./delivery-branch.js";
 import { inspectOnePolicy } from "./index.js";
 
 function makeProject(policy?: Record<string, unknown>): string {
@@ -144,5 +144,10 @@ describe("resolveBaseBranch (#3388)", () => {
     expect(field.current).toBe("release");
     expect(field.default).toBe("release");
     expect(field.source).toBe("equals-dest");
+  });
+
+  it("typed hostile baseBranch is a terminal configuration error (#5364)", () => {
+    root = makeProject({ baseBranch: "-x", deliveryBranch: "master" });
+    expect(() => resolveBaseBranch(root, silentGit)).toThrow(InvalidBranchNameError);
   });
 });

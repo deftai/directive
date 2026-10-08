@@ -43,8 +43,14 @@ function gitForSync(options: {
 }): GitRunner {
   return (_cwd, args) => {
     if (args[0] === "fetch") {
-      const target = args[args.length - 1] ?? "";
-      if (options.destFetchFailTargets?.includes(target)) {
+      const dd = args.indexOf("--");
+      const refspec = dd >= 0 ? (args[dd + 1] ?? "") : (args[args.length - 1] ?? "");
+      const branchFromRefspec = /^[+]?refs\/heads\/([^:]+):/.exec(refspec)?.[1] ?? refspec;
+      const target = branchFromRefspec;
+      if (
+        options.destFetchFailTargets?.includes(target) ||
+        options.destFetchFailTargets?.includes(refspec)
+      ) {
         return { code: 1, stdout: "", stderr: "dest fetch failed" };
       }
       return { code: options.fetchOk === false ? 1 : 0, stdout: "", stderr: "" };
@@ -285,6 +291,21 @@ describe("detectBranchSync (#3388)", () => {
     expect(result.source).toBe("main");
     expect(result.isSync).toBe(false);
     expect(result.reason).toBe("source-equals-dest");
+  });
+
+  it("hostile dest-ref typed policy is a terminal refuse (#5364)", () => {
+    root = makeProject({ deliveryBranch: "master" });
+    expect(() =>
+      detectBranchSyncFromProject({
+        projectRoot: root,
+        prBase: "master",
+        headSha: "abc",
+        runGit: gitForSync({
+          destRefPolicy: { deliveryBranch: "--upload-pack=evil", baseBranch: "develop" },
+          headOnIntegration: true,
+        }),
+      }),
+    ).toThrow(/Invalid plan\.policy\.deliveryBranch/);
   });
 });
 

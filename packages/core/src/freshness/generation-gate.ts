@@ -14,7 +14,11 @@ import {
   type GitExecFn,
   type GitExecResult,
 } from "../init-deposit/update-git-preflight.js";
-import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
+import {
+  assertSafeBranchName,
+  privateDestFetchArgv,
+  resolveDeliveryBranch,
+} from "../policy/delivery-branch.js";
 import {
   inspectLocalGeneration,
   type LocalGenerationInspection,
@@ -155,6 +159,11 @@ function deliveryTipRef(runId: string): string {
 }
 
 export function generationFetchArgs(remote: string, branch: string, runId: string): string[] {
+  const safe = assertSafeBranchName(branch, "deliveryBranch");
+  const destRef = deliveryTipRef(runId);
+  // Gate via privateDestFetchArgv, then rebuild with generation lock/refmap
+  // options and forced (`+`) tip update (#5364 limbs 3–4).
+  privateDestFetchArgv(remote, safe, destRef);
   return [
     "--no-optional-locks",
     "fetch",
@@ -164,7 +173,8 @@ export function generationFetchArgs(remote: string, branch: string, runId: strin
     "--no-auto-maintenance",
     "--refmap=",
     remote,
-    `+refs/heads/${branch}:${deliveryTipRef(runId)}`,
+    "--",
+    `+refs/heads/${safe}:${destRef}`,
   ];
 }
 
@@ -365,8 +375,9 @@ function lsRemoteAssertsAbsence(
   remote: string,
   branch: string,
 ): boolean {
+  const safe = assertSafeBranchName(branch, "deliveryBranch");
   const listed = execGit(
-    ["--no-optional-locks", "ls-remote", remote, `refs/heads/${branch}`],
+    ["--no-optional-locks", "ls-remote", "--", remote, `refs/heads/${safe}`],
     gitCwd(projectDir),
   );
   return !listed.status && !listed.stdout.trim().length;
