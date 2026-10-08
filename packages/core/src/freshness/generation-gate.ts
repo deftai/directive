@@ -158,24 +158,37 @@ function deliveryTipRef(runId: string): string {
   return `refs/deft/update/${runId}/delivery-tip`;
 }
 
-export function generationFetchArgs(remote: string, branch: string, runId: string): string[] {
+export function generationFetchArgs(
+  remote: string,
+  branch: string,
+  runId: string,
+): { ok: true; argv: string[] } | { ok: false; error: string } {
   const safe = assertSafeBranchName(branch, "deliveryBranch");
+  if (!safe.ok) {
+    return safe;
+  }
   const destRef = deliveryTipRef(runId);
   // Gate via privateDestFetchArgv, then rebuild with generation lock/refmap
   // options and forced (`+`) tip update (#5364 limbs 3–4).
-  privateDestFetchArgv(remote, safe, destRef);
-  return [
-    "--no-optional-locks",
-    "fetch",
-    "--no-tags",
-    "--no-recurse-submodules",
-    "--no-write-fetch-head",
-    "--no-auto-maintenance",
-    "--refmap=",
-    remote,
-    "--",
-    `+refs/heads/${safe}:${destRef}`,
-  ];
+  const gated = privateDestFetchArgv(remote, safe.branch, destRef);
+  if (!gated.ok) {
+    return gated;
+  }
+  return {
+    ok: true,
+    argv: [
+      "--no-optional-locks",
+      "fetch",
+      "--no-tags",
+      "--no-recurse-submodules",
+      "--no-write-fetch-head",
+      "--no-auto-maintenance",
+      "--refmap=",
+      remote,
+      "--",
+      `+refs/heads/${safe.branch}:${destRef}`,
+    ],
+  };
 }
 
 function deletePerRunRef(execGit: GitExecFn, projectDir: string, ref: string): void {
@@ -270,7 +283,18 @@ export function pinDeliveryTipOid(input: PinDeliveryTipInput): PinDeliveryTipRes
   const execGit = input.execGit ?? defaultGitExec;
   const runId = input.runId ?? randomUUID();
   const ref = deliveryTipRef(runId);
-  const fetchArgs = generationFetchArgs(input.remote, input.branch, runId);
+  const fetchArgsResult = generationFetchArgs(input.remote, input.branch, runId);
+  if (!fetchArgsResult.ok) {
+    return {
+      ok: false,
+      runId,
+      ref,
+      fetchArgs: [],
+      status: 1,
+      stderr: fetchArgsResult.error,
+    };
+  }
+  const fetchArgs = fetchArgsResult.argv;
   const fetch = execGit(fetchArgs, gitCwd(input.projectDir));
   if (fetch.status) {
     deletePerRunRef(execGit, input.projectDir, ref);
@@ -376,8 +400,11 @@ function lsRemoteAssertsAbsence(
   branch: string,
 ): boolean {
   const safe = assertSafeBranchName(branch, "deliveryBranch");
+  if (!safe.ok) {
+    return false;
+  }
   const listed = execGit(
-    ["--no-optional-locks", "ls-remote", "--", remote, `refs/heads/${safe}`],
+    ["--no-optional-locks", "ls-remote", "--", remote, `refs/heads/${safe.branch}`],
     gitCwd(projectDir),
   );
   return !listed.status && !listed.stdout.trim().length;

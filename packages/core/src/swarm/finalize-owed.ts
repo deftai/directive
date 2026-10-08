@@ -481,13 +481,11 @@ function remoteClaimMeta(
   }
   // Privately fetch the claim tip; ls-remote alone leaves objects missing locally.
   const privateRef = `refs/deft/finalize-owed-claim/${claimRef.replace(/\//g, "-")}`;
-  let fetchArgv: string[];
-  try {
-    fetchArgv = privateDestFetchArgv("origin", claimRef, privateRef, { force: true });
-  } catch {
+  const fetchArgv = privateDestFetchArgv("origin", claimRef, privateRef, { force: true });
+  if (!fetchArgv.ok) {
     return { exists: true, stale: true, ageMs: null };
   }
-  const fetch = runGit(projectRoot, fetchArgv);
+  const fetch = runGit(projectRoot, fetchArgv.argv);
   if (fetch.code !== 0) {
     if (isReclaimableClaimFetchFailure(fetch.stderr, fetch.stdout)) {
       // Missing object / remote ref gone after ls-remote → reclaimable.
@@ -574,20 +572,17 @@ export function fetchDeliveryTipPrivate(
   timeoutMs = 30_000,
 ): { tip: string | null; error: string | null } {
   // Gate branch before either side of the private refspec (#5364 limb 4).
-  let privateRef: string;
-  let fetchArgv: string[];
-  try {
-    privateRef = `refs/deft/finalize-owed/${deliveryBranch}`;
-    fetchArgv = privateDestFetchArgv("origin", deliveryBranch, privateRef, { force: true });
-  } catch (err: unknown) {
+  const privateRef = `refs/deft/finalize-owed/${deliveryBranch}`;
+  const fetchArgv = privateDestFetchArgv("origin", deliveryBranch, privateRef, { force: true });
+  if (!fetchArgv.ok) {
     return {
       tip: null,
-      error: err instanceof Error ? err.message : String(err),
+      error: fetchArgv.error,
     };
   }
   // Prefer injected runner (tests); otherwise bound the live fetch.
   const fetcher = runGit === defaultGitRunner ? timedGitRunner(timeoutMs) : runGit;
-  const fetch = fetcher(projectRoot, fetchArgv);
+  const fetch = fetcher(projectRoot, fetchArgv.argv);
   if (fetch.code !== 0) {
     return {
       tip: null,

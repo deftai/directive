@@ -275,21 +275,26 @@ describe("pinDeliveryTipOid (#4120 R0)", () => {
       execGit,
     });
     expect(result.ok).toBe(true);
-    expect(generationFetchArgs("origin", "master", "run-a")).toEqual([
-      "--no-optional-locks",
-      "fetch",
-      "--no-tags",
-      "--no-recurse-submodules",
-      "--no-write-fetch-head",
-      "--no-auto-maintenance",
-      "--refmap=",
-      "origin",
-      "--",
-      "+refs/heads/master:refs/deft/update/run-a/delivery-tip",
-    ]);
-    expect(() => generationFetchArgs("origin", "--upload-pack=evil", "run-a")).toThrow(
-      /Invalid deliveryBranch/,
-    );
+    expect(generationFetchArgs("origin", "master", "run-a")).toEqual({
+      ok: true,
+      argv: [
+        "--no-optional-locks",
+        "fetch",
+        "--no-tags",
+        "--no-recurse-submodules",
+        "--no-write-fetch-head",
+        "--no-auto-maintenance",
+        "--refmap=",
+        "origin",
+        "--",
+        "+refs/heads/master:refs/deft/update/run-a/delivery-tip",
+      ],
+    });
+    const hostile = generationFetchArgs("origin", "--upload-pack=evil", "run-a");
+    expect(hostile.ok).toBe(false);
+    if (!hostile.ok) {
+      expect(hostile.error).toMatch(/Invalid deliveryBranch/);
+    }
     expect(calls.some((args) => args.includes("fetch"))).toBe(true);
     expect(calls.some((args) => args.includes("update-ref") && args.includes("-d"))).toBe(true);
     expect(calls.every((args) => !args.includes(retiredSingletonTipRef()))).toBe(true);

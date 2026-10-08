@@ -148,6 +148,10 @@ describe("resolveBaseBranch (#3388)", () => {
 
   it("typed hostile baseBranch is a terminal configuration error (#5364)", () => {
     root = makeProject({ baseBranch: "-x", deliveryBranch: "master" });
-    expect(() => resolveBaseBranch(root, silentGit)).toThrow(InvalidBranchNameError);
+    const result = resolveBaseBranch(root, silentGit);
+    expect(result.branch).toBe("");
+    expect(result.source).toBe("typed");
+    expect(result.typed).toBe(true);
+    expect(result.error).toBe(new InvalidBranchNameError("-x", FIELD_BASE_BRANCH).message);
   });
 });

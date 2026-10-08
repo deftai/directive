@@ -661,17 +661,15 @@ export function refreshRemoteDeliveryRef(
   runGit: GitRunner = defaultGitRunner,
 ): { ok: boolean; error: string | null; remoteRef: string } {
   const remoteRef = remoteDeliveryRef(deliveryBranch);
-  let fetchArgv: string[];
-  try {
-    fetchArgv = trackingFetchArgv("origin", deliveryBranch);
-  } catch (err: unknown) {
+  const fetchArgv = trackingFetchArgv("origin", deliveryBranch);
+  if (!fetchArgv.ok) {
     return {
       ok: false,
-      error: err instanceof Error ? err.message : String(err),
+      error: fetchArgv.error,
       remoteRef,
     };
   }
-  const fetch = runGit(projectRoot, fetchArgv);
+  const fetch = runGit(projectRoot, fetchArgv.argv);
   if (fetch.code !== 0) {
     return {
       ok: false,

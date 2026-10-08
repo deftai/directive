@@ -109,9 +109,19 @@ export function resolveBaseBranch(
       };
     }
     const trimmed = raw.trim();
-    assertSafeBranchName(trimmed, FIELD_BASE_BRANCH);
+    const checked = assertSafeBranchName(trimmed, FIELD_BASE_BRANCH);
+    if (!checked.ok) {
+      return {
+        branch: "",
+        dest,
+        source: "typed",
+        typed: true,
+        error: checked.error,
+        developHint: null,
+      };
+    }
     return {
-      branch: trimmed,
+      branch: checked.branch,
       dest,
       source: "typed",
       typed: true,

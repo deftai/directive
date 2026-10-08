@@ -31,6 +31,7 @@ export type BranchSyncReason =
   | "base-is-not-dest"
   | "fetch-failed"
   | "head-not-on-integration"
+  | "invalid-branch"
   | "sync";
 
 export interface BranchSyncDetection {
@@ -87,11 +88,18 @@ export function detectBranchSync(input: DetectBranchSyncInput): BranchSyncDetect
     return notSync({ ...input, dest, source }, "base-is-not-dest");
   }
 
-  assertSafeBranchName(dest, FIELD_DELIVERY_BRANCH);
-  assertSafeBranchName(source, FIELD_BASE_BRANCH);
+  const destCheck = assertSafeBranchName(dest, FIELD_DELIVERY_BRANCH);
+  const sourceCheck = assertSafeBranchName(source, FIELD_BASE_BRANCH);
+  if (!destCheck.ok || !sourceCheck.ok) {
+    return notSync({ ...input, dest, source }, "invalid-branch");
+  }
 
   const runGit = input.runGit ?? defaultGitRunner;
-  const fetched = runGit(input.projectRoot, trackingFetchArgv("origin", source, { quiet: true }));
+  const fetchArgv = trackingFetchArgv("origin", sourceCheck.branch, { quiet: true });
+  if (!fetchArgv.ok) {
+    return notSync({ ...input, dest, source }, "invalid-branch");
+  }
+  const fetched = runGit(input.projectRoot, fetchArgv.argv);
   if (fetched.code !== 0) {
     return notSync({ ...input, dest, source }, "fetch-failed");
   }
@@ -115,15 +123,16 @@ export function detectBranchSync(input: DetectBranchSyncInput): BranchSyncDetect
 function parseTypedPolicyBranches(jsonText: string): {
   dest: string | null;
   source: string | null;
+  error: string | null;
 } {
   try {
     const data = JSON.parse(jsonText) as unknown;
     if (typeof data !== "object" || data === null || Array.isArray(data)) {
-      return { dest: null, source: null };
+      return { dest: null, source: null, error: null };
     }
     const policyBlock = readPlanPolicy((data as Record<string, unknown>).plan);
     if (typeof policyBlock !== "object" || policyBlock === null || Array.isArray(policyBlock)) {
-      return { dest: null, source: null };
+      return { dest: null, source: null, error: null };
     }
     const rec = policyBlock as Record<string, unknown>;
     const destRaw = rec.deliveryBranch;
@@ -132,17 +141,20 @@ function parseTypedPolicyBranches(jsonText: string): {
     const source =
       typeof sourceRaw === "string" && sourceRaw.trim().length > 0 ? sourceRaw.trim() : null;
     if (dest !== null) {
-      assertSafeBranchName(dest, FIELD_DELIVERY_BRANCH);
+      const checked = assertSafeBranchName(dest, FIELD_DELIVERY_BRANCH);
+      if (!checked.ok) {
+        return { dest: null, source: null, error: checked.error };
+      }
     }
     if (source !== null) {
-      assertSafeBranchName(source, FIELD_BASE_BRANCH);
+      const checked = assertSafeBranchName(source, FIELD_BASE_BRANCH);
+      if (!checked.ok) {
+        return { dest: null, source: null, error: checked.error };
+      }
     }
-    return { dest, source };
-  } catch (err) {
-    if (err instanceof Error && err.name === "InvalidBranchNameError") {
-      throw err;
-    }
-    return { dest: null, source: null };
+    return { dest, source, error: null };
+  } catch {
+    return { dest: null, source: null, error: null };
   }
 }
 
@@ -151,6 +163,7 @@ export interface DestRefSyncPolicy {
   readonly source: string;
   readonly sourceTyped: boolean;
   readonly developHint: string | null;
+  readonly error: string | null;
 }
 
 /**
@@ -165,8 +178,27 @@ export function resolveSyncPolicyFromDestRef(options: {
 }): DestRefSyncPolicy {
   const runGit = options.runGit ?? defaultGitRunner;
   const prBase = options.prBase.trim();
-  assertSafeBranchName(prBase, "prBase");
-  const fetched = runGit(options.projectRoot, trackingFetchArgv("origin", prBase, { quiet: true }));
+  const prCheck = assertSafeBranchName(prBase, "prBase");
+  if (!prCheck.ok) {
+    return {
+      dest: "",
+      source: "",
+      sourceTyped: false,
+      developHint: null,
+      error: prCheck.error,
+    };
+  }
+  const fetchArgv = trackingFetchArgv("origin", prCheck.branch, { quiet: true });
+  if (!fetchArgv.ok) {
+    return {
+      dest: "",
+      source: "",
+      sourceTyped: false,
+      developHint: null,
+      error: fetchArgv.error,
+    };
+  }
+  const fetched = runGit(options.projectRoot, fetchArgv.argv);
   if (fetched.code !== 0) {
     const dest = resolveGitDefaultDeliveryBranch(options.projectRoot, runGit);
     const developHint =
@@ -178,16 +210,25 @@ export function resolveSyncPolicyFromDestRef(options: {
       ]).code === 0
         ? ORIGIN_DEVELOP_HINT
         : null;
-    return { dest, source: dest, sourceTyped: false, developHint };
+    return { dest, source: dest, sourceTyped: false, developHint, error: null };
   }
   const shown = runGit(options.projectRoot, [
     "show",
-    `origin/${prBase}:${BRANCH_SYNC_POLICY_BLOB}`,
+    `origin/${prCheck.branch}:${BRANCH_SYNC_POLICY_BLOB}`,
   ]);
   const parsed =
     shown.code === 0 && shown.stdout.length > 0
       ? parseTypedPolicyBranches(shown.stdout)
-      : { dest: null, source: null };
+      : { dest: null, source: null, error: null };
+  if (parsed.error !== null) {
+    return {
+      dest: "",
+      source: "",
+      sourceTyped: false,
+      developHint: null,
+      error: parsed.error,
+    };
+  }
   const dest = parsed.dest ?? resolveGitDefaultDeliveryBranch(options.projectRoot, runGit);
   const sourceTyped = parsed.source !== null;
   const source = parsed.source ?? dest;
@@ -197,7 +238,7 @@ export function resolveSyncPolicyFromDestRef(options: {
       .code !== 0
       ? null
       : ORIGIN_DEVELOP_HINT;
-  return { dest, source, sourceTyped, developHint };
+  return { dest, source, sourceTyped, developHint, error: null };
 }
 
 /** Load dest/source from dest-ref policy, then run {@link detectBranchSync}. */
@@ -213,6 +254,21 @@ export function detectBranchSyncFromProject(options: {
     prBase: options.prBase,
     runGit,
   });
+  if (policy.error !== null) {
+    return notSync(
+      {
+        dest: policy.dest,
+        source: policy.source,
+        sourceTyped: policy.sourceTyped,
+        prBase: options.prBase,
+        headSha: options.headSha,
+        projectRoot: options.projectRoot,
+        developHint: policy.developHint,
+        runGit,
+      },
+      "invalid-branch",
+    );
+  }
   return detectBranchSync({
     dest: policy.dest,
     source: policy.source,

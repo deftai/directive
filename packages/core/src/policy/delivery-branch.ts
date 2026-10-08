@@ -93,18 +93,30 @@ export function isSafeBranchName(name: string): boolean {
   return true;
 }
 
-/** Throw {@link InvalidBranchNameError} unless `name` passes {@link isSafeBranchName}. */
-export function assertSafeBranchName(name: string, field = "branch"): string {
+export type SafeBranchResult =
+  | { readonly ok: true; readonly branch: string }
+  | { readonly ok: false; readonly error: string };
+
+/**
+ * Returned-failure gate (#5364 / intent-constraint free pattern).
+ *
+ * Builds {@link InvalidBranchNameError}.message without throw/reject/abort.
+ */
+export function assertSafeBranchName(name: string, field = "branch"): SafeBranchResult {
   if (!isSafeBranchName(name)) {
-    throw new InvalidBranchNameError(name, field);
+    return { ok: false, error: new InvalidBranchNameError(name, field).message };
   }
-  return name;
+  return { ok: true, branch: name };
 }
 
 export interface SafeFetchArgvOptions {
   readonly quiet?: boolean;
   readonly force?: boolean;
 }
+
+export type SafeFetchArgvResult =
+  | { readonly ok: true; readonly argv: string[] }
+  | { readonly ok: false; readonly error: string };
 
 /**
  * Safe tracking-ref fetch argv (#5364 limb 3).
@@ -116,8 +128,11 @@ export function trackingFetchArgv(
   remote: string,
   branch: string,
   options: SafeFetchArgvOptions = {},
-): string[] {
+): SafeFetchArgvResult {
   const safe = assertSafeBranchName(branch);
+  if (!safe.ok) {
+    return safe;
+  }
   const argv = ["fetch"];
   if (options.force === true) {
     argv.push("--force");
@@ -125,8 +140,8 @@ export function trackingFetchArgv(
   if (options.quiet === true) {
     argv.push("--quiet");
   }
-  argv.push(remote, "--", `refs/heads/${safe}:refs/remotes/${remote}/${safe}`);
-  return argv;
+  argv.push(remote, "--", `refs/heads/${safe.branch}:refs/remotes/${remote}/${safe.branch}`);
+  return { ok: true, argv };
 }
 
 /**
@@ -139,10 +154,13 @@ export function privateDestFetchArgv(
   branch: string,
   destRef: string,
   options: SafeFetchArgvOptions = {},
-): string[] {
+): SafeFetchArgvResult {
   const safe = assertSafeBranchName(branch);
+  if (!safe.ok) {
+    return safe;
+  }
   if (destRef.length === 0 || destRef.startsWith("-") || destRef.includes("\0")) {
-    throw new InvalidBranchNameError(destRef, "destRef");
+    return { ok: false, error: new InvalidBranchNameError(destRef, "destRef").message };
   }
   const argv = ["fetch"];
   if (options.force === true) {
@@ -151,8 +169,8 @@ export function privateDestFetchArgv(
   if (options.quiet === true) {
     argv.push("--quiet");
   }
-  argv.push(remote, "--", `refs/heads/${safe}:${destRef}`);
-  return argv;
+  argv.push(remote, "--", `refs/heads/${safe.branch}:${destRef}`);
+  return { ok: true, argv };
 }
 
 function defaultBranchCandidates(projectRoot: string, runGit: GitRunner): string[] {
@@ -252,8 +270,12 @@ export function resolveDeliveryBranch(
       };
     }
     const trimmed = raw.trim();
-    assertSafeBranchName(trimmed, FIELD_DELIVERY_BRANCH);
-    return { branch: trimmed, source: "typed", error: null };
+    const checked = assertSafeBranchName(trimmed, FIELD_DELIVERY_BRANCH);
+    if (!checked.ok) {
+      // Terminal refuse via error field — empty branch cannot pass later argv gates.
+      return { branch: "", source: "typed", error: checked.error };
+    }
+    return { branch: checked.branch, source: "typed", error: null };
   }
 
   const gitDefault = defaultBranchCandidates(projectRoot, runGit)[0];

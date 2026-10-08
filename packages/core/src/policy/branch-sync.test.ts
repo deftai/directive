@@ -295,17 +295,17 @@ describe("detectBranchSync (#3388)", () => {
 
   it("hostile dest-ref typed policy is a terminal refuse (#5364)", () => {
     root = makeProject({ deliveryBranch: "master" });
-    expect(() =>
-      detectBranchSyncFromProject({
-        projectRoot: root,
-        prBase: "master",
-        headSha: "abc",
-        runGit: gitForSync({
-          destRefPolicy: { deliveryBranch: "--upload-pack=evil", baseBranch: "develop" },
-          headOnIntegration: true,
-        }),
+    const result = detectBranchSyncFromProject({
+      projectRoot: root,
+      prBase: "master",
+      headSha: "abc",
+      runGit: gitForSync({
+        destRefPolicy: { deliveryBranch: "--upload-pack=evil", baseBranch: "develop" },
+        headOnIntegration: true,
       }),
-    ).toThrow(/Invalid plan\.policy\.deliveryBranch/);
+    });
+    expect(result.isSync).toBe(false);
+    expect(result.reason).toBe("invalid-branch");
   });
 });
 

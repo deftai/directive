@@ -145,7 +145,7 @@ describe("closed branch-name grammar (#5364 Prefer-A)", () => {
   it("accepts happy-path main/master/release/x", () => {
     for (const name of ["main", "master", "release/x"]) {
       expect(isSafeBranchName(name)).toBe(true);
-      expect(assertSafeBranchName(name)).toBe(name);
+      expect(assertSafeBranchName(name)).toEqual({ ok: true, branch: name });
     }
   });
 
@@ -170,9 +170,12 @@ describe("closed branch-name grammar (#5364 Prefer-A)", () => {
     ];
     for (const name of hostile) {
       expect(isSafeBranchName(name)).toBe(false);
-      expect(() => assertSafeBranchName(name, FIELD_DELIVERY_BRANCH)).toThrow(
-        InvalidBranchNameError,
-      );
+      const checked = assertSafeBranchName(name, FIELD_DELIVERY_BRANCH);
+      expect(checked.ok).toBe(false);
+      if (!checked.ok) {
+        expect(checked.error).toMatch(/Invalid plan\.policy\.deliveryBranch/);
+        expect(checked.error).toBe(new InvalidBranchNameError(name, FIELD_DELIVERY_BRANCH).message);
+      }
     }
   });
 
@@ -201,39 +204,41 @@ describe("closed branch-name grammar (#5364 Prefer-A)", () => {
         }),
         "utf8",
       );
-      expect(() =>
-        resolveDeliveryBranch(root, () => ({ code: 1, stdout: "", stderr: "" })),
-      ).toThrow(InvalidBranchNameError);
+      const result = resolveDeliveryBranch(root, () => ({ code: 1, stdout: "", stderr: "" }));
+      expect(result.branch).toBe("");
+      expect(result.source).toBe("typed");
+      expect(result.error).toMatch(/Invalid plan\.policy\.deliveryBranch/);
+      expect(result.error).toBe(
+        new InvalidBranchNameError("--upload-pack=evil", FIELD_DELIVERY_BRANCH).message,
+      );
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
   });
 
   it("safe fetch argv places -- before refs/heads/<validated>:<dest> and couples tracking tip", () => {
-    expect(trackingFetchArgv("origin", "master")).toEqual([
-      "fetch",
-      "origin",
-      "--",
-      "refs/heads/master:refs/remotes/origin/master",
-    ]);
-    expect(trackingFetchArgv("origin", "develop", { quiet: true })).toEqual([
-      "fetch",
-      "--quiet",
-      "origin",
-      "--",
-      "refs/heads/develop:refs/remotes/origin/develop",
-    ]);
-    expect(privateDestFetchArgv("origin", "main", "refs/deft/tip", { force: true })).toEqual([
-      "fetch",
-      "--force",
-      "origin",
-      "--",
-      "refs/heads/main:refs/deft/tip",
-    ]);
-    expect(() => trackingFetchArgv("origin", "--upload-pack=x")).toThrow(InvalidBranchNameError);
-    expect(() => privateDestFetchArgv("origin", "attacker:master", "refs/deft/x")).toThrow(
-      InvalidBranchNameError,
-    );
+    expect(trackingFetchArgv("origin", "master")).toEqual({
+      ok: true,
+      argv: ["fetch", "origin", "--", "refs/heads/master:refs/remotes/origin/master"],
+    });
+    expect(trackingFetchArgv("origin", "develop", { quiet: true })).toEqual({
+      ok: true,
+      argv: ["fetch", "--quiet", "origin", "--", "refs/heads/develop:refs/remotes/origin/develop"],
+    });
+    expect(privateDestFetchArgv("origin", "main", "refs/deft/tip", { force: true })).toEqual({
+      ok: true,
+      argv: ["fetch", "--force", "origin", "--", "refs/heads/main:refs/deft/tip"],
+    });
+    const hostileTracking = trackingFetchArgv("origin", "--upload-pack=x");
+    expect(hostileTracking.ok).toBe(false);
+    if (!hostileTracking.ok) {
+      expect(hostileTracking.error).toBe(new InvalidBranchNameError("--upload-pack=x").message);
+    }
+    const hostilePrivate = privateDestFetchArgv("origin", "attacker:master", "refs/deft/x");
+    expect(hostilePrivate.ok).toBe(false);
+    if (!hostilePrivate.ok) {
+      expect(hostilePrivate.error).toBe(new InvalidBranchNameError("attacker:master").message);
+    }
   });
 
   it("private-dest fetch tip is distinct from origin tracking tip (coupling regression)", () => {
@@ -241,8 +246,11 @@ describe("closed branch-name grammar (#5364 Prefer-A)", () => {
     const privateDest = privateDestFetchArgv("origin", "master", "refs/deft/finalize-owed/master", {
       force: true,
     });
-    const trackingDest = tracking[tracking.length - 1]!;
-    const privateDestRef = privateDest[privateDest.length - 1]!;
+    expect(tracking.ok).toBe(true);
+    expect(privateDest.ok).toBe(true);
+    if (!tracking.ok || !privateDest.ok) return;
+    const trackingDest = tracking.argv[tracking.argv.length - 1]!;
+    const privateDestRef = privateDest.argv[privateDest.argv.length - 1]!;
     expect(trackingDest).toBe("refs/heads/master:refs/remotes/origin/master");
     expect(privateDestRef).toBe("refs/heads/master:refs/deft/finalize-owed/master");
     expect(trackingDest).not.toBe(privateDestRef);
