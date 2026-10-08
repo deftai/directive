@@ -214,6 +214,7 @@ describe("killCriticProcessTree (#5478)", () => {
     });
     expect(killed[0]).toBe(10);
     expect(result.remaining).toEqual([]);
+    expect(result.discoveryOk).toBe(true);
     expect(alive.size).toBe(0);
   });
 
@@ -237,7 +238,23 @@ describe("killCriticProcessTree (#5478)", () => {
     expect(killed[0]).toBe(20);
     expect(killed).toEqual(expect.arrayContaining([20, 21, 22]));
     expect(result.remaining).toEqual([]);
+    expect(result.discoveryOk).toBe(true);
     expect(alive.size).toBe(0);
+  });
+
+  it("fail-closes with nonempty remaining when descendant discovery fails", () => {
+    const alive = new Set<number>();
+    const result = killCriticProcessTree(30, {
+      platform: "linux",
+      listDescendants: () => ({ pids: [], ok: false }),
+      killTree: (pid) => {
+        alive.delete(pid);
+      },
+      isPidAlive: (pid) => alive.has(pid),
+    });
+    expect(result.discoveryOk).toBe(false);
+    expect(result.remaining.length).toBeGreaterThan(0);
+    expect(result.remaining).toContain(30);
   });
 });
 

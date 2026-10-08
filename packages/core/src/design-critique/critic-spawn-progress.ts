@@ -240,11 +240,27 @@ export function evaluateCriticTerminationBoundary(
   return { ok: true, disposition: "complete" };
 }
 
+export type CriticDescendantDiscovery = {
+  readonly pids: readonly number[];
+  /** False when discovery could not be trusted (e.g. pgrep missing/error). */
+  readonly ok: boolean;
+};
+
 export type CriticKillTreeSeams = {
   readonly platform?: NodeJS.Platform;
   readonly killTree?: (pid: number) => void;
   readonly isPidAlive?: (pid: number) => boolean;
-  readonly listDescendants?: (pid: number) => number[];
+  /** Plain arrays are treated as successful discovery for fixture seams. */
+  readonly listDescendants?: (pid: number) => number[] | CriticDescendantDiscovery;
+};
+
+export type CriticKillTreeResult = {
+  readonly remaining: number[];
+  /**
+   * False when Unix descendant discovery failed. remaining is fail-closed
+   * nonempty so callers must not treat the tree as safely stopped.
+   */
+  readonly discoveryOk: boolean;
 };
 
 function defaultIsPidAlive(pid: number): boolean {
@@ -276,16 +292,26 @@ function defaultKillTree(pid: number, platform: NodeJS.Platform): void {
   }
 }
 
+function normalizeDescendantDiscovery(
+  value: number[] | CriticDescendantDiscovery,
+): CriticDescendantDiscovery {
+  if (Array.isArray(value)) {
+    return { pids: value, ok: true };
+  }
+  return value;
+}
+
 /**
  * Discover descendant PIDs when the critic is not a process-group leader
  * (hygiene allows detached:false). win32 relies on taskkill /T instead.
+ * Fail closed (ok:false) when pgrep cannot be trusted.
  */
-function defaultListDescendants(pid: number, platform: NodeJS.Platform): number[] {
-  if (platform === "win32") return [];
-  if (!Number.isInteger(pid) || pid <= 0) return [];
+function defaultListDescendants(pid: number, platform: NodeJS.Platform): CriticDescendantDiscovery {
+  if (platform === "win32") return { pids: [], ok: true };
+  if (!Number.isInteger(pid) || pid <= 0) return { pids: [], ok: true };
   const found: number[] = [];
   const queue = [pid];
-  const seen = new Set();
+  const seen = new Set<number>();
   while (queue.length > 0) {
     const parent = queue.pop();
     if (parent === undefined || seen.has(parent)) continue;
@@ -295,7 +321,9 @@ function defaultListDescendants(pid: number, platform: NodeJS.Platform): number[
       stdio: ["ignore", "pipe", "ignore"],
     });
     // pgrep exits 1 when there are no children.
-    if (result.error || (result.status !== 0 && result.status !== 1)) continue;
+    if (result.error || (result.status !== 0 && result.status !== 1)) {
+      return { pids: found, ok: false };
+    }
     const stdout = typeof result.stdout === "string" ? result.stdout : "";
     for (const line of stdout.split(/\r?\n/)) {
       const child = Number(line.trim());
@@ -304,27 +332,29 @@ function defaultListDescendants(pid: number, platform: NodeJS.Platform): number[
       queue.push(child);
     }
   }
-  return found;
+  return { pids: found, ok: true };
 }
 
 /**
  * Kill the owned critic process tree. Seams make process-tree kill fixtureable.
  * Default Unix path discovers descendants so detached:false critics without a
- * process group still get children killed before remaining is empty.
+ * process group still get children killed. Discovery failure fail-closes with
+ * nonempty remaining so reseat cannot treat the tree as stopped.
  */
 export function killCriticProcessTree(
   pid: number,
   seams: CriticKillTreeSeams = {},
-): { remaining: number[] } {
+): CriticKillTreeResult {
   if (!Number.isInteger(pid) || pid <= 0) {
-    return { remaining: [] };
+    return { remaining: [], discoveryOk: true };
   }
   const platform = seams.platform ?? process.platform;
   const kill = seams.killTree ?? ((target: number) => defaultKillTree(target, platform));
   const alive = seams.isPidAlive ?? defaultIsPidAlive;
   const list =
     seams.listDescendants ?? ((target: number) => defaultListDescendants(target, platform));
-  const snapshot = [pid, ...list(pid)];
+  const discovery = normalizeDescendantDiscovery(list(pid));
+  const snapshot = [pid, ...discovery.pids];
   kill(pid);
   let remaining = snapshot.filter(alive);
   if (remaining.length > 0) {
@@ -333,7 +363,12 @@ export function killCriticProcessTree(
     }
     remaining = snapshot.filter(alive);
   }
-  return { remaining };
+  if (!discovery.ok) {
+    // Fail closed: never report an empty remaining after untrusted discovery.
+    if (remaining.length === 0) remaining = [pid];
+    return { remaining, discoveryOk: false };
+  }
+  return { remaining, discoveryOk: true };
 }
 
 /**
