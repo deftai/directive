@@ -1258,6 +1258,38 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(dispatch).toContain("#4219");
   });
 
+  it("locks Claude Critic-spawn hygiene + progress pointers (#5478)", () => {
+    const dispatch = markdownSection(
+      readText("docs/grok-build-subscription-setup.md"),
+      "## Design-critique dispatch",
+    );
+    expect(dispatch).toContain("Critic-spawn hygiene + progress (#5478)");
+    expect(dispatch).toContain("outFd");
+    expect(dispatch).toContain("detached");
+    expect(dispatch).toContain("unref");
+    expect(dispatch).toContain("T_progress");
+    expect(dispatch).toContain("T_timeout");
+    expect(dispatch).toContain("critic-spawn-progress.ts");
+    expect(dispatch).toContain("process tree");
+    expect(dispatch).toContain("#5492");
+    expect(dispatch).toContain("CreateProcess");
+    expect(dispatch).toContain("containment");
+    expect(dispatch).not.toContain("grow evaluateN3LaunchProbe into");
+    const ceiling = markdownSection(readText(CONTRACT), "### Envelope and ceiling");
+    expect(ceiling).toContain("Critic-spawn hygiene + progress (#5478)");
+    expect(ceiling).toContain("critic-spawn-progress.ts");
+    expect(ceiling).toContain("#5492");
+    expect(ceiling).toContain("containment");
+    expect(ceiling).toMatch(
+      /\u2297 Grow `evaluateN3LaunchProbe` into envelope progress, a watchdog, or a panel scheduler/,
+    );
+    const skill = readText(SKILL_REL);
+    expect(skill).toContain("Critic-spawn hygiene + progress (#5478)");
+    expect(skill).toContain("#5492 adjacent");
+    expect(skill).toContain("Containment first");
+    expect(skill.split("\n").length).toBeLessThanOrEqual(MAX_SKILL_LINES);
+  });
+
   it("locks run-posture front door tokens and fixtures (#4072)", () => {
     const text = readText(CONTRACT);
     const stop1 = markdownSection(text, "## Stop 1 \u2014 Gate");

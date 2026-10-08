@@ -6,6 +6,8 @@
  * It does not observe launchability (#4432).
  * It does not select spend (#4705). evaluateN3LaunchProbe skips when spendN < 3;
  * that skip is not a spend front door.
+ * Critic-spawn progress / termination live in critic-spawn-progress.ts (#5478);
+ * do not grow evaluateN3LaunchProbe into a watchdog.
  */
 
 export type SeatLauncher = "spawn_subagent" | "grok" | "claude" | "codex" | "paste-ready";

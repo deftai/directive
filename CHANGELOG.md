@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Leftover-complete #5489 after product #5497.
 - Approved-scope mint for #5478 Prefer-A Bound Path B file_scope (skills-pack).
 - Approved-scope mint for #5492 Prefer-A Bound Path B file_scope (skills-pack).
+- **Claude critic 0-byte hang after pong (#5478).** Critic-spawn hygiene MUST, first-byte progress gate + hard `T_timeout`, and process-tree termination for pointer-envelope seats; launch-probe stays launchability-only; `#5492` argv ceiling stays adjacent. Tracking #5478. Refs Prefer-A Bound 6065703308.
 
 ### Added
 - **Design-critique later-arc closed-findings (#5489).** Later arcs on the same ticket no longer re-litigate findings the parent already closed: critics demote authorized restatements, and reopen needs evidence. Adjacent-polish hydra remainder deferred to #5493. Tracking #5489. Refs Prefer-A Bound 6065006497.
