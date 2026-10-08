@@ -2063,14 +2063,21 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(stop1).toContain(
       "⊗ Record `spend-recommend: N≥3` when Stop 2 panel permission does not apply",
     );
-    expect(stop1).toContain("asks before Stop 1");
+    expect(stop1).toContain(
+      "On bare arc, missing `spend-recommend:` is a parent defect: record then resolve via `design-critique:spend-resolve --recommend`",
+    );
+    expect(stop1).toContain("Ask remains only for ambiguous token mixes, bare `panel`, or a parent-declared unclosable recommend");
     expect(stop1).toContain("Yolo is not a spend token");
-    expect(stop1).toContain("Do not copy `resolveArcRunPostureForHost` onto spend");
+    expect(stop1).toContain("Do not copy `resolveArcRunPostureForHost` missing-token auto-resolve onto spend");
+    expect(stop1).toContain("resolveDesignCritiqueSpend");
     expect(stop1).toContain("That recuts the #3846 silence clause");
     expect(stop1).toContain("\u2297 Close #3846");
     expect(stop1).toContain("\u2297 Treat silence as N=1");
     expect(stop1).toContain(
       "\u2297 Grow `evaluatePanelSeatComposition` or `evaluateN3LaunchProbe` as the spend gate",
+    );
+    expect(stop1).toContain(
+      "\u2297 Ask for spend on bare arc before recording `spend-recommend:`",
     );
     expect(stop2).toContain("unselected until `parseOperatorSpend` resolves");
     expect(stop2).toContain("Those rows are unchanged in behaviour for charter selection only");
@@ -2084,9 +2091,11 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(template).toContain("Spend `spend:` / `spend-ask:`");
     const skill = readText(SKILL_REL);
     expect(skill).toContain(
-      "Spend: closed n= wins; else record spend-recommend then resolve; ask only when recommend missing or tokens ambiguous",
+      "Spend: closed n= wins; else call design-critique:spend-resolve --recommend then resolve",
     );
-    expect(skill).toContain("Consume parseOperatorSpend");
+    expect(skill).toContain("Bare-arc missing recommend is a parent defect");
+    expect(skill).toContain("Call spend-resolve before any operator surface");
+    expect(skill).toContain("Consume parseOperatorSpend / resolveDesignCritiqueSpend");
     expect(skill).toContain("Yolo standing: default on; noyolo clears; yolo affirms");
     expect(skill).toContain("missing defaults to no-ingest via resolveArcRunPostureForHost");
     expect(skill).toContain("parseOperatorYoloStanding");
@@ -2100,7 +2109,7 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
       skills: readonly { id: string; body?: string }[];
     };
     const dc = pack.skills.find((entry) => entry.id === "deft-directive-design-critique");
-    expect(dc?.body).toContain("Consume parseOperatorSpend");
+    expect(dc?.body).toContain("Consume parseOperatorSpend / resolveDesignCritiqueSpend");
     expect(parseOperatorSpend("arc no-ingest yolo 4690")).toEqual({
       kind: "ask",
       reason: "missing-token",

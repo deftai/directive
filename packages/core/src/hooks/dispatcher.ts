@@ -151,6 +151,7 @@ import {
   decidePlanChoiceWithHatch,
   decideQuestionHatchGate,
   decideQuestionHatchPauseGate,
+  decideSpendRecommendGate,
 } from "./dispatcher-plan-choice.js";
 import { appendGitDestructiveRecord, GIT_DESTRUCTIVE_LOG_ENV } from "./git-destructive-log.js";
 import { classifyLauncherFamilyArgv, type LauncherArgvClass } from "./launcher-argv.js";
@@ -347,6 +348,8 @@ export type HookDecisionCode =
   | "question-hatch-pause-storage-failure"
   | "question-hatch-pause-lock-busy"
   | "question-hatch-pause-resumed"
+  /** Arc in-flight without spend-recommend — deny structured asks (#5466). */
+  | "spend-recommend-required"
   /** Still-running / status-unknown host kill without green attestation (#5281). */
   | "kill-attestation-deny"
   /** Green pre-cancel or equivalent kill attestation allowed host kill (#5281). */
@@ -3475,6 +3478,10 @@ function routeHookDecision(
   // Discuss-pause latch (Cursor plan-choice selection ingress only) (#5373).
   const pauseDeny = decideQuestionHatchPauseGate(input, toolName);
   if (pauseDeny !== null) return pauseDeny;
+
+  // State-keyed spend-recommend gate before hatch (#5466 Prefer-A).
+  const spendRecommendGate = decideSpendRecommendGate(input, toolName);
+  if (spendRecommendGate !== null) return spendRecommendGate;
 
   // Refuse-missing-hatch when PreToolUse admits a structured-question tool (#5373).
   const hatchGate = decideQuestionHatchGate(input, toolName);

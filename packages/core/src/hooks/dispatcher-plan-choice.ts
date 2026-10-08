@@ -12,6 +12,10 @@
 import { mkdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import {
+  isSpendAskDeniedByArcState,
+  readArcSpendState,
+} from "../design-critique/spend.js";
 import { containedRemove, containedRename, containedWrite } from "../fs/contained-write.js";
 import { isQuestionToolName } from "../tool-events/classify.js";
 import { platformUserConfigDir } from "../user-config/resolve-user-md.js";
@@ -43,6 +47,9 @@ export type QuestionHatchDecisionCode =
   | "question-hatch-pause-storage-failure"
   | "question-hatch-pause-lock-busy"
   | "question-hatch-pause-resumed";
+
+/** Arc in-flight without spend-recommend — deny structured asks (#5466). */
+export type SpendRecommendGateDecisionCode = "spend-recommend-required";
 
 /** Retention hint only — elapsed time MUST NOT clear the latch (#5373). */
 const PAUSE_TTL_MS = 60 * 60 * 1000;
@@ -307,6 +314,40 @@ function decision(
     message,
     scopePath: null,
   };
+}
+
+export function spendRecommendRequiredMessage(toolName: string): string {
+  return [
+    `Directive denied ${toolName}: design-critique arc is in flight without a closed spend-recommend: record.`,
+    "",
+    "Bare-arc missing spend-recommend is a parent defect (#5466 Prefer-A).",
+    "Remediation: task design-critique:spend-resolve -- --utterance <text> --recommend N=1|N≥3",
+    "Then re-attempt the ask only if still lawful (ambiguous mixes, bare panel, or unclosable recommend).",
+    "Keep the #5373 Discuss then Back hatch on any lawful ask.",
+  ].join("\n");
+}
+
+/**
+ * State-keyed deny for QUESTION_HOOK tools while arc is in flight and no
+ * spend-recommend is recorded yet (#5466). Not utterance-keyed; no NLP.
+ * #5373 hatch remains for lawful asks after a resolve attempt sets askPermitted
+ * or after spend-recommend is recorded.
+ */
+export function decideSpendRecommendGate(
+  input: HookDispatchInput,
+  toolName: string,
+): HookDecision | null {
+  if (input.event !== "tool.before") return null;
+  if (!isQuestionToolName(toolName)) return null;
+  const state = readArcSpendState(input.projectRoot);
+  if (!isSpendAskDeniedByArcState(state)) return null;
+  return decision(
+    input,
+    "deny",
+    "spend-recommend-required",
+    toolName,
+    spendRecommendRequiredMessage(toolName),
+  );
 }
 
 /**

@@ -1,12 +1,18 @@
+import { mkdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { containedRename, containedWrite } from "../fs/contained-write.js";
+
 /**
- * Design-critique spend front door (#4705 / #5111).
+ * Design-critique spend front door (#4705 / #5111 / #5466).
  *
  * Session-local critic count chosen before Stop 1. Closed tokens only on
  * the operator chat utterance. Yolo is not a spend token. Bare panel does
  * not resolve. Missing or colliding classes ask unless a closed
- * `spend-recommend:` value is supplied. Not a blast-radius selector and
- * not a host default.
+ * `spend-recommend:` value is supplied. On bare arc, missing recommend is a
+ * parent defect (record then resolve via spend-resolve) — not an ask trigger
+ * (#5466 Prefer-A). Not a blast-radius selector and not a host default.
  */
+
 export const ARC_SPENDS = ["N=1", "N≥3"] as const;
 
 export type ArcSpend = (typeof ARC_SPENDS)[number];
@@ -291,5 +297,263 @@ export function evaluateHostMemorySpendConflict(
         )})`
       : null,
     spendRecord,
+  };
+}
+
+/** Parent-written arc spend scratch (#5466 Prefer-A limb 3). */
+export const ARC_SPEND_STATE_SCHEMA = "deft.design-critique.arc-spend-state.v1" as const;
+
+export const ARC_SPEND_STATE_REL_PARTS = [
+  ".deft-scratch",
+  "design-critique",
+  "arc-spend-state.json",
+] as const;
+
+export type ArcSpendState = {
+  readonly schema: typeof ARC_SPEND_STATE_SCHEMA;
+  readonly status: "in-flight";
+  readonly spendRecommend: ArcSpend | null;
+  readonly spend: ArcSpend | null;
+  readonly spendAsk: SpendAskKind | null;
+  /** True after a resolve attempt that left ask lawful (ambiguous / unclosable). */
+  readonly askPermitted: boolean;
+  readonly updatedAt: string;
+  readonly utterance: string | null;
+};
+
+export function arcSpendStatePath(projectRoot: string): string {
+  return join(projectRoot, ...ARC_SPEND_STATE_REL_PARTS);
+}
+
+export function readArcSpendState(projectRoot: string): ArcSpendState | null {
+  try {
+    const raw = readFileSync(arcSpendStatePath(projectRoot), "utf8");
+    const parsed = JSON.parse(raw) as ArcSpendState;
+    if (parsed.schema !== ARC_SPEND_STATE_SCHEMA) return null;
+    if (parsed.status !== "in-flight") return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export function writeArcSpendState(projectRoot: string, state: ArcSpendState): void {
+  const dir = join(projectRoot, ".deft-scratch", "design-critique");
+  mkdirSync(dir, { recursive: true });
+  const target = arcSpendStatePath(projectRoot);
+  const tmp = `${target}.${process.pid}.tmp`;
+  containedWrite({
+    root: projectRoot,
+    target: tmp,
+    data: `${JSON.stringify(state, null, 2)}\n`,
+    mode: "replace",
+    mutation: false,
+  });
+  containedRename({ root: projectRoot, from: tmp, to: target, mutation: false });
+}
+
+/**
+ * Deny structured asks while arc Stop 1 is open and no closed spend-recommend
+ * exists yet, unless a prior resolve attempt marked ask lawful (#5466).
+ */
+export function isSpendAskDeniedByArcState(state: ArcSpendState | null): boolean {
+  if (state === null) return false;
+  if (state.status !== "in-flight") return false;
+  if (state.spendRecommend !== null) return false;
+  if (state.askPermitted) return false;
+  return true;
+}
+
+/** Parse `--recommend N=1|N≥3|N>=3` for spend-resolve (#5466). */
+export function parseRecommendFlag(raw: string | null | undefined): ArcSpend | null {
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  if (/^N=1$/i.test(trimmed)) return N1_SPEND;
+  if (/^N(?:>=|\u2265)3$/i.test(trimmed)) return N3_SPEND;
+  return null;
+}
+
+export type ResolveDesignCritiqueSpendInput = {
+  readonly utterance: string;
+  readonly recommendRaw?: string | null;
+  readonly projectRoot: string;
+  readonly nowMs?: number;
+};
+
+export type ResolveDesignCritiqueSpendResult =
+  | {
+      readonly ok: true;
+      readonly spend: ArcSpend;
+      readonly spendRecommend: ArcSpend;
+      readonly lines: readonly string[];
+      readonly state: ArcSpendState;
+    }
+  | {
+      readonly ok: false;
+      readonly code: "missing-recommend" | "ambiguous" | "invalid-recommend";
+      readonly message: string;
+      readonly state: ArcSpendState;
+    };
+
+/**
+ * Callable spend front door (#5466). Mirrors only the callable pattern of
+ * resolveArcRunPostureForHost — never copies missing-token auto-resolve onto
+ * spend. Bare arc requires explicit --recommend; never defaults N=1; never asks.
+ */
+export function resolveDesignCritiqueSpend(
+  input: ResolveDesignCritiqueSpendInput,
+): ResolveDesignCritiqueSpendResult {
+  const now = input.nowMs ?? Date.now();
+  const updatedAt = new Date(now).toISOString();
+  const recommend =
+    input.recommendRaw === undefined || input.recommendRaw === null || input.recommendRaw === ""
+      ? null
+      : parseRecommendFlag(input.recommendRaw);
+
+  if (
+    input.recommendRaw !== undefined &&
+    input.recommendRaw !== null &&
+    input.recommendRaw !== "" &&
+    recommend === null
+  ) {
+    const state: ArcSpendState = {
+      schema: ARC_SPEND_STATE_SCHEMA,
+      status: "in-flight",
+      spendRecommend: null,
+      spend: null,
+      spendAsk: null,
+      askPermitted: false,
+      updatedAt,
+      utterance: input.utterance,
+    };
+    writeArcSpendState(input.projectRoot, state);
+    return {
+      ok: false,
+      code: "invalid-recommend",
+      message:
+        "design-critique:spend-resolve: invalid --recommend (expected N=1 or N\u22653). " +
+        "Supply --recommend N=1|N\u22653.",
+      state,
+    };
+  }
+
+  const parse = parseOperatorSpend(input.utterance, { spendRecommend: recommend });
+
+  if (parse.kind === "ask" && parse.reason === "ambiguous") {
+    const state: ArcSpendState = {
+      schema: ARC_SPEND_STATE_SCHEMA,
+      status: "in-flight",
+      spendRecommend: recommend,
+      spend: null,
+      spendAsk: null,
+      askPermitted: true,
+      updatedAt,
+      utterance: input.utterance,
+    };
+    writeArcSpendState(input.projectRoot, state);
+    return {
+      ok: false,
+      code: "ambiguous",
+      message:
+        "design-critique:spend-resolve: utterance is ambiguous (colliding tokens or bare panel). " +
+        "Ask is lawful under the #5373 hatch after this resolve attempt; do not invent N.",
+      state,
+    };
+  }
+
+  if (parse.kind === "ask" && parse.reason === "missing-token") {
+    const state: ArcSpendState = {
+      schema: ARC_SPEND_STATE_SCHEMA,
+      status: "in-flight",
+      spendRecommend: null,
+      spend: null,
+      spendAsk: null,
+      askPermitted: false,
+      updatedAt,
+      utterance: input.utterance,
+    };
+    writeArcSpendState(input.projectRoot, state);
+    return {
+      ok: false,
+      code: "missing-recommend",
+      message:
+        "design-critique:spend-resolve: bare arc missing --recommend is a parent defect. " +
+        "Record spend-recommend then resolve: supply --recommend N=1 (or N\u22653 under panel permission). " +
+        "Never ask; never default N=1.",
+      state,
+    };
+  }
+
+  if (parse.kind !== "resolved") {
+    const state: ArcSpendState = {
+      schema: ARC_SPEND_STATE_SCHEMA,
+      status: "in-flight",
+      spendRecommend: null,
+      spend: null,
+      spendAsk: null,
+      askPermitted: false,
+      updatedAt,
+      utterance: input.utterance,
+    };
+    writeArcSpendState(input.projectRoot, state);
+    return {
+      ok: false,
+      code: "missing-recommend",
+      message:
+        "design-critique:spend-resolve: bare arc missing --recommend is a parent defect. " +
+        "Supply --recommend N=1|N\u22653.",
+      state,
+    };
+  }
+
+  const spendRecommend = recommend ?? parse.spend;
+  const record = evaluateSpendRecord({
+    parse,
+    asked: false,
+    answer: null,
+    stop1Spend: parse.spend,
+    spendAsk: "resolved",
+  });
+  if (!record.ok) {
+    const state: ArcSpendState = {
+      schema: ARC_SPEND_STATE_SCHEMA,
+      status: "in-flight",
+      spendRecommend: null,
+      spend: null,
+      spendAsk: null,
+      askPermitted: false,
+      updatedAt,
+      utterance: input.utterance,
+    };
+    writeArcSpendState(input.projectRoot, state);
+    return {
+      ok: false,
+      code: "missing-recommend",
+      message: `design-critique:spend-resolve: spend record refused (${record.reason}). Supply --recommend N=1|N\u22653.`,
+      state,
+    };
+  }
+
+  const state: ArcSpendState = {
+    schema: ARC_SPEND_STATE_SCHEMA,
+    status: "in-flight",
+    spendRecommend,
+    spend: record.spend,
+    spendAsk: "resolved",
+    askPermitted: false,
+    updatedAt,
+    utterance: input.utterance,
+  };
+  writeArcSpendState(input.projectRoot, state);
+  return {
+    ok: true,
+    spend: record.spend,
+    spendRecommend,
+    lines: [
+      spendRecommendRecordLine(spendRecommend),
+      spendRecordLine(record.spend),
+      spendAskRecordLine("resolved"),
+    ],
+    state,
   };
 }

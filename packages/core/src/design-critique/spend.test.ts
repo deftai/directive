@@ -1,4 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
 import { dualStopSpendSeats, evaluateDualStopPostBudget } from "./leftover-pain.js";
 import { resolveArcRunPostureForHost } from "./run-posture.js";
 import {
@@ -8,10 +11,14 @@ import {
   HOST_MEMORY_CONFLICT_DISCLOSURE_PREFIX,
   HOST_MEMORY_EXTERNAL_CONTEXT_FAMILY,
   hostMemoryHasPersonalAuthority,
+  isSpendAskDeniedByArcState,
   N1_SPEND,
   N3_SPEND,
   parseOperatorSpend,
+  parseRecommendFlag,
   parseSpendRecommend,
+  readArcSpendState,
+  resolveDesignCritiqueSpend,
   SPEND_ASK_FIELD,
   SPEND_ASK_REMEDIATION,
   SPEND_FIELD,
@@ -20,6 +27,17 @@ import {
   spendRecommendRecordLine,
   spendRecordLine,
 } from "./spend.js";
+
+const spendTemps: string[] = [];
+afterEach(() => {
+  for (const dir of spendTemps.splice(0)) rmSync(dir, { recursive: true, force: true });
+});
+
+function spendTempRoot(): string {
+  const dir = mkdtempSync(join(tmpdir(), "spend-resolve-"));
+  spendTemps.push(dir);
+  return dir;
+}
 
 describe("parseOperatorSpend (#4705)", () => {
   it("asks missing-token on the measured launching utterance", () => {
@@ -485,5 +503,54 @@ describe("dualStopSpendSeats (#4705)", () => {
         afterHandoff: false,
       }).numberedCap,
     ).toBe(0);
+  });
+});
+
+describe("parent-defect bare-arc path (#5466 Prefer-A)", () => {
+  it("records spend-recommend then resolves without treating silence as N=1", () => {
+    const root = spendTempRoot();
+    const missing = resolveDesignCritiqueSpend({
+      utterance: "arc no-ingest yolo 5465",
+      projectRoot: root,
+    });
+    expect(missing.ok).toBe(false);
+    if (missing.ok) return;
+    expect(missing.code).toBe("missing-recommend");
+    expect(missing.message).toContain("parent defect");
+    expect(isSpendAskDeniedByArcState(missing.state)).toBe(true);
+    expect(parseRecommendFlag("N=1")).toBe(N1_SPEND);
+    expect(parseRecommendFlag("N>=3")).toBe(N3_SPEND);
+    expect(parseRecommendFlag("N≥3")).toBe(N3_SPEND);
+
+    const resolved = resolveDesignCritiqueSpend({
+      utterance: "arc no-ingest yolo 5465",
+      recommendRaw: "N=1",
+      projectRoot: root,
+    });
+    expect(resolved.ok).toBe(true);
+    if (!resolved.ok) return;
+    expect(resolved.spend).toBe(N1_SPEND);
+    expect(resolved.spendRecommend).toBe(N1_SPEND);
+    expect(resolved.lines).toEqual([
+      "spend-recommend: N=1",
+      "spend: N=1",
+      "spend-ask: resolved",
+    ]);
+    expect(isSpendAskDeniedByArcState(resolved.state)).toBe(false);
+    expect(readArcSpendState(root)?.spendRecommend).toBe(N1_SPEND);
+  });
+
+  it("marks ask lawful for bare panel without inventing N", () => {
+    const root = spendTempRoot();
+    const ambiguous = resolveDesignCritiqueSpend({
+      utterance: "arc 5466 panel",
+      recommendRaw: "N=1",
+      projectRoot: root,
+    });
+    expect(ambiguous.ok).toBe(false);
+    if (ambiguous.ok) return;
+    expect(ambiguous.code).toBe("ambiguous");
+    expect(ambiguous.state.askPermitted).toBe(true);
+    expect(isSpendAskDeniedByArcState(ambiguous.state)).toBe(false);
   });
 });

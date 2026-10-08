@@ -10,7 +10,9 @@ import {
   type HookPolicySeams,
   renderHostDecision,
 } from "./dispatcher.js";
+import { writeArcSpendState } from "../design-critique/spend.js";
 import {
+  decideSpendRecommendGate,
   evaluateHatchPresence,
   extractQuestionOptionGroups,
   isHatchAliasText,
@@ -354,5 +356,92 @@ describe("question hatch gate (#5373)", () => {
       seams,
     );
     expect(after.code).toBe("question-hatch-ready");
+  });
+});
+
+describe("spend-recommend gate (#5466)", () => {
+  it("denies ask_user_question while arc in flight without spend-recommend", () => {
+    const root = tempDir("spend-gate-");
+    writeArcSpendState(root, {
+      schema: "deft.design-critique.arc-spend-state.v1",
+      status: "in-flight",
+      spendRecommend: null,
+      spend: null,
+      spendAsk: null,
+      askPermitted: false,
+      updatedAt: new Date().toISOString(),
+      utterance: "arc 5466",
+    });
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "ask_user_question",
+          tool_input: {
+            questions: [
+              {
+                question: "Spend?",
+                options: [{ label: "N=1" }, { label: "Discuss" }, { label: "Back" }],
+              },
+            ],
+          },
+        },
+      },
+      readySeams(),
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(decision.code).toBe("spend-recommend-required");
+    expect(decision.message).toContain("design-critique:spend-resolve");
+  });
+
+  it("allows ask after spend-recommend recorded (hatch still applies)", () => {
+    const root = tempDir("spend-gate-ok-");
+    writeArcSpendState(root, {
+      schema: "deft.design-critique.arc-spend-state.v1",
+      status: "in-flight",
+      spendRecommend: "N=1",
+      spend: "N=1",
+      spendAsk: "resolved",
+      askPermitted: false,
+      updatedAt: new Date().toISOString(),
+      utterance: "arc 5466",
+    });
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "ask_user_question",
+          tool_input: {
+            questions: [
+              {
+                question: "Ambiguous spend?",
+                options: [{ label: "N=1" }, { label: "Discuss" }, { label: "Back" }],
+              },
+            ],
+          },
+        },
+      },
+      readySeams(),
+    );
+    expect(decision.verdict).toBe("allow");
+    expect(decision.code).toBe("question-hatch-ready");
+  });
+
+  it("does not deny when no arc-spend-state exists", () => {
+    const root = tempDir("spend-gate-absent-");
+    const gate = decideSpendRecommendGate(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: { tool_name: "ask_user_question", tool_input: { questions: [] } },
+      },
+      "ask_user_question",
+    );
+    expect(gate).toBeNull();
   });
 });

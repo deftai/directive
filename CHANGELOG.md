@@ -15,10 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Design-critique spend ask gate (#5466). Tracking #5466.
 - Leftover-complete #5365 after product #5484 (forge Environment/trusted-publisher/tag-ruleset evidence remains operator residual; YAML alone does not close).
 - Approved-scope mint for #4961 Prefer-A Bound Path B file_scope (membership fence).
 - Approved-scope mint for #4888 Prefer-A Bound Path B file_scope (membership fence).
 - Approved-scope mint for #4892 Prefer-A Bound Path B file_scope (membership fence).
+- npm publish Environment gate + tarball OIDC job split (#5365). Tracking #5365.
 - Remint approved-scope for #5466 Path B to include docs/RULE-MAP.md (rule-map freshness after contract edits).
 - Keep active #5466 Path B activation (bare-arc spend-resolve membership).
 - Approved-scope mint for #5466 Prefer-A Bound Path B file_scope (spend-resolve / ask-deny membership fence).
