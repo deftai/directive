@@ -2161,6 +2161,14 @@ describe("ship-ready LGTM / move-forward completion (#5488)", () => {
     expect(
       classifyLgtmSeatCensus("clean-result: yes\nNo blocks-the-design findings were raised.\n"),
     ).toBe("clean-result");
+    expect(
+      classifyLgtmSeatCensus("role: critic\n```\n### footnote: example only\n```\n"),
+    ).toBe("stub");
+    expect(
+      classifyLgtmSeatCensus(
+        "clean-result: yes\n```\nblocks-the-design: fenced example\n```\n",
+      ),
+    ).toBe("clean-result");
   });
 
   it("scopes LGTM admission to the cited lean arc", () => {
@@ -2222,12 +2230,53 @@ describe("ship-ready LGTM / move-forward completion (#5488)", () => {
       ),
     ).toBe("sharpening-present");
     expect(
+      mapSeatCensusUnderMaterialityBar(
+        "sharpening-present",
+        "ship-ready",
+        "sharpens-framing: wording\n```\npromoted: yes\n```\n",
+      ),
+    ).toBe("footnote-only");
+    expect(
       evaluateLgtmCompletionConjunct({
         materialityBar: "ship-ready",
         acceptedBlockerCount: 0,
         unresolvedBlockerResidualCount: 0,
         parentMoveForwardRecorded: true,
         seatCensus: ["sharpening-present"],
+      }),
+    ).toMatchObject({ ok: false, reason: "stub-or-blank" });
+  });
+
+  it("refuses LGTM when panel-deposit seats are still missing", () => {
+    const deposit: ThreadComment = {
+      id: 2,
+      body:
+        "model: grok-4.6\nrole: parent\n\npanel-deposit\nround: 1\nsiblings: 3\n" +
+        "input-ceiling: 1\nfamilies: grok, claude, codex\n",
+    };
+    const oneCritic: ThreadComment = {
+      id: CRITIC_ID,
+      body: "model: grok\nrole: critic\n\nclean-result: yes\n",
+    };
+    const leanShip: ThreadComment = {
+      id: LEAN_ID,
+      body: withPlainEnglish(
+        "**Lean:** Prefer-A Bound.\n\nmateriality-bar: ship-ready\nmove-forward: yes\n",
+      ),
+    };
+    const moveForward: ThreadComment = {
+      id: SYNTHESIS_ID,
+      body: withPlainEnglish(
+        "model: grok-4.6\nrole: parent\n\n" +
+          `${MOVE_FORWARD_SYNTHESIS_LEAD}\n\n` +
+          `successor lean ${LEAN_ID}\n`,
+      ),
+    };
+    expect(
+      evaluateMoveForwardThreadAdmission({
+        comments: [deposit, oneCritic, leanShip, moveForward],
+        synthesis: moveForward,
+        citedLean: leanShip,
       }),
     ).toMatchObject({ ok: false, reason: "stub-or-blank" });
   });

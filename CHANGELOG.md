@@ -35,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Design-critique ship-ready LGTM / move-forward completion (#5488): opt-in `materiality-bar: ship-ready`, closed move-forward synthesis lead, empty/footnote Path 1–2 waiver under the LGTM conjunct; yolo unchanged. Tracking #5488.
+- Design-critique ship-ready LGTM (#5488): operators can opt into finishing a clear review without accepting minor findings; yolo standing stays unchanged. Tracking #5488.
 
 ### Changed
 

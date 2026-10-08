@@ -375,11 +375,23 @@ function operativeFindingClasses(body: string): Set<string> {
   const re = new RegExp(OPERATIVE_FINDING_CLASS_RE.source, "gi");
   for (const match of body.matchAll(re)) {
     const token = match[1];
-    if (typeof token === "string" && token.length > 0) {
-      classes.add(token.toLowerCase());
-    }
+    if (typeof token !== "string" || token.length === 0) continue;
+    if (classifyPosition(body, match.index ?? 0) !== null) continue;
+    classes.add(token.toLowerCase());
   }
   return classes;
+}
+
+const FINDING_CLASSES_FOOTNOTE_RE = /(?:^|\n)[ \t]*finding-classes:[ \t]*footnote\b/gi;
+
+function hasOperativeFindingClassesFootnote(body: string): boolean {
+  const re = new RegExp(FINDING_CLASSES_FOOTNOTE_RE.source, "gi");
+  for (const match of body.matchAll(re)) {
+    if (classifyPosition(body, operativeLineStartOffset(match, "finding-classes:")) === null) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -395,7 +407,7 @@ export function classifyLgtmSeatCensus(body: string): LgtmSeatCensus {
   if (classes.has("blocks-the-design")) return "blocking-present";
   if (classes.has("sharpens-framing")) return "sharpening-present";
   if (hasOperativeCleanResultYes(body)) return "clean-result";
-  if (classes.has("footnote") || /finding-classes:[ \t]*footnote\b/i.test(body)) {
+  if (classes.has("footnote") || hasOperativeFindingClassesFootnote(body)) {
     return "footnote-only";
   }
   return "stub";
@@ -403,7 +415,13 @@ export function classifyLgtmSeatCensus(body: string): LgtmSeatCensus {
 
 /** True when the critic body records a promoted sharpen readiness obligation. */
 export function hasPromotedSharpenMarker(body: string): boolean {
-  return PROMOTED_SHARPEN_RE.test(body);
+  const re = new RegExp(PROMOTED_SHARPEN_RE.source, "gi");
+  for (const match of body.matchAll(re)) {
+    if (classifyPosition(body, operativeLineStartOffset(match, "promoted:")) === null) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -443,6 +461,36 @@ export function commentsInCitedLeanArc(
     }
   }
   return comments.filter((comment) => comment.id > priorLeanId && comment.id < nextLeanAfter);
+}
+
+const PANEL_SEAT_LINE_RE = /(?:^|\n)\s*seat:\s*(\S+)/gi;
+const PANEL_FAMILIES_FIELD_RE = /(?:^|\n)\s*families:\s*([^\n]+)/i;
+const PANEL_SIBLINGS_COUNT_RE = /(?:^|\n)\s*siblings:\s*(\d+)\b/i;
+
+/** Expected Round-1 seat count from the latest panel-deposit in the arc. */
+function expectedRound1SeatCount(arcComments: readonly ThreadComment[]): number {
+  let max = 0;
+  for (const comment of arcComments) {
+    if (!isPanelDepositBody(comment.body)) continue;
+    const seatIds = new Set<string>();
+    const seatRe = new RegExp(PANEL_SEAT_LINE_RE.source, "gi");
+    for (const match of comment.body.matchAll(seatRe)) {
+      const id = match[1]?.trim();
+      if (id) seatIds.add(id);
+    }
+    if (seatIds.size === 0) {
+      const familiesRaw = comment.body.match(PANEL_FAMILIES_FIELD_RE)?.[1] ?? "";
+      for (const part of familiesRaw.split(",")) {
+        const id = part.trim();
+        if (id) seatIds.add(id);
+      }
+    }
+    const siblingsRaw = comment.body.match(PANEL_SIBLINGS_COUNT_RE)?.[1];
+    const siblings = siblingsRaw !== undefined ? Number.parseInt(siblingsRaw, 10) : Number.NaN;
+    const n = seatIds.size > 0 ? seatIds.size : Number.isFinite(siblings) ? siblings : 0;
+    if (n > max) max = n;
+  }
+  return max;
 }
 
 function countAcceptedBlockersInBody(body: string): number {
@@ -505,6 +553,9 @@ export function evaluateMoveForwardThreadAdmission(input: {
           ),
         )
       : ["stub"];
+  // Panel-deposit expected seats must all post; missing seats stay stub (#5488 P1).
+  const expectedSeats = expectedRound1SeatCount(arcComments);
+  while (seatCensus.length < expectedSeats) seatCensus.push("stub");
   let acceptedBlockerCount = countAcceptedBlockersInBody(input.citedLean.body);
   let unresolvedBlockerResidualCount = unresolvedBlockerResidualsInBody(input.citedLean.body);
   for (const comment of criticLike) {
