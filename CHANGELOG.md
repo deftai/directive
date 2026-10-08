@@ -24,7 +24,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remint approved-scope for #5466 Path B to include docs/RULE-MAP.md (rule-map freshness after contract edits).
 - Keep active #5466 Path B activation (bare-arc spend-resolve membership).
 - Approved-scope mint for #5466 Prefer-A Bound Path B file_scope (spend-resolve / ask-deny membership fence).
-- **#5466 spend-resolve review batch:** teach `deft design-critique:spend-resolve` (skip lone `--`); `--open-gate` / `--clear` / `--unclosable-recommend`; explicit `n=` wins over unclosable escape. Tracking #5466.
 
 ### Added
 

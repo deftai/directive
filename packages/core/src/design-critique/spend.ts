@@ -303,6 +303,7 @@ export function evaluateHostMemorySpendConflict(
 /** Parent-written arc spend scratch (#5466 Prefer-A limb 3). */
 export const ARC_SPEND_STATE_SCHEMA = "deft.design-critique.arc-spend-state.v1" as const;
 
+/** @deprecated Project-wide path; session-scoped path is authoritative. */
 export const ARC_SPEND_STATE_REL_PARTS = [
   ".deft-scratch",
   "design-critique",
@@ -319,15 +320,70 @@ export type ArcSpendState = {
   readonly askPermitted: boolean;
   readonly updatedAt: string;
   readonly utterance: string | null;
+  /** Session that owns this in-flight gate (parallel arcs must not share). */
+  readonly sessionId: string;
 };
 
-export function arcSpendStatePath(projectRoot: string): string {
+export type ArcSpendSessionOpts = {
+  readonly sessionId?: string | null;
+  readonly env?: NodeJS.ProcessEnv;
+};
+
+/** Sanitize session id for scratch path segments (no separators / traversal). */
+export function sanitizeArcSpendSessionId(sessionId: string | undefined): string {
+  const raw = (sessionId ?? "no-session").trim();
+  if (raw.includes("..") || /[\\/]/.test(raw)) {
+    throw new Error("arc-spend sessionId rejected: separators or traversal");
+  }
+  const safe = raw.replace(/[^A-Za-z0-9._-]+/g, "_").slice(0, 80);
+  return safe.length > 0 ? safe : "no-session";
+}
+
+/**
+ * Resolve the session that owns arc-spend-state. Explicit flag wins, then
+ * DEFT_SESSION_ID / DEFT_MONITOR_AGENT_ID / GROK_SESSION_ID, else no-session.
+ */
+export function resolveArcSpendSessionId(opts: ArcSpendSessionOpts = {}): string {
+  const explicit = opts.sessionId?.trim();
+  if (explicit !== undefined && explicit.length > 0) {
+    return sanitizeArcSpendSessionId(explicit);
+  }
+  const env = opts.env ?? process.env;
+  for (const key of ["DEFT_SESSION_ID", "DEFT_MONITOR_AGENT_ID", "GROK_SESSION_ID"] as const) {
+    const value = typeof env[key] === "string" ? env[key].trim() : "";
+    if (value.length > 0) return sanitizeArcSpendSessionId(value);
+  }
+  return sanitizeArcSpendSessionId("no-session");
+}
+
+export function arcSpendStateRelParts(sessionId: string): readonly string[] {
+  return [
+    ".deft-scratch",
+    "design-critique",
+    "sessions",
+    sanitizeArcSpendSessionId(sessionId),
+    "arc-spend-state.json",
+  ];
+}
+
+export function arcSpendStatePath(
+  projectRoot: string,
+  opts: ArcSpendSessionOpts = {},
+): string {
+  const sessionId = resolveArcSpendSessionId(opts);
+  return join(projectRoot, ...arcSpendStateRelParts(sessionId));
+}
+
+export function legacyArcSpendStatePath(projectRoot: string): string {
   return join(projectRoot, ...ARC_SPEND_STATE_REL_PARTS);
 }
 
-export function readArcSpendState(projectRoot: string): ArcSpendState | null {
+export function readArcSpendState(
+  projectRoot: string,
+  opts: ArcSpendSessionOpts = {},
+): ArcSpendState | null {
   try {
-    const raw = readFileSync(arcSpendStatePath(projectRoot), "utf8");
+    const raw = readFileSync(arcSpendStatePath(projectRoot, opts), "utf8");
     const parsed = JSON.parse(raw) as ArcSpendState;
     if (parsed.schema !== ARC_SPEND_STATE_SCHEMA) return null;
     if (parsed.status !== "in-flight") return null;
@@ -337,15 +393,21 @@ export function readArcSpendState(projectRoot: string): ArcSpendState | null {
   }
 }
 
-export function writeArcSpendState(projectRoot: string, state: ArcSpendState): void {
-  const dir = join(projectRoot, ".deft-scratch", "design-critique");
+export function writeArcSpendState(
+  projectRoot: string,
+  state: ArcSpendState,
+  opts: ArcSpendSessionOpts = {},
+): void {
+  const sessionId = state.sessionId || resolveArcSpendSessionId(opts);
+  const target = arcSpendStatePath(projectRoot, { ...opts, sessionId });
+  const dir = join(target, "..");
   mkdirSync(dir, { recursive: true });
-  const target = arcSpendStatePath(projectRoot);
   const tmp = `${target}.${process.pid}.tmp`;
+  const toWrite: ArcSpendState = { ...state, sessionId };
   containedWrite({
     root: projectRoot,
     target: tmp,
-    data: `${JSON.stringify(state, null, 2)}\n`,
+    data: `${JSON.stringify(toWrite, null, 2)}\n`,
     mode: "replace",
     mutation: false,
   });
@@ -354,13 +416,20 @@ export function writeArcSpendState(projectRoot: string, state: ArcSpendState): v
 
 /**
  * Open the Prefer-A deny gate at arc start before any structured ask (#5466).
- * Independent of a successful --recommend resolve so the first ask cannot slip
- * through a missing state file.
+ * Session-scoped so abandoned arcs cannot poison other sessions. Independent
+ * of a successful --recommend resolve so the first ask cannot slip through a
+ * missing state file once the gate is open.
  */
 export function openArcSpendGate(
   projectRoot: string,
-  input: { readonly utterance?: string | null; readonly nowMs?: number } = {},
+  input: {
+    readonly utterance?: string | null;
+    readonly nowMs?: number;
+    readonly sessionId?: string | null;
+    readonly env?: NodeJS.ProcessEnv;
+  } = {},
 ): ArcSpendState {
+  const sessionId = resolveArcSpendSessionId(input);
   const state: ArcSpendState = {
     schema: ARC_SPEND_STATE_SCHEMA,
     status: "in-flight",
@@ -370,31 +439,56 @@ export function openArcSpendGate(
     askPermitted: false,
     updatedAt: new Date(input.nowMs ?? Date.now()).toISOString(),
     utterance: input.utterance ?? null,
+    sessionId,
   };
-  writeArcSpendState(projectRoot, state);
+  writeArcSpendState(projectRoot, state, input);
   return state;
 }
 
-/** Clear project-local arc spend scratch when the arc ends or is abandoned. */
-export function clearArcSpendState(projectRoot: string): boolean {
-  const result = containedRemove({
+/**
+ * Clear session-scoped arc spend scratch when the arc ends or is abandoned.
+ * Also removes the legacy project-wide file so abandoned pre-session state
+ * cannot keep denying unrelated questions.
+ */
+export function clearArcSpendState(
+  projectRoot: string,
+  opts: ArcSpendSessionOpts = {},
+): boolean {
+  const sessionRemoved = containedRemove({
     root: projectRoot,
-    target: arcSpendStatePath(projectRoot),
+    target: arcSpendStatePath(projectRoot, opts),
     mutation: false,
-  });
-  return result.removed;
+  }).removed;
+  const legacyRemoved = containedRemove({
+    root: projectRoot,
+    target: legacyArcSpendStatePath(projectRoot),
+    mutation: false,
+  }).removed;
+  return sessionRemoved || legacyRemoved;
 }
 
 /**
  * Deny structured asks while arc Stop 1 is open and no closed spend-recommend
  * exists yet, unless a prior resolve attempt marked ask lawful (#5466).
+ * Missing state alone is not deny — callers also gate spend-shaped asks.
  */
 export function isSpendAskDeniedByArcState(state: ArcSpendState | null): boolean {
   if (state === null) return false;
   if (state.status !== "in-flight") return false;
   if (state.spendRecommend !== null) return false;
+  if (state.spendAsk === "resolved" && state.spend !== null) return false;
   if (state.askPermitted) return false;
   return true;
+}
+
+/** True when structured-question option labels look like Dual-stop spend choices. */
+export function optionLabelsLookLikeSpend(labels: readonly string[]): boolean {
+  for (const label of labels) {
+    const trimmed = label.trim();
+    if (/^N=1$/i.test(trimmed)) return true;
+    if (/^N(?:>=|\u2265)3$/i.test(trimmed)) return true;
+  }
+  return false;
 }
 
 /** Parse `--recommend N=1|N≥3|N>=3` for spend-resolve (#5466). */
@@ -413,13 +507,16 @@ export type ResolveDesignCritiqueSpendInput = {
   readonly unclosableRecommend?: boolean;
   readonly projectRoot: string;
   readonly nowMs?: number;
+  readonly sessionId?: string | null;
+  readonly env?: NodeJS.ProcessEnv;
 };
 
 export type ResolveDesignCritiqueSpendResult =
   | {
       readonly ok: true;
       readonly spend: ArcSpend;
-      readonly spendRecommend: ArcSpend;
+      /** Present only when --recommend supplied; operator n= does not invent it. */
+      readonly spendRecommend: ArcSpend | null;
       readonly lines: readonly string[];
       readonly state: ArcSpendState;
     }
@@ -440,6 +537,15 @@ export function resolveDesignCritiqueSpend(
 ): ResolveDesignCritiqueSpendResult {
   const now = input.nowMs ?? Date.now();
   const updatedAt = new Date(now).toISOString();
+  const sessionId = resolveArcSpendSessionId(input);
+  const sessionOpts = { sessionId, env: input.env };
+  const baseState = (): Omit<ArcSpendState, "spendRecommend" | "spend" | "spendAsk" | "askPermitted"> => ({
+    schema: ARC_SPEND_STATE_SCHEMA,
+    status: "in-flight",
+    updatedAt,
+    utterance: input.utterance,
+    sessionId,
+  });
   const recommend =
     input.recommendRaw === undefined || input.recommendRaw === null || input.recommendRaw === ""
       ? null
@@ -452,16 +558,13 @@ export function resolveDesignCritiqueSpend(
     recommend === null
   ) {
     const state: ArcSpendState = {
-      schema: ARC_SPEND_STATE_SCHEMA,
-      status: "in-flight",
+      ...baseState(),
       spendRecommend: null,
       spend: null,
       spendAsk: null,
       askPermitted: false,
-      updatedAt,
-      utterance: input.utterance,
     };
-    writeArcSpendState(input.projectRoot, state);
+    writeArcSpendState(input.projectRoot, state, sessionOpts);
     return {
       ok: false,
       code: "invalid-recommend",
@@ -476,16 +579,13 @@ export function resolveDesignCritiqueSpend(
 
   if (parse.kind === "ask" && parse.reason === "ambiguous") {
     const state: ArcSpendState = {
-      schema: ARC_SPEND_STATE_SCHEMA,
-      status: "in-flight",
+      ...baseState(),
       spendRecommend: recommend,
       spend: null,
       spendAsk: null,
       askPermitted: true,
-      updatedAt,
-      utterance: input.utterance,
     };
-    writeArcSpendState(input.projectRoot, state);
+    writeArcSpendState(input.projectRoot, state, sessionOpts);
     return {
       ok: false,
       code: "ambiguous",
@@ -499,16 +599,13 @@ export function resolveDesignCritiqueSpend(
   if (parse.kind === "ask" && parse.reason === "missing-token") {
     if (input.unclosableRecommend === true) {
       const state: ArcSpendState = {
-        schema: ARC_SPEND_STATE_SCHEMA,
-        status: "in-flight",
+        ...baseState(),
         spendRecommend: null,
         spend: null,
         spendAsk: null,
         askPermitted: true,
-        updatedAt,
-        utterance: input.utterance,
       };
-      writeArcSpendState(input.projectRoot, state);
+      writeArcSpendState(input.projectRoot, state, sessionOpts);
       return {
         ok: false,
         code: "unclosable",
@@ -519,16 +616,13 @@ export function resolveDesignCritiqueSpend(
       };
     }
     const state: ArcSpendState = {
-      schema: ARC_SPEND_STATE_SCHEMA,
-      status: "in-flight",
+      ...baseState(),
       spendRecommend: null,
       spend: null,
       spendAsk: null,
       askPermitted: false,
-      updatedAt,
-      utterance: input.utterance,
     };
-    writeArcSpendState(input.projectRoot, state);
+    writeArcSpendState(input.projectRoot, state, sessionOpts);
     return {
       ok: false,
       code: "missing-recommend",
@@ -542,16 +636,13 @@ export function resolveDesignCritiqueSpend(
 
   if (parse.kind !== "resolved") {
     const state: ArcSpendState = {
-      schema: ARC_SPEND_STATE_SCHEMA,
-      status: "in-flight",
+      ...baseState(),
       spendRecommend: null,
       spend: null,
       spendAsk: null,
       askPermitted: false,
-      updatedAt,
-      utterance: input.utterance,
     };
-    writeArcSpendState(input.projectRoot, state);
+    writeArcSpendState(input.projectRoot, state, sessionOpts);
     return {
       ok: false,
       code: "missing-recommend",
@@ -562,7 +653,9 @@ export function resolveDesignCritiqueSpend(
     };
   }
 
-  const spendRecommend = recommend ?? parse.spend;
+  // Parent --recommend is the only spend-recommend source. Operator n= sets spend
+  // only and must not invent spend-recommend (esp. N≥3 without panel permission).
+  const spendRecommend = recommend;
   const record = evaluateSpendRecord({
     parse,
     asked: false,
@@ -572,16 +665,13 @@ export function resolveDesignCritiqueSpend(
   });
   if (!record.ok) {
     const state: ArcSpendState = {
-      schema: ARC_SPEND_STATE_SCHEMA,
-      status: "in-flight",
+      ...baseState(),
       spendRecommend: null,
       spend: null,
       spendAsk: null,
       askPermitted: false,
-      updatedAt,
-      utterance: input.utterance,
     };
-    writeArcSpendState(input.projectRoot, state);
+    writeArcSpendState(input.projectRoot, state, sessionOpts);
     return {
       ok: false,
       code: "missing-recommend",
@@ -591,25 +681,26 @@ export function resolveDesignCritiqueSpend(
   }
 
   const state: ArcSpendState = {
-    schema: ARC_SPEND_STATE_SCHEMA,
-    status: "in-flight",
+    ...baseState(),
     spendRecommend,
     spend: record.spend,
     spendAsk: "resolved",
     askPermitted: false,
-    updatedAt,
-    utterance: input.utterance,
   };
-  writeArcSpendState(input.projectRoot, state);
+  writeArcSpendState(input.projectRoot, state, sessionOpts);
+  const lines =
+    spendRecommend !== null
+      ? [
+          spendRecommendRecordLine(spendRecommend),
+          spendRecordLine(record.spend),
+          spendAskRecordLine("resolved"),
+        ]
+      : [spendRecordLine(record.spend), spendAskRecordLine("resolved")];
   return {
     ok: true,
     spend: record.spend,
     spendRecommend,
-    lines: [
-      spendRecommendRecordLine(spendRecommend),
-      spendRecordLine(record.spend),
-      spendAskRecordLine("resolved"),
-    ],
+    lines,
     state,
   };
 }

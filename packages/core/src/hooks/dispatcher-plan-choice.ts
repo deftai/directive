@@ -12,7 +12,11 @@
 import { mkdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { isSpendAskDeniedByArcState, readArcSpendState } from "../design-critique/spend.js";
+import {
+  isSpendAskDeniedByArcState,
+  optionLabelsLookLikeSpend,
+  readArcSpendState,
+} from "../design-critique/spend.js";
 import { containedRemove, containedRename, containedWrite } from "../fs/contained-write.js";
 import { isQuestionToolName } from "../tool-events/classify.js";
 import { platformUserConfigDir } from "../user-config/resolve-user-md.js";
@@ -328,8 +332,10 @@ export function spendRecommendRequiredMessage(toolName: string): string {
 /**
  * State-keyed deny for QUESTION_HOOK tools while arc is in flight and no
  * spend-recommend is recorded yet (#5466). Not utterance-keyed; no NLP.
+ * Spend-shaped option labels (N=1 / N≥3) are also denied when session state is
+ * missing so a fresh arc cannot slip the first ask past an unopened gate.
  * #5373 hatch remains for lawful asks after a resolve attempt sets askPermitted
- * or after spend-recommend is recorded.
+ * or after spend-recommend / resolved spend is recorded.
  */
 export function decideSpendRecommendGate(
   input: HookDispatchInput,
@@ -337,15 +343,30 @@ export function decideSpendRecommendGate(
 ): HookDecision | null {
   if (input.event !== "tool.before") return null;
   if (!isQuestionToolName(toolName)) return null;
-  const state = readArcSpendState(input.projectRoot);
-  if (!isSpendAskDeniedByArcState(state)) return null;
-  return decision(
-    input,
-    "deny",
-    "spend-recommend-required",
-    toolName,
-    spendRecommendRequiredMessage(toolName),
-  );
+  const state = readArcSpendState(input.projectRoot, { env: input.environ });
+  if (isSpendAskDeniedByArcState(state)) {
+    return decision(
+      input,
+      "deny",
+      "spend-recommend-required",
+      toolName,
+      spendRecommendRequiredMessage(toolName),
+    );
+  }
+  if (state === null) {
+    const groups = extractQuestionOptionGroups(input.payload);
+    const spendShaped = groups.some((group) => optionLabelsLookLikeSpend(group.labels));
+    if (spendShaped) {
+      return decision(
+        input,
+        "deny",
+        "spend-recommend-required",
+        toolName,
+        spendRecommendRequiredMessage(toolName),
+      );
+    }
+  }
+  return null;
 }
 
 /**

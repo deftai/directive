@@ -21,17 +21,18 @@ export const EXIT_SPEND_RESOLVE_CONFIG = 2;
 export const DESIGN_CRITIQUE_SPEND_RESOLVE_HELP = `design-critique:spend-resolve — record spend-recommend then resolve (#5466)
 
 Usage:
-  deft design-critique:spend-resolve --utterance <text> --recommend N=1|N≥3 [--project-root PATH] [--json]
-  deft design-critique:spend-resolve --open-gate [--utterance <text>] [--project-root PATH]
-  deft design-critique:spend-resolve --clear [--project-root PATH]
-  deft design-critique:spend-resolve --utterance <text> --unclosable-recommend [--project-root PATH]
+  deft design-critique:spend-resolve --utterance <text> --recommend N=1|N≥3 [--project-root PATH] [--session-id ID] [--json]
+  deft design-critique:spend-resolve --open-gate [--utterance <text>] [--project-root PATH] [--session-id ID]
+  deft design-critique:spend-resolve --clear [--project-root PATH] [--session-id ID]
+  deft design-critique:spend-resolve --utterance <text> --unclosable-recommend [--project-root PATH] [--session-id ID]
 
 Options:
   --utterance TEXT          Operator chat utterance (required except --open-gate/--clear)
   --recommend N=1|N≥3       Closed Dual-stop recommendation (required on bare arc)
   --unclosable-recommend    Parent-declared unclosable recommend; permit lawful ask
-  --open-gate               Open deny-default arc-spend-state at arc start
-  --clear                   Clear arc-spend-state when the arc ends or is abandoned
+  --open-gate               Open deny-default session-scoped arc-spend-state at arc start
+  --clear                   Clear session arc-spend-state when the arc ends or is abandoned
+  --session-id ID           Session that owns arc-spend-state (default: DEFT_SESSION_ID / env)
   --project-root PATH       Project root for arc-spend-state scratch (default: cwd)
   --json                    Emit structured result
 
@@ -45,6 +46,7 @@ export interface DesignCritiqueSpendResolveArgs {
   utterance: string | null;
   recommend: string | null;
   projectRoot: string;
+  sessionId: string | null;
   emitJson: boolean;
   help: boolean;
   openGate: boolean;
@@ -60,6 +62,7 @@ export function parseDesignCritiqueSpendResolveArgs(
     utterance: null,
     recommend: null,
     projectRoot: ".",
+    sessionId: null,
     emitJson: false,
     help: false,
     openGate: false,
@@ -118,6 +121,19 @@ export function parseDesignCritiqueSpendResolveArgs(
       acc.recommend = arg.slice("--recommend=".length);
       continue;
     }
+    if (arg === "--session-id") {
+      const value = argv[i + 1];
+      if (value === undefined || value.startsWith("--")) {
+        return { ...acc, error: "argument --session-id: expected one argument" };
+      }
+      acc.sessionId = value;
+      i += 1;
+      continue;
+    }
+    if (arg?.startsWith("--session-id=")) {
+      acc.sessionId = arg.slice("--session-id=".length);
+      continue;
+    }
     if (arg === "--project-root") {
       const value = argv[i + 1];
       if (value === undefined) {
@@ -148,9 +164,10 @@ export function run(argv: readonly string[]): number {
   }
 
   const projectRoot = resolve(args.projectRoot);
+  const sessionId = args.sessionId;
 
   if (args.clear) {
-    const removed = clearArcSpendState(projectRoot);
+    const removed = clearArcSpendState(projectRoot, { sessionId });
     if (args.emitJson) {
       process.stdout.write(`${JSON.stringify({ ok: true, cleared: removed }, null, 2)}\n`);
     } else {
@@ -164,7 +181,7 @@ export function run(argv: readonly string[]): number {
   }
 
   if (args.openGate) {
-    const state = openArcSpendGate(projectRoot, { utterance: args.utterance });
+    const state = openArcSpendGate(projectRoot, { utterance: args.utterance, sessionId });
     if (args.emitJson) {
       process.stdout.write(`${JSON.stringify({ ok: true, opened: true, state }, null, 2)}\n`);
     } else {
@@ -188,6 +205,7 @@ export function run(argv: readonly string[]): number {
     recommendRaw: args.recommend,
     unclosableRecommend: args.unclosableRecommend,
     projectRoot,
+    sessionId,
   });
 
   if (args.emitJson) {

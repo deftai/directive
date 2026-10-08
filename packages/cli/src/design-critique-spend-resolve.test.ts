@@ -36,6 +36,7 @@ describe("design-critique:spend-resolve (#5466)", () => {
       utterance: "arc 5466",
       recommend: "N=1",
       projectRoot: "/tmp/x",
+      sessionId: null,
       emitJson: false,
       help: false,
       openGate: false,

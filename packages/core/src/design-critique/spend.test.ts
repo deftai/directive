@@ -586,7 +586,39 @@ describe("parent-defect bare-arc path (#5466 Prefer-A)", () => {
     expect(resolved.ok).toBe(true);
     if (!resolved.ok) return;
     expect(resolved.spend).toBe(N1_SPEND);
-    expect(resolved.spendRecommend).toBe(N1_SPEND);
+    expect(resolved.spendRecommend).toBeNull();
+    expect(resolved.lines).toEqual(["spend: N=1", "spend-ask: resolved"]);
     expect(isSpendAskDeniedByArcState(resolved.state)).toBe(false);
+  });
+
+  it("does not invent spend-recommend from operator n=3", () => {
+    const root = spendTempRoot();
+    const resolved = resolveDesignCritiqueSpend({
+      utterance: "arc n=3",
+      projectRoot: root,
+    });
+    expect(resolved.ok).toBe(true);
+    if (!resolved.ok) return;
+    expect(resolved.spend).toBe(N3_SPEND);
+    expect(resolved.spendRecommend).toBeNull();
+    expect(resolved.lines).not.toContain("spend-recommend: N≥3");
+    expect(resolved.lines).toEqual(["spend: N≥3", "spend-ask: resolved"]);
+  });
+
+  it("scopes arc-spend-state per session and clears without poisoning peers", () => {
+    const root = spendTempRoot();
+    openArcSpendGate(root, { utterance: "arc A", sessionId: "sess-a" });
+    openArcSpendGate(root, { utterance: "arc B", sessionId: "sess-b" });
+    expect(isSpendAskDeniedByArcState(readArcSpendState(root, { sessionId: "sess-a" }))).toBe(
+      true,
+    );
+    expect(isSpendAskDeniedByArcState(readArcSpendState(root, { sessionId: "sess-b" }))).toBe(
+      true,
+    );
+    expect(clearArcSpendState(root, { sessionId: "sess-a" })).toBe(true);
+    expect(readArcSpendState(root, { sessionId: "sess-a" })).toBeNull();
+    expect(isSpendAskDeniedByArcState(readArcSpendState(root, { sessionId: "sess-b" }))).toBe(
+      true,
+    );
   });
 });

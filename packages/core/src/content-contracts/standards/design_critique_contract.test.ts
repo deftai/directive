@@ -2093,8 +2093,9 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(template).toContain("Spend `spend:` / `spend-ask:`");
     const skill = readText(SKILL_REL);
     expect(skill).toContain(
-      "Spend: closed n= wins; else call `deft design-critique:spend-resolve --utterance <text> --recommend` then resolve",
+      "Spend: closed n= wins for `spend:` (does not invent `spend-recommend:`); else call `deft design-critique:spend-resolve --utterance <text> --recommend` then resolve",
     );
+    expect(skill).toContain("session-scoped state");
     expect(skill).toContain("Bare-arc missing recommend is a parent defect");
     expect(skill).toContain("Call spend-resolve before any operator surface");
     expect(skill).toContain("Consume parseOperatorSpend / resolveDesignCritiqueSpend");

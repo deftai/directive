@@ -162,13 +162,14 @@ describe("question hatch gate (#5373)", () => {
         host: "grok",
         event: "tool.before",
         projectRoot: "/project",
+        environ: {},
         payload: {
           tool_name: "ask_user_question",
           tool_input: {
             questions: [
               {
-                question: "Spend?",
-                options: [{ label: "N=1" }, { label: "N=3" }, { label: "Other" }],
+                question: "Pick one?",
+                options: [{ label: "Alpha" }, { label: "Beta" }, { label: "Other" }],
               },
             ],
           },
@@ -191,13 +192,14 @@ describe("question hatch gate (#5373)", () => {
         host: "grok",
         event: "tool.before",
         projectRoot: "/project",
+        environ: {},
         payload: {
           tool_name: "ask_user_question",
           tool_input: {
             questions: [
               {
-                question: "Spend?",
-                options: [{ label: "N=1" }, { label: "Discuss" }, { label: "Back" }],
+                question: "Pick one?",
+                options: [{ label: "Alpha" }, { label: "Discuss" }, { label: "Back" }],
               },
             ],
           },
@@ -371,12 +373,14 @@ describe("spend-recommend gate (#5466)", () => {
       askPermitted: false,
       updatedAt: new Date().toISOString(),
       utterance: "arc 5466",
+      sessionId: "no-session",
     });
     const decision = decideHook(
       {
         host: "grok",
         event: "tool.before",
         projectRoot: root,
+        environ: {},
         payload: {
           tool_name: "ask_user_question",
           tool_input: {
@@ -407,12 +411,14 @@ describe("spend-recommend gate (#5466)", () => {
       askPermitted: false,
       updatedAt: new Date().toISOString(),
       utterance: "arc 5466",
+      sessionId: "no-session",
     });
     const decision = decideHook(
       {
         host: "grok",
         event: "tool.before",
         projectRoot: root,
+        environ: {},
         payload: {
           tool_name: "ask_user_question",
           tool_input: {
@@ -431,17 +437,44 @@ describe("spend-recommend gate (#5466)", () => {
     expect(decision.code).toBe("question-hatch-ready");
   });
 
-  it("does not deny when no arc-spend-state exists", () => {
+  it("does not deny when no arc-spend-state exists for non-spend questions", () => {
     const root = tempDir("spend-gate-absent-");
     const gate = decideSpendRecommendGate(
       {
         host: "grok",
         event: "tool.before",
         projectRoot: root,
+        environ: {},
         payload: { tool_name: "ask_user_question", tool_input: { questions: [] } },
       },
       "ask_user_question",
     );
     expect(gate).toBeNull();
+  });
+
+  it("denies spend-shaped ask when session gate was never opened", () => {
+    const root = tempDir("spend-gate-shaped-");
+    const gate = decideSpendRecommendGate(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        environ: {},
+        payload: {
+          tool_name: "ask_user_question",
+          tool_input: {
+            questions: [
+              {
+                question: "Spend?",
+                options: [{ label: "N=1" }, { label: "Discuss" }, { label: "Back" }],
+              },
+            ],
+          },
+        },
+      },
+      "ask_user_question",
+    );
+    expect(gate?.verdict).toBe("deny");
+    expect(gate?.code).toBe("spend-recommend-required");
   });
 });
