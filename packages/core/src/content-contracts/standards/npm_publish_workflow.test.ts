@@ -104,6 +104,7 @@ describe("npm_publish_workflow (#5365 Prefer-A Bound)", () => {
     expect(prepare).toContain("post-publish-runner-");
     expect(postPublish).toContain("post-publish-runner-");
     expect(postPublish).toContain("download-artifact");
+    expect(postPublish).toMatch(/path:\s*packages\/core/);
     expect(postPublish).toContain("--post-publish-two-pass");
     expect(postPublish).not.toMatch(/ref:\s*\$\{\{\s*needs\.prepare\.outputs\.source_sha\s*\}\}/);
     expect(postPublish).not.toMatch(/pnpm install/);
