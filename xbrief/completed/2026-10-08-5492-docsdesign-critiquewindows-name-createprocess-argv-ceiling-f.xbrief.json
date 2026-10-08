@@ -1,0 +1,451 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5492",
+    "updated": "2026-10-08T19:33:56Z"
+  },
+  "plan": {
+    "title": "docs(design-critique,windows): name CreateProcess argv ceiling for Claude critic pointer spawn",
+    "status": "completed",
+    "narratives": {
+      "Description": "docs(design-critique,windows): name CreateProcess argv ceiling for Claude critic pointer spawn",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5492",
+      "Overview": "## Bound remedy (#5492 Prefer-A 6067419035)\n\nconflict_group: windows-claude-argv-ceiling-docs\n\n1. Playbook Claude Critic spawn: pointer required; launcher-dependent Windows limits (cmd/batch 8191 vs CreateProcessW 32767 including null); no false CreateProcess ~8191 sole string.\n2. Pong proves probe only.\n3. Thin skill/contract pointers; no AGENTS fat prose; no new halt token; no evaluateN3LaunchProbe change.\n4. Cross-link #5478 as adjacent post-pointer hang class.\n\nSufficiency: closes documentation rediscovery gap; does not enforce launch success by prose alone.\nReject: CreateProcess ~8191 as sole threshold; empty logs prove overflow; docs enforce completion; new halt/probe growth; absorb #5478.\narc-mode: no-ingest",
+      "Labels": "bug, agent-experience, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Playbook: pointer required + launcher-dependent Windows limits",
+        "status": "completed",
+        "x-directive/artifact_path": "content/docs/grok-build-subscription-setup.md",
+        "narrative": {
+          "Acceptance": "In Critic spawn (second recipe) under Claude: require envelope under arc dest + short pointer prompt for Claude critic spawn on all hosts. Name launcher-dependent Windows command-line limits: cmd.exe/batch paths have an 8,191-character limit; CreateProcessW permits 32,767 characters including the terminating null. These are whole-command limits, not a prompt-only allowance. Do not bind the false sole string CreateProcess ~8191."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5510 squash-merge (Tracking #5492). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5510",
+            "mintedAt": "2026-10-08T22:55:00.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-08T22:55:00.000Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Pong proves probe only",
+        "status": "completed",
+        "x-directive/artifact_path": "content/docs/grok-build-subscription-setup.md",
+        "narrative": {
+          "Acceptance": "State that launch-probe pong-ok proves only that probe invocation under critic argv; it proves neither long-prompt transport nor envelope read/completion."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5510 squash-merge (Tracking #5492). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5510",
+            "mintedAt": "2026-10-08T22:55:00.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-08T22:55:00.000Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Thin skill/contract pointers only",
+        "status": "completed",
+        "x-directive/artifact_path": "content/contracts/design-critique.md",
+        "narrative": {
+          "Acceptance": "Thin skill/contract pointers only — no fat Windows prose in AGENTS.md; no new halt token; no evaluateN3LaunchProbe / seat-composition change."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5510 squash-merge (Tracking #5492). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5510",
+            "mintedAt": "2026-10-08T22:55:00.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-08T22:55:00.000Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Cross-link #5478 as adjacent hang class",
+        "status": "completed",
+        "x-directive/artifact_path": "content/skills/deft-directive-design-critique/SKILL.md",
+        "narrative": {
+          "Acceptance": "Cross-link #5478 as the adjacent post-pointer hang class (0-byte with CPU after pointer). Do not collapse with argv/command-line length empty-exit class; leave #5478 diagnosis/fix on that issue."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5510 squash-merge (Tracking #5492). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5510",
+            "mintedAt": "2026-10-08T22:55:00.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-08T22:55:00.000Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Contract test pins pointer strings",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+        "narrative": {
+          "Acceptance": "Extend design_critique_contract tests to pin required playbook/contract pointer strings for Windows launcher-dependent limits and pong-only-proves-probe language where those surfaces are locked by the contract suite."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5510 squash-merge (Tracking #5492). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5510",
+            "mintedAt": "2026-10-08T22:55:00.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-08T22:55:00.000Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5492",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5492: docs(design-critique,windows): name CreateProcess argv ceiling for Claude critic pointer spawn"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "sentences": [
+        "docs(design-critique,windows): name CreateProcess argv ceiling for Claude critic pointer spawn",
+        "Summary `content/docs/grok-build-subscription-setup.md` § Design-critique dispatch already requires the Claude critic pointer form (`claude -p \"Read and follow <envelope-path>\"`) and forbids putting the full envelope on stdin / as raw probe text.",
+        "It does not name the Windows CreateProcess ~8191-character argv limit as the reason full `-p` envelopes fail closed (immediate empty exit / empty logs) even when a tiny launch-probe pong returns rc0.",
+        "Parents on Windows Grok Build currently recover that knowledge from host-memory / session notes rather than a Directive playbook limb.",
+        "That gap makes the pointer recipe look optional or “style,” and re-teaches the same failure: launch-probe green → full envelope as `-p` → empty critic.",
+        "Desired outcome 1.",
+        "Document in `content/docs/grok-build-subscription-setup.md` Critic spawn (second recipe), under Claude: - On Windows, do not pass the full critic envelope via `claude -p` (CreateProcess argv ~8191).",
+        "Write the envelope under the arc dest (e.g.",
+        "`.deft-scratch/critic-claude.md`), then pass only a short pointer prompt.",
+        "Tiny launch-probe pong green does not prove a full-envelope `-p` will launch.",
+        "Keep Normative stop ownership on the existing Envelope and ceiling / #4432 launch-probe; this is playbook hardening, not a new halt token.",
+        "Cross-link open hang residue `#5478` (pointer already used, still 0-byte hang) so parents do not collapse “argv too long” and “hung after pointer” into one diagnosis.",
+        "Out of scope - Fixing the post-pointer 0-byte hang itself (`#5478`).",
+        "Changing `evaluateN3LaunchProbe` / seat-composition fixtures.",
+        "Making paste-ready the default Claude seat.",
+        "Acceptance - [ ] Playbook names Windows argv ceiling + pointer-required for Claude critic spawn.",
+        "[ ] Playbook states launch-probe pong ≠ full-envelope launch proof.",
+        "[ ] Skill / contract stay thin pointers (no fat Windows prose in AGENTS.md).",
+        "[ ] `#5478` cited as related hang class, not the same defect.",
+        "Playbook: `content/docs/grok-build-subscription-setup.md` Design-critique dispatch (#4365)",
+        "Launch-probe MUST: `content/contracts/design-critique.md` / #4432",
+        "Related hang: #5478",
+        "Playbook names Windows argv ceiling + pointer-required for Claude critic spawn.",
+        "Playbook states launch-probe pong ≠ full-envelope launch proof.",
+        "Skill / contract stay thin pointers (no fat Windows prose in AGENTS.md).",
+        "#5478 cited as related hang class, not the same defect.",
+        "In Critic spawn (second recipe) under Claude: require envelope under arc dest + short pointer prompt for Claude critic spawn on all hosts. Name launcher-dependent Windows command-line limits: cmd.exe/batch paths have an 8,191-character limit; CreateProcessW permits 32,767 characters including the terminating null. These are whole-command limits, not a prompt-only allowance. Do not bind the false sole string CreateProcess ~8191.",
+        "State that launch-probe pong-ok proves only that probe invocation under critic argv; it proves neither long-prompt transport nor envelope read/completion.",
+        "Thin skill/contract pointers only — no fat Windows prose in AGENTS.md; no new halt token; no evaluateN3LaunchProbe / seat-composition change.",
+        "Cross-link #5478 as the adjacent post-pointer hang class (0-byte with CPU after pointer). Do not collapse with argv/command-line length empty-exit class; leave #5478 diagnosis/fix on that issue.",
+        "Extend design_critique_contract tests to pin required playbook/contract pointer strings for Windows launcher-dependent limits and pong-only-proves-probe language where those surfaces are locked by the contract suite."
+      ],
+      "admitted_source_sentences": [
+        "Summary `content/docs/grok-build-subscription-setup.md` § Design-critique dispatch already requires the Claude critic pointer form (`claude -p \"Read and follow <envelope-path>\"`) and forbids putting the full envelope on stdin / as raw probe text.",
+        "It does not name the Windows CreateProcess ~8191-character argv limit as the reason full `-p` envelopes fail closed (immediate empty exit / empty logs) even when a tiny launch-probe pong returns rc0.",
+        "Parents on Windows Grok Build currently recover that knowledge from host-memory / session notes rather than a Directive playbook limb.",
+        "That gap makes the pointer recipe look optional or “style,” and re-teaches the same failure: launch-probe green → full envelope as `-p` → empty critic.",
+        "Desired outcome 1.",
+        "Document in `content/docs/grok-build-subscription-setup.md` Critic spawn (second recipe), under Claude: - On Windows, do not pass the full critic envelope via `claude -p` (CreateProcess argv ~8191).",
+        "Write the envelope under the arc dest (e.g.",
+        "`.deft-scratch/critic-claude.md`), then pass only a short pointer prompt.",
+        "Tiny launch-probe pong green does not prove a full-envelope `-p` will launch.",
+        "Keep Normative stop ownership on the existing Envelope and ceiling / #4432 launch-probe; this is playbook hardening, not a new halt token.",
+        "Cross-link open hang residue `#5478` (pointer already used, still 0-byte hang) so parents do not collapse “argv too long” and “hung after pointer” into one diagnosis.",
+        "Out of scope - Fixing the post-pointer 0-byte hang itself (`#5478`).",
+        "Changing `evaluateN3LaunchProbe` / seat-composition fixtures.",
+        "Making paste-ready the default Claude seat.",
+        "Acceptance - [ ] Playbook names Windows argv ceiling + pointer-required for Claude critic spawn.",
+        "[ ] Playbook states launch-probe pong ≠ full-envelope launch proof.",
+        "[ ] Skill / contract stay thin pointers (no fat Windows prose in AGENTS.md).",
+        "[ ] `#5478` cited as related hang class, not the same defect.",
+        "Playbook: `content/docs/grok-build-subscription-setup.md` Design-critique dispatch (#4365)",
+        "Launch-probe MUST: `content/contracts/design-critique.md` / #4432",
+        "Related hang: #5478"
+      ],
+      "admitted_source_digest": "523cb2b5f5ea11c550a1efe8afd2de8ec3d8ff116ec9f89fb11327843e366e6f",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "In Critic spawn (second recipe) under Claude: require envelope under arc dest + short pointer prompt for Claude critic spawn on all hosts. Name launcher-dependent Windows command-line limits: cmd.exe/batch paths have an 8,191-character limit; CreateProcessW permits 32,767 characters including the terminating null. These are whole-command limits, not a prompt-only allowance. Do not bind the false sole string CreateProcess ~8191.",
+          "artifact_path": "content/docs/grok-build-subscription-setup.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "State that launch-probe pong-ok proves only that probe invocation under critic argv; it proves neither long-prompt transport nor envelope read/completion.",
+          "artifact_path": "content/docs/grok-build-subscription-setup.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Thin skill/contract pointers only — no fat Windows prose in AGENTS.md; no new halt token; no evaluateN3LaunchProbe / seat-composition change.",
+          "artifact_path": "content/contracts/design-critique.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Cross-link #5478 as the adjacent post-pointer hang class (0-byte with CPU after pointer). Do not collapse with argv/command-line length empty-exit class; leave #5478 diagnosis/fix on that issue.",
+          "artifact_path": "content/skills/deft-directive-design-critique/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Extend design_critique_contract tests to pin required playbook/contract pointer strings for Windows launcher-dependent limits and pong-only-proves-probe language where those surfaces are locked by the contract suite.",
+          "artifact_path": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Summary `content/docs/grok-build-subscription-setup.md` § Design-critique dispatch already requires the Claude critic pointer form (`claude -p \"Read and follow <envelope-path>\"`) and forbids putting the full envelope on stdin / as raw probe text.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "It does not name the Windows CreateProcess ~8191-character argv limit as the reason full `-p` envelopes fail closed (immediate empty exit / empty logs) even when a tiny launch-probe pong returns rc0.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Parents on Windows Grok Build currently recover that knowledge from host-memory / session notes rather than a Directive playbook limb.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "That gap makes the pointer recipe look optional or “style,” and re-teaches the same failure: launch-probe green → full envelope as `-p` → empty critic.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Desired outcome 1.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Document in `content/docs/grok-build-subscription-setup.md` Critic spawn (second recipe), under Claude: - On Windows, do not pass the full critic envelope via `claude -p` (CreateProcess argv ~8191).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Write the envelope under the arc dest (e.g.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "`.deft-scratch/critic-claude.md`), then pass only a short pointer prompt.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Tiny launch-probe pong green does not prove a full-envelope `-p` will launch.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Keep Normative stop ownership on the existing Envelope and ceiling / #4432 launch-probe; this is playbook hardening, not a new halt token.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Cross-link open hang residue `#5478` (pointer already used, still 0-byte hang) so parents do not collapse “argv too long” and “hung after pointer” into one diagnosis.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Out of scope - Fixing the post-pointer 0-byte hang itself (`#5478`).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "Changing `evaluateN3LaunchProbe` / seat-composition fixtures.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "Making paste-ready the default Claude seat.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "Acceptance - [ ] Playbook names Windows argv ceiling + pointer-required for Claude critic spawn.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "[ ] Playbook states launch-probe pong ≠ full-envelope launch proof.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 22,
+          "text": "[ ] Skill / contract stay thin pointers (no fat Windows prose in AGENTS.md).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 23,
+          "text": "[ ] `#5478` cited as related hang class, not the same defect.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 24,
+          "text": "Playbook: `content/docs/grok-build-subscription-setup.md` Design-critique dispatch (#4365)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 25,
+          "text": "Launch-probe MUST: `content/contracts/design-critique.md` / #4432",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 26,
+          "text": "Related hang: #5478",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "docs(design-critique,windows): name CreateProcess argv ceiling for Claude critic pointer spawn",
+        "Playbook names Windows argv ceiling + pointer-required for Claude critic spawn.",
+        "Playbook states launch-probe pong ≠ full-envelope launch proof.",
+        "Skill / contract stay thin pointers (no fat Windows prose in AGENTS.md).",
+        "#5478 cited as related hang class, not the same defect."
+      ],
+      "derived_reason": "Prefer-A Bound limbs hand-stamped (#4374); clauses bind Bound 6067419035; admitted-source identities restored as same-text clauses (#5055)"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "CHANGELOG.md",
+          "content/docs/grok-build-subscription-setup.md",
+          "content/contracts/design-critique.md",
+          "content/skills/deft-directive-design-critique/SKILL.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "content/packs/skills/skills-pack-0.1.json"
+        ],
+        "module_boundary": "Windows Claude critic argv ceiling docs",
+        "cohesion_exemption": "CHANGELOG.md shared release notes."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5765758218,
+        "origin": "deftai/directive#5492",
+        "id": "github.issue.5765758218"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "e144353b172a6870e62b40da3ce916a81eef1d0eb3b1c20d8085c01d977556e0"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "windows-claude-argv-ceiling-docs",
+        "expected_outputs": [
+          "Tracking PR for #5492 Prefer-A Bound Windows Claude argv ceiling docs"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts/standards/design_critique_contract.test.ts"
+        ],
+        "file_scope": [
+          "CHANGELOG.md",
+          "content/docs/grok-build-subscription-setup.md",
+          "content/contracts/design-critique.md",
+          "content/skills/deft-directive-design-critique/SKILL.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "content/packs/skills/skills-pack-0.1.json"
+        ],
+        "size": "S",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5492"
+        ],
+        "parallel_safe": true
+      },
+      "productPullRequest": 5510,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-08T22:55:00.000Z"
+      }
+    },
+    "id": "github.issue.5765758218",
+    "updated": "2026-10-08T19:33:56Z"
+  }
+}

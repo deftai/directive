@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Leftover-complete #5492 after product #5510.
 - Leftover-complete #5478 after product #5509.
 - Leftover-complete #5489 after product #5497.
 - Approved-scope mint for #5478 Prefer-A Bound Path B file_scope (skills-pack).
