@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-10-08-5364-appsec-high-subprocess-scm-01-unvalidated-deliverybranch-is.xbrief.json",
+  "planId": "github.issue.5712451083",
+  "approvedAt": "2026-10-08T18:23:58Z",
+  "fileScope": [
+    "CHANGELOG.md",
+    "packages/core/src/freshness/generation-gate.test.ts",
+    "packages/core/src/freshness/generation-gate.ts",
+    "packages/core/src/policy/base-branch.test.ts",
+    "packages/core/src/policy/base-branch.ts",
+    "packages/core/src/policy/branch-sync.test.ts",
+    "packages/core/src/policy/branch-sync.ts",
+    "packages/core/src/policy/delivery-branch.test.ts",
+    "packages/core/src/policy/delivery-branch.ts",
+    "packages/core/src/scope/delivery-evidence.ts",
+    "packages/core/src/swarm/finalize-owed.ts"
+  ],
+  "fileScopeDigest": "7c50ccd88ca172039011008163e31c7a2565cdc5aa09cc069c742e02e0fbef91",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-10-08T18:23:58Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "86bd2451fe0c43bd0d76bf6732abe42f56a1497d0f853926a119ea40b0226a1d",
+  "digestAlgo": "intent-extract-v1"
+}

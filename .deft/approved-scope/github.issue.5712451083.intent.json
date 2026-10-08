@@ -1,0 +1,219 @@
+{
+  "schemaVersion": 1,
+  "algo": "intent-extract-v1",
+  "plan": {
+    "title": "[AppSec] HIGH subprocess-scm-01: Unvalidated deliveryBranch is passed to git fetch as a raw refspec/option",
+    "narratives": {
+      "Description": "[AppSec] HIGH subprocess-scm-01: Unvalidated deliveryBranch is passed to git fetch as a raw refspec/option",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5364",
+      "Overview": "## Bound remedy (#5364 Prefer-A 6050389462)\n\n1. Shared fail-closed branch-name gate with closed grammar (no leading dash, colon, .., controls, spaces, @{}, .lock); do not equate check-ref-format success with that grammar.\n2. Sink-scoped gate at every policy reader and argv builder (resolveDeliveryBranch, resolveBaseBranch, parseTypedPolicyBranches, CLI twins). Invalid present policy is terminal configuration error before fetch/worktree/proof.\n3. Replace bare git fetch origin <branch> with allowed form only: git fetch origin -- refs/heads/<validated>:<dest-ref> coupled to tip readers consume.\n4. Keep private-dest fetch but gate interpolated branch before either side of refspec.\n5. Closed call-site inventory under this Bound (finalize-cohort, origin-active-brief, delivery-evidence, finalize-owed, generation-gate, branch-sync, sync-default/max-files, live-procedure-targets, worktree tip forms).\n6. Tests: upload-pack, colon rewrite, leading dash including check-ref-format exit-0 cases, .., @{}, empty/whitespace, invalid typed policy terminal refuse, happy-path main/master/release/x, private-dest tip coupling.\nReject B-F.",
+      "Labels": "bug, security, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Shared fail-closed branch-name grammar",
+        "narrative": {
+          "Acceptance": "Add shared fail-closed branch-name gate with explicit closed grammar: no leading dash, no colon, no .., no ASCII controls, no spaces, no @{, no .lock suffix; reject literal input rather than expand revision shorthand. Do not equate git check-ref-format refs/heads/<input> exit 0 with that grammar."
+        },
+        "x-directive/artifact_path": "packages/core/src/policy/delivery-branch.ts"
+      },
+      {
+        "id": "clause.2",
+        "title": "Sink-scoped gate at policy readers and argv builders",
+        "narrative": {
+          "Acceptance": "Apply the gate at every policy reader and argv builder, not only resolveDeliveryBranch: include resolveBaseBranch, parseTypedPolicyBranches (remote-blob reader in branch-sync), CLI delivery-branch / twin base-branch paths, and helpers that build git argv from those strings. Invalid present policy is a terminal configuration error before fetch/worktree/proof, not default-on-error fallback."
+        },
+        "x-directive/artifact_path": "packages/core/src/policy/base-branch.ts"
+      },
+      {
+        "id": "clause.3",
+        "title": "Safe fetch argv form with tip coupling",
+        "narrative": {
+          "Acceptance": "Replace bare git fetch origin <branch> with allowed form only: git fetch origin -- refs/heads/<validated>:<dest-ref> (tracking or private dest) that places -- before the refspec and couples the dest-side ref to what later readers consume (origin/<branch> refresh or returned immutable tip OID)."
+        },
+        "x-directive/artifact_path": "packages/core/src/freshness/generation-gate.ts"
+      },
+      {
+        "id": "clause.4",
+        "title": "Gate private-dest fetch interpolation",
+        "narrative": {
+          "Acceptance": "Keep private-dest fetch (fetchDeliveryTipPrivate / generationFetchArgs) but gate the interpolated branch before building either side of the refspec."
+        },
+        "x-directive/artifact_path": "packages/core/src/swarm/finalize-owed.ts"
+      },
+      {
+        "id": "clause.5",
+        "title": "Closed call-site inventory under Bound",
+        "narrative": {
+          "Acceptance": "Gate or convert closed inventory call sites under this Bound including finalize-cohort deliveryBranch/baseBranch fetches, origin-active-brief, delivery-evidence, finalize-owed private fetch, generation-gate args, branch-sync source/prBase fetches, sync-default/sync-max-files dest/source fetches, live-procedure-targets depth-1 fetch token, and worktree tip forms fed by the same strings."
+        },
+        "x-directive/artifact_path": "packages/core/src/scope/delivery-evidence.ts"
+      },
+      {
+        "id": "clause.6",
+        "title": "Hostile branch-name regression tests",
+        "narrative": {
+          "Acceptance": "Tests before spawn: --upload-pack=..., colon rewrite toward master/main, leading dash including cases where prefixed check-ref-format would exit 0, .., @{}, empty/whitespace, invalid typed policy terminal refuse (no silent default), happy-path main/master/release/x; plus regression where old origin tracking tip differs from fetched delivery tip when private-dest form is used."
+        },
+        "x-directive/artifact_path": "packages/core/src/policy/delivery-branch.test.ts"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5364",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5364: [AppSec] HIGH subprocess-scm-01: Unvalidated deliveryBranch is passed to git fetch as a raw refspec/option"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "git fetch origin --upload-pack=...",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L13"
+        },
+        {
+          "command": "git fetch origin refs/heads/attacker:refs/heads/master",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L13"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "CHANGELOG.md",
+          "packages/core/src/policy/delivery-branch.ts",
+          "packages/core/src/policy/delivery-branch.test.ts",
+          "packages/core/src/policy/base-branch.ts",
+          "packages/core/src/policy/base-branch.test.ts",
+          "packages/core/src/policy/branch-sync.ts",
+          "packages/core/src/policy/branch-sync.test.ts",
+          "packages/core/src/freshness/generation-gate.ts",
+          "packages/core/src/freshness/generation-gate.test.ts",
+          "packages/core/src/swarm/finalize-owed.ts",
+          "packages/core/src/scope/delivery-evidence.ts"
+        ],
+        "Traces": [
+          "#5364"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "CHANGELOG.md",
+          "packages/core/src/policy/delivery-branch.ts",
+          "packages/core/src/policy/delivery-branch.test.ts",
+          "packages/core/src/policy/base-branch.ts",
+          "packages/core/src/policy/base-branch.test.ts",
+          "packages/core/src/policy/branch-sync.ts",
+          "packages/core/src/policy/branch-sync.test.ts",
+          "packages/core/src/freshness/generation-gate.ts",
+          "packages/core/src/freshness/generation-gate.test.ts",
+          "packages/core/src/swarm/finalize-owed.ts",
+          "packages/core/src/scope/delivery-evidence.ts"
+        ],
+        "module_boundary": "deliveryBranch fetch argv gate",
+        "cohesion_exemption": "CHANGELOG.md shared release notes; Path B mint/activation Unreleased bullet only."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5712451083,
+        "origin": "deftai/directive#5364",
+        "id": "github.issue.5712451083"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "783aa8919360af1ddab51365bb23d377b0d6b8091078d5a992c97a472e0cd72b"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A Bound limbs hand-stamped after empty body harvest (#4374); clauses bind Bound remedy",
+      "sentences": [
+        "[AppSec] HIGH subprocess-scm-01: Unvalidated deliveryBranch is passed to git fetch as a raw refspec/option",
+        "AppSec remediation - Product: Directive (`deftai/directive`) - Finding: `subprocess-scm-01` - Severity: high - Scan: 2026-10-05 @ `d855dc0f784a24ed6d99cffd488a85f41d22431c` - Report: [2026-10-05 AppSec report § directive / subprocess-scm-01](https://github.com/deftai/appsec-scans/blob/3dd35fd7f6b54922c56759157c13c821b4374dec/reports/directive/2026-10-05/report.md#directive-subprocess-scm-01) ### Impact A committed PROJECT-DEFINITION (or CLI `--delivery-branch` when policy is untyped) can make swarm finalize/launch run `git fetch origin --upload-pack=...` or `git fetch origin refs/heads/attacker:refs/heads/master`, rewriting local default-branch refs or, on local/SSH remotes, executing a caller-chosen upload-pack.",
+        "Agents routinely invoke these verbs after ingesting repo policy.",
+        "Remediation Reject `deliveryBranch` unless it matches a closed git `check-ref-format` grammar (no leading `-`, no `:`, no `..`, no control chars).",
+        "Fetch only as `git fetch origin -- refs/heads/<branch>` (or a private dest ref as in `fetchDeliveryTipPrivate`).",
+        "Apply the same gate to `worktree add` / `ls-tree` / `show` arguments.",
+        "Filed by the scheduled AppSec scan.",
+        "Do not close until the control is in the default branch.",
+        "The next weekly scan will comment here if this ID is still confirmed."
+      ],
+      "admitted_source_sentences": [
+        "AppSec remediation - Product: Directive (`deftai/directive`) - Finding: `subprocess-scm-01` - Severity: high - Scan: 2026-10-05 @ `d855dc0f784a24ed6d99cffd488a85f41d22431c` - Report: [2026-10-05 AppSec report § directive / subprocess-scm-01](https://github.com/deftai/appsec-scans/blob/3dd35fd7f6b54922c56759157c13c821b4374dec/reports/directive/2026-10-05/report.md#directive-subprocess-scm-01) ### Impact A committed PROJECT-DEFINITION (or CLI `--delivery-branch` when policy is untyped) can make swarm finalize/launch run `git fetch origin --upload-pack=...` or `git fetch origin refs/heads/attacker:refs/heads/master`, rewriting local default-branch refs or, on local/SSH remotes, executing a caller-chosen upload-pack.",
+        "Agents routinely invoke these verbs after ingesting repo policy.",
+        "Remediation Reject `deliveryBranch` unless it matches a closed git `check-ref-format` grammar (no leading `-`, no `:`, no `..`, no control chars).",
+        "Fetch only as `git fetch origin -- refs/heads/<branch>` (or a private dest ref as in `fetchDeliveryTipPrivate`).",
+        "Apply the same gate to `worktree add` / `ls-tree` / `show` arguments.",
+        "Filed by the scheduled AppSec scan.",
+        "Do not close until the control is in the default branch.",
+        "The next weekly scan will comment here if this ID is still confirmed."
+      ],
+      "admitted_source_digest": "84a715f2e1c898c6c4a7a76193d8efb8c53f9007ec1ec9c862eae5e46666565f",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Add shared fail-closed branch-name gate with explicit closed grammar: no leading dash, no colon, no .., no ASCII controls, no spaces, no @{, no .lock suffix; reject literal input rather than expand revision shorthand. Do not equate git check-ref-format refs/heads/<input> exit 0 with that grammar.",
+          "artifact_path": "packages/core/src/policy/delivery-branch.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Apply the gate at every policy reader and argv builder, not only resolveDeliveryBranch: include resolveBaseBranch, parseTypedPolicyBranches (remote-blob reader in branch-sync), CLI delivery-branch / twin base-branch paths, and helpers that build git argv from those strings. Invalid present policy is a terminal configuration error before fetch/worktree/proof, not default-on-error fallback.",
+          "artifact_path": "packages/core/src/policy/base-branch.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Replace bare git fetch origin <branch> with allowed form only: git fetch origin -- refs/heads/<validated>:<dest-ref> (tracking or private dest) that places -- before the refspec and couples the dest-side ref to what later readers consume (origin/<branch> refresh or returned immutable tip OID).",
+          "artifact_path": "packages/core/src/freshness/generation-gate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Keep private-dest fetch (fetchDeliveryTipPrivate / generationFetchArgs) but gate the interpolated branch before building either side of the refspec.",
+          "artifact_path": "packages/core/src/swarm/finalize-owed.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Gate or convert closed inventory call sites under this Bound including finalize-cohort deliveryBranch/baseBranch fetches, origin-active-brief, delivery-evidence, finalize-owed private fetch, generation-gate args, branch-sync source/prBase fetches, sync-default/sync-max-files dest/source fetches, live-procedure-targets depth-1 fetch token, and worktree tip forms fed by the same strings.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Tests before spawn: --upload-pack=..., colon rewrite toward master/main, leading dash including cases where prefixed check-ref-format would exit 0, .., @{}, empty/whitespace, invalid typed policy terminal refuse (no silent default), happy-path main/master/release/x; plus regression where old origin tracking tip differs from fetched delivery tip when private-dest form is used.",
+          "artifact_path": "packages/core/src/policy/delivery-branch.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5712451083"
+  },
+  "approvedRepos": [
+    "deftai/directive"
+  ],
+  "unknownPaths": [
+    "items[].x-directive/artifact_path",
+    "metadata.intended_placement",
+    "metadata.literal_acceptance_commands",
+    "metadata.literal_acceptance_rejected",
+    "metadata.swarm.Traces",
+    "metadata.x-directive/admitted-target-digest",
+    "metadata.x-directive/plan-id"
+  ]
+}
