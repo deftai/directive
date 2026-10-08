@@ -1215,6 +1215,8 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
       readText("docs/grok-build-subscription-setup.md"),
       "## Design-critique dispatch",
     );
+    expect(dispatch).toContain("On every host");
+    expect(dispatch).toContain("Do not put the full envelope on argv or stdin");
     expect(dispatch).toContain("launcher-dependent");
     expect(dispatch).toContain("cmd.exe/batch");
     expect(dispatch).toContain("8,191");
