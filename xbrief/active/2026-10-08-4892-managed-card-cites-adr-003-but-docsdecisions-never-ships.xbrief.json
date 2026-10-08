@@ -142,8 +142,7 @@
           "packages/core/src/deposit/stage-content-pack.test.ts",
           "content/contracts/deposit-required-paths.json"
         ],
-        "module_boundary": "Path B activate #4892",
-        "cohesion_exemption": "CHANGELOG.md shared release notes; Path B activation Keep active bullet only."
+        "module_boundary": ""
       },
       "x-directive/plan-id": {
         "version": 1,
