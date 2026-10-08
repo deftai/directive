@@ -640,19 +640,22 @@ export function evaluateMoveForwardThreadAdmission(input: {
     isMoveForwardSynthesisShape(input.synthesis.body) ||
     hasOperativeMoveForwardYes(input.synthesis.body) ||
     hasOperativeMoveForwardYes(input.citedLean.body);
-  // Round-1 seats only — pain-audit carriers (operative audit-targets) stay
-  // on evaluateCompletedArcRecord pain checks, not the LGTM census (#5488).
-  const criticLike = arcComments.filter(
-    (comment) =>
-      comment.id !== input.synthesis.id &&
-      comment.id !== input.citedLean.id &&
-      /(?:^|\n)\s*role:\s*critic\b/i.test(comment.body) &&
-      extractOperativeAuditTargets(comment.body) === null &&
-      !isVerifiedClaimsTableBody(comment.body) &&
-      !isSuccessorLeanBody(comment.body) &&
-      !isCancelledShape(comment.body) &&
-      !isSynthesisAcceptedShape(comment.body),
-  );
+  // Round-1 seats only — targeted pain audits (non-empty audit-targets) stay
+  // on evaluateCompletedArcRecord pain checks. Keep `audit-targets: none`
+  // Round-1 posts that the critic brief requires (#5488).
+  const criticLike = arcComments.filter((comment) => {
+    if (comment.id === input.synthesis.id || comment.id === input.citedLean.id) return false;
+    if (!/(?:^|\n)\s*role:\s*critic\b/i.test(comment.body)) return false;
+    if (isVerifiedClaimsTableBody(comment.body)) return false;
+    if (isSuccessorLeanBody(comment.body)) return false;
+    if (isCancelledShape(comment.body)) return false;
+    if (isSynthesisAcceptedShape(comment.body)) return false;
+    const envelope = extractOperativeAuditTargets(comment.body);
+    if (envelope !== null && !envelope.declaredNone && envelope.auditTargets.length > 0) {
+      return false;
+    }
+    return true;
+  });
   // Panel-deposit expected seats must all post before LGTM (#5488 P1).
   const expectedSeats = expectedRound1SeatCount(arcComments);
   if (expectedSeats > 0 && criticLike.length < expectedSeats) {

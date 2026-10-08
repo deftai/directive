@@ -2553,6 +2553,34 @@ describe("ship-ready LGTM / move-forward completion (#5488)", () => {
     ).toMatchObject({ ok: true });
   });
 
+  it("keeps Round-1 critics that declare audit-targets: none (#5488)", () => {
+    const round1None: ThreadComment = {
+      id: CRITIC_ID,
+      body: "role: critic\naudit-targets: none\nclean-result: yes\n",
+    };
+    const leanShip: ThreadComment = {
+      id: LEAN_ID,
+      body: withPlainEnglish(
+        "**Lean:** Prefer-A Bound.\n\nmateriality-bar: ship-ready\nmove-forward: yes\n",
+      ),
+    };
+    const moveForward: ThreadComment = {
+      id: SYNTHESIS_ID,
+      body: withPlainEnglish(
+        "model: grok-4.6\nrole: parent\n\n" +
+          `${MOVE_FORWARD_SYNTHESIS_LEAD}\n\n` +
+          `successor lean ${LEAN_ID}\n`,
+      ),
+    };
+    expect(
+      evaluateMoveForwardThreadAdmission({
+        comments: [round1None, leanShip, moveForward],
+        synthesis: moveForward,
+        citedLean: leanShip,
+      }),
+    ).toMatchObject({ ok: true });
+  });
+
   it("demotes unpromoted sharpens and refuses promoted ones under ship-ready", () => {
     expect(
       mapSeatCensusUnderMaterialityBar(
