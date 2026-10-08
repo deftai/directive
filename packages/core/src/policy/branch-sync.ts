@@ -251,15 +251,23 @@ export function applyCoreGuardWithBranchSync(
   return { wouldFail: true, loudMessage: null };
 }
 
-/** Compact Python body for the deposited deft-core-guard (#3388). */
+/** Compact Python body for the deposited deft-core-guard (#3388 / #5364). */
 export function coreGuardBranchSyncPythonBody(): readonly string[] {
   return [
     "import json, subprocess, sys",
     "head_sha, pr_base = sys.argv[1], sys.argv[2]",
     "def git(*a):",
     "    return subprocess.run(['git', *a], capture_output=True, text=True)",
+    "def safe_branch(n):",
+    "    if not isinstance(n, str) or not n or n != n.strip() or n.startswith('-'): return False",
+    "    if any(x in n for x in (':', '..', '@{', '*', '?', '[', ']', '~', '^', '\\\\')): return False",
+    "    if n.endswith('.lock') or any(ord(c) < 32 or ord(c) == 127 or c.isspace() for c in n): return False",
+    "    return True",
+    "def fetch_branch(b):",
+    "    if not safe_branch(b): sys.exit(1)",
+    "    return git('fetch', '--quiet', 'origin', '--', 'refs/heads/' + b + ':refs/remotes/origin/' + b)",
     "dest = source = None",
-    "if git('fetch', '--quiet', 'origin', pr_base).returncode != 0: sys.exit(1)",
+    "if fetch_branch(pr_base).returncode != 0: sys.exit(1)",
     `shown = git('show', 'origin/' + pr_base + ':${BRANCH_SYNC_POLICY_BLOB}')`,
     "if shown.returncode == 0:",
     "    try:",
@@ -289,7 +297,7 @@ export function coreGuardBranchSyncPythonBody(): readonly string[] {
     "        if not dest: dest = 'master'",
     "if not source: source = dest",
     "if source == dest or pr_base != dest: sys.exit(1)",
-    "if git('fetch', '--quiet', 'origin', source).returncode != 0: sys.exit(1)",
+    "if fetch_branch(source).returncode != 0: sys.exit(1)",
     "if git('merge-base', '--is-ancestor', head_sha, 'origin/' + source).returncode != 0: sys.exit(1)",
     `print('${BRANCH_SYNC_EXEMPTION_PREFIX} ' + source)`,
   ];

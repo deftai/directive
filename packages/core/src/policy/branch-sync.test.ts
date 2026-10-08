@@ -360,8 +360,13 @@ describe("deposited core-guard detector fragment (#3388)", () => {
     expect(body).toContain(BRANCH_SYNC_EXEMPTION_PREFIX);
     expect(body).toContain(`origin/' + pr_base + ':${BRANCH_SYNC_POLICY_BLOB}'`);
     expect(body).toContain("('main', 'master')");
+    expect(body).toContain("def safe_branch(n):");
+    expect(body).toContain("def fetch_branch(b):");
     expect(body).toContain(
-      "if git('fetch', '--quiet', 'origin', pr_base).returncode != 0: sys.exit(1)",
+      "if fetch_branch(pr_base).returncode != 0: sys.exit(1)",
+    );
+    expect(body).toContain(
+      "return git('fetch', '--quiet', 'origin', '--', 'refs/heads/' + b + ':refs/remotes/origin/' + b)",
     );
     expect(body).not.toContain("pathlib");
     expect(body).not.toMatch(/head\s*==\s*['"]develop['"]/);

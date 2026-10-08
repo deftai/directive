@@ -149,7 +149,7 @@ describe("closed branch-name grammar (#5364 Prefer-A)", () => {
     }
   });
 
-  it("rejects upload-pack, colon rewrite, leading dash, .., @{}, empty/whitespace, .lock", () => {
+  it("rejects upload-pack, colon rewrite, leading dash, .., @{}, wildcards, empty/whitespace, .lock", () => {
     const hostile = [
       "--upload-pack=evil",
       "refs/heads/attacker:refs/heads/master",
@@ -158,6 +158,10 @@ describe("closed branch-name grammar (#5364 Prefer-A)", () => {
       "--exec=evil",
       "foo..bar",
       "foo@{upstream}",
+      "*",
+      "release/*",
+      "feat?",
+      "br[a]",
       "",
       "   ",
       "has space",

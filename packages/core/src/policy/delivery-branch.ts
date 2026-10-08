@@ -83,6 +83,10 @@ export function isSafeBranchName(name: string): boolean {
   if (/\s/.test(name)) {
     return false;
   }
+  // Reject fetch/refspec wildcards and revision sugar that would expand before spawn.
+  if (/[*?[\]~^\\]/.test(name)) {
+    return false;
+  }
   return true;
 }
 
