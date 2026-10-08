@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Leftover-complete #5488 after product #5498.
 - Design-critique ship-ready LGTM move-forward completion (#5488). Tracking #5488.
 - Earlier design reviews no longer affect the current review when comments arrive newest first (#5488).
 - Leftover-complete #5492 after product #5510.
