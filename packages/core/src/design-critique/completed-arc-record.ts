@@ -640,11 +640,14 @@ export function evaluateMoveForwardThreadAdmission(input: {
     isMoveForwardSynthesisShape(input.synthesis.body) ||
     hasOperativeMoveForwardYes(input.synthesis.body) ||
     hasOperativeMoveForwardYes(input.citedLean.body);
+  // Round-1 seats only — pain-audit carriers (operative audit-targets) stay
+  // on evaluateCompletedArcRecord pain checks, not the LGTM census (#5488).
   const criticLike = arcComments.filter(
     (comment) =>
       comment.id !== input.synthesis.id &&
       comment.id !== input.citedLean.id &&
       /(?:^|\n)\s*role:\s*critic\b/i.test(comment.body) &&
+      extractOperativeAuditTargets(comment.body) === null &&
       !isVerifiedClaimsTableBody(comment.body) &&
       !isSuccessorLeanBody(comment.body) &&
       !isCancelledShape(comment.body) &&
