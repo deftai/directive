@@ -609,16 +609,10 @@ describe("parent-defect bare-arc path (#5466 Prefer-A)", () => {
     const root = spendTempRoot();
     openArcSpendGate(root, { utterance: "arc A", sessionId: "sess-a" });
     openArcSpendGate(root, { utterance: "arc B", sessionId: "sess-b" });
-    expect(isSpendAskDeniedByArcState(readArcSpendState(root, { sessionId: "sess-a" }))).toBe(
-      true,
-    );
-    expect(isSpendAskDeniedByArcState(readArcSpendState(root, { sessionId: "sess-b" }))).toBe(
-      true,
-    );
+    expect(isSpendAskDeniedByArcState(readArcSpendState(root, { sessionId: "sess-a" }))).toBe(true);
+    expect(isSpendAskDeniedByArcState(readArcSpendState(root, { sessionId: "sess-b" }))).toBe(true);
     expect(clearArcSpendState(root, { sessionId: "sess-a" })).toBe(true);
     expect(readArcSpendState(root, { sessionId: "sess-a" })).toBeNull();
-    expect(isSpendAskDeniedByArcState(readArcSpendState(root, { sessionId: "sess-b" }))).toBe(
-      true,
-    );
+    expect(isSpendAskDeniedByArcState(readArcSpendState(root, { sessionId: "sess-b" }))).toBe(true);
   });
 });

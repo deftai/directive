@@ -366,10 +366,7 @@ export function arcSpendStateRelParts(sessionId: string): readonly string[] {
   ];
 }
 
-export function arcSpendStatePath(
-  projectRoot: string,
-  opts: ArcSpendSessionOpts = {},
-): string {
+export function arcSpendStatePath(projectRoot: string, opts: ArcSpendSessionOpts = {}): string {
   const sessionId = resolveArcSpendSessionId(opts);
   return join(projectRoot, ...arcSpendStateRelParts(sessionId));
 }
@@ -450,10 +447,7 @@ export function openArcSpendGate(
  * Also removes the legacy project-wide file so abandoned pre-session state
  * cannot keep denying unrelated questions.
  */
-export function clearArcSpendState(
-  projectRoot: string,
-  opts: ArcSpendSessionOpts = {},
-): boolean {
+export function clearArcSpendState(projectRoot: string, opts: ArcSpendSessionOpts = {}): boolean {
   const sessionRemoved = containedRemove({
     root: projectRoot,
     target: arcSpendStatePath(projectRoot, opts),
@@ -539,7 +533,10 @@ export function resolveDesignCritiqueSpend(
   const updatedAt = new Date(now).toISOString();
   const sessionId = resolveArcSpendSessionId(input);
   const sessionOpts = { sessionId, env: input.env };
-  const baseState = (): Omit<ArcSpendState, "spendRecommend" | "spend" | "spendAsk" | "askPermitted"> => ({
+  const baseState = (): Omit<
+    ArcSpendState,
+    "spendRecommend" | "spend" | "spendAsk" | "askPermitted"
+  > => ({
     schema: ARC_SPEND_STATE_SCHEMA,
     status: "in-flight",
     updatedAt,
