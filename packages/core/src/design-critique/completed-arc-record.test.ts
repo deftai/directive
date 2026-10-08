@@ -3,8 +3,8 @@ import type { LabelClient } from "../vbrief-reconcile/types.js";
 import {
   applyIngestReadyRemainingSet,
   assertCompletedArcAllowsIngest,
-  classifyLgtmSeatCensus,
   COMPLETED_ARC_BLOCK_REASONS,
+  classifyLgtmSeatCensus,
   DesignCritiqueIngestBlockedError,
   emptyOrFootnoteCensusBindAllowed,
   evaluateCompletedArcRecord,
@@ -16,8 +16,8 @@ import {
   hashIssueBodyBytes,
   isInFlightCritiqueThread,
   isMoveForwardSynthesisShape,
-  materialityBarRecordLine,
   MOVE_FORWARD_SYNTHESIS_LEAD,
+  materialityBarRecordLine,
   parseOperatorMaterialityBar,
   type ThreadComment,
 } from "./completed-arc-record.js";
@@ -2179,9 +2179,7 @@ describe("ship-ready LGTM / move-forward completion (#5488)", () => {
           `successor lean ${LEAN_ID}\n`,
       ),
     };
-    expect(
-      evalArc({ comments: [stop1, critic, leanShip, moveForward] }),
-    ).toMatchObject({
+    expect(evalArc({ comments: [stop1, critic, leanShip, moveForward] })).toMatchObject({
       status: "complete",
       synthesisCommentId: SYNTHESIS_ID,
       citedLeanId: LEAN_ID,

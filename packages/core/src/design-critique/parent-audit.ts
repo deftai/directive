@@ -6,10 +6,7 @@ export type AuditReading = "measured" | "asserted";
 export type AuditRole = "parent" | "critic" | "triage";
 
 /** Critic finding class tokens used by ship-ready sharpen demotion (#5488). */
-export type DesignCritiqueFindingClass =
-  | "blocks-the-design"
-  | "sharpens-framing"
-  | "footnote";
+export type DesignCritiqueFindingClass = "blocks-the-design" | "sharpens-framing" | "footnote";
 
 export type AuditPremise = {
   markerId: string;

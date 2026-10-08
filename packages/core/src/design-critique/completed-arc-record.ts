@@ -110,7 +110,11 @@ export type MaterialityBar = "ship-ready" | "open";
 export type MaterialityBarSource = "ship-ready" | "lgtm" | "default";
 
 export type MaterialityBarParse =
-  | { readonly kind: "resolved"; readonly bar: MaterialityBar; readonly source: MaterialityBarSource }
+  | {
+      readonly kind: "resolved";
+      readonly bar: MaterialityBar;
+      readonly source: MaterialityBarSource;
+    }
   | { readonly kind: "ask"; readonly reason: "ambiguous" };
 
 /** Closed launch tokens that resolve to ship-ready. Word boundaries. */
