@@ -357,6 +357,14 @@ describe("closed-findings later-arc demotion (#5489 Prefer-A Bound)", () => {
       sourceCommentId: SRC,
       findingId: "C1",
     });
+    expect(parseRestatesRelation(`restates: ${SRC}/C1-\n`)).toEqual({
+      sourceCommentId: SRC,
+      findingId: "C1-",
+    });
+    expect(parseRestatesRelation(`restates: ${SRC}/C1.\n`)).toEqual({
+      sourceCommentId: SRC,
+      findingId: "C1.",
+    });
     expect(parseRestatesRelation("> restates: 6064586516/C1\n")).toBeNull();
     const authorized = authMap([entry("C1")]);
     const posted: PostedCriticFinding[] = [

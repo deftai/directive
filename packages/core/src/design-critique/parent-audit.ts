@@ -344,7 +344,10 @@ export type ClosedFindingsResidualRefuse = {
 const CLOSED_FINDINGS_LINE_RE = /(?:^|\n)[ \t]*closed-findings:[ \t]*([^\n]*)/gi;
 const CLOSED_FINDING_ENTRY_RE =
   /(\d{8,})\s*\/\s*([A-Za-z0-9._-]+)\s+(accepted|deferred|skipped|fixed-in-body)(?:\s+"([^"]*)")?/gi;
-const RESTATES_RE = /(?:^|\n)[ \t]*restates:[ \t]*(\d{8,})\s*\/\s*([A-Za-z0-9._-]+)\b/gi;
+// End-of-token lookahead (not \b): trailing -/. are valid findingId chars and
+// would otherwise backtrack off the complete token before a word boundary.
+const RESTATES_RE =
+  /(?:^|\n)[ \t]*restates:[ \t]*(\d{8,})\s*\/\s*([A-Za-z0-9._-]+)(?![A-Za-z0-9._-])/gi;
 
 export function closedFindingCompositeKey(id: ClosedFindingCompositeId): string {
   return `${id.sourceCommentId}/${id.findingId}`;
