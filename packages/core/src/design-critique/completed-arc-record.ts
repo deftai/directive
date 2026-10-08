@@ -571,6 +571,17 @@ export function evaluateMoveForwardThreadAdmission(input: {
       !isCancelledShape(comment.body) &&
       !isSynthesisAcceptedShape(comment.body),
   );
+  // Panel-deposit expected seats must all post before LGTM (#5488 P1).
+  const expectedSeats = expectedRound1SeatCount(arcComments);
+  if (expectedSeats > 0 && criticLike.length < expectedSeats) {
+    return {
+      ok: false,
+      reason: "stub-or-blank",
+      detail:
+        `panel expected ${String(expectedSeats)} Round-1 seats; ` +
+        `${String(criticLike.length)} posted`,
+    };
+  }
   const seatCensus: LgtmSeatCensus[] =
     criticLike.length > 0
       ? criticLike.map((comment) =>
@@ -581,9 +592,6 @@ export function evaluateMoveForwardThreadAdmission(input: {
           ),
         )
       : ["stub"];
-  // Panel-deposit expected seats must all post; missing seats stay stub (#5488 P1).
-  const expectedSeats = expectedRound1SeatCount(arcComments);
-  while (seatCensus.length < expectedSeats) seatCensus.push("stub");
   let acceptedBlockerCount = countAcceptedBlockersInBody(input.citedLean.body);
   let unresolvedBlockerResidualCount = unresolvedBlockerResidualsInBody(input.citedLean.body);
   for (const comment of criticLike) {
