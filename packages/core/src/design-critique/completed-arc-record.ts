@@ -436,15 +436,26 @@ export function mapSeatCensusUnderMaterialityBar(
   return "footnote-only";
 }
 
-/** True arc boundary: completed synthesis or cancel — not a pre-bind lean revision. */
-function isArcBoundaryBody(body: string): boolean {
-  return isSynthesisAcceptedShape(body) || isCancelledShape(body);
+/**
+ * True arc boundary: cancel, or a synthesis that cites an existing successor lean.
+ * Lone / cite-not-lean synthesis shapes do not close the arc (#5488 Greptile P1).
+ */
+function isAdmittedArcBoundary(
+  comment: ThreadComment,
+  thread: readonly ThreadComment[],
+): boolean {
+  if (isCancelledShape(comment.body)) return true;
+  if (!isSynthesisAcceptedShape(comment.body)) return false;
+  const citations = scanCitations(comment.body).citations;
+  if (citations.length === 0) return false;
+  const prior = thread.filter((row) => row.id < comment.id);
+  return resolveCitedLean(citations, byId(thread), latestSuccessorLean(prior)) !== undefined;
 }
 
 /**
- * Comments belonging to the cited lean's arc: after any prior synthesis/cancel,
- * before the next synthesis/cancel. Pre-bind successor lean revisions stay inside
- * the same arc so Round-1 critics before a final lean still census (#5488).
+ * Comments belonging to the cited lean's arc: after any prior admitted
+ * synthesis/cancel, before the next. Pre-bind lean revisions and failed
+ * synthesis shapes stay inside the same arc (#5488).
  */
 export function commentsInCitedLeanArc(
   comments: readonly ThreadComment[],
@@ -453,12 +464,12 @@ export function commentsInCitedLeanArc(
   let priorBoundaryId = 0;
   for (const comment of comments) {
     if (comment.id >= citedLean.id) break;
-    if (isArcBoundaryBody(comment.body)) priorBoundaryId = comment.id;
+    if (isAdmittedArcBoundary(comment, comments)) priorBoundaryId = comment.id;
   }
   let nextBoundaryAfter = Number.POSITIVE_INFINITY;
   for (const comment of comments) {
     if (comment.id <= citedLean.id) continue;
-    if (isArcBoundaryBody(comment.body)) {
+    if (isAdmittedArcBoundary(comment, comments)) {
       nextBoundaryAfter = comment.id;
       break;
     }
@@ -537,11 +548,20 @@ function hasOperativeTokenMatch(body: string, re: RegExp, token: string): boolea
   return false;
 }
 
+const BLOCKS_THE_DESIGN_OPERATIVE_RE = /\bblocks-the-design\b/gi;
 const ACCEPT_INTO_CONTRACT_OPERATIVE_RE = /\baccept-into-contract\b/gi;
 const UNRESOLVED_BLOCKER_TAKE_RE = /\b(?:disagree|defer|omission|unresolved)\b/gi;
 
+/** Critic heading or lean take-map token; fences / negation / quotes ignored. */
+function hasOperativeBlocksTheDesign(body: string): boolean {
+  return (
+    operativeFindingClasses(body).has("blocks-the-design") ||
+    hasOperativeTokenMatch(body, BLOCKS_THE_DESIGN_OPERATIVE_RE, "blocks-the-design")
+  );
+}
+
 function countAcceptedBlockersInBody(body: string): number {
-  if (!operativeFindingClasses(body).has("blocks-the-design")) return 0;
+  if (!hasOperativeBlocksTheDesign(body)) return 0;
   if (!hasOperativeTokenMatch(body, ACCEPT_INTO_CONTRACT_OPERATIVE_RE, "accept-into-contract")) {
     return 0;
   }
@@ -549,7 +569,7 @@ function countAcceptedBlockersInBody(body: string): number {
 }
 
 function unresolvedBlockerResidualsInBody(body: string): number {
-  if (!operativeFindingClasses(body).has("blocks-the-design")) return 0;
+  if (!hasOperativeBlocksTheDesign(body)) return 0;
   // Defer / disagree / omission of a blocker does not discharge it for LGTM.
   const hasUnresolvedTake =
     hasOperativeTokenMatch(body, UNRESOLVED_BLOCKER_TAKE_RE, "defer") ||

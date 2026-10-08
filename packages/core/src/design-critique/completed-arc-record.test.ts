@@ -2173,6 +2173,7 @@ describe("ship-ready LGTM / move-forward completion (#5488)", () => {
   });
 
   it("scopes LGTM admission to the cited lean arc", () => {
+    const priorLeanId = 5442000010;
     const priorShip: ThreadComment = {
       id: 5,
       body: "materiality-bar: ship-ready\nrole: parent\n",
@@ -2182,15 +2183,15 @@ describe("ship-ready LGTM / move-forward completion (#5488)", () => {
       body: "role: critic\nblocks-the-design: old hole\n",
     };
     const priorLean: ThreadComment = {
-      id: 10,
+      id: priorLeanId,
       body: "**Lean:** prior.\n\nTarget-digest: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n",
     };
     const priorSynthesis: ThreadComment = {
-      id: 11,
+      id: 5442000011,
       body: withPlainEnglish(
         "model: grok-4.6\nrole: parent\n\n" +
           "design-critique: synthesis accepted, because prior arc closed.\n\n" +
-          "successor lean 10\n",
+          `successor lean ${priorLeanId}\n`,
       ),
     };
     const bareLean: ThreadComment = {
@@ -2299,6 +2300,74 @@ describe("ship-ready LGTM / move-forward completion (#5488)", () => {
         citedLean: leanShip,
       }),
     ).toMatchObject({ ok: true });
+  });
+
+  it("does not treat lone-shape synthesis as an arc boundary", () => {
+    const cleanCritic: ThreadComment = {
+      id: CRITIC_ID,
+      body: "role: critic\nclean-result: yes\n",
+    };
+    const failedSynthesis: ThreadComment = {
+      id: 30,
+      body: withPlainEnglish(
+        "model: grok-4.6\nrole: parent\n\n" +
+          "design-critique: synthesis accepted, because missing cite.\n",
+      ),
+    };
+    const finalLean: ThreadComment = {
+      id: LEAN_ID,
+      body: withPlainEnglish(
+        "**Lean:** Prefer-A Bound.\n\nmateriality-bar: ship-ready\nmove-forward: yes\n",
+      ),
+    };
+    const moveForward: ThreadComment = {
+      id: SYNTHESIS_ID,
+      body: withPlainEnglish(
+        "model: grok-4.6\nrole: parent\n\n" +
+          `${MOVE_FORWARD_SYNTHESIS_LEAD}\n\n` +
+          `successor lean ${LEAN_ID}\n`,
+      ),
+    };
+    const thread = [cleanCritic, failedSynthesis, finalLean, moveForward];
+    expect(commentsInCitedLeanArc(thread, finalLean).map((row) => row.id)).toContain(
+      cleanCritic.id,
+    );
+    expect(
+      evaluateMoveForwardThreadAdmission({
+        comments: thread,
+        synthesis: moveForward,
+        citedLean: finalLean,
+      }),
+    ).toMatchObject({ ok: true });
+  });
+
+  it("counts lean take-map accepted blockers without critic heading form", () => {
+    const cleanCritic: ThreadComment = {
+      id: CRITIC_ID,
+      body: "role: critic\nclean-result: yes\n",
+    };
+    const leanShip: ThreadComment = {
+      id: LEAN_ID,
+      body: withPlainEnglish(
+        "**Lean:** Prefer-A Bound.\n\nmateriality-bar: ship-ready\nmove-forward: yes\n" +
+          "blocks-the-design accept-into-contract\n",
+      ),
+    };
+    const moveForward: ThreadComment = {
+      id: SYNTHESIS_ID,
+      body: withPlainEnglish(
+        "model: grok-4.6\nrole: parent\n\n" +
+          `${MOVE_FORWARD_SYNTHESIS_LEAD}\n\n` +
+          `successor lean ${LEAN_ID}\n`,
+      ),
+    };
+    expect(
+      evaluateMoveForwardThreadAdmission({
+        comments: [cleanCritic, leanShip, moveForward],
+        synthesis: moveForward,
+        citedLean: leanShip,
+      }),
+    ).toMatchObject({ ok: false, reason: "blocker-present" });
   });
 
   it("demotes unpromoted sharpens and refuses promoted ones under ship-ready", () => {
