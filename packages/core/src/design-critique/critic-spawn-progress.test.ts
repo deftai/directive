@@ -116,6 +116,34 @@ describe("evaluateCriticSpawnProgress (#5478)", () => {
       }),
     ).toEqual({ ok: true, phase: "running" });
   });
+
+  it("fails closed when a nonempty log stalls with no further growth", () => {
+    const result = evaluateCriticSpawnProgress({
+      ...base,
+      nowMs: 1_000 + 120_000,
+      samples: [
+        { atMs: 1_000 + 5_000, logByteLength: 8 },
+        { atMs: 1_000 + 120_000, logByteLength: 8 },
+      ],
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.code).toBe("no-log-growth");
+    expect(result.haltToken).toBe(CRITIC_SPAWN_PROGRESS_HALT);
+  });
+
+  it("keeps running when log bytes grow inside T_progress of last activity", () => {
+    expect(
+      evaluateCriticSpawnProgress({
+        ...base,
+        nowMs: 1_000 + 120_000,
+        samples: [
+          { atMs: 1_000 + 5_000, logByteLength: 8 },
+          { atMs: 1_000 + 90_000, logByteLength: 64 },
+        ],
+      }),
+    ).toEqual({ ok: true, phase: "running" });
+  });
 });
 
 describe("evaluateCriticTerminationBoundary (#5478)", () => {
@@ -185,6 +213,29 @@ describe("killCriticProcessTree (#5478)", () => {
       isPidAlive: (pid) => alive.has(pid),
     });
     expect(killed[0]).toBe(10);
+    expect(result.remaining).toEqual([]);
+    expect(alive.size).toBe(0);
+  });
+
+  it("discovers and kills descendants on the default Unix path", () => {
+    const killed: number[] = [];
+    const alive = new Set([20, 21, 22]);
+    const listed: number[] = [];
+    const result = killCriticProcessTree(20, {
+      platform: "linux",
+      listDescendants: (pid) => {
+        listed.push(pid);
+        return pid === 20 ? [21, 22] : [];
+      },
+      killTree: (pid) => {
+        killed.push(pid);
+        alive.delete(pid);
+      },
+      isPidAlive: (pid) => alive.has(pid),
+    });
+    expect(listed).toEqual([20]);
+    expect(killed[0]).toBe(20);
+    expect(killed).toEqual(expect.arrayContaining([20, 21, 22]));
     expect(result.remaining).toEqual([]);
     expect(alive.size).toBe(0);
   });

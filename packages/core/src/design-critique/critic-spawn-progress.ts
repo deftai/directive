@@ -101,10 +101,21 @@ function latestStderr(samples: readonly CriticProgressSample[]): string {
   return "";
 }
 
-function hasProgressSignal(sample: CriticProgressSample | undefined): boolean {
-  if (sample === undefined) return false;
-  if (sample.logByteLength > 0) return true;
-  return sample.toolProgressObserved === true;
+/**
+ * Last sample time at which log bytes grew or tool progress was observed.
+ * A flat nonempty log is not ongoing progress (#5478 Greptile P1).
+ */
+function lastProgressActivityAtMs(ordered: readonly CriticProgressSample[]): number | undefined {
+  let last: number | undefined;
+  let prevBytes = 0;
+  for (const sample of ordered) {
+    let progressed = false;
+    if (sample.logByteLength > prevBytes) progressed = true;
+    if (sample.toolProgressObserved === true) progressed = true;
+    if (progressed) last = sample.atMs;
+    prevBytes = Math.max(prevBytes, sample.logByteLength);
+  }
+  return last;
 }
 
 /**
@@ -124,8 +135,7 @@ export function evaluateCriticSpawnProgress(input: CriticProgressGateInput): Cri
   const elapsed = input.nowMs - input.startedAtMs;
   const stderr = latestStderr(input.samples);
   const ordered = [...input.samples].sort((a, b) => a.atMs - b.atMs);
-  const latest = ordered[ordered.length - 1];
-  const firstProgress = ordered.find((s) => hasProgressSignal(s));
+  const lastProgressAt = lastProgressActivityAtMs(ordered);
 
   if (elapsed >= input.tTimeoutMs) {
     return {
@@ -136,23 +146,25 @@ export function evaluateCriticSpawnProgress(input: CriticProgressGateInput): Cri
     };
   }
 
-  if (elapsed >= input.tProgressMs) {
-    if (firstProgress === undefined) {
-      const sawZeroOnly = ordered.length > 0 && ordered.every((s) => s.logByteLength === 0);
-      const code: CriticProgressFailureCode =
-        sawZeroOnly && !ordered.some((s) => s.toolProgressObserved === true)
-          ? "no-first-byte"
-          : "no-log-growth";
-      return {
-        ok: false,
-        code,
-        stderr,
-        haltToken: CRITIC_SPAWN_PROGRESS_HALT,
-      };
-    }
-    if (latest !== undefined && hasProgressSignal(latest)) {
+  if (lastProgressAt === undefined) {
+    if (elapsed < input.tProgressMs) {
       return { ok: true, phase: "running" };
     }
+    const sawZeroOnly = ordered.length > 0 && ordered.every((s) => s.logByteLength === 0);
+    const code: CriticProgressFailureCode =
+      sawZeroOnly && !ordered.some((s) => s.toolProgressObserved === true)
+        ? "no-first-byte"
+        : "no-log-growth";
+    return {
+      ok: false,
+      code,
+      stderr,
+      haltToken: CRITIC_SPAWN_PROGRESS_HALT,
+    };
+  }
+
+  // Stall clock: no byte growth / tool progress within T_progress of last activity.
+  if (input.nowMs - lastProgressAt >= input.tProgressMs) {
     return {
       ok: false,
       code: "no-log-growth",
@@ -265,7 +277,40 @@ function defaultKillTree(pid: number, platform: NodeJS.Platform): void {
 }
 
 /**
+ * Discover descendant PIDs when the critic is not a process-group leader
+ * (hygiene allows detached:false). win32 relies on taskkill /T instead.
+ */
+function defaultListDescendants(pid: number, platform: NodeJS.Platform): number[] {
+  if (platform === "win32") return [];
+  if (!Number.isInteger(pid) || pid <= 0) return [];
+  const found: number[] = [];
+  const queue = [pid];
+  const seen = new Set();
+  while (queue.length > 0) {
+    const parent = queue.pop();
+    if (parent === undefined || seen.has(parent)) continue;
+    seen.add(parent);
+    const result = spawnSync("pgrep", ["-P", String(parent)], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    // pgrep exits 1 when there are no children.
+    if (result.error || (result.status !== 0 && result.status !== 1)) continue;
+    const stdout = typeof result.stdout === "string" ? result.stdout : "";
+    for (const line of stdout.split(/\r?\n/)) {
+      const child = Number(line.trim());
+      if (!Number.isInteger(child) || child <= 0 || seen.has(child)) continue;
+      found.push(child);
+      queue.push(child);
+    }
+  }
+  return found;
+}
+
+/**
  * Kill the owned critic process tree. Seams make process-tree kill fixtureable.
+ * Default Unix path discovers descendants so detached:false critics without a
+ * process group still get children killed before remaining is empty.
  */
 export function killCriticProcessTree(
   pid: number,
@@ -277,7 +322,8 @@ export function killCriticProcessTree(
   const platform = seams.platform ?? process.platform;
   const kill = seams.killTree ?? ((target: number) => defaultKillTree(target, platform));
   const alive = seams.isPidAlive ?? defaultIsPidAlive;
-  const list = seams.listDescendants ?? (() => [] as number[]);
+  const list =
+    seams.listDescendants ?? ((target: number) => defaultListDescendants(target, platform));
   const snapshot = [pid, ...list(pid)];
   kill(pid);
   let remaining = snapshot.filter(alive);
