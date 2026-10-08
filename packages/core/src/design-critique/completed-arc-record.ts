@@ -467,25 +467,28 @@ function isAdmittedArcBoundary(comment: ThreadComment, thread: readonly ThreadCo
  * Comments belonging to the cited lean's arc: after any prior admitted
  * synthesis/cancel, before the next. Pre-bind lean revisions and failed
  * synthesis shapes stay inside the same arc (#5488).
+ * Boundaries walk an id-sorted copy so reversed thread order cannot leak
+ * earlier arcs into the current LGTM check (#5488 Greptile P1).
  */
 export function commentsInCitedLeanArc(
   comments: readonly ThreadComment[],
   citedLean: ThreadComment,
 ): readonly ThreadComment[] {
+  const ordered = [...comments].sort((a, b) => a.id - b.id);
   let priorBoundaryId = 0;
-  for (const comment of comments) {
+  for (const comment of ordered) {
     if (comment.id >= citedLean.id) break;
-    if (isAdmittedArcBoundary(comment, comments)) priorBoundaryId = comment.id;
+    if (isAdmittedArcBoundary(comment, ordered)) priorBoundaryId = comment.id;
   }
   let nextBoundaryAfter = Number.POSITIVE_INFINITY;
-  for (const comment of comments) {
+  for (const comment of ordered) {
     if (comment.id <= citedLean.id) continue;
-    if (isAdmittedArcBoundary(comment, comments)) {
+    if (isAdmittedArcBoundary(comment, ordered)) {
       nextBoundaryAfter = comment.id;
       break;
     }
   }
-  return comments.filter(
+  return ordered.filter(
     (comment) => comment.id > priorBoundaryId && comment.id < nextBoundaryAfter,
   );
 }

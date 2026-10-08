@@ -2236,6 +2236,67 @@ describe("ship-ready LGTM / move-forward completion (#5488)", () => {
     ).toMatchObject({ ok: false, reason: "ship-ready-required" });
   });
 
+  it("scopes LGTM admission when the thread arrives newest-first (#5488)", () => {
+    const priorLeanId = 5442000010;
+    const priorShip: ThreadComment = {
+      id: 5,
+      body: "materiality-bar: ship-ready\nrole: parent\n",
+    };
+    const priorCritic: ThreadComment = {
+      id: 6,
+      body: "role: critic\nblocks-the-design: old hole\n",
+    };
+    const priorLean: ThreadComment = {
+      id: priorLeanId,
+      body: "**Lean:** prior.\n\nTarget-digest: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n",
+    };
+    const priorSynthesis: ThreadComment = {
+      id: 5442000011,
+      body: withPlainEnglish(
+        "model: grok-4.6\nrole: parent\n\n" +
+          "design-critique: synthesis accepted, because prior arc closed.\n\n" +
+          `successor lean ${priorLeanId}\n`,
+      ),
+    };
+    const bareLean: ThreadComment = {
+      id: LEAN_ID,
+      body: withPlainEnglish("**Lean:** Prefer-A Bound.\n\nmove-forward: yes\n"),
+    };
+    const cleanCritic: ThreadComment = {
+      id: CRITIC_ID,
+      body: "role: critic\nclean-result: yes\n",
+    };
+    const moveForward: ThreadComment = {
+      id: SYNTHESIS_ID,
+      body: withPlainEnglish(
+        "model: grok-4.6\nrole: parent\n\n" +
+          `${MOVE_FORWARD_SYNTHESIS_LEAD}\n\n` +
+          `successor lean ${LEAN_ID}\n`,
+      ),
+    };
+    const thread = [
+      moveForward,
+      bareLean,
+      cleanCritic,
+      priorSynthesis,
+      priorLean,
+      priorCritic,
+      priorShip,
+    ];
+    const arc = commentsInCitedLeanArc(thread, bareLean);
+    expect(arc.map((row) => row.id)).not.toContain(priorShip.id);
+    expect(arc.map((row) => row.id)).not.toContain(priorCritic.id);
+    expect(arc.map((row) => row.id)).not.toContain(priorLean.id);
+    expect(arc.map((row) => row.id)).not.toContain(priorSynthesis.id);
+    expect(
+      evaluateMoveForwardThreadAdmission({
+        comments: thread,
+        synthesis: moveForward,
+        citedLean: bareLean,
+      }),
+    ).toMatchObject({ ok: false, reason: "ship-ready-required" });
+  });
+
   it("keeps Round-1 critics when a final lean revises inside the same arc", () => {
     const firstLean: ThreadComment = {
       id: 20,

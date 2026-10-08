@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Design-critique ship-ready LGTM move-forward completion (#5488). Tracking #5488.
+- LGTM arc boundary walks id-sorted comments so reversed thread order cannot leak earlier arcs (#5488).
 - Leftover-complete #5492 after product #5510.
 - Leftover-complete #5478 after product #5509.
 
