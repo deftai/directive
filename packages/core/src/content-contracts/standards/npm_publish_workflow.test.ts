@@ -28,7 +28,7 @@ function jobBlock(yml: string, jobKey: string): string {
   const start = yml.search(re);
   if (start < 0) return "";
   const after = yml.slice(start);
-  const next = after.slice(1).search(/^  [A-Za-z0-9_-]+:\s*$/m);
+  const next = after.slice(1).search(/^ {2}[A-Za-z0-9_-]+:\s*$/m);
   return next < 0 ? after : after.slice(0, next + 1);
 }
 
@@ -89,18 +89,15 @@ describe("npm_publish_workflow (#5365 Prefer-A Bound)", () => {
     expect(prepare).toContain("merge-base --is-ancestor");
     expect(prepare).toContain("rev-list -n 1");
     expect(code).toContain("workflow_dispatch");
-    expect(prepare).toMatch(
-      /workflow_dispatch must run from refs\/heads\/master[\s\S]*?exit 1/,
-    );
-    expect(prepare).toMatch(
-      /is not on origin\/master ancestry[\s\S]*?exit 1/,
-    );
+    expect(prepare).toMatch(/workflow_dispatch must run from refs\/heads\/master[\s\S]*?exit 1/);
+    expect(prepare).toMatch(/is not on origin\/master ancestry[\s\S]*?exit 1/);
   });
 
   it("maps numeric prerelease identifiers to dist-tag next", () => {
-    expect(prepare).toContain('DIST_TAG=next');
-    expect(prepare).toContain('[[ "${PRE}" =~ ^[0-9]+$ ]]');
-    expect(prepare).not.toContain('DIST_TAG="${BASH_REMATCH[1]}"');
+    expect(prepare).toContain("DIST_TAG=next");
+    expect(prepare).toMatch(/PRE="\$\{BASH_REMATCH\[1\]\}"/);
+    expect(prepare).toMatch(/\[\[ "\$\{PRE\}" =~ \^\[0-9\]\+\$ \]\]/);
+    expect(prepare).not.toMatch(/DIST_TAG="\$\{BASH_REMATCH\[1\]\}"/);
   });
 
   it("runs post-publish from prepare-built runner artifact without source_sha checkout", () => {
