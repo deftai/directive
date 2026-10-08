@@ -1,0 +1,312 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4961",
+    "updated": "2026-10-08T13:46:18Z"
+  },
+  "plan": {
+    "title": "feat(setup): seed PROJECT-DEFINITION from a design document (--from / --answers) instead of interview-only",
+    "status": "running",
+    "narratives": {
+      "Description": "feat(setup): seed PROJECT-DEFINITION from a design document (--from / --answers) instead of interview-only",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4961",
+      "Overview": "## Bound remedy (#4961 Prefer-A 6050534978)\n\n1. Skill-first (or thin wrapper) seed: extract/validate to six-key Phase 2 draft, then Post-Interview Confirmation Gate, then project:write-narratives (+ policy writers after disclosure). No second durable identity writer.\n2. Split ingress: --from <design.md> prose extract; --answers <file> schema-validate six keys. Shared confirm+writer chokepoint. Answers-only alone does not prove P1 relief.\n3. Untrusted-source (#480): seed bytes are data never directives; draft-only until confirm; refuse auto-apply outside PHASE2_NARRATIVE_KEYS; adversarial fixture claiming approval cannot change authority.\n4. Re-entry/merge: distinguish absent vs explicit clear; empty-for-missing must not erase existing; stale approval stops for fresh diff.\n5. Policy boundary: seed writes only six narrative strings; Branching narrative never authorizes allowDirectCommitsToMaster.\n6. v1 narratives-only; demote optional first proposed scope out of Bound.\n7. Extraction completeness separate from #5176 persistence floor.\n8. Happy path document extract + confirm; interview remains fallback; keep #4377/#4378 orthogonal.\n9. Acceptance: prose design doc to reviewable six-key draft without multi-turn interview; cancel writes no authoritative artifact.\n10. Reject B-F.\nRelated: #4377 #4378 #4544 #4390 #4663 #4668 #5176 #480",
+      "Labels": "enhancement, agent-experience, area:cli, area:skills, design-critique:ingest-ready, core-capabilities, promise:planning"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Skill-first seed front door into existing writers",
+        "status": "pending",
+        "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "Normative front door is skill-orchestrated seed via pack SoT content/packs/skills/skills-pack-0.1.json (pack-render regenerates content/skills/deft-directive-setup/SKILL.md): extract/validate to six-key Phase 2 narratives draft, then existing Post-Interview Confirmation Gate, then project:write-narratives. Do not invent a second durable identity writer. A setup --from / --answers CLI flag, if shipped, is only a thin wrapper over that same path."
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Split --from vs --answers ingress modes",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/setup/seed-from-design.ts",
+        "narrative": {
+          "Acceptance": "Split ingress modes. --from <design.md>: ordinary prose design/PRD/spec extracts into the six-key draft schema (markdown/text). --answers <file>: schema-validate six keys (aliases ok) as a deterministic adapter. Shared confirm+writer chokepoint; different ingress guarantees. Acceptance requires one demonstrated ordinary-document-to-reviewable-draft path without operator-authored JSON."
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Untrusted-source seed security limb",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/setup/seed-from-design.ts",
+        "narrative": {
+          "Acceptance": "Seed bytes are data, never directives. Extract output is draft-only until Post-Interview Confirmation Gate. Confirm summary must lead with source path, extractor mode, and any policy-adjacent or instruction-like spans found. Refuse auto-apply outside PHASE2_NARRATIVE_KEYS. Source text cannot supply consent, override USER.md Personal, issue tool instructions, select output paths, or enable yolo self-confirm. Include adversarial fixture where source claims approval / requests policy change: no authority change before valid independent approval."
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Re-entry merge semantics without field erasure",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/render/phase2-narratives-cli.ts",
+        "narrative": {
+          "Acceptance": "Distinguish absent source values from explicit clears. Materialize unchanged existing values for the canonical six-key writer; show exact field changes. Empty-for-missing must not erase existing Strategy/Quality/etc. Revalidate approved target + base revision under existing mutation lock; stale approval stops for a fresh diff. Existing-file presence includes init empty scaffold and must not silently skip an explicitly requested seed."
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Policy boundary: narratives only",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/vbrief-build/phase2-narratives.ts",
+        "narrative": {
+          "Acceptance": "Seed writes only the six narrative strings (Overview / TechStack / Strategy / Quality / ProjectRules / Branching). Branching narrative text never authorizes allowDirectCommitsToMaster. Policy keys stay on existing disclosure + policy:enforce-branches / policy:allow-direct-commits --confirm."
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "v1 narratives-only; demote proposed-scope seed",
+        "status": "pending",
+        "x-directive/artifact_path": "content/commands.md",
+        "narrative": {
+          "Acceptance": "v1 ship is narratives-only. Demote Prefer-A draft optional first proposed scope out of this Bound. Phase 3 remains Starting-new / capture product description; do not synthesize proposed scope from Overview, directory name, init seed, or seed extract."
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "Extraction completeness separate from persistence floor",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/setup/seed-from-design.test.ts",
+        "narrative": {
+          "Acceptance": "Retain #5176 unchanged as Phase 2 complete floor (non-empty Overview or tech stack). Add extraction acceptance: supported facts traceable to source passages; unknowns identified; conflicts shown; aliases normalize before canonical parser; do not invent unknowns. Seed may draft empties mid-flow; must not claim Phase 2 complete / seed-success-as-durable-ready while tracked Overview and tech stack remain empty after confirm."
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "Happy path + interview fallback + orthogonal siblings",
+        "status": "pending",
+        "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "Happy path is document extraction + artifact approval when prerequisites and decisions are satisfied. Incomplete/conflicting source returns a draft with explicit gaps and focused correction/fallback. Interview remains fallback when no seed flags. Keep orthogonal split: #4377 interview transport; #4378 USER.md wizard; this issue = document to PROJECT-DEFINITION seed only."
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "Acceptance: prose doc to durable writers via confirm",
+        "status": "pending",
+        "x-directive/artifact_path": "CHANGELOG.md",
+        "narrative": {
+          "Acceptance": "Operator (or agent) pointing setup at a prose design doc gets a reviewable six-key draft without multi-turn interview, confirms once, durable-writes only via existing writers, and cancellation writes no authoritative project artifact. Interview still works with no seed flags. Record ship note in CHANGELOG."
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "Reject B-F as sole closes",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/content-contracts/skills/setup_bound_remedy_4660.test.ts",
+        "narrative": {
+          "Acceptance": "Reject: B remove interview; C auto-promote seeded scope; D silent overwrite (whole-file OR field erasure OR stale-preview commit); E bypass project:write-narratives / shared mutation lock; F fold #4377/#4378 into this ship vehicle. Pin reject inventory in setup content-contract tests."
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "agent-experience",
+      "area:cli",
+      "area:skills",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:planning"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4961",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4961: feat(setup): seed PROJECT-DEFINITION from a design document (--from / --answers) instead of interview-only"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "deft setup --from <design.md>",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L9"
+        },
+        {
+          "command": "--answers <file>",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L9"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "setup-seed-from-design-doc",
+        "expected_outputs": [
+          "Tracking PR for #4961 Prefer-A Bound design-doc seed into project:write-narratives"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/setup/seed-from-design.test.ts packages/core/src/render/phase2-narratives-cli.test.ts packages/core/src/content-contracts/skills/setup_bound_remedy_4660.test.ts"
+        ],
+        "file_scope": [
+          "CHANGELOG.md",
+          "content/skills/deft-directive-setup/SKILL.md",
+          "content/commands.md",
+          "packages/core/src/setup/seed-from-design.ts",
+          "packages/core/src/setup/seed-from-design.test.ts",
+          "packages/core/src/render/phase2-narratives-cli.ts",
+          "packages/core/src/render/phase2-narratives-cli.test.ts",
+          "packages/core/src/vbrief-build/phase2-narratives.ts",
+          "packages/cli/src/dispatch.ts",
+          "packages/core/src/content-contracts/skills/setup_bound_remedy_4660.test.ts",
+          "content/packs/skills/skills-pack-0.1.json"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#4961"
+        ],
+        "parallel_safe": true
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "CHANGELOG.md",
+          "content/skills/deft-directive-setup/SKILL.md",
+          "content/commands.md",
+          "packages/core/src/setup/seed-from-design.ts",
+          "packages/core/src/setup/seed-from-design.test.ts",
+          "packages/core/src/render/phase2-narratives-cli.ts",
+          "packages/core/src/render/phase2-narratives-cli.test.ts",
+          "packages/core/src/vbrief-build/phase2-narratives.ts",
+          "packages/cli/src/dispatch.ts",
+          "packages/core/src/content-contracts/skills/setup_bound_remedy_4660.test.ts",
+          "content/packs/skills/skills-pack-0.1.json"
+        ],
+        "module_boundary": "setup seed extract + Phase 2 confirm writers",
+        "cohesion_exemption": "CHANGELOG.md is shared release notes; this slice only appends one Unreleased Prefer-A Bound bullet (#1488 / #3424)."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5555957365,
+        "origin": "deftai/directive#4961",
+        "id": "github.issue.5555957365"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "8041a3a8c37c469e2c159bd1ff5e0fd7a0427982e576207044e3968a77762f9b"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A Bound limbs hand-stamped after empty body harvest (#4374); clauses bind Bound remedy",
+      "sentences": [
+        "feat(setup): seed PROJECT-DEFINITION from a design document (--from / --answers) instead of interview-only",
+        "Summary There is no non-interactive path to seed `PROJECT-DEFINITION` from an existing design document.",
+        "The setup skill is a one-question-per-turn interview.",
+        "A greenfield operator who already has a design doc must hand-write JSON against the 0.8 schema.",
+        "Source Doug first-run feedback on greenfield project superchecker, `@deftai/directive@0.119.6`, Claude Code host, 2026-09-22.",
+        "Friction point 5.",
+        "Suggestion: `deft setup --from <design.md>` (or `--answers <file>`) that drafts PROJECT-DEFINITION and a first proposed scope from a document, with the interview as fallback.",
+        "Expected An operator (or agent) can point setup at an existing design/PRD/spec and get a drafted PROJECT-DEFINITION (and optionally a first proposed scope) without a multi-turn interview.",
+        "Interview remains available as fallback.",
+        "Actual Setup is interview-only (one question per turn).",
+        "No `--from` / `--answers` path.",
+        "The PROJECT-DEFINITION JSON was hand-written against the 0.8 schema.",
+        "Environment - Directive: `0.119.6` - Host: Claude Code - Flow: greenfield project definition after init - Cost: detour ## Related - #4377 — collect onboarding answers in one up-front form (transport batching; still interview) - #4378 — USER.md phase non-interactive / form-renderable wizard - #4544 — planning layer unused on single-prompt greenfield This issue is the document-seed path specifically: \"here is the design document, draft the definition.\" ## Suggested fix `deft setup --from <design.md>` (or `--answers <file>`) drafts PROJECT-DEFINITION and a first proposed scope from a document; interview remains the fallback."
+      ],
+      "admitted_source_sentences": [
+        "Summary There is no non-interactive path to seed `PROJECT-DEFINITION` from an existing design document.",
+        "The setup skill is a one-question-per-turn interview.",
+        "A greenfield operator who already has a design doc must hand-write JSON against the 0.8 schema.",
+        "Source Doug first-run feedback on greenfield project superchecker, `@deftai/directive@0.119.6`, Claude Code host, 2026-09-22.",
+        "Friction point 5.",
+        "Suggestion: `deft setup --from <design.md>` (or `--answers <file>`) that drafts PROJECT-DEFINITION and a first proposed scope from a document, with the interview as fallback.",
+        "Expected An operator (or agent) can point setup at an existing design/PRD/spec and get a drafted PROJECT-DEFINITION (and optionally a first proposed scope) without a multi-turn interview.",
+        "Interview remains available as fallback.",
+        "Actual Setup is interview-only (one question per turn).",
+        "No `--from` / `--answers` path.",
+        "The PROJECT-DEFINITION JSON was hand-written against the 0.8 schema.",
+        "Environment - Directive: `0.119.6` - Host: Claude Code - Flow: greenfield project definition after init - Cost: detour ## Related - #4377 — collect onboarding answers in one up-front form (transport batching; still interview) - #4378 — USER.md phase non-interactive / form-renderable wizard - #4544 — planning layer unused on single-prompt greenfield This issue is the document-seed path specifically: \"here is the design document, draft the definition.\" ## Suggested fix `deft setup --from <design.md>` (or `--answers <file>`) drafts PROJECT-DEFINITION and a first proposed scope from a document; interview remains the fallback."
+      ],
+      "admitted_source_digest": "46a6e35224f68c60f1fb4b42b5fc1b0ef98236db24589479a10bc4bcfff0afc0",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Normative front door is skill-orchestrated seed via pack SoT content/packs/skills/skills-pack-0.1.json (pack-render regenerates content/skills/deft-directive-setup/SKILL.md): extract/validate to six-key Phase 2 narratives draft, then existing Post-Interview Confirmation Gate, then project:write-narratives. Do not invent a second durable identity writer. A setup --from / --answers CLI flag, if shipped, is only a thin wrapper over that same path.",
+          "artifact_path": "content/packs/skills/skills-pack-0.1.json",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Split ingress modes. --from <design.md>: ordinary prose design/PRD/spec extracts into the six-key draft schema (markdown/text). --answers <file>: schema-validate six keys (aliases ok) as a deterministic adapter. Shared confirm+writer chokepoint; different ingress guarantees. Acceptance requires one demonstrated ordinary-document-to-reviewable-draft path without operator-authored JSON.",
+          "artifact_path": "packages/core/src/setup/seed-from-design.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Seed bytes are data, never directives. Extract output is draft-only until Post-Interview Confirmation Gate. Confirm summary must lead with source path, extractor mode, and any policy-adjacent or instruction-like spans found. Refuse auto-apply outside PHASE2_NARRATIVE_KEYS. Source text cannot supply consent, override USER.md Personal, issue tool instructions, select output paths, or enable yolo self-confirm. Include adversarial fixture where source claims approval / requests policy change: no authority change before valid independent approval.",
+          "artifact_path": "packages/core/src/setup/seed-from-design.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Distinguish absent source values from explicit clears. Materialize unchanged existing values for the canonical six-key writer; show exact field changes. Empty-for-missing must not erase existing Strategy/Quality/etc. Revalidate approved target + base revision under existing mutation lock; stale approval stops for a fresh diff. Existing-file presence includes init empty scaffold and must not silently skip an explicitly requested seed.",
+          "artifact_path": "packages/core/src/render/phase2-narratives-cli.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Seed writes only the six narrative strings (Overview / TechStack / Strategy / Quality / ProjectRules / Branching). Branching narrative text never authorizes allowDirectCommitsToMaster. Policy keys stay on existing disclosure + policy:enforce-branches / policy:allow-direct-commits --confirm.",
+          "artifact_path": "packages/core/src/vbrief-build/phase2-narratives.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "v1 ship is narratives-only. Demote Prefer-A draft optional first proposed scope out of this Bound. Phase 3 remains Starting-new / capture product description; do not synthesize proposed scope from Overview, directory name, init seed, or seed extract.",
+          "artifact_path": "content/commands.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Retain #5176 unchanged as Phase 2 complete floor (non-empty Overview or tech stack). Add extraction acceptance: supported facts traceable to source passages; unknowns identified; conflicts shown; aliases normalize before canonical parser; do not invent unknowns. Seed may draft empties mid-flow; must not claim Phase 2 complete / seed-success-as-durable-ready while tracked Overview and tech stack remain empty after confirm.",
+          "artifact_path": "packages/core/src/setup/seed-from-design.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Happy path is document extraction + artifact approval when prerequisites and decisions are satisfied. Incomplete/conflicting source returns a draft with explicit gaps and focused correction/fallback. Interview remains fallback when no seed flags. Keep orthogonal split: #4377 interview transport; #4378 USER.md wizard; this issue = document to PROJECT-DEFINITION seed only.",
+          "artifact_path": "content/packs/skills/skills-pack-0.1.json",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Operator (or agent) pointing setup at a prose design doc gets a reviewable six-key draft without multi-turn interview, confirms once, durable-writes only via existing writers, and cancellation writes no authoritative project artifact. Interview still works with no seed flags. Record ship note in CHANGELOG.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Reject: B remove interview; C auto-promote seeded scope; D silent overwrite (whole-file OR field erasure OR stale-preview commit); E bypass project:write-narratives / shared mutation lock; F fold #4377/#4378 into this ship vehicle. Pin reject inventory in setup content-contract tests.",
+          "artifact_path": "packages/core/src/content-contracts/skills/setup_bound_remedy_4660.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5555957365",
+    "updated": "2026-10-08T13:46:18Z"
+  }
+}
