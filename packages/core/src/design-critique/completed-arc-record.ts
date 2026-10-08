@@ -94,8 +94,6 @@ const CANCELLED_SHAPE_RE = /(?:^|\n)\s*design-critique:\s*cancelled,\s*because\b
 const MATERIALITY_BAR_FIELD_RE = /(?:^|\n)[ \t]*materiality-bar:[ \t]*(ship-ready|open)\b/gi;
 const MOVE_FORWARD_FIELD_RE = /(?:^|\n)[ \t]*move-forward:[ \t]*yes\b/gi;
 const CLEAN_RESULT_FIELD_RE = /(?:^|\n)[ \t]*clean-result:[ \t]*yes\b/gi;
-const BLOCKS_THE_DESIGN_RE = /\bblocks-the-design\b/i;
-const ACCEPT_INTO_CONTRACT_RE = /\baccept-into-contract\b/i;
 const DISPATCH_FAIL_RE = /\bdispatch-fail(?:ure)?\b/i;
 /** Operative finding class lines / headings — not prose mentions (#5488 Greptile P1). */
 const OPERATIVE_FINDING_CLASS_RE =
@@ -438,29 +436,36 @@ export function mapSeatCensusUnderMaterialityBar(
   return "footnote-only";
 }
 
+/** True arc boundary: completed synthesis or cancel — not a pre-bind lean revision. */
+function isArcBoundaryBody(body: string): boolean {
+  return isSynthesisAcceptedShape(body) || isCancelledShape(body);
+}
+
 /**
- * Comments belonging to the cited lean's arc: after any prior successor lean,
- * before the next successor lean after the cited lean. Prevents earlier-arc
- * materiality bars / critic seats from opting a later bare arc into LGTM.
+ * Comments belonging to the cited lean's arc: after any prior synthesis/cancel,
+ * before the next synthesis/cancel. Pre-bind successor lean revisions stay inside
+ * the same arc so Round-1 critics before a final lean still census (#5488).
  */
 export function commentsInCitedLeanArc(
   comments: readonly ThreadComment[],
   citedLean: ThreadComment,
 ): readonly ThreadComment[] {
-  let priorLeanId = 0;
+  let priorBoundaryId = 0;
   for (const comment of comments) {
     if (comment.id >= citedLean.id) break;
-    if (isSuccessorLeanBody(comment.body)) priorLeanId = comment.id;
+    if (isArcBoundaryBody(comment.body)) priorBoundaryId = comment.id;
   }
-  let nextLeanAfter = Number.POSITIVE_INFINITY;
+  let nextBoundaryAfter = Number.POSITIVE_INFINITY;
   for (const comment of comments) {
     if (comment.id <= citedLean.id) continue;
-    if (isSuccessorLeanBody(comment.body)) {
-      nextLeanAfter = comment.id;
+    if (isArcBoundaryBody(comment.body)) {
+      nextBoundaryAfter = comment.id;
       break;
     }
   }
-  return comments.filter((comment) => comment.id > priorLeanId && comment.id < nextLeanAfter);
+  return comments.filter(
+    (comment) => comment.id > priorBoundaryId && comment.id < nextBoundaryAfter,
+  );
 }
 
 const PANEL_DEPOSIT_TOKEN_RE = /(?:^|\n)\s*panel-deposit\b/gi;
@@ -521,18 +526,39 @@ function expectedRound1SeatCount(arcComments: readonly ThreadComment[]): number 
   return max;
 }
 
+/** Operative token outside fence / quote / strike / negation (#5488 Greptile P1). */
+function hasOperativeTokenMatch(body: string, re: RegExp, token: string): boolean {
+  const scan = new RegExp(re.source, "gi");
+  for (const match of body.matchAll(scan)) {
+    if (classifyPosition(body, operativeLineStartOffset(match, token)) === null) {
+      return true;
+    }
+  }
+  return false;
+}
+
+const ACCEPT_INTO_CONTRACT_OPERATIVE_RE = /\baccept-into-contract\b/gi;
+const UNRESOLVED_BLOCKER_TAKE_RE = /\b(?:disagree|defer|omission|unresolved)\b/gi;
+
 function countAcceptedBlockersInBody(body: string): number {
-  if (!BLOCKS_THE_DESIGN_RE.test(body)) return 0;
-  if (!ACCEPT_INTO_CONTRACT_RE.test(body)) return 0;
+  if (!operativeFindingClasses(body).has("blocks-the-design")) return 0;
+  if (!hasOperativeTokenMatch(body, ACCEPT_INTO_CONTRACT_OPERATIVE_RE, "accept-into-contract")) {
+    return 0;
+  }
   return 1;
 }
 
 function unresolvedBlockerResidualsInBody(body: string): number {
-  if (!BLOCKS_THE_DESIGN_RE.test(body)) return 0;
+  if (!operativeFindingClasses(body).has("blocks-the-design")) return 0;
   // Defer / disagree / omission of a blocker does not discharge it for LGTM.
+  const hasUnresolvedTake =
+    hasOperativeTokenMatch(body, UNRESOLVED_BLOCKER_TAKE_RE, "defer") ||
+    hasOperativeTokenMatch(body, UNRESOLVED_BLOCKER_TAKE_RE, "disagree") ||
+    hasOperativeTokenMatch(body, UNRESOLVED_BLOCKER_TAKE_RE, "omission") ||
+    hasOperativeTokenMatch(body, UNRESOLVED_BLOCKER_TAKE_RE, "unresolved");
   if (
-    /\b(?:disagree|defer|omission|unresolved)\b/i.test(body) &&
-    !ACCEPT_INTO_CONTRACT_RE.test(body)
+    hasUnresolvedTake &&
+    !hasOperativeTokenMatch(body, ACCEPT_INTO_CONTRACT_OPERATIVE_RE, "accept-into-contract")
   ) {
     return 1;
   }

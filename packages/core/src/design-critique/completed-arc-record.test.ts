@@ -2185,6 +2185,14 @@ describe("ship-ready LGTM / move-forward completion (#5488)", () => {
       id: 10,
       body: "**Lean:** prior.\n\nTarget-digest: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n",
     };
+    const priorSynthesis: ThreadComment = {
+      id: 11,
+      body: withPlainEnglish(
+        "model: grok-4.6\nrole: parent\n\n" +
+          "design-critique: synthesis accepted, because prior arc closed.\n\n" +
+          "successor lean 10\n",
+      ),
+    };
     const bareLean: ThreadComment = {
       id: LEAN_ID,
       body: withPlainEnglish("**Lean:** Prefer-A Bound.\n\nmove-forward: yes\n"),
@@ -2201,11 +2209,20 @@ describe("ship-ready LGTM / move-forward completion (#5488)", () => {
           `successor lean ${LEAN_ID}\n`,
       ),
     };
-    const thread = [priorShip, priorCritic, priorLean, cleanCritic, bareLean, moveForward];
+    const thread = [
+      priorShip,
+      priorCritic,
+      priorLean,
+      priorSynthesis,
+      cleanCritic,
+      bareLean,
+      moveForward,
+    ];
     const arc = commentsInCitedLeanArc(thread, bareLean);
     expect(arc.map((row) => row.id)).not.toContain(priorShip.id);
     expect(arc.map((row) => row.id)).not.toContain(priorCritic.id);
     expect(arc.map((row) => row.id)).not.toContain(priorLean.id);
+    expect(arc.map((row) => row.id)).not.toContain(priorSynthesis.id);
     expect(
       evaluateMoveForwardThreadAdmission({
         comments: thread,
@@ -2213,6 +2230,75 @@ describe("ship-ready LGTM / move-forward completion (#5488)", () => {
         citedLean: bareLean,
       }),
     ).toMatchObject({ ok: false, reason: "ship-ready-required" });
+  });
+
+  it("keeps Round-1 critics when a final lean revises inside the same arc", () => {
+    const firstLean: ThreadComment = {
+      id: 20,
+      body: withPlainEnglish(
+        "**Lean:** draft.\n\nmateriality-bar: ship-ready\n" +
+          "Target-digest: sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n",
+      ),
+    };
+    const cleanCritic: ThreadComment = {
+      id: CRITIC_ID,
+      body: "role: critic\nclean-result: yes\n",
+    };
+    const finalLean: ThreadComment = {
+      id: LEAN_ID,
+      body: withPlainEnglish(
+        "**Lean:** Prefer-A Bound final.\n\nmateriality-bar: ship-ready\nmove-forward: yes\n",
+      ),
+    };
+    const moveForward: ThreadComment = {
+      id: SYNTHESIS_ID,
+      body: withPlainEnglish(
+        "model: grok-4.6\nrole: parent\n\n" +
+          `${MOVE_FORWARD_SYNTHESIS_LEAD}\n\n` +
+          `successor lean ${LEAN_ID}\n`,
+      ),
+    };
+    const thread = [firstLean, cleanCritic, finalLean, moveForward];
+    const arc = commentsInCitedLeanArc(thread, finalLean);
+    expect(arc.map((row) => row.id)).toContain(cleanCritic.id);
+    expect(arc.map((row) => row.id)).toContain(firstLean.id);
+    expect(
+      evaluateMoveForwardThreadAdmission({
+        comments: thread,
+        synthesis: moveForward,
+        citedLean: finalLean,
+      }),
+    ).toMatchObject({ ok: true });
+  });
+
+  it("ignores fenced blocker examples in accepted / unresolved counters", () => {
+    const cleanWithExample: ThreadComment = {
+      id: CRITIC_ID,
+      body:
+        "role: critic\nclean-result: yes\n" +
+        "```\nblocks-the-design: fenced\naccept-into-contract\ndefer\n```\n",
+    };
+    const leanShip: ThreadComment = {
+      id: LEAN_ID,
+      body: withPlainEnglish(
+        "**Lean:** Prefer-A Bound.\n\nmateriality-bar: ship-ready\nmove-forward: yes\n",
+      ),
+    };
+    const moveForward: ThreadComment = {
+      id: SYNTHESIS_ID,
+      body: withPlainEnglish(
+        "model: grok-4.6\nrole: parent\n\n" +
+          `${MOVE_FORWARD_SYNTHESIS_LEAD}\n\n` +
+          `successor lean ${LEAN_ID}\n`,
+      ),
+    };
+    expect(
+      evaluateMoveForwardThreadAdmission({
+        comments: [cleanWithExample, leanShip, moveForward],
+        synthesis: moveForward,
+        citedLean: leanShip,
+      }),
+    ).toMatchObject({ ok: true });
   });
 
   it("demotes unpromoted sharpens and refuses promoted ones under ship-ready", () => {
