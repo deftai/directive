@@ -548,37 +548,45 @@ function hasOperativeTokenMatch(body: string, re: RegExp, token: string): boolea
   return false;
 }
 
-const BLOCKS_THE_DESIGN_OPERATIVE_RE = /\bblocks-the-design\b/gi;
-const ACCEPT_INTO_CONTRACT_OPERATIVE_RE = /\baccept-into-contract\b/gi;
-const UNRESOLVED_BLOCKER_TAKE_RE = /\b(?:disagree|defer|omission|unresolved)\b/gi;
+/** Same-line lean take-map: `blocks-the-design … accept-into-contract`. */
+const ACCEPTED_BLOCKER_TAKE_ROW_RE =
+  /(?:^|\n)[ \t]*blocks-the-design(?:[ \t]*:|[ \t]+)[^\n]*\baccept-into-contract\b/gi;
+/** Same-line lean take-map: `blocks-the-design … defer|disagree|…`. */
+const UNRESOLVED_BLOCKER_TAKE_ROW_RE =
+  /(?:^|\n)[ \t]*blocks-the-design(?:[ \t]*:|[ \t]+)[^\n]*\b(?:disagree|defer|omission|unresolved)\b/gi;
+const ACCEPT_INTO_CONTRACT_LINE_RE = /(?:^|\n)[ \t]*accept-into-contract\b/gi;
+const UNRESOLVED_TAKE_LINE_RE =
+  /(?:^|\n)[ \t]*(?:disagree|defer|omission|unresolved)\b/gi;
 
-/** Critic heading or lean take-map token; fences / negation / quotes ignored. */
-function hasOperativeBlocksTheDesign(body: string): boolean {
-  return (
-    operativeFindingClasses(body).has("blocks-the-design") ||
-    hasOperativeTokenMatch(body, BLOCKS_THE_DESIGN_OPERATIVE_RE, "blocks-the-design")
-  );
-}
-
+/**
+ * Accepted blockers: same-line take-map row, or classified `blocks-the-design:`
+ * finding paired with a line-start `accept-into-contract` take. Explanatory
+ * prose mentions do not count (#5488 Greptile P1).
+ */
 function countAcceptedBlockersInBody(body: string): number {
-  if (!hasOperativeBlocksTheDesign(body)) return 0;
-  if (!hasOperativeTokenMatch(body, ACCEPT_INTO_CONTRACT_OPERATIVE_RE, "accept-into-contract")) {
-    return 0;
+  if (hasOperativeTokenMatch(body, ACCEPTED_BLOCKER_TAKE_ROW_RE, "blocks-the-design")) {
+    return 1;
   }
-  return 1;
+  if (
+    operativeFindingClasses(body).has("blocks-the-design") &&
+    hasOperativeTokenMatch(body, ACCEPT_INTO_CONTRACT_LINE_RE, "accept-into-contract")
+  ) {
+    return 1;
+  }
+  return 0;
 }
 
 function unresolvedBlockerResidualsInBody(body: string): number {
-  if (!hasOperativeBlocksTheDesign(body)) return 0;
-  // Defer / disagree / omission of a blocker does not discharge it for LGTM.
-  const hasUnresolvedTake =
-    hasOperativeTokenMatch(body, UNRESOLVED_BLOCKER_TAKE_RE, "defer") ||
-    hasOperativeTokenMatch(body, UNRESOLVED_BLOCKER_TAKE_RE, "disagree") ||
-    hasOperativeTokenMatch(body, UNRESOLVED_BLOCKER_TAKE_RE, "omission") ||
-    hasOperativeTokenMatch(body, UNRESOLVED_BLOCKER_TAKE_RE, "unresolved");
+  if (hasOperativeTokenMatch(body, UNRESOLVED_BLOCKER_TAKE_ROW_RE, "blocks-the-design")) {
+    if (!hasOperativeTokenMatch(body, ACCEPT_INTO_CONTRACT_LINE_RE, "accept-into-contract")) {
+      return 1;
+    }
+    return 0;
+  }
   if (
-    hasUnresolvedTake &&
-    !hasOperativeTokenMatch(body, ACCEPT_INTO_CONTRACT_OPERATIVE_RE, "accept-into-contract")
+    operativeFindingClasses(body).has("blocks-the-design") &&
+    hasOperativeTokenMatch(body, UNRESOLVED_TAKE_LINE_RE, "defer") &&
+    !hasOperativeTokenMatch(body, ACCEPT_INTO_CONTRACT_LINE_RE, "accept-into-contract")
   ) {
     return 1;
   }
