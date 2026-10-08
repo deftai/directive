@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "xbriefRelPath": "xbrief/active/2026-10-08-4892-managed-card-cites-adr-003-but-docsdecisions-never-ships.xbrief.json",
   "planId": "github.issue.5540583613",
-  "approvedAt": "2026-10-08T14:37:30Z",
+  "approvedAt": "2026-10-08T18:24:00Z",
   "fileScope": [
     "AGENTS.md",
     "CHANGELOG.md",
@@ -19,9 +19,9 @@
   "humanApproval": {
     "kind": "operator",
     "actor": "Scott",
-    "mintedAt": "2026-10-08T14:37:30Z",
+    "mintedAt": "2026-10-08T18:24:00Z",
     "mintedVia": "scope:record-approved-scope"
   },
-  "intentDigest": "3df6b4a651cea60cd3aeedfb1510a31fd3ef123aee3557de9368752459824ba8",
+  "intentDigest": "5a6debfa2a69c517d04aee2b096ccd5e64b9ad7f5254b3a5478ccc7f38ed6bd1",
   "digestAlgo": "intent-extract-v1"
 }
