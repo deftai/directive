@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Leftover-complete #5365 after product #5484.
 - Approved-scope mint for #4961 Prefer-A Bound Path B file_scope (membership fence).
 - Approved-scope mint for #4888 Prefer-A Bound Path B file_scope (membership fence).
 - Approved-scope mint for #4892 Prefer-A Bound Path B file_scope (membership fence).
