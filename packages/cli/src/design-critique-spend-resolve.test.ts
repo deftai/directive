@@ -38,7 +38,23 @@ describe("design-critique:spend-resolve (#5466)", () => {
       projectRoot: "/tmp/x",
       emitJson: false,
       help: false,
+      openGate: false,
+      clear: false,
+      unclosableRecommend: false,
     });
+  });
+
+  it("skips a lone -- separator so documented forms work", () => {
+    const parsed = parseDesignCritiqueSpendResolveArgs([
+      "--",
+      "--utterance",
+      "arc 5466",
+      "--recommend",
+      "N=1",
+    ]);
+    expect(parsed.utterance).toBe("arc 5466");
+    expect(parsed.recommend).toBe("N=1");
+    expect(parsed.error).toBeUndefined();
   });
 
   it("refuses bare arc without --recommend and never defaults N=1", () => {
@@ -58,6 +74,26 @@ describe("design-critique:spend-resolve (#5466)", () => {
       root,
     ]);
     expect(code).toBe(EXIT_SPEND_RESOLVE_OK);
+  });
+
+  it("opens and clears the arc spend gate", () => {
+    const root = tempRoot();
+    expect(run(["--open-gate", "--utterance", "arc 5466", "--project-root", root])).toBe(
+      EXIT_SPEND_RESOLVE_OK,
+    );
+    expect(run(["--clear", "--project-root", root])).toBe(EXIT_SPEND_RESOLVE_OK);
+  });
+
+  it("marks unclosable recommend as a lawful ask without inventing N", () => {
+    const root = tempRoot();
+    const code = run([
+      "--utterance",
+      "arc no-ingest yolo 5466",
+      "--unclosable-recommend",
+      "--project-root",
+      root,
+    ]);
+    expect(code).toBe(EXIT_SPEND_RESOLVE_REFUSED);
   });
 
   it("config-fails without --utterance", () => {

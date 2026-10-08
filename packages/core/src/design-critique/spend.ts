@@ -1,6 +1,6 @@
 import { mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { containedRename, containedWrite } from "../fs/contained-write.js";
+import { containedRemove, containedRename, containedWrite } from "../fs/contained-write.js";
 
 /**
  * Design-critique spend front door (#4705 / #5111 / #5466).
@@ -353,6 +353,39 @@ export function writeArcSpendState(projectRoot: string, state: ArcSpendState): v
 }
 
 /**
+ * Open the Prefer-A deny gate at arc start before any structured ask (#5466).
+ * Independent of a successful --recommend resolve so the first ask cannot slip
+ * through a missing state file.
+ */
+export function openArcSpendGate(
+  projectRoot: string,
+  input: { readonly utterance?: string | null; readonly nowMs?: number } = {},
+): ArcSpendState {
+  const state: ArcSpendState = {
+    schema: ARC_SPEND_STATE_SCHEMA,
+    status: "in-flight",
+    spendRecommend: null,
+    spend: null,
+    spendAsk: null,
+    askPermitted: false,
+    updatedAt: new Date(input.nowMs ?? Date.now()).toISOString(),
+    utterance: input.utterance ?? null,
+  };
+  writeArcSpendState(projectRoot, state);
+  return state;
+}
+
+/** Clear project-local arc spend scratch when the arc ends or is abandoned. */
+export function clearArcSpendState(projectRoot: string): boolean {
+  const result = containedRemove({
+    root: projectRoot,
+    target: arcSpendStatePath(projectRoot),
+    mutation: false,
+  });
+  return result.removed;
+}
+
+/**
  * Deny structured asks while arc Stop 1 is open and no closed spend-recommend
  * exists yet, unless a prior resolve attempt marked ask lawful (#5466).
  */
@@ -376,6 +409,8 @@ export function parseRecommendFlag(raw: string | null | undefined): ArcSpend | n
 export type ResolveDesignCritiqueSpendInput = {
   readonly utterance: string;
   readonly recommendRaw?: string | null;
+  /** Parent-declared unclosable recommend: permit a lawful ask without inventing N. */
+  readonly unclosableRecommend?: boolean;
   readonly projectRoot: string;
   readonly nowMs?: number;
 };
@@ -390,7 +425,7 @@ export type ResolveDesignCritiqueSpendResult =
     }
   | {
       readonly ok: false;
-      readonly code: "missing-recommend" | "ambiguous" | "invalid-recommend";
+      readonly code: "missing-recommend" | "ambiguous" | "invalid-recommend" | "unclosable";
       readonly message: string;
       readonly state: ArcSpendState;
     };
@@ -409,6 +444,28 @@ export function resolveDesignCritiqueSpend(
     input.recommendRaw === undefined || input.recommendRaw === null || input.recommendRaw === ""
       ? null
       : parseRecommendFlag(input.recommendRaw);
+
+  if (input.unclosableRecommend === true) {
+    const state: ArcSpendState = {
+      schema: ARC_SPEND_STATE_SCHEMA,
+      status: "in-flight",
+      spendRecommend: null,
+      spend: null,
+      spendAsk: null,
+      askPermitted: true,
+      updatedAt,
+      utterance: input.utterance,
+    };
+    writeArcSpendState(input.projectRoot, state);
+    return {
+      ok: false,
+      code: "unclosable",
+      message:
+        "design-critique:spend-resolve: parent declared unclosable recommend. " +
+        "Ask is lawful under the #5373 hatch; do not invent N.",
+      state,
+    };
+  }
 
   if (
     input.recommendRaw !== undefined &&

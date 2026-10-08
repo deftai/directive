@@ -8,7 +8,11 @@
  */
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { resolveDesignCritiqueSpend } from "@deftai/directive-core/dist/design-critique/spend.js";
+import {
+  clearArcSpendState,
+  openArcSpendGate,
+  resolveDesignCritiqueSpend,
+} from "@deftai/directive-core/dist/design-critique/spend.js";
 
 export const EXIT_SPEND_RESOLVE_OK = 0;
 export const EXIT_SPEND_RESOLVE_REFUSED = 1;
@@ -17,17 +21,23 @@ export const EXIT_SPEND_RESOLVE_CONFIG = 2;
 export const DESIGN_CRITIQUE_SPEND_RESOLVE_HELP = `design-critique:spend-resolve — record spend-recommend then resolve (#5466)
 
 Usage:
-  task design-critique:spend-resolve -- --utterance <text> --recommend N=1|N≥3 [--project-root PATH] [--json]
+  deft design-critique:spend-resolve --utterance <text> --recommend N=1|N≥3 [--project-root PATH] [--json]
+  deft design-critique:spend-resolve --open-gate [--utterance <text>] [--project-root PATH]
+  deft design-critique:spend-resolve --clear [--project-root PATH]
+  deft design-critique:spend-resolve --utterance <text> --unclosable-recommend [--project-root PATH]
 
 Options:
-  --utterance TEXT     Operator chat utterance (required)
-  --recommend N=1|N≥3  Closed Dual-stop recommendation (required on bare arc)
-  --project-root PATH  Project root for arc-spend-state scratch (default: cwd)
-  --json               Emit structured result
+  --utterance TEXT          Operator chat utterance (required except --open-gate/--clear)
+  --recommend N=1|N≥3       Closed Dual-stop recommendation (required on bare arc)
+  --unclosable-recommend    Parent-declared unclosable recommend; permit lawful ask
+  --open-gate               Open deny-default arc-spend-state at arc start
+  --clear                   Clear arc-spend-state when the arc ends or is abandoned
+  --project-root PATH       Project root for arc-spend-state scratch (default: cwd)
+  --json                    Emit structured result
 
 Exit codes:
-  0  Resolved; printed spend-recommend: / spend: / spend-ask: resolved
-  1  Refused (missing/invalid recommend, or ambiguous utterance)
+  0  Resolved / gate opened / cleared
+  1  Refused (missing/invalid recommend, ambiguous, or unclosable ask path)
   2  Config / usage error
 `;
 
@@ -37,6 +47,9 @@ export interface DesignCritiqueSpendResolveArgs {
   projectRoot: string;
   emitJson: boolean;
   help: boolean;
+  openGate: boolean;
+  clear: boolean;
+  unclosableRecommend: boolean;
   error?: string;
 }
 
@@ -49,15 +62,34 @@ export function parseDesignCritiqueSpendResolveArgs(
     projectRoot: ".",
     emitJson: false,
     help: false,
+    openGate: false,
+    clear: false,
+    unclosableRecommend: false,
   };
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
+    // Accept a lone go-task / deft separator so documented `-- --utterance` forms work.
+    if (arg === "--") {
+      continue;
+    }
     if (arg === "--help" || arg === "-h") {
       return { ...acc, help: true };
     }
     if (arg === "--json") {
       acc.emitJson = true;
+      continue;
+    }
+    if (arg === "--open-gate") {
+      acc.openGate = true;
+      continue;
+    }
+    if (arg === "--clear") {
+      acc.clear = true;
+      continue;
+    }
+    if (arg === "--unclosable-recommend") {
+      acc.unclosableRecommend = true;
       continue;
     }
     if (arg === "--utterance") {
@@ -114,10 +146,39 @@ export function run(argv: readonly string[]): number {
     process.stderr.write(`design-critique:spend-resolve: ${args.error}\n`);
     return EXIT_SPEND_RESOLVE_CONFIG;
   }
+
+  const projectRoot = resolve(args.projectRoot);
+
+  if (args.clear) {
+    const removed = clearArcSpendState(projectRoot);
+    if (args.emitJson) {
+      process.stdout.write(`${JSON.stringify({ ok: true, cleared: removed }, null, 2)}\n`);
+    } else {
+      process.stdout.write(
+        removed
+          ? "design-critique:spend-resolve: cleared arc-spend-state\n"
+          : "design-critique:spend-resolve: no arc-spend-state to clear\n",
+      );
+    }
+    return EXIT_SPEND_RESOLVE_OK;
+  }
+
+  if (args.openGate) {
+    const state = openArcSpendGate(projectRoot, { utterance: args.utterance });
+    if (args.emitJson) {
+      process.stdout.write(`${JSON.stringify({ ok: true, opened: true, state }, null, 2)}\n`);
+    } else {
+      process.stdout.write(
+        "design-critique:spend-resolve: opened arc spend gate (ask denied until --recommend or lawful ask)\n",
+      );
+    }
+    return EXIT_SPEND_RESOLVE_OK;
+  }
+
   if (args.utterance === null || args.utterance.trim().length === 0) {
     process.stderr.write(
       "design-critique:spend-resolve: --utterance is required\n" +
-        "Remediation: task design-critique:spend-resolve -- --utterance <text> --recommend N=1|N≥3\n",
+        "Remediation: deft design-critique:spend-resolve --utterance <text> --recommend N=1|N≥3\n",
     );
     return EXIT_SPEND_RESOLVE_CONFIG;
   }
@@ -125,7 +186,8 @@ export function run(argv: readonly string[]): number {
   const result = resolveDesignCritiqueSpend({
     utterance: args.utterance,
     recommendRaw: args.recommend,
-    projectRoot: resolve(args.projectRoot),
+    unclosableRecommend: args.unclosableRecommend,
+    projectRoot,
   });
 
   if (args.emitJson) {

@@ -6,6 +6,7 @@ import { dualStopSpendSeats, evaluateDualStopPostBudget } from "./leftover-pain.
 import { resolveArcRunPostureForHost } from "./run-posture.js";
 import {
   ARC_SPENDS,
+  clearArcSpendState,
   evaluateHostMemorySpendConflict,
   evaluateSpendRecord,
   HOST_MEMORY_CONFLICT_DISCLOSURE_PREFIX,
@@ -14,6 +15,7 @@ import {
   isSpendAskDeniedByArcState,
   N1_SPEND,
   N3_SPEND,
+  openArcSpendGate,
   parseOperatorSpend,
   parseRecommendFlag,
   parseSpendRecommend,
@@ -548,5 +550,29 @@ describe("parent-defect bare-arc path (#5466 Prefer-A)", () => {
     expect(ambiguous.code).toBe("ambiguous");
     expect(ambiguous.state.askPermitted).toBe(true);
     expect(isSpendAskDeniedByArcState(ambiguous.state)).toBe(false);
+  });
+
+  it("opens the deny gate at arc start and clears abandoned state", () => {
+    const root = spendTempRoot();
+    const opened = openArcSpendGate(root, { utterance: "arc 5466" });
+    expect(isSpendAskDeniedByArcState(opened)).toBe(true);
+    expect(readArcSpendState(root)?.askPermitted).toBe(false);
+    expect(clearArcSpendState(root)).toBe(true);
+    expect(readArcSpendState(root)).toBeNull();
+    expect(isSpendAskDeniedByArcState(null)).toBe(false);
+  });
+
+  it("permits ask after parent-declared unclosable recommend", () => {
+    const root = spendTempRoot();
+    const unclosable = resolveDesignCritiqueSpend({
+      utterance: "arc no-ingest yolo 5466",
+      unclosableRecommend: true,
+      projectRoot: root,
+    });
+    expect(unclosable.ok).toBe(false);
+    if (unclosable.ok) return;
+    expect(unclosable.code).toBe("unclosable");
+    expect(unclosable.state.askPermitted).toBe(true);
+    expect(isSpendAskDeniedByArcState(unclosable.state)).toBe(false);
   });
 });

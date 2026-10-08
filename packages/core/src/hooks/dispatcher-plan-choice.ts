@@ -318,8 +318,9 @@ export function spendRecommendRequiredMessage(toolName: string): string {
     `Directive denied ${toolName}: design-critique arc is in flight without a closed spend-recommend: record.`,
     "",
     "Bare-arc missing spend-recommend is a parent defect (#5466 Prefer-A).",
-    "Remediation: task design-critique:spend-resolve -- --utterance <text> --recommend N=1|N≥3",
-    "Then re-attempt the ask only if still lawful (ambiguous mixes, bare panel, or unclosable recommend).",
+    "Remediation: deft design-critique:spend-resolve --utterance <text> --recommend N=1|N≥3",
+    "Open the gate at arc start with --open-gate; clear with --clear when the arc ends.",
+    "Then re-attempt the ask only if still lawful (ambiguous mixes, bare panel, or --unclosable-recommend).",
     "Keep the #5373 Discuss then Back hatch on any lawful ask.",
   ].join("\n");
 }
