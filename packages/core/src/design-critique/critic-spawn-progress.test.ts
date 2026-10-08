@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  BENIGN_PONG_PROMPT,
-  evaluateN3LaunchProbe,
-} from "./panel-seat-families.js";
-import {
   CRITIC_SPAWN_PROGRESS_HALT,
   criticProgressIsSeparateFromLaunchProbe,
   evaluateCriticSpawnHygiene,
@@ -11,6 +7,7 @@ import {
   evaluateCriticTerminationBoundary,
   killCriticProcessTree,
 } from "./critic-spawn-progress.js";
+import { BENIGN_PONG_PROMPT, evaluateN3LaunchProbe } from "./panel-seat-families.js";
 
 const hygieneOk = {
   outFdHeldUntilExit: true,

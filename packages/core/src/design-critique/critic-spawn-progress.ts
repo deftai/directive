@@ -111,9 +111,7 @@ function hasProgressSignal(sample: CriticProgressSample | undefined): boolean {
  * Progress gate on Critic spawn (#5478 Prefer-A bind map item 3).
  * T_timeout is an absolute backstop and cannot be renewed by log growth alone.
  */
-export function evaluateCriticSpawnProgress(
-  input: CriticProgressGateInput,
-): CriticProgressVerdict {
+export function evaluateCriticSpawnProgress(input: CriticProgressGateInput): CriticProgressVerdict {
   if (!(input.tProgressMs > 0) || !(input.tTimeoutMs > 0) || input.tTimeoutMs < input.tProgressMs) {
     return {
       ok: false,
@@ -140,8 +138,7 @@ export function evaluateCriticSpawnProgress(
 
   if (elapsed >= input.tProgressMs) {
     if (firstProgress === undefined) {
-      const sawZeroOnly =
-        ordered.length > 0 && ordered.every((s) => s.logByteLength === 0);
+      const sawZeroOnly = ordered.length > 0 && ordered.every((s) => s.logByteLength === 0);
       const code: CriticProgressFailureCode =
         sawZeroOnly && !ordered.some((s) => s.toolProgressObserved === true)
           ? "no-first-byte"
