@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- Leftover-complete #5466 after product #5476.
+- Removed #5466 from active work after product PR #5476 shipped. The completed brief keeps the record of the shipped work.
 - Design-critique spend ask gate (#5466). Tracking #5466.
 - Leftover-complete #5365 after product #5484 (forge Environment/trusted-publisher/tag-ruleset evidence remains operator residual; YAML alone does not close).
 - Approved-scope mint for #4961 Prefer-A Bound Path B file_scope (membership fence).
