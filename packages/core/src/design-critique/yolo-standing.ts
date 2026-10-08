@@ -1,9 +1,10 @@
 /**
- * Design-critique yolo-standing front door (#5111).
+ * Design-critique yolo-standing front door (#5111 / #5488).
  *
  * Bare arc defaults standing on (confirm conjunct only). Closed `yolo`
  * affirms; closed `noyolo` clears. Ambiguous mixes ask. Not leftover-split
- * consent, pain waiver, or ingest.
+ * consent, pain waiver, ingest, or LGTM / move-forward completion. Yolo
+ * confirms a posted non-empty all-accept map only (#5488 limb 6).
  */
 
 export type YoloStandingAskReason = "ambiguous";
@@ -45,4 +46,12 @@ export function parseOperatorYoloStanding(utterance: string): YoloStandingParse 
 /** Stop 1 yolo-standing line. Emits yes/no from the parser. */
 export function yoloStandingRecordLine(standing: boolean): string {
   return `${YOLO_STANDING_FIELD} ${standing ? "yes" : "no"}`;
+}
+
+/**
+ * Yolo standing never admits empty-(a) / footnote-only / LGTM completion
+ * (#5488 limb 6). Separate move-forward conjunct owns that path.
+ */
+export function yoloStandingAdmitsEmptyOrFootnoteCensus(_standing: boolean): false {
+  return false;
 }

@@ -13,6 +13,7 @@ Dispatch envelope skeleton for one critic or synthesis pass. Fill the fields. Re
 - Id ceiling (GitHub comment id, inclusive):
 - SHA at dispatch:
 - Run posture (`arc-mode: no-ingest` | `arc-mode: checkout`):
+- Materiality bar (`materiality-bar: open` | `materiality-bar: ship-ready`; ship-ready / lgtm launch tokens):
 - Target (work issue or umbrella):
 - Audit targets (marker ids, comma-separated, or `none`; ids only, no parent rationale). Copy onto the posted critic comment as an operative line-start `audit-targets:`. Pain-audit of relieves uses those ids (`pain-P1`), not an English heading:
 - Seat families (N≥3: three claimed families before spawn):

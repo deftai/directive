@@ -24,6 +24,12 @@ export interface OperatorVerbApplyInput {
   readonly autoStamp: boolean;
   /** Separate from residualHeadingCount. Do not clone Retry. */
   readonly handoffApplies?: boolean;
+  /**
+   * Ship-ready LGTM conjunct green (#5488). Surfaces Accept synthesis on Path 2
+   * when empty-(a) / footnote-only would otherwise hide it. Does not flip
+   * autoStamp; yolo still never auto-stamps LGTM.
+   */
+  readonly lgtmEligible?: boolean;
 }
 
 export interface NumberedWidgetOption {
@@ -72,6 +78,8 @@ export function operatorVerbApplySet(input: OperatorVerbApplyInput): OperatorVer
   }
   if (input.disagreeCount > 0) {
     verbs.push(WIDGET_POST_TABLE, WIDGET_ACCEPT_SYNTHESIS);
+  } else if (input.lgtmEligible === true) {
+    verbs.push(WIDGET_ACCEPT_SYNTHESIS);
   }
   verbs.push(WIDGET_HALT);
   return { miss: false, verbs, numbered: numberWithDiscussBack(verbs) };

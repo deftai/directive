@@ -131,4 +131,26 @@ describe("operatorVerbApplySet (#4202)", () => {
       WIDGET_BACK,
     ]);
   });
+
+  it("surfaces Accept synthesis on Path 2 when lgtmEligible (#5488)", () => {
+    const result = operatorVerbApplySet({
+      successorLeanPosted: true,
+      disagreeCount: 0,
+      residualHeadingCount: 0,
+      autoStamp: false,
+      lgtmEligible: true,
+    });
+    expect(result.verbs).toEqual([WIDGET_ACCEPT, WIDGET_ACCEPT_SYNTHESIS, WIDGET_HALT]);
+  });
+
+  it("does not let lgtmEligible flip the yolo autoStamp path (#5488)", () => {
+    const result = operatorVerbApplySet({
+      successorLeanPosted: true,
+      disagreeCount: 0,
+      residualHeadingCount: 0,
+      autoStamp: true,
+      lgtmEligible: true,
+    });
+    expect(result.verbs).toEqual([]);
+  });
 });

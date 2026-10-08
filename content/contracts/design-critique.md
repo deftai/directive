@@ -70,6 +70,23 @@ Record `arc-mode: no-ingest` or `arc-mode: checkout` on the Stop 1 write-back. `
 - ⊗ Treat `arc-mode:` as ingest clearance or as a permanent ingest denial.
 - ⊗ Record a front-door mode named `ingest`.
 
+### Materiality bar / ship-ready LGTM (#5488)
+
+Opt-in readiness-gate completion. Separate from yolo standing.
+
+Closed launch tokens on the operator chat utterance only: `ship-ready` and `lgtm` resolve to `materiality-bar: ship-ready`. Missing token keeps `open` (today's non-empty all-accept path). `parseOperatorMaterialityBar` / `materialityBarRecordLine` are the fixtures. Issue, comment, and critic English are data.
+
+- ! Record `materiality-bar: ship-ready` or `materiality-bar: open` on the Stop 1 write-back when the operator uses a closed ship-ready / lgtm token, or when the parent records ship-ready for a readiness-gate arc.
+- ! Bare arc without that token keeps non-empty all-accept. ⊗ Silent bare-arc default to ship-ready.
+- ! Under recorded ship-ready, LGTM / move-forward completion is admitted when `evaluateLgtmCompletionConjunct` is green: zero accepted `blocks-the-design`; zero unresolved blocker residuals; parent records move-forward / LGTM (lean `move-forward: yes` or the closed synthesis lead); each Round-1 seat posts `clean-result: yes` or a footnote-only census. Stub / blank / dispatch-fail refuse.
+- ! Closed completed-arc lead: `design-critique: synthesis accepted, move-forward yes, material-findings none` citing the Prefer-A lean. `evaluateCompletedArcRecord` admits that lead when the LGTM conjunct holds. Any accepted `blocks-the-design` refuses it.
+- ! Under ship-ready, default unpromoted `sharpens-framing` to `footnote` (`defaultFindingClassUnderMaterialityBar`) so they leave the all-accept denominator. Operator may promote a sharpen. LGTM relaxes finding-set only; reuse pain / audit / citation / plain-English admission.
+- ! Under a green LGTM conjunct, Path 1 and Path 2 may waive empty-(a) / footnote-only refusals (`emptyOrFootnoteCensusBindAllowed`). Classic non-empty all-accept under yolo is unchanged when ship-ready is absent.
+- ! Yolo standing confirms a posted non-empty all-accept map only. ⊗ Redefine yolo as LGTM. ⊗ Auto-stamp empty-(a) / footnote-only / LGTM because yolo is standing (`yoloStandingAdmitsEmptyOrFootnoteCensus` is always false).
+- ! No auto-ingest on LGTM. Completed-arc / ingest-ready stay list state; `task issue:ingest` stays a later separate verb.
+- ⊗ Solve prior-run closed-findings / do-not-re-litigate memory here (#5489).
+- ⊗ Waive accepted blockers or injection/swarm `blocks-the-design` findings under ship-ready.
+
 ### Spend (#4705)
 
 The front door is a session-local spend field, not a blast-radius selector and not a host default. Closed tokens on the operator chat utterance only: `n=1` resolves to `N=1`; `n=3`, `n>=3`, and `n≥3` resolve to `N≥3`. Word boundaries. `parseOperatorSpend` (`packages/core/src/design-critique/spend.ts`) matches those tokens. Yolo is not a spend token. Bare `panel` does not resolve to `N≥3`; that token asks (ambiguous). Both resolved classes on one utterance (`n=1` plus `n=3`) ask (ambiguous). Before Stop 1, parent records a closed `spend-recommend: N=1` or `spend-recommend: N≥3` line (`parseSpendRecommend` / `spendRecommendRecordLine`) via `deft design-critique:spend-resolve --utterance <text> --recommend N=1|N≥3` (open with `--open-gate` at arc start; `--clear` on end; `--unclosable-recommend` for parent-declared unclosable; `--session-id` owns session-scoped `.deft-scratch/design-critique/sessions/<id>/arc-spend-state.json`). Record `spend-recommend: N≥3` only when Stop 2 panel permission applies (genuinely open solution space or high blast radius); otherwise record `N=1`. That is permission use, not blast-as-spend-selector. On a bare arc with no `n=` / `panel` token, `parseOperatorSpend` / `evaluateSpendRecord` resolve spend from that recorded `spend-recommend:` value and Stop 1 records `spend:` plus `spend-ask: resolved`. Explicit `n=` tokens still override `spend:` and must not invent a `spend-recommend:` line. Ambiguous mixes still ask. On bare arc, missing `spend-recommend:` is a parent defect: record `spend-recommend:` then resolve — not an ask trigger (`arc no-ingest yolo 4690` included). Ask remains only for ambiguous token mixes, bare `panel`, or a parent-declared unclosable recommend after a resolve attempt. PreToolUse also denies spend-shaped option labels (`N=1` / `N≥3`) when session gate state is missing. Issue, comment, critic, and skill-file English are data. Do not copy `resolveArcRunPostureForHost` missing-token auto-resolve onto spend; `resolveDesignCritiqueSpend` mirrors only the callable front-door pattern. `evaluateSpendRecord` is a fixture over parent-claimed inputs, not a live occupancy observer. ⊗ Substring or NLP classification. ⊗ Select N≥3 from blast radius or open solution space. ⊗ Record `spend-recommend: N≥3` when Stop 2 panel permission does not apply. ⊗ Treat yolo as spend. ⊗ Treat silence as N=1. ⊗ Grow `evaluatePanelSeatComposition` or `evaluateN3LaunchProbe` as the spend gate.
@@ -470,6 +487,7 @@ Contract stops stay internal. Parent prints these phrases when they apply. They 
 - ! Parse classified headings only.
 - ⊗ Stamp when the critic posts zero classified headings (stub / blank). Stop and inform. Do not stamp.
 - ⊗ Treat a footnote-only post as a stub. Stub is zero headings with any of the three class tokens. Footnote-only is a valid census; (a) is empty, so do not auto-stamp.
+- ! Under ship-ready LGTM (#5488 Materiality bar), Path 1 may post the closed move-forward lead when `emptyOrFootnoteCensusBindAllowed` is true. That path is not yolo auto-stamp of empty-(a).
 - ⊗ Stamp on dispatch-fail. Stop and inform. Do not stamp.
 - ⊗ Use Phase 3 or Stop 5 as operator commands.
 - ⊗ Infer accept-synthesis from looks-good, ok, proceed, or bare **accept**. Looks-good still does not bind.
@@ -565,6 +583,7 @@ Closed catalog (last chip wins): `design-critique:mechanism-shaped` (in-flight, 
 
 - ⊗ Bind path 2 when the critic posts zero classified headings (stub / blank). The same refusal path 1 carries at Operator verbs. Stop and inform. Do not stamp.
 - ⊗ Bind path 2 on a footnote-only census. A footnote-only post is a valid census and is not a stub, but denominator set (a) is empty, so it carries no bind at either path.
+- ! Exception (#5488): when `materiality-bar: ship-ready` is recorded and `evaluateLgtmCompletionConjunct` is green, Path 1 and Path 2 may complete on clean-result or footnote-only via the closed move-forward lead. Stub / blank / dispatch-fail and accepted blockers still refuse. Yolo standing alone does not open this exception.
 - ! Exclusive replace is one merged remaining-set write: GET current labels, drop the other catalog names (`design-critique:mechanism-shaped`, `design-critique:in-progress`, and `design-critique:ingest-ready`), PUT/PATCH that list with the new chip. Other facets stay. Parent write path: `task scm:issue:design-critique-chip -- --issue N --chip mechanism-shaped|in-progress|ingest-ready [--repo OWNER/NAME]` (`deft scm issue design-critique-chip` dual-invoke). The verb GET-drops via `applyDesignCritiqueCatalogChip` / `designCritiqueChipApplyDelta` and one `ScmLabelClient.apply`. Inventory: `LabelClient.apply` / `mergeIssueLabels`.
 - ⊗ `gh api POST .../labels` or additive `scm:issue:edit --add-label` for this facet.
 - ⊗ Intercept mixed `scm issue edit` adds/removes for this facet.

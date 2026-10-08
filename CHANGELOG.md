@@ -35,6 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Design-critique ship-ready LGTM / move-forward completion (#5488): opt-in `materiality-bar: ship-ready`, closed move-forward synthesis lead, empty/footnote Path 1–2 waiver under the LGTM conjunct; yolo unchanged. Tracking #5488.
+
 ### Changed
 
 - docs(design-critique,windows): name launcher-dependent CreateProcess/cmd argv ceilings + pointer-required Claude critic spawn; pong proves probe only; keep #5478 adjacent (#5492).

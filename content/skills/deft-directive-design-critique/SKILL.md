@@ -53,9 +53,10 @@ Parent chip write: scm:issue:design-critique-chip. Stale ingest-ready query: scm
 Chip apply miss is non-blocking convenience; do not halt. On missing-repo-label chip miss, follow contract ensure-or-doctor recovery. Ingest waits on the completed-arc record, not a catalog chip.
 Run posture: missing defaults to no-ingest via resolveArcRunPostureForHost; ingest resolves checkout; closed collisions ask. Field lives in the contract.
 Spend: closed n= wins for `spend:` (does not invent `spend-recommend:`); else call `deft design-critique:spend-resolve --utterance <text> --recommend` then resolve. Open with `--open-gate` at arc start before any structured ask (session-scoped state); `--clear` when the arc ends; `--unclosable-recommend` for parent-declared unclosable. Bare-arc missing recommend is a parent defect (record then resolve), not ask. Ask only for ambiguous mixes, bare panel, or unclosable recommend. Call spend-resolve before any operator surface. Field lives in the contract. Consume parseOperatorSpend / resolveDesignCritiqueSpend. ⊗ ask_user_question for spend on bare arc before spend-resolve / open-gate.
-Yolo standing: default on; noyolo clears; yolo affirms. Confirm conjunct only. Not ingest.
-Widget apply-set lives in the contract. Consume parseOperatorRunPosture / parseOperatorYoloStanding.
-Widgets: numbered Discuss and Back. Plain English first in main-chat. `## Plain-language summary`.
+Yolo standing: default on; noyolo clears; yolo affirms. Confirm conjunct only. Not ingest. Not LGTM.
+Materiality bar / ship-ready LGTM (#5488): closed `ship-ready` / `lgtm` → `materiality-bar: ship-ready`; missing keeps open non-empty all-accept. Move-forward lead + `evaluateLgtmCompletionConjunct`. Yolo does not auto-stamp LGTM. No auto-ingest. Keep #5489 out. Contract: Materiality bar / ship-ready LGTM.
+Widget apply-set lives in the contract. Consume parseOperatorRunPosture / parseOperatorYoloStanding / parseOperatorMaterialityBar.
+Widgets: numbered Discuss and Back. Plain English first in main-chat. `## Plain-language summary`. When `lgtmEligible`, Accept synthesis prints on Path 2 empty/footnote.
 
 Each critic dispatch EXITs after posting.
 

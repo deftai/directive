@@ -3,14 +3,22 @@ import type { LabelClient } from "../vbrief-reconcile/types.js";
 import {
   applyIngestReadyRemainingSet,
   assertCompletedArcAllowsIngest,
+  classifyLgtmSeatCensus,
   COMPLETED_ARC_BLOCK_REASONS,
   DesignCritiqueIngestBlockedError,
+  emptyOrFootnoteCensusBindAllowed,
   evaluateCompletedArcRecord,
+  evaluateLgtmCompletionConjunct,
   evaluateTargetDigestAdmission,
   extractCitedCommentIds,
+  extractOperativeMaterialityBar,
   extractOperativeTargetDigest,
   hashIssueBodyBytes,
   isInFlightCritiqueThread,
+  isMoveForwardSynthesisShape,
+  materialityBarRecordLine,
+  MOVE_FORWARD_SYNTHESIS_LEAD,
+  parseOperatorMaterialityBar,
   type ThreadComment,
 } from "./completed-arc-record.js";
 
@@ -2016,5 +2024,204 @@ describe("plain-English presence on cited lean + synthesis (#5415)", () => {
         comments: [leanDup, synthOk(SYNTHESIS_ID, LEAN_ID)],
       }),
     ).toMatchObject({ status: "complete", citedLeanId: LEAN_ID });
+  });
+});
+
+describe("ship-ready LGTM / move-forward completion (#5488)", () => {
+  it("defaults missing materiality token to open", () => {
+    expect(parseOperatorMaterialityBar("arc 5488 yolo noingest")).toEqual({
+      kind: "resolved",
+      bar: "open",
+      source: "default",
+    });
+    expect(materialityBarRecordLine("open")).toBe("materiality-bar: open");
+  });
+
+  it("resolves closed ship-ready and lgtm tokens", () => {
+    expect(parseOperatorMaterialityBar("arc 5488 ship-ready")).toEqual({
+      kind: "resolved",
+      bar: "ship-ready",
+      source: "ship-ready",
+    });
+    expect(parseOperatorMaterialityBar("arc 5488 lgtm noingest")).toEqual({
+      kind: "resolved",
+      bar: "ship-ready",
+      source: "lgtm",
+    });
+    expect(materialityBarRecordLine("ship-ready")).toBe("materiality-bar: ship-ready");
+  });
+
+  it("reads operative materiality-bar from Stop 1 / lean bodies", () => {
+    expect(extractOperativeMaterialityBar("materiality-bar: ship-ready\n")).toBe("ship-ready");
+    expect(extractOperativeMaterialityBar("> materiality-bar: ship-ready\n")).toBeNull();
+  });
+
+  it("recognizes the closed move-forward synthesis lead", () => {
+    expect(isMoveForwardSynthesisShape(`${MOVE_FORWARD_SYNTHESIS_LEAD}\n`)).toBe(true);
+    expect(
+      isMoveForwardSynthesisShape(
+        "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n",
+      ),
+    ).toBe(false);
+  });
+
+  it("admits LGTM-complete footnote-only under ship-ready + move-forward", () => {
+    const conjunct = evaluateLgtmCompletionConjunct({
+      materialityBar: "ship-ready",
+      acceptedBlockerCount: 0,
+      unresolvedBlockerResidualCount: 0,
+      parentMoveForwardRecorded: true,
+      seatCensus: ["footnote-only"],
+    });
+    expect(conjunct).toEqual({ ok: true });
+    expect(
+      emptyOrFootnoteCensusBindAllowed({
+        materialityBar: "ship-ready",
+        lgtmConjunct: conjunct,
+      }),
+    ).toBe(true);
+  });
+
+  it("refuses stub / blank / dispatch-fail / blocker / yolo-alone / missing ship-ready", () => {
+    expect(
+      evaluateLgtmCompletionConjunct({
+        materialityBar: "open",
+        acceptedBlockerCount: 0,
+        unresolvedBlockerResidualCount: 0,
+        parentMoveForwardRecorded: true,
+        seatCensus: ["clean-result"],
+      }).ok,
+    ).toBe(false);
+    expect(
+      evaluateLgtmCompletionConjunct({
+        materialityBar: "ship-ready",
+        acceptedBlockerCount: 1,
+        unresolvedBlockerResidualCount: 0,
+        parentMoveForwardRecorded: true,
+        seatCensus: ["clean-result"],
+      }),
+    ).toMatchObject({ ok: false, reason: "blocker-present" });
+    expect(
+      evaluateLgtmCompletionConjunct({
+        materialityBar: "ship-ready",
+        acceptedBlockerCount: 0,
+        unresolvedBlockerResidualCount: 1,
+        parentMoveForwardRecorded: true,
+        seatCensus: ["clean-result"],
+      }),
+    ).toMatchObject({ ok: false, reason: "unresolved-blocker" });
+    expect(
+      evaluateLgtmCompletionConjunct({
+        materialityBar: "ship-ready",
+        acceptedBlockerCount: 0,
+        unresolvedBlockerResidualCount: 0,
+        parentMoveForwardRecorded: false,
+        seatCensus: ["clean-result"],
+        yoloStandingAlone: true,
+      }),
+    ).toMatchObject({ ok: false, reason: "yolo-alone" });
+    expect(
+      evaluateLgtmCompletionConjunct({
+        materialityBar: "ship-ready",
+        acceptedBlockerCount: 0,
+        unresolvedBlockerResidualCount: 0,
+        parentMoveForwardRecorded: true,
+        seatCensus: ["stub"],
+      }),
+    ).toMatchObject({ ok: false, reason: "stub-or-blank" });
+    expect(
+      evaluateLgtmCompletionConjunct({
+        materialityBar: "ship-ready",
+        acceptedBlockerCount: 0,
+        unresolvedBlockerResidualCount: 0,
+        parentMoveForwardRecorded: true,
+        seatCensus: ["dispatch-fail"],
+      }),
+    ).toMatchObject({ ok: false, reason: "dispatch-fail" });
+    expect(
+      emptyOrFootnoteCensusBindAllowed({
+        materialityBar: "ship-ready",
+        lgtmConjunct: { ok: false, reason: "stub-or-blank", detail: "x" },
+      }),
+    ).toBe(false);
+  });
+
+  it("classifies seat census tokens", () => {
+    expect(classifyLgtmSeatCensus("")).toBe("blank");
+    expect(classifyLgtmSeatCensus("dispatch-fail: spawn died\n")).toBe("dispatch-fail");
+    expect(classifyLgtmSeatCensus("blocks-the-design: hole\n")).toBe("blocking-present");
+    expect(classifyLgtmSeatCensus("sharpens-framing: wording\n")).toBe("sharpening-present");
+    expect(classifyLgtmSeatCensus("clean-result: yes\n")).toBe("clean-result");
+    expect(classifyLgtmSeatCensus("finding-classes: footnote\n")).toBe("footnote-only");
+    expect(classifyLgtmSeatCensus("role: critic\nno class tokens\n")).toBe("stub");
+  });
+
+  it("completes evaluateCompletedArcRecord for LGTM-complete thread", () => {
+    const stop1: ThreadComment = {
+      id: 1,
+      body: "materiality-bar: ship-ready\narc-mode: no-ingest\n",
+    };
+    const critic: ThreadComment = {
+      id: CRITIC_ID,
+      body: "model: grok\nrole: critic\n\nclean-result: yes\nfinding-classes: footnote\n",
+    };
+    const leanShip: ThreadComment = {
+      id: LEAN_ID,
+      body: withPlainEnglish(
+        "**Lean:** Prefer-A Bound.\n\nmateriality-bar: ship-ready\nmove-forward: yes\n",
+      ),
+    };
+    const moveForward: ThreadComment = {
+      id: SYNTHESIS_ID,
+      body: withPlainEnglish(
+        "model: grok-4.6\nrole: parent\n\n" +
+          `${MOVE_FORWARD_SYNTHESIS_LEAD}\n\n` +
+          `successor lean ${LEAN_ID}\n`,
+      ),
+    };
+    expect(
+      evalArc({ comments: [stop1, critic, leanShip, moveForward] }),
+    ).toMatchObject({
+      status: "complete",
+      synthesisCommentId: SYNTHESIS_ID,
+      citedLeanId: LEAN_ID,
+    });
+  });
+
+  it("refuses move-forward lead when an accepted blocker is present", () => {
+    const critic: ThreadComment = {
+      id: CRITIC_ID,
+      body: "blocks-the-design: authority hole\naccept-into-contract\n",
+    };
+    const leanShip: ThreadComment = {
+      id: LEAN_ID,
+      body: withPlainEnglish(
+        "**Lean:** Prefer-A Bound.\n\nmateriality-bar: ship-ready\nmove-forward: yes\n" +
+          "blocks-the-design accept-into-contract\n",
+      ),
+    };
+    const moveForward: ThreadComment = {
+      id: SYNTHESIS_ID,
+      body: withPlainEnglish(
+        "model: grok-4.6\nrole: parent\n\n" +
+          `${MOVE_FORWARD_SYNTHESIS_LEAD}\n\n` +
+          `successor lean ${LEAN_ID}\n`,
+      ),
+    };
+    expect(evalArc({ comments: [critic, leanShip, moveForward] })).toMatchObject({
+      status: "blocked",
+      reason: "missing-record",
+    });
+  });
+
+  it("refuses ship-ready without parent move-forward", () => {
+    const conjunct = evaluateLgtmCompletionConjunct({
+      materialityBar: "ship-ready",
+      acceptedBlockerCount: 0,
+      unresolvedBlockerResidualCount: 0,
+      parentMoveForwardRecorded: false,
+      seatCensus: ["footnote-only"],
+    });
+    expect(conjunct).toMatchObject({ ok: false, reason: "missing-move-forward" });
   });
 });

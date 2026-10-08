@@ -5,6 +5,12 @@ import { classifyPosition } from "./citation-grammar.js";
 export type AuditReading = "measured" | "asserted";
 export type AuditRole = "parent" | "critic" | "triage";
 
+/** Critic finding class tokens used by ship-ready sharpen demotion (#5488). */
+export type DesignCritiqueFindingClass =
+  | "blocks-the-design"
+  | "sharpens-framing"
+  | "footnote";
+
 export type AuditPremise = {
   markerId: string;
   sha?: string;
@@ -208,6 +214,27 @@ export function evaluateParentAudit(deposit: ParentAuditDeposit): {
 
 export function painMarkerId(painId: string): string {
   return `pain-${painId}`;
+}
+
+/**
+ * Under ship-ready, default unpromoted sharpens-framing to footnote so they
+ * leave the all-accept denominator (#5488 limb 5). Operator may promote a
+ * sharpen into a readiness obligation. LGTM relaxes finding-set only; reuse
+ * existing pain/audit/citation admission.
+ */
+export function defaultFindingClassUnderMaterialityBar(input: {
+  readonly materialityBar: "ship-ready" | "open";
+  readonly rawClass: DesignCritiqueFindingClass;
+  readonly operatorPromoted?: boolean;
+}): DesignCritiqueFindingClass {
+  if (
+    input.materialityBar === "ship-ready" &&
+    input.rawClass === "sharpens-framing" &&
+    input.operatorPromoted !== true
+  ) {
+    return "footnote";
+  }
+  return input.rawClass;
 }
 
 const AUDIT_TARGETS_RE = /(?:^|\n)[ \t]*audit-targets:[ \t]*([^\n]*)/gi;

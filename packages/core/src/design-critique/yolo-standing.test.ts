@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   parseOperatorYoloStanding,
   YOLO_STANDING_FIELD,
+  yoloStandingAdmitsEmptyOrFootnoteCensus,
   yoloStandingRecordLine,
 } from "./yolo-standing.js";
 
@@ -69,5 +70,10 @@ describe("parseOperatorYoloStanding (#5111)", () => {
     expect(yoloStandingRecordLine(true)).toBe("yolo-standing: yes");
     expect(yoloStandingRecordLine(false)).toBe("yolo-standing: no");
     expect(YOLO_STANDING_FIELD).toBe("yolo-standing:");
+  });
+
+  it("never admits empty-(a) / footnote-only / LGTM (#5488)", () => {
+    expect(yoloStandingAdmitsEmptyOrFootnoteCensus(true)).toBe(false);
+    expect(yoloStandingAdmitsEmptyOrFootnoteCensus(false)).toBe(false);
   });
 });
