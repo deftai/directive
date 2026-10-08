@@ -182,7 +182,7 @@
           "content/packs/skills/skills-pack-0.1.json"
         ],
         "module_boundary": "setup seed extract + Phase 2 confirm writers",
-        "cohesion_exemption": "CHANGELOG.md is shared release notes; this slice only appends one Unreleased Prefer-A Bound bullet (#1488 / #3424)."
+        "cohesion_exemption": "CHANGELOG.md shared release notes; Path B activation Keep active bullet only."
       },
       "x-directive/plan-id": {
         "version": 1,
