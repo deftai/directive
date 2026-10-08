@@ -94,7 +94,8 @@ const CANCELLED_SHAPE_RE = /(?:^|\n)\s*design-critique:\s*cancelled,\s*because\b
 const MATERIALITY_BAR_FIELD_RE = /(?:^|\n)[ \t]*materiality-bar:[ \t]*(ship-ready|open)\b/gi;
 const MOVE_FORWARD_FIELD_RE = /(?:^|\n)[ \t]*move-forward:[ \t]*yes\b/gi;
 const CLEAN_RESULT_FIELD_RE = /(?:^|\n)[ \t]*clean-result:[ \t]*yes\b/gi;
-const DISPATCH_FAIL_RE = /\bdispatch-fail(?:ure)?\b/i;
+/** Line-start dispatch-fail; fences / quotes do not count (#5488 Greptile P1). */
+const DISPATCH_FAIL_FIELD_RE = /(?:^|\n)[ \t]*dispatch-fail(?:ure)?\b/gi;
 /** Operative finding class lines / headings — not prose mentions (#5488 Greptile P1). */
 const OPERATIVE_FINDING_CLASS_RE =
   /(?:^|\n)\s*(?:#{1,6}\s*)?(blocks-the-design|sharpens-framing|footnote)\s*:/gi;
@@ -397,10 +398,20 @@ function hasOperativeFindingClassesFootnote(body: string): boolean {
  * Uses operative class headings / `class:` lines and clean-result fields —
  * prose that merely mentions a class token does not count.
  */
+/** True when an operative line-start dispatch-fail marker is outside examples. */
+function hasOperativeDispatchFail(body: string): boolean {
+  return hasOperativeTokenMatch(body, DISPATCH_FAIL_FIELD_RE, "dispatch-fail");
+}
+
+/** True when the body declares `role: parent` (parent record, not critic data). */
+function isParentRoleBody(body: string): boolean {
+  return /(?:^|\n)\s*role:\s*parent\b/i.test(body);
+}
+
 export function classifyLgtmSeatCensus(body: string): LgtmSeatCensus {
   const trimmed = body.trim();
   if (trimmed.length === 0) return "blank";
-  if (DISPATCH_FAIL_RE.test(body)) return "dispatch-fail";
+  if (hasOperativeDispatchFail(body)) return "dispatch-fail";
   const classes = operativeFindingClasses(body);
   if (classes.has("blocks-the-design")) return "blocking-present";
   if (classes.has("sharpens-framing")) return "sharpening-present";
@@ -619,7 +630,9 @@ export function evaluateMoveForwardThreadAdmission(input: {
 }): LgtmConjunctVerdict {
   const arcComments = commentsInCitedLeanArc(input.comments, input.citedLean);
   const fromLean = extractOperativeMaterialityBar(input.citedLean.body);
+  // Fallback bar only from parent records — critic text cannot opt the arc in (#5488).
   const fromArc = arcComments
+    .filter((comment) => isParentRoleBody(comment.body))
     .map((comment) => extractOperativeMaterialityBar(comment.body))
     .reverse()
     .find((bar) => bar !== null);

@@ -2170,6 +2170,9 @@ describe("ship-ready LGTM / move-forward completion (#5488)", () => {
     expect(classifyLgtmSeatCensus("> prior quote\n\n### footnote: wording\n")).toBe(
       "footnote-only",
     );
+    expect(
+      classifyLgtmSeatCensus("clean-result: yes\n```\ndispatch-fail: spawn died\n```\n"),
+    ).toBe("clean-result");
   });
 
   it("scopes LGTM admission to the cited lean arc", () => {
@@ -2426,6 +2429,62 @@ describe("ship-ready LGTM / move-forward completion (#5488)", () => {
         comments: [cleanCritic, leanShip, moveForward],
         synthesis: moveForward,
         citedLean: leanShip,
+      }),
+    ).toMatchObject({ ok: true });
+  });
+
+  it("refuses critic-only materiality-bar ship-ready fallback (#5488)", () => {
+    const criticShip: ThreadComment = {
+      id: CRITIC_ID,
+      body: "role: critic\nclean-result: yes\nmateriality-bar: ship-ready\n",
+    };
+    const bareLean: ThreadComment = {
+      id: LEAN_ID,
+      body: withPlainEnglish("**Lean:** Prefer-A Bound.\n\nmove-forward: yes\n"),
+    };
+    const moveForward: ThreadComment = {
+      id: SYNTHESIS_ID,
+      body: withPlainEnglish(
+        "model: grok-4.6\nrole: parent\n\n" +
+          `${MOVE_FORWARD_SYNTHESIS_LEAD}\n\n` +
+          `successor lean ${LEAN_ID}\n`,
+      ),
+    };
+    expect(
+      evaluateMoveForwardThreadAdmission({
+        comments: [criticShip, bareLean, moveForward],
+        synthesis: moveForward,
+        citedLean: bareLean,
+      }),
+    ).toMatchObject({ ok: false, reason: "ship-ready-required" });
+  });
+
+  it("accepts parent-recorded materiality-bar fallback in the cited lean arc", () => {
+    const parentShip: ThreadComment = {
+      id: CRITIC_ID - 1,
+      body: "role: parent\nmateriality-bar: ship-ready\n",
+    };
+    const cleanCritic: ThreadComment = {
+      id: CRITIC_ID,
+      body: "role: critic\nclean-result: yes\n",
+    };
+    const bareLean: ThreadComment = {
+      id: LEAN_ID,
+      body: withPlainEnglish("**Lean:** Prefer-A Bound.\n\nmove-forward: yes\n"),
+    };
+    const moveForward: ThreadComment = {
+      id: SYNTHESIS_ID,
+      body: withPlainEnglish(
+        "model: grok-4.6\nrole: parent\n\n" +
+          `${MOVE_FORWARD_SYNTHESIS_LEAD}\n\n` +
+          `successor lean ${LEAN_ID}\n`,
+      ),
+    };
+    expect(
+      evaluateMoveForwardThreadAdmission({
+        comments: [parentShip, cleanCritic, bareLean, moveForward],
+        synthesis: moveForward,
+        citedLean: bareLean,
       }),
     ).toMatchObject({ ok: true });
   });
