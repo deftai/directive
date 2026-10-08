@@ -421,3 +421,37 @@ export function evaluateVerificationPathBeforePanelDeposit(input: {
   }
   return { ok: false, reason: "missing-verification-path" };
 }
+
+/** Adjacent-polish hydra leftover for #5489 Prefer-A Bound limb 9. */
+export const CLOSED_FINDINGS_ADJACENT_POLISH_LEFTOVER_ISSUE = 5493;
+
+/**
+ * Exact declared-relation restatement (P2–P4) is the deliverable remainder.
+ * Claiming full adjacent-polish hydra relief (P1) without leftover #5493 fails.
+ */
+export function evaluateClosedFindingsP1Honesty(input: {
+  readonly relievesPainIds: readonly string[];
+  readonly operatorDeferred: readonly {
+    readonly painId: string;
+    readonly issueNumber: number;
+  }[];
+}): { readonly ok: boolean; readonly detail: string | null } {
+  if (input.relievesPainIds.includes("P1")) {
+    return {
+      ok: false,
+      detail:
+        "exact demotion alone does not relieve P1 adjacent-polish hydra; leftover #5493",
+    };
+  }
+  const deferredP1 = input.operatorDeferred.find((row) => row.painId === "P1");
+  if (
+    deferredP1 !== undefined &&
+    deferredP1.issueNumber !== CLOSED_FINDINGS_ADJACENT_POLISH_LEFTOVER_ISSUE
+  ) {
+    return {
+      ok: false,
+      detail: `P1 leftover must cite #${CLOSED_FINDINGS_ADJACENT_POLISH_LEFTOVER_ISSUE}, got #${deferredP1.issueNumber}`,
+    };
+  }
+  return { ok: true, detail: null };
+}

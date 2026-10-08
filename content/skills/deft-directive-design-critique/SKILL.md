@@ -70,6 +70,7 @@ After same-round siblings are posted, the parent posts the successor lean; the o
 
 Seat families and Grok Build launcher: Envelope and ceiling. Grok critic recovery: Design-critique dispatch (dest-rooted grok --cwd --prompt-file after recorded native deny). Native admit without skip-class is not a critic.
 Dispatch-composition miss: offer or file a prevention issue.
+Later-arc closed-findings: demote authorized unchanged `restates:` restatements to footnote/omit; evidence-bearing reopen stays disposition-carrying. Field lives in the contract.
 
 ## EXIT
 

@@ -25,7 +25,7 @@ Boundaries are read off the machinery in this document, not asserted here.
 - Rounds accumulate inside one arc. The auto-stamp denominator is scoped to critic posts in this arc and keeps a Stop 4 retry's post, so a retry continues the arc it retries.
 - Same-round siblings share one ceiling and one panel-deposit. A panel is one round, not N arcs.
 - The arc stays open through the operator-gated loop until a verified synthesis is accepted, or until the halt line. Successor leans are moves inside that loop, so revising a lean before bind is not a boundary.
-- A **later arc** opens after bind: it re-applies `design-critique:mechanism-shaped`, drops `design-critique:ingest-ready`, and its new lean is not cleared by the older completed-arc record. That is a post-bind target revision.
+- A **later arc** opens after bind: it re-applies `design-critique:mechanism-shaped`, drops `design-critique:ingest-ready`, and its new lean is not cleared by the older completed-arc record. That is a post-bind target revision. Later-arc closed-findings (#5489) are ceiling data for that motion — see `### Later-arc closed-findings (#5489)`.
 
 - ! Read `arc` in this document as that unit.
 - ⊗ Read a new ceiling, a new round, or a pre-bind lean revision as a new arc.
@@ -151,6 +151,23 @@ Process-only. The critic audits the lean, the protocol fit, and the recording ob
 - ⊗ Load parent hypotheses into the envelope.
 - ⊗ Name a refutation target unless the recorded variant is refutation.
 - ⊗ Edit critic text after dispatch. The parent records; it does not rewrite.
+
+### Later-arc closed-findings (#5489)
+
+When a later arc opens on an issue that already has completed (or explicitly closed) findings, the parent records a ceiling-safe closed list so exact restatements stop becoming residual. This is not cross-issue memory and does not absorb the LGTM / clean-pass path (#5488).
+
+- ! Record an operative `closed-findings:` field on the Stop 1 write-back and in the Round-1 brief. Each entry cites composite identity `sourceCommentId/findingId` plus disposition enum only: `accepted | deferred | skipped | fixed-in-body`. Titles are display-only. No rationale prose.
+- ! Freeze that selected list in the common Round-1 dispatch input. Later edits require a new explicit snapshot.
+- ! Closure authority: suppression-eligible only with a completed successor-lean take that is not bare `defer`, or explicit operator closure for this scope. Title-only / unauthenticated / missing source-comment rows MUST NOT confer suppression.
+- ! Match key is the composite identity plus an explicit declared relation (`restates: <sourceCommentId>/<findingId>`). Bare local-id collision without that relation is not automatic suppression. ⊗ NLP clustering / title-fuzzy match.
+- ! Critic method: do not emit `blocks-the-design` / `sharpens-framing` that only restates an authorized closed entry via that declared relation with no evidence-bearing reopen; demote to footnote or omit. Footnote "still closed" is allowed.
+- ! Parent unify MUST compose with the disposition denominator: never silently drop a posted critic heading; for authorized unchanged restatement record an explicit demotion take (footnote / not-residual); ADR-006 when asserting equivalence that changes classification.
+- ! Evidence-bearing reopen (new evidence, invalid closure premise, or changed relevant dependency — including unchanged issue body) keeps the finding disposition-carrying; demotion/refusal MUST NOT apply.
+- ! Fixture-level refuse consumer rejects still-open residual that is an authorized unchanged restatement. Live parent-turn enforcement MAY stay unenforced in v1.
+- ⊗ Cross-issue memory; auto body rewrite; host LLM memory; resume-only as the sole solution; absorb #5488; NLP clustering. Auto-seed MAY.
+- ! P1 honesty: deliverable remainder is exact declared-relation restatement plus the product field (P2–P4). Adjacent-polish hydra beyond that is leftover #5493 (`operator-deferred: P1 #5493`), not silent `relieves: P1`.
+
+Machine: `extractOperativeClosedFindings` / `evaluateClosedFindingsUnify` / `evaluateClosedFindingsResidualRefuse` in `packages/core/src/design-critique/parent-audit.ts`; leftover honesty `evaluateClosedFindingsP1Honesty` in `leftover-pain.ts`.
 
 ### Critic method
 

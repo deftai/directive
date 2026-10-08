@@ -9,10 +9,12 @@ import {
 import {
   assertedPainIdsFromCites,
   bindLeanPredecessorValid,
+  CLOSED_FINDINGS_ADJACENT_POLISH_LEFTOVER_ISSUE,
   deriveReservedPainAuditPostsUsed,
   dualStopCapNotation,
   dualStopReservedLiteracyRecordLine,
   evaluateBoundRemedyCites,
+  evaluateClosedFindingsP1Honesty,
   evaluateContinueRemainder,
   evaluateDualStopParentPath,
   evaluateDualStopPostBudget,
@@ -1145,5 +1147,26 @@ describe("pain-audit follow-through gate Prefer-A Bound (#5233)", () => {
         issueNumber: 5233,
       }),
     ).toMatchObject({ status: "complete", citedLeanId: LEAN_ID });
+  });
+});
+
+describe("closed-findings P1 honesty (#5489 Prefer-A Bound limb 9)", () => {
+  it("refuses claiming full P1 hydra relief from exact demotion alone", () => {
+    expect(
+      evaluateClosedFindingsP1Honesty({
+        relievesPainIds: ["P1", "P2"],
+        operatorDeferred: [],
+      }).ok,
+    ).toBe(false);
+  });
+
+  it("accepts P2–P4 relief with operator-deferred P1 #5493", () => {
+    expect(CLOSED_FINDINGS_ADJACENT_POLISH_LEFTOVER_ISSUE).toBe(5493);
+    expect(
+      evaluateClosedFindingsP1Honesty({
+        relievesPainIds: ["P2", "P3", "P4"],
+        operatorDeferred: [{ painId: "P1", issueNumber: 5493 }],
+      }),
+    ).toEqual({ ok: true, detail: null });
   });
 });
