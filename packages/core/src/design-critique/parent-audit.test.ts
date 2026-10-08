@@ -310,9 +310,9 @@ describe("closed-findings later-arc demotion (#5489 Prefer-A Bound)", () => {
       { sourceCommentId: SRC, findingId: "C2", disposition: "deferred" },
     ]);
     expect(extractOperativeClosedFindings(`> closed-findings: ${SRC}/C1 accepted\n`)).toEqual([]);
-    expect(
-      extractOperativeClosedFindings(`closed-findings: ${SRC}/C1 accepted-pending\n`),
-    ).toEqual([]);
+    expect(extractOperativeClosedFindings(`closed-findings: ${SRC}/C1 accepted-pending\n`)).toEqual(
+      [],
+    );
   });
 
   it("parses bullet closed-findings under the field", () => {
