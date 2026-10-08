@@ -1,0 +1,354 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5478",
+    "updated": "2026-10-08T19:22:50Z"
+  },
+  "plan": {
+    "title": "bug(design-critique,windows): Claude critic seat hangs 0-byte after launch-probe pong-ok (pointer envelope)",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(design-critique,windows): Claude critic seat hangs 0-byte after launch-probe pong-ok (pointer envelope)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5478",
+      "Overview": "## Bound remedy (#5478 Prefer-A 6065703308)\n\nconflict_group: claude-critic-zero-byte-hang-after-pong\n\n1. Reproduce/record failing layer (done in-arc).\n2. Claude Critic-spawn hygiene MUST (outFd, no detached+unref, stdin ignore, wait on child, integer fds).\n3. Progress gate on Critic spawn (first byte / growth within T_progress); T_timeout backstop; stderr capture.\n4. Executable termination boundary (named supervisor, process-tree kill, terminate before reseat, late-post reconcile).\n5. Keep evaluateN3LaunchProbe as launchability only (#4432).\n6. Keep #5492 adjacent; do not collapse argv class.\n7. Containment first; restoration needs later successful pointer-envelope completion.\n\nReject: timeout+stderr alone; grow evaluateN3LaunchProbe into watchdog; collapse #5492; claim full Claude restoration without post-fix representative completion.\narc-mode: no-ingest",
+      "Labels": "bug, agent-experience, area:skills, design-critique:ingest-ready, framework-gap"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Reproduce / record failing layer (done in-arc)",
+        "status": "completed",
+        "x-directive/artifact_path": "CHANGELOG.md",
+        "narrative": {
+          "Acceptance": "Reproduce / record failing layer outside the originating #4961 panel. Done in-arc: Claude seat on this panel hung 0-byte with CPU after pointer spawn; kill recorded in amend-the-spend-down. Ship note records the reproduction class."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5509 squash-merge (Tracking #5478). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5509",
+            "mintedAt": "2026-10-08T22:20:00.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-08T22:20:00.000Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Claude Critic-spawn hygiene MUST",
+        "status": "completed",
+        "x-directive/artifact_path": "content/docs/grok-build-subscription-setup.md",
+        "narrative": {
+          "Acceptance": "Land playbook + thin skill/contract pointers for Claude Critic-spawn hygiene MUST before claiming the seat live: outFd held until exit; refuse detached+unref; stdin closed via Node ignore/fd; parent waits on child; integer fds (not WriteStream with null fd)."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5509 squash-merge (Tracking #5478). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5509",
+            "mintedAt": "2026-10-08T22:20:00.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-08T22:20:00.000Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Progress gate on Critic spawn",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/design-critique/critic-spawn-progress.ts",
+        "narrative": {
+          "Acceptance": "Land a progress gate on Critic spawn (not on evaluateN3LaunchProbe): fail closed if no first log byte / no log growth within T_progress; emit captured stderr on that path. Keep a hard T_timeout backstop that cannot be renewed indefinitely by log chatter alone for never-finishing writers."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5509 squash-merge (Tracking #5478). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5509",
+            "mintedAt": "2026-10-08T22:20:00.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-08T22:20:00.000Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Executable termination/completion boundary",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/design-critique/critic-spawn-progress.ts",
+        "narrative": {
+          "Acceptance": "Land an executable termination/completion boundary: named supervisor owns the timer; timeout kills the owned process tree; establish termination before replacement/reseat; reconcile whether a comment already posted before classifying no-comment dispatch-fail; reuse existing dispatch-fail/halt protocol."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5509 squash-merge (Tracking #5478). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5509",
+            "mintedAt": "2026-10-08T22:20:00.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-08T22:20:00.000Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Keep evaluateN3LaunchProbe as launchability only",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/design-critique/panel-seat-families.ts",
+        "narrative": {
+          "Acceptance": "Keep launch-probe as launchability only (evaluateN3LaunchProbe / #4432). Do not grow it into envelope progress or a panel scheduler."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5509 squash-merge (Tracking #5478). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5509",
+            "mintedAt": "2026-10-08T22:20:00.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-08T22:20:00.000Z"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "Keep #5492 adjacent argv class",
+        "status": "completed",
+        "x-directive/artifact_path": "content/contracts/design-critique.md",
+        "narrative": {
+          "Acceptance": "Keep #5492 adjacent (argv ceiling docs). Do not collapse with post-pointer hang. Contract/skill pointers name the separation."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5509 squash-merge (Tracking #5478). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5509",
+            "mintedAt": "2026-10-08T22:20:00.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-08T22:20:00.000Z"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "Containment vs restoration claim",
+        "status": "completed",
+        "x-directive/artifact_path": "content/skills/deft-directive-design-critique/SKILL.md",
+        "narrative": {
+          "Acceptance": "Relief claim: Prefer-A binds containment of the hang class (bounded fail-closed + hygiene + progress). Restored reliable Claude seating requires a later successful representative pointer-envelope completion after the diagnosed fix; until then P3 residual may remain operator recovery."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5509 squash-merge (Tracking #5478). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5509",
+            "mintedAt": "2026-10-08T22:20:00.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-08T22:20:00.000Z"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "Fixtures for progress + termination",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/design-critique/critic-spawn-progress.test.ts",
+        "narrative": {
+          "Acceptance": "Fixtures: first-byte progress fail-closed; T_timeout backstop; process-tree kill; probe≠progress; zero-stdout alone not sole inactivity oracle for text print mode (disposable diagnostic envelope for tool-progress validation)."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5509 squash-merge (Tracking #5478). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5509",
+            "mintedAt": "2026-10-08T22:20:00.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-08T22:20:00.000Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "area:skills",
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5478",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5478: bug(design-critique,windows): Claude critic seat hangs 0-byte after launch-probe pong-ok (pointer envelope)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A Bound limbs hand-stamped after empty body harvest (#4374); clauses bind Bound 6065703308",
+      "sentences": [
+        "bug(design-critique,windows): Claude critic seat hangs 0-byte after launch-probe pong-ok (pointer envelope)",
+        "Summary On Windows Grok Build parent, Claude-family design-critique critic seats hang with 0-byte stdout logs when launched with the pointer-prompt pattern against a full envelope, even though the same critic argv class returns `pong` at rc 0 for the launch-probe.",
+        "Observed on arc #4961 - Launch-probe: `claude -p \"…pong…\" --permission-mode bypassPermissions` from arc dest → rc0 `pong` - Critic spawn (pointer to dest `.deft-scratch/critic-shared-envelope.md`, stdin closed via Node spawn): three hangs 1.",
+        "default model ~8m, 0-byte log 2.",
+        "reseat ~5m, 0-byte log 3.",
+        "`--model opus` ~7m, 0-byte log - Codex and Grok seats on the same panel completed and posted - Recovery used: amend-the-spend-down N≥3 → N=2 (comment on #4961) ## Expected After launch-probe pong-ok, Claude critic pointer-prompt should make progress (log growth / tool use / post) within a bounded window, or fail closed with visible stderr.",
+        "Actual Process stays alive with CPU, log file stays 0 bytes, no GitHub critic comment.",
+        "Environment - Host: Grok Build (Windows) - Parent: grok-4.5 - Dest: `.deft-scratch/worktrees/arc-4961` - Claude: `C:\\Users\\msada\\.local\\bin\\claude.exe` (subscription / unset ANTHROPIC_API_KEY) ## Suggested direction Reproduce outside #4961; distinguish hung-OAuth / print-mode buffer / argv pointer failure; add a fail-closed seat timeout + visible stderr capture to the design-critique Claude launch playbook so pong-ok cannot mask envelope hangs."
+      ],
+      "admitted_source_sentences": [
+        "Summary On Windows Grok Build parent, Claude-family design-critique critic seats hang with 0-byte stdout logs when launched with the pointer-prompt pattern against a full envelope, even though the same critic argv class returns `pong` at rc 0 for the launch-probe.",
+        "Observed on arc #4961 - Launch-probe: `claude -p \"…pong…\" --permission-mode bypassPermissions` from arc dest → rc0 `pong` - Critic spawn (pointer to dest `.deft-scratch/critic-shared-envelope.md`, stdin closed via Node spawn): three hangs 1.",
+        "default model ~8m, 0-byte log 2.",
+        "reseat ~5m, 0-byte log 3.",
+        "`--model opus` ~7m, 0-byte log - Codex and Grok seats on the same panel completed and posted - Recovery used: amend-the-spend-down N≥3 → N=2 (comment on #4961) ## Expected After launch-probe pong-ok, Claude critic pointer-prompt should make progress (log growth / tool use / post) within a bounded window, or fail closed with visible stderr.",
+        "Actual Process stays alive with CPU, log file stays 0 bytes, no GitHub critic comment.",
+        "Environment - Host: Grok Build (Windows) - Parent: grok-4.5 - Dest: `.deft-scratch/worktrees/arc-4961` - Claude: `C:\\Users\\msada\\.local\\bin\\claude.exe` (subscription / unset ANTHROPIC_API_KEY) ## Suggested direction Reproduce outside #4961; distinguish hung-OAuth / print-mode buffer / argv pointer failure; add a fail-closed seat timeout + visible stderr capture to the design-critique Claude launch playbook so pong-ok cannot mask envelope hangs."
+      ],
+      "admitted_source_digest": "bab8794a4665c6bd27694a0a8a3332e27e3afdfab87439ff65b57d43015205e2",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Reproduce / record failing layer outside the originating #4961 panel. Done in-arc: Claude seat on this panel hung 0-byte with CPU after pointer spawn; kill recorded in amend-the-spend-down. Ship note records the reproduction class.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Land playbook + thin skill/contract pointers for Claude Critic-spawn hygiene MUST before claiming the seat live: outFd held until exit; refuse detached+unref; stdin closed via Node ignore/fd; parent waits on child; integer fds (not WriteStream with null fd).",
+          "artifact_path": "content/docs/grok-build-subscription-setup.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Land a progress gate on Critic spawn (not on evaluateN3LaunchProbe): fail closed if no first log byte / no log growth within T_progress; emit captured stderr on that path. Keep a hard T_timeout backstop that cannot be renewed indefinitely by log chatter alone for never-finishing writers.",
+          "artifact_path": "packages/core/src/design-critique/critic-spawn-progress.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Land an executable termination/completion boundary: named supervisor owns the timer; timeout kills the owned process tree; establish termination before replacement/reseat; reconcile whether a comment already posted before classifying no-comment dispatch-fail; reuse existing dispatch-fail/halt protocol.",
+          "artifact_path": "packages/core/src/design-critique/critic-spawn-progress.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Keep launch-probe as launchability only (evaluateN3LaunchProbe / #4432). Do not grow it into envelope progress or a panel scheduler.",
+          "artifact_path": "packages/core/src/design-critique/panel-seat-families.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Keep #5492 adjacent (argv ceiling docs). Do not collapse with post-pointer hang. Contract/skill pointers name the separation.",
+          "artifact_path": "content/contracts/design-critique.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Relief claim: Prefer-A binds containment of the hang class (bounded fail-closed + hygiene + progress). Restored reliable Claude seating requires a later successful representative pointer-envelope completion after the diagnosed fix; until then P3 residual may remain operator recovery.",
+          "artifact_path": "content/skills/deft-directive-design-critique/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Fixtures: first-byte progress fail-closed; T_timeout backstop; process-tree kill; probe≠progress; zero-stdout alone not sole inactivity oracle for text print mode (disposable diagnostic envelope for tool-progress validation).",
+          "artifact_path": "packages/core/src/design-critique/critic-spawn-progress.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "CHANGELOG.md",
+          "content/docs/grok-build-subscription-setup.md",
+          "content/contracts/design-critique.md",
+          "content/skills/deft-directive-design-critique/SKILL.md",
+          "packages/core/src/design-critique/panel-seat-families.ts",
+          "packages/core/src/design-critique/panel-seat-families.test.ts",
+          "packages/core/src/design-critique/critic-spawn-progress.ts",
+          "packages/core/src/design-critique/critic-spawn-progress.test.ts",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "content/packs/skills/skills-pack-0.1.json"
+        ],
+        "module_boundary": "Claude critic spawn progress + termination",
+        "cohesion_exemption": "CHANGELOG.md shared."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5754560436,
+        "origin": "deftai/directive#5478",
+        "id": "github.issue.5754560436"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "177639d4ab2e0c42722fd8240ff41ea5cb077884e86404a0eb5642326287de34"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "claude-critic-zero-byte-hang-after-pong",
+        "expected_outputs": [
+          "Tracking PR for #5478 Prefer-A Bound Claude critic progress gate + spawn hygiene"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/design-critique/critic-spawn-progress.test.ts packages/core/src/design-critique/panel-seat-families.test.ts packages/core/src/content-contracts/standards/design_critique_contract.test.ts"
+        ],
+        "file_scope": [
+          "CHANGELOG.md",
+          "content/docs/grok-build-subscription-setup.md",
+          "content/contracts/design-critique.md",
+          "content/skills/deft-directive-design-critique/SKILL.md",
+          "packages/core/src/design-critique/panel-seat-families.ts",
+          "packages/core/src/design-critique/panel-seat-families.test.ts",
+          "packages/core/src/design-critique/critic-spawn-progress.ts",
+          "packages/core/src/design-critique/critic-spawn-progress.test.ts",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "content/packs/skills/skills-pack-0.1.json"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5478"
+        ],
+        "parallel_safe": true
+      },
+      "productPullRequest": 5509,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-08T22:20:00.000Z"
+      }
+    },
+    "id": "github.issue.5754560436",
+    "updated": "2026-10-08T19:22:50Z"
+  }
+}
