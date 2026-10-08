@@ -333,25 +333,40 @@ export function spendRecommendRequiredMessage(toolName: string): string {
 }
 
 /**
- * Session key for arc-spend-state that matches `design-critique:spend-resolve
- * --session-id` (#5466). Env wins (DEFT_SESSION_ID / DEFT_MONITOR_AGENT_ID /
- * GROK_SESSION_ID); when env is empty, use the host payload raw id so Claude
- * `session_id` / Cursor `conversation_id` align with an explicit CLI
- * `--session-id`. Canonical `host:<provider>:v1:…` forms are not used here —
- * spend scratch is keyed by the same sanitized raw id the CLI records.
+ * Session key for arc-spend-state that matches `design-critique:spend-resolve`
+ * (#5466). Candidates: host payload raw id (Claude `session_id` / Cursor
+ * `conversation_id`), then env (`DEFT_SESSION_ID` / `DEFT_MONITOR_AGENT_ID` /
+ * `GROK_SESSION_ID`), then `no-session`. Prefer the first candidate that
+ * already has in-flight state so CLI `--session-id` raw, env canonical, and
+ * CLI default `no-session` stay aligned with the hook. Canonical
+ * `host:<provider>:v1:…` forms are not invented here — scratch is keyed by
+ * the same sanitized id the CLI records.
  */
 export function resolveArcSpendSessionForHook(input: HookDispatchInput): string {
   const fromEnv = resolveArcSpendSessionId({ env: input.environ });
-  if (fromEnv !== "no-session") return fromEnv;
   const identity = resolveHookHostIdentity(
     input.host,
     input.payload,
     input.environ ?? process.env,
   );
-  if (identity.status === "ok") {
-    return sanitizeArcSpendSessionId(identity.rawSessionId);
+  const fromPayload =
+    identity.status === "ok" ? sanitizeArcSpendSessionId(identity.rawSessionId) : null;
+  const candidates: string[] = [];
+  if (fromPayload !== null && fromPayload !== "no-session") candidates.push(fromPayload);
+  if (fromEnv !== "no-session") candidates.push(fromEnv);
+  candidates.push("no-session");
+  const seen = new Set<string>();
+  for (const candidate of candidates) {
+    if (seen.has(candidate)) continue;
+    seen.add(candidate);
+    const state = readArcSpendState(input.projectRoot, {
+      sessionId: candidate,
+      env: {},
+    });
+    if (state !== null) return candidate;
   }
-  return "no-session";
+  if (fromPayload !== null && fromPayload !== "no-session") return fromPayload;
+  return fromEnv;
 }
 
 /**
@@ -372,7 +387,7 @@ export function decideSpendRecommendGate(
   const groups = extractQuestionOptionGroups(input.payload);
   const spendShaped = groups.some((group) => optionLabelsLookLikeSpend(group.labels));
   const sessionId = resolveArcSpendSessionForHook(input);
-  const state = readArcSpendState(input.projectRoot, { sessionId, env: input.environ });
+  const state = readArcSpendState(input.projectRoot, { sessionId, env: {} });
   if (!isSpendAskDeniedByArcState(state, { spendShaped })) return null;
   return decision(
     input,

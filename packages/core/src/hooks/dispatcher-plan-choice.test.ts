@@ -608,7 +608,78 @@ describe("spend-recommend gate (#5466)", () => {
       },
       "ask_user_question",
     );
+    // other-session has no state; falls back to no-session (also empty) → deny
     expect(mismatch?.verdict).toBe("deny");
     expect(mismatch?.code).toBe("spend-recommend-required");
+  });
+
+  it("finds CLI default no-session state when payload session has none", () => {
+    const root = tempDir("spend-gate-nosession-fallback-");
+    writeArcSpendState(root, {
+      schema: "deft.design-critique.arc-spend-state.v1",
+      status: "in-flight",
+      spendRecommend: null,
+      spend: null,
+      spendAsk: null,
+      askPermitted: true,
+      updatedAt: new Date().toISOString(),
+      utterance: "arc panel",
+      sessionId: "no-session",
+    });
+    const input = {
+      host: "claude",
+      event: "tool.before" as const,
+      projectRoot: root,
+      environ: {},
+      payload: {
+        session_id: "sess-b",
+        tool_name: "ask_user_question",
+        tool_input: {
+          questions: [
+            {
+              question: "Spend?",
+              options: [{ label: "N=1" }, { label: "Discuss" }, { label: "Back" }],
+            },
+          ],
+        },
+      },
+    };
+    expect(resolveArcSpendSessionForHook(input)).toBe("no-session");
+    expect(decideSpendRecommendGate(input, "ask_user_question")).toBeNull();
+  });
+
+  it("prefers payload session state over a different env session id", () => {
+    const root = tempDir("spend-gate-payload-over-env-");
+    writeArcSpendState(root, {
+      schema: "deft.design-critique.arc-spend-state.v1",
+      status: "in-flight",
+      spendRecommend: null,
+      spend: null,
+      spendAsk: null,
+      askPermitted: true,
+      updatedAt: new Date().toISOString(),
+      utterance: "arc panel",
+      sessionId: "sess-a",
+    });
+    const input = {
+      host: "claude",
+      event: "tool.before" as const,
+      projectRoot: root,
+      environ: { DEFT_SESSION_ID: "host:claude:v1:other" },
+      payload: {
+        session_id: "sess-a",
+        tool_name: "ask_user_question",
+        tool_input: {
+          questions: [
+            {
+              question: "Spend?",
+              options: [{ label: "N=1" }, { label: "Discuss" }, { label: "Back" }],
+            },
+          ],
+        },
+      },
+    };
+    expect(resolveArcSpendSessionForHook(input)).toBe("sess-a");
+    expect(decideSpendRecommendGate(input, "ask_user_question")).toBeNull();
   });
 });
