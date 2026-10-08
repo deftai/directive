@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-10-08-4961-featsetup-seed-project-definition-from-a-design-document-fro.xbrief.json",
+  "planId": "github.issue.5555957365",
+  "approvedAt": "2026-10-08T14:03:39Z",
+  "fileScope": [
+    "CHANGELOG.md",
+    "content/commands.md",
+    "content/packs/skills/skills-pack-0.1.json",
+    "content/skills/deft-directive-setup/SKILL.md",
+    "packages/cli/src/dispatch.ts",
+    "packages/core/src/content-contracts/skills/setup_bound_remedy_4660.test.ts",
+    "packages/core/src/render/phase2-narratives-cli.test.ts",
+    "packages/core/src/render/phase2-narratives-cli.ts",
+    "packages/core/src/setup/seed-from-design.test.ts",
+    "packages/core/src/setup/seed-from-design.ts",
+    "packages/core/src/vbrief-build/phase2-narratives.ts"
+  ],
+  "fileScopeDigest": "ba6cd3e323e8a7a2b575f3521b92822a1a1a610c32a373305ff567f2eb5693a8",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-10-08T14:03:39Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "6f08162a80ffa6dde42b1657505d0e5c236d260c623d062a9e7f8d3efb77162d",
+  "digestAlgo": "intent-extract-v1"
+}
