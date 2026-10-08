@@ -143,7 +143,7 @@
           "content/contracts/deposit-required-paths.json"
         ],
         "module_boundary": "ADR-003 deposit Continuity cite",
-        "cohesion_exemption": "CHANGELOG.md shared release notes; Path B activation Keep active bullet only."
+        "cohesion_exemption": "CHANGELOG.md shared release notes; Path B mint/activation Unreleased bullet only."
       },
       "x-directive/plan-id": {
         "version": 1,
