@@ -1,24 +1,24 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildPainCoverageDeposit,
-  parseRestatesRelation,
-  isClosedFindingSuppressionEligible,
-  formatClosedFindingsField,
-  freezeClosedFindingsForDispatch,
-  extractOperativeClosedFindings,
-  evaluateClosedFindingsUnify,
-  evaluateClosedFindingsResidualRefuse,
-  closedFindingCompositeKey,
   authorizedClosedFindingMap,
-  evaluateParentAudit,
-  extractOperativeAuditTargets,
-  formatAuditToken,
+  buildPainCoverageDeposit,
   type ClosedFindingEntry,
   type ClosureAuthority,
+  closedFindingCompositeKey,
+  evaluateClosedFindingsResidualRefuse,
+  evaluateClosedFindingsUnify,
+  evaluateParentAudit,
+  extractOperativeAuditTargets,
+  extractOperativeClosedFindings,
+  formatAuditToken,
+  formatClosedFindingsField,
+  freezeClosedFindingsForDispatch,
+  isClosedFindingSuppressionEligible,
   type ParentAuditDeposit,
   type PostedCriticFinding,
   painMarkerId,
   parseAuditToken,
+  parseRestatesRelation,
 } from "./parent-audit.js";
 
 const TOKEN = formatAuditToken({
@@ -337,9 +337,9 @@ describe("closed-findings later-arc demotion (#5489 Prefer-A Bound)", () => {
         kind: "completed-successor-take",
       }),
     ).toBe(false);
-    expect(
-      isClosedFindingSuppressionEligible(entry("C1", "accepted"), { kind: "none" }),
-    ).toBe(false);
+    expect(isClosedFindingSuppressionEligible(entry("C1", "accepted"), { kind: "none" })).toBe(
+      false,
+    );
     expect(
       isClosedFindingSuppressionEligible(entry("C1", "deferred"), {
         kind: "explicit-operator-closure",
@@ -500,4 +500,3 @@ describe("closed-findings later-arc demotion (#5489 Prefer-A Bound)", () => {
     expect(unified.findings).toHaveLength(2);
   });
 });
-

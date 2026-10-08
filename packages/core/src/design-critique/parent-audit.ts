@@ -344,8 +344,7 @@ export type ClosedFindingsResidualRefuse = {
 const CLOSED_FINDINGS_LINE_RE = /(?:^|\n)[ \t]*closed-findings:[ \t]*([^\n]*)/gi;
 const CLOSED_FINDING_ENTRY_RE =
   /(\d{8,})\s*\/\s*([A-Za-z0-9._-]+)\s+(accepted|deferred|skipped|fixed-in-body)(?:\s+"([^"]*)")?/gi;
-const RESTATES_RE =
-  /(?:^|\n)[ \t]*restates:[ \t]*(\d{8,})\s*\/\s*([A-Za-z0-9._-]+)\b/gi;
+const RESTATES_RE = /(?:^|\n)[ \t]*restates:[ \t]*(\d{8,})\s*\/\s*([A-Za-z0-9._-]+)\b/gi;
 
 export function closedFindingCompositeKey(id: ClosedFindingCompositeId): string {
   return `${id.sourceCommentId}/${id.findingId}`;
@@ -510,8 +509,7 @@ export function evaluateClosedFindingsUnify(input: {
     }
 
     const residual =
-      posted.classification === "blocks-the-design" ||
-      posted.classification === "sharpens-framing";
+      posted.classification === "blocks-the-design" || posted.classification === "sharpens-framing";
     findings.push({
       localId: posted.localId,
       classification: posted.classification,

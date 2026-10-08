@@ -439,8 +439,7 @@ export function evaluateClosedFindingsP1Honesty(input: {
   if (input.relievesPainIds.includes("P1")) {
     return {
       ok: false,
-      detail:
-        "exact demotion alone does not relieve P1 adjacent-polish hydra; leftover #5493",
+      detail: "exact demotion alone does not relieve P1 adjacent-polish hydra; leftover #5493",
     };
   }
   const deferredP1 = input.operatorDeferred.find((row) => row.painId === "P1");
