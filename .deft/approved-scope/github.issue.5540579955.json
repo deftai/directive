@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "xbriefRelPath": "xbrief/active/2026-10-08-4888-semantic-policy-conflicts-stay-invisible-until-task-check.xbrief.json",
   "planId": "github.issue.5540579955",
-  "approvedAt": "2026-10-08T13:57:46Z",
+  "approvedAt": "2026-10-08T14:37:35Z",
   "fileScope": [
-    "Agents.md",
+    "AGENTS.md",
     "CHANGELOG.md",
     "content/packs/lessons/lessons-pack-0.1.json",
     "content/packs/skills/skills-pack-0.1.json",
@@ -15,13 +15,13 @@
     "packages/core/src/pr-wait-mergeable/semantic-green.test.ts",
     "packages/core/src/pr-wait-mergeable/semantic-green.ts"
   ],
-  "fileScopeDigest": "b292699608f17241951f89f22ebdd5464fbcc7cddee3c01f389de0012ac039af",
+  "fileScopeDigest": "6b97ae4e4acd50374c3e6284eb08ff23c634c1c39594da8a715a439aecd2e9a9",
   "humanApproval": {
     "kind": "operator",
     "actor": "Scott",
-    "mintedAt": "2026-10-08T13:57:46Z",
+    "mintedAt": "2026-10-08T14:37:34Z",
     "mintedVia": "scope:record-approved-scope"
   },
-  "intentDigest": "cd8d7e7d1985e33818c6e2092a8d13099f3d971c73b74e7b81cef833f2b9c361",
+  "intentDigest": "8461779ce96cbaa7fb755e37fed1cb130bb3d503b43dde893deb3ee68575f15a",
   "digestAlgo": "intent-extract-v1"
 }
