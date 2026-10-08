@@ -1,0 +1,363 @@
+{
+  "schemaVersion": 1,
+  "algo": "intent-extract-v1",
+  "plan": {
+    "title": "design-critique: allow a finished arc to mean “looks good to me”",
+    "narratives": {
+      "Description": "design-critique: allow a finished arc to mean “looks good to me”",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5488",
+      "Overview": "## Bound remedy (#5488 Prefer-A 6065040568)\n\n1. Opt-in Stop-1 materiality-bar: ship-ready + closed utterance token; bare arc without token keeps non-empty all-accept.\n2. LGTM conjunct: zero accepted blockers; zero unresolved blocker residuals; parent move-forward record; closed clean-result or footnote-only census; stub/blank/dispatch-fail refuse.\n3. Under limb 2, waive empty-(a)/footnote-only at Path 1 and Path 2.\n4. Closed synthesis lead admitted by evaluateCompletedArcRecord.\n5. Under ship-ready, default unpromoted sharpens to footnote; LGTM relaxes finding-set only; reuse pain/audit/citation admission.\n6. Yolo confirms non-empty all-accept only.\n7. No auto-ingest.\n8. Keep #5489 out.\n9. Fixtures: stub / footnote-only / LGTM-complete / blocker-present / ship-ready-without-move-forward / yolo-alone.\n10. Injection/swarm blockers stay blocking.\n\narc-mode: no-ingest\nReject: silent bare-arc default ship-ready; redefine yolo as LGTM; waive accepted blockers; zero blockers alone; solve #5489 here; bind draft 6064563389 as written.",
+      "Labels": "enhancement, Workflow, agent-experience, process, critic, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Opt-in ship-ready Stop-1 token",
+        "narrative": {
+          "Acceptance": "Opt-in Stop-1 materiality-bar: ship-ready + closed utterance token. Bare arc without token keeps non-empty all-accept. No silent bare-arc default ship-ready."
+        },
+        "x-directive/artifact_path": "content/contracts/design-critique.md"
+      },
+      {
+        "id": "clause.2",
+        "title": "LGTM conjunct for move-forward completion",
+        "narrative": {
+          "Acceptance": "LGTM conjunct: zero accepted blockers; zero unresolved blocker residuals; parent move-forward record; closed clean-result or footnote-only census. Stub/blank/dispatch-fail refuse. Injection/swarm blockers stay blocking."
+        },
+        "x-directive/artifact_path": "packages/core/src/design-critique/completed-arc-record.ts"
+      },
+      {
+        "id": "clause.3",
+        "title": "Waive empty-(a)/footnote-only under LGTM",
+        "narrative": {
+          "Acceptance": "Under the LGTM conjunct, waive empty-(a)/footnote-only at Path 1 and Path 2. Do not waive accepted blockers."
+        },
+        "x-directive/artifact_path": "packages/core/src/design-critique/completed-arc-record.ts"
+      },
+      {
+        "id": "clause.4",
+        "title": "Closed synthesis lead admitted",
+        "narrative": {
+          "Acceptance": "Closed synthesis lead admitted by evaluateCompletedArcRecord for LGTM-complete arcs."
+        },
+        "x-directive/artifact_path": "packages/core/src/design-critique/completed-arc-record.ts"
+      },
+      {
+        "id": "clause.5",
+        "title": "Ship-ready sharpens + LGTM finding-set relax",
+        "narrative": {
+          "Acceptance": "Under ship-ready, default unpromoted sharpens to footnote; LGTM relaxes finding-set only; reuse pain/audit/citation admission."
+        },
+        "x-directive/artifact_path": "packages/core/src/design-critique/parent-audit.ts"
+      },
+      {
+        "id": "clause.6",
+        "title": "Yolo stays non-empty all-accept",
+        "narrative": {
+          "Acceptance": "Yolo confirms non-empty all-accept only. Do not redefine yolo as LGTM."
+        },
+        "x-directive/artifact_path": "packages/core/src/design-critique/yolo-standing.ts"
+      },
+      {
+        "id": "clause.7",
+        "title": "No auto-ingest; keep #5489 out",
+        "narrative": {
+          "Acceptance": "No auto-ingest. Keep #5489 out of this Bound. Thin skill / contract docs state when to use ship-ready vs full open critique."
+        },
+        "x-directive/artifact_path": "content/skills/deft-directive-design-critique/SKILL.md"
+      },
+      {
+        "id": "clause.8",
+        "title": "Fixtures for LGTM completion matrix",
+        "narrative": {
+          "Acceptance": "Fixtures: stub / footnote-only / LGTM-complete / blocker-present / ship-ready-without-move-forward / yolo-alone."
+        },
+        "x-directive/artifact_path": "packages/core/src/design-critique/completed-arc-record.test.ts"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5488",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5488: design-critique: allow a finished arc to mean “looks good to me”"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "arc yolo noingest",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L5"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "CHANGELOG.md",
+          "content/contracts/design-critique.md",
+          "content/skills/deft-directive-design-critique/SKILL.md",
+          "content/templates/design-critique-brief.md",
+          "packages/core/src/design-critique/completed-arc-record.ts",
+          "packages/core/src/design-critique/completed-arc-record.test.ts",
+          "packages/core/src/design-critique/parent-audit.ts",
+          "packages/core/src/design-critique/parent-audit.test.ts",
+          "packages/core/src/design-critique/yolo-standing.ts",
+          "packages/core/src/design-critique/yolo-standing.test.ts",
+          "packages/core/src/design-critique/widget-apply-set.ts",
+          "packages/core/src/design-critique/widget-apply-set.test.ts",
+          "docs/RULE-MAP.md",
+          "content/packs/skills/skills-pack-0.1.json"
+        ],
+        "Traces": [
+          "#5488"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "CHANGELOG.md",
+          "content/contracts/design-critique.md",
+          "content/skills/deft-directive-design-critique/SKILL.md",
+          "content/templates/design-critique-brief.md",
+          "packages/core/src/design-critique/completed-arc-record.ts",
+          "packages/core/src/design-critique/completed-arc-record.test.ts",
+          "packages/core/src/design-critique/parent-audit.ts",
+          "packages/core/src/design-critique/parent-audit.test.ts",
+          "packages/core/src/design-critique/yolo-standing.ts",
+          "packages/core/src/design-critique/yolo-standing.test.ts",
+          "packages/core/src/design-critique/widget-apply-set.ts",
+          "packages/core/src/design-critique/widget-apply-set.test.ts",
+          "docs/RULE-MAP.md",
+          "content/packs/skills/skills-pack-0.1.json"
+        ],
+        "module_boundary": "design-critique LGTM move-forward completion",
+        "cohesion_exemption": "CHANGELOG.md shared release notes; Path B remint Unreleased bullet only."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5765252393,
+        "origin": "deftai/directive#5488",
+        "id": "github.issue.5765252393"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "6a9265e13ae4d6dc4ce6c033ed8544cfb9f86aec197d47f21fd7a67d78c41abc"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A Bound limbs hand-stamped after Prefer-A Bound harvest (#4374); clauses bind Bound remedy",
+      "sentences": [
+        "design-critique: allow a finished arc to mean “looks good to me”",
+        "Summary On the path teams actually run (`arc yolo noingest`, normal defaults), a successful design-critique arc cannot mean “looks good to me — nothing material to change.” A finished arc must accept one or more `blocks-the-design` or `sharpens-framing` findings.",
+        "Empty findings and footnote-only results cannot complete.",
+        "After real fixes, re-runs keep “succeeding” by emitting more polish items and accepting them.",
+        "Ask: Add a supported way for Arc to finish as move-forward / looks good to me when there are no material blockers — without weakening real defect handling, and without redefining `yolo`.",
+        "> Priority: normal.",
+        "Not an adoption blocker.",
+        "Not urgent for current efforts.",
+        "Ordinary product backlog.",
+        "Related: prior-run closed findings / diminishing returns → #5489 (filed together; ship this LGTM ticket first).",
+        "--- ## Background Design-critique Arc records a disposition over findings on a GitHub issue, then may stamp `design-critique:ingest-ready` after a completed-arc record.",
+        "That is the right tool when a proposal has real holes.",
+        "Teams also use Arc as a readiness gate: “Is this ticket good enough to implement?” After corrections, a valid answer is sometimes: yes — looks good to me. Today that is not a supported completion outcome.",
+        "Current rules (relevant) - Auto-finish (including under yolo) requires a non-empty set of blockers and/or sharpens, all `accept-into-contract` (no `defer`, no `disagree`).",
+        "Yolo only auto-confirms that all-accept map.",
+        "It does not allow empty or footnote-only completion.",
+        "Footnote-only can be recorded but cannot finish the arc.",
+        "Zero classified findings → halt; do not finish.",
+        "Manual “accept synthesis” also refuses empty / footnote-only.",
+        "So: “no material findings → move forward” is not a supported bind path.",
+        "`noyolo` helps humans challenge overreach before confirm.",
+        "It does not create a clean LGTM path.",
+        "--- ## Pain Seen while preparing a large install/upgrade redesign ticket (multiple Arc passes, then checked against current `content/contracts/design-critique.md`): 1.",
+        "Early passes found real blockers.",
+        "Fixes applied.",
+        "Good.",
+        "Later passes on the revised text still “succeed” by producing more `sharpens-framing` and all-accepting them under yolo.",
+        "Clean “looks good to me” never arrives after corrections.",
+        "Deferring polish blocks the yolo auto-finish path, so the easy path is to accept nits into the contract.",
+        "Big tickets may use a 3-critic panel, which makes the pile larger under the same “must accept findings to finish” rule.",
+        "`noingest` does not shrink the pile; it only delays ingest.",
+        "After a completed arc the skill still points at ingest next.",
+        "Net: Arc can finish, but it cannot win clean.",
+        "That is unlike ordinary review tools that can approve with zero findings.",
+        "--- ## Why this is a product gap Open critique + “classify findings” + “non-empty blockers/sharpens required to finish” rewards turning wording polish into `sharpens-framing`.",
+        "Yolo makes all-accept the path of least resistance.",
+        "Operators who want a ship gate must either keep accepting polish forever, or fight the tool.",
+        "That is bad default UX for teams using Directive.",
+        "--- ## Desired outcome Keep today’s strict path when there are real defects.",
+        "Add a supported completion equivalent to: > Looks good to me — no material blockers.",
+        "Move forward.",
+        "Requirements 1.",
+        "Available on the path people actually run (`arc` / `arc yolo noingest`), not only a hidden expert mode.",
+        "Zero material blockers (and footnote-only or empty material set) can complete when the parent records move-forward / LGTM.",
+        "Do not redefine `yolo`. Yolo stays “confirm all-accept.” LGTM / move-forward is a separate charter or Stop-1 materiality intent.",
+        "Do not waive real blockers. Any accepted `blocks-the-design` refuses LGTM completion.",
+        "Under ship-ready / LGTM intent, sharpens are non-blocking by default (defer or footnote) unless the operator promotes them.",
+        "No auto-ingest on LGTM.",
+        "Non-goals - Do not weaken injection/swarm rules on authority-changing targets.",
+        "Do not force N=1 for all arcs.",
+        "Do not solve prior-run “don’t re-litigate” memory here (separate companion issue).",
+        "--- ## Proposed shape (discussion, not locked API) Pick the smallest change that makes LGTM first-class, with fixtures: - A. Stop-1 / charter field: `materiality-bar: ship-ready` (opt-in token on the utterance, or documented default for readiness-gate arcs).",
+        "B. Bind path: when material blockers = 0, allow `design-critique: synthesis accepted, move-forward yes, material-findings none` (exact spelling TBD) and ready stamp.",
+        "C. Allow footnote-only completion when Stop 1 recorded ship-ready intent.",
+        "Prefer opt-in first if changing bare-arc default is too risky; document how readiness-gate arcs should invoke it.",
+        "--- ## Acceptance criteria (draft) - [ ] With ship-ready / LGTM intent recorded, an arc with zero accepted blockers (and no disposition-carrying sharpens, or sharpens deferred) can reach completed-arc + ready stamp.",
+        "[ ] An arc with any accepted `blocks-the-design` cannot LGTM-complete.",
+        "[ ] Bare yolo without ship-ready keeps today’s non-empty all-accept behavior (no silent break for existing arcs).",
+        "[ ] Thin skill / contract docs state when to use ship-ready vs full open critique.",
+        "[ ] Fixtures cover: stub vs footnote-only vs LGTM-complete vs blocker-present.",
+        "`content/contracts/design-critique.md` — Operator verbs; yolo confirm; footnote-only / stub refusals; Bind after accepted synthesis",
+        "`content/skills/deft-directive-design-critique/SKILL.md`",
+        "History touchpoints: #3640 (all-accept auto-stamp), #4308 (yolo confirms all-accept), #5111 (bare arc defaults), #3797 (stub / footnote-only bind refusals)",
+        "With ship-ready / LGTM intent recorded, an arc with zero accepted blockers (and no disposition-carrying sharpens, or sharpens deferred) can reach completed-arc + ready stamp.",
+        "An arc with any accepted `blocks-the-design` cannot LGTM-complete.",
+        "Bare yolo without ship-ready keeps today’s non-empty all-accept behavior (no silent break for existing arcs).",
+        "Thin skill / contract docs state when to use ship-ready vs full open critique.",
+        "Fixtures cover: stub vs footnote-only vs LGTM-complete vs blocker-present."
+      ],
+      "admitted_source_sentences": [
+        "Summary On the path teams actually run (`arc yolo noingest`, normal defaults), a successful design-critique arc cannot mean “looks good to me — nothing material to change.” A finished arc must accept one or more `blocks-the-design` or `sharpens-framing` findings.",
+        "Empty findings and footnote-only results cannot complete.",
+        "After real fixes, re-runs keep “succeeding” by emitting more polish items and accepting them.",
+        "Ask: Add a supported way for Arc to finish as move-forward / looks good to me when there are no material blockers — without weakening real defect handling, and without redefining `yolo`.",
+        "> Priority: normal.",
+        "Not an adoption blocker.",
+        "Not urgent for current efforts.",
+        "Ordinary product backlog.",
+        "Related: prior-run closed findings / diminishing returns → #5489 (filed together; ship this LGTM ticket first).",
+        "--- ## Background Design-critique Arc records a disposition over findings on a GitHub issue, then may stamp `design-critique:ingest-ready` after a completed-arc record.",
+        "That is the right tool when a proposal has real holes.",
+        "Teams also use Arc as a readiness gate: “Is this ticket good enough to implement?” After corrections, a valid answer is sometimes: yes — looks good to me. Today that is not a supported completion outcome.",
+        "Current rules (relevant) - Auto-finish (including under yolo) requires a non-empty set of blockers and/or sharpens, all `accept-into-contract` (no `defer`, no `disagree`).",
+        "Yolo only auto-confirms that all-accept map.",
+        "It does not allow empty or footnote-only completion.",
+        "Footnote-only can be recorded but cannot finish the arc.",
+        "Zero classified findings → halt; do not finish.",
+        "Manual “accept synthesis” also refuses empty / footnote-only.",
+        "So: “no material findings → move forward” is not a supported bind path.",
+        "`noyolo` helps humans challenge overreach before confirm.",
+        "It does not create a clean LGTM path.",
+        "--- ## Pain Seen while preparing a large install/upgrade redesign ticket (multiple Arc passes, then checked against current `content/contracts/design-critique.md`): 1.",
+        "Early passes found real blockers.",
+        "Fixes applied.",
+        "Good.",
+        "Later passes on the revised text still “succeed” by producing more `sharpens-framing` and all-accepting them under yolo.",
+        "Clean “looks good to me” never arrives after corrections.",
+        "Deferring polish blocks the yolo auto-finish path, so the easy path is to accept nits into the contract.",
+        "Big tickets may use a 3-critic panel, which makes the pile larger under the same “must accept findings to finish” rule.",
+        "`noingest` does not shrink the pile; it only delays ingest.",
+        "After a completed arc the skill still points at ingest next.",
+        "Net: Arc can finish, but it cannot win clean.",
+        "That is unlike ordinary review tools that can approve with zero findings.",
+        "--- ## Why this is a product gap Open critique + “classify findings” + “non-empty blockers/sharpens required to finish” rewards turning wording polish into `sharpens-framing`.",
+        "Yolo makes all-accept the path of least resistance.",
+        "Operators who want a ship gate must either keep accepting polish forever, or fight the tool.",
+        "That is bad default UX for teams using Directive.",
+        "--- ## Desired outcome Keep today’s strict path when there are real defects.",
+        "Add a supported completion equivalent to: > Looks good to me — no material blockers.",
+        "Move forward.",
+        "Requirements 1.",
+        "Available on the path people actually run (`arc` / `arc yolo noingest`), not only a hidden expert mode.",
+        "Zero material blockers (and footnote-only or empty material set) can complete when the parent records move-forward / LGTM.",
+        "Do not redefine `yolo`. Yolo stays “confirm all-accept.” LGTM / move-forward is a separate charter or Stop-1 materiality intent.",
+        "Do not waive real blockers. Any accepted `blocks-the-design` refuses LGTM completion.",
+        "Under ship-ready / LGTM intent, sharpens are non-blocking by default (defer or footnote) unless the operator promotes them.",
+        "No auto-ingest on LGTM.",
+        "Non-goals - Do not weaken injection/swarm rules on authority-changing targets.",
+        "Do not force N=1 for all arcs.",
+        "Do not solve prior-run “don’t re-litigate” memory here (separate companion issue).",
+        "--- ## Proposed shape (discussion, not locked API) Pick the smallest change that makes LGTM first-class, with fixtures: - A. Stop-1 / charter field: `materiality-bar: ship-ready` (opt-in token on the utterance, or documented default for readiness-gate arcs).",
+        "B. Bind path: when material blockers = 0, allow `design-critique: synthesis accepted, move-forward yes, material-findings none` (exact spelling TBD) and ready stamp.",
+        "C. Allow footnote-only completion when Stop 1 recorded ship-ready intent.",
+        "Prefer opt-in first if changing bare-arc default is too risky; document how readiness-gate arcs should invoke it.",
+        "--- ## Acceptance criteria (draft) - [ ] With ship-ready / LGTM intent recorded, an arc with zero accepted blockers (and no disposition-carrying sharpens, or sharpens deferred) can reach completed-arc + ready stamp.",
+        "[ ] An arc with any accepted `blocks-the-design` cannot LGTM-complete.",
+        "[ ] Bare yolo without ship-ready keeps today’s non-empty all-accept behavior (no silent break for existing arcs).",
+        "[ ] Thin skill / contract docs state when to use ship-ready vs full open critique.",
+        "[ ] Fixtures cover: stub vs footnote-only vs LGTM-complete vs blocker-present.",
+        "`content/contracts/design-critique.md` — Operator verbs; yolo confirm; footnote-only / stub refusals; Bind after accepted synthesis",
+        "`content/skills/deft-directive-design-critique/SKILL.md`",
+        "History touchpoints: #3640 (all-accept auto-stamp), #4308 (yolo confirms all-accept), #5111 (bare arc defaults), #3797 (stub / footnote-only bind refusals)"
+      ],
+      "admitted_source_digest": "95fdad6c404c8e760a85daedd883b153310e9883456579e1b9b95b5eb076e736",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Opt-in Stop-1 materiality-bar: ship-ready + closed utterance token. Bare arc without token keeps non-empty all-accept. No silent bare-arc default ship-ready.",
+          "artifact_path": "content/contracts/design-critique.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "LGTM conjunct: zero accepted blockers; zero unresolved blocker residuals; parent move-forward record; closed clean-result or footnote-only census. Stub/blank/dispatch-fail refuse. Injection/swarm blockers stay blocking.",
+          "artifact_path": "packages/core/src/design-critique/completed-arc-record.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Under the LGTM conjunct, waive empty-(a)/footnote-only at Path 1 and Path 2. Do not waive accepted blockers.",
+          "artifact_path": "packages/core/src/design-critique/completed-arc-record.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Closed synthesis lead admitted by evaluateCompletedArcRecord for LGTM-complete arcs.",
+          "artifact_path": "packages/core/src/design-critique/completed-arc-record.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Under ship-ready, default unpromoted sharpens to footnote; LGTM relaxes finding-set only; reuse pain/audit/citation admission.",
+          "artifact_path": "packages/core/src/design-critique/parent-audit.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Yolo confirms non-empty all-accept only. Do not redefine yolo as LGTM.",
+          "artifact_path": "packages/core/src/design-critique/yolo-standing.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "No auto-ingest. Keep #5489 out of this Bound. Thin skill / contract docs state when to use ship-ready vs full open critique.",
+          "artifact_path": "content/skills/deft-directive-design-critique/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Fixtures: stub / footnote-only / LGTM-complete / blocker-present / ship-ready-without-move-forward / yolo-alone.",
+          "artifact_path": "packages/core/src/design-critique/completed-arc-record.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5765252393"
+  },
+  "approvedRepos": [
+    "deftai/directive"
+  ],
+  "unknownPaths": [
+    "items[].x-directive/artifact_path",
+    "metadata.intended_placement",
+    "metadata.literal_acceptance_commands",
+    "metadata.literal_acceptance_rejected",
+    "metadata.swarm.Traces",
+    "metadata.x-directive/admitted-target-digest",
+    "metadata.x-directive/plan-id"
+  ]
+}

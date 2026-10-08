@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Approved-scope mint for #5488 Prefer-A Bound Path B file_scope (RULE-MAP + skills-pack).
 - Remint approved-scope for #4888 Path B: nonempty module_boundary.
 - Remint approved-scope for #4892 Path B: nonempty module_boundary.
 - Approved-scope mint for #5364 Prefer-A Bound Path B file_scope (membership fence).

@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-10-08-5488-design-critique-allow-a-finished-arc-to-mean-looks-good-to-m.xbrief.json",
+  "planId": "github.issue.5765252393",
+  "approvedAt": "2026-10-08T18:56:07Z",
+  "fileScope": [
+    "CHANGELOG.md",
+    "content/contracts/design-critique.md",
+    "content/packs/skills/skills-pack-0.1.json",
+    "content/skills/deft-directive-design-critique/SKILL.md",
+    "content/templates/design-critique-brief.md",
+    "docs/RULE-MAP.md",
+    "packages/core/src/design-critique/completed-arc-record.test.ts",
+    "packages/core/src/design-critique/completed-arc-record.ts",
+    "packages/core/src/design-critique/parent-audit.test.ts",
+    "packages/core/src/design-critique/parent-audit.ts",
+    "packages/core/src/design-critique/widget-apply-set.test.ts",
+    "packages/core/src/design-critique/widget-apply-set.ts",
+    "packages/core/src/design-critique/yolo-standing.test.ts",
+    "packages/core/src/design-critique/yolo-standing.ts"
+  ],
+  "fileScopeDigest": "f3b7cf005c96aa2c75df7b771a47e0d2ebd6ef566e5a4647382ca97e29e56466",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-10-08T18:56:07Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "a2732f52cab243a1a1de22a4b2e69287ce0a97e3b451ec0e9d59b6e23913a1fa",
+  "digestAlgo": "intent-extract-v1"
+}
