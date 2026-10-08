@@ -14,10 +14,6 @@ import {
   resolveDesignCritiqueSpend,
 } from "@deftai/directive-core/dist/design-critique/spend.js";
 
-export const EXIT_SPEND_RESOLVE_OK = 0;
-export const EXIT_SPEND_RESOLVE_REFUSED = 1;
-export const EXIT_SPEND_RESOLVE_CONFIG = 2;
-
 export const DESIGN_CRITIQUE_SPEND_RESOLVE_HELP = `design-critique:spend-resolve — record spend-recommend then resolve (#5466)
 
 Usage:
@@ -156,11 +152,11 @@ export function run(argv: readonly string[]): number {
   const args = parseDesignCritiqueSpendResolveArgs(argv);
   if (args.help) {
     process.stdout.write(`${DESIGN_CRITIQUE_SPEND_RESOLVE_HELP}\n`);
-    return EXIT_SPEND_RESOLVE_OK;
+    return 0;
   }
   if (args.error !== undefined) {
     process.stderr.write(`design-critique:spend-resolve: ${args.error}\n`);
-    return EXIT_SPEND_RESOLVE_CONFIG;
+    return 2;
   }
 
   const projectRoot = resolve(args.projectRoot);
@@ -177,7 +173,7 @@ export function run(argv: readonly string[]): number {
           : "design-critique:spend-resolve: no arc-spend-state to clear\n",
       );
     }
-    return EXIT_SPEND_RESOLVE_OK;
+    return 0;
   }
 
   if (args.openGate) {
@@ -189,7 +185,7 @@ export function run(argv: readonly string[]): number {
         "design-critique:spend-resolve: opened arc spend gate (ask denied until --recommend or lawful ask)\n",
       );
     }
-    return EXIT_SPEND_RESOLVE_OK;
+    return 0;
   }
 
   if (args.utterance === null || args.utterance.trim().length === 0) {
@@ -197,7 +193,7 @@ export function run(argv: readonly string[]): number {
       "design-critique:spend-resolve: --utterance is required\n" +
         "Remediation: deft design-critique:spend-resolve --utterance <text> --recommend N=1|N≥3\n",
     );
-    return EXIT_SPEND_RESOLVE_CONFIG;
+    return 2;
   }
 
   const result = resolveDesignCritiqueSpend({
@@ -216,7 +212,7 @@ export function run(argv: readonly string[]): number {
     process.stderr.write(`${result.message}\n`);
   }
 
-  return result.ok ? EXIT_SPEND_RESOLVE_OK : EXIT_SPEND_RESOLVE_REFUSED;
+  return result.ok ? 0 : 1;
 }
 
 export function main(argv: readonly string[]): number {

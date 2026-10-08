@@ -2,13 +2,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  EXIT_SPEND_RESOLVE_CONFIG,
-  EXIT_SPEND_RESOLVE_OK,
-  EXIT_SPEND_RESOLVE_REFUSED,
-  parseDesignCritiqueSpendResolveArgs,
-  run,
-} from "./design-critique-spend-resolve.js";
+import { parseDesignCritiqueSpendResolveArgs, run } from "./design-critique-spend-resolve.js";
 
 const temps: string[] = [];
 afterEach(() => {
@@ -61,7 +55,7 @@ describe("design-critique:spend-resolve (#5466)", () => {
   it("refuses bare arc without --recommend and never defaults N=1", () => {
     const root = tempRoot();
     const code = run(["--utterance", "arc no-ingest yolo 5466", "--project-root", root]);
-    expect(code).toBe(EXIT_SPEND_RESOLVE_REFUSED);
+    expect(code).toBe(1);
   });
 
   it("resolves with --recommend N=1", () => {
@@ -74,15 +68,13 @@ describe("design-critique:spend-resolve (#5466)", () => {
       "--project-root",
       root,
     ]);
-    expect(code).toBe(EXIT_SPEND_RESOLVE_OK);
+    expect(code).toBe(0);
   });
 
   it("opens and clears the arc spend gate", () => {
     const root = tempRoot();
-    expect(run(["--open-gate", "--utterance", "arc 5466", "--project-root", root])).toBe(
-      EXIT_SPEND_RESOLVE_OK,
-    );
-    expect(run(["--clear", "--project-root", root])).toBe(EXIT_SPEND_RESOLVE_OK);
+    expect(run(["--open-gate", "--utterance", "arc 5466", "--project-root", root])).toBe(0);
+    expect(run(["--clear", "--project-root", root])).toBe(0);
   });
 
   it("marks unclosable recommend as a lawful ask without inventing N", () => {
@@ -94,10 +86,10 @@ describe("design-critique:spend-resolve (#5466)", () => {
       "--project-root",
       root,
     ]);
-    expect(code).toBe(EXIT_SPEND_RESOLVE_REFUSED);
+    expect(code).toBe(1);
   });
 
   it("config-fails without --utterance", () => {
-    expect(run(["--recommend", "N=1"])).toBe(EXIT_SPEND_RESOLVE_CONFIG);
+    expect(run(["--recommend", "N=1"])).toBe(2);
   });
 });
