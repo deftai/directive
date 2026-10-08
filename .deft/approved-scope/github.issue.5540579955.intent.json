@@ -81,7 +81,6 @@
         "Source: #964"
       ],
       "admitted_source_digest": "356017d0b91a1234bc42f5d8dea3f8a34443732c85647e29d306f1bb494e627b",
-      "quality_notice": "plan.items is empty after body harvest (checkbox list, Acceptance Criteria heading, or whole-line Requirements: colon-label). Add structured list items on the issue body before promote/activate; bare prose stays under #4374. Example harvestable shape: a `## Acceptance Criteria` heading with a list item such as `- [ ] ship the fix` (fenced command blocks alone are not harvested).",
       "clauses": [
         {
           "id": 1,
@@ -135,7 +134,8 @@
           "content/packs/skills/skills-pack-0.1.json",
           "meta/lessons.md"
         ],
-        "module_boundary": ""
+        "module_boundary": "semantic-green policy conflict visibility",
+        "cohesion_exemption": "CHANGELOG.md shared release notes; Path B mint/activation Unreleased bullet only."
       },
       "x-directive/plan-id": {
         "version": 1,
