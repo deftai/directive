@@ -3,9 +3,10 @@
   "kind": "disclosure",
   "issue": 5521,
   "surfaces": [
+    "Taskfile.yml",
     "packages/core/src/check/gate-lists.ts",
     "tasks/verify.yml",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renewed disclosure for #5521 / PR #5529: wire verify:rule-to-verb-parity into FRAMEWORK_CHECK_GATES and tasks/verify.yml. Disclosure only; not #3164 authorization."
+  "note": "Renewed disclosure for #5521 / PR #5529: wire verify:rule-to-verb-parity into FRAMEWORK_CHECK_GATES, tasks/verify.yml, and check:framework-source Taskfile deps. Disclosure only; not #3164 authorization."
 }
