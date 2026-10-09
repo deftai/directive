@@ -1,10 +1,10 @@
-import { describe, expect, it } from "vitest";
-import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
 import {
+  evaluateRuleToVerbParity,
   expandFamilyGlob,
   extractRuleCitations,
-  evaluateRuleToVerbParity,
   firstInvocationToken,
   loadRegisteredCliVerbs,
   RULE_TO_VERB_PARITY_GATE_ID,
@@ -43,9 +43,7 @@ describe("rule-to-verb-parity (#5521)", () => {
       "Prose mention without ticks is ignored: deft check",
     ].join("\n");
     const citations = extractRuleCitations("fixture.md", text);
-    expect(citations.some((c) => c.kind === "deft" && c.raw === "scm:body:issue:fetch")).toBe(
-      true,
-    );
+    expect(citations.some((c) => c.kind === "deft" && c.raw === "scm:body:issue:fetch")).toBe(true);
     expect(citations.some((c) => c.kind === "deft" && c.raw === "scm:body:*")).toBe(true);
     expect(citations.some((c) => c.kind === "task" && c.raw === "scm:body:issue:lint")).toBe(true);
   });
@@ -95,7 +93,9 @@ describe("rule-to-verb-parity (#5521)", () => {
   });
 
   it("fails when a body-family member is omitted from registration", () => {
-    const partial = new Set<string>(SCM_BODY_FAMILY_MEMBERS.filter((m) => m !== "scm:body:pr:lint"));
+    const partial = new Set<string>(
+      SCM_BODY_FAMILY_MEMBERS.filter((m) => m !== "scm:body:pr:lint"),
+    );
     const result = evaluateRuleToVerbParity(REPO_ROOT, {
       readText: (p) => {
         if (p.endsWith("agents-entry.md")) {
@@ -126,9 +126,9 @@ describe("rule-to-verb-parity (#5521)", () => {
       taskResolves: (name) => name !== "scm:body:issue:fetch",
     });
     expect(result.ok).toBe(false);
-    expect(result.findings.some((f) => f.kind === "task" && f.name === "scm:body:issue:fetch")).toBe(
-      true,
-    );
+    expect(
+      result.findings.some((f) => f.kind === "task" && f.name === "scm:body:issue:fetch"),
+    ).toBe(true);
   });
 
   it("accepts a valid top-level/scope command citation", () => {

@@ -154,7 +154,9 @@ export function isNamespaceWildcard(token: string): boolean {
  * Expand or refuse a family glob. Known: `scm:body:*` → eight members.
  * Unknown family globs refuse (naive literal-only green is refuse).
  */
-export function expandFamilyGlob(token: string):
+export function expandFamilyGlob(
+  token: string,
+):
   | { readonly ok: true; readonly members: readonly string[] }
   | { readonly ok: false; readonly reason: string } {
   if (!token.includes("*")) {
@@ -169,7 +171,10 @@ export function expandFamilyGlob(token: string):
   };
 }
 
-export function loadRegisteredCliVerbs(repoRoot: string, seams: RuleToVerbParitySeams = {}): Set<string> {
+export function loadRegisteredCliVerbs(
+  repoRoot: string,
+  seams: RuleToVerbParitySeams = {},
+): Set<string> {
   if (seams.cliVerbs !== undefined) {
     return new Set(seams.cliVerbs);
   }
@@ -252,10 +257,7 @@ function stripConsumerPrefix(name: string): string {
 }
 
 /** Extract concrete deft/task citations from template prose (metadata only). */
-export function extractRuleCitations(
-  file: string,
-  text: string,
-): readonly RuleCitation[] {
+export function extractRuleCitations(file: string, text: string): readonly RuleCitation[] {
   const out: RuleCitation[] = [];
   const lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
   for (const [idx, line] of lines.entries()) {
@@ -375,10 +377,9 @@ export function evaluateRuleToVerbParity(
             name: member,
             file: citation.file,
             line: citation.line,
-            reason:
-              citation.raw.includes("*")
-                ? `family member of '${citation.raw}' is not registered in the CLI router`
-                : "not registered in the CLI router (modules, aliases, or SUBCOMMAND_ROUTES)",
+            reason: citation.raw.includes("*")
+              ? `family member of '${citation.raw}' is not registered in the CLI router`
+              : "not registered in the CLI router (modules, aliases, or SUBCOMMAND_ROUTES)",
           });
         }
       }
@@ -450,7 +451,8 @@ function parseArgs(argv: readonly string[]): {
     const arg = argv[i];
     if (arg === "--project-root") {
       const value = argv[i + 1];
-      if (value === undefined) return { projectRoot, error: "argument --project-root: expected value" };
+      if (value === undefined)
+        return { projectRoot, error: "argument --project-root: expected value" };
       projectRoot = value;
       i += 1;
     } else if (arg?.startsWith("--project-root=")) {

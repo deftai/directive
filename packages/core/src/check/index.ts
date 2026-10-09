@@ -49,17 +49,6 @@ export {
   SUITE_CHECK_GATE_IDS,
 } from "./gate-lists.js";
 export {
-  evaluateRuleToVerbParity,
-  expandFamilyGlob,
-  extractRuleCitations,
-  loadRegisteredCliVerbs,
-  mainEntry as ruleToVerbParityMainEntry,
-  RULE_TO_VERB_PARITY_GATE_ID,
-  RULE_TO_VERB_TEMPLATE_RELS,
-  SCM_BODY_FAMILY_MEMBERS,
-  taskNameResolves,
-} from "./rule-to-verb-parity.js";
-export {
   extractGateCause,
   formatDegradedSkipReport,
   formatNamedCauseFailure,
@@ -93,6 +82,17 @@ export {
   type RecordProductMutationCompletionResult,
   recordProductMutationCompletion,
 } from "./product-mutation-completion.js";
+export {
+  evaluateRuleToVerbParity,
+  expandFamilyGlob,
+  extractRuleCitations,
+  loadRegisteredCliVerbs,
+  mainEntry as ruleToVerbParityMainEntry,
+  RULE_TO_VERB_PARITY_GATE_ID,
+  RULE_TO_VERB_TEMPLATE_RELS,
+  SCM_BODY_FAMILY_MEMBERS,
+  taskNameResolves,
+} from "./rule-to-verb-parity.js";
 export {
   detectTestRunner,
   type RunnerDetectResult,
