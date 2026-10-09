@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5526",
-    "updated": "2026-10-09T20:31:02.000Z"
+    "updated": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js"
   },
   "plan": {
     "title": "bug(release): v0.124.0 Windows Step 5 hang under 60m at ts:check-lane (cursor deft_run_resolver.test.ts)",
@@ -24,15 +24,15 @@
         },
         "x-directive/disposition": {
           "disposition": "not_applicable",
-          "reason": "Prefer-A leftover-complete after product PR #5528 squash-merge (Tracking #5526). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "reason": "Prefer-A leftover-complete after product PR #5528 squash-merge (Tracking #5526). Bound limbs shipped in #5528; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
           "provenance": {
             "kind": "operator-session",
             "actor": "Scott",
             "eventRef": "leftover-complete-after-5528",
-            "mintedAt": "2026-10-09T20:31:02.000Z",
+            "mintedAt": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js",
             "mintedVia": "parent-retained-closer"
           },
-          "recorded_at": "2026-10-09T20:31:02.000Z"
+          "recorded_at": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js"
         }
       },
       {
@@ -44,16 +44,16 @@
           "Acceptance": "Fresh host-versus-suite partition first (P1/P3). Re-run supervised no-coverage ts:check-lane on this Windows release host; compare against preserved #5526 tee; outcomes host/toolchain-low | suite-dominant | mixed/inconclusive; do not cheapen by intuition."
         },
         "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Prefer-A leftover-complete after product PR #5528 squash-merge (Tracking #5526). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "disposition": "deferred",
+          "reason": "Partition/recovery measurement deferred from Prefer-A Bound #5526 / product #5528 (SUITE_PARTITION_RECOVERY_DEFERRED_NOTE). Split to leftover issue #5537 per Bound limb 4; do not record unfinished measurement as complete.",
           "provenance": {
             "kind": "operator-session",
             "actor": "Scott",
-            "eventRef": "leftover-complete-after-5528",
-            "mintedAt": "2026-10-09T20:31:02.000Z",
+            "eventRef": "leftover-deferred-to-5537",
+            "mintedAt": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js",
             "mintedVia": "parent-retained-closer"
           },
-          "recorded_at": "2026-10-09T20:31:02.000Z"
+          "recorded_at": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js"
         }
       },
       {
@@ -65,16 +65,16 @@
           "Acceptance": "Acceptance evidence — recovery path (P2). Throughput recovery means complete Windows production-shaped no-coverage Step 5 / ts:check-lane under current 60m detector with recorded stamp miss / full execution; record SHA, suite size, workers, host/load, wall, exit, tee path+hash."
         },
         "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Prefer-A leftover-complete after product PR #5528 squash-merge (Tracking #5526). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "disposition": "deferred",
+          "reason": "Partition/recovery measurement deferred from Prefer-A Bound #5526 / product #5528 (SUITE_PARTITION_RECOVERY_DEFERRED_NOTE). Split to leftover issue #5537 per Bound limb 4; do not record unfinished measurement as complete.",
           "provenance": {
             "kind": "operator-session",
             "actor": "Scott",
-            "eventRef": "leftover-complete-after-5528",
-            "mintedAt": "2026-10-09T20:31:02.000Z",
+            "eventRef": "leftover-deferred-to-5537",
+            "mintedAt": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js",
             "mintedVia": "parent-retained-closer"
           },
-          "recorded_at": "2026-10-09T20:31:02.000Z"
+          "recorded_at": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js"
         }
       },
       {
@@ -86,16 +86,16 @@
           "Acceptance": "Discharge constraint (P2). Green-path or measured-cheapen evidence is a bindable artifact (path+hash). Do not scope:complete while that clause is deferred; split late measurement to leftover rather than defer-inside-complete."
         },
         "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Prefer-A leftover-complete after product PR #5528 squash-merge (Tracking #5526). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "disposition": "deferred",
+          "reason": "Partition/recovery measurement deferred from Prefer-A Bound #5526 / product #5528 (SUITE_PARTITION_RECOVERY_DEFERRED_NOTE). Split to leftover issue #5537 per Bound limb 4; do not record unfinished measurement as complete.",
           "provenance": {
             "kind": "operator-session",
             "actor": "Scott",
-            "eventRef": "leftover-complete-after-5528",
-            "mintedAt": "2026-10-09T20:31:02.000Z",
+            "eventRef": "leftover-deferred-to-5537",
+            "mintedAt": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js",
             "mintedVia": "parent-retained-closer"
           },
-          "recorded_at": "2026-10-09T20:31:02.000Z"
+          "recorded_at": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js"
         }
       },
       {
@@ -108,15 +108,15 @@
         },
         "x-directive/disposition": {
           "disposition": "not_applicable",
-          "reason": "Prefer-A leftover-complete after product PR #5528 squash-merge (Tracking #5526). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "reason": "Prefer-A leftover-complete after product PR #5528 squash-merge (Tracking #5526). Bound limbs shipped in #5528; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
           "provenance": {
             "kind": "operator-session",
             "actor": "Scott",
             "eventRef": "leftover-complete-after-5528",
-            "mintedAt": "2026-10-09T20:31:02.000Z",
+            "mintedAt": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js",
             "mintedVia": "parent-retained-closer"
           },
-          "recorded_at": "2026-10-09T20:31:02.000Z"
+          "recorded_at": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js"
         }
       },
       {
@@ -129,15 +129,15 @@
         },
         "x-directive/disposition": {
           "disposition": "not_applicable",
-          "reason": "Prefer-A leftover-complete after product PR #5528 squash-merge (Tracking #5526). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "reason": "Prefer-A leftover-complete after product PR #5528 squash-merge (Tracking #5526). Bound limbs shipped in #5528; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
           "provenance": {
             "kind": "operator-session",
             "actor": "Scott",
             "eventRef": "leftover-complete-after-5528",
-            "mintedAt": "2026-10-09T20:31:02.000Z",
+            "mintedAt": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js",
             "mintedVia": "parent-retained-closer"
           },
-          "recorded_at": "2026-10-09T20:31:02.000Z"
+          "recorded_at": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js"
         }
       },
       {
@@ -150,15 +150,15 @@
         },
         "x-directive/disposition": {
           "disposition": "not_applicable",
-          "reason": "Prefer-A leftover-complete after product PR #5528 squash-merge (Tracking #5526). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "reason": "Prefer-A leftover-complete after product PR #5528 squash-merge (Tracking #5526). Bound limbs shipped in #5528; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
           "provenance": {
             "kind": "operator-session",
             "actor": "Scott",
             "eventRef": "leftover-complete-after-5528",
-            "mintedAt": "2026-10-09T20:31:02.000Z",
+            "mintedAt": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js",
             "mintedVia": "parent-retained-closer"
           },
-          "recorded_at": "2026-10-09T20:31:02.000Z"
+          "recorded_at": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js"
         }
       },
       {
@@ -171,15 +171,15 @@
         },
         "x-directive/disposition": {
           "disposition": "not_applicable",
-          "reason": "Prefer-A leftover-complete after product PR #5528 squash-merge (Tracking #5526). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "reason": "Prefer-A leftover-complete after product PR #5528 squash-merge (Tracking #5526). Bound limbs shipped in #5528; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
           "provenance": {
             "kind": "operator-session",
             "actor": "Scott",
             "eventRef": "leftover-complete-after-5528",
-            "mintedAt": "2026-10-09T20:31:02.000Z",
+            "mintedAt": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js",
             "mintedVia": "parent-retained-closer"
           },
-          "recorded_at": "2026-10-09T20:31:02.000Z"
+          "recorded_at": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js"
         }
       }
     ],
@@ -202,6 +202,11 @@
         "uri": "https://github.com/deftai/directive/issues/5239",
         "type": "x-xbrief/closes",
         "title": "Issue #5239"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5537",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5537: leftover deferred partition/recovery measurement from #5526"
       }
     ],
     "acceptance": {
@@ -325,10 +330,10 @@
       "productPullRequest": 5528,
       "lifecycleWrite": {
         "action": "complete",
-        "writtenAt": "2026-10-09T20:31:02.000Z"
+        "writtenAt": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js"
       }
     },
     "id": "github.issue.5782582788",
-    "updated": "2026-10-09T20:31:02.000Z"
+    "updated": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js"
   }
 }
