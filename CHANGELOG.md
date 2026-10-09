@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Worktrees-probe case-fold sibling harden (#5519).** A stale or failed case-sensitivity signal cannot unregister a case-distinct sibling admin entry after remove (post-#5460 tip flake class). Tracking #5519.
 - Keep active #5519 Path B activation (worktrees-probe membership fence).
 - Record approved scope for #5519 so the planned worktrees-probe case-fold fix can pass scope checks (mint only; product fix not shipped).
 - Keep completed #5364 after product PR #5485 (deliveryBranch fetch argv gate).

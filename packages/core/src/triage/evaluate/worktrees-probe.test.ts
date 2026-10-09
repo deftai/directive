@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -16,10 +16,15 @@ vi.mock("../../fs/contained-write.js", async (importOriginal) => {
   };
 });
 
-const { removeEvaluatorWorktree } = await import("./worktrees.js");
+const {
+  removeEvaluatorWorktree,
+  __testOnly_clearCaseInsensitiveDirCache,
+  __testOnly_seedCaseInsensitiveDirCache,
+} = await import("./worktrees.js");
 
 const temps: string[] = [];
 afterEach(() => {
+  __testOnly_clearCaseInsensitiveDirCache();
   for (const root of temps.splice(0)) {
     rmSync(root, { recursive: true, force: true });
   }
@@ -73,6 +78,9 @@ describe("evaluator worktree probe failure", () => {
     const wtSibling = join(root, "wt-eval");
     mkdirSync(wtTarget);
     mkdirSync(wtSibling);
+    expect(realpathSync.native(wtTarget)).not.toBe(realpathSync.native(wtSibling));
+    // Stale true must not unregister the surviving sibling (#5519).
+    __testOnly_seedCaseInsensitiveDirCache(root, true);
     const worktreesDir = join(root, ".git", "worktrees");
     mkdirSync(join(worktreesDir, "aaa"), { recursive: true });
     mkdirSync(join(worktreesDir, "zzz"), { recursive: true });
