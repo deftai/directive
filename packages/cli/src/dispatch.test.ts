@@ -43,6 +43,7 @@ import {
   runSetupGhx,
   SETUP_SKILL_REL_PATH,
   TRIAGE_ACTION_ALIAS_SUBCOMMANDS,
+  unknownColonVerbHint,
   VERB_ALIASES,
   verifyGhxSha256,
 } from "./dispatch.js";
@@ -389,7 +390,7 @@ describe("dispatch", () => {
     expect(err.join("")).toBe("directive: unknown verb 'not-a-real-verb'\n");
   });
 
-  it("hints deft CLI / task deft: when an unknown colon verb is used (#2652 / #3439)", async () => {
+  it("never re-suggests the failing deft spelling for an invented colon verb (#5521)", async () => {
     const err: string[] = [];
     const code = await dispatch(["notreal:verb"], {
       writeOut: () => {},
@@ -399,9 +400,12 @@ describe("dispatch", () => {
     });
     expect(code).toBe(1);
     expect(err.join("")).toContain("unknown verb 'notreal:verb'");
-    expect(err.join("")).toContain("deft notreal:verb");
+    expect(err.join("")).not.toMatch(/try `deft notreal:verb`/);
+    expect(err.join("")).toContain("task notreal:verb");
     expect(err.join("")).toContain("task deft:notreal:verb");
-    expect(err.join("")).not.toMatch(/prefer `task notreal:verb`/);
+    expect(err.join("")).toContain("deft commands");
+    expect(err.join("")).toMatch(/Hyphen stem/);
+    expect(err.join("")).toContain("not primary recovery");
   });
 
   it("hints real plan-sequence verbs when :status is used (#3439)", async () => {
@@ -417,6 +421,42 @@ describe("dispatch", () => {
     expect(err.join("")).toContain("deft plan-sequence:current");
     expect(err.join("")).toContain("is not a verb");
     expect(err.join("")).not.toMatch(/prefer `task plan-sequence:status`/);
+  });
+
+  it("scm:body:* unknown-hint suggests task dual-invoke, never failing deft spelling (#5521)", () => {
+    const hint = unknownColonVerbHint("scm:body:issue:fetch");
+    expect(hint).toContain("task scm:body:issue:fetch");
+    expect(hint).toContain("task deft:scm:body:issue:fetch");
+    expect(hint).not.toMatch(/try `deft scm:body:issue:fetch`/);
+    expect(hint).toContain("not primary recovery");
+    expect(hint).toContain("deft commands");
+  });
+
+  it("scm:body:* hint distinguishes framework / include-only / no-Taskfile (#5521)", () => {
+    expect(unknownColonVerbHint("scm:body:pr:edit", "framework")).toContain("task scm:body:pr:edit");
+    expect(unknownColonVerbHint("scm:body:pr:edit", "include-only")).toContain(
+      "task deft:scm:body:pr:edit",
+    );
+    expect(unknownColonVerbHint("scm:body:pr:edit", "include-only")).toContain("framework-only");
+    expect(unknownColonVerbHint("scm:body:pr:edit", "no-taskfile")).toContain(
+      "Taskfile recovery is unavailable",
+    );
+  });
+
+  it("SUBCOMMAND_ROUTES registers all eight scm:body:* aliases (#5521)", () => {
+    const expected = [
+      "scm:body:issue:create",
+      "scm:body:issue:edit",
+      "scm:body:issue:fetch",
+      "scm:body:issue:lint",
+      "scm:body:comment:create",
+      "scm:body:comment:edit",
+      "scm:body:pr:edit",
+      "scm:body:pr:lint",
+    ];
+    for (const key of expected) {
+      expect(SUBCOMMAND_ROUTES[key]?.[0]).toBe("github-body");
+    }
   });
 
   it("resolves pr:watch colon alias to pr-watch (#2652)", () => {

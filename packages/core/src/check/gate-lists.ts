@@ -115,6 +115,7 @@ export const FRAMEWORK_CHECK_GATES: readonly CheckGateSpec[] = [
   "verify:stubs",
   "verify:links",
   "verify:rule-ownership",
+  "verify:rule-to-verb-parity",
   "verify:biome-config",
   "verify:content-manifest",
   // #3900 check 1: C1 declaration vs staged pack. Checks 2/3 compose C3/C2.

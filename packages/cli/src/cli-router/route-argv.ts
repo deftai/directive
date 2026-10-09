@@ -126,11 +126,32 @@ export const SUBCOMMAND_ROUTES: Readonly<Record<string, readonly [string, string
   "github-body:comment-edit": ["github-body", "comment-edit"],
   "github-body:pr-edit": ["github-body", "pr-edit"],
   "github-body:pr-lint": ["github-body", "pr-lint"],
+  // #5521: pinned AGENTS scm:body:* colon aliases → github-body engine (argv inserts subcommand)
+  "scm:body:issue:create": ["github-body", "issue-create"],
+  "scm:body:issue:edit": ["github-body", "issue-edit"],
+  "scm:body:issue:fetch": ["github-body", "issue-fetch"],
+  "scm:body:issue:lint": ["github-body", "issue-lint"],
+  "scm:body:comment:create": ["github-body", "comment-create"],
+  "scm:body:comment:edit": ["github-body", "comment-edit"],
+  "scm:body:pr:edit": ["github-body", "pr-edit"],
+  "scm:body:pr:lint": ["github-body", "pr-lint"],
   "plan-sequence:set": ["plan-sequence", "set"],
   "plan-sequence:current": ["plan-sequence", "current"],
   "plan-sequence:clear": ["plan-sequence", "clear"],
   "plan-sequence:advance": ["plan-sequence", "advance"],
 };
+
+/** Eight scm:body:* dual-invoke names (#5521); keep in sync with SUBCOMMAND_ROUTES above. */
+export const SCM_BODY_COLON_VERBS = [
+  "scm:body:issue:create",
+  "scm:body:issue:edit",
+  "scm:body:issue:fetch",
+  "scm:body:issue:lint",
+  "scm:body:comment:create",
+  "scm:body:comment:edit",
+  "scm:body:pr:edit",
+  "scm:body:pr:lint",
+] as const;
 
 export type RouteKind = "dispatch" | "stub";
 

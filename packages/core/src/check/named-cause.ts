@@ -63,6 +63,8 @@ const GATE_REMEDIES: Readonly<Record<string, string>> = {
     "Fix broken markdown/link targets reported by the gate; consumer deposits use deposit-relative paths",
   "verify:rule-ownership":
     "Update content/conventions/rule-ownership.json (or the named ownership map) to cover the flagged rule",
+  "verify:rule-to-verb-parity":
+    "Register the cited deft verb in the CLI router / Taskfile, or correct agents-entry.md / agent-prompt-preamble.md (#5521)",
   "verify:biome-config":
     "Align biome.json with the framework-required shape; re-run task verify:biome-config",
   "verify:content-manifest":

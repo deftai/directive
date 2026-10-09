@@ -35,6 +35,15 @@ tasks:
         vars:
           ENGINE_CMD: 'rule-ownership-lint --root "{{.DEFT_ROOT}}"'
 
+  rule-to-verb-parity:
+    desc: "[#5521] Fail closed when agents-entry.md / agent-prompt-preamble.md name unregistered deft/task verbs (family globs expand). Framework-source only."
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify:rule-to-verb-parity --project-root "{{.DEFT_ROOT}}"'
+
   biome-config:
     desc: "Guard against #2190 (biome check . flipping recommended-preset diagnostic severity between warning and error non-deterministically): asserts biome.json declares an explicit non-error severity for noUnusedVariables and noNonNullAssertion. Three-state exit (0 clean / 1 missing/error severity / 2 config error)."
     deps:
