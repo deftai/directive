@@ -1,0 +1,334 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5526",
+    "updated": "2026-10-09T20:31:02.000Z"
+  },
+  "plan": {
+    "title": "bug(release): v0.124.0 Windows Step 5 hang under 60m at ts:check-lane (cursor deft_run_resolver.test.ts)",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(release): v0.124.0 Windows Step 5 hang under 60m at ts:check-lane (cursor deft_run_resolver.test.ts)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5526",
+      "Overview": "\n\n1. **Preserve incident tee (precondition).** Keep `%TEMP%\\release-01240-prod4-20261009-120357.log` (or the retained `.deft/check-tees` copy). Record path + sha256 on any implement brief before further probes.\n\n2. **Fresh host-versus-suite partition first (P1/P3).** Re-run supervised no-coverage `ts:check-lane` on this Windows release host under current tip conditions. Compare specs-completed-per-minute / wall and per-project completion/elapsed against the preserved #5526 tee and prior retained tees under matched no-coverage commands, per-project workers, runtime/binary paths, and recorded concurrent load. Outcomes: host/toolchain-low | suite-dominant | mixed/inconclusive. Inconclusive keeps diagnosis open — do not select a #5029 cheapen limb by intuition. Closed #5239/#5140 Bounds are class evidence only; they do not discharge this cut's partition.\n\n3. **Acceptance evidence — recovery path (P2).** Throughput recovery for this ticket means an actual complete Windows production-shaped no-coverage Step 5 / `ts:check-lane` run with zero failures, spawn-heavy completion, valid tip-SHA GHA coverage-of-record, no `--skip-ci`, under the current 60m detector, with recorded stamp miss / full execution (not a same-SHA suite-stamp skip). Record SHA, suite size, project worker settings, host/toolchain/load, elapsed wall, exit status, retained tee path+hash.\n\n4. **Discharge constraint (P2).** Green-path or measured-cheapen evidence is a bindable artifact (path+hash). Do not `scope:complete` or stamp `design-critique:ingest-ready` while that clause is `deferred`. Split late measurement to a leftover issue rather than defer-inside-complete (#5140 / #5239 item-8 recurrence).\n\n5. **Deliberate cheapen / gate alternative.** A measured cheapen may complete an explicitly scoped optimization with before/after wall-clock (or ranked tee delta) under comparable conditions; it does **not** by itself claim throughput recovery for item 3. A numeric raise of `RELEASE_CHECK_TIMEOUT_MS` is only a tracked gate change + intent-constraint mint with comparable full-path evidence — never Prefer-A alone. Refuse detector-raise-alone.\n\n6. **One-cut skip-ci hatch + unpaid seam (P4).** Authorize incident hatch for the v0.124.0 production cut only as `--skip-ci --allow-skip-ci=5526 --allow-unpaid-skip-ci=5526` (issue is OPEN; the shipped unpaid gate requires the matching override). This Bound does not grant operator override consent. Extend the shipped `skip-ci-incident` / CHANGELOG spend-record citation seam so a later production `--allow-skip-ci=5526` refuses without a distinct `--allow-unpaid-skip-ci=5526`. Do not invent a second ledger. Keep #5526 open until honest discharge; preserve the production spend marker.\n\n7. **Keep-outs.** Do not bind last-completed-file (`deft_run_resolver.test.ts`) as the hung unit. Do not resurrect host `--coverage` under Step 5 (#5026). #5029 stays inventory until partition evidence promotes a child.\n\n8. **Working classification.** State \"Step 5 deadline exhaustion; throughput shortfall suspected from prior class.\" Use continuing completion/heartbeat evidence and project tail state to distinguish slow progress from a stall; keep bounded diagnostics if progress ceases.\n\n\n",
+      "Labels": "bug, ci-cd, urgent, area:release, platform:windows, design-critique:ingest-ready, release"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Preserve incident tee (precondition). Keep %TEMP%\\release-01240-prod4-20261009-120357.log (or retained .deft/check-tees copy). Record path + sha256 on implement brief before further probes.",
+        "status": "completed",
+        "x-directive/artifact_path": "CHANGELOG.md",
+        "narrative": {
+          "Acceptance": "Preserve incident tee (precondition). Keep %TEMP%\\release-01240-prod4-20261009-120357.log (or retained .deft/check-tees copy). Record path + sha256 on implement brief before further probes."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5528 squash-merge (Tracking #5526). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5528",
+            "mintedAt": "2026-10-09T20:31:02.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-09T20:31:02.000Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Fresh host-versus-suite partition first (P1/P3). Re-run supervised no-coverage ts:check-lane on this Windows release host; compare against preserved #5526 tee; outcomes host/toolchain-low | suite-dominant | mixed/inconclusive; do not cheapen by intuition.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/check/suite-gate-supervisor-lib.ts",
+        "narrative": {
+          "Acceptance": "Fresh host-versus-suite partition first (P1/P3). Re-run supervised no-coverage ts:check-lane on this Windows release host; compare against preserved #5526 tee; outcomes host/toolchain-low | suite-dominant | mixed/inconclusive; do not cheapen by intuition."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5528 squash-merge (Tracking #5526). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5528",
+            "mintedAt": "2026-10-09T20:31:02.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-09T20:31:02.000Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Acceptance evidence — recovery path (P2). Throughput recovery means complete Windows production-shaped no-coverage Step 5 / ts:check-lane under current 60m detector with recorded stamp miss / full execution; record SHA, suite size, workers, host/load, wall, exit, tee path+hash.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/release/constants.ts",
+        "narrative": {
+          "Acceptance": "Acceptance evidence — recovery path (P2). Throughput recovery means complete Windows production-shaped no-coverage Step 5 / ts:check-lane under current 60m detector with recorded stamp miss / full execution; record SHA, suite size, workers, host/load, wall, exit, tee path+hash."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5528 squash-merge (Tracking #5526). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5528",
+            "mintedAt": "2026-10-09T20:31:02.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-09T20:31:02.000Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Discharge constraint (P2). Green-path or measured-cheapen evidence is a bindable artifact (path+hash). Do not scope:complete while that clause is deferred; split late measurement to leftover rather than defer-inside-complete.",
+        "status": "completed",
+        "x-directive/artifact_path": "CHANGELOG.md",
+        "narrative": {
+          "Acceptance": "Discharge constraint (P2). Green-path or measured-cheapen evidence is a bindable artifact (path+hash). Do not scope:complete while that clause is deferred; split late measurement to leftover rather than defer-inside-complete."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5528 squash-merge (Tracking #5526). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5528",
+            "mintedAt": "2026-10-09T20:31:02.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-09T20:31:02.000Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Deliberate cheapen / gate alternative. Measured cheapen may complete scoped optimization with before/after wall; does not alone claim recovery. Numeric raise of RELEASE_CHECK_TIMEOUT_MS only via tracked gate change + intent-constraint mint. Refuse detector-raise-alone.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/release/constants.ts",
+        "narrative": {
+          "Acceptance": "Deliberate cheapen / gate alternative. Measured cheapen may complete scoped optimization with before/after wall; does not alone claim recovery. Numeric raise of RELEASE_CHECK_TIMEOUT_MS only via tracked gate change + intent-constraint mint. Refuse detector-raise-alone."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5528 squash-merge (Tracking #5526). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5528",
+            "mintedAt": "2026-10-09T20:31:02.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-09T20:31:02.000Z"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "One-cut skip-ci hatch + unpaid seam (P4). Authorize hatch form --skip-ci --allow-skip-ci=5526 --allow-unpaid-skip-ci=5526 for v0.124.0 cut only (operator consent separate). Extend skip-ci-incident / CHANGELOG spend-record seam so later --allow-skip-ci=5526 refuses without distinct unpaid override. Keep #5526 open until honest discharge.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/release/skip-ci-incident.ts",
+        "narrative": {
+          "Acceptance": "One-cut skip-ci hatch + unpaid seam (P4). Authorize hatch form --skip-ci --allow-skip-ci=5526 --allow-unpaid-skip-ci=5526 for v0.124.0 cut only (operator consent separate). Extend skip-ci-incident / CHANGELOG spend-record seam so later --allow-skip-ci=5526 refuses without distinct unpaid override. Keep #5526 open until honest discharge."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5528 squash-merge (Tracking #5526). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5528",
+            "mintedAt": "2026-10-09T20:31:02.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-09T20:31:02.000Z"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "Keep-outs. Do not bind last-completed-file (deft_run_resolver.test.ts) as hung unit. Do not resurrect host --coverage under Step 5. #5029 stays inventory until partition evidence promotes a child.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/check/named-cause.ts",
+        "narrative": {
+          "Acceptance": "Keep-outs. Do not bind last-completed-file (deft_run_resolver.test.ts) as hung unit. Do not resurrect host --coverage under Step 5. #5029 stays inventory until partition evidence promotes a child."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5528 squash-merge (Tracking #5526). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5528",
+            "mintedAt": "2026-10-09T20:31:02.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-09T20:31:02.000Z"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "Working classification. State Step 5 deadline exhaustion; throughput shortfall suspected from prior class. Use completion/heartbeat and project tail to distinguish slow progress from stall.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/check/named-cause.ts",
+        "narrative": {
+          "Acceptance": "Working classification. State Step 5 deadline exhaustion; throughput shortfall suspected from prior class. Use completion/heartbeat and project tail to distinguish slow progress from stall."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5528 squash-merge (Tracking #5526). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5528",
+            "mintedAt": "2026-10-09T20:31:02.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-09T20:31:02.000Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "ci-cd",
+      "urgent",
+      "area:release",
+      "platform:windows",
+      "design-critique:ingest-ready",
+      "release"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5526",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5526: bug(release): v0.124.0 Windows Step 5 hang under 60m at ts:check-lane (cursor deft_run_resolver.test.ts)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5239",
+        "type": "x-xbrief/closes",
+        "title": "Issue #5239"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A Bound limbs hand-stamped / artifact_path bound from comment 6086804484.",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Preserve incident tee (precondition). Keep %TEMP%\\release-01240-prod4-20261009-120357.log (or retained .deft/check-tees copy). Record path + sha256 on implement brief before further probes.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Fresh host-versus-suite partition first (P1/P3). Re-run supervised no-coverage ts:check-lane on this Windows release host; compare against preserved #5526 tee; outcomes host/toolchain-low | suite-dominant | mixed/inconclusive; do not cheapen by intuition.",
+          "artifact_path": "packages/core/src/check/suite-gate-supervisor-lib.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Acceptance evidence — recovery path (P2). Throughput recovery means complete Windows production-shaped no-coverage Step 5 / ts:check-lane under current 60m detector with recorded stamp miss / full execution; record SHA, suite size, workers, host/load, wall, exit, tee path+hash.",
+          "artifact_path": "packages/core/src/release/constants.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Discharge constraint (P2). Green-path or measured-cheapen evidence is a bindable artifact (path+hash). Do not scope:complete while that clause is deferred; split late measurement to leftover rather than defer-inside-complete.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Deliberate cheapen / gate alternative. Measured cheapen may complete scoped optimization with before/after wall; does not alone claim recovery. Numeric raise of RELEASE_CHECK_TIMEOUT_MS only via tracked gate change + intent-constraint mint. Refuse detector-raise-alone.",
+          "artifact_path": "packages/core/src/release/constants.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "One-cut skip-ci hatch + unpaid seam (P4). Authorize hatch form --skip-ci --allow-skip-ci=5526 --allow-unpaid-skip-ci=5526 for v0.124.0 cut only (operator consent separate). Extend skip-ci-incident / CHANGELOG spend-record seam so later --allow-skip-ci=5526 refuses without distinct unpaid override. Keep #5526 open until honest discharge.",
+          "artifact_path": "packages/core/src/release/skip-ci-incident.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Keep-outs. Do not bind last-completed-file (deft_run_resolver.test.ts) as hung unit. Do not resurrect host --coverage under Step 5. #5029 stays inventory until partition evidence promotes a child.",
+          "artifact_path": "packages/core/src/check/named-cause.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Working classification. State Step 5 deadline exhaustion; throughput shortfall suspected from prior class. Use completion/heartbeat and project tail to distinguish slow progress from stall.",
+          "artifact_path": "packages/core/src/check/named-cause.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "CHANGELOG.md",
+          "packages/core/src/release/skip-ci-incident.ts",
+          "packages/core/src/release/skip-ci-incident.test.ts",
+          "packages/core/src/release/constants.ts",
+          "packages/core/src/check/named-cause.ts",
+          "packages/core/src/check/named-cause.test.ts",
+          "packages/core/src/check/suite-gate-supervisor-lib.ts"
+        ],
+        "module_boundary": "Windows Step 5 hang detector throughput + skip-ci unpaid seam",
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased bullet only."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5782582788,
+        "origin": "deftai/directive#5526",
+        "id": "github.issue.5782582788"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "b330420066cbed43d1ed229c955d9f843d5cb79e0c3d92c3da70996ded3f5a99"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "windows-step5-hang-detector-throughput-recurrence",
+        "expected_outputs": [
+          "Tracking PR for #5526 Prefer-A Bound Step 5 hang partition + unpaid skip-ci seam"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/release/skip-ci-incident.test.ts packages/core/src/check/named-cause.test.ts"
+        ],
+        "file_scope": [
+          "CHANGELOG.md",
+          "packages/core/src/release/skip-ci-incident.ts",
+          "packages/core/src/release/skip-ci-incident.test.ts",
+          "packages/core/src/release/constants.ts",
+          "packages/core/src/check/named-cause.ts",
+          "packages/core/src/check/named-cause.test.ts",
+          "packages/core/src/check/suite-gate-supervisor-lib.ts"
+        ],
+        "size": "L",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5526"
+        ],
+        "parallel_safe": true
+      },
+      "productPullRequest": 5528,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-09T20:31:02.000Z"
+      }
+    },
+    "id": "github.issue.5782582788",
+    "updated": "2026-10-09T20:31:02.000Z"
+  }
+}
