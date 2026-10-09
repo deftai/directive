@@ -295,7 +295,7 @@ export function extractRuleCitations(file: string, text: string): readonly RuleC
       } else if (bare.startsWith("task ")) {
         pushCitation(out, "task", bare.slice("task ".length), file, idx + 1);
       }
-      continue;
+      // Fall through: numbered/prose fence lines may still carry inline `deft …` ticks.
     }
     DEFT_INVOCATION_RE.lastIndex = 0;
     for (const match of line.matchAll(DEFT_INVOCATION_RE)) {

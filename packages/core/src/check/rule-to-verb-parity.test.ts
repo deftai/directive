@@ -54,12 +54,14 @@ describe("rule-to-verb-parity (#5521)", () => {
       "```bash",
       'deft scm:body:issue:fetch --repo OWNER/REPO --issue 1 --out-file "$bodyFile"',
       'task scm:body:issue:edit --repo OWNER/REPO --issue 1 --body-file "$bodyFile"',
+      "4. Also `deft pr:watch -- <N>` inside the fence.",
       "```",
       "Inline still works: `deft check`.",
     ].join("\n");
     const citations = extractRuleCitations("fixture.md", text);
     expect(citations.some((c) => c.kind === "deft" && c.raw === "scm:body:issue:fetch")).toBe(true);
     expect(citations.some((c) => c.kind === "task" && c.raw === "scm:body:issue:edit")).toBe(true);
+    expect(citations.some((c) => c.kind === "deft" && c.raw === "pr:watch")).toBe(true);
     expect(citations.some((c) => c.kind === "deft" && c.raw === "check")).toBe(true);
   });
 
