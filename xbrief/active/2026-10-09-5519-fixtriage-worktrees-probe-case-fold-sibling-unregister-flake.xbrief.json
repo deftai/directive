@@ -106,9 +106,9 @@
         ],
         "file_scope": [
           "CHANGELOG.md",
+          "packages/core/src/triage/evaluate/worktrees.ts",
           "packages/core/src/triage/evaluate/worktrees-probe.test.ts",
-          "packages/core/src/triage/evaluate/worktrees.test.ts",
-          "packages/core/src/triage/evaluate/worktrees.ts"
+          "packages/core/src/triage/evaluate/worktrees.test.ts"
         ],
         "size": "S",
         "file_scope_confidence": "high",
@@ -124,9 +124,9 @@
         "schema": "deft.scope.intended_placement.v1",
         "files": [
           "CHANGELOG.md",
+          "packages/core/src/triage/evaluate/worktrees.ts",
           "packages/core/src/triage/evaluate/worktrees-probe.test.ts",
-          "packages/core/src/triage/evaluate/worktrees.test.ts",
-          "packages/core/src/triage/evaluate/worktrees.ts"
+          "packages/core/src/triage/evaluate/worktrees.test.ts"
         ],
         "module_boundary": "triage evaluator worktree prune case-fold safety; worktrees-probe fail-closed sibling unregister",
         "cohesion_exemption": "CHANGELOG.md Keep-active / Fixed release notes for #5519 Path B / product land"
@@ -143,7 +143,7 @@
       "commands": [],
       "none_stated": true,
       "source_rung": "derived",
-      "derived_reason": "Prefer-A Bound Path B activation; clauses retained for provenance (#3284)",
+      "derived_reason": "Prefer-A Bound limbs hand-stamped after Prefer-A Bound harvest (#4374)",
       "sentences": [
         "pruneEvaluatorWorktreeAdmin in packages/core/src/triage/evaluate/worktrees.ts refuses to delete an admin entry whose recorded worktree still exists with a case-distinct realpath from the removal target.",
         "canonicalizeWorktreePath in packages/core/src/triage/evaluate/worktrees.ts does not lowercase a missing leaf from a stale true caseInsensitiveDirCache entry.",
