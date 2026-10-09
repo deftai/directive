@@ -153,6 +153,28 @@ export const SCM_BODY_COLON_VERBS = [
   "scm:body:pr:lint",
 ] as const;
 
+/**
+ * Colon forms handled by explicit `routeNamespaceVerb` branches (not SUBCOMMAND_ROUTES /
+ * PR_VERB_MAP / VERIFY_VERB_MAP / SCOPE_LIFECYCLE_VERBS). Scraped by rule-to-verb parity
+ * so valid citations like `deft framework:doctor` pass (#5521).
+ */
+export const ROUTER_BRANCH_COLON_VERBS = [
+  "framework:doctor",
+  "agents:refresh",
+  "scope:demote",
+  "scope:decompose",
+  "scope:undo",
+  "scope:record-approved-scope",
+  "scope:record-observable-scope",
+  "scope:record-intent-constraint",
+  "scm:issue:design-critique-chip",
+  "scm:issue:design-critique-stale-ready",
+  "scm:issue:work-claim",
+  "issue:ingest",
+  "issue:emit",
+  "issue:sync-from-xbrief",
+] as const;
+
 export type RouteKind = "dispatch" | "stub";
 
 export interface RoutedArgv {

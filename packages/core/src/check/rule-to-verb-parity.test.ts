@@ -115,6 +115,13 @@ describe("rule-to-verb-parity (#5521)", () => {
     expect(verbs.has("feature")).toBe(false);
   });
 
+  it("loads router-branch colon verbs (framework:doctor, scm:issue:work-claim)", () => {
+    const verbs = loadRegisteredCliVerbs(REPO_ROOT);
+    expect(verbs.has("framework:doctor")).toBe(true);
+    expect(verbs.has("scm:issue:work-claim")).toBe(true);
+    expect(verbs.has("agents:refresh")).toBe(true);
+  });
+
   it("excludes deferred and stubbed TOP_LEVEL_UX_VERBS from the registry set", () => {
     const result = evaluateRuleToVerbParity(REPO_ROOT, {
       readText: (p) => {
@@ -167,6 +174,12 @@ describe("rule-to-verb-parity (#5521)", () => {
   it("resolves framework task scm:body:issue:fetch from tasks/scm.yml", () => {
     expect(taskNameResolves(REPO_ROOT, "scm:body:issue:fetch")).toBe(true);
     expect(taskNameResolves(REPO_ROOT, "scm:body:missing:verb")).toBe(false);
+  });
+
+  it("requires a complete Taskfile key (no prefix match)", () => {
+    // `body:issue:fetch` exists; a prefix citation must not green.
+    expect(taskNameResolves(REPO_ROOT, "scm:body:issue")).toBe(false);
+    expect(taskNameResolves(REPO_ROOT, "scm:body:issue:fetch")).toBe(true);
   });
 
   it("does not treat Taskfile include namespaces as root tasks", () => {

@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Rule-to-verb parity accepts router-branch colon verbs and requires complete Taskfile keys (#5521).
 - Path B activation for #5521 membership fence.
 - Record the completed work for #5479 after product PR #5530.
 - Record the completed work for #5526 after product PR #5528.

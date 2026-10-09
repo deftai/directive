@@ -10,7 +10,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { parseTaskfileIncludes, taskDefinedInTaskfileYaml } from "./consumer-gate-integrity.js";
+import { parseTaskfileIncludes } from "./consumer-gate-integrity.js";
 
 export const RULE_TO_VERB_PARITY_GATE_ID = "verify:rule-to-verb-parity";
 
@@ -206,12 +206,22 @@ export function loadRegisteredCliVerbs(
     ...parseRecordKeys(router, "PR_VERB_MAP").map((v) => `pr:${v}`),
     ...parseRecordKeys(router, "VERIFY_VERB_MAP").map((v) => `verify:${v}`),
     ...parseStringArrayExport(router, "SCOPE_LIFECYCLE_VERBS").map((v) => `scope:${v}`),
+    // Explicit routeNamespaceVerb branches (framework:doctor, scm:issue:work-claim, …).
+    ...parseStringArrayExport(router, "ROUTER_BRANCH_COLON_VERBS"),
   ]);
   // Do not invent policy:<POLICY_SET_COMMANDS> spellings — those are policy-set /
   // `deft policy set <cmd>` only. Real policy:* colon aliases come from
   // POLICY_ACTION_ALIAS_SUBCOMMANDS above.
   // Space-form top-level check/doctor already covered via available TOP_LEVEL_UX_VERBS.
   return verbs;
+}
+
+/** True when localName is a complete top-level Taskfile key (no prefix match). */
+export function taskKeyDefinedExact(text: string, localName: string): boolean {
+  const escaped = localName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  // After the key colon require whitespace, EOL, or comment — not more key chars.
+  const re = new RegExp(`^ {2}${escaped}\\s*:(?:\\s|$|#)`, "m");
+  return re.test(text.replace(/\r\n/g, "\n").replace(/\r/g, "\n"));
 }
 
 /** Restrict Taskfile lookup to the top-level `tasks:` block (not `includes:`). */
@@ -263,7 +273,7 @@ export function taskNameResolves(
   if (rootText === null) return false;
   // Root lookup must use the tasks: section only — include namespaces like
   // `scm:` also sit at two-space indent and must not green `task scm`.
-  if (taskDefinedInTaskfileYaml(sliceTaskfileTasksSection(rootText), name)) return true;
+  if (taskKeyDefinedExact(sliceTaskfileTasksSection(rootText), name)) return true;
   const colon = name.indexOf(":");
   if (colon <= 0) return false;
   const namespace = name.slice(0, colon);
@@ -274,9 +284,7 @@ export function taskNameResolves(
   const includePath = resolve(repoRoot, include.taskfile);
   if (!exists(includePath)) return false;
   const includeText = readText(includePath);
-  return (
-    includeText !== null && taskDefinedInTaskfileYaml(sliceTaskfileTasksSection(includeText), local)
-  );
+  return includeText !== null && taskKeyDefinedExact(sliceTaskfileTasksSection(includeText), local);
 }
 
 function stripConsumerPrefix(name: string): string {
