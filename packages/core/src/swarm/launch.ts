@@ -1664,11 +1664,14 @@ export function swarmLaunch(args: LaunchArgs): {
         const result = runGit(["git", ...gitArgs], { cwd: root });
         return { code: result.returncode, stdout: result.stdout, stderr: result.stderr };
       });
-      if (delivery.error !== null && delivery.error.length > 0) {
+      if (
+        (delivery.error !== null && delivery.error.length > 0) ||
+        delivery.branch.length === 0
+      ) {
         return {
           exitCode: EXIT_GATE_FAILED,
           stdout: "",
-          stderr: `Error: ${delivery.error}\n`,
+          stderr: `Error: ${delivery.error ?? "delivery branch refused"}\n`,
         };
       }
       for (const story of resolved) {

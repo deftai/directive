@@ -503,11 +503,15 @@ function resolveTipState(input: {
     return { tip: { kind: "no-remote" } };
   }
   const delivery = resolveDeliveryBranch(input.projectDir);
-  if (delivery.error !== null && delivery.error.length > 0) {
+  // Hard refuse only when the branch is empty (typed unsafe name). Soft errors
+  // such as missing PROJECT-DEFINITION with a usable git-default / fallback
+  // branch must still classify tip state so first-time init and #4120 R3 work
+  // (#5364 Greptile P1).
+  if (delivery.branch.length === 0) {
     return {
       tip: {
         kind: "remote-configured-unreadable",
-        detail: delivery.error,
+        detail: delivery.error ?? "delivery branch refused",
       },
     };
   }

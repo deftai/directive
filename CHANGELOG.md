@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Leftover-complete #5488 after product #5498.
 - Cohort PR #5485 Unreleased note after rebase onto master.
 - #5364 deliveryBranch gate: rewrite terminal branch-name refuse to returned-failure (no throw-site) so intent-constraint clears without a merge-base mint; keep empty-branch + error field fail-closed.
+- #5364 deliveryBranch gate: generation-gate hard-refuses only empty/unsafe branch so soft missing PROJECT-DEFINITION still classifies tip (first-time init); launch also refuses empty delivery branch before origin-active fetch.
 - #5364 deliveryBranch gate: rewrite terminal branch-name refuse to returned-failure (no throw-site); callers stop on error before git fetch (launch, origin-active-brief, sync-default, finalize-owed, generation-gate).
 
 ### Added
