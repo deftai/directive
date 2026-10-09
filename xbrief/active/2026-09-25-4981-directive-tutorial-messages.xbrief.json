@@ -3,7 +3,7 @@
     "version": "0.8",
     "description": "Directive Tutorial: first-run offer after Name, menu of sandbox projects, preferences progress, shared teaching beats, glossary hook.",
     "created": "2026-09-25T17:20:00Z",
-    "updated": "2026-10-09T15:48:11Z"
+    "updated": "2026-10-09T16:26:03Z"
   },
   "plan": {
     "id": "4981-directive-tutorial",
@@ -46,6 +46,7 @@
     ],
     "metadata": {
       "kind": "story",
+      "productPullRequest": 5464,
       "swarm": {
         "file_scope": [
           "REFERENCES.md",
@@ -103,6 +104,6 @@
         "title": "Issue #4371: first-time run review umbrella (JT / visionik)"
       }
     ],
-    "updated": "2026-10-09T15:48:11Z"
+    "updated": "2026-10-09T16:26:03Z"
   }
 }

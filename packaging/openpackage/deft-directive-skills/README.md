@@ -6,13 +6,13 @@ Tiered consumer skills for **Cursor**, **Codex CLI**, and **OpenCode**. This pac
 
 | Tier | Purpose | Install when |
 | --- | --- | --- |
-| **daily-core** (default) | setup, sync, build, pre-pr, review-cycle, triage | Every session bootstrap (Cursor native skill injection) |
+| **daily-core** (default) | setup, sync, tutorial, build, pre-pr, review-cycle, triage | Every session bootstrap (Cursor native skill injection) |
 | **standard** | decompose, feedback, gh-slice, interview, … | On-demand operational workflows |
 | **advanced** | release, swarm, debug, article-review | Maintainer / heavy workflows (deferred frontmatter) |
 
 Full skill lists: [`../deft-tiers.json`](../deft-tiers.json).
 
-**Acceptance (spike #2370):** daily-core Cursor `<agent_skill>` frontmatter totals **≤ 2080 B** when only the six daily-core skills are installed — measured at maintainer HEAD via `node packaging/openpackage/measure-daily-core-frontmatter.mjs`.
+**Acceptance (spike #2370 / #4981):** daily-core Cursor `<agent_skill>` frontmatter totals **≤ 2337 B** when only the seven daily-core skills are installed — measured at maintainer HEAD via `node packaging/openpackage/measure-daily-core-frontmatter.mjs`.
 
 ## Prerequisites
 

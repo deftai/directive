@@ -8,9 +8,9 @@ Maintainer-facing map of how Directive's rules are layered and grouped. This is 
 
 ## Overview
 
-- **Rules:** 24 groupings, 284 documents
-- **Tasks:** 64 namespaces, 276 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
-- **Packs:** 6 source-of-truth packs (717 entries from rules|lessons|patterns|skills|strategies|entries)
+- **Rules:** 25 groupings, 286 documents
+- **Tasks:** 65 namespaces, 286 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
+- **Packs:** 6 source-of-truth packs (718 entries from rules|lessons|patterns|skills|strategies|entries)
 
 Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the Taskfile gates that enforce them), and the **Lifecycle** that ties them together.
 
@@ -35,11 +35,12 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | references | External references and citations backing the guidance. | 4 | 19 | 1 | 19 | 0 | 0 |
 | resilience | Failure handling, recovery, and robustness rules. | 2 | 16 | 14 | 15 | 1 | 2 |
 | scm | Source-control conventions and Git/GitHub workflow rules. | 3 | 108 | 34 | 34 | 1 | 3 |
-| skills | Packaged multi-step agent workflows (build, release, interview, triage, review…). | 41 | 597 | 120 | 707 | 0 | 18 |
+| skills | Packaged multi-step agent workflows (build, release, interview, triage, review…). | 42 | 597 | 120 | 707 | 0 | 18 |
 | strategies | Higher-order approaches: interviewing, decomposition, planning, research, refactoring. | 16 | 318 | 88 | 138 | 0 | 11 |
 | swarm | Multi-agent (swarm) coordination guidance. | 1 | 75 | 15 | 22 | 0 | 0 |
 | templates | Reusable document/scaffold templates. | 11 | 104 | 10 | 55 | 1 | 5 |
 | tools | Tooling standards (telemetry, search, formatters, the Taskfile contract). | 7 | 91 | 73 | 33 | 1 | 15 |
+| tutorial | Guided first sitting after Name — Signal, Postcard, or Echo practice projects. | 1 | 0 | 0 | 0 | 0 | 0 |
 | vbrief | The durable state format: project definition, specification, scopes, plans. | 1 | 82 | 29 | 30 | 0 | 9 |
 | verification | How agents prove work is done: gates, validators, coverage, review. | 4 | 39 | 22 | 26 | 0 | 4 |
 
@@ -314,6 +315,7 @@ _Packaged multi-step agent workflows (build, release, interview, triage, review�
 - **deft-directive-swarm/** (14 files)
 - **deft-directive-sync/** (1 files)
 - **deft-directive-triage/** (1 files)
+- **deft-directive-tutorial/** (1 files)
 - **deft-directive-write-skill/** (1 files)
 - **deft-directive-xbrief/** (1 files)
 
@@ -371,6 +373,13 @@ _Tooling standards (telemetry, search, formatters, the Taskfile contract)._
 - `taskfile-migration.md` — 1. **Audit** -- List all existing build/test/deploy commands (Makefile targets, npm scripts, shell scripts) 2. **Map** -- Map each command to a Task equivalent using [taskfile.md](../content/tools/taskfile.md) naming conventions 3. **Create** -- Write…
 - `taskfile.md` — **Scope:** Task-based build automation using [Task](https://taskfile.dev/) instead of Makefiles or shell scripts.
 - `telemetry.md` — Logging, tracing, metrics, and error tracking for production systems.
+
+### tutorial
+
+_Guided first sitting after Name — Signal, Postcard, or Echo practice projects._
+
+- `glossary.md` — The tutorial messages read this file. Each entry is the official term, a plain explanation, and why it matters (what it prevents). A later language pass may edit this file. The shared steps stay put.
+- **projects/** (0 files)
 
 ### vbrief
 
@@ -452,6 +461,7 @@ _How agents prove work is done: gates, validators, coverage, review._
 | triage-summary | D2 (#1122) `task triage:summary` one-liner surface. | 1 |
 | triage-welcome | N3 (#1143) `task triage:welcome` 6-phase | 1 |
 | ts | TypeScript engine monorepo verbs (#1717). Parity oracle tasks removed (#1860). | 5 |
+| tutorial | Directive Tutorial progress (#4981). | 10 |
 | umbrella | Fetch umbrella ## Current shape comment (#1152) — task umbrella:current-shape <N> [-- --repo OWNER/REPO \| --json \| --strict]. Does NOT… | 1 |
 | value | Pull-based attributed-value trend readout (#1709). -- task value:show -- [--window=7d\|30d] [--format=text\|json] | 1 |
 | vbrief | Validate and manage vBRIEF lifecycle state and structure. | 6 |
@@ -475,6 +485,6 @@ Directive turns a coding agent into an auditable process: load only the guidance
 | `content/packs/lessons/lessons-pack-0.1.json` | 0.1 | 50 | 0 | 0 | 0 |
 | `content/packs/patterns/patterns-pack-0.1.json` | 0.1 | 12 | 0 | 0 | 0 |
 | `content/packs/rules/rules-pack-0.1.json` | 0.1 | 612 | 303 | 105 | 187 |
-| `content/packs/skills/skills-pack-0.1.json` | 0.1 | 26 | 0 | 0 | 0 |
+| `content/packs/skills/skills-pack-0.1.json` | 0.1 | 27 | 0 | 0 | 0 |
 | `content/packs/strategies/strategies-pack-0.1.json` | 0.1 | 16 | 0 | 0 | 0 |
 | `content/packs/swarm-spec/swarm-spec-pack-0.1.json` | 0.1 | 1 | 0 | 0 | 0 |

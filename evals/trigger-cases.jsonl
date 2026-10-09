@@ -1,6 +1,9 @@
 {"id":"setup-pos-1","query":"help me setup this new deft project","skill":"deft-directive-setup","should_trigger":true}
 {"id":"setup-pos-2","query":"bootstrap directive for this repository","skill":"deft-directive-setup","should_trigger":true}
 {"id":"setup-neg-1","query":"list open issues in the directive backlog","skill":"deft-directive-setup","should_trigger":false}
+{"id":"tutorial-pos-1","query":"start the directive tutorial","skill":"deft-directive-tutorial","should_trigger":true}
+{"id":"tutorial-pos-2","query":"resume the tutorial with Signal Postcard or Echo","skill":"deft-directive-tutorial","should_trigger":true}
+{"id":"tutorial-neg-1","query":"run session:start ceremony and triage welcome","skill":"deft-directive-tutorial","should_trigger":false}
 {"id":"cost-pos-1","query":"how much will this cost to implement the feature","skill":"deft-directive-cost","should_trigger":true}
 {"id":"cost-pos-2","query":"run a pre-build cost estimate before we commit","skill":"deft-directive-cost","should_trigger":true}
 {"id":"cost-neg-1","query":"summarize the project architecture overview","skill":"deft-directive-cost","should_trigger":false}

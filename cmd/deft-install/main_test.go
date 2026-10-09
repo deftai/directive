@@ -885,7 +885,7 @@ func TestPrintNextSteps_SkillsAlreadyPresent(t *testing.T) {
 // Skill count and new skill coverage
 // ---------------------------------------------------------------------------
 
-func TestWriteAgentsSkills_CreatesNineSkills(t *testing.T) {
+func TestWriteAgentsSkills_CreatesTenSkills(t *testing.T) {
 	tmp := t.TempDir()
 	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
 
@@ -906,8 +906,24 @@ func TestWriteAgentsSkills_CreatesNineSkills(t *testing.T) {
 			dirCount++
 		}
 	}
-	if dirCount != 9 {
-		t.Errorf("expected 9 skill directories, got %d", dirCount)
+	if dirCount != 10 {
+		t.Errorf("expected 10 skill directories, got %d", dirCount)
+	}
+}
+
+func TestWriteAgentsSkills_TutorialPointer(t *testing.T) {
+	tmp := t.TempDir()
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	WriteAgentsSkills(w, tmp)
+
+	path := filepath.Join(tmp, ".agents", "skills", "deft-directive-tutorial", "SKILL.md")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("missing deft-directive-tutorial thin pointer: %v", err)
+	}
+	content := string(data)
+	if !strings.Contains(content, ".deft/core/skills/deft-directive-tutorial/SKILL.md") {
+		t.Errorf("tutorial pointer missing canonical path:\n%s", content)
 	}
 }
 

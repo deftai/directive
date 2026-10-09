@@ -1,0 +1,110 @@
+{
+  "beats": [
+    {
+      "id": "choose",
+      "number": 1,
+      "name": "Welcome & choose",
+      "wired": true,
+      "where": "Welcome to the Directive Tutorial! Step 1 of 7.",
+      "about": "Directive is the shared path for building with AI — so a later sitting can continue from the same place instead of starting over.\n\nThis practice sitting takes about 10 minutes. You pick one toy project; each option teaches the same path. Nothing here pushes to GitHub.\n\n1. Signal — a tiny CLI that prints your personal status line\n2. Postcard — a one-page local site that shows a short message\n3. Echo — a mini bot that answers one question with a reply you choose\n4. Leave — pause for now (progress is saved; you can start again later)\n5. Discuss\n6. Back — not available yet (use Leave or Discuss)",
+      "terms": [],
+      "caveat": "Name and preferences stay in setup. This sitting does not ask those again.",
+      "output": "",
+      "command": null,
+      "next": ""
+    },
+    {
+      "id": "write",
+      "number": 2,
+      "name": "Write it down",
+      "wired": true,
+      "where": "Step 2 of 7.",
+      "about": "First, pick the toy content {name} should use. Then we will write the plan down so it is not stuck in this chat.\n\nExample: {contentExample}",
+      "aboutAfterPlan": "Here is the plan with your content filled in.\n\nPlan: {workSentence}\nDone looks like: {acceptanceSentence}",
+      "terms": [
+        "acceptance"
+      ],
+      "caveat": "Writing it down is not permission to build yet.",
+      "output": "",
+      "command": null,
+      "next": "{contentPrompt}\n\n1. Use the example\n2. Leave\n3. Discuss\n4. Back",
+      "nextAfterPlan": "Do Plan and Done look right?\n\n1. Yes\n2. No — change the plan\n3. Leave\n4. Discuss\n5. Back",
+      "nextAfterWorkPending": "Next I'll write the proposed work file and save its path.\n\n1. Leave\n2. Discuss\n3. Back"
+    },
+    {
+      "id": "start",
+      "number": 3,
+      "name": "Confirm & start",
+      "wired": true,
+      "where": "Step 3 of 7.",
+      "about": "You are about to approve this one work item and start it. After you say yes, the work moves from proposed to ready, then into progress on its own branch so the change stays reviewable and easy to undo. Owned files for this item: {ownedFiles}.",
+      "terms": [
+        "branch"
+      ],
+      "caveat": "Saying yes starts the work. This practice project stays on this machine — no GitHub push and no pull request.",
+      "output": "",
+      "command": "deft scope:promote -- {workItemPath}\ndeft scope:activate -- {workItemPath}\ngit switch -c {branch}",
+      "next": "Ready to confirm and start?\n\n1. Yes\n2. Leave\n3. Discuss\n4. Back"
+    },
+    {
+      "id": "change",
+      "number": 4,
+      "name": "Make the change",
+      "wired": true,
+      "where": "Step 4 of 7.",
+      "about": "Time to build. I will change only what this work owns so {name} does its one job with your content. Nothing else.",
+      "terms": [
+        "in-scope files"
+      ],
+      "caveat": "Do not add a second feature or a pull request. Only change {ownedFilesChange}.",
+      "output": "",
+      "command": "{testCommand}",
+      "next": "Ready for me to write the files and run the local test?\n\n1. Go\n2. Leave\n3. Discuss\n4. Back"
+    },
+    {
+      "id": "result",
+      "number": 5,
+      "name": "Prove it",
+      "wired": true,
+      "where": "Step 5 of 7.",
+      "about": "Now I will run Directive's acceptance check. It reads the acceptance sentence on the work file and reports whether the result matches.",
+      "terms": [
+        "check"
+      ],
+      "caveat": "A green local test only means your own test passed. The acceptance check is separate.",
+      "output": "",
+      "command": "deft verify:ac {activeWorkItemPath}",
+      "next": "Run the acceptance check?\n\n1. Go\n2. Leave\n3. Discuss\n4. Back",
+      "nextAfterCheckPass": "The acceptance check verified.\n\n1. Continue\n2. Leave\n3. Discuss\n4. Back",
+      "nextAfterCheckFail": "The acceptance check did not verify. Stay on this step, fix the mismatch, and run the same check again.\n\n1. Try again\n2. Leave\n3. Discuss\n4. Back"
+    },
+    {
+      "id": "close",
+      "number": 6,
+      "name": "Close",
+      "wired": true,
+      "where": "Step 6 of 7.",
+      "about": "Record acceptance proof on the work file, then mark the work finished only after the acceptance sentence was verified. Then the work list for this practice sitting is empty.",
+      "terms": [
+        "done"
+      ],
+      "caveat": "",
+      "output": "",
+      "command": "deft scope:stamp-evidence -- {activeWorkItemPath}\ndeft scope:complete -- {activeWorkItemPath} --non-delivery experiment_archived",
+      "next": "Complete the work item?\n\n1. Go\n2. Leave\n3. Discuss\n4. Back"
+    },
+    {
+      "id": "leave",
+      "number": 7,
+      "name": "Wrap up",
+      "wired": true,
+      "where": "Step 7 of 7 — Wrap up.",
+      "about": "You walked the same path a real project uses: write the plan down, start on a branch, build, check, and close. Real delivery also includes GitHub, review, and merge — not taught here. You can re-run this tutorial anytime.\n\nNext up: set up your real project.",
+      "terms": [],
+      "caveat": "This sitting does not publish the project or open a pull request.",
+      "output": "",
+      "command": null,
+      "next": "You are done with this tutorial."
+    }
+  ]
+}

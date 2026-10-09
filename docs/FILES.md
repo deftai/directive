@@ -148,6 +148,7 @@ content/skills/deft-directive-spec-reconstruct/
 content/skills/deft-directive-swarm/
 content/skills/deft-directive-sync/
 content/skills/deft-directive-triage/
+content/skills/deft-directive-tutorial/
 content/skills/deft-directive-write-skill/
 content/skills/deft-directive-xbrief/
 ```

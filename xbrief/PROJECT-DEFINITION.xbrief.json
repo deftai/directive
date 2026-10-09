@@ -23878,7 +23878,7 @@
         "unmanagedMaxLines": 168,
         "absoluteMaxBytes": 28100,
         "skillFrontmatterTier": "daily-core",
-        "skillFrontmatterMaxBytes": 2260
+        "skillFrontmatterMaxBytes": 2337
       },
       "productSignal": {
         "enabled": true,

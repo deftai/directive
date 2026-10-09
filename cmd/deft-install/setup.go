@@ -293,6 +293,18 @@ description: >-
 
 Read and follow: .deft/core/skills/deft-directive-sync/SKILL.md
 `
+	// agentsSkillDeftDirectiveTutorial is the thin pointer for .agents/skills/deft-directive-tutorial/SKILL.md.
+	agentsSkillDeftDirectiveTutorial = `---
+name: deft-directive-tutorial
+description: >-
+  Runs the Directive Tutorial inside the current session. Use after the person
+  first saves their Name, or when they ask to start, skip, resume, or re-run
+  the tutorial (Signal, Postcard, or Echo). Do NOT trigger on session:start
+  ceremony alone, triage:welcome, or a real product build.
+---
+
+Read and follow: .deft/core/skills/deft-directive-tutorial/SKILL.md
+`
 )
 
 // agentsMDManagedOpenPattern matches a deft managed-section OPEN marker for
@@ -2377,6 +2389,7 @@ func WriteAgentsSkills(w *Wizard, projectDir string) (bool, error) {
 		"deft", "deft-directive-setup", "deft-directive-build",
 		"deft-directive-review-cycle", "deft-directive-refinement", "deft-directive-swarm",
 		"deft-directive-interview", "deft-directive-pre-pr", "deft-directive-sync",
+		"deft-directive-tutorial",
 	}
 
 	// Check all skill files before deciding to skip.
@@ -2409,6 +2422,7 @@ func WriteAgentsSkills(w *Wizard, projectDir string) (bool, error) {
 		{"deft-directive-interview", agentsSkillDeftDirectiveInterview},
 		{"deft-directive-pre-pr", agentsSkillDeftDirectivePrePr},
 		{"deft-directive-sync", agentsSkillDeftDirectiveSync},
+		{"deft-directive-tutorial", agentsSkillDeftDirectiveTutorial},
 	}
 
 	for _, skill := range skills {

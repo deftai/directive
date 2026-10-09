@@ -5,6 +5,7 @@ import { join, posix } from "node:path";
 export const DAILY_CORE_SKILL_NAMES = [
   "deft-directive-setup",
   "deft-directive-sync",
+  "deft-directive-tutorial",
   "deft-directive-build",
   "deft-directive-pre-pr",
   "deft-directive-review-cycle",

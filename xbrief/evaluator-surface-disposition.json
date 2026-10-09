@@ -1,11 +1,10 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 5520,
+  "issue": 4981,
   "surfaces": [
-    "packages/core/src/evaluator-surface/evaluate.ts",
-    "packages/core/src/evaluator-surface/evaluate.test.ts",
+    "Taskfile.yml",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renewed disclosure for #5520 / PR #5527: typed deliveryBranch preferred before origin/HEAD / fixed main|master in resolveDefaultBaseRef. Disclosure only; not #3164 authorization."
+  "note": "Renewed disclosure for #4981 / PR #5464: Taskfile.yml includes tasks/tutorial.yml. Disclosure only; not #3164 authorization."
 }

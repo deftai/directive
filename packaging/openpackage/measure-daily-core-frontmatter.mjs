@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Spike #2370 acceptance: daily-core tier Cursor <agent_skill> frontmatter ≤ 2080 B.
+ * Spike #2370 / #4981 acceptance: daily-core Cursor <agent_skill> frontmatter ≤ deft-tiers budget.
  * Parses YAML frontmatter `description` fields in Cursor injection shape.
  */
 import { readFileSync, readdirSync } from "node:fs";

@@ -8,6 +8,6 @@ Cross-harness tiered skill packaging for Deft Directive consumer content ([#2462
 | `openpackage-tiers.mjs` | Shared load/resolve helpers used by `sync-skills.mjs` |
 | `deft-directive-skills/` | OpenPackage package (`openpackage.yml`, `skills/`, thin `AGENTS.md`) |
 | `sync-skills.mjs` | Copy `content/skills/` into the package before `opkg install` (default: daily-core tier) |
-| `measure-daily-core-frontmatter.mjs` | Spike acceptance: daily-core Cursor frontmatter ≤ 2080 B |
+| `measure-daily-core-frontmatter.mjs` | Spike acceptance: daily-core Cursor frontmatter ≤ budget in deft-tiers.json |
 
 Spike background: [`docs/analysis/2026-07-13-2370-packaging-cross-harness-spike.md`](../../docs/analysis/2026-07-13-2370-packaging-cross-harness-spike.md).

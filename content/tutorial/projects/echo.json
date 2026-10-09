@@ -1,0 +1,16 @@
+{
+  "id": "echo",
+  "title": "Echo",
+  "pitch": "A mini bot that answers one question with a reply you choose.",
+  "fields": {
+    "name": "Echo",
+    "contentExample": "Q: What is Directive? A: A step-by-step guide for building with AI.",
+    "contentPrompt": "Reply with a question and answer Echo should use — or using the example is fine.",
+    "workSentence": "Echo answers one question with this reply: {content}",
+    "acceptanceSentence": "asking the question returns exactly that reply: {content}",
+    "ownedFiles": "echo.mjs, echo.test.mjs, and package.json",
+    "ownedFilesChange": "echo.mjs, echo.test.mjs, and the test script in package.json",
+    "testCommand": "npm test",
+    "branch": "feat/echo-answers-one-question"
+  }
+}

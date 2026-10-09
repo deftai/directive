@@ -22,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **fix(tutorial): keep progress when practice cwd changes (#4981 / #5464).** Tutorial state stays next to personal USER.md prefs so sandbox practice commands do not lose the saved run. Tracking #4981.
+- **fix(tutorial): Greptile 4/5 — stamp evidence before close + refuse Back when completed (#4981).** Close runs `scope:stamp-evidence` before `scope:complete --non-delivery`; Back refuses after status is completed so finished progress cannot reopen. Tracking #4981.
+- **fix(tutorial): Greptile 4/5 — refuse Back past close + Discuss hatch alias (#4981).** Once close has run, Back stops at close (no rewind to prove/change with a missing check command); `I have questions` pauses like Discuss. Tracking #4981.
 - Path B activation for #5521 membership fence.
 - Record the completed work for #5479 after product PR #5530.
 - Record the completed work for #5526 after product PR #5528.
@@ -55,6 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Leftover-complete #5488 after product #5498.
 
 ### Added
+- **feat(guidance): Directive Tutorial after Name — Signal, Postcard, or Echo (Tracking #4981).** After Name is first saved, setup offers Start / Skip / Discuss / Back. Progress lives next to USER.md (`tutorial-state.json`). Shared seven steps read `content/tutorial/glossary.md`; project names live under `content/tutorial/projects/`. `deft tutorial:offer|start|inspect|advance|resume|skip|reset` (plus decline/defer aliases) drive the sitting in a disposable local sandbox. A failed check stays on prove-it. Reset clears progress without re-firing the automatic offer. Refs #4371.
 - **Design-critique later-arc closed-findings (#5489).** Later arcs on the same ticket no longer re-litigate findings the parent already closed: critics demote authorized restatements, and reopen needs evidence. Adjacent-polish hydra remainder deferred to #5493. Tracking #5489. Refs Prefer-A Bound 6065006497.
 
 ### Fixed
@@ -76,6 +80,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore: leftover-complete #5465 after Tracking PR #5468 (completed xBRIEF + #3675 Prefer-A residual).
 
 ### Fixed
+- **fix(tutorial): Greptile 4/5 — suppress verify:ac after close on Back (#4981).** Once close has run, Back to prove-it does not re-emit `verify:ac` against the moved work file. Tracking #4981.
+- **fix(tutorial): Greptile 4/5 — close Back nulling + literal field expansion (#4981).** Remember close already ran so Back from wrap-up does not re-emit `scope:complete`; expand `{slots}` only in authored project templates, not in learner content or paths. Tracking #4981.
+- **fix(tutorial): Greptile 4/5 — shell-safe path quoting + protect completed leave (#4981).** Quote practice paths for the host shell (POSIX single quotes; Windows double quotes); refuse `tutorial:leave` for every completed sitting (including wrap-up). Tracking #4981.
+- **fix(tutorial): Greptile 4/5 — put promote/activate/complete in shared beats (#4981).** Practice lifecycle commands live in `beats.json` (promote, activate, branch, verify, non-delivery complete) so close is visible without per-project command fields. Tracking #4981.
+- **fix(tutorial): Greptile 4/5 findings — accept displayed menu labels + lead with promote/activate (#4981).** Advance accepts the on-screen labels (Use the example, No — change the plan, Try again). Start commands promote and activate before creating the branch so practice work can close. Tracking #4981.
+- **fix(tutorial): Greptile P1 — Windows-safe link fixture for sandbox path compare (#4981).** Use a directory junction on Windows (or skip when links cannot be created) so the suite does not fail without symlink privilege. Tracking #4981.
+- **fix(tutorial): Greptile P1 — physical-path compare for sandbox Git roots (#4981).** Compare practice paths with `realpath` so macOS `/tmp` vs `/private/tmp` (and other directory links) are not refused as a foreign checkout. Tracking #4981.
+- **fix(tutorial): Greptile P1 — require a working Git root before accepting `.git` (#4981).** Do not treat a broken `.git` as a ready practice sandbox; init or refuse. Tracking #4981.
+- **fix(tutorial): Greptile P1s — sandbox post-create isolation + Back command nulling (#4981).** Re-check disposable isolation after materializing `--repo`, refuse nested foreign Git checkouts, refuse completed/bad `--project` before creating a sandbox, and teach the skill that null `command` means do not re-run promote/activate after Back. Tracking #4981.
+- **fix(tutorial): Greptile P1s — missing `--repo` sandbox + Back re-run of start commands (#4981).** Create/init a missing disposable `--repo` path (or refuse a non-directory); remember start lifecycle so Back from change does not re-emit promote/activate. Tracking #4981.
+- **fix(tutorial): address Greptile/SLizard P1s on practice paths, Back proof, and skill deposit (#4981).** Quote work-file paths in practice commands; rewrite Windows proposed/pending separators to active; clear check/completion on Back; add tutorial to daily-core frontmatter list and Go `.agents/skills` deposit. Tracking #4981.
+- **fix(tutorial): learner-copy polish for work-file prompt, step-1 Back, and wrap-up (#4981).** Work-file pending text drops `--work-item`; step 1 labels Back as not available yet; step 7 displays as Wrap up. Tracking #4981.
+- **fix(tutorial): returned-failure paths + trigger-case coverage (#4981).** Drop throw-sites for intent-constraint; add eval trigger cases for deft-directive-tutorial. Tracking #4981.
+- **fix(tutorial): clear stale plan on Back, non-delivery close, and census/budget (#4981).** Rewind or project change clears plan/work-file; practice `scope:complete` uses `--non-delivery experiment_archived`; Skills Index triggers, FILES census, RULE-MAP grouping, OpenPackage 7/27 counts, and skillFrontmatterMaxBytes 2337. Tracking #4981.
+- **fix(tutorial): review-cycle harden for install path, menus, and lifecycle (#4981).** Load deposited `tutorial/` via `contentRoot`; fill promote/activate and active work-file commands; require Discuss/Back; refuse completed restart / skip-graduate / in-tree sandboxes; renew evaluator-surface disclosure for `Taskfile.yml`. Tracking #4981.
 
 - **npm publish review residual (#5365):** map numeric prerelease ids (e.g. `v1.2.3-1`) to dist-tag `next`; run post-publish fixture from a prepare-built runner artifact downloaded into `packages/core` (no `source_sha` checkout + `pnpm install`, clears CodeQL cache-poisoning); strengthen contract tests for refusal `exit 1` and the artifact path. Tracking #5365.
 - **npm publish: Environment gate, SemVer tag hygiene, identity peel, and tarball-only OIDC job (#5365).** Workflow uses `environment: npm`, `v*.*.*` tags, master-ancestry tag peel, prepare-without-`id-token`, and same-run tarball publish; contract tests pin the shape. Operator forge evidence still required before merge: (1) create Environment `npm` with reviewers + Selected branches/tags including release tags; (2) bind trusted publisher for all four `@deftai/*` packages to that Environment; (3) add ruleset creation restriction on `refs/tags/v*` (named bypass only; incident recovery is deprecate/dist-tag while deletion stays blocked). YAML alone does not close. Tracking #5365. Refs Prefer-A Bound 6050330747.

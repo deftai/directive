@@ -291,6 +291,7 @@ export const CORE_MODULE_VERBS = [
   "decision-write",
   "decision-list",
   "docs-impact",
+  "tutorial",
   "migrate-clause-ids",
   "migrate-confidence",
 ] as const;
@@ -367,6 +368,24 @@ export const PLAN_SEQUENCE_ALIAS_SUBCOMMANDS: Readonly<Record<string, string>> =
 
 const PLAN_SEQUENCE_COLON_ALIASES = Object.fromEntries(
   Object.keys(PLAN_SEQUENCE_ALIAS_SUBCOMMANDS).map((alias) => [alias, "plan-sequence"]),
+) as Record<string, string>;
+
+/** Colon aliases for the Directive Tutorial (#4981). */
+export const TUTORIAL_ALIAS_SUBCOMMANDS: Readonly<Record<string, string>> = {
+  "tutorial:offer": "offer",
+  "tutorial:start": "start",
+  "tutorial:inspect": "inspect",
+  "tutorial:advance": "advance",
+  "tutorial:resume": "resume",
+  "tutorial:skip": "skip",
+  "tutorial:leave": "leave",
+  "tutorial:reset": "reset",
+  "tutorial:decline": "decline",
+  "tutorial:defer": "defer",
+};
+
+const TUTORIAL_COLON_ALIASES = Object.fromEntries(
+  Object.keys(TUTORIAL_ALIAS_SUBCOMMANDS).map((alias) => [alias, "tutorial"]),
 ) as Record<string, string>;
 
 /** Colon aliases for product-signal subcommands (#2693). */
@@ -491,6 +510,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "verify:session-ritual": "verify-session-ritual",
   "verify:plan-sequence": "verify-plan-sequence",
   ...PLAN_SEQUENCE_COLON_ALIASES,
+  ...TUTORIAL_COLON_ALIASES,
   "verify-strategy-output": "validate-strategy-output",
   "validate:strategy-output": "validate-strategy-output",
   "verify:codebase-map-fresh": "codebase-map-fresh",
@@ -3054,6 +3074,10 @@ async function loadCoreModuleHandler(verb: string, io: DispatchIo): Promise<Comm
       const { docsImpactMain } = await import("@deftai/directive-core/dist/docs/docs-impact.js");
       return (argv) => docsImpactMain(argv);
     }
+    case "tutorial": {
+      const { tutorialMain } = await import("@deftai/directive-core/dist/tutorial/cli.js");
+      return tutorialMain;
+    }
     case "migrate-clause-ids": {
       const { mainEntry } = await import(
         "@deftai/directive-core/dist/xbrief-migrate/clause-ids.js"
@@ -3402,6 +3426,7 @@ export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Pr
       verb !== undefined ? ESCALATION_ACTION_ALIAS_SUBCOMMANDS[verb] : undefined;
     const planSequenceSubcommand =
       verb !== undefined ? PLAN_SEQUENCE_ALIAS_SUBCOMMANDS[verb] : undefined;
+    const tutorialSubcommand = verb !== undefined ? TUTORIAL_ALIAS_SUBCOMMANDS[verb] : undefined;
     const productSignalSubcommand =
       verb !== undefined ? PRODUCT_SIGNAL_ALIAS_SUBCOMMANDS[verb] : undefined;
     const freshnessSubcommand = verb !== undefined ? FRESHNESS_ALIAS_SUBCOMMANDS[verb] : undefined;
@@ -3422,13 +3447,15 @@ export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Pr
                 ? [escalationSubcommand, ...rest]
                 : planSequenceSubcommand !== undefined && canonical === "plan-sequence"
                   ? [planSequenceSubcommand, ...rest]
-                  : productSignalSubcommand !== undefined && canonical === "product-signal"
-                    ? [productSignalSubcommand, ...rest]
-                    : freshnessSubcommand !== undefined && canonical === "freshness-report"
-                      ? [freshnessSubcommand, ...rest]
-                      : vbriefValidateSubcommand !== undefined
-                        ? [vbriefValidateSubcommand, ...rest]
-                        : rest;
+                  : tutorialSubcommand !== undefined && canonical === "tutorial"
+                    ? [tutorialSubcommand, ...rest]
+                    : productSignalSubcommand !== undefined && canonical === "product-signal"
+                      ? [productSignalSubcommand, ...rest]
+                      : freshnessSubcommand !== undefined && canonical === "freshness-report"
+                        ? [freshnessSubcommand, ...rest]
+                        : vbriefValidateSubcommand !== undefined
+                          ? [vbriefValidateSubcommand, ...rest]
+                          : rest;
     const helpRc = interceptHelp(canonical.replaceAll("-", "_"), handlerArgv, {
       write: io.writeOut,
     });

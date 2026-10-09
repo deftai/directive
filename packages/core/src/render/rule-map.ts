@@ -58,6 +58,7 @@ const GROUP_PURPOSE: Record<string, string> = {
   docs: "Explanatory docs and the framework glossary.",
   "ci-cd": "CI runner and pipeline guidance, loaded when migrating or configuring CI.",
   doctor: "Session doctor, ritual diagnostics, and host health.",
+  tutorial: "Guided first sitting after Name — Signal, Postcard, or Echo practice projects.",
 };
 
 /** Pack JSON arrays counted as compiled entries (#4095 named denominator). */
