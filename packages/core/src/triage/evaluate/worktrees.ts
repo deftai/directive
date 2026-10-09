@@ -47,15 +47,23 @@ function forceDeleteWorktreeDir(worktreePath: string): void {
 }
 
 const caseInsensitiveDirCache = new Map<string, boolean>();
+/** Test-only: force probe result (undefined = live probe / cache). */
+let caseInsensitiveDirOverride: boolean | undefined;
 
 /** Test-only: seed the probe cache (stale-true regression). */
 export function __testOnly_seedCaseInsensitiveDirCache(dir: string, ignores: boolean): void {
   caseInsensitiveDirCache.set(resolve(dir), ignores);
 }
 
+/** Test-only: force directoryIgnoresCase for sibling-gate / fold regressions. */
+export function __testOnly_setDirectoryIgnoresCaseOverride(value: boolean | undefined): void {
+  caseInsensitiveDirOverride = value;
+}
+
 /** Test-only: clear the probe cache between cases. */
 export function __testOnly_clearCaseInsensitiveDirCache(): void {
   caseInsensitiveDirCache.clear();
+  caseInsensitiveDirOverride = undefined;
 }
 
 function slashResolve(path: string): string {
@@ -63,6 +71,9 @@ function slashResolve(path: string): string {
 }
 
 function directoryIgnoresCase(dir: string, options?: { readonly bypassCache?: boolean }): boolean {
+  if (caseInsensitiveDirOverride !== undefined) {
+    return caseInsensitiveDirOverride;
+  }
   let existing = resolve(dir);
   while (!existsSync(existing)) {
     const parent = dirname(existing);
@@ -217,10 +228,10 @@ function pruneEvaluatorWorktreeAdmin(
     if (
       existsSync(recordedWorktree) &&
       recordedBase !== targetBase &&
-      recordedBase.toLowerCase() === targetBase.toLowerCase() &&
-      !directoryIgnoresCase(dirname(resolve(recordedWorktree)), { bypassCache: true })
+      recordedBase.toLowerCase() === targetBase.toLowerCase()
     ) {
-      // Recorded worktree still on disk as a case-distinct sibling — never unregister (#5519).
+      // Recorded worktree still on disk as a case-distinct sibling — never unregister,
+      // even when a probe/cache would fold (#5519 Bound).
       continue;
     }
     if (worktreePathsReferToSame(recordedWorktree, worktreePath)) {
