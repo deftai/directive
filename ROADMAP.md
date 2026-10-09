@@ -5,6 +5,10 @@
 
 # Roadmap
 
+## Active
+
+- **#4981** -- Directive Tutorial — first-run menu, preferences progress, shared beats -- `[running]`
+
 ## Proposed
 
 _Scopes not yet promoted to pending. Orientation only — not a substitute for `task triage:queue`._
@@ -30,11 +34,18 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 - **#1299** -- When to use CRUD tool vs direct vBRIEF authoring (contributor doc) -- `[proposed]`
 - **#2651** -- ADR-002: Forge-provider Azure DevOps adoption gate (proposed) -- `[proposed]`
 - **#3014** -- research(deposit): opt-in minimal consumer AGENTS profile for app-bank / greenfield -- `[proposed]`
+- **#4888** -- Semantic policy conflicts stay invisible until task check -- `[proposed]`
+- **#4892** -- Managed card cites ADR-003 but docs/decisions never ships -- `[proposed]`
+- **#4961** -- feat(setup): seed PROJECT-DEFINITION from a design document (--from / --answers) instead of interview-only -- `[proposed]`
 
 ## Completed
 
-_Showing 25 of 1786 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1790 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#5521** -- Pinned AGENTS rule names deft scm:body:* but the verbs are Taskfile-only; unknown-verb hint recommends the failing form; no rule-to-verb parity check -- `[completed]`
+- **#5526** -- bug(release): v0.124.0 Windows Step 5 hang under 60m at ts:check-lane (cursor deft_run_resolver.test.ts) -- `[completed]`
+- **#5479** -- BLOCKER: generated project registry refresh requires coverage in a design-only consumer -- `[completed]`
+- **#5520** -- Lifecycle gates fall back to hardcoded master/main instead of plan.policy.deliveryBranch -- `[completed]`
 - **#5519** -- fix(triage): worktrees-probe case-fold sibling unregister flake recurred on 0.124.0 tip (post-#5460) -- `[completed]`
 - **#5492** -- docs(design-critique,windows): name CreateProcess argv ceiling for Claude critic pointer spawn -- `[completed]`
 - **#5478** -- bug(design-critique,windows): Claude critic seat hangs 0-byte after launch-probe pong-ok (pointer envelope) -- `[completed]`
@@ -56,8 +67,4 @@ _Showing 25 of 1786 completed scopes (newest first). Full history: lifecycle `co
 - **#5403** -- Multi-active write fence poisoned by already-merged actives that cannot scope:complete under #3284 acceptance.commands -- `[completed]`
 - **#5195** -- [framework-gap] bug(content): consumer debug skill names an absent investigation template -- `[completed]`
 - **#5386** -- Write fence: stale DEFT_ACTIVE_SCOPE naming an absent brief denies every write, with misleading recovery -- `[completed]`
-- **#5384** -- deft-core-guard: pnpm snapshot parser folds inline '{}' entries into the previous key, false-rejecting pin-only Directive upgrades -- `[completed]`
-- **#5415** -- fix(design-critique): presence-only ## In plain English gate before ingest-ready (#5415) -- `[completed]`
-- **#5422** -- [framework-gap] BLOCKER 0.121.0 still fail-closes Visage historical x-xbrief/* types and clause:N ids; consumer pinned at 0.119.2 since 0.119.3 -- `[completed]`
-- **#5412** -- bug(scope): live discovery must not bind pending planning transitions as active (#5412) -- `[completed]`
 

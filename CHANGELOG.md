@@ -15,6 +15,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [0.125.0] - 2026-10-09
+
+> Cohort ship: deliveryBranch lifecycle wiring, scm:body CLI aliases + rule-to-verb parity, Greptile floor 4, Path B activations, unpaid skip-ci seam for Windows Step 5 hang.
+
+### Added
 - **scm:body:* CLI aliases + rule-to-verb parity (#5521).** Registers eight `deft scm:body:*` colon aliases onto the github-body engine, stops unknown-verb hints from re-suggesting the failing spelling, and wires `verify:rule-to-verb-parity` into `deft check` / `check:framework-source` (uncached deps too). Deferred/stubbed top-level verbs and unknown named family globs fail closed. Tracking #5521.
 
 ### Changed
@@ -7084,7 +7096,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.124.0...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.125.0...HEAD
+[0.125.0]: https://github.com/deftai/directive/compare/v0.124.0...v0.125.0
 [0.124.0]: https://github.com/deftai/directive/compare/v0.123.0...v0.124.0
 [0.123.0]: https://github.com/deftai/directive/compare/v0.122.0...v0.123.0
 [0.122.0]: https://github.com/deftai/directive/compare/v0.121.0...v0.122.0
