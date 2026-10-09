@@ -309,22 +309,6 @@ export function planSyncDefault(options: {
     prBase: guessedDest,
     runGit,
   });
-  if (policy.error !== null) {
-    const resolvedEarly = resolveSyncMaxFiles(options.projectRoot, options.maxFiles);
-    return {
-      action: "noop",
-      noopReason: "fetch-failed",
-      dest: policy.dest,
-      source: policy.source,
-      threshold: resolvedEarly.maxFiles,
-      provenance: resolvedEarly.provenance,
-      totalCount: null,
-      legs: [],
-      nextLegIndex: null,
-      detectorReason: "invalid-branch",
-      message: `scm:sync-default: ${policy.error}`,
-    };
-  }
   const dest = policy.dest;
   const source = policy.source;
   const fetchedDest = runGit(options.projectRoot, ["fetch", "--quiet", "origin", dest]);

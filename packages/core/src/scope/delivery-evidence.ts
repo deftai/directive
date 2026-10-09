@@ -10,7 +10,7 @@
  */
 
 import { closerSetFromIssueIds } from "../one-pr-unit/closer-set.js";
-import { resolveDeliveryBranch, trackingFetchArgv } from "../policy/delivery-branch.js";
+import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
 import { defaultRunGh } from "../pr-protected-issues/gh.js";
 import type { RunGhFn, RunGhResult } from "../pr-protected-issues/types.js";
 import { defaultGitRunner, type GitRunner, gitIsAncestor } from "../session/git.js";
@@ -661,15 +661,7 @@ export function refreshRemoteDeliveryRef(
   runGit: GitRunner = defaultGitRunner,
 ): { ok: boolean; error: string | null; remoteRef: string } {
   const remoteRef = remoteDeliveryRef(deliveryBranch);
-  const fetchArgv = trackingFetchArgv("origin", deliveryBranch);
-  if (!fetchArgv.ok) {
-    return {
-      ok: false,
-      error: fetchArgv.error,
-      remoteRef,
-    };
-  }
-  const fetch = runGit(projectRoot, fetchArgv.argv);
+  const fetch = runGit(projectRoot, ["fetch", "origin", deliveryBranch]);
   if (fetch.code !== 0) {
     return {
       ok: false,

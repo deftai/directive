@@ -1054,14 +1054,17 @@ export function finalizeOwed(args: FinalizeOwedArgs = {}): {
     args.deliveryBranch.trim().length > 0
       ? args.deliveryBranch.trim()
       : null;
-  if (cliBranch === null && policyDelivery.error !== null && policyDelivery.error.length > 0) {
+  // Hard refuse only when the branch is empty (typed unsafe name). Soft errors
+  // such as missing PROJECT-DEFINITION with a usable git-default / fallback
+  // branch must still proceed (#5364 Greptile P1; same pattern as generation-gate).
+  if (cliBranch === null && policyDelivery.branch.length === 0) {
     return respondFinalizeOwed({
-      delivery_branch: policyDelivery.branch,
+      delivery_branch: "",
       tip: null,
       stories: [],
       finalized: [],
       skipped: [],
-      errors: [policyDelivery.error],
+      errors: [policyDelivery.error ?? "delivery branch refused"],
       warnings: [],
       fetch_error: null,
       ok: false,
