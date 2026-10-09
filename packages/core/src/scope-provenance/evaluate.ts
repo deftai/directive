@@ -180,11 +180,7 @@ export function resolveDefaultBaseRef(projectRoot: string): string | null {
     const result = git([...args], root);
     return { code: result.status, stdout: result.stdout, stderr: "" };
   });
-  if (
-    delivery.source === "typed" &&
-    delivery.error === null &&
-    delivery.branch.trim().length > 0
-  ) {
+  if (delivery.source === "typed" && delivery.error === null && delivery.branch.trim().length > 0) {
     deliveryCandidates.push(`origin/${delivery.branch}`, delivery.branch);
   }
   for (const cand of [

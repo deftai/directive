@@ -13,6 +13,7 @@
  */
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
+import { resolveDeliveryBranch } from "@deftai/directive-core/policy";
 import {
   DEFAULT_BRANCHES,
   evaluateCommand,
@@ -20,7 +21,6 @@ import {
   parsePrePushStdin,
   runSelfTest,
 } from "@deftai/directive-core/preflight";
-import { resolveDeliveryBranch } from "@deftai/directive-core/policy";
 
 interface ParsedArgs {
   mode?: "self-test" | "command" | "pre-push-stdin";
@@ -39,11 +39,7 @@ export function enrichBranchesWithTypedDelivery(
   const next = new Set(branches);
   if (projectRoot === undefined || projectRoot.length === 0) return next;
   const delivery = resolveDeliveryBranch(projectRoot);
-  if (
-    delivery.source === "typed" &&
-    delivery.error === null &&
-    delivery.branch.trim().length > 0
-  ) {
+  if (delivery.source === "typed" && delivery.error === null && delivery.branch.trim().length > 0) {
     next.add(delivery.branch);
   }
   return next;

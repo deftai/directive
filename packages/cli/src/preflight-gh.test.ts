@@ -2,8 +2,8 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Readable } from "node:stream";
-import { afterEach, describe, expect, it } from "vitest";
 import { DEFAULT_BRANCHES } from "@deftai/directive-core/preflight";
+import { afterEach, describe, expect, it } from "vitest";
 import { enrichBranchesWithTypedDelivery, parseArgs, run } from "./preflight-gh.js";
 
 const ZERO = "0000000000000000000000000000000000000000";

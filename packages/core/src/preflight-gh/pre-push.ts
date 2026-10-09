@@ -94,11 +94,7 @@ export function unionTypedDeliveryBranches(
 ): ReadonlySet<string> {
   if (projectRoot === undefined || projectRoot.length === 0) return branches;
   const delivery = resolveDeliveryBranch(projectRoot);
-  if (
-    delivery.source === "typed" &&
-    delivery.error === null &&
-    delivery.branch.trim().length > 0
-  ) {
+  if (delivery.source === "typed" && delivery.error === null && delivery.branch.trim().length > 0) {
     const next = new Set(branches);
     next.add(delivery.branch);
     return next;

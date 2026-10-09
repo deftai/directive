@@ -76,11 +76,7 @@ export function resolveDefaultBaseRef(
     const stdout = runGit([...args]);
     return { code: stdout === null ? 1 : 0, stdout: stdout ?? "", stderr: "" };
   });
-  if (
-    delivery.source === "typed" &&
-    delivery.error === null &&
-    delivery.branch.trim().length > 0
-  ) {
+  if (delivery.source === "typed" && delivery.error === null && delivery.branch.trim().length > 0) {
     for (const candidate of [`origin/${delivery.branch}`, delivery.branch] as const) {
       const ok = runGit(["rev-parse", "--verify", `${candidate}^{commit}`]);
       if (ok !== null) return candidate;

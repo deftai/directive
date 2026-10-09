@@ -1,11 +1,11 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 5194,
+  "issue": 5520,
   "surfaces": [
-    "packages/core/src/intent-constraint/extract.ts",
-    "packages/core/src/intent-constraint/extract.test.ts",
+    "packages/core/src/evaluator-surface/evaluate.ts",
+    "packages/core/src/evaluator-surface/evaluate.test.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renewed disclosure for #5194 / PR #5447: engine-relative TypeScript loader + cold parser-cache test helper. Disclosure only; not #3164 authorization."
+  "note": "Renewed disclosure for #5520 / PR #5527: typed deliveryBranch preferred before origin/HEAD / fixed main|master in resolveDefaultBaseRef. Disclosure only; not #3164 authorization."
 }

@@ -158,9 +158,7 @@ describe("evaluatePrePush stdin policy fixtures", () => {
   it("refuses stdin push to develop when typed deliveryBranch=develop (#5520)", () => {
     const r = tempRoot();
     writePd(r, { deliveryBranch: "develop", allowDestructiveGhVerbs: false });
-    const refs = parsePrePushStdin(
-      `refs/heads/feat/x ${LIVE} refs/heads/develop ${LIVE}`,
-    );
+    const refs = parsePrePushStdin(`refs/heads/feat/x ${LIVE} refs/heads/develop ${LIVE}`);
     const [code, msg] = evaluatePrePush(refs, {
       projectRoot: r,
       branches: new Set(DEFAULT_BRANCHES),
@@ -172,9 +170,7 @@ describe("evaluatePrePush stdin policy fixtures", () => {
   it("allows develop push when policy omits deliveryBranch (#5520)", () => {
     const r = tempRoot();
     writePd(r, { allowDestructiveGhVerbs: false });
-    const refs = parsePrePushStdin(
-      `refs/heads/feat/x ${LIVE} refs/heads/develop ${LIVE}`,
-    );
+    const refs = parsePrePushStdin(`refs/heads/feat/x ${LIVE} refs/heads/develop ${LIVE}`);
     expect(evaluatePrePush(refs, { projectRoot: r })[0]).toBe(0);
   });
 

@@ -296,9 +296,7 @@ describe("typed deliveryBranch protection (#5520)", () => {
       allowDirectCommitsToMaster: false,
       deliveryBranch: "develop",
     });
-    expect(evaluate(r, { branchOverride: { branch: "master", detached: false } }).exitCode).toBe(
-      1,
-    );
+    expect(evaluate(r, { branchOverride: { branch: "master", detached: false } }).exitCode).toBe(1);
   });
 
   it("does not protect develop when policy omits deliveryBranch", () => {
