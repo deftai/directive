@@ -20,6 +20,15 @@ export const FAILURE_SIGNAL_TAIL_LINES = 80;
 /** In-memory diagnostic capture; the tee still holds the full stream. */
 export const SUITE_CAPTURE_MAX_BYTES = 256 * 1024;
 
+/**
+ * #5526 Prefer-A Bound: host-versus-suite partition and green-path recovery are
+ * bindable tee path+hash artifacts. A preserved incident tee is precondition
+ * evidence only — not recovery proof, and not a suite-stamp skip. Leave honest
+ * discharge to leftover / operator; do not scope:complete while deferred.
+ */
+export const SUITE_PARTITION_RECOVERY_DEFERRED_NOTE =
+  "host-versus-suite partition and green-path recovery for #5526 remain deferred measurement artifacts (path+hash); do not scope:complete while deferred";
+
 export interface BoundedCapture {
   chunks: Buffer[];
   size: number;

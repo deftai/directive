@@ -39,7 +39,12 @@ export const RELEASE_PREFLIGHT_ENV = "DEFT_RELEASE_PREFLIGHT";
 /** Set only by release Step-5 preflight when --allow-coverage-debt=#N is supplied (#2573). */
 export const COVERAGE_DEBT_ENV = "DEFT_ALLOW_COVERAGE_DEBT";
 
-/** Hard wall-clock cap for release Step 5 `task check` / vitest (#2652 / #5022 / #5024 / #5091). */
+/**
+ * Hard wall-clock cap for release Step 5 `task check` / vitest
+ * (#2652 / #5022 / #5024 / #5091). Prefer-A Bound #5526 / #5239 refuse a casual
+ * numeric raise; change only via tracked gate + intent-constraint mint with
+ * comparable full-path evidence.
+ */
 export const RELEASE_CHECK_TIMEOUT_MS = 60 * 60 * 1000;
 export const RELEASE_CHECK_TIMEOUT_MINUTES = RELEASE_CHECK_TIMEOUT_MS / (60 * 1000);
 
@@ -103,7 +108,7 @@ export const RELEASE_HELP =
   "  --allow-unpaid-skip-ci #N\n" +
   "                        Distinct override when --allow-skip-ci=#N is unpaid\n" +
   "                        (OPEN/UNKNOWN issue or CHANGELOG spend-record reuse;\n" +
-  "                        #5239). Must cite the same issue number.\n" +
+  "                        #5239 / #5526). Must cite the same issue number.\n" +
   "  --skip-build          Skip Step 8 (task build). Used by `task release:e2e`\n" +
   "                        to keep wall-clock manageable; build artefacts are not\n" +
   "                        needed for the draft-release verification step.\n" +

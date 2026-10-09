@@ -108,9 +108,22 @@ export type SkipCiUnpaidLedgerGate =
   | { readonly kind: "invalid"; readonly reason: string };
 
 /**
- * Refuse unpaid `--allow-skip-ci=#N` citations (#5239 R3 + S1).
+ * Documented one-cut hatch for OPEN incident #5526 (v0.124.0 production cut).
+ * Prefer-A Bound does not grant operator override consent. Later
+ * `--allow-skip-ci=5526` stays unpaid (OPEN/UNKNOWN or CHANGELOG spend-record)
+ * unless a distinct `--allow-unpaid-skip-ci=5526` matches (#5239 / #5526).
+ */
+export const SKIP_CI_UNPAID_HATCH_5526 = {
+  allowSkipCiIssue: 5526,
+  allowUnpaidSkipCiIssue: 5526,
+  argv: ["--skip-ci", "--allow-skip-ci=5526", "--allow-unpaid-skip-ci=5526"],
+} as const;
+
+/**
+ * Refuse unpaid `--allow-skip-ci=#N` citations (#5239 R3 + S1; #5526 recurrence).
  * OPEN/UNKNOWN issue state or a prior CHANGELOG spend marker counts as unpaid
- * unless `--allow-unpaid-skip-ci=#N` matches the same issue.
+ * unless `--allow-unpaid-skip-ci=#N` matches the same issue. Do not invent a
+ * second unpaid ledger — reuse this seam + the CHANGELOG spend-record citation.
  */
 export function validateSkipCiUnpaidLedger(options: {
   readonly skipCi: boolean;
@@ -141,7 +154,7 @@ export function validateSkipCiUnpaidLedger(options: {
     reason:
       `production --allow-skip-ci=#${options.allowSkipCiIssue} is unpaid (${detail}). ` +
       `Pass --allow-unpaid-skip-ci=#${options.allowSkipCiIssue} for a distinct explicit override, ` +
-      `or cut with a green Step 5 (no --skip-ci) (#5239).`,
+      `or cut with a green Step 5 (no --skip-ci) (#5239 / #5526).`,
   };
 }
 

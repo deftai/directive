@@ -171,7 +171,21 @@ describe("named-cause gate failures (#3282)", () => {
     expect(cause).not.toContain("deliberately-bad");
   });
 
-  it("remedies suite-lane exit 124 with cheapen-first deliberate-raise path (#5024 / #5239)", () => {
+  it("keeps deft_run_resolver.test.ts as cursor only, not the hung unit (#5526)", () => {
+    const cause = extractGateCause(
+      "ts:check-lane last-file packages/core/src/content-contracts/standards/deft_run_resolver.test.ts (1800/2060 files)\n",
+      "",
+      124,
+      undefined,
+      "ts:check-lane",
+    );
+    expect(cause).toMatch(/hang detector timeout/i);
+    expect(cause).toMatch(/cursor only/i);
+    expect(cause).toContain("deft_run_resolver.test.ts");
+    expect(cause).not.toMatch(/hung unit/i);
+  });
+
+  it("remedies suite-lane exit 124 with cheapen-first deliberate-raise path (#5024 / #5239 / #5526)", () => {
     const msg = formatNamedCauseFailure({
       gateId: "ts:check-lane",
       exitCode: 124,
@@ -179,10 +193,13 @@ describe("named-cause gate failures (#3282)", () => {
       stderr: "",
     });
     expect(msg.cause).toMatch(/hang detector timeout/i);
-    expect(msg.remedy).toMatch(/throughput shortfall/i);
+    expect(msg.remedy).toMatch(/deadline exhaustion/i);
+    expect(msg.remedy).toMatch(/throughput shortfall suspected from prior class/i);
     expect(msg.remedy).toMatch(/cursor/i);
     expect(msg.remedy).toMatch(/cheapen remaining Windows Step 5 vitest wall-clock first/i);
+    expect(msg.remedy).toMatch(/host-versus-suite partition/i);
     expect(msg.remedy).toMatch(/raise RELEASE_CHECK_TIMEOUT_MS only via tracked gate change/);
+    expect(msg.remedy).toMatch(/do not resurrect host --coverage under Step 5/);
     expect(msg.remedy).not.toMatch(/do not raise RELEASE_CHECK_TIMEOUT_MS/);
     expect(msg.cause).not.toContain("deliberately-bad");
   });
@@ -195,6 +212,7 @@ describe("named-cause gate failures (#3282)", () => {
     expect(remedy).toMatch(/Investigate the timed-out gate/i);
     expect(remedy).not.toMatch(/throughput shortfall/i);
     expect(remedy).not.toMatch(/Windows Step 5/i);
+    expect(remedy).not.toMatch(/host --coverage/);
   });
 
   it("does not treat every exit 124 as hang detector (#4744 P2)", () => {

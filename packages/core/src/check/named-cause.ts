@@ -354,7 +354,8 @@ function extractHangDetectorCause(
     hangTimeout === true || SUITE_HANG_DETECTOR_GATES.has(gateHint) || lastFile !== null;
   if (!hangPath) return null;
   if (lastFile !== null) {
-    // Last-file is a progress cursor only — not the hung unit (#5239).
+    // Last-file is a progress cursor only — not the hung unit (#5239 / #5526).
+    // Do not bind deft_run_resolver.test.ts (or any last-completed file) as hung.
     return `hang detector timeout (exit 124); last completed test file (cursor only): ${lastFile}`;
   }
   return "hang detector timeout (exit 124); last completed test file unknown";
@@ -363,9 +364,11 @@ function extractHangDetectorCause(
 export function remedyForGate(gateId: string, cause: string): string {
   if (/hang detector timeout/i.test(cause)) {
     // Throughput/cheapen wording is for measured Step 5 suite-lane hangs only
-    // (#5239); other exit-124 gates keep a generic hang remedy.
+    // (#5239 / #5526); other exit-124 gates keep a generic hang remedy.
+    // Prefer-A keep-outs: no last-file-as-hung-unit, no host --coverage under
+    // Step 5 (#5026), no casual RELEASE_CHECK_TIMEOUT_MS raise.
     if (SUITE_HANG_DETECTOR_GATES.has(gateId)) {
-      return "Treat this suite-lane exit 124 as a throughput shortfall under the hang detector (last-file is a cursor, not the hung unit); cheapen remaining Windows Step 5 vitest wall-clock first; raise RELEASE_CHECK_TIMEOUT_MS only via tracked gate change + intent-constraint mint";
+      return "Step 5 deadline exhaustion; throughput shortfall suspected from prior class (last-file is a cursor, not the hung unit); cheapen remaining Windows Step 5 vitest wall-clock first after host-versus-suite partition evidence; raise RELEASE_CHECK_TIMEOUT_MS only via tracked gate change + intent-constraint mint; do not resurrect host --coverage under Step 5 (#5526 / #5239 / #5026)";
     }
     return "Investigate the timed-out gate under the hang detector (last-file is a cursor when present, not necessarily the hung unit); fix or cheapen that gate before raising RELEASE_CHECK_TIMEOUT_MS via tracked gate change + intent-constraint mint";
   }
