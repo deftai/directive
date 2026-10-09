@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "fix(triage): worktrees-probe case-fold sibling unregister flake recurred on 0.124.0 tip (post-#5460)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Harden evaluator worktree prune so a stale or failed case-sensitivity signal cannot unregister a case-distinct sibling admin entry (0.124.0 tip flake recurrence after #5460).",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5519",
@@ -21,8 +21,20 @@
         "narrative": {
           "Acceptance": "pruneEvaluatorWorktreeAdmin in packages/core/src/triage/evaluate/worktrees.ts refuses to delete an admin entry whose recorded worktree still exists with a case-distinct realpath from the removal target."
         },
-        "status": "pending",
-        "x-directive/artifact_path": "packages/core/src/triage/evaluate/worktrees.ts"
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/triage/evaluate/worktrees.ts",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5524 squash-merge (Tracking #5519). Bound limbs shipped on tip; scope:complete refused Delivery identity join (#3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5524",
+            "mintedAt": "2026-10-09T16:06:36.025Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-09T16:06:36.025Z"
+        }
       },
       {
         "id": "clause.2",
@@ -30,8 +42,20 @@
         "narrative": {
           "Acceptance": "canonicalizeWorktreePath in packages/core/src/triage/evaluate/worktrees.ts does not lowercase a missing leaf from a stale true caseInsensitiveDirCache entry."
         },
-        "status": "pending",
-        "x-directive/artifact_path": "packages/core/src/triage/evaluate/worktrees.ts"
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/triage/evaluate/worktrees.ts",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5524 squash-merge (Tracking #5519). Bound limbs shipped on tip; scope:complete refused Delivery identity join (#3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5524",
+            "mintedAt": "2026-10-09T16:06:36.025Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-09T16:06:36.025Z"
+        }
       },
       {
         "id": "clause.3",
@@ -39,8 +63,20 @@
         "narrative": {
           "Acceptance": "pnpm exec vitest run packages/core/src/triage/evaluate/worktrees-probe.test.ts packages/core/src/triage/evaluate/worktrees.test.ts exits 0 with coverage that aaa survives under denied probe plus stale true cache."
         },
-        "status": "pending",
-        "x-directive/artifact_path": "packages/core/src/triage/evaluate/worktrees-probe.test.ts"
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/triage/evaluate/worktrees-probe.test.ts",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5524 squash-merge (Tracking #5519). Bound limbs shipped on tip; scope:complete refused Delivery identity join (#3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5524",
+            "mintedAt": "2026-10-09T16:06:36.025Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-09T16:06:36.025Z"
+        }
       },
       {
         "id": "clause.4",
@@ -48,8 +84,20 @@
         "narrative": {
           "Acceptance": "CHANGELOG.md [Unreleased] Fixed records the #5519 worktrees-probe case-fold sibling harden."
         },
-        "status": "pending",
-        "x-directive/artifact_path": "CHANGELOG.md"
+        "status": "completed",
+        "x-directive/artifact_path": "CHANGELOG.md",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5524 squash-merge (Tracking #5519). Bound limbs shipped on tip; scope:complete refused Delivery identity join (#3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5524",
+            "mintedAt": "2026-10-09T16:06:36.025Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-09T16:06:36.025Z"
+        }
       }
     ],
     "tags": [
@@ -137,7 +185,13 @@
         "github_issue_id": 5779002861,
         "origin": "deftai/directive#5519",
         "id": "github.issue.5779002861"
-      }
+      },
+      "productPullRequest": 5524,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-09T16:06:36.025Z"
+      },
+      "completedAt": "2026-10-09T16:06:36.025Z"
     },
     "acceptance": {
       "commands": [],
@@ -187,6 +241,6 @@
       ]
     },
     "id": "github.issue.5779002861",
-    "updated": "2026-10-09T13:42:49Z"
+    "updated": "2026-10-09T16:06:36.025Z"
   }
 }

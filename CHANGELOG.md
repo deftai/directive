@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Leftover-complete #5519 after product #5524.
 - Removing an evaluator worktree no longer risks unregistering another worktree whose name differs only by case. This also protects the other worktree when a cached filesystem check is stale (#5519).
 - Keep active #5519 Path B activation (worktrees-probe membership fence).
 - Record approved scope for #5519 so the planned worktrees-probe case-fold fix can pass scope checks (mint only; product fix not shipped).
