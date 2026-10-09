@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5526",
-    "updated": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js"
+    "updated": "2026-10-09T21:09:20.000Z"
   },
   "plan": {
     "title": "bug(release): v0.124.0 Windows Step 5 hang under 60m at ts:check-lane (cursor deft_run_resolver.test.ts)",
@@ -29,10 +29,10 @@
             "kind": "operator-session",
             "actor": "Scott",
             "eventRef": "leftover-complete-after-5528",
-            "mintedAt": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js",
+            "mintedAt": "2026-10-09T21:09:20.000Z",
             "mintedVia": "parent-retained-closer"
           },
-          "recorded_at": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js"
+          "recorded_at": "2026-10-09T21:09:20.000Z"
         }
       },
       {
@@ -50,10 +50,10 @@
             "kind": "operator-session",
             "actor": "Scott",
             "eventRef": "leftover-deferred-to-5537",
-            "mintedAt": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js",
+            "mintedAt": "2026-10-09T21:09:20.000Z",
             "mintedVia": "parent-retained-closer"
           },
-          "recorded_at": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js"
+          "recorded_at": "2026-10-09T21:09:20.000Z"
         }
       },
       {
@@ -71,10 +71,10 @@
             "kind": "operator-session",
             "actor": "Scott",
             "eventRef": "leftover-deferred-to-5537",
-            "mintedAt": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js",
+            "mintedAt": "2026-10-09T21:09:20.000Z",
             "mintedVia": "parent-retained-closer"
           },
-          "recorded_at": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js"
+          "recorded_at": "2026-10-09T21:09:20.000Z"
         }
       },
       {
@@ -92,10 +92,10 @@
             "kind": "operator-session",
             "actor": "Scott",
             "eventRef": "leftover-deferred-to-5537",
-            "mintedAt": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js",
+            "mintedAt": "2026-10-09T21:09:20.000Z",
             "mintedVia": "parent-retained-closer"
           },
-          "recorded_at": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js"
+          "recorded_at": "2026-10-09T21:09:20.000Z"
         }
       },
       {
@@ -113,10 +113,10 @@
             "kind": "operator-session",
             "actor": "Scott",
             "eventRef": "leftover-complete-after-5528",
-            "mintedAt": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js",
+            "mintedAt": "2026-10-09T21:09:20.000Z",
             "mintedVia": "parent-retained-closer"
           },
-          "recorded_at": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js"
+          "recorded_at": "2026-10-09T21:09:20.000Z"
         }
       },
       {
@@ -134,10 +134,10 @@
             "kind": "operator-session",
             "actor": "Scott",
             "eventRef": "leftover-complete-after-5528",
-            "mintedAt": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js",
+            "mintedAt": "2026-10-09T21:09:20.000Z",
             "mintedVia": "parent-retained-closer"
           },
-          "recorded_at": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js"
+          "recorded_at": "2026-10-09T21:09:20.000Z"
         }
       },
       {
@@ -155,10 +155,10 @@
             "kind": "operator-session",
             "actor": "Scott",
             "eventRef": "leftover-complete-after-5528",
-            "mintedAt": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js",
+            "mintedAt": "2026-10-09T21:09:20.000Z",
             "mintedVia": "parent-retained-closer"
           },
-          "recorded_at": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js"
+          "recorded_at": "2026-10-09T21:09:20.000Z"
         }
       },
       {
@@ -176,10 +176,10 @@
             "kind": "operator-session",
             "actor": "Scott",
             "eventRef": "leftover-complete-after-5528",
-            "mintedAt": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js",
+            "mintedAt": "2026-10-09T21:09:20.000Z",
             "mintedVia": "parent-retained-closer"
           },
-          "recorded_at": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js"
+          "recorded_at": "2026-10-09T21:09:20.000Z"
         }
       }
     ],
@@ -205,7 +205,7 @@
       },
       {
         "uri": "https://github.com/deftai/directive/issues/5537",
-        "type": "x-xbrief/github-issue",
+        "type": "x-xbrief/related-issue",
         "title": "Issue #5537: leftover deferred partition/recovery measurement from #5526"
       }
     ],
@@ -330,10 +330,10 @@
       "productPullRequest": 5528,
       "lifecycleWrite": {
         "action": "complete",
-        "writtenAt": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js"
+        "writtenAt": "2026-10-09T21:09:20.000Z"
       }
     },
     "id": "github.issue.5782582788",
-    "updated": "C:\\Users\\msada\\AppData\\Local\\Temp\\stamp-5526-deferred.js"
+    "updated": "2026-10-09T21:09:20.000Z"
   }
 }
