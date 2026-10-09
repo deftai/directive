@@ -2,6 +2,7 @@
  * Origin-resident active brief probe (#4714 R2 lite).
  * swarm:launch / finalize require the selected active path on fetched delivery tip.
  */
+import { trackingFetchArgv } from "../policy/delivery-branch.js";
 import type { runText } from "./subprocess.js";
 
 export interface OriginActiveBriefResult {
@@ -17,7 +18,14 @@ export function originActiveBriefPresent(
   runGit: typeof runText,
 ): OriginActiveBriefResult {
   const rel = relPath.replace(/\\/g, "/");
-  const fetch = runGit(["git", "fetch", "origin", deliveryBranch], { cwd: projectRoot });
+  const fetchArgv = trackingFetchArgv("origin", deliveryBranch);
+  if (!fetchArgv.ok) {
+    return {
+      present: false,
+      error: fetchArgv.error,
+    };
+  }
+  const fetch = runGit(["git", ...fetchArgv.argv], { cwd: projectRoot });
   if (fetch.returncode !== 0) {
     return {
       present: false,

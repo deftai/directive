@@ -503,6 +503,14 @@ function resolveTipState(input: {
     return { tip: { kind: "no-remote" } };
   }
   const delivery = resolveDeliveryBranch(input.projectDir);
+  if (delivery.error !== null && delivery.error.length > 0) {
+    return {
+      tip: {
+        kind: "remote-configured-unreadable",
+        detail: delivery.error,
+      },
+    };
+  }
   const remote = pickFetchRemote(remotes.remotes);
   const pin = pinDeliveryTipOid({
     projectDir: input.projectDir,

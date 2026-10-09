@@ -1048,12 +1048,28 @@ export function finalizeOwed(args: FinalizeOwedArgs = {}): {
   }
 
   const policyDelivery = resolveDeliveryBranch(projectRoot, runGit);
-  const deliveryBranch =
+  const cliBranch =
     args.deliveryBranch !== null &&
     args.deliveryBranch !== undefined &&
     args.deliveryBranch.trim().length > 0
       ? args.deliveryBranch.trim()
-      : policyDelivery.branch;
+      : null;
+  if (cliBranch === null && policyDelivery.error !== null && policyDelivery.error.length > 0) {
+    return respondFinalizeOwed({
+      delivery_branch: policyDelivery.branch,
+      tip: null,
+      stories: [],
+      finalized: [],
+      skipped: [],
+      errors: [policyDelivery.error],
+      warnings: [],
+      fetch_error: null,
+      ok: false,
+      emitJson,
+      exitCode: EXIT_CONFIG_ERROR,
+    });
+  }
+  const deliveryBranch = cliBranch ?? policyDelivery.branch;
 
   const repo = args.repo ?? process.env.GH_REPO ?? process.env.GITHUB_REPOSITORY ?? null;
   if (repo === null || repo.trim().length === 0) {
