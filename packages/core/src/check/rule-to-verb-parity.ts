@@ -256,34 +256,58 @@ function stripConsumerPrefix(name: string): string {
     : name;
 }
 
+function pushCitation(
+  out: RuleCitation[],
+  kind: RuleCitationKind,
+  rawToken: string,
+  file: string,
+  line: number,
+): void {
+  const token = firstInvocationToken(rawToken);
+  if (token === null) return;
+  // Skip pure placeholders like `<verb>` or bare ellipsis / namespace wildcards.
+  if (token.startsWith("<") || token === "…" || token === "...") return;
+  if (isNamespaceWildcard(token)) return;
+  if (kind === "task") {
+    // Trailing colon-only after glob truncate (`task deft:<verb>`) — skip.
+    const stripped = stripConsumerPrefix(token);
+    if (stripped === "" || stripped.endsWith(":")) return;
+  }
+  out.push({ kind, raw: token, file, line });
+}
+
 /** Extract concrete deft/task citations from template prose (metadata only). */
 export function extractRuleCitations(file: string, text: string): readonly RuleCitation[] {
   const out: RuleCitation[] = [];
   const lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+  let inFence = false;
   for (const [idx, line] of lines.entries()) {
+    const fenceOpen = /^```/.test(line);
+    if (fenceOpen) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) {
+      // Bare command lines inside fenced examples (no surrounding backticks).
+      const bare = line.trim();
+      if (bare.startsWith("deft ")) {
+        pushCitation(out, "deft", bare.slice("deft ".length), file, idx + 1);
+      } else if (bare.startsWith("task ")) {
+        pushCitation(out, "task", bare.slice("task ".length), file, idx + 1);
+      }
+      continue;
+    }
     DEFT_INVOCATION_RE.lastIndex = 0;
     for (const match of line.matchAll(DEFT_INVOCATION_RE)) {
       const raw = match[1];
       if (raw === undefined) continue;
-      const token = firstInvocationToken(raw);
-      if (token === null) continue;
-      // Skip pure placeholders like `<verb>` or bare ellipsis / namespace wildcards.
-      if (token.startsWith("<") || token === "…" || token === "...") continue;
-      if (isNamespaceWildcard(token)) continue;
-      out.push({ kind: "deft", raw: token, file, line: idx + 1 });
+      pushCitation(out, "deft", raw, file, idx + 1);
     }
     TASK_INVOCATION_RE.lastIndex = 0;
     for (const match of line.matchAll(TASK_INVOCATION_RE)) {
       const raw = match[1];
       if (raw === undefined) continue;
-      const token = firstInvocationToken(raw);
-      if (token === null) continue;
-      if (token.startsWith("<") || token === "…" || token === "...") continue;
-      if (isNamespaceWildcard(token)) continue;
-      // Trailing colon-only after glob truncate (`task deft:<verb>`) — skip.
-      const stripped = stripConsumerPrefix(token);
-      if (stripped === "" || stripped.endsWith(":")) continue;
-      out.push({ kind: "task", raw: token, file, line: idx + 1 });
+      pushCitation(out, "task", raw, file, idx + 1);
     }
   }
   return out;
@@ -291,9 +315,13 @@ export function extractRuleCitations(file: string, text: string): readonly RuleC
 
 function cliVerbResolves(cliVerbs: ReadonlySet<string>, name: string): boolean {
   if (cliVerbs.has(name)) return true;
-  // Hyphenated module stems sometimes cited with colon form already in aliases.
-  const hyphen = name.replaceAll(":", "-");
-  if (cliVerbs.has(hyphen)) return true;
+  // Router hyphenates only the first namespace separator (tryColonNamespaceRoute);
+  // replaceAll would green dead spellings like rule:to:verb:parity → rule-to-verb-parity.
+  const colon = name.indexOf(":");
+  if (colon > 0) {
+    const hyphen = `${name.slice(0, colon)}-${name.slice(colon + 1)}`;
+    if (cliVerbs.has(hyphen)) return true;
+  }
   return false;
 }
 

@@ -433,7 +433,9 @@ describe("dispatch", () => {
   });
 
   it("scm:body:* hint distinguishes framework / include-only / no-Taskfile (#5521)", () => {
-    expect(unknownColonVerbHint("scm:body:pr:edit", "framework")).toContain("task scm:body:pr:edit");
+    expect(unknownColonVerbHint("scm:body:pr:edit", "framework")).toContain(
+      "task scm:body:pr:edit",
+    );
     expect(unknownColonVerbHint("scm:body:pr:edit", "include-only")).toContain(
       "task deft:scm:body:pr:edit",
     );

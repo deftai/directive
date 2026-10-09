@@ -1,4 +1,4 @@
-import { githubBodyMain } from "@deftai/directive-core/dist/intake/github-body.js";
+import { mainEntry as githubBodyMainEntry } from "@deftai/directive-core/dist/intake/github-body-cli.js";
 import { describe, expect, it } from "vitest";
 import { routeArgv, SCM_BODY_COLON_VERBS, TOP_LEVEL_UX_VERBS } from "./route-argv.js";
 
@@ -115,11 +115,11 @@ describe("route-argv: scm:body:* colon aliases (#5521)", () => {
   it("fetch/write failure path stays on github-body engine via alias argv (#5521)", () => {
     const fetchRouted = routeArgv(["scm:body:issue:fetch", "--repo", "o/r"]);
     expect(fetchRouted.argv[0]).toBe("github-body");
-    // Peel verb the way dispatch does; missing --issue/--out-file fails closed.
-    expect(githubBodyMain(fetchRouted.argv.slice(1))).toBe(1);
+    // Peel verb the way dispatch does; parse via mainEntry (string argv → GitHubBodyCliArgs).
+    expect(githubBodyMainEntry(fetchRouted.argv.slice(1))).toBe(1);
 
     const writeRouted = routeArgv(["scm:body:issue:edit", "--repo", "o/r", "--issue", "1"]);
     expect(writeRouted.argv[0]).toBe("github-body");
-    expect(githubBodyMain(writeRouted.argv.slice(1))).toBe(1);
+    expect(githubBodyMainEntry(writeRouted.argv.slice(1))).toBe(1);
   });
 });

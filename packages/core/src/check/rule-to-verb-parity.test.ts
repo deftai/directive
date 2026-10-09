@@ -48,6 +48,39 @@ describe("rule-to-verb-parity (#5521)", () => {
     expect(citations.some((c) => c.kind === "task" && c.raw === "scm:body:issue:lint")).toBe(true);
   });
 
+  it("extracts bare deft/task lines from fenced code blocks", () => {
+    const text = [
+      "Use the wrapper:",
+      "```bash",
+      'deft scm:body:issue:fetch --repo OWNER/REPO --issue 1 --out-file "$bodyFile"',
+      'task scm:body:issue:edit --repo OWNER/REPO --issue 1 --body-file "$bodyFile"',
+      "```",
+      "Inline still works: `deft check`.",
+    ].join("\n");
+    const citations = extractRuleCitations("fixture.md", text);
+    expect(citations.some((c) => c.kind === "deft" && c.raw === "scm:body:issue:fetch")).toBe(true);
+    expect(citations.some((c) => c.kind === "task" && c.raw === "scm:body:issue:edit")).toBe(true);
+    expect(citations.some((c) => c.kind === "deft" && c.raw === "check")).toBe(true);
+  });
+
+  it("refuses multi-colon dead spellings that only match via replaceAll hyphenation", () => {
+    const result = evaluateRuleToVerbParity(REPO_ROOT, {
+      readText: (p) => {
+        if (p.endsWith("agents-entry.md")) {
+          return "! Run `deft rule:to:verb:parity`.\n";
+        }
+        if (p.endsWith("agent-prompt-preamble.md")) return "# ok\n";
+        return "";
+      },
+      exists: () => true,
+      // Registered hyphen stem must NOT green the multi-colon dead spelling.
+      cliVerbs: new Set(["rule-to-verb-parity", "check"]),
+      taskResolves: () => true,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.findings.some((f) => f.name === "rule:to:verb:parity")).toBe(true);
+  });
+
   it("loads registered CLI verbs including SUBCOMMAND_ROUTES scm:body:*", () => {
     const verbs = loadRegisteredCliVerbs(REPO_ROOT);
     expect(verbs.has("scm:body:issue:fetch")).toBe(true);
