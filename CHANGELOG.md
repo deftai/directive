@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Record approved scope for #5521 so Path B product work can pass scope checks (mint only).
 - Lifecycle gates honor typed plan.policy.deliveryBranch before master/main fallbacks (scope-provenance, evaluator-surface, verify:branch, pre-push). Tracking #5520.
 - Unpaid skip-CI seam for Windows Step 5 hang (#5526): one-cut --allow-skip-ci=5526 (later reuse needs --allow-unpaid-skip-ci=5526). Tracking #5526.
 

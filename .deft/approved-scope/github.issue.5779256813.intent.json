@@ -1,0 +1,187 @@
+{
+  "schemaVersion": 1,
+  "algo": "intent-extract-v1",
+  "plan": {
+    "title": "Pinned AGENTS rule names deft scm:body:* but the verbs are Taskfile-only; unknown-verb hint recommends the failing form; no rule-to-verb parity check",
+    "narratives": {
+      "Description": "Pinned AGENTS rule names deft scm:body:* but the verbs are Taskfile-only; unknown-verb hint recommends the failing form; no rule-to-verb parity check",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5521",
+      "Overview": "## Problem\n\nThe `scm:body:*` family (issue fetch, issue edit, issue create, comment create, comment edit, PR edit, body lints) has shipped since v0.89.0 (#1555, #2607, #2960) as **Taskfile tasks** in `tasks/scm.yml`, backed by `packages/core/src/intake/github-body-cli.ts`. It is **not registered in the `deft` CLI router** on any engine: the global `@deftai/directive@0.123.0` and the HEAD build both answer `unknown verb 'scm:body:issue:fetch'`.\n\nThe rules disagree on which form to use:\n\n- The **always-pinned rule** in the managed `AGENTS.md` section (\"Windows PowerShell: multi-line git/gh bodies (#2646 / #2744)\") and its source `content/templates/agents-entry.md` prescribe `deft scm:body:* --body-file` and `deft scm:body:issue:fetch --out-file` then `deft scm:body:issue:edit --body-file`. That form resolves on no engine.\n- The depth doc `content/scm/github.md` prescribes `task scm:body:*` with worked examples. That form works.\n- The CLI unknown-verb hint (`packages/cli/src/dispatch.ts`, \"Hyphen stem\" message) suggests \"try `deft scm:body:issue:fetch` (CLI)\", the command that just failed, plus a hyphen stem that is equally unregistered.\n- No check verifies that `deft <verb>` names in the pinned rules resolve in the router, or that `task <name>` names resolve in the Taskfile. The only verb gate in the release path (`closed-verb-gate`) is about publish authorisation.\n\n## Effect\n\nAn agent that reads only the pinned rule (the point of pinning) runs a dead command, gets a hint pointing back at it, and improvises with raw `gh`. That is the #2744 PowerShell body-mangling footgun the rule exists to prevent. Observed 2026-10-09 while editing #5514; recovered with a guarded `gh` fallback. The `task` form was the correct move and the pinned rule did not name it.\n\n## Fix\n\n1. **Register the `scm:body:*` family in the CLI router** (dual-invoke parity with `task scm:body:*`) so the pinned rule is true as written and consumers without go-task have a path. After #5490 (consumer-only self-hosting, #5514) the CLI form is the one that works for every consumer.\n2. **Unknown-verb hint:** never recommend the form that just failed. When a Taskfile task of the same name exists, say `task <name> -- ...` (framework) / `task deft:<name> -- ...` (consumer include).\n3. **Rule-to-verb parity check** as a new verify wired into `deft check`: every `deft <verb>` named in `content/templates/agents-entry.md` and `content/templates/agent-prompt-preamble.md` resolves in the router; every `task <name>` named there resolves in the Taskfile. Fail closed.\n4. Until 1 lands, or if 1 is rejected: change the two pinned-rule lines to the Taskfile form to match `scm/github.md`, and run `task agents:refresh` (#1309 propagation).\n\n## Acceptance\n\n- `deft scm:body:issue:fetch --repo OWNER/NAME --issue N --out-file <path>` and `deft scm:body:issue:edit --repo OWNER/NAME --issue N --body-file <path>` work on the released CLI with the same fail-closed live read-back as the `task` form; same for the comment and PR verbs.\n- `deft <unregistered>` never suggests the same unregistered spelling; it suggests the `task` form when one exists.\n- The new verify fails on a template that names an unregistered `deft` verb and passes on the current templates after the fix.\n- The pinned `AGENTS.md` rule, `agents-entry.md`, and `scm/github.md` agree on the invocation form.\n\n## Why urgent\n\nAn always-pinned, consumer-facing rule prescribes a dead command on the one path (win32 issue-body read-modify-write) where improvising corrupts bodies.\n\nRefs: #2646, #2744, #2607, #1555, #2960, #5514, #5490.",
+      "Labels": "bug, enhancement, urgent, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Register eight scm:body:* colon aliases onto the existing github-body engine via SUBCOMMAND_ROUTES; argv+behavior parity (subcommand insertion); sole engine github-body-cli.ts; forwarding + fetch/write failure tests.",
+        "narrative": {
+          "Acceptance": "Register eight scm:body:* colon aliases onto the existing github-body engine via SUBCOMMAND_ROUTES; argv+behavior parity (subcommand insertion); sole engine github-body-cli.ts; forwarding + fetch/write failure tests."
+        },
+        "x-directive/artifact_path": "packages/cli/src/cli-router/route-argv.ts"
+      },
+      {
+        "id": "clause.2",
+        "title": "Fix unknownColonVerbHint with a static dual-invoke set: never re-suggest failing deft <verb>; for the eight scm:body:* names suggest task <name> and task deft:<name>; demote hyphen stem; no task --list shell-out; distinguish framework/include-only/no-Taskfile contexts.",
+        "narrative": {
+          "Acceptance": "Fix unknownColonVerbHint with a static dual-invoke set: never re-suggest failing deft <verb>; for the eight scm:body:* names suggest task <name> and task deft:<name>; demote hyphen stem; no task --list shell-out; distinguish framework/include-only/no-Taskfile contexts."
+        },
+        "x-directive/artifact_path": "packages/cli/src/dispatch.ts"
+      },
+      {
+        "id": "clause.3",
+        "title": "New rule-to-verb / rule-to-task parity verify wired into deft check for agents-entry.md and agent-prompt-preamble.md; expand/refuse family globs; fixtures for missing verb/omitted body-family member; inspect metadata only.",
+        "narrative": {
+          "Acceptance": "New rule-to-verb / rule-to-task parity verify wired into deft check for agents-entry.md and agent-prompt-preamble.md; expand/refuse family globs; fixtures for missing verb/omitted body-family member; inspect metadata only."
+        },
+        "x-directive/artifact_path": "packages/core/src/check/rule-to-verb-parity.ts"
+      },
+      {
+        "id": "clause.4",
+        "title": "Dispose citation agreement in the same ship: either amend Acceptance so every cited form resolves, or same-PR align agents-entry and preamble onto preferred CLI spelling once aliases exist; scm/github.md may keep task dual-invoke examples.",
+        "narrative": {
+          "Acceptance": "Dispose citation agreement in the same ship: either amend Acceptance so every cited form resolves, or same-PR align agents-entry and preamble onto preferred CLI spelling once aliases exist; scm/github.md may keep task dual-invoke examples."
+        },
+        "x-directive/artifact_path": "content/templates/agents-entry.md"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5521",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5521: Pinned AGENTS rule names deft scm:body:* but the verbs are Taskfile-only; unknown-verb hint recommends the failing form; no rule-to-verb parity check"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "deft check",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L22"
+        },
+        {
+          "command": "deft <verb>",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L22"
+        },
+        {
+          "command": "task <name>",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L22"
+        },
+        {
+          "command": "task agents:refresh",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L23"
+        },
+        {
+          "command": "deft",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L29"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "CHANGELOG.md",
+          "packages/cli/src/cli-router/route-argv.ts",
+          "packages/cli/src/cli-router/route-argv.test.ts",
+          "packages/cli/src/dispatch.ts",
+          "packages/cli/src/dispatch.test.ts",
+          "packages/core/src/check/rule-to-verb-parity.ts",
+          "packages/core/src/check/rule-to-verb-parity.test.ts",
+          "packages/core/src/check/gate-lists.ts",
+          "content/templates/agents-entry.md",
+          "content/templates/agent-prompt-preamble.md",
+          "content/scm/github.md",
+          "packages/core/src/check/named-cause.ts",
+          "packages/core/src/check/index.ts",
+          "tasks/verify.yml"
+        ],
+        "Traces": [
+          "#5521"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "CHANGELOG.md",
+          "packages/cli/src/cli-router/route-argv.ts",
+          "packages/cli/src/cli-router/route-argv.test.ts",
+          "packages/cli/src/dispatch.ts",
+          "packages/cli/src/dispatch.test.ts",
+          "packages/core/src/check/rule-to-verb-parity.ts",
+          "packages/core/src/check/rule-to-verb-parity.test.ts",
+          "packages/core/src/check/gate-lists.ts",
+          "content/templates/agents-entry.md",
+          "content/templates/agent-prompt-preamble.md",
+          "content/scm/github.md",
+          "packages/core/src/check/named-cause.ts",
+          "packages/core/src/check/index.ts",
+          "tasks/verify.yml"
+        ],
+        "module_boundary": "scm:body CLI alias registration + rule-to-verb parity",
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased bullet only; named-cause GATE_REMEDIES + tasks/verify.yml + check/index export required to wire verify:rule-to-verb-parity into deft check (#5521 Prefer-A limb 3)."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5779256813,
+        "origin": "deftai/directive#5521",
+        "id": "github.issue.5779256813"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "c44084d8f008d39fcad508b223e21a1e7775278205e7cd7286705e49a88e3afa"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A Bound limbs hand-stamped after Prefer-A Bound harvest (#4374) from comment 6082654143.",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Register eight scm:body:* colon aliases onto the existing github-body engine via SUBCOMMAND_ROUTES; argv+behavior parity (subcommand insertion); sole engine github-body-cli.ts; forwarding + fetch/write failure tests.",
+          "artifact_path": "packages/cli/src/cli-router/route-argv.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Fix unknownColonVerbHint with a static dual-invoke set: never re-suggest failing deft <verb>; for the eight scm:body:* names suggest task <name> and task deft:<name>; demote hyphen stem; no task --list shell-out; distinguish framework/include-only/no-Taskfile contexts.",
+          "artifact_path": "packages/cli/src/dispatch.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "New rule-to-verb / rule-to-task parity verify wired into deft check for agents-entry.md and agent-prompt-preamble.md; expand/refuse family globs; fixtures for missing verb/omitted body-family member; inspect metadata only.",
+          "artifact_path": "packages/core/src/check/rule-to-verb-parity.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Dispose citation agreement in the same ship: either amend Acceptance so every cited form resolves, or same-PR align agents-entry and preamble onto preferred CLI spelling once aliases exist; scm/github.md may keep task dual-invoke examples.",
+          "artifact_path": "content/templates/agents-entry.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ]
+    },
+    "id": "github.issue.5779256813"
+  },
+  "approvedRepos": [
+    "deftai/directive"
+  ],
+  "unknownPaths": [
+    "items[].x-directive/artifact_path",
+    "metadata.intended_placement",
+    "metadata.literal_acceptance_commands",
+    "metadata.literal_acceptance_rejected",
+    "metadata.swarm.Traces",
+    "metadata.x-directive/admitted-target-digest",
+    "metadata.x-directive/plan-id"
+  ]
+}

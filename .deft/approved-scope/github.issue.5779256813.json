@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-10-09-5521-pinned-agents-rule-names-deft-scmbody-but-the-verbs-are-task.xbrief.json",
+  "planId": "github.issue.5779256813",
+  "approvedAt": "2026-10-09T19:59:00Z",
+  "fileScope": [
+    "CHANGELOG.md",
+    "content/scm/github.md",
+    "content/templates/agent-prompt-preamble.md",
+    "content/templates/agents-entry.md",
+    "packages/cli/src/cli-router/route-argv.test.ts",
+    "packages/cli/src/cli-router/route-argv.ts",
+    "packages/cli/src/dispatch.test.ts",
+    "packages/cli/src/dispatch.ts",
+    "packages/core/src/check/gate-lists.ts",
+    "packages/core/src/check/index.ts",
+    "packages/core/src/check/named-cause.ts",
+    "packages/core/src/check/rule-to-verb-parity.test.ts",
+    "packages/core/src/check/rule-to-verb-parity.ts",
+    "tasks/verify.yml"
+  ],
+  "fileScopeDigest": "ed3d16982119def67498f24b5860808b2ecaa08e0906357837ae644b98adee71",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-10-09T19:59:00Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "e82e989b5b9a0301167427183aa54feeaa9165b3166030e13965e7fafe601140",
+  "digestAlgo": "intent-extract-v1"
+}
