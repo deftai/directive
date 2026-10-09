@@ -1,0 +1,288 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5520",
+    "updated": "2026-10-09T19:44:35.000Z"
+  },
+  "plan": {
+    "title": "Lifecycle gates fall back to hardcoded master/main instead of plan.policy.deliveryBranch",
+    "status": "completed",
+    "narratives": {
+      "Description": "Lifecycle gates fall back to hardcoded master/main instead of plan.policy.deliveryBranch",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5520",
+      "Overview": "## Problem\n\n`plan.policy.deliveryBranch` (#3041) is the typed destination for delivered work. Most lifecycle verbs resolve it: `verify:completed-tracked`, `verify:orphan-active`, the `swarm:launch` origin-active probe (#4714), `swarm:finalize-cohort`, finalize-owed, and the session-start owed inventory. Four places bypass it and assume `master` or `main`:\n\n1. `packages/core/src/scope-provenance/evaluate.ts` `resolveDefaultBaseRef`: `DEFT_BASE_REF` / `GITHUB_BASE_REF`, then `origin/master`, `origin/main`, `master`, `main`. Used by `verify:scope-provenance` and by the completed-write guard behind `scope:complete`.\n2. `packages/core/src/evaluator-surface/evaluate.ts` `resolveDefaultBaseRef`: `origin/HEAD`, then fixed candidates.\n3. `packages/core/src/branch/evaluate.ts` `DEFAULT_BRANCHES = {master, main}`: `verify:branch` and the pre-commit gate protect only those names.\n4. `.githooks/pre-push`: gates pushes to the default branch only.\n\nEffect for a consumer whose delivery branch is `develop`, `trunk`, or a long-lived integration branch:\n\n- Locally, the merge-base lands on master, so the change set becomes the whole branch's accumulated diff and the `file_scope` fence evaluates the wrong set. CI is saved only because GitHub sets `GITHUB_BASE_REF`.\n- The delivery branch is unprotected by the local commit and push gates.\n\n## Fix\n\n- Both resolvers: after the env overrides, try `origin/<deliveryBranch>` then `<deliveryBranch>` (via `resolveDeliveryBranch`) before the master/main fallbacks.\n- `verify:branch`: add the resolved delivery branch to the protected set; keep master and main.\n- `.githooks/pre-push`: protect the resolved delivery branch as well.\n- Tests: a typed `deliveryBranch = develop` fixture for each of the four; the unset-policy case keeps today's behaviour.\n\n## Acceptance\n\n- With `plan.policy.deliveryBranch = develop` and `origin/develop` fetched, and no env overrides: `verify:scope-provenance` and `verify:evaluator-surface` compute the merge-base against `origin/develop`; `verify:branch` blocks a commit on `develop`; pre-push blocks a push to `develop`.\n- With no typed policy: behaviour unchanged (git default, then master/main).\n- `DEFT_BASE_REF` and `GITHUB_BASE_REF` precedence unchanged.\n\n## Why now\n\nConsumer-relevant on its own. It is also the prerequisite for the integration branch in #5514 (methodology for #5490): Phase 0 gates there run the released engine, so this must ship in a release before that branch opens. Small; fits the daily cadence. Lands on master through the normal process.\n\nRefs: #5514, #5490, #3041, #3388, #4714.",
+      "Labels": "bug, enhancement, urgent, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Typed-only activation: call resolveDeliveryBranch; insert delivery candidates only when source===typed, error null, branch non-empty; hostile/empty typed skips delivery candidates and keeps existing fallbacks.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/scope-provenance/evaluate.ts",
+        "narrative": {
+          "Acceptance": "Typed-only activation: call resolveDeliveryBranch; insert delivery candidates only when source===typed, error null, branch non-empty; hostile/empty typed skips delivery candidates and keeps existing fallbacks."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5527 squash-merge (Tracking #5520). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5527",
+            "mintedAt": "2026-10-09T19:44:35.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-09T19:44:35.000Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "scope-provenance resolveDefaultBaseRef: after DEFT_BASE_REF/GITHUB_BASE_REF, when typed-only holds, try origin/<branch> then <branch> before origin/master|main / master|main.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/scope-provenance/evaluate.ts",
+        "narrative": {
+          "Acceptance": "scope-provenance resolveDefaultBaseRef: after DEFT_BASE_REF/GITHUB_BASE_REF, when typed-only holds, try origin/<branch> then <branch> before origin/master|main / master|main."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5527 squash-merge (Tracking #5520). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5527",
+            "mintedAt": "2026-10-09T19:44:35.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-09T19:44:35.000Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "evaluator-surface resolveDefaultBaseRef: when typed-only holds, try origin/<branch> then <branch> before origin/HEAD and before fixed origin/main|master; no evaluator-surface env reading.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/evaluator-surface/evaluate.ts",
+        "narrative": {
+          "Acceptance": "evaluator-surface resolveDefaultBaseRef: when typed-only holds, try origin/<branch> then <branch> before origin/HEAD and before fixed origin/main|master; no evaluator-surface env reading."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5527 squash-merge (Tracking #5520). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5527",
+            "mintedAt": "2026-10-09T19:44:35.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-09T19:44:35.000Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "verify:branch composition: do not mutate exported DEFAULT_BRANCHES; when options.defaultBranches unset, union typed delivery into per-invocation protected set that still includes master and main.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/branch/evaluate.ts",
+        "narrative": {
+          "Acceptance": "verify:branch composition: do not mutate exported DEFAULT_BRANCHES; when options.defaultBranches unset, union typed delivery into per-invocation protected set that still includes master and main."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5527 squash-merge (Tracking #5520). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5527",
+            "mintedAt": "2026-10-09T19:44:35.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-09T19:44:35.000Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "preflight-gh / pre-push composition: union typed delivery into effective branches on path reached even when CLI seeds new Set(DEFAULT_BRANCHES); preserve --default-branch additions; regression stdin push to refs/heads/develop with typed policy.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/preflight-gh/pre-push.ts",
+        "narrative": {
+          "Acceptance": "preflight-gh / pre-push composition: union typed delivery into effective branches on path reached even when CLI seeds new Set(DEFAULT_BRANCHES); preserve --default-branch additions; regression stdin push to refs/heads/develop with typed policy."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5527 squash-merge (Tracking #5520). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5527",
+            "mintedAt": "2026-10-09T19:44:35.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-09T19:44:35.000Z"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "Tests: typed deliveryBranch=develop fixture for each of the four Acceptance paths; unset-policy keeps today; env/--base-ref precedence unchanged; malformed typed case per limb 1.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/scope-provenance/evaluate.test.ts",
+        "narrative": {
+          "Acceptance": "Tests: typed deliveryBranch=develop fixture for each of the four Acceptance paths; unset-policy keeps today; env/--base-ref precedence unchanged; malformed typed case per limb 1."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5527 squash-merge (Tracking #5520). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5527",
+            "mintedAt": "2026-10-09T19:44:35.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-09T19:44:35.000Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "enhancement",
+      "urgent",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5520",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5520: Lifecycle gates fall back to hardcoded master/main instead of plan.policy.deliveryBranch"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "DEFAULT_BRANCHES = {master, main}",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L9"
+        },
+        {
+          "command": "plan.policy.deliveryBranch = develop",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L26"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "deliveryBranch-lifecycle-gate-hardcoded-defaults",
+        "expected_outputs": [
+          "Tracking PR for #5520 Prefer-A Bound deliveryBranch lifecycle wiring"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/scope-provenance/evaluate.test.ts packages/core/src/evaluator-surface/evaluate.test.ts packages/core/src/branch/evaluate.test.ts"
+        ],
+        "file_scope": [
+          "CHANGELOG.md",
+          "packages/core/src/scope-provenance/evaluate.ts",
+          "packages/core/src/scope-provenance/evaluate.test.ts",
+          "packages/core/src/evaluator-surface/evaluate.ts",
+          "packages/core/src/evaluator-surface/evaluate.test.ts",
+          "packages/core/src/branch/evaluate.ts",
+          "packages/core/src/branch/evaluate.test.ts",
+          "packages/core/src/preflight-gh/pre-push.ts",
+          "packages/cli/src/preflight-gh.ts"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5520"
+        ],
+        "parallel_safe": true
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "CHANGELOG.md",
+          "packages/core/src/scope-provenance/evaluate.ts",
+          "packages/core/src/scope-provenance/evaluate.test.ts",
+          "packages/core/src/evaluator-surface/evaluate.ts",
+          "packages/core/src/evaluator-surface/evaluate.test.ts",
+          "packages/core/src/branch/evaluate.ts",
+          "packages/core/src/branch/evaluate.test.ts",
+          "packages/core/src/preflight-gh/pre-push.ts",
+          "packages/cli/src/preflight-gh.ts"
+        ],
+        "module_boundary": "plan.policy.deliveryBranch lifecycle gate wiring",
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased bullet only."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5779076643,
+        "origin": "deftai/directive#5520",
+        "id": "github.issue.5779076643"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "82f364a0981bbe458dc556bff7fb73bb6d911db7a7c968384bef729611dd15f3"
+      },
+      "productPullRequest": 5527,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-09T19:44:35.000Z"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A Bound limbs hand-stamped after Prefer-A Bound harvest (#4374) from comment 6082389395.",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Typed-only activation: call resolveDeliveryBranch; insert delivery candidates only when source===typed, error null, branch non-empty; hostile/empty typed skips delivery candidates and keeps existing fallbacks.",
+          "artifact_path": "packages/core/src/scope-provenance/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "scope-provenance resolveDefaultBaseRef: after DEFT_BASE_REF/GITHUB_BASE_REF, when typed-only holds, try origin/<branch> then <branch> before origin/master|main / master|main.",
+          "artifact_path": "packages/core/src/scope-provenance/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "evaluator-surface resolveDefaultBaseRef: when typed-only holds, try origin/<branch> then <branch> before origin/HEAD and before fixed origin/main|master; no evaluator-surface env reading.",
+          "artifact_path": "packages/core/src/evaluator-surface/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "verify:branch composition: do not mutate exported DEFAULT_BRANCHES; when options.defaultBranches unset, union typed delivery into per-invocation protected set that still includes master and main.",
+          "artifact_path": "packages/core/src/branch/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "preflight-gh / pre-push composition: union typed delivery into effective branches on path reached even when CLI seeds new Set(DEFAULT_BRANCHES); preserve --default-branch additions; regression stdin push to refs/heads/develop with typed policy.",
+          "artifact_path": "packages/core/src/preflight-gh/pre-push.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Tests: typed deliveryBranch=develop fixture for each of the four Acceptance paths; unset-policy keeps today; env/--base-ref precedence unchanged; malformed typed case per limb 1.",
+          "artifact_path": "packages/core/src/scope-provenance/evaluate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5779076643",
+    "updated": "2026-10-09T19:44:35.000Z"
+  }
+}
