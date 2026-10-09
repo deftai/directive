@@ -293,6 +293,7 @@ export const CORE_MODULE_VERBS = [
   "docs-impact",
   "migrate-clause-ids",
   "migrate-confidence",
+  "rule-to-verb-parity",
 ] as const;
 
 /** Colon aliases for triage-actions (mirrors cli-router SUBCOMMAND_ROUTES). */
@@ -468,6 +469,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "validate:links": "validate-links",
   "verify:rule-ownership": "rule-ownership-lint",
   "rule:ownership-lint": "rule-ownership-lint",
+  "verify:rule-to-verb-parity": "rule-to-verb-parity",
   "verify:biome-config": "verify-biome-config",
   "verify:contained-writes": "verify-contained-writes",
   "verify:telemetry-coverage": "verify-telemetry-coverage",
@@ -2845,6 +2847,12 @@ async function loadCoreModuleHandler(verb: string, io: DispatchIo): Promise<Comm
       const { mainEntry } = await import("@deftai/directive-core/dist/intake/github-body-cli.js");
       return mainEntry;
     }
+    case "rule-to-verb-parity": {
+      const { mainEntry } = await import(
+        "@deftai/directive-core/dist/check/rule-to-verb-parity.js"
+      );
+      return mainEntry;
+    }
     case "issue-emit": {
       const { mainEntry } = await import("@deftai/directive-core/dist/intake/issue-emit-cli.js");
       return mainEntry;
@@ -3137,6 +3145,22 @@ const SCOPE_COMMAND_NAMES = [
 ] as const;
 
 /**
+ * Static dual-invoke set for scm:body:* (#5521). Mirror of
+ * packages/cli/src/cli-router/route-argv.ts SCM_BODY_COLON_VERBS — kept here
+ * so dispatch does not import route-argv (route-argv already imports dispatch).
+ */
+const SCM_BODY_DUAL_INVOKE_VERBS = new Set<string>([
+  "scm:body:issue:create",
+  "scm:body:issue:edit",
+  "scm:body:issue:fetch",
+  "scm:body:issue:lint",
+  "scm:body:comment:create",
+  "scm:body:comment:edit",
+  "scm:body:pr:edit",
+  "scm:body:pr:lint",
+]);
+
+/**
  * Deduplicated command names for `directive commands`, preferring colon-style
  * task verbs over dash-style canonical stems when both exist (#2172).
  */
@@ -3151,6 +3175,7 @@ export function preferredCommandNames(): readonly string[] {
       ...TOP_LEVEL_COMMAND_NAMES,
       ...SCOPE_COMMAND_NAMES,
       ...aliasKeys,
+      ...SCM_BODY_DUAL_INVOKE_VERBS,
       ...unaliasedCanonicals,
     ]),
   ].sort();
@@ -3342,12 +3367,17 @@ async function invokeHandler(handler: CommandHandler, argv: string[]): Promise<n
 
 const PLAN_SEQUENCE_VERBS = "set|current|clear|advance";
 
+export type UnknownColonHintContext = "framework" | "include-only" | "no-taskfile" | "unknown";
+
 /**
- * Unknown-colon-verb remediation (#3439 / #2652).
- * Agent-facing spelling is `deft <verb>` (works on consumer CLI and source).
- * Bare `task <verb>` is not consumer-runnable on include-only Taskfiles.
+ * Unknown-colon-verb remediation (#3439 / #2652 / #5521).
+ * Never re-suggest the failing `deft <verb>` spelling. Prefer Taskfile
+ * dual-invoke forms when known; demote hyphen stems; no `task --list` shell-out.
  */
-export function unknownColonVerbHint(verb: string): string {
+export function unknownColonVerbHint(
+  verb: string,
+  context: UnknownColonHintContext = "unknown",
+): string {
   if (verb.startsWith("plan-sequence:") && !(verb in PLAN_SEQUENCE_ALIAS_SUBCOMMANDS)) {
     return (
       `hint: plan-sequence verbs are ${PLAN_SEQUENCE_VERBS} ` +
@@ -3355,11 +3385,62 @@ export function unknownColonVerbHint(verb: string): string {
       `Do not run bare \`task ${verb}\` -- consumer include-only Taskfiles cannot resolve it.\n`
     );
   }
+
   const hyphen = verb.replaceAll(":", "-");
+  const hyphenNote = `Hyphen stem \`${hyphen}\` is not primary recovery.`;
+  const listing = "List registered CLI verbs with `deft commands`.";
+
+  if (SCM_BODY_DUAL_INVOKE_VERBS.has(verb)) {
+    if (context === "include-only") {
+      return (
+        `hint: try \`task deft:${verb}\` (consumer include Taskfile). ` +
+        `Bare \`task ${verb}\` is framework-only. ${hyphenNote} ${listing}\n`
+      );
+    }
+    if (context === "no-taskfile") {
+      return (
+        `hint: Taskfile recovery is unavailable here. ` +
+        `On a framework checkout with go-task: \`task ${verb}\`; ` +
+        `on an include-only deposit: \`task deft:${verb}\`. ${hyphenNote} ${listing}\n`
+      );
+    }
+    if (context === "framework") {
+      return (
+        `hint: try \`task ${verb}\` (framework Taskfile) or \`task deft:${verb}\` (consumer include). ` +
+        `${hyphenNote} ${listing}\n`
+      );
+    }
+    return (
+      `hint: if go-task is available, try \`task ${verb}\` (framework) or ` +
+      `\`task deft:${verb}\` (consumer include) — Taskfile recovery is conditional. ` +
+      `${hyphenNote} ${listing}\n`
+    );
+  }
+
+  if (context === "include-only") {
+    return (
+      `hint: do not retry the same \`deft ${verb}\` spelling. ` +
+      `If a Taskfile task exists, try \`task deft:${verb}\` (include-only). ` +
+      `${hyphenNote} ${listing}\n`
+    );
+  }
+  if (context === "no-taskfile") {
+    return (
+      `hint: do not retry the same \`deft ${verb}\` spelling. ` +
+      `Taskfile recovery is unavailable here. ${hyphenNote} ${listing}\n`
+    );
+  }
+  if (context === "framework") {
+    return (
+      `hint: do not retry the same \`deft ${verb}\` spelling. ` +
+      `If a Taskfile task exists, try \`task ${verb}\` (framework) or \`task deft:${verb}\` (include). ` +
+      `${hyphenNote} ${listing}\n`
+    );
+  }
   return (
-    `hint: try \`deft ${verb}\` (CLI) or \`task deft:${verb}\` (consumer Taskfile). ` +
-    `Bare \`task ${verb}\` does not exist on include-only deposits. ` +
-    `Hyphen stem: ${hyphen}.\n`
+    `hint: do not retry the same \`deft ${verb}\` spelling. ` +
+    `If a Taskfile task exists, try \`task ${verb}\` (framework) or \`task deft:${verb}\` (include) — ` +
+    `Taskfile recovery is conditional. ${hyphenNote} ${listing}\n`
   );
 }
 

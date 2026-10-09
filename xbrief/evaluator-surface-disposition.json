@@ -1,11 +1,12 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 5520,
+  "issue": 5521,
   "surfaces": [
-    "packages/core/src/evaluator-surface/evaluate.ts",
-    "packages/core/src/evaluator-surface/evaluate.test.ts",
+    "Taskfile.yml",
+    "packages/core/src/check/gate-lists.ts",
+    "tasks/verify.yml",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renewed disclosure for #5520 / PR #5527: typed deliveryBranch preferred before origin/HEAD / fixed main|master in resolveDefaultBaseRef. Disclosure only; not #3164 authorization."
+  "note": "Renewed disclosure for #5521 / PR #5529: wire verify:rule-to-verb-parity into FRAMEWORK_CHECK_GATES, tasks/verify.yml, and check:framework-source Taskfile deps. Disclosure only; not #3164 authorization."
 }

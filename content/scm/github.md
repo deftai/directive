@@ -11,7 +11,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 Rules that apply to every `gh` invocation, regardless of context.
 
 - ! Use `--body-file` for PR and issue bodies longer than one line -- inline `--body` strings break on special characters, newlines, and shell escaping across platforms
-- ! For Markdown-rich issue bodies, PR bodies, and issue/PR comments, prefer the canonical safe wrapper: `task scm:body:* -- --repo OWNER/NAME ... --body-file <path>`. It reads UTF-8 body text from a file or stdin, sends JSON to `gh api` without shell interpolation, and immediately performs live `gh` read-back.
+- ! For Markdown-rich issue bodies, PR bodies, and issue/PR comments, prefer the canonical safe wrapper: `task scm:body:* -- --repo OWNER/NAME ... --body-file <path>` (CLI dual-invoke: `deft scm:body:* --repo OWNER/NAME ... --body-file <path>`, #5521). It reads UTF-8 body text from a file or stdin, sends JSON to `gh api` without shell interpolation, and immediately performs live `gh` read-back.
 - ! Never place Markdown containing backticks inside a double-quoted shell command. In Bash and zsh, a body fragment like ``"include `ghx`"`` runs command substitution before `gh` receives the text, corrupting the posted body.
 - ! Write `--body-file` temp files to the OS temp directory, not the worktree -- writing temp files inside the worktree triggers `rm` denylist collisions that block autonomous swarm agents in Warp (the agent cannot delete files via `rm` in autonomous mode)
   - **PowerShell:**

@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **scm:body:* CLI aliases + rule-to-verb parity (#5521).** Registers eight `deft scm:body:*` colon aliases onto the github-body engine, stops unknown-verb hints from re-suggesting the failing spelling, and wires `verify:rule-to-verb-parity` into `deft check` / `check:framework-source` (uncached deps too). Deferred/stubbed top-level verbs and unknown named family globs fail closed. Tracking #5521.
 
 ### Changed
 
@@ -22,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Rule-to-verb parity accepts router-branch colon verbs and requires complete Taskfile keys (#5521).
 - Path B activation for #5521 membership fence.
 - Record the completed work for #5479 after product PR #5530.
 - Record the completed work for #5526 after product PR #5528.
