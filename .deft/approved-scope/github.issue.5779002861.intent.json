@@ -1,0 +1,167 @@
+{
+  "schemaVersion": 1,
+  "algo": "intent-extract-v1",
+  "plan": {
+    "title": "fix(triage): worktrees-probe case-fold sibling unregister flake recurred on 0.124.0 tip (post-#5460)",
+    "narratives": {
+      "Description": "Harden evaluator worktree prune so a stale or failed case-sensitivity signal cannot unregister a case-distinct sibling admin entry (0.124.0 tip flake recurrence after #5460).",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5519",
+      "Overview": "## Bound remedy\n\n1. **On-disk recorded worktree gate.** In pruneEvaluatorWorktreeAdmin, when the recorded worktree path still exists on disk and its realpath basename is case-distinct from the removal target, refuse to unregister that admin entry even if canonicalize previously folded.\n\n2. **Missing-path canonicalize uses bypassCache.** canonicalizeWorktreePath must not lowercase a missing leaf from a stale caseInsensitiveDirCache true; probe with bypassCache (or treat as case-sensitive on probe failure).\n\n3. **Stale-cache regression test.** worktrees-probe.test.ts seeds a stale true cache (or equivalent) and proves aaa survives under denied containedWrite; assert realpath of Wt-Eval !== wt-eval before acting.\n\n4. **CHANGELOG.** Unreleased Fixed bullet for #5519 (post-#5460 recurrence).\n\nRefs Prefer-A Bound for release-blocking tip flake class.",
+      "Labels": "bug, ci-cd, agent-experience, process, source-of-truth, urgent, area:cli, area:release, platform:windows, framework-gap, core-capabilities, promise:lifecycle, release",
+      "Confidence": "high"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "On-disk recorded worktree gate",
+        "narrative": {
+          "Acceptance": "pruneEvaluatorWorktreeAdmin in packages/core/src/triage/evaluate/worktrees.ts refuses to delete an admin entry whose recorded worktree still exists with a case-distinct realpath from the removal target."
+        },
+        "x-directive/artifact_path": "packages/core/src/triage/evaluate/worktrees.ts"
+      },
+      {
+        "id": "clause.2",
+        "title": "Missing-path canonicalize bypassCache",
+        "narrative": {
+          "Acceptance": "canonicalizeWorktreePath in packages/core/src/triage/evaluate/worktrees.ts does not lowercase a missing leaf from a stale true caseInsensitiveDirCache entry."
+        },
+        "x-directive/artifact_path": "packages/core/src/triage/evaluate/worktrees.ts"
+      },
+      {
+        "id": "clause.3",
+        "title": "Stale-cache probe regression",
+        "narrative": {
+          "Acceptance": "pnpm exec vitest run packages/core/src/triage/evaluate/worktrees-probe.test.ts packages/core/src/triage/evaluate/worktrees.test.ts exits 0 with coverage that aaa survives under denied probe plus stale true cache."
+        },
+        "x-directive/artifact_path": "packages/core/src/triage/evaluate/worktrees-probe.test.ts"
+      },
+      {
+        "id": "clause.4",
+        "title": "CHANGELOG Fixed bullet",
+        "narrative": {
+          "Acceptance": "CHANGELOG.md [Unreleased] Fixed records the #5519 worktrees-probe case-fold sibling harden."
+        },
+        "x-directive/artifact_path": "CHANGELOG.md"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5519",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5519: fix(triage): worktrees-probe case-fold sibling unregister flake recurred on 0.124.0 tip (post-#5460)"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "does not fold case when the sensitivity probe cannot write",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L4"
+        },
+        {
+          "command": "expected false to be true",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L4"
+        },
+        {
+          "command": "gh run rerun --failed",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L4"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "CHANGELOG.md",
+          "packages/core/src/triage/evaluate/worktrees.ts",
+          "packages/core/src/triage/evaluate/worktrees-probe.test.ts",
+          "packages/core/src/triage/evaluate/worktrees.test.ts"
+        ],
+        "Traces": [
+          "#5519"
+        ],
+        "intended_placement": {
+          "cohesion_exemption": "CHANGELOG.md Keep-active / Fixed release notes for #5519 Path B / product land"
+        }
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "CHANGELOG.md",
+          "packages/core/src/triage/evaluate/worktrees.ts",
+          "packages/core/src/triage/evaluate/worktrees-probe.test.ts",
+          "packages/core/src/triage/evaluate/worktrees.test.ts"
+        ],
+        "module_boundary": "triage evaluator worktree prune case-fold safety; worktrees-probe fail-closed sibling unregister",
+        "cohesion_exemption": "CHANGELOG.md Keep-active / Fixed release notes for #5519 Path B / product land"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5779002861,
+        "origin": "deftai/directive#5519",
+        "id": "github.issue.5779002861"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A Bound limbs hand-stamped after Prefer-A Bound harvest (#4374)",
+      "sentences": [
+        "pruneEvaluatorWorktreeAdmin in packages/core/src/triage/evaluate/worktrees.ts refuses to delete an admin entry whose recorded worktree still exists with a case-distinct realpath from the removal target.",
+        "canonicalizeWorktreePath in packages/core/src/triage/evaluate/worktrees.ts does not lowercase a missing leaf from a stale true caseInsensitiveDirCache entry.",
+        "pnpm exec vitest run packages/core/src/triage/evaluate/worktrees-probe.test.ts packages/core/src/triage/evaluate/worktrees.test.ts exits 0 with coverage that aaa survives under denied probe plus stale true cache.",
+        "CHANGELOG.md [Unreleased] Fixed records the #5519 worktrees-probe case-fold sibling harden."
+      ],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "pruneEvaluatorWorktreeAdmin in packages/core/src/triage/evaluate/worktrees.ts refuses to delete an admin entry whose recorded worktree still exists with a case-distinct realpath from the removal target.",
+          "artifact_path": "packages/core/src/triage/evaluate/worktrees.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "canonicalizeWorktreePath in packages/core/src/triage/evaluate/worktrees.ts does not lowercase a missing leaf from a stale true caseInsensitiveDirCache entry.",
+          "artifact_path": "packages/core/src/triage/evaluate/worktrees.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "pnpm exec vitest run packages/core/src/triage/evaluate/worktrees-probe.test.ts packages/core/src/triage/evaluate/worktrees.test.ts exits 0 with coverage that aaa survives under denied probe plus stale true cache.",
+          "artifact_path": "packages/core/src/triage/evaluate/worktrees-probe.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "CHANGELOG.md [Unreleased] Fixed records the #5519 worktrees-probe case-fold sibling harden.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "Bound remedy framing in Overview is covered by clauses 1–4.",
+        "Title and Description narrative are process framing, not additional acceptance oracles."
+      ]
+    },
+    "id": "github.issue.5779002861"
+  },
+  "approvedRepos": [
+    "deftai/directive"
+  ],
+  "unknownPaths": [
+    "items[].x-directive/artifact_path",
+    "metadata.intended_placement",
+    "metadata.literal_acceptance_commands",
+    "metadata.literal_acceptance_rejected",
+    "metadata.swarm.intended_placement",
+    "metadata.swarm.Traces",
+    "metadata.x-directive/plan-id"
+  ]
+}

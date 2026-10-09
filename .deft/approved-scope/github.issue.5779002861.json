@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-10-09-5519-fixtriage-worktrees-probe-case-fold-sibling-unregister-flake.xbrief.json",
+  "planId": "github.issue.5779002861",
+  "approvedAt": "2026-10-09T13:52:29Z",
+  "fileScope": [
+    "CHANGELOG.md",
+    "packages/core/src/triage/evaluate/worktrees-probe.test.ts",
+    "packages/core/src/triage/evaluate/worktrees.test.ts",
+    "packages/core/src/triage/evaluate/worktrees.ts"
+  ],
+  "fileScopeDigest": "25491ab09e80d57d14f060d5e07ef8eb99821acac5c80626797449a180229b6f",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-10-09T13:52:29Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "2307d75ed29bd7da7175d0cff359529731c3b50200e3363119240a00c633da62",
+  "digestAlgo": "intent-extract-v1"
+}
