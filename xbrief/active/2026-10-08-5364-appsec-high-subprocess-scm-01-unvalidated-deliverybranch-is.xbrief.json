@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5364",
-    "updated": "2026-10-09T11:34:13.515Z"
+    "updated": "2026-10-09T11:47:04.904Z"
   },
   "plan": {
     "title": "[AppSec] HIGH subprocess-scm-01: Unvalidated deliveryBranch is passed to git fetch as a raw refspec/option",
@@ -108,20 +108,20 @@
         ],
         "file_scope": [
           "CHANGELOG.md",
-          "packages/core/src/freshness/generation-gate.test.ts",
-          "packages/core/src/freshness/generation-gate.ts",
-          "packages/core/src/policy/base-branch.test.ts",
-          "packages/core/src/policy/base-branch.ts",
-          "packages/core/src/policy/branch-sync.test.ts",
-          "packages/core/src/policy/branch-sync.ts",
-          "packages/core/src/policy/delivery-branch.test.ts",
           "packages/core/src/policy/delivery-branch.ts",
+          "packages/core/src/policy/delivery-branch.test.ts",
+          "packages/core/src/policy/base-branch.ts",
+          "packages/core/src/policy/base-branch.test.ts",
+          "packages/core/src/policy/branch-sync.ts",
+          "packages/core/src/policy/branch-sync.test.ts",
           "packages/core/src/policy/sync-default.ts",
-          "packages/core/src/scope/delivery-evidence.ts",
+          "packages/core/src/freshness/generation-gate.ts",
+          "packages/core/src/freshness/generation-gate.test.ts",
           "packages/core/src/swarm/finalize-owed.ts",
-          "packages/core/src/swarm/launch.test.ts",
           "packages/core/src/swarm/launch.ts",
-          "packages/core/src/swarm/origin-active-brief.ts"
+          "packages/core/src/swarm/launch.test.ts",
+          "packages/core/src/swarm/origin-active-brief.ts",
+          "packages/core/src/scope/delivery-evidence.ts"
         ],
         "size": "L",
         "file_scope_confidence": "high",
@@ -134,23 +134,23 @@
         "schema": "deft.scope.intended_placement.v1",
         "files": [
           "CHANGELOG.md",
-          "packages/core/src/freshness/generation-gate.test.ts",
-          "packages/core/src/freshness/generation-gate.ts",
-          "packages/core/src/policy/base-branch.test.ts",
-          "packages/core/src/policy/base-branch.ts",
-          "packages/core/src/policy/branch-sync.test.ts",
-          "packages/core/src/policy/branch-sync.ts",
-          "packages/core/src/policy/delivery-branch.test.ts",
           "packages/core/src/policy/delivery-branch.ts",
+          "packages/core/src/policy/delivery-branch.test.ts",
+          "packages/core/src/policy/base-branch.ts",
+          "packages/core/src/policy/base-branch.test.ts",
+          "packages/core/src/policy/branch-sync.ts",
+          "packages/core/src/policy/branch-sync.test.ts",
           "packages/core/src/policy/sync-default.ts",
-          "packages/core/src/scope/delivery-evidence.ts",
+          "packages/core/src/freshness/generation-gate.ts",
+          "packages/core/src/freshness/generation-gate.test.ts",
           "packages/core/src/swarm/finalize-owed.ts",
-          "packages/core/src/swarm/launch.test.ts",
           "packages/core/src/swarm/launch.ts",
-          "packages/core/src/swarm/origin-active-brief.ts"
+          "packages/core/src/swarm/launch.test.ts",
+          "packages/core/src/swarm/origin-active-brief.ts",
+          "packages/core/src/scope/delivery-evidence.ts"
         ],
         "module_boundary": "deliveryBranch fetch argv gate",
-        "cohesion_exemption": "CHANGELOG.md shared release notes; Path B activation Keep-active bullet only; file_scope matches remint preimage."
+        "cohesion_exemption": "CHANGELOG.md shared release notes; Path B remint Unreleased bullet only; Bound call-site inventory (launch/origin-active-brief/sync-default)."
       },
       "x-directive/plan-id": {
         "version": 1,
