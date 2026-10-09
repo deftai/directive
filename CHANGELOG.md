@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **scm:body:* CLI aliases + rule-to-verb parity (#5521).** Registers eight `deft scm:body:*` colon aliases onto the github-body engine, stops unknown-verb hints from re-suggesting the failing spelling, and adds `verify:rule-to-verb-parity` to `deft check` so pinned templates cannot name dead verbs. Tracking #5521.
+- **scm:body:* CLI aliases + rule-to-verb parity (#5521).** Registers eight `deft scm:body:*` colon aliases onto the github-body engine, stops unknown-verb hints from re-suggesting the failing spelling, and wires `verify:rule-to-verb-parity` into `deft check` / `check:framework-source` (uncached deps too). Deferred/stubbed top-level verbs and unknown named family globs fail closed. Tracking #5521.
 
 ### Changed
 

@@ -36,6 +36,28 @@ describe("rule-to-verb-parity (#5521)", () => {
     expect(refused.reason).toMatch(/not expandable/);
   });
 
+  it("keeps named family globs through extract so expandFamilyGlob can refuse", () => {
+    const text = [
+      "! Do not cite `deft swarm:*` as a catch-all.",
+      "! Prefer `task deft:*` as the generic placeholder.",
+    ].join("\n");
+    const citations = extractRuleCitations("fixture.md", text);
+    expect(citations.some((c) => c.kind === "deft" && c.raw === "swarm:*")).toBe(true);
+    expect(citations.some((c) => c.raw === "deft:*" || c.raw === "*")).toBe(false);
+    const result = evaluateRuleToVerbParity(REPO_ROOT, {
+      readText: (p) => {
+        if (p.endsWith("agents-entry.md")) return `${text}\n`;
+        if (p.endsWith("agent-prompt-preamble.md")) return "# ok\n";
+        return "";
+      },
+      exists: () => true,
+      cliVerbs: new Set(["check"]),
+      taskResolves: () => true,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.findings.some((f) => f.kind === "glob" && f.name === "swarm:*")).toBe(true);
+  });
+
   it("extracts deft and task citations from template prose", () => {
     const text = [
       "! Use `deft scm:body:issue:fetch --out-file` then `deft scm:body:issue:edit --body-file`.",
@@ -89,6 +111,41 @@ describe("rule-to-verb-parity (#5521)", () => {
     expect(verbs.has("github-body")).toBe(true);
     expect(verbs.has("check")).toBe(true);
     expect(verbs.has("scope:promote")).toBe(true);
+    // Deferred/stubbed top-level UX verbs must not green dead citations.
+    expect(verbs.has("feature")).toBe(false);
+  });
+
+  it("excludes deferred and stubbed TOP_LEVEL_UX_VERBS from the registry set", () => {
+    const result = evaluateRuleToVerbParity(REPO_ROOT, {
+      readText: (p) => {
+        if (p.endsWith("agents-entry.md")) return "! Run `deft feature`.\n";
+        if (p.endsWith("agent-prompt-preamble.md")) return "# ok\n";
+        if (p.endsWith("route-argv.ts")) {
+          return [
+            'export const TOP_LEVEL_UX_VERBS = ["check", "feature"] as const;',
+            "export const STUBBED_TOP_LEVEL_VERBS = new Set<string>([]);",
+            'export const DEFERRED_TOP_LEVEL_VERBS = new Set<string>(["feature"]);',
+            "export const SUBCOMMAND_ROUTES = {};",
+            "export const PR_VERB_MAP = {};",
+            "export const VERIFY_VERB_MAP = {};",
+            "export const SCOPE_LIFECYCLE_VERBS = new Set([]);",
+          ].join("\n");
+        }
+        if (p.endsWith("dispatch.ts")) {
+          return [
+            'export const CLI_MODULE_VERBS = ["check"] as const;',
+            "export const CORE_MODULE_VERBS = [];",
+            "export const VERB_ALIASES = {};",
+            "export const POLICY_SET_COMMANDS = [];",
+          ].join("\n");
+        }
+        return "";
+      },
+      exists: () => true,
+      taskResolves: () => true,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.findings.some((f) => f.name === "feature")).toBe(true);
   });
 
   it("resolves framework task scm:body:issue:fetch from tasks/scm.yml", () => {

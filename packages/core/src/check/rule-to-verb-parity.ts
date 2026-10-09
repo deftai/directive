@@ -137,17 +137,13 @@ export function firstInvocationToken(raw: string): string | null {
   return cleaned;
 }
 
-/** True when the token is a namespace wildcard (`*`, `deft:*`) not a concrete family. */
+/** True when the token is a generic placeholder (`*`, `deft:*`), not a named family. */
 export function isNamespaceWildcard(token: string): boolean {
   const stripped = token.startsWith(CONSUMER_INCLUDE_PREFIX)
     ? token.slice(CONSUMER_INCLUDE_PREFIX.length)
     : token;
-  if (stripped === "*" || stripped === "") return true;
-  // `foo:*` namespace wildcards (not the known scm:body:* family).
-  if (/^[A-Za-z_][\w-]*:\*$/.test(token) || /^[A-Za-z_][\w-]*:\*$/.test(stripped)) {
-    return token !== "scm:body:*" && stripped !== "scm:body:*";
-  }
-  return false;
+  // Keep `task deft:*` / bare `*` excluded; named families (e.g. swarm:*) go to expandFamilyGlob.
+  return stripped === "*" || stripped === "";
 }
 
 /**
@@ -189,6 +185,11 @@ export function loadRegisteredCliVerbs(
     });
   const dispatch = readText(join(repoRoot, "packages/cli/src/dispatch.ts")) ?? "";
   const router = readText(join(repoRoot, "packages/cli/src/cli-router/route-argv.ts")) ?? "";
+  const deferredTop = new Set(quotedStrings(sliceAssignment(router, "DEFERRED_TOP_LEVEL_VERBS")));
+  const stubbedTop = new Set(quotedStrings(sliceAssignment(router, "STUBBED_TOP_LEVEL_VERBS")));
+  const topLevel = parseStringArrayExport(router, "TOP_LEVEL_UX_VERBS").filter(
+    (verb) => !deferredTop.has(verb) && !stubbedTop.has(verb),
+  );
   const verbs = new Set<string>([
     ...parseStringArrayExport(dispatch, "CLI_MODULE_VERBS"),
     ...parseStringArrayExport(dispatch, "CORE_MODULE_VERBS"),
@@ -200,7 +201,7 @@ export function loadRegisteredCliVerbs(
     ...parseRecordKeys(dispatch, "PLAN_SEQUENCE_ALIAS_SUBCOMMANDS"),
     ...parseRecordKeys(dispatch, "PRODUCT_SIGNAL_ALIAS_SUBCOMMANDS"),
     ...parseRecordKeys(dispatch, "FRESHNESS_ALIAS_SUBCOMMANDS"),
-    ...parseStringArrayExport(router, "TOP_LEVEL_UX_VERBS"),
+    ...topLevel,
     ...parseRecordKeys(router, "SUBCOMMAND_ROUTES"),
     ...parseRecordKeys(router, "PR_VERB_MAP").map((v) => `pr:${v}`),
     ...parseRecordKeys(router, "VERIFY_VERB_MAP").map((v) => `verify:${v}`),
@@ -210,7 +211,7 @@ export function loadRegisteredCliVerbs(
   for (const sub of parseStringArrayExport(dispatch, "POLICY_SET_COMMANDS")) {
     verbs.add(`policy:${sub}`);
   }
-  // Space-form top-level check/doctor already covered via TOP_LEVEL_UX_VERBS.
+  // Space-form top-level check/doctor already covered via available TOP_LEVEL_UX_VERBS.
   return verbs;
 }
 

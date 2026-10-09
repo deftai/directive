@@ -435,6 +435,7 @@ tasks:
       - verify:stubs
       - verify:links
       - verify:rule-ownership
+      - verify:rule-to-verb-parity
       - verify:biome-config
       - verify:content-manifest
       - verify:deposit-closure
