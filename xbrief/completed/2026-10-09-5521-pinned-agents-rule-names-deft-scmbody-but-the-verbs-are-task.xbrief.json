@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5521",
-    "updated": "2026-10-09T19:01:27Z"
+    "updated": "2026-10-09T22:29:16.000Z"
   },
   "plan": {
     "title": "Pinned AGENTS rule names deft scm:body:* but the verbs are Taskfile-only; unknown-verb hint recommends the failing form; no rule-to-verb parity check",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Pinned AGENTS rule names deft scm:body:* but the verbs are Taskfile-only; unknown-verb hint recommends the failing form; no rule-to-verb parity check",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5521",
@@ -17,37 +17,85 @@
       {
         "id": "clause.1",
         "title": "Register eight scm:body:* colon aliases onto the existing github-body engine via SUBCOMMAND_ROUTES; argv+behavior parity (subcommand insertion); sole engine github-body-cli.ts; forwarding + fetch/write failure tests.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/cli/src/cli-router/route-argv.ts",
         "narrative": {
           "Acceptance": "Register eight scm:body:* colon aliases onto the existing github-body engine via SUBCOMMAND_ROUTES; argv+behavior parity (subcommand insertion); sole engine github-body-cli.ts; forwarding + fetch/write failure tests."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5529 squash-merge (Tracking #5521). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5529",
+            "mintedAt": "2026-10-09T22:29:16.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-09T22:29:16.000Z"
         }
       },
       {
         "id": "clause.2",
         "title": "Fix unknownColonVerbHint with a static dual-invoke set: never re-suggest failing deft <verb>; for the eight scm:body:* names suggest task <name> and task deft:<name>; demote hyphen stem; no task --list shell-out; distinguish framework/include-only/no-Taskfile contexts.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/cli/src/dispatch.ts",
         "narrative": {
           "Acceptance": "Fix unknownColonVerbHint with a static dual-invoke set: never re-suggest failing deft <verb>; for the eight scm:body:* names suggest task <name> and task deft:<name>; demote hyphen stem; no task --list shell-out; distinguish framework/include-only/no-Taskfile contexts."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5529 squash-merge (Tracking #5521). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5529",
+            "mintedAt": "2026-10-09T22:29:16.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-09T22:29:16.000Z"
         }
       },
       {
         "id": "clause.3",
         "title": "New rule-to-verb / rule-to-task parity verify wired into deft check for agents-entry.md and agent-prompt-preamble.md; expand/refuse family globs; fixtures for missing verb/omitted body-family member; inspect metadata only.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/check/rule-to-verb-parity.ts",
         "narrative": {
           "Acceptance": "New rule-to-verb / rule-to-task parity verify wired into deft check for agents-entry.md and agent-prompt-preamble.md; expand/refuse family globs; fixtures for missing verb/omitted body-family member; inspect metadata only."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5529 squash-merge (Tracking #5521). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5529",
+            "mintedAt": "2026-10-09T22:29:16.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-09T22:29:16.000Z"
         }
       },
       {
         "id": "clause.4",
         "title": "Dispose citation agreement in the same ship: either amend Acceptance so every cited form resolves, or same-PR align agents-entry and preamble onto preferred CLI spelling once aliases exist; scm/github.md may keep task dual-invoke examples.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/templates/agents-entry.md",
         "narrative": {
           "Acceptance": "Dispose citation agreement in the same ship: either amend Acceptance so every cited form resolves, or same-PR align agents-entry and preamble onto preferred CLI spelling once aliases exist; scm/github.md may keep task dual-invoke examples."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5529 squash-merge (Tracking #5521). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5529",
+            "mintedAt": "2026-10-09T22:29:16.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-09T22:29:16.000Z"
         }
       }
     ],
@@ -159,6 +207,11 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "c44084d8f008d39fcad508b223e21a1e7775278205e7cd7286705e49a88e3afa"
+      },
+      "productPullRequest": 5529,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-09T22:29:16.000Z"
       }
     },
     "acceptance": {
@@ -198,6 +251,6 @@
       ]
     },
     "id": "github.issue.5779256813",
-    "updated": "2026-10-09T19:01:27Z"
+    "updated": "2026-10-09T22:29:16.000Z"
   }
 }
