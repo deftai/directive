@@ -3145,6 +3145,22 @@ const SCOPE_COMMAND_NAMES = [
 ] as const;
 
 /**
+ * Static dual-invoke set for scm:body:* (#5521). Mirror of
+ * packages/cli/src/cli-router/route-argv.ts SCM_BODY_COLON_VERBS — kept here
+ * so dispatch does not import route-argv (route-argv already imports dispatch).
+ */
+const SCM_BODY_DUAL_INVOKE_VERBS = new Set<string>([
+  "scm:body:issue:create",
+  "scm:body:issue:edit",
+  "scm:body:issue:fetch",
+  "scm:body:issue:lint",
+  "scm:body:comment:create",
+  "scm:body:comment:edit",
+  "scm:body:pr:edit",
+  "scm:body:pr:lint",
+]);
+
+/**
  * Deduplicated command names for `directive commands`, preferring colon-style
  * task verbs over dash-style canonical stems when both exist (#2172).
  */
@@ -3159,6 +3175,7 @@ export function preferredCommandNames(): readonly string[] {
       ...TOP_LEVEL_COMMAND_NAMES,
       ...SCOPE_COMMAND_NAMES,
       ...aliasKeys,
+      ...SCM_BODY_DUAL_INVOKE_VERBS,
       ...unaliasedCanonicals,
     ]),
   ].sort();
@@ -3349,22 +3366,6 @@ async function invokeHandler(handler: CommandHandler, argv: string[]): Promise<n
 }
 
 const PLAN_SEQUENCE_VERBS = "set|current|clear|advance";
-
-/**
- * Static dual-invoke set for scm:body:* (#5521). Mirror of
- * packages/cli/src/cli-router/route-argv.ts SCM_BODY_COLON_VERBS — kept here
- * so dispatch does not import route-argv (route-argv already imports dispatch).
- */
-const SCM_BODY_DUAL_INVOKE_VERBS = new Set<string>([
-  "scm:body:issue:create",
-  "scm:body:issue:edit",
-  "scm:body:issue:fetch",
-  "scm:body:issue:lint",
-  "scm:body:comment:create",
-  "scm:body:comment:edit",
-  "scm:body:pr:edit",
-  "scm:body:pr:lint",
-]);
 
 export type UnknownColonHintContext = "framework" | "include-only" | "no-taskfile" | "unknown";
 

@@ -461,6 +461,13 @@ describe("dispatch", () => {
     }
   });
 
+  it("preferredCommandNames lists scm:body:* dual-invoke aliases (#5521)", () => {
+    const names = preferredCommandNames();
+    expect(names).toContain("scm:body:issue:fetch");
+    expect(names).toContain("scm:body:comment:create");
+    expect(names).toContain("scm:body:pr:lint");
+  });
+
   it("resolves pr:watch colon alias to pr-watch (#2652)", () => {
     expect(resolveCanonicalVerb("pr:watch")).toBe("pr-watch");
   });

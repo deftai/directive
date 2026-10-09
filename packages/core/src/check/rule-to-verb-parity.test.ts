@@ -136,7 +136,6 @@ describe("rule-to-verb-parity (#5521)", () => {
             'export const CLI_MODULE_VERBS = ["check"] as const;',
             "export const CORE_MODULE_VERBS = [];",
             "export const VERB_ALIASES = {};",
-            "export const POLICY_SET_COMMANDS = [];",
           ].join("\n");
         }
         return "";
@@ -146,6 +145,23 @@ describe("rule-to-verb-parity (#5521)", () => {
     });
     expect(result.ok).toBe(false);
     expect(result.findings.some((f) => f.name === "feature")).toBe(true);
+  });
+
+  it("does not invent policy:<POLICY_SET_COMMANDS> spellings as CLI verbs", () => {
+    const verbs = loadRegisteredCliVerbs(REPO_ROOT);
+    expect(verbs.has("policy:show")).toBe(true);
+    expect(verbs.has("policy:wip-cap")).toBe(false);
+    const result = evaluateRuleToVerbParity(REPO_ROOT, {
+      readText: (p) => {
+        if (p.endsWith("agents-entry.md")) return "! Run `deft policy:wip-cap`.\n";
+        if (p.endsWith("agent-prompt-preamble.md")) return "# ok\n";
+        return "";
+      },
+      exists: () => true,
+      taskResolves: () => true,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.findings.some((f) => f.name === "policy:wip-cap")).toBe(true);
   });
 
   it("resolves framework task scm:body:issue:fetch from tasks/scm.yml", () => {

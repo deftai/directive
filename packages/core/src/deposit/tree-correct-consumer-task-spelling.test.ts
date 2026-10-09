@@ -47,11 +47,12 @@ describe("tree-correct consumer task spelling (#4447)", () => {
     expect(text).not.toMatch(/`task xbrief:preflight/);
   });
 
-  it("preamble GitHub-body examples resolve on the CLI registry, not deft scm:body", () => {
+  it("preamble GitHub-body examples prefer deft scm:body:* CLI aliases (#5521)", () => {
     const text = read("content/templates/agent-prompt-preamble.md");
-    expect(text).not.toContain("deft scm:body");
-    expect(text).toContain("deft github-body comment-create");
-    expect(text).toContain("deft github-body issue-fetch");
+    expect(text).toContain("deft scm:body:comment:create");
+    expect(text).toContain("deft scm:body:issue:fetch");
+    expect(text).not.toContain("deft github-body comment-create");
+    expect(text).not.toContain("deft github-body issue-fetch");
     const registries = loadCommandRegistries(repoRoot);
     const snippets = extractCommandSnippets(
       text,
@@ -61,14 +62,14 @@ describe("tree-correct consumer task spelling (#4447)", () => {
     const recut = snippets.filter(
       (s) =>
         s.family === "cli" &&
-        (s.verb === "github-body" ||
+        (s.verb.startsWith("scm:body") ||
           s.verb === "scope:promote" ||
           s.verb === "xbrief:activate" ||
           s.verb === "xbrief:preflight" ||
           s.verb === "swarm:finalize-cohort"),
     );
-    expect(recut.some((s) => s.verb === "github-body")).toBe(true);
-    expect(snippets.some((s) => s.verb.startsWith("scm:body"))).toBe(false);
+    expect(recut.some((s) => s.verb.startsWith("scm:body"))).toBe(true);
+    expect(snippets.some((s) => s.verb === "github-body")).toBe(false);
     for (const snippet of recut) {
       const resolution = resolveCommandSnippet(snippet, registries);
       expect(resolution.kind, `${snippet.raw} L${snippet.line}`).not.toBe("absent");

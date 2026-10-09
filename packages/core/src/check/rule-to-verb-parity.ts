@@ -207,10 +207,9 @@ export function loadRegisteredCliVerbs(
     ...parseRecordKeys(router, "VERIFY_VERB_MAP").map((v) => `verify:${v}`),
     ...parseStringArrayExport(router, "SCOPE_LIFECYCLE_VERBS").map((v) => `scope:${v}`),
   ]);
-  // policy <subcommand> space form is public; cite as policy:<subcommand> too.
-  for (const sub of parseStringArrayExport(dispatch, "POLICY_SET_COMMANDS")) {
-    verbs.add(`policy:${sub}`);
-  }
+  // Do not invent policy:<POLICY_SET_COMMANDS> spellings — those are policy-set /
+  // `deft policy set <cmd>` only. Real policy:* colon aliases come from
+  // POLICY_ACTION_ALIAS_SUBCOMMANDS above.
   // Space-form top-level check/doctor already covered via available TOP_LEVEL_UX_VERBS.
   return verbs;
 }

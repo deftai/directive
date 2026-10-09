@@ -631,12 +631,14 @@ export function loadCommandRegistries(repoRoot: string): CommandRegistries {
   const deferredCli = new Set(quotedStrings(sliceAssignment(router, "DEFERRED_TOP_LEVEL_VERBS")));
   const stubbedCli = new Set(quotedStrings(sliceAssignment(router, "STUBBED_TOP_LEVEL_VERBS")));
   const scopeLocals = quotedStrings(sliceAssignment(router, "SCOPE_LIFECYCLE_VERBS"));
+  const subcommandRoutes = parseRecordKeys(router, "SUBCOMMAND_ROUTES");
   const aliasedCanonicals = new Set(aliasValues.filter((s): s is string => s !== undefined));
   const registeredCli = new Set<string>([
     ...moduleVerbs,
     ...coreVerbs,
     ...aliasKeys,
     ...colonAliasKeys,
+    ...subcommandRoutes,
     ...topLevel,
     ...scopeLocals.map((local) => `scope:${local}`),
     ...helpCli,
@@ -645,6 +647,7 @@ export function loadCommandRegistries(repoRoot: string): CommandRegistries {
     ...topLevel.filter((verb) => !deferredCli.has(verb) && !stubbedCli.has(verb)),
     ...aliasKeys,
     ...colonAliasKeys,
+    ...subcommandRoutes,
     ...[...moduleVerbs, ...coreVerbs].filter((verb) => !aliasedCanonicals.has(verb)),
     ...scopeLocals.map((local) => `scope:${local}`),
     ...[...helpCli].filter((name) => registeredCli.has(name) && !deferredCli.has(name)),
