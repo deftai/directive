@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Keep active #5519 Path B activation (worktrees-probe membership fence).
 - Record approved scope for #5519 so the planned worktrees-probe case-fold fix can pass scope checks (mint only; product fix not shipped).
 - Keep completed #5364 after product PR #5485 (deliveryBranch fetch argv gate).
 - Record the approved scope for #5364 so its product changes can pass scope checks.
