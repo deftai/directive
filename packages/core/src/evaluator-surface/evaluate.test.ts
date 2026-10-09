@@ -188,6 +188,60 @@ describe("evaluate (#4386)", () => {
   });
 });
 
+describe("resolveDefaultBaseRef deliveryBranch (#5520)", () => {
+  function writePd(root: string, policy?: Record<string, unknown>): void {
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "t",
+          status: "running",
+          ...(policy === undefined ? {} : { policy }),
+        },
+      }),
+      "utf8",
+    );
+  }
+
+  it("prefers origin/develop before origin/HEAD when typed", () => {
+    const root = seedRoot();
+    writePd(root, { deliveryBranch: "develop" });
+    const seen: string[] = [];
+    const resolved = resolveDefaultBaseRef(root, (args) => {
+      const joined = args.join(" ");
+      seen.push(joined);
+      if (joined.includes("origin/develop^{commit}")) return "devsha";
+      if (joined.includes("origin/HEAD")) return "origin/main";
+      return null;
+    });
+    expect(resolved).toBe("origin/develop");
+    expect(seen.some((s) => s.includes("origin/HEAD"))).toBe(false);
+  });
+
+  it("keeps origin/HEAD-first when policy omits deliveryBranch", () => {
+    const root = seedRoot();
+    writePd(root, {});
+    const resolved = resolveDefaultBaseRef(root, (args) => {
+      const joined = args.join(" ");
+      if (joined.includes("abbrev-ref") && joined.includes("origin/HEAD")) return "origin/main";
+      return null;
+    });
+    expect(resolved).toBe("origin/main");
+  });
+
+  it("skips hostile typed deliveryBranch and keeps origin/HEAD", () => {
+    const root = seedRoot();
+    writePd(root, { deliveryBranch: "--upload-pack=evil" });
+    const resolved = resolveDefaultBaseRef(root, (args) => {
+      const joined = args.join(" ");
+      if (joined.includes("abbrev-ref") && joined.includes("origin/HEAD")) return "origin/master";
+      return null;
+    });
+    expect(resolved).toBe("origin/master");
+  });
+});
+
 describe("gate-integrity.md Bound-remedy contract (#4386)", () => {
   it("withdraws the absolute no-detector claim and inventories #3322", () => {
     const text = readFileSync(join(process.cwd(), "content/docs/gate-integrity.md"), "utf8");

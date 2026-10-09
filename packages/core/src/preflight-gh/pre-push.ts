@@ -5,6 +5,7 @@
  * Empty-remote / zero-OID create of master/main is not an exemption.
  */
 
+import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
 import { resolveAllowDestructiveGhVerbs } from "../policy/destructive-gh-verbs.js";
 import { policyColonInvocation } from "../policy/policy-invocation.js";
 import { DEFAULT_BRANCHES, ENV_BYPASS } from "./classifier.js";
@@ -84,14 +85,40 @@ export interface EvaluatePrePushOptions {
 }
 
 /**
+ * Per-invocation union of typed plan.policy.deliveryBranch (#5520).
+ * Does not mutate exported DEFAULT_BRANCHES. Hostile/empty typed skips.
+ */
+export function unionTypedDeliveryBranches(
+  projectRoot: string | undefined,
+  branches: ReadonlySet<string>,
+): ReadonlySet<string> {
+  if (projectRoot === undefined || projectRoot.length === 0) return branches;
+  const delivery = resolveDeliveryBranch(projectRoot);
+  if (
+    delivery.source === "typed" &&
+    delivery.error === null &&
+    delivery.branch.trim().length > 0
+  ) {
+    const next = new Set(branches);
+    next.add(delivery.branch);
+    return next;
+  }
+  return branches;
+}
+
+/**
  * Evaluate pre-push stdin refs. Consults plan.policy.allowDestructiveGhVerbs
  * through --project-root when provided. Does not treat zero-OID create as empty-remote.
+ * When projectRoot is set, union typed deliveryBranch into a per-invocation set (#5520).
  */
 export function evaluatePrePush(
   refs: readonly PrePushRef[],
   options: EvaluatePrePushOptions = {},
 ): [number, string] {
-  const branches = options.branches ?? DEFAULT_BRANCHES;
+  const branches = unionTypedDeliveryBranches(
+    options.projectRoot,
+    options.branches ?? DEFAULT_BRANCHES,
+  );
   const env = options.env ?? process.env;
 
   if (refs.length === 0) {

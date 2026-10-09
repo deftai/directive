@@ -14,6 +14,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { matchAny, matchPath, normalizePath } from "../orchestration/pathspec.js";
+import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
 
 export type OutputStream = "stdout" | "stderr" | "none";
 
@@ -55,8 +56,8 @@ export const EVALUATOR_SURFACE_PATH_PATTERNS = [
 const ORIGIN_DEFAULT_CANDIDATES = ["origin/HEAD", "origin/main", "origin/master"] as const;
 
 /**
- * Resolve the remote default branch. Do not impose this repo's `origin/master`
- * on consumers that track `main`.
+ * Resolve the remote default branch. Prefer typed plan.policy.deliveryBranch
+ * (#5520) before origin/HEAD / fixed main|master. Do not invent env reading.
  */
 export function resolveDefaultBaseRef(
   projectRoot: string,
@@ -71,6 +72,21 @@ export function resolveDefaultBaseRef(
     }
   },
 ): string | { error: string } {
+  const delivery = resolveDeliveryBranch(projectRoot, (_root, args) => {
+    const stdout = runGit([...args]);
+    return { code: stdout === null ? 1 : 0, stdout: stdout ?? "", stderr: "" };
+  });
+  if (
+    delivery.source === "typed" &&
+    delivery.error === null &&
+    delivery.branch.trim().length > 0
+  ) {
+    for (const candidate of [`origin/${delivery.branch}`, delivery.branch] as const) {
+      const ok = runGit(["rev-parse", "--verify", `${candidate}^{commit}`]);
+      if (ok !== null) return candidate;
+    }
+  }
+
   const abbrev = runGit(["rev-parse", "--abbrev-ref", "origin/HEAD"]);
   if (abbrev !== null && abbrev.length > 0 && abbrev !== "origin/HEAD") {
     return abbrev;

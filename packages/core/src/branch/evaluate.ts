@@ -1,4 +1,5 @@
 import { recordBypassSignal, recordGateCatch } from "../events/attribution-ledger.js";
+import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
 import { disclosureLine } from "../policy/disclosure.js";
 import { policyColonInvocation } from "../policy/policy-invocation.js";
 import { humanMergeBranchNote, resolveHumanMergePolicy } from "../policy/require-human-merge.js";
@@ -74,7 +75,21 @@ function buildBlockMessage(branch: string, result: PolicyResult): string {
  * `scripts/preflight_branch.evaluate`.
  */
 export function evaluate(projectRoot: string, options: EvaluateOptions = {}): EvaluateResult {
-  const defaultBranches = options.defaultBranches ?? DEFAULT_BRANCHES;
+  let defaultBranches: ReadonlySet<string>;
+  if (options.defaultBranches !== undefined) {
+    defaultBranches = options.defaultBranches;
+  } else {
+    const protectedSet = new Set(DEFAULT_BRANCHES);
+    const delivery = resolveDeliveryBranch(projectRoot);
+    if (
+      delivery.source === "typed" &&
+      delivery.error === null &&
+      delivery.branch.trim().length > 0
+    ) {
+      protectedSet.add(delivery.branch);
+    }
+    defaultBranches = protectedSet;
+  }
   const allowMissingProjectDefinition = options.allowMissingProjectDefinition ?? false;
 
   if (setupExemptionActive()) {

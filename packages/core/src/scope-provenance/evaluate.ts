@@ -34,6 +34,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { GitCommandError, GitNotFoundError } from "../encoding/git.js";
+import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
 import { loadTestBoundaryPolicy } from "../test-boundary/policy.js";
 import {
   evaluateApprovedScopeMembership,
@@ -164,8 +165,8 @@ function git(args: string[], projectRoot: string): { status: number; stdout: str
 
 /**
  * Resolve a PR-aware base ref. Bare `HEAD` only shows uncommitted changes, so
- * CI/PR checkouts would miss committed active-xBRIEF expansion. Prefer
- * origin/master (or main) for merge-base comparison.
+ * CI/PR checkouts would miss committed active-xBRIEF expansion. Prefer typed
+ * plan.policy.deliveryBranch (#5520) then origin/master (or main).
  * Returns null when no merge-base candidate exists (caller fails closed).
  */
 export function resolveDefaultBaseRef(projectRoot: string): string | null {
@@ -174,7 +175,26 @@ export function resolveDefaultBaseRef(projectRoot: string): string | null {
     process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : undefined,
     process.env.GITHUB_BASE_REF,
   ].filter((x): x is string => typeof x === "string" && x.trim().length > 0);
-  for (const cand of [...envCandidates, "origin/master", "origin/main", "master", "main"]) {
+  const deliveryCandidates: string[] = [];
+  const delivery = resolveDeliveryBranch(projectRoot, (root, args) => {
+    const result = git([...args], root);
+    return { code: result.status, stdout: result.stdout, stderr: "" };
+  });
+  if (
+    delivery.source === "typed" &&
+    delivery.error === null &&
+    delivery.branch.trim().length > 0
+  ) {
+    deliveryCandidates.push(`origin/${delivery.branch}`, delivery.branch);
+  }
+  for (const cand of [
+    ...envCandidates,
+    ...deliveryCandidates,
+    "origin/master",
+    "origin/main",
+    "master",
+    "main",
+  ]) {
     if (git(["rev-parse", "--verify", "-q", cand], projectRoot).status === 0) {
       return cand;
     }

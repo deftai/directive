@@ -233,4 +233,105 @@ describe("DEFAULT_BRANCHES", () => {
     expect(DEFAULT_BRANCHES.has("master")).toBe(true);
     expect(DEFAULT_BRANCHES.has("main")).toBe(true);
   });
+
+  it("is not mutated by typed deliveryBranch evaluate (#5520)", () => {
+    const r = mkdtempSync(join(tmpdir(), "deft-branch-default-"));
+    mkdirSync(join(r, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(r, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "T",
+          status: "running",
+          items: [],
+          policy: { allowDirectCommitsToMaster: false, deliveryBranch: "develop" },
+        },
+      }),
+      "utf8",
+    );
+    evaluate(r, { branchOverride: { branch: "develop", detached: false } });
+    expect(DEFAULT_BRANCHES.has("develop")).toBe(false);
+    expect(DEFAULT_BRANCHES.has("master")).toBe(true);
+    expect(DEFAULT_BRANCHES.has("main")).toBe(true);
+    rmSync(r, { recursive: true, force: true });
+  });
+});
+
+describe("typed deliveryBranch protection (#5520)", () => {
+  const roots: string[] = [];
+  afterEach(() => {
+    for (const r of roots.splice(0)) {
+      rmSync(r, { recursive: true, force: true });
+    }
+  });
+
+  function rootWithPolicy(policy: Record<string, unknown>): string {
+    const r = mkdtempSync(join(tmpdir(), "deft-branch-5520-"));
+    roots.push(r);
+    mkdirSync(join(r, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(r, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { title: "T", status: "running", items: [], policy },
+      }),
+      "utf8",
+    );
+    return r;
+  }
+
+  it("blocks develop when typed deliveryBranch=develop and defaultBranches unset", () => {
+    const r = rootWithPolicy({
+      allowDirectCommitsToMaster: false,
+      deliveryBranch: "develop",
+    });
+    const result = evaluate(r, { branchOverride: { branch: "develop", detached: false } });
+    expect(result.exitCode).toBe(1);
+    expect(result.message).toContain("develop");
+  });
+
+  it("still blocks master when typed deliveryBranch=develop", () => {
+    const r = rootWithPolicy({
+      allowDirectCommitsToMaster: false,
+      deliveryBranch: "develop",
+    });
+    expect(evaluate(r, { branchOverride: { branch: "master", detached: false } }).exitCode).toBe(
+      1,
+    );
+  });
+
+  it("does not protect develop when policy omits deliveryBranch", () => {
+    const r = rootWithPolicy({ allowDirectCommitsToMaster: false });
+    const result = evaluate(r, { branchOverride: { branch: "develop", detached: false } });
+    expect(result.exitCode).toBe(0);
+  });
+
+  it("skips hostile typed deliveryBranch", () => {
+    const r = rootWithPolicy({
+      allowDirectCommitsToMaster: false,
+      deliveryBranch: "--upload-pack=evil",
+    });
+    const result = evaluate(r, {
+      branchOverride: { branch: "--upload-pack=evil", detached: false },
+    });
+    expect(result.exitCode).toBe(0);
+  });
+
+  it("honors explicit defaultBranches without auto-union", () => {
+    const r = rootWithPolicy({
+      allowDirectCommitsToMaster: false,
+      deliveryBranch: "develop",
+    });
+    const onDevelop = evaluate(r, {
+      branchOverride: { branch: "develop", detached: false },
+      defaultBranches: new Set(["trunk"]),
+    });
+    expect(onDevelop.exitCode).toBe(0);
+    const onTrunk = evaluate(r, {
+      branchOverride: { branch: "trunk", detached: false },
+      defaultBranches: new Set(["trunk"]),
+    });
+    expect(onTrunk.exitCode).toBe(1);
+  });
 });

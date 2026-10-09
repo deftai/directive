@@ -16,6 +16,7 @@ import {
   evaluateOneScopeProvenance,
   evaluateScopeProvenance,
   parseApprovedScopeRecordRaw,
+  resolveDefaultBaseRef,
   unquoteGitPath,
 } from "./evaluate.js";
 
@@ -1956,5 +1957,87 @@ describe("changed-lifecycle admission shared predicate (#5412)", () => {
           f.kind === "change-set-outside-approved-scope",
       ),
     ).toBe(true);
+  });
+});
+
+describe("resolveDefaultBaseRef deliveryBranch (#5520)", () => {
+  const roots: string[] = [];
+  const prevDeft = process.env.DEFT_BASE_REF;
+  const prevGithub = process.env.GITHUB_BASE_REF;
+
+  afterEach(() => {
+    for (const r of roots.splice(0)) {
+      rmSync(r, { recursive: true, force: true });
+    }
+    if (prevDeft === undefined) delete process.env.DEFT_BASE_REF;
+    else process.env.DEFT_BASE_REF = prevDeft;
+    if (prevGithub === undefined) delete process.env.GITHUB_BASE_REF;
+    else process.env.GITHUB_BASE_REF = prevGithub;
+  });
+
+  function writePd(root: string, policy?: Record<string, unknown>): void {
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "t",
+          status: "running",
+          ...(policy === undefined ? {} : { policy }),
+        },
+      }),
+      "utf8",
+    );
+  }
+
+  function repoWithDevelop(): string {
+    const root = mkdtempSync(join(tmpdir(), "scope-prov-5520-"));
+    roots.push(root);
+    execFileSync("git", ["init", "-q", "-b", "master"], { cwd: root });
+    execFileSync("git", ["config", "user.email", "t@t.local"], { cwd: root });
+    execFileSync("git", ["config", "user.name", "T"], { cwd: root });
+    writeFileSync(join(root, "README"), "base\n", "utf8");
+    execFileSync("git", ["add", "README"], { cwd: root });
+    execFileSync("git", ["commit", "-q", "-m", "master tip"], { cwd: root });
+    execFileSync("git", ["branch", "develop"], { cwd: root });
+    const bare = mkdtempSync(join(tmpdir(), "scope-prov-5520-bare-"));
+    roots.push(bare);
+    execFileSync("git", ["clone", "--bare", "-q", root, bare], { cwd: tmpdir() });
+    execFileSync("git", ["remote", "add", "origin", bare], { cwd: root });
+    execFileSync("git", ["fetch", "-q", "origin"], { cwd: root });
+    return root;
+  }
+
+  it("prefers origin/develop when typed deliveryBranch=develop", () => {
+    const root = repoWithDevelop();
+    writePd(root, { deliveryBranch: "develop" });
+    delete process.env.DEFT_BASE_REF;
+    delete process.env.GITHUB_BASE_REF;
+    expect(resolveDefaultBaseRef(root)).toBe("origin/develop");
+  });
+
+  it("keeps master/main fallbacks when policy omits deliveryBranch", () => {
+    const root = repoWithDevelop();
+    writePd(root, {});
+    delete process.env.DEFT_BASE_REF;
+    delete process.env.GITHUB_BASE_REF;
+    expect(resolveDefaultBaseRef(root)).toBe("origin/master");
+  });
+
+  it("keeps DEFT_BASE_REF above typed delivery", () => {
+    const root = repoWithDevelop();
+    writePd(root, { deliveryBranch: "develop" });
+    process.env.DEFT_BASE_REF = "origin/master";
+    delete process.env.GITHUB_BASE_REF;
+    expect(resolveDefaultBaseRef(root)).toBe("origin/master");
+  });
+
+  it("skips hostile typed deliveryBranch and keeps fallbacks", () => {
+    const root = repoWithDevelop();
+    writePd(root, { deliveryBranch: "--upload-pack=evil" });
+    delete process.env.DEFT_BASE_REF;
+    delete process.env.GITHUB_BASE_REF;
+    expect(resolveDefaultBaseRef(root)).toBe("origin/master");
   });
 });

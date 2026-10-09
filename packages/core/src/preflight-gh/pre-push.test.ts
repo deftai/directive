@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { ENV_BYPASS } from "./classifier.js";
+import { DEFAULT_BRANCHES, ENV_BYPASS } from "./classifier.js";
 import { evaluatePrePush, parsePrePushStdin } from "./pre-push.js";
 
 const ZERO = "0000000000000000000000000000000000000000";
@@ -153,5 +153,49 @@ describe("evaluatePrePush stdin policy fixtures", () => {
     expect(code).toBe(1);
     expect(msg).toContain("create master");
     expect(msg).toContain("update main");
+  });
+
+  it("refuses stdin push to develop when typed deliveryBranch=develop (#5520)", () => {
+    const r = tempRoot();
+    writePd(r, { deliveryBranch: "develop", allowDestructiveGhVerbs: false });
+    const refs = parsePrePushStdin(
+      `refs/heads/feat/x ${LIVE} refs/heads/develop ${LIVE}`,
+    );
+    const [code, msg] = evaluatePrePush(refs, {
+      projectRoot: r,
+      branches: new Set(DEFAULT_BRANCHES),
+    });
+    expect(code).toBe(1);
+    expect(msg).toContain("update develop");
+  });
+
+  it("allows develop push when policy omits deliveryBranch (#5520)", () => {
+    const r = tempRoot();
+    writePd(r, { allowDestructiveGhVerbs: false });
+    const refs = parsePrePushStdin(
+      `refs/heads/feat/x ${LIVE} refs/heads/develop ${LIVE}`,
+    );
+    expect(evaluatePrePush(refs, { projectRoot: r })[0]).toBe(0);
+  });
+
+  it("skips hostile typed deliveryBranch for pre-push (#5520)", () => {
+    const r = tempRoot();
+    writePd(r, { deliveryBranch: "--upload-pack=evil", allowDestructiveGhVerbs: false });
+    const refs = parsePrePushStdin(
+      `refs/heads/feat/x ${LIVE} refs/heads/--upload-pack=evil ${LIVE}`,
+    );
+    expect(evaluatePrePush(refs, { projectRoot: r })[0]).toBe(0);
+  });
+
+  it("preserves --default-branch additions with typed delivery (#5520)", () => {
+    const r = tempRoot();
+    writePd(r, { deliveryBranch: "develop", allowDestructiveGhVerbs: false });
+    const trunk = parsePrePushStdin(`refs/heads/feat/x ${LIVE} refs/heads/trunk ${LIVE}`);
+    expect(
+      evaluatePrePush(trunk, {
+        projectRoot: r,
+        branches: new Set([...DEFAULT_BRANCHES, "trunk"]),
+      })[0],
+    ).toBe(1);
   });
 });

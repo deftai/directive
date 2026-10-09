@@ -3,7 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Readable } from "node:stream";
 import { afterEach, describe, expect, it } from "vitest";
-import { parseArgs, run } from "./preflight-gh.js";
+import { DEFAULT_BRANCHES } from "@deftai/directive-core/preflight";
+import { enrichBranchesWithTypedDelivery, parseArgs, run } from "./preflight-gh.js";
 
 const ZERO = "0000000000000000000000000000000000000000";
 const LIVE = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
@@ -28,6 +29,48 @@ function captureRun(argv: string[]): { code: number | Promise<number>; out: stri
     process.stderr.write = prevErr;
   }
 }
+
+describe("enrichBranchesWithTypedDelivery (#5520)", () => {
+  it("unions develop when typed deliveryBranch is set", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-cli-prepush-5520-"));
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "t",
+          status: "running",
+          policy: { deliveryBranch: "develop" },
+        },
+      }),
+      "utf8",
+    );
+    const enriched = enrichBranchesWithTypedDelivery(root, new Set(DEFAULT_BRANCHES));
+    expect(enriched.has("develop")).toBe(true);
+    expect(enriched.has("master")).toBe(true);
+    expect(DEFAULT_BRANCHES.has("develop")).toBe(false);
+  });
+
+  it("skips hostile typed deliveryBranch", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-cli-prepush-hostile-"));
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "t",
+          status: "running",
+          policy: { deliveryBranch: "--upload-pack=evil" },
+        },
+      }),
+      "utf8",
+    );
+    const enriched = enrichBranchesWithTypedDelivery(root, new Set(DEFAULT_BRANCHES));
+    expect(enriched.has("--upload-pack=evil")).toBe(false);
+  });
+});
 
 describe("preflight-gh parseArgs --project-root", () => {
   it("keeps projectRoot for pre-push stdin", () => {

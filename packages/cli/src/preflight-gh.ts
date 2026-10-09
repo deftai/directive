@@ -20,6 +20,7 @@ import {
   parsePrePushStdin,
   runSelfTest,
 } from "@deftai/directive-core/preflight";
+import { resolveDeliveryBranch } from "@deftai/directive-core/policy";
 
 interface ParsedArgs {
   mode?: "self-test" | "command" | "pre-push-stdin";
@@ -28,6 +29,24 @@ interface ParsedArgs {
   projectRoot?: string;
   quiet?: boolean;
   error?: string;
+}
+
+/** Typed-only deliveryBranch union for CLI-seeded DEFAULT_BRANCHES (#5520). */
+export function enrichBranchesWithTypedDelivery(
+  projectRoot: string | undefined,
+  branches: ReadonlySet<string>,
+): Set<string> {
+  const next = new Set(branches);
+  if (projectRoot === undefined || projectRoot.length === 0) return next;
+  const delivery = resolveDeliveryBranch(projectRoot);
+  if (
+    delivery.source === "typed" &&
+    delivery.error === null &&
+    delivery.branch.trim().length > 0
+  ) {
+    next.add(delivery.branch);
+  }
+  return next;
 }
 
 export function parseArgs(argv: string[]): ParsedArgs {
@@ -78,7 +97,11 @@ export function run(argv: string[]): number | Promise<number> {
   }
 
   const quiet = args.quiet ?? false;
-  const branches = args.defaultBranches ?? new Set(DEFAULT_BRANCHES);
+  // CLI seeds DEFAULT_BRANCHES; union typed delivery when --project-root is set (#5520).
+  const branches = enrichBranchesWithTypedDelivery(
+    args.projectRoot,
+    args.defaultBranches ?? new Set(DEFAULT_BRANCHES),
+  );
 
   if (args.mode === "self-test") {
     const [code, msg] = runSelfTest();

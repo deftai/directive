@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Lifecycle gates honor typed `plan.policy.deliveryBranch` before master/main fallbacks (scope-provenance, evaluator-surface, verify:branch, pre-push). Tracking #5520.
+
 ### Removed
 
 ## [0.124.0] - 2026-10-09
