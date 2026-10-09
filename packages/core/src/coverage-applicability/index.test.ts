@@ -3,6 +3,7 @@ import {
   classifyChangedPath,
   evaluateCoverageApplicability,
   isCoverageHeadroomNotApplicable,
+  isProjectDefinitionRegistryRefreshOnly,
   parseNameStatus,
 } from "./index.js";
 
@@ -14,6 +15,7 @@ describe("coverage-applicability barrel", () => {
     expect(classifyChangedPath("packages/core/src/a.ts", "M", null)).toBe("coverable");
     expect(classifyChangedPath("xbrief/decisions/d.json", "A", null)).toBe("inert");
     expect(classifyChangedPath("mystery.bin", "A", null)).toBe("unknown");
+    expect(typeof isProjectDefinitionRegistryRefreshOnly).toBe("function");
     const refused = evaluateCoverageApplicability({
       projectRoot: process.cwd(),
       baseSha: "",

@@ -8,9 +8,58 @@ import {
   classifyChangedPath,
   decodeGitQuotedPath,
   evaluateCoverageApplicability,
+  isProjectDefinitionRegistryRefreshOnly,
   parseNameStatus,
 } from "./evaluate.js";
 
+const PROJECT_DEF_PATH = "xbrief/PROJECT-DEFINITION.xbrief.json";
+
+function projectDefDoc(options: {
+  readonly items?: unknown[];
+  readonly updated?: string;
+  readonly stalenessFlags?: string[] | undefined;
+  readonly metadata?: Record<string, unknown> | undefined;
+  readonly policy?: unknown;
+  readonly extraPlan?: Record<string, unknown>;
+  readonly infoRoot?: "xBRIEFInfo" | "vBRIEFInfo";
+}): string {
+  const infoRoot = options.infoRoot ?? "xBRIEFInfo";
+  const plan: Record<string, unknown> = {
+    title: "Consumer",
+    status: "active",
+    items: options.items ?? [],
+    ...(options.extraPlan ?? {}),
+  };
+  if (options.policy !== undefined) {
+    plan.policy = options.policy;
+  }
+  if (options.metadata !== undefined) {
+    plan.metadata = options.metadata;
+  } else if (options.stalenessFlags !== undefined) {
+    plan.metadata = { staleness_flags: options.stalenessFlags };
+  }
+  return `${JSON.stringify(
+    {
+      [infoRoot]: { version: "0.8", updated: options.updated ?? "2026-10-01T00:00:00Z" },
+      plan,
+    },
+    null,
+    2,
+  )}\n`;
+}
+
+function registryItem(
+  id: string,
+  extras?: { readonly unknownMeta?: boolean; readonly refs?: unknown[] },
+): Record<string, unknown> {
+  const metadata: Record<string, unknown> = {
+    source_path: `proposed/${id}.xbrief.json`,
+    lifecycle_folder: "proposed",
+  };
+  if (extras?.refs) metadata.references = extras.refs;
+  if (extras?.unknownMeta) metadata.executable = "rm -rf /";
+  return { id, title: id, status: "draft", metadata };
+}
 const temps: string[] = [];
 afterAll(() => {
   for (const dir of temps) {
@@ -280,5 +329,217 @@ describe("evaluateCoverageApplicability", () => {
     // No pathFilter input exists on the evaluator — mixed coverable still applicable.
     const result = evaluateCoverageApplicability(bindingFor(root, baseSha));
     expect(result.outcome).toBe("applicable");
+  });
+
+  it("demotes PROJECT-DEFINITION registry/timestamp/flags refresh to not-applicable (#5479)", () => {
+    const root = gitRepo({
+      "README.md": "# base\n",
+      [PROJECT_DEF_PATH]: projectDefDoc({
+        items: [],
+        updated: "2026-10-01T00:00:00Z",
+        // no metadata yet — first-time staleness_flags create
+      }),
+    });
+    const baseSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    writeFileSync(
+      join(root, PROJECT_DEF_PATH),
+      projectDefDoc({
+        items: [registryItem("story-a")],
+        updated: "2026-10-09T12:00:00Z",
+        stalenessFlags: [],
+      }),
+    );
+    mkdirSync(join(root, "docs"), { recursive: true });
+    writeFileSync(join(root, "docs/design.md"), "# design\n");
+    mkdirSync(join(root, "xbrief/proposed"), { recursive: true });
+    writeFileSync(join(root, "xbrief/proposed/story-a.xbrief.json"), "{}\n");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: root });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "registry-refresh"], { cwd: root });
+    const result = evaluateCoverageApplicability(bindingFor(root, baseSha));
+    expect(result.outcome).toBe("not-applicable");
+    if (result.outcome === "not-applicable") {
+      expect(result.reason).toBe(COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP);
+      const pd = result.changes.find((c) => c.path === PROJECT_DEF_PATH);
+      expect(pd?.classification).toBe("inert");
+      expect(pd?.status).toBe("M");
+    }
+  });
+
+  it("keeps PROJECT-DEFINITION policy edits applicable (#5479)", () => {
+    const root = gitRepo({
+      [PROJECT_DEF_PATH]: projectDefDoc({
+        items: [],
+        updated: "2026-10-01T00:00:00Z",
+        stalenessFlags: [],
+        policy: { wipCap: 20 },
+      }),
+    });
+    const baseSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    writeFileSync(
+      join(root, PROJECT_DEF_PATH),
+      projectDefDoc({
+        items: [registryItem("story-a")],
+        updated: "2026-10-09T12:00:00Z",
+        stalenessFlags: [],
+        policy: { wipCap: 5 },
+      }),
+    );
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: root });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "policy"], { cwd: root });
+    const result = evaluateCoverageApplicability(bindingFor(root, baseSha));
+    expect(result.outcome).toBe("applicable");
+  });
+
+  it("refuses demotion on unknown nested metadata and malformed JSON (#5479)", () => {
+    const unknownMeta = evaluateCoverageApplicability(
+      {
+        projectRoot: "/tmp",
+        baseSha: "base",
+        headSha: "head",
+        treeHash: "tree",
+        requireTreeMatch: false,
+      },
+      {
+        runGit: (args) => {
+          const joined = args.join(" ");
+          if (joined.includes("name-status")) {
+            return { ok: true as const, stdout: `M\t${PROJECT_DEF_PATH}\n` };
+          }
+          if (joined.includes("status")) return { ok: true as const, stdout: "" };
+          if (joined.includes("show") && joined.includes("base:")) {
+            return {
+              ok: true as const,
+              stdout: projectDefDoc({ items: [], stalenessFlags: [] }),
+            };
+          }
+          if (joined.includes("show")) {
+            return {
+              ok: true as const,
+              stdout: projectDefDoc({
+                items: [registryItem("x", { unknownMeta: true })],
+                updated: "2026-10-09T12:00:00Z",
+                stalenessFlags: [],
+              }),
+            };
+          }
+          return { ok: true as const, stdout: "base" };
+        },
+      },
+    );
+    expect(unknownMeta.outcome).toBe("applicable");
+
+    const malformed = evaluateCoverageApplicability(
+      {
+        projectRoot: "/tmp",
+        baseSha: "base",
+        headSha: "head",
+        treeHash: "tree",
+        requireTreeMatch: false,
+      },
+      {
+        runGit: (args) => {
+          const joined = args.join(" ");
+          if (joined.includes("name-status")) {
+            return { ok: true as const, stdout: `M\t${PROJECT_DEF_PATH}\n` };
+          }
+          if (joined.includes("status")) return { ok: true as const, stdout: "" };
+          if (joined.includes("show") && joined.includes("base:")) {
+            return { ok: true as const, stdout: projectDefDoc({ items: [], stalenessFlags: [] }) };
+          }
+          if (joined.includes("show")) return { ok: true as const, stdout: "{not-json" };
+          return { ok: true as const, stdout: "base" };
+        },
+      },
+    );
+    expect(malformed.outcome).toBe("applicable");
+  });
+
+  it("does not demote A/D/R PROJECT-DEFINITION without M proof (#5479)", () => {
+    const added = evaluateCoverageApplicability(
+      {
+        projectRoot: "/tmp",
+        baseSha: "base",
+        headSha: "head",
+        treeHash: "tree",
+        requireTreeMatch: false,
+      },
+      {
+        runGit: (args) => {
+          const joined = args.join(" ");
+          if (joined.includes("name-status")) {
+            return { ok: true as const, stdout: `A\t${PROJECT_DEF_PATH}\n` };
+          }
+          if (joined.includes("status")) return { ok: true as const, stdout: "" };
+          return { ok: true as const, stdout: "base" };
+        },
+      },
+    );
+    expect(added.outcome).toBe("applicable");
+  });
+
+  it("keeps mixed src/*.ts with registry refresh applicable (#5479)", () => {
+    const root = gitRepo({
+      "README.md": "# base\n",
+      [PROJECT_DEF_PATH]: projectDefDoc({ items: [], stalenessFlags: [] }),
+    });
+    const baseSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    writeFileSync(
+      join(root, PROJECT_DEF_PATH),
+      projectDefDoc({
+        items: [registryItem("story-a")],
+        updated: "2026-10-09T12:00:00Z",
+        stalenessFlags: ["review"],
+      }),
+    );
+    mkdirSync(join(root, "src"), { recursive: true });
+    writeFileSync(join(root, "src/app.ts"), "export const n = 1;\n");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: root });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "mixed"], { cwd: root });
+    const result = evaluateCoverageApplicability(bindingFor(root, baseSha));
+    expect(result.outcome).toBe("applicable");
+    if (result.outcome === "applicable") {
+      expect(result.coverablePaths).toContain("src/app.ts");
+    }
+  });
+});
+
+describe("isProjectDefinitionRegistryRefreshOnly", () => {
+  it("accepts closed refresh set and rejects policy/unknown fields", () => {
+    const base = JSON.parse(
+      projectDefDoc({ items: [], updated: "2026-10-01T00:00:00Z" }),
+    ) as unknown;
+    const head = JSON.parse(
+      projectDefDoc({
+        items: [registryItem("a")],
+        updated: "2026-10-09T00:00:00Z",
+        stalenessFlags: [],
+      }),
+    ) as unknown;
+    expect(isProjectDefinitionRegistryRefreshOnly(base, head)).toBe(true);
+
+    const withPolicy = JSON.parse(
+      projectDefDoc({
+        items: [registryItem("a")],
+        updated: "2026-10-09T00:00:00Z",
+        stalenessFlags: [],
+        policy: { wipCap: 1 },
+      }),
+    ) as unknown;
+    expect(isProjectDefinitionRegistryRefreshOnly(base, withPolicy)).toBe(false);
+
+    const unknownItem = JSON.parse(
+      projectDefDoc({
+        items: [registryItem("a", { unknownMeta: true })],
+        updated: "2026-10-09T00:00:00Z",
+        stalenessFlags: [],
+      }),
+    ) as unknown;
+    expect(isProjectDefinitionRegistryRefreshOnly(base, unknownItem)).toBe(false);
   });
 });

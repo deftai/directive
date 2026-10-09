@@ -7,6 +7,7 @@ export {
   type EvaluateCoverageApplicabilityInput,
   evaluateCoverageApplicability,
   isCoverageHeadroomNotApplicable,
+  isProjectDefinitionRegistryRefreshOnly,
   type NameStatusRow,
   type PathClassification,
   parseNameStatus,

@@ -567,6 +567,57 @@ describe("evaluateCoverageHotspots", () => {
     expect(result.message).toContain("reviewed diff has no coverable paths");
   });
 
+  it("exits 3 for PROJECT-DEFINITION registry refresh without Istanbul (#5479)", () => {
+    const projectDef = "xbrief/PROJECT-DEFINITION.xbrief.json";
+    const baseDoc = {
+      xBRIEFInfo: { version: "0.8", updated: "2026-10-01T00:00:00Z" },
+      plan: { title: "C", status: "active", items: [] },
+    };
+    const headDoc = {
+      xBRIEFInfo: { version: "0.8", updated: "2026-10-09T12:00:00Z" },
+      plan: {
+        title: "C",
+        status: "active",
+        items: [
+          {
+            id: "story-a",
+            title: "story-a",
+            status: "draft",
+            metadata: {
+              source_path: "proposed/story-a.xbrief.json",
+              lifecycle_folder: "proposed",
+            },
+          },
+        ],
+        metadata: { staleness_flags: [] as string[] },
+      },
+    };
+    const root = gitRepo({
+      "README.md": "# base\n",
+      [projectDef]: `${JSON.stringify(baseDoc, null, 2)}\n`,
+    });
+    const baseSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    writeFileSync(join(root, projectDef), `${JSON.stringify(headDoc, null, 2)}\n`);
+    mkdirSync(join(root, "docs"), { recursive: true });
+    writeFileSync(join(root, "docs/design.md"), "# design\n");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: root });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "registry-refresh"], { cwd: root });
+    const headSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    const treeHash = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD^{tree}"], { cwd: root, encoding: "utf8" })
+      .trim();
+    const result = evaluateCoverageHotspots({
+      projectRoot: root,
+      inputBinding: { baseSha, headSha, treeHash },
+    });
+    expect(result.exitCode).toBe(3);
+    expect(result.applicability?.outcome).toBe("not-applicable");
+  });
+
   it("keeps Istanbul floor when inert diff still has a coverage report (#5421)", () => {
     const root = gitRepo({
       "README.md": "# base\n",

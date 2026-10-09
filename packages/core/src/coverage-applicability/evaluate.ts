@@ -254,8 +254,249 @@ const LIVE_SETTINGS_PATHS = new Set([
   "xbrief/specification.xbrief.json",
 ]);
 
+const PROJECT_DEFINITION_PATH = "xbrief/project-definition.xbrief.json";
+
+/** Closed LifecycleItem keys emitted by project:render / scanLifecycleFolders (#5479). */
+const REGISTRY_ITEM_KEYS = new Set(["id", "title", "status", "metadata"]);
+
+/** Closed item.metadata keys from renderer output (plus unreadable-file `error`). */
+const REGISTRY_ITEM_METADATA_KEYS = new Set([
+  "source_path",
+  "lifecycle_folder",
+  "references",
+  "error",
+]);
+
 function isLiveSettingsPath(path: string): boolean {
   return LIVE_SETTINGS_PATHS.has(posixPath(path).toLowerCase());
+}
+
+function isProjectDefinitionPath(path: string): boolean {
+  return posixPath(path).toLowerCase() === PROJECT_DEFINITION_PATH;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function structuralEqual(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (typeof a !== typeof b) return false;
+  if (a === null || b === null) return a === b;
+  if (Array.isArray(a) || Array.isArray(b)) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+    return a.every((item, i) => structuralEqual(item, b[i]));
+  }
+  if (!isPlainObject(a) || !isPlainObject(b)) return false;
+  const keysA = Object.keys(a);
+  const keysB = Object.keys(b);
+  if (keysA.length !== keysB.length) return false;
+  const setB = new Set(keysB);
+  for (const key of keysA) {
+    if (!setB.has(key)) return false;
+    if (!structuralEqual(a[key], b[key])) return false;
+  }
+  return true;
+}
+
+function jsonPointerEscape(segment: string): string {
+  return segment.replace(/~/g, "~0").replace(/\//g, "~1");
+}
+
+function joinPointer(prefix: string, segment: string): string {
+  return `${prefix}/${jsonPointerEscape(segment)}`;
+}
+
+/**
+ * Collect changed JSON Pointers at refresh granularity (#5479).
+ * Arrays under compared roots are atomic (e.g. `/plan/items`, not per-index).
+ */
+function collectChangedPointers(base: unknown, head: unknown, prefix = ""): string[] {
+  if (structuralEqual(base, head)) return [];
+  if (Array.isArray(base) || Array.isArray(head)) {
+    return prefix.length > 0 ? [prefix] : ["/"];
+  }
+  if (!isPlainObject(base) || !isPlainObject(head)) {
+    return prefix.length > 0 ? [prefix] : ["/"];
+  }
+  const keys = new Set([...Object.keys(base), ...Object.keys(head)]);
+  const changed: string[] = [];
+  for (const key of keys) {
+    const child = joinPointer(prefix, key);
+    const hasBase = Object.prototype.hasOwnProperty.call(base, key);
+    const hasHead = Object.prototype.hasOwnProperty.call(head, key);
+    if (!hasBase || !hasHead) {
+      changed.push(child);
+      continue;
+    }
+    changed.push(...collectChangedPointers(base[key], head[key], child));
+  }
+  return changed;
+}
+
+function isValidRegistryItem(item: unknown): boolean {
+  if (!isPlainObject(item)) return false;
+  for (const key of Object.keys(item)) {
+    if (!REGISTRY_ITEM_KEYS.has(key)) return false;
+  }
+  if (typeof item.id !== "string" || typeof item.title !== "string" || typeof item.status !== "string") {
+    return false;
+  }
+  if (!Object.prototype.hasOwnProperty.call(item, "metadata")) return true;
+  const metadata = item.metadata;
+  if (!isPlainObject(metadata)) return false;
+  for (const key of Object.keys(metadata)) {
+    if (!REGISTRY_ITEM_METADATA_KEYS.has(key)) return false;
+  }
+  if (
+    Object.prototype.hasOwnProperty.call(metadata, "source_path") &&
+    typeof metadata.source_path !== "string"
+  ) {
+    return false;
+  }
+  if (
+    Object.prototype.hasOwnProperty.call(metadata, "lifecycle_folder") &&
+    typeof metadata.lifecycle_folder !== "string"
+  ) {
+    return false;
+  }
+  if (
+    Object.prototype.hasOwnProperty.call(metadata, "error") &&
+    typeof metadata.error !== "string"
+  ) {
+    return false;
+  }
+  if (Object.prototype.hasOwnProperty.call(metadata, "references") && !Array.isArray(metadata.references)) {
+    return false;
+  }
+  return true;
+}
+
+function isValidRegistryItems(items: unknown): boolean {
+  return Array.isArray(items) && items.every(isValidRegistryItem);
+}
+
+function isValidStalenessFlags(flags: unknown): boolean {
+  return Array.isArray(flags) && flags.every((f) => typeof f === "string");
+}
+
+function resolveInfoRootKey(doc: Record<string, unknown>): "xBRIEFInfo" | "vBRIEFInfo" | null {
+  if (isPlainObject(doc.xBRIEFInfo)) return "xBRIEFInfo";
+  if (isPlainObject(doc.vBRIEFInfo)) return "vBRIEFInfo";
+  return null;
+}
+
+/**
+ * Prefer-A Bound #5479: true when base→head PROJECT-DEFINITION delta is only the
+ * closed project:render refresh set under validated registry schemas.
+ */
+export function isProjectDefinitionRegistryRefreshOnly(
+  baseDoc: unknown,
+  headDoc: unknown,
+): boolean {
+  if (!isPlainObject(baseDoc) || !isPlainObject(headDoc)) return false;
+
+  const basePlan = isPlainObject(baseDoc.plan) ? baseDoc.plan : null;
+  const headPlan = isPlainObject(headDoc.plan) ? headDoc.plan : null;
+  if (basePlan === null || headPlan === null) return false;
+
+  if (!isValidRegistryItems(basePlan.items) || !isValidRegistryItems(headPlan.items)) {
+    return false;
+  }
+
+  const baseInfoRoot = resolveInfoRootKey(baseDoc);
+  const headInfoRoot = resolveInfoRootKey(headDoc);
+  if (baseInfoRoot === null || headInfoRoot === null || baseInfoRoot !== headInfoRoot) {
+    return false;
+  }
+  const baseUpdated = (baseDoc[baseInfoRoot] as Record<string, unknown>).updated;
+  const headUpdated = (headDoc[headInfoRoot] as Record<string, unknown>).updated;
+  if (typeof baseUpdated !== "string" || typeof headUpdated !== "string") {
+    return false;
+  }
+
+  const baseMetaMissing = !Object.prototype.hasOwnProperty.call(basePlan, "metadata");
+  const headHasMeta = Object.prototype.hasOwnProperty.call(headPlan, "metadata");
+  const baseMeta = isPlainObject(basePlan.metadata) ? basePlan.metadata : null;
+  const headMeta = isPlainObject(headPlan.metadata) ? headPlan.metadata : null;
+
+  // Narrow first-time /plan/metadata create: only validated staleness_flags.
+  if (baseMetaMissing && headHasMeta) {
+    if (headMeta === null) return false;
+    const headMetaKeys = Object.keys(headMeta);
+    if (headMetaKeys.length !== 1 || headMetaKeys[0] !== "staleness_flags") return false;
+    if (!isValidStalenessFlags(headMeta.staleness_flags)) return false;
+  } else if (baseMeta !== null || headMeta !== null) {
+    if (baseMeta === null || headMeta === null) return false;
+    if (
+      Object.prototype.hasOwnProperty.call(baseMeta, "staleness_flags") &&
+      !isValidStalenessFlags(baseMeta.staleness_flags)
+    ) {
+      return false;
+    }
+    if (
+      Object.prototype.hasOwnProperty.call(headMeta, "staleness_flags") &&
+      !isValidStalenessFlags(headMeta.staleness_flags)
+    ) {
+      return false;
+    }
+  }
+
+  const changed = collectChangedPointers(baseDoc, headDoc);
+  const allow = new Set<string>([
+    "/plan/items",
+    `/${baseInfoRoot}/updated`,
+    "/plan/metadata/staleness_flags",
+  ]);
+  // First-time metadata object creation appears as `/plan/metadata` (key added).
+  if (baseMetaMissing && headHasMeta) {
+    allow.add("/plan/metadata");
+  }
+  return changed.every((pointer) => allow.has(pointer));
+}
+
+function readBlobJson(
+  runGit: (args: readonly string[], cwd: string) => GitRunResult,
+  projectRoot: string,
+  sha: string,
+  path: string,
+): { ok: true; value: unknown } | { ok: false } {
+  const shown = runGit(["show", `${sha}:${posixPath(path)}`], projectRoot);
+  if (!shown.ok) return { ok: false };
+  try {
+    return { ok: true, value: JSON.parse(shown.stdout) as unknown };
+  } catch {
+    return { ok: false };
+  }
+}
+
+/**
+ * After path classify, demote PROJECT-DEFINITION coverable→inert for this evaluation
+ * only when status is M and closed refresh proof succeeds (#5479 Prefer-A Bound).
+ */
+function demoteProjectDefinitionRefreshChanges(
+  changes: readonly ClassifiedChange[],
+  input: EvaluateCoverageApplicabilityInput,
+  runGit: (args: readonly string[], cwd: string) => GitRunResult,
+): ClassifiedChange[] {
+  return changes.map((change) => {
+    if (change.classification !== "coverable") return change;
+    if (!isProjectDefinitionPath(change.path)) return change;
+    // Bound: only regular-file modifications; A/D/R/C stay coverable.
+    if (change.status !== "M") return change;
+    const baseBlob = readBlobJson(runGit, input.projectRoot, input.baseSha, change.path);
+    const headBlob = readBlobJson(runGit, input.projectRoot, input.headSha, change.path);
+    if (!baseBlob.ok || !headBlob.ok) return change;
+    if (!isProjectDefinitionRegistryRefreshOnly(baseBlob.value, headBlob.value)) {
+      return change;
+    }
+    return {
+      status: change.status,
+      path: change.path,
+      oldPath: change.oldPath,
+      classification: "inert",
+    };
+  });
 }
 
 function isCoverableConfig(path: string): boolean {
@@ -628,19 +869,23 @@ export function evaluateCoverageApplicability(
     };
   }
 
-  const coverable = changes.filter((c) => c.classification === "coverable");
+  // #5479 Prefer-A Bound: demote PROJECT-DEFINITION refresh-only M rows after
+  // path classify + binding refuses, before applicable aggregation.
+  const evaluatedChanges = demoteProjectDefinitionRefreshChanges(changes, input, runGit);
+
+  const coverable = evaluatedChanges.filter((c) => c.classification === "coverable");
   if (coverable.length > 0) {
     return {
       outcome: "applicable",
       coverablePaths: coverable.map((c) => c.path),
-      changes,
+      changes: evaluatedChanges,
     };
   }
 
   return {
     outcome: "not-applicable",
     reason: COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP,
-    changes,
+    changes: evaluatedChanges,
   };
 }
 

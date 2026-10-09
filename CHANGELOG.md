@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Record the completed work for #5520 after product PR #5527.
 - Lifecycle gates honor typed `plan.policy.deliveryBranch` before master/main fallbacks (scope-provenance, evaluator-surface, verify:branch, pre-push). Tracking #5520.
+- Treat a PROJECT-DEFINITION change that only refreshes the generated story registry, timestamp, and staleness flags as coverage-inert so design-only consumers can use exit-3 N/A without an Istanbul report (#5479).
 
 ### Removed
 
