@@ -169,6 +169,12 @@ describe("rule-to-verb-parity (#5521)", () => {
     expect(taskNameResolves(REPO_ROOT, "scm:body:missing:verb")).toBe(false);
   });
 
+  it("does not treat Taskfile include namespaces as root tasks", () => {
+    // `includes: scm:` must not green a bare `task scm` citation.
+    expect(taskNameResolves(REPO_ROOT, "scm")).toBe(false);
+    expect(taskNameResolves(REPO_ROOT, "verify")).toBe(false);
+  });
+
   it("passes on the live agents-entry + preamble templates after aliases", () => {
     const result = evaluateRuleToVerbParity(REPO_ROOT);
     expect(result.ok, result.message).toBe(true);

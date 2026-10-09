@@ -214,6 +214,31 @@ export function loadRegisteredCliVerbs(
   return verbs;
 }
 
+/** Restrict Taskfile lookup to the top-level `tasks:` block (not `includes:`). */
+export function sliceTaskfileTasksSection(text: string): string {
+  const lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+  const out: string[] = [];
+  let inTasks = false;
+  let tasksIndent = 0;
+  for (const raw of lines) {
+    const stripped = raw.trim();
+    if (!inTasks) {
+      if (/^tasks\s*:/.test(stripped)) {
+        inTasks = true;
+        tasksIndent = raw.length - raw.trimStart().length;
+        out.push(raw);
+      }
+      continue;
+    }
+    if (stripped.length > 0 && !stripped.startsWith("#")) {
+      const indent = raw.length - raw.trimStart().length;
+      if (indent <= tasksIndent) break;
+    }
+    out.push(raw);
+  }
+  return out.join("\n");
+}
+
 export function taskNameResolves(
   repoRoot: string,
   name: string,
@@ -236,7 +261,9 @@ export function taskNameResolves(
   if (!exists(rootPath)) return false;
   const rootText = readText(rootPath);
   if (rootText === null) return false;
-  if (taskDefinedInTaskfileYaml(rootText, name)) return true;
+  // Root lookup must use the tasks: section only — include namespaces like
+  // `scm:` also sit at two-space indent and must not green `task scm`.
+  if (taskDefinedInTaskfileYaml(sliceTaskfileTasksSection(rootText), name)) return true;
   const colon = name.indexOf(":");
   if (colon <= 0) return false;
   const namespace = name.slice(0, colon);
@@ -247,7 +274,9 @@ export function taskNameResolves(
   const includePath = resolve(repoRoot, include.taskfile);
   if (!exists(includePath)) return false;
   const includeText = readText(includePath);
-  return includeText !== null && taskDefinedInTaskfileYaml(includeText, local);
+  return (
+    includeText !== null && taskDefinedInTaskfileYaml(sliceTaskfileTasksSection(includeText), local)
+  );
 }
 
 function stripConsumerPrefix(name: string): string {
