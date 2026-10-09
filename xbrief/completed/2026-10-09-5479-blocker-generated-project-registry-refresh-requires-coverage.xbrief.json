@@ -1,0 +1,294 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5479",
+    "updated": "2026-10-09T20:22:25.000Z"
+  },
+  "plan": {
+    "title": "BLOCKER: generated project registry refresh requires coverage in a design-only consumer",
+    "status": "completed",
+    "narratives": {
+      "Description": "BLOCKER: generated project registry refresh requires coverage in a design-only consumer",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5479",
+      "Overview": "## Problem\nA design-only consumer cannot finish the prescribed pre-PR workflow on published Directive 0.123.0 when `project:render` refreshes its generated story registry. The shared coverage classifier added by #5421 classifies every edit to `xbrief/PROJECT-DEFINITION.xbrief.json` as coverable configuration, including a change limited to `/plan/items` and `/xBRIEFInfo/updated`.\n\n## Verified reproduction\n1. Use a clean committed consumer diff containing Markdown design/evidence, proposed xBRIEFs, decision records, and a generated project registry refresh.\n2. Verify the project-definition JSON changes only at `/plan/items` (empty array to generated scope summaries) and `/xBRIEFInfo/updated` (timestamp). Policies, runtime/build/test configuration and application source are unchanged. The consumer has no application code or coverage report yet.\n3. Run `deft coverage:hotspots --json`.\n4. Observe exit 2: `coverage-hotspots: coverage report missing at .../coverage/coverage-final.json`, with advice to run tests with coverage.\n\nThe installed engine/package is 0.123.0. The same unconditional `LIVE_SETTINGS_PATHS` classification is present on upstream master `da3b553f0`. Source: `packages/core/src/coverage-applicability/evaluate.ts`, `isCoverableConfig` / `classifyChangedPath`.\n\n## Impact and alternatives\nAffected flow: consumer planning PR submission. Static xBRIEF checks and `deft check` pass, but mandatory pre-PR coverage cannot finish; the commit remains local and the PR is unopened. This is an observed ship hard stop, not a predicted cost.\n\nThe documented exit-3 N/A channel cannot be used because the controller independently reclassifies the same complete diff as applicable. A free-form audit, fabricated coverage report, reduced floor, or live verifier patch would violate the existing contract. Removing the generated registry refresh merely to evade classification would leave the planning artifacts out of sync.\n\nTriage owner: dbcall2. Date: 2026-10-08 UTC.\n\n## Proposed bounded correction\nInspect the before/after Git blobs under the existing base/head/tree binding for a modified project-definition file. Recognize only a closed, validated generated-registry/timestamp change as inert for code coverage; leave policies, unknown fields, executable configuration and all other mixed changes subject to the current fail-closed behavior. Do not blanket-exempt the file or all xBRIEFs. Validate the registry shape so arbitrary executable settings cannot be hidden under an allowed field.\n\n## Acceptance Criteria\n- A registry/timestamp-only consumer diff can use the existing exit-3 N/A channel without an Istanbul report; the controller independently agrees for the same binding.\n- Policy/configuration edits, unknown fields, malformed JSON, additions/deletions/renames without safe proof, and mixed executable diffs cannot acquire N/A through this exception.\n- Add positive and negative regression tests, including the hotspots/controller consumer path and stale binding protection.\n- Keep static validation, full checks, measured coverage floors and review requirements intact.\n- Publish through the normal reviewed release path; verify the installed public-npm version against the consumer reproduction before resuming its PR.\n\nRelated: #5421. This is a narrower residual defect in content classification, not a request for a general docs-only bypass or a non-Istanbul executable coverage adapter.\n\n",
+      "Labels": "bug, adoption-blocker, agent-experience, process, source-of-truth, urgent, area:cli, area:skills, dogfood, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Closed pointer allowlist: when xbrief/PROJECT-DEFINITION.xbrief.json is modified (status M, both blobs resolvable), deep-diff base/head JSON and treat coverage-inert only when every changed pointer is in closed refresh set: /plan/items, /<infoRoot>/updated, /plan/metadata/staleness_flags, and narrow first-time /plan/metadata create that only introduces validated staleness_flags.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts",
+        "narrative": {
+          "Acceptance": "Closed pointer allowlist: when xbrief/PROJECT-DEFINITION.xbrief.json is modified (status M, both blobs resolvable), deep-diff base/head JSON and treat coverage-inert only when every changed pointer is in closed refresh set: /plan/items, /<infoRoot>/updated, /plan/metadata/staleness_flags, and narrow first-time /plan/metadata create that only introduces validated staleness_flags."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5530 squash-merge (Tracking #5479). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5530",
+            "mintedAt": "2026-10-09T20:22:25.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-09T20:22:25.000Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Closed recursive registry schemas: validate both endpoint registries before demotion; closed item/metadata keys from renderer output; staleness_flags must be string[]; unknown keys refuse demotion; structural JSON.parse compare (ignore key-order/whitespace); do not treat byte-identical equality as proof.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts",
+        "narrative": {
+          "Acceptance": "Closed recursive registry schemas: validate both endpoint registries before demotion; closed item/metadata keys from renderer output; staleness_flags must be string[]; unknown keys refuse demotion; structural JSON.parse compare (ignore key-order/whitespace); do not treat byte-identical equality as proof."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5530 squash-merge (Tracking #5479). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5530",
+            "mintedAt": "2026-10-09T20:22:25.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-09T20:22:25.000Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Demotion placement: keep classifyChangedPath/LIVE_SETTINGS_PATHS path-coverable; inside evaluateCoverageApplicability after row classify and before aggregation, for each coverable PROJECT-DEFINITION path with status M and both blobs resolvable, run closed deep-diff proof; on success reclassify inert for this evaluation only. Refuse on A/D/R/C, missing blob, malformed JSON, or failed shape.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts",
+        "narrative": {
+          "Acceptance": "Demotion placement: keep classifyChangedPath/LIVE_SETTINGS_PATHS path-coverable; inside evaluateCoverageApplicability after row classify and before aggregation, for each coverable PROJECT-DEFINITION path with status M and both blobs resolvable, run closed deep-diff proof; on success reclassify inert for this evaluation only. Refuse on A/D/R/C, missing blob, malformed JSON, or failed shape."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5530 squash-merge (Tracking #5479). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5530",
+            "mintedAt": "2026-10-09T20:22:25.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-09T20:22:25.000Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Shared exit-3 channel: hotspots and pre-PR controller continue to share evaluateCoverageApplicability. Registry/timestamp/flags-only diffs can use existing exit-3 N/A without Istanbul. When Istanbul report present, preserve measured evaluation / below-floor failure and rejected skip.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/coverage-hotspots/evaluate.ts",
+        "narrative": {
+          "Acceptance": "Shared exit-3 channel: hotspots and pre-PR controller continue to share evaluateCoverageApplicability. Registry/timestamp/flags-only diffs can use existing exit-3 N/A without Istanbul. When Istanbul report present, preserve measured evaluation / below-floor failure and rejected skip."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5530 squash-merge (Tracking #5479). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5530",
+            "mintedAt": "2026-10-09T20:22:25.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-09T20:22:25.000Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Regression matrix: positive committed base→head refresh-only (items+updated+staleness_flags) optionally with inert planning paths → not-applicable; hotspots exit 3 without Istanbul; controller honors same binding. Negatives remain applicable/refuse: policy edit, unknown fields, malformed JSON, A/D/R, mixed src/*.ts, stale treeHash, dirty worktree, unknown path, below-floor report present.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.test.ts",
+        "narrative": {
+          "Acceptance": "Regression matrix: positive committed base→head refresh-only (items+updated+staleness_flags) optionally with inert planning paths → not-applicable; hotspots exit 3 without Istanbul; controller honors same binding. Negatives remain applicable/refuse: policy edit, unknown fields, malformed JSON, A/D/R, mixed src/*.ts, stale treeHash, dirty worktree, unknown path, below-floor report present."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5530 squash-merge (Tracking #5479). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5530",
+            "mintedAt": "2026-10-09T20:22:25.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-09T20:22:25.000Z"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "Keep-outs: leave plan.xbrief.json and specification.xbrief.json unconditional coverable; no blanket PROJECT-DEFINITION exemption; no docs-only bypass; no non-Istanbul executable coverage adapter; do not reopen #5421 as general design-only free pass.",
+        "status": "completed",
+        "x-directive/artifact_path": "CHANGELOG.md",
+        "narrative": {
+          "Acceptance": "Keep-outs: leave plan.xbrief.json and specification.xbrief.json unconditional coverable; no blanket PROJECT-DEFINITION exemption; no docs-only bypass; no non-Istanbul executable coverage adapter; do not reopen #5421 as general design-only free pass."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5530 squash-merge (Tracking #5479). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5530",
+            "mintedAt": "2026-10-09T20:22:25.000Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-09T20:22:25.000Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "urgent",
+      "area:cli",
+      "area:skills",
+      "dogfood",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5479",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5479: BLOCKER: generated project registry refresh requires coverage in a design-only consumer"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "deft coverage:hotspots --json",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L9"
+        },
+        {
+          "command": "coverage-hotspots: coverage report missing at .../coverage/coverage-final.json",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L10"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "coverage-applicability-project-definition-registry-refresh",
+        "expected_outputs": [
+          "Tracking PR for #5479 Prefer-A Bound PROJECT-DEFINITION registry-refresh coverage demotion"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/coverage-applicability/evaluate.test.ts packages/core/src/coverage-applicability/index.test.ts packages/core/src/coverage-hotspots/evaluate.test.ts"
+        ],
+        "file_scope": [
+          "CHANGELOG.md",
+          "packages/core/src/coverage-applicability/evaluate.ts",
+          "packages/core/src/coverage-applicability/evaluate.test.ts",
+          "packages/core/src/coverage-applicability/index.ts",
+          "packages/core/src/coverage-applicability/index.test.ts",
+          "packages/core/src/coverage-hotspots/evaluate.ts",
+          "packages/core/src/coverage-hotspots/evaluate.test.ts",
+          "packages/core/src/pre-pr-controller/controller.ts"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5479"
+        ],
+        "parallel_safe": true
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "CHANGELOG.md",
+          "packages/core/src/coverage-applicability/evaluate.ts",
+          "packages/core/src/coverage-applicability/evaluate.test.ts",
+          "packages/core/src/coverage-applicability/index.ts",
+          "packages/core/src/coverage-applicability/index.test.ts",
+          "packages/core/src/coverage-hotspots/evaluate.ts",
+          "packages/core/src/coverage-hotspots/evaluate.test.ts",
+          "packages/core/src/pre-pr-controller/controller.ts"
+        ],
+        "module_boundary": "coverage-applicability PROJECT-DEFINITION registry refresh demotion",
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased bullet only."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5754817396,
+        "origin": "deftai/directive#5479",
+        "id": "github.issue.5754817396"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "379332989a2ec941f872c685352d8a20265598067db6e4f322ed0fd4dad38932"
+      },
+      "productPullRequest": 5530,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-09T20:22:25.000Z"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A Bound limbs hand-stamped after Prefer-A Bound harvest (#4374) from comment 6087614534.",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Closed pointer allowlist: when xbrief/PROJECT-DEFINITION.xbrief.json is modified (status M, both blobs resolvable), deep-diff base/head JSON and treat coverage-inert only when every changed pointer is in closed refresh set: /plan/items, /<infoRoot>/updated, /plan/metadata/staleness_flags, and narrow first-time /plan/metadata create that only introduces validated staleness_flags.",
+          "artifact_path": "packages/core/src/coverage-applicability/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Closed recursive registry schemas: validate both endpoint registries before demotion; closed item/metadata keys from renderer output; staleness_flags must be string[]; unknown keys refuse demotion; structural JSON.parse compare (ignore key-order/whitespace); do not treat byte-identical equality as proof.",
+          "artifact_path": "packages/core/src/coverage-applicability/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Demotion placement: keep classifyChangedPath/LIVE_SETTINGS_PATHS path-coverable; inside evaluateCoverageApplicability after row classify and before aggregation, for each coverable PROJECT-DEFINITION path with status M and both blobs resolvable, run closed deep-diff proof; on success reclassify inert for this evaluation only. Refuse on A/D/R/C, missing blob, malformed JSON, or failed shape.",
+          "artifact_path": "packages/core/src/coverage-applicability/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Shared exit-3 channel: hotspots and pre-PR controller continue to share evaluateCoverageApplicability. Registry/timestamp/flags-only diffs can use existing exit-3 N/A without Istanbul. When Istanbul report present, preserve measured evaluation / below-floor failure and rejected skip.",
+          "artifact_path": "packages/core/src/coverage-hotspots/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Regression matrix: positive committed base→head refresh-only (items+updated+staleness_flags) optionally with inert planning paths → not-applicable; hotspots exit 3 without Istanbul; controller honors same binding. Negatives remain applicable/refuse: policy edit, unknown fields, malformed JSON, A/D/R, mixed src/*.ts, stale treeHash, dirty worktree, unknown path, below-floor report present.",
+          "artifact_path": "packages/core/src/coverage-applicability/evaluate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Keep-outs: leave plan.xbrief.json and specification.xbrief.json unconditional coverable; no blanket PROJECT-DEFINITION exemption; no docs-only bypass; no non-Istanbul executable coverage adapter; do not reopen #5421 as general design-only free pass.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ]
+    },
+    "id": "github.issue.5754817396",
+    "updated": "2026-10-09T20:22:25.000Z"
+  }
+}
