@@ -49,10 +49,7 @@ function forceDeleteWorktreeDir(worktreePath: string): void {
 const caseInsensitiveDirCache = new Map<string, boolean>();
 
 /** Test-only: seed the probe cache (stale-true regression). */
-export function __testOnly_seedCaseInsensitiveDirCache(
-  dir: string,
-  ignores: boolean,
-): void {
+export function __testOnly_seedCaseInsensitiveDirCache(dir: string, ignores: boolean): void {
   caseInsensitiveDirCache.set(resolve(dir), ignores);
 }
 
@@ -163,9 +160,7 @@ function canonicalizeWorktreePath(path: string): string {
     // Keep slash-resolved parent.
   }
   // Bypass cache: a stale true must not fold a missing leaf (#5519 / #5460 class).
-  const leaf = directoryIgnoresCase(parent, { bypassCache: true })
-    ? base.toLowerCase()
-    : base;
+  const leaf = directoryIgnoresCase(parent, { bypassCache: true }) ? base.toLowerCase() : base;
   return `${parentCanon}/${leaf}`;
 }
 
