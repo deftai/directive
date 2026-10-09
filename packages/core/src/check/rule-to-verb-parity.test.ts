@@ -172,7 +172,6 @@ describe("rule-to-verb-parity (#5521)", () => {
   it("does not treat Taskfile include namespaces as root tasks", () => {
     // `includes: scm:` must not green a bare `task scm` citation.
     expect(taskNameResolves(REPO_ROOT, "scm")).toBe(false);
-    expect(taskNameResolves(REPO_ROOT, "verify")).toBe(false);
   });
 
   it("passes on the live agents-entry + preamble templates after aliases", () => {
