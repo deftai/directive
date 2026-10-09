@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Record the approved scope for #5364 so its product changes can pass scope checks.
 - Path B remint approved-scope for #5364 Bound call-site inventory (sync-default, launch, origin-active-brief).
 - **Unsafe deliveryBranch fetch argv (#5364).** Rejects hostile or empty delivery-branch names before `git fetch` on the core policy helpers, generation-gate, and finalize-owed path; a missing PROJECT-DEFINITION with a usable git default still proceeds. Remaining Bound call sites (launch, sync-default, origin-active-brief, delivery-evidence) stay on a follow-up under the #4956 production allowance. Tracking #5364.
+- **Unsafe deliveryBranch fetch argv (#5364).** Rejects hostile or empty delivery-branch names before `git fetch` on the core policy helpers and generation-gate; a missing PROJECT-DEFINITION with a usable git default still proceeds. Follow-up #5516 covers finalize-owed plus remaining Bound inventory (launch, sync-default, origin-active-brief, delivery-evidence) under the #4956 production allowance. Tracking #5364. Refs #5516.
 - Leftover-complete #5488 after product #5498.
 - Design-critique ship-ready LGTM move-forward completion (#5488). Tracking #5488.
 - Earlier design reviews no longer affect the current review when comments arrive newest first (#5488).
