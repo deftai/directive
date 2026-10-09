@@ -89,9 +89,13 @@
           "packages/core/src/policy/base-branch.test.ts",
           "packages/core/src/policy/branch-sync.ts",
           "packages/core/src/policy/branch-sync.test.ts",
+          "packages/core/src/policy/sync-default.ts",
           "packages/core/src/freshness/generation-gate.ts",
           "packages/core/src/freshness/generation-gate.test.ts",
           "packages/core/src/swarm/finalize-owed.ts",
+          "packages/core/src/swarm/launch.ts",
+          "packages/core/src/swarm/launch.test.ts",
+          "packages/core/src/swarm/origin-active-brief.ts",
           "packages/core/src/scope/delivery-evidence.ts"
         ],
         "Traces": [
@@ -108,13 +112,17 @@
           "packages/core/src/policy/base-branch.test.ts",
           "packages/core/src/policy/branch-sync.ts",
           "packages/core/src/policy/branch-sync.test.ts",
+          "packages/core/src/policy/sync-default.ts",
           "packages/core/src/freshness/generation-gate.ts",
           "packages/core/src/freshness/generation-gate.test.ts",
           "packages/core/src/swarm/finalize-owed.ts",
+          "packages/core/src/swarm/launch.ts",
+          "packages/core/src/swarm/launch.test.ts",
+          "packages/core/src/swarm/origin-active-brief.ts",
           "packages/core/src/scope/delivery-evidence.ts"
         ],
         "module_boundary": "deliveryBranch fetch argv gate",
-        "cohesion_exemption": "CHANGELOG.md shared release notes; Path B mint/activation Unreleased bullet only."
+        "cohesion_exemption": "CHANGELOG.md shared release notes; Path B remint Unreleased bullet only; Bound call-site inventory (launch/origin-active-brief/sync-default)."
       },
       "x-directive/plan-id": {
         "version": 1,

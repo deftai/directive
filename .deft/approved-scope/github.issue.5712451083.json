@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "xbriefRelPath": "xbrief/active/2026-10-08-5364-appsec-high-subprocess-scm-01-unvalidated-deliverybranch-is.xbrief.json",
   "planId": "github.issue.5712451083",
-  "approvedAt": "2026-10-08T18:23:58Z",
+  "approvedAt": "2026-10-09T01:25:37Z",
   "fileScope": [
     "CHANGELOG.md",
     "packages/core/src/freshness/generation-gate.test.ts",
@@ -13,16 +13,20 @@
     "packages/core/src/policy/branch-sync.ts",
     "packages/core/src/policy/delivery-branch.test.ts",
     "packages/core/src/policy/delivery-branch.ts",
+    "packages/core/src/policy/sync-default.ts",
     "packages/core/src/scope/delivery-evidence.ts",
-    "packages/core/src/swarm/finalize-owed.ts"
+    "packages/core/src/swarm/finalize-owed.ts",
+    "packages/core/src/swarm/launch.test.ts",
+    "packages/core/src/swarm/launch.ts",
+    "packages/core/src/swarm/origin-active-brief.ts"
   ],
-  "fileScopeDigest": "7c50ccd88ca172039011008163e31c7a2565cdc5aa09cc069c742e02e0fbef91",
+  "fileScopeDigest": "fa28f45c00eca2d2931008d1bf4b285e1c288de801a36ce10abcc23706f27484",
   "humanApproval": {
     "kind": "operator",
     "actor": "Scott",
-    "mintedAt": "2026-10-08T18:23:58Z",
+    "mintedAt": "2026-10-09T01:25:36Z",
     "mintedVia": "scope:record-approved-scope"
   },
-  "intentDigest": "86bd2451fe0c43bd0d76bf6732abe42f56a1497d0f853926a119ea40b0226a1d",
+  "intentDigest": "aa431015bea7830a18bcabf49e791b1c87f23dede20b651ee9e4460e63430ae7",
   "digestAlgo": "intent-extract-v1"
 }
