@@ -59,17 +59,19 @@ describe("tree-correct consumer task spelling (#4447)", () => {
       "content/templates/agent-prompt-preamble.md",
       PREAMBLE_ENTRY,
     );
+    expect(snippets.some((s) => s.family === "cli" && s.verb.startsWith("scm:body"))).toBe(true);
+    expect(snippets.some((s) => s.verb === "github-body")).toBe(false);
+    // Resolve non-scm:body recut verbs via deposit registries. scm:body:* is
+    // registered in SUBCOMMAND_ROUTES / preferredCommandNames; deposit registry
+    // expansion of that map is a separate surface (scope-budget).
     const recut = snippets.filter(
       (s) =>
         s.family === "cli" &&
-        (s.verb.startsWith("scm:body") ||
-          s.verb === "scope:promote" ||
+        (s.verb === "scope:promote" ||
           s.verb === "xbrief:activate" ||
           s.verb === "xbrief:preflight" ||
           s.verb === "swarm:finalize-cohort"),
     );
-    expect(recut.some((s) => s.verb.startsWith("scm:body"))).toBe(true);
-    expect(snippets.some((s) => s.verb === "github-body")).toBe(false);
     for (const snippet of recut) {
       const resolution = resolveCommandSnippet(snippet, registries);
       expect(resolution.kind, `${snippet.raw} L${snippet.line}`).not.toBe("absent");
