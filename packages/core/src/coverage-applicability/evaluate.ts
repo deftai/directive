@@ -323,8 +323,8 @@ function collectChangedPointers(base: unknown, head: unknown, prefix = ""): stri
   const changed: string[] = [];
   for (const key of keys) {
     const child = joinPointer(prefix, key);
-    const hasBase = Object.prototype.hasOwnProperty.call(base, key);
-    const hasHead = Object.prototype.hasOwnProperty.call(head, key);
+    const hasBase = Object.hasOwn(base, key);
+    const hasHead = Object.hasOwn(head, key);
     if (!hasBase || !hasHead) {
       changed.push(child);
       continue;
@@ -339,34 +339,32 @@ function isValidRegistryItem(item: unknown): boolean {
   for (const key of Object.keys(item)) {
     if (!REGISTRY_ITEM_KEYS.has(key)) return false;
   }
-  if (typeof item.id !== "string" || typeof item.title !== "string" || typeof item.status !== "string") {
+  if (
+    typeof item.id !== "string" ||
+    typeof item.title !== "string" ||
+    typeof item.status !== "string"
+  ) {
     return false;
   }
-  if (!Object.prototype.hasOwnProperty.call(item, "metadata")) return true;
+  if (!Object.hasOwn(item, "metadata")) return true;
   const metadata = item.metadata;
   if (!isPlainObject(metadata)) return false;
   for (const key of Object.keys(metadata)) {
     if (!REGISTRY_ITEM_METADATA_KEYS.has(key)) return false;
   }
-  if (
-    Object.prototype.hasOwnProperty.call(metadata, "source_path") &&
-    typeof metadata.source_path !== "string"
-  ) {
+  if (Object.hasOwn(metadata, "source_path") && typeof metadata.source_path !== "string") {
     return false;
   }
   if (
-    Object.prototype.hasOwnProperty.call(metadata, "lifecycle_folder") &&
+    Object.hasOwn(metadata, "lifecycle_folder") &&
     typeof metadata.lifecycle_folder !== "string"
   ) {
     return false;
   }
-  if (
-    Object.prototype.hasOwnProperty.call(metadata, "error") &&
-    typeof metadata.error !== "string"
-  ) {
+  if (Object.hasOwn(metadata, "error") && typeof metadata.error !== "string") {
     return false;
   }
-  if (Object.prototype.hasOwnProperty.call(metadata, "references") && !Array.isArray(metadata.references)) {
+  if (Object.hasOwn(metadata, "references") && !Array.isArray(metadata.references)) {
     return false;
   }
   return true;
@@ -415,8 +413,8 @@ export function isProjectDefinitionRegistryRefreshOnly(
     return false;
   }
 
-  const baseMetaMissing = !Object.prototype.hasOwnProperty.call(basePlan, "metadata");
-  const headHasMeta = Object.prototype.hasOwnProperty.call(headPlan, "metadata");
+  const baseMetaMissing = !Object.hasOwn(basePlan, "metadata");
+  const headHasMeta = Object.hasOwn(headPlan, "metadata");
   const baseMeta = isPlainObject(basePlan.metadata) ? basePlan.metadata : null;
   const headMeta = isPlainObject(headPlan.metadata) ? headPlan.metadata : null;
 
@@ -429,13 +427,13 @@ export function isProjectDefinitionRegistryRefreshOnly(
   } else if (baseMeta !== null || headMeta !== null) {
     if (baseMeta === null || headMeta === null) return false;
     if (
-      Object.prototype.hasOwnProperty.call(baseMeta, "staleness_flags") &&
+      Object.hasOwn(baseMeta, "staleness_flags") &&
       !isValidStalenessFlags(baseMeta.staleness_flags)
     ) {
       return false;
     }
     if (
-      Object.prototype.hasOwnProperty.call(headMeta, "staleness_flags") &&
+      Object.hasOwn(headMeta, "staleness_flags") &&
       !isValidStalenessFlags(headMeta.staleness_flags)
     ) {
       return false;
