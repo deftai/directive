@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5364",
-    "updated": "2026-10-09T11:47:04.904Z"
+    "updated": "2026-10-09T12:47:10.764Z"
   },
   "plan": {
     "title": "[AppSec] HIGH subprocess-scm-01: Unvalidated deliveryBranch is passed to git fetch as a raw refspec/option",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "[AppSec] HIGH subprocess-scm-01: Unvalidated deliveryBranch is passed to git fetch as a raw refspec/option",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5364",
@@ -21,6 +21,18 @@
         "x-directive/artifact_path": "packages/core/src/policy/delivery-branch.ts",
         "narrative": {
           "Acceptance": "Add shared fail-closed branch-name gate with explicit closed grammar: no leading dash, no colon, no .., no ASCII controls, no spaces, no @{, no .lock suffix; reject literal input rather than expand revision shorthand. Do not equate git check-ref-format refs/heads/<input> exit 0 with that grammar."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5485 squash-merge (Tracking #5364). Bound core limbs shipped (delivery-branch/base-branch/branch-sync/generation-gate); Greptile CLEAN then MERGED. Overflow inventory on #5516. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5485",
+            "mintedAt": "2026-10-09T12:47:10.764Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-09T12:47:10.764Z"
         }
       },
       {
@@ -30,6 +42,18 @@
         "x-directive/artifact_path": "packages/core/src/policy/base-branch.ts",
         "narrative": {
           "Acceptance": "Apply the gate at every policy reader and argv builder, not only resolveDeliveryBranch: include resolveBaseBranch, parseTypedPolicyBranches (remote-blob reader in branch-sync), CLI delivery-branch / twin base-branch paths, and helpers that build git argv from those strings. Invalid present policy is a terminal configuration error before fetch/worktree/proof, not default-on-error fallback."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5485 squash-merge (Tracking #5364). Bound core limbs shipped (delivery-branch/base-branch/branch-sync/generation-gate); Greptile CLEAN then MERGED. Overflow inventory on #5516. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5485",
+            "mintedAt": "2026-10-09T12:47:10.764Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-09T12:47:10.764Z"
         }
       },
       {
@@ -39,6 +63,18 @@
         "x-directive/artifact_path": "packages/core/src/freshness/generation-gate.ts",
         "narrative": {
           "Acceptance": "Replace bare git fetch origin <branch> with allowed form only: git fetch origin -- refs/heads/<validated>:<dest-ref> (tracking or private dest) that places -- before the refspec and couples the dest-side ref to what later readers consume (origin/<branch> refresh or returned immutable tip OID)."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5485 squash-merge (Tracking #5364). Bound core limbs shipped (delivery-branch/base-branch/branch-sync/generation-gate); Greptile CLEAN then MERGED. Overflow inventory on #5516. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5485",
+            "mintedAt": "2026-10-09T12:47:10.764Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-09T12:47:10.764Z"
         }
       },
       {
@@ -48,6 +84,18 @@
         "x-directive/artifact_path": "packages/core/src/swarm/finalize-owed.ts",
         "narrative": {
           "Acceptance": "Keep private-dest fetch (fetchDeliveryTipPrivate / generationFetchArgs) but gate the interpolated branch before building either side of the refspec."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5485 squash-merge (Tracking #5364). Bound core limbs shipped (delivery-branch/base-branch/branch-sync/generation-gate); Greptile CLEAN then MERGED. Overflow inventory on #5516. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5485",
+            "mintedAt": "2026-10-09T12:47:10.764Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-09T12:47:10.764Z"
         }
       },
       {
@@ -57,6 +105,18 @@
         "x-directive/artifact_path": "packages/core/src/scope/delivery-evidence.ts",
         "narrative": {
           "Acceptance": "Gate or convert closed inventory call sites under this Bound including finalize-cohort deliveryBranch/baseBranch fetches, origin-active-brief, delivery-evidence, finalize-owed private fetch, generation-gate args, branch-sync source/prBase fetches, sync-default/sync-max-files dest/source fetches, live-procedure-targets depth-1 fetch token, and worktree tip forms fed by the same strings."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5485 squash-merge (Tracking #5364). Bound core limbs shipped (delivery-branch/base-branch/branch-sync/generation-gate); Greptile CLEAN then MERGED. Overflow inventory on #5516. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5485",
+            "mintedAt": "2026-10-09T12:47:10.764Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-09T12:47:10.764Z"
         }
       },
       {
@@ -66,6 +126,18 @@
         "x-directive/artifact_path": "packages/core/src/policy/delivery-branch.test.ts",
         "narrative": {
           "Acceptance": "Tests before spawn: --upload-pack=..., colon rewrite toward master/main, leading dash including cases where prefixed check-ref-format would exit 0, .., @{}, empty/whitespace, invalid typed policy terminal refuse (no silent default), happy-path main/master/release/x; plus regression where old origin tracking tip differs from fetched delivery tip when private-dest form is used."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5485 squash-merge (Tracking #5364). Bound core limbs shipped (delivery-branch/base-branch/branch-sync/generation-gate); Greptile CLEAN then MERGED. Overflow inventory on #5516. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5485",
+            "mintedAt": "2026-10-09T12:47:10.764Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-09T12:47:10.764Z"
         }
       }
     ],
@@ -163,7 +235,12 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "783aa8919360af1ddab51365bb23d377b0d6b8091078d5a992c97a472e0cd72b"
-      }
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-09T12:47:10.764Z"
+      },
+      "productPullRequest": 5485
     },
     "acceptance": {
       "commands": [],

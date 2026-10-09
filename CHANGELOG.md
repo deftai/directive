@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Keep completed #5364 after product PR #5485 (deliveryBranch fetch argv gate).
 - Record the approved scope for #5364 so its product changes can pass scope checks.
 - Path B remint approved-scope for #5364 Bound call-site inventory (sync-default, launch, origin-active-brief).
 - **Unsafe deliveryBranch fetch argv (#5364).** Rejects hostile or empty delivery-branch names before `git fetch` on the core policy helpers, generation-gate, and finalize-owed path; a missing PROJECT-DEFINITION with a usable git default still proceeds. Remaining Bound call sites (launch, sync-default, origin-active-brief, delivery-evidence) stay on a follow-up under the #4956 production allowance. Tracking #5364.
