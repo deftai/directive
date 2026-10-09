@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Path B activation for #5521 membership fence.
 - Record the completed work for #5479 after product PR #5530.
 - Record the completed work for #5526 after product PR #5528.
 - Record approved scope for #5521 so Path B product work can pass scope checks (mint only).
