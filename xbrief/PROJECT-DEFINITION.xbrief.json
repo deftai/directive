@@ -23883,6 +23883,9 @@
       "productSignal": {
         "enabled": true,
         "sinkRepo": "deftai/product-signal"
+      },
+      "review": {
+        "minGreptileConfidence": 4
       }
     },
     "updated": "2026-07-02T14:32:31Z",
