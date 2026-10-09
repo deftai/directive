@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Typed `plan.policy.review.minGreptileConfidence=4` so Greptile CLEAN / merge-ready accept 4/5 for this cohort (#3095).
+
 ### Fixed
 
 - Record the completed work for #5479 after product PR #5530.
