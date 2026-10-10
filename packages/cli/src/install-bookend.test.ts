@@ -112,6 +112,32 @@ describe("PM selection (AC5.7)", () => {
     if (!pm.ok) expect(pm.message).toMatch(/bun/i);
   });
 
+  it("refuses explicit Yarn packageManager without lockfile", () => {
+    const root = tempProject();
+    const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as Record<
+      string,
+      unknown
+    >;
+    pkg.packageManager = "yarn@1.22.0";
+    writeFileSync(join(root, "package.json"), `${JSON.stringify(pkg, null, 2)}\n`);
+    const pm = detectPackageManager(root, null);
+    expect(pm.ok).toBe(false);
+    if (!pm.ok) expect(pm.message).toMatch(/yarn/i);
+  });
+
+  it("refuses explicit Bun packageManager without lockfile", () => {
+    const root = tempProject();
+    const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as Record<
+      string,
+      unknown
+    >;
+    pkg.packageManager = "bun@1.1.0";
+    writeFileSync(join(root, "package.json"), `${JSON.stringify(pkg, null, 2)}\n`);
+    const pm = detectPackageManager(root, null);
+    expect(pm.ok).toBe(false);
+    if (!pm.ok) expect(pm.message).toMatch(/bun/i);
+  });
+
   it("honours --package-manager when no lockfile", () => {
     const root = tempProject();
     const pm = detectPackageManager(root, "pnpm");
@@ -134,7 +160,7 @@ describe("PM selection (AC5.7)", () => {
 });
 
 describe("lockfile pin consistency (AC6.10)", () => {
-  it("reports usable when npm lock records exact pin", () => {
+  it("reports usable when npm lock records root request + resolved version", () => {
     const root = tempProject();
     const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as Record<
       string,
@@ -148,6 +174,10 @@ describe("lockfile pin consistency (AC6.10)", () => {
         {
           lockfileVersion: 3,
           packages: {
+            "": {
+              name: "t",
+              devDependencies: { "@deftai/directive-runtime": "1.2.3" },
+            },
             "node_modules/@deftai/directive-runtime": { version: "1.2.3" },
           },
         },
@@ -155,16 +185,127 @@ describe("lockfile pin consistency (AC6.10)", () => {
         2,
       )}\n`,
     );
-    expect(lockfileRecordsExactPin(root, "1.2.3")).toBe(true);
+    expect(lockfileRecordsExactPin(root, "1.2.3", "npm")).toBe(true);
+  });
+
+  it("reports unusable when npm lock has resolved version but no root request", () => {
+    const root = tempProject();
+    writeFileSync(
+      join(root, "package-lock.json"),
+      `${JSON.stringify(
+        {
+          lockfileVersion: 3,
+          packages: {
+            "node_modules/@deftai/directive-runtime": { version: "1.2.3" },
+          },
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    expect(lockfileRecordsExactPin(root, "1.2.3", "npm")).toBe(false);
+  });
+
+  it("reports usable for pnpm root importer exact specifier+version", () => {
+    const root = tempProject();
+    writeFileSync(
+      join(root, "pnpm-lock.yaml"),
+      [
+        "lockfileVersion: '9.0'",
+        "",
+        "importers:",
+        "",
+        "  .:",
+        "    devDependencies:",
+        "      '@deftai/directive-runtime':",
+        "        specifier: 1.2.3",
+        "        version: 1.2.3",
+        "",
+        "packages:",
+        "",
+        "  '@deftai/directive-runtime@1.2.3':",
+        "    resolution: {integrity: sha512-test}",
+        "",
+      ].join("\n"),
+    );
+    expect(lockfileRecordsExactPin(root, "1.2.3", "pnpm")).toBe(true);
+  });
+
+  it("ignores non-root workspace importer matches for pnpm", () => {
+    const root = tempProject();
+    writeFileSync(
+      join(root, "pnpm-lock.yaml"),
+      [
+        "lockfileVersion: '9.0'",
+        "",
+        "importers:",
+        "",
+        "  .:",
+        "    dependencies:",
+        "      leftpad:",
+        "        specifier: 1.0.0",
+        "        version: 1.0.0",
+        "",
+        "  packages/other:",
+        "    devDependencies:",
+        "      '@deftai/directive-runtime':",
+        "        specifier: 1.2.3",
+        "        version: 1.2.3",
+        "",
+        "packages:",
+        "",
+        "  '@deftai/directive-runtime@1.2.3':",
+        "    resolution: {integrity: sha512-test}",
+        "",
+      ].join("\n"),
+    );
+    expect(lockfileRecordsExactPin(root, "1.2.3", "pnpm")).toBe(false);
   });
 
   it("reports unusable when lockfile missing", () => {
     const root = tempProject();
-    expect(lockfileRecordsExactPin(root, "1.2.3")).toBe(false);
+    expect(lockfileRecordsExactPin(root, "1.2.3", "npm")).toBe(false);
   });
 });
 
 describe("install bookend flag matrix (AC5 / AC6)", () => {
+  it("trailing --target-version without value exits 2 before registry", () => {
+    const root = tempProject();
+    const c = capture();
+    let resolveCalled = false;
+    const code = runInstall(root, stateFor(root), ["--yes", "--target-version"], "0.0.0-test", c.io, {
+      resolveLatest: () => {
+        resolveCalled = true;
+        return { ok: true as const, version: "1.2.3" };
+      },
+      runPmAdd: () => {
+        throw new Error("PM must not run");
+      },
+    });
+    expect(code).toBe(2);
+    expect(resolveCalled).toBe(false);
+    expect(c.err()).toMatch(/--target-version requires a value/);
+  });
+
+  it("trailing --package-manager without value exits 2 before PM detect mutation", () => {
+    const root = tempProject();
+    const c = capture();
+    const code = runInstall(
+      root,
+      stateFor(root),
+      ["--yes", "--target-version", "1.2.3", "--package-manager"],
+      "0.0.0-test",
+      c.io,
+      {
+        runPmAdd: () => {
+          throw new Error("PM must not run");
+        },
+      },
+    );
+    expect(code).toBe(2);
+    expect(c.err()).toMatch(/--package-manager requires a value/);
+  });
+
   it("--repair + --target-version exits 2 (AC6.5)", () => {
     const root = tempProject();
     const c = capture();
@@ -229,6 +370,20 @@ describe("install bookend flag matrix (AC5 / AC6)", () => {
     expect(c.out()).toMatch(/dry-run|Plan:/i);
     expect(c.out()).toMatch(/9\.9\.9/);
     expect(readFileSync(join(root, "package.json"), "utf8")).toBe(before);
+  });
+
+  it("pnpm plan discloses --save-exact", () => {
+    const root = tempProject();
+    const c = capture();
+    const code = runInstall(
+      root,
+      stateFor(root),
+      ["--dry-run", "--package-manager", "pnpm", "--target-version", "1.2.3"],
+      "0.0.0-test",
+      c.io,
+    );
+    expect(code).toBe(0);
+    expect(c.out()).toMatch(/pnpm add -D --save-exact/);
   });
 
   it("rejects range --target-version before mutation", () => {
@@ -347,7 +502,13 @@ describe("install bookend flag matrix (AC5 / AC6)", () => {
       `${JSON.stringify(
         {
           lockfileVersion: 3,
-          packages: { "node_modules/@deftai/directive-runtime": { version } },
+          packages: {
+            "": {
+              name: "t",
+              devDependencies: { "@deftai/directive-runtime": version },
+            },
+            "node_modules/@deftai/directive-runtime": { version },
+          },
         },
         null,
         2,

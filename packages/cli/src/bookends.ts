@@ -64,13 +64,22 @@ function defaultIo(): BookendIo {
   };
 }
 
-function parseFlags(argv: readonly string[]): { flags: BookendFlags; rest: string[] } {
+function flagValueMissing(next: string | undefined): boolean {
+  return next === undefined || next.startsWith("-");
+}
+
+function parseFlags(argv: readonly string[]): {
+  flags: BookendFlags;
+  rest: string[];
+  usageError: string | null;
+} {
   const rest: string[] = [];
   let dryRun = false;
   let yes = false;
   let repair = false;
   let targetVersion: string | null = null;
   let packageManager: string | null = null;
+  let usageError: string | null = null;
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!;
     if (a === "--dry-run") {
@@ -86,24 +95,40 @@ function parseFlags(argv: readonly string[]): { flags: BookendFlags; rest: strin
       continue;
     }
     if (a === "--target-version") {
-      targetVersion = argv[++i] ?? null;
+      const next = argv[i + 1];
+      if (flagValueMissing(next)) {
+        usageError = "--target-version requires a value.";
+        continue;
+      }
+      targetVersion = argv[++i]!;
       continue;
     }
     if (a.startsWith("--target-version=")) {
       targetVersion = a.slice("--target-version=".length);
+      if (targetVersion.length === 0) {
+        usageError = "--target-version requires a value.";
+      }
       continue;
     }
     if (a === "--package-manager") {
-      packageManager = argv[++i] ?? null;
+      const next = argv[i + 1];
+      if (flagValueMissing(next)) {
+        usageError = "--package-manager requires a value.";
+        continue;
+      }
+      packageManager = argv[++i]!;
       continue;
     }
     if (a.startsWith("--package-manager=")) {
       packageManager = a.slice("--package-manager=".length);
+      if (packageManager.length === 0) {
+        usageError = "--package-manager requires a value.";
+      }
       continue;
     }
     rest.push(a);
   }
-  return { flags: { dryRun, yes, repair, targetVersion, packageManager }, rest };
+  return { flags: { dryRun, yes, repair, targetVersion, packageManager }, rest, usageError };
 }
 
 function printPlan(
@@ -145,8 +170,14 @@ export function runInstall(
   io: BookendIo = defaultIo(),
   deps: InstallDeps = {},
 ): number {
-  const { flags } = parseFlags(argv);
+  const { flags, usageError } = parseFlags(argv);
   const env = deps.env ?? process.env;
+
+  // Missing --target-version / --package-manager values → usage before registry/PM.
+  if (usageError !== null) {
+    io.writeErr(`${usageError}\n`);
+    return EXIT_CODES.USAGE;
+  }
 
   // AC6.5: --repair + --target-version rejected
   if (flags.repair && flags.targetVersion !== null) {
@@ -240,7 +271,7 @@ function runFirstInstall(
   } else {
     const resolver =
       deps.resolveLatest ??
-      (() => resolveLatestStableVersion(env));
+      (() => resolveLatestStableVersion(env, projectRoot));
     const resolved = resolver();
     // Support sync or async seam; install path is sync so only sync results are used.
     if (resolved instanceof Promise) {
@@ -258,7 +289,7 @@ function runFirstInstall(
   const pmCmd =
     pmDetect.pm === "npm"
       ? `npm install --save-dev --save-exact --ignore-scripts ${RUNTIME_PACKAGE_NAME}@${targetVersion}`
-      : `pnpm add -D --ignore-scripts ${RUNTIME_PACKAGE_NAME}@${targetVersion}`;
+      : `pnpm add -D --save-exact --ignore-scripts ${RUNTIME_PACKAGE_NAME}@${targetVersion}`;
 
   printPlan(io, [
     `operation: install (first-time)`,
@@ -361,7 +392,7 @@ function runRepair(
     return EXIT_CODES.USAGE;
   }
 
-  const lockOk = lockfileRecordsExactPin(projectRoot, pinVersion);
+  const lockOk = lockfileRecordsExactPin(projectRoot, pinVersion, pmDetect.pm);
   const installedOk =
     state.installed !== null &&
     state.installed.version === pinVersion &&
@@ -371,7 +402,7 @@ function runRepair(
   const pmCmd =
     pmDetect.pm === "npm"
       ? `npm install --save-dev --save-exact --ignore-scripts ${RUNTIME_PACKAGE_NAME}@${pinVersion}`
-      : `pnpm add -D --ignore-scripts ${RUNTIME_PACKAGE_NAME}@${pinVersion}`;
+      : `pnpm add -D --save-exact --ignore-scripts ${RUNTIME_PACKAGE_NAME}@${pinVersion}`;
 
   printPlan(io, [
     `operation: repair`,

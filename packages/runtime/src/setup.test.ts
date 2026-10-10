@@ -7,6 +7,7 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -88,5 +89,41 @@ describe("runSetup install|repair (R8 / AC8.*)", () => {
     const before = readFileSync(marker, "utf8");
     runSetup({ operation: "repair", from: "0.0.0", root });
     expect(readFileSync(marker, "utf8")).toBe(before);
+  });
+
+  it("does not write wiring-ready on AGENTS conflict and invalidates prior marker", () => {
+    const root = tempRoot();
+    const first = runSetup({ operation: "install", from: "none", root });
+    const readyPath = join(
+      root,
+      ".deft",
+      "directive",
+      `wiring-ready.${first.runtimeVersion}.json`,
+    );
+    expect(existsSync(readyPath)).toBe(true);
+    writeFileSync(
+      join(root, "AGENTS.md"),
+      "<!-- deft:managed-section v3 -->\nbroken without close\n",
+    );
+    const result = runSetup({ operation: "repair", from: "0.0.0", root });
+    expect(result.conflicts.length).toBeGreaterThan(0);
+    expect(existsSync(readyPath)).toBe(false);
+    expect(result.message).toMatch(/conflict/i);
+  });
+
+  it("refuses AGENTS.md symlink escape outside the project", () => {
+    const root = tempRoot();
+    const outsideDir = mkdtempSync(join(tmpdir(), "setup-escape-"));
+    TEMPS.push(outsideDir);
+    const outsideFile = join(outsideDir, "escaped-agents.md");
+    writeFileSync(outsideFile, "outside\n");
+    symlinkSync(outsideFile, join(root, "AGENTS.md"));
+    const before = readFileSync(outsideFile, "utf8");
+    const result = runSetup({ operation: "install", from: "none", root });
+    expect(result.conflicts.length).toBeGreaterThan(0);
+    expect(readFileSync(outsideFile, "utf8")).toBe(before);
+    expect(
+      existsSync(join(root, ".deft", "directive", `wiring-ready.${result.runtimeVersion}.json`)),
+    ).toBe(false);
   });
 });

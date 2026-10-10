@@ -36,21 +36,28 @@ function readJsonObject(path: string): Record<string, unknown> | null {
   }
 }
 
-function packageManagerField(projectRoot: string): PackageManager | null {
+type PackageManagerFieldResult =
+  | { readonly kind: "absent" }
+  | { readonly kind: "supported"; readonly pm: PackageManager }
+  | { readonly kind: "unsupported"; readonly name: string };
+
+function readPackageManagerField(projectRoot: string): PackageManagerFieldResult {
   const pkg = readJsonObject(join(projectRoot, "package.json"));
-  if (pkg === null) return null;
+  if (pkg === null) return { kind: "absent" };
   const raw = pkg.packageManager;
-  if (typeof raw !== "string") return null;
-  if (raw.startsWith("npm@") || raw === "npm") return "npm";
-  if (raw.startsWith("pnpm@") || raw === "pnpm") return "pnpm";
-  if (raw.startsWith("yarn@") || raw === "yarn") return null;
-  if (raw.startsWith("bun@") || raw === "bun") return null;
-  return null;
+  if (typeof raw !== "string" || raw.trim() === "") return { kind: "absent" };
+  if (raw.startsWith("npm@") || raw === "npm") return { kind: "supported", pm: "npm" };
+  if (raw.startsWith("pnpm@") || raw === "pnpm") return { kind: "supported", pm: "pnpm" };
+  if (raw.startsWith("yarn@") || raw === "yarn") return { kind: "unsupported", name: "Yarn" };
+  if (raw.startsWith("bun@") || raw === "bun") return { kind: "unsupported", name: "Bun" };
+  const name = raw.split("@")[0]?.trim() || raw;
+  return { kind: "unsupported", name };
 }
 
 /**
  * Select npm or pnpm from lockfile / packageManager / explicit flag.
- * Refuses yarn and bun (AC5.7).
+ * Refuses yarn and bun (AC5.7), including an explicit packageManager field
+ * with no lockfile (do not fall through to npm).
  */
 export function detectPackageManager(
   projectRoot: string,
@@ -74,6 +81,14 @@ export function detectPackageManager(
     };
   }
 
+  const field = readPackageManagerField(projectRoot);
+  if (field.kind === "unsupported") {
+    return {
+      ok: false,
+      message: `${field.name} projects are not supported (AC5.7). Use npm or pnpm.`,
+    };
+  }
+
   if (flag !== null) {
     if (flag !== "npm" && flag !== "pnpm") {
       return {
@@ -85,14 +100,18 @@ export function detectPackageManager(
 
   const hasPnpmLock = existsSync(join(projectRoot, "pnpm-lock.yaml"));
   const hasNpmLock = existsSync(join(projectRoot, "package-lock.json"));
-  const field = packageManagerField(projectRoot);
+  const fieldPm = field.kind === "supported" ? field.pm : null;
 
   if (hasPnpmLock && hasNpmLock) {
     if (flag === "npm" || flag === "pnpm") {
       return { ok: true, pm: flag, evidence: `--package-manager ${flag} (both lockfiles present)` };
     }
-    if (field !== null) {
-      return { ok: true, pm: field, evidence: `packageManager field (${field}) with both lockfiles` };
+    if (fieldPm !== null) {
+      return {
+        ok: true,
+        pm: fieldPm,
+        evidence: `packageManager field (${fieldPm}) with both lockfiles`,
+      };
     }
     return {
       ok: false,
@@ -123,61 +142,102 @@ export function detectPackageManager(
   if (flag === "npm" || flag === "pnpm") {
     return { ok: true, pm: flag, evidence: `--package-manager ${flag}` };
   }
-  if (field !== null) {
-    return { ok: true, pm: field, evidence: `packageManager field (${field})` };
+  if (fieldPm !== null) {
+    return { ok: true, pm: fieldPm, evidence: `packageManager field (${fieldPm})` };
   }
 
   // Fresh project: default npm (evidence disclosed in plan).
   return { ok: true, pm: "npm", evidence: "default (no lockfile / packageManager)" };
 }
 
-/** True when the lockfile consistently records the exact runtime pin (AC6.10). */
-export function lockfileRecordsExactPin(projectRoot: string, exactVersion: string): boolean {
-  const pnpmLock = join(projectRoot, "pnpm-lock.yaml");
-  if (existsSync(pnpmLock)) {
+/** Extract the root (`.:`) importer body from a pnpm-lock.yaml. */
+function pnpmRootImporterBlock(text: string): string | null {
+  const lines = text.split(/\r?\n/);
+  let i = 0;
+  while (i < lines.length && !/^importers:\s*$/.test(lines[i]!)) i++;
+  if (i >= lines.length) return null;
+  i++;
+  while (i < lines.length && !/^  \.:\s*$/.test(lines[i]!)) {
+    const line = lines[i]!;
+    if (line !== "" && !line.startsWith(" ")) return null;
+    i++;
+  }
+  if (i >= lines.length) return null;
+  i++;
+  const block: string[] = [];
+  while (i < lines.length) {
+    const line = lines[i]!;
+    if (line !== "" && (/^  \S/.test(line) || /^[^ \t]/.test(line))) break;
+    block.push(line);
+    i++;
+  }
+  return block.join("\n");
+}
+
+function pnpmRootRecordsExactPin(text: string, exactVersion: string): boolean {
+  const block = pnpmRootImporterBlock(text);
+  if (block === null) return false;
+  const pkg = RUNTIME_PACKAGE_NAME.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(
+    `['"]?${pkg}['"]?:\\s*\\n\\s+specifier:\\s*['"]?([^\\s'"]+)['"]?\\s*\\n\\s+version:\\s*['"]?([^\\s'"]+)['"]?`,
+  );
+  const match = block.match(re);
+  if (match === null) return false;
+  return match[1] === exactVersion && match[2] === exactVersion;
+}
+
+function npmRootRequest(
+  packages: Record<string, unknown>,
+): string | null {
+  const root = packages[""];
+  if (typeof root !== "object" || root === null || Array.isArray(root)) return null;
+  const rec = root as Record<string, unknown>;
+  for (const key of ["devDependencies", "dependencies", "optionalDependencies"] as const) {
+    const deps = rec[key];
+    if (typeof deps !== "object" || deps === null || Array.isArray(deps)) continue;
+    const v = (deps as Record<string, unknown>)[RUNTIME_PACKAGE_NAME];
+    if (typeof v === "string") return v;
+  }
+  return null;
+}
+
+/**
+ * True when the selected PM's lockfile consistently records the root project's
+ * exact runtime pin request and resolved version (AC6.10). Other workspace
+ * package matches alone are not sufficient.
+ */
+export function lockfileRecordsExactPin(
+  projectRoot: string,
+  exactVersion: string,
+  pm: PackageManager,
+): boolean {
+  if (pm === "pnpm") {
+    const pnpmLock = join(projectRoot, "pnpm-lock.yaml");
+    if (!existsSync(pnpmLock)) return false;
     try {
-      const text = readFileSync(pnpmLock, "utf8");
-      const importer = text.match(
-        new RegExp(
-          `['"]?${RUNTIME_PACKAGE_NAME.replace("/", "\\/")}['"]?:\\s*\\n\\s+specifier:[^\\n]+\\n\\s+version:\\s*([^\\s\\n]+)`,
-        ),
-      );
-      if (importer?.[1] && importer[1] === exactVersion) return true;
-      const pkgKey = text.match(
-        new RegExp(
-          `['"]${RUNTIME_PACKAGE_NAME.replace("/", "\\/")}@${exactVersion.replace(
-            /[.*+?^${}()|[\]\\]/g,
-            "\\$&",
-          )}['"]\\s*:`,
-        ),
-      );
-      return pkgKey !== null;
+      return pnpmRootRecordsExactPin(readFileSync(pnpmLock, "utf8"), exactVersion);
     } catch {
       return false;
     }
   }
+
   const npmLock = join(projectRoot, "package-lock.json");
-  if (existsSync(npmLock)) {
-    const lock = readJsonObject(npmLock);
-    if (lock === null) return false;
-    const packages = lock.packages;
-    if (typeof packages === "object" && packages !== null && !Array.isArray(packages)) {
-      const entry = (packages as Record<string, unknown>)[
-        `node_modules/${RUNTIME_PACKAGE_NAME}`
-      ];
-      if (typeof entry === "object" && entry !== null && !Array.isArray(entry)) {
-        return (entry as { version?: unknown }).version === exactVersion;
-      }
-    }
-    const deps = lock.dependencies;
-    if (typeof deps === "object" && deps !== null && !Array.isArray(deps)) {
-      const entry = (deps as Record<string, unknown>)[RUNTIME_PACKAGE_NAME];
-      if (typeof entry === "object" && entry !== null && !Array.isArray(entry)) {
-        return (entry as { version?: unknown }).version === exactVersion;
-      }
+  if (!existsSync(npmLock)) return false;
+  const lock = readJsonObject(npmLock);
+  if (lock === null) return false;
+  const packages = lock.packages;
+  if (typeof packages === "object" && packages !== null && !Array.isArray(packages)) {
+    const pkgs = packages as Record<string, unknown>;
+    const request = npmRootRequest(pkgs);
+    if (request !== exactVersion) return false;
+    const entry = pkgs[`node_modules/${RUNTIME_PACKAGE_NAME}`];
+    if (typeof entry === "object" && entry !== null && !Array.isArray(entry)) {
+      return (entry as { version?: unknown }).version === exactVersion;
     }
     return false;
   }
+  // Legacy lockfileVersion 1: no packages[""] request — treat as unusable for
+  // exact-pin consistency (repair must PM-add).
   return false;
 }
 
@@ -219,7 +279,7 @@ export function runPmExactAdd(options: PmAddOptions): PmAddResult {
   const args =
     pm === "npm"
       ? ["install", "--save-dev", "--save-exact", "--ignore-scripts", spec]
-      : ["add", "-D", "--ignore-scripts", spec];
+      : ["add", "-D", "--save-exact", "--ignore-scripts", spec];
   const bin = pm;
   const result = spawnSync(bin, args, {
     cwd: projectRoot,

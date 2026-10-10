@@ -4,9 +4,14 @@
  * entries; install-only seed placeholders. Upgrade body lands in 2b; full
  * host wiring inventory in 2c.
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  ContainedWriteError,
+  containedRemove,
+  containedWrite,
+} from "@deftai/directive-core/dist/fs/contained-write.js";
 import {
   buildOwnershipRecord,
   fingerprintContent,
@@ -39,6 +44,7 @@ export interface SetupResult {
 const RUNTIME_PREFIX = "node_modules/@deftai/directive-runtime/";
 const SEED_PLACEHOLDER_REL = "xbrief/.directive-seed-placeholder";
 const GEN_REL = ".deft/GENERATION.json";
+const WIRING_READY_DIR_REL = ".deft/directive";
 
 function readOwnRuntimeVersion(): string {
   try {
@@ -57,10 +63,6 @@ function detectPmFact(projectRoot: string): PackageManagerFact {
   return "npm";
 }
 
-function ensureDir(path: string): void {
-  mkdirSync(path, { recursive: true });
-}
-
 function readText(path: string): string | null {
   try {
     return readFileSync(path, "utf8");
@@ -69,9 +71,20 @@ function readText(path: string): string | null {
   }
 }
 
-function writeText(path: string, body: string): void {
-  ensureDir(dirname(path));
-  writeFileSync(path, body);
+/** Contained write under projectRoot; refuses symlink escape. */
+function writeContained(
+  projectRoot: string,
+  relPath: string,
+  body: string,
+  mode: "create" | "replace" | "append" = "replace",
+): void {
+  containedWrite({
+    root: projectRoot,
+    target: relPath,
+    data: body,
+    mode,
+    mkdir: true,
+  });
 }
 
 function relPosix(...parts: string[]): string {
@@ -88,13 +101,39 @@ function track(
   else if (change.modified) modified.push(rel);
 }
 
+function wiringReadyRel(runtimeVersion: string): string {
+  return relPosix(WIRING_READY_DIR_REL, `wiring-ready.${runtimeVersion}.json`);
+}
+
+/** Remove readiness markers so a failed/conflicted setup cannot look ready. */
+function invalidateReadinessMarkers(projectRoot: string, removed: string[]): void {
+  const dir = join(projectRoot, WIRING_READY_DIR_REL);
+  if (!existsSync(dir)) return;
+  let names: string[] = [];
+  try {
+    names = readdirSync(dir);
+  } catch {
+    return;
+  }
+  for (const name of names) {
+    if (!name.startsWith("wiring-ready.") || !name.endsWith(".json")) continue;
+    const rel = relPosix(WIRING_READY_DIR_REL, name);
+    try {
+      const result = containedRemove({ root: projectRoot, target: rel });
+      if (result.removed) removed.push(rel);
+    } catch {
+      /* best-effort invalidation */
+    }
+  }
+}
+
 /** Ensure .gitignore has node_modules and wiring-ready ignore entries (AC8.5). */
 function ensureGitignore(projectRoot: string): { created: boolean; modified: boolean } {
-  const path = join(projectRoot, ".gitignore");
+  const rel = ".gitignore";
   const needed = ["node_modules/", ".deft/directive/wiring-ready.*.json"];
-  const existing = readText(path);
+  const existing = readText(join(projectRoot, rel));
   if (existing === null) {
-    writeText(path, `${needed.join("\n")}\n`);
+    writeContained(projectRoot, rel, `${needed.join("\n")}\n`);
     return { created: true, modified: false };
   }
   const lines = new Set(
@@ -112,7 +151,7 @@ function ensureGitignore(projectRoot: string): { created: boolean; modified: boo
   });
   if (missing.length === 0) return { created: false, modified: false };
   const suffix = existing.endsWith("\n") ? "" : "\n";
-  writeText(path, `${existing}${suffix}${missing.join("\n")}\n`);
+  writeContained(projectRoot, rel, `${existing}${suffix}${missing.join("\n")}\n`);
   return { created: false, modified: true };
 }
 
@@ -120,8 +159,9 @@ function ensureAgentsManagedSection(projectRoot: string): {
   created: boolean;
   modified: boolean;
   conflict: boolean;
+  conflictReason?: string;
 } {
-  const path = join(projectRoot, "AGENTS.md");
+  const rel = "AGENTS.md";
   const section = [
     `${MANAGED_SECTION_OPEN_PREFIX} v3 -->`,
     `Directive runtime: ${RUNTIME_PREFIX}`,
@@ -131,22 +171,27 @@ function ensureAgentsManagedSection(projectRoot: string): {
     "",
   ].join("\n");
 
-  const existing = readText(path);
+  const existing = readText(join(projectRoot, rel));
   if (existing === null) {
-    writeText(path, `${section}\n`);
+    writeContained(projectRoot, rel, `${section}\n`);
     return { created: true, modified: false, conflict: false };
   }
 
   const start = existing.indexOf(MANAGED_SECTION_OPEN_PREFIX);
   if (start < 0) {
     const suffix = existing.endsWith("\n") ? "" : "\n";
-    writeText(path, `${existing}${suffix}\n${section}\n`);
+    writeContained(projectRoot, rel, `${existing}${suffix}\n${section}\n`);
     return { created: false, modified: true, conflict: false };
   }
   const openEnd = existing.indexOf("-->", start);
   const end = openEnd >= 0 ? existing.indexOf(MANAGED_SECTION_CLOSE, openEnd) : -1;
   if (end < 0) {
-    return { created: false, modified: false, conflict: true };
+    return {
+      created: false,
+      modified: false,
+      conflict: true,
+      conflictReason: "AGENTS.md: managed section open without close marker",
+    };
   }
   const closeEnd = end + MANAGED_SECTION_CLOSE.length;
   const current = existing.slice(start, closeEnd);
@@ -154,7 +199,7 @@ function ensureAgentsManagedSection(projectRoot: string): {
     return { created: false, modified: false, conflict: false };
   }
   const next = existing.slice(0, start) + section.trimEnd() + existing.slice(closeEnd);
-  writeText(path, next.endsWith("\n") ? next : `${next}\n`);
+  writeContained(projectRoot, rel, next.endsWith("\n") ? next : `${next}\n`);
   return { created: false, modified: true, conflict: false };
 }
 
@@ -162,23 +207,22 @@ function writeReadiness(
   projectRoot: string,
   runtimeVersion: string,
 ): { path: string; created: boolean; modified: boolean } {
-  const rel = relPosix(".deft", "directive", `wiring-ready.${runtimeVersion}.json`);
-  const abs = join(projectRoot, rel);
+  const rel = wiringReadyRel(runtimeVersion);
   const body = `${JSON.stringify({ runtimeVersion }, null, 2)}\n`;
-  const prior = readText(abs);
+  const prior = readText(join(projectRoot, rel));
   if (prior === body) {
     return { path: rel, created: false, modified: false };
   }
   const created = prior === null;
-  writeText(abs, body);
+  writeContained(projectRoot, rel, body);
   return { path: rel, created, modified: !created };
 }
 
 function createSeedPlaceholder(projectRoot: string): string | null {
-  const abs = join(projectRoot, SEED_PLACEHOLDER_REL);
-  if (existsSync(abs)) return null;
-  writeText(
-    abs,
+  if (existsSync(join(projectRoot, SEED_PLACEHOLDER_REL))) return null;
+  writeContained(
+    projectRoot,
+    SEED_PLACEHOLDER_REL,
     "# Directive initial seed placeholder (install only; repair must not create this).\n",
   );
   return SEED_PLACEHOLDER_REL;
@@ -242,50 +286,91 @@ export function runSetup(options: {
   const genExisted = existsSync(join(root, GEN_REL));
   const priorRecord = readOwnershipRecord(root);
 
-  track(created, modified, ".gitignore", ensureGitignore(root));
+  try {
+    track(created, modified, ".gitignore", ensureGitignore(root));
 
-  const agents = ensureAgentsManagedSection(root);
-  track(created, modified, "AGENTS.md", agents);
-  if (agents.conflict) {
-    conflicts.push("AGENTS.md: managed section open without close marker");
+    const agents = ensureAgentsManagedSection(root);
+    track(created, modified, "AGENTS.md", agents);
+    if (agents.conflict) {
+      conflicts.push(agents.conflictReason ?? "AGENTS.md: managed section conflict");
+    }
+
+    if (operation === "install" && conflicts.length === 0) {
+      const seed = createSeedPlaceholder(root);
+      if (seed !== null) created.push(seed);
+    }
+
+    const desired = buildOwnershipRecord({
+      runtimeVersion,
+      packageManager: pm,
+      ownership: buildOwnershipArtifacts(root),
+    });
+    const unchanged = priorRecord !== null && ownershipRecordsEqual(priorRecord, desired);
+
+    writeOwnershipRecord(root, desired);
+    if (!genExisted) created.push(GEN_REL);
+    else if (!unchanged) modified.push(GEN_REL);
+
+    if (conflicts.length > 0) {
+      // Never publish readiness after conflict; invalidate any existing marker (AC8.6).
+      invalidateReadinessMarkers(root, removed);
+      return {
+        contract: 1,
+        entry: "setup",
+        stub: false,
+        operation,
+        from,
+        root,
+        runtimeVersion,
+        created,
+        modified,
+        removed,
+        conflicts,
+        message: "setup completed with conflicts",
+      };
+    }
+
+    const ready = writeReadiness(root, runtimeVersion);
+    track(created, modified, ready.path, ready);
+
+    return {
+      contract: 1,
+      entry: "setup",
+      stub: false,
+      operation,
+      from,
+      root,
+      runtimeVersion,
+      created,
+      modified,
+      removed,
+      conflicts,
+      message: `setup ${operation} completed for ${runtimeVersion}`,
+    };
+  } catch (err) {
+    const msg =
+      err instanceof ContainedWriteError
+        ? `setup write refused: ${err.message}`
+        : err instanceof Error
+          ? err.message
+          : String(err);
+    conflicts.push(msg);
+    invalidateReadinessMarkers(root, removed);
+    return {
+      contract: 1,
+      entry: "setup",
+      stub: false,
+      operation,
+      from,
+      root,
+      runtimeVersion,
+      created,
+      modified,
+      removed,
+      conflicts,
+      message: "setup failed",
+    };
   }
-
-  if (operation === "install") {
-    const seed = createSeedPlaceholder(root);
-    if (seed !== null) created.push(seed);
-  }
-
-  const desired = buildOwnershipRecord({
-    runtimeVersion,
-    packageManager: pm,
-    ownership: buildOwnershipArtifacts(root),
-  });
-  const unchanged = priorRecord !== null && ownershipRecordsEqual(priorRecord, desired);
-
-  writeOwnershipRecord(root, desired);
-  if (!genExisted) created.push(GEN_REL);
-  else if (!unchanged) modified.push(GEN_REL);
-
-  const ready = writeReadiness(root, runtimeVersion);
-  track(created, modified, ready.path, ready);
-
-  return {
-    contract: 1,
-    entry: "setup",
-    stub: false,
-    operation,
-    from,
-    root,
-    runtimeVersion,
-    created,
-    modified,
-    removed,
-    conflicts,
-    message:
-      conflicts.length > 0
-        ? "setup completed with conflicts"
-        : `setup ${operation} completed for ${runtimeVersion}`,
-  };
 }
 
 export function setupChangeCount(result: SetupResult): number {

@@ -38,9 +38,11 @@ export type ResolveLatestResult =
 /**
  * Resolve the registry "latest" tag to an exact version, then reject prereleases
  * unless the caller already passed --target-version (AC6.1).
+ * Runs with cwd=projectRoot so project `.npmrc` registry/auth apply.
  */
 export function resolveLatestStableVersion(
   env: NodeJS.ProcessEnv = process.env,
+  projectRoot?: string,
 ): ResolveLatestResult {
   const result = spawnSync(
     "npm",
@@ -48,6 +50,7 @@ export function resolveLatestStableVersion(
     {
       encoding: "utf8",
       env,
+      cwd: projectRoot,
       shell: process.platform === "win32",
     },
   );
