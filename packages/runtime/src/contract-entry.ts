@@ -1,7 +1,8 @@
 /**
- * Contract 1 entry-point stubs for setup / migrate / uninstall / doctor data-status.
- * Full bodies land in Wave 2; Wave 1d returns structured stub results (AC4.3 spine).
+ * Contract 1 entry points: setup / migrate / uninstall / doctor data-status.
+ * Wave 2a: setup install|repair is real; migrate/uninstall remain stubs.
  */
+import { runSetup } from "./setup.js";
 
 const SETUP_OPS = new Set(["install", "repair", "upgrade"]);
 
@@ -33,20 +34,13 @@ export function handleContractEntrypoint(argv: readonly string[]): number | null
       );
       return 2;
     }
-    const result = {
-      contract: 1,
-      entry: "setup",
-      stub: true,
-      operation,
+    const result = runSetup({
+      operation: operation as "install" | "repair" | "upgrade",
       from,
       root,
-      created: [] as string[],
-      modified: [] as string[],
-      removed: [] as string[],
-      conflicts: [] as string[],
-      message: "setup stub (wave 2a implements wiring)",
-    };
+    });
     process.stdout.write(`${JSON.stringify(result)}\n`);
+    if (result.conflicts.length > 0) return 1;
     return 0;
   }
 
@@ -71,7 +65,6 @@ export function handleContractEntrypoint(argv: readonly string[]): number | null
   }
 
   if (head === "uninstall" && hasFlag(argv, "--root")) {
-    // Distinguish contract uninstall (has --root) from any future product verb.
     const root = takeFlag([...argv], "--root");
     if (root === null) {
       process.stderr.write("directive-runtime uninstall: require --root <path>\n");
@@ -91,8 +84,6 @@ export function handleContractEntrypoint(argv: readonly string[]): number | null
   }
 
   if (head === "doctor" && process.env.DIRECTIVE_LAUNCHER_VERSION) {
-    // Launcher-invoked doctor: emit Contract 1 data-status JSON (AC4.10).
-    // Product `directive doctor` without launcher env still uses the ordinary router.
     const result = {
       contract: 1,
       dataStatus: "current",

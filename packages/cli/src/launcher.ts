@@ -16,7 +16,7 @@ import { readProjectInstallState, type ProjectInstallState } from "./pin.js";
 import { invokeRuntime } from "./contract-invoke.js";
 import {
   runDoctorStub,
-  runInstallStub,
+  runInstall,
   runUninstallStub,
   runUpgradeStub,
 } from "./bookends.js";
@@ -45,7 +45,8 @@ function printHelp(version: string, io: LauncherIo): void {
       `Usage: directive <command> [options]\n` +
       `\n` +
       `Installation management:\n` +
-      `  install [--repair] [--dry-run] [--yes] [--root <path>]\n` +
+      `  install [--repair] [--target-version <exact>] [--package-manager npm|pnpm]\n` +
+      `          [--dry-run] [--yes] [--root <path>]\n` +
       `  upgrade [--target-version <ver>] [--dry-run] [--yes] [--root <path>]\n` +
       `  uninstall [--dry-run] [--yes] [--root <path>]\n` +
       `  doctor [--root <path>]\n` +
@@ -58,11 +59,14 @@ function printHelp(version: string, io: LauncherIo): void {
       `Repair:     ${RECOVERY_GUIDANCE}\n` +
       `\n` +
       `Options:\n` +
-      `  --version, -V    Show launcher / pin status\n` +
-      `  --help, -h       Show this help\n` +
-      `  --root <path>    Project root (must be Git toplevel when in a repo)\n` +
-      `  --dry-run        Show plan; change nothing\n` +
-      `  --yes, -y        Approve a fully resolved bookend plan\n`,
+      `  --version, -V              Show launcher / pin status\n` +
+      `  --help, -h                 Show this help\n` +
+      `  --root <path>              Project root (must be Git toplevel when in a repo)\n` +
+      `  --target-version <exact>   Exact runtime version (required for prereleases)\n` +
+      `  --package-manager npm|pnpm Force PM when lockfile evidence is absent\n` +
+      `  --repair                  Restore the existing exact pin + wiring\n` +
+      `  --dry-run                  Show plan; change nothing\n` +
+      `  --yes, -y                  Approve a fully resolved bookend plan\n`,
   );
 }
 
@@ -246,7 +250,7 @@ export function runLauncher(
     }
     switch (cmd) {
       case "install":
-        return runInstallStub(projectRoot, state, cmdArgv, launcherVersion, io);
+        return runInstall(projectRoot, state, cmdArgv, launcherVersion, io);
       case "upgrade":
         return runUpgradeStub(projectRoot, state, cmdArgv, launcherVersion, io);
       case "uninstall":

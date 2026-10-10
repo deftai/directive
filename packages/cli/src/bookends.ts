@@ -1,16 +1,28 @@
 /**
- * Install / upgrade / uninstall / doctor bookend stubs (Wave 1d skeleton).
- * Real PM mutation lands in Wave 2; here we discover, report, and invoke
- * contract entry points when a compatible runtime is present.
+ * Install / upgrade / uninstall / doctor bookends (Wave 2a: real install/repair).
+ * Upgrade/uninstall remain stubs for later waves.
  */
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { EXIT_CODES, RECOVERY_GUIDANCE, RUNTIME_PACKAGE_NAME } from "./constants.js";
 import {
   doctorArgv,
   invokeRuntime,
   setupArgv,
   uninstallArgv,
+  type InvokeResult,
 } from "./contract-invoke.js";
+import {
+  detectPackageManager,
+  ensurePackageJson,
+  lockfileRecordsExactPin,
+  runPmExactAdd,
+  type PackageManager,
+  type PmAddResult,
+} from "./pm.js";
 import type { ProjectInstallState } from "./pin.js";
+import { readInstalledRuntime, readProjectInstallState } from "./pin.js";
+import { resolveLatestStableVersion, validateTargetVersionSpec } from "./registry.js";
 
 export interface BookendIo {
   writeOut(text: string): void;
@@ -22,6 +34,23 @@ export interface BookendFlags {
   readonly yes: boolean;
   readonly repair: boolean;
   readonly targetVersion: string | null;
+  readonly packageManager: string | null;
+}
+
+/** Testable seams for install (unit tests inject; production uses defaults). */
+export interface InstallDeps {
+  readonly stdinIsTTY?: boolean;
+  readonly env?: NodeJS.ProcessEnv;
+  readonly resolveLatest?: () =>
+    | Promise<{ ok: true; version: string } | { ok: false; message: string }>
+    | { ok: true; version: string }
+    | { ok: false; message: string };
+  readonly runPmAdd?: (opts: {
+    projectRoot: string;
+    pm: PackageManager;
+    version: string;
+  }) => PmAddResult;
+  readonly invokeSetup?: (argv: readonly string[]) => InvokeResult;
 }
 
 function defaultIo(): BookendIo {
@@ -41,6 +70,7 @@ function parseFlags(argv: readonly string[]): { flags: BookendFlags; rest: strin
   let yes = false;
   let repair = false;
   let targetVersion: string | null = null;
+  let packageManager: string | null = null;
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!;
     if (a === "--dry-run") {
@@ -63,51 +93,422 @@ function parseFlags(argv: readonly string[]): { flags: BookendFlags; rest: strin
       targetVersion = a.slice("--target-version=".length);
       continue;
     }
+    if (a === "--package-manager") {
+      packageManager = argv[++i] ?? null;
+      continue;
+    }
+    if (a.startsWith("--package-manager=")) {
+      packageManager = a.slice("--package-manager=".length);
+      continue;
+    }
     rest.push(a);
   }
-  return { flags: { dryRun, yes, repair, targetVersion }, rest };
+  return { flags: { dryRun, yes, repair, targetVersion, packageManager }, rest };
 }
 
-export function runInstallStub(
+function printPlan(
+  io: BookendIo,
+  lines: readonly string[],
+): void {
+  io.writeOut("Plan:\n");
+  for (const line of lines) {
+    io.writeOut(`  ${line}\n`);
+  }
+}
+
+function requireApproval(
+  flags: BookendFlags,
+  deps: InstallDeps,
+  io: BookendIo,
+  prompt: string,
+): number | null {
+  if (flags.dryRun) return null;
+  if (flags.yes) return null;
+  const tty = deps.stdinIsTTY ?? Boolean(process.stdin.isTTY);
+  if (!tty) {
+    io.writeErr(`Non-interactive session requires --yes to approve: ${prompt}\n`);
+    return EXIT_CODES.USAGE;
+  }
+  // Interactive prompt is optional for YOLO; without readline approval, require --yes.
+  io.writeErr(`Interactive approval not wired in this build; pass --yes to approve: ${prompt}\n`);
+  return EXIT_CODES.USAGE;
+}
+
+/**
+ * Real install / install --repair bookend (R5 / R6).
+ */
+export function runInstall(
   projectRoot: string,
   state: ProjectInstallState,
   argv: readonly string[],
   launcherVersion: string,
   io: BookendIo = defaultIo(),
+  deps: InstallDeps = {},
 ): number {
   const { flags } = parseFlags(argv);
-  const operation = flags.repair ? "repair" : "install";
-  const pinLabel = state.pin.version ?? state.pin.raw ?? "(none)";
-  io.writeOut(
-    `directive ${operation}: project ${projectRoot}\n` +
-      `  pin: ${RUNTIME_PACKAGE_NAME}@${pinLabel}\n` +
-      `  installed: ${state.installed?.version ?? "(missing)"}\n`,
-  );
-  if (flags.dryRun) {
-    io.writeOut(`[dry-run] would ${operation} (launcher skeleton; PM add in wave 2a)\n`);
-    if (state.installed && state.contractSupported && state.pinMatchesInstalled) {
-      io.writeOut(`[dry-run] would hand off: setup --operation ${operation}\n`);
+  const env = deps.env ?? process.env;
+
+  // AC6.5: --repair + --target-version rejected
+  if (flags.repair && flags.targetVersion !== null) {
+    io.writeErr(
+      "Cannot combine --repair with --target-version. Repair keeps the existing pin; use directive upgrade to change versions.\n",
+    );
+    return EXIT_CODES.USAGE;
+  }
+
+  // Old-style: install changes nothing and names upgrade (AC6.13).
+  // Launcher usually gates this earlier; keep a belt-and-braces check.
+  if (state.oldStyle) {
+    io.writeErr("This project uses an older Directive layout. Run `directive upgrade`.\n");
+    return EXIT_CODES.FAILURE;
+  }
+
+  const configuredExact = state.pin.kind === "exact" && state.pin.version !== null;
+
+  // AC6.6 / INIT-20: configured + --yes without --repair → exit 2 with choices
+  if (configuredExact && !flags.repair) {
+    if (flags.dryRun) {
+      // Dry-run on configured project without --repair: show that repair would be selected interactively.
+      io.writeOut(
+        `Directive is already configured. Pinned version: ${state.pin.version}.\n` +
+          `[dry-run] would present Repair ${state.pin.version} / Cancel (use --repair to select repair).\n`,
+      );
+      return EXIT_CODES.SUCCESS;
     }
+    if (flags.yes) {
+      io.writeErr(
+        `Directive is already configured (pin ${state.pin.version}). --yes does not choose the operation.\n` +
+          `  Repair this pin:  directive install --repair --yes\n` +
+          `  Change version:   directive upgrade --yes\n`,
+      );
+      return EXIT_CODES.USAGE;
+    }
+    // Non-interactive without --yes/--repair
+    const tty = deps.stdinIsTTY ?? Boolean(process.stdin.isTTY);
+    if (!tty) {
+      io.writeErr(
+        `Directive is already configured (pin ${state.pin.version}). Pass --repair --yes to repair, or run interactively.\n` +
+          `  directive install --repair --yes\n` +
+          `  directive upgrade --yes\n`,
+      );
+      return EXIT_CODES.USAGE;
+    }
+    io.writeErr(
+      `Directive is already configured (pin ${state.pin.version}). Pass --repair to repair, or directive upgrade to change versions.\n`,
+    );
+    return EXIT_CODES.USAGE;
+  }
+
+  if (flags.repair) {
+    return runRepair(projectRoot, state, flags, launcherVersion, io, deps, env);
+  }
+
+  return runFirstInstall(projectRoot, state, flags, launcherVersion, io, deps, env);
+}
+
+function runFirstInstall(
+  projectRoot: string,
+  state: ProjectInstallState,
+  flags: BookendFlags,
+  launcherVersion: string,
+  io: BookendIo,
+  deps: InstallDeps,
+  env: NodeJS.ProcessEnv,
+): number {
+  // Invalid / ranged pin present (not "none", not exact) — do not treat as first install (AC6.3)
+  if (state.pin.kind === "range" || state.pin.kind === "invalid") {
+    io.writeErr(
+      `Runtime pin is ${state.pin.kind} (${state.pin.raw}). Rectify package.json to an exact @deftai/directive-runtime version, then retry.\n`,
+    );
+    return EXIT_CODES.FAILURE;
+  }
+
+  const pmDetect = detectPackageManager(projectRoot, flags.packageManager);
+  if (!pmDetect.ok) {
+    io.writeErr(`${pmDetect.message}\n`);
+    return EXIT_CODES.USAGE;
+  }
+
+  let targetVersion: string;
+  if (flags.targetVersion !== null) {
+    const validated = validateTargetVersionSpec(flags.targetVersion);
+    if (!validated.ok) {
+      io.writeErr(`${validated.message}\n`);
+      return EXIT_CODES.USAGE;
+    }
+    targetVersion = validated.version;
+  } else {
+    const resolver =
+      deps.resolveLatest ??
+      (() => resolveLatestStableVersion(env));
+    const resolved = resolver();
+    // Support sync or async seam; install path is sync so only sync results are used.
+    if (resolved instanceof Promise) {
+      io.writeErr("Internal error: async resolveLatest is not supported in sync install path.\n");
+      return EXIT_CODES.FAILURE;
+    }
+    if (!resolved.ok) {
+      io.writeErr(`${resolved.message}\n`);
+      return EXIT_CODES.FAILURE;
+    }
+    targetVersion = resolved.version;
+  }
+
+  const willCreatePkg = !existsSync(join(projectRoot, "package.json"));
+  const pmCmd =
+    pmDetect.pm === "npm"
+      ? `npm install --save-dev --save-exact ${RUNTIME_PACKAGE_NAME}@${targetVersion}`
+      : `pnpm add -D ${RUNTIME_PACKAGE_NAME}@${targetVersion}`;
+
+  printPlan(io, [
+    `operation: install (first-time)`,
+    `root: ${projectRoot}`,
+    `package manager: ${pmDetect.pm} (${pmDetect.evidence})`,
+    `target: ${RUNTIME_PACKAGE_NAME}@${targetVersion}`,
+    willCreatePkg
+      ? `manifest: create package.json { "private": true }`
+      : `manifest: add exact pin to existing package.json`,
+    `PM command: ${pmCmd}`,
+    `expected: package.json pin + lockfile update via PM`,
+    `setup: runtime setup --operation install --from none (wiring, GENERATION.json, readiness; may create missing seed placeholders)`,
+  ]);
+
+  if (flags.dryRun) {
+    io.writeOut("[dry-run] no changes made.\n");
     return EXIT_CODES.SUCCESS;
   }
-  if (state.installed && state.contractSupported) {
-    const from = state.pin.version ?? "none";
-    const result = invokeRuntime({
-      projectRoot,
-      launcherVersion,
-      runtime: state.installed,
-      argv: setupArgv(operation, flags.repair ? from : "none", projectRoot),
-    });
-    if (result.message) io.writeErr(`${result.message}\n`);
-    return result.exitCode;
-  }
-  io.writeOut(
-    `Launcher skeleton: package-manager add not implemented yet (wave 2a).\n` +
-      `When a compatible runtime is installed, setup will be invoked.\n` +
-      `Recovery: ${RECOVERY_GUIDANCE}\n`,
+
+  const approval = requireApproval(
+    flags,
+    deps,
+    io,
+    "Set up Directive in this project?",
   );
-  return EXIT_CODES.SUCCESS;
+  if (approval !== null) return approval;
+
+  if (willCreatePkg) {
+    ensurePackageJson(projectRoot);
+    io.writeOut("Created package.json { \"private\": true }\n");
+  }
+
+  const add =
+    deps.runPmAdd?.({ projectRoot, pm: pmDetect.pm, version: targetVersion }) ??
+    runPmExactAdd({ projectRoot, pm: pmDetect.pm, version: targetVersion, env });
+  if (!add.ok) {
+    io.writeErr(`${add.message}\n`);
+    if ("stderr" in add && add.stderr) io.writeErr(`${add.stderr}\n`);
+    return EXIT_CODES.FAILURE;
+  }
+
+  // Verify pin + installed version (INIT-14)
+  const after = readProjectInstallState(projectRoot);
+  if (after.pin.kind !== "exact" || after.pin.version !== targetVersion) {
+    io.writeErr(
+      `Pin verification failed: expected ${targetVersion}, got ${after.pin.raw ?? "(none)"}.\n`,
+    );
+    return EXIT_CODES.FAILURE;
+  }
+  const installed = readInstalledRuntime(projectRoot);
+  if (installed === null || installed.version !== targetVersion) {
+    io.writeErr(
+      `Installed package verification failed: expected ${RUNTIME_PACKAGE_NAME}@${targetVersion}, found ${installed?.version ?? "nothing"}.\n`,
+    );
+    return EXIT_CODES.FAILURE;
+  }
+  if (installed.contract > 1 /* LAUNCHER_MAX mirrored via pin helpers */) {
+    // pin.ts already exposes contractSupported on full state
+  }
+  const verified = readProjectInstallState(projectRoot);
+  if (!verified.contractSupported) {
+    io.writeErr(
+      "This launcher is too old for the installed runtime. `npm i -g @deftai/directive@latest`.\n",
+    );
+    return EXIT_CODES.FAILURE;
+  }
+
+  return handOffSetup({
+    projectRoot,
+    launcherVersion,
+    runtime: installed,
+    operation: "install",
+    from: "none",
+    io,
+    deps,
+  });
 }
+
+function runRepair(
+  projectRoot: string,
+  state: ProjectInstallState,
+  flags: BookendFlags,
+  launcherVersion: string,
+  io: BookendIo,
+  deps: InstallDeps,
+  env: NodeJS.ProcessEnv,
+): number {
+  if (state.pin.kind !== "exact" || state.pin.version === null) {
+    io.writeErr(
+      `Repair requires an existing unambiguous exact ${RUNTIME_PACKAGE_NAME} pin ` +
+        `(found ${state.pin.kind}: ${state.pin.raw ?? "none"}). Rectify package.json; repair does not guess a version.\n`,
+    );
+    return EXIT_CODES.FAILURE;
+  }
+  const pinVersion = state.pin.version;
+
+  const pmDetect = detectPackageManager(projectRoot, flags.packageManager);
+  if (!pmDetect.ok) {
+    io.writeErr(`${pmDetect.message}\n`);
+    return EXIT_CODES.USAGE;
+  }
+
+  const lockOk = lockfileRecordsExactPin(projectRoot, pinVersion);
+  const installedOk =
+    state.installed !== null &&
+    state.installed.version === pinVersion &&
+    state.contractSupported;
+  const needsPmRestore = !lockOk || !installedOk;
+
+  const pmCmd =
+    pmDetect.pm === "npm"
+      ? `npm install --save-dev --save-exact ${RUNTIME_PACKAGE_NAME}@${pinVersion}`
+      : `pnpm add -D ${RUNTIME_PACKAGE_NAME}@${pinVersion}`;
+
+  printPlan(io, [
+    `operation: repair`,
+    `root: ${projectRoot}`,
+    `package manager: ${pmDetect.pm} (${pmDetect.evidence})`,
+    `pin (unchanged): ${RUNTIME_PACKAGE_NAME}@${pinVersion}`,
+    needsPmRestore
+      ? `PM: restore pin via exact add (${lockOk ? "installed package mismatch/missing" : "lockfile missing/unusable/disagree"})`
+      : `PM: none (lockfile records pin; installed package matches)`,
+    needsPmRestore ? `PM command: ${pmCmd}` : `PM command: (none)`,
+    `setup: runtime setup --operation repair --from ${pinVersion} (wiring/GENERATION/readiness; does not create seed files; never migrates xbrief)`,
+  ]);
+
+  if (flags.dryRun) {
+    io.writeOut("[dry-run] no changes made.\n");
+    return EXIT_CODES.SUCCESS;
+  }
+
+  const approval = requireApproval(
+    flags,
+    deps,
+    io,
+    `Repair Directive ${pinVersion} in this project?`,
+  );
+  if (approval !== null) return approval;
+
+  if (needsPmRestore) {
+    const add =
+      deps.runPmAdd?.({ projectRoot, pm: pmDetect.pm, version: pinVersion }) ??
+      runPmExactAdd({ projectRoot, pm: pmDetect.pm, version: pinVersion, env });
+    if (!add.ok) {
+      io.writeErr(`${add.message}\n`);
+      if ("stderr" in add && add.stderr) io.writeErr(`${add.stderr}\n`);
+      return EXIT_CODES.FAILURE;
+    }
+  }
+
+  const after = readProjectInstallState(projectRoot);
+  if (after.pin.version !== pinVersion) {
+    io.writeErr(`Repair changed the pin unexpectedly (${after.pin.raw}). Aborting.\n`);
+    return EXIT_CODES.FAILURE;
+  }
+  const installed = readInstalledRuntime(projectRoot);
+  if (installed === null || installed.version !== pinVersion) {
+    io.writeErr(
+      `Repair verification failed: expected installed ${pinVersion}, found ${installed?.version ?? "nothing"}. ${RECOVERY_GUIDANCE}\n`,
+    );
+    return EXIT_CODES.FAILURE;
+  }
+  if (!after.contractSupported) {
+    io.writeErr(
+      "This launcher is too old for this project. `npm i -g @deftai/directive@latest`.\n",
+    );
+    return EXIT_CODES.FAILURE;
+  }
+
+  return handOffSetup({
+    projectRoot,
+    launcherVersion,
+    runtime: installed,
+    operation: "repair",
+    from: pinVersion,
+    io,
+    deps,
+  });
+}
+
+function handOffSetup(opts: {
+  projectRoot: string;
+  launcherVersion: string;
+  runtime: NonNullable<ProjectInstallState["installed"]>;
+  operation: "install" | "repair";
+  from: string;
+  io: BookendIo;
+  deps: InstallDeps;
+}): number {
+  const argv = setupArgv(opts.operation, opts.from, opts.projectRoot);
+  const result =
+    opts.deps.invokeSetup?.(argv) ??
+    invokeRuntime({
+      projectRoot: opts.projectRoot,
+      launcherVersion: opts.launcherVersion,
+      runtime: opts.runtime,
+      argv,
+      stdio: "pipe",
+    });
+  if (result.message) opts.io.writeErr(`${result.message}\n`);
+  if (result.stderr) {
+    opts.io.writeErr(result.stderr.endsWith("\n") ? result.stderr : `${result.stderr}\n`);
+  }
+  if (result.stdout) {
+    // Prefer structured JSON summary when present (AC4.9).
+    const trimmed = result.stdout.trim();
+    try {
+      const parsed: unknown = JSON.parse(trimmed.split("\n").filter(Boolean).pop() ?? "");
+      if (parsed && typeof parsed === "object") {
+        const rec = parsed as {
+          created?: unknown;
+          modified?: unknown;
+          removed?: unknown;
+          conflicts?: unknown;
+          message?: unknown;
+        };
+        opts.io.writeOut(
+          `setup ${opts.operation}: ` +
+            `created=${JSON.stringify(rec.created ?? [])} ` +
+            `modified=${JSON.stringify(rec.modified ?? [])} ` +
+            `removed=${JSON.stringify(rec.removed ?? [])}` +
+            (Array.isArray(rec.conflicts) && rec.conflicts.length > 0
+              ? ` conflicts=${JSON.stringify(rec.conflicts)}`
+              : "") +
+            "\n",
+        );
+        if (typeof rec.message === "string" && rec.message.length > 0) {
+          opts.io.writeOut(`${rec.message}\n`);
+        }
+      } else {
+        opts.io.writeOut(result.stdout.endsWith("\n") ? result.stdout : `${result.stdout}\n`);
+      }
+    } catch {
+      opts.io.writeOut(result.stdout.endsWith("\n") ? result.stdout : `${result.stdout}\n`);
+    }
+  }
+  if (result.exitCode === 0) {
+    opts.io.writeOut(
+      `directive ${opts.operation}: ${RUNTIME_PACKAGE_NAME}@${opts.runtime.version} ready in ${opts.projectRoot}\n`,
+    );
+  } else if (opts.operation === "install") {
+    opts.io.writeErr(
+      `Package pin is in place but setup failed. Fix the cause, then run: directive install --repair --yes\n`,
+    );
+  }
+  return result.exitCode;
+}
+
+/** @deprecated Use {@link runInstall}. Kept as alias for any residual stub callers. */
+export const runInstallStub = runInstall;
 
 export function runUpgradeStub(
   projectRoot: string,
@@ -171,7 +572,6 @@ export function runUninstallStub(
       argv: uninstallArgv(projectRoot),
     });
     if (result.message) io.writeErr(`${result.message}\n`);
-    // Even if runtime uninstall fails, launcher fallback continues (stub report).
     io.writeOut("Launcher fallback cleanup not fully implemented yet (wave 2 / R11).\n");
     return result.exitCode;
   }

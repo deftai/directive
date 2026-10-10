@@ -424,6 +424,14 @@
       "types": "./dist/task-surface/index.d.ts",
       "default": "./dist/task-surface/index.js"
     },
+    "./install-health": {
+      "types": "./dist/install-health/index.d.ts",
+      "default": "./dist/install-health/index.js"
+    },
+    "./install-contract": {
+      "types": "./dist/install-contract/index.d.ts",
+      "default": "./dist/install-contract/index.js"
+    },
     "./dist/*.js": {
       "types": "./dist/*.d.ts",
       "default": "./dist/*.js"
