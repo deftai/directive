@@ -214,10 +214,12 @@ export type PmAddResult =
 export function runPmExactAdd(options: PmAddOptions): PmAddResult {
   const { projectRoot, pm, version } = options;
   const spec = `${RUNTIME_PACKAGE_NAME}@${version}`;
+  // --ignore-scripts: runtime postinstall only strips Windows ps1 shims; pin/wiring
+  // do not require it. Avoids pnpm 10+ ERR_PNPM_IGNORED_BUILDS fail-closed on add.
   const args =
     pm === "npm"
-      ? ["install", "--save-dev", "--save-exact", spec]
-      : ["add", "-D", spec];
+      ? ["install", "--save-dev", "--save-exact", "--ignore-scripts", spec]
+      : ["add", "-D", "--ignore-scripts", spec];
   const bin = pm;
   const result = spawnSync(bin, args, {
     cwd: projectRoot,
