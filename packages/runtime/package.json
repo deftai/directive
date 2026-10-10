@@ -1,0 +1,48 @@
+{
+  "name": "@deftai/directive-runtime",
+  "version": "0.0.0",
+  "description": "Directive runtime — pinned product commands, hooks, content, and engine.",
+  "license": "MIT",
+  "homepage": "https://deftai.github.io/directive/",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "directive-runtime": "./dist/bin.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "scripts/remove-windows-ps1-shims.mjs"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deftai/directive.git",
+    "directory": "packages/runtime"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "directive": {
+    "contract": 1
+  },
+  "dependencies": {
+    "@deftai/directive-core": "workspace:*",
+    "@deftai/directive-content": "workspace:*",
+    "@deftai/directive-types": "workspace:*"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "postinstall": "node ./scripts/remove-windows-ps1-shims.mjs"
+  }
+}

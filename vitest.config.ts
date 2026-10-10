@@ -221,9 +221,9 @@ const subpathAliases: Record<string, string> = {
 // it does not double the unit fork cap. Hang-detector timeout stays last
 // (operator lock 5685476402). Do not raise RELEASE_CHECK_TIMEOUT_MS.
 const spawnHeavyGlobs = [
-  "packages/cli/src/cli-bin-symlink-entrypoint.test.ts",
-  "packages/cli/src/hook-host-identity-lifetime.test.ts",
-  "packages/cli/src/hook-dispatch-worktree.test.ts",
+  "packages/runtime/src/cli-bin-symlink-entrypoint.test.ts",
+  "packages/runtime/src/hook-host-identity-lifetime.test.ts",
+  "packages/runtime/src/hook-dispatch-worktree.test.ts",
   "packages/core/src/session/occupancy-stress.test.ts",
   "packages/core/src/session/spawn-occupancy.test.ts",
   "packages/core/src/session/extra-coverage.test.ts",
@@ -356,9 +356,9 @@ export default defineConfig({
       include: ["packages/*/src/**/*.ts"],
       exclude: [
         "**/*.test.ts",
-        "packages/cli/src/bin.ts",
+        "packages/runtime/src/bin.ts",
         // Test-support fixture modules extracted from retired parity harnesses (#2083).
-        "packages/cli/src/*-fixtures.ts",
+        "packages/runtime/src/*-fixtures.ts",
         "packages/core/src/**/*.helpers.ts",
       ],
       reporter: ["text", "text-summary", "json"],
