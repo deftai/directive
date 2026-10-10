@@ -1,5 +1,10 @@
+import { existsSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { readRepoFile } from "./helpers.js";
+import { readRepoFile, repoPath } from "./helpers.js";
+
+/** YOLO #5490 sterile field: root AGENTS.md is a stub; templates/commands stay product SoT. */
+const yoloSterile = existsSync(repoPath(".no-deft-directive"));
+const itAgentsRoot = yoloSterile ? it.skip : it;
 
 /** Port of tests/content/test_agents_md_session_start.py (#1838 #1530); #2453 pointer relocation. */
 
@@ -31,7 +36,7 @@ function extractManagedSection(text: string): string {
 }
 
 describe("test_agents_md_session_start", () => {
-  it("session_start_ritual_header_present", () => {
+  itAgentsRoot("session_start_ritual_header_present", () => {
     expect(/^##\s+Session-start ritual\s+\(#1149\)\s*$/m.test(agentsMdText)).toBe(true);
     expect(/^##\s+Session-start ritual\s+\(#1149\)\s*$/m.test(agentsEntryText)).toBe(true);
     expect(/^##\s+Session routing\s+\(#2176\)\s*$/m.test(agentsEntryText)).toBe(true);
@@ -68,7 +73,7 @@ describe("test_agents_md_session_start", () => {
     expect(commandsSection).toContain("%APPDATA%\\deft\\USER.md");
   });
 
-  it("session_start_ritual_pointer_surface_in_managed_section", () => {
+  itAgentsRoot("session_start_ritual_pointer_surface_in_managed_section", () => {
     for (const text of [agentsMdText, agentsEntryText]) {
       const managed = extractManagedSection(text);
       const section = extractSection(managed, "Session-start ritual \\(#1149\\)");
@@ -90,20 +95,20 @@ describe("test_agents_md_session_start", () => {
     expect(section).toContain("Pre-`start_agent` gate stack (#1149/#1348)");
   });
 
-  it("session_start_ritual_maintainer_substitution_line_present", () => {
+  itAgentsRoot("session_start_ritual_maintainer_substitution_line_present", () => {
     const section = extractSection(agentsMdText, "Session-start ritual \\(#1149\\)");
     expect(section).toContain("`task session:start`");
     expect(section).toContain("`task verify:session-ritual -- --tier=gated`");
     expect(section).toContain("`task verify:cache-fresh`");
   });
 
-  it("cache_as_authoritative_section_present", () => {
+  itAgentsRoot("cache_as_authoritative_section_present", () => {
     expect(/^##\s+Cache-as-authoritative work selection\s+\(#1149\)\s*$/m.test(agentsMdText)).toBe(
       true,
     );
   });
 
-  it("cache_as_authoritative_must_rule_present", () => {
+  itAgentsRoot("cache_as_authoritative_must_rule_present", () => {
     // #2402: ordered-plan precedence amends #1149 — plan-first when active, else queue.
     expect(agentsMdText).toContain("ordered-plan first");
     expect(agentsMdText).toContain("#2402");
@@ -113,12 +118,12 @@ describe("test_agents_md_session_start", () => {
     expect(agentsMdText).toContain("task plan-sequence:current");
   });
 
-  it("cache_as_authoritative_anti_pattern_present", () => {
+  itAgentsRoot("cache_as_authoritative_anti_pattern_present", () => {
     expect(agentsMdText).toContain("Recommend work without queue/plan consult");
     expect(agentsMdText).toContain("widen past an exhausted plan");
   });
 
-  it("cache_as_authoritative_uses_canonical_markers", () => {
+  itAgentsRoot("cache_as_authoritative_uses_canonical_markers", () => {
     // Managed section (consumer template shape) carries the ! / ⊗ markers.
     const managedStart = agentsMdText.indexOf("<!-- deft:managed-section");
     const managed = managedStart >= 0 ? agentsMdText.slice(managedStart) : agentsMdText;
@@ -132,7 +137,7 @@ describe("test_agents_md_session_start", () => {
   // Skills Index. AGENTS.md keeps only a `## Skills` pointer + the behavioral
   // "Before Improvising" gate. The welcome/onboard-triage invocation is asserted
   // via the propagation command markers in agents_entry_contract.test.ts.
-  it("skill_routing_table_replaced_with_pointer", () => {
+  itAgentsRoot("skill_routing_table_replaced_with_pointer", () => {
     expect(agentsMdText).not.toContain("## Skill Routing");
     const maintainerSkills = extractSection(agentsMdText, "Skills");
     expect(maintainerSkills).toBeTruthy();

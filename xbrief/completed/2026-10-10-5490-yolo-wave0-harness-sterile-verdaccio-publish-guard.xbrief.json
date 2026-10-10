@@ -1,0 +1,123 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "YOLO #5490 Wave 0 completed xbrief (retrospective record; live xBRIEF gates waived)",
+    "updated": "2026-10-10T22:52:39.000Z"
+  },
+  "plan": {
+    "id": "yolo.5490.wave0",
+    "title": "YOLO Wave 0 \u2014 sterile field + Verdaccio harness + publish kill-switch",
+    "status": "completed",
+    "updated": "2026-10-10T22:52:39.000Z",
+    "tags": [
+      "yolo",
+      "5490",
+      "wave0",
+      "harness",
+      "sterile-field"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5490",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5490: One Version Per Repo"
+      },
+      {
+        "uri": "file://~/Projects/directive-install-simplification-2/IMPLEMENTATION-STRATEGY-YOLO-V1.md",
+        "type": "x-xbrief/design",
+        "title": "IMPLEMENTATION-STRATEGY-YOLO-V1.md"
+      },
+      {
+        "uri": "file://~/Projects/directive-install-simplification-2/STERILE-FIELD.md",
+        "type": "x-xbrief/design",
+        "title": "STERILE-FIELD.md"
+      }
+    ],
+    "narratives": {
+      "Description": "Wave 0 harness: outside playground ~/yolo-5490, Verdaccio, publish-local kill-switch, stub packages, wave0.sh smoke, sterilized patient base with packaging-safe .githooks.",
+      "Origin": "YOLO delivery of deftai/directive#5490 under IMPLEMENTATION-STRATEGY-YOLO-V1.md. Live Directive process gates waived; this completed xbrief is a retrospective record only.",
+      "Overview": "1) Confirm sterile field (orchestrator home \u2260 patient). 2) Verdaccio up + .npmrc-yolo + publish-local.sh refuses public npm. 3) Pack/publish Wave 0 stubs @0.0.0-yolo.3; dist-tag yolo-cp-wave0. 4) wave0.sh PASS. 5) Greptile vs master: restore product .githooks (local core.hooksPath no-ops), fix AGENTS recovery to remove .no-deft-directive, skip AGENTS process-constitution tests under opt-out. 6) Freeze yolo/cp-wave0; start yolo/wip-wave1.",
+      "Labels": "yolo, wave0, harness"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Outside playground + Verdaccio + publish kill-switch",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "~/yolo-5490 layout present; Verdaccio reachable; publish-local.sh refuses registry.npmjs.org; stubs on Verdaccio as 0.0.0-yolo.3 with dist-tag yolo-cp-wave0."
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "wave0.sh consumer smoke green",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Install launcher into isolated prefix from Verdaccio; directive --version/help; install --dry-run on fresh-npm fixture."
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Sterile patient packaging-safe",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": ".no-deft-directive committed; AGENTS YOLO stub with recovery removing opt-out; committed .githooks are real product scripts; process hooks disabled via local core.hooksPath \u2192 ~/yolo-5490/noop-githooks; AGENTS process tests skip under opt-out."
+        }
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        "source ~/yolo-5490/env.sh && ~/yolo-5490/smokes/wave0.sh"
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "YOLO Wave 0 checkpoint contract from IMPLEMENTATION-STRATEGY-YOLO-V1.md",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Verdaccio + publish kill-switch + stubs",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "wave0.sh PASS",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Sterile field packaging-safe hooks + recovery",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          ".no-deft-directive",
+          "AGENTS.md",
+          ".githooks/pre-commit",
+          ".githooks/pre-push",
+          "packages/core/src/content-contracts/standards/branch_gate.test.ts",
+          "packages/core/src/content-contracts/skills/agents_md_session_start.test.ts"
+        ],
+        "module_boundary": "YOLO Wave 0 sterile field + harness (no product install collapse yet)"
+      },
+      "yolo": {
+        "wave": "0",
+        "mode": "IMPLEMENTATION-STRATEGY-YOLO-V1",
+        "live_gates_waived": true,
+        "acs_claimed": [
+          "AC15.1",
+          "AC15.5"
+        ],
+        "smoke": "~/yolo-5490/smokes/wave0.sh",
+        "verdaccio_tag": "yolo-cp-wave0",
+        "versions": "0.0.0-yolo.3"
+      }
+    }
+  }
+}

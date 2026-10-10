@@ -1,5 +1,11 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { readText } from "./_helpers.js";
+import { readText, repoRoot } from "./_helpers.js";
+
+/** YOLO #5490 sterile field: root AGENTS.md is a stub; product hooks stay real. */
+const yoloSterile = existsSync(join(repoRoot(), ".no-deft-directive"));
+const itAgents = yoloSterile ? it.skip : it;
 
 describe("test_branch_gate.py", () => {
   it("test_pre_commit_hook_exists_and_calls_script", () => {
@@ -88,13 +94,13 @@ describe("test_branch_gate.py", () => {
     expect(text).not.toContain("--mode fp");
     expect(text).toContain("PR_NUMBER");
   });
-  it("test_agents_md_disclosure_block_present", () => {
+  itAgents("test_agents_md_disclosure_block_present", () => {
     const text = readText("AGENTS.md");
     expect(text).toContain("Branch Policy Disclosure");
     expect(text).toContain("allowDirectCommitsToMaster");
     expect(text).toContain("DEFT_ALLOW_DEFAULT_BRANCH_COMMIT");
   });
-  it("test_agents_md_branching_cross_references_enforcement_surfaces", () => {
+  itAgents("test_agents_md_branching_cross_references_enforcement_surfaces", () => {
     const text = readText("AGENTS.md");
     expect(text).toContain("verify:branch");
     expect(text).toContain("branch-gate");
@@ -136,7 +142,7 @@ describe("test_branch_gate.py", () => {
     const workflowEnv = workflowLevelEnvBlock(ci);
     expect(workflowEnv).not.toContain("DEFT_ALLOW_DEFAULT_BRANCH_COMMIT");
   });
-  it("local authoring path stays fail-closed without the env (#3499 / #747)", () => {
+  itAgents("local authoring path stays fail-closed without the env (#3499 / #747)", () => {
     const agents = readText("AGENTS.md");
     const hook = readText(".githooks/pre-commit");
     const taskfile = readText("Taskfile.yml");
