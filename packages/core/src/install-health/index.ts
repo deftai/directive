@@ -45,3 +45,29 @@ export type { FsSeams, LockfileVersionRead, ReadinessRead, RuntimePinRead } from
 
 export { WIRING_PROBE_RELS, checkWiringTargetsRuntime } from "./wiring.js";
 export type { WiringCheckResult } from "./wiring.js";
+
+export {
+  MANAGED_SECTION_CLOSE,
+  MANAGED_SECTION_MARKER_ID,
+  MANAGED_SECTION_OPEN_PREFIX,
+  OWNERSHIP_KINDS,
+  OWNERSHIP_SCHEMA_VERSION,
+  PACKAGE_MANAGER_FACTS,
+  buildOwnershipRecord,
+  fingerprintContent,
+  generationPath,
+  inspectOwnershipRecord,
+  normalizeRelativePath,
+  ownershipRecordsEqual,
+  parseOwnershipRecord,
+  readOwnershipRecord,
+  stableOwnershipFingerprint,
+  writeOwnershipRecord,
+} from "./ownership.js";
+export type {
+  OwnedArtifact,
+  OwnershipInspection,
+  OwnershipKind,
+  PackageManagerFact,
+  SetupOwnershipRecord,
+} from "./ownership.js";
