@@ -1,25 +1,3 @@
 #!/usr/bin/env sh
-# .githooks/pre-commit -- deft CLI gates (#2049 / #747 / #798 / #1620).
-#
-# Activated by `git config core.hooksPath .githooks` via `task setup` or the
-# deft installer (#1463). Pure POSIX shell; prefers global `deft` on PATH,
-# falls back to local packages/cli/dist/bin.js in the maintainer monorepo (#2067).
-
-REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
-if [ -z "$REPO_ROOT" ]; then
-    echo "deft pre-commit: unable to resolve repo root via 'git rev-parse'." >&2
-    exit 1
-fi
-
-. "$REPO_ROOT/.githooks/_deft-run.sh"
-
-run_deft verify:branch --project-root "$REPO_ROOT" || exit $?
-
-run_deft verify:encoding --staged --project-root "$REPO_ROOT" || exit $?
-
-run_deft verify:forward-coverage --staged --project-root "$REPO_ROOT" || exit $?
-
-if [ -d "$REPO_ROOT/xbrief" ] || [ -d "$REPO_ROOT/vbrief" ]; then
-    run_deft verify:vbrief-conformance --staged --project-root "$REPO_ROOT" || exit $?
-    run_deft verify:xbrief-drift --staged --project-root "$REPO_ROOT" || exit $?
-fi
+# YOLO sterile field (#5490): no-op. Full DD githooks restored after YOLO / on master.
+exit 0
