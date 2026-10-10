@@ -18,6 +18,9 @@ Thumbs.db
 *.swo
 *~
 
+# Slizard Files
+.slizard/
+
 # Temporary files
 *.tmp
 *.bak
