@@ -21,7 +21,7 @@ export function repoRoot(): string {
 
 /** Built deft-ts dispatcher binary. Spawn leftovers use this path. */
 export function binPath(): string {
-  return join(repoRoot(), "packages/cli/dist/bin.js");
+  return join(repoRoot(), "packages/runtime/dist/bin.js");
 }
 
 export interface RunDeftTsOptions {
@@ -30,7 +30,7 @@ export interface RunDeftTsOptions {
 }
 
 /**
- * Invoke the CLI router in-process (#4591). Coverage excludes packages/cli/src/bin.ts,
+ * Invoke the CLI router in-process (#4591). Coverage excludes packages/runtime/src/bin.ts,
  * so a node+bin.js spawn does not credit the child and is the Windows execute-scan
  * chokepoint documented in vitest.config.ts.
  */

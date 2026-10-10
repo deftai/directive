@@ -2,7 +2,7 @@ version: '3'
 
 # Consumer engine resolution (#2022 Phase 3).
 #
-# Framework-source checkouts invoke the vendored `packages/cli/dist/bin.js`.
+# Framework-source checkouts invoke the vendored `packages/runtime/dist/bin.js`.
 # npm consumer deposits copy @deftai/directive-content only — no bundled CLI —
 # so tasks fall back to the globally installed `deft` / `directive` command.
 # A deposit marker (package.json deftConsumerDeposit / .deft-consumer-deposit /
@@ -40,7 +40,7 @@ tasks:
     # repos may carry a stray packages/ under .deft/core without a root `build`
     # script — source-only presence must NOT run `pnpm run build` there.
     #
-    # Warm-dist skip (#2563): when packages/cli/dist/bin.js is newer than
+    # Warm-dist skip (#2563): when packages/runtime/dist/bin.js is newer than
     # packages/{cli,core,types} sources, skip rebuild. Override with
     # DEFT_FORCE_TS_BUILD=1; force-skip with DEFT_SKIP_TS_BUILD=1.
     dir: '{{.USER_WORKING_DIR}}'
@@ -71,7 +71,7 @@ tasks:
     cmds:
       - |
         set -eu
-        bin="{{.DEFT_ROOT}}/packages/cli/dist/bin.js"
+        bin="{{.DEFT_ROOT}}/packages/runtime/dist/bin.js"
         root_pkg="{{.DEFT_ROOT}}/package.json"
         # #3324: deposit marker (package.json field / file / content-package
         # name) forces is_buildable_source=0 so every verb uses global CLI.
@@ -153,7 +153,7 @@ tasks:
             " "{{.DEFT_ROOT}}" "$global_cli" >&2 || true
             node "{{.TASKFILE_DIR}}/engine-invoke.cjs" global "$global_cli"
           else
-            echo "deft: CLI artifact missing at {{.DEFT_ROOT}}/packages/cli/dist/bin.js" >&2
+            echo "deft: CLI artifact missing at {{.DEFT_ROOT}}/packages/runtime/dist/bin.js" >&2
             if [ "$is_runtime_verb" = 1 ]; then
               echo "  Install global deft: npm i -g @deftai/directive" >&2
               echo "  Or run \`task build\` first (framework source checkout)." >&2
@@ -167,7 +167,7 @@ tasks:
         elif command -v directive >/dev/null 2>&1; then
           node "{{.TASKFILE_DIR}}/engine-invoke.cjs" global directive
         else
-          echo "deft: neither {{.DEFT_ROOT}}/packages/cli/dist/bin.js nor a global deft command is available." >&2
+          echo "deft: neither {{.DEFT_ROOT}}/packages/runtime/dist/bin.js nor a global deft command is available." >&2
           echo "  Install with: npm i -g @deftai/directive" >&2
           exit 2
         fi

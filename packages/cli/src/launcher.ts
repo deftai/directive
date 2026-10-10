@@ -129,15 +129,19 @@ export function runLauncher(
   }
 
   const wantsVersion = rest.includes("--version") || rest.includes("-V");
-  const wantsHelp =
-    rest.includes("--help") ||
-    rest.includes("-h") ||
-    rest.length === 0;
 
-  // Strip global flags from positionals for command detection.
-  const positionals = rest.filter(
-    (a) => a !== "--version" && a !== "-V" && a !== "--help" && a !== "-h",
-  );
+  // First non-flag token is the command. Keep --help/-h on the argv forwarded
+  // to product commands; launcher help only when no command remains.
+  const commandIndex = rest.findIndex((a) => a !== "--help" && a !== "-h" && a !== "--version" && a !== "-V" && !a.startsWith("-"));
+  const rawCmd = commandIndex >= 0 ? rest[commandIndex] : undefined;
+  const forwardArgv =
+    commandIndex >= 0
+      ? rest.filter((a, i) => i === commandIndex || (a !== "--version" && a !== "-V"))
+      : rest.filter((a) => a !== "--version" && a !== "-V");
+  const cmdArgv = commandIndex >= 0 ? forwardArgv.slice(1) : [];
+  const wantsLauncherHelp =
+    rest.length === 0 ||
+    (rawCmd === undefined && (rest.includes("--help") || rest.includes("-h")));
 
   const discovered = discoverProject({
     rootFlag,
@@ -150,7 +154,7 @@ export function runLauncher(
   if (discovered.ok) {
     projectRoot = discovered.root;
     // Disclose upward discovery only when Git/cwd walk moved (not explicit --root).
-    if (discovered.movedUp && rootFlag === null && positionals[0] !== undefined) {
+    if (discovered.movedUp && rootFlag === null && rawCmd !== undefined) {
       io.writeErr(`Using project root ${projectRoot} (moved up from ${process.cwd()})\n`);
     }
     state = readProjectInstallState(projectRoot);
@@ -159,19 +163,17 @@ export function runLauncher(
     return EXIT_CODES.USAGE;
   }
 
-  if (wantsVersion) {
+  if (wantsVersion && rawCmd === undefined) {
     printVersion(launcherVersion, projectRoot, state, io);
     return EXIT_CODES.SUCCESS;
   }
 
-  if (wantsHelp && positionals.length === 0) {
+  if (wantsLauncherHelp) {
     printHelp(launcherVersion, io);
     return EXIT_CODES.SUCCESS;
   }
 
-  const rawCmd = positionals[0];
   const cmd = resolveCommand(rawCmd);
-  const cmdArgv = positionals.slice(1);
 
   if (cmd === null) {
     printHelp(launcherVersion, io);
@@ -190,9 +192,15 @@ export function runLauncher(
     return EXIT_CODES.USAGE;
   }
 
+  const cmdWantsHelp = cmdArgv.includes("--help") || cmdArgv.includes("-h");
+
   // --- No project ---
   if (projectRoot === null || state === null) {
     if (cmd === "install") {
+      if (cmdWantsHelp) {
+        printHelp(launcherVersion, io);
+        return EXIT_CODES.SUCCESS;
+      }
       io.writeErr(
         `${discovered.ok === false ? discovered.message : "No project root found."}\n` +
           "Run from inside a repository, or pass --root <path>.\n",
@@ -200,6 +208,10 @@ export function runLauncher(
       return EXIT_CODES.FAILURE;
     }
     if (cmd === "doctor") {
+      if (cmdWantsHelp) {
+        printHelp(launcherVersion, io);
+        return EXIT_CODES.SUCCESS;
+      }
       return runDoctorStub(null, null, cmdArgv, launcherVersion, io);
     }
     io.writeErr(
@@ -228,6 +240,10 @@ export function runLauncher(
   }
 
   if (isInstallManagement(cmd)) {
+    if (cmdWantsHelp) {
+      printHelp(launcherVersion, io);
+      return EXIT_CODES.SUCCESS;
+    }
     switch (cmd) {
       case "install":
         return runInstallStub(projectRoot, state, cmdArgv, launcherVersion, io);
@@ -240,7 +256,7 @@ export function runLauncher(
     }
   }
 
-  // --- Ordinary passthrough ---
+  // --- Ordinary passthrough (preserve --help/-h on product commands) ---
   if (!state.pinMatchesInstalled || state.installed === null) {
     io.writeErr(
       `Pinned ${RUNTIME_PACKAGE_NAME}@${state.pin.version ?? state.pin.raw ?? "?"} ` +
@@ -260,7 +276,7 @@ export function runLauncher(
     projectRoot,
     launcherVersion,
     runtime: state.installed,
-    argv: positionals,
+    argv: forwardArgv,
   });
   if (result.message) io.writeErr(`${result.message}\n`);
   return result.exitCode;

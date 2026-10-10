@@ -480,7 +480,7 @@ function isStoryProductPath(
     posix === "packages/core/src/check/named-cause.ts" ||
     posix === "packages/core/src/consumer-check-contract/evaluate.ts" ||
     posix === "packages/core/src/evaluator-surface/evaluate.ts" ||
-    posix === "packages/cli/src/dispatch.ts" ||
+    posix === "packages/runtime/src/dispatch.ts" ||
     posix.endsWith(".test.ts") ||
     posix.endsWith(".test.tsx")
   ) {

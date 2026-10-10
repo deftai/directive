@@ -202,7 +202,7 @@ describe("evaluateClassChecks (#4980)", () => {
       changedFiles: [
         "packages/core/src/class-checks/evaluate.ts",
         "packages/core/src/check/gate-lists.ts",
-        "packages/cli/src/dispatch.ts",
+        "packages/runtime/src/dispatch.ts",
         "packages/core/src/consumer-check-contract/evaluate.ts",
         "packages/core/src/evaluator-surface/evaluate.ts",
         "packages/core/src/check/named-cause.ts",
@@ -215,7 +215,7 @@ describe("evaluateClassChecks (#4980)", () => {
       fileContents: new Map([
         ["packages/core/src/class-checks/evaluate.ts", "export {}\n"],
         ["packages/core/src/check/gate-lists.ts", "export {}\n"],
-        ["packages/cli/src/dispatch.ts", "export {}\n"],
+        ["packages/runtime/src/dispatch.ts", "export {}\n"],
         ["packages/core/src/consumer-check-contract/evaluate.ts", "export {}\n"],
         ["packages/core/src/evaluator-surface/evaluate.ts", "export {}\n"],
         ["packages/core/src/check/named-cause.ts", "export {}\n"],

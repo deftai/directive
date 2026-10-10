@@ -89,9 +89,9 @@ function writeInSyncFixture(root: string, version = V): void {
   writeFileSync(
     join(root, "AGENTS.md"),
     [
-      "<!-- deft-directive:start -->",
+      "<!-- deft:managed-section v3 -->",
       `See node_modules/@deftai/directive-runtime/main.md`,
-      "<!-- deft-directive:end -->",
+      "<!-- /deft:managed-section -->",
       "",
     ].join("\n"),
   );
@@ -162,9 +162,9 @@ describe("checkFullInSync (AC2.1)", () => {
     writeFileSync(
       join(root, "AGENTS.md"),
       [
-        "<!-- deft-directive:start -->",
+        "<!-- deft:managed-section v3 -->",
         "See .deft/core/main.md",
-        "<!-- deft-directive:end -->",
+        "<!-- /deft:managed-section -->",
         "",
       ].join("\n"),
     );

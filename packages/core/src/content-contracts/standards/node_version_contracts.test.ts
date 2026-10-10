@@ -22,7 +22,7 @@ const CONSUMER_RUN_SOURCES = [
   "docs-site/index.html",
   "packages/core/src/verify-env/node-runtime.ts",
   "packages/core/src/session/toolchain-preflight.ts",
-  "packages/cli/src/dispatch.ts",
+  "packages/runtime/src/dispatch.ts",
   "packages/core/src/check/named-cause.ts",
   "packages/core/src/doctor/payload-staleness.ts",
   "skills/deft-directive-sync/SKILL.md",

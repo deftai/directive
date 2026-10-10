@@ -150,33 +150,39 @@ jobs:
             npm version "${VERSION}" --no-git-tag-version --allow-same-version --prefix "${dir}"
           done
 
-      - name: Resolve workspace protocol for npm pack
+      - name: Prepare launcher + stage self-contained runtime (AC13.4)
         shell: bash
         env:
           VERSION: ${{ steps.identity.outputs.version }}
         run: |
           set -euo pipefail
+          # Launcher must ship with empty deps (AC3.1).
           node --input-type=commonjs -e "
             const fs = require('node:fs');
-            const semver = process.env.VERSION;
-            // Launcher must ship with empty deps (AC3.1). Runtime still lists
-            // private workspace packages until the build fully bundles them;
-            // rewrite workspace: to exact version for pack metadata.
-            for (const path of ['packages/runtime/package.json']) {
-              const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
-              if (pkg.dependencies) {
-                for (const [name, ver] of Object.entries(pkg.dependencies)) {
-                  if (typeof ver === 'string' && ver.startsWith('workspace:')) {
-                    pkg.dependencies[name] = semver;
-                  }
-                }
-              }
-              fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');
-            }
             const launcher = JSON.parse(fs.readFileSync('packages/cli/package.json', 'utf8'));
             launcher.dependencies = {};
             delete launcher.devDependencies;
             fs.writeFileSync('packages/cli/package.json', JSON.stringify(launcher, null, 2) + '\n');
+          "
+          # Vendor private core/content/types into a pack stage (no registry deps on them).
+          STAGE="$(node packages/runtime/scripts/stage-bundle.mjs)"
+          echo "STAGE=${STAGE}" >> "${GITHUB_ENV}"
+          VERSION="${VERSION}" STAGE="${STAGE}" node --input-type=commonjs -e "
+            const fs = require('node:fs');
+            const path = require('node:path');
+            const ver = process.env.VERSION;
+            const stage = process.env.STAGE;
+            const pkgPath = path.join(stage, 'package.json');
+            const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+            pkg.version = ver;
+            fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
+            for (const name of ['directive-core', 'directive-content', 'directive-types']) {
+              const p = path.join(stage, 'node_modules', '@deftai', name, 'package.json');
+              if (!fs.existsSync(p)) continue;
+              const sub = JSON.parse(fs.readFileSync(p, 'utf8'));
+              sub.version = ver;
+              fs.writeFileSync(p, JSON.stringify(sub, null, 2) + '\n');
+            }
           "
 
       - name: Pack two @deftai packages (launcher + runtime)
@@ -186,26 +192,45 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p tarballs
-          for dir in packages/runtime packages/cli; do
-            (cd "${dir}" && npm pack --pack-destination "${GITHUB_WORKSPACE}/tarballs")
-          done
+          test -n "${STAGE:-}" && test -d "${STAGE}"
+          (cd "${STAGE}" && npm pack --pack-destination "${GITHUB_WORKSPACE}/tarballs")
+          (cd packages/cli && npm pack --pack-destination "${GITHUB_WORKSPACE}/tarballs")
           ls -la tarballs
           test -f "tarballs/deftai-directive-runtime-${VERSION}.tgz"
           test -f "tarballs/deftai-directive-${VERSION}.tgz"
-          # AC3.1: packed launcher tarball has empty dependency list
+          # AC3.1 + AC13.4: launcher empty deps; runtime has no @deftai deps and vendors private pkgs
           node --input-type=commonjs -e "
             const {execSync}=require('node:child_process');
-            const fs=require('node:fs');
             const ver=process.env.VERSION;
-            const tgz='tarballs/deftai-directive-'+ver+'.tgz';
-            const out=execSync('tar -xOf '+JSON.stringify(tgz)+' package/package.json',{encoding:'utf8'});
-            const pkg=JSON.parse(out);
-            const deps=pkg.dependencies||{};
-            if (Object.keys(deps).length!==0) {
-              console.error('AC3.1 fail: launcher deps not empty', deps);
+            const launcher=JSON.parse(execSync('tar -xOf '+JSON.stringify('tarballs/deftai-directive-'+ver+'.tgz')+' package/package.json',{encoding:'utf8'}));
+            if (Object.keys(launcher.dependencies||{}).length!==0) {
+              console.error('AC3.1 fail: launcher deps not empty', launcher.dependencies);
               process.exit(1);
             }
-            console.log('AC3.1 ok: launcher dependencies empty');
+            const runtime=JSON.parse(execSync('tar -xOf '+JSON.stringify('tarballs/deftai-directive-runtime-'+ver+'.tgz')+' package/package.json',{encoding:'utf8'}));
+            if (!runtime.directive || runtime.directive.contract!==1) {
+              console.error('runtime missing contract', runtime.directive);
+              process.exit(1);
+            }
+            const bundled=new Set(runtime.bundledDependencies||[]);
+            for (const name of ['@deftai/directive-core','@deftai/directive-content','@deftai/directive-types']) {
+              if (!bundled.has(name)) {
+                console.error('AC13.4 fail: missing bundledDependency', name);
+                process.exit(1);
+              }
+            }
+            const listing=execSync('tar -tzf '+JSON.stringify('tarballs/deftai-directive-runtime-'+ver+'.tgz'),{encoding:'utf8'});
+            for (const need of [
+              'package/node_modules/@deftai/directive-core/package.json',
+              'package/node_modules/@deftai/directive-content/package.json',
+              'package/node_modules/@deftai/directive-types/package.json',
+            ]) {
+              if (!listing.split('\n').includes(need)) {
+                console.error('AC13.4 fail: missing bundled', need);
+                process.exit(1);
+              }
+            }
+            console.log('AC3.1 + AC13.4 ok: launcher empty deps; runtime self-contained');
           "
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

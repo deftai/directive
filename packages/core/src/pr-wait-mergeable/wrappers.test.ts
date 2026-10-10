@@ -156,9 +156,11 @@ describe("runProtectedCheck", () => {
 });
 
 describe("cliScriptPath (#2615)", () => {
-  it("resolves a monorepo packages/cli/dist script when present", () => {
+  it("resolves a monorepo packages/runtime/dist script when present", () => {
     const path = wrappers.cliScriptPath("pr-monitor");
-    expect(path.replace(/\\/g, "/")).toMatch(/\/(cli\/dist\/pr-monitor\.js|dist\/pr-monitor\.js)$/);
+    expect(path.replace(/\\/g, "/")).toMatch(
+      /\/(runtime\/dist\/pr-monitor\.js|directive-runtime\/dist\/pr-monitor\.js|dist\/pr-monitor\.js)$/,
+    );
   });
 
   it("returns a candidate path even when the script file is absent", () => {
@@ -174,24 +176,24 @@ describe("cliScriptPath (#2615)", () => {
     }
   });
 
-  it("prefers @deftai/directive/dist when main export resolves (#2667)", () => {
+  it("prefers @deftai/directive-runtime/dist when main export resolves", () => {
     const path = wrappers.cliScriptPath("pr-protected-issues");
     const normalized = path.replace(/\\/g, "/");
     if (existsSync(path)) {
       expect(normalized).toMatch(
-        /\/(@deftai\/)?directive\/dist\/pr-protected-issues\.js$|\/cli\/dist\/pr-protected-issues\.js$/,
+        /\/(runtime\/dist\/pr-protected-issues\.js|directive-runtime\/dist\/pr-protected-issues\.js|(@deftai\/)?directive\/dist\/pr-protected-issues\.js|cli\/dist\/pr-protected-issues\.js)$/,
       );
     } else {
       expect(normalized).toMatch(/pr-protected-issues\.js$/);
     }
   });
 
-  it("resolves pr-monitor under directive/dist or cli/dist (#2673)", () => {
+  it("resolves pr-monitor under runtime/dist (#2673 retarget)", () => {
     const path = wrappers.cliScriptPath("pr-monitor");
     const normalized = path.replace(/\\/g, "/");
     if (existsSync(path)) {
       expect(normalized).toMatch(
-        /\/(@deftai\/)?directive\/dist\/pr-monitor\.js$|\/cli\/dist\/pr-monitor\.js$/,
+        /\/(runtime\/dist\/pr-monitor\.js|directive-runtime\/dist\/pr-monitor\.js|(@deftai\/)?directive\/dist\/pr-monitor\.js|cli\/dist\/pr-monitor\.js)$/,
       );
     } else {
       expect(normalized).toMatch(/pr-monitor\.js$/);

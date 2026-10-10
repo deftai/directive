@@ -61,7 +61,7 @@ describe("maintainer instructor surfaces (#4091)", () => {
       "TRIAGE_ACTION_ALIAS_SUBCOMMANDS",
       "interceptHelp",
       "packages/core/src/triage/help/registry-data.ts",
-      "packages/cli/src/dispatch.test.ts",
+      "packages/runtime/src/dispatch.test.ts",
       "verify:forward-coverage",
       "engine:invoke",
       "packages/cli/dist",

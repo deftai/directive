@@ -183,8 +183,8 @@ export function loadRegisteredCliVerbs(
         return null;
       }
     });
-  const dispatch = readText(join(repoRoot, "packages/cli/src/dispatch.ts")) ?? "";
-  const router = readText(join(repoRoot, "packages/cli/src/cli-router/route-argv.ts")) ?? "";
+  const dispatch = readText(join(repoRoot, "packages/runtime/src/dispatch.ts")) ?? "";
+  const router = readText(join(repoRoot, "packages/runtime/src/cli-router/route-argv.ts")) ?? "";
   const deferredTop = new Set(quotedStrings(sliceAssignment(router, "DEFERRED_TOP_LEVEL_VERBS")));
   const stubbedTop = new Set(quotedStrings(sliceAssignment(router, "STUBBED_TOP_LEVEL_VERBS")));
   const topLevel = parseStringArrayExport(router, "TOP_LEVEL_UX_VERBS").filter(

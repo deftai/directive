@@ -40,8 +40,10 @@ export function invokeRuntime(options: InvokeOptions): InvokeResult {
     };
   }
   const stdio = options.stdio ?? "inherit";
+  // Keep the caller's cwd so relative --project-root / file args stay relative to
+  // the invocation directory. Pass the discovered root via env for the runtime.
   const result = spawnSync(process.execPath, [runtime.entryPath, ...argv], {
-    cwd: projectRoot,
+    cwd: process.cwd(),
     env: {
       ...process.env,
       [ENV_PROJECT_ROOT]: projectRoot,

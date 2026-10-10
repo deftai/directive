@@ -11,6 +11,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { RUNTIME_PACKAGE_PATH_PREFIX } from "./constants.js";
+import {
+  MANAGED_SECTION_CLOSE,
+  MANAGED_SECTION_OPEN_PREFIX,
+} from "./ownership.js";
 import type { FsSeams } from "./readers.js";
 
 export interface WiringCheckResult {
@@ -21,9 +25,6 @@ export interface WiringCheckResult {
   /** Paths that failed the runtime-prefix check. */
   readonly mismatched: readonly string[];
 }
-
-const MANAGED_SECTION_START = "<!-- deft-directive:start -->";
-const MANAGED_SECTION_END = "<!-- deft-directive:end -->";
 
 /** Relative paths probed when present (stubs until 2c expands the inventory). */
 export const WIRING_PROBE_RELS: readonly string[] = ["AGENTS.md"];
@@ -44,11 +45,15 @@ function defaultReadText(p: string): string | null {
   }
 }
 
+/** Extract `<!-- deft:managed-section … -->` … `<!-- /deft:managed-section -->`. */
 function extractManagedSection(text: string): string | null {
-  const start = text.indexOf(MANAGED_SECTION_START);
-  const end = text.indexOf(MANAGED_SECTION_END);
-  if (start < 0 || end < 0 || end <= start) return null;
-  return text.slice(start, end + MANAGED_SECTION_END.length);
+  const start = text.indexOf(MANAGED_SECTION_OPEN_PREFIX);
+  if (start < 0) return null;
+  const openEnd = text.indexOf("-->", start);
+  if (openEnd < 0) return null;
+  const end = text.indexOf(MANAGED_SECTION_CLOSE, openEnd);
+  if (end < 0) return null;
+  return text.slice(start, end + MANAGED_SECTION_CLOSE.length);
 }
 
 function sectionTargetsRuntime(section: string): boolean {

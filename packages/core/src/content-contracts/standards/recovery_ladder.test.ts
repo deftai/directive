@@ -34,7 +34,7 @@ const SEAMS = {
 };
 
 function dispatchText(): string {
-  return readFileSync(join(repoRoot(), "packages/cli/src/dispatch.ts"), { encoding: "utf8" });
+  return readFileSync(join(repoRoot(), "packages/runtime/src/dispatch.ts"), { encoding: "utf8" });
 }
 
 describe("recovery ladder (#4090)", () => {

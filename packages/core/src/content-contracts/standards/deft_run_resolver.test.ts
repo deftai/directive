@@ -3,7 +3,7 @@
  * run_deft resolution (#2248).
  *
  * In a framework-source (monorepo) checkout the freshly-built LOCAL CLI
- * (packages/cli/dist/bin.js) must be preferred over a possibly-stale global
+ * (packages/runtime/dist/bin.js) must be preferred over a possibly-stale global
  * `deft`, otherwise a newly-added-and-wired verb is unknown to the global and
  * blocks every commit. Consumer installs (no local build) must keep resolving
  * the global. A DEFT_HOOKS_PREFER_GLOBAL=1 escape hatch forces the global.

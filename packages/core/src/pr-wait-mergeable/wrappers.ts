@@ -75,10 +75,9 @@ export function captureExec(
 /**
  * Resolve a CLI entry script for subprocess spawn (#2615).
  *
- * Published npm layout nests `@deftai/directive-core` under `@deftai/directive`,
- * so the old `../../../cli/dist` relative path resolved to a non-existent
- * `@deftai/cli` sibling. Prefer the published package root, then monorepo path,
- * then nested `@deftai/directive/dist`.
+ * Product commands live in `@deftai/directive-runtime` (monorepo
+ * `packages/runtime`). Prefer the runtime package, then legacy launcher
+ * layouts for older installs.
  */
 export function cliScriptPath(name: string): string {
   const script = `${name}.js`;
@@ -87,25 +86,37 @@ export function cliScriptPath(name: string): string {
 
   try {
     const require = createRequire(import.meta.url);
+    const runtimeEntry = require.resolve("@deftai/directive-runtime");
+    candidates.push(resolve(dirname(runtimeEntry), script));
+  } catch {
+    // Core may run without the runtime package on PATH during unit tests.
+  }
+
+  try {
+    const require = createRequire(import.meta.url);
     // package.json is not an exported subpath under @deftai/directive exports (#2667).
     const mainEntry = require.resolve("@deftai/directive");
     candidates.push(resolve(dirname(mainEntry), script));
   } catch {
-    // Core does not declare a runtime dependency on the CLI package; ignore.
+    // Ignore missing launcher package.
   }
 
-  // Monorepo: packages/core/dist/pr-wait-mergeable -> packages/cli/dist
+  // Monorepo: packages/core/dist/pr-wait-mergeable -> packages/runtime/dist
+  candidates.push(resolve(here, "../../../runtime/dist", script));
+  // Legacy monorepo path (pre-collapse).
   candidates.push(resolve(here, "../../../cli/dist", script));
-  // npm hoisted: .../@deftai/directive-core/dist/... -> .../@deftai/directive/dist
+  // npm hoisted: .../@deftai/directive-core/dist/... -> .../@deftai/directive-runtime/dist
+  candidates.push(resolve(here, "../../../directive-runtime/dist", script));
+  // npm hoisted legacy launcher layout.
   candidates.push(resolve(here, "../../../directive/dist", script));
-  // npm nested: .../directive/node_modules/@deftai/directive-core/dist/... -> .../directive/dist
+  // npm nested under runtime: .../directive-runtime/node_modules/@deftai/directive-core/...
   candidates.push(resolve(here, "../../../../dist", script));
 
   for (const candidate of candidates) {
     if (existsSync(candidate)) return candidate;
   }
-  // ENOENT path for actionable errors — monorepo layout is the stable fallback.
-  return resolve(here, "../../../cli/dist", script);
+  // ENOENT path for actionable errors — monorepo runtime layout is the stable fallback.
+  return resolve(here, "../../../runtime/dist", script);
 }
 
 export interface RunProtectedCheckOptions {

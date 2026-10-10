@@ -82,4 +82,11 @@ describe("launcher smoke", () => {
     expect(code).toBe(2);
     expect(c.err()).toMatch(/upgrade/i);
   });
+
+  it("install --help stays on the launcher help surface", () => {
+    const c = capture();
+    const code = runLauncher(["install", "--help"], c.io);
+    expect(code).toBe(0);
+    expect(c.out()).toMatch(/Installation management/);
+  });
 });
