@@ -142,17 +142,20 @@ describe("test_branch_gate.py", () => {
     const workflowEnv = workflowLevelEnvBlock(ci);
     expect(workflowEnv).not.toContain("DEFT_ALLOW_DEFAULT_BRANCH_COMMIT");
   });
-  itAgents("local authoring path stays fail-closed without the env (#3499 / #747)", () => {
-    const agents = readText("AGENTS.md");
+  it("local authoring path stays fail-closed without the env (#3499 / #747)", () => {
     const hook = readText(".githooks/pre-commit");
     const taskfile = readText("Taskfile.yml");
     const readme = readText("README.md");
     expect(hook).toContain("run_deft verify:branch");
     expect(taskfile).toContain("verify:branch");
-    expect(agents).toContain("verify:branch");
-    expect(agents).toContain("DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1");
     expect(readme).toMatch(/Emergency bypass/i);
     expect(readme).toContain("DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1");
+    // Root AGENTS.md is a YOLO stub when .no-deft-directive is present; skip those asserts only.
+    if (!yoloSterile) {
+      const agents = readText("AGENTS.md");
+      expect(agents).toContain("verify:branch");
+      expect(agents).toContain("DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1");
+    }
   });
 });
 
