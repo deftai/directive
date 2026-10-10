@@ -257,8 +257,8 @@ function runFirstInstall(
   const willCreatePkg = !existsSync(join(projectRoot, "package.json"));
   const pmCmd =
     pmDetect.pm === "npm"
-      ? `npm install --save-dev --save-exact ${RUNTIME_PACKAGE_NAME}@${targetVersion}`
-      : `pnpm add -D ${RUNTIME_PACKAGE_NAME}@${targetVersion}`;
+      ? `npm install --save-dev --save-exact --ignore-scripts ${RUNTIME_PACKAGE_NAME}@${targetVersion}`
+      : `pnpm add -D --ignore-scripts ${RUNTIME_PACKAGE_NAME}@${targetVersion}`;
 
   printPlan(io, [
     `operation: install (first-time)`,
@@ -370,8 +370,8 @@ function runRepair(
 
   const pmCmd =
     pmDetect.pm === "npm"
-      ? `npm install --save-dev --save-exact ${RUNTIME_PACKAGE_NAME}@${pinVersion}`
-      : `pnpm add -D ${RUNTIME_PACKAGE_NAME}@${pinVersion}`;
+      ? `npm install --save-dev --save-exact --ignore-scripts ${RUNTIME_PACKAGE_NAME}@${pinVersion}`
+      : `pnpm add -D --ignore-scripts ${RUNTIME_PACKAGE_NAME}@${pinVersion}`;
 
   printPlan(io, [
     `operation: repair`,
