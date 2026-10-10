@@ -61,13 +61,13 @@ jobs:
         if: inputs.suite == 'ts' && github.event_name == 'pull_request'
         run: |
           git fetch origin "${{ github.base_ref }}" --depth=1
-          node packages/cli/dist/bin.js verify:eval-health-relocation --project-root . --base-ref "origin/${{ github.base_ref }}"
+          node packages/runtime/dist/bin.js verify:eval-health-relocation --project-root . --base-ref "origin/${{ github.base_ref }}"
 
       - name: Trigger-routing eval:triggers gate (#1586)
         if: inputs.suite == 'ts' && github.event_name == 'pull_request'
         run: |
           git fetch origin "${{ github.base_ref }}" --depth=1
-          node packages/cli/dist/bin.js verify:eval-triggers-relocation --project-root . --base-ref "origin/${{ github.base_ref }}"
+          node packages/runtime/dist/bin.js verify:eval-triggers-relocation --project-root . --base-ref "origin/${{ github.base_ref }}"
 
       # --- Go suite ---
       - name: Setup Go
@@ -82,25 +82,25 @@ jobs:
 
       - name: Run Go tests
         if: inputs.suite == 'go'
-        run: go test ./cmd/deft-install/
+        run: echo "Go installer removed (AC10.10 / #5490); skipping go test"
 
       - name: Build linux/amd64
         if: inputs.suite == 'go'
         env:
           GOOS: linux
           GOARCH: amd64
-        run: go build -o /dev/null ./cmd/deft-install/
+        run: echo "Go installer removed (AC10.10 / #5490); skipping go build"
 
       - name: Build darwin/arm64
         if: inputs.suite == 'go'
         env:
           GOOS: darwin
           GOARCH: arm64
-        run: go build -o /dev/null ./cmd/deft-install/
+        run: echo "Go installer removed (AC10.10 / #5490); skipping go build"
 
       - name: Build windows/amd64
         if: inputs.suite == 'go'
         env:
           GOOS: windows
           GOARCH: amd64
-        run: go build -o /dev/null ./cmd/deft-install/
+        run: echo "Go installer removed (AC10.10 / #5490); skipping go build"
