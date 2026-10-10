@@ -1,0 +1,98 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "YOLO #5490 Wave 1 completed xbrief (retrospective; live gates waived)",
+    "updated": "2026-10-10T23:14:43.000Z"
+  },
+  "plan": {
+    "id": "yolo.5490.wave1",
+    "title": "YOLO Wave 1 \u2014 in-sync + ownership + contract + two-package collapse",
+    "status": "completed",
+    "updated": "2026-10-10T23:14:43.000Z",
+    "tags": [
+      "yolo",
+      "5490",
+      "wave1",
+      "collapse"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5490",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5490: One Version Per Repo"
+      }
+    ],
+    "narratives": {
+      "Description": "Wave 1: R2 install-health, GENERATION ownership, Contract 1 draft+suite, @deftai/directive thin launcher + @deftai/directive-runtime, Go installer removed, Verdaccio yolo-cp-wave1.",
+      "Origin": "YOLO delivery under IMPLEMENTATION-STRATEGY-YOLO-V1.md. Live Directive process gates waived.",
+      "Overview": "1a/1b/1c parallel worktrees merged; 1d collapse + 1e-lite Verdaccio publish 0.0.0-yolo.cp-wave1.1; wave1.sh PASS. Contract status YOLO-DRAFT pending operator sign-off.",
+      "Labels": "yolo, wave1"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "1a in-sync module",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "packages/core/src/install-health full+cheap; AC2.1\u20132.6"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "1b GENERATION ownership",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "ownership record AC11.10/AC13.2; no per-run timestamps in stable fingerprint"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "1c contract draft",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "CONTRACT-v1.md + contract-v1.test.ts; pending operator sign-off"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "1d collapse + 1e-lite",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "two packages; launcher deps {}; runtime contract 1; Go installer deleted; Verdaccio tag yolo-cp-wave1"
+        }
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        "source ~/yolo-5490/env.sh && ~/yolo-5490/smokes/wave1.sh"
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "YOLO Wave 1 checkpoint contract",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "1a\u20131c groundwork tests green",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "two-package Verdaccio publish + wave1.sh",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ]
+    },
+    "metadata": {
+      "yolo": {
+        "wave": "1",
+        "tip": "6ced1f262",
+        "verdaccio_tag": "yolo-cp-wave1",
+        "versions": "0.0.0-yolo.cp-wave1.1",
+        "live_gates_waived": true,
+        "contract_signoff": "pending"
+      }
+    }
+  }
+}
