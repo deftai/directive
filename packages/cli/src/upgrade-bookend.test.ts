@@ -1,0 +1,580 @@
+/**
+ * Owner-boundary tests for upgrade / update bookend (Wave 2b / R7 / AC7.* / AC4.10).
+ */
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
+import { runUpgrade } from "./bookends.js";
+import { readProjectInstallState, type ProjectInstallState } from "./pin.js";
+import { compareExactVersions } from "./registry.js";
+
+const TEMPS: string[] = [];
+
+function tempProject(name = "wave2b"): string {
+  const root = mkdtempSync(join(tmpdir(), `${name}-`));
+  TEMPS.push(root);
+  writeFileSync(
+    join(root, "package.json"),
+    `${JSON.stringify({ name: "t", version: "0.0.0", private: true }, null, 2)}\n`,
+  );
+  return root;
+}
+
+function capture() {
+  const out: string[] = [];
+  const err: string[] = [];
+  return {
+    io: {
+      writeOut: (t: string) => {
+        out.push(t);
+      },
+      writeErr: (t: string) => {
+        err.push(t);
+      },
+    },
+    out: () => out.join(""),
+    err: () => err.join(""),
+  };
+}
+
+function stateFor(root: string): ProjectInstallState {
+  return readProjectInstallState(root);
+}
+
+function pinExact(root: string, version: string, opts?: { contract?: number; install?: boolean }): void {
+  const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as Record<
+    string,
+    unknown
+  >;
+  pkg.devDependencies = { "@deftai/directive-runtime": version };
+  writeFileSync(join(root, "package.json"), `${JSON.stringify(pkg, null, 2)}\n`);
+  if (opts?.install === false) return;
+  const contract = opts?.contract ?? 1;
+  const nm = join(root, "node_modules", "@deftai", "directive-runtime");
+  mkdirSync(nm, { recursive: true });
+  writeFileSync(
+    join(nm, "package.json"),
+    `${JSON.stringify(
+      { name: "@deftai/directive-runtime", version, directive: { contract } },
+      null,
+      2,
+    )}\n`,
+  );
+  mkdirSync(join(nm, "dist"), { recursive: true });
+  writeFileSync(join(nm, "dist", "bin.js"), "#!/usr/bin/env node\nprocess.exit(0);\n");
+  writeFileSync(
+    join(root, "package-lock.json"),
+    `${JSON.stringify(
+      {
+        lockfileVersion: 3,
+        packages: {
+          "": { name: "t", devDependencies: { "@deftai/directive-runtime": version } },
+          "node_modules/@deftai/directive-runtime": { version },
+        },
+      },
+      null,
+      2,
+    )}\n`,
+  );
+}
+
+function markWiringCurrent(root: string, version: string): void {
+  mkdirSync(join(root, ".deft", "directive"), { recursive: true });
+  writeFileSync(
+    join(root, ".deft", "GENERATION.json"),
+    `${JSON.stringify({ runtimeVersion: version, packageManager: "npm", ownership: [] }, null, 2)}\n`,
+  );
+  writeFileSync(
+    join(root, ".deft", "directive", `wiring-ready.${version}.json`),
+    `${JSON.stringify({ runtimeVersion: version }, null, 2)}\n`,
+  );
+}
+
+afterEach(() => {
+  while (TEMPS.length > 0) {
+    const p = TEMPS.pop();
+    if (p) rmSync(p, { recursive: true, force: true });
+  }
+});
+
+describe("compareExactVersions", () => {
+  it("orders core and prerelease versions", () => {
+    expect(compareExactVersions("1.2.3", "1.2.4")).toBeLessThan(0);
+    expect(compareExactVersions("1.2.4", "1.2.3")).toBeGreaterThan(0);
+    expect(compareExactVersions("1.2.3", "1.2.3")).toBe(0);
+    expect(compareExactVersions("0.0.0-yolo.cp-wave2a.4", "0.0.0-yolo.cp-wave2b.1")).toBeLessThan(
+      0,
+    );
+  });
+});
+
+describe("upgrade bookend gates (AC7.1 / AC7.3)", () => {
+  it("no pin exits 2 naming install (AC7.1)", () => {
+    const root = tempProject();
+    const c = capture();
+    const code = runUpgrade(root, stateFor(root), ["--yes"], "0.0.0-test", c.io);
+    expect(code).toBe(2);
+    expect(c.err() + c.out()).toMatch(/directive install/i);
+  });
+
+  it("range pin exits 2 naming install (AC7.1)", () => {
+    const root = tempProject();
+    const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as Record<
+      string,
+      unknown
+    >;
+    pkg.devDependencies = { "@deftai/directive-runtime": "^1.2.3" };
+    writeFileSync(join(root, "package.json"), `${JSON.stringify(pkg, null, 2)}\n`);
+    const c = capture();
+    const code = runUpgrade(root, stateFor(root), ["--yes", "--target-version", "1.2.4"], "0.0.0-test", c.io);
+    expect(code).toBe(2);
+    expect(c.err() + c.out()).toMatch(/directive install/i);
+  });
+
+  it("unknown leftover argv exits 2 before registry/PM", () => {
+    const root = tempProject();
+    pinExact(root, "1.2.3");
+    const c = capture();
+    let resolveCalled = false;
+    const code = runUpgrade(
+      root,
+      stateFor(root),
+      ["--yes", "--dryrun", "--target-version", "1.2.4"],
+      "0.0.0-test",
+      c.io,
+      {
+        resolveLatest: () => {
+          resolveCalled = true;
+          return { ok: true as const, version: "1.2.4" };
+        },
+        runPmAdd: () => {
+          throw new Error("PM must not run");
+        },
+      },
+    );
+    expect(code).toBe(2);
+    expect(resolveCalled).toBe(false);
+    expect(c.err()).toMatch(/Unknown argument/);
+  });
+
+  it("target older than pin is rejected (AC7.3)", () => {
+    const root = tempProject();
+    pinExact(root, "1.2.4");
+    const before = readFileSync(join(root, "package.json"), "utf8");
+    const c = capture();
+    const code = runUpgrade(
+      root,
+      stateFor(root),
+      ["--yes", "--target-version", "1.2.3"],
+      "0.0.0-test",
+      c.io,
+      {
+        resolvePublishedContract: () => ({ ok: true as const, contract: 1 }),
+        runPmAdd: () => {
+          throw new Error("PM must not run");
+        },
+      },
+    );
+    expect(code).toBe(1);
+    expect(c.err() + c.out()).toMatch(/older|not older|newer|reject/i);
+    expect(readFileSync(join(root, "package.json"), "utf8")).toBe(before);
+  });
+});
+
+describe("equal-version upgrade (AC7.3 / AC4.10)", () => {
+  it("current wiring + data current → no-op, no writes", () => {
+    const root = tempProject();
+    pinExact(root, "1.2.3");
+    markWiringCurrent(root, "1.2.3");
+    const beforePkg = readFileSync(join(root, "package.json"), "utf8");
+    const beforeGen = readFileSync(join(root, ".deft", "GENERATION.json"), "utf8");
+    const c = capture();
+    let pmCalled = false;
+    let setupCalled = false;
+    let migrateCalled = false;
+    const code = runUpgrade(
+      root,
+      stateFor(root),
+      ["--yes", "--target-version", "1.2.3"],
+      "0.0.0-test",
+      c.io,
+      {
+        resolvePublishedContract: () => ({ ok: true as const, contract: 1 }),
+        invokeDoctorDataStatus: () => ({ ok: true as const, dataStatus: "current" as const }),
+        runPmAdd: () => {
+          pmCalled = true;
+          return { ok: true as const };
+        },
+        invokeSetup: () => {
+          setupCalled = true;
+          return { exitCode: 0, stdout: "", stderr: "", spawned: true, message: null };
+        },
+        invokeMigrate: () => {
+          migrateCalled = true;
+          return { exitCode: 0, stdout: "", stderr: "", spawned: true, message: null };
+        },
+      },
+    );
+    expect(code).toBe(0);
+    expect(pmCalled).toBe(false);
+    expect(setupCalled).toBe(false);
+    expect(migrateCalled).toBe(false);
+    expect(c.out() + c.err()).toMatch(/already|current|no-op|nothing to do/i);
+    expect(readFileSync(join(root, "package.json"), "utf8")).toBe(beforePkg);
+    expect(readFileSync(join(root, ".deft", "GENERATION.json"), "utf8")).toBe(beforeGen);
+  });
+
+  it("diagnostic failure is an error, never a no-op (AC4.10)", () => {
+    const root = tempProject();
+    pinExact(root, "1.2.3");
+    markWiringCurrent(root, "1.2.3");
+    const c = capture();
+    const code = runUpgrade(
+      root,
+      stateFor(root),
+      ["--yes", "--target-version", "1.2.3"],
+      "0.0.0-test",
+      c.io,
+      {
+        resolvePublishedContract: () => ({ ok: true as const, contract: 1 }),
+        invokeDoctorDataStatus: () => ({
+          ok: false as const,
+          message: "doctor blew up",
+        }),
+        runPmAdd: () => {
+          throw new Error("PM must not run");
+        },
+      },
+    );
+    expect(code).toBe(1);
+    expect(c.err() + c.out()).toMatch(/diagnos|failed|doctor/i);
+  });
+
+  it("diagnosis_failed discriminant is an error", () => {
+    const root = tempProject();
+    pinExact(root, "1.2.3");
+    markWiringCurrent(root, "1.2.3");
+    const c = capture();
+    const code = runUpgrade(
+      root,
+      stateFor(root),
+      ["--yes", "--target-version", "1.2.3"],
+      "0.0.0-test",
+      c.io,
+      {
+        resolvePublishedContract: () => ({ ok: true as const, contract: 1 }),
+        invokeDoctorDataStatus: () => ({
+          ok: true as const,
+          dataStatus: "diagnosis_failed" as const,
+        }),
+      },
+    );
+    expect(code).toBe(1);
+  });
+
+  it("wiring stale + data current → setup then migrate plan (dry-run)", () => {
+    const root = tempProject();
+    pinExact(root, "1.2.3");
+    // no GENERATION / wiring-ready
+    const c = capture();
+    const code = runUpgrade(
+      root,
+      stateFor(root),
+      ["--dry-run", "--target-version", "1.2.3"],
+      "0.0.0-test",
+      c.io,
+      {
+        resolvePublishedContract: () => ({ ok: true as const, contract: 1 }),
+        invokeDoctorDataStatus: () => ({ ok: true as const, dataStatus: "current" as const }),
+        runPmAdd: () => {
+          throw new Error("PM must not run on dry-run");
+        },
+      },
+    );
+    expect(code).toBe(0);
+    const text = c.out();
+    expect(text).toMatch(/Plan:/i);
+    expect(text).toMatch(/setup/i);
+    expect(text).toMatch(/migrate/i);
+    expect(existsSync(join(root, ".deft", "GENERATION.json"))).toBe(false);
+  });
+
+  it("wiring current + migration_needed → migrate-only plan", () => {
+    const root = tempProject();
+    pinExact(root, "1.2.3");
+    markWiringCurrent(root, "1.2.3");
+    const c = capture();
+    let setupCalled = false;
+    let migrateCalled = false;
+    const code = runUpgrade(
+      root,
+      stateFor(root),
+      ["--yes", "--target-version", "1.2.3"],
+      "0.0.0-test",
+      c.io,
+      {
+        resolvePublishedContract: () => ({ ok: true as const, contract: 1 }),
+        invokeDoctorDataStatus: () => ({
+          ok: true as const,
+          dataStatus: "migration_needed" as const,
+        }),
+        invokeSetup: () => {
+          setupCalled = true;
+          return { exitCode: 0, stdout: "{}", stderr: "", spawned: true, message: null };
+        },
+        invokeMigrate: (argv) => {
+          migrateCalled = true;
+          expect(argv[0]).toBe("migrate");
+          expect(argv).toContain("--from");
+          expect(argv).toContain("1.2.3");
+          return {
+            exitCode: 0,
+            stdout: JSON.stringify({
+              contract: 1,
+              entry: "migrate",
+              migrated: [".deft/directive/data-schema.json"],
+              created: [],
+              modified: [".deft/directive/data-schema.json"],
+              removed: [],
+            }),
+            stderr: "",
+            spawned: true,
+            message: null,
+          };
+        },
+      },
+    );
+    expect(code).toBe(0);
+    expect(setupCalled).toBe(false);
+    expect(migrateCalled).toBe(true);
+  });
+});
+
+describe("version-change upgrade (AC7.2 / AC7.4 / AC7.5 / AC7.9)", () => {
+  it("contract-too-new preflight leaves pin unchanged (AC4.7 / AC7.2)", () => {
+    const root = tempProject();
+    pinExact(root, "1.2.3");
+    const before = readFileSync(join(root, "package.json"), "utf8");
+    const c = capture();
+    let pmCalled = false;
+    const code = runUpgrade(
+      root,
+      stateFor(root),
+      ["--yes", "--target-version", "9.9.9"],
+      "0.0.0-test",
+      c.io,
+      {
+        resolvePublishedContract: (version) => {
+          expect(version).toBe("9.9.9");
+          return { ok: true as const, contract: 99 };
+        },
+        runPmAdd: () => {
+          pmCalled = true;
+          return { ok: true as const };
+        },
+      },
+    );
+    expect(code).toBe(1);
+    expect(pmCalled).toBe(false);
+    expect(c.err() + c.out()).toMatch(/launcher is too old|npm i -g @deftai\/directive@latest/i);
+    expect(readFileSync(join(root, "package.json"), "utf8")).toBe(before);
+  });
+
+  it("--dry-run prints plan and does not mutate pin", () => {
+    const root = tempProject();
+    pinExact(root, "1.2.3");
+    const before = readFileSync(join(root, "package.json"), "utf8");
+    const c = capture();
+    const code = runUpgrade(
+      root,
+      stateFor(root),
+      ["--dry-run", "--target-version", "2.0.0"],
+      "0.0.0-test",
+      c.io,
+      {
+        resolvePublishedContract: () => ({ ok: true as const, contract: 1 }),
+        runPmAdd: () => {
+          throw new Error("PM must not run");
+        },
+      },
+    );
+    expect(code).toBe(0);
+    expect(c.out()).toMatch(/Plan:/i);
+    expect(c.out()).toMatch(/2\.0\.0/);
+    expect(c.out()).toMatch(/setup|migrate/i);
+    expect(readFileSync(join(root, "package.json"), "utf8")).toBe(before);
+  });
+
+  it("version change with --yes: PM add, setup --operation upgrade, migrate", () => {
+    const root = tempProject();
+    pinExact(root, "1.2.3");
+    let pmVersion: string | null = null;
+    let setupArgv: string[] | null = null;
+    let migrateArgv: string[] | null = null;
+    const c = capture();
+    const code = runUpgrade(
+      root,
+      stateFor(root),
+      ["--yes", "--target-version", "2.0.0"],
+      "0.0.0-test",
+      c.io,
+      {
+        resolvePublishedContract: () => ({ ok: true as const, contract: 1 }),
+        runPmAdd: ({ projectRoot, version }) => {
+          pmVersion = version;
+          const pkgPath = join(projectRoot, "package.json");
+          const pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as Record<string, unknown>;
+          pkg.devDependencies = {
+            ...(pkg.devDependencies as object),
+            "@deftai/directive-runtime": version,
+          };
+          writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
+          const nm = join(projectRoot, "node_modules", "@deftai", "directive-runtime");
+          mkdirSync(nm, { recursive: true });
+          writeFileSync(
+            join(nm, "package.json"),
+            `${JSON.stringify(
+              { name: "@deftai/directive-runtime", version, directive: { contract: 1 } },
+              null,
+              2,
+            )}\n`,
+          );
+          mkdirSync(join(nm, "dist"), { recursive: true });
+          writeFileSync(join(nm, "dist", "bin.js"), "#!/usr/bin/env node\nprocess.exit(0);\n");
+          writeFileSync(
+            join(projectRoot, "package-lock.json"),
+            `${JSON.stringify(
+              {
+                lockfileVersion: 3,
+                packages: {
+                  "": {
+                    name: "t",
+                    devDependencies: { "@deftai/directive-runtime": version },
+                  },
+                  "node_modules/@deftai/directive-runtime": { version },
+                },
+              },
+              null,
+              2,
+            )}\n`,
+          );
+          return { ok: true as const };
+        },
+        invokeSetup: (argv) => {
+          setupArgv = [...argv];
+          return {
+            exitCode: 0,
+            stdout: JSON.stringify({
+              contract: 1,
+              entry: "setup",
+              operation: "upgrade",
+              created: [],
+              modified: [".deft/GENERATION.json"],
+              removed: [],
+              conflicts: [],
+            }),
+            stderr: "",
+            spawned: true,
+            message: null,
+          };
+        },
+        invokeMigrate: (argv) => {
+          migrateArgv = [...argv];
+          return {
+            exitCode: 0,
+            stdout: JSON.stringify({
+              contract: 1,
+              entry: "migrate",
+              migrated: [".deft/directive/data-schema.json"],
+              created: [".deft/directive/data-schema.json"],
+              modified: [],
+              removed: [],
+            }),
+            stderr: "",
+            spawned: true,
+            message: null,
+          };
+        },
+      },
+    );
+    expect(code).toBe(0);
+    expect(pmVersion).toBe("2.0.0");
+    expect(setupArgv).not.toBeNull();
+    expect(setupArgv![0]).toBe("setup");
+    expect(setupArgv).toContain("upgrade");
+    expect(setupArgv).toContain("1.2.3");
+    expect(migrateArgv![0]).toBe("migrate");
+    expect(migrateArgv).toContain("1.2.3");
+    expect(readProjectInstallState(root).pin.version).toBe("2.0.0");
+  });
+
+  it("PM ok but setup fails reports partial failure (AC7.9)", () => {
+    const root = tempProject();
+    pinExact(root, "1.2.3");
+    const c = capture();
+    const code = runUpgrade(
+      root,
+      stateFor(root),
+      ["--yes", "--target-version", "2.0.0"],
+      "0.0.0-test",
+      c.io,
+      {
+        resolvePublishedContract: () => ({ ok: true as const, contract: 1 }),
+        runPmAdd: ({ projectRoot, version }) => {
+          const pkgPath = join(projectRoot, "package.json");
+          const pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as Record<string, unknown>;
+          pkg.devDependencies = {
+            ...(pkg.devDependencies as object),
+            "@deftai/directive-runtime": version,
+          };
+          writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
+          const nm = join(projectRoot, "node_modules", "@deftai", "directive-runtime");
+          mkdirSync(nm, { recursive: true });
+          writeFileSync(
+            join(nm, "package.json"),
+            `${JSON.stringify(
+              { name: "@deftai/directive-runtime", version, directive: { contract: 1 } },
+              null,
+              2,
+            )}\n`,
+          );
+          mkdirSync(join(nm, "dist"), { recursive: true });
+          writeFileSync(join(nm, "dist", "bin.js"), "#!/usr/bin/env node\nprocess.exit(0);\n");
+          return { ok: true as const };
+        },
+        invokeSetup: () => ({
+          exitCode: 1,
+          stdout: JSON.stringify({ conflicts: ["AGENTS.md"], message: "setup failed" }),
+          stderr: "",
+          spawned: true,
+          message: null,
+        }),
+      },
+    );
+    expect(code).toBe(1);
+    expect(readProjectInstallState(root).pin.version).toBe("2.0.0");
+    const text = c.err() + c.out();
+    expect(text).toMatch(/pin|lockfile|new version|2\.0\.0/i);
+    expect(text).toMatch(/install --repair|upgrade/i);
+  });
+
+  it("mutating without --yes in non-interactive exits 2 (AC5.5)", () => {
+    const root = tempProject();
+    pinExact(root, "1.2.3");
+    const c = capture();
+    const code = runUpgrade(
+      root,
+      stateFor(root),
+      ["--target-version", "2.0.0"],
+      "0.0.0-test",
+      c.io,
+      {
+        stdinIsTTY: false,
+        resolvePublishedContract: () => ({ ok: true as const, contract: 1 }),
+      },
+    );
+    expect(code).toBe(2);
+    expect(c.err() + c.out()).toMatch(/--yes/);
+  });
+});

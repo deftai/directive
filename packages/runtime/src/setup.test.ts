@@ -111,6 +111,22 @@ describe("runSetup install|repair (R8 / AC8.*)", () => {
     expect(result.message).toMatch(/conflict/i);
   });
 
+  it("upgrade refreshes GENERATION/wiring-ready without creating seeds", () => {
+    const root = tempRoot();
+    const result = runSetup({ operation: "upgrade", from: "1.0.0", root });
+    expect(result.stub).toBe(false);
+    expect(result.conflicts).toEqual([]);
+    expect(result.message).not.toMatch(/deferred/i);
+    expect(existsSync(join(root, ".deft", "GENERATION.json"))).toBe(true);
+    const gen = JSON.parse(readFileSync(join(root, ".deft", "GENERATION.json"), "utf8")) as {
+      runtimeVersion: string;
+    };
+    expect(
+      existsSync(join(root, ".deft", "directive", `wiring-ready.${gen.runtimeVersion}.json`)),
+    ).toBe(true);
+    expect(existsSync(join(root, "xbrief", ".directive-seed-placeholder"))).toBe(false);
+  });
+
   it("refuses AGENTS.md symlink escape outside the project", () => {
     const root = tempRoot();
     const outsideDir = mkdtempSync(join(tmpdir(), "setup-escape-"));
