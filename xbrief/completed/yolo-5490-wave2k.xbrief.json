@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "kind": "xbrief",
+  "title": "YOLO #5490 Wave 2k — SEC-WT + HOOK-ID fail-closed",
+  "status": "completed",
+  "branch": "yolo/wip-wave2k",
+  "tip": "1f5f964f6f0fe2b517035a77a8254ba8f326be5f",
+  "tag": "yolo-cp-wave2k",
+  "verdaccio": "0.0.0-yolo.cp-wave2k.1",
+  "smoke": "wave2k.sh PASS",
+  "acs": ["AC9.4","AC9.5","AC9.7","AC14.8","AC14.26","AC14.65"],
+  "findings": ["SEC-WT","HOOK-ID"]
+}
