@@ -1,11 +1,12 @@
 /**
  * Read pin + installed runtime metadata without loading runtime code (AC3.9).
  */
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import {
   CONTRACT_PACKAGE_JSON_KEY,
   LAUNCHER_MAX_SUPPORTED_CONTRACT,
+  LAUNCHER_PACKAGE_NAME,
   RUNTIME_PACKAGE_NAME,
 } from "./constants.js";
 
@@ -77,6 +78,29 @@ export function classifyPinVersion(raw: string | null | undefined): PinInfo {
   return { kind: "invalid", raw: trimmed, version: null };
 }
 
+function isRegularFile(path: string): boolean {
+  try {
+    return statSync(path).isFile();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Copied-core installation evidence (AC10.1 / AC10.5).
+ * Directory existence alone is insufficient; require VERSION, main.md, or a
+ * deposit package.json (`deftConsumerDeposit: true`).
+ */
+export function hasCopiedCoreEvidence(projectRoot: string): boolean {
+  const core = join(projectRoot, ".deft", "core");
+  if (isRegularFile(join(core, "VERSION"))) return true;
+  if (isRegularFile(join(core, "main.md"))) return true;
+  const pkgPath = join(core, "package.json");
+  if (!isRegularFile(pkgPath)) return false;
+  const pkg = readJsonObject(pkgPath);
+  return pkg !== null && pkg.deftConsumerDeposit === true;
+}
+
 export function readPin(projectRoot: string): PinInfo & { oldStyle: boolean } {
   const pkgPath = join(projectRoot, "package.json");
   const pkg = readJsonObject(pkgPath);
@@ -88,11 +112,11 @@ export function readPin(projectRoot: string): PinInfo & { oldStyle: boolean } {
   if (runtimeRaw !== undefined) {
     return { ...classifyPinVersion(runtimeRaw), oldStyle: false };
   }
-  // Supported legacy: exact pre-split @deftai/directive pin (AC10 / §A6.7).
-  const legacy = deps["@deftai/directive"];
+  // Supported legacy: exact pre-split pin + copied-core evidence (AC10 / §A6.7).
+  const legacy = deps[LAUNCHER_PACKAGE_NAME];
   if (legacy !== undefined) {
     const classified = classifyPinVersion(legacy);
-    if (classified.kind === "exact") {
+    if (classified.kind === "exact" && hasCopiedCoreEvidence(projectRoot)) {
       return { ...classified, oldStyle: true };
     }
     return { ...classified, oldStyle: false };

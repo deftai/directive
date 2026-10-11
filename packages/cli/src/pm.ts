@@ -5,7 +5,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
-import { RUNTIME_PACKAGE_NAME } from "./constants.js";
+import { LAUNCHER_PACKAGE_NAME, RUNTIME_PACKAGE_NAME } from "./constants.js";
 
 export type PackageManager = "npm" | "pnpm";
 
@@ -302,6 +302,31 @@ export function formatPmExactAddCommand(
   projectRoot: string,
 ): string {
   return `${pm} ${buildPmExactAddArgs(pm, version, projectRoot).join(" ")}`;
+}
+
+/**
+ * Remove a supported pre-split `@deftai/directive` project pin from package.json
+ * (AC10.3). Does not touch the lockfile or node_modules — caller runs PM add next.
+ */
+export function removeLegacyDirectivePin(projectRoot: string): boolean {
+  const path = join(projectRoot, "package.json");
+  const pkg = readJsonObject(path);
+  if (pkg === null) return false;
+  let removed = false;
+  for (const key of ["dependencies", "devDependencies", "optionalDependencies"] as const) {
+    const block = pkg[key];
+    if (block === null || typeof block !== "object" || Array.isArray(block)) continue;
+    const deps = block as Record<string, unknown>;
+    if (!(LAUNCHER_PACKAGE_NAME in deps)) continue;
+    delete deps[LAUNCHER_PACKAGE_NAME];
+    removed = true;
+    if (Object.keys(deps).length === 0) {
+      delete pkg[key];
+    }
+  }
+  if (!removed) return false;
+  writeFileSync(path, `${JSON.stringify(pkg, null, 2)}\n`);
+  return true;
 }
 
 /**

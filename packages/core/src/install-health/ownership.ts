@@ -346,38 +346,80 @@ export function inspectOwnershipRecord(projectRoot: string): OwnershipInspection
 }
 
 /**
- * Write the stable ownership record (AC13.2 fields only). Idempotent when the
+ * Read the legacy/live `generation` integer from GENERATION.json when present.
+ * Used as conversion evidence (AC10.5 / AC10.9); returns 0 when absent/invalid.
+ */
+export function readEvidenceGenerationNumber(projectRoot: string): number {
+  const path = generationPath(projectRoot);
+  if (!existsSync(path)) return 0;
+  try {
+    const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return 0;
+    }
+    const generation = (parsed as { generation?: unknown }).generation;
+    if (
+      typeof generation === "number" &&
+      Number.isSafeInteger(generation) &&
+      generation >= 1
+    ) {
+      return generation;
+    }
+  } catch {
+    /* absent/invalid */
+  }
+  return 0;
+}
+
+/**
+ * Write the stable ownership record (AC13.2 fields). Idempotent when the
  * on-disk ownership fingerprint already matches — avoids dirty trees.
+ * Optional `generation` is written for AC10.9 old-CLI defence on conversion;
+ * it is not part of the stable ownership fingerprint.
  */
 export function writeOwnershipRecord(
   projectRoot: string,
   record: SetupOwnershipRecord,
+  options?: { readonly generation?: number },
 ): string {
   const root = resolve(projectRoot);
   const target = generationPath(projectRoot);
   const stable = buildOwnershipRecord(record);
-  const body = `${JSON.stringify(
-    {
-      schemaVersion: stable.schemaVersion,
-      runtimeVersion: stable.runtimeVersion,
-      packageManager: stable.packageManager,
-      ownership: stable.ownership.map((o) => {
-        const entry: Record<string, string> = {
-          path: o.path,
-          kind: o.kind,
-          fingerprint: o.fingerprint,
-        };
-        if (o.markerId !== undefined) entry.markerId = o.markerId;
-        if (o.entryKey !== undefined) entry.entryKey = o.entryKey;
-        return entry;
-      }),
-    },
-    null,
-    2,
-  )}\n`;
+  const payload: Record<string, unknown> = {
+    schemaVersion: stable.schemaVersion,
+    runtimeVersion: stable.runtimeVersion,
+    packageManager: stable.packageManager,
+    ownership: stable.ownership.map((o) => {
+      const entry: Record<string, string> = {
+        path: o.path,
+        kind: o.kind,
+        fingerprint: o.fingerprint,
+      };
+      if (o.markerId !== undefined) entry.markerId = o.markerId;
+      if (o.entryKey !== undefined) entry.entryKey = o.entryKey;
+      return entry;
+    }),
+  };
+  if (
+    options?.generation !== undefined &&
+    Number.isSafeInteger(options.generation) &&
+    options.generation >= 1
+  ) {
+    payload.generation = options.generation;
+  }
+  const body = `${JSON.stringify(payload, null, 2)}\n`;
 
   const prior = readOwnershipRecord(projectRoot);
-  if (prior !== null && ownershipRecordsEqual(prior, stable)) {
+  const forceGeneration =
+    options?.generation !== undefined &&
+    Number.isSafeInteger(options.generation) &&
+    options.generation >= 1 &&
+    readEvidenceGenerationNumber(projectRoot) !== options.generation;
+  if (
+    prior !== null &&
+    ownershipRecordsEqual(prior, stable) &&
+    !forceGeneration
+  ) {
     // Already current: do not rewrite (AC13.2 + dirty-tree avoidance).
     return target;
   }

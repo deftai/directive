@@ -16,6 +16,7 @@ import {
   buildOwnershipRecord,
   fingerprintContent,
   ownershipRecordsEqual,
+  readEvidenceGenerationNumber,
   readOwnershipRecord,
   writeOwnershipRecord,
   type OwnedArtifact,
@@ -273,11 +274,25 @@ export function runSetup(options: {
   const pm = detectPmFact(root);
   const genExisted = existsSync(join(root, GEN_REL));
   const priorRecord = readOwnershipRecord(root);
+  const legacyConversion = from === "old-style";
+  // AC10.5 / AC10.9: read prior generation as evidence before rewriting GENERATION.json.
+  const priorGeneration = legacyConversion ? readEvidenceGenerationNumber(root) : 0;
+  const raisedGeneration = legacyConversion ? priorGeneration + 1 : undefined;
 
   try {
     // AC8.6: drop superseded version markers when rewiring begins; keep current
     // for idempotent repair. Fail/conflict paths clear all (including current).
     invalidateReadinessMarkers(root, removed, { exceptVersion: runtimeVersion });
+
+    // AC10.3 / AC10.6: conversion removes legacy .deft/core even if edited.
+    if (legacyConversion && existsSync(join(root, ".deft", "core"))) {
+      const rem = containedRemove({
+        root,
+        target: ".deft/core",
+        recursive: true,
+      });
+      if (rem.removed) removed.push(".deft/core");
+    }
 
     track(created, modified, ".gitignore", ensureGitignore(root));
 
@@ -313,20 +328,24 @@ export function runSetup(options: {
     }
 
     // AC13.1: never materialize a content copy under .deft/core.
-    if (existsSync(join(root, ".deft", "core"))) {
-      // Do not create; leave historical removal to 2f conversion.
-    }
 
     const desired = buildOwnershipRecord({
       runtimeVersion,
       packageManager: pm,
       ownership: buildOwnershipArtifacts(root),
     });
-    const unchanged = priorRecord !== null && ownershipRecordsEqual(priorRecord, desired);
+    const unchanged =
+      priorRecord !== null &&
+      ownershipRecordsEqual(priorRecord, desired) &&
+      !legacyConversion;
 
-    writeOwnershipRecord(root, desired);
+    writeOwnershipRecord(
+      root,
+      desired,
+      raisedGeneration !== undefined ? { generation: raisedGeneration } : undefined,
+    );
     if (!genExisted) created.push(GEN_REL);
-    else if (!unchanged) modified.push(GEN_REL);
+    else if (!unchanged || legacyConversion) modified.push(GEN_REL);
 
     if (conflicts.length > 0) {
       // Never publish readiness after conflict; invalidate any existing marker (AC8.6).

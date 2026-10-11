@@ -224,9 +224,10 @@ export function runLauncher(
     return EXIT_CODES.FAILURE;
   }
 
-  // --- Old-style layout (§A6.7): only upgrade / uninstall / doctor ---
+  // --- Old-style layout (§A6.7 / AC10.2): only upgrade / uninstall ---
+  // --version / --help already returned above.
   if (state.oldStyle) {
-    const oldStyleAllowed = new Set(["upgrade", "uninstall", "doctor"]);
+    const oldStyleAllowed = new Set(["upgrade", "uninstall"]);
     if (!oldStyleAllowed.has(cmd)) {
       io.writeErr(
         "This project uses an older Directive layout. Run `directive upgrade`.\n",

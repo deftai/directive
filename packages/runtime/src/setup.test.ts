@@ -201,7 +201,13 @@ describe("runSetup old-style conversion (Wave 2f / AC10.3 / AC10.6 / AC10.9)", (
     expect(gen.generation).toBeGreaterThan(7);
     const agents = readFileSync(join(root, "AGENTS.md"), "utf8");
     expect(agents).toMatch(/node_modules\/@deftai\/directive-runtime/);
-    expect(agents).not.toMatch(/\.deft\/core\/main\.md/);
+    // User-owned prose outside the managed section is preserved (AC10.6); the
+    // managed section itself must not point at .deft/core.
+    const managed = agents.match(
+      /<!-- deft:managed-section[\s\S]*?<!-- \/deft:managed-section -->/,
+    );
+    expect(managed?.[0] ?? "").toMatch(/node_modules\/@deftai\/directive-runtime/);
+    expect(managed?.[0] ?? "").not.toMatch(/\.deft\/core/);
   });
 
   it("non-old-style upgrade does not remove an unrelated .deft/core tree", () => {

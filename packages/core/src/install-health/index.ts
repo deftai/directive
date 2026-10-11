@@ -61,6 +61,7 @@ export {
   normalizeRelativePath,
   ownershipRecordsEqual,
   parseOwnershipRecord,
+  readEvidenceGenerationNumber,
   readOwnershipRecord,
   stableOwnershipFingerprint,
   writeOwnershipRecord,

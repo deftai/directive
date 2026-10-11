@@ -8,6 +8,7 @@ import {
   CONTRACT_NUMBER,
   EXIT_CODES,
   LAUNCHER_MAX_SUPPORTED_CONTRACT,
+  LAUNCHER_PACKAGE_NAME,
   RECOVERY_GUIDANCE,
   RUNTIME_PACKAGE_NAME,
 } from "./constants.js";
@@ -26,6 +27,7 @@ import {
   ensurePackageJson,
   formatPmExactAddCommand,
   lockfileRecordsExactPin,
+  removeLegacyDirectivePin,
   runPmExactAdd,
   type PackageManager,
   type PmAddResult,
@@ -818,7 +820,7 @@ export function runUpgrade(
     ? formatPmExactAddCommand(pmDetect.pm, targetVersion, projectRoot)
     : "(none)";
 
-  printPlan(io, [
+  const planLines = [
     `operation: upgrade`,
     `root: ${projectRoot}`,
     `package manager: ${pmDetect.pm} (${pmDetect.evidence})`,
@@ -837,7 +839,16 @@ export function runUpgrade(
       : `migrate: none`,
     `disclosure: target runtime performs required setup/migrations; project settings/data preserved`,
     `global launcher: unchanged`,
-  ]);
+  ];
+  if (state.oldStyle) {
+    planLines.splice(
+      7,
+      0,
+      `remove: .deft/core (legacy content copy, even if edited)`,
+      `replace: ${LAUNCHER_PACKAGE_NAME} pin → ${RUNTIME_PACKAGE_NAME}@${targetVersion}`,
+    );
+  }
+  printPlan(io, planLines);
 
   if (flags.dryRun) {
     io.writeOut("[dry-run] no changes made.\n");
@@ -855,6 +866,10 @@ export function runUpgrade(
   if (approval !== null) return approval;
 
   if (versionChange) {
+    // AC10.3: replace pre-split @deftai/directive pin before PM adds the runtime.
+    if (state.oldStyle) {
+      removeLegacyDirectivePin(projectRoot);
+    }
     const add =
       deps.runPmAdd?.({ projectRoot, pm: pmDetect.pm, version: targetVersion }) ??
       runPmExactAdd({ projectRoot, pm: pmDetect.pm, version: targetVersion, env });
