@@ -2,10 +2,18 @@
  * Package-manager selection and exact-add helpers for the launcher (AC5.7 / INIT-13).
  * Node builtins + child_process only — no runtime/core dependency.
  */
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { spawnSync } from "node:child_process";
+import { spawnSync, type SpawnSyncReturns } from "node:child_process";
 import { LAUNCHER_PACKAGE_NAME, RUNTIME_PACKAGE_NAME } from "./constants.js";
+
+/** AC5.15 / AC14.56 — mandated interruption report text. */
+export const PARTIAL_CHANGES_MAY_REMAIN = "Partial changes may remain.";
+
+/** AC5.1 / INIT-11 — plan disclosure for install-script policy. */
+export const INSTALL_SCRIPT_POLICY_PLAN_LINE =
+  "install-script policy: PM exact-add uses --ignore-scripts (pin/wiring do not require package lifecycle scripts); project registry, authentication, proxy, and lockfile settings are honoured";
 
 export type PackageManager = "npm" | "pnpm";
 
@@ -265,7 +273,175 @@ export interface PmAddOptions {
 
 export type PmAddResult =
   | { readonly ok: true }
-  | { readonly ok: false; readonly message: string; readonly stderr: string };
+  | {
+      readonly ok: false;
+      readonly interrupted?: false;
+      readonly message: string;
+      readonly stderr: string;
+    }
+  | {
+      readonly ok: false;
+      readonly interrupted: true;
+      readonly signal: string;
+      readonly message: string;
+      readonly stderr: string;
+    };
+
+/** Declared `packageManager` version (e.g. pnpm@9.15.0 → "9.15.0"), if present. */
+export function readDeclaredPackageManagerVersion(projectRoot: string): string | null {
+  const pkg = readJsonObject(join(projectRoot, "package.json"));
+  if (pkg === null) return null;
+  const raw = pkg.packageManager;
+  if (typeof raw !== "string" || raw.trim() === "") return null;
+  const at = raw.indexOf("@");
+  if (at < 0) return null;
+  const ver = raw.slice(at + 1).trim();
+  return ver.length > 0 ? ver : null;
+}
+
+/** AC5.8 / AC14.45 — how-to when the declared PM binary is missing. */
+export function formatMissingPmGuidance(
+  pm: PackageManager,
+  declaredVersion: string | null = null,
+): string {
+  const ver = declaredVersion && declaredVersion.length > 0 ? declaredVersion : "latest";
+  const prepare =
+    pm === "pnpm"
+      ? `corepack enable && corepack prepare pnpm@${ver} --activate`
+      : `corepack enable && corepack prepare npm@${ver} --activate`;
+  return (
+    `${pm} is required for this project but was not found on PATH.\n` +
+    `To make ${pm} available:\n` +
+    `  - If your Node install includes Corepack: ${prepare}\n` +
+    `  - Or install ${pm} yourself and ensure its directory is on PATH\n` +
+    `Directive does not install, upgrade, or switch package managers.`
+  );
+}
+
+/**
+ * AC5.8 / INIT-10: verify the selected PM binary is spawnable.
+ * Does not install or switch managers; Corepack is suggested, never assumed.
+ */
+export function ensurePackageManagerAvailable(
+  pm: PackageManager,
+  env: NodeJS.ProcessEnv = process.env,
+  declaredVersion: string | null = null,
+): { ok: true } | { ok: false; message: string } {
+  const result = spawnSync(pm, ["--version"], {
+    env,
+    encoding: "utf8",
+    shell: process.platform === "win32",
+  });
+  if (result.error) {
+    const err = result.error as NodeJS.ErrnoException;
+    if (err.code === "ENOENT" || /ENOENT/i.test(err.message)) {
+      return { ok: false, message: formatMissingPmGuidance(pm, declaredVersion) };
+    }
+    return {
+      ok: false,
+      message: formatMissingPmGuidance(pm, declaredVersion),
+    };
+  }
+  if (result.status === null && result.signal) {
+    return { ok: false, message: formatMissingPmGuidance(pm, declaredVersion) };
+  }
+  if (result.status !== 0) {
+    // Binary present but unhealthy — still explain how to make a working PM available.
+    return { ok: false, message: formatMissingPmGuidance(pm, declaredVersion) };
+  }
+  return { ok: true };
+}
+
+export interface PlanFingerprint {
+  readonly entries: ReadonlyArray<{ readonly relPath: string; readonly digest: string | null }>;
+}
+
+function fileDigest(absPath: string): string | null {
+  if (!existsSync(absPath)) return null;
+  try {
+    return createHash("sha256").update(readFileSync(absPath)).digest("hex");
+  } catch {
+    return null;
+  }
+}
+
+/** Plan-critical paths for AC5.13 invalidation (manifest + selected lockfile). */
+export function planCriticalRelPaths(pm: PackageManager): string[] {
+  if (pm === "pnpm") return ["package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml"];
+  return ["package.json", "package-lock.json"];
+}
+
+/** Snapshot plan-critical files at plan time (AC5.13). */
+export function fingerprintPlanCriticalFiles(
+  projectRoot: string,
+  pm: PackageManager,
+): PlanFingerprint {
+  const entries = planCriticalRelPaths(pm).map((relPath) => ({
+    relPath,
+    digest: fileDigest(join(projectRoot, relPath)),
+  }));
+  return { entries };
+}
+
+/** True when any plan-critical file digest differs from the plan-time snapshot. */
+export function planFingerprintChanged(
+  projectRoot: string,
+  pm: PackageManager,
+  prior: PlanFingerprint,
+): boolean {
+  const now = fingerprintPlanCriticalFiles(projectRoot, pm);
+  if (now.entries.length !== prior.entries.length) return true;
+  for (let i = 0; i < prior.entries.length; i++) {
+    const a = prior.entries[i]!;
+    const b = now.entries[i]!;
+    if (a.relPath !== b.relPath || a.digest !== b.digest) return true;
+  }
+  return false;
+}
+
+/**
+ * Map a spawnSync result from a PM add/remove into PmAddResult.
+ * Signals → interrupted (AC5.15 / AC14.56).
+ */
+export function interpretPmSpawnResult(
+  pm: string,
+  args: readonly string[],
+  result: Pick<SpawnSyncReturns<string>, "status" | "signal" | "error" | "stdout" | "stderr">,
+): PmAddResult {
+  if (result.error) {
+    const err = result.error as NodeJS.ErrnoException;
+    if (err.code === "ENOENT" || /ENOENT/i.test(String(err.message))) {
+      return {
+        ok: false,
+        message: formatMissingPmGuidance(pm === "pnpm" ? "pnpm" : "npm"),
+        stderr: String(result.error),
+      };
+    }
+    return {
+      ok: false,
+      message: `Failed to spawn ${pm}: ${result.error.message}`,
+      stderr: String(result.error),
+    };
+  }
+  if (result.status === null && result.signal) {
+    const signal = String(result.signal);
+    return {
+      ok: false,
+      interrupted: true,
+      signal,
+      message: `${pm} interrupted (${signal}). ${PARTIAL_CHANGES_MAY_REMAIN}`,
+      stderr: `${result.stderr ?? ""}${result.stdout ?? ""}`,
+    };
+  }
+  if (result.status !== 0) {
+    return {
+      ok: false,
+      message: `${pm} ${args.join(" ")} failed (exit ${result.status ?? "?"})`,
+      stderr: `${result.stderr ?? ""}${result.stdout ?? ""}`,
+    };
+  }
+  return { ok: true };
+}
 
 /** True when projectRoot is a pnpm workspace root (pnpm-workspace.yaml present). */
 export function isPnpmWorkspaceRoot(projectRoot: string): boolean {
@@ -346,32 +522,18 @@ export function removeLegacyDirectivePin(projectRoot: string): boolean {
 /**
  * Exact native add of @deftai/directive-runtime@<ver> as a devDependency (INIT-13).
  * Portable spawn: shell:true on win32 (#5383).
+ * Signals → exit-path interruption (AC5.15 / AC14.56).
  */
 export function runPmExactAdd(options: PmAddOptions): PmAddResult {
   const { projectRoot, pm, version } = options;
   const args = buildPmExactAddArgs(pm, version, projectRoot);
-  const bin = pm;
-  const result = spawnSync(bin, args, {
+  const result = spawnSync(pm, args, {
     cwd: projectRoot,
     env: options.env ?? process.env,
     encoding: "utf8",
     shell: process.platform === "win32",
   });
-  if (result.error) {
-    return {
-      ok: false,
-      message: `Failed to spawn ${pm}: ${result.error.message}`,
-      stderr: String(result.error),
-    };
-  }
-  if (result.status !== 0) {
-    return {
-      ok: false,
-      message: `${pm} ${args.join(" ")} failed (exit ${result.status ?? "?"})`,
-      stderr: (result.stderr ?? "") + (result.stdout ?? ""),
-    };
-  }
-  return { ok: true };
+  return interpretPmSpawnResult(pm, args, result);
 }
 
 export interface PmRemoveOptions {
@@ -419,19 +581,5 @@ export function runPmRemove(options: PmRemoveOptions): PmAddResult {
     encoding: "utf8",
     shell: process.platform === "win32",
   });
-  if (result.error) {
-    return {
-      ok: false,
-      message: `Failed to spawn ${pm}: ${result.error.message}`,
-      stderr: String(result.error),
-    };
-  }
-  if (result.status !== 0) {
-    return {
-      ok: false,
-      message: `${pm} ${args.join(" ")} failed (exit ${result.status ?? "?"})`,
-      stderr: (result.stderr ?? "") + (result.stdout ?? ""),
-    };
-  }
-  return { ok: true };
+  return interpretPmSpawnResult(pm, args, result);
 }

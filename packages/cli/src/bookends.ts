@@ -24,13 +24,20 @@ import { checkNodeVersion } from "./node-check.js";
 import {
   detectPackageManager,
   ensurePackageJson,
+  ensurePackageManagerAvailable,
+  fingerprintPlanCriticalFiles,
   formatPmExactAddCommand,
   formatPmRemoveCommand,
+  INSTALL_SCRIPT_POLICY_PLAN_LINE,
   lockfileRecordsExactPin,
+  PARTIAL_CHANGES_MAY_REMAIN,
+  planFingerprintChanged,
+  readDeclaredPackageManagerVersion,
   removeLegacyDirectivePin,
   runPmExactAdd,
   runPmRemove,
   type PackageManager,
+  type PlanFingerprint,
   type PmAddResult,
 } from "./pm.js";
 import type { ProjectInstallState } from "./pin.js";
@@ -81,6 +88,12 @@ export interface InstallDeps {
   /** Sync Repair/Cancel menu; injected in tests; production reads stdin. */
   readonly chooseMenu?: (opts: ChooseMenuOptions) => ConfiguredMenuChoice;
   readonly env?: NodeJS.ProcessEnv;
+  /** Override Node version for plan Node best-effort disclosure (AC14.54 tests). */
+  readonly nodeVersion?: string;
+  /** Override PM availability preflight (AC5.8 / AC14.45 tests). */
+  readonly checkPmAvailable?: (
+    pm: PackageManager,
+  ) => { ok: true } | { ok: false; message: string };
   readonly resolveLatest?: () =>
     | Promise<{ ok: true; version: string } | { ok: false; message: string }>
     | { ok: true; version: string }
@@ -211,6 +224,61 @@ function printPlan(
   for (const line of lines) {
     io.writeOut(`  ${line}\n`);
   }
+}
+
+/** AC5.1 / AC14.54 — install-script policy + Node best-effort note when applicable. */
+function appendCommonPlanDisclosures(
+  lines: string[],
+  deps: Pick<InstallDeps, "nodeVersion">,
+): void {
+  lines.push(INSTALL_SCRIPT_POLICY_PLAN_LINE);
+  const node = checkNodeVersion(deps.nodeVersion);
+  if (node.warning) {
+    lines.push(`node: ${node.warning}`);
+  }
+}
+
+/** AC5.8 / AC14.45 — fail before mutation when the selected PM is not on PATH. */
+function preflightPmAvailable(
+  projectRoot: string,
+  pm: PackageManager,
+  deps: Pick<InstallDeps, "checkPmAvailable" | "env">,
+  io: BookendIo,
+): number | null {
+  const declaredVersion = readDeclaredPackageManagerVersion(projectRoot);
+  const check =
+    deps.checkPmAvailable?.(pm) ??
+    ensurePackageManagerAvailable(pm, deps.env ?? process.env, declaredVersion);
+  if (check.ok) return null;
+  io.writeErr(`${check.message}\n`);
+  return EXIT_CODES.FAILURE;
+}
+
+/** AC5.13 — abort when plan-critical files changed after the plan was shown. */
+function assertPlanStillValid(
+  projectRoot: string,
+  pm: PackageManager,
+  fingerprint: PlanFingerprint,
+  io: BookendIo,
+): number | null {
+  if (!planFingerprintChanged(projectRoot, pm, fingerprint)) return null;
+  io.writeErr(
+    "Plan invalidated: relevant project files changed after the plan was shown. Re-run the command.\n",
+  );
+  return EXIT_CODES.FAILURE;
+}
+
+/** Map PM add/remove failure to exit code; interruption → 130 (AC5.15 / AC14.56). */
+function reportPmFailure(io: BookendIo, add: Extract<PmAddResult, { ok: false }>): number {
+  io.writeErr(`${add.message}\n`);
+  if (add.stderr) io.writeErr(`${add.stderr}\n`);
+  if (add.interrupted) {
+    if (!/partial changes may remain/i.test(add.message)) {
+      io.writeErr(`${PARTIAL_CHANGES_MAY_REMAIN}\n`);
+    }
+    return EXIT_CODES.INTERRUPTED;
+  }
+  return EXIT_CODES.FAILURE;
 }
 
 /** Read one line from stdin (fd 0) without depending on readline async. */
@@ -434,6 +502,9 @@ function runFirstInstall(
     return EXIT_CODES.USAGE;
   }
 
+  const pmMissing = preflightPmAvailable(projectRoot, pmDetect.pm, deps, io);
+  if (pmMissing !== null) return pmMissing;
+
   let targetVersion: string;
   if (flags.targetVersion !== null) {
     const validated = validateTargetVersionSpec(flags.targetVersion);
@@ -462,7 +533,7 @@ function runFirstInstall(
   const willCreatePkg = !existsSync(join(projectRoot, "package.json"));
   const pmCmd = formatPmExactAddCommand(pmDetect.pm, targetVersion, projectRoot);
 
-  printPlan(io, [
+  const planLines = [
     `operation: install (first-time)`,
     `root: ${projectRoot}`,
     `package manager: ${pmDetect.pm} (${pmDetect.evidence})`,
@@ -473,7 +544,10 @@ function runFirstInstall(
     `PM command: ${pmCmd}`,
     `expected: package.json pin + lockfile update via PM`,
     `setup: runtime setup --operation install --from none (wiring, GENERATION.json, readiness; may create missing seed placeholders)`,
-  ]);
+  ];
+  appendCommonPlanDisclosures(planLines, deps);
+  printPlan(io, planLines);
+  const planFp = fingerprintPlanCriticalFiles(projectRoot, pmDetect.pm);
 
   if (flags.dryRun) {
     io.writeOut("[dry-run] no changes made.\n");
@@ -488,6 +562,9 @@ function runFirstInstall(
   );
   if (approval !== null) return approval;
 
+  const stale = assertPlanStillValid(projectRoot, pmDetect.pm, planFp, io);
+  if (stale !== null) return stale;
+
   if (willCreatePkg) {
     ensurePackageJson(projectRoot);
     io.writeOut("Created package.json { \"private\": true }\n");
@@ -497,9 +574,7 @@ function runFirstInstall(
     deps.runPmAdd?.({ projectRoot, pm: pmDetect.pm, version: targetVersion }) ??
     runPmExactAdd({ projectRoot, pm: pmDetect.pm, version: targetVersion, env });
   if (!add.ok) {
-    io.writeErr(`${add.message}\n`);
-    if ("stderr" in add && add.stderr) io.writeErr(`${add.stderr}\n`);
-    return EXIT_CODES.FAILURE;
+    return reportPmFailure(io, add);
   }
 
   // Verify pin + installed version (INIT-14)
@@ -570,9 +645,14 @@ function runRepair(
     state.contractSupported;
   const needsPmRestore = !lockOk || !installedOk;
 
+  if (needsPmRestore) {
+    const pmMissing = preflightPmAvailable(projectRoot, pmDetect.pm, deps, io);
+    if (pmMissing !== null) return pmMissing;
+  }
+
   const pmCmd = formatPmExactAddCommand(pmDetect.pm, pinVersion, projectRoot);
 
-  printPlan(io, [
+  const planLines = [
     `operation: repair`,
     `root: ${projectRoot}`,
     `package manager: ${pmDetect.pm} (${pmDetect.evidence})`,
@@ -582,7 +662,10 @@ function runRepair(
       : `PM: none (lockfile records pin; installed package matches)`,
     needsPmRestore ? `PM command: ${pmCmd}` : `PM command: (none)`,
     `setup: runtime setup --operation repair --from ${pinVersion} (wiring/GENERATION/readiness; does not create seed files; never migrates xbrief)`,
-  ]);
+  ];
+  appendCommonPlanDisclosures(planLines, deps);
+  printPlan(io, planLines);
+  const planFp = fingerprintPlanCriticalFiles(projectRoot, pmDetect.pm);
 
   if (flags.dryRun) {
     io.writeOut("[dry-run] no changes made.\n");
@@ -597,14 +680,15 @@ function runRepair(
   );
   if (approval !== null) return approval;
 
+  const stale = assertPlanStillValid(projectRoot, pmDetect.pm, planFp, io);
+  if (stale !== null) return stale;
+
   if (needsPmRestore) {
     const add =
       deps.runPmAdd?.({ projectRoot, pm: pmDetect.pm, version: pinVersion }) ??
       runPmExactAdd({ projectRoot, pm: pmDetect.pm, version: pinVersion, env });
     if (!add.ok) {
-      io.writeErr(`${add.message}\n`);
-      if ("stderr" in add && add.stderr) io.writeErr(`${add.stderr}\n`);
-      return EXIT_CODES.FAILURE;
+      return reportPmFailure(io, add);
     }
   }
 
@@ -952,6 +1036,12 @@ export function runUpgrade(
     }
   }
 
+  // Version-changing upgrades need the PM; equal-version setup/migrate may not.
+  if (versionChange) {
+    const pmMissing = preflightPmAvailable(projectRoot, pmDetect.pm, deps, io);
+    if (pmMissing !== null) return pmMissing;
+  }
+
   const pmCmd = versionChange
     ? formatPmExactAddCommand(pmDetect.pm, targetVersion, projectRoot)
     : "(none)";
@@ -984,7 +1074,9 @@ export function runUpgrade(
       `replace: ${LAUNCHER_PACKAGE_NAME} pin → ${RUNTIME_PACKAGE_NAME}@${targetVersion}`,
     );
   }
+  appendCommonPlanDisclosures(planLines, deps);
   printPlan(io, planLines);
+  const planFp = fingerprintPlanCriticalFiles(projectRoot, pmDetect.pm);
 
   if (flags.dryRun) {
     io.writeOut("[dry-run] no changes made.\n");
@@ -1001,6 +1093,9 @@ export function runUpgrade(
   );
   if (approval !== null) return approval;
 
+  const stale = assertPlanStillValid(projectRoot, pmDetect.pm, planFp, io);
+  if (stale !== null) return stale;
+
   if (versionChange) {
     // AC10.3: replace pre-split @deftai/directive pin before PM adds the runtime.
     if (state.oldStyle) {
@@ -1010,9 +1105,7 @@ export function runUpgrade(
       deps.runPmAdd?.({ projectRoot, pm: pmDetect.pm, version: targetVersion }) ??
       runPmExactAdd({ projectRoot, pm: pmDetect.pm, version: targetVersion, env });
     if (!add.ok) {
-      io.writeErr(`${add.message}\n`);
-      if ("stderr" in add && add.stderr) io.writeErr(`${add.stderr}\n`);
-      return EXIT_CODES.FAILURE;
+      return reportPmFailure(io, add);
     }
 
     const after = readProjectInstallState(projectRoot);
@@ -1272,8 +1365,11 @@ export function runUninstall(
           deps.runPmRemove?.({ projectRoot, pm: pmDetect.pm, packageName }) ??
           runPmRemove({ projectRoot, pm: pmDetect.pm, packageName, env });
         if (!rm.ok) {
+          if (rm.interrupted) {
+            return reportPmFailure(io, rm);
+          }
           io.writeErr(`${rm.message}\n`);
-          if ("stderr" in rm && rm.stderr) io.writeErr(`${rm.stderr}\n`);
+          if (rm.stderr) io.writeErr(`${rm.stderr}\n`);
           io.writeErr(
             `PM remove of ${packageName} failed; continuing remaining uninstall steps.\n`,
           );
