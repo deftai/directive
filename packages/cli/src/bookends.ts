@@ -1036,6 +1036,12 @@ export function runDoctor(
     return EXIT_CODES.FAILURE;
   }
 
+  // Bare --root / cwd with no Directive pin is still "not a project" (AC14.27).
+  if (state.pin.kind === "none") {
+    io.writeErr("No Directive project here. Run `directive install`.\n");
+    return EXIT_CODES.FAILURE;
+  }
+
   const pinLabel = state.pin.version ?? state.pin.raw ?? "(none)";
   const installedLabel = state.installed?.version ?? "(missing)";
 

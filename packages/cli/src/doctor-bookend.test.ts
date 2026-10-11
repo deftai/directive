@@ -43,6 +43,19 @@ describe("runDoctor launcher basic diagnosis (AC12.4)", () => {
     expect(c.err() + c.out()).toMatch(/directive install/);
   });
 
+  it("pin kind none under --root is still no project (AC14.27)", () => {
+    const c = capture();
+    const code = runDoctor(
+      "/tmp",
+      baseState({ pin: { kind: "none", version: null, raw: null }, pinMatchesInstalled: false }),
+      [],
+      "9.9.9",
+      c.io,
+    );
+    expect(code).toBe(EXIT_CODES.FAILURE);
+    expect(c.err() + c.out()).toMatch(/No Directive project here/);
+  });
+
   it("missing installed runtime → AC9.7, no global-runtime remedy", () => {
     const c = capture();
     const code = runDoctor("/tmp/proj", baseState(), [], "9.9.9", c.io);
