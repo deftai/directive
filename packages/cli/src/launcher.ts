@@ -57,6 +57,14 @@ function printHelp(version: string, io: LauncherIo): void {
       `\n` +
       `First-time: npm i -g @deftai/directive && directive install\n` +
       `Repair:     ${RECOVERY_GUIDANCE}\n` +
+      `Upgrade:    directive upgrade\n` +
+      `Uninstall:  directive uninstall\n` +
+      `\n` +
+      `Automation examples:\n` +
+      `  directive install --yes\n` +
+      `  directive install --repair --yes\n` +
+      `  directive upgrade --yes\n` +
+      `  directive uninstall --dry-run\n` +
       `\n` +
       `Options:\n` +
       `  --version, -V              Show launcher / pin status\n` +
@@ -185,15 +193,31 @@ export function runLauncher(
   }
 
   if (RETIRED_INSTALL_VERBS.has(cmd) || (rawCmd !== undefined && RETIRED_INSTALL_VERBS.has(rawCmd))) {
+    const suggestion =
+      rawCmd === "migrate" || cmd === "migrate" || rawCmd === "install-upgrade"
+        ? "Did you mean: upgrade?\n"
+        : rawCmd === "sync" || rawCmd === "bootstrap"
+          ? "Did you mean: install?\n"
+          : rawCmd === "install-uninstall"
+            ? "Did you mean: uninstall?\n"
+            : "";
     io.writeErr(
       `Unknown command '${rawCmd}'. Known installation commands: install, upgrade, uninstall, doctor.\n` +
-        (rawCmd === "migrate" || cmd === "migrate"
-          ? "Did you mean: upgrade?\n"
-          : rawCmd === "sync" || rawCmd === "bootstrap"
-            ? "Did you mean: install?\n"
-            : ""),
+        suggestion,
     );
     return EXIT_CODES.USAGE;
+  }
+
+  // AC13.6: "doctor fix" is retired — doctor is read-only.
+  if (cmd === "doctor") {
+    const positional = cmdArgv.find((a) => !a.startsWith("-"));
+    if (positional === "fix") {
+      io.writeErr(
+        "Unknown command 'doctor fix'. Doctor is read-only. Known installation commands: install, upgrade, uninstall, doctor.\n" +
+          "Did you mean: install --repair?\n",
+      );
+      return EXIT_CODES.USAGE;
+    }
   }
 
   const cmdWantsHelp = cmdArgv.includes("--help") || cmdArgv.includes("-h");

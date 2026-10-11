@@ -9,13 +9,23 @@ import { resolveCanonicalVerb } from "../dispatch.js";
 export const TOP_LEVEL_UX_VERBS = [
   "init",
   "update",
-  "migrate",
-  "bootstrap",
   "check",
   "doctor",
   "version",
   "feature",
 ] as const;
+
+/**
+ * Retired installation verbs (AC13.6 / AC3.16). Unknown-command — not revived.
+ * Contract migrate remains via the Contract 1 entry; this is the user-facing CLI verb.
+ */
+export const RETIRED_TOP_LEVEL_INSTALL_VERBS = new Set([
+  "migrate",
+  "bootstrap",
+  "sync",
+  "install-upgrade",
+  "install-uninstall",
+]);
 
 /** Stubbed until a later story lands the handler (#1670 / #11). */
 export const STUBBED_TOP_LEVEL_VERBS = new Set<string>([]);
@@ -187,14 +197,35 @@ function isMetaVerb(token: string): boolean {
   return token === "--help" || token === "-h" || token === "--version" || token === "-V";
 }
 
+function retiredInstallStub(first: string): RoutedArgv {
+  const suggestion =
+    first === "migrate" || first === "install-upgrade"
+      ? " Did you mean: upgrade?"
+      : first === "bootstrap" || first === "sync"
+        ? " Did you mean: install?"
+        : first === "install-uninstall"
+          ? " Did you mean: uninstall?"
+          : "";
+  return {
+    kind: "stub",
+    argv: [],
+    stubMessage:
+      `Unknown command '${first}'. Known installation commands: install, upgrade, uninstall, doctor.` +
+      suggestion,
+  };
+}
+
 function routeTopLevel(first: string, rest: string[]): RoutedArgv | null {
+  if (RETIRED_TOP_LEVEL_INSTALL_VERBS.has(first)) {
+    return retiredInstallStub(first);
+  }
   if (first === "version") {
     return { kind: "dispatch", argv: ["--version", ...rest] };
   }
   if (first === "check" || first === "doctor") {
     return { kind: "dispatch", argv: [first, ...rest] };
   }
-  if (first === "init" || first === "update" || first === "migrate" || first === "bootstrap") {
+  if (first === "init" || first === "update") {
     return { kind: "dispatch", argv: [first, ...rest] };
   }
   if (STUBBED_TOP_LEVEL_VERBS.has(first)) {

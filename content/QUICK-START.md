@@ -4,39 +4,19 @@ You are reading this because a user told you to, or because a stale `AGENTS.md` 
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-## Installing Deft (canonical — npm)
+## Installing Deft (canonical — two packages)
 
-! If Deft is **not yet installed** and you were told to "install Deft into this directory," the canonical install is npm (Node ≥ 20 required):
+! If Directive is **not yet installed** and you were told to "install Deft into this directory," use the global launcher + project install (Node **22 or 24** preferred; Node 20 best-effort):
 
 ```bash
 npm i -g @deftai/directive
+directive install          # alias: init — pins @deftai/directive-runtime
+directive doctor
 ```
 
-Once installed, run `directive` (or the `deft` alias) from your project directory. Continue with Step 1 below.
+After a fresh clone or new worktree: `npm install` / `pnpm install`, then the first eligible runtime command or registered hook completes local activation. Repair: `directive install --repair`. Upgrade: `directive upgrade` (alias `update`). See [docs/launcher.md](./docs/launcher.md) and [docs/known-limitations.md](./docs/known-limitations.md).
 
-### Legacy / offline install (frozen Go installer, #1912)
-
-Node ≥ 20 is required to **run** Deft regardless of how it's installed — the Go installer only deposits files on disk, so install Node first ([nvm](https://github.com/nvm-sh/nvm) / your OS package manager / [nodejs.org](https://nodejs.org/)) and prefer the npm command above. Use the Go installer only for an **offline / air-gapped** deposit or to **migrate a legacy on-disk layout**. Do NOT build from a source checkout and do NOT guess a path. Each one-liner downloads the correct release binary from `releases/latest/download`, makes it executable, then runs it headless.
-
-**macOS (Intel + Apple Silicon):**
-
-```bash
-curl -fsSL -o /tmp/deft-install https://github.com/deftai/directive/releases/latest/download/install-macos-universal && chmod +x /tmp/deft-install && /tmp/deft-install --yes --repo-root . --json
-```
-
-**Linux** (amd64; use `install-linux-arm64` on Raspberry Pi / ARM):
-
-```bash
-curl -fsSL -o /tmp/deft-install https://github.com/deftai/directive/releases/latest/download/install-linux-amd64 && chmod +x /tmp/deft-install && /tmp/deft-install --yes --repo-root . --json
-```
-
-**Windows** (PowerShell; use `install-windows-arm64.exe` on Surface / Copilot+ PCs):
-
-```powershell
-Invoke-WebRequest -Uri https://github.com/deftai/directive/releases/latest/download/install-windows-amd64.exe -OutFile $env:TEMP\deft-install.exe; & $env:TEMP\deft-install.exe --yes --repo-root . --json
-```
-
-⊗ Do NOT `go build` from a source checkout or a developer-specific path (e.g. a hardcoded `/Users/<name>/...` clone). Once the installer finishes, continue with Step 1 below.
+The Go installer has been removed. Supported latest-legacy layouts convert with `directive upgrade`. Continue with Step 1 below.
 
 ## Step 1 — Detect project state
 
@@ -55,7 +35,7 @@ Do **not** parse managed-section markers, byte-compare an attributed block again
 
 Three checks here, in this order. The first match wins; later checks only run when earlier checks pass.
 
-1. **Classifier (Case G gate).** Run `deft agents:refresh --check` (or `deft doctor`). If the CLI is not on PATH, run `npx @deftai/directive agents:refresh --check` or `npm i -g @deftai/directive` then the same verb. If the payload is missing, run `deft update`. Pre-canonical layout: frozen Go bridge (see UPGRADING.md / GitHub releases).
+1. **Classifier (Case G gate).** Run `deft agents:refresh --check` (or `deft doctor`). If the CLI is not on PATH, `npm i -g @deftai/directive` then the same verb. Wiring/runtime missing: `directive install --repair`. Supported legacy layout: `directive upgrade`.
    - ! If state is **stale**, **missing**, **absent**, or **unreadable**, treat as **stale content** -- jump to Case G ("Stale AGENTS.md") in Step 2. Case G remediates with the registered rewrite, not a hand-append.
    - If state is **current**, continue to the install-path check below.
 2. **Install-path resolution (Case K gate -- #1046 PR-A).** When the classifier reports **current**, parse the section for its install-path declaration (`Full guidelines: <root>/main.md`, e.g. `.deft/core/main.md` for the canonical install layout or `deft/main.md` for the legacy install layout). Verify that `../<root>/main.md` exists on disk.

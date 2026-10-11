@@ -3126,8 +3126,6 @@ export function registeredVerbs(): readonly string[] {
 const TOP_LEVEL_COMMAND_NAMES = [
   "init",
   "update",
-  "migrate",
-  "bootstrap",
   "doctor",
   "check",
 ] as const;
@@ -3449,6 +3447,15 @@ function versionBanner(): string {
 }
 
 /** Dispatch argv to a registered verb; returns the handler exit code. */
+/** Retired installation verbs — unknown-command, not revived (AC13.6 / AC3.16). */
+const RETIRED_INSTALL_DISPATCH_VERBS = new Set([
+  "migrate",
+  "bootstrap",
+  "sync",
+  "install-upgrade",
+  "install-uninstall",
+]);
+
 export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Promise<number> {
   if (argv[0] === "--version" || argv[0] === "-V") {
     io.writeOut(versionBanner());
@@ -3462,6 +3469,22 @@ export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Pr
 
   const [verb, ...rest] = argv;
 
+  if (verb !== undefined && RETIRED_INSTALL_DISPATCH_VERBS.has(verb)) {
+    const suggestion =
+      verb === "migrate" || verb === "install-upgrade"
+        ? " Did you mean: upgrade?"
+        : verb === "bootstrap" || verb === "sync"
+          ? " Did you mean: install?"
+          : verb === "install-uninstall"
+            ? " Did you mean: uninstall?"
+            : "";
+    io.writeErr(
+      `Unknown command '${verb}'. Known installation commands: install, upgrade, uninstall, doctor.` +
+        `${suggestion}\n`,
+    );
+    return 2;
+  }
+
   if (verb === "commands") {
     printCommandsList(io);
     return 0;
@@ -3473,6 +3496,17 @@ export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Pr
       io.writeErr(unknownColonVerbHint(verb));
     }
     return 1;
+  }
+
+  // Alias `upgrade` → install-upgrade must not revive the retired install verb (AC13.6).
+  if (canonical === "install-upgrade" || canonical === "install-uninstall") {
+    const suggestion =
+      canonical === "install-upgrade" ? " Did you mean: upgrade?" : " Did you mean: uninstall?";
+    io.writeErr(
+      `Unknown command '${verb}'. Known installation commands: install, upgrade, uninstall, doctor.` +
+        `${suggestion}\n`,
+    );
+    return 2;
   }
 
   try {

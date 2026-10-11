@@ -2,9 +2,8 @@
  * CLI router entry: `directive <namespace> <verb>` → flat dispatcher (#1670 / #11 S3).
  */
 
-import { type DispatchIo, dispatch, runDirectiveBootstrap } from "../dispatch.js";
+import { type DispatchIo, dispatch } from "../dispatch.js";
 import { runInit } from "../init-cli/init.js";
-import { runMigrate } from "../init-cli/migrate.js";
 import { runUpdate } from "../init-cli/update.js";
 import { routeArgv } from "./route-argv.js";
 
@@ -22,6 +21,7 @@ function defaultIo(): DispatchIo {
 export {
   DEFERRED_TOP_LEVEL_VERBS,
   PR_VERB_MAP,
+  RETIRED_TOP_LEVEL_INSTALL_VERBS,
   type RoutedArgv,
   type RouteKind,
   routeArgv,
@@ -49,12 +49,6 @@ export async function routeAndDispatch(argv: readonly string[], io?: DispatchIo)
   }
   if (first === "update") {
     return runUpdate(rest, io ?? defaultIo());
-  }
-  if (first === "migrate") {
-    return runMigrate(rest, io ?? defaultIo());
-  }
-  if (first === "bootstrap") {
-    return runDirectiveBootstrap(rest, io ?? defaultIo());
   }
 
   return dispatch(routed.argv, io);

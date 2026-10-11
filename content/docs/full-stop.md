@@ -15,7 +15,7 @@ Keep these separate.
 | Goal | Existing path | What it is not |
 | --- | --- | --- |
 | Stop using Directive in this project | [`.no-deft-directive`](./no-deft-directive.md) / `directive policy:disable-directive` | Not uninstall. Those docs already forbid auto-delete of the deposit. |
-| Full stop (this page) | Ordered strip below, then uninstall | Not opt-out. Not the [temporary kill-switch](./deft-directive-disable.md). |
+| Full stop (this page) | Ordered strip below, then `directive uninstall` | Not opt-out. Not the [temporary kill-switch](./deft-directive-disable.md). |
 
 ⊗ Do not fold `policy:disable-directive` into the uninstall command list. That mixes two goals.
 

@@ -37,43 +37,32 @@ Agents Lie, Cheat, and Steal (LCS). Directive is the practice layer that helps p
 
 ## 🚀 Getting Started
 
-Directive is three commands — `init`, `update`, and `doctor`. After install, walk the [first-project tutorial](./content/docs/getting-started.md). Hands-on learning: the [Directive training course](https://github.com/deftai/directive-training).
+Two packages: global **`@deftai/directive`** (launcher) and project-pinned **`@deftai/directive-runtime`**. Installation management: `install`, `upgrade`, `uninstall`, `doctor` (aliases `init` / `update` / `remove`). Walk the [first-project tutorial](./content/docs/getting-started.md). Launcher details: [launcher.md](./content/docs/launcher.md). Limitations: [known-limitations.md](./content/docs/known-limitations.md).
 
-| Your situation | Run this one command | What it does |
+| Your situation | Run this | What it does |
 | --- | --- | --- |
-| New, empty project directory | `directive init` | Scaffolds a fresh Directive deposit (`.deft/core/`, the `AGENTS.md` managed section, the `xbrief/` layout, and a committed `package.json` pin). |
-| Existing codebase (app code, no Directive yet) | `directive init` | Installs Directive support beside your code without disturbing it, then points you at brownfield spec extraction. |
-| Existing Directive project (already initialized) | `directive update` | Refreshes the vendored payload and self-heals the engine. (`init` detects this state and delegates to `update` with a disclosure line — it never re-scaffolds an existing install.) |
-| Not sure, or something looks broken | `directive doctor --full` | Read-only diagnosis. Bare `directive doctor` may throttle-skip (24h clean / 4h dirty); `--full` re-probes and prints exactly one next step. |
-| Legacy / pre-v0.20 layout | `directive init` (or `directive doctor`) | Classifies the layout and routes you to the specific migration path (see [UPGRADING.md](./content/UPGRADING.md)). |
-
-`directive init` is the **universal entrypoint**. `directive` (the `deft` alias also works) runs any verb; `npx @deftai/directive <verb>` or `pnpm dlx @deftai/directive <verb>` runs one without a global install.
+| New project | `directive install` | Exact runtime pin + setup (alias: `init`) |
+| Clone / new worktree | `pnpm install` / `npm install`, then any eligible command | Materializes the runtime; first eligible invocation completes local activation |
+| Wiring broken; keep pin | `directive install --repair` | Restores pin + owned wiring |
+| Move version / migrate data | `directive upgrade` | Alias: `update` |
+| Remove project wiring | `directive uninstall` | Alias: `remove`; preserves xbrief/settings/user prose |
+| Not sure | `directive doctor` | Read-only diagnosis |
+| Supported latest legacy (pre-split + `.deft/core`) | `directive upgrade` | Converts to runtime pin |
 
 ### 1. Install and initialize
 
 ```bash
 npm i -g @deftai/directive
+# or: pnpm add -g @deftai/directive
+directive install
+directive doctor
 ```
 
-**Using pnpm?** Same package, same registry:
+**Node runtime (AC16.2):** Supported (tested as a gate) Node lines are **22 and 24**. Node 20 is best-effort with a warning; Node &lt; 20 is refused. Also need **Git**, **GitHub CLI (`gh`)**, and **npm or pnpm**. Framework maintainers: see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
-```bash
-pnpm add -g @deftai/directive
-```
+**Tracked vs ignored:** the exact `@deftai/directive-runtime` pin and owned wiring are committed; `node_modules` and per-checkout `.deft/directive/wiring-ready.*.json` are ignored. There is no copied `.deft/core/` content.
 
-Make sure pnpm's global bin directory is on your `PATH` (run `pnpm setup` once to configure `PNPM_HOME`). Then:
-
-```bash
-directive init      # classify this directory and set up (or route) accordingly
-directive doctor --full    # confirm the install; --full bypasses throttle
-directive toolchain:check --consumer
-```
-
-**Node runtime (required):** Install **Node 20+**, **Git**, **GitHub CLI (`gh`)**, and the package manager you use (`npm` is bundled with Node; pnpm is an alternative). After `directive init`, confirm with `directive doctor --full` and `directive toolchain:check --consumer`. That consumer probe always checks Node, git, gh, and the selected manager (`npm` or `pnpm`). It does not require Python, uv, Go, or Task. Framework maintainers building this repository use a separate Node 24 pin plus pnpm, Go, and Task; see [CONTRIBUTING.md](./CONTRIBUTING.md). See [UPGRADING.md § Node runtime](./content/UPGRADING.md#node-runtime-1828--1530) for details.
-
-**What gets tracked vs ignored:** `init` and `update` add Directive's local-only artifacts to your `.gitignore` — the reconstitutable deposit `.deft/core/`, the per-platform engine cache `.deft/.cli/`, session/ritual state such as `.deft/ritual-state.json`, and the `.deft-cache/` content cache. Your committed `package.json` pin is **never** ignored: it is the anchor that lets `directive init` / `directive update` reconstitute `.deft/core/` on a fresh clone, so it stays tracked in version control.
-
-> **🔄 Upgrading an existing Directive project?** The ordinary path is `directive update` from your project root (after `npm i -g @deftai/directive@latest`, or `pnpm add -g @deftai/directive@latest` on pnpm). See [UPGRADING.md](./content/UPGRADING.md) for the canonical steps and the advanced/big-jump detail. On **npm v12**, install scripts and non-registry sources are opt-in — [UPGRADING.md § npm v12 install-time security defaults](./content/UPGRADING.md#npm-v12-install-time-security-defaults) (Directive packages need no allowlist; app trees may). **Agents:** ! Read [UPGRADING.md](./content/UPGRADING.md) on the first session after a framework update.
+> **🔄 Upgrading?** `npm i -g @deftai/directive@latest`, then `directive upgrade`. Wiring-only: `directive install --repair`. See [UPGRADING.md](./content/UPGRADING.md). **Agents:** ! Read UPGRADING on the first session after a framework update.
 
 > **📦 Brownfield adoption:** Adding Deft to an existing project with pre-v0.20 `SPECIFICATION.md` / `PROJECT.md`? See [docs/BROWNFIELD.md](./content/docs/BROWNFIELD.md) and UPGRADING.md § Frozen pre-v0.20 document-model migration (#2068).
 

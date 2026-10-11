@@ -1994,14 +1994,15 @@ describe("directive bootstrap (#2022 Phase 4)", () => {
     expect(err.join("")).toBe("");
   });
 
-  it("routeAndDispatch routes top-level bootstrap without stub error", async () => {
+  it("routeAndDispatch retires top-level bootstrap as unknown-command (AC13.6)", async () => {
     const { io, out, err } = captureIo();
 
     const code = await routeAndDispatch(["bootstrap", "--project-root", root], io);
 
-    expect(code).toBe(0);
-    expect(err.join("")).not.toContain("not yet implemented");
-    expect(out.join("")).toContain(SETUP_SKILL_REL_PATH);
+    expect(code).toBe(2);
+    expect(err.join("")).toMatch(/Unknown command 'bootstrap'/i);
+    expect(err.join("")).toMatch(/install, upgrade, uninstall, doctor/);
+    expect(out.join("")).not.toContain(SETUP_SKILL_REL_PATH);
   });
 });
 

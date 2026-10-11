@@ -1,39 +1,36 @@
-# Hook runtime unavailable: `deft-hook` is not on PATH
+# Hook runtime unavailable
 
-On a host that cannot execute `deft-hook`, the Cursor `preToolUse` registration is `failClosed: true`, so **every mutation is denied** — and because the binary never runs, no Directive code is left to say why. The visible symptom is an opaque non-zero exit, typically **127** (command not found).
+Current Directive hooks invoke `node node_modules/@deftai/directive-runtime/dist/hook-bin.js …` (not bare `deft-hook` on PATH). When the runtime package is absent, Node reports `Cannot find module '…/directive-runtime/dist/hook-bin.js'`. Hosts with `failClosed: true` then deny mutations.
 
-Tracker: [#3785](https://github.com/deftai/directive/issues/3785). Related: [#3736](https://github.com/deftai/directive/issues/3736) (timeout), [#3571](https://github.com/deftai/directive/issues/3571) (unused-host recovery), [#2752](https://github.com/deftai/directive/issues/2752) (per-host toggles).
+Tracker: [#3785](https://github.com/deftai/directive/issues/3785). Related: [#3736](https://github.com/deftai/directive/issues/3736), [#3571](https://github.com/deftai/directive/issues/3571), [#2752](https://github.com/deftai/directive/issues/2752).
 
 ## Who hits this
 
-The registration travels via git; the runtime does not. `.cursor/hooks.json` is trackable by design and the `.deft/core/` deposit is born-ignored, so any environment that gets the repo without a Node install of the CLI inherits the fence without the implementation:
+Hook registrations are committed; `node_modules` is not. Fresh clones, new worktrees, cloud agent VMs, and CI images that skip the project package install inherit the fence without the package.
 
-- cloud agent VMs whose image has no Node and no global install
-- CI runners and containers that never run `npm i -g @deftai/directive`
-- a fresh clone on a new workstation
+## Preferred recovery (AC9.7)
 
-## Recovery is out of band
+```bash
+npm i -g @deftai/directive
+# in the project (after pull/clone):
+npm install   # or pnpm install
+directive install --repair
+```
 
-There is no in-session escape. Run this from a shell where Node and the CLI **are** available — your workstation, or the repo before you push it:
+CI / swarm images may use `directive install --repair --yes` with a valid exact pin.
+
+## Out-of-band escape (disable Cursor hooks)
+
+If you must clear a lockout without restoring the package, from a shell that still has the CLI:
 
 ```bash
 deft policy:disable-host-hooks --host cursor --confirm
+directive upgrade   # or install --repair — refresh owned hook wiring
 ```
 
-That sets `plan.policy.hostHooks.cursor = false` in `xbrief/PROJECT-DEFINITION.xbrief.json`, and the next `deft update` strips the Cursor registration. Commit and push; the locked-out environment clears on its next pull or fresh clone.
+If the goal is to remove Directive entirely, follow the [full-stop recipe](./full-stop.md) before uninstalling — leftover `.cursor/hooks.json` can remain failClosed authority.
 
-If the goal is to remove Directive, do not uninstall first. Leftover `.cursor/hooks.json` is live failClosed authority after the CLI is gone. Follow the [full-stop recipe](./full-stop.md).
-
-⚠ Capability cost: disabling `hostHooks` for a host removes `deft-hook` pre-execution guardrails for anyone who later opens this repo in that host. The change is tracked and recorded to `meta/policy-changes.log`. Inspect with `deft policy:show --field=hostHooks`; reverse by setting the host back to `true` and running `deft update`.
-
-## Preferred fix: make the runtime travel with the registration
-
-If Cursor is a host you rely on, restore the runtime rather than removing the fence. Either:
-
-- commit a `package.json` dependency on `@deftai/directive` — a published version or another spec a clone can fetch, since a location spec (`file:`, `link:`, `../directive`, an absolute path) resolves only on the machine that wrote it — and run `npm install` in the image or clone, which puts `deft-hook` in `node_modules/.bin`; or
-- add `npm i -g @deftai/directive` to the image build.
-
-`deft init` and `deft update` warn when a hook registration travels with the repository — already committed, or merely untracked and not ignored, so the next `git add` carries it — while neither anchor is present. The warning names the affected file and this document.
+See also [launcher.md](./launcher.md) and [known-limitations.md](./known-limitations.md).
 
 ## ⊗ Do not hand-edit `failClosed` in the deposited hook file
 

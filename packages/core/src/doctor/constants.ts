@@ -60,7 +60,7 @@ export function recoveryLadderProse(primary: RecoveryLadderPrimary): string {
     `Run \`${f.suggested_fix}\`. Installation/wiring faults: \`${RECOVERY_LADDER_INSTALL_REPAIR}\`. ` +
     `Data/schema migration: \`${RECOVERY_LADDER_UPDATE}\`. ` +
     `Launcher missing: \`${f.suggested_fix_npm_global}\`. ` +
-    `Pre-canonical layout: frozen Go bridge at ${f.go_bridge_releases_url} (see ${f.upgrading_doc_url}).`
+    `Supported legacy layout: \`directive upgrade\` (see ${f.upgrading_doc_url}).`
   );
 }
 

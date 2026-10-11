@@ -1,28 +1,32 @@
 import { mainEntry as githubBodyMainEntry } from "@deftai/directive-core/dist/intake/github-body-cli.js";
 import { describe, expect, it } from "vitest";
-import { routeArgv, SCM_BODY_COLON_VERBS, TOP_LEVEL_UX_VERBS } from "./route-argv.js";
+import {
+  RETIRED_TOP_LEVEL_INSTALL_VERBS,
+  routeArgv,
+  SCM_BODY_COLON_VERBS,
+  TOP_LEVEL_UX_VERBS,
+} from "./route-argv.js";
 
-describe("route-argv: migrate top-level verb (#1941)", () => {
-  it("registers migrate in the #1670 top-level UX vocabulary", () => {
-    expect(TOP_LEVEL_UX_VERBS).toContain("migrate");
+describe("route-argv: retired install verbs (AC13.6 / #5490 wave 2h)", () => {
+  it("does not list migrate/bootstrap in the top-level UX vocabulary", () => {
+    expect(TOP_LEVEL_UX_VERBS).not.toContain("migrate");
+    expect(TOP_LEVEL_UX_VERBS).not.toContain("bootstrap");
   });
 
-  it("routes `migrate` to a dispatch with the migrate verb preserved", () => {
-    const routed = routeArgv(["migrate"]);
-    expect(routed.kind).toBe("dispatch");
-    expect(routed.argv).toEqual(["migrate"]);
-  });
+  it.each(["migrate", "bootstrap", "sync", "install-upgrade", "install-uninstall"] as const)(
+    "retired verb %s stubs as unknown-command",
+    (verb) => {
+      expect(RETIRED_TOP_LEVEL_INSTALL_VERBS.has(verb)).toBe(true);
+      const routed = routeArgv([verb]);
+      expect(routed.kind).toBe("stub");
+      expect(routed.stubMessage ?? "").toMatch(/Unknown command/i);
+      expect(routed.stubMessage ?? "").toMatch(/install, upgrade, uninstall, doctor/);
+    },
+  );
 
-  it("forwards trailing args to the migrate handler", () => {
-    const routed = routeArgv(["migrate", "--repo-root", "/tmp/x", "--json"]);
-    expect(routed.kind).toBe("dispatch");
-    expect(routed.argv).toEqual(["migrate", "--repo-root", "/tmp/x", "--json"]);
-  });
-
-  it("routes migrate the same way as init and update (parallel branch)", () => {
+  it("init and update still route (launcher aliases; legacy runtime paths)", () => {
     expect(routeArgv(["init"]).argv).toEqual(["init"]);
     expect(routeArgv(["update"]).argv).toEqual(["update"]);
-    expect(routeArgv(["migrate"]).argv).toEqual(["migrate"]);
   });
 
   it("every curated top-level UX verb routes as dispatch or stub", () => {

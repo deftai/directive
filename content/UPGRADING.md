@@ -10,15 +10,21 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## Current path
 
-Ordinary upgrades use the three-command model. This section is the current recovery path; frozen version-to-version hops stay below as history and keep their existing `UPGRADING.md#` anchors.
+Two packages: global `@deftai/directive` (launcher) and project-pinned `@deftai/directive-runtime`. Supported Node gates: **22 and 24** (Node 20 best-effort). See [launcher.md](./docs/launcher.md) and [known-limitations.md](./docs/known-limitations.md).
 
 | Your situation | Run this |
 | --- | --- |
-| Ordinary upgrade of an existing Directive project | `npm i -g @deftai/directive@latest`, then `directive update` in the project (`pnpm add -g @deftai/directive@latest` on pnpm) |
-| Not sure, or something looks broken | `directive doctor` |
-| First-time adoption, or a legacy / pre-v0.20 layout | `directive init` |
+| Ordinary upgrade (move pin / migrate data) | `npm i -g @deftai/directive@latest`, then `directive upgrade` (`update` is an alias) |
+| Wiring broken; pin should stay | `npm i -g @deftai/directive`, then `directive install --repair` |
+| Fresh clone / new worktree | Project `pnpm install` / `npm install`, then first eligible runtime command or hook |
+| Not sure | `directive doctor` (read-only) |
+| First-time adoption | `directive install` (`init` alias) |
+| Supported latest legacy (pre-split pin + `.deft/core`) | `directive upgrade` |
+| Remove project wiring | `directive uninstall` (`remove` alias) |
 
-Walkthrough: [Canonical upgrade — npm](#canonical-upgrade--npm-v0551). Multi-version jumps: [Big-jump triage](#big-jump-triage--multi-version-upgrades-start-here). Corporate or mirrored registry: [Corporate or mirrored npm registry](#corporate-or-mirrored-npm-registry). Frozen hop 1: [Frozen pre-v0.20 document-model migration](#frozen-pre-v020-document-model-migration-2068).
+Do not teach `npx`/`pnpm exec` as ongoing identity. Retired verbs (`migrate`, `bootstrap`, …) are unknown commands.
+
+Walkthrough history below keeps existing `UPGRADING.md#` anchors. Corporate or mirrored registry: [Corporate or mirrored npm registry](#corporate-or-mirrored-npm-registry).
 
 ---
 

@@ -129,15 +129,15 @@ describe("migrate --untrack-core dispatch (#2269)", () => {
 });
 
 describe("migrate routing parity (directive / deft)", () => {
-  it("routes `migrate` through the dedicated runMigrate handler", async () => {
+  it("retires top-level migrate as unknown-command (AC13.6)", async () => {
     const spy = vi.spyOn(initDeposit, "runMigrateCli").mockReturnValue(0);
-    const { io } = captureIo();
+    const { io, err } = captureIo();
 
     const code = await routeAndDispatch(["migrate", "--json"], io);
 
-    expect(code).toBe(0);
-    expect(spy).toHaveBeenCalledOnce();
-    // `deft migrate` and `directive migrate` resolve through the identical path.
-    expect(spy.mock.calls[0]?.[0]?.jsonOut).toBe(true);
+    expect(code).toBe(2);
+    expect(spy).not.toHaveBeenCalled();
+    expect(err.join("")).toMatch(/Unknown command 'migrate'/i);
+    expect(err.join("")).toMatch(/Did you mean: upgrade/);
   });
 });

@@ -8,6 +8,11 @@ import { reconstituteLinkedWorktreeDeposit } from "../init-deposit/gitignore.js"
 import { C3_FIELDS } from "./constants.js";
 import { ensureSubagentStatusDir } from "./subagent-status-dir.js";
 import { runText, type TextCaptureResult } from "./subprocess.js";
+import {
+  installWorktreePackages,
+  worktreeHasRuntimePin,
+  type WorktreePmRunner,
+} from "./worktree-pm-install.js";
 
 export class WorktreeMapError extends Error {
   override name = "WorktreeMapError";
@@ -158,6 +163,7 @@ function createWorktree(
   worktreePath: string,
   baseBranch: string,
   git: GitRunner,
+  seams: { readonly pmRunner?: WorktreePmRunner } = {},
 ): void {
   mkdirSync(pathResolve(worktreePath, ".."), { recursive: true });
   let proc: TextCaptureResult;
@@ -174,6 +180,15 @@ function createWorktree(
         `(rc=${proc.returncode}): ${proc.stderr.trim() || "<no stderr>"}`,
     );
   }
+  // AC14.25: PM install materializes the pinned runtime; skip legacy .deft/core copy
+  // when the new runtime pin is present (AC13.1).
+  if (worktreeHasRuntimePin(worktreePath)) {
+    const pm = installWorktreePackages(worktreePath, { runner: seams.pmRunner });
+    if (!pm.ok) {
+      throw new WorktreeMapConfigError(pm.message);
+    }
+    return;
+  }
   const deposit = reconstituteLinkedWorktreeDeposit(worktreePath, {
     preferPrimaryCore: true,
   });
@@ -182,8 +197,12 @@ function createWorktree(
       `deposit reconstitution refused for ${worktreePath}: ${deposit.message}`,
     );
   }
+  // Best-effort PM install for package.json without a runtime pin (legacy / unconfigured).
+  const pm = installWorktreePackages(worktreePath, { runner: seams.pmRunner });
+  if (!pm.ok && pm.message.includes("Yarn/Bun")) {
+    throw new WorktreeMapConfigError(pm.message);
+  }
 }
-
 interface InternalRecord extends WorktreeRecord {
   readonly _key: string;
   readonly _abs: string;
@@ -200,7 +219,7 @@ export function resolveWorktreeMap(
   mapping: readonly Record<string, unknown>[],
   baseBranch: string,
   createMissing = true,
-  options: { repoRoot?: string; git?: GitRunner } = {},
+  options: { repoRoot?: string; git?: GitRunner; pmRunner?: WorktreePmRunner } = {},
 ): WorktreeRecord[] {
   if (!Array.isArray(mapping)) {
     throw new WorktreeMapConfigError(
@@ -298,7 +317,7 @@ export function resolveWorktreeMap(
         `story '${entry.story_id}' maps to '${entry.worktree_path}' which is not a registered git worktree and create_missing is disabled`,
       );
     }
-    createWorktree(root, entry._abs, trimmedBase, git);
+    createWorktree(root, entry._abs, trimmedBase, git, { pmRunner: options.pmRunner });
     // Heartbeat dir only. Child occupancy owner is recorded at claim (#3999).
     ensureSubagentStatusDir(entry._abs);
   }

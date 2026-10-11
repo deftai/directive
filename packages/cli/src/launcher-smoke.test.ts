@@ -76,11 +76,73 @@ describe("launcher smoke", () => {
     expect(c.out()).toMatch(/^launcher /);
   });
 
-  it("retired verb migrate exits 2 and suggests upgrade", () => {
+  it("retired verb migrate exits 2 and suggests upgrade (AC14.55)", () => {
     const c = capture();
     const code = runLauncher(["migrate"], c.io);
     expect(code).toBe(2);
+    expect(c.err()).toMatch(/Unknown command/i);
+    expect(c.err()).toMatch(/install, upgrade, uninstall, doctor/);
     expect(c.err()).toMatch(/upgrade/i);
+  });
+
+  it.each([
+    ["sync", /install/i],
+    ["bootstrap", /install/i],
+    ["install-upgrade", /upgrade|install/i],
+    ["install-uninstall", /uninstall|install/i],
+  ] as const)(
+    "retired verb %s exits 2 with unknown-command + known list (AC13.6)",
+    (verb, suggestion) => {
+      const c = capture();
+      const code = runLauncher([verb], c.io);
+      expect(code).toBe(2);
+      expect(c.err()).toMatch(/Unknown command/i);
+      expect(c.err()).toMatch(/install, upgrade, uninstall, doctor/);
+      expect(c.err()).toMatch(suggestion);
+      // Must not revive as a working install verb
+      expect(c.out() + c.err()).not.toMatch(/delegating to|Set up Deft|Plan:/i);
+    },
+  );
+
+  it("doctor fix is unknown — doctor stays read-only (AC13.6)", () => {
+    const c = capture();
+    const code = runLauncher(["doctor", "fix"], c.io);
+    expect(code).toBe(2);
+    expect(c.err()).toMatch(/Unknown command|doctor fix|read-only/i);
+    expect(c.err()).toMatch(/install --repair/i);
+    expect(c.err() + c.out()).not.toMatch(/^Plan:/m);
+    expect(c.err() + c.out()).not.toMatch(/Install command:/i);
+  });
+
+  it("aliases init/update/remove resolve without being listed as primary help verbs", () => {
+    const help = capture();
+    expect(runLauncher(["--help"], help.io)).toBe(0);
+    const text = help.out();
+    expect(text).toMatch(/Installation management/);
+    expect(text).toMatch(/^\s+install /m);
+    expect(text).toMatch(/^\s+upgrade /m);
+    expect(text).toMatch(/^\s+uninstall /m);
+    expect(text).toMatch(/^\s+doctor /m);
+    // Aliases may be mentioned as aliases, not as primary command rows
+    expect(text).toMatch(/Aliases:.*init→install.*update→upgrade.*remove→uninstall/s);
+    expect(text).not.toMatch(/^\s+migrate /m);
+    expect(text).not.toMatch(/^\s+bootstrap /m);
+    expect(text).not.toMatch(/^\s+sync /m);
+    expect(text).not.toMatch(/install-upgrade|install-uninstall/);
+  });
+
+  it("--help covers first install, repair, upgrade, uninstall, automation (AC13.7)", () => {
+    const c = capture();
+    const code = runLauncher(["--help"], c.io);
+    expect(code).toBe(0);
+    const text = c.out();
+    expect(text).toMatch(/First-time|first install|directive install/i);
+    expect(text).toMatch(/--repair|Repair/i);
+    expect(text).toMatch(/upgrade/i);
+    expect(text).toMatch(/uninstall/i);
+    expect(text).toMatch(/--yes|-y/i);
+    expect(text).toMatch(/--dry-run/i);
+    expect(text).toMatch(/Automation|automation|--yes/i);
   });
 
   it("install --help stays on the launcher help surface", () => {

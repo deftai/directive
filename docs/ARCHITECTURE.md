@@ -15,7 +15,7 @@ Deft Directive is a self-dogfooded framework for AI-assisted software work. It i
 - Taskfile as the repository command facade (`task --list`, `task check`, `task verify:*`).
 - `deft` / `directive` as the installed consumer CLI.
 - `deft-hook` and native CLI verbs as host and Git-hook entrypoints.
-- Four published npm packages (`@deftai/directive-types`, `@deftai/directive-core`, `@deftai/directive-content`, `@deftai/directive`). TypeScript `directive init` / `directive update` is the happy-path consumer materialization into gitignored `.deft/core/`. A frozen Go installer remains a bounded networked-deposit bridge (not the happy path, not deleted). Package graph, publish sequence, and install topology are in [npm-Native Distribution](#npm-native-distribution-current). This document does not prejudge [#1979](https://github.com/deftai/directive/issues/1979).
+- Two published npm packages: `@deftai/directive` (global launcher) and `@deftai/directive-runtime` (project pin). Private workspace packages `types` / `core` / `content` are bundled into the runtime at publish time. Consumer install: `directive install` / `upgrade` / `uninstall` / `doctor` (aliases `init` / `update` / `remove`). No copied `.deft/core/`; wiring is package-relative under `node_modules/@deftai/directive-runtime/`. The Go installer is removed. See [launcher.md](../content/docs/launcher.md) and [known-limitations.md](../content/docs/known-limitations.md).
 - xBRIEF files as durable project, specification, lifecycle, policy, and architecture metadata.
 - Local cache/audit surfaces for backlog triage and GitHub issue ingestion.
 - PR, release, swarm, branch-policy, and verification gates.
@@ -34,7 +34,7 @@ The original Deft intent still matters: move from one-off, vibe-level agent prom
 flowchart LR
     A["Agent entry<br/>AGENTS.md, SKILL.md, main.md"] --> B["Guidance layer<br/>skills, standards, strategies, templates"]
     B --> C["Taskfile command graph<br/>task --list, task check, task verify:*"]
-    C --> D["Automation layer<br/>packages/ TypeScript runtime, Taskfile engine, frozen Go bridge"]
+    C --> D["Automation layer<br/>launcher + pinned runtime, Taskfile engine"]
     D --> E["Durable state<br/>PROJECT-DEFINITION, specification, scope xBRIEFs"]
     E --> F["Generated views<br/>SPECIFICATION.md, PRD.md, ROADMAP.md, MAP.md"]
     E --> C
@@ -52,7 +52,7 @@ The loop is deliberate. Guidance tells agents how to behave, tasks make that beh
 - `~/.config/deft/USER.md` stores personal preferences, with its Personal section taking precedence for user-defined preferences.
 - `xbrief/PROJECT-DEFINITION.xbrief.json` stores project identity, policy, lifecycle registry, and authored architecture metadata.
 
-Consumer installs point agents at `.deft/core/main.md`. TypeScript `directive init` (greenfield) or `directive update` (refresh) is the happy-path materialization: both resolve the locally installed `@deftai/directive-content` package and copy it into gitignored `.deft/core/`. Global and project-local npm installs are both current; install commands live in [README.md](../README.md). Legacy Go-installer and git-clone layouts are migration inputs, not the preferred target state.
+Consumer installs point agents at `node_modules/@deftai/directive-runtime/main.md` (and related package-relative paths). Happy path: global launcher + `directive install` writing an exact runtime pin. Clone/worktree: project PM install, then first eligible runtime invocation completes local activation. Supported latest-legacy conversion: `directive upgrade`. See [README.md](../README.md).
 
 ## Rule Authority
 
