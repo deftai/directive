@@ -1,7 +1,7 @@
 /**
  * Install / upgrade / uninstall / doctor bookends (Wave 2a–2g).
  */
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readSync } from "node:fs";
 import { join } from "node:path";
 import {
   CONTRACT_NUMBER,
@@ -64,9 +64,22 @@ export interface BookendFlags {
 
 export type DataStatusValue = "current" | "migration_needed" | "diagnosis_failed";
 
+/** INIT-16 Repair/Cancel menu selection. */
+export type ConfiguredMenuChoice = "repair" | "cancel";
+
+export interface ChooseMenuOptions {
+  readonly projectRoot: string;
+  readonly pinVersion: string;
+  readonly defaultChoice: ConfiguredMenuChoice;
+}
+
 /** Testable seams for install (unit tests inject; production uses defaults). */
 export interface InstallDeps {
   readonly stdinIsTTY?: boolean;
+  /** Sync [y/N] confirm; true = approve. Injected in tests; production reads stdin. */
+  readonly confirm?: (prompt: string) => boolean;
+  /** Sync Repair/Cancel menu; injected in tests; production reads stdin. */
+  readonly chooseMenu?: (opts: ChooseMenuOptions) => ConfiguredMenuChoice;
   readonly env?: NodeJS.ProcessEnv;
   readonly resolveLatest?: () =>
     | Promise<{ ok: true; version: string } | { ok: false; message: string }>
@@ -96,6 +109,7 @@ export interface UpgradeDeps extends InstallDeps {
 /** Testable seams for uninstall (R11). */
 export interface UninstallDeps {
   readonly stdinIsTTY?: boolean;
+  readonly confirm?: (prompt: string) => boolean;
   readonly env?: NodeJS.ProcessEnv;
   readonly invokeUninstall?: (argv: readonly string[]) => InvokeResult;
   readonly runPmRemove?: (opts: {
@@ -108,6 +122,8 @@ export interface UninstallDeps {
   >;
   readonly cleanupHooksPath?: (projectRoot: string) => ReturnType<typeof cleanupHooksPath>;
 }
+
+const CANCELLED_NO_CHANGES = "Cancelled. No project files were changed.";
 
 function defaultIo(): BookendIo {
   return {
@@ -197,9 +213,83 @@ function printPlan(
   }
 }
 
+/** Read one line from stdin (fd 0) without depending on readline async. */
+function readStdinLine(): string {
+  const chunks: Buffer[] = [];
+  const buf = Buffer.alloc(256);
+  for (;;) {
+    let n = 0;
+    try {
+      n = readSync(0, buf, 0, buf.length, null);
+    } catch {
+      break;
+    }
+    if (n === 0) break;
+    const slice = Buffer.from(buf.subarray(0, n));
+    chunks.push(slice);
+    if (slice.includes(0x0a)) break;
+  }
+  return Buffer.concat(chunks).toString("utf8").split(/\r?\n/, 1)[0] ?? "";
+}
+
+function parseYesNo(answer: string): boolean {
+  const trimmed = answer.trim().toLowerCase();
+  return trimmed === "y" || trimmed === "yes";
+}
+
+function defaultConfirm(io: BookendIo, prompt: string): boolean {
+  io.writeOut(`${prompt} [y/N] `);
+  return parseYesNo(readStdinLine());
+}
+
+/**
+ * INIT-15: Repair is the menu default when the pin is exact and installed or
+ * generated files are missing (fresh clone / worktree shape).
+ */
+function shouldDefaultToRepair(projectRoot: string, state: ProjectInstallState): boolean {
+  if (state.installed === null) return true;
+  return !existsSync(join(projectRoot, ".deft", "GENERATION.json"));
+}
+
+function printConfiguredMenu(
+  io: BookendIo,
+  opts: ChooseMenuOptions,
+): void {
+  const repairMarker = opts.defaultChoice === "repair" ? ">" : " ";
+  const cancelMarker = opts.defaultChoice === "cancel" ? ">" : " ";
+  io.writeOut("Directive is already configured in this project.\n\n");
+  io.writeOut(`Project:         ${opts.projectRoot}\n`);
+  io.writeOut(`Pinned version:  ${opts.pinVersion}\n\n`);
+  io.writeOut("What would you like to do?\n\n");
+  io.writeOut(`${repairMarker} Repair ${opts.pinVersion}\n`);
+  io.writeOut("    Restore the current version and rerun project setup.\n\n");
+  io.writeOut(`${cancelMarker} Cancel\n`);
+  io.writeOut("    Leave the project unchanged.\n\n");
+}
+
+function parseMenuChoice(answer: string, defaultChoice: ConfiguredMenuChoice): ConfiguredMenuChoice {
+  const trimmed = answer.trim().toLowerCase();
+  if (trimmed.length === 0) return defaultChoice;
+  if (trimmed === "1" || trimmed === "r" || trimmed === "repair") return "repair";
+  if (trimmed === "2" || trimmed === "c" || trimmed === "cancel") return "cancel";
+  // Unrecognized input → cancel (no mutation).
+  return "cancel";
+}
+
+function defaultChooseMenu(io: BookendIo, opts: ChooseMenuOptions): ConfiguredMenuChoice {
+  printConfiguredMenu(io, opts);
+  const defaultLabel = opts.defaultChoice === "repair" ? "Repair" : "Cancel";
+  io.writeOut(`Choice [Repair/Cancel] (default: ${defaultLabel}): `);
+  return parseMenuChoice(readStdinLine(), opts.defaultChoice);
+}
+
+/**
+ * One operation-specific confirmation (AC5.2). Default No.
+ * Returns null to proceed; otherwise an exit code (0 on cancel, 2 when --yes required).
+ */
 function requireApproval(
   flags: BookendFlags,
-  deps: InstallDeps,
+  deps: Pick<InstallDeps, "stdinIsTTY" | "confirm">,
   io: BookendIo,
   prompt: string,
 ): number | null {
@@ -210,9 +300,16 @@ function requireApproval(
     io.writeErr(`Non-interactive session requires --yes to approve: ${prompt}\n`);
     return EXIT_CODES.USAGE;
   }
-  // Interactive prompt is optional for YOLO; without readline approval, require --yes.
-  io.writeErr(`Interactive approval not wired in this build; pass --yes to approve: ${prompt}\n`);
-  return EXIT_CODES.USAGE;
+  let approved: boolean;
+  if (deps.confirm) {
+    io.writeOut(`${prompt} [y/N]\n`);
+    approved = deps.confirm(prompt);
+  } else {
+    approved = defaultConfirm(io, prompt);
+  }
+  if (approved) return null;
+  io.writeOut(`${CANCELLED_NO_CHANGES}\n`);
+  return EXIT_CODES.SUCCESS;
 }
 
 /**
@@ -258,38 +355,53 @@ export function runInstall(
 
   const configuredExact = state.pin.kind === "exact" && state.pin.version !== null;
 
-  // AC6.6 / INIT-20: configured + --yes without --repair → exit 2 with choices
+  // AC6.4 / AC6.6 / INIT-16 / INIT-20: configured without --repair
   if (configuredExact && !flags.repair) {
+    const pinVersion = state.pin.version!;
     if (flags.dryRun) {
-      // Dry-run on configured project without --repair: show that repair would be selected interactively.
+      const defaultChoice = shouldDefaultToRepair(projectRoot, state) ? "repair" : "cancel";
       io.writeOut(
-        `Directive is already configured. Pinned version: ${state.pin.version}.\n` +
-          `[dry-run] would present Repair ${state.pin.version} / Cancel (use --repair to select repair).\n`,
+        `Directive is already configured. Pinned version: ${pinVersion}.\n` +
+          `[dry-run] would present Repair ${pinVersion} / Cancel ` +
+          `(default: ${defaultChoice === "repair" ? "Repair" : "Cancel"}; use --repair to select repair).\n`,
       );
       return EXIT_CODES.SUCCESS;
     }
     if (flags.yes) {
       io.writeErr(
-        `Directive is already configured (pin ${state.pin.version}). --yes does not choose the operation.\n` +
+        `Directive is already configured (pin ${pinVersion}). --yes does not choose the operation.\n` +
           `  Repair this pin:  directive install --repair --yes\n` +
           `  Change version:   directive upgrade --yes\n`,
       );
       return EXIT_CODES.USAGE;
     }
-    // Non-interactive without --yes/--repair
     const tty = deps.stdinIsTTY ?? Boolean(process.stdin.isTTY);
     if (!tty) {
       io.writeErr(
-        `Directive is already configured (pin ${state.pin.version}). Pass --repair --yes to repair, or run interactively.\n` +
+        `Directive is already configured (pin ${pinVersion}). Pass --repair --yes to repair, or run interactively.\n` +
           `  directive install --repair --yes\n` +
           `  directive upgrade --yes\n`,
       );
       return EXIT_CODES.USAGE;
     }
-    io.writeErr(
-      `Directive is already configured (pin ${state.pin.version}). Pass --repair to repair, or directive upgrade to change versions.\n`,
-    );
-    return EXIT_CODES.USAGE;
+    // Interactive Repair/Cancel menu (INIT-16) with INIT-15 default rule.
+    const menuOpts: ChooseMenuOptions = {
+      projectRoot,
+      pinVersion,
+      defaultChoice: shouldDefaultToRepair(projectRoot, state) ? "repair" : "cancel",
+    };
+    let choice: ConfiguredMenuChoice;
+    if (deps.chooseMenu) {
+      printConfiguredMenu(io, menuOpts);
+      choice = deps.chooseMenu(menuOpts);
+    } else {
+      choice = defaultChooseMenu(io, menuOpts);
+    }
+    if (choice === "cancel") {
+      io.writeOut(`${CANCELLED_NO_CHANGES}\n`);
+      return EXIT_CODES.SUCCESS;
+    }
+    return runRepair(projectRoot, state, flags, launcherVersion, io, deps, env);
   }
 
   if (flags.repair) {
@@ -1098,7 +1210,7 @@ export function runUninstall(
 
   const approval = requireApproval(
     flags,
-    { stdinIsTTY: deps.stdinIsTTY },
+    { stdinIsTTY: deps.stdinIsTTY, confirm: deps.confirm },
     io,
     "Uninstall Directive from this project?",
   );

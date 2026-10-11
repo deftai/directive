@@ -737,3 +737,336 @@ describe("install bookend flag matrix (AC5 / AC6)", () => {
     expect(after.devDependencies["@deftai/directive-runtime"]).toBe(version);
   });
 });
+
+describe("interactive approval + Repair/Cancel menu (UX-INT / AC5.2 / AC6.4 / AC14.1 / AC14.39)", () => {
+  function pinExact(root: string, version = "1.2.3"): void {
+    const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
+      devDependencies?: Record<string, string>;
+    };
+    pkg.devDependencies = { ...(pkg.devDependencies ?? {}), "@deftai/directive-runtime": version };
+    writeFileSync(join(root, "package.json"), `${JSON.stringify(pkg, null, 2)}\n`);
+  }
+
+  function writeInstalledRuntime(root: string, version: string): void {
+    const nm = join(root, "node_modules", "@deftai", "directive-runtime");
+    mkdirSync(nm, { recursive: true });
+    writeFileSync(
+      join(nm, "package.json"),
+      `${JSON.stringify(
+        { name: "@deftai/directive-runtime", version, directive: { contract: 1 } },
+        null,
+        2,
+      )}\n`,
+    );
+    mkdirSync(join(nm, "dist"), { recursive: true });
+    writeFileSync(join(nm, "dist", "bin.js"), "#!/usr/bin/env node\nprocess.exit(0);\n");
+  }
+
+  function writeGeneration(root: string): void {
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(
+      join(root, ".deft", "GENERATION.json"),
+      `${JSON.stringify({ runtimeVersion: "1.2.3", contract: 1 }, null, 2)}\n`,
+    );
+  }
+
+  it("first-install decline → Cancelled message, exit 0, no PM (AC14.39)", () => {
+    const root = tempProject("wave2m-decline");
+    const before = readFileSync(join(root, "package.json"), "utf8");
+    const c = capture();
+    let pmCalled = false;
+    let confirmPrompt: string | null = null;
+    const code = runInstall(
+      root,
+      stateFor(root),
+      ["--target-version", "1.2.3"],
+      "0.0.0-test",
+      c.io,
+      {
+        stdinIsTTY: true,
+        confirm: (prompt) => {
+          confirmPrompt = prompt;
+          return false;
+        },
+        runPmAdd: () => {
+          pmCalled = true;
+          return { ok: true as const };
+        },
+        invokeSetup: () => {
+          throw new Error("setup must not run after cancel");
+        },
+      },
+    );
+    expect(code).toBe(0);
+    expect(pmCalled).toBe(false);
+    expect(confirmPrompt).toMatch(/Set up Directive in this project\?/i);
+    const text = c.out() + c.err();
+    expect(text).toMatch(/\[y\/N\]/);
+    expect(text).toContain("Cancelled. No project files were changed.");
+    expect(readFileSync(join(root, "package.json"), "utf8")).toBe(before);
+  });
+
+  it("first-install approve via confirm proceeds to PM + setup (AC5.2)", () => {
+    const root = tempProject("wave2m-approve");
+    const c = capture();
+    let pmCalled = false;
+    let setupOp: string | null = null;
+    const code = runInstall(
+      root,
+      stateFor(root),
+      ["--target-version", "1.2.3"],
+      "0.0.0-test",
+      c.io,
+      {
+        stdinIsTTY: true,
+        confirm: () => true,
+        runPmAdd: ({ projectRoot, version }) => {
+          pmCalled = true;
+          const pkgPath = join(projectRoot, "package.json");
+          const pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as {
+            devDependencies?: Record<string, string>;
+          };
+          pkg.devDependencies = {
+            ...(pkg.devDependencies ?? {}),
+            "@deftai/directive-runtime": version,
+          };
+          writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
+          writeInstalledRuntime(projectRoot, version);
+          return { ok: true as const };
+        },
+        invokeSetup: (argv) => {
+          const i = argv.indexOf("--operation");
+          setupOp = i >= 0 ? (argv[i + 1] ?? null) : null;
+          return {
+            exitCode: 0,
+            stdout: JSON.stringify({
+              contract: 1,
+              entry: "setup",
+              created: [".deft/GENERATION.json"],
+              modified: [],
+              removed: [],
+              conflicts: [],
+            }),
+            stderr: "",
+            spawned: true,
+            message: null,
+          };
+        },
+      },
+    );
+    expect(code).toBe(0);
+    expect(pmCalled).toBe(true);
+    expect(setupOp).toBe("install");
+    expect(c.out() + c.err()).not.toContain("Cancelled. No project files were changed.");
+  });
+
+  it("configured interactive Cancel → Cancelled, exit 0, no repair (AC6.4 / AC14.39)", () => {
+    const root = tempProject("wave2m-menu-cancel");
+    pinExact(root, "1.2.3");
+    writeInstalledRuntime(root, "1.2.3");
+    writeGeneration(root);
+    const before = readFileSync(join(root, "package.json"), "utf8");
+    const c = capture();
+    let menuDefault: string | null = null;
+    let pmCalled = false;
+    const code = runInstall(root, stateFor(root), [], "0.0.0-test", c.io, {
+      stdinIsTTY: true,
+      chooseMenu: (opts) => {
+        menuDefault = opts.defaultChoice;
+        return "cancel";
+      },
+      runPmAdd: () => {
+        pmCalled = true;
+        return { ok: true as const };
+      },
+      invokeSetup: () => {
+        throw new Error("setup must not run after menu cancel");
+      },
+    });
+    expect(code).toBe(0);
+    expect(pmCalled).toBe(false);
+    expect(menuDefault).toBe("cancel");
+    const text = c.out() + c.err();
+    expect(text).toMatch(/already configured/i);
+    expect(text).toMatch(/Repair 1\.2\.3/);
+    expect(text).toMatch(/Cancel/);
+    expect(text).toContain("Cancelled. No project files were changed.");
+    expect(readFileSync(join(root, "package.json"), "utf8")).toBe(before);
+  });
+
+  it("fresh-clone shape (pin, no node_modules) defaults menu to Repair (AC14.1 / INIT-15)", () => {
+    const root = tempProject("wave2m-fresh-clone");
+    pinExact(root, "1.2.3");
+    writeGeneration(root); // travels with clone; installed package does not
+    const c = capture();
+    let menuDefault: string | null = null;
+    let repairConfirmSeen = false;
+    let setupOp: string | null = null;
+    const code = runInstall(root, stateFor(root), [], "0.0.0-test", c.io, {
+      stdinIsTTY: true,
+      chooseMenu: (opts) => {
+        menuDefault = opts.defaultChoice;
+        expect(opts.pinVersion).toBe("1.2.3");
+        return "repair";
+      },
+      confirm: (prompt) => {
+        repairConfirmSeen = /Repair Directive 1\.2\.3/i.test(prompt);
+        return true;
+      },
+      runPmAdd: ({ projectRoot, version }) => {
+        writeInstalledRuntime(projectRoot, version);
+        writeFileSync(
+          join(projectRoot, "package-lock.json"),
+          `${JSON.stringify(
+            {
+              lockfileVersion: 3,
+              packages: {
+                "": { name: "t", devDependencies: { "@deftai/directive-runtime": version } },
+                "node_modules/@deftai/directive-runtime": { version },
+              },
+            },
+            null,
+            2,
+          )}\n`,
+        );
+        return { ok: true as const };
+      },
+      invokeSetup: (argv) => {
+        const i = argv.indexOf("--operation");
+        setupOp = i >= 0 ? (argv[i + 1] ?? null) : null;
+        return {
+          exitCode: 0,
+          stdout: JSON.stringify({
+            contract: 1,
+            entry: "setup",
+            created: [],
+            modified: [".deft/GENERATION.json"],
+            removed: [],
+            conflicts: [],
+          }),
+          stderr: "",
+          spawned: true,
+          message: null,
+        };
+      },
+    });
+    expect(menuDefault).toBe("repair");
+    expect(repairConfirmSeen).toBe(true);
+    expect(setupOp).toBe("repair");
+    expect(code).toBe(0);
+  });
+
+  it("healthy configured project defaults menu to Cancel (INIT-15 / INIT-16)", () => {
+    const root = tempProject("wave2m-healthy-default");
+    pinExact(root, "2.0.0");
+    writeInstalledRuntime(root, "2.0.0");
+    writeGeneration(root);
+    const c = capture();
+    let menuDefault: string | null = null;
+    const code = runInstall(root, stateFor(root), [], "0.0.0-test", c.io, {
+      stdinIsTTY: true,
+      chooseMenu: (opts) => {
+        menuDefault = opts.defaultChoice;
+        return "cancel";
+      },
+    });
+    expect(code).toBe(0);
+    expect(menuDefault).toBe("cancel");
+  });
+
+  it("menu Repair then approval decline → Cancelled, exit 0", () => {
+    const root = tempProject("wave2m-repair-decline");
+    pinExact(root, "1.2.3");
+    const before = readFileSync(join(root, "package.json"), "utf8");
+    const c = capture();
+    let pmCalled = false;
+    const code = runInstall(root, stateFor(root), [], "0.0.0-test", c.io, {
+      stdinIsTTY: true,
+      chooseMenu: () => "repair",
+      confirm: () => false,
+      runPmAdd: () => {
+        pmCalled = true;
+        return { ok: true as const };
+      },
+    });
+    expect(code).toBe(0);
+    expect(pmCalled).toBe(false);
+    expect(c.out() + c.err()).toContain("Cancelled. No project files were changed.");
+    expect(readFileSync(join(root, "package.json"), "utf8")).toBe(before);
+  });
+
+  it("--yes still skips interactive confirm (AC5.3)", () => {
+    const root = tempProject("wave2m-yes-skip");
+    const c = capture();
+    let confirmCalled = false;
+    let pmCalled = false;
+    const code = runInstall(
+      root,
+      stateFor(root),
+      ["--yes", "--target-version", "1.2.3"],
+      "0.0.0-test",
+      c.io,
+      {
+        stdinIsTTY: true,
+        confirm: () => {
+          confirmCalled = true;
+          return false;
+        },
+        runPmAdd: ({ projectRoot, version }) => {
+          pmCalled = true;
+          const pkgPath = join(projectRoot, "package.json");
+          const pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as {
+            devDependencies?: Record<string, string>;
+          };
+          pkg.devDependencies = {
+            ...(pkg.devDependencies ?? {}),
+            "@deftai/directive-runtime": version,
+          };
+          writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
+          writeInstalledRuntime(projectRoot, version);
+          return { ok: true as const };
+        },
+        invokeSetup: () => ({
+          exitCode: 0,
+          stdout: JSON.stringify({
+            contract: 1,
+            entry: "setup",
+            created: [],
+            modified: [],
+            removed: [],
+            conflicts: [],
+          }),
+          stderr: "",
+          spawned: true,
+          message: null,
+        }),
+      },
+    );
+    expect(code).toBe(0);
+    expect(confirmCalled).toBe(false);
+    expect(pmCalled).toBe(true);
+  });
+
+  it("--dry-run never prompts for approval (AC5.4)", () => {
+    const root = tempProject("wave2m-dry");
+    const c = capture();
+    let confirmCalled = false;
+    const code = runInstall(
+      root,
+      stateFor(root),
+      ["--dry-run", "--target-version", "1.2.3"],
+      "0.0.0-test",
+      c.io,
+      {
+        stdinIsTTY: true,
+        confirm: () => {
+          confirmCalled = true;
+          return true;
+        },
+      },
+    );
+    expect(code).toBe(0);
+    expect(confirmCalled).toBe(false);
+    expect(c.out()).toMatch(/dry-run/i);
+  });
+});
