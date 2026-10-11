@@ -193,12 +193,14 @@ jobs:
           set -euo pipefail
           mkdir -p tarballs
           test -n "${STAGE:-}" && test -d "${STAGE}"
-          (cd "${STAGE}" && npm pack --pack-destination "${GITHUB_WORKSPACE}/tarballs")
+          # AC1.3: pack helper embeds vendored node_modules then strips @deftai/* from deps.
+          node packages/runtime/scripts/pack-staged-runtime.mjs "${STAGE}" "${GITHUB_WORKSPACE}/tarballs"
           (cd packages/cli && npm pack --pack-destination "${GITHUB_WORKSPACE}/tarballs")
           ls -la tarballs
           test -f "tarballs/deftai-directive-runtime-${VERSION}.tgz"
           test -f "tarballs/deftai-directive-${VERSION}.tgz"
-          # AC3.1 + AC13.4: launcher empty deps; runtime has no @deftai deps and vendors private pkgs
+          # AC3.1 + AC1.3 + D4.3 + AC13.4: launcher empty deps / single-file bins;
+          # runtime has no @deftai deps and vendors private pkgs under node_modules.
           node --input-type=commonjs -e "
             const {execSync}=require('node:child_process');
             const ver=process.env.VERSION;
@@ -207,17 +209,26 @@ jobs:
               console.error('AC3.1 fail: launcher deps not empty', launcher.dependencies);
               process.exit(1);
             }
+            const launcherListing=execSync('tar -tzf '+JSON.stringify('tarballs/deftai-directive-'+ver+'.tgz'),{encoding:'utf8'});
+            const launcherJs=launcherListing.split('\n').filter(n=>n.endsWith('.js')&&!n.endsWith('.js.map')).sort();
+            const wantJs=['package/dist/bin.js','package/dist/hook-bin.js'].sort();
+            if (launcherJs.join('\n')!==wantJs.join('\n')) {
+              console.error('D4.3 fail: launcher JS entries', launcherJs);
+              process.exit(1);
+            }
             const runtime=JSON.parse(execSync('tar -xOf '+JSON.stringify('tarballs/deftai-directive-runtime-'+ver+'.tgz')+' package/package.json',{encoding:'utf8'}));
             if (!runtime.directive || runtime.directive.contract!==1) {
               console.error('runtime missing contract', runtime.directive);
               process.exit(1);
             }
-            const bundled=new Set(runtime.bundledDependencies||[]);
-            for (const name of ['@deftai/directive-core','@deftai/directive-content','@deftai/directive-types']) {
-              if (!bundled.has(name)) {
-                console.error('AC13.4 fail: missing bundledDependency', name);
-                process.exit(1);
-              }
+            const deftaiDeps=Object.keys(runtime.dependencies||{}).filter(k=>k.startsWith('@deftai/'));
+            if (deftaiDeps.length!==0) {
+              console.error('AC1.3 fail: runtime dependencies contain @deftai/*', deftaiDeps);
+              process.exit(1);
+            }
+            if (runtime.bundledDependencies) {
+              console.error('AC1.3 fail: runtime still declares bundledDependencies', runtime.bundledDependencies);
+              process.exit(1);
             }
             const listing=execSync('tar -tzf '+JSON.stringify('tarballs/deftai-directive-runtime-'+ver+'.tgz'),{encoding:'utf8'});
             for (const need of [
@@ -226,11 +237,11 @@ jobs:
               'package/node_modules/@deftai/directive-types/package.json',
             ]) {
               if (!listing.split('\n').includes(need)) {
-                console.error('AC13.4 fail: missing bundled', need);
+                console.error('AC13.4 fail: missing vendored', need);
                 process.exit(1);
               }
             }
-            console.log('AC3.1 + AC13.4 ok: launcher empty deps; runtime self-contained');
+            console.log('AC3.1 + AC1.3 + D4.3 + AC13.4 ok');
           "
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

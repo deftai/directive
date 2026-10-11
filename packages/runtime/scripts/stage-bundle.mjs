@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 /**
- * Stage a self-contained @deftai/directive-runtime pack directory (AC13.4).
+ * Stage a self-contained @deftai/directive-runtime pack directory (AC13.4 / AC1.3).
  *
  * Vendors private workspace packages (core / content / types) under
  * node_modules/@deftai/ and rewrites production dependencies to public npm
- * packages only. Pack with: npm pack --pack-destination <dir> from the stage.
+ * packages only — published dependencies contain zero @deftai/* keys.
+ * Pack via pack-staged-runtime.mjs (npm pack alone drops nested node_modules).
  *
  * Usage: node packages/runtime/scripts/stage-bundle.mjs [outDir]
  * Default outDir: packages/runtime/.pack-stage
@@ -161,14 +162,13 @@ function main() {
 
   const runtime = readJson(join(runtimePkg, "package.json"));
   delete runtime.private;
-  const version = runtime.version || "0.0.0";
-  // Public third-party deps stay fetchable; private @deftai/* are also listed so
-  // npm pack honors bundledDependencies (requires both fields).
+  // AC1.3: published dependencies must contain zero @deftai/* keys. Private
+  // workspace packages are vendored under node_modules/@deftai/ for resolution;
+  // pack-staged-runtime.mjs temporarily re-lists them for npm pack then strips
+  // them from the tarball package.json (npm only bundles when both fields set).
   const deps = publicDepsFromCore();
-  const bundled = PRIVATE.map((p) => `@deftai/${p.name}`);
-  for (const name of bundled) deps[name] = version;
   runtime.dependencies = deps;
-  runtime.bundledDependencies = bundled;
+  delete runtime.bundledDependencies;
   // Include hoisted content + dist in the packed tarball.
   const filesEntries = hoistedNames.map((name) => {
     try {
