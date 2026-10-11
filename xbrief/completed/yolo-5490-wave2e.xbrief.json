@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "kind": "xbrief",
+  "title": "YOLO #5490 Wave 2e — doctor (R12)",
+  "status": "completed",
+  "branch": "yolo/wip-wave2e",
+  "tip": "4db406eb785dfd7afa1c5ba9ca127217c677e9c3",
+  "tag": "yolo-cp-wave2e",
+  "verdaccio": "0.0.0-yolo.cp-wave2e.2",
+  "smoke": "wave2e.sh PASS",
+  "acs": ["AC12.1","AC12.2","AC12.3","AC12.4","AC12.5","AC12.6","AC12.7","AC9.10","AC14.27"]
+}
