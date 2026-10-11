@@ -16,17 +16,24 @@ export const UPGRADING_DOC_URL =
   "https://github.com/deftai/directive/blob/master/content/UPGRADING.md";
 export const GO_BRIDGE_RELEASES_URL = "https://github.com/deftai/directive/releases";
 
-/** One recovery ladder for doctor FAIL suggested_fix (#4090). One spelling per rung. */
-export const RECOVERY_LADDER_AGENTS_REFRESH = "deft agents:refresh";
-export const RECOVERY_LADDER_UPDATE = "deft update";
-export const RECOVERY_LADDER_NPX_PREFIX = "npx @deftai/directive";
+/**
+ * Recovery guidance for doctor FAIL suggested_fix.
+ * Wave 2e / AC9.7 / AC12.5 / rule 9: no npx/pnpm-exec; install faults use
+ * launcher-plus-repair; update-as-repair is retired (rule 10).
+ */
+export const RECOVERY_LADDER_AGENTS_REFRESH = "directive install --repair";
+export const RECOVERY_LADDER_UPDATE = "directive upgrade";
+export const RECOVERY_LADDER_NPX_PREFIX = "npm i -g @deftai/directive";
 export const RECOVERY_LADDER_NPM_GLOBAL = "npm i -g @deftai/directive";
+export const RECOVERY_LADDER_INSTALL_REPAIR =
+  "npm i -g @deftai/directive, then directive install --repair";
 
 export type RecoveryLadderPrimary = "agents-refresh" | "update";
 
 export interface RecoveryLadderFields {
   readonly suggested_fix: string;
   readonly suggested_fix_alt: string;
+  /** @deprecated Kept for JSON shape compat; never an npx command (AC9.11). */
   readonly suggested_fix_npx: string;
   readonly suggested_fix_npm_global: string;
   readonly go_bridge_releases_url: string;
@@ -34,13 +41,13 @@ export interface RecoveryLadderFields {
 }
 
 export function recoveryLadderFields(primary: RecoveryLadderPrimary): RecoveryLadderFields {
-  const refresh = RECOVERY_LADDER_AGENTS_REFRESH;
-  const update = RECOVERY_LADDER_UPDATE;
-  const verb = primary === "agents-refresh" ? "agents:refresh" : "update";
+  const repair = RECOVERY_LADDER_AGENTS_REFRESH;
+  const upgrade = RECOVERY_LADDER_UPDATE;
   return {
-    suggested_fix: primary === "agents-refresh" ? refresh : update,
-    suggested_fix_alt: primary === "agents-refresh" ? update : refresh,
-    suggested_fix_npx: `${RECOVERY_LADDER_NPX_PREFIX} ${verb}`,
+    suggested_fix: primary === "agents-refresh" ? repair : upgrade,
+    suggested_fix_alt: primary === "agents-refresh" ? upgrade : repair,
+    // Same as global launcher bootstrap — never npx (AC9.11 / AC12.5).
+    suggested_fix_npx: RECOVERY_LADDER_INSTALL_REPAIR,
     suggested_fix_npm_global: RECOVERY_LADDER_NPM_GLOBAL,
     go_bridge_releases_url: GO_BRIDGE_RELEASES_URL,
     upgrading_doc_url: UPGRADING_DOC_URL,
@@ -50,10 +57,10 @@ export function recoveryLadderFields(primary: RecoveryLadderPrimary): RecoveryLa
 export function recoveryLadderProse(primary: RecoveryLadderPrimary): string {
   const f = recoveryLadderFields(primary);
   return (
-    `Run \`${f.suggested_fix}\`. Payload missing or version drift: \`${RECOVERY_LADDER_UPDATE}\` ` +
-    `(task upgrade is the documented alias). CLI not on PATH: \`${f.suggested_fix_npx}\` or ` +
-    `\`${f.suggested_fix_npm_global}\`, then the same verbs. Pre-canonical layout: frozen Go bridge ` +
-    `at ${f.go_bridge_releases_url} (see ${f.upgrading_doc_url}).`
+    `Run \`${f.suggested_fix}\`. Installation/wiring faults: \`${RECOVERY_LADDER_INSTALL_REPAIR}\`. ` +
+    `Data/schema migration: \`${RECOVERY_LADDER_UPDATE}\`. ` +
+    `Launcher missing: \`${f.suggested_fix_npm_global}\`. ` +
+    `Pre-canonical layout: frozen Go bridge at ${f.go_bridge_releases_url} (see ${f.upgrading_doc_url}).`
   );
 }
 

@@ -1,16 +1,8 @@
 /**
- * Three-band engine-vs-pin skew policy for the resolution spine (#2264, #2199).
- *
- * Content is always forward-migrated (`update`) before any gate runs; this
- * policy governs whether a globally-reachable engine that differs from the pin
- * may be used, and how loudly:
- *
- * - `engine == pin`                        -> proceed silently (trace only).
- * - `engine > pin` within the skew window  -> proceed, emit a loud delta, `update` first.
- * - `engine > pin` beyond the window       -> fail closed non-interactively (require
- *                                              `--accept-engine-jump`; prompt when interactive).
- *                                              `DEFT_ACCEPT_ENGINE_SKEW=1` is the CI escape.
- * - `engine < pin`                         -> reject the global, fall through the ladder.
+ * RETIRED (AC12.6 / #5490 Wave 2e): engine-vs-pin skew windows and
+ * `--accept-engine-jump` / `DEFT_ACCEPT_ENGINE_SKEW` escape hatches no longer
+ * drive product remedies. `plan()` maps former skew decisions to AC9.7
+ * recovery. This module remains only so legacy callers compile until 2h cleanup.
  */
 
 import { compareSemver, parseSemver, semverGte } from "./pin.js";

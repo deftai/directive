@@ -97,6 +97,12 @@ export function uninstallArgv(root: string): string[] {
   return ["uninstall", "--root", root];
 }
 
+/** AC4.10 equal-version data-status probe (machine JSON only). */
 export function doctorArgv(): string[] {
+  return ["doctor", "--data-status"];
+}
+
+/** Human-facing full diagnosis (R12). */
+export function doctorDiagnoseArgv(): string[] {
   return ["doctor"];
 }

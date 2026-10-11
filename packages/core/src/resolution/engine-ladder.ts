@@ -1,22 +1,8 @@
 /**
- * Global-first engine-resolution ladder for the resolution spine (#2264, from #2124).
- *
- * The defect this closes is `execution-env != install-env`: an agent can read
- * every rule in `.deft/core/` yet execute no gate because the engine that is
- * reachable in the environment it is ACTUALLY running in is absent or stale.
- * The ladder detects that mismatch and self-heals only then:
- *
- *   1. global `deft` reachable AND >= pin                       -> use it
- *   2. local `.deft/.cli/<platform>` reachable, intact, >= pin  -> use it
- *   3. must install:
- *      a. registry up + global prefix writable                 -> npm i -g @deftai/directive@<pin>
- *      b. registry up + global prefix NOT writable (sandbox)    -> npm install --prefix .deft/.cli/<platform>
- *      c. registry down + staged tarball                        -> install from staged payload
- *      d. registry down + no tarball                            -> hard-fail ("stage this")
- *
- * `decideEngineLadder` is a PURE decision function (no I/O). The side-effecting
- * install is factored behind an injected runner in `resolveEngine` so the whole
- * self-heal path is unit-testable without touching the network.
+ * RETIRED (AC12.6 / #5490 Wave 2e): global-first engine ladder and automatic
+ * global/sandbox installs are removed from product remedies. `decideEngineLadder`
+ * remains as a pure classifier for legacy callers; `resolveEngine` never
+ * installs (AC12.5) and points at AC9.7 recovery instead.
  */
 
 import type { IntegrityResult } from "./integrity.js";
@@ -237,46 +223,25 @@ export function resolveEngine(
     };
   }
 
-  const runner = options.installRunner;
-  if (!runner) {
-    steps.push("install: deferred (no install runner supplied)");
-    return {
-      decision,
-      installOutcome: null,
-      resolvedVersion: null,
-      selfHealed: false,
-      trace: steps.join("; "),
-    };
-  }
-
-  const outcome = runner({
-    rung: decision.rung as "install-global" | "install-sandbox" | "install-staged",
-    pinVersion: facts.pinVersion,
-    platform: facts.platform,
-  });
-
-  if (!outcome.installed) {
-    steps.push(`install failed: ${outcome.detail}`);
-    return {
-      decision,
-      installOutcome: outcome,
-      resolvedVersion: null,
-      selfHealed: false,
-      trace: steps.join("; "),
-    };
-  }
-
-  steps.push(`installed ${decision.rung} -> ${fmt(outcome.version)}`);
-  if (options.reproject) {
-    options.reproject(outcome.version);
-    steps.push(`re-projected content ${fmt(outcome.version)}`);
-  }
-
+  // AC12.5 / AC12.6 (#5490): Directive never performs automatic global/local
+  // engine installation. Install rungs become hard guidance toward AC9.7.
+  steps.push(
+    "install suppressed (AC12.5/AC12.6): use `npm i -g @deftai/directive`, then `directive install --repair`",
+  );
+  void options.installRunner;
+  void options.reproject;
   return {
-    decision,
-    installOutcome: outcome,
-    resolvedVersion: outcome.version,
-    selfHealed: true,
+    decision: {
+      ...decision,
+      rung: "hard-fail",
+      usable: false,
+      resolvedVersion: null,
+      reason:
+        "automatic engine install retired; recover with npm i -g @deftai/directive, then directive install --repair",
+    },
+    installOutcome: null,
+    resolvedVersion: null,
+    selfHealed: false,
     trace: steps.join("; "),
   };
 }

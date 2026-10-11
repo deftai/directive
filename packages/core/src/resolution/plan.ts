@@ -21,20 +21,9 @@ import type {
 } from "@deftai/directive-types";
 import { RESOLUTION_PLAN_SCHEMA_VERSION } from "@deftai/directive-types";
 import type { LadderDecision, LadderRung } from "./engine-ladder.js";
-import {
-  ENGINE_PACKAGE,
-  type PackageManager,
-  renderEphemeral,
-  renderGlobalInstall,
-  renderProjectInstall,
-} from "./package-manager.js";
+import { type PackageManager, renderEphemeral } from "./package-manager.js";
 import { reconcileVersions } from "./pin.js";
-import {
-  ACCEPT_ENGINE_SKEW_ENV,
-  contentMatchesEngine,
-  evaluateSkew,
-  type SkewResult,
-} from "./skew-policy.js";
+import { contentMatchesEngine, evaluateSkew, type SkewResult } from "./skew-policy.js";
 
 export interface PlanOptions {
   /**
@@ -267,12 +256,14 @@ function resolvePlan(
 
   switch (skew.decision) {
     case "reject-global":
+      // AC12.5/AC12.6: no install-global / engine-ladder remedy.
       return makePlan(
-        "install-global",
+        "blocked",
         {
-          command: renderGlobalInstall(pm, `${ENGINE_PACKAGE}${pinSuffix(facts.pinVersion)}`),
-          rootCause: `engine ${effectiveEngine} is behind pin ${facts.pinVersion}`,
-          remediation: "Install the pinned engine (or fall through the ladder to a local install).",
+          command: null,
+          rootCause: `reachable engine ${effectiveEngine} is behind pin ${facts.pinVersion}`,
+          remediation:
+            "npm i -g @deftai/directive, then directive install --repair",
         },
         warnings,
       );
@@ -281,10 +272,9 @@ function resolvePlan(
         "blocked",
         {
           command: null,
-          rootCause: `engine ${effectiveEngine} is a large jump ahead of pin ${facts.pinVersion}`,
+          rootCause: `engine ${effectiveEngine} differs from pin ${facts.pinVersion}`,
           remediation:
-            `The live escape is ${ACCEPT_ENGINE_SKEW_ENV}=1 after reviewing the delta. ` +
-            "It is not a CLI flag and it does not clear fail-closed.",
+            "npm i -g @deftai/directive, then directive install --repair",
         },
         warnings,
       );
@@ -293,24 +283,25 @@ function resolvePlan(
         "blocked",
         {
           command: null,
-          rootCause: `engine ${effectiveEngine} is a large jump ahead of pin ${facts.pinVersion} (interactive)`,
-          remediation: `Prompt the operator to confirm the engine jump. The live escape is ${ACCEPT_ENGINE_SKEW_ENV}=1; it is not a CLI flag and it does not clear fail-closed.`,
+          rootCause: `engine ${effectiveEngine} differs from pin ${facts.pinVersion}`,
+          remediation:
+            "npm i -g @deftai/directive, then directive install --repair",
         },
         warnings,
       );
     default: {
-      // proceed-silent | proceed-loud-update | content-at-engine pin lag (#4718)
+      // proceed-silent | proceed-loud-update | retired align-pin (#5490 AC12.6)
       if (
         skew.requiresUpdateFirst &&
         contentMatchesEngine(facts.deftCorePayloadVersion, effectiveEngine)
       ) {
         return makePlan(
-          "align-pin",
+          "blocked",
           {
-            command: renderProjectInstall(pm, `${ENGINE_PACKAGE}@${effectiveEngine}`),
-            rootCause: `engine ${effectiveEngine} is ahead of pin ${facts.pinVersion}; deposited content already matches the engine`,
+            command: null,
+            rootCause: `engine ${effectiveEngine} is ahead of pin ${facts.pinVersion}`,
             remediation:
-              "Align the committed pin to the running engine; add updates the lock. Then run the gate.",
+              "npm i -g @deftai/directive, then directive install --repair",
           },
           warnings,
         );
@@ -319,11 +310,12 @@ function resolvePlan(
         return makePlan(
           "update",
           {
-            command: renderEphemeral(pm, "update"),
+            command: null,
             rootCause: skew.requiresUpdateFirst
-              ? `engine ${effectiveEngine} is ahead of pin ${facts.pinVersion} within the skew window`
+              ? `engine ${effectiveEngine} is ahead of pin ${facts.pinVersion}`
               : `deposited content is behind pin ${facts.pinVersion}`,
-            remediation: "Forward-migrate content with `directive update`, then run the gate.",
+            remediation:
+              "Run `directive upgrade` for deliberate version/schema changes; for install/wiring faults use `npm i -g @deftai/directive`, then `directive install --repair`.",
           },
           warnings,
         );
@@ -352,53 +344,18 @@ function planForInstallRung(
   const pm: PackageManager = options.packageManager ?? "npm";
   const pinnedSuffix = pinSuffix(facts.pinVersion);
   const withTrace = [...warnings, `ladder: ${engineResolution.trace}`];
-  switch (mode) {
-    case "install-global":
-      return makePlan(
-        "install-global",
-        {
-          command: renderGlobalInstall(pm, `${ENGINE_PACKAGE}${pinnedSuffix}`),
-          rootCause: engineResolution.reason,
-          remediation:
-            pm === "pnpm"
-              ? "Install the pinned engine into the pnpm global bin (ensure PNPM_HOME is on PATH; run `pnpm setup` if needed)."
-              : "Install the pinned engine into the global npm prefix.",
-        },
-        withTrace,
-      );
-    case "install-sandbox":
-      // Locked non-goal (#2197): the .deft/.cli/<platform> sandbox stays on npm
-      // regardless of the caller's package manager -- its node_modules/.bin
-      // layout is npm-shaped and validated by integrity.ts.
-      return makePlan(
-        "install-sandbox",
-        {
-          command: `npm install --prefix .deft/.cli/${platform} @deftai/directive${pinnedSuffix}`,
-          rootCause: engineResolution.reason,
-          remediation:
-            "Install the pinned engine into the sandbox-local .deft/.cli/<platform> prefix.",
-        },
-        withTrace,
-      );
-    case "install-staged":
-      return makePlan(
-        "install-staged",
-        {
-          command: null,
-          rootCause: engineResolution.reason,
-          remediation: "Install from the pre-staged tarball / vendored payload (registry is down).",
-        },
-        withTrace,
-      );
-    default:
-      return makePlan(
-        "blocked",
-        {
-          command: null,
-          rootCause: engineResolution.reason,
-          remediation: "Stage a Directive payload (registry down and no staged tarball).",
-        },
-        withTrace,
-      );
-  }
+  // AC12.5/AC12.6: install-global / sandbox / staged ladder rungs retired.
+  void mode;
+  void platform;
+  void pm;
+  void pinnedSuffix;
+  return makePlan(
+    "blocked",
+    {
+      command: null,
+      rootCause: engineResolution.reason,
+      remediation: "npm i -g @deftai/directive, then directive install --repair",
+    },
+    withTrace,
+  );
 }

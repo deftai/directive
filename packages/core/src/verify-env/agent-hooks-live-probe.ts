@@ -17,7 +17,7 @@ export const LIVE_PROBE_CASE_RETRY_COUNT = 1;
 export const LIVE_PROBE_TIMEOUT_RECOVERY =
   "Recovery: retry the gated ritual when load is lower. Do not reinstall @deftai/directive or disable hostHooks for a timeout.";
 export const LIVE_PROBE_BROKEN_RECOVERY =
-  "Recovery: reinstall @deftai/directive and run `deft update`.";
+  "Recovery: npm i -g @deftai/directive, then directive install --repair.";
 
 export type AgentHookLiveProbeIssue =
   | "hook-command-missing"

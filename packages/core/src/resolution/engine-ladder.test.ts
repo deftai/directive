@@ -123,7 +123,7 @@ describe("resolution/engine-ladder resolveEngine self-heal", () => {
     expect(res.resolvedVersion).toBe("0.65.0");
   });
 
-  it("self-heals a mismatched env with zero manual steps and emits a structured trace", () => {
+  it("never auto-installs even when a runner is supplied (AC12.5/AC12.6)", () => {
     const installRunner = vi.fn(
       (): EngineInstallOutcome => ({ installed: true, version: "0.65.0", detail: "npm --prefix" }),
     );
@@ -136,31 +136,18 @@ describe("resolution/engine-ladder resolveEngine self-heal", () => {
       }),
       { installRunner, reproject },
     );
-    expect(res.selfHealed).toBe(true);
-    expect(res.resolvedVersion).toBe("0.65.0");
-    expect(installRunner).toHaveBeenCalledTimes(1);
-    expect(reproject).toHaveBeenCalledWith("0.65.0");
-    // Structured trace mirrors the acceptance example shape.
-    expect(res.trace).toContain("global: absent");
-    expect(res.trace).toContain("local: 0.63.0 < pin 0.65.0");
-    expect(res.trace).toContain("installed install-sandbox -> 0.65.0");
-    expect(res.trace).toContain("re-projected content 0.65.0");
-  });
-
-  it("reports a failed install without self-heal", () => {
-    const installRunner = vi.fn(
-      (): EngineInstallOutcome => ({ installed: false, version: null, detail: "npm ETIMEDOUT" }),
-    );
-    const res = resolveEngine(baseFacts({ globalPrefixWritable: true }), { installRunner });
     expect(res.selfHealed).toBe(false);
     expect(res.resolvedVersion).toBeNull();
-    expect(res.trace).toContain("install failed: npm ETIMEDOUT");
+    expect(installRunner).not.toHaveBeenCalled();
+    expect(reproject).not.toHaveBeenCalled();
+    expect(res.decision.rung).toBe("hard-fail");
+    expect(res.trace).toMatch(/install suppressed|directive install --repair/);
   });
 
-  it("defers the install when no runner is supplied", () => {
+  it("suppresses install when no runner is supplied", () => {
     const res = resolveEngine(baseFacts({ globalPrefixWritable: true }));
     expect(res.selfHealed).toBe(false);
-    expect(res.trace).toContain("deferred (no install runner supplied)");
+    expect(res.trace).toMatch(/install suppressed|directive install --repair/);
   });
 
   it("does not attempt an install on a hard-fail rung", () => {
@@ -173,12 +160,13 @@ describe("resolution/engine-ladder resolveEngine self-heal", () => {
     expect(res.resolvedVersion).toBeNull();
   });
 
-  it("self-heals without a reproject runner (install succeeds, no re-projection line)", () => {
+  it("writable-prefix install rung is also suppressed (no self-heal)", () => {
     const installRunner = vi.fn(
       (): EngineInstallOutcome => ({ installed: true, version: "0.65.0", detail: "npm -g" }),
     );
     const res = resolveEngine(baseFacts({ globalPrefixWritable: true }), { installRunner });
-    expect(res.selfHealed).toBe(true);
-    expect(res.trace).not.toContain("re-projected");
+    expect(res.selfHealed).toBe(false);
+    expect(installRunner).not.toHaveBeenCalled();
+    expect(res.trace).toMatch(/install suppressed/);
   });
 });

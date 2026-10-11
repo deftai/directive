@@ -13,12 +13,14 @@ import {
 } from "./constants.js";
 import {
   doctorArgv,
+  doctorDiagnoseArgv,
   invokeRuntime,
   migrateArgv,
   setupArgv,
   uninstallArgv,
   type InvokeResult,
 } from "./contract-invoke.js";
+import { checkNodeVersion } from "./node-check.js";
 import {
   detectPackageManager,
   ensurePackageJson,
@@ -1004,7 +1006,13 @@ export function runUninstallStub(
   return EXIT_CODES.SUCCESS;
 }
 
-export function runDoctorStub(
+/**
+ * Launcher doctor bookend (R12 / AC12.4 / AC3.15).
+ * When the runtime can run: full read-only diagnosis.
+ * When missing/broken: basic §A5.6 diagnosis ending in AC9.7.
+ * Never writes.
+ */
+export function runDoctor(
   projectRoot: string | null,
   state: ProjectInstallState | null,
   argv: readonly string[],
@@ -1012,40 +1020,81 @@ export function runDoctorStub(
   io: BookendIo = defaultIo(),
 ): number {
   const { flags } = parseFlags(argv);
+  const node = checkNodeVersion();
+  if (node.warning) io.writeOut(`${node.warning}\n`);
+
+  // AC14.27 / A5.6: no project → non-zero + directive install.
   if (projectRoot === null || state === null) {
+    io.writeErr("No Directive project here. Run `directive install`.\n");
+    return EXIT_CODES.FAILURE;
+  }
+
+  if (state.oldStyle) {
     io.writeOut(
-      "directive doctor: no project context.\n" +
-        `Install the launcher globally, then run \`${RECOVERY_GUIDANCE}\` inside a repo.\n`,
+      "This project uses an older Directive layout. Run `directive upgrade`.\n",
+    );
+    return EXIT_CODES.FAILURE;
+  }
+
+  const pinLabel = state.pin.version ?? state.pin.raw ?? "(none)";
+  const installedLabel = state.installed?.version ?? "(missing)";
+
+  // Runtime missing or pin≠installed → launcher basic diagnosis (AC12.4 / A5.6).
+  if (state.installed === null || !state.pinMatchesInstalled) {
+    if (state.installed === null) {
+      io.writeOut(
+        `directive doctor: project ${projectRoot}\n` +
+          `  launcher: ${launcherVersion}\n` +
+          `  pin: ${pinLabel} (${state.pin.kind})\n` +
+          `  installed: missing\n` +
+          `Recovery: ${RECOVERY_GUIDANCE}\n`,
+      );
+    } else {
+      io.writeOut(
+        `directive doctor: project ${projectRoot}\n` +
+          `  launcher: ${launcherVersion}\n` +
+          `  pin: ${pinLabel} (${state.pin.kind})\n` +
+          `  installed: ${installedLabel} (≠ pin)\n` +
+          `Recovery: ${RECOVERY_GUIDANCE}\n`,
+      );
+    }
+    return EXIT_CODES.FAILURE;
+  }
+
+  if (!state.contractSupported) {
+    io.writeErr(
+      "This launcher is too old for this project. `npm i -g @deftai/directive@latest`.\n",
+    );
+    return EXIT_CODES.FAILURE;
+  }
+
+  if (flags.dryRun) {
+    io.writeOut(
+      `directive doctor: project ${projectRoot}\n` +
+        `  launcher: ${launcherVersion}\n` +
+        `  pin: ${pinLabel}\n` +
+        `  installed: ${installedLabel}\n` +
+        `  (dry-run: runtime diagnosis not invoked)\n`,
     );
     return EXIT_CODES.SUCCESS;
   }
-  io.writeOut(
-    `directive doctor: project ${projectRoot}\n` +
-      `  launcher: ${launcherVersion}\n` +
-      `  pin: ${state.pin.version ?? state.pin.raw ?? "(none)"} (${state.pin.kind})\n` +
-      `  installed: ${state.installed?.version ?? "(missing)"}\n` +
-      `  contract: ${state.installed?.contract ?? "(n/a)"}\n` +
-      `  pinMatchesInstalled: ${state.pinMatchesInstalled}\n` +
-      `  oldStyle: ${state.oldStyle}\n`,
-  );
-  if (!state.pinMatchesInstalled || state.installed === null) {
-    io.writeOut(`Recovery: ${RECOVERY_GUIDANCE}\n`);
+
+  const result = invokeRuntime({
+    projectRoot,
+    launcherVersion,
+    runtime: state.installed,
+    argv: doctorDiagnoseArgv(),
+    stdio: "pipe",
+  });
+  if (result.stdout) {
+    io.writeOut(result.stdout.endsWith("\n") ? result.stdout : `${result.stdout}\n`);
   }
-  if (flags.dryRun) {
-    return EXIT_CODES.SUCCESS;
+  if (result.stderr) {
+    io.writeErr(result.stderr.endsWith("\n") ? result.stderr : `${result.stderr}\n`);
   }
-  if (state.installed && state.contractSupported) {
-    const result = invokeRuntime({
-      projectRoot,
-      launcherVersion,
-      runtime: state.installed,
-      argv: doctorArgv(),
-      stdio: "pipe",
-    });
-    if (result.stdout) io.writeOut(result.stdout.endsWith("\n") ? result.stdout : `${result.stdout}\n`);
-    if (result.stderr) io.writeErr(result.stderr.endsWith("\n") ? result.stderr : `${result.stderr}\n`);
-    if (result.message) io.writeErr(`${result.message}\n`);
-    return result.exitCode;
-  }
-  return EXIT_CODES.SUCCESS;
+  if (result.message) io.writeErr(`${result.message}\n`);
+  return result.exitCode;
 }
+
+/** @deprecated Use {@link runDoctor}. Kept as alias for earlier wave call sites. */
+export const runDoctorStub = runDoctor;

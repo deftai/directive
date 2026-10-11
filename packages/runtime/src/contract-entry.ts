@@ -1,9 +1,10 @@
 /**
- * Contract 1 entry points: setup / migrate / uninstall / doctor data-status.
- * Wave 2b: setup install|repair|upgrade + migrate + data-status are real;
- * uninstall remains a stub for wave 2c / R11.
+ * Contract 1 entry points: setup / migrate / uninstall / doctor (Wave 2e).
+ * `doctor --data-status` remains the AC4.10 machine discriminant for upgrade.
+ * Plain `doctor` runs full read-only diagnosis (R12).
  */
 import { readProjectDataStatus } from "./data-status.js";
+import { formatDoctorReport, runDoctorDiagnosis } from "./doctor-diagnose.js";
 import { runMigrate } from "./migrate.js";
 import { runSetup } from "./setup.js";
 
@@ -79,15 +80,34 @@ export function handleContractEntrypoint(argv: readonly string[]): number | null
     return 0;
   }
 
-  if (head === "doctor" && process.env.DIRECTIVE_LAUNCHER_VERSION) {
+  if (head === "doctor") {
     const root =
       takeFlag([...argv], "--root") ??
       process.env.DIRECTIVE_PROJECT_ROOT ??
       process.cwd();
-    const status = readProjectDataStatus(root);
-    process.stdout.write(`${JSON.stringify(status)}\n`);
-    if (status.dataStatus === "diagnosis_failed") return 1;
-    return 0;
+
+    // Machine discriminant for equal-version upgrade (AC4.10).
+    if (hasFlag(argv, "--data-status")) {
+      const status = readProjectDataStatus(root);
+      process.stdout.write(`${JSON.stringify(status)}\n`);
+      if (status.dataStatus === "diagnosis_failed") return 1;
+      return 0;
+    }
+
+    // Full read-only diagnosis (R12 / AC12.*). Never writes.
+    const launcherPresent =
+      typeof process.env.DIRECTIVE_LAUNCHER_VERSION === "string" &&
+      process.env.DIRECTIVE_LAUNCHER_VERSION.length > 0;
+    const diag = runDoctorDiagnosis(root, {
+      launcherPresent,
+      probeHooks: true,
+    });
+    process.stdout.write(formatDoctorReport(diag));
+    // Trailing machine line keeps older parsers that read last JSON tolerant.
+    process.stdout.write(
+      `${JSON.stringify({ contract: 1, dataStatus: diag.dataStatus, entry: "doctor" })}\n`,
+    );
+    return diag.exitCode;
   }
 
   return null;

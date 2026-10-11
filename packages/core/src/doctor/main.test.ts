@@ -601,29 +601,29 @@ describe("runResolutionDecision state matrix (#2267)", () => {
     expect(resolutionFinding?.message).toContain("proceed");
   });
 
-  it("engine behind pin (mismatched env) -> one install-global directive command", () => {
+  it("engine behind pin (mismatched env) -> blocked + AC9.7 (install-global retired)", () => {
     const root = makeRoot();
     makeDeposit(root);
     writePackagePin(root, "0.68.0");
-    const { summary, text } = runDecision(root, { engineProbe: engineAt("0.60.0") });
-    expect(summary.mode).toBe("install-global");
-    expect(summary.nextCommand).toBe("npm i -g @deftai/directive@0.68.0");
+    const { summary } = runDecision(root, { engineProbe: engineAt("0.60.0") });
+    expect(summary.mode).toBe("blocked");
+    expect(summary.nextCommand).toBeNull();
+    expect(summary.remediation).toContain("directive install --repair");
     expect(summary.reconciliation).toContain("behind");
-    expect(summary.nextCommand?.startsWith("task ")).toBe(false);
-    expect(countNextCommands(text)).toBe(1);
   });
 
-  it("engine ahead within window (mismatched env) -> update", () => {
+  it("engine ahead within window (mismatched env) -> update without npx", () => {
     const root = makeRoot();
     makeDeposit(root);
     writePackagePin(root, "0.68.0");
     const { summary } = runDecision(root, { engineProbe: engineAt("0.69.0") });
     expect(summary.mode).toBe("update");
-    expect(summary.nextCommand).toBe("npx @deftai/directive update");
+    expect(summary.nextCommand).toBeNull();
+    expect(summary.remediation).toMatch(/directive upgrade|directive install --repair/);
     expect(summary.reconciliation).toContain("ahead");
   });
 
-  it("content at engine plus pin lag on pnpm is align-pin, not npx update (#4718)", () => {
+  it("content at engine plus pin lag on pnpm is blocked (align-pin retired, AC12.6)", () => {
     const root = makeRoot();
     makeDeposit(root);
     writeFileSync(join(root, ".deft", "core", "VERSION"), "tag: 'v0.69.0'\n", "utf8");
@@ -638,20 +638,20 @@ describe("runResolutionDecision state matrix (#2267)", () => {
     );
     writeFileSync(join(root, "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n", "utf8");
     const { summary } = runDecision(root, { engineProbe: engineAt("0.69.0") });
-    expect(summary.mode).toBe("align-pin");
-    expect(summary.actionRequired).toBe(true);
-    expect(summary.nextCommand).toBe("pnpm add -D @deftai/directive@0.69.0");
-    expect(summary.nextCommand).not.toContain("update");
+    expect(summary.mode).toBe("blocked");
+    expect(summary.nextCommand).toBeNull();
+    expect(summary.remediation).toContain("directive install --repair");
   });
 
-  it("content at engine plus pin lag on npm is pin follow-through (#4718)", () => {
+  it("content at engine plus pin lag on npm is blocked (align-pin retired, AC12.6)", () => {
     const root = makeRoot();
     makeDeposit(root);
     writeFileSync(join(root, ".deft", "core", "VERSION"), "tag: 'v0.69.0'\n", "utf8");
     writePackagePin(root, "0.68.0");
     const { summary } = runDecision(root, { engineProbe: engineAt("0.69.0") });
-    expect(summary.mode).toBe("align-pin");
-    expect(summary.nextCommand).toBe("npm install --save-dev @deftai/directive@0.69.0");
+    expect(summary.mode).toBe("blocked");
+    expect(summary.nextCommand).toBeNull();
+    expect(summary.remediation).toContain("directive install --repair");
   });
 });
 
