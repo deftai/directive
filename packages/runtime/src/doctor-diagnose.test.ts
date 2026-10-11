@@ -274,3 +274,87 @@ describe("DoctorDiagnosis shape", () => {
     expect(diag.inSync).toBe(false);
   });
 });
+
+describe("POST-CONV-DOC / AC12.3 header vs skill pointers (AC10.3)", () => {
+  it("does not claim 'in sync' when skill pointers FAIL", () => {
+    const root = tempRoot();
+    const installed = runSetup({ operation: "install", from: "none", root });
+    pinRuntime(root, installed.runtimeVersion);
+    writeLockfileNpm(root, installed.runtimeVersion);
+    writeDataSchema(root, CURRENT_DATA_SCHEMA_VERSION);
+    // Keep AGENTS managed section healthy (install-health wiring); break a skill pointer file.
+    const skillDir = join(root, ".agents", "skills", "deft");
+    mkdirSync(skillDir, { recursive: true });
+    writeFileSync(
+      join(skillDir, "SKILL.md"),
+      "# bad\n\nFollow `.deft/core/main.md` instead of the package runtime.\n",
+    );
+
+    const diag = runDoctorDiagnosis(root, { probeHooks: false });
+    // Precondition: install-health sync alone must not justify an "in sync" header
+    // while skill pointers fail (AC12.3 / POST-CONV-DOC).
+    expect(diag.inSync).toBe(true);
+    expect(diag.dataStatus).toBe("current");
+    expect(diag.surfaces.skillPointers.ok).toBe(false);
+    expect(diag.exitCode).toBe(1);
+    const text = formatDoctorReport(diag);
+    expect(text).toMatch(/directive doctor: not in sync/);
+    expect(text).not.toMatch(/^directive doctor: in sync$/m);
+    expect(text).toMatch(/skill pointers: FAIL/);
+  });
+
+  it("ignores stale .deft/core prose outside the managed section after convert", () => {
+    const root = tempRoot();
+    const installed = runSetup({ operation: "install", from: "none", root });
+    pinRuntime(root, installed.runtimeVersion);
+    writeLockfileNpm(root, installed.runtimeVersion);
+    writeDataSchema(root, CURRENT_DATA_SCHEMA_VERSION);
+    // Managed section is package-relative; legacy fixture prose remains outside.
+    writeFileSync(
+      join(root, "AGENTS.md"),
+      [
+        "# Project",
+        "",
+        "Follow `.deft/core/main.md` (historical note).",
+        "",
+        "<!-- deft:managed-section v3 -->",
+        `Full guidelines: node_modules/@deftai/directive-runtime/main.md`,
+        `Skills: node_modules/@deftai/directive-runtime/skills/`,
+        "<!-- /deft:managed-section -->",
+        "",
+      ].join("\n"),
+    );
+
+    const diag = runDoctorDiagnosis(root, { probeHooks: false });
+    expect(diag.surfaces.skillPointers.ok).toBe(true);
+    expect(diag.exitCode).toBe(0);
+    const text = formatDoctorReport(diag);
+    expect(text).toMatch(/directive doctor: in sync/);
+    expect(text).toMatch(/skill pointers: ok/);
+  });
+});
+
+describe("AC12.7 dual remedy exclusion", () => {
+  it("never emits Next:upgrade together with Recovery repair for the same report", () => {
+    const samples = [
+      runDoctorDiagnosis("/tmp/definitely-not-a-directive-project-2o", { probeHooks: false }),
+      (() => {
+        const root = tempRoot();
+        pinRuntime(root, "1.2.3");
+        writeLockfileNpm(root, "1.2.3");
+        writeDataSchema(root, 0); // schema behind
+        rmSync(join(root, "node_modules"), { recursive: true, force: true }); // install broken
+        return runDoctorDiagnosis(root, { probeHooks: false });
+      })(),
+    ];
+    for (const diag of samples) {
+      const text = formatDoctorReport(diag);
+      const hasUpgrade = /Next:\s*directive upgrade/i.test(text);
+      const hasRepair =
+        text.includes(INSTALLATION_RECOVERY_GUIDANCE) || /install --repair/i.test(text);
+      expect(hasUpgrade && hasRepair, text).toBe(false);
+      if (diag.remedy) expect(diag.schemaRemedy).toBeNull();
+      if (diag.schemaRemedy) expect(diag.remedy).toBeNull();
+    }
+  });
+});

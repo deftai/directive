@@ -25,9 +25,13 @@ describe("doctor remedy inventory (rule 10 / rule 9 / AC12.5–12.7)", () => {
     for (const re of FORBIDDEN_DOCTOR_REMEDY_PATTERNS) {
       expect(sample).not.toMatch(re);
     }
-    // Repair wording must not be presented as upgrade when install is broken.
+    // AC12.7: never dual-prescribe upgrade + repair for the same fault report.
     if (sample.includes(INSTALLATION_RECOVERY_GUIDANCE)) {
       expect(sample).not.toMatch(/Next: directive upgrade/);
+    }
+    if (/Next:\s*directive upgrade/i.test(sample)) {
+      expect(sample).not.toContain(INSTALLATION_RECOVERY_GUIDANCE);
+      expect(sample).not.toMatch(/install --repair/);
     }
   });
 });
