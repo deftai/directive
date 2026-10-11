@@ -16,6 +16,7 @@ import {
   projectRootFromHookPayload,
   renderHostDecision,
 } from "@deftai/directive-core/hooks";
+import { maybeSelfCompleteSetup } from "./self-complete.js";
 
 interface ParsedArgs {
   host?: HookHost;
@@ -202,6 +203,9 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
   const projectRoot = normalizeHookProjectRoot(
     args.projectRoot ? resolve(args.projectRoot) : projectRootFromHookPayload(payload, cwd),
   );
+  // Wave 2d / AC8.6: registered hooks self-complete when readiness is missing/stale.
+  // Suppressed when DEFT_DOCTOR_HOOK_DIAGNOSTIC is set (AC9.10).
+  maybeSelfCompleteSetup(projectRoot, { fromHook: true });
   const environ = mergeHookDispatchEnviron(payload);
   const decision = decideHook({
     host: args.host,

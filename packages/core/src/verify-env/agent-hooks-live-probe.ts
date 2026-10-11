@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 import { HOOK_HOSTS, type HookEvent, type HookHost } from "../hooks/dispatcher.js";
 import { READ_ONLY_HOOK_ENV } from "../hooks/tools.js";
+import { DEFT_DOCTOR_HOOK_DIAGNOSTIC } from "../install-health/constants.js";
 import { DEFT_HOOK_COMMAND_MARKER } from "../init-deposit/agent-hooks.js";
 import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import {
@@ -146,8 +147,21 @@ function denyFixture(projectRoot: string): string {
   });
 }
 
+/** Doctor probe env: suppress self-completing setup (AC9.10) and force read-only deny. */
+function doctorProbeEnv(extra: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
+  return {
+    ...process.env,
+    [DEFT_DOCTOR_HOOK_DIAGNOSTIC]: "1",
+    ...extra,
+  };
+}
+
 function denyProbeEnv(): NodeJS.ProcessEnv {
-  return { ...process.env, [READ_ONLY_HOOK_ENV]: "1" };
+  return doctorProbeEnv({ [READ_ONLY_HOOK_ENV]: "1" });
+}
+
+function allowProbeEnv(): NodeJS.ProcessEnv {
+  return doctorProbeEnv();
 }
 
 function parseJsonObject(stdout: string): ParsedJson {
@@ -245,7 +259,7 @@ function runFixtureProbe(
     args: ["--host", host, "--event", LIVE_PROBE_EVENT, "--project-root", projectRoot] as const,
     stdin: fixture === "allow" ? allowFixture(projectRoot) : denyFixture(projectRoot),
     cwd: projectRoot,
-    env: fixture === "allow" ? process.env : denyProbeEnv(),
+    env: fixture === "allow" ? allowProbeEnv() : denyProbeEnv(),
   };
   let spawned = spawnHook(input);
   for (

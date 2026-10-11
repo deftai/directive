@@ -28,3 +28,10 @@ export const READINESS_DIR_REL = ".deft/directive";
 export function readinessFileName(runtimeVersion: string): string {
   return `wiring-ready.${runtimeVersion}.json`;
 }
+
+/**
+ * Doctor and every diagnostic hook/helper set this env so self-completing
+ * setup and readiness/Git writes are suppressed (AC8.6 / AC9.10).
+ * Non-empty values other than "0"/"false"/"no" suppress writes.
+ */
+export const DEFT_DOCTOR_HOOK_DIAGNOSTIC = "DEFT_DOCTOR_HOOK_DIAGNOSTIC";
