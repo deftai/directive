@@ -141,6 +141,25 @@ function main() {
     entry.copy(entry.src, join(nm, entry.name));
   }
 
+  // Hoist content surfaces to the runtime package root so AC9.6 pointers
+  // (`node_modules/@deftai/directive-runtime/main.md`, `skills/…`) resolve
+  // without walking into nested @deftai/directive-content (Wave 2c / AC13.1).
+  const contentRoot = join(nm, "directive-content");
+  const HOIST = [
+    "main.md",
+    "SKILL.md",
+    "skills",
+    "Taskfile.yml",
+    "tasks",
+    ".githooks",
+    "QUICK-START.md",
+  ];
+  for (const name of HOIST) {
+    const from = join(contentRoot, name);
+    if (!existsSync(from)) continue;
+    cpSync(from, join(outDir, name), { recursive: true });
+  }
+
   const runtime = readJson(join(runtimePkg, "package.json"));
   delete runtime.private;
   const version = runtime.version || "0.0.0";
@@ -151,6 +170,19 @@ function main() {
   for (const name of bundled) deps[name] = version;
   runtime.dependencies = deps;
   runtime.bundledDependencies = bundled;
+  // Include hoisted content + dist in the packed tarball.
+  runtime.files = [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "scripts/remove-windows-ps1-shims.mjs",
+    "main.md",
+    "SKILL.md",
+    "QUICK-START.md",
+    "skills/**",
+    "Taskfile.yml",
+    "tasks/**",
+    ".githooks/**",
+  ];
   if (runtime.publishConfig?.provenance) {
     delete runtime.publishConfig.provenance;
   }

@@ -27,8 +27,12 @@ export {
   SHELL_HOOK_MATCHER,
   SPAWN_HOOK_MATCHER,
 } from "../hooks/tools.js";
+/** Legacy bare PATH marker — rewritten to PACKAGE_RELATIVE_HOOK_BIN on deposit (AC9.2). */
 export const DEFT_HOOK_COMMAND_MARKER = "deft-hook";
 export const LEGACY_DEFT_HOOK_COMMAND_MARKER = "deft hook:dispatch";
+/** Package-relative hook invocation (AC9.1) — identical on every OS and PM. */
+export const PACKAGE_RELATIVE_HOOK_BIN =
+  "node node_modules/@deftai/directive-runtime/dist/hook-bin.js";
 export const AGENT_HOOK_PATHS = [
   ".claude/settings.json",
   ".grok/hooks/deft.json",
@@ -130,9 +134,17 @@ function object(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
-/** Bare PATH name hosts invoke; Windows .cmd reachability is #4654/#4659, not Bypass. */
+/** Package-relative hook command (AC9.1); never bare PATH `deft-hook`. */
 function command(host: HookHost, event: HookEvent): string {
-  return `${DEFT_HOOK_COMMAND_MARKER} --host ${host} --event ${event}`;
+  return `${PACKAGE_RELATIVE_HOOK_BIN} --host ${host} --event ${event}`;
+}
+
+function isManagedHookCommand(commandText: string): boolean {
+  return (
+    commandText.includes(PACKAGE_RELATIVE_HOOK_BIN) ||
+    commandText.includes(DEFT_HOOK_COMMAND_MARKER) ||
+    commandText.includes(LEGACY_DEFT_HOOK_COMMAND_MARKER)
+  );
 }
 
 function readConfig(path: string): Record<string, unknown> {
@@ -179,19 +191,12 @@ function nestedCommands(value: unknown): string[] {
 }
 
 function isManagedNestedGroup(value: unknown): boolean {
-  return nestedCommands(value).some(
-    (command) =>
-      command.includes(DEFT_HOOK_COMMAND_MARKER) ||
-      command.includes(LEGACY_DEFT_HOOK_COMMAND_MARKER),
-  );
+  return nestedCommands(value).some((commandText) => isManagedHookCommand(commandText));
 }
 
 function isManagedNestedGroupForHost(value: unknown, host: NestedHookHost): boolean {
   return nestedCommands(value).some(
-    (command) =>
-      (command.includes(DEFT_HOOK_COMMAND_MARKER) ||
-        command.includes(LEGACY_DEFT_HOOK_COMMAND_MARKER)) &&
-      command.includes(`--host ${host}`),
+    (commandText) => isManagedHookCommand(commandText) && commandText.includes(`--host ${host}`),
   );
 }
 
@@ -199,9 +204,7 @@ function isManagedCursorEntry(value: unknown): boolean {
   const entry = object(value);
   if (typeof entry?.command !== "string") return false;
   return (
-    entry.command.includes(DEFT_HOOK_COMMAND_MARKER) ||
-    entry.command.includes(LEGACY_DEFT_HOOK_COMMAND_MARKER) ||
-    entry.command.includes("deft-cursor-hook-adapter.mjs")
+    isManagedHookCommand(entry.command) || entry.command.includes("deft-cursor-hook-adapter.mjs")
   );
 }
 

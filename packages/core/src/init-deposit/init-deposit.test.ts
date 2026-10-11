@@ -202,7 +202,7 @@ describe("runInitDeposit", destContentionItTimeout(), () => {
     expect(pkg.private).toBe(true);
     expect((pkg.devDependencies as Record<string, string>)[PIN_DEPENDENCY_NAME]).toBe("0.53.0");
     expect(readFileSync(join(project, ".codex", "hooks.json"), "utf8")).toContain(
-      "deft-hook --host codex --event tool.before",
+      "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host codex --event tool.before",
     );
     expect(result.taskfileWired).toBe(true);
     expect(lines.join("")).toContain("AGENTS.md created");

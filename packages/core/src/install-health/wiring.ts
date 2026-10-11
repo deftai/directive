@@ -1,11 +1,10 @@
 /**
  * Cheap structural wiring checks for AC2.1 predicate (5).
  *
- * Wave 2c owns full package-relative wiring migration. Until then this module
- * probes a small set of known managed surfaces: if a file is present, its
+ * Wave 2c: probes package-relative managed surfaces. If a file is present, its
  * Directive-owned content must target RUNTIME_PACKAGE_PATH_PREFIX (not
- * `.deft/core/` or bare `deft-hook`). Absent files are not failures — the
- * required-wiring inventory is incomplete until 2c.
+ * `.deft/core/` or bare `deft-hook`). Absent files are not failures — hosts
+ * may opt out; presence of mismatched content fails.
  */
 
 import { existsSync, readFileSync } from "node:fs";
@@ -14,6 +13,7 @@ import { RUNTIME_PACKAGE_PATH_PREFIX } from "./constants.js";
 import {
   MANAGED_SECTION_CLOSE,
   MANAGED_SECTION_OPEN_PREFIX,
+  MANAGED_SECTION_MARKER_ID,
 } from "./ownership.js";
 import type { FsSeams } from "./readers.js";
 
@@ -26,8 +26,24 @@ export interface WiringCheckResult {
   readonly mismatched: readonly string[];
 }
 
-/** Relative paths probed when present (stubs until 2c expands the inventory). */
-export const WIRING_PROBE_RELS: readonly string[] = ["AGENTS.md"];
+/**
+ * Relative paths probed when present (Wave 2c inventory).
+ * Marker convention remains deft:managed-section for AGENTS.
+ */
+export const WIRING_PROBE_RELS: readonly string[] = [
+  "AGENTS.md",
+  ".agents/skills/deft/SKILL.md",
+  ".claude/settings.json",
+  ".cursor/hooks.json",
+  ".codex/hooks.json",
+  ".grok/hooks/deft.json",
+  "Taskfile.yml",
+  ".githooks/pre-commit",
+  ".githooks/_directive-run.sh",
+];
+
+/** Exported so callers/docs can assert the marker id has not drifted. */
+export const WIRING_MANAGED_SECTION_MARKER = MANAGED_SECTION_MARKER_ID;
 
 function defaultIsFile(p: string): boolean {
   try {
@@ -56,19 +72,29 @@ function extractManagedSection(text: string): string | null {
   return text.slice(start, end + MANAGED_SECTION_CLOSE.length);
 }
 
-function sectionTargetsRuntime(section: string): boolean {
-  // Version-free package prefix (with or without trailing slash in pointers).
+function targetsRuntime(text: string): boolean {
   const prefix = RUNTIME_PACKAGE_PATH_PREFIX.replace(/\/$/, "");
-  if (!section.includes(prefix)) return false;
-  // Fail closed on legacy copy / bare hook targets inside the managed section.
-  if (section.includes(".deft/core/")) return false;
-  if (/(^|[\s"`'])deft-hook([\s"`']|$)/.test(section)) return false;
+  if (!text.includes(prefix)) return false;
+  if (text.includes(".deft/core/")) return false;
+  if (/(^|[\s"`'])deft-hook([\s"`']|$)/.test(text)) return false;
   return true;
 }
 
+function inspectProbe(rel: string, text: string): boolean {
+  if (rel === "AGENTS.md") {
+    const section = extractManagedSection(text);
+    if (section === null) {
+      // File present without a managed section — not Directive wiring yet.
+      return true;
+    }
+    return targetsRuntime(section);
+  }
+  return targetsRuntime(text);
+}
+
 /**
- * Structural wiring check. Documents stub scope: only AGENTS.md managed
- * section today; missing probes do not fail. Present mismatched probes fail.
+ * Structural wiring check against the Wave 2c probe inventory.
+ * Missing probes do not fail. Present mismatched probes fail.
  */
 export function checkWiringTargetsRuntime(
   projectRoot: string,
@@ -88,12 +114,7 @@ export function checkWiringTargetsRuntime(
       mismatched.push(rel);
       continue;
     }
-    const section = extractManagedSection(text);
-    if (section === null) {
-      // File present without a managed section — not Directive wiring yet.
-      continue;
-    }
-    if (!sectionTargetsRuntime(section)) {
+    if (!inspectProbe(rel, text)) {
       mismatched.push(rel);
     }
   }

@@ -1,7 +1,8 @@
 /**
- * Contract 1 setup for --operation install|repair|upgrade (Wave 2a–2b / R8).
- * Writes GENERATION.json, readiness marker, minimal AGENTS wiring, gitignore
- * entries; install-only seed placeholders. Full host wiring inventory in 2c.
+ * Contract 1 setup for --operation install|repair|upgrade (Wave 2a–2c / R8 / R9).
+ * Writes GENERATION.json, readiness marker, package-relative wiring (AGENTS,
+ * skills, host hooks, git hooks, Taskfile), gitignore entries; install-only
+ * seed placeholders. Never deposits .deft/core (AC13.1).
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -14,14 +15,20 @@ import {
 import {
   buildOwnershipRecord,
   fingerprintContent,
-  MANAGED_SECTION_CLOSE,
-  MANAGED_SECTION_OPEN_PREFIX,
   ownershipRecordsEqual,
   readOwnershipRecord,
   writeOwnershipRecord,
   type OwnedArtifact,
   type PackageManagerFact,
 } from "@deftai/directive-core/dist/install-health/index.js";
+import {
+  ensureAgentsManagedSection,
+  ensureGitHooks,
+  ensureHostHooks,
+  ensureSkillPointers,
+  ensureTaskfileInclude,
+  RUNTIME_PREFIX,
+} from "./setup-wiring.js";
 
 export type SetupOperation = "install" | "repair" | "upgrade";
 
@@ -40,7 +47,6 @@ export interface SetupResult {
   readonly message: string;
 }
 
-const RUNTIME_PREFIX = "node_modules/@deftai/directive-runtime/";
 const SEED_PLACEHOLDER_REL = "xbrief/.directive-seed-placeholder";
 const GEN_REL = ".deft/GENERATION.json";
 const WIRING_READY_DIR_REL = ".deft/directive";
@@ -75,13 +81,12 @@ function writeContained(
   projectRoot: string,
   relPath: string,
   body: string,
-  mode: "create" | "replace" | "append" = "replace",
 ): void {
   containedWrite({
     root: projectRoot,
     target: relPath,
     data: body,
-    mode,
+    mode: "replace",
     mkdir: true,
   });
 }
@@ -154,54 +159,6 @@ function ensureGitignore(projectRoot: string): { created: boolean; modified: boo
   return { created: false, modified: true };
 }
 
-function ensureAgentsManagedSection(projectRoot: string): {
-  created: boolean;
-  modified: boolean;
-  conflict: boolean;
-  conflictReason?: string;
-} {
-  const rel = "AGENTS.md";
-  const section = [
-    `${MANAGED_SECTION_OPEN_PREFIX} v3 -->`,
-    `Directive runtime: ${RUNTIME_PREFIX}`,
-    `See ${RUNTIME_PREFIX} (package-relative; no .deft/core copy).`,
-    "Recovery: npm i -g @deftai/directive, then directive install --repair",
-    MANAGED_SECTION_CLOSE,
-    "",
-  ].join("\n");
-
-  const existing = readText(join(projectRoot, rel));
-  if (existing === null) {
-    writeContained(projectRoot, rel, `${section}\n`);
-    return { created: true, modified: false, conflict: false };
-  }
-
-  const start = existing.indexOf(MANAGED_SECTION_OPEN_PREFIX);
-  if (start < 0) {
-    const suffix = existing.endsWith("\n") ? "" : "\n";
-    writeContained(projectRoot, rel, `${existing}${suffix}\n${section}\n`);
-    return { created: false, modified: true, conflict: false };
-  }
-  const openEnd = existing.indexOf("-->", start);
-  const end = openEnd >= 0 ? existing.indexOf(MANAGED_SECTION_CLOSE, openEnd) : -1;
-  if (end < 0) {
-    return {
-      created: false,
-      modified: false,
-      conflict: true,
-      conflictReason: "AGENTS.md: managed section open without close marker",
-    };
-  }
-  const closeEnd = end + MANAGED_SECTION_CLOSE.length;
-  const current = existing.slice(start, closeEnd);
-  if (current.includes(RUNTIME_PREFIX) && !current.includes(".deft/core/")) {
-    return { created: false, modified: false, conflict: false };
-  }
-  const next = existing.slice(0, start) + section.trimEnd() + existing.slice(closeEnd);
-  writeContained(projectRoot, rel, next.endsWith("\n") ? next : `${next}\n`);
-  return { created: false, modified: true, conflict: false };
-}
-
 function writeReadiness(
   projectRoot: string,
   runtimeVersion: string,
@@ -238,6 +195,25 @@ function buildOwnershipArtifacts(projectRoot: string): OwnedArtifact[] {
       markerId: "deft:managed-section",
     });
   }
+  for (const rel of [
+    ".claude/settings.json",
+    ".cursor/hooks.json",
+    ".codex/hooks.json",
+    ".grok/hooks/deft.json",
+    "Taskfile.yml",
+    ".githooks/pre-commit",
+    ".githooks/pre-push",
+    ".githooks/_directive-run.sh",
+  ]) {
+    const body = readText(join(projectRoot, rel));
+    if (body !== null) {
+      artifacts.push({
+        path: rel,
+        kind: "whole-file",
+        fingerprint: fingerprintContent(body),
+      });
+    }
+  }
   const seedAbs = join(projectRoot, SEED_PLACEHOLDER_REL);
   if (existsSync(seedAbs)) {
     artifacts.push({
@@ -252,6 +228,7 @@ function buildOwnershipArtifacts(projectRoot: string): OwnedArtifact[] {
 /**
  * Run setup for install, repair, or upgrade.
  * Upgrade refreshes GENERATION/wiring like repair; never creates install seeds.
+ * Never writes `.deft/core` (AC13.1).
  */
 export function runSetup(options: {
   readonly operation: SetupOperation;
@@ -278,10 +255,29 @@ export function runSetup(options: {
       conflicts.push(agents.conflictReason ?? "AGENTS.md: managed section conflict");
     }
 
+    const skills = ensureSkillPointers(root);
+    created.push(...skills.created);
+    modified.push(...skills.modified);
+
+    const hooks = ensureHostHooks(root);
+    created.push(...hooks.created);
+    modified.push(...hooks.modified);
+
+    const githooks = ensureGitHooks(root);
+    created.push(...githooks.created);
+    modified.push(...githooks.modified);
+
+    track(created, modified, "Taskfile.yml", ensureTaskfileInclude(root));
+
     // Seeds only on first-time install (AC8.4); repair/upgrade never create them.
     if (operation === "install" && conflicts.length === 0) {
       const seed = createSeedPlaceholder(root);
       if (seed !== null) created.push(seed);
+    }
+
+    // AC13.1: never materialize a content copy under .deft/core.
+    if (existsSync(join(root, ".deft", "core"))) {
+      // Do not create; leave historical removal to 2f conversion.
     }
 
     const desired = buildOwnershipRecord({
@@ -329,7 +325,7 @@ export function runSetup(options: {
       modified,
       removed,
       conflicts,
-      message: `setup ${operation} completed for ${runtimeVersion}`,
+      message: `setup ${operation} completed for ${runtimeVersion} (${RUNTIME_PREFIX})`,
     };
   } catch (err) {
     const msg =
