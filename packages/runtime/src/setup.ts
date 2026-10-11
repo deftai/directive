@@ -1,8 +1,7 @@
 /**
- * Contract 1 setup for --operation install|repair (Wave 2a / R8).
+ * Contract 1 setup for --operation install|repair|upgrade (Wave 2a–2b / R8).
  * Writes GENERATION.json, readiness marker, minimal AGENTS wiring, gitignore
- * entries; install-only seed placeholders. Upgrade body lands in 2b; full
- * host wiring inventory in 2c.
+ * entries; install-only seed placeholders. Full host wiring inventory in 2c.
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -251,7 +250,8 @@ function buildOwnershipArtifacts(projectRoot: string): OwnedArtifact[] {
 }
 
 /**
- * Run setup for install or repair. Upgrade returns a deferred message (wave 2b).
+ * Run setup for install, repair, or upgrade.
+ * Upgrade refreshes GENERATION/wiring like repair; never creates install seeds.
  */
 export function runSetup(options: {
   readonly operation: SetupOperation;
@@ -263,23 +263,6 @@ export function runSetup(options: {
   const modified: string[] = [];
   const removed: string[] = [];
   const conflicts: string[] = [];
-
-  if (operation === "upgrade") {
-    return {
-      contract: 1,
-      entry: "setup",
-      stub: false,
-      operation,
-      from,
-      root,
-      runtimeVersion: readOwnRuntimeVersion(),
-      created,
-      modified,
-      removed,
-      conflicts,
-      message: "setup --operation upgrade deferred to wave 2b",
-    };
-  }
 
   const runtimeVersion = readOwnRuntimeVersion();
   const pm = detectPmFact(root);
@@ -295,6 +278,7 @@ export function runSetup(options: {
       conflicts.push(agents.conflictReason ?? "AGENTS.md: managed section conflict");
     }
 
+    // Seeds only on first-time install (AC8.4); repair/upgrade never create them.
     if (operation === "install" && conflicts.length === 0) {
       const seed = createSeedPlaceholder(root);
       if (seed !== null) created.push(seed);

@@ -1,7 +1,10 @@
 /**
  * Contract 1 entry points: setup / migrate / uninstall / doctor data-status.
- * Wave 2a: setup install|repair is real; migrate/uninstall remain stubs.
+ * Wave 2b: setup install|repair|upgrade + migrate + data-status are real;
+ * uninstall remains a stub for wave 2c / R11.
  */
+import { readProjectDataStatus } from "./data-status.js";
+import { runMigrate } from "./migrate.js";
 import { runSetup } from "./setup.js";
 
 const SETUP_OPS = new Set(["install", "repair", "upgrade"]);
@@ -51,16 +54,9 @@ export function handleContractEntrypoint(argv: readonly string[]): number | null
       process.stderr.write("directive-runtime migrate: require --from <version> --root <path>\n");
       return 2;
     }
-    const result = {
-      contract: 1,
-      entry: "migrate",
-      stub: true,
-      from,
-      root,
-      migrated: [] as string[],
-      message: "migrate stub (wave 2b implements schema migration)",
-    };
+    const result = runMigrate({ from, root });
     process.stdout.write(`${JSON.stringify(result)}\n`);
+    if (result.message.startsWith("migrate failed")) return 1;
     return 0;
   }
 
@@ -84,13 +80,13 @@ export function handleContractEntrypoint(argv: readonly string[]): number | null
   }
 
   if (head === "doctor" && process.env.DIRECTIVE_LAUNCHER_VERSION) {
-    const result = {
-      contract: 1,
-      dataStatus: "current",
-      stub: true,
-      message: "doctor data-status stub (wave 2 expands diagnosis)",
-    };
-    process.stdout.write(`${JSON.stringify(result)}\n`);
+    const root =
+      takeFlag([...argv], "--root") ??
+      process.env.DIRECTIVE_PROJECT_ROOT ??
+      process.cwd();
+    const status = readProjectDataStatus(root);
+    process.stdout.write(`${JSON.stringify(status)}\n`);
+    if (status.dataStatus === "diagnosis_failed") return 1;
     return 0;
   }
 

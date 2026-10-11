@@ -18,7 +18,7 @@ import {
   runDoctorStub,
   runInstall,
   runUninstallStub,
-  runUpgradeStub,
+  runUpgrade,
 } from "./bookends.js";
 import { readLauncherVersion } from "./version.js";
 
@@ -252,7 +252,7 @@ export function runLauncher(
       case "install":
         return runInstall(projectRoot, state, cmdArgv, launcherVersion, io);
       case "upgrade":
-        return runUpgradeStub(projectRoot, state, cmdArgv, launcherVersion, io);
+        return runUpgrade(projectRoot, state, cmdArgv, launcherVersion, io);
       case "uninstall":
         return runUninstallStub(projectRoot, state, cmdArgv, launcherVersion, io);
       case "doctor":

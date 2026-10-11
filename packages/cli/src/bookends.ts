@@ -1,13 +1,19 @@
 /**
- * Install / upgrade / uninstall / doctor bookends (Wave 2a: real install/repair).
- * Upgrade/uninstall remain stubs for later waves.
+ * Install / upgrade / uninstall / doctor bookends (Wave 2a–2b).
+ * Uninstall remains a stub for later waves (R11).
  */
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { EXIT_CODES, RECOVERY_GUIDANCE, RUNTIME_PACKAGE_NAME } from "./constants.js";
+import {
+  EXIT_CODES,
+  LAUNCHER_MAX_SUPPORTED_CONTRACT,
+  RECOVERY_GUIDANCE,
+  RUNTIME_PACKAGE_NAME,
+} from "./constants.js";
 import {
   doctorArgv,
   invokeRuntime,
+  migrateArgv,
   setupArgv,
   uninstallArgv,
   type InvokeResult,
@@ -22,8 +28,13 @@ import {
   type PmAddResult,
 } from "./pm.js";
 import type { ProjectInstallState } from "./pin.js";
-import { readInstalledRuntime, readProjectInstallState } from "./pin.js";
-import { resolveLatestStableVersion, validateTargetVersionSpec } from "./registry.js";
+import { isContractSupported, readInstalledRuntime, readProjectInstallState } from "./pin.js";
+import {
+  compareExactVersions,
+  resolveLatestStableVersion,
+  resolvePublishedContract,
+  validateTargetVersionSpec,
+} from "./registry.js";
 
 export interface BookendIo {
   writeOut(text: string): void;
@@ -37,6 +48,8 @@ export interface BookendFlags {
   readonly targetVersion: string | null;
   readonly packageManager: string | null;
 }
+
+export type DataStatusValue = "current" | "migration_needed" | "diagnosis_failed";
 
 /** Testable seams for install (unit tests inject; production uses defaults). */
 export interface InstallDeps {
@@ -52,6 +65,19 @@ export interface InstallDeps {
     version: string;
   }) => PmAddResult;
   readonly invokeSetup?: (argv: readonly string[]) => InvokeResult;
+}
+
+/** Testable seams for upgrade (extends install seams). */
+export interface UpgradeDeps extends InstallDeps {
+  readonly resolvePublishedContract?: (
+    version: string,
+  ) =>
+    | { ok: true; contract: number }
+    | { ok: false; message: string };
+  readonly invokeMigrate?: (argv: readonly string[]) => InvokeResult;
+  readonly invokeDoctorDataStatus?: () =>
+    | { ok: true; dataStatus: DataStatusValue }
+    | { ok: false; message: string };
 }
 
 function defaultIo(): BookendIo {
@@ -471,11 +497,55 @@ function runRepair(
   });
 }
 
+function reportJsonSummary(
+  io: BookendIo,
+  label: string,
+  result: InvokeResult,
+): void {
+  if (result.message) io.writeErr(`${result.message}\n`);
+  if (result.stderr) {
+    io.writeErr(result.stderr.endsWith("\n") ? result.stderr : `${result.stderr}\n`);
+  }
+  if (!result.stdout) return;
+  const trimmed = result.stdout.trim();
+  try {
+    const parsed: unknown = JSON.parse(trimmed.split("\n").filter(Boolean).pop() ?? "");
+    if (parsed && typeof parsed === "object") {
+      const rec = parsed as {
+        created?: unknown;
+        modified?: unknown;
+        removed?: unknown;
+        migrated?: unknown;
+        conflicts?: unknown;
+        message?: unknown;
+      };
+      io.writeOut(
+        `${label}: ` +
+          `created=${JSON.stringify(rec.created ?? [])} ` +
+          `modified=${JSON.stringify(rec.modified ?? [])} ` +
+          `removed=${JSON.stringify(rec.removed ?? [])}` +
+          (Array.isArray(rec.migrated) ? ` migrated=${JSON.stringify(rec.migrated)}` : "") +
+          (Array.isArray(rec.conflicts) && rec.conflicts.length > 0
+            ? ` conflicts=${JSON.stringify(rec.conflicts)}`
+            : "") +
+          "\n",
+      );
+      if (typeof rec.message === "string" && rec.message.length > 0) {
+        io.writeOut(`${rec.message}\n`);
+      }
+      return;
+    }
+  } catch {
+    /* fall through */
+  }
+  io.writeOut(result.stdout.endsWith("\n") ? result.stdout : `${result.stdout}\n`);
+}
+
 function handOffSetup(opts: {
   projectRoot: string;
   launcherVersion: string;
   runtime: NonNullable<ProjectInstallState["installed"]>;
-  operation: "install" | "repair";
+  operation: "install" | "repair" | "upgrade";
   from: string;
   io: BookendIo;
   deps: InstallDeps;
@@ -490,43 +560,7 @@ function handOffSetup(opts: {
       argv,
       stdio: "pipe",
     });
-  if (result.message) opts.io.writeErr(`${result.message}\n`);
-  if (result.stderr) {
-    opts.io.writeErr(result.stderr.endsWith("\n") ? result.stderr : `${result.stderr}\n`);
-  }
-  if (result.stdout) {
-    // Prefer structured JSON summary when present (AC4.9).
-    const trimmed = result.stdout.trim();
-    try {
-      const parsed: unknown = JSON.parse(trimmed.split("\n").filter(Boolean).pop() ?? "");
-      if (parsed && typeof parsed === "object") {
-        const rec = parsed as {
-          created?: unknown;
-          modified?: unknown;
-          removed?: unknown;
-          conflicts?: unknown;
-          message?: unknown;
-        };
-        opts.io.writeOut(
-          `setup ${opts.operation}: ` +
-            `created=${JSON.stringify(rec.created ?? [])} ` +
-            `modified=${JSON.stringify(rec.modified ?? [])} ` +
-            `removed=${JSON.stringify(rec.removed ?? [])}` +
-            (Array.isArray(rec.conflicts) && rec.conflicts.length > 0
-              ? ` conflicts=${JSON.stringify(rec.conflicts)}`
-              : "") +
-            "\n",
-        );
-        if (typeof rec.message === "string" && rec.message.length > 0) {
-          opts.io.writeOut(`${rec.message}\n`);
-        }
-      } else {
-        opts.io.writeOut(result.stdout.endsWith("\n") ? result.stdout : `${result.stdout}\n`);
-      }
-    } catch {
-      opts.io.writeOut(result.stdout.endsWith("\n") ? result.stdout : `${result.stdout}\n`);
-    }
-  }
+  reportJsonSummary(opts.io, `setup ${opts.operation}`, result);
   if (result.exitCode === 0) {
     opts.io.writeOut(
       `directive ${opts.operation}: ${RUNTIME_PACKAGE_NAME}@${opts.runtime.version} ready in ${opts.projectRoot}\n`,
@@ -539,45 +573,366 @@ function handOffSetup(opts: {
   return result.exitCode;
 }
 
-/** @deprecated Use {@link runInstall}. Kept as alias for any residual stub callers. */
-export const runInstallStub = runInstall;
+function handOffMigrate(opts: {
+  projectRoot: string;
+  launcherVersion: string;
+  runtime: NonNullable<ProjectInstallState["installed"]>;
+  from: string;
+  io: BookendIo;
+  deps: UpgradeDeps;
+}): number {
+  const argv = migrateArgv(opts.from, opts.projectRoot);
+  const result =
+    opts.deps.invokeMigrate?.(argv) ??
+    invokeRuntime({
+      projectRoot: opts.projectRoot,
+      launcherVersion: opts.launcherVersion,
+      runtime: opts.runtime,
+      argv,
+      stdio: "pipe",
+    });
+  reportJsonSummary(opts.io, "migrate", result);
+  return result.exitCode;
+}
 
-export function runUpgradeStub(
+/** GENERATION + wiring-ready.<V> present and matching (launcher-local; no core dep). */
+export function isWiringCurrentForVersion(projectRoot: string, version: string): boolean {
+  try {
+    const genPath = join(projectRoot, ".deft", "GENERATION.json");
+    if (!existsSync(genPath)) return false;
+    const gen = JSON.parse(readFileSync(genPath, "utf8")) as { runtimeVersion?: unknown };
+    if (gen.runtimeVersion !== version) return false;
+    const ready = join(projectRoot, ".deft", "directive", `wiring-ready.${version}.json`);
+    return existsSync(ready);
+  } catch {
+    return false;
+  }
+}
+
+function obtainDataStatus(
+  projectRoot: string,
+  launcherVersion: string,
+  runtime: NonNullable<ProjectInstallState["installed"]>,
+  deps: UpgradeDeps,
+): { ok: true; dataStatus: DataStatusValue } | { ok: false; message: string } {
+  if (deps.invokeDoctorDataStatus) return deps.invokeDoctorDataStatus();
+  const result = invokeRuntime({
+    projectRoot,
+    launcherVersion,
+    runtime,
+    argv: doctorArgv(),
+    stdio: "pipe",
+  });
+  if (result.exitCode !== 0 && !result.stdout.trim()) {
+    return {
+      ok: false,
+      message: result.message ?? `doctor diagnostic failed (exit ${result.exitCode})`,
+    };
+  }
+  try {
+    const line = result.stdout.trim().split("\n").filter(Boolean).pop() ?? "";
+    const parsed: unknown = JSON.parse(line);
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return { ok: false, message: "doctor data-status JSON malformed" };
+    }
+    const status = (parsed as { dataStatus?: unknown }).dataStatus;
+    if (
+      status !== "current" &&
+      status !== "migration_needed" &&
+      status !== "diagnosis_failed"
+    ) {
+      return { ok: false, message: `doctor data-status unknown: ${String(status)}` };
+    }
+    return { ok: true, dataStatus: status };
+  } catch {
+    return {
+      ok: false,
+      message: result.message ?? "doctor data-status parse failed",
+    };
+  }
+}
+
+/**
+ * Real upgrade / update bookend (R7 / AC7.* / AC4.10 / AC4.7).
+ */
+export function runUpgrade(
   projectRoot: string,
   state: ProjectInstallState,
   argv: readonly string[],
   launcherVersion: string,
   io: BookendIo = defaultIo(),
+  deps: UpgradeDeps = {},
 ): number {
-  const { flags } = parseFlags(argv);
-  const target = flags.targetVersion ?? state.pin.version ?? "(unresolved)";
-  io.writeOut(
-    `directive upgrade: project ${projectRoot}\n` +
-      `  current pin: ${state.pin.version ?? state.pin.raw ?? "(none)"}\n` +
-      `  target: ${target}\n` +
-      `  installed: ${state.installed?.version ?? "(missing)"}\n`,
-  );
+  const { flags, rest, usageError } = parseFlags(argv);
+  const env = deps.env ?? process.env;
+
+  if (usageError !== null) {
+    io.writeErr(`${usageError}\n`);
+    return EXIT_CODES.USAGE;
+  }
+  if (rest.length > 0) {
+    io.writeErr(`Unknown argument(s): ${rest.join(" ")}\n`);
+    return EXIT_CODES.USAGE;
+  }
+
+  // AC7.1: exact pin or old-style; else exit 2 naming install
+  const exactPin = state.pin.kind === "exact" && state.pin.version !== null;
+  if (!exactPin && !state.oldStyle) {
+    io.writeErr(
+      `Upgrade requires an exact ${RUNTIME_PACKAGE_NAME} pin or a supported old-style layout. Run \`directive install\`.\n`,
+    );
+    return EXIT_CODES.USAGE;
+  }
+
+  const currentPin = state.pin.version!;
+  const fromLabel = state.oldStyle ? "old-style" : currentPin;
+
+  // Resolve target once before plan (AC7.2)
+  let targetVersion: string;
+  if (flags.targetVersion !== null) {
+    const validated = validateTargetVersionSpec(flags.targetVersion);
+    if (!validated.ok) {
+      io.writeErr(`${validated.message}\n`);
+      return EXIT_CODES.USAGE;
+    }
+    targetVersion = validated.version;
+  } else {
+    const resolver =
+      deps.resolveLatest ?? (() => resolveLatestStableVersion(env, projectRoot));
+    const resolved = resolver();
+    if (resolved instanceof Promise) {
+      io.writeErr("Internal error: async resolveLatest is not supported in sync upgrade path.\n");
+      return EXIT_CODES.FAILURE;
+    }
+    if (!resolved.ok) {
+      io.writeErr(`${resolved.message}\n`);
+      return EXIT_CODES.FAILURE;
+    }
+    targetVersion = resolved.version;
+  }
+
+  // Target older than pin → reject (AC7.3)
+  if (!state.oldStyle && compareExactVersions(targetVersion, currentPin) < 0) {
+    io.writeErr(
+      `Target ${targetVersion} is older than pin ${currentPin}; upgrade rejects downgrades.\n`,
+    );
+    return EXIT_CODES.FAILURE;
+  }
+
+  // Contract preflight before modifying pin/lockfile (AC4.7 / AC7.2)
+  const contractResolver =
+    deps.resolvePublishedContract ??
+    ((version: string) => resolvePublishedContract(version, env, projectRoot));
+  const published = contractResolver(targetVersion);
+  if (!published.ok) {
+    io.writeErr(`${published.message}\n`);
+    return EXIT_CODES.FAILURE;
+  }
+  if (!isContractSupported(published.contract)) {
+    io.writeErr(
+      `This launcher is too old for target ${RUNTIME_PACKAGE_NAME}@${targetVersion} ` +
+        `(contract ${published.contract} > ${LAUNCHER_MAX_SUPPORTED_CONTRACT}). ` +
+        "`npm i -g @deftai/directive@latest`.\n",
+    );
+    return EXIT_CODES.FAILURE;
+  }
+
+  const versionChange = state.oldStyle || compareExactVersions(targetVersion, currentPin) !== 0;
+  const pmDetect = detectPackageManager(projectRoot, flags.packageManager);
+  if (!pmDetect.ok) {
+    io.writeErr(`${pmDetect.message}\n`);
+    return EXIT_CODES.USAGE;
+  }
+
+  // Equal-version: AC4.10 data-status + wiring check
+  let needSetup = versionChange;
+  let needMigrate = versionChange;
+  let dataStatus: DataStatusValue | null = null;
+
+  if (!versionChange) {
+    if (state.installed === null || !state.pinMatchesInstalled || !state.contractSupported) {
+      io.writeErr(
+        `Equal-version upgrade requires the pinned runtime installed and contract-supported. ${RECOVERY_GUIDANCE}\n`,
+      );
+      return EXIT_CODES.FAILURE;
+    }
+    const status = obtainDataStatus(projectRoot, launcherVersion, state.installed, deps);
+    if (!status.ok) {
+      io.writeErr(`Data-status diagnostic failed: ${status.message}\n`);
+      return EXIT_CODES.FAILURE;
+    }
+    if (status.dataStatus === "diagnosis_failed") {
+      io.writeErr("Data-status diagnostic reported diagnosis_failed; refusing no-op.\n");
+      return EXIT_CODES.FAILURE;
+    }
+    dataStatus = status.dataStatus;
+    const wiringCurrent = isWiringCurrentForVersion(projectRoot, currentPin);
+    needSetup = !wiringCurrent;
+    needMigrate = dataStatus === "migration_needed" || needSetup;
+    if (!needSetup && !needMigrate) {
+      io.writeOut(
+        `directive upgrade: already current (${RUNTIME_PACKAGE_NAME}@${currentPin}; wiring + data current). No-op.\n`,
+      );
+      return EXIT_CODES.SUCCESS;
+    }
+  }
+
+  const pmCmd = versionChange
+    ? formatPmExactAddCommand(pmDetect.pm, targetVersion, projectRoot)
+    : "(none)";
+
+  printPlan(io, [
+    `operation: upgrade`,
+    `root: ${projectRoot}`,
+    `package manager: ${pmDetect.pm} (${pmDetect.evidence})`,
+    `current: ${RUNTIME_PACKAGE_NAME}@${currentPin}${state.oldStyle ? " (old-style)" : ""}`,
+    `target: ${RUNTIME_PACKAGE_NAME}@${targetVersion}`,
+    versionChange
+      ? `PM: exact add target (pin + lockfile change)`
+      : `PM: none (equal version; package already matches pin)`,
+    versionChange ? `PM command: ${pmCmd}` : `PM command: (none)`,
+    needSetup
+      ? `setup: runtime setup --operation upgrade --from ${fromLabel}`
+      : `setup: none (wiring current for pin)`,
+    needMigrate
+      ? `migrate: runtime migrate --from ${fromLabel}` +
+        (dataStatus !== null ? ` (dataStatus=${dataStatus})` : "")
+      : `migrate: none`,
+    `disclosure: target runtime performs required setup/migrations; project settings/data preserved`,
+    `global launcher: unchanged`,
+  ]);
+
   if (flags.dryRun) {
-    io.writeOut("[dry-run] would upgrade (launcher skeleton; target resolve + PM add in wave 2b)\n");
+    io.writeOut("[dry-run] no changes made.\n");
     return EXIT_CODES.SUCCESS;
   }
-  if (state.installed && state.contractSupported && state.pinMatchesInstalled) {
-    const from = state.pin.version ?? "none";
-    const result = invokeRuntime({
+
+  const approval = requireApproval(
+    flags,
+    deps,
+    io,
+    versionChange
+      ? `Upgrade Directive from ${currentPin} to ${targetVersion}?`
+      : `Finish equal-version upgrade work for ${currentPin}?`,
+  );
+  if (approval !== null) return approval;
+
+  if (versionChange) {
+    const add =
+      deps.runPmAdd?.({ projectRoot, pm: pmDetect.pm, version: targetVersion }) ??
+      runPmExactAdd({ projectRoot, pm: pmDetect.pm, version: targetVersion, env });
+    if (!add.ok) {
+      io.writeErr(`${add.message}\n`);
+      if ("stderr" in add && add.stderr) io.writeErr(`${add.stderr}\n`);
+      return EXIT_CODES.FAILURE;
+    }
+
+    const after = readProjectInstallState(projectRoot);
+    if (after.pin.kind !== "exact" || after.pin.version !== targetVersion) {
+      io.writeErr(
+        `Pin verification failed: expected ${targetVersion}, got ${after.pin.raw ?? "(none)"}.\n`,
+      );
+      return EXIT_CODES.FAILURE;
+    }
+    const installed = readInstalledRuntime(projectRoot);
+    if (installed === null || installed.version !== targetVersion) {
+      io.writeErr(
+        `Installed package verification failed: expected ${RUNTIME_PACKAGE_NAME}@${targetVersion}, found ${installed?.version ?? "nothing"}.\n`,
+      );
+      return EXIT_CODES.FAILURE;
+    }
+    if (!isContractSupported(installed.contract)) {
+      io.writeErr(
+        "This launcher is too old for the installed runtime. `npm i -g @deftai/directive@latest`.\n",
+      );
+      return EXIT_CODES.FAILURE;
+    }
+
+    const setupCode = handOffSetup({
       projectRoot,
       launcherVersion,
-      runtime: state.installed,
-      argv: setupArgv("upgrade", from, projectRoot),
+      runtime: installed,
+      operation: "upgrade",
+      from: fromLabel,
+      io,
+      deps,
     });
-    if (result.message) io.writeErr(`${result.message}\n`);
-    return result.exitCode;
+    if (setupCode !== 0) {
+      io.writeErr(
+        `Pin and lockfile now reference ${RUNTIME_PACKAGE_NAME}@${targetVersion}, but setup failed. ` +
+          `Fix the cause, then run: directive install --repair --yes (wiring) or directive upgrade --yes (data).\n`,
+      );
+      return setupCode;
+    }
+
+    const migrateCode = handOffMigrate({
+      projectRoot,
+      launcherVersion,
+      runtime: installed,
+      from: fromLabel,
+      io,
+      deps,
+    });
+    if (migrateCode !== 0) {
+      io.writeErr(
+        `Pin and lockfile now reference ${RUNTIME_PACKAGE_NAME}@${targetVersion}, but migrate failed. ` +
+          `Fix the cause, then run: directive upgrade --yes.\n`,
+      );
+      return migrateCode;
+    }
+
+    io.writeOut(
+      `directive upgrade: ${RUNTIME_PACKAGE_NAME}@${currentPin} → ${targetVersion} complete in ${projectRoot}\n`,
+    );
+    return EXIT_CODES.SUCCESS;
+  }
+
+  // Equal-version path: setup-when-stale then migrate (no PM)
+  const runtime = state.installed!;
+  if (needSetup) {
+    const setupCode = handOffSetup({
+      projectRoot,
+      launcherVersion,
+      runtime,
+      operation: "upgrade",
+      from: fromLabel,
+      io,
+      deps,
+    });
+    if (setupCode !== 0) {
+      io.writeErr(
+        `Equal-version setup failed. Fix the cause, then run: directive install --repair --yes or directive upgrade --yes.\n`,
+      );
+      return setupCode;
+    }
+  }
+  if (needMigrate) {
+    const migrateCode = handOffMigrate({
+      projectRoot,
+      launcherVersion,
+      runtime,
+      from: fromLabel,
+      io,
+      deps,
+    });
+    if (migrateCode !== 0) {
+      io.writeErr(
+        `Equal-version migrate failed. Fix the cause, then run: directive upgrade --yes.\n`,
+      );
+      return migrateCode;
+    }
   }
   io.writeOut(
-    `Launcher skeleton: upgrade PM mutation not implemented yet (wave 2b).\n` +
-      `Recovery: ${RECOVERY_GUIDANCE}\n`,
+    `directive upgrade: equal-version work complete for ${RUNTIME_PACKAGE_NAME}@${currentPin}\n`,
   );
   return EXIT_CODES.SUCCESS;
 }
+
+/** @deprecated Use {@link runInstall}. Kept as alias for any residual stub callers. */
+export const runInstallStub = runInstall;
+
+/** @deprecated Use {@link runUpgrade}. */
+export const runUpgradeStub = runUpgrade;
 
 export function runUninstallStub(
   projectRoot: string,
