@@ -264,6 +264,11 @@ export type HookDecisionCode =
   | "session-compact-noop"
   | "not-direct-write"
   | "invalid-input"
+  /**
+   * Hook installation identity fail-closed (AC9.4 / AC9.5 / AC14.8): payload root
+   * ≠ launching checkout, or pin≠installed. No policy / no automatic setup.
+   */
+  | "installation-identity-deny"
   /** Host closed stdin with zero bytes — integration failure, not a policy gate (#2864). */
   | "stdin-empty"
   | "ritual-not-ready"

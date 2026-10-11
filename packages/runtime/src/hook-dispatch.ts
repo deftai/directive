@@ -1,9 +1,10 @@
 #!/usr/bin/env node
-import { readFileSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   decideHook,
+  type HookDecision,
   type HookEvent,
   type HookHost,
   type HookPayloadContext,
@@ -16,6 +17,9 @@ import {
   projectRootFromHookPayload,
   renderHostDecision,
 } from "@deftai/directive-core/hooks";
+import { checkCheapInSync } from "@deftai/directive-core/dist/install-health/cheap.js";
+import { INSTALLATION_RECOVERY_GUIDANCE } from "@deftai/directive-core/dist/install-health/constants.js";
+import type { CheapInSyncResult } from "@deftai/directive-core/dist/install-health/types.js";
 import { maybeSelfCompleteSetup } from "./self-complete.js";
 
 interface ParsedArgs {
@@ -43,6 +47,19 @@ export interface HookDispatchCliSeams {
   readonly stdinEmptyRetryMs?: number;
   /** Clock for empty-stdin deadline; defaults to `Date.now` (tests inject synthetic clocks). */
   readonly nowMs?: () => number;
+  /**
+   * Checkout that owns the running hook-bin / runtime package (AC9.4 / AC9.5).
+   * Defaults to walking up from this module to the consumer root above
+   * `node_modules/@deftai/directive-runtime`. Returns null for monorepo source
+   * runs (no installed package path) — mismatch guard is skipped when null.
+   */
+  readonly launchingCheckoutRoot?: () => string | null;
+  /**
+   * Cheap pin/installed identity check (AC9.4 / AC14.8). Defaults to
+   * `checkCheapInSync`. Injected in unit tests to force failClosed without a
+   * dual fixture.
+   */
+  readonly cheapInSync?: (root: string) => CheapInSyncResult;
 }
 
 /**
@@ -54,6 +71,72 @@ export const DEFAULT_STDIN_EMPTY_RETRY_MS = 250;
 
 /** Interval between empty-stdin re-polls while the retry budget remains. */
 export const STDIN_EMPTY_RETRY_INTERVAL_MS = 25;
+
+/**
+ * Resolve the consumer project root that owns an installed runtime module path
+ * (AC9.4 / AC9.5). Returns null when the path is not under
+ * `node_modules/@deftai/directive-runtime` (monorepo source / vitest).
+ */
+export function resolveLaunchingCheckoutRootFromPath(modulePath: string): string | null {
+  const normalized = modulePath.replace(/\\/g, "/");
+  const needle = "/node_modules/@deftai/directive-runtime/";
+  let before: string | null = null;
+  const idx = normalized.lastIndexOf(needle);
+  if (idx !== -1) {
+    before = normalized.slice(0, idx);
+  } else {
+    const endNeedle = "/node_modules/@deftai/directive-runtime";
+    if (normalized === endNeedle || normalized.endsWith(endNeedle)) {
+      before = normalized.slice(0, normalized.length - endNeedle.length);
+    }
+  }
+  if (before === null) return null;
+  const pnpmMarker = "/node_modules/.pnpm/";
+  const pnpmIdx = before.lastIndexOf(pnpmMarker);
+  if (pnpmIdx !== -1) before = before.slice(0, pnpmIdx);
+  return before.length > 0 ? before : null;
+}
+
+/** Resolve launching checkout from a module URL (defaults to this file). */
+export function resolveLaunchingCheckoutRoot(
+  moduleUrl: string = import.meta.url,
+): string | null {
+  try {
+    return resolveLaunchingCheckoutRootFromPath(fileURLToPath(moduleUrl));
+  } catch {
+    return null;
+  }
+}
+
+function realpathOrResolve(path: string): string {
+  try {
+    return realpathSync(path);
+  } catch {
+    return resolve(path);
+  }
+}
+
+function rootsMatch(a: string, b: string): boolean {
+  return realpathOrResolve(a) === realpathOrResolve(b);
+}
+
+function installationIdentityDeny(
+  host: HookHost,
+  event: HookEvent,
+  projectRoot: string,
+  message: string,
+): HookDecision {
+  return {
+    verdict: "deny",
+    code: "installation-identity-deny",
+    event,
+    host,
+    toolName: null,
+    projectRoot: normalizeHookProjectRoot(projectRoot),
+    message,
+    scopePath: null,
+  };
+}
 
 function defaultSleepMs(ms: number): void {
   if (ms <= 0) return;
@@ -203,6 +286,42 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
   const projectRoot = normalizeHookProjectRoot(
     args.projectRoot ? resolve(args.projectRoot) : projectRootFromHookPayload(payload, cwd),
   );
+
+  // Wave 2k / AC9.4+AC9.5: payload project root must match the checkout that
+  // owns the running hook-bin. Mismatch → fail closed (no setup, no policy).
+  const launchRoot = (seams.launchingCheckoutRoot ?? resolveLaunchingCheckoutRoot)();
+  if (launchRoot !== null && !rootsMatch(launchRoot, projectRoot)) {
+    const guidance = INSTALLATION_RECOVERY_GUIDANCE;
+    const decision = installationIdentityDeny(
+      args.host,
+      args.event,
+      projectRoot,
+      `Directive hook refuse: payload project root does not match the launching checkout ` +
+        `(payloadRoot=${normalizeHookProjectRoot(projectRoot)} ` +
+        `launchRoot=${normalizeHookProjectRoot(launchRoot)}). Recovery: ${guidance}`,
+    );
+    const rendered = renderHostDecision(args.host, decision);
+    if (rendered.length > 0) writeOut(`${rendered}\n`);
+    return 0;
+  }
+
+  // Wave 2k / AC9.4+AC14.8: pin≠installed → fail closed before policy.
+  const cheap = (seams.cheapInSync ?? checkCheapInSync)(projectRoot);
+  if (cheap.failClosed) {
+    const guidance = cheap.recoveryGuidance ?? INSTALLATION_RECOVERY_GUIDANCE;
+    const decision = installationIdentityDeny(
+      args.host,
+      args.event,
+      projectRoot,
+      `Directive hook refuse: pinned runtime does not match the installed runtime ` +
+        `(pin=${cheap.pinVersion ?? "?"} installed=${cheap.installedVersion ?? "?"}). ` +
+        `Recovery: ${guidance}`,
+    );
+    const rendered = renderHostDecision(args.host, decision);
+    if (rendered.length > 0) writeOut(`${rendered}\n`);
+    return 0;
+  }
+
   // Wave 2d / AC8.6: registered hooks self-complete when readiness is missing/stale.
   // Suppressed when DEFT_DOCTOR_HOOK_DIAGNOSTIC is set (AC9.10).
   maybeSelfCompleteSetup(projectRoot, { fromHook: true });
