@@ -21,7 +21,7 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -29,9 +29,9 @@ const runtimePkg = join(here, "..");
 const repoRoot = join(runtimePkg, "..", "..");
 const outArg = process.argv[2];
 const outDir = outArg
-  ? outArg.startsWith("/")
+  ? isAbsolute(outArg)
     ? outArg
-    : join(process.cwd(), outArg)
+    : resolve(process.cwd(), outArg)
   : join(runtimePkg, ".pack-stage");
 
 const PRIVATE = [
