@@ -88,8 +88,15 @@ describe("OVPR docs AC13.8 / AC9.11 / AC13.10 (wave2r)", () => {
     const found: string[] = [];
     for (const { id, re } of FORBIDDEN_COMMAND_RES) {
       for (const line of hits(text, re)) {
-        // Allow explicit prohibition lines ("Do not teach npx", "Never use npx").
-        if (/do not (use|teach)|never (use|teach)|avoid teaching|not teach/i.test(line)) continue;
+        // Allow explicit prohibition lines ("Do not teach npx", "Never use npx",
+        // "never recover via npx / pnpm exec").
+        if (
+          /do not (use|teach)|never (use|teach|recover)|avoid teaching|not teach|⊗\s*never recover via/i.test(
+            line,
+          )
+        ) {
+          continue;
+        }
         found.push(`${id}: ${line}`);
       }
     }

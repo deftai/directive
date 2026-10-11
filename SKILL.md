@@ -1,7 +1,7 @@
 <!-- DEFT-PREAMBLE-V1 -->
 <!--
 ! Cold-start check: deft runs from the npm-installed engine (`npm i -g @deftai/directive`). If neither `deft` nor `directive` will run on this machine, do not proceed with the instructions below -- recover first (#1933 Option 1, deprecate-by-disuse).
-! To recover: follow the #4090 ladder before any other instruction in this file or in the consumer AGENTS.md. PATH `directive --version` / `deft --version` vs the committed `package.json` pin is the skip predicate — doctor exit 0 is not skip. Behind pin: `npm i -g @deftai/directive@<pin>` then re-probe that PATH executable. No pin and no deposit: `npx @deftai/directive init`, then return to the compare. Then `directive doctor --full` (or `deft doctor --full`). CLI not on PATH: `npm i -g @deftai/directive@<pin>` then doctor --full. ⊗ never recover by reading an undeposited README block (#2273 / #4430).
+! To recover: install/update the global launcher, then repair wiring — `npm i -g @deftai/directive`, then `directive install --repair`. PATH `directive --version` / `deft --version` confirms the launcher. No runtime pin yet: `directive install`. Then `directive doctor` (read-only). ⊗ never recover via `npx` / `pnpm exec`; ⊗ never recover by reading an undeposited README block (#2273 / #4430 / AC9.7).
 ! Respect any "Restart required" directive -- if present, stop and tell the user to start a fresh session after cleanup commands complete. Otherwise continue.
 -->
 ---
@@ -23,7 +23,7 @@ A layered framework for AI-assisted development with consistent standards and wo
 ## When This Skill Activates
 
 This skill automatically loads when you:
-- Start work in a deft-enabled project (has `.deft/core/` directory)
+- Start work in a deft-enabled project (exact `@deftai/directive-runtime` pin present)
 - Reference deft, project standards, or coding conventions
 - Run tests, make commits, or perform quality checks
 - Ask about project structure, workflows, or best practices
@@ -59,9 +59,8 @@ imediately — ask what to build and features as the first question.
 
 - ! `./xbrief/PROJECT-DEFINITION.xbrief.json` — the user's project config
 - ! `./xbrief/proposed/`, `./xbrief/pending/`, `./xbrief/active/`, `./xbrief/completed/` — scope xBRIEFs in lifecycle folders
-- ⊗ Count ANY file inside `.deft/core/` (canonical) or `./deft/` (legacy pre-v0.27) as a project-level artifact — those are
-  framework-internal (e.g. `.deft/core/PROJECT.md`, `.deft/core/specs/`, `.deft/core/templates/`
-  are all part of the framework, NOT the user's project)
+- ⊗ Count ANY file inside `node_modules/@deftai/directive-runtime/` (or legacy `./deft/` pre-v0.27) as a project-level artifact — those are
+  framework-internal (e.g. runtime `templates/`, `skills/`, `docs/`) and NOT the user's project data under `./xbrief/`
 
 - ⊗ Present a summary of the config and ask what the user wants to do
 - ⊗ Ask "what would you like to do" or "what are we building" — start the interview directly
@@ -95,18 +94,18 @@ scope xBRIEFs          ← LOWEST precedence (requirements in lifecycle folders)
 
 **DO NOT** read all deft files at once. Read only what you need:
 
-1. **Always start with**: `.deft/core/main.md` (general guidelines)
+1. **Always start with**: `node_modules/@deftai/directive-runtime/main.md` (general guidelines)
 2. **Check for**: `~/.config/deft/USER.md` (personal overrides - highest precedence)
 3. **Check for**: `./xbrief/PROJECT-DEFINITION.xbrief.json` (project-specific rules)
 4. **Then read language-specific** only if working with that language:
-   - `.deft/core/languages/python.md`
-   - `.deft/core/languages/go.md`
-   - `.deft/core/languages/typescript.md`
-   - `.deft/core/languages/cpp.md`
+   - `node_modules/@deftai/directive-runtime/languages/python.md`
+   - `node_modules/@deftai/directive-runtime/languages/go.md`
+   - `node_modules/@deftai/directive-runtime/languages/typescript.md`
+   - `node_modules/@deftai/directive-runtime/languages/cpp.md`
 5. **Read tool files** only when using that tool:
-   - `.deft/core/tools/taskfile.md` (when running tasks)
-   - `.deft/core/scm/git.md` (when using git)
-   - `.deft/core/scm/github.md` (when using GitHub)
+   - `node_modules/@deftai/directive-runtime/tools/taskfile.md` (when running tasks)
+   - `node_modules/@deftai/directive-runtime/scm/git.md` (when using git)
+   - `node_modules/@deftai/directive-runtime/scm/github.md` (when using GitHub)
 
 ## Task-Centric Workflow
 
@@ -117,7 +116,7 @@ task --list        # See all available tasks
 task check         # CRITICAL: Run before EVERY commit
 ```
 
-See `.deft/core/tools/taskfile.md` for complete task standards and common commands.
+See `node_modules/@deftai/directive-runtime/tools/taskfile.md` for complete task standards and common commands.
 
 ## Development Methodology
 
@@ -131,7 +130,7 @@ See `.deft/core/tools/taskfile.md` for complete task standards and common comman
 2. Light: Interview → scope xBRIEFs in `xbrief/proposed/` (embedded requirements) → Implement
 3. Full: Interview → rich narratives in `specification.xbrief.json` (approval gate) → scope xBRIEFs → Implement
 
-See `.deft/core/coding/testing.md` for complete testing standards.
+See `node_modules/@deftai/directive-runtime/coding/testing.md` for complete testing standards.
 
 ## Quality Standards
 
@@ -144,15 +143,15 @@ task check  # MUST run: fmt, lint, type check, test, coverage
 **File Naming**: Use hyphens (e.g., `user-service.py`), not underscores
 **Secrets**: Store in `secrets/` directory with `.example` templates
 
-See `.deft/core/coding/coding.md` and `.deft/core/scm/git.md` for complete standards.
+See `node_modules/@deftai/directive-runtime/coding/coding.md` and `node_modules/@deftai/directive-runtime/scm/git.md` for complete standards.
 
 ## Language-Specific Standards
 
 All languages require ≥85% test coverage. See language-specific files:
-- `.deft/core/languages/python.md`
-- `.deft/core/languages/go.md`
-- `.deft/core/languages/typescript.md`
-- `.deft/core/languages/cpp.md`
+- `node_modules/@deftai/directive-runtime/languages/python.md`
+- `node_modules/@deftai/directive-runtime/languages/go.md`
+- `node_modules/@deftai/directive-runtime/languages/typescript.md`
+- `node_modules/@deftai/directive-runtime/languages/cpp.md`
 
 ## New Project Setup
 
@@ -165,12 +164,12 @@ task project:render       # Project config → xbrief/PROJECT-DEFINITION.xbrief.
 
 **Work with existing deft project**:
 1. **First time?** If USER.md doesn't exist, run `skills/deft-directive-setup/SKILL.md` Phase 1
-2. Read `.deft/core/main.md` (general guidelines)
+2. Read `node_modules/@deftai/directive-runtime/main.md` (general guidelines)
 3. Read `~/.config/deft/USER.md` (personal preferences - highest precedence)
 4. Read `./xbrief/PROJECT-DEFINITION.xbrief.json` (project rules)
 5. Run `task --list` to see available tasks
 
-See `.deft/core/main.md` for complete workflow details.
+See `node_modules/@deftai/directive-runtime/main.md` for complete workflow details.
 
 ## Self-Improvement
 
@@ -186,7 +185,7 @@ This SKILL.md follows the **AgentSkills specification**, compatible with:
 - **clawd.bot**: `~/.clawdbot/skills/deft/` or install via `clawdhub sync deft`
 - **Warp AI**: Upload to Warp Drive, reference in `WARP.md`/`AGENTS.md`
 
-See `.deft/core/docs/claude-code-integration.md` for integration details.
+See `node_modules/@deftai/directive-runtime/docs/claude-code-integration.md` for integration details.
 
 ## Quick Reference
 
@@ -216,4 +215,4 @@ See `.deft/core/docs/claude-code-integration.md` for integration details.
 
 ---
 
-For more details, read the specific files in `.deft/core/` as needed. Start with `main.md` and follow the precedence hierarchy.
+For more details, read the specific files in `node_modules/@deftai/directive-runtime/` as needed. Start with `main.md` and follow the precedence hierarchy.

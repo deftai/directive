@@ -1,21 +1,19 @@
-<!-- deft:cold-start-bootstrap v1 (#2273) -->
+<!-- deft:cold-start-bootstrap v2 (#5490 / AC13.8) -->
 > ## ⚡ Cold-start bootstrap (read this first)
 >
-> **New clone, or `deft` / `directive` won't run, or PATH version is behind the pin?** Directive runs from an npm-installed engine — there is no committed shell shim, so *you* (agent or human) are the interpreter. Work the **global-first ladder** below top-down and stop at the first rung that yields a working `directive` admitted by the pin compare on rung 1. Exact PATH-version equality is the check after repairing a behind-pin engine, not the stop for every case. The version to install is always the one pinned in the project's committed `package.json`. Doctor exit 0 is not skip.
+> **New clone, or `directive` / `deft` won't run?** Install the global launcher once, then use project install / repair. The version authority is the exact `@deftai/directive-runtime` pin in the project's `package.json`. Doctor exit 0 is not skip for bootstrap.
 >
-> 1. **Already on PATH?** Compare `directive --version` / `deft --version` to the committed `package.json` pin (outside the doctor binary). Matching pin: proceed, then run `directive doctor --full` (or the `deft` alias) and follow its `Next command:`. Behind pin: `npm i -g @deftai/directive@<pin>`, then re-probe that same PATH executable for the pin version — success is that match, not install exit 0. Supported ahead: proceed with the existing `update` / `align-pin` next step; far ahead stays fail-closed. No pin and no deposit: `npx @deftai/directive init`, then return to this compare against the pin init wrote. Bare `directive doctor` may skip (24h clean / 4h dirty); `--full` bypasses that throttle. A process that starts is not bootstrap success.
-> 2. **Local engine.** If `.deft/.cli/<platform>` holds an intact engine at or above the `package.json` pin, use it.
-> 3. **Global install (canonical).** With a pin: `npm i -g @deftai/directive@<pin>` (Node ≥ 20), then re-run `directive doctor --full`. No pin and no deposit: `npx @deftai/directive init`, then return to step 1. Using pnpm? `pnpm add -g @deftai/directive@<pin>` (same package, same registry) — make sure `PNPM_HOME` is on your `PATH` (`pnpm setup` if not).
-> 4. **Sandbox install.** If the global npm prefix isn't writable (sandboxed environment), install into the project instead: `npm install --prefix .deft/.cli/<platform> @deftai/directive@<pinned>`. (This internal `.deft/.cli/` layout is always npm-shaped, regardless of your project's package manager.)
-> 5. **Codex ritual git.** Distinct from npm-prefix sandbox install above: `session:start` and peer ritual verbs (`verify:session-ritual`, `issue:ingest`, `scope:promote`, …) spawn host `git`. Under the Codex sandbox (Windows TUI), that can fail with `spawnSync git EPERM` and a prompt like `Would you like to run the following command? Environment: local`. Approve outside-sandbox for ritual `git` once for the session in the Codex TUI approval prompt; prefer session-scoped approval or `/approvals` workspace trust when offered. Repeated per-verb `Environment: local` prompts do not discharge Continuity. Do not invent an in-process git substitute. Also distinct from Codex project-hook `/hooks` trust (`manual-review-required`).
-> 6. **Abandoned occupancy lease.** Only when the lease is abandoned (stale/expired owner, not a live peer session): `occupancy:release --session-id=<id from .deft/occupancy.json>` or wait for TTL claim-over. Do not release another session's live lease. Do not invent a new unlock verb (#3954 / #4667).
-> 7. **Corporate mirror symptoms.** If install returns `E404` / `ETARGET`, or `@latest` silently stays behind the public release, follow the [corporate or mirrored npm registry recovery](./content/UPGRADING.md#corporate-or-mirrored-npm-registry).
-> 8. **Offline.** If the npm registry is unreachable, install from a staged tarball / vendored payload. If none exists, stage one — recovery cannot proceed without a payload.
+> 1. **Launcher on PATH?** Run `directive --version` / `deft --version`. If missing or broken: `npm i -g @deftai/directive` (or `pnpm add -g @deftai/directive` — ensure `PNPM_HOME` is on `PATH` via `pnpm setup`).
+> 2. **New project (no runtime pin):** `directive install` / `directive init` — pins `@deftai/directive-runtime` and runs setup.
+> 3. **Clone / pull / new worktree:** `pnpm install` or `npm install`, then the first eligible runtime command or registered host hook completes local activation.
+> 4. **Wiring broken; keep the pin:** `npm i -g @deftai/directive`, then `directive install --repair`.
+> 5. **Move version / migrate data:** `directive upgrade` (alias `update`).
+> 6. **Not sure:** `directive doctor` (read-only). CI / swarm: `directive install --repair --yes` with a valid pin.
+> 7. **Corporate mirror / offline:** see [UPGRADING.md](./content/UPGRADING.md#corporate-or-mirrored-npm-registry).
+> 8. **Codex ritual git / occupancy:** approve outside-sandbox ritual `git` once per session when prompted; abandoned occupancy leases use `occupancy:release` only when stale (not a live peer).
 >
-> Old deposits missing this compare line: `npx -y @deftai/directive@<pin> agents:refresh`, then assert the every-session compare (`directive --version` vs pin) is present in the managed AGENTS.md section. Refresh exit 0 is not that evidence. When the pin predates this compare, that `@<pin>` refresh cannot add the line — obtain current bootstrap content with `directive update` on a repaired engine, or `npx -y @deftai/directive@latest agents:refresh`, then re-assert presence. Full deposit currency (main.md, SKILL.md) is `directive update` on the repaired engine.
->
-> This block is always committed (never gitignored) and does **not** depend on the `.deft/core/` payload being present, so it is reachable on a fresh clone even when the vendored framework is missing. Once `directive` runs, continue with the guidance below and in `AGENTS.md`.
-<!-- /deft:cold-start-bootstrap v1 -->
+> Never use `npx` / `pnpm exec` as day-to-day identity. There is no copied `.deft/core/` content — pointers resolve under `node_modules/@deftai/directive-runtime/`. Once `directive` runs, continue with the guidance below and in `AGENTS.md`.
+<!-- /deft:cold-start-bootstrap v2 -->
 
 **Stuck?** [Support hub](./content/docs/SUPPORT.md) — symptom index to `directive doctor --full` or this cold-start. **First project:** [getting-started](./content/docs/getting-started.md).
 
@@ -54,8 +52,9 @@ Two packages: global **`@deftai/directive`** (launcher) and project-pinned **`@d
 ```bash
 npm i -g @deftai/directive
 # or: pnpm add -g @deftai/directive
-directive install
+directive install          # alias: directive init
 directive doctor
+directive toolchain:check --consumer
 ```
 
 **Node runtime (AC16.2):** Supported (tested as a gate) Node lines are **22 and 24**. Node 20 is best-effort with a warning; Node &lt; 20 is refused. Also need **Git**, **GitHub CLI (`gh`)**, and **npm or pnpm**. Framework maintainers: see [CONTRIBUTING.md](./CONTRIBUTING.md).

@@ -51,8 +51,9 @@ describe("already-installed skip (#4539 / wave2r OVPR)", () => {
   it("README behind-pin / missing launcher uses global install, not @latest-only hop", () => {
     const block = coldStartBlock(readText("README.md"));
     expect(block).toMatch(/npm i -g @deftai\/directive/);
-    // Cold-start may name @latest for launcher refresh; must not teach npx.
-    expect(block).not.toMatch(/\bnpx\b/);
+    // Cold-start may name @latest for launcher refresh; must not teach npx commands.
+    expect(block).not.toMatch(/\bnpx\s+(-y\s+)?@deftai\/directive\b/);
+    expect(block).not.toMatch(/\bnpx\s+deft\b/);
   });
   it("README no-pin hop is directive install (not npx init)", () => {
     const block = coldStartBlock(readText("README.md"));

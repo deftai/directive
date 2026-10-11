@@ -200,7 +200,7 @@ From v0.55.1 onwards `@deftai/directive` is published on npm. The canonical cons
    pnpm add -g @deftai/directive@latest
    ```
 
-   Ensure pnpm's global bin directory is on your `PATH` (`pnpm setup` configures `PNPM_HOME`). A project-local `pnpm add -D @deftai/directive@latest` (run via `pnpm exec directive …`) is equivalent for pnpm-managed repos that avoid global installs. `deft update` / `deft migrate` / `deft doctor` all work identically regardless of which package manager installed the engine.
+   Ensure pnpm's global bin directory is on your `PATH` (`pnpm setup` configures `PNPM_HOME`). Prefer the global launcher on PATH. Project-local launcher installs are not the supported activation path — pin `@deftai/directive-runtime` via `directive install` / `directive upgrade`. `directive upgrade` / `directive doctor` work once the launcher is available.
 
 ### Corporate or mirrored npm registry
 
@@ -368,7 +368,7 @@ The npm engine (`npm i -g @deftai/directive`) remains the canonical runtime hand
 
 **Default install tier:** **daily-core** (setup, sync, build, pre-pr, review-cycle, triage) — the sync script and `deft-tiers.json` `defaultInstallTier` select this unless you override with `--tier all`, `--tier standard`, or `--tier advanced`. **Standard** covers operational workflows; **advanced** (release, swarm, debug, article-review) stays deferred. Full lists: `packaging/openpackage/deft-tiers.json`. Detail: [`packaging/openpackage/deft-directive-skills/README.md`](../packaging/openpackage/deft-directive-skills/README.md).
 
-Consumer AGENTS.md stays pointer-thin — scan `npx deft packs:slice skills list` Skills Index; do not enumerate skills in the managed section.
+Consumer AGENTS.md stays pointer-thin — scan `directive packs:slice skills list` Skills Index; do not enumerate skills in the managed section.
 
 ### Always-on bootstrap budget (DD-3, #2463)
 
@@ -525,7 +525,7 @@ This file owns the numbered hop commands. [docs/BROWNFIELD.md](./docs/BROWNFIELD
 
 The automated migrator is a convenience, not the only route. If the `v0.59.0` payload is genuinely unreachable (tag deleted, no network, Python/uv unavailable, or the migrator errors on an unusual legacy shape), you are **not** stranded — port forward manually:
 
-1. On **current npm**, scaffold a clean project beside the old one: `directive init` (or `npx @deftai/directive init`). This produces the current xBRIEF layout directly, skipping both hops.
+1. On **current npm**, scaffold a clean project beside the old one: `directive install` (alias `init`). This produces the current xBRIEF layout directly, skipping both hops.
 2. Hand-port your content: copy the substance of the old `SPECIFICATION.md` / `PROJECT.md` into the new project definition and scope xBRIEFs the setup flow creates. Your prose is the source of truth; only the container format changed.
 3. Keep the old tree read-only for reference until the new project's `deft doctor` is green, then archive it.
 
@@ -552,7 +552,7 @@ The frozen Go installer remains available at [GitHub Releases](https://github.co
 
 ## Legacy layout refused by the npm CLI (#1912)
 
-If you run `npx @deftai/directive init` (or `update`) on a project that still
+If you run `directive install` (or `directive upgrade`) on a project that still
 uses a **legacy on-disk layout**, the npm CLI **refuses** and exits non-zero
 **without depositing or refreshing anything**. The npm path never migrates a
 legacy layout; the frozen final Go installer is the one-and-only migration
@@ -580,7 +580,7 @@ migration above.
 2. **Re-run the npm path** once the layout is canonical-vendored:
 
    ```bash
-   npx @deftai/directive init      # or: npx @deftai/directive update
+   directive install              # or: directive upgrade
    ```
 
 After step 1 the layout is `.deft/core/`, so the npm CLI takes over cleanly and

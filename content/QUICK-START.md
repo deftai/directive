@@ -38,7 +38,7 @@ Three checks here, in this order. The first match wins; later checks only run wh
 1. **Classifier (Case G gate).** Run `deft agents:refresh --check` (or `deft doctor`). If the CLI is not on PATH, `npm i -g @deftai/directive` then the same verb. Wiring/runtime missing: `directive install --repair`. Supported legacy layout: `directive upgrade`.
    - ! If state is **stale**, **missing**, **absent**, or **unreadable**, treat as **stale content** -- jump to Case G ("Stale AGENTS.md") in Step 2. Case G remediates with the registered rewrite, not a hand-append.
    - If state is **current**, continue to the install-path check below.
-2. **Install-path resolution (Case K gate -- #1046 PR-A).** When the classifier reports **current**, parse the section for its install-path declaration (`Full guidelines: <root>/main.md`, e.g. `.deft/core/main.md` for the canonical install layout or `deft/main.md` for the legacy install layout). Verify that `../<root>/main.md` exists on disk.
+2. **Install-path resolution (Case K gate -- #1046 PR-A).** When the classifier reports **current**, parse the section for its install-path declaration (`Full guidelines: <root>/main.md`, e.g. `node_modules/@deftai/directive-runtime/main.md` for the OVPR layout or `deft/main.md` for a legacy install layout). Verify that `../<root>/main.md` exists on disk.
    - ! If the classifier reports **current** BUT the declared install path does NOT resolve, jump to **Case K ("Install location mismatch")** in Step 2. Refreshing the managed section is a documented no-op when the content already matches -- Case K is a different failure class than Case G and demands a different remediation (#1046 finding #2).
 3. **Legacy skill-path resolution (v0.19 AGENTS.md backstop).** Parse `../AGENTS.md` for any token matching `deft/skills/<name>/SKILL.md` (the legacy v0.19 path shape) and verify the file exists under `./skills/<name>/SKILL.md` (relative to this QUICK-START.md).
    - ! If any referenced path does not exist on disk, treat `../AGENTS.md` as **stale** -- jump to Case G in Step 2.
@@ -73,7 +73,7 @@ Pick exactly one case from Step 1 and follow its instructions. Do not mix cases.
 
 ### Case F — No AGENTS.md (fresh install)
 
-1. ! Run `deft agents:refresh` (the registered rewrite for classifier state `absent`). ⊗ Do not copy `templates/agents-entry.md` by hand. If the CLI is not on PATH: `npx @deftai/directive agents:refresh` or `npm i -g @deftai/directive`, then the same verb. Payload missing: `deft update`. Pre-canonical layout: frozen Go bridge (UPGRADING.md / GitHub releases).
+1. ! Run `deft agents:refresh` (the registered rewrite for classifier state `absent`). ⊗ Do not copy `templates/agents-entry.md` by hand. If the CLI is not on PATH: `npm i -g @deftai/directive`, then the same verb. Wiring/runtime missing: `directive install --repair`. Data/schema: `directive upgrade`. Pre-canonical layout: frozen Go bridge (UPGRADING.md / GitHub releases).
 2. Tell the user: "✓ Created AGENTS.md at your project root."
 3. Continue to Step 3.
 
@@ -81,14 +81,14 @@ Pick exactly one case from Step 1 and follow its instructions. Do not mix cases.
 
 1. ⊗ Do not locate the `deft/main.md` sentinel, do not append `templates/agents-entry.md`, and do not hand-rewrite markers. QUICK-START is not a second parser.
 2. ! Run `deft agents:refresh`. That command is the four-state plan (`current | stale | missing | absent`; v1/v2 force-stale). Truncated close refuses to write a second section.
-3. If the CLI is not on PATH: `npx @deftai/directive agents:refresh` or `npm i -g @deftai/directive`, then the same verb. Payload missing or drifted: `deft update`. Pre-canonical layout: frozen Go bridge (UPGRADING.md / GitHub releases).
+3. If the CLI is not on PATH: `npm i -g @deftai/directive`, then the same verb. Wiring/runtime missing: `directive install --repair`. Data/schema: `directive upgrade`. Pre-canonical layout: frozen Go bridge (UPGRADING.md / GitHub releases).
 4. Tell the user: "✓ Refreshed Deft-managed section of AGENTS.md. Your existing additions outside that region were preserved."
 5. ! Instruct the user: **"Framework updated. Start a new agent session to pick up the changes. The current session has stale context."** Do not continue past this instruction in the current session.
 
 ### Case H — Pre-cutover migration (SPECIFICATION.md / PROJECT.md without sentinel)
 
 1. Tell the user: "Your project uses the pre-v0.20 document model. Current npm releases no longer ship in-product `task migrate:vbrief` (#2068). Follow [UPGRADING.md § Frozen pre-v0.20 document-model migration](./UPGRADING.md#frozen-pre-v020-document-model-migration-2068): pin framework **v0.59.0** (frozen Go installer or git tag), install Python 3.11+ and `uv`, run `task migrate:vbrief` once from that payload, then upgrade to current npm."
-2. ! Run `task migrate:preflight` (or `task -t ./.deft/core/Taskfile.yml migrate:preflight`) to confirm pre-cutover state and print the frozen-release guidance. ⊗ Do NOT offer to run `task migrate:vbrief` from the current npm deposit — the migrator is not bundled.
+2. ! Run `task migrate:preflight` (or `task -t ./node_modules/@deftai/directive-runtime/Taskfile.yml migrate:preflight`) to confirm pre-cutover state and print the frozen-release guidance. ⊗ Do NOT offer to run `task migrate:vbrief` from the current npm deposit — the migrator is not bundled.
 3. See [./main.md](../main.md#migrating-from-pre-v020) for what pre-cutover looks like and what the migrator produces, and [docs/BROWNFIELD.md](./docs/BROWNFIELD.md) for the brownfield adoption guide.
 4. After migration completes on v0.59.0 and the operator upgrades to current npm, re-run Step 1 of this QUICK-START — the project state has changed. Most likely you land in Case G (AGENTS.md still references old paths) or Case J.
 5. When AGENTS.md is refreshed, ! instruct the user: **"Framework updated. Start a new agent session to pick up the changes. The current session has stale context."**
@@ -118,10 +118,10 @@ For the version-by-version context of a big jump, see the [big-jump triage entry
 
 ### Case K — Install location mismatch (#1046 PR-A)
 
-The managed section in `../AGENTS.md` is byte-identical to the current `./templates/agents-entry.md` render, BUT the install path the managed section declares (e.g. `.deft/core/main.md`) does NOT resolve on disk. This is the failure class issue #1046 finding #2 documents: Case G's "refresh the managed section" prescription is a byte-for-byte no-op against the current template, so re-running just re-detects the same staleness next session.
+The managed section in `../AGENTS.md` is byte-identical to the current `./templates/agents-entry.md` render, BUT the install path the managed section declares (e.g. `node_modules/@deftai/directive-runtime/main.md`) does NOT resolve on disk. This is the failure class issue #1046 finding #2 documents: Case G's "refresh the managed section" prescription is a byte-for-byte no-op against the current template, so re-running just re-detects the same staleness next session.
 
 1. Tell the user (verbatim phrasing, naming the unresolved path): "AGENTS.md's managed section is byte-identical to the current template, but the install path it declares (`<declared-path>`) does NOT exist on disk. Refreshing the managed section would be a no-op -- Case G's remediation does not fix install-location mismatches."
-2. ! Direct the user to run `deft doctor` (the diagnostic + remediation surface that owns Case K's fix path) OR to manually verify that the install path AGENTS.md claims actually exists on disk. Confirm the framework is deposited at the path AGENTS.md declares, OR run `deft update` / `npx @deftai/directive update` to deposit at that path, OR hand-edit AGENTS.md to point at the path where the framework actually lives. Pre-canonical layout: frozen Go bridge (UPGRADING.md / GitHub releases).
+2. ! Direct the user to run `deft doctor` (the diagnostic + remediation surface that owns Case K's fix path) OR to manually verify that the install path AGENTS.md claims actually exists on disk. Confirm the framework is deposited at the path AGENTS.md declares, OR run `directive install --repair` / `directive upgrade` as doctor directs, OR hand-edit AGENTS.md to point at the path where the framework actually lives. Pre-canonical layout: frozen Go bridge (UPGRADING.md / GitHub releases).
 3. ⊗ Run a Case G refresh -- it is a documented no-op for Case K. The managed section already byte-matches the current template; refreshing the bytes back to the same bytes does not change which install path is declared.
 4. ! Instruct the user: **"Stop here. Do not continue to Step 3 until the install-path mismatch is resolved -- subsequent sessions will re-enter Case K until then."**
 
