@@ -57,4 +57,14 @@ describe("readProjectDataStatus (AC4.10)", () => {
     writeFileSync(join(root, DATA_SCHEMA_MARKER_REL), "not-json{{{");
     expect(readProjectDataStatus(root).dataStatus).toBe("diagnosis_failed");
   });
+
+  it("reports diagnosis_failed when schema is newer than current (Greptile CP-wave2b-2)", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, ".deft", "directive"), { recursive: true });
+    writeFileSync(
+      join(root, DATA_SCHEMA_MARKER_REL),
+      `${JSON.stringify({ schemaVersion: CURRENT_DATA_SCHEMA_VERSION + 1 }, null, 2)}\n`,
+    );
+    expect(readProjectDataStatus(root).dataStatus).toBe("diagnosis_failed");
+  });
 });

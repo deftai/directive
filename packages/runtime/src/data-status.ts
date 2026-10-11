@@ -35,6 +35,9 @@ export function readProjectDataStatus(projectRoot: string): DataStatusResult {
     if (ver < CURRENT_DATA_SCHEMA_VERSION) {
       return { contract: 1, dataStatus: "migration_needed" };
     }
+    if (ver > CURRENT_DATA_SCHEMA_VERSION) {
+      return { contract: 1, dataStatus: "diagnosis_failed" };
+    }
     return { contract: 1, dataStatus: "current" };
   } catch {
     return { contract: 1, dataStatus: "diagnosis_failed" };
