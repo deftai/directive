@@ -145,6 +145,39 @@ describe("SEC-ESC ownership path escape (AC3.4 / AC11.10 / D4.15)", () => {
     expect(existsSync(owned)).toBe(false);
     expect(report.removed).toContain(".githooks/_directive-run.sh");
   });
+
+  it("refuses ownership path '.' / 'subdir/..' so the checkout is not deleted", () => {
+    const project = tempGitProject("sec-esc-dot");
+    mkdirSync(join(project, ".deft"), { recursive: true });
+    writeFileSync(join(project, "keep.txt"), "alive\n");
+    writeFileSync(
+      join(project, ".deft", "GENERATION.json"),
+      `${JSON.stringify(
+        {
+          schemaVersion: 1,
+          runtimeVersion: "0.0.0-yolo.test",
+          packageManager: "npm",
+          ownership: [
+            { path: ".", kind: "whole-file" },
+            { path: "nested/..", kind: "whole-file" },
+          ],
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    const discovery = discoverUninstallFootprint(project);
+    expect(discovery.artifacts.some((a) => a.path === "." || a.path.includes(".."))).toBe(
+      false,
+    );
+    expect(discovery.rejectedOwnershipPaths).toEqual(
+      expect.arrayContaining([".", "nested/.."]),
+    );
+    applyLauncherCleanup(project, discovery);
+    expect(existsSync(project)).toBe(true);
+    expect(existsSync(join(project, "keep.txt"))).toBe(true);
+    expect(existsSync(join(project, "package.json"))).toBe(true);
+  });
 });
 
 describe("SEC-ROOT --root symlink refuse (AC3.8 / AC14.43)", () => {
@@ -197,7 +230,12 @@ describe("SEC-ROOT --root symlink refuse (AC3.8 / AC14.43)", () => {
     execFileSync("git", ["-C", project, "commit", "--no-gpg-sign", "-qm", "init"]);
     const staging = tempDir("sec-root-ok-link");
     const link = join(staging, "proj-link");
-    symlinkSync(project, link);
+    try {
+      // Directory symlink (Windows requires type: "dir"); skip when host forbids it.
+      symlinkSync(project, link, "dir");
+    } catch {
+      return;
+    }
     const result = discoverProject({ cwd: staging, rootFlag: link });
     expect(result.ok).toBe(true);
     if (result.ok) {

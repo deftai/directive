@@ -114,7 +114,8 @@ function pkgHasDep(projectRoot: string, name: string): boolean {
 
 /**
  * Ownership paths are bounded cleanup hints only (AC11.10 / D4.15).
- * Reject absolute paths and any `..` segment so deletes cannot leave the project.
+ * Reject absolute paths, any `..` segment (before normalize), and paths that
+ * resolve to the project root itself (`.` / `subdir/..`).
  */
 export function isSafeOwnershipRelPath(rel: string): boolean {
   if (typeof rel !== "string" || !rel.trim()) return false;
@@ -122,33 +123,54 @@ export function isSafeOwnershipRelPath(rel: string): boolean {
   if (isAbsolute(trimmed)) return false;
   // Windows drive / UNC even when path.isAbsolute is false on POSIX hosts.
   if (/^[A-Za-z]:[\\/]/.test(trimmed) || trimmed.startsWith("\\\\")) return false;
+  // Inspect raw segments before normalize collapses `subdir/..` → `.`.
+  const rawParts = trimmed.replace(/\\/g, "/").split("/");
+  if (rawParts.some((p) => p === "..")) return false;
   const norm = normalize(trimmed).replace(/\\/g, "/");
-  if (norm === ".." || norm.startsWith("../") || norm.split("/").includes("..")) return false;
+  if (norm === "" || norm === "." || norm === "..") return false;
+  if (norm.startsWith("../") || norm.split("/").includes("..")) return false;
   if (norm.startsWith("/")) return false;
   return true;
 }
 
-/** True when `absCandidate` resolves inside `projectRoot` (string + realpath). */
+/**
+ * True when `absCandidate` is a strict descendant of `projectRoot`.
+ * The project root itself is refused (never delete/rewrite the checkout).
+ */
 function isPathInsideProjectRoot(projectRoot: string, absCandidate: string): boolean {
   const rootAbs = resolve(projectRoot);
   const candAbs = resolve(absCandidate);
   const rel = relative(rootAbs, candAbs);
-  if (rel.startsWith("..") || isAbsolute(rel)) return false;
+  // Empty rel → candidate IS the root; refuse. `..` / absolute → escape.
+  if (rel === "" || rel === "." || rel.startsWith("..") || isAbsolute(rel)) return false;
   try {
     const rootReal = realpathSync(rootAbs);
     let candReal: string;
     try {
       candReal = realpathSync(candAbs);
     } catch {
-      // Target may not exist yet — fall back to lexical containment.
+      // Target may not exist yet — fall back to lexical strict-descendant check.
       return true;
     }
     const relReal = relative(rootReal, candReal);
-    if (relReal.startsWith("..") || isAbsolute(relReal)) return false;
-    // Ensure candReal is rootReal or a descendant (sep-boundary).
-    if (candReal !== rootReal && !candReal.startsWith(rootReal.endsWith(sep) ? rootReal : rootReal + sep)) {
+    if (relReal === "" || relReal === "." || relReal.startsWith("..") || isAbsolute(relReal)) {
       return false;
     }
+    const rootPrefix = rootReal.endsWith(sep) ? rootReal : rootReal + sep;
+    if (!candReal.startsWith(rootPrefix)) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Contained write for cleanup mutations (same root check as deletes). */
+function safeWriteText(projectRoot: string, rel: string, body: string): boolean {
+  if (!isSafeOwnershipRelPath(rel)) return false;
+  const abs = resolve(projectRoot, rel);
+  if (!isPathInsideProjectRoot(projectRoot, abs)) return false;
+  try {
+    writeFileSync(abs, body);
     return true;
   } catch {
     return false;
@@ -546,7 +568,11 @@ export function applyLauncherCleanup(
     }
 
     if (art.kind === "marked-section") {
-      const abs = join(projectRoot, art.path);
+      const abs = resolve(projectRoot, art.path);
+      if (!isPathInsideProjectRoot(projectRoot, abs)) {
+        uncertainty.push(`skipped marked-section outside project: ${art.path}`);
+        continue;
+      }
       const body = readText(abs);
       if (body === null) continue;
       const { next, removed: did } = removeManagedSection(body);
@@ -560,23 +586,33 @@ export function applyLauncherCleanup(
       if (next.trim().length === 0) {
         if (safeUnlink(projectRoot, art.path)) removed.push(art.path);
         else leftovers.push(art.path);
-      } else {
-        writeFileSync(abs, next.endsWith("\n") ? next : `${next}\n`);
+      } else if (safeWriteText(projectRoot, art.path, next.endsWith("\n") ? next : `${next}\n`)) {
         modified.push(`${art.path}#marked-section`);
+      } else {
+        leftovers.push(art.path);
+        uncertainty.push(`refused write outside project: ${art.path}`);
       }
       continue;
     }
 
     if (art.kind === "structured-entry") {
-      const abs = join(projectRoot, art.path);
-      if (!existsSync(abs)) continue;
+      const abs = resolve(projectRoot, art.path);
+      if (!isPathInsideProjectRoot(projectRoot, abs) || !existsSync(abs)) {
+        if (existsSync(abs)) {
+          uncertainty.push(`skipped structured-entry outside project: ${art.path}`);
+        }
+        continue;
+      }
       if (art.path === "Taskfile.yml" || art.entryKey === "includes.deft") {
         const body = readText(abs);
         if (body === null) continue;
         const { next, removed: did } = stripTaskfileDeftInclude(body);
         if (did) {
-          writeFileSync(abs, next.endsWith("\n") ? next : `${next}\n`);
-          modified.push(`${art.path}#${art.entryKey ?? "includes.deft"}`);
+          if (safeWriteText(projectRoot, art.path, next.endsWith("\n") ? next : `${next}\n`)) {
+            modified.push(`${art.path}#${art.entryKey ?? "includes.deft"}`);
+          } else {
+            uncertainty.push(`refused write outside project: ${art.path}`);
+          }
         }
         continue;
       }
@@ -591,8 +627,11 @@ export function applyLauncherCleanup(
       const prior = readText(abs) ?? "";
       const next = `${JSON.stringify(stripped, null, 2)}\n`;
       if (next !== prior) {
-        writeFileSync(abs, next);
-        modified.push(`${art.path}#${art.entryKey ?? "hooks"}`);
+        if (safeWriteText(projectRoot, art.path, next)) {
+          modified.push(`${art.path}#${art.entryKey ?? "hooks"}`);
+        } else {
+          uncertainty.push(`refused write outside project: ${art.path}`);
+        }
       }
       continue;
     }
@@ -603,25 +642,38 @@ export function applyLauncherCleanup(
       if (body !== null) {
         const { next, removed: did } = stripTaskfileDeftInclude(body);
         if (did) {
-          writeFileSync(
-            join(projectRoot, art.path),
-            next.endsWith("\n") ? next : `${next}\n`,
-          );
-          modified.push(`${art.path}#includes.deft`);
+          if (
+            safeWriteText(
+              projectRoot,
+              art.path,
+              next.endsWith("\n") ? next : `${next}\n`,
+            )
+          ) {
+            modified.push(`${art.path}#includes.deft`);
+          } else {
+            uncertainty.push(`refused write outside project: ${art.path}`);
+          }
         }
       }
       continue;
     }
     if (HOST_HOOK_RELS.includes(art.path as (typeof HOST_HOOK_RELS)[number])) {
-      const abs = join(projectRoot, art.path);
+      const abs = resolve(projectRoot, art.path);
+      if (!isPathInsideProjectRoot(projectRoot, abs)) {
+        uncertainty.push(`skipped host-hook rewrite outside project: ${art.path}`);
+        continue;
+      }
       const cfg = readJsonObject(abs);
       if (cfg !== null) {
         const stripped = stripHostHooks(cfg);
         const prior = readText(abs) ?? "";
         const next = `${JSON.stringify(stripped, null, 2)}\n`;
         if (next !== prior) {
-          writeFileSync(abs, next);
-          modified.push(`${art.path}#hooks`);
+          if (safeWriteText(projectRoot, art.path, next)) {
+            modified.push(`${art.path}#hooks`);
+          } else {
+            uncertainty.push(`refused write outside project: ${art.path}`);
+          }
         }
       } else {
         uncertainty.push(`${art.path} is not valid JSON; left untouched`);
