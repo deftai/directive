@@ -20,7 +20,15 @@ import {
 import { checkCheapInSync } from "@deftai/directive-core/dist/install-health/cheap.js";
 import { INSTALLATION_RECOVERY_GUIDANCE } from "@deftai/directive-core/dist/install-health/constants.js";
 import type { CheapInSyncResult } from "@deftai/directive-core/dist/install-health/types.js";
+import { readProjectDataStatus } from "./data-status.js";
 import { maybeSelfCompleteSetup } from "./self-complete.js";
+
+/**
+ * Session-start schema-behind notice (AC8.9 / AC14.11). Doctor uses the same
+ * remedy name; other hooks must stay silent about data currency.
+ */
+export const SESSION_START_SCHEMA_BEHIND_NOTICE =
+  "Project data schema is behind the runtime; run `directive upgrade`.";
 
 interface ParsedArgs {
   host?: HookHost;
@@ -326,7 +334,7 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
   // Suppressed when DEFT_DOCTOR_HOOK_DIAGNOSTIC is set (AC9.10).
   maybeSelfCompleteSetup(projectRoot, { fromHook: true });
   const environ = mergeHookDispatchEnviron(payload);
-  const decision = decideHook({
+  let decision = decideHook({
     host: args.host,
     event: args.event,
     projectRoot,
@@ -334,6 +342,22 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
     payloadContext,
     ...(environ !== undefined ? { environ } : {}),
   });
+
+  // AC8.9: session-start (only) reports data behind and names `directive upgrade`.
+  if (args.event === "session.start") {
+    const dataStatus = readProjectDataStatus(projectRoot).dataStatus;
+    if (dataStatus === "migration_needed" || dataStatus === "diagnosis_failed") {
+      const base = decision.message.trim();
+      decision = {
+        ...decision,
+        message:
+          base.length > 0
+            ? `${base}\n\n${SESSION_START_SCHEMA_BEHIND_NOTICE}`
+            : SESSION_START_SCHEMA_BEHIND_NOTICE,
+      };
+    }
+  }
+
   const rendered = renderHostDecision(args.host, decision);
   if (rendered.length > 0) writeOut(`${rendered}\n`);
   // Force-kill allow must print the non-empty reason even when host allow wire is empty (#5281).

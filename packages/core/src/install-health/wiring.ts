@@ -102,6 +102,32 @@ function inspectProbe(rel: string, text: string): boolean {
 }
 
 /**
+ * True when at least one probe shows Directive-owned wiring (AC14.20 vs AC14.50).
+ * AGENTS.md counts only with a managed section targeting the runtime prefix;
+ * other probes count when they target the runtime prefix or are git-hook shims.
+ */
+export function hasDirectiveWiringEvidence(
+  projectRoot: string,
+  seams: FsSeams = {},
+): boolean {
+  const isFile = seams.isFile ?? defaultIsFile;
+  const readText = seams.readText ?? defaultReadText;
+  for (const rel of WIRING_PROBE_RELS) {
+    const path = join(projectRoot, rel);
+    if (!isFile(path)) continue;
+    const text = readText(path);
+    if (text === null) continue;
+    if (rel === "AGENTS.md") {
+      const section = extractManagedSection(text);
+      if (section !== null && targetsRuntime(section)) return true;
+      continue;
+    }
+    if (isGitHookShim(rel, text) || targetsRuntime(text)) return true;
+  }
+  return false;
+}
+
+/**
  * Structural wiring check against the Wave 2c probe inventory.
  * Missing probes do not fail. Present mismatched probes fail.
  */

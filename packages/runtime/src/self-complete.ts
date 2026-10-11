@@ -1,10 +1,12 @@
 /**
- * Wave 2d self-completing setup (AC8.6 / AC2.5).
+ * Wave 2d self-completing setup (AC8.6 / AC2.5); Wave 2q AC14.20 rebuild.
  *
  * On an eligible ordinary runtime command or registered hook, when the ignored
- * wiring-ready.<V>.json marker is missing/stale, run the same setup entry as
- * repair (no seeds, pin unchanged). Doctor and its children suppress via
- * DEFT_DOCTOR_HOOK_DIAGNOSTIC. Cheap fast path when readiness is already valid.
+ * wiring-ready.<V>.json marker is missing/stale, or GENERATION is missing on a
+ * configured project (pin + wiring), run the same setup entry as repair (no
+ * seeds, pin unchanged). Doctor and its children suppress via
+ * DEFT_DOCTOR_HOOK_DIAGNOSTIC. Cheap fast path when readiness + GENERATION are
+ * already valid.
  */
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -12,6 +14,8 @@ import { fileURLToPath } from "node:url";
 import { checkCheapInSync } from "@deftai/directive-core/dist/install-health/cheap.js";
 import { DEFT_DOCTOR_HOOK_DIAGNOSTIC as DOCTOR_DIAGNOSTIC_ENV } from "@deftai/directive-core/dist/install-health/constants.js";
 import { GENERATION_REL } from "@deftai/directive-core/dist/install-health/ownership.js";
+import { readRuntimePin } from "@deftai/directive-core/dist/install-health/readers.js";
+import { hasDirectiveWiringEvidence } from "@deftai/directive-core/dist/install-health/wiring.js";
 import { runSetup, type SetupResult } from "./setup.js";
 
 /**
@@ -85,6 +89,7 @@ function readOwnRuntimeVersion(): string | null {
 /**
  * Check readiness + cheap evidence; run repair-equivalent setup when missing/stale.
  * No-op when doctor diagnostic, ineligible command, never-configured, or fail-closed.
+ * AC14.20: GENERATION missing with pin+wiring still rebuilds (not AC14.50).
  */
 export function maybeSelfCompleteSetup(
   projectRoot: string,
@@ -107,16 +112,24 @@ export function maybeSelfCompleteSetup(
     }
   }
 
-  // AC14.50: never-configured projects (no GENERATION) do not auto-activate.
-  if (!existsSync(join(projectRoot, GENERATION_REL))) {
-    return { ran: false, skipReason: "not-configured", setup: null };
+  const generationPresent = existsSync(join(projectRoot, GENERATION_REL));
+  // AC14.50: never-configured (no GENERATION, and no pin+wiring) do not auto-activate.
+  // AC14.20: configured project with GENERATION deleted must rebuild.
+  if (!generationPresent) {
+    const pin = readRuntimePin(projectRoot);
+    const configured =
+      pin.pinVersion !== null && hasDirectiveWiringEvidence(projectRoot);
+    if (!configured) {
+      return { ran: false, skipReason: "not-configured", setup: null };
+    }
   }
 
   const cheap = checkCheapInSync(projectRoot);
   if (cheap.failClosed) {
     return { ran: false, skipReason: "fail-closed", setup: null };
   }
-  if (cheap.ok) {
+  // Fast path only when GENERATION is present and cheap identity+readiness hold.
+  if (generationPresent && cheap.ok) {
     return { ran: false, skipReason: "fast-path", setup: null };
   }
 

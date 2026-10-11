@@ -44,7 +44,11 @@ export {
 
 export type { FsSeams, LockfileVersionRead, ReadinessRead, RuntimePinRead } from "./readers.js";
 
-export { WIRING_PROBE_RELS, checkWiringTargetsRuntime } from "./wiring.js";
+export {
+  WIRING_PROBE_RELS,
+  checkWiringTargetsRuntime,
+  hasDirectiveWiringEvidence,
+} from "./wiring.js";
 export type { WiringCheckResult } from "./wiring.js";
 
 export {

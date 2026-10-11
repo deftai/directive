@@ -82,7 +82,7 @@ describe("isDoctorDiagnosticEnv", () => {
 });
 
 describe("maybeSelfCompleteSetup (AC8.6)", () => {
-  it("skips never-configured projects (no GENERATION)", () => {
+  it("skips never-configured projects (no GENERATION, pin-only) (AC14.50)", () => {
     const root = tempRoot();
     pinRuntime(root, "1.2.3");
     const result = maybeSelfCompleteSetup(root, { argv: ["verify:branch"] });
