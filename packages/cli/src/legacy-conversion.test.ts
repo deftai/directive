@@ -221,6 +221,31 @@ describe("AC10.1 legacy detection (exact pin + copied-core evidence)", () => {
     writeCopiedCoreEvidence(root);
     expect(readPin(root).oldStyle).toBe(false);
   });
+
+  it("hand-added launcher dep alone is not an OVPR pin (AC14.51)", () => {
+    const root = tempProject();
+    pinLegacyExact(root, "0.200.0");
+    const pin = readPin(root);
+    expect(pin.oldStyle).toBe(false);
+    expect(pin.kind).toBe("none");
+    expect(pin.raw).toBeNull();
+    expect(pin.version).toBeNull();
+    expect(readProjectInstallState(root).pin.kind).toBe("none");
+  });
+
+  it("ranged launcher dep even with copied-core is not a configured OVPR pin (AC14.51)", () => {
+    const root = tempProject();
+    const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as Record<
+      string,
+      unknown
+    >;
+    pkg.devDependencies = { [LAUNCHER_PACKAGE_NAME]: "^0.119.2" };
+    writeFileSync(join(root, "package.json"), `${JSON.stringify(pkg, null, 2)}\n`);
+    writeCopiedCoreEvidence(root);
+    const pin = readPin(root);
+    expect(pin.oldStyle).toBe(false);
+    expect(pin.kind).toBe("none");
+  });
 });
 
 describe("AC10.2 old-style command gate", () => {

@@ -113,13 +113,14 @@ export function readPin(projectRoot: string): PinInfo & { oldStyle: boolean } {
     return { ...classifyPinVersion(runtimeRaw), oldStyle: false };
   }
   // Supported legacy: exact pre-split pin + copied-core evidence (AC10 / §A6.7).
+  // Launcher-only dep is not an OVPR pin (AC14.51) — first install proceeds.
   const legacy = deps[LAUNCHER_PACKAGE_NAME];
   if (legacy !== undefined) {
     const classified = classifyPinVersion(legacy);
     if (classified.kind === "exact" && hasCopiedCoreEvidence(projectRoot)) {
       return { ...classified, oldStyle: true };
     }
-    return { ...classified, oldStyle: false };
+    return { kind: "none", raw: null, version: null, oldStyle: false };
   }
   return { kind: "none", raw: null, version: null, oldStyle: false };
 }

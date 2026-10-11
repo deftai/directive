@@ -152,6 +152,26 @@ describe("runDoctorDiagnosis (AC12.3 surfaces)", () => {
     expect(diag.info.launcherPresent).toBe(true);
   });
 
+  it("after first-time install alone, doctor is in sync without upgrade (AC6.2)", () => {
+    const root = tempRoot();
+    const installed = runSetup({ operation: "install", from: "none", root });
+    pinRuntime(root, installed.runtimeVersion);
+    writeLockfileNpm(root, installed.runtimeVersion);
+    // No writeDataSchema — install setup must leave schema currency current.
+
+    const diag = runDoctorDiagnosis(root, {
+      launcherPresent: true,
+      probeHooks: false,
+    });
+    expect(diag.dataStatus).toBe("current");
+    expect(diag.inSync).toBe(true);
+    expect(diag.schemaRemedy).toBeNull();
+    expect(diag.remedy).toBeNull();
+    const text = formatDoctorReport(diag);
+    expect(text).toMatch(/in sync/i);
+    expect(text).not.toMatch(/directive upgrade/);
+  });
+
   it("names AC9.7 when installed runtime missing (AC12.2)", () => {
     const root = tempRoot();
     pinRuntime(root, "1.2.3");

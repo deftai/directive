@@ -275,6 +275,7 @@ export function isPnpmWorkspaceRoot(projectRoot: string): boolean {
 /**
  * Exact native add argv for @deftai/directive-runtime@<ver> as a devDependency.
  * At a pnpm workspace root, includes -w / --workspace-root (ERR_PNPM_ADDING_TO_ROOT).
+ * AC5.11 / AC14.48 / INIT-13: physically install the devDep even under NODE_ENV=production.
  */
 export function buildPmExactAddArgs(
   pm: PackageManager,
@@ -285,9 +286,22 @@ export function buildPmExactAddArgs(
   // --ignore-scripts: runtime postinstall only strips Windows ps1 shims; pin/wiring
   // do not require it. Avoids pnpm 10+ ERR_PNPM_IGNORED_BUILDS fail-closed on add.
   if (pm === "npm") {
-    return ["install", "--save-dev", "--save-exact", "--ignore-scripts", spec];
+    return [
+      "install",
+      "--save-dev",
+      "--save-exact",
+      "--ignore-scripts",
+      "--include=dev",
+      spec,
+    ];
   }
-  const args = ["add", "-D", "--save-exact", "--ignore-scripts"];
+  const args = [
+    "add",
+    "-D",
+    "--save-exact",
+    "--ignore-scripts",
+    "--config.production=false",
+  ];
   if (isPnpmWorkspaceRoot(projectRoot)) {
     args.push("-w");
   }

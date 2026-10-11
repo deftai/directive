@@ -362,6 +362,100 @@ describe("install bookend flag matrix (AC5 / AC6)", () => {
     expect(text).toMatch(/upgrade/);
   });
 
+  it("hand-added @deftai/directive alone does not block first install (AC14.51)", () => {
+    const root = tempProject();
+    const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as Record<
+      string,
+      unknown
+    >;
+    pkg.devDependencies = { "@deftai/directive": "0.200.0" };
+    writeFileSync(join(root, "package.json"), `${JSON.stringify(pkg, null, 2)}\n`);
+    const before = readFileSync(join(root, "package.json"), "utf8");
+    expect(stateFor(root).pin.kind).toBe("none");
+
+    let pmCalled = false;
+    let setupOp: string | null = null;
+    const c = capture();
+    const code = runInstall(
+      root,
+      stateFor(root),
+      ["--yes", "--target-version", "1.2.3"],
+      "0.0.0-test",
+      c.io,
+      {
+        runPmAdd: (_opts) => {
+          pmCalled = true;
+          const cur = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as Record<
+            string,
+            unknown
+          >;
+          const deps = {
+            ...((cur.devDependencies as Record<string, string> | undefined) ?? {}),
+            "@deftai/directive-runtime": "1.2.3",
+          };
+          cur.devDependencies = deps;
+          writeFileSync(join(root, "package.json"), `${JSON.stringify(cur, null, 2)}\n`);
+          writeFileSync(
+            join(root, "package-lock.json"),
+            `${JSON.stringify(
+              {
+                lockfileVersion: 3,
+                packages: {
+                  "": { name: "t", devDependencies: deps },
+                  "node_modules/@deftai/directive-runtime": { version: "1.2.3" },
+                },
+              },
+              null,
+              2,
+            )}\n`,
+          );
+          const nm = join(root, "node_modules", "@deftai", "directive-runtime");
+          mkdirSync(nm, { recursive: true });
+          writeFileSync(
+            join(nm, "package.json"),
+            `${JSON.stringify(
+              { name: "@deftai/directive-runtime", version: "1.2.3", directive: { contract: 1 } },
+              null,
+              2,
+            )}\n`,
+          );
+          mkdirSync(join(nm, "dist"), { recursive: true });
+          writeFileSync(join(nm, "dist", "bin.js"), "#!/usr/bin/env node\nprocess.exit(0);\n");
+          return { ok: true as const };
+        },
+        invokeSetup: (argv) => {
+          const i = argv.indexOf("--operation");
+          setupOp = i >= 0 ? (argv[i + 1] ?? null) : null;
+          return {
+            exitCode: 0,
+            stdout: JSON.stringify({
+              contract: 1,
+              entry: "setup",
+              created: [".deft/GENERATION.json"],
+              modified: [],
+              removed: [],
+              conflicts: [],
+            }),
+            stderr: "",
+            spawned: true,
+            message: null,
+          };
+        },
+      },
+    );
+    expect(code).toBe(0);
+    expect(pmCalled).toBe(true);
+    expect(setupOp).toBe("install");
+    expect(c.err() + c.out()).not.toMatch(/already configured/i);
+    // Launcher project dep left alone (AC14.51)
+    const after = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
+      devDependencies: Record<string, string>;
+    };
+    expect(after.devDependencies["@deftai/directive"]).toBe("0.200.0");
+    expect(after.devDependencies["@deftai/directive-runtime"]).toBe("1.2.3");
+    expect(before).toMatch(/@deftai\/directive/);
+  });
+
   it("mutating install without --yes in non-interactive exits 2 (AC5.5)", () => {
     const root = tempProject();
     const c = capture();
@@ -418,13 +512,45 @@ describe("install bookend flag matrix (AC5 / AC6)", () => {
     expect(c.out()).toMatch(/pnpm add -D --save-exact/);
   });
 
+  it("npm exact-add argv includes --include=dev (AC5.11 / AC14.48 / INIT-13)", () => {
+    const root = tempProject();
+    const args = buildPmExactAddArgs("npm", "1.2.3", root);
+    expect(args).toContain("--include=dev");
+    expect(args).toContain("--save-dev");
+    expect(args).toContain("--save-exact");
+    expect(formatPmExactAddCommand("npm", "1.2.3", root)).toMatch(
+      /npm install --save-dev --save-exact --ignore-scripts --include=dev /,
+    );
+    const c = capture();
+    const code = runInstall(
+      root,
+      stateFor(root),
+      ["--dry-run", "--package-manager", "npm", "--target-version", "1.2.3"],
+      "0.0.0-test",
+      c.io,
+    );
+    expect(code).toBe(0);
+    expect(c.out()).toMatch(/--include=dev/);
+  });
+
+  it("pnpm exact-add argv forces non-production so -D is physically installed (AC14.48)", () => {
+    const root = tempProject();
+    const args = buildPmExactAddArgs("pnpm", "1.2.3", root);
+    expect(args).toContain("-D");
+    expect(args).toContain("--save-exact");
+    // pnpm equivalent of npm --include=dev under NODE_ENV=production
+    expect(args).toContain("--config.production=false");
+  });
+
   it("pnpm workspace root plan and argv include -w", () => {
     const root = tempProject();
     writeFileSync(join(root, "pnpm-workspace.yaml"), "packages:\n  - 'packages/*'\n");
     expect(isPnpmWorkspaceRoot(root)).toBe(true);
     const args = buildPmExactAddArgs("pnpm", "1.2.3", root);
     expect(args).toContain("-w");
-    expect(formatPmExactAddCommand("pnpm", "1.2.3", root)).toMatch(/pnpm add -D --save-exact --ignore-scripts -w /);
+    expect(formatPmExactAddCommand("pnpm", "1.2.3", root)).toMatch(
+      /pnpm add -D --save-exact --ignore-scripts --config\.production=false -w /,
+    );
     const c = capture();
     const code = runInstall(
       root,
@@ -434,7 +560,7 @@ describe("install bookend flag matrix (AC5 / AC6)", () => {
       c.io,
     );
     expect(code).toBe(0);
-    expect(c.out()).toMatch(/pnpm add -D --save-exact --ignore-scripts -w /);
+    expect(c.out()).toMatch(/pnpm add -D --save-exact --ignore-scripts --config\.production=false -w /);
   });
 
   it("rejects range --target-version before mutation", () => {

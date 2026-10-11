@@ -13,6 +13,8 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { readProjectDataStatus } from "./data-status.js";
+import { CURRENT_DATA_SCHEMA_VERSION, DATA_SCHEMA_MARKER_REL } from "./migrate.js";
 import { runSetup, setupChangeCount } from "./setup.js";
 
 const TEMPS: string[] = [];
@@ -66,6 +68,25 @@ describe("runSetup install|repair (R8 / AC8.*)", () => {
     const result = runSetup({ operation: "repair", from: "0.0.0", root });
     expect(existsSync(join(root, "xbrief", ".directive-seed-placeholder"))).toBe(false);
     expect(result.created.some((p) => p.includes("seed"))).toBe(false);
+  });
+
+  it("install leaves data-schema current; repair does not migrate (AC6.2 / SEAM-DOC)", () => {
+    const root = tempRoot();
+    const installed = runSetup({ operation: "install", from: "none", root });
+    expect(installed.conflicts).toEqual([]);
+    expect(existsSync(join(root, DATA_SCHEMA_MARKER_REL))).toBe(true);
+    const marker = JSON.parse(readFileSync(join(root, DATA_SCHEMA_MARKER_REL), "utf8")) as {
+      schemaVersion: number;
+    };
+    expect(marker.schemaVersion).toBe(CURRENT_DATA_SCHEMA_VERSION);
+    expect(readProjectDataStatus(root).dataStatus).toBe("current");
+
+    rmSync(join(root, DATA_SCHEMA_MARKER_REL), { force: true });
+    expect(existsSync(join(root, DATA_SCHEMA_MARKER_REL))).toBe(false);
+    const repaired = runSetup({ operation: "repair", from: installed.runtimeVersion, root });
+    expect(repaired.conflicts).toEqual([]);
+    expect(existsSync(join(root, DATA_SCHEMA_MARKER_REL))).toBe(false);
+    expect(readProjectDataStatus(root).dataStatus).toBe("migration_needed");
   });
 
   it("second repair is idempotent (AC6.9 / AC8.2)", () => {

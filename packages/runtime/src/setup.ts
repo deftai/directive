@@ -2,7 +2,8 @@
  * Contract 1 setup for --operation install|repair|upgrade (Wave 2a–2c / R8 / R9).
  * Writes GENERATION.json, readiness marker, package-relative wiring (AGENTS,
  * skills, host hooks, git hooks, Taskfile), gitignore entries; install-only
- * seed placeholders. Never deposits .deft/core (AC13.1).
+ * seed placeholders and current data-schema marker (AC6.2). Never deposits
+ * .deft/core (AC13.1). Repair does not migrate schema.
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -22,6 +23,10 @@ import {
   type OwnedArtifact,
   type PackageManagerFact,
 } from "@deftai/directive-core/dist/install-health/index.js";
+import {
+  CURRENT_DATA_SCHEMA_VERSION,
+  DATA_SCHEMA_MARKER_REL,
+} from "./migrate.js";
 import {
   ensureAgentsManagedSection,
   ensureGitHooks,
@@ -322,9 +327,19 @@ export function runSetup(options: {
     }
 
     // Seeds only on first-time install (AC8.4); repair/upgrade never create them.
+    // AC6.2: also leave data-schema current for empty/seeded install. Repair must
+    // not migrate; upgrade still migrates when data is truly behind.
     if (operation === "install" && conflicts.length === 0) {
       const seed = createSeedPlaceholder(root);
       if (seed !== null) created.push(seed);
+      if (!existsSync(join(root, DATA_SCHEMA_MARKER_REL))) {
+        writeContained(
+          root,
+          DATA_SCHEMA_MARKER_REL,
+          `${JSON.stringify({ schemaVersion: CURRENT_DATA_SCHEMA_VERSION }, null, 2)}\n`,
+        );
+        created.push(DATA_SCHEMA_MARKER_REL);
+      }
     }
 
     // AC13.1: never materialize a content copy under .deft/core.
