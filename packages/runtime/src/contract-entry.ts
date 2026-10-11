@@ -7,6 +7,7 @@ import { readProjectDataStatus } from "./data-status.js";
 import { formatDoctorReport, runDoctorDiagnosis } from "./doctor-diagnose.js";
 import { runMigrate } from "./migrate.js";
 import { runSetup } from "./setup.js";
+import { runUninstall } from "./uninstall.js";
 
 const SETUP_OPS = new Set(["install", "repair", "upgrade"]);
 
@@ -67,17 +68,9 @@ export function handleContractEntrypoint(argv: readonly string[]): number | null
       process.stderr.write("directive-runtime uninstall: require --root <path>\n");
       return 2;
     }
-    const result = {
-      contract: 1,
-      entry: "uninstall",
-      stub: true,
-      root,
-      removed: [] as string[],
-      remaining: [] as string[],
-      message: "uninstall stub (wave 2 implements owned-file removal)",
-    };
+    const result = runUninstall({ root });
     process.stdout.write(`${JSON.stringify(result)}\n`);
-    return 0;
+    return result.remaining.length > 0 ? 1 : 0;
   }
 
   if (head === "doctor") {

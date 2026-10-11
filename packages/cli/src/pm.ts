@@ -359,3 +359,65 @@ export function runPmExactAdd(options: PmAddOptions): PmAddResult {
   }
   return { ok: true };
 }
+
+export interface PmRemoveOptions {
+  readonly projectRoot: string;
+  readonly pm: PackageManager;
+  readonly packageName: string;
+  readonly env?: NodeJS.ProcessEnv;
+}
+
+/**
+ * Native remove argv for a dependency (AC11.6). At a pnpm workspace root,
+ * includes -w / --workspace-root.
+ */
+export function buildPmRemoveArgs(
+  pm: PackageManager,
+  packageName: string,
+  projectRoot: string,
+): string[] {
+  if (pm === "npm") {
+    return ["uninstall", "--save-dev", packageName];
+  }
+  const args = ["remove", "-D"];
+  if (isPnpmWorkspaceRoot(projectRoot)) {
+    args.push("-w");
+  }
+  args.push(packageName);
+  return args;
+}
+
+export function formatPmRemoveCommand(
+  pm: PackageManager,
+  packageName: string,
+  projectRoot: string,
+): string {
+  return `${pm} ${buildPmRemoveArgs(pm, packageName, projectRoot).join(" ")}`;
+}
+
+/** Native remove of a dependency through the package manager (AC11.6). */
+export function runPmRemove(options: PmRemoveOptions): PmAddResult {
+  const { projectRoot, pm, packageName } = options;
+  const args = buildPmRemoveArgs(pm, packageName, projectRoot);
+  const result = spawnSync(pm, args, {
+    cwd: projectRoot,
+    env: options.env ?? process.env,
+    encoding: "utf8",
+    shell: process.platform === "win32",
+  });
+  if (result.error) {
+    return {
+      ok: false,
+      message: `Failed to spawn ${pm}: ${result.error.message}`,
+      stderr: String(result.error),
+    };
+  }
+  if (result.status !== 0) {
+    return {
+      ok: false,
+      message: `${pm} ${args.join(" ")} failed (exit ${result.status ?? "?"})`,
+      stderr: (result.stderr ?? "") + (result.stdout ?? ""),
+    };
+  }
+  return { ok: true };
+}

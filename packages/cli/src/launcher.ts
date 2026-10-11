@@ -17,7 +17,7 @@ import { invokeRuntime } from "./contract-invoke.js";
 import {
   runDoctorStub,
   runInstall,
-  runUninstallStub,
+  runUninstall,
   runUpgrade,
 } from "./bookends.js";
 import { readLauncherVersion } from "./version.js";
@@ -255,7 +255,7 @@ export function runLauncher(
       case "upgrade":
         return runUpgrade(projectRoot, state, cmdArgv, launcherVersion, io);
       case "uninstall":
-        return runUninstallStub(projectRoot, state, cmdArgv, launcherVersion, io);
+        return runUninstall(projectRoot, state, cmdArgv, launcherVersion, io);
       case "doctor":
         return runDoctorStub(projectRoot, state, cmdArgv, launcherVersion, io);
     }

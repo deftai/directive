@@ -1,6 +1,5 @@
 /**
- * Install / upgrade / uninstall / doctor bookends (Wave 2a–2b).
- * Uninstall remains a stub for later waves (R11).
+ * Install / upgrade / uninstall / doctor bookends (Wave 2a–2g).
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -26,9 +25,11 @@ import {
   detectPackageManager,
   ensurePackageJson,
   formatPmExactAddCommand,
+  formatPmRemoveCommand,
   lockfileRecordsExactPin,
   removeLegacyDirectivePin,
   runPmExactAdd,
+  runPmRemove,
   type PackageManager,
   type PmAddResult,
 } from "./pm.js";
@@ -40,6 +41,13 @@ import {
   resolvePublishedContract,
   validateTargetVersionSpec,
 } from "./registry.js";
+import {
+  applyLauncherCleanup,
+  cleanupHooksPath,
+  discoverUninstallFootprint,
+  verifyUninstallComplete,
+  type UninstallDiscovery,
+} from "./uninstall-map.js";
 
 export interface BookendIo {
   writeOut(text: string): void;
@@ -83,6 +91,22 @@ export interface UpgradeDeps extends InstallDeps {
   readonly invokeDoctorDataStatus?: () =>
     | { ok: true; dataStatus: DataStatusValue }
     | { ok: false; message: string };
+}
+
+/** Testable seams for uninstall (R11). */
+export interface UninstallDeps {
+  readonly stdinIsTTY?: boolean;
+  readonly env?: NodeJS.ProcessEnv;
+  readonly invokeUninstall?: (argv: readonly string[]) => InvokeResult;
+  readonly runPmRemove?: (opts: {
+    projectRoot: string;
+    pm: PackageManager;
+    packageName: string;
+  }) => PmAddResult;
+  readonly applyCleanup?: (projectRoot: string, discovery: UninstallDiscovery) => ReturnType<
+    typeof applyLauncherCleanup
+  >;
+  readonly cleanupHooksPath?: (projectRoot: string) => ReturnType<typeof cleanupHooksPath>;
 }
 
 function defaultIo(): BookendIo {
@@ -986,40 +1010,208 @@ export const runInstallStub = runInstall;
 /** @deprecated Use {@link runUpgrade}. */
 export const runUpgradeStub = runUpgrade;
 
-export function runUninstallStub(
+/**
+ * Uninstall bookend (R11 / AC11.*).
+ * Discovery → plan → approval → repository uninstaller (when safe) →
+ * launcher fallback cleanup → PM remove → hooksPath sibling protection.
+ * No --force; no prerequisite install/repair/upgrade.
+ */
+export function runUninstall(
   projectRoot: string,
   state: ProjectInstallState,
   argv: readonly string[],
   launcherVersion: string,
   io: BookendIo = defaultIo(),
+  deps: UninstallDeps = {},
 ): number {
-  const { flags } = parseFlags(argv);
-  io.writeOut(
-    `directive uninstall: project ${projectRoot}\n` +
-      `  pin: ${state.pin.version ?? state.pin.raw ?? "(none)"}\n` +
-      `  installed: ${state.installed?.version ?? "(missing)"}\n`,
-  );
-  if (flags.dryRun) {
-    io.writeOut("[dry-run] would uninstall (launcher skeleton; ownership cleanup in wave 2)\n");
+  const { flags, usageError } = parseFlags(argv);
+  const env = deps.env ?? process.env;
+  if (usageError !== null) {
+    io.writeErr(`${usageError}\n`);
+    return EXIT_CODES.USAGE;
+  }
+
+  // Retain discovery before any repository uninstaller mutates GENERATION (AC11.2).
+  const discovery = discoverUninstallFootprint(projectRoot);
+
+  if (!discovery.hasFootprint) {
+    io.writeOut("No Directive installation footprint found in this project. Nothing to uninstall.\n");
     return EXIT_CODES.SUCCESS;
   }
+
+  const removePaths = discovery.artifacts
+    .filter((a) => a.kind !== "retained")
+    .map((a) =>
+      a.kind === "whole-file"
+        ? a.path
+        : a.kind === "marked-section"
+          ? `${a.path} (marked section)`
+          : `${a.path} (${a.entryKey ?? "structured entry"})`,
+    );
+  const keepPaths = discovery.artifacts
+    .filter((a) => a.kind === "retained")
+    .map((a) => a.path);
+  if (!keepPaths.includes("xbrief") && existsSync(join(projectRoot, "xbrief"))) {
+    keepPaths.push("xbrief");
+  }
+  if (
+    !keepPaths.includes(".deft/settings.json") &&
+    existsSync(join(projectRoot, ".deft", "settings.json"))
+  ) {
+    keepPaths.push(".deft/settings.json");
+  }
+  keepPaths.push("user content in AGENTS.md / host configs", "global launcher");
+
+  const pmDetect = detectPackageManager(projectRoot, flags.packageManager);
+  const pmLabel = pmDetect.ok ? pmDetect.pm : "npm";
+  const pmEvidence = pmDetect.ok ? pmDetect.evidence : "default (detection failed; will skip PM remove)";
+  const packagesToRemove: string[] = [];
+  if (discovery.hasRuntimePin) packagesToRemove.push(RUNTIME_PACKAGE_NAME);
+  if (discovery.hasLegacyLauncherPin || state.oldStyle) {
+    packagesToRemove.push(LAUNCHER_PACKAGE_NAME);
+  }
+
+  const planLines = [
+    `operation: uninstall`,
+    `root: ${projectRoot}`,
+    `ownership record: ${discovery.ownershipInspection}`,
+    `pin: ${state.pin.version ?? state.pin.raw ?? "(none)"}${state.oldStyle ? " (old-style)" : ""}`,
+    `installed runtime: ${state.installed?.version ?? "(missing/unavailable)"}`,
+    `remove: ${removePaths.length > 0 ? removePaths.join(", ") : "(none listed)"}`,
+    discovery.hasLegacyCore ? `remove: .deft/core (legacy)` : null,
+    `keep: ${keepPaths.join(", ")}`,
+    packagesToRemove.length > 0
+      ? `PM remove (${pmLabel}, ${pmEvidence}): ${packagesToRemove.map((p) => formatPmRemoveCommand(pmLabel as PackageManager, p, projectRoot)).join("; ")}`
+      : `PM remove: (none)`,
+    state.installed && state.contractSupported
+      ? `repository uninstaller: invoke when available, then launcher fallback`
+      : `repository uninstaller: unavailable — launcher fallback only (no repair/upgrade required)`,
+    `hooksPath: unset .githooks only when safe for sibling worktrees`,
+  ].filter((l): l is string => l !== null);
+
+  printPlan(io, planLines);
+
+  if (flags.dryRun) {
+    io.writeOut("[dry-run] no changes made.\n");
+    return EXIT_CODES.SUCCESS;
+  }
+
+  const approval = requireApproval(
+    flags,
+    { stdinIsTTY: deps.stdinIsTTY },
+    io,
+    "Uninstall Directive from this project?",
+  );
+  if (approval !== null) return approval;
+
+  let runtimeUninstallAttempted = false;
+  let runtimeUninstallFailed = false;
   if (state.installed && state.contractSupported) {
-    const result = invokeRuntime({
-      projectRoot,
-      launcherVersion,
-      runtime: state.installed,
-      argv: uninstallArgv(projectRoot),
-    });
-    if (result.message) io.writeErr(`${result.message}\n`);
-    io.writeOut("Launcher fallback cleanup not fully implemented yet (wave 2 / R11).\n");
-    return result.exitCode;
+    runtimeUninstallAttempted = true;
+    const result =
+      deps.invokeUninstall?.(uninstallArgv(projectRoot)) ??
+      invokeRuntime({
+        projectRoot,
+        launcherVersion,
+        runtime: state.installed,
+        argv: uninstallArgv(projectRoot),
+        stdio: "pipe",
+      });
+    reportJsonSummary(io, "repository uninstall", result);
+    if (result.exitCode !== 0) {
+      runtimeUninstallFailed = true;
+      io.writeOut(
+        "Repository uninstaller reported failure or partial removal; continuing launcher fallback cleanup.\n",
+      );
+    }
+  } else {
+    io.writeOut(
+      "Runtime unavailable or incompatible; continuing launcher fallback cleanup (R11).\n",
+    );
+  }
+
+  const cleanup =
+    deps.applyCleanup?.(projectRoot, discovery) ??
+    applyLauncherCleanup(projectRoot, discovery);
+  io.writeOut(
+    `launcher cleanup: removed=${JSON.stringify(cleanup.removed)} ` +
+      `modified=${JSON.stringify(cleanup.modified)} ` +
+      `preserved=${JSON.stringify(cleanup.preserved)}\n`,
+  );
+  if (cleanup.leftovers.length > 0) {
+    io.writeOut(`leftovers: ${JSON.stringify(cleanup.leftovers)}\n`);
+  }
+  if (cleanup.uncertainty.length > 0) {
+    io.writeOut(`uncertainty: ${JSON.stringify(cleanup.uncertainty)}\n`);
+  }
+
+  // PM remove after wiring cleanup (AC11.6).
+  if (packagesToRemove.length > 0) {
+    if (!pmDetect.ok) {
+      io.writeErr(`${pmDetect.message}\n`);
+      io.writeErr("Could not remove package dependency via PM; pin may remain.\n");
+    } else {
+      for (const packageName of packagesToRemove) {
+        if (packageName === LAUNCHER_PACKAGE_NAME) {
+          // Ensure package.json no longer lists the legacy pin even if PM is odd.
+          removeLegacyDirectivePin(projectRoot);
+        }
+        const rm =
+          deps.runPmRemove?.({ projectRoot, pm: pmDetect.pm, packageName }) ??
+          runPmRemove({ projectRoot, pm: pmDetect.pm, packageName, env });
+        if (!rm.ok) {
+          io.writeErr(`${rm.message}\n`);
+          if ("stderr" in rm && rm.stderr) io.writeErr(`${rm.stderr}\n`);
+          io.writeErr(
+            `PM remove of ${packageName} failed; continuing remaining uninstall steps.\n`,
+          );
+        } else {
+          io.writeOut(`Removed ${packageName} via ${pmDetect.pm}.\n`);
+        }
+      }
+    }
+  }
+
+  const hooksPathResult =
+    deps.cleanupHooksPath?.(projectRoot) ?? cleanupHooksPath(projectRoot);
+  io.writeOut(`core.hooksPath: ${hooksPathResult}\n`);
+
+  const verification = verifyUninstallComplete(projectRoot);
+  // Legacy launcher pin leftover only matters for old-style; modern projects should not have it.
+  const filteredLeftovers = verification.leftovers.filter((l) => {
+    if (l === `package.json#${LAUNCHER_PACKAGE_NAME}` && !state.oldStyle && !discovery.hasLegacyLauncherPin) {
+      return false;
+    }
+    return true;
+  });
+  const complete = filteredLeftovers.length === 0;
+
+  io.writeOut(
+    `directive uninstall: ${complete ? "complete" : "partial"} in ${projectRoot}\n`,
+  );
+  if (cleanup.preserved.length > 0) {
+    io.writeOut(`preserved: ${cleanup.preserved.join(", ")}\n`);
+  }
+  if (!complete) {
+    io.writeOut(`known leftovers: ${filteredLeftovers.join(", ")}\n`);
+  }
+  if (runtimeUninstallAttempted && runtimeUninstallFailed && complete) {
+    io.writeOut(
+      "Repository uninstaller failed earlier, but launcher fallback verified complete removal.\n",
+    );
   }
   io.writeOut(
-    "Runtime unavailable; launcher fallback cleanup stub (wave 2 / R11).\n" +
-      "No files changed.\n",
+    "To uninstall the global launcher (other repos may still need it): npm uninstall -g @deftai/directive\n",
   );
+
+  if (!complete) {
+    return EXIT_CODES.FAILURE;
+  }
   return EXIT_CODES.SUCCESS;
 }
+
+/** @deprecated Use {@link runUninstall}. */
+export const runUninstallStub = runUninstall;
 
 /**
  * Launcher doctor bookend (R12 / AC12.4 / AC3.15).
