@@ -222,12 +222,11 @@ const EVALUATOR_SURFACE_CONSUMER_LANE_MARKERS = [
   "verify:consumer-test-lane",
 ] as const;
 
-/** Every-session already-installed skip (#4539 / #1309). */
+/** Every-session already-installed skip (#4539 / #1309 / wave2r OVPR). */
 const ALREADY_INSTALLED_SKIP_MARKERS = [
   "directive --version",
-  "evaluateSkew",
-  "reject-global",
-  "npx @deftai/directive init",
+  "npm i -g @deftai/directive",
+  "directive install --repair",
 ] as const;
 
 /** After-merge one-origin orphan-active DONE gate (#3429). */

@@ -42,7 +42,7 @@ function readRepo(relPath: string): string {
 function consumerReadmeSlice(readme: string): string {
   const coldStart =
     readme.match(
-      /<!-- deft:cold-start-bootstrap[\s\S]*?<!-- \/deft:cold-start-bootstrap v1 -->/,
+      /<!-- deft:cold-start-bootstrap[\s\S]*?<!-- \/deft:cold-start-bootstrap v\d+ -->/,
     )?.[0] ?? "";
   const start = readme.indexOf("## 🚀 Getting Started");
   const maintainer = readme.indexOf("#### Framework maintainers");
