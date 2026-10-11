@@ -267,19 +267,50 @@ export type PmAddResult =
   | { readonly ok: true }
   | { readonly ok: false; readonly message: string; readonly stderr: string };
 
+/** True when projectRoot is a pnpm workspace root (pnpm-workspace.yaml present). */
+export function isPnpmWorkspaceRoot(projectRoot: string): boolean {
+  return existsSync(join(projectRoot, "pnpm-workspace.yaml"));
+}
+
+/**
+ * Exact native add argv for @deftai/directive-runtime@<ver> as a devDependency.
+ * At a pnpm workspace root, includes -w / --workspace-root (ERR_PNPM_ADDING_TO_ROOT).
+ */
+export function buildPmExactAddArgs(
+  pm: PackageManager,
+  version: string,
+  projectRoot: string,
+): string[] {
+  const spec = `${RUNTIME_PACKAGE_NAME}@${version}`;
+  // --ignore-scripts: runtime postinstall only strips Windows ps1 shims; pin/wiring
+  // do not require it. Avoids pnpm 10+ ERR_PNPM_IGNORED_BUILDS fail-closed on add.
+  if (pm === "npm") {
+    return ["install", "--save-dev", "--save-exact", "--ignore-scripts", spec];
+  }
+  const args = ["add", "-D", "--save-exact", "--ignore-scripts"];
+  if (isPnpmWorkspaceRoot(projectRoot)) {
+    args.push("-w");
+  }
+  args.push(spec);
+  return args;
+}
+
+/** Plan-facing PM command string (must match {@link buildPmExactAddArgs}). */
+export function formatPmExactAddCommand(
+  pm: PackageManager,
+  version: string,
+  projectRoot: string,
+): string {
+  return `${pm} ${buildPmExactAddArgs(pm, version, projectRoot).join(" ")}`;
+}
+
 /**
  * Exact native add of @deftai/directive-runtime@<ver> as a devDependency (INIT-13).
  * Portable spawn: shell:true on win32 (#5383).
  */
 export function runPmExactAdd(options: PmAddOptions): PmAddResult {
   const { projectRoot, pm, version } = options;
-  const spec = `${RUNTIME_PACKAGE_NAME}@${version}`;
-  // --ignore-scripts: runtime postinstall only strips Windows ps1 shims; pin/wiring
-  // do not require it. Avoids pnpm 10+ ERR_PNPM_IGNORED_BUILDS fail-closed on add.
-  const args =
-    pm === "npm"
-      ? ["install", "--save-dev", "--save-exact", "--ignore-scripts", spec]
-      : ["add", "-D", "--save-exact", "--ignore-scripts", spec];
+  const args = buildPmExactAddArgs(pm, version, projectRoot);
   const bin = pm;
   const result = spawnSync(bin, args, {
     cwd: projectRoot,

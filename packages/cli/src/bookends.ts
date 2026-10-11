@@ -15,6 +15,7 @@ import {
 import {
   detectPackageManager,
   ensurePackageJson,
+  formatPmExactAddCommand,
   lockfileRecordsExactPin,
   runPmExactAdd,
   type PackageManager,
@@ -170,12 +171,18 @@ export function runInstall(
   io: BookendIo = defaultIo(),
   deps: InstallDeps = {},
 ): number {
-  const { flags, usageError } = parseFlags(argv);
+  const { flags, rest, usageError } = parseFlags(argv);
   const env = deps.env ?? process.env;
 
   // Missing --target-version / --package-manager values → usage before registry/PM.
   if (usageError !== null) {
     io.writeErr(`${usageError}\n`);
+    return EXIT_CODES.USAGE;
+  }
+
+  // Unknown leftover argv (e.g. --dryrun misspelling) → usage before registry/PM.
+  if (rest.length > 0) {
+    io.writeErr(`Unknown argument(s): ${rest.join(" ")}\n`);
     return EXIT_CODES.USAGE;
   }
 
@@ -286,10 +293,7 @@ function runFirstInstall(
   }
 
   const willCreatePkg = !existsSync(join(projectRoot, "package.json"));
-  const pmCmd =
-    pmDetect.pm === "npm"
-      ? `npm install --save-dev --save-exact --ignore-scripts ${RUNTIME_PACKAGE_NAME}@${targetVersion}`
-      : `pnpm add -D --save-exact --ignore-scripts ${RUNTIME_PACKAGE_NAME}@${targetVersion}`;
+  const pmCmd = formatPmExactAddCommand(pmDetect.pm, targetVersion, projectRoot);
 
   printPlan(io, [
     `operation: install (first-time)`,
@@ -399,10 +403,7 @@ function runRepair(
     state.contractSupported;
   const needsPmRestore = !lockOk || !installedOk;
 
-  const pmCmd =
-    pmDetect.pm === "npm"
-      ? `npm install --save-dev --save-exact --ignore-scripts ${RUNTIME_PACKAGE_NAME}@${pinVersion}`
-      : `pnpm add -D --save-exact --ignore-scripts ${RUNTIME_PACKAGE_NAME}@${pinVersion}`;
+  const pmCmd = formatPmExactAddCommand(pmDetect.pm, pinVersion, projectRoot);
 
   printPlan(io, [
     `operation: repair`,

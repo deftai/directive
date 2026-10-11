@@ -9,9 +9,12 @@ import { afterEach, describe, expect, it } from "vitest";
 import { runInstall } from "./bookends.js";
 import { classifyPinVersion, readProjectInstallState, type ProjectInstallState } from "./pin.js";
 import {
+  buildPmExactAddArgs,
   detectPackageManager,
+  formatPmExactAddCommand,
   isExactSemver,
   isPrereleaseVersion,
+  isPnpmWorkspaceRoot,
   lockfileRecordsExactPin,
 } from "./pm.js";
 import { validateTargetVersionSpec } from "./registry.js";
@@ -287,6 +290,35 @@ describe("install bookend flag matrix (AC5 / AC6)", () => {
     expect(c.err()).toMatch(/--target-version requires a value/);
   });
 
+  it("unknown leftover argv (e.g. --dryrun) exits 2 before registry/PM", () => {
+    const root = tempProject();
+    const c = capture();
+    let resolveCalled = false;
+    let pmCalled = false;
+    const code = runInstall(
+      root,
+      stateFor(root),
+      ["--yes", "--dryrun", "--target-version", "1.2.3"],
+      "0.0.0-test",
+      c.io,
+      {
+        resolveLatest: () => {
+          resolveCalled = true;
+          return { ok: true as const, version: "1.2.3" };
+        },
+        runPmAdd: () => {
+          pmCalled = true;
+          return { ok: true };
+        },
+      },
+    );
+    expect(code).toBe(2);
+    expect(resolveCalled).toBe(false);
+    expect(pmCalled).toBe(false);
+    expect(c.err()).toMatch(/Unknown argument/);
+    expect(c.err()).toMatch(/--dryrun/);
+  });
+
   it("trailing --package-manager without value exits 2 before PM detect mutation", () => {
     const root = tempProject();
     const c = capture();
@@ -384,6 +416,25 @@ describe("install bookend flag matrix (AC5 / AC6)", () => {
     );
     expect(code).toBe(0);
     expect(c.out()).toMatch(/pnpm add -D --save-exact/);
+  });
+
+  it("pnpm workspace root plan and argv include -w", () => {
+    const root = tempProject();
+    writeFileSync(join(root, "pnpm-workspace.yaml"), "packages:\n  - 'packages/*'\n");
+    expect(isPnpmWorkspaceRoot(root)).toBe(true);
+    const args = buildPmExactAddArgs("pnpm", "1.2.3", root);
+    expect(args).toContain("-w");
+    expect(formatPmExactAddCommand("pnpm", "1.2.3", root)).toMatch(/pnpm add -D --save-exact --ignore-scripts -w /);
+    const c = capture();
+    const code = runInstall(
+      root,
+      stateFor(root),
+      ["--dry-run", "--package-manager", "pnpm", "--target-version", "1.2.3"],
+      "0.0.0-test",
+      c.io,
+    );
+    expect(code).toBe(0);
+    expect(c.out()).toMatch(/pnpm add -D --save-exact --ignore-scripts -w /);
   });
 
   it("rejects range --target-version before mutation", () => {
