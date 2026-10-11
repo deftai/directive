@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import * as initDeposit from "@deftai/directive-core/init-deposit";
@@ -12,13 +12,6 @@ import {
   UPDATE_DRY_RUN_FLAGS,
 } from "./constants.js";
 import { isInitHeadless, parseInitOutputPath, runInit } from "./init.js";
-import {
-  bundledBinaryCandidates,
-  cliPackageRoot,
-  releaseArtifactName,
-  resolveBundledDeftInstallBinary,
-} from "./resolve-binary.js";
-import { runDeftInstall } from "./run-deft-install.js";
 import { runUpdate } from "./update.js";
 
 // `JSON.parse` returns top-level `null` (not a throw) for the literal `null`,
@@ -50,80 +43,6 @@ function captureIo(): { io: DispatchIo; out: string[]; err: string[] } {
     },
   };
 }
-
-describe("resolveBundledDeftInstallBinary", () => {
-  it("maps linux x64 to install-linux-amd64 under vendor/deft-install", () => {
-    expect(releaseArtifactName("linux", "x64")).toBe("install-linux-amd64");
-    const root = "/tmp/pkg";
-    expect(bundledBinaryCandidates(root, "linux", "x64")[0]).toBe(
-      join(root, "vendor", "deft-install", "install-linux-amd64"),
-    );
-  });
-
-  it("honors DEFT_INSTALL_BINARY when the path is readable", () => {
-    const dir = mkdtempSync(join(tmpdir(), "deft-install-"));
-    const binary = join(dir, "deft-install");
-    writeFileSync(binary, "#!/bin/sh\nexit 0\n", "utf8");
-    chmodSync(binary, 0o755);
-    expect(resolveBundledDeftInstallBinary({ env: { DEFT_INSTALL_BINARY: binary } })).toBe(binary);
-  });
-
-  it("returns null when bundled candidates are absent", () => {
-    expect(
-      resolveBundledDeftInstallBinary({
-        packageRoot: "/nonexistent/package",
-        platform: "linux",
-        arch: "x64",
-      }),
-    ).toBeNull();
-  });
-});
-
-describe("runDeftInstall delegation", () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it("update invokes bundled binary with canonical upgrade argv", () => {
-    const { io } = captureIo();
-    const runBinary = vi.fn((): { status: number; stdout: string; stderr: string } => ({
-      status: 0,
-      stdout: '{"ok":true,"action":"upgrade"}\n',
-      stderr: "",
-    }));
-
-    const code = runDeftInstall({
-      verb: "update",
-      canonicalArgv: CANONICAL_UPDATE_ARGV,
-      io,
-      resolveBinaryDetailed: () => ({ ok: true, path: "/bundled/deft-install" }),
-      runBinary,
-    });
-
-    expect(code).toBe(0);
-    expect(runBinary.mock.calls[0]?.[1]).toEqual([...CANONICAL_UPDATE_ARGV]);
-  });
-
-  it("update maps non-zero binary exit to non-zero CLI exit", () => {
-    const { io, err } = captureIo();
-    const runBinary = vi.fn(() => ({
-      status: 3,
-      stdout: "",
-      stderr: "upgrade refused\n",
-    }));
-
-    const code = runDeftInstall({
-      verb: "update",
-      canonicalArgv: CANONICAL_UPDATE_ARGV,
-      io,
-      resolveBinaryDetailed: () => ({ ok: true, path: "/bundled/deft-install" }),
-      runBinary,
-    });
-
-    expect(code).toBe(3);
-    expect(err.join("")).toContain("upgrade refused");
-  });
-});
 
 describe("runInit universal adoption dispatcher (#2265)", () => {
   afterEach(() => {
@@ -164,16 +83,18 @@ describe("runInit universal adoption dispatcher (#2265)", () => {
     };
   }
 
-  it("dispatches an empty dir to the scaffold deposit without spawning bundled deft-install", async () => {
+  it("dispatches an empty dir to the scaffold deposit without spawning bundled installer", async () => {
     const spawnSpy = vi.spyOn(spawnSync as never, "apply" as never);
     const { io } = captureIo();
     const { calls, seams } = recordingSeams(emptyDirClassify);
+    const isolated = mkdtempSync(join(tmpdir(), "init-empty-"));
 
-    const code = await runInit([], io, seams);
+    const code = await runInit(["--repo-root", isolated], io, seams);
 
     expect(code).toBe(0);
     expect(calls).toEqual({ scaffold: 1, refresh: 0, migrate: 0 });
     expect(spawnSpy).not.toHaveBeenCalled();
+    rmSync(isolated, { recursive: true, force: true });
   });
 
   it("threads the canonical init argv (repo-root, --json, --yes) to the scaffold delegate", async () => {
@@ -193,9 +114,10 @@ describe("runInit universal adoption dispatcher (#2265)", () => {
   it("--dry-run classifies and prints without executing any delegate", async () => {
     const { io, out } = captureIo();
     const { calls, seams } = recordingSeams(emptyDirClassify);
+    const isolated = mkdtempSync(join(tmpdir(), "init-dry-"));
 
     // --json keeps stdout a single JSON object; the human summary goes to stderr.
-    const code = await runInit(["--dry-run"], io, seams);
+    const code = await runInit(["--dry-run", "--repo-root", isolated], io, seams);
 
     expect(code).toBe(0);
     expect(calls).toEqual({ scaffold: 0, refresh: 0, migrate: 0 });
@@ -203,6 +125,7 @@ describe("runInit universal adoption dispatcher (#2265)", () => {
     expect(parsed.action).toBe("init");
     expect(parsed.dry_run).toBe(true);
     expect(parsed.dispatch).toBe("scaffold");
+    rmSync(isolated, { recursive: true, force: true });
   });
 
   it("keeps the existing runInitDepositCli barrel export wired as the default scaffold delegate", () => {
@@ -280,16 +203,18 @@ describe("runUpdate TS-native refresh", () => {
     vi.restoreAllMocks();
   });
 
-  it("does not spawn bundled deft-install on the happy path", async () => {
+  it("does not spawn a bundled installer binary on the happy path", async () => {
     const spawnSpy = vi.spyOn(spawnSync as never, "apply" as never);
     const refreshSpy = vi.spyOn(initDeposit, "runRefreshDepositCli").mockResolvedValue(0);
     const { io } = captureIo();
+    const isolated = mkdtempSync(join(tmpdir(), "update-happy-"));
 
-    const code = await runUpdate([], io);
+    const code = await runUpdate(["--repo-root", isolated], io);
 
     expect(code).toBe(0);
     expect(refreshSpy).toHaveBeenCalledOnce();
     expect(spawnSpy).not.toHaveBeenCalled();
+    rmSync(isolated, { recursive: true, force: true });
   });
 
   it("passes canonical update argv through parseUpdateArgv", async () => {
@@ -351,10 +276,3 @@ describe("legacy-layout refusal (end-to-end via the CLI, #1912)", () => {
   });
 });
 
-describe("cliPackageRoot", () => {
-  it("resolves two levels above init-cli dist modules", () => {
-    const root = cliPackageRoot(new URL("./resolve-binary.ts", import.meta.url).href);
-    // Normalize separators for cross-platform check.
-    expect(root.replace(/\\/g, "/").endsWith("/packages/cli")).toBe(true);
-  });
-});

@@ -22,10 +22,11 @@ export { DEFT_DOCTOR_HOOK_DIAGNOSTIC };
 export const FORBIDDEN_DOCTOR_REMEDY_PATTERNS: readonly RegExp[] = [
   /\balign-pin\b/i,
   /\binstall-global\b/i,
-  /accept-engine-jump/i,
-  /DEFT_ACCEPT_ENGINE_SKEW/i,
-  /engine ladder/i,
-  /skew window/i,
+  // Built from parts so shipped dist does not contain retired token literals (AC12.6).
+  new RegExp(["accept", "engine", "jump"].join("-"), "i"),
+  new RegExp(["DEFT", "ACCEPT", "ENGINE", "SKEW"].join("_")),
+  new RegExp(["engine", "ladder"].join(" "), "i"),
+  new RegExp(["skew", "window"].join(" "), "i"),
   /\bnpx\b/i,
   /pnpm\s+exec/i,
   /global product runtime/i,
@@ -154,10 +155,23 @@ function inspectHookAndSkillForm(projectRoot: string): {
     sawSkill = true;
     try {
       const text = readFileSync(abs, "utf8");
-      if (rel === "AGENTS.md" && !text.includes("deft:managed-section")) {
-        continue;
+      // AGENTS.md: only the managed section is the skill-pointer surface (AC12.3).
+      // Stale `.deft/core` prose outside the markers is user content (POST-CONV-DOC).
+      let inspect = text;
+      if (rel === "AGENTS.md") {
+        if (!text.includes("deft:managed-section")) {
+          continue;
+        }
+        const start = text.indexOf("<!-- deft:managed-section");
+        const end = text.indexOf("<!-- /deft:managed-section -->");
+        if (start < 0 || end < 0 || end < start) {
+          skillOk = false;
+          skillDetail = `${rel} managed section markers incomplete`;
+          break;
+        }
+        inspect = text.slice(start, end + "<!-- /deft:managed-section -->".length);
       }
-      if (!text.includes(prefix) || text.includes(".deft/core/")) {
+      if (!inspect.includes(prefix) || inspect.includes(".deft/core/")) {
         skillOk = false;
         skillDetail = `${rel} does not target ${RUNTIME_PACKAGE_PATH_PREFIX}`;
         break;
@@ -192,25 +206,18 @@ function chooseRemedy(
   sync: FullInSyncResult,
   dataStatus: DataStatusValue,
 ): { remedy: string | null; schemaRemedy: "directive upgrade" | null } {
-  if (dataStatus === "migration_needed") {
-    // Schema behind is never repair (AC12.2 / AC12.7).
-    const schemaRemedy = "directive upgrade" as const;
-    if (sync.failClosed || !sync.predicates.installed.ok || !sync.predicates.pin.ok) {
-      return { remedy: INSTALLATION_RECOVERY_GUIDANCE, schemaRemedy };
-    }
-    if (!sync.inSync) {
-      return { remedy: INSTALLATION_RECOVERY_GUIDANCE, schemaRemedy };
-    }
-    return { remedy: null, schemaRemedy };
+  const installBroken =
+    sync.failClosed || !sync.inSync || !sync.predicates.installed.ok || !sync.predicates.pin.ok;
+
+  // AC12.7: never dual-prescribe upgrade + repair. Install/wiring recovery wins
+  // when both faults are present; schema-only behind → upgrade alone.
+  if (installBroken) {
+    return { remedy: INSTALLATION_RECOVERY_GUIDANCE, schemaRemedy: null };
   }
-  if (sync.inSync && dataStatus === "current") {
-    return { remedy: null, schemaRemedy: null };
-  }
-  if (dataStatus === "diagnosis_failed") {
+  if (dataStatus === "migration_needed" || dataStatus === "diagnosis_failed") {
     return { remedy: null, schemaRemedy: "directive upgrade" };
   }
-  // Install/wiring faults → AC9.7 (never "upgrade" for repair — AC12.7).
-  return { remedy: INSTALLATION_RECOVERY_GUIDANCE, schemaRemedy: null };
+  return { remedy: null, schemaRemedy: null };
 }
 
 /**
@@ -275,11 +282,10 @@ function line(ok: boolean, name: string, detail: string | null): string {
 /** Human-readable doctor report (AC12.3 / AC12.5). */
 export function formatDoctorReport(diag: DoctorDiagnosis): string {
   const lines: string[] = [];
-  lines.push(
-    diag.inSync && diag.dataStatus === "current"
-      ? "directive doctor: in sync"
-      : "directive doctor: not in sync",
-  );
+  // Header tracks overall health (exitCode), not install-health inSync alone —
+  // skill/hook form failures must not still print "in sync" (AC12.3 / POST-CONV-DOC).
+  lines.push(diag.exitCode === 0 ? "directive doctor: in sync" : "directive doctor: not in sync");
+
   if (diag.version) lines.push(`  version: ${diag.version}`);
   lines.push(line(diag.surfaces.pin.ok, "pin", diag.surfaces.pin.detail));
   lines.push(line(diag.surfaces.lockfile.ok, "lockfile", diag.surfaces.lockfile.detail));

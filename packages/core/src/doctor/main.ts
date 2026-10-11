@@ -36,7 +36,7 @@ import {
   checkLocalEngineIntegrity,
   classify,
   detectPackageManager,
-  evaluateSkew,
+  evaluateEnginePin,
   type PackageManager,
   type ResolutionFacts,
   reconcileVersions,
@@ -2049,9 +2049,11 @@ export function resolveReconciliationLine(facts: ResolutionFacts): string {
   });
   const notes: string[] = [...recon.mismatches];
   if (facts.engineVersion !== null && facts.pinVersion !== null) {
-    const skew = evaluateSkew(facts.engineVersion, facts.pinVersion, {});
-    if (skew.band === "within-window" || skew.band === "beyond-window") {
-      notes.push(skew.message ?? `engine ${facts.engineVersion} ahead of pin ${facts.pinVersion}`);
+    const pinResult = evaluateEnginePin(facts.engineVersion, facts.pinVersion);
+    if (pinResult.band === "engine-ahead" || pinResult.band === "engine-behind") {
+      notes.push(
+        pinResult.message ?? `engine ${facts.engineVersion} vs pin ${facts.pinVersion}`,
+      );
     }
   }
   // Without a committed pin there is nothing to reconcile against, so never
@@ -2159,7 +2161,7 @@ export function runResolutionDecision(
   const plan = resolvePlan(
     facts,
     {},
-    { linkedWorktree, platform: process.platform, interactive: false, packageManager },
+    { linkedWorktree, platform: process.platform, packageManager },
   );
   const operatingMode = resolveOperatingMode(facts, { linkedWorktree });
   const reconciliation = resolveReconciliationLine(facts);

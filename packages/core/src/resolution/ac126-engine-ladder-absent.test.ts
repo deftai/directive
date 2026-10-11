@@ -28,7 +28,7 @@ describe("AC12.6 engine ladder / skew surfaces absent (ENG-LADDER)", () => {
     expect(dumped).not.toMatch(/ACCEPT_ENGINE|acceptEngineJump|engine-ladder|skew-policy/i);
   });
 
-  it("plan remediation never teaches accept-engine-jump / DEFT_ACCEPT_ENGINE_SKEW", () => {
+  it("plan remediation never teaches retired engine-jump escape hatches", () => {
     const facts = resolution.classify("/nonexistent-ac126", {
       isDir: () => false,
       isFile: () => false,

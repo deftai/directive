@@ -11,6 +11,8 @@
  * user-facing behavior of init / update / doctor / headless (children B–E,
  * #2265–#2268), which consume `plan()`. The `files` array is therefore empty in
  * the spine; downstream children populate it.
+ *
+ * AC12.6: no engine ladder, skew windows, or accept-engine escape hatches.
  */
 
 import type {
@@ -20,28 +22,24 @@ import type {
   ResolutionPlan,
 } from "@deftai/directive-types";
 import { RESOLUTION_PLAN_SCHEMA_VERSION } from "@deftai/directive-types";
-import type { LadderDecision, LadderRung } from "./engine-ladder.js";
+import {
+  contentMatchesEngine,
+  evaluateEnginePin,
+  type EnginePinResult,
+} from "./engine-pin.js";
+import type { EngineDecision } from "./engine-resolve.js";
 import { type PackageManager, renderEphemeral } from "./package-manager.js";
 import { reconcileVersions } from "./pin.js";
-import { contentMatchesEngine, evaluateSkew, type SkewResult } from "./skew-policy.js";
 
 export interface PlanOptions {
   /**
-   * Pre-computed engine ladder decision, supplied when the global engine is
-   * unreachable and the caller resolved it via `decideEngineLadder`/`resolveEngine`
-   * (warm sandbox / cold sandbox / registry-down). When omitted, `plan()` uses the
-   * in-process reachable engine facts.
+   * Pre-computed engine availability decision when the in-process engine is
+   * unreachable. When omitted, `plan()` uses the in-process reachable engine facts.
    */
-  readonly engineResolution?: LadderDecision | null;
-  /** Pre-computed skew result; when omitted `plan()` computes it from facts + policy. */
-  readonly skew?: SkewResult | null;
-  /** Interactive session (a human can answer a skew prompt). */
-  readonly interactive?: boolean;
-  /** Environment map for the `DEFT_ACCEPT_ENGINE_SKEW` escape hatch. */
-  readonly env?: NodeJS.ProcessEnv;
-  /** The `--accept-engine-jump` flag was supplied. */
-  readonly acceptEngineJump?: boolean;
-  /** Platform id, used only to render the sandbox install command. */
+  readonly engineResolution?: EngineDecision | null;
+  /** Pre-computed engine/pin result; when omitted `plan()` computes it. */
+  readonly enginePin?: EnginePinResult | null;
+  /** Platform id (trace only). */
   readonly platform?: string;
   /**
    * Files a downstream consumer has already materialised for the plan to carry
@@ -56,26 +54,10 @@ export interface PlanOptions {
    * Active package manager for rendering install/upgrade command strings
    * (#2197). Defaults to npm so existing behaviour and tests are unchanged;
    * callers detect the manager via `detectPackageManager()` and thread it here.
-   * The sandbox (`install-sandbox`) rung stays on npm regardless of this value
-   * -- the `.deft/.cli/<platform>` layout is npm-shaped and package-manager
-   * invisible (locked non-goal, issue #2197).
    */
   readonly packageManager?: PackageManager;
   /** #4443: linked worktree missing hybrid payload uses local update, not init. */
   readonly linkedWorktree?: boolean;
-}
-
-const RUNG_TO_MODE: Record<LadderRung, ResolutionPlan["mode"]> = {
-  global: "proceed",
-  local: "proceed",
-  "install-global": "install-global",
-  "install-sandbox": "install-sandbox",
-  "install-staged": "install-staged",
-  "hard-fail": "blocked",
-};
-
-function pinSuffix(pinVersion: string | null): string {
-  return pinVersion ? `@${pinVersion}` : "@<pin>";
 }
 
 function makePlan(
@@ -99,10 +81,10 @@ function legacyVbriefWarning(facts: ResolutionFacts): string | null {
   return null;
 }
 
-/** Resolve the effective engine version from either the ladder decision or in-process facts. */
+/** Resolve the effective engine version from either a decision or in-process facts. */
 function effectiveEngineVersion(
   facts: ResolutionFacts,
-  engineResolution: LadderDecision | null | undefined,
+  engineResolution: EngineDecision | null | undefined,
 ): string | null {
   if (engineResolution?.usable) return engineResolution.resolvedVersion;
   if (facts.engineReachable) return facts.engineVersion;
@@ -136,16 +118,13 @@ export function plan(
   policy: PlanPolicy = {},
   options: PlanOptions = {},
 ): ResolutionPlan {
-  const resolved = resolvePlan(facts, policy, options);
+  void policy;
+  const resolved = resolvePlan(facts, options);
   const files = options.files ?? [];
   return files.length === 0 ? resolved : { ...resolved, files };
 }
 
-function resolvePlan(
-  facts: ResolutionFacts,
-  policy: PlanPolicy,
-  options: PlanOptions,
-): ResolutionPlan {
+function resolvePlan(facts: ResolutionFacts, options: PlanOptions): ResolutionPlan {
   const warnings: string[] = [];
   const pm: PackageManager = options.packageManager ?? "npm";
   const legacyWarning = legacyVbriefWarning(facts);
@@ -199,35 +178,36 @@ function resolvePlan(
   // Row 3+: deposit present — resolve the engine dimension.
   const engineResolution = options.engineResolution ?? null;
 
-  // 3a: a supplied ladder decision that requires an install (global engine
-  // unreachable path: warm/cold sandbox, registry-down).
+  // 3a: supplied decision says engine is not usable → AC9.7 (AC12.5/AC12.6).
   if (engineResolution && !engineResolution.usable) {
-    const mode = RUNG_TO_MODE[engineResolution.rung];
-    return planForInstallRung(engineResolution, mode, facts, options, warnings);
+    const withTrace = [...warnings, `engine: ${engineResolution.trace}`];
+    return makePlan(
+      "blocked",
+      {
+        command: null,
+        rootCause: engineResolution.reason,
+        remediation: "npm i -g @deftai/directive, then directive install --repair",
+      },
+      withTrace,
+    );
   }
 
   const effectiveEngine = effectiveEngineVersion(facts, engineResolution);
 
-  // 3b: no engine reachable and no ladder resolution supplied — cannot resolve.
+  // 3b: no engine reachable and no usable resolution supplied — cannot resolve.
   if (effectiveEngine === null) {
     return makePlan(
       "blocked",
       {
         command: null,
         rootCause: "no Directive engine is reachable in the execution environment",
-        remediation:
-          "Resolve the engine via the global-first ladder (resolveEngine) / bootstrap before running any gate.",
+        remediation: "npm i -g @deftai/directive, then directive install --repair",
       },
       warnings,
     );
   }
 
   // 3c: no committed pin — cannot reconcile; proceed but warn.
-  // #4429 Expected #3: keep `proceed` + warning. `severity: "error"` is the
-  // only level that changes doctor exit (`errorCount`), and it would retro-fail
-  // every pre-pin consumer. Do not reuse DOCTOR_ADVISORY_FAIL_CHECKS for the
-  // opposite polarity (that set demotes a fail to a warning). Greenfield init
-  // now writes the pin so new deposits do not hit this path.
   if (facts.pinVersion === null) {
     warnings.push(
       "no committed package.json pin on @deftai/directive; skipping engine/pin reconciliation",
@@ -243,27 +223,18 @@ function resolvePlan(
     );
   }
 
-  // 3d: reconcile engine against the pin via the three-band skew policy.
-  const skew =
-    options.skew ??
-    evaluateSkew(effectiveEngine, facts.pinVersion, {
-      engineSkewWindow: policy.engineSkewWindow,
-      acceptEngineJump: options.acceptEngineJump,
-      interactive: options.interactive,
-      env: options.env,
-    });
-  if (skew.message) warnings.push(skew.message);
+  // 3d: reconcile engine against the pin (no skew windows / escape hatches — AC12.6).
+  const pinResult = options.enginePin ?? evaluateEnginePin(effectiveEngine, facts.pinVersion);
+  if (pinResult.message) warnings.push(pinResult.message);
 
-  switch (skew.decision) {
+  switch (pinResult.decision) {
     case "reject-global":
-      // AC12.5/AC12.6: no install-global / engine-ladder remedy.
       return makePlan(
         "blocked",
         {
           command: null,
           rootCause: `reachable engine ${effectiveEngine} is behind pin ${facts.pinVersion}`,
-          remediation:
-            "npm i -g @deftai/directive, then directive install --repair",
+          remediation: "npm i -g @deftai/directive, then directive install --repair",
         },
         warnings,
       );
@@ -273,26 +244,14 @@ function resolvePlan(
         {
           command: null,
           rootCause: `engine ${effectiveEngine} differs from pin ${facts.pinVersion}`,
-          remediation:
-            "npm i -g @deftai/directive, then directive install --repair",
-        },
-        warnings,
-      );
-    case "prompt":
-      return makePlan(
-        "blocked",
-        {
-          command: null,
-          rootCause: `engine ${effectiveEngine} differs from pin ${facts.pinVersion}`,
-          remediation:
-            "npm i -g @deftai/directive, then directive install --repair",
+          remediation: "npm i -g @deftai/directive, then directive install --repair",
         },
         warnings,
       );
     default: {
-      // proceed-silent | proceed-loud-update | retired align-pin (#5490 AC12.6)
+      // proceed-silent | proceed-loud-update
       if (
-        skew.requiresUpdateFirst &&
+        pinResult.requiresUpdateFirst &&
         contentMatchesEngine(facts.deftCorePayloadVersion, effectiveEngine)
       ) {
         return makePlan(
@@ -300,18 +259,17 @@ function resolvePlan(
           {
             command: null,
             rootCause: `engine ${effectiveEngine} is ahead of pin ${facts.pinVersion}`,
-            remediation:
-              "npm i -g @deftai/directive, then directive install --repair",
+            remediation: "npm i -g @deftai/directive, then directive install --repair",
           },
           warnings,
         );
       }
-      if (skew.requiresUpdateFirst || contentStale(facts)) {
+      if (pinResult.requiresUpdateFirst || contentStale(facts)) {
         return makePlan(
           "update",
           {
             command: null,
-            rootCause: skew.requiresUpdateFirst
+            rootCause: pinResult.requiresUpdateFirst
               ? `engine ${effectiveEngine} is ahead of pin ${facts.pinVersion}`
               : `deposited content is behind pin ${facts.pinVersion}`,
             remediation:
@@ -331,31 +289,4 @@ function resolvePlan(
       );
     }
   }
-}
-
-function planForInstallRung(
-  engineResolution: LadderDecision,
-  mode: ResolutionPlan["mode"],
-  facts: ResolutionFacts,
-  options: PlanOptions,
-  warnings: readonly string[],
-): ResolutionPlan {
-  const platform = options.platform ?? "<platform>";
-  const pm: PackageManager = options.packageManager ?? "npm";
-  const pinnedSuffix = pinSuffix(facts.pinVersion);
-  const withTrace = [...warnings, `ladder: ${engineResolution.trace}`];
-  // AC12.5/AC12.6: install-global / sandbox / staged ladder rungs retired.
-  void mode;
-  void platform;
-  void pm;
-  void pinnedSuffix;
-  return makePlan(
-    "blocked",
-    {
-      command: null,
-      rootCause: engineResolution.reason,
-      remediation: "npm i -g @deftai/directive, then directive install --repair",
-    },
-    withTrace,
-  );
 }

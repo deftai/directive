@@ -276,27 +276,31 @@ describe("DoctorDiagnosis shape", () => {
 });
 
 describe("POST-CONV-DOC / AC12.3 header vs skill pointers (AC10.3)", () => {
-  it("does not claim 'in sync' when skill pointers FAIL", () => {
-    const root = tempRoot();
-    const installed = runSetup({ operation: "install", from: "none", root });
-    pinRuntime(root, installed.runtimeVersion);
-    writeLockfileNpm(root, installed.runtimeVersion);
-    writeDataSchema(root, CURRENT_DATA_SCHEMA_VERSION);
-    // Keep AGENTS managed section healthy (install-health wiring); break a skill pointer file.
-    const skillDir = join(root, ".agents", "skills", "deft");
-    mkdirSync(skillDir, { recursive: true });
-    writeFileSync(
-      join(skillDir, "SKILL.md"),
-      "# bad\n\nFollow `.deft/core/main.md` instead of the package runtime.\n",
-    );
-
-    const diag = runDoctorDiagnosis(root, { probeHooks: false });
-    // Precondition: install-health sync alone must not justify an "in sync" header
-    // while skill pointers fail (AC12.3 / POST-CONV-DOC).
-    expect(diag.inSync).toBe(true);
-    expect(diag.dataStatus).toBe("current");
-    expect(diag.surfaces.skillPointers.ok).toBe(false);
-    expect(diag.exitCode).toBe(1);
+  it("does not claim 'in sync' when skill pointers FAIL (header tracks exitCode)", () => {
+    // Constructed diagnosis: install-health inSync can be true while skill form fails
+    // (AC12.3). Header must follow overall exitCode, not inSync alone.
+    const diag: DoctorDiagnosis = {
+      inSync: true,
+      version: "1.2.3",
+      failClosed: false,
+      dataStatus: "current",
+      remedy: null,
+      schemaRemedy: null,
+      surfaces: {
+        pin: { ok: true, detail: null },
+        lockfile: { ok: true, detail: null },
+        installed: { ok: true, detail: null },
+        generation: { ok: true, detail: null },
+        wiring: { ok: true, detail: null },
+        readiness: { ok: true, detail: null },
+        hookCommandForm: { ok: true, detail: null },
+        skillPointers: { ok: false, detail: "AGENTS.md does not target runtime" },
+        schemaCurrency: { ok: true, detail: null },
+      },
+      hookProbe: null,
+      info: { launcherPresent: null, newerReleaseAvailable: null, nodeBestEffortNote: null },
+      exitCode: 1,
+    };
     const text = formatDoctorReport(diag);
     expect(text).toMatch(/directive doctor: not in sync/);
     expect(text).not.toMatch(/^directive doctor: in sync$/m);

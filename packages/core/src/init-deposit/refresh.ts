@@ -74,9 +74,9 @@ import {
   checkLocalEngineIntegrity,
   classify,
   ENGINE_PACKAGE,
+  type EngineFacts,
   type EngineInstallRunner,
   type EngineResolution,
-  type LadderFacts,
   plan,
   type ReprojectRunner,
   renderGlobalInstall,
@@ -305,41 +305,35 @@ export function classifyUpdateState(
 }
 
 export interface SelfHealSeams {
-  /** Pre-computed ladder facts; when omitted, cheap local probes build them. */
-  readonly ladderFacts?: LadderFacts;
-  /** Injected side-effecting install runner; when omitted, the install is deferred. */
+  /** Pre-computed engine facts; when omitted, cheap local probes build them. */
+  readonly ladderFacts?: EngineFacts;
+  /** Injected side-effecting install runner (unused — AC12.5 never auto-installs). */
   readonly engineInstallRunner?: EngineInstallRunner;
-  /** Injected content re-projection after a fresh install. */
+  /** Injected content re-projection after a fresh install (unused under AC12.5). */
   readonly reproject?: ReprojectRunner;
 }
 
+/** @deprecated Alias kept for refresh call sites; prefer buildDefaultEngineFacts. */
+export function buildDefaultLadderFacts(projectDir: string, facts: ResolutionFacts): EngineFacts {
+  return buildDefaultEngineFacts(projectDir, facts);
+}
+
 /**
- * Cheap, non-networked ladder facts for the default self-heal path. The global
- * engine version is whatever `classify()` already probed; the local sandbox
- * engine integrity is a filesystem check. `registryUp`/`globalPrefixWritable`
- * default optimistic so the ladder surfaces the canonical `npm i -g` remediation
- * when no install runner is wired.
+ * Cheap, non-networked engine facts for the default self-heal path.
  */
-export function buildDefaultLadderFacts(projectDir: string, facts: ResolutionFacts): LadderFacts {
+export function buildDefaultEngineFacts(projectDir: string, facts: ResolutionFacts): EngineFacts {
   const integrity = checkLocalEngineIntegrity(projectDir);
   return {
     pinVersion: facts.pinVersion,
     globalEngineVersion: facts.engineReachable ? facts.engineVersion : null,
     localEngine: integrity.present ? { version: null, integrity } : null,
-    registryUp: true,
-    globalPrefixWritable: true,
-    stagedTarballAvailable: false,
     platform: osPlatform(),
   };
 }
 
 /**
- * Self-heal a mismatched / unreachable engine by DELEGATING to the keystone
- * global-first ladder (`resolveEngine`, #2264). The refresh's content copy comes
- * from the resolved content package and does not itself require the engine, so
- * this is a best-effort heal that prints the ladder trace and remediation; when
- * a caller wires an install runner, the ladder performs the install with zero
- * manual npm/PATH steps (#2266 a3).
+ * Best-effort engine reachability check before refresh (AC12.5 / AC12.6).
+ * Never auto-installs; prints AC9.7 recovery when the engine is unusable.
  */
 export function selfHealEngine(
   projectDir: string,
@@ -347,20 +341,18 @@ export function selfHealEngine(
   io: InitDepositIo,
   seams: SelfHealSeams = {},
 ): EngineResolution {
-  const ladderFacts = seams.ladderFacts ?? buildDefaultLadderFacts(projectDir, facts);
-  const resolution = resolveEngine(ladderFacts, {
+  const engineFacts = seams.ladderFacts ?? buildDefaultEngineFacts(projectDir, facts);
+  const resolution = resolveEngine(engineFacts, {
     installRunner: seams.engineInstallRunner,
     reproject: seams.reproject,
   });
-  io.printf(`\n[deft update] engine self-heal (global-first ladder): ${resolution.trace}\n`);
-  if (!resolution.selfHealed && !resolution.decision.usable) {
+  io.printf(`\n[deft update] engine self-heal: ${resolution.trace}\n`);
+  if (!resolution.decision.usable) {
     io.printf(`[deft update] ${resolution.decision.reason}\n`);
-    if (resolution.decision.rung === "install-global") {
-      const suffix = facts.pinVersion ? `@${facts.pinVersion}` : "";
-      const spec = `${ENGINE_PACKAGE}${suffix}`;
-      io.printf(`  Remediation: ${renderGlobalInstall("npm", spec)}\n`);
-      io.printf(`               (pnpm: ${renderGlobalInstall("pnpm", spec)})\n`);
-    }
+    const suffix = facts.pinVersion ? `@${facts.pinVersion}` : "";
+    const spec = `${ENGINE_PACKAGE}${suffix}`;
+    io.printf(`  Remediation: ${renderGlobalInstall("npm", spec)}\n`);
+    io.printf(`               (pnpm: ${renderGlobalInstall("pnpm", spec)})\n`);
   }
   return resolution;
 }
@@ -1530,11 +1522,11 @@ export interface RunRefreshDepositCliOptions extends RefreshDepositArgs {
   readonly dryRun?: boolean;
   /** #2266: seams for the up-front four-state classifier (default: real fs + engine probe). */
   readonly classifySeams?: ClassifySeams;
-  /** #2266: pre-computed engine-ladder facts for the self-heal delegation (default: probed). */
-  readonly ladderFacts?: LadderFacts;
-  /** #2266: injected engine install runner for the ladder self-heal (default: deferred). */
+  /** #2266: pre-computed engine facts for the self-heal check (default: probed). */
+  readonly ladderFacts?: EngineFacts;
+  /** #2266: injected engine install runner (unused under AC12.5). */
   readonly engineInstallRunner?: EngineInstallRunner;
-  /** #2266: injected content re-projection after a self-heal install. */
+  /** #2266: injected content re-projection (unused under AC12.5). */
   readonly reproject?: ReprojectRunner;
 }
 

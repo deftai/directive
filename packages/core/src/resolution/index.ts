@@ -3,10 +3,9 @@
  *
  * The classifier (`classify`) produces the orthogonal fact-set; `plan()` applies
  * one ordered precedence table and emits the versioned public resolution-plan-v1
- * schema (the single source of truth). The engine ladder, local-engine integrity
- * check, three-band skew policy, and pin/VERSION/sha reconciliation are the
- * supporting primitives that init / update / doctor / headless (children B–E)
- * consume — this module ships them; it does NOT rewire verb behavior.
+ * schema (the single source of truth). Engine reachability and engine/pin
+ * reconciliation are the supporting primitives — no engine ladder, skew windows,
+ * or accept-engine escape hatches (AC12.6).
  */
 
 export {
@@ -27,18 +26,23 @@ export {
   type EngineProbeResult,
 } from "./classify.js";
 export {
-  decideEngineLadder,
-  type EngineInstallOutcome,
+  contentMatchesEngine,
+  type EnginePinBand,
+  type EnginePinDecision,
+  type EnginePinResult,
+  evaluateEnginePin,
+} from "./engine-pin.js";
+export {
+  decideEngineAvailability,
+  type EngineDecision,
+  type EngineFacts,
   type EngineInstallRunner,
   type EngineResolution,
-  type LadderDecision,
-  type LadderFacts,
-  type LadderRung,
   type LocalEngineFacts,
   type ReprojectRunner,
   type ResolveEngineOptions,
   resolveEngine,
-} from "./engine-ladder.js";
+} from "./engine-resolve.js";
 export {
   checkLocalEngineIntegrity,
   type IntegrityResult,
@@ -75,13 +79,3 @@ export {
   semverGte,
 } from "./pin.js";
 export { type PlanOptions, plan } from "./plan.js";
-export {
-  ACCEPT_ENGINE_SKEW_ENV,
-  contentMatchesEngine,
-  DEFAULT_ENGINE_SKEW_WINDOW,
-  evaluateSkew,
-  type SkewBand,
-  type SkewDecision,
-  type SkewOptions,
-  type SkewResult,
-} from "./skew-policy.js";
