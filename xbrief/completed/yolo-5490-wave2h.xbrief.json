@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "kind": "xbrief",
+  "title": "YOLO #5490 Wave 2h\u20132i \u2014 retired verbs + docs/help",
+  "status": "completed",
+  "branch": "yolo/wip-wave2h",
+  "tip": "e0ed42eaadf3a3f9c3acf6cb26fb1ee70437707a",
+  "tag": "yolo-cp-wave2h",
+  "verdaccio": "0.0.0-yolo.cp-wave2h.1",
+  "smoke": "wave2h.sh PASS",
+  "acs": [
+    "AC13.6",
+    "AC13.7",
+    "AC13.8",
+    "AC13.9",
+    "AC13.10",
+    "AC14.25",
+    "AC14.55",
+    "AC16.2",
+    "AC3.16",
+    "AC10.10"
+  ]
+}
