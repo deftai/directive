@@ -15,21 +15,44 @@
  */
 import { spawnSync } from "node:child_process";
 import {
+  copyFileSync,
   existsSync,
   mkdtempSync,
   readFileSync,
   renameSync,
   rmSync,
+  unlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { isAbsolute, join, resolve } from "node:path";
 
 const PRIVATE_NAMES = ["directive-types", "directive-core", "directive-content"];
 
 function fail(msg) {
-  process.stderr.write(`pack-staged-runtime: ${msg}\n`);
-  process.exit(1);
+  throw new Error(`pack-staged-runtime: ${msg}`);
+}
+
+function npmPack(args, opts) {
+  return spawnSync("npm", args, {
+    ...opts,
+    encoding: "utf8",
+    // Native Windows: npm is a .cmd shim (#5383).
+    shell: process.platform === "win32",
+  });
+}
+
+function replaceFile(src, dest) {
+  try {
+    renameSync(src, dest);
+  } catch {
+    copyFileSync(src, dest);
+    try {
+      unlinkSync(src);
+    } catch {
+      /* ignore */
+    }
+  }
 }
 
 function readJson(path) {
@@ -46,12 +69,8 @@ function main() {
   if (!stageDirArg || !packDestArg) {
     fail("usage: pack-staged-runtime.mjs <stageDir> <packDestDir>");
   }
-  const stageDir = stageDirArg.startsWith("/")
-    ? stageDirArg
-    : join(process.cwd(), stageDirArg);
-  const packDest = packDestArg.startsWith("/")
-    ? packDestArg
-    : join(process.cwd(), packDestArg);
+  const stageDir = isAbsolute(stageDirArg) ? stageDirArg : resolve(process.cwd(), stageDirArg);
+  const packDest = isAbsolute(packDestArg) ? packDestArg : resolve(process.cwd(), packDestArg);
 
   const pkgPath = join(stageDir, "package.json");
   if (!existsSync(pkgPath)) fail(`missing ${pkgPath}`);
@@ -80,9 +99,8 @@ function main() {
   let tgzPath;
   try {
     // COPYFILE_DISABLE avoids macOS AppleDouble ._* entries in the tarball.
-    const packed = spawnSync("npm", ["pack", "--pack-destination", packDest], {
+    const packed = npmPack(["pack", "--pack-destination", packDest], {
       cwd: stageDir,
-      encoding: "utf8",
       env: { ...process.env, COPYFILE_DISABLE: "1" },
     });
     if (packed.status !== 0) {
@@ -96,6 +114,7 @@ function main() {
     tgzPath = join(packDest, filename);
     if (!existsSync(tgzPath)) fail(`packed tarball missing: ${tgzPath}`);
   } finally {
+    // Always restore staged manifest so retries are not poisoned.
     writeJson(pkgPath, cleanPkg);
   }
 
@@ -109,13 +128,14 @@ function main() {
     });
     if (extracted.status !== 0) fail(`tar extract failed: ${extracted.stderr}`);
     writeJson(join(work, "package", "package.json"), cleanPkg);
-    const tmpOut = join(work, "out.tgz");
+    // Write beside destination first (cross-filesystem safe).
+    const tmpOut = join(packDest, `.pack-staged-runtime-${process.pid}.tgz`);
     const repacked = spawnSync("tar", ["-czf", tmpOut, "-C", work, "package"], {
       encoding: "utf8",
       env: tarEnv,
     });
     if (repacked.status !== 0) fail(`tar repack failed: ${repacked.stderr}`);
-    renameSync(tmpOut, tgzPath);
+    replaceFile(tmpOut, tgzPath);
   } finally {
     rmSync(work, { recursive: true, force: true });
   }
@@ -144,4 +164,9 @@ function main() {
   process.stdout.write(`${tgzPath}\n`);
 }
 
-main();
+try {
+  main();
+} catch (err) {
+  process.stderr.write(`${err?.message || err}\n`);
+  process.exit(1);
+}

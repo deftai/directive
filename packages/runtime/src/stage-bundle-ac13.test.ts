@@ -7,17 +7,32 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(HERE, "..", "..", "..");
 const STAGE_SCRIPT = join(REPO_ROOT, "packages", "runtime", "scripts", "stage-bundle.mjs");
 const PACK_SCRIPT = join(REPO_ROOT, "packages", "runtime", "scripts", "pack-staged-runtime.mjs");
 const PRIVATE = ["directive-types", "directive-core", "directive-content"] as const;
+const RUNTIME_DIST_BIN = join(REPO_ROOT, "packages", "runtime", "dist", "bin.js");
 
 function deftaiDepKeys(pkg: { dependencies?: Record<string, string> }): string[] {
   return Object.keys(pkg.dependencies ?? {}).filter((k) => k.startsWith("@deftai/"));
 }
+
+beforeAll(() => {
+  if (existsSync(RUNTIME_DIST_BIN)) return;
+  const built = spawnSync("pnpm", ["-w", "run", "build"], {
+    cwd: REPO_ROOT,
+    encoding: "utf8",
+    shell: process.platform === "win32",
+  });
+  if (built.status !== 0 || !existsSync(RUNTIME_DIST_BIN)) {
+    throw new Error(
+      `workspace build required for stage-bundle tests: ${built.stderr || built.stdout}`,
+    );
+  }
+}, 300_000);
 
 describe("stage-bundle AC1.3 packaging purity", () => {
   it("staged package.json has no @deftai/* dependencies and vendors private packages", () => {
