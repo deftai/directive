@@ -79,9 +79,11 @@ function main() {
 
   let tgzPath;
   try {
+    // COPYFILE_DISABLE avoids macOS AppleDouble ._* entries in the tarball.
     const packed = spawnSync("npm", ["pack", "--pack-destination", packDest], {
       cwd: stageDir,
       encoding: "utf8",
+      env: { ...process.env, COPYFILE_DISABLE: "1" },
     });
     if (packed.status !== 0) {
       fail(`npm pack failed: ${packed.stderr || packed.stdout}`);
@@ -100,12 +102,17 @@ function main() {
   // Strip @deftai/* from the published package.json inside the tarball.
   const work = mkdtempSync(join(tmpdir(), "pack-staged-runtime-"));
   try {
-    const extracted = spawnSync("tar", ["-xzf", tgzPath, "-C", work], { encoding: "utf8" });
+    const tarEnv = { ...process.env, COPYFILE_DISABLE: "1" };
+    const extracted = spawnSync("tar", ["-xzf", tgzPath, "-C", work], {
+      encoding: "utf8",
+      env: tarEnv,
+    });
     if (extracted.status !== 0) fail(`tar extract failed: ${extracted.stderr}`);
     writeJson(join(work, "package", "package.json"), cleanPkg);
     const tmpOut = join(work, "out.tgz");
     const repacked = spawnSync("tar", ["-czf", tmpOut, "-C", work, "package"], {
       encoding: "utf8",
+      env: tarEnv,
     });
     if (repacked.status !== 0) fail(`tar repack failed: ${repacked.stderr}`);
     renameSync(tmpOut, tgzPath);
