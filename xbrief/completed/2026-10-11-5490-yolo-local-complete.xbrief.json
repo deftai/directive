@@ -1,0 +1,59 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "YOLO #5490 local complete",
+    "updated": "2026-10-11T01:44:27.000Z"
+  },
+  "plan": {
+    "id": "yolo.5490.complete",
+    "title": "YOLO #5490 local complete \u2014 human review ready",
+    "status": "completed",
+    "updated": "2026-10-11T01:44:27.000Z",
+    "tags": [
+      "yolo",
+      "5490",
+      "complete"
+    ],
+    "narratives": {
+      "Description": "Initial-release R1\u2013R16 local proof; smokes green; CP train + Verdaccio tags ready.",
+      "Origin": "YOLO",
+      "Overview": "full-acceptance.sh PASS; tip 245d677e2; see ~/yolo-5490/logs/COMPLETION.md",
+      "Labels": "yolo"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "local proof",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "smokes+spine tests"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "no public publish",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Verdaccio only"
+        }
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        "~/yolo-5490/smokes/full-acceptance.sh"
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "YOLO done",
+      "clauses": []
+    },
+    "metadata": {
+      "yolo": {
+        "complete": true,
+        "tip": "245d677e2",
+        "tag": "yolo-cp-final",
+        "live_gates_waived": true
+      }
+    }
+  }
+}
