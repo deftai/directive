@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "kind": "xbrief",
+  "title": "YOLO #5490 Wave 2p — bookend robustness",
+  "status": "completed",
+  "branch": "yolo/wip-wave2p",
+  "tip": "f3e1b48afc610afcbc88dceb4113a56f2fa64ef2",
+  "tag": "yolo-cp-wave2p",
+  "verdaccio": "0.0.0-yolo.cp-wave2p.2",
+  "smoke": "wave2p.sh PASS",
+  "acs": ["AC5.15","AC14.56","AC5.8","AC14.45","AC5.1","AC14.54","AC5.13"],
+  "findings": ["SIG-PM","PM-GUIDE","PLAN-DISC","PLAN-RACE"]
+}
