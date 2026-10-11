@@ -37,7 +37,9 @@ describe("agents-refresh CLI (#1996)", () => {
     const text = readFileSync(join(project, "AGENTS.md"), "utf8");
     // #2535: Session routing no longer embeds setup-skill path; swarm skill still
     // exercises the runtime `.agents/skills/` path format in managed AGENTS.md.
-    expect(text).toContain(".deft/core/.agents/skills/deft-directive-swarm/SKILL.md");
+    expect(text).toContain(
+      "node_modules/@deftai/directive-runtime/.agents/skills/deft-directive-swarm/SKILL.md",
+    );
     expect(text).not.toMatch(/`\.deft\/core\/skills\/deft-directive-/);
   });
 
