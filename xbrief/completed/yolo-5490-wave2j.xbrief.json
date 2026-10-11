@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "kind": "xbrief",
+  "title": "YOLO #5490 Wave 2j — SEC-ESC + SEC-ROOT containment",
+  "status": "completed",
+  "branch": "yolo/wip-wave2j",
+  "tip": "64ffd973baea0c03ce0d473ca3821a0448f13baa",
+  "tag": "yolo-cp-wave2j",
+  "verdaccio": "0.0.0-yolo.cp-wave2j.2",
+  "smoke": "wave2j.sh PASS",
+  "acs": ["AC3.4","AC3.8","AC11.10","AC14.43","D4.15"],
+  "findings": ["SEC-ESC","SEC-ROOT"]
+}
