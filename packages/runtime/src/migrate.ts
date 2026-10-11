@@ -70,9 +70,38 @@ export function runMigrate(options: {
         message: `migrate: data schema already at ${CURRENT_DATA_SCHEMA_VERSION}`,
       };
     }
+    // Refuse to erase unreadable or newer markers so the original state remains for recovery.
+    if (prior === "invalid") {
+      return {
+        contract: 1,
+        entry: "migrate",
+        stub: false,
+        from,
+        root,
+        migrated,
+        created,
+        modified,
+        removed,
+        message: `migrate failed: unreadable schema marker at ${DATA_SCHEMA_MARKER_REL}; refusing overwrite`,
+      };
+    }
+    if (typeof prior === "number" && prior > CURRENT_DATA_SCHEMA_VERSION) {
+      return {
+        contract: 1,
+        entry: "migrate",
+        stub: false,
+        from,
+        root,
+        migrated,
+        created,
+        modified,
+        removed,
+        message: `migrate failed: schema marker is newer (${prior} > ${CURRENT_DATA_SCHEMA_VERSION}); refusing overwrite`,
+      };
+    }
 
     const body = `${JSON.stringify({ schemaVersion: CURRENT_DATA_SCHEMA_VERSION }, null, 2)}\n`;
-    const existed = prior !== null && prior !== "invalid";
+    const existed = prior !== null;
     containedWrite({
       root,
       target: DATA_SCHEMA_MARKER_REL,

@@ -5,7 +5,11 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { runUpgrade } from "./bookends.js";
+import {
+  isWiringCurrentForVersion,
+  parseDoctorDataStatusResponse,
+  runUpgrade,
+} from "./bookends.js";
 import { readProjectInstallState, type ProjectInstallState } from "./pin.js";
 import { compareExactVersions } from "./registry.js";
 
@@ -106,6 +110,90 @@ describe("compareExactVersions", () => {
     expect(compareExactVersions("0.0.0-yolo.cp-wave2a.4", "0.0.0-yolo.cp-wave2b.1")).toBeLessThan(
       0,
     );
+  });
+
+  it("strips build metadata so build-tagged pins still compare (Greptile P1)", () => {
+    expect(compareExactVersions("1.2.3+build.7", "1.2.3")).toBe(0);
+    expect(compareExactVersions("1.2.3+build.7", "2.0.0")).toBeLessThan(0);
+    expect(compareExactVersions("2.0.0", "1.2.3+build.7")).toBeGreaterThan(0);
+    expect(compareExactVersions("1.2.3+aaa", "1.2.3+bbb")).toBe(0);
+  });
+
+  it("never treats parse failure as equal (Greptile P1)", () => {
+    expect(() => compareExactVersions("not-a-version", "2.0.0")).toThrow(/invalid exact SemVer/);
+    expect(() => compareExactVersions("1.2.3", "nope")).toThrow(/invalid exact SemVer/);
+    expect(() => compareExactVersions("1.2.3+", "1.2.3")).toThrow(/invalid exact SemVer/);
+  });
+});
+
+describe("isWiringCurrentForVersion (Greptile P2)", () => {
+  it("rejects malformed readiness JSON even when the path exists", () => {
+    const root = tempProject("wiring-bad");
+    mkdirSync(join(root, ".deft", "directive"), { recursive: true });
+    writeFileSync(
+      join(root, ".deft", "GENERATION.json"),
+      `${JSON.stringify({ runtimeVersion: "1.2.3" }, null, 2)}\n`,
+    );
+    writeFileSync(join(root, ".deft", "directive", "wiring-ready.1.2.3.json"), "not-json{\n");
+    expect(isWiringCurrentForVersion(root, "1.2.3")).toBe(false);
+  });
+
+  it("rejects readiness body naming another runtime", () => {
+    const root = tempProject("wiring-mismatch");
+    mkdirSync(join(root, ".deft", "directive"), { recursive: true });
+    writeFileSync(
+      join(root, ".deft", "GENERATION.json"),
+      `${JSON.stringify({ runtimeVersion: "1.2.3" }, null, 2)}\n`,
+    );
+    writeFileSync(
+      join(root, ".deft", "directive", "wiring-ready.1.2.3.json"),
+      `${JSON.stringify({ runtimeVersion: "9.9.9" }, null, 2)}\n`,
+    );
+    expect(isWiringCurrentForVersion(root, "1.2.3")).toBe(false);
+  });
+
+  it("accepts readable JSON with matching or absent body version", () => {
+    const root = tempProject("wiring-ok");
+    markWiringCurrent(root, "1.2.3");
+    expect(isWiringCurrentForVersion(root, "1.2.3")).toBe(true);
+    writeFileSync(join(root, ".deft", "directive", "wiring-ready.1.2.3.json"), "{}\n");
+    expect(isWiringCurrentForVersion(root, "1.2.3")).toBe(true);
+  });
+});
+
+describe("parseDoctorDataStatusResponse (Greptile P2)", () => {
+  it("rejects non-zero exit even when stdout has a recognized dataStatus", () => {
+    const parsed = parseDoctorDataStatusResponse({
+      exitCode: 1,
+      stdout: JSON.stringify({ contract: 1, dataStatus: "current" }),
+      message: null,
+    });
+    expect(parsed.ok).toBe(false);
+    if (!parsed.ok) expect(parsed.message).toMatch(/exit 1|failed/i);
+  });
+
+  it("rejects missing or unsupported contract before accepting dataStatus", () => {
+    const missing = parseDoctorDataStatusResponse({
+      exitCode: 0,
+      stdout: JSON.stringify({ dataStatus: "current" }),
+    });
+    expect(missing.ok).toBe(false);
+    if (!missing.ok) expect(missing.message).toMatch(/unsupported contract/i);
+
+    const wrong = parseDoctorDataStatusResponse({
+      exitCode: 0,
+      stdout: JSON.stringify({ contract: 99, dataStatus: "current" }),
+    });
+    expect(wrong.ok).toBe(false);
+    if (!wrong.ok) expect(wrong.message).toMatch(/unsupported contract/i);
+  });
+
+  it("accepts exit 0 + contract 1 + known dataStatus", () => {
+    const parsed = parseDoctorDataStatusResponse({
+      exitCode: 0,
+      stdout: JSON.stringify({ contract: 1, dataStatus: "migration_needed" }),
+    });
+    expect(parsed).toEqual({ ok: true, dataStatus: "migration_needed" });
   });
 });
 

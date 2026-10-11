@@ -14,10 +14,18 @@ function parseExactVersionParts(version: string): {
   pre: string[] | null;
 } | null {
   const trimmed = version.trim();
-  if (!isExactSemver(trimmed)) return null;
-  const dash = trimmed.indexOf("-");
-  const core = dash === -1 ? trimmed : trimmed.slice(0, dash);
-  const pre = dash === -1 ? null : trimmed.slice(dash + 1).split(".");
+  // SemVer build metadata (+…) is ignored for precedence; strip before parse so
+  // pins like 1.2.3+build.7 do not produce NaN patch components.
+  const plus = trimmed.indexOf("+");
+  const noBuild = plus === -1 ? trimmed : trimmed.slice(0, plus);
+  if (plus !== -1) {
+    const build = trimmed.slice(plus + 1);
+    if (!/^[0-9A-Za-z.-]+$/.test(build)) return null;
+  }
+  if (noBuild.length === 0 || !isExactSemver(noBuild)) return null;
+  const dash = noBuild.indexOf("-");
+  const core = dash === -1 ? noBuild : noBuild.slice(0, dash);
+  const pre = dash === -1 ? null : noBuild.slice(dash + 1).split(".");
   const [majS, minS, patS] = core.split(".");
   const major = Number(majS);
   const minor = Number(minS);
@@ -47,13 +55,18 @@ function comparePreParts(a: string[], b: string[]): number {
 }
 
 /**
- * Compare two exact SemVer strings (incl. prerelease). Returns -1 / 0 / 1.
- * Invalid inputs compare as equal to avoid accidental downgrade acceptance.
+ * Compare two exact SemVer strings (incl. prerelease; build metadata ignored).
+ * Returns -1 / 0 / 1. Throws on unparsable input — never treats parse failure as equal
+ * (equal would skip upgrades for build-tagged or garbage pins).
  */
 export function compareExactVersions(a: string, b: string): number {
   const left = parseExactVersionParts(a);
   const right = parseExactVersionParts(b);
-  if (left === null || right === null) return 0;
+  if (left === null || right === null) {
+    throw new Error(
+      `compareExactVersions: invalid exact SemVer (${JSON.stringify(a)} vs ${JSON.stringify(b)})`,
+    );
+  }
   if (left.major !== right.major) return left.major < right.major ? -1 : 1;
   if (left.minor !== right.minor) return left.minor < right.minor ? -1 : 1;
   if (left.patch !== right.patch) return left.patch < right.patch ? -1 : 1;

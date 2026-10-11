@@ -70,4 +70,29 @@ describe("runMigrate (R7 / AC7.8)", () => {
     };
     expect(marker.schemaVersion).toBe(CURRENT_DATA_SCHEMA_VERSION);
   });
+
+  it("refuses to overwrite an unreadable schema marker (Greptile P2)", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, ".deft", "directive"), { recursive: true });
+    const abs = join(root, DATA_SCHEMA_MARKER_REL);
+    const before = "not-json{{{";
+    writeFileSync(abs, before);
+    const result = runMigrate({ from: "1.0.0", root });
+    expect(result.message).toMatch(/migrate failed:.*unreadable/i);
+    expect(result.migrated).toEqual([]);
+    expect(readFileSync(abs, "utf8")).toBe(before);
+  });
+
+  it("refuses to overwrite a newer schema marker (Greptile P2)", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, ".deft", "directive"), { recursive: true });
+    const abs = join(root, DATA_SCHEMA_MARKER_REL);
+    const newer = CURRENT_DATA_SCHEMA_VERSION + 1;
+    const before = `${JSON.stringify({ schemaVersion: newer }, null, 2)}\n`;
+    writeFileSync(abs, before);
+    const result = runMigrate({ from: "1.0.0", root });
+    expect(result.message).toMatch(/migrate failed:.*newer/i);
+    expect(result.migrated).toEqual([]);
+    expect(readFileSync(abs, "utf8")).toBe(before);
+  });
 });

@@ -5,6 +5,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  CONTRACT_NUMBER,
   EXIT_CODES,
   LAUNCHER_MAX_SUPPORTED_CONTRACT,
   RECOVERY_GUIDANCE,
@@ -595,17 +596,69 @@ function handOffMigrate(opts: {
   return result.exitCode;
 }
 
-/** GENERATION + wiring-ready.<V> present and matching (launcher-local; no core dep). */
+/** GENERATION + readable wiring-ready.<V> JSON; optional body version must match (AC8.6). */
 export function isWiringCurrentForVersion(projectRoot: string, version: string): boolean {
   try {
     const genPath = join(projectRoot, ".deft", "GENERATION.json");
     if (!existsSync(genPath)) return false;
-    const gen = JSON.parse(readFileSync(genPath, "utf8")) as { runtimeVersion?: unknown };
-    if (gen.runtimeVersion !== version) return false;
+    const genRaw: unknown = JSON.parse(readFileSync(genPath, "utf8"));
+    if (genRaw === null || typeof genRaw !== "object" || Array.isArray(genRaw)) return false;
+    if ((genRaw as { runtimeVersion?: unknown }).runtimeVersion !== version) return false;
     const ready = join(projectRoot, ".deft", "directive", `wiring-ready.${version}.json`);
-    return existsSync(ready);
+    if (!existsSync(ready)) return false;
+    const bodyRaw: unknown = JSON.parse(readFileSync(ready, "utf8"));
+    if (bodyRaw === null || typeof bodyRaw !== "object" || Array.isArray(bodyRaw)) return false;
+    const bodyVersion = (bodyRaw as { runtimeVersion?: unknown }).runtimeVersion;
+    // Filename encodes V; body version, when present, must agree (same as readReadiness).
+    if (bodyVersion !== undefined && bodyVersion !== version) return false;
+    return true;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Accept doctor data-status only on successful exit + supported contract (AC4.10).
+ * Exported for focused unit tests.
+ */
+export function parseDoctorDataStatusResponse(result: {
+  readonly exitCode: number;
+  readonly stdout: string;
+  readonly message?: string | null;
+}): { ok: true; dataStatus: DataStatusValue } | { ok: false; message: string } {
+  if (result.exitCode !== 0) {
+    return {
+      ok: false,
+      message: result.message ?? `doctor diagnostic failed (exit ${result.exitCode})`,
+    };
+  }
+  try {
+    const line = result.stdout.trim().split("\n").filter(Boolean).pop() ?? "";
+    const parsed: unknown = JSON.parse(line);
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return { ok: false, message: "doctor data-status JSON malformed" };
+    }
+    const obj = parsed as { contract?: unknown; dataStatus?: unknown };
+    if (obj.contract !== CONTRACT_NUMBER) {
+      return {
+        ok: false,
+        message: `doctor data-status unsupported contract: ${String(obj.contract)}`,
+      };
+    }
+    const status = obj.dataStatus;
+    if (
+      status !== "current" &&
+      status !== "migration_needed" &&
+      status !== "diagnosis_failed"
+    ) {
+      return { ok: false, message: `doctor data-status unknown: ${String(status)}` };
+    }
+    return { ok: true, dataStatus: status };
+  } catch {
+    return {
+      ok: false,
+      message: result.message ?? "doctor data-status parse failed",
+    };
   }
 }
 
@@ -623,33 +676,7 @@ function obtainDataStatus(
     argv: doctorArgv(),
     stdio: "pipe",
   });
-  if (result.exitCode !== 0 && !result.stdout.trim()) {
-    return {
-      ok: false,
-      message: result.message ?? `doctor diagnostic failed (exit ${result.exitCode})`,
-    };
-  }
-  try {
-    const line = result.stdout.trim().split("\n").filter(Boolean).pop() ?? "";
-    const parsed: unknown = JSON.parse(line);
-    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
-      return { ok: false, message: "doctor data-status JSON malformed" };
-    }
-    const status = (parsed as { dataStatus?: unknown }).dataStatus;
-    if (
-      status !== "current" &&
-      status !== "migration_needed" &&
-      status !== "diagnosis_failed"
-    ) {
-      return { ok: false, message: `doctor data-status unknown: ${String(status)}` };
-    }
-    return { ok: true, dataStatus: status };
-  } catch {
-    return {
-      ok: false,
-      message: result.message ?? "doctor data-status parse failed",
-    };
-  }
+  return parseDoctorDataStatusResponse(result);
 }
 
 /**
@@ -711,8 +738,16 @@ export function runUpgrade(
     targetVersion = resolved.version;
   }
 
-  // Target older than pin → reject (AC7.3)
-  if (!state.oldStyle && compareExactVersions(targetVersion, currentPin) < 0) {
+  // Target older than pin → reject (AC7.3). Parse failure is never treated as equal.
+  let versionOrd: number;
+  try {
+    versionOrd = state.oldStyle ? 1 : compareExactVersions(targetVersion, currentPin);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    io.writeErr(`${msg}\n`);
+    return EXIT_CODES.FAILURE;
+  }
+  if (!state.oldStyle && versionOrd < 0) {
     io.writeErr(
       `Target ${targetVersion} is older than pin ${currentPin}; upgrade rejects downgrades.\n`,
     );
@@ -737,7 +772,7 @@ export function runUpgrade(
     return EXIT_CODES.FAILURE;
   }
 
-  const versionChange = state.oldStyle || compareExactVersions(targetVersion, currentPin) !== 0;
+  const versionChange = state.oldStyle || versionOrd !== 0;
   const pmDetect = detectPackageManager(projectRoot, flags.packageManager);
   if (!pmDetect.ok) {
     io.writeErr(`${pmDetect.message}\n`);
