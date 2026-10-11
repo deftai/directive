@@ -2,7 +2,7 @@
  * Git-aware project discovery (AC3.7 / INIT-05 / INIT-06).
  * No dependency on runtime/core — uses child_process only.
  */
-import { existsSync, statSync } from "node:fs";
+import { existsSync, realpathSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -30,16 +30,32 @@ export interface DiscoverErr {
 
 export type DiscoverResult = DiscoverOk | DiscoverErr;
 
-function isFilesystemRoot(path: string): boolean {
+/** Resolve path, following symlinks when the target exists (AC3.8 / AC14.43). */
+function realpathOrResolve(path: string): string {
   const resolved = resolve(path);
+  try {
+    return realpathSync(resolved);
+  } catch {
+    return resolved;
+  }
+}
+
+function isFilesystemRoot(path: string): boolean {
+  const resolved = realpathOrResolve(path);
   // Unix `/` or Windows `C:\`
-  if (resolved === resolve("/")) return true;
+  let rootReal: string;
+  try {
+    rootReal = realpathSync("/");
+  } catch {
+    rootReal = resolve("/");
+  }
+  if (resolved === rootReal || resolved === resolve("/")) return true;
   return /^[A-Za-z]:[\\/]?$/.test(resolved);
 }
 
 function isUserHome(path: string): boolean {
   try {
-    return resolve(path) === resolve(homedir());
+    return realpathOrResolve(path) === realpathOrResolve(homedir());
   } catch {
     return false;
   }
@@ -70,28 +86,19 @@ export interface DiscoverOptions {
  */
 export function discoverProject(options: DiscoverOptions = {}): DiscoverResult {
   const cwd = resolve(options.cwd ?? process.cwd());
-  const rootFlag = options.rootFlag ? resolve(options.rootFlag) : null;
+  // Lexical resolve for existence; realpath for refuse + git identity (AC3.8).
+  const rootFlagLexical = options.rootFlag ? resolve(options.rootFlag) : null;
 
-  if (rootFlag !== null) {
-    if (!existsSync(rootFlag) || !statSync(rootFlag).isDirectory()) {
+  if (rootFlagLexical !== null) {
+    if (!existsSync(rootFlagLexical) || !statSync(rootFlagLexical).isDirectory()) {
       return {
         ok: false,
         kind: "missing_root",
-        message: `--root ${rootFlag} is not an existing directory.`,
+        message: `--root ${rootFlagLexical} is not an existing directory.`,
       };
     }
-    const git = runGitShowToplevel(rootFlag);
-    if (git.code === 0 && git.stdout.length > 0) {
-      const toplevel = resolve(git.stdout);
-      if (toplevel !== rootFlag) {
-        return {
-          ok: false,
-          kind: "root_not_git_toplevel",
-          message: `--root must be the Git working-tree root (${toplevel}); got ${rootFlag}.`,
-        };
-      }
-    }
-    // Git absent or not a repo: accept --root after root/home check.
+    const rootFlag = realpathOrResolve(rootFlagLexical);
+    // Refuse home/root on the real destination before accepting (symlink bypass).
     if (!options.allowRootOrHome) {
       if (isFilesystemRoot(rootFlag)) {
         return {
@@ -108,10 +115,21 @@ export function discoverProject(options: DiscoverOptions = {}): DiscoverResult {
         };
       }
     }
+    const git = runGitShowToplevel(rootFlagLexical);
+    if (git.code === 0 && git.stdout.length > 0) {
+      const toplevel = realpathOrResolve(git.stdout);
+      if (toplevel !== rootFlag) {
+        return {
+          ok: false,
+          kind: "root_not_git_toplevel",
+          message: `--root must be the Git working-tree root (${toplevel}); got ${rootFlagLexical}.`,
+        };
+      }
+    }
     return {
       ok: true,
       root: rootFlag,
-      movedUp: rootFlag !== cwd,
+      movedUp: rootFlag !== realpathOrResolve(cwd) && rootFlagLexical !== cwd,
       viaGit: git.code === 0,
     };
   }

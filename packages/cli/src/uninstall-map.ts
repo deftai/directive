@@ -7,8 +7,8 @@
  * Bounded cleanup: never treat a recorded path as authority to delete
  * arbitrary user content.
  */
-import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { existsSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, isAbsolute, join, normalize, relative, resolve, sep } from "node:path";
 import { execFileSync } from "node:child_process";
 import { LAUNCHER_PACKAGE_NAME, RUNTIME_PACKAGE_NAME } from "./constants.js";
 
@@ -30,6 +30,8 @@ export interface DiscoveredArtifact {
 export interface UninstallDiscovery {
   readonly artifacts: readonly DiscoveredArtifact[];
   readonly ownershipInspection: "valid" | "absent" | "unreadable";
+  /** Ownership paths rejected as unsafe (absolute / `..` / escape). */
+  readonly rejectedOwnershipPaths: readonly string[];
   readonly hasRuntimePin: boolean;
   readonly hasLegacyLauncherPin: boolean;
   readonly hasLegacyCore: boolean;
@@ -110,25 +112,73 @@ function pkgHasDep(projectRoot: string, name: string): boolean {
   return false;
 }
 
+/**
+ * Ownership paths are bounded cleanup hints only (AC11.10 / D4.15).
+ * Reject absolute paths and any `..` segment so deletes cannot leave the project.
+ */
+export function isSafeOwnershipRelPath(rel: string): boolean {
+  if (typeof rel !== "string" || !rel.trim()) return false;
+  const trimmed = rel.trim();
+  if (isAbsolute(trimmed)) return false;
+  // Windows drive / UNC even when path.isAbsolute is false on POSIX hosts.
+  if (/^[A-Za-z]:[\\/]/.test(trimmed) || trimmed.startsWith("\\\\")) return false;
+  const norm = normalize(trimmed).replace(/\\/g, "/");
+  if (norm === ".." || norm.startsWith("../") || norm.split("/").includes("..")) return false;
+  if (norm.startsWith("/")) return false;
+  return true;
+}
+
+/** True when `absCandidate` resolves inside `projectRoot` (string + realpath). */
+function isPathInsideProjectRoot(projectRoot: string, absCandidate: string): boolean {
+  const rootAbs = resolve(projectRoot);
+  const candAbs = resolve(absCandidate);
+  const rel = relative(rootAbs, candAbs);
+  if (rel.startsWith("..") || isAbsolute(rel)) return false;
+  try {
+    const rootReal = realpathSync(rootAbs);
+    let candReal: string;
+    try {
+      candReal = realpathSync(candAbs);
+    } catch {
+      // Target may not exist yet — fall back to lexical containment.
+      return true;
+    }
+    const relReal = relative(rootReal, candReal);
+    if (relReal.startsWith("..") || isAbsolute(relReal)) return false;
+    // Ensure candReal is rootReal or a descendant (sep-boundary).
+    if (candReal !== rootReal && !candReal.startsWith(rootReal.endsWith(sep) ? rootReal : rootReal + sep)) {
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function parseOwnershipArtifacts(
   projectRoot: string,
-): { inspection: "valid" | "absent" | "unreadable"; artifacts: DiscoveredArtifact[] } {
+): {
+  inspection: "valid" | "absent" | "unreadable";
+  artifacts: DiscoveredArtifact[];
+  rejected: string[];
+} {
   const path = join(projectRoot, ".deft", "GENERATION.json");
-  if (!existsSync(path)) return { inspection: "absent", artifacts: [] };
+  if (!existsSync(path)) return { inspection: "absent", artifacts: [], rejected: [] };
   let parsed: unknown;
   try {
     parsed = JSON.parse(readFileSync(path, "utf8"));
   } catch {
-    return { inspection: "unreadable", artifacts: [] };
+    return { inspection: "unreadable", artifacts: [], rejected: [] };
   }
   if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
-    return { inspection: "unreadable", artifacts: [] };
+    return { inspection: "unreadable", artifacts: [], rejected: [] };
   }
   const ownership = (parsed as { ownership?: unknown }).ownership;
   if (!Array.isArray(ownership)) {
-    return { inspection: "unreadable", artifacts: [] };
+    return { inspection: "unreadable", artifacts: [], rejected: [] };
   }
   const artifacts: DiscoveredArtifact[] = [];
+  const rejected: string[] = [];
   for (const entry of ownership) {
     if (entry === null || typeof entry !== "object" || Array.isArray(entry)) continue;
     const rec = entry as Record<string, unknown>;
@@ -142,8 +192,13 @@ function parseOwnershipArtifacts(
     ) {
       continue;
     }
+    const normalized = rec.path.replace(/\\/g, "/").replace(/^\.\//, "");
+    if (!isSafeOwnershipRelPath(normalized)) {
+      rejected.push(normalized);
+      continue;
+    }
     const art: DiscoveredArtifact = {
-      path: rec.path.replace(/\\/g, "/").replace(/^\.\//, ""),
+      path: normalized,
       kind,
       source: "ownership-record",
       ...(typeof rec.entryKey === "string" && rec.entryKey.trim()
@@ -157,7 +212,7 @@ function parseOwnershipArtifacts(
     };
     artifacts.push(art);
   }
-  return { inspection: "valid", artifacts };
+  return { inspection: "valid", artifacts, rejected };
 }
 
 function skillPointerRels(): string[] {
@@ -310,7 +365,11 @@ function mergeArtifacts(
 
 /** Discover Directive footprint for uninstall planning (AC11.2). */
 export function discoverUninstallFootprint(projectRoot: string): UninstallDiscovery {
-  const { inspection, artifacts: fromRecord } = parseOwnershipArtifacts(projectRoot);
+  const {
+    inspection,
+    artifacts: fromRecord,
+    rejected,
+  } = parseOwnershipArtifacts(projectRoot);
   const fromKnown = discoverKnownArtifacts(projectRoot);
   const artifacts = mergeArtifacts(fromRecord, fromKnown);
   const hasRuntimePin = pkgHasDep(projectRoot, RUNTIME_PACKAGE_NAME);
@@ -326,6 +385,7 @@ export function discoverUninstallFootprint(projectRoot: string): UninstallDiscov
   return {
     artifacts,
     ownershipInspection: inspection,
+    rejectedOwnershipPaths: rejected,
     hasRuntimePin,
     hasLegacyLauncherPin,
     hasLegacyCore,
@@ -411,9 +471,14 @@ function stripTaskfileDeftInclude(body: string): { next: string; removed: boolea
 }
 
 function safeUnlink(projectRoot: string, rel: string): boolean {
-  const abs = join(projectRoot, rel);
+  // Defense in depth: never delete outside the project even if a caller bypasses parse (AC3.4).
+  if (!isSafeOwnershipRelPath(rel)) return false;
+  const abs = resolve(projectRoot, rel);
+  if (!isPathInsideProjectRoot(projectRoot, abs)) return false;
   if (!existsSync(abs)) return false;
   try {
+    // Re-check after existence: refuse symlink escape of the leaf.
+    if (!isPathInsideProjectRoot(projectRoot, abs)) return false;
     rmSync(abs, { recursive: true, force: true });
     return true;
   } catch {
@@ -460,6 +525,11 @@ export function applyLauncherCleanup(
     uncertainty.push("GENERATION.json ownership record was unreadable; used known-artifact map");
   } else if (discovery.ownershipInspection === "absent") {
     uncertainty.push("GENERATION.json absent; used known-artifact map");
+  }
+  for (const bad of discovery.rejectedOwnershipPaths) {
+    uncertainty.push(
+      `rejected unsafe ownership path (escape/absolute): ${bad}`,
+    );
   }
 
   // AC11.4: strip hook registrations (structured-entry) before deleting targets.
