@@ -1,0 +1,57 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "YOLO Wave 2d",
+    "updated": "2026-10-11T00:54:23.000Z"
+  },
+  "plan": {
+    "id": "yolo.5490.wave2d",
+    "title": "YOLO Wave 2d \u2014 self-completing setup",
+    "status": "completed",
+    "updated": "2026-10-11T00:54:23.000Z",
+    "tags": [
+      "yolo",
+      "wave2d"
+    ],
+    "narratives": {
+      "Description": "Automatic setup on eligible invocation when readiness stale; doctor diagnostic suppress.",
+      "Origin": "YOLO",
+      "Overview": "wave2d.sh PASS tip 2114035c6",
+      "Labels": "yolo"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "self-complete",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "AC8.6"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "doctor suppress",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "DEFT_DOCTOR_HOOK_DIAGNOSTIC"
+        }
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        "~/yolo-5490/smokes/wave2d.sh"
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "2d",
+      "clauses": []
+    },
+    "metadata": {
+      "yolo": {
+        "wave": "2d",
+        "tag": "yolo-cp-wave2d",
+        "live_gates_waived": true
+      }
+    }
+  }
+}
