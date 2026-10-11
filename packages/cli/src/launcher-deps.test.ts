@@ -1,5 +1,6 @@
 /**
- * AC3.1 / AC13.4 / AC4.1: packed launcher has empty deps; runtime carries contract.
+ * AC3.1 / AC13.4 / AC4.1 / AC1.3: packed launcher has empty deps; runtime carries
+ * contract; workspace runtime source may list workspace:* but published stage must not.
  */
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -43,5 +44,10 @@ describe("launcher package collapse (AC3.1 / AC13.4)", () => {
       const pkg = readPkg(join(HERE, "..", "..", name));
       expect(pkg.private, `${name} should be private`).toBe(true);
     }
+  });
+
+  it("packages/cli files allowlist is the two self-contained bin entries (D4.3)", () => {
+    const pkg = readPkg(join(HERE, ".."));
+    expect(pkg.files).toEqual(["dist/bin.js", "dist/hook-bin.js"]);
   });
 });

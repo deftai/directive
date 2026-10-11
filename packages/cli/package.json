@@ -12,8 +12,8 @@
     "deft-hook": "./dist/hook-bin.js"
   },
   "files": [
-    "dist/**/*.js",
-    "dist/**/*.d.ts"
+    "dist/bin.js",
+    "dist/hook-bin.js"
   ],
   "repository": {
     "type": "git",
@@ -29,6 +29,6 @@
   },
   "dependencies": {},
   "scripts": {
-    "build": "tsc -b"
+    "build": "tsc -b && node ./scripts/bundle.mjs"
   }
 }
