@@ -2,7 +2,7 @@
  * Wave 2q RED — GEN-REBUILD + AC8.7-TEST + AC8.9-SS
  * (AC14.20, AC8.7/AC14.52, AC8.9).
  */
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -14,7 +14,7 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { RUNTIME_PIN_PACKAGE } from "@deftai/directive-core/dist/install-health/constants.js";
 import { GENERATION_REL } from "@deftai/directive-core/dist/install-health/ownership.js";
 import { CURRENT_DATA_SCHEMA_VERSION, DATA_SCHEMA_MARKER_REL } from "./migrate.js";
@@ -24,8 +24,27 @@ import { runSetup } from "./setup.js";
 
 const TEMPS: string[] = [];
 const HERE = dirname(fileURLToPath(import.meta.url));
-const TSX = join(HERE, "..", "..", "..", "node_modules", ".bin", "tsx");
+const REPO_ROOT = join(HERE, "..", "..", "..");
+const TSX = join(REPO_ROOT, "node_modules", ".bin", "tsx");
 const SELF_COMPLETE_TS = join(HERE, "self-complete.ts");
+
+beforeAll(() => {
+  // Child tsx process resolves @deftai/directive-core via packages/core/dist.
+  const marker = join(REPO_ROOT, "packages", "core", "dist", "install-health", "cheap.js");
+  if (existsSync(marker)) return;
+  const built = spawnSync(
+    "pnpm",
+    ["exec", "tsc", "-b", "packages/core", "packages/runtime"],
+    {
+      cwd: REPO_ROOT,
+      encoding: "utf8",
+      shell: process.platform === "win32",
+    },
+  );
+  if (built.status !== 0 || !existsSync(marker)) {
+    throw new Error(`wave2q child needs core dist: ${built.stderr || built.stdout}`);
+  }
+}, 180_000);
 
 function tempRoot(): string {
   const root = mkdtempSync(join(tmpdir(), "wave2q-"));
@@ -73,7 +92,10 @@ function spawnSelfComplete(root: string): Promise<{ code: number | null; stderr:
     const script = `
       import { maybeSelfCompleteSetup } from ${JSON.stringify(SELF_COMPLETE_TS)};
       const r = maybeSelfCompleteSetup(${JSON.stringify(root)}, { fromHook: true });
-      if (!r.ran && r.skipReason !== "fast-path") {
+      if (
+        (!r.ran && r.skipReason !== "fast-path") ||
+        (r.ran && (!r.setup || (r.setup.conflicts?.length ?? 0) > 0))
+      ) {
         console.error(JSON.stringify(r));
         process.exit(2);
       }
