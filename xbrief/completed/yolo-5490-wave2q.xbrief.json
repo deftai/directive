@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "kind": "xbrief",
+  "title": "YOLO #5490 Wave 2q — GEN-REBUILD + AC8.7 + AC8.9",
+  "status": "completed",
+  "branch": "yolo/wip-wave2q",
+  "tip": "1f58d5b570413fc6519cbe030dc96b22d9da16ff",
+  "tag": "yolo-cp-wave2q",
+  "verdaccio": "0.0.0-yolo.cp-wave2q.1",
+  "smoke": "wave2q.sh PASS",
+  "acs": ["AC14.20","AC8.7","AC8.9"],
+  "findings": ["GEN-REBUILD","AC8.7-TEST","AC8.9-SS"]
+}
