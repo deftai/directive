@@ -148,3 +148,67 @@ describe("runSetup install|repair (R8 / AC8.*)", () => {
     ).toBe(false);
   });
 });
+
+describe("runSetup old-style conversion (Wave 2f / AC10.3 / AC10.6 / AC10.9)", () => {
+  function seedLegacyCore(root: string, edited = false): void {
+    const core = join(root, ".deft", "core");
+    mkdirSync(core, { recursive: true });
+    writeFileSync(
+      join(core, "VERSION"),
+      "ref: 'v0.119.2'\ninstall_root: '.deft/core'\n",
+    );
+    writeFileSync(
+      join(core, "main.md"),
+      edited ? "# edited\nKEEP-EDIT\n" : "# deposit\n",
+    );
+    writeFileSync(
+      join(root, ".deft", "GENERATION.json"),
+      `${JSON.stringify(
+        {
+          schemaVersion: 1,
+          generation: 7,
+          contentVersion: "0.119.2",
+          stampedAt: "2026-09-17T20:29:29Z",
+          stampedBy: "directive-update",
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "USER-NOTE.txt"), "preserve-me\n");
+    writeFileSync(
+      join(root, ".deft", "settings.json"),
+      `${JSON.stringify({ keep: true }, null, 2)}\n`,
+    );
+    writeFileSync(join(root, "AGENTS.md"), "Follow `.deft/core/main.md`.\n");
+  }
+
+  it("from old-style removes edited .deft/core, raises generation, rewires package-relative", () => {
+    const root = tempRoot();
+    seedLegacyCore(root, true);
+    const result = runSetup({ operation: "upgrade", from: "old-style", root });
+    expect(result.conflicts).toEqual([]);
+    expect(existsSync(join(root, ".deft", "core"))).toBe(false);
+    expect(result.removed).toContain(".deft/core");
+    expect(readFileSync(join(root, "xbrief", "USER-NOTE.txt"), "utf8")).toBe("preserve-me\n");
+    expect(readFileSync(join(root, ".deft", "settings.json"), "utf8")).toMatch(/"keep": true/);
+    const gen = JSON.parse(readFileSync(join(root, ".deft", "GENERATION.json"), "utf8")) as {
+      generation?: number;
+      runtimeVersion?: string;
+    };
+    expect(gen.runtimeVersion).toBeTruthy();
+    expect(gen.generation).toBeGreaterThan(7);
+    const agents = readFileSync(join(root, "AGENTS.md"), "utf8");
+    expect(agents).toMatch(/node_modules\/@deftai\/directive-runtime/);
+    expect(agents).not.toMatch(/\.deft\/core\/main\.md/);
+  });
+
+  it("non-old-style upgrade does not remove an unrelated .deft/core tree", () => {
+    // Defence: only conversion from old-style deletes core (AC10.3 scope).
+    const root = tempRoot();
+    seedLegacyCore(root, false);
+    runSetup({ operation: "upgrade", from: "1.2.3", root });
+    expect(existsSync(join(root, ".deft", "core", "VERSION"))).toBe(true);
+  });
+});
