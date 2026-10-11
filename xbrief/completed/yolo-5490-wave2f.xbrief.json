@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "kind": "xbrief",
+  "title": "YOLO #5490 Wave 2f — latest legacy pin+copied-core conversion (R10)",
+  "status": "completed",
+  "branch": "yolo/wip-wave2f",
+  "tip": "249b6ab920a88a5c8f70d9664d9373f8f35120cb",
+  "tag": "yolo-cp-wave2f",
+  "verdaccio": "0.0.0-yolo.cp-wave2f.1",
+  "smoke": "wave2f.sh PASS",
+  "acs": ["AC10.1","AC10.2","AC10.3","AC10.5","AC10.6","AC10.9","AC14.28","AC14.29","AC14.31"]
+}
