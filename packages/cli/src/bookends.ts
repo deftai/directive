@@ -248,7 +248,7 @@ function preflightPmAvailable(
   const declaredVersion = readDeclaredPackageManagerVersion(projectRoot);
   const check =
     deps.checkPmAvailable?.(pm) ??
-    ensurePackageManagerAvailable(pm, deps.env ?? process.env, declaredVersion);
+    ensurePackageManagerAvailable(pm, deps.env ?? process.env, declaredVersion, projectRoot);
   if (check.ok) return null;
   io.writeErr(`${check.message}\n`);
   return EXIT_CODES.FAILURE;

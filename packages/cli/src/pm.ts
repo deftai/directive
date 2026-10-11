@@ -321,13 +321,17 @@ export function formatMissingPmGuidance(
 /**
  * AC5.8 / INIT-10: verify the selected PM binary is spawnable.
  * Does not install or switch managers; Corepack is suggested, never assumed.
+ * When `projectRoot` is set, the probe runs with that cwd so Corepack reads
+ * the selected project's packageManager field (not the launcher's cwd).
  */
 export function ensurePackageManagerAvailable(
   pm: PackageManager,
   env: NodeJS.ProcessEnv = process.env,
   declaredVersion: string | null = null,
+  projectRoot?: string,
 ): { ok: true } | { ok: false; message: string } {
   const result = spawnSync(pm, ["--version"], {
+    ...(projectRoot !== undefined ? { cwd: projectRoot } : {}),
     env,
     encoding: "utf8",
     shell: process.platform === "win32",
@@ -365,10 +369,22 @@ function fileDigest(absPath: string): string | null {
   }
 }
 
-/** Plan-critical paths for AC5.13 invalidation (manifest + selected lockfile). */
-export function planCriticalRelPaths(pm: PackageManager): string[] {
-  if (pm === "pnpm") return ["package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml"];
-  return ["package.json", "package-lock.json"];
+/**
+ * Plan-critical paths for AC5.13 invalidation.
+ * Includes every lockfile `detectPackageManager` consults so a concurrent
+ * lockfile create/delete invalidates the plan even when the selected PM's
+ * own lockfile digest is unchanged.
+ */
+export function planCriticalRelPaths(_pm: PackageManager): string[] {
+  return [
+    "package.json",
+    "package-lock.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    "yarn.lock",
+    "bun.lock",
+    "bun.lockb",
+  ];
 }
 
 /** Snapshot plan-critical files at plan time (AC5.13). */
