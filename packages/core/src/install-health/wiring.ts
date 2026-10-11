@@ -80,6 +80,14 @@ function targetsRuntime(text: string): boolean {
   return true;
 }
 
+/** Pre-commit/pre-push only source the helper; runtime path lives in the helper. */
+function isGitHookShim(rel: string, text: string): boolean {
+  if (rel !== ".githooks/pre-commit" && rel !== ".githooks/pre-push") return false;
+  if (text.includes(".deft/core/")) return false;
+  if (/(^|[\s"`'])deft-hook([\s"`']|$)/.test(text)) return false;
+  return text.includes("_directive-run.sh");
+}
+
 function inspectProbe(rel: string, text: string): boolean {
   if (rel === "AGENTS.md") {
     const section = extractManagedSection(text);
@@ -89,6 +97,7 @@ function inspectProbe(rel: string, text: string): boolean {
     }
     return targetsRuntime(section);
   }
+  if (isGitHookShim(rel, text)) return true;
   return targetsRuntime(text);
 }
 

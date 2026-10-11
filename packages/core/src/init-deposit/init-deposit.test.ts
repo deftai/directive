@@ -201,8 +201,9 @@ describe("runInitDeposit", destContentionItTimeout(), () => {
     const pkg = parseJsonObject(readFileSync(join(project, "package.json"), "utf8"));
     expect(pkg.private).toBe(true);
     expect((pkg.devDependencies as Record<string, string>)[PIN_DEPENDENCY_NAME]).toBe("0.53.0");
+    // Legacy init has no local @deftai/directive-runtime — keep working bare PATH.
     expect(readFileSync(join(project, ".codex", "hooks.json"), "utf8")).toContain(
-      "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host codex --event tool.before",
+      "deft-hook --host codex --event tool.before",
     );
     expect(result.taskfileWired).toBe(true);
     expect(lines.join("")).toContain("AGENTS.md created");

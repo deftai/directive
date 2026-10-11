@@ -17,6 +17,7 @@ import {
   readFileSync,
   readdirSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from "node:fs";
 import { dirname, join } from "node:path";
@@ -144,20 +145,18 @@ function main() {
   // Hoist content surfaces to the runtime package root so AC9.6 pointers
   // (`node_modules/@deftai/directive-runtime/main.md`, `skills/…`) resolve
   // without walking into nested @deftai/directive-content (Wave 2c / AC13.1).
+  // Hoist every top-level content entry so main.md relative links (coding/,
+  // languages/, tools/, …) resolve in the published runtime (Greptile P1).
   const contentRoot = join(nm, "directive-content");
-  const HOIST = [
-    "main.md",
-    "SKILL.md",
-    "skills",
-    "Taskfile.yml",
-    "tasks",
-    ".githooks",
-    "QUICK-START.md",
-  ];
-  for (const name of HOIST) {
-    const from = join(contentRoot, name);
-    if (!existsSync(from)) continue;
-    cpSync(from, join(outDir, name), { recursive: true });
+  const HOIST_SKIP = new Set(["package.json", "stage-pack.mjs", "node_modules"]);
+  const hoistedNames = [];
+  if (existsSync(contentRoot)) {
+    for (const name of readdirSync(contentRoot)) {
+      if (HOIST_SKIP.has(name)) continue;
+      const from = join(contentRoot, name);
+      cpSync(from, join(outDir, name), { recursive: true });
+      hoistedNames.push(name);
+    }
   }
 
   const runtime = readJson(join(runtimePkg, "package.json"));
@@ -171,17 +170,18 @@ function main() {
   runtime.dependencies = deps;
   runtime.bundledDependencies = bundled;
   // Include hoisted content + dist in the packed tarball.
+  const filesEntries = hoistedNames.map((name) => {
+    try {
+      return statSync(join(outDir, name)).isDirectory() ? `${name}/**` : name;
+    } catch {
+      return name;
+    }
+  });
   runtime.files = [
     "dist/**/*.js",
     "dist/**/*.d.ts",
     "scripts/remove-windows-ps1-shims.mjs",
-    "main.md",
-    "SKILL.md",
-    "QUICK-START.md",
-    "skills/**",
-    "Taskfile.yml",
-    "tasks/**",
-    ".githooks/**",
+    ...filesEntries,
   ];
   if (runtime.publishConfig?.provenance) {
     delete runtime.publishConfig.provenance;

@@ -345,9 +345,8 @@ describe("runRefreshDeposit", () => {
       expect(existsSync(join(result.deftDir, "main.md"))).toBe(true);
       const codexHooks = readFileSync(join(project, ".codex", "hooks.json"), "utf8");
       expect(codexHooks).toContain("./consumer-check.sh");
-      expect(codexHooks).toContain(
-        "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host codex --event tool.before",
-      );
+      // Legacy refresh without local runtime keeps working bare PATH command.
+      expect(codexHooks).toContain("deft-hook --host codex --event tool.before");
       expect(readFileSync(join(project, ".codex", "config.toml"), "utf8")).toBe(
         'model = "gpt-5"\n',
       );

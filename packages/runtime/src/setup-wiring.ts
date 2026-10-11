@@ -5,7 +5,17 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
-import { containedWrite } from "@deftai/directive-core/dist/fs/contained-write.js";
+import {
+  containedChmod,
+  containedWrite,
+} from "@deftai/directive-core/dist/fs/contained-write.js";
+import {
+  DIRECT_WRITE_HOOK_MATCHER,
+  KILL_HOOK_MATCHER,
+  MCP_HOOK_MATCHER,
+  SHELL_HOOK_MATCHER,
+  SPAWN_HOOK_MATCHER,
+} from "@deftai/directive-core/dist/hooks/tools.js";
 import {
   INSTALLATION_RECOVERY_GUIDANCE,
   RUNTIME_PACKAGE_PATH_PREFIX,
@@ -14,6 +24,12 @@ import {
   MANAGED_SECTION_CLOSE,
   MANAGED_SECTION_OPEN_PREFIX,
 } from "@deftai/directive-core/dist/install-health/index.js";
+import {
+  isHostHookDepositEnabled,
+  loadHostHooksPolicyFromProject,
+  type HostHooksPolicy,
+} from "@deftai/directive-core/dist/policy/host-hooks.js";
+import type { HookHost } from "@deftai/directive-core/dist/hooks/dispatcher.js";
 
 export const RUNTIME_PREFIX = RUNTIME_PACKAGE_PATH_PREFIX;
 export const HOOK_BIN_COMMAND = `node ${RUNTIME_PREFIX}dist/hook-bin.js`;
@@ -294,7 +310,70 @@ function nestedGroup(host: string, event: string, matcher?: string): Record<stri
   };
 }
 
-const PRE_TOOL_MATCHERS = ["Write|Edit", "Agent|Task|Skill", "Bash|Shell", "KillShell", "mcp__.*"] as const;
+/** Shared matcher constants — include Grok write/search_replace/run_terminal_command/spawn_subagent. */
+const PRE_TOOL_MATCHERS = [
+  DIRECT_WRITE_HOOK_MATCHER,
+  SPAWN_HOOK_MATCHER,
+  SHELL_HOOK_MATCHER,
+  KILL_HOOK_MATCHER,
+  MCP_HOOK_MATCHER,
+] as const;
+
+function stripNestedManaged(
+  existing: Record<string, unknown>,
+  host: string,
+): Record<string, unknown> {
+  const hooks = object(existing.hooks);
+  if (hooks === null) return existing;
+  const nextHooks: Record<string, unknown> = {};
+  for (const key of ["SessionStart", "PreToolUse", "PreCompact", "PostCompact"] as const) {
+    if (!(key in hooks)) continue;
+    const filtered = Array.isArray(hooks[key])
+      ? (hooks[key] as unknown[]).filter((e) => {
+          const group = object(e);
+          if (group === null || !Array.isArray(group.hooks)) return true;
+          return !group.hooks.some((h) => {
+            const hook = object(h);
+            return (
+              typeof hook?.command === "string" &&
+              isManagedHookCommand(hook.command) &&
+              hook.command.includes(`--host ${host}`)
+            );
+          });
+        })
+      : [];
+    if (filtered.length > 0) nextHooks[key] = filtered;
+  }
+  if (Object.keys(nextHooks).length === 0) {
+    const { hooks: _h, ...rest } = existing;
+    return rest;
+  }
+  return { ...existing, hooks: nextHooks };
+}
+
+function stripCursorManaged(existing: Record<string, unknown>): Record<string, unknown> {
+  const hooks = object(existing.hooks);
+  if (hooks === null) return existing;
+  const nextHooks: Record<string, unknown> = {};
+  for (const key of [
+    "sessionStart",
+    "preToolUse",
+    "preCompact",
+    "beforeSubmitPrompt",
+    "afterAgentResponse",
+  ] as const) {
+    if (!(key in hooks)) continue;
+    const filtered = Array.isArray(hooks[key])
+      ? (hooks[key] as unknown[]).filter((e) => !cursorManagedEntry(e))
+      : [];
+    if (filtered.length > 0) nextHooks[key] = filtered;
+  }
+  if (Object.keys(nextHooks).length === 0) {
+    const { hooks: _h, version: _v, ...rest } = existing;
+    return rest;
+  }
+  return { ...existing, version: 1, hooks: nextHooks };
+}
 
 function mergeNestedHost(
   existing: Record<string, unknown>,
@@ -386,38 +465,62 @@ function readJsonObject(path: string): Record<string, unknown> {
   return rewriteCommandsInValue(obj).value as Record<string, unknown>;
 }
 
-export function ensureHostHooks(projectRoot: string): {
+const HOST_HOOK_SPECS: Array<{
+  host: HookHost;
+  rel: string;
+  merge: (cfg: Record<string, unknown>) => Record<string, unknown>;
+  strip: (cfg: Record<string, unknown>) => Record<string, unknown>;
+}> = [
+  {
+    host: "claude",
+    rel: ".claude/settings.json",
+    merge: (cfg) => mergeNestedHost(cfg, "claude", { compact: true }),
+    strip: (cfg) => stripNestedManaged(cfg, "claude"),
+  },
+  {
+    host: "grok",
+    rel: ".grok/hooks/deft.json",
+    merge: (cfg) => mergeNestedHost(cfg, "grok", { compact: true }),
+    strip: (cfg) => stripNestedManaged(cfg, "grok"),
+  },
+  {
+    host: "cursor",
+    rel: ".cursor/hooks.json",
+    merge: mergeCursorHost,
+    strip: stripCursorManaged,
+  },
+  {
+    host: "codex",
+    rel: ".codex/hooks.json",
+    merge: (cfg) => mergeNestedHost(cfg, "codex", { compact: false }),
+    strip: (cfg) => stripNestedManaged(cfg, "codex"),
+  },
+];
+
+export function ensureHostHooks(
+  projectRoot: string,
+  hostHooksPolicy: HostHooksPolicy = loadHostHooksPolicyFromProject(projectRoot),
+): {
   created: string[];
   modified: string[];
 } {
   const created: string[] = [];
   const modified: string[] = [];
 
-  const specs: Array<{
-    rel: string;
-    merge: (cfg: Record<string, unknown>) => Record<string, unknown>;
-  }> = [
-    {
-      rel: ".claude/settings.json",
-      merge: (cfg) => mergeNestedHost(cfg, "claude", { compact: true }),
-    },
-    {
-      rel: ".grok/hooks/deft.json",
-      merge: (cfg) => mergeNestedHost(cfg, "grok", { compact: true }),
-    },
-    {
-      rel: ".cursor/hooks.json",
-      merge: mergeCursorHost,
-    },
-    {
-      rel: ".codex/hooks.json",
-      merge: (cfg) => mergeNestedHost(cfg, "codex", { compact: false }),
-    },
-  ];
-
-  for (const spec of specs) {
+  for (const spec of HOST_HOOK_SPECS) {
     const abs = join(projectRoot, spec.rel);
     const prior = readText(abs);
+    const enabled = isHostHookDepositEnabled(spec.host, hostHooksPolicy);
+    if (!enabled) {
+      // Disabled host: strip managed entries only; do not create the file.
+      if (prior === null) continue;
+      const stripped = spec.strip(readJsonObject(abs));
+      const next = `${JSON.stringify(stripped, null, 2)}\n`;
+      if (prior === next) continue;
+      writeContained(projectRoot, spec.rel, next);
+      modified.push(spec.rel);
+      continue;
+    }
     const base = prior === null ? {} : readJsonObject(abs);
     const merged = spec.merge(base);
     const next = `${JSON.stringify(merged, null, 2)}\n`;
@@ -464,45 +567,72 @@ REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 1
 run_directive verify:branch --project-root "$REPO_ROOT" || exit $?
 `;
 
+function isOurGitHookBody(rel: string, body: string): boolean {
+  if (rel.endsWith("_directive-run.sh")) {
+    return body.includes(RUNTIME_BIN_REL) || body.includes("run_directive");
+  }
+  return body.includes("_directive-run.sh");
+}
+
+const EXECUTABLE_GITHOOKS = new Set([".githooks/pre-commit", ".githooks/pre-push"]);
+
 export function ensureGitHooks(projectRoot: string): {
   created: string[];
   modified: string[];
+  conflicts: string[];
 } {
   const created: string[] = [];
   const modified: string[] = [];
+  const conflicts: string[] = [];
   const files: Array<{ rel: string; body: string }> = [
     { rel: ".githooks/_directive-run.sh", body: GITHOOK_HELPER },
     { rel: ".githooks/pre-commit", body: PRE_COMMIT },
     { rel: ".githooks/pre-push", body: PRE_PUSH },
   ];
   for (const file of files) {
-    const change = trackChange(
-      projectRoot,
-      file.rel,
-      file.body.endsWith("\n") ? file.body : `${file.body}\n`,
-    );
+    const next = file.body.endsWith("\n") ? file.body : `${file.body}\n`;
+    const prior = readText(join(projectRoot, file.rel));
+    if (prior !== null && prior !== next && !isOurGitHookBody(file.rel, prior)) {
+      conflicts.push(
+        `${file.rel}: existing hook is not Directive-managed; refusing to overwrite (chain or remove manually)`,
+      );
+      continue;
+    }
+    const change = trackChange(projectRoot, file.rel, next);
     if (change.created) created.push(file.rel);
     else if (change.modified) modified.push(file.rel);
+    if (EXECUTABLE_GITHOOKS.has(file.rel) && existsSync(join(projectRoot, file.rel))) {
+      try {
+        containedChmod({ root: projectRoot, target: file.rel, mode: 0o755 });
+      } catch {
+        /* best-effort on platforms without chmod */
+      }
+    }
   }
 
-  // Activate relative hooksPath when this is a git checkout (AC9.9).
+  // Activate relative hooksPath only when unset or already .githooks (AC9.9 / Greptile P1).
   if (existsSync(join(projectRoot, ".git"))) {
+    let current: string | null = null;
     try {
-      const current = execFileSync("git", ["-C", projectRoot, "config", "--get", "core.hooksPath"], {
+      current = execFileSync("git", ["-C", projectRoot, "config", "--get", "core.hooksPath"], {
         encoding: "utf8",
       }).trim();
-      if (current !== ".githooks") {
-        execFileSync("git", ["-C", projectRoot, "config", "core.hooksPath", ".githooks"]);
-      }
     } catch {
+      current = null;
+    }
+    if (current === null || current === "") {
       try {
         execFileSync("git", ["-C", projectRoot, "config", "core.hooksPath", ".githooks"]);
       } catch {
         /* non-fatal outside a real git repo */
       }
+    } else if (current !== ".githooks" && current !== ".githooks/") {
+      conflicts.push(
+        `core.hooksPath is '${current}' (not .githooks); refusing to redirect and disable existing checks`,
+      );
     }
   }
-  return { created, modified };
+  return { created, modified, conflicts };
 }
 
 const MINIMAL_TASKFILE = `version: '3'
@@ -514,7 +644,19 @@ includes:
     optional: true
 `;
 
-export function ensureTaskfileInclude(projectRoot: string): TrackResult {
+const DEFT_INCLUDE_BLOCK =
+  `  deft:\n` +
+  `    taskfile: ./${RUNTIME_PREFIX}Taskfile.yml\n` +
+  `    optional: true\n`;
+
+/**
+ * Merge the Directive `deft:` include into an existing Taskfile without
+ * duplicating top-level `includes:` keys or an occupied `deft` child.
+ */
+export function ensureTaskfileInclude(projectRoot: string): TrackResult & {
+  conflict?: boolean;
+  conflictReason?: string;
+} {
   const rel = "Taskfile.yml";
   const existing = readText(join(projectRoot, rel));
   if (existing === null) {
@@ -533,23 +675,42 @@ export function ensureTaskfileInclude(projectRoot: string): TrackResult {
     writeContained(projectRoot, rel, fixed.endsWith("\n") ? fixed : `${fixed}\n`);
     return { created: false, modified: true };
   }
-  // If includes: already exists at top level, insert the deft child.
-  if (/(^|\n)includes:\s*(\n|$)/.test(existing)) {
-    const inserted = existing.replace(
-      /(^|\n)(includes:\s*\n)/,
-      `$1$2  deft:\n    taskfile: ./${RUNTIME_PREFIX}Taskfile.yml\n    optional: true\n`,
-    );
-    if (inserted !== existing) {
-      writeContained(projectRoot, rel, inserted.endsWith("\n") ? inserted : `${inserted}\n`);
-      return { created: false, modified: true };
-    }
+
+  // Occupied deft child with a different path — conflict, do not duplicate.
+  if (/(^|\n)[ \t]*deft:\s*(\n|$)/.test(existing) && /includes:/.test(existing)) {
+    return {
+      created: false,
+      modified: false,
+      conflict: true,
+      conflictReason:
+        "Taskfile.yml: includes.deft already exists with a different path; refusing to duplicate",
+    };
   }
+
+  // Merge into an existing includes: mapping (avoid a second top-level key).
+  const includesMatch = existing.match(/(^|\n)includes:\s*(#.*)?\n/);
+  if (includesMatch && includesMatch.index !== undefined) {
+    const insertAt = includesMatch.index + includesMatch[0].length;
+    const next =
+      existing.slice(0, insertAt) + DEFT_INCLUDE_BLOCK + existing.slice(insertAt);
+    writeContained(projectRoot, rel, next.endsWith("\n") ? next : `${next}\n`);
+    return { created: false, modified: true };
+  }
+
+  // Inline `includes: { ... }` — append a block-style includes would duplicate;
+  // treat as conflict so the operator can convert.
+  if (/(^|\n)includes:\s*\{/.test(existing)) {
+    return {
+      created: false,
+      modified: false,
+      conflict: true,
+      conflictReason:
+        "Taskfile.yml: inline includes mapping; refusing to append a duplicate includes key",
+    };
+  }
+
   const suffix = existing.endsWith("\n") ? "" : "\n";
-  const block =
-    `${suffix}\n# Added by Directive setup (Wave 2c)\nincludes:\n` +
-    `  deft:\n` +
-    `    taskfile: ./${RUNTIME_PREFIX}Taskfile.yml\n` +
-    `    optional: true\n`;
+  const block = `${suffix}\n# Added by Directive setup (Wave 2c)\nincludes:\n${DEFT_INCLUDE_BLOCK}`;
   writeContained(projectRoot, rel, `${existing}${block}`);
   return { created: false, modified: true };
 }

@@ -42,9 +42,22 @@ afterEach(() => {
   for (const root of temps.splice(0)) rmSync(root, { recursive: true, force: true });
 });
 
-function project(): string {
+function project(options: { withRuntime?: boolean } = {}): string {
   const root = mkdtempSync(join(tmpdir(), "deft-agent-hooks-"));
   temps.push(root);
+  // Default: stub local runtime so deposit prefers package-relative (AC9.1).
+  if (options.withRuntime !== false) {
+    const hookBin = join(
+      root,
+      "node_modules",
+      "@deftai",
+      "directive-runtime",
+      "dist",
+      "hook-bin.js",
+    );
+    mkdirSync(join(hookBin, ".."), { recursive: true });
+    writeFileSync(hookBin, "// stub\n", "utf8");
+  }
   return root;
 }
 
@@ -331,6 +344,14 @@ describe("writeAgentHookDeposit", () => {
       expect(deposit.split(DIRECT_WRITE_HOOK_MATCHER)).toHaveLength(2);
       expect(deposit).toContain("node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host");
     }
+  });
+
+  it("keeps bare deft-hook when local runtime hook-bin is absent (legacy init/refresh)", () => {
+    const root = project({ withRuntime: false });
+    writeAgentHookDeposit(root);
+    const claude = readFileSync(join(root, ".claude/settings.json"), "utf8");
+    expect(claude).toContain("deft-hook --host claude");
+    expect(claude).not.toContain("directive-runtime/dist/hook-bin.js");
   });
 
   it("replaces legacy Cursor adapter registrations with one fast direct-write hook", () => {

@@ -3,6 +3,7 @@
  * Observes sync outcomes on temp project fixtures — no source-string greps.
  */
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+// mkdirSync used by pre-commit shim fixture
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -171,6 +172,34 @@ describe("checkFullInSync (AC2.1)", () => {
     const result = checkFullInSync(root);
     expect(result.inSync).toBe(false);
     expect(result.predicates.wiring.ok).toBe(false);
+  });
+
+  it("accepts pre-commit that only sources _directive-run.sh (helper carries runtime path)", () => {
+    const root = tempRoot();
+    writeInSyncFixture(root);
+    mkdirSync(join(root, ".githooks"), { recursive: true });
+    writeFileSync(
+      join(root, ".githooks", "pre-commit"),
+      [
+        "#!/usr/bin/env sh",
+        'REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 1',
+        '. "$REPO_ROOT/.githooks/_directive-run.sh"',
+        'run_directive verify:encoding --staged --project-root "$REPO_ROOT" || exit $?',
+        "",
+      ].join("\n"),
+    );
+    writeFileSync(
+      join(root, ".githooks", "_directive-run.sh"),
+      [
+        "#!/usr/bin/env sh",
+        `RUNTIME_BIN="$REPO_ROOT/node_modules/@deftai/directive-runtime/dist/bin.js"`,
+        'run_directive() { node "$RUNTIME_BIN" "$@"; }',
+        "",
+      ].join("\n"),
+    );
+    const result = checkFullInSync(root);
+    expect(result.predicates.wiring.ok).toBe(true);
+    expect(result.inSync).toBe(true);
   });
 });
 

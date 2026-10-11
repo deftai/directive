@@ -109,8 +109,16 @@ function wiringReadyRel(runtimeVersion: string): string {
   return relPosix(WIRING_READY_DIR_REL, `wiring-ready.${runtimeVersion}.json`);
 }
 
-/** Remove readiness markers so a failed/conflicted setup cannot look ready. */
-function invalidateReadinessMarkers(projectRoot: string, removed: string[]): void {
+/**
+ * Remove readiness markers. When `exceptVersion` is set, keep that version's
+ * marker (idempotent repair); otherwise remove all so a failed/conflicted
+ * setup cannot look ready (AC8.6).
+ */
+function invalidateReadinessMarkers(
+  projectRoot: string,
+  removed: string[],
+  options: { exceptVersion?: string } = {},
+): void {
   const dir = join(projectRoot, WIRING_READY_DIR_REL);
   if (!existsSync(dir)) return;
   let names: string[] = [];
@@ -119,8 +127,13 @@ function invalidateReadinessMarkers(projectRoot: string, removed: string[]): voi
   } catch {
     return;
   }
+  const keepName =
+    typeof options.exceptVersion === "string" && options.exceptVersion.length > 0
+      ? `wiring-ready.${options.exceptVersion}.json`
+      : null;
   for (const name of names) {
     if (!name.startsWith("wiring-ready.") || !name.endsWith(".json")) continue;
+    if (keepName !== null && name === keepName) continue;
     const rel = relPosix(WIRING_READY_DIR_REL, name);
     try {
       const result = containedRemove({ root: projectRoot, target: rel });
@@ -184,6 +197,15 @@ function createSeedPlaceholder(projectRoot: string): string | null {
   return SEED_PLACEHOLDER_REL;
 }
 
+/** Shared host settings / Taskfile: only Directive entries are owned (structured-entry). */
+const STRUCTURED_ENTRY_RELS: ReadonlyArray<{ path: string; entryKey: string }> = [
+  { path: ".claude/settings.json", entryKey: "hooks" },
+  { path: ".cursor/hooks.json", entryKey: "hooks" },
+  { path: ".codex/hooks.json", entryKey: "hooks" },
+  { path: ".grok/hooks/deft.json", entryKey: "hooks" },
+  { path: "Taskfile.yml", entryKey: "includes.deft" },
+];
+
 function buildOwnershipArtifacts(projectRoot: string): OwnedArtifact[] {
   const artifacts: OwnedArtifact[] = [];
   const agentsBody = readText(join(projectRoot, "AGENTS.md"));
@@ -195,12 +217,18 @@ function buildOwnershipArtifacts(projectRoot: string): OwnedArtifact[] {
       markerId: "deft:managed-section",
     });
   }
+  for (const { path: rel, entryKey } of STRUCTURED_ENTRY_RELS) {
+    const body = readText(join(projectRoot, rel));
+    if (body !== null) {
+      artifacts.push({
+        path: rel,
+        kind: "structured-entry",
+        fingerprint: fingerprintContent(body),
+        entryKey,
+      });
+    }
+  }
   for (const rel of [
-    ".claude/settings.json",
-    ".cursor/hooks.json",
-    ".codex/hooks.json",
-    ".grok/hooks/deft.json",
-    "Taskfile.yml",
     ".githooks/pre-commit",
     ".githooks/pre-push",
     ".githooks/_directive-run.sh",
@@ -247,6 +275,10 @@ export function runSetup(options: {
   const priorRecord = readOwnershipRecord(root);
 
   try {
+    // AC8.6: drop superseded version markers when rewiring begins; keep current
+    // for idempotent repair. Fail/conflict paths clear all (including current).
+    invalidateReadinessMarkers(root, removed, { exceptVersion: runtimeVersion });
+
     track(created, modified, ".gitignore", ensureGitignore(root));
 
     const agents = ensureAgentsManagedSection(root);
@@ -266,8 +298,13 @@ export function runSetup(options: {
     const githooks = ensureGitHooks(root);
     created.push(...githooks.created);
     modified.push(...githooks.modified);
+    conflicts.push(...githooks.conflicts);
 
-    track(created, modified, "Taskfile.yml", ensureTaskfileInclude(root));
+    const taskfile = ensureTaskfileInclude(root);
+    track(created, modified, "Taskfile.yml", taskfile);
+    if (taskfile.conflict) {
+      conflicts.push(taskfile.conflictReason ?? "Taskfile.yml: include conflict");
+    }
 
     // Seeds only on first-time install (AC8.4); repair/upgrade never create them.
     if (operation === "install" && conflicts.length === 0) {

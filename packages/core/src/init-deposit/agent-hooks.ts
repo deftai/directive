@@ -33,6 +33,23 @@ export const LEGACY_DEFT_HOOK_COMMAND_MARKER = "deft hook:dispatch";
 /** Package-relative hook invocation (AC9.1) — identical on every OS and PM. */
 export const PACKAGE_RELATIVE_HOOK_BIN =
   "node node_modules/@deftai/directive-runtime/dist/hook-bin.js";
+
+/**
+ * Prefer package-relative when local runtime hook-bin exists; otherwise keep the
+ * working bare PATH command for legacy init/refresh (Greptile wave2c P1).
+ */
+export function resolveAgentHookCommandBin(projectRoot: string): string {
+  const hookBin = join(
+    resolve(projectRoot),
+    "node_modules",
+    "@deftai",
+    "directive-runtime",
+    "dist",
+    "hook-bin.js",
+  );
+  return existsSync(hookBin) ? PACKAGE_RELATIVE_HOOK_BIN : DEFT_HOOK_COMMAND_MARKER;
+}
+
 export const AGENT_HOOK_PATHS = [
   ".claude/settings.json",
   ".grok/hooks/deft.json",
@@ -134,9 +151,9 @@ function object(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
-/** Package-relative hook command (AC9.1); never bare PATH `deft-hook`. */
-function command(host: HookHost, event: HookEvent): string {
-  return `${PACKAGE_RELATIVE_HOOK_BIN} --host ${host} --event ${event}`;
+/** Hook command using the resolved bin for this project. */
+function command(bin: string, host: HookHost, event: HookEvent): string {
+  return `${bin} --host ${host} --event ${event}`;
 }
 
 function isManagedHookCommand(commandText: string): boolean {
@@ -214,13 +231,13 @@ function isManagedCursorEntryForHost(value: unknown): boolean {
 
 type NestedHookHost = "claude" | "grok" | "codex";
 
-function nestedGroup(host: NestedHookHost, event: HookEvent, matcher?: string) {
+function nestedGroup(bin: string, host: NestedHookHost, event: HookEvent, matcher?: string) {
   return {
     ...(event === "tool.before" && matcher !== undefined ? { matcher } : {}),
     hooks: [
       {
         type: "command",
-        command: command(host, event),
+        command: command(bin, host, event),
         timeout:
           event === "tool.before"
             ? NESTED_TOOL_BEFORE_TIMEOUT_SECONDS
@@ -234,6 +251,7 @@ function mergeNestedConfig(
   config: Record<string, unknown>,
   path: string,
   host: NestedHookHost,
+  bin: string,
   options: { compact?: boolean } = {},
 ): Record<string, unknown> {
   const hooks = hooksObject(config, path);
@@ -243,10 +261,12 @@ function mergeNestedConfig(
   const preTool = eventArray(hooks, "PreToolUse", path).filter(
     (entry) => !isManagedNestedGroup(entry),
   );
-  hooks.SessionStart = [...session, nestedGroup(host, "session.start")];
+  hooks.SessionStart = [...session, nestedGroup(bin, host, "session.start")];
   hooks.PreToolUse = [
     ...preTool,
-    ...NESTED_PRE_TOOL_MATCHERS.map((matcher) => nestedGroup(host, "tool.before", matcher)),
+    ...NESTED_PRE_TOOL_MATCHERS.map((matcher) =>
+      nestedGroup(bin, host, "tool.before", matcher),
+    ),
   ];
   if (options.compact) {
     const preCompact = eventArray(hooks, "PreCompact", path).filter(
@@ -255,8 +275,8 @@ function mergeNestedConfig(
     const postCompact = eventArray(hooks, "PostCompact", path).filter(
       (entry) => !isManagedNestedGroup(entry),
     );
-    hooks.PreCompact = [...preCompact, nestedGroup(host, "session.compact")];
-    hooks.PostCompact = [...postCompact, nestedGroup(host, "session.compact")];
+    hooks.PreCompact = [...preCompact, nestedGroup(bin, host, "session.compact")];
+    hooks.PostCompact = [...postCompact, nestedGroup(bin, host, "session.compact")];
   }
   return { ...config, hooks };
 }
@@ -308,7 +328,11 @@ function stripManagedCursorConfig(
   return { ...config, version: 1, hooks: nextHooks };
 }
 
-function mergeCursorConfig(config: Record<string, unknown>, path: string): Record<string, unknown> {
+function mergeCursorConfig(
+  config: Record<string, unknown>,
+  path: string,
+  bin: string,
+): Record<string, unknown> {
   const hooks = hooksObject(config, path);
   const session = eventArray(hooks, "sessionStart", path).filter(
     (entry) => !isManagedCursorEntry(entry),
@@ -328,14 +352,14 @@ function mergeCursorConfig(config: Record<string, unknown>, path: string): Recor
   hooks.sessionStart = [
     ...session,
     {
-      command: command("cursor", "session.start"),
+      command: command(bin, "cursor", "session.start"),
       timeout: CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
     },
   ];
   hooks.preToolUse = [
     ...preTool,
     ...NESTED_PRE_TOOL_MATCHERS.map((matcher) => ({
-      command: command("cursor", "tool.before"),
+      command: command(bin, "cursor", "tool.before"),
       matcher,
       failClosed: true,
       timeout: CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS,
@@ -344,21 +368,21 @@ function mergeCursorConfig(config: Record<string, unknown>, path: string): Recor
   hooks.preCompact = [
     ...preCompact,
     {
-      command: command("cursor", "session.compact"),
+      command: command(bin, "cursor", "session.compact"),
       timeout: CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
     },
   ];
   hooks.beforeSubmitPrompt = [
     ...beforeSubmit,
     {
-      command: command("cursor", "prompt.submit"),
+      command: command(bin, "cursor", "prompt.submit"),
       timeout: CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
     },
   ];
   hooks.afterAgentResponse = [
     ...afterResponse,
     {
-      command: command("cursor", "agent.response"),
+      command: command(bin, "cursor", "agent.response"),
       timeout: CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
     },
   ];
@@ -415,6 +439,7 @@ export function writeAgentHookDeposit(
 ): AgentHookDepositResult {
   const changedPaths: AgentHookPath[] = [];
   const strippedPaths: AgentHookPath[] = [];
+  const bin = resolveAgentHookCommandBin(projectRoot);
   const definitions: Array<{
     host: HookHost;
     path: AgentHookPath;
@@ -424,25 +449,28 @@ export function writeAgentHookDeposit(
     {
       host: "claude",
       path: AGENT_HOOK_PATHS[0],
-      merge: (config, path) => mergeNestedConfig(config, path, "claude", { compact: true }),
+      merge: (config, path) =>
+        mergeNestedConfig(config, path, "claude", bin, { compact: true }),
       strip: (config, path) => stripManagedNestedConfig(config, path, "claude"),
     },
     {
       host: "grok",
       path: AGENT_HOOK_PATHS[1],
-      merge: (config, path) => mergeNestedConfig(config, path, "grok", { compact: true }),
+      merge: (config, path) =>
+        mergeNestedConfig(config, path, "grok", bin, { compact: true }),
       strip: (config, path) => stripManagedNestedConfig(config, path, "grok"),
     },
     {
       host: "cursor",
       path: AGENT_HOOK_PATHS[2],
-      merge: mergeCursorConfig,
+      merge: (config, path) => mergeCursorConfig(config, path, bin),
       strip: stripManagedCursorConfig,
     },
     {
       host: "codex",
       path: AGENT_HOOK_PATHS[3],
-      merge: (config, path) => mergeNestedConfig(config, path, "codex", { compact: false }),
+      merge: (config, path) =>
+        mergeNestedConfig(config, path, "codex", bin, { compact: false }),
       strip: (config, path) => stripManagedNestedConfig(config, path, "codex"),
     },
   ];
@@ -531,26 +559,38 @@ export function writeAgentHookDeposit(
   };
 }
 
-function hasNestedSessionStart(config: Record<string, unknown>, host: NestedHookHost): boolean {
+function hasNestedSessionStart(
+  config: Record<string, unknown>,
+  host: NestedHookHost,
+  bin: string,
+): boolean {
   const hooks = object(config.hooks);
   if (hooks === null) return false;
   const session = Array.isArray(hooks.SessionStart) ? hooks.SessionStart : [];
-  const sessionCommand = command(host, "session.start");
+  const sessionCommand = command(bin, host, "session.start");
   return session.some((entry) => {
     const group = object(entry);
     return group?.matcher === undefined && nestedCommands(entry).includes(sessionCommand);
   });
 }
 
-function hasCursorSessionStart(config: Record<string, unknown>): boolean {
+function hasCursorSessionStart(config: Record<string, unknown>, bin: string): boolean {
   const hooks = object(config.hooks);
   if (hooks === null || config.version !== 1) return false;
   const session = Array.isArray(hooks.sessionStart) ? hooks.sessionStart : [];
-  return session.some((entry) => object(entry)?.command === command("cursor", "session.start"));
+  return session.some(
+    (entry) => object(entry)?.command === command(bin, "cursor", "session.start"),
+  );
 }
 
-function hasSessionStartRegistration(config: Record<string, unknown>, host: HookHost): boolean {
-  return host === "cursor" ? hasCursorSessionStart(config) : hasNestedSessionStart(config, host);
+function hasSessionStartRegistration(
+  config: Record<string, unknown>,
+  host: HookHost,
+  bin: string,
+): boolean {
+  return host === "cursor"
+    ? hasCursorSessionStart(config, bin)
+    : hasNestedSessionStart(config, host, bin);
 }
 
 /** #3739: nested tool.before health must require the readiness timeout, like Cursor. */
@@ -607,19 +647,20 @@ function hasGrokDirectWriteRegistration(preTool: readonly unknown[], toolCommand
 function hasNestedRegistration(
   config: Record<string, unknown>,
   host: NestedHookHost,
+  bin: string,
   options: { compact?: boolean } = {},
 ): boolean {
   const hooks = object(config.hooks);
   if (hooks === null) return false;
   const preTool = Array.isArray(hooks.PreToolUse) ? hooks.PreToolUse : [];
-  const toolCommand = command(host, "tool.before");
-  const compactCommand = command(host, "session.compact");
+  const toolCommand = command(bin, host, "tool.before");
+  const compactCommand = command(bin, host, "session.compact");
   const preToolOk =
     host === "grok"
       ? hasGrokDirectWriteRegistration(preTool, toolCommand) &&
         hasExactPreToolMatchers(preTool, toolCommand, NESTED_NON_DIRECT_WRITE_MATCHERS)
       : hasExactPreToolMatchers(preTool, toolCommand, NESTED_PRE_TOOL_MATCHERS);
-  const base = hasNestedSessionStart(config, host) && preToolOk;
+  const base = hasNestedSessionStart(config, host, bin) && preToolOk;
   if (!base) return false;
   if (!options.compact) return true;
   const preCompact = Array.isArray(hooks.PreCompact) ? hooks.PreCompact : [];
@@ -630,10 +671,10 @@ function hasNestedRegistration(
   );
 }
 
-function isCursorToolBeforeEntry(value: unknown, matcher: string): boolean {
+function isCursorToolBeforeEntry(value: unknown, matcher: string, bin: string): boolean {
   const hook = object(value);
   return (
-    hook?.command === command("cursor", "tool.before") &&
+    hook?.command === command(bin, "cursor", "tool.before") &&
     hook.matcher === matcher &&
     hook.failClosed === true &&
     // #3246: budget must cover gated ritual + live agent-hook readiness.
@@ -641,7 +682,7 @@ function isCursorToolBeforeEntry(value: unknown, matcher: string): boolean {
   );
 }
 
-function hasCursorRegistration(config: Record<string, unknown>): boolean {
+function hasCursorRegistration(config: Record<string, unknown>, bin: string): boolean {
   const hooks = object(config.hooks);
   if (hooks === null || config.version !== 1) return false;
   const preTool = Array.isArray(hooks.preToolUse) ? hooks.preToolUse : [];
@@ -649,20 +690,22 @@ function hasCursorRegistration(config: Record<string, unknown>): boolean {
   const beforeSubmit = Array.isArray(hooks.beforeSubmitPrompt) ? hooks.beforeSubmitPrompt : [];
   const afterResponse = Array.isArray(hooks.afterAgentResponse) ? hooks.afterAgentResponse : [];
   return (
-    hasCursorSessionStart(config) &&
+    hasCursorSessionStart(config, bin) &&
     NESTED_PRE_TOOL_MATCHERS.every((matcher) =>
-      preTool.some((entry) => isCursorToolBeforeEntry(entry, matcher)),
+      preTool.some((entry) => isCursorToolBeforeEntry(entry, matcher, bin)),
     ) &&
-    preCompact.some((entry) => object(entry)?.command === command("cursor", "session.compact")) &&
+    preCompact.some(
+      (entry) => object(entry)?.command === command(bin, "cursor", "session.compact"),
+    ) &&
     beforeSubmit.some(
       (entry) =>
-        object(entry)?.command === command("cursor", "prompt.submit") &&
+        object(entry)?.command === command(bin, "cursor", "prompt.submit") &&
         object(entry)?.timeout === CURSOR_SESSION_HOOK_TIMEOUT_SECONDS &&
         object(entry)?.failClosed !== true,
     ) &&
     afterResponse.some(
       (entry) =>
-        object(entry)?.command === command("cursor", "agent.response") &&
+        object(entry)?.command === command(bin, "cursor", "agent.response") &&
         object(entry)?.timeout === CURSOR_SESSION_HOOK_TIMEOUT_SECONDS &&
         object(entry)?.failClosed !== true,
     )
@@ -707,6 +750,7 @@ export function inspectSessionStartNotice(
   projectRoot: string,
   hostHooksPolicy: HostHooksPolicy = loadHostHooksPolicyFromProject(projectRoot),
 ): SessionStartNoticeInspection[] {
+  const bin = resolveAgentHookCommandBin(projectRoot);
   return (Object.keys(AGENT_HOOK_PATH_BY_HOST) as HookHost[]).map((host) => {
     if (!isHostHookDepositEnabled(host, hostHooksPolicy)) {
       return { host, registered: false };
@@ -716,7 +760,7 @@ export function inspectSessionStartNotice(
       return { host, registered: false };
     }
     const config = readConfig(absolute);
-    return { host, registered: hasSessionStartRegistration(config, host) };
+    return { host, registered: hasSessionStartRegistration(config, host, bin) };
   });
 }
 
@@ -725,6 +769,7 @@ export function inspectAgentHookDeposit(
   projectRoot: string,
   hostHooksPolicy: HostHooksPolicy = loadHostHooksPolicyFromProject(projectRoot),
 ): AgentHookInspection[] {
+  const bin = resolveAgentHookCommandBin(projectRoot);
   const definitions: Array<{
     host: HookHost;
     path: AgentHookPath;
@@ -735,25 +780,25 @@ export function inspectAgentHookDeposit(
       host: "claude",
       path: AGENT_HOOK_PATHS[0],
       compactSupport: "deposited",
-      valid: (config) => hasNestedRegistration(config, "claude", { compact: true }),
+      valid: (config) => hasNestedRegistration(config, "claude", bin, { compact: true }),
     },
     {
       host: "grok",
       path: AGENT_HOOK_PATHS[1],
       compactSupport: "deposited",
-      valid: (config) => hasNestedRegistration(config, "grok", { compact: true }),
+      valid: (config) => hasNestedRegistration(config, "grok", bin, { compact: true }),
     },
     {
       host: "cursor",
       path: AGENT_HOOK_PATHS[2],
       compactSupport: "deposited",
-      valid: hasCursorRegistration,
+      valid: (config) => hasCursorRegistration(config, bin),
     },
     {
       host: "codex",
       path: AGENT_HOOK_PATHS[3],
       compactSupport: "unsupported",
-      valid: (config) => hasNestedRegistration(config, "codex", { compact: false }),
+      valid: (config) => hasNestedRegistration(config, "codex", bin, { compact: false }),
     },
   ];
 

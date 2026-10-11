@@ -1,18 +1,24 @@
 /**
  * Wave 2c package-relative wiring owner tests (R9 / AC13.1 / AC9.*).
  */
+import { execFileSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { INSTALLATION_RECOVERY_GUIDANCE } from "@deftai/directive-core/dist/install-health/constants.js";
+import {
+  checkFullInSync,
+  RUNTIME_PIN_PACKAGE,
+} from "@deftai/directive-core/dist/install-health/index.js";
 import { runSetup } from "./setup.js";
 
 const TEMPS: string[] = [];
@@ -177,5 +183,115 @@ describe("runSetup package-relative wiring (Wave 2c / R9)", () => {
     expect(second.conflicts).toEqual([]);
     expect(second.created).toEqual([]);
     expect(second.modified).toEqual([]);
+  });
+
+  it("PRE_TOOL_MATCHERS include Grok write/search_replace/run_terminal_command/spawn_subagent", () => {
+    const root = tempRoot();
+    runSetup({ operation: "install", from: "none", root });
+    const grok = readFileSync(join(root, ".grok", "hooks", "deft.json"), "utf8");
+    expect(grok).toContain("write");
+    expect(grok).toContain("search_replace");
+    expect(grok).toContain("run_terminal_command");
+    expect(grok).toContain("spawn_subagent");
+    expect(grok).toContain("kill_command_or_subagent");
+  });
+
+  it("chmod +x on pre-commit and pre-push", () => {
+    const root = tempRoot();
+    runSetup({ operation: "install", from: "none", root });
+    const mode = statSync(join(root, ".githooks", "pre-commit")).mode & 0o111;
+    expect(mode).toBeTruthy();
+  });
+
+  it("does not overwrite a foreign core.hooksPath", () => {
+    const root = tempRoot();
+    execFileSync("git", ["-C", root, "init", "-q"]);
+    execFileSync("git", ["-C", root, "config", "core.hooksPath", "custom-hooks"]);
+    const result = runSetup({ operation: "install", from: "none", root });
+    expect(result.conflicts.some((c) => c.includes("core.hooksPath"))).toBe(true);
+    const current = execFileSync("git", ["-C", root, "config", "--get", "core.hooksPath"], {
+      encoding: "utf8",
+    }).trim();
+    expect(current).toBe("custom-hooks");
+  });
+
+  it("checkFullInSync passes after setup when pin/lockfile/installed agree", () => {
+    const root = tempRoot();
+    const result = runSetup({ operation: "install", from: "none", root });
+    const version = result.runtimeVersion;
+    writeFileSync(
+      join(root, "package.json"),
+      `${JSON.stringify(
+        {
+          name: "t",
+          version: "0.0.0",
+          private: true,
+          devDependencies: { [RUNTIME_PIN_PACKAGE]: version },
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    writeFileSync(
+      join(root, "package-lock.json"),
+      `${JSON.stringify(
+        {
+          lockfileVersion: 3,
+          packages: {
+            "": { devDependencies: { [RUNTIME_PIN_PACKAGE]: version } },
+            [`node_modules/${RUNTIME_PIN_PACKAGE}`]: { version },
+          },
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    const runtimePkg = join(root, "node_modules", "@deftai", "directive-runtime");
+    mkdirSync(runtimePkg, { recursive: true });
+    writeFileSync(
+      join(runtimePkg, "package.json"),
+      `${JSON.stringify({ name: RUNTIME_PIN_PACKAGE, version }, null, 2)}\n`,
+    );
+    const sync = checkFullInSync(root);
+    expect(sync.predicates.wiring.ok).toBe(true);
+    expect(sync.inSync).toBe(true);
+  });
+
+  it("merges Taskfile includes without duplicating the top-level key", () => {
+    const root = tempRoot();
+    writeFileSync(
+      join(root, "Taskfile.yml"),
+      "version: '3'\n\nincludes:\n  # user comment\n  other:\n    taskfile: ./other.yml\n",
+    );
+    runSetup({ operation: "install", from: "none", root });
+    const body = readFileSync(join(root, "Taskfile.yml"), "utf8");
+    expect(body.match(/^includes:/gm)?.length ?? 0).toBe(1);
+    expect(body).toContain("taskfile: ./node_modules/@deftai/directive-runtime/Taskfile.yml");
+    expect(body).toContain("other:");
+  });
+
+  it("respects plan.policy.hostHooks opt-out", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      `${JSON.stringify({ plan: { policy: { hostHooks: { cursor: false } } } }, null, 2)}\n`,
+    );
+    runSetup({ operation: "install", from: "none", root });
+    expect(existsSync(join(root, ".cursor", "hooks.json"))).toBe(false);
+    expect(existsSync(join(root, ".claude", "settings.json"))).toBe(true);
+  });
+
+  it("shared host/Taskfile ownership is structured-entry not whole-file", () => {
+    const root = tempRoot();
+    runSetup({ operation: "install", from: "none", root });
+    const gen = JSON.parse(readFileSync(join(root, ".deft", "GENERATION.json"), "utf8")) as {
+      ownership: Array<{ path: string; kind: string; entryKey?: string }>;
+    };
+    const cursor = gen.ownership.find((a) => a.path === ".cursor/hooks.json");
+    const taskfile = gen.ownership.find((a) => a.path === "Taskfile.yml");
+    expect(cursor?.kind).toBe("structured-entry");
+    expect(taskfile?.kind).toBe("structured-entry");
+    expect(taskfile?.entryKey).toBe("includes.deft");
   });
 });
