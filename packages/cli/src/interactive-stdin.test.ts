@@ -47,6 +47,13 @@ describe("readInteractiveLine (UX-INT-TTY / AC5.2)", () => {
     expect(readInteractiveLine({ read })).toEqual({ line: "", eof: true });
   });
 
+  it("EIO with no bytes → eof true (closed PTY hangup)", () => {
+    const read: InteractiveByteReader = () => {
+      throw errno("EIO");
+    };
+    expect(readInteractiveLine({ read })).toEqual({ line: "", eof: true });
+  });
+
   it("lone newline → empty line, eof false (Default No / Cancelled)", () => {
     const read: InteractiveByteReader = (buffer) => {
       buffer[0] = 0x0a;

@@ -24,6 +24,7 @@ function defaultRead(buffer: Buffer, offset: number, length: number): number {
 /**
  * Read one line from stdin (or an injected reader).
  * - EAGAIN/EWOULDBLOCK/EINTR → short sync wait and retry (not EOF/cancel).
+ * - EIO (hangup / closed PTY on some hosts) with no bytes → eof true.
  * - n === 0 with no bytes collected → { line: "", eof: true }.
  * - Line ending or collected data → { line, eof: false } (empty Enter ⇒ line "" / eof false).
  */
@@ -47,6 +48,11 @@ export function readInteractiveLine(options?: {
       if (code && RETRY_ERRNOS.has(code)) {
         wait(waitMs);
         continue;
+      }
+      // Closed/hung-up PTY often surfaces as EIO rather than n===0.
+      if (code === "EIO") {
+        if (chunks.length === 0) return { line: "", eof: true };
+        break;
       }
       throw err;
     }
