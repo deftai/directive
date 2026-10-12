@@ -36,6 +36,7 @@ import {
   ensureSlashCommands,
   ensureTaskfileInclude,
   listSkillPointerPaths,
+  listVerifiedManagedSlashCommandPaths,
   RUNTIME_PREFIX,
 } from "./setup-wiring.js";
 import { assertInventoryCompleteness } from "./installer-output-inventory.js";
@@ -263,13 +264,10 @@ function buildOwnershipArtifacts(projectRoot: string): OwnedArtifact[] {
       });
     }
   }
-  // AC8.1 slash thin wrappers when present (wholly owned generated files).
-  for (const rel of [
-    ...listSlashOwnershipCandidates(projectRoot),
-  ]) {
+  // AC8.1: only verified managed slash wrappers from the emitter inventory.
+  for (const rel of listVerifiedManagedSlashCommandPaths(projectRoot)) {
     const body = readText(join(projectRoot, rel));
     if (body === null) continue;
-    if (!body.includes(RUNTIME_PREFIX) && !body.includes(".deft/core/")) continue;
     artifacts.push({
       path: rel,
       kind: "whole-file",
@@ -285,32 +283,6 @@ function buildOwnershipArtifacts(projectRoot: string): OwnedArtifact[] {
     });
   }
   return artifacts;
-}
-
-/** Slash/prompt paths under known host dirs that look Directive-managed. */
-function listSlashOwnershipCandidates(projectRoot: string): string[] {
-  const roots = [
-    ".claude/commands",
-    ".cursor/commands",
-    ".grok/commands",
-    ".codex/prompts",
-  ] as const;
-  const out: string[] = [];
-  for (const root of roots) {
-    const abs = join(projectRoot, root);
-    if (!existsSync(abs)) continue;
-    let names: string[] = [];
-    try {
-      names = readdirSync(abs);
-    } catch {
-      continue;
-    }
-    for (const name of names) {
-      if (!name.endsWith(".md")) continue;
-      out.push(relPosix(root, name));
-    }
-  }
-  return out;
 }
 
 /**
@@ -371,9 +343,12 @@ export function runSetup(options: {
     const slash = ensureSlashCommands(root);
     created.push(...slash.created);
     modified.push(...slash.modified);
+    conflicts.push(...slash.conflicts);
 
     // Conditional OpenClaw (no-op when OC absent); not project-path ownership.
-    ensureOpenClawIntegrations(root);
+    // Write failures → conflicts; missing OC stays a normal skip; preserves are advisory.
+    const openclaw = ensureOpenClawIntegrations(root);
+    conflicts.push(...openclaw.conflicts);
 
     const hooks = ensureHostHooks(root);
     created.push(...hooks.created);

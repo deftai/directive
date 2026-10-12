@@ -302,19 +302,29 @@ function main() {
     }
   }
 
-  // AC9.6: prefer skills/deft/SKILL.md (hoist may only have root SKILL.md / .agents/skills/deft).
+  // AC9.6: skills/deft/SKILL.md must be the full package-root skill — never the
+  // .agents/skills/deft redirect stub ("Read and follow: SKILL.md").
   const skillsDeft = join(outDir, "skills", "deft", "SKILL.md");
-  if (!existsSync(skillsDeft)) {
-    const candidates = [
-      join(outDir, ".agents", "skills", "deft", "SKILL.md"),
-      join(outDir, "SKILL.md"),
-    ];
-    for (const candidate of candidates) {
-      if (!existsSync(candidate)) continue;
-      mkdirSync(join(outDir, "skills", "deft"), { recursive: true });
-      cpSync(candidate, skillsDeft);
-      break;
-    }
+  const rootSkill = join(outDir, "SKILL.md");
+  if (existsSync(rootSkill)) {
+    mkdirSync(join(outDir, "skills", "deft"), { recursive: true });
+    cpSync(rootSkill, skillsDeft);
+  } else if (!existsSync(skillsDeft)) {
+    // Last resort: explicit runtime-package redirect (not a bare "SKILL.md").
+    mkdirSync(join(outDir, "skills", "deft"), { recursive: true });
+    writeFileSync(
+      skillsDeft,
+      [
+        "---",
+        "name: deft",
+        "description: Apply deft framework standards for AI-assisted development.",
+        "---",
+        "",
+        "Read and follow: node_modules/@deftai/directive-runtime/SKILL.md",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
   }
 
   // Rewrite imports in runtime dist + vendored JS to relative vendor paths.

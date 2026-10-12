@@ -26,7 +26,10 @@ import {
   inventoryEntry,
 } from "./installer-output-inventory.js";
 import { runSetup } from "./setup.js";
-import { resolveDeftSkillTargetRel } from "./setup-wiring.js";
+import {
+  resolveDeftSkillTargetRel,
+  resolveRuntimeAgentsEntryTemplatePath,
+} from "./setup-wiring.js";
 
 const TEMPS: string[] = [];
 const RUNTIME_PREFIX = "node_modules/@deftai/directive-runtime/";
@@ -154,6 +157,48 @@ describe("runSetup package-relative wiring (Wave 2c / R9)", () => {
     const body = readFileSync(join(root, ".claude", "commands", cmdSample!), "utf8");
     expect(body).toContain(RUNTIME_PREFIX);
     expect(body).not.toContain(".deft/core/");
+  });
+
+  it("slash: preserves custom command files and reports conflict (no clobber)", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, ".claude", "commands"), { recursive: true });
+    const customRel = ".claude/commands/deft-continue.md";
+    writeFileSync(join(root, customRel), "# my custom continue command\n", "utf8");
+    const result = runSetup({ operation: "install", from: "none", root });
+    expect(readFileSync(join(root, customRel), "utf8")).toBe("# my custom continue command\n");
+    expect(result.conflicts.some((c) => c.includes(customRel) && c.includes("refusing"))).toBe(
+      true,
+    );
+  });
+
+  it("ownership: does not claim user command files that only mention runtime path", () => {
+    const root = tempRoot();
+    runSetup({ operation: "install", from: "none", root });
+    mkdirSync(join(root, ".claude", "commands"), { recursive: true });
+    const userRel = ".claude/commands/my-review.md";
+    writeFileSync(
+      join(root, userRel),
+      `# notes\nSee ${RUNTIME_PREFIX}skills/deft-directive-review-cycle/SKILL.md\n`,
+      "utf8",
+    );
+    // Re-run setup so GENERATION ownership is rebuilt with the user file present.
+    runSetup({ operation: "repair", from: "0.0.0", root });
+    const gen = JSON.parse(readFileSync(join(root, ".deft", "GENERATION.json"), "utf8")) as {
+      ownership: Array<{ path: string; kind: string }>;
+    };
+    expect(gen.ownership.some((a) => a.path === userRel)).toBe(false);
+    expect(
+      gen.ownership.some(
+        (a) => a.path.startsWith(".claude/commands/") && a.kind === "whole-file",
+      ),
+    ).toBe(true);
+  });
+
+  it("AGENTS template comes from resolveRuntimeAgentsEntryTemplatePath", () => {
+    const path = resolveRuntimeAgentsEntryTemplatePath();
+    expect(path).toBeTruthy();
+    expect(path!.replace(/\\/g, "/")).toMatch(/templates\/agents-entry\.md$/);
+    expect(readFileSync(path!, "utf8")).toContain("Session routing");
   });
 
   it("writes host hooks as node …/hook-bin.js (AC9.1)", () => {

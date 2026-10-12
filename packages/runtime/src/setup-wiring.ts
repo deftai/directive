@@ -2,7 +2,7 @@
  * Package-relative wiring writers for Contract 1 setup (Wave 2c / R9 / AC13.1).
  * All managed pointers target node_modules/@deftai/directive-runtime/ — never .deft/core.
  */
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -42,6 +42,7 @@ import {
   listSlashEmitterHosts,
   type HostEmittedFile,
 } from "@deftai/directive-core/dist/slash/emitters.js";
+import { isThinWrapperMarkdown } from "@deftai/directive-core/dist/slash/generator.js";
 import { depositOpenClawL2ProductCommands } from "@deftai/directive-core/dist/slash/openclaw-deposit.js";
 
 export const RUNTIME_PREFIX = RUNTIME_PACKAGE_PATH_PREFIX;
@@ -186,6 +187,23 @@ export const SKILL_HOST_ROOTS = [
 ] as const;
 
 /**
+ * Resolve this runtime package's agents-entry.md (never a leftover
+ * @deftai/directive-content install).
+ */
+export function resolveRuntimeAgentsEntryTemplatePath(): string | null {
+  const pkgRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
+  const candidates = [
+    join(pkgRoot, "templates", "agents-entry.md"),
+    // Monorepo source layout: content lives at repo content/templates/.
+    join(pkgRoot, "..", "..", "content", "templates", "agents-entry.md"),
+  ];
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) return candidate;
+  }
+  return null;
+}
+
+/**
  * Apply shipped templates/agents-entry.md via the same path as agents:refresh (AC9.6 / AC9.7).
  * No hardcoded stub; package-relative paths; no .deft/core.
  */
@@ -211,7 +229,23 @@ export function ensureAgentsManagedSection(projectRoot: string): TrackResult & {
     }
   }
 
-  const result = applyAgentsRefresh(projectRoot);
+  const templatePath = resolveRuntimeAgentsEntryTemplatePath();
+  const templateText = templatePath !== null ? readText(templatePath) : null;
+  let frameworkRoot: string | undefined;
+  if (templatePath !== null) {
+    const norm = templatePath.replace(/\\/g, "/");
+    frameworkRoot = norm.endsWith("/content/templates/agents-entry.md")
+      ? join(dirname(templatePath), "..", "..")
+      : dirname(dirname(templatePath));
+  }
+  const result = applyAgentsRefresh(
+    projectRoot,
+    {},
+    {
+      ...(frameworkRoot !== undefined ? { frameworkRoot } : {}),
+      ...(templateText !== null ? { readTemplate: () => templateText } : {}),
+    },
+  );
   if (
     result.state === "template-missing" ||
     result.state === "template-malformed" ||
@@ -293,37 +327,125 @@ function ovprSlashWrapperContents(file: HostEmittedFile): string {
 }
 
 /**
+ * True when on-disk slash content is a Directive thin wrapper we may refresh
+ * (legacy .deft/core teaching or package-relative OVPR form).
+ */
+function isManagedSlashWrapper(raw: string, file: HostEmittedFile, next: string): boolean {
+  if (raw === next) return true;
+  if (isThinWrapperMarkdown(raw, file.dispatchPath)) return true;
+  // Already-rewritten OVPR wrapper: still thin + points at this dispatch path.
+  return (
+    raw.startsWith("---\n") &&
+    raw.includes(file.dispatchPath) &&
+    (raw.includes(RUNTIME_PREFIX) || raw.includes(".deft/core/")) &&
+    raw.includes("Read and follow") &&
+    raw.includes("Do not inline")
+  );
+}
+
+/**
  * Deposit host slash/prompt thin wrappers with package-relative targets (AC8.1 / AC8.10).
  * Reuses emitter inventory; does not revive .deft/core teaching.
+ * Preserves consumer-custom command files and reports conflicts instead of clobbering.
  */
 export function ensureSlashCommands(projectRoot: string): {
   created: string[];
   modified: string[];
+  conflicts: string[];
 } {
   const created: string[] = [];
   const modified: string[] = [];
+  const conflicts: string[] = [];
   const policy = loadHostSlashCommandsPolicyFromProject(projectRoot);
   for (const hostId of listSlashEmitterHosts()) {
     if (!isHostSlashCommandDepositEnabled(hostId, policy)) continue;
     for (const file of emitHostCommandFiles(hostId)) {
       const body = ovprSlashWrapperContents(file);
       const next = body.endsWith("\n") ? body : `${body}\n`;
+      const prior = readText(join(projectRoot, file.relativePath));
+      if (prior !== null && prior !== next && !isManagedSlashWrapper(prior, file, next)) {
+        conflicts.push(
+          `${file.relativePath}: existing command is not a Directive-managed wrapper; refusing to overwrite`,
+        );
+        continue;
+      }
       const change = trackChange(projectRoot, file.relativePath, next);
       if (change.created) created.push(file.relativePath);
       else if (change.modified) modified.push(file.relativePath);
     }
   }
-  return { created, modified };
+  return { created, modified, conflicts };
+}
+
+/**
+ * Verified managed slash/prompt paths from the emitter inventory (AC8.1 / AC11.10).
+ * Does not claim arbitrary host command files that merely mention the runtime path.
+ */
+export function listVerifiedManagedSlashCommandPaths(projectRoot: string): string[] {
+  const paths: string[] = [];
+  const policy = loadHostSlashCommandsPolicyFromProject(projectRoot);
+  for (const hostId of listSlashEmitterHosts()) {
+    if (!isHostSlashCommandDepositEnabled(hostId, policy)) continue;
+    for (const file of emitHostCommandFiles(hostId)) {
+      const prior = readText(join(projectRoot, file.relativePath));
+      if (prior === null) continue;
+      const body = ovprSlashWrapperContents(file);
+      const next = body.endsWith("\n") ? body : `${body}\n`;
+      if (!isManagedSlashWrapper(prior, file, next)) continue;
+      paths.push(file.relativePath);
+    }
+  }
+  return paths;
+}
+
+function rewriteOpenClawSkillsDir(skillsDir: string): {
+  rewritten: string[];
+  failures: string[];
+} {
+  const rewritten: string[] = [];
+  const failures: string[] = [];
+  let names: string[] = [];
+  try {
+    names = readdirSync(skillsDir);
+  } catch {
+    return { rewritten, failures };
+  }
+  for (const name of names) {
+    const rel = join(name, "SKILL.md").replace(/\\/g, "/");
+    const abs = join(skillsDir, name, "SKILL.md");
+    const body = readText(abs);
+    if (body === null || !body.includes(".deft/core/")) continue;
+    const next = body.split(".deft/core/").join(RUNTIME_PREFIX);
+    if (next === body) continue;
+    try {
+      containedWrite({
+        root: skillsDir,
+        target: rel,
+        data: next.endsWith("\n") ? next : `${next}\n`,
+        mode: "replace",
+        mkdir: true,
+      });
+      rewritten.push(abs);
+    } catch (err) {
+      failures.push(`${abs}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+  return { rewritten, failures };
 }
 
 /**
  * Conditional OpenClaw deposits (AC8.1). Adapters no-op when OC is not detected.
  * Writes typically land in OpenClaw workspace dirs (not project ownership).
+ * Rewrites deposited .deft/core paths to the installed runtime package prefix.
  */
 export function ensureOpenClawIntegrations(projectRoot: string): {
   skipped: boolean;
   skipReason?: string;
+  warnings: string[];
+  conflicts: string[];
 } {
+  const warnings: string[] = [];
+  const conflicts: string[] = [];
   try {
     const soft = depositOpenClawSoftRebindSkill({});
     const l2 = depositOpenClawL2ProductCommands({
@@ -331,16 +453,37 @@ export function ensureOpenClawIntegrations(projectRoot: string): {
       printf: () => undefined,
     });
     const skipped = Boolean(soft.skipped && l2.skipped);
-    return {
-      skipped,
-      skipReason: skipped
-        ? (soft.skipReason ?? l2.skipReason ?? "OpenClaw not detected")
-        : undefined,
-    };
+    if (skipped) {
+      return {
+        skipped: true,
+        skipReason: soft.skipReason ?? l2.skipReason ?? "OpenClaw not detected",
+        warnings,
+        conflicts,
+      };
+    }
+
+    const dirs = new Set<string>([...soft.skillsDirs, ...l2.skillsDirs]);
+    for (const dir of dirs) {
+      const { failures } = rewriteOpenClawSkillsDir(dir);
+      for (const failure of failures) {
+        conflicts.push(`OpenClaw path rewrite failed: ${failure}`);
+      }
+    }
+    for (const p of soft.preservedCustomPaths) {
+      warnings.push(`OpenClaw soft rebind: refused/preserved write at ${p}`);
+    }
+    for (const p of l2.preservedCustomPaths) {
+      warnings.push(`OpenClaw L2: refused/preserved write at ${p}`);
+    }
+    return { skipped: false, warnings, conflicts };
   } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    conflicts.push(`OpenClaw integrations write failed: ${msg}`);
     return {
       skipped: true,
-      skipReason: err instanceof Error ? err.message : String(err),
+      skipReason: msg,
+      warnings,
+      conflicts,
     };
   }
 }

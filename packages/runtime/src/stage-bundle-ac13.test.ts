@@ -127,6 +127,26 @@ describe("stage-bundle AC1.3 packaging purity (PKG-AC13-NEST)", () => {
     120_000,
   );
 
+  it("skills/deft/SKILL.md is the full package-root skill, not the .agents redirect stub", () => {
+    const outDir = mkdtempSync(join(tmpdir(), "stage-ac13-deft-"));
+    try {
+      const staged = spawnSync(process.execPath, [STAGE_SCRIPT, outDir], {
+        cwd: REPO_ROOT,
+        encoding: "utf8",
+      });
+      expect(staged.status, staged.stderr || staged.stdout).toBe(0);
+
+      const rootSkill = readFileSync(join(outDir, "SKILL.md"), "utf8");
+      const skillsDeft = readFileSync(join(outDir, "skills", "deft", "SKILL.md"), "utf8");
+      expect(rootSkill).toContain("DEFT-PREAMBLE-V1");
+      expect(skillsDeft).toBe(rootSkill);
+      expect(skillsDeft).not.toMatch(/^Read and follow:\s*SKILL\.md\s*$/m);
+      expect(skillsDeft.length).toBeGreaterThan(500);
+    } finally {
+      rmSync(outDir, { recursive: true, force: true });
+    }
+  }, 120_000);
+
   it("does not rewrite CONTENT_PACKAGE_NAME; resolveInstalledContentRoot works on staged layout", async () => {
     const outDir = mkdtempSync(join(tmpdir(), "stage-ac13-content-"));
     try {
