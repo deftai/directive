@@ -52,7 +52,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 When that happens:
 
-1. ! Tell the user: "Contributor setup lives in [`CONTRIBUTING.md`](../../../CONTRIBUTING.md) and this repo's root [`AGENTS.md`](../../../AGENTS.md). Use the maintainer installer: `deft-install --yes --upgrade --maintainer --repo-root . --json`."
+1. ! Tell the user: "Contributor setup lives in [`CONTRIBUTING.md`](../../../CONTRIBUTING.md) and this repo's root [`AGENTS.md`](../../../AGENTS.md). The Go installer is deleted — use the Node/pnpm maintainer workflow in CONTRIBUTING.md, not `deft-install`."
 2. ⊗ Continue the consumer USER.md / PROJECT-DEFINITION interview — the maintainer path does not use the first-session consumer flow.
 3. **Stop here** unless the user explicitly asks to continue with consumer setup anyway.
 

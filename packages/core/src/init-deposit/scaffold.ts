@@ -141,7 +141,7 @@ is covered by the canonical .gitignore baseline deposited by deft-install.
 export const MINIMAL_TASKFILE = `version: '3'
 
 # Taskfile for this project.
-# Installed by deft-install --yes (Epic-4). Add your own tasks below or in
+# Installed by directive install (OVPR). Add your own tasks below or in
 # additional included files. The deft include namespaces framework tasks
 # under deft: (#3218): task deft:check, task deft:vbrief:*, task deft:doctor.
 # Prefer deft check first; then task deft:check on this include-only consumer.
@@ -156,7 +156,7 @@ includes:
 export const CANONICAL_TASKFILE_INCLUDE = "taskfile: ./.deft/core/Taskfile.yml";
 
 const DEFT_INCLUDE_CHILD_BLOCK =
-  "  # Added by deft-install --yes (Epic-4)\n" +
+  "  # Added by directive install (OVPR)\n" +
   "  deft:\n" +
   "    taskfile: ./.deft/core/Taskfile.yml\n" +
   "    optional: true\n";
@@ -483,7 +483,7 @@ export function ensureTaskfile(projectDir: string, io: InitDepositIo): boolean {
     } else {
       resultText =
         `${existing}${existing.endsWith("\n") ? "" : "\n"}\n` +
-        "# deft-install --yes (Epic-4): could not locate the existing top-level `includes:` line for structural insertion; appended a fresh block. Manual merge recommended.\n" +
+        "# directive install: could not locate the existing top-level `includes:` line for structural insertion; appended a fresh block. Manual merge recommended.\n" +
         "includes:\n" +
         "  deft:\n" +
         "    taskfile: ./.deft/core/Taskfile.yml\n" +
@@ -495,7 +495,7 @@ export function ensureTaskfile(projectDir: string, io: InitDepositIo): boolean {
   } else {
     resultText =
       `${existing}${existing.endsWith("\n") ? "" : "\n"}\n` +
-      "# Added by deft-install --yes (Epic-4)\n" +
+      "# Added by directive install (OVPR)\n" +
       "includes:\n" +
       "  deft:\n" +
       "    taskfile: ./.deft/core/Taskfile.yml\n" +

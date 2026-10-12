@@ -45,9 +45,11 @@ export const SOFT_AGENTS_REBIND_CHECKLIST = [
   {
     id: "deposit-integrity",
     text:
-      "Deposit integrity: if .deft/core/main.md (or managed deposit) is missing " +
-      "or broken while deft may still be on PATH, fail closed to doctor / " +
-      "QUICK-START before product shell. (deft on PATH ≠ healthy deposit.)",
+      "Runtime integrity: if node_modules/@deftai/directive-runtime/main.md " +
+      "(or managed AGENTS.md) is missing or broken while `directive` may still " +
+      "be on PATH, fail closed to `npm i -g @deftai/directive` then " +
+      "`directive install --repair` / doctor / QUICK-START before product shell. " +
+      "(launcher on PATH ≠ healthy runtime.)",
   },
   {
     id: "summary-not-sot",
@@ -256,9 +258,10 @@ export function formatOpenClawSoftRebindSkillMarkdown(): string {
     "",
     "## Operator recovery",
     "",
-    "- Deposit / refresh: `deft doctor --fix` (OpenClaw detected) or",
-    "  `deft update` / `directive init` when OpenClaw signals are present.",
-    "- After deposit: restart the OpenClaw gateway or start a new session so",
+    "- Missing launcher / wiring: `npm i -g @deftai/directive`, then",
+    "  `directive install --repair` (OpenClaw detected) or `directive install`",
+    "  for first-time setup when OpenClaw signals are present.",
+    "- After repair: restart the OpenClaw gateway or start a new session so",
     "  skills reload.",
     "- Docs: `docs/openclaw-agent-host.md` § Soft post-compact AGENTS re-bind.",
     "",

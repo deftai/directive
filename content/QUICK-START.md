@@ -141,7 +141,7 @@ Read and follow `../AGENTS.md`. This starts the normal first-session flow (user 
 
 **Opt-out pointer:** Projects that must not use Directive should commit root [`.no-deft-directive`](./docs/no-deft-directive.md) so session/doctor/init/setup skip install and ritual (#2926). Temporary local kill-switch (deposit OK): [`.deft-directive-disable`](./docs/deft-directive-disable.md) (#3039).
 
-**Contributor pointer (non-blocking):** Working on Deft itself (a `deftai/directive` source checkout)? See [CONTRIBUTING.md](../CONTRIBUTING.md) and use the maintainer install path (`deft-install --yes --upgrade --maintainer --repo-root . --json`). The repo's root `AGENTS.md` has contributor instructions — you do not need the consumer first-session flow above.
+**Contributor pointer (non-blocking):** Working on Deft itself (a `deftai/directive` source checkout)? See [CONTRIBUTING.md](../CONTRIBUTING.md). The Go installer is deleted — maintainers use the repo's documented Node/pnpm workflow, not `deft-install`. The repo's root `AGENTS.md` has contributor instructions — you do not need the consumer first-session flow above.
 
 ## Update notifications
 

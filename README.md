@@ -67,32 +67,22 @@ directive toolchain:check --consumer
 
 > **📢 Cloned manually (no installer)?** Tell your agent: `Read deft/QUICK-START.md and follow it.` It creates your project's `AGENTS.md` and starts the setup flow automatically.
 
-#### Legacy and offline install (Go installer, #1912)
+#### Legacy Go installer — RETIRED (#1912 / AC10.10)
 
-> **Node is always required to *run* Deft.** The Go installer is a **legacy bridge**, not the first-start installer — npm is canonical (above). Reach for it only when npm isn't an option: an **offline / air-gapped** deposit, or **migrating an existing old on-disk layout**.
-
-> **⬇️ Legacy binaries** — from the [latest GitHub Release](https://github.com/deftai/directive/releases/latest):
-> - **Windows:** [`install-windows-amd64.exe`](https://github.com/deftai/directive/releases/latest/download/install-windows-amd64.exe) | [`install-windows-arm64.exe`](https://github.com/deftai/directive/releases/latest/download/install-windows-arm64.exe)
-> - **macOS:** [`install-macos-universal`](https://github.com/deftai/directive/releases/latest/download/install-macos-universal)
-> - **Linux:** [`install-linux-amd64`](https://github.com/deftai/directive/releases/latest/download/install-linux-amd64) | [`install-linux-arm64`](https://github.com/deftai/directive/releases/latest/download/install-linux-arm64)
-
-**Windows:** Download `install-windows-amd64.exe` (or `install-windows-arm64.exe`) and run it — SmartScreen may warn; click "More info" then "Run anyway".
-
-**macOS:** Download `install-macos-universal`, then `chmod +x install-macos-universal && ./install-macos-universal`. If Gatekeeper blocks it: right-click then Open, or `xattr -d com.apple.quarantine install-macos-universal`.
-
-**Linux:** Download `install-linux-amd64` (or `install-linux-arm64`), then `chmod +x install-linux-amd64 && ./install-linux-amd64`.
+> **Historical only.** The Go installer (`cmd/deft-install/`, platform `install-*` binaries) is **deleted**. Do not download or run it. Current install/upgrade is npm/pnpm only (above). Supported latest-legacy layouts convert with `directive upgrade`; see [UPGRADING.md](./content/UPGRADING.md).
 
 #### Agent / headless install
 
 ```bash
 npm i -g @deftai/directive
+directive install --yes
 ```
 
-Node 20+ is required. For **offline / air-gapped** deposits or **migrating a legacy on-disk layout**, the Go-installer binaries remain at [GitHub Releases](https://github.com/deftai/directive/releases/latest) (see [Legacy and offline install](#legacy-and-offline-install-go-installer-1912)).
+Supported Node lines are **22 and 24** (Node 20 best-effort). Offline / air-gapped: use your corporate npm mirror for `@deftai/directive` + `@deftai/directive-runtime` (see UPGRADING corporate-registry notes). Do not fall back to deleted Go installer binaries.
 
 #### Framework maintainers (this repository)
 
-Building from source requires Go 1.22+. Use `go run ./cmd/deft-install/` or `deft-install --yes --upgrade --maintainer --repo-root /path/to/directive --json`. Maintainer setup: [CONTRIBUTING.md](./CONTRIBUTING.md).
+Maintainer setup uses the Node/pnpm workspace documented in [CONTRIBUTING.md](./CONTRIBUTING.md). The Go installer path is deleted — do not run `go run ./cmd/deft-install/` or `deft-install`.
 
 ### 2. Set Up Your Preferences
 

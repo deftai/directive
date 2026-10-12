@@ -15,13 +15,14 @@ scan `.agents/skills/` still auto-load the same consumer skill inventory.
 
 Additional host paths **mirror** the same thin `SKILL.md` inventory as
 `.agents/skills/`. They do not fork independent skill bodies. Full skill text
-lives under `.deft/core/skills/…` (or `.deft/core/SKILL.md` for the root
-`deft` skill).
+lives under the pinned runtime package
+(`node_modules/@deftai/directive-runtime/…`, including the root `deft` skill).
 
 ## Thin pointers only
 
-Each deposited `SKILL.md` is a short frontmatter + `Read and follow: .deft/core/…`
-line. Init/update **must not** copy full skill process docs into host skill dirs
+Each deposited `SKILL.md` is a short frontmatter +
+`Read and follow: node_modules/@deftai/directive-runtime/…` line. Install /
+repair / upgrade **must not** copy full skill process docs into host skill dirs
 (those rot on framework upgrade).
 
 Windows: deposit uses ordinary file writes (contained projection). Elevated
@@ -29,9 +30,9 @@ symlinks are **not** required.
 
 ## When deposit runs
 
-- `directive init` / greenfield scaffold — after `.agents/skills/`
-- `directive update` / refresh — every refresh (idempotent rewrite of managed
-  pointers when content drifts)
+- `directive install` / greenfield scaffold — after `.agents/skills/`
+- `directive install --repair` / `directive upgrade` — idempotent rewrite of
+  managed pointers when content drifts
 
 ## Per-host opt-out
 
