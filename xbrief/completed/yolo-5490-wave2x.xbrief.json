@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "kind": "xbrief",
+  "title": "YOLO #5490 Wave 2x — residual docs / deft-install teaching",
+  "status": "completed",
+  "branch": "yolo/wip-wave2x",
+  "tip": "c094e023465f2b7cd5cd7c3b4bd2271bc7c77b39",
+  "tag": "yolo-cp-wave2x",
+  "verdaccio": "0.0.0-yolo.cp-wave2x.1",
+  "smoke": "wave2x.sh PASS",
+  "acs": ["AC10.10", "AC13.8", "AC9.11", "D4.9"],
+  "findings": ["DEFT-INSTALL-DOC", "DOCS-RESIDUAL"]
+}
