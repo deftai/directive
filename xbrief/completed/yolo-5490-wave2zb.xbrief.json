@@ -1,0 +1,22 @@
+{
+  "schema": "xbrief",
+  "id": "yolo-5490-wave2zb",
+  "title": "Wave 2zb \u2014 human findings fix-pass acceptance (F-002\u2026F-008)",
+  "status": "completed",
+  "summary": "Acceptance smoke PASS on yolo-cp-wave2zb / 0.0.0-yolo.cp-wave2zb.1 for F-002 UX-PRESENT and re-prove F-003\u2026F-008.",
+  "completedAt": "2026-10-12T15:05:06Z",
+  "wave": "2zb",
+  "inbox": [
+    "F-002",
+    "F-003",
+    "F-004",
+    "F-005",
+    "F-006",
+    "F-007",
+    "F-008"
+  ],
+  "verdaccio": {
+    "tag": "yolo-cp-wave2zb",
+    "version": "0.0.0-yolo.cp-wave2zb.1"
+  }
+}
