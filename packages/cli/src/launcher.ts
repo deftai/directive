@@ -185,6 +185,18 @@ export function runLauncher(
     return EXIT_CODES.SUCCESS;
   }
 
+  // CLI-PARSE: glued bookend flags (`install--target-version`) are malformed, not
+  // product passthrough verbs (AC13.6 / AC3.16).
+  if (rawCmd !== undefined && /^(install|upgrade|uninstall|doctor)--/.test(rawCmd)) {
+    const verb = rawCmd.slice(0, rawCmd.indexOf("--"));
+    const restFlag = rawCmd.slice(rawCmd.indexOf("--"));
+    io.writeErr(
+      `Unknown command '${rawCmd}'. Did you mean: ${verb} ${restFlag} …?\n` +
+        `Known installation commands: install, upgrade, uninstall, doctor.\n`,
+    );
+    return EXIT_CODES.USAGE;
+  }
+
   const cmd = resolveCommand(rawCmd);
 
   if (cmd === null) {

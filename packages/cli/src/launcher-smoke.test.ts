@@ -114,6 +114,23 @@ describe("launcher smoke", () => {
     expect(c.err() + c.out()).not.toMatch(/Install command:/i);
   });
 
+  it.each([
+    "install--target-version",
+    "upgrade--yes",
+    "uninstall--root",
+    "doctor--json",
+  ] as const)("glued bookend flag %s exits 2 with Did-you-mean (CLI-PARSE)", (token) => {
+    const c = capture();
+    const code = runLauncher([token, "1.2.3"], c.io);
+    expect(code).toBe(2);
+    expect(c.err()).toMatch(/Unknown command/i);
+    expect(c.err()).toMatch(/Did you mean:/i);
+    expect(c.err()).toMatch(/install, upgrade, uninstall, doctor/);
+    // Must not enter pin-not-installed passthrough
+    expect(c.err() + c.out()).not.toMatch(/is not installed/i);
+    expect(c.err() + c.out()).not.toMatch(/^Plan:/m);
+  });
+
   it("aliases init/update/remove resolve without being listed as primary help verbs", () => {
     const help = capture();
     expect(runLauncher(["--help"], help.io)).toBe(0);
