@@ -42,6 +42,8 @@ function tempRoot(): string {
     join(root, "package.json"),
     `${JSON.stringify({ name: "t", version: "0.0.0", private: true }, null, 2)}\n`,
   );
+  // AC8.6 / AC9.9: readiness requires activatable Git hooks.
+  execFileSync("git", ["init", "-q"], { cwd: root });
   return root;
 }
 

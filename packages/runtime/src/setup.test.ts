@@ -1,6 +1,7 @@
 /**
  * Runtime setup install|repair owner tests (Wave 2a / R8).
  */
+import { execFileSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -16,6 +17,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { readProjectDataStatus } from "./data-status.js";
 import { CURRENT_DATA_SCHEMA_VERSION, DATA_SCHEMA_MARKER_REL } from "./migrate.js";
 import { runSetup, setupChangeCount } from "./setup.js";
+import { GIT_HOOKS_INACTIVE_NO_GIT } from "./setup-wiring.js";
 
 const TEMPS: string[] = [];
 
@@ -29,6 +31,11 @@ function tempRoot(): string {
   return root;
 }
 
+/** Minimal .git so setup can set core.hooksPath=.githooks (AC9.9 / AC8.6). */
+function initGit(root: string): void {
+  execFileSync("git", ["init", "-q"], { cwd: root });
+}
+
 afterEach(() => {
   while (TEMPS.length > 0) {
     const p = TEMPS.pop();
@@ -39,6 +46,7 @@ afterEach(() => {
 describe("runSetup install|repair (R8 / AC8.*)", () => {
   it("install writes GENERATION, wiring-ready, AGENTS managed section, gitignore, seed", () => {
     const root = tempRoot();
+    initGit(root);
     const result = runSetup({ operation: "install", from: "none", root });
     expect(result.stub).toBe(false);
     expect(result.conflicts).toEqual([]);
@@ -63,6 +71,7 @@ describe("runSetup install|repair (R8 / AC8.*)", () => {
 
   it("repair does not create seed placeholders (AC8.4)", () => {
     const root = tempRoot();
+    initGit(root);
     runSetup({ operation: "install", from: "none", root });
     rmSync(join(root, "xbrief"), { recursive: true, force: true });
     const result = runSetup({ operation: "repair", from: "0.0.0", root });
@@ -72,6 +81,7 @@ describe("runSetup install|repair (R8 / AC8.*)", () => {
 
   it("install leaves data-schema current; repair does not migrate (AC6.2 / SEAM-DOC)", () => {
     const root = tempRoot();
+    initGit(root);
     const installed = runSetup({ operation: "install", from: "none", root });
     expect(installed.conflicts).toEqual([]);
     expect(existsSync(join(root, DATA_SCHEMA_MARKER_REL))).toBe(true);
@@ -91,6 +101,7 @@ describe("runSetup install|repair (R8 / AC8.*)", () => {
 
   it("second repair is idempotent (AC6.9 / AC8.2)", () => {
     const root = tempRoot();
+    initGit(root);
     runSetup({ operation: "install", from: "none", root });
     const second = runSetup({ operation: "repair", from: "0.0.0", root });
     const third = runSetup({ operation: "repair", from: "0.0.0", root });
@@ -103,6 +114,7 @@ describe("runSetup install|repair (R8 / AC8.*)", () => {
 
   it("preserves existing xbrief bytes on repair (AC6.8)", () => {
     const root = tempRoot();
+    initGit(root);
     runSetup({ operation: "install", from: "none", root });
     const marker = join(root, "xbrief", "active", "user.xbrief.json");
     mkdirSync(join(root, "xbrief", "active"), { recursive: true });
@@ -114,6 +126,7 @@ describe("runSetup install|repair (R8 / AC8.*)", () => {
 
   it("does not write wiring-ready on AGENTS conflict and invalidates prior marker", () => {
     const root = tempRoot();
+    initGit(root);
     const first = runSetup({ operation: "install", from: "none", root });
     const readyPath = join(
       root,
@@ -134,6 +147,7 @@ describe("runSetup install|repair (R8 / AC8.*)", () => {
 
   it("upgrade refreshes GENERATION/wiring-ready without creating seeds", () => {
     const root = tempRoot();
+    initGit(root);
     const result = runSetup({ operation: "upgrade", from: "1.0.0", root });
     expect(result.stub).toBe(false);
     expect(result.conflicts).toEqual([]);
@@ -150,6 +164,7 @@ describe("runSetup install|repair (R8 / AC8.*)", () => {
 
   it("refuses AGENTS.md symlink escape outside the project", () => {
     const root = tempRoot();
+    initGit(root);
     const outsideDir = mkdtempSync(join(tmpdir(), "setup-escape-"));
     TEMPS.push(outsideDir);
     const outsideFile = join(outsideDir, "escaped-agents.md");
@@ -167,6 +182,61 @@ describe("runSetup install|repair (R8 / AC8.*)", () => {
     expect(
       existsSync(join(root, ".deft", "directive", `wiring-ready.${result.runtimeVersion}.json`)),
     ).toBe(false);
+  });
+});
+
+describe("GIT-HOOKS-INACTIVE no-git vs with-git (AC8.6 / AC2.5 / AC9.9)", () => {
+  it("no .git: writes .githooks, discloses inactive, withholds wiring-ready", () => {
+    const root = tempRoot();
+    expect(existsSync(join(root, ".git"))).toBe(false);
+    const result = runSetup({ operation: "install", from: "none", root });
+    expect(result.conflicts).toEqual([]);
+    expect(existsSync(join(root, ".githooks", "pre-commit"))).toBe(true);
+    expect(existsSync(join(root, ".githooks", "_directive-run.sh"))).toBe(true);
+    expect(existsSync(join(root, ".deft", "GENERATION.json"))).toBe(true);
+    expect(
+      existsSync(join(root, ".deft", "directive", `wiring-ready.${result.runtimeVersion}.json`)),
+    ).toBe(false);
+    expect(result.message).toContain(GIT_HOOKS_INACTIVE_NO_GIT);
+    expect(result.created.some((p) => p.includes("wiring-ready."))).toBe(false);
+  });
+
+  it("with .git: sets core.hooksPath=.githooks and writes wiring-ready", () => {
+    const root = tempRoot();
+    initGit(root);
+    const result = runSetup({ operation: "install", from: "none", root });
+    expect(result.conflicts).toEqual([]);
+    expect(
+      existsSync(join(root, ".deft", "directive", `wiring-ready.${result.runtimeVersion}.json`)),
+    ).toBe(true);
+    expect(result.message).not.toMatch(/Git hooks inactive/i);
+    const hooksPath = execFileSync("git", ["-C", root, "config", "--get", "core.hooksPath"], {
+      encoding: "utf8",
+    }).trim();
+    expect(hooksPath).toBe(".githooks");
+  });
+
+  it("after git init, repair activates hooksPath and writes readiness", () => {
+    const root = tempRoot();
+    const first = runSetup({ operation: "install", from: "none", root });
+    expect(
+      existsSync(join(root, ".deft", "directive", `wiring-ready.${first.runtimeVersion}.json`)),
+    ).toBe(false);
+    initGit(root);
+    const repaired = runSetup({
+      operation: "repair",
+      from: first.runtimeVersion,
+      root,
+    });
+    expect(repaired.conflicts).toEqual([]);
+    expect(
+      existsSync(join(root, ".deft", "directive", `wiring-ready.${repaired.runtimeVersion}.json`)),
+    ).toBe(true);
+    expect(repaired.message).not.toMatch(/Git hooks inactive/i);
+    const hooksPath = execFileSync("git", ["-C", root, "config", "--get", "core.hooksPath"], {
+      encoding: "utf8",
+    }).trim();
+    expect(hooksPath).toBe(".githooks");
   });
 });
 

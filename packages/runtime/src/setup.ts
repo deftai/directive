@@ -420,6 +420,29 @@ export function runSetup(options: {
       };
     }
 
+    // AC8.6 / AC2.5 / GIT-HOOKS-INACTIVE: do not claim verified local activation
+    // when Git hooks cannot be activated (no .git / hooksPath unset).
+    if (!githooks.hooksPathActive) {
+      invalidateReadinessMarkers(root, removed);
+      const disclosure =
+        githooks.inactiveDisclosure ??
+        "Git hooks inactive until git init + eligible repair/self-complete";
+      return {
+        contract: 1,
+        entry: "setup",
+        stub: false,
+        operation,
+        from,
+        root,
+        runtimeVersion,
+        created,
+        modified,
+        removed,
+        conflicts,
+        message: `setup ${operation} completed for ${runtimeVersion} (${RUNTIME_PREFIX}); ${disclosure}`,
+      };
+    }
+
     const ready = writeReadiness(root, runtimeVersion);
     track(created, modified, ready.path, ready);
 

@@ -1,6 +1,7 @@
 /**
  * Wave 2d self-completing setup owner tests (AC8.6 / AC2.5 / AC9.10).
  */
+import { execFileSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -26,6 +27,8 @@ const TEMPS: string[] = [];
 function tempRoot(): string {
   const root = mkdtempSync(join(tmpdir(), "self-complete-"));
   TEMPS.push(root);
+  // AC8.6: wiring-ready requires activatable core.hooksPath=.githooks.
+  execFileSync("git", ["init", "-q"], { cwd: root });
   return root;
 }
 

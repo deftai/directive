@@ -1,6 +1,7 @@
 /**
  * Wave 2e doctor diagnosis owner tests (R12 / AC12.* / AC9.10).
  */
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   existsSync,
@@ -34,6 +35,8 @@ const TEMPS: string[] = [];
 function tempRoot(): string {
   const root = mkdtempSync(join(tmpdir(), "doctor-2e-"));
   TEMPS.push(root);
+  // AC8.6: readiness requires activatable core.hooksPath=.githooks.
+  execFileSync("git", ["init", "-q"], { cwd: root });
   return root;
 }
 

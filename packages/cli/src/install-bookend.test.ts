@@ -2,11 +2,12 @@
  * Owner-boundary tests for install / install --repair bookend (Wave 2a / R5–R6).
  * Unit matrix avoids network; optional Verdaccio cases skip when registry is down.
  */
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { runInstall } from "./bookends.js";
+import { GIT_HOOKS_INACTIVE_PLAN_LINE, runInstall } from "./bookends.js";
 import { classifyPinVersion, readProjectInstallState, type ProjectInstallState } from "./pin.js";
 import {
   buildPmExactAddArgs,
@@ -496,6 +497,36 @@ describe("install bookend flag matrix (AC5 / AC6)", () => {
     expect(c.out()).toMatch(/dry-run|Plan:/i);
     expect(c.out()).toMatch(/9\.9\.9/);
     expect(readFileSync(join(root, "package.json"), "utf8")).toBe(before);
+  });
+
+  it("no-.git dry-run plan discloses inactive Git hooks (GIT-HOOKS-INACTIVE)", () => {
+    const root = tempProject();
+    expect(existsSync(join(root, ".git"))).toBe(false);
+    const c = capture();
+    const code = runInstall(
+      root,
+      stateFor(root),
+      ["--dry-run", "--target-version", "1.2.3"],
+      "0.0.0-test",
+      c.io,
+    );
+    expect(code).toBe(0);
+    expect(c.out()).toContain(GIT_HOOKS_INACTIVE_PLAN_LINE);
+  });
+
+  it("with-.git dry-run plan omits inactive Git hooks disclosure", () => {
+    const root = tempProject();
+    execFileSync("git", ["init", "-q"], { cwd: root });
+    const c = capture();
+    const code = runInstall(
+      root,
+      stateFor(root),
+      ["--dry-run", "--target-version", "1.2.3"],
+      "0.0.0-test",
+      c.io,
+    );
+    expect(code).toBe(0);
+    expect(c.out()).not.toContain(GIT_HOOKS_INACTIVE_PLAN_LINE);
   });
 
   it("pnpm plan discloses --save-exact", () => {

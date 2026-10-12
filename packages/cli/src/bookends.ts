@@ -246,6 +246,16 @@ function appendCommonPlanDisclosures(
   }
 }
 
+/** AC8.6 / AC2.5 / GIT-HOOKS-INACTIVE — disclose when .git is absent at plan time. */
+export const GIT_HOOKS_INACTIVE_PLAN_LINE =
+  "Git hooks: inactive until git init + eligible repair/self-complete (cannot set core.hooksPath=.githooks yet)";
+
+function appendGitHooksPlanDisclosure(lines: string[], projectRoot: string): void {
+  if (!existsSync(join(projectRoot, ".git"))) {
+    lines.push(GIT_HOOKS_INACTIVE_PLAN_LINE);
+  }
+}
+
 /** AC5.8 / AC14.45 — fail before mutation when the selected PM is not on PATH. */
 function preflightPmAvailable(
   projectRoot: string,
@@ -556,6 +566,7 @@ function runFirstInstall(
     `setup: runtime setup --operation install --from none (wiring, GENERATION.json, readiness; may create missing seed placeholders)`,
   ];
   appendCommonPlanDisclosures(planLines, deps);
+  appendGitHooksPlanDisclosure(planLines, projectRoot);
   printPlan(io, planLines);
   const planFp = fingerprintPlanCriticalFiles(projectRoot, pmDetect.pm);
 
@@ -674,6 +685,7 @@ function runRepair(
     `setup: runtime setup --operation repair --from ${pinVersion} (wiring/GENERATION/readiness; does not create seed files; never migrates xbrief)`,
   ];
   appendCommonPlanDisclosures(planLines, deps);
+  appendGitHooksPlanDisclosure(planLines, projectRoot);
   printPlan(io, planLines);
   const planFp = fingerprintPlanCriticalFiles(projectRoot, pmDetect.pm);
 
@@ -1085,6 +1097,7 @@ export function runUpgrade(
     );
   }
   appendCommonPlanDisclosures(planLines, deps);
+  appendGitHooksPlanDisclosure(planLines, projectRoot);
   printPlan(io, planLines);
   const planFp = fingerprintPlanCriticalFiles(projectRoot, pmDetect.pm);
 

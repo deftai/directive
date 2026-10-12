@@ -2,7 +2,7 @@
  * Wave 2q RED — GEN-REBUILD + AC8.7-TEST + AC8.9-SS
  * (AC14.20, AC8.7/AC14.52, AC8.9).
  */
-import { spawn, spawnSync } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -49,6 +49,8 @@ beforeAll(() => {
 function tempRoot(): string {
   const root = mkdtempSync(join(tmpdir(), "wave2q-"));
   TEMPS.push(root);
+  // AC8.6: readiness requires activatable core.hooksPath=.githooks.
+  execFileSync("git", ["init", "-q"], { cwd: root });
   return root;
 }
 

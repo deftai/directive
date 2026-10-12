@@ -847,10 +847,18 @@ function isOurGitHookBody(rel: string, body: string): boolean {
 
 const EXECUTABLE_GITHOOKS = new Set([".githooks/pre-commit", ".githooks/pre-push"]);
 
+/** AC8.6 / AC2.5 / F-008 — disclosed when hooks files exist but core.hooksPath cannot activate. */
+export const GIT_HOOKS_INACTIVE_NO_GIT =
+  "Git hooks inactive until git init + eligible repair/self-complete (core.hooksPath not set)";
+
 export function ensureGitHooks(projectRoot: string): {
   created: string[];
   modified: string[];
   conflicts: string[];
+  /** True only when core.hooksPath is relative .githooks (AC9.9). */
+  hooksPathActive: boolean;
+  /** Human disclosure when hooks are not live; null when active. */
+  inactiveDisclosure: string | null;
 } {
   const created: string[] = [];
   const modified: string[] = [];
@@ -881,8 +889,13 @@ export function ensureGitHooks(projectRoot: string): {
     }
   }
 
+  let hooksPathActive = false;
+  let inactiveDisclosure: string | null = null;
+
   // Activate relative hooksPath only when unset or already .githooks (AC9.9 / Greptile P1).
-  if (existsSync(join(projectRoot, ".git"))) {
+  if (!existsSync(join(projectRoot, ".git"))) {
+    inactiveDisclosure = GIT_HOOKS_INACTIVE_NO_GIT;
+  } else {
     let current: string | null = null;
     try {
       current = execFileSync("git", ["-C", projectRoot, "config", "--get", "core.hooksPath"], {
@@ -894,16 +907,21 @@ export function ensureGitHooks(projectRoot: string): {
     if (current === null || current === "") {
       try {
         execFileSync("git", ["-C", projectRoot, "config", "core.hooksPath", ".githooks"]);
+        hooksPathActive = true;
       } catch {
-        /* non-fatal outside a real git repo */
+        inactiveDisclosure =
+          "Git hooks inactive: could not set core.hooksPath=.githooks";
       }
-    } else if (current !== ".githooks" && current !== ".githooks/") {
+    } else if (current === ".githooks" || current === ".githooks/") {
+      hooksPathActive = true;
+    } else {
       conflicts.push(
         `core.hooksPath is '${current}' (not .githooks); refusing to redirect and disable existing checks`,
       );
+      inactiveDisclosure = `Git hooks inactive: core.hooksPath is '${current}' (not .githooks)`;
     }
   }
-  return { created, modified, conflicts };
+  return { created, modified, conflicts, hooksPathActive, inactiveDisclosure };
 }
 
 const MINIMAL_TASKFILE = `version: '3'
