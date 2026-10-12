@@ -382,9 +382,9 @@ describe("equal-version upgrade (AC7.3 / AC4.10)", () => {
     );
     expect(code).toBe(0);
     const text = c.out();
-    expect(text).toMatch(/Plan:/i);
+    expect(text).toMatch(/Upgrade Directive/i);
     expect(text).toMatch(/setup/i);
-    expect(text).toMatch(/migrate/i);
+    expect(text).toMatch(/migrat/i);
     expect(existsSync(join(root, ".deft", "GENERATION.json"))).toBe(false);
   });
 
@@ -488,7 +488,7 @@ describe("version-change upgrade (AC7.2 / AC7.4 / AC7.5 / AC7.9)", () => {
       },
     );
     expect(code).toBe(0);
-    expect(c.out()).toMatch(/Plan:/i);
+    expect(c.out()).toMatch(/Upgrade Directive/i);
     expect(c.out()).toMatch(/2\.0\.0/);
     expect(c.out()).toMatch(/setup|migrate/i);
     expect(readFileSync(join(root, "package.json"), "utf8")).toBe(before);

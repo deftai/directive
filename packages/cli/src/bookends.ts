@@ -44,6 +44,22 @@ import {
 import type { ProjectInstallState } from "./pin.js";
 import { isContractSupported, readInstalledRuntime, readProjectInstallState } from "./pin.js";
 import {
+  parseVerbosityFlags,
+  presentAmbiguousYes,
+  presentFirstInstallPlan,
+  presentInstallSuccess,
+  presentPathSummary,
+  presentRepairPlan,
+  presentRepairSuccess,
+  presentSetupFailedAfterInstall,
+  presentUninstallPlan,
+  presentUpgradePlan,
+  presentUpgradeSuccess,
+  tryParseSetupSummary,
+  type SetupSummary,
+  type Verbosity,
+} from "./plan-present.js";
+import {
   compareExactVersions,
   resolveLatestStableVersion,
   resolvePublishedContract,
@@ -68,6 +84,7 @@ export interface BookendFlags {
   readonly repair: boolean;
   readonly targetVersion: string | null;
   readonly packageManager: string | null;
+  readonly verbosity: Verbosity;
 }
 
 export type DataStatusValue = "current" | "migration_needed" | "diagnosis_failed";
@@ -166,6 +183,7 @@ function parseFlags(argv: readonly string[]): {
   rest: string[];
   usageError: string | null;
 } {
+  const { verbosity, rest: afterVerbosity } = parseVerbosityFlags(argv);
   const rest: string[] = [];
   let dryRun = false;
   let yes = false;
@@ -173,8 +191,8 @@ function parseFlags(argv: readonly string[]): {
   let targetVersion: string | null = null;
   let packageManager: string | null = null;
   let usageError: string | null = null;
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i]!;
+  for (let i = 0; i < afterVerbosity.length; i++) {
+    const a = afterVerbosity[i]!;
     if (a === "--dry-run") {
       dryRun = true;
       continue;
@@ -188,12 +206,12 @@ function parseFlags(argv: readonly string[]): {
       continue;
     }
     if (a === "--target-version") {
-      const next = argv[i + 1];
+      const next = afterVerbosity[i + 1];
       if (flagValueMissing(next)) {
         usageError = "--target-version requires a value.";
         continue;
       }
-      targetVersion = argv[++i]!;
+      targetVersion = afterVerbosity[++i]!;
       continue;
     }
     if (a.startsWith("--target-version=")) {
@@ -204,12 +222,12 @@ function parseFlags(argv: readonly string[]): {
       continue;
     }
     if (a === "--package-manager") {
-      const next = argv[i + 1];
+      const next = afterVerbosity[i + 1];
       if (flagValueMissing(next)) {
         usageError = "--package-manager requires a value.";
         continue;
       }
-      packageManager = argv[++i]!;
+      packageManager = afterVerbosity[++i]!;
       continue;
     }
     if (a.startsWith("--package-manager=")) {
@@ -221,7 +239,11 @@ function parseFlags(argv: readonly string[]): {
     }
     rest.push(a);
   }
-  return { flags: { dryRun, yes, repair, targetVersion, packageManager }, rest, usageError };
+  return {
+    flags: { dryRun, yes, repair, targetVersion, packageManager, verbosity },
+    rest,
+    usageError,
+  };
 }
 
 function printPlan(
@@ -448,11 +470,7 @@ export function runInstall(
       return EXIT_CODES.SUCCESS;
     }
     if (flags.yes) {
-      io.writeErr(
-        `Directive is already configured (pin ${pinVersion}). --yes does not choose the operation.\n` +
-          `  Repair this pin:  directive install --repair --yes\n` +
-          `  Change version:   directive upgrade --yes\n`,
-      );
+      presentAmbiguousYes(io, pinVersion);
       return EXIT_CODES.USAGE;
     }
     const tty = deps.stdinIsTTY ?? Boolean(process.stdin.isTTY);
@@ -553,21 +571,17 @@ function runFirstInstall(
   const willCreatePkg = !existsSync(join(projectRoot, "package.json"));
   const pmCmd = formatPmExactAddCommand(pmDetect.pm, targetVersion, projectRoot);
 
-  const planLines = [
-    `operation: install (first-time)`,
-    `root: ${projectRoot}`,
-    `package manager: ${pmDetect.pm} (${pmDetect.evidence})`,
-    `target: ${RUNTIME_PACKAGE_NAME}@${targetVersion}`,
-    willCreatePkg
-      ? `manifest: create package.json { "private": true }`
-      : `manifest: add exact pin to existing package.json`,
-    `PM command: ${pmCmd}`,
-    `expected: package.json pin + lockfile update via PM`,
-    `setup: runtime setup --operation install --from none (wiring, GENERATION.json, readiness; may create missing seed placeholders)`,
-  ];
-  appendCommonPlanDisclosures(planLines, deps);
-  appendGitHooksPlanDisclosure(planLines, projectRoot);
-  printPlan(io, planLines);
+  presentFirstInstallPlan(io, {
+    projectRoot,
+    pm: pmDetect.pm,
+    pmEvidence: pmDetect.evidence,
+    version: targetVersion,
+    pmCommand: pmCmd,
+    willCreatePkg,
+    gitHooksInactive: !existsSync(join(projectRoot, ".git")),
+    nodeWarning: checkNodeVersion(deps.nodeVersion).warning ?? null,
+    verbosity: flags.verbosity,
+  });
   const planFp = fingerprintPlanCriticalFiles(projectRoot, pmDetect.pm);
 
   if (flags.dryRun) {
@@ -632,7 +646,9 @@ function runFirstInstall(
     from: "none",
     io,
     deps,
-  });
+    verbosity: flags.verbosity,
+    pm: pmDetect.pm,
+  }).exitCode;
 }
 
 function runRepair(
@@ -672,21 +688,22 @@ function runRepair(
   }
 
   const pmCmd = formatPmExactAddCommand(pmDetect.pm, pinVersion, projectRoot);
+  const restoreReason = lockOk
+    ? "installed package mismatch/missing"
+    : "lockfile missing/unusable/disagree";
 
-  const planLines = [
-    `operation: repair`,
-    `root: ${projectRoot}`,
-    `package manager: ${pmDetect.pm} (${pmDetect.evidence})`,
-    `pin (unchanged): ${RUNTIME_PACKAGE_NAME}@${pinVersion}`,
-    needsPmRestore
-      ? `PM: restore pin via exact add (${lockOk ? "installed package mismatch/missing" : "lockfile missing/unusable/disagree"})`
-      : `PM: none (lockfile records pin; installed package matches)`,
-    needsPmRestore ? `PM command: ${pmCmd}` : `PM command: (none)`,
-    `setup: runtime setup --operation repair --from ${pinVersion} (wiring/GENERATION/readiness; does not create seed files; never migrates xbrief)`,
-  ];
-  appendCommonPlanDisclosures(planLines, deps);
-  appendGitHooksPlanDisclosure(planLines, projectRoot);
-  printPlan(io, planLines);
+  presentRepairPlan(io, {
+    projectRoot,
+    pm: pmDetect.pm,
+    pmEvidence: pmDetect.evidence,
+    version: pinVersion,
+    needsPmRestore,
+    pmCommand: needsPmRestore ? pmCmd : null,
+    restoreReason: needsPmRestore ? restoreReason : null,
+    gitHooksInactive: !existsSync(join(projectRoot, ".git")),
+    nodeWarning: checkNodeVersion(deps.nodeVersion).warning ?? null,
+    verbosity: flags.verbosity,
+  });
   const planFp = fingerprintPlanCriticalFiles(projectRoot, pmDetect.pm);
 
   if (flags.dryRun) {
@@ -741,51 +758,39 @@ function runRepair(
     from: pinVersion,
     io,
     deps,
-  });
+    verbosity: flags.verbosity,
+    pm: pmDetect.pm,
+    restoredPackage: needsPmRestore,
+  }).exitCode;
+}
+
+function reportInvokeStderr(io: BookendIo, result: InvokeResult): void {
+  if (result.message) io.writeErr(`${result.message}\n`);
+  if (result.stderr) {
+    io.writeErr(result.stderr.endsWith("\n") ? result.stderr : `${result.stderr}\n`);
+  }
 }
 
 function reportJsonSummary(
   io: BookendIo,
   label: string,
   result: InvokeResult,
-): void {
-  if (result.message) io.writeErr(`${result.message}\n`);
-  if (result.stderr) {
-    io.writeErr(result.stderr.endsWith("\n") ? result.stderr : `${result.stderr}\n`);
-  }
-  if (!result.stdout) return;
-  const trimmed = result.stdout.trim();
-  try {
-    const parsed: unknown = JSON.parse(trimmed.split("\n").filter(Boolean).pop() ?? "");
-    if (parsed && typeof parsed === "object") {
-      const rec = parsed as {
-        created?: unknown;
-        modified?: unknown;
-        removed?: unknown;
-        migrated?: unknown;
-        conflicts?: unknown;
-        message?: unknown;
-      };
-      io.writeOut(
-        `${label}: ` +
-          `created=${JSON.stringify(rec.created ?? [])} ` +
-          `modified=${JSON.stringify(rec.modified ?? [])} ` +
-          `removed=${JSON.stringify(rec.removed ?? [])}` +
-          (Array.isArray(rec.migrated) ? ` migrated=${JSON.stringify(rec.migrated)}` : "") +
-          (Array.isArray(rec.conflicts) && rec.conflicts.length > 0
-            ? ` conflicts=${JSON.stringify(rec.conflicts)}`
-            : "") +
-          "\n",
-      );
-      if (typeof rec.message === "string" && rec.message.length > 0) {
-        io.writeOut(`${rec.message}\n`);
-      }
-      return;
+  verbosity: Verbosity,
+): SetupSummary | null {
+  reportInvokeStderr(io, result);
+  if (!result.stdout) return null;
+  const summary = tryParseSetupSummary(result.stdout);
+  if (summary) {
+    // Default human path: omit created=[...] dumps; -v/-vv via presentPathSummary.
+    if (verbosity >= 1) {
+      presentPathSummary(io, label, summary, verbosity);
+    } else if (summary.message) {
+      io.writeOut(`${summary.message}\n`);
     }
-  } catch {
-    /* fall through */
+    return summary;
   }
   io.writeOut(result.stdout.endsWith("\n") ? result.stdout : `${result.stdout}\n`);
+  return null;
 }
 
 function handOffSetup(opts: {
@@ -796,7 +801,10 @@ function handOffSetup(opts: {
   from: string;
   io: BookendIo;
   deps: InstallDeps;
-}): number {
+  verbosity: Verbosity;
+  pm: PackageManager;
+  restoredPackage?: boolean;
+}): { exitCode: number; summary: SetupSummary | null } {
   const argv = setupArgv(opts.operation, opts.from, opts.projectRoot);
   const result =
     opts.deps.invokeSetup?.(argv) ??
@@ -807,17 +815,44 @@ function handOffSetup(opts: {
       argv,
       stdio: "pipe",
     });
-  reportJsonSummary(opts.io, `setup ${opts.operation}`, result);
-  if (result.exitCode === 0) {
-    opts.io.writeOut(
-      `directive ${opts.operation}: ${RUNTIME_PACKAGE_NAME}@${opts.runtime.version} ready in ${opts.projectRoot}\n`,
-    );
-  } else if (opts.operation === "install") {
-    opts.io.writeErr(
-      `Package pin is in place but setup failed. Fix the cause, then run: directive install --repair --yes\n`,
-    );
+  // Success presenters own path dumps for install/repair; upgrade caller combines later.
+  const suppressPathDump =
+    result.exitCode === 0 &&
+    (opts.operation === "install" || opts.operation === "repair" || opts.operation === "upgrade");
+  let summary: SetupSummary | null = null;
+  if (suppressPathDump) {
+    reportInvokeStderr(opts.io, result);
+    summary = tryParseSetupSummary(result.stdout);
+  } else {
+    summary = reportJsonSummary(opts.io, `setup ${opts.operation}`, result, opts.verbosity);
   }
-  return result.exitCode;
+  if (result.exitCode === 0) {
+    if (opts.operation === "install") {
+      presentInstallSuccess(opts.io, {
+        version: opts.runtime.version,
+        projectRoot: opts.projectRoot,
+        pm: opts.pm,
+        summary,
+        verbosity: opts.verbosity,
+      });
+    } else if (opts.operation === "repair") {
+      presentRepairSuccess(opts.io, {
+        version: opts.runtime.version,
+        restoredPackage: opts.restoredPackage ?? false,
+        summary,
+        verbosity: opts.verbosity,
+      });
+    }
+    // upgrade: caller presents after migrate
+  } else if (opts.operation === "install" || opts.operation === "upgrade") {
+    presentSetupFailedAfterInstall(opts.io, {
+      version: opts.runtime.version,
+      operation: opts.operation,
+      failedPaths: summary?.conflicts,
+      reason: result.message ?? summary?.message ?? null,
+    });
+  }
+  return { exitCode: result.exitCode, summary };
 }
 
 function handOffMigrate(opts: {
@@ -827,7 +862,8 @@ function handOffMigrate(opts: {
   from: string;
   io: BookendIo;
   deps: UpgradeDeps;
-}): number {
+  verbosity: Verbosity;
+}): { exitCode: number; summary: SetupSummary | null } {
   const argv = migrateArgv(opts.from, opts.projectRoot);
   const result =
     opts.deps.invokeMigrate?.(argv) ??
@@ -838,8 +874,15 @@ function handOffMigrate(opts: {
       argv,
       stdio: "pipe",
     });
-  reportJsonSummary(opts.io, "migrate", result);
-  return result.exitCode;
+  // Caller presents combined upgrade success; suppress default dump on success.
+  let summary: SetupSummary | null = null;
+  if (result.exitCode === 0) {
+    reportInvokeStderr(opts.io, result);
+    summary = tryParseSetupSummary(result.stdout);
+  } else {
+    summary = reportJsonSummary(opts.io, "migrate", result, opts.verbosity);
+  }
+  return { exitCode: result.exitCode, summary };
 }
 
 /** GENERATION + readable wiring-ready.<V> JSON; optional body version must match (AC8.6). */
@@ -1066,39 +1109,24 @@ export function runUpgrade(
 
   const pmCmd = versionChange
     ? formatPmExactAddCommand(pmDetect.pm, targetVersion, projectRoot)
-    : "(none)";
+    : null;
 
-  const planLines = [
-    `operation: upgrade`,
-    `root: ${projectRoot}`,
-    `package manager: ${pmDetect.pm} (${pmDetect.evidence})`,
-    `current: ${RUNTIME_PACKAGE_NAME}@${currentPin}${state.oldStyle ? " (old-style)" : ""}`,
-    `target: ${RUNTIME_PACKAGE_NAME}@${targetVersion}`,
-    versionChange
-      ? `PM: exact add target (pin + lockfile change)`
-      : `PM: none (equal version; package already matches pin)`,
-    versionChange ? `PM command: ${pmCmd}` : `PM command: (none)`,
-    needSetup
-      ? `setup: runtime setup --operation upgrade --from ${fromLabel}`
-      : `setup: none (wiring current for pin)`,
-    needMigrate
-      ? `migrate: runtime migrate --from ${fromLabel}` +
-        (dataStatus !== null ? ` (dataStatus=${dataStatus})` : "")
-      : `migrate: none`,
-    `disclosure: target runtime performs required setup/migrations; project settings/data preserved`,
-    `global launcher: unchanged`,
-  ];
-  if (state.oldStyle) {
-    planLines.splice(
-      7,
-      0,
-      `remove: .deft/core (legacy content copy, even if edited)`,
-      `replace: ${LAUNCHER_PACKAGE_NAME} pin → ${RUNTIME_PACKAGE_NAME}@${targetVersion}`,
-    );
-  }
-  appendCommonPlanDisclosures(planLines, deps);
-  appendGitHooksPlanDisclosure(planLines, projectRoot);
-  printPlan(io, planLines);
+  presentUpgradePlan(io, {
+    projectRoot,
+    pm: pmDetect.pm,
+    pmEvidence: pmDetect.evidence,
+    version: targetVersion,
+    currentVersion: currentPin,
+    targetVersion,
+    versionChange,
+    pmCommand: pmCmd,
+    needSetup,
+    needMigrate,
+    oldStyle: state.oldStyle,
+    gitHooksInactive: !existsSync(join(projectRoot, ".git")),
+    nodeWarning: checkNodeVersion(deps.nodeVersion).warning ?? null,
+    verbosity: flags.verbosity,
+  });
   const planFp = fingerprintPlanCriticalFiles(projectRoot, pmDetect.pm);
 
   if (flags.dryRun) {
@@ -1152,7 +1180,7 @@ export function runUpgrade(
       return EXIT_CODES.FAILURE;
     }
 
-    const setupCode = handOffSetup({
+    const setupResult = handOffSetup({
       projectRoot,
       launcherVersion,
       runtime: installed,
@@ -1160,41 +1188,46 @@ export function runUpgrade(
       from: fromLabel,
       io,
       deps,
+      verbosity: flags.verbosity,
+      pm: pmDetect.pm,
     });
-    if (setupCode !== 0) {
-      io.writeErr(
-        `Pin and lockfile now reference ${RUNTIME_PACKAGE_NAME}@${targetVersion}, but setup failed. ` +
-          `Fix the cause, then run: directive install --repair --yes (wiring) or directive upgrade --yes (data).\n`,
-      );
-      return setupCode;
+    if (setupResult.exitCode !== 0) {
+      return setupResult.exitCode;
     }
 
-    const migrateCode = handOffMigrate({
+    const migrateResult = handOffMigrate({
       projectRoot,
       launcherVersion,
       runtime: installed,
       from: fromLabel,
       io,
       deps,
+      verbosity: flags.verbosity,
     });
-    if (migrateCode !== 0) {
+    if (migrateResult.exitCode !== 0) {
       io.writeErr(
         `Pin and lockfile now reference ${RUNTIME_PACKAGE_NAME}@${targetVersion}, but migrate failed. ` +
           `Fix the cause, then run: directive upgrade --yes.\n`,
       );
-      return migrateCode;
+      return migrateResult.exitCode;
     }
 
-    io.writeOut(
-      `directive upgrade: ${RUNTIME_PACKAGE_NAME}@${currentPin} → ${targetVersion} complete in ${projectRoot}\n`,
-    );
+    presentUpgradeSuccess(io, {
+      version: targetVersion,
+      versionChange: true,
+      pm: pmDetect.pm,
+      summary: setupResult.summary,
+      migrateSummary: migrateResult.summary,
+      verbosity: flags.verbosity,
+    });
     return EXIT_CODES.SUCCESS;
   }
 
   // Equal-version path: setup-when-stale then migrate (no PM)
   const runtime = state.installed!;
+  let setupSummary: SetupSummary | null = null;
   if (needSetup) {
-    const setupCode = handOffSetup({
+    const setupResult = handOffSetup({
       projectRoot,
       launcherVersion,
       runtime,
@@ -1202,33 +1235,41 @@ export function runUpgrade(
       from: fromLabel,
       io,
       deps,
+      verbosity: flags.verbosity,
+      pm: pmDetect.pm,
     });
-    if (setupCode !== 0) {
-      io.writeErr(
-        `Equal-version setup failed. Fix the cause, then run: directive install --repair --yes or directive upgrade --yes.\n`,
-      );
-      return setupCode;
+    if (setupResult.exitCode !== 0) {
+      return setupResult.exitCode;
     }
+    setupSummary = setupResult.summary;
   }
+  let migrateSummary: SetupSummary | null = null;
   if (needMigrate) {
-    const migrateCode = handOffMigrate({
+    const migrateResult = handOffMigrate({
       projectRoot,
       launcherVersion,
       runtime,
       from: fromLabel,
       io,
       deps,
+      verbosity: flags.verbosity,
     });
-    if (migrateCode !== 0) {
+    if (migrateResult.exitCode !== 0) {
       io.writeErr(
         `Equal-version migrate failed. Fix the cause, then run: directive upgrade --yes.\n`,
       );
-      return migrateCode;
+      return migrateResult.exitCode;
     }
+    migrateSummary = migrateResult.summary;
   }
-  io.writeOut(
-    `directive upgrade: equal-version work complete for ${RUNTIME_PACKAGE_NAME}@${currentPin}\n`,
-  );
+  presentUpgradeSuccess(io, {
+    version: currentPin,
+    versionChange: false,
+    pm: pmDetect.pm,
+    summary: setupSummary,
+    migrateSummary,
+    verbosity: flags.verbosity,
+  });
   return EXIT_CODES.SUCCESS;
 }
 
@@ -1291,33 +1332,49 @@ export function runUninstall(
   keepPaths.push("user content in AGENTS.md / host configs", "global launcher");
 
   const pmDetect = detectPackageManager(projectRoot, flags.packageManager);
-  const pmLabel = pmDetect.ok ? pmDetect.pm : "npm";
-  const pmEvidence = pmDetect.ok ? pmDetect.evidence : "default (detection failed; will skip PM remove)";
+  const pmEvidence = pmDetect.ok
+    ? pmDetect.evidence
+    : "default (detection failed; will skip PM remove)";
   const packagesToRemove: string[] = [];
   if (discovery.hasRuntimePin) packagesToRemove.push(RUNTIME_PACKAGE_NAME);
   if (discovery.hasLegacyLauncherPin || state.oldStyle) {
     packagesToRemove.push(LAUNCHER_PACKAGE_NAME);
   }
 
-  const planLines = [
-    `operation: uninstall`,
-    `root: ${projectRoot}`,
-    `ownership record: ${discovery.ownershipInspection}`,
-    `pin: ${state.pin.version ?? state.pin.raw ?? "(none)"}${state.oldStyle ? " (old-style)" : ""}`,
-    `installed runtime: ${state.installed?.version ?? "(missing/unavailable)"}`,
-    `remove: ${removePaths.length > 0 ? removePaths.join(", ") : "(none listed)"}`,
-    discovery.hasLegacyCore ? `remove: .deft/core (legacy)` : null,
-    `keep: ${keepPaths.join(", ")}`,
-    packagesToRemove.length > 0
-      ? `PM remove (${pmLabel}, ${pmEvidence}): ${packagesToRemove.map((p) => formatPmRemoveCommand(pmLabel as PackageManager, p, projectRoot)).join("; ")}`
-      : `PM remove: (none)`,
+  const pinRaw = state.pin.version ?? state.pin.raw;
+  const pinVersion =
+    pinRaw != null
+      ? `${pinRaw}${state.oldStyle ? " (old-style)" : ""}`
+      : state.oldStyle
+        ? "(none) (old-style)"
+        : null;
+  const pmCommand =
+    packagesToRemove.length > 0 && pmDetect.ok
+      ? packagesToRemove
+          .map((p) => formatPmRemoveCommand(pmDetect.pm, p, projectRoot))
+          .join("; ")
+      : null;
+  const extraHumanLines = [
+    `Ownership record: ${discovery.ownershipInspection}`,
+    `Installed runtime: ${state.installed?.version ?? "(missing/unavailable)"}`,
+    `Remove: ${removePaths.length > 0 ? removePaths.join(", ") : "(none listed)"}`,
+    discovery.hasLegacyCore ? "Remove: .deft/core (legacy)" : null,
+    `Keep: ${keepPaths.join(", ")}`,
     state.installed && state.contractSupported
-      ? `repository uninstaller: invoke when available, then launcher fallback`
-      : `repository uninstaller: unavailable — launcher fallback only (no repair/upgrade required)`,
-    `hooksPath: unset .githooks only when safe for sibling worktrees`,
+      ? "Repository uninstaller: invoke when available, then launcher fallback"
+      : "Repository uninstaller: unavailable — launcher fallback only (no repair/upgrade required)",
+    "hooksPath: unset .githooks only when safe for sibling worktrees",
   ].filter((l): l is string => l !== null);
 
-  printPlan(io, planLines);
+  presentUninstallPlan(io, {
+    projectRoot,
+    pm: pmDetect.ok ? pmDetect.pm : null,
+    pmEvidence: pmDetect.ok ? pmDetect.evidence : pmEvidence,
+    pinVersion,
+    pmCommand,
+    verbosity: flags.verbosity,
+    extraHumanLines,
+  });
 
   if (flags.dryRun) {
     io.writeOut("[dry-run] no changes made.\n");
@@ -1349,7 +1406,7 @@ export function runUninstall(
         argv: uninstallArgv(projectRoot),
         stdio: "pipe",
       });
-    reportJsonSummary(io, "repository uninstall", result);
+    reportJsonSummary(io, "repository uninstall", result, flags.verbosity);
     if (result.exitCode !== 0) {
       runtimeUninstallFailed = true;
       io.writeOut(

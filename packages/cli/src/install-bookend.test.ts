@@ -7,7 +7,8 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { GIT_HOOKS_INACTIVE_PLAN_LINE, runInstall } from "./bookends.js";
+import { runInstall } from "./bookends.js";
+import { HUMAN_GIT_HOOKS_INACTIVE_LINE } from "./plan-present.js";
 import { classifyPinVersion, readProjectInstallState, type ProjectInstallState } from "./pin.js";
 import {
   buildPmExactAddArgs,
@@ -494,7 +495,7 @@ describe("install bookend flag matrix (AC5 / AC6)", () => {
       },
     );
     expect(code).toBe(0);
-    expect(c.out()).toMatch(/dry-run|Plan:/i);
+    expect(c.out()).toMatch(/dry-run|Set up Deft Directive|Repair Directive/i);
     expect(c.out()).toMatch(/9\.9\.9/);
     expect(readFileSync(join(root, "package.json"), "utf8")).toBe(before);
   });
@@ -511,7 +512,7 @@ describe("install bookend flag matrix (AC5 / AC6)", () => {
       c.io,
     );
     expect(code).toBe(0);
-    expect(c.out()).toContain(GIT_HOOKS_INACTIVE_PLAN_LINE);
+    expect(c.out()).toContain(HUMAN_GIT_HOOKS_INACTIVE_LINE);
   });
 
   it("with-.git dry-run plan omits inactive Git hooks disclosure", () => {
@@ -526,7 +527,7 @@ describe("install bookend flag matrix (AC5 / AC6)", () => {
       c.io,
     );
     expect(code).toBe(0);
-    expect(c.out()).not.toContain(GIT_HOOKS_INACTIVE_PLAN_LINE);
+    expect(c.out()).not.toContain(HUMAN_GIT_HOOKS_INACTIVE_LINE);
   });
 
   it("pnpm plan discloses --save-exact", () => {

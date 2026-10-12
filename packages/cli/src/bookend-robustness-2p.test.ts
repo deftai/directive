@@ -167,7 +167,23 @@ describe("PLAN-DISC: install-script policy + Node best-effort in plan (AC5.1 / A
       c.io,
     );
     expect(code).toBe(0);
-    expect(c.out()).toMatch(/Plan:/);
+    expect(c.out()).toMatch(/Set up Deft Directive/);
+    expect(c.out()).toMatch(/Installation may run scripts allowed by your project's settings/);
+    expect(c.out()).not.toMatch(/install-script policy:/i);
+  });
+
+  it("verbose dry-run plan includes keyed install-script policy", () => {
+    const root = tempProject("wave2p-scripts-v");
+    const c = capture();
+    const code = runInstall(
+      root,
+      stateFor(root),
+      ["--dry-run", "-v", "--target-version", "1.2.3"],
+      "0.0.0-test",
+      c.io,
+    );
+    expect(code).toBe(0);
+    expect(c.out()).toMatch(/Set up Deft Directive/);
     expect(c.out()).toMatch(/install-script policy:/i);
   });
 
@@ -184,7 +200,7 @@ describe("PLAN-DISC: install-script policy + Node best-effort in plan (AC5.1 / A
       { nodeVersion: "20.11.0" },
     );
     expect(code).toBe(0);
-    expect(c.out()).toMatch(/Plan:/);
+    expect(c.out()).toMatch(/Set up Deft Directive/);
     expect(c.out()).toMatch(/best-effort/);
     expect(c.out()).toContain(NODE_EOL_NOTE);
   });
