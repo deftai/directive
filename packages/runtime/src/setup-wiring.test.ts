@@ -6,6 +6,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   statSync,
@@ -19,7 +20,13 @@ import {
   checkFullInSync,
   RUNTIME_PIN_PACKAGE,
 } from "@deftai/directive-core/dist/install-health/index.js";
+import {
+  assertInventoryCompleteness,
+  INSTALLER_OUTPUT_INVENTORY,
+  inventoryEntry,
+} from "./installer-output-inventory.js";
 import { runSetup } from "./setup.js";
+import { resolveDeftSkillTargetRel } from "./setup-wiring.js";
 
 const TEMPS: string[] = [];
 const RUNTIME_PREFIX = "node_modules/@deftai/directive-runtime/";
@@ -48,8 +55,24 @@ describe("runSetup package-relative wiring (Wave 2c / R9)", () => {
     runSetup({ operation: "install", from: "none", root });
     const agents = readFileSync(join(root, "AGENTS.md"), "utf8");
     expect(agents).toContain(`${RUNTIME_PREFIX}main.md`);
-    expect(agents).toContain(INSTALLATION_RECOVERY_GUIDANCE);
-    expect(agents).not.toContain(".deft/core/");
+    expect(agents).toMatch(/npm i -g @deftai\/directive/);
+    expect(agents).toMatch(/directive install --repair/);
+    expect(agents).not.toMatch(/<!-- deft:managed-section[\s\S]*?\.deft\/core\//);
+  });
+
+  it("AGENTS-STUB: managed body comes from agents-entry.md (session routing / always-pins)", () => {
+    const root = tempRoot();
+    runSetup({ operation: "install", from: "none", root });
+    const agents = readFileSync(join(root, "AGENTS.md"), "utf8");
+    expect(agents).toContain("Session routing");
+    expect(agents).toContain("always-pin");
+    expect(agents).toContain("deft-directive-pre-pr");
+    expect(agents).toContain("deft-directive-review-cycle");
+    expect(agents).toMatch(/npm i -g @deftai\/directive/);
+    expect(agents).toMatch(/directive install --repair/);
+    expect(agents).not.toMatch(/<!-- deft:managed-section[\s\S]*?\.deft\/core\//);
+    // Must not be the retired 4-line stub alone.
+    expect(agents.split("\n").length).toBeGreaterThan(20);
   });
 
   it("writes skill pointers under .agents/skills to runtime skills/ (AC9.6)", () => {
@@ -66,6 +89,71 @@ describe("runSetup package-relative wiring (Wave 2c / R9)", () => {
       "utf8",
     );
     expect(setupSkill).toContain(`${RUNTIME_PREFIX}skills/deft-directive-setup/SKILL.md`);
+  });
+
+  it("SKILL-INV: always-pins pre-pr + review-cycle; deft prefers AC9.6 skills/deft", () => {
+    const root = tempRoot();
+    runSetup({ operation: "install", from: "none", root });
+    const prePr = readFileSync(
+      join(root, ".agents", "skills", "deft-directive-pre-pr", "SKILL.md"),
+      "utf8",
+    );
+    const review = readFileSync(
+      join(root, ".agents", "skills", "deft-directive-review-cycle", "SKILL.md"),
+      "utf8",
+    );
+    expect(prePr).toContain(`${RUNTIME_PREFIX}skills/deft-directive-pre-pr/SKILL.md`);
+    expect(review).toContain(`${RUNTIME_PREFIX}skills/deft-directive-review-cycle/SKILL.md`);
+    expect(existsSync(join(root, ".github", "skills", "deft-directive-pre-pr", "SKILL.md"))).toBe(
+      true,
+    );
+    const deft = readFileSync(join(root, ".agents", "skills", "deft", "SKILL.md"), "utf8");
+    // Prefer AC9.6 skills/deft when staged; otherwise package-root SKILL.md still works.
+    expect(
+      deft.includes(`${RUNTIME_PREFIX}skills/deft/SKILL.md`) ||
+        deft.includes(`${RUNTIME_PREFIX}SKILL.md`),
+    ).toBe(true);
+    if (resolveDeftSkillTargetRel() === "skills/deft/SKILL.md") {
+      expect(deft).toContain(`${RUNTIME_PREFIX}skills/deft/SKILL.md`);
+    }
+  });
+
+  it("OWN-SKILLS: GENERATION ownership lists skill pointer paths (AC11.10)", () => {
+    const root = tempRoot();
+    runSetup({ operation: "install", from: "none", root });
+    const gen = JSON.parse(readFileSync(join(root, ".deft", "GENERATION.json"), "utf8")) as {
+      ownership: Array<{ path: string; kind: string }>;
+    };
+    const skillOwned = gen.ownership.filter(
+      (a) => a.kind === "whole-file" && a.path.includes("/skills/") && a.path.endsWith("SKILL.md"),
+    );
+    expect(skillOwned.length).toBeGreaterThanOrEqual(10);
+    expect(
+      skillOwned.some((a) => a.path === ".agents/skills/deft-directive-pre-pr/SKILL.md"),
+    ).toBe(true);
+    expect(
+      skillOwned.some((a) => a.path === ".github/skills/deft-directive-review-cycle/SKILL.md"),
+    ).toBe(true);
+  });
+
+  it("FEAT-PRESERVE: inventory complete and setup deposits slash commands", () => {
+    assertInventoryCompleteness();
+    expect(inventoryEntry("slash-commands")?.setupActivator).toBe("ensureSlashCommands");
+    expect(inventoryEntry("gitattributes-core-markers")?.disposition).toBe(
+      "na-retired-copy-model",
+    );
+    expect(INSTALLER_OUTPUT_INVENTORY.some((e) => e.id === "openclaw-integrations")).toBe(true);
+
+    const root = tempRoot();
+    runSetup({ operation: "install", from: "none", root });
+    expect(existsSync(join(root, ".claude", "commands"))).toBe(true);
+    const cmdSample = readdirSync(join(root, ".claude", "commands")).find((n) =>
+      n.endsWith(".md"),
+    );
+    expect(cmdSample).toBeTruthy();
+    const body = readFileSync(join(root, ".claude", "commands", cmdSample!), "utf8");
+    expect(body).toContain(RUNTIME_PREFIX);
+    expect(body).not.toContain(".deft/core/");
   });
 
   it("writes host hooks as node …/hook-bin.js (AC9.1)", () => {

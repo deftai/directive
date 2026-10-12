@@ -3,8 +3,9 @@
  * All managed pointers target node_modules/@deftai/directive-runtime/ — never .deft/core.
  */
 import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import {
   containedChmod,
   containedWrite,
@@ -24,12 +25,24 @@ import {
   MANAGED_SECTION_CLOSE,
   MANAGED_SECTION_OPEN_PREFIX,
 } from "@deftai/directive-core/dist/install-health/index.js";
+import { applyAgentsRefresh } from "@deftai/directive-core/dist/platform/agents-md.js";
 import {
   isHostHookDepositEnabled,
   loadHostHooksPolicyFromProject,
   type HostHooksPolicy,
 } from "@deftai/directive-core/dist/policy/host-hooks.js";
+import {
+  isHostSlashCommandDepositEnabled,
+  loadHostSlashCommandsPolicyFromProject,
+} from "@deftai/directive-core/dist/policy/host-slash-commands.js";
 import type { HookHost } from "@deftai/directive-core/dist/hooks/dispatcher.js";
+import { depositOpenClawSoftRebindSkill } from "@deftai/directive-core/dist/session/openclaw-soft-rebind-deposit.js";
+import {
+  emitHostCommandFiles,
+  listSlashEmitterHosts,
+  type HostEmittedFile,
+} from "@deftai/directive-core/dist/slash/emitters.js";
+import { depositOpenClawL2ProductCommands } from "@deftai/directive-core/dist/slash/openclaw-deposit.js";
 
 export const RUNTIME_PREFIX = RUNTIME_PACKAGE_PATH_PREFIX;
 export const HOOK_BIN_COMMAND = `node ${RUNTIME_PREFIX}dist/hook-bin.js`;
@@ -76,72 +89,95 @@ function trackChange(
   return { created: prior === null, modified: prior !== null };
 }
 
-/** Thin skill pointer inventory (AC9.6) — no versions; package-relative only. */
+/**
+ * Resolve deft skill pointer target (AC9.6). Prefer skills/deft/SKILL.md when
+ * present in this runtime package; otherwise keep working package-root SKILL.md.
+ */
+export function resolveDeftSkillTargetRel(): string {
+  const pkgRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
+  if (existsSync(join(pkgRoot, "skills", "deft", "SKILL.md"))) {
+    return "skills/deft/SKILL.md";
+  }
+  return "SKILL.md";
+}
+
+function thinSkillPointer(dir: string, description: string, targetRel: string): {
+  dir: string;
+  body: string;
+} {
+  return {
+    dir,
+    body: `---
+name: ${dir}
+description: ${description}
+---
+
+Read and follow: ${RUNTIME_PREFIX}${targetRel}
+
+Recovery: ${INSTALLATION_RECOVERY_GUIDANCE}
+`,
+  };
+}
+
+/**
+ * Thin skill pointer inventory (AC9.6) — prior consumer discovery set + always-pins.
+ * No versions; package-relative only. Includes pre-pr + review-cycle (AC9.6 / #2508).
+ */
 export const SKILL_POINTER_INVENTORY: ReadonlyArray<{ dir: string; body: string }> = [
-  {
-    dir: "deft",
-    body: `---
-name: deft
-description: Apply Directive framework standards for AI-assisted development.
----
-
-Read and follow: ${RUNTIME_PREFIX}SKILL.md
-
-Recovery: ${INSTALLATION_RECOVERY_GUIDANCE}
-`,
-  },
-  {
-    dir: "deft-directive-setup",
-    body: `---
-name: deft-directive-setup
-description: Set up a new project with Directive framework standards.
----
-
-Read and follow: ${RUNTIME_PREFIX}skills/deft-directive-setup/SKILL.md
-
-Recovery: ${INSTALLATION_RECOVERY_GUIDANCE}
-`,
-  },
-  {
-    dir: "deft-directive-build",
-    body: `---
-name: deft-directive-build
-description: Build a project from scope vBRIEFs following Directive standards.
----
-
-Read and follow: ${RUNTIME_PREFIX}skills/deft-directive-build/SKILL.md
-
-Recovery: ${INSTALLATION_RECOVERY_GUIDANCE}
-`,
-  },
-  {
-    dir: "deft-directive-swarm",
-    body: `---
-name: deft-directive-swarm
-description: Parallel local agent orchestration with isolated worktrees.
----
-
-Read and follow: ${RUNTIME_PREFIX}skills/deft-directive-swarm/SKILL.md
-
-Recovery: ${INSTALLATION_RECOVERY_GUIDANCE}
-`,
-  },
-  {
-    dir: "deft-directive-sync",
-    body: `---
-name: deft-directive-sync
-description: Session-start framework sync and alignment check.
----
-
-Read and follow: ${RUNTIME_PREFIX}skills/deft-directive-sync/SKILL.md
-
-Recovery: ${INSTALLATION_RECOVERY_GUIDANCE}
-`,
-  },
+  thinSkillPointer(
+    "deft",
+    "Apply Directive framework standards for AI-assisted development.",
+    resolveDeftSkillTargetRel(),
+  ),
+  thinSkillPointer(
+    "deft-directive-setup",
+    "Set up a new project with Directive framework standards.",
+    "skills/deft-directive-setup/SKILL.md",
+  ),
+  thinSkillPointer(
+    "deft-directive-build",
+    "Build a project from scope vBRIEFs following Directive standards.",
+    "skills/deft-directive-build/SKILL.md",
+  ),
+  thinSkillPointer(
+    "deft-directive-review-cycle",
+    "Greptile bot reviewer response workflow for autonomous PR review cycles.",
+    "skills/deft-directive-review-cycle/SKILL.md",
+  ),
+  thinSkillPointer(
+    "deft-directive-refinement",
+    "Structured refinement workflow: triage issues and update the roadmap.",
+    "skills/deft-directive-refinement/SKILL.md",
+  ),
+  thinSkillPointer(
+    "deft-directive-swarm",
+    "Parallel local agent orchestration with isolated worktrees.",
+    "skills/deft-directive-swarm/SKILL.md",
+  ),
+  thinSkillPointer(
+    "deft-directive-interview",
+    "Deterministic structured Q&A interview skill (one question per turn).",
+    "skills/deft-directive-interview/SKILL.md",
+  ),
+  thinSkillPointer(
+    "deft-directive-portfolio-priority",
+    "Pre-promotion portfolio prioritization across competing open RFCs/issues.",
+    "skills/deft-directive-portfolio-priority/SKILL.md",
+  ),
+  thinSkillPointer(
+    "deft-directive-pre-pr",
+    "Iterative pre-PR quality loop (Read-Write-Lint-Diff-Loop).",
+    "skills/deft-directive-pre-pr/SKILL.md",
+  ),
+  thinSkillPointer(
+    "deft-directive-sync",
+    "Session-start framework sync and alignment check.",
+    "skills/deft-directive-sync/SKILL.md",
+  ),
 ];
 
-/** Host discovery mirrors for the same thin pointers (AC8.1). */
-const SKILL_HOST_ROOTS = [
+/** Host discovery mirrors for the same thin pointers (AC8.1 / Copilot via .github/skills). */
+export const SKILL_HOST_ROOTS = [
   ".agents/skills",
   ".claude/skills",
   ".cursor/skills",
@@ -149,55 +185,72 @@ const SKILL_HOST_ROOTS = [
   ".github/skills",
 ] as const;
 
+/**
+ * Apply shipped templates/agents-entry.md via the same path as agents:refresh (AC9.6 / AC9.7).
+ * No hardcoded stub; package-relative paths; no .deft/core.
+ */
 export function ensureAgentsManagedSection(projectRoot: string): TrackResult & {
   conflict: boolean;
   conflictReason?: string;
 } {
   const rel = "AGENTS.md";
-  const section = [
-    `${MANAGED_SECTION_OPEN_PREFIX} v3 -->`,
-    `Full guidelines: ${RUNTIME_MAIN_MD}`,
-    `Skills: ${RUNTIME_PREFIX}skills/`,
-    `Hooks: ${HOOK_BIN_COMMAND} --host <host> --event <event>`,
-    `Recovery: ${INSTALLATION_RECOVERY_GUIDANCE}`,
-    MANAGED_SECTION_CLOSE,
-    "",
-  ].join("\n");
-
   const existing = readText(join(projectRoot, rel));
-  if (existing === null) {
-    writeContained(projectRoot, rel, `${section}\n`);
-    return { created: true, modified: false, conflict: false };
+  if (existing !== null) {
+    const start = existing.indexOf(MANAGED_SECTION_OPEN_PREFIX);
+    if (start >= 0) {
+      const openEnd = existing.indexOf("-->", start);
+      const end = openEnd >= 0 ? existing.indexOf(MANAGED_SECTION_CLOSE, openEnd) : -1;
+      if (end < 0) {
+        return {
+          created: false,
+          modified: false,
+          conflict: true,
+          conflictReason: "AGENTS.md: managed section open without close marker",
+        };
+      }
+    }
   }
 
-  const start = existing.indexOf(MANAGED_SECTION_OPEN_PREFIX);
-  if (start < 0) {
-    const suffix = existing.endsWith("\n") ? "" : "\n";
-    writeContained(projectRoot, rel, `${existing}${suffix}\n${section}\n`);
-    return { created: false, modified: true, conflict: false };
-  }
-  const openEnd = existing.indexOf("-->", start);
-  const end = openEnd >= 0 ? existing.indexOf(MANAGED_SECTION_CLOSE, openEnd) : -1;
-  if (end < 0) {
+  const result = applyAgentsRefresh(projectRoot);
+  if (
+    result.state === "template-missing" ||
+    result.state === "template-malformed" ||
+    result.state === "unreadable"
+  ) {
     return {
       created: false,
       modified: false,
       conflict: true,
-      conflictReason: "AGENTS.md: managed section open without close marker",
+      conflictReason: `AGENTS.md: agents-entry refresh failed (${result.state})`,
     };
   }
-  const closeEnd = end + MANAGED_SECTION_CLOSE.length;
-  const current = existing.slice(start, closeEnd);
-  if (
-    current.includes(RUNTIME_MAIN_MD) &&
-    current.includes(INSTALLATION_RECOVERY_GUIDANCE) &&
-    !current.includes(".deft/core/")
-  ) {
+  const after = readText(join(projectRoot, rel)) ?? "";
+  const managed = extractManagedSection(after);
+  if (managed !== null && managed.includes(".deft/core/")) {
+    return {
+      created: existing === null && result.wrote,
+      modified: existing !== null && result.wrote,
+      conflict: true,
+      conflictReason: "AGENTS.md: managed section references .deft/core",
+    };
+  }
+  if (!result.wrote) {
     return { created: false, modified: false, conflict: false };
   }
-  const next = existing.slice(0, start) + section.trimEnd() + existing.slice(closeEnd);
-  writeContained(projectRoot, rel, next.endsWith("\n") ? next : `${next}\n`);
-  return { created: false, modified: true, conflict: false };
+  return {
+    created: existing === null,
+    modified: existing !== null,
+    conflict: false,
+  };
+}
+
+function extractManagedSection(text: string): string | null {
+  const start = text.indexOf(MANAGED_SECTION_OPEN_PREFIX);
+  if (start < 0) return null;
+  const openEnd = text.indexOf("-->", start);
+  const end = openEnd >= 0 ? text.indexOf(MANAGED_SECTION_CLOSE, openEnd) : -1;
+  if (end < 0) return null;
+  return text.slice(start, end + MANAGED_SECTION_CLOSE.length);
 }
 
 export function ensureSkillPointers(projectRoot: string): {
@@ -215,6 +268,81 @@ export function ensureSkillPointers(projectRoot: string): {
     }
   }
   return { created, modified };
+}
+
+/** All wholly owned skill pointer paths (host roots × inventory). */
+export function listSkillPointerPaths(): string[] {
+  const paths: string[] = [];
+  for (const hostRoot of SKILL_HOST_ROOTS) {
+    for (const entry of SKILL_POINTER_INVENTORY) {
+      paths.push(relPosix(hostRoot, entry.dir, "SKILL.md"));
+    }
+  }
+  return paths;
+}
+
+/** Rewrite legacy .deft/core slash teaching to package-relative (AC8.1 / AC13.1). */
+function ovprSlashWrapperContents(file: HostEmittedFile): string {
+  const rewritten = file.contents.replace(
+    /Read and follow `([^`]+)` \(content-relative; deposit under `\.deft\/core\/` when installed\)\./,
+    `Read and follow \`${RUNTIME_PREFIX}$1\`.`,
+  );
+  return rewritten.includes(".deft/core/")
+    ? rewritten.split(".deft/core/").join(RUNTIME_PREFIX)
+    : rewritten;
+}
+
+/**
+ * Deposit host slash/prompt thin wrappers with package-relative targets (AC8.1 / AC8.10).
+ * Reuses emitter inventory; does not revive .deft/core teaching.
+ */
+export function ensureSlashCommands(projectRoot: string): {
+  created: string[];
+  modified: string[];
+} {
+  const created: string[] = [];
+  const modified: string[] = [];
+  const policy = loadHostSlashCommandsPolicyFromProject(projectRoot);
+  for (const hostId of listSlashEmitterHosts()) {
+    if (!isHostSlashCommandDepositEnabled(hostId, policy)) continue;
+    for (const file of emitHostCommandFiles(hostId)) {
+      const body = ovprSlashWrapperContents(file);
+      const next = body.endsWith("\n") ? body : `${body}\n`;
+      const change = trackChange(projectRoot, file.relativePath, next);
+      if (change.created) created.push(file.relativePath);
+      else if (change.modified) modified.push(file.relativePath);
+    }
+  }
+  return { created, modified };
+}
+
+/**
+ * Conditional OpenClaw deposits (AC8.1). Adapters no-op when OC is not detected.
+ * Writes typically land in OpenClaw workspace dirs (not project ownership).
+ */
+export function ensureOpenClawIntegrations(projectRoot: string): {
+  skipped: boolean;
+  skipReason?: string;
+} {
+  try {
+    const soft = depositOpenClawSoftRebindSkill({});
+    const l2 = depositOpenClawL2ProductCommands({
+      projectRoot,
+      printf: () => undefined,
+    });
+    const skipped = Boolean(soft.skipped && l2.skipped);
+    return {
+      skipped,
+      skipReason: skipped
+        ? (soft.skipReason ?? l2.skipReason ?? "OpenClaw not detected")
+        : undefined,
+    };
+  } catch (err) {
+    return {
+      skipped: true,
+      skipReason: err instanceof Error ? err.message : String(err),
+    };
+  }
 }
 
 function hookCommand(host: string, event: string): string {

@@ -31,10 +31,14 @@ import {
   ensureAgentsManagedSection,
   ensureGitHooks,
   ensureHostHooks,
+  ensureOpenClawIntegrations,
   ensureSkillPointers,
+  ensureSlashCommands,
   ensureTaskfileInclude,
+  listSkillPointerPaths,
   RUNTIME_PREFIX,
 } from "./setup-wiring.js";
+import { assertInventoryCompleteness } from "./installer-output-inventory.js";
 
 export type SetupOperation = "install" | "repair" | "upgrade";
 
@@ -248,6 +252,30 @@ function buildOwnershipArtifacts(projectRoot: string): OwnedArtifact[] {
       });
     }
   }
+  // AC11.10 / OWN-SKILLS: wholly owned skill pointer paths (all hosts × inventory).
+  for (const rel of listSkillPointerPaths()) {
+    const body = readText(join(projectRoot, rel));
+    if (body !== null) {
+      artifacts.push({
+        path: rel,
+        kind: "whole-file",
+        fingerprint: fingerprintContent(body),
+      });
+    }
+  }
+  // AC8.1 slash thin wrappers when present (wholly owned generated files).
+  for (const rel of [
+    ...listSlashOwnershipCandidates(projectRoot),
+  ]) {
+    const body = readText(join(projectRoot, rel));
+    if (body === null) continue;
+    if (!body.includes(RUNTIME_PREFIX) && !body.includes(".deft/core/")) continue;
+    artifacts.push({
+      path: rel,
+      kind: "whole-file",
+      fingerprint: fingerprintContent(body),
+    });
+  }
   const seedAbs = join(projectRoot, SEED_PLACEHOLDER_REL);
   if (existsSync(seedAbs)) {
     artifacts.push({
@@ -257,6 +285,32 @@ function buildOwnershipArtifacts(projectRoot: string): OwnedArtifact[] {
     });
   }
   return artifacts;
+}
+
+/** Slash/prompt paths under known host dirs that look Directive-managed. */
+function listSlashOwnershipCandidates(projectRoot: string): string[] {
+  const roots = [
+    ".claude/commands",
+    ".cursor/commands",
+    ".grok/commands",
+    ".codex/prompts",
+  ] as const;
+  const out: string[] = [];
+  for (const root of roots) {
+    const abs = join(projectRoot, root);
+    if (!existsSync(abs)) continue;
+    let names: string[] = [];
+    try {
+      names = readdirSync(abs);
+    } catch {
+      continue;
+    }
+    for (const name of names) {
+      if (!name.endsWith(".md")) continue;
+      out.push(relPosix(root, name));
+    }
+  }
+  return out;
 }
 
 /**
@@ -299,6 +353,9 @@ export function runSetup(options: {
       if (rem.removed) removed.push(".deft/core");
     }
 
+    // AC8.10: inventory completeness is load-time evidence (throws if incomplete).
+    assertInventoryCompleteness();
+
     track(created, modified, ".gitignore", ensureGitignore(root));
 
     const agents = ensureAgentsManagedSection(root);
@@ -310,6 +367,13 @@ export function runSetup(options: {
     const skills = ensureSkillPointers(root);
     created.push(...skills.created);
     modified.push(...skills.modified);
+
+    const slash = ensureSlashCommands(root);
+    created.push(...slash.created);
+    modified.push(...slash.modified);
+
+    // Conditional OpenClaw (no-op when OC absent); not project-path ownership.
+    ensureOpenClawIntegrations(root);
 
     const hooks = ensureHostHooks(root);
     created.push(...hooks.created);

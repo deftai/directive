@@ -302,6 +302,21 @@ function main() {
     }
   }
 
+  // AC9.6: prefer skills/deft/SKILL.md (hoist may only have root SKILL.md / .agents/skills/deft).
+  const skillsDeft = join(outDir, "skills", "deft", "SKILL.md");
+  if (!existsSync(skillsDeft)) {
+    const candidates = [
+      join(outDir, ".agents", "skills", "deft", "SKILL.md"),
+      join(outDir, "SKILL.md"),
+    ];
+    for (const candidate of candidates) {
+      if (!existsSync(candidate)) continue;
+      mkdirSync(join(outDir, "skills", "deft"), { recursive: true });
+      cpSync(candidate, skillsDeft);
+      break;
+    }
+  }
+
   // Rewrite imports in runtime dist + vendored JS to relative vendor paths.
   for (const file of listJsFiles(join(outDir, "dist"))) {
     rewriteFile(file, resolvers, vendorRoots);

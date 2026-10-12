@@ -72,11 +72,21 @@ function extractManagedSection(text: string): string | null {
   return text.slice(start, end + MANAGED_SECTION_CLOSE.length);
 }
 
-function targetsRuntime(text: string): boolean {
+function targetsRuntime(
+  text: string,
+  options: { readonly allowDeftHookProse?: boolean } = {},
+): boolean {
   const prefix = RUNTIME_PACKAGE_PATH_PREFIX.replace(/\/$/, "");
   if (!text.includes(prefix)) return false;
   if (text.includes(".deft/core/")) return false;
-  if (/(^|[\s"`'])deft-hook([\s"`']|$)/.test(text)) return false;
+  // Hook JSON / skill pointers must not invoke bare deft-hook. AGENTS managed
+  // prose may name it when teaching recovery (agents-entry.md).
+  if (
+    !options.allowDeftHookProse &&
+    /(^|[\s"`'])deft-hook([\s"`']|$)/.test(text)
+  ) {
+    return false;
+  }
   return true;
 }
 
@@ -95,7 +105,7 @@ function inspectProbe(rel: string, text: string): boolean {
       // File present without a managed section — not Directive wiring yet.
       return true;
     }
-    return targetsRuntime(section);
+    return targetsRuntime(section, { allowDeftHookProse: true });
   }
   if (isGitHookShim(rel, text)) return true;
   return targetsRuntime(text);
