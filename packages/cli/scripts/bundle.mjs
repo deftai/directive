@@ -1,38 +1,35 @@
 #!/usr/bin/env node
 /**
- * Bundle the launcher into self-contained dist entries (D4.3 / AC3.2).
- *
- * - dist/bin.js — primary launcher (directive / deft)
- * - dist/hook-bin.js — PATH deft-hook shim (may be a second bin; D4.3 is the launcher)
- *
+ * Bundle the launcher into one self-contained dist/bin.js (D4.3 / AC3.2).
+ * directive / deft / deft-hook all resolve to this file (AC3.5).
  * Keeps dependencies: {}. Uses workspace esbuild (devDependency).
  */
 import * as esbuild from "esbuild";
+import { existsSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const pkgRoot = join(here, "..");
-
-const shared = {
-  bundle: true,
-  platform: "node",
-  format: "esm",
-  packages: "external", // only node builtins; no npm deps on the launcher
-  logLevel: "info",
-  // Preserve shebang from entry (src/bin.ts / src/hook-bin.ts).
-};
+const distDir = join(pkgRoot, "dist");
 
 async function main() {
+  // Drop legacy second entry so local dist cannot ship hook-bin.js by mistake.
+  const legacyHook = join(distDir, "hook-bin.js");
+  if (existsSync(legacyHook)) rmSync(legacyHook, { force: true });
+  for (const extra of ["hook-bin.d.ts", "hook-bin.d.ts.map", "hook-bin.js.map"]) {
+    const p = join(distDir, extra);
+    if (existsSync(p)) rmSync(p, { force: true });
+  }
+
   await esbuild.build({
-    ...shared,
+    bundle: true,
+    platform: "node",
+    format: "esm",
+    packages: "external", // only node builtins; no npm deps on the launcher
+    logLevel: "info",
     entryPoints: [join(pkgRoot, "src", "bin.ts")],
-    outfile: join(pkgRoot, "dist", "bin.js"),
-  });
-  await esbuild.build({
-    ...shared,
-    entryPoints: [join(pkgRoot, "src", "hook-bin.ts")],
-    outfile: join(pkgRoot, "dist", "hook-bin.js"),
+    outfile: join(distDir, "bin.js"),
   });
 }
 

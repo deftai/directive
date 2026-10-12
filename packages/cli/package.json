@@ -1,7 +1,7 @@
 {
   "name": "@deftai/directive",
   "version": "0.0.0",
-  "description": "Directive launcher — finds the project pin and hands off to @deftai/directive-runtime.",
+  "description": "Directive launcher \u2014 finds the project pin and hands off to @deftai/directive-runtime.",
   "license": "MIT",
   "homepage": "https://deftai.github.io/directive/",
   "type": "module",
@@ -9,11 +9,10 @@
   "bin": {
     "directive": "./dist/bin.js",
     "deft": "./dist/bin.js",
-    "deft-hook": "./dist/hook-bin.js"
+    "deft-hook": "./dist/bin.js"
   },
   "files": [
-    "dist/bin.js",
-    "dist/hook-bin.js"
+    "dist/bin.js"
   ],
   "repository": {
     "type": "git",

@@ -46,8 +46,13 @@ describe("launcher package collapse (AC3.1 / AC13.4)", () => {
     }
   });
 
-  it("packages/cli files allowlist is the two self-contained bin entries (D4.3)", () => {
+  it("packages/cli files allowlist is the single self-contained bin entry (D4.3)", () => {
     const pkg = readPkg(join(HERE, ".."));
-    expect(pkg.files).toEqual(["dist/bin.js", "dist/hook-bin.js"]);
+    expect(pkg.files).toEqual(["dist/bin.js"]);
+    expect(pkg.bin).toEqual({
+      directive: "./dist/bin.js",
+      deft: "./dist/bin.js",
+      "deft-hook": "./dist/bin.js",
+    });
   });
 });

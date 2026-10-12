@@ -1,8 +1,7 @@
-#!/usr/bin/env node
 /**
- * Global `deft-hook` bin on the launcher package (AC3.5).
+ * Global `deft-hook` PATH shim (AC3.5), invoked from the single launcher entry
+ * when basename(argv[1]) is deft-hook (or DEFT_LAUNCHER_MODE=hook).
  * Host configs should use `node node_modules/@deftai/directive-runtime/dist/hook-bin.js`.
- * This PATH binary discovers the project runtime hook and spawns it, or prints recovery.
  */
 import { existsSync } from "node:fs";
 import { join } from "node:path";
@@ -12,7 +11,7 @@ import { discoverProject } from "./discover.js";
 import { checkNodeVersion } from "./node-check.js";
 import { readInstalledRuntime } from "./pin.js";
 
-function main(argv: string[]): number {
+export function runHookLauncher(argv: string[]): number {
   const node = checkNodeVersion();
   if (!node.ok) {
     process.stderr.write(`${node.message}\n`);
@@ -62,5 +61,3 @@ function main(argv: string[]): number {
   if (result.status === null && result.signal) return EXIT_CODES.INTERRUPTED;
   return result.status ?? EXIT_CODES.FAILURE;
 }
-
-process.exit(main(process.argv.slice(2)));
