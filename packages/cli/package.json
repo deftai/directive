@@ -9,10 +9,12 @@
   "bin": {
     "directive": "./dist/bin.js",
     "deft": "./dist/bin.js",
-    "deft-hook": "./dist/bin.js"
+    "deft-hook": "./bin/deft-hook"
   },
   "files": [
-    "dist/bin.js"
+    "dist/bin.js",
+    "bin/deft-hook",
+    "bin/deft-hook.cmd"
   ],
   "repository": {
     "type": "git",

@@ -86,7 +86,7 @@ describe("resolveInstalledContentRoot", () => {
       }),
     ).rejects.toMatchObject({
       name: "ContentPackageNotFoundError",
-      message: expect.stringContaining("pnpm add @deftai/directive-content"),
+      message: expect.stringContaining("@deftai/directive-runtime"),
     });
   });
 
@@ -99,6 +99,32 @@ describe("resolveInstalledContentRoot", () => {
     await expect(
       resolveInstalledContentRoot(async () => join(bogus, "package.json")),
     ).rejects.toBeInstanceOf(ContentPackageNotFoundError);
+  });
+
+  it("falls back to @deftai/directive-runtime when content package is absent (hoisted)", async () => {
+    const project = freshRoot();
+    const runtimeDir = join(project, "node_modules", "@deftai", "directive-runtime");
+    mkdirSync(runtimeDir, { recursive: true });
+    writeFileSync(
+      join(runtimeDir, "package.json"),
+      JSON.stringify({ name: "@deftai/directive-runtime", version: "0.0.0" }),
+      "utf-8",
+    );
+    mkdirSync(join(runtimeDir, "templates"), { recursive: true });
+    writeFileSync(join(runtimeDir, "templates", "agents-entry.md"), "# agents", "utf-8");
+
+    const resolveSpecifier = async (specifier: string): Promise<string> => {
+      if (specifier.startsWith("@deftai/directive-content")) {
+        throw new Error("Cannot find package '@deftai/directive-content'");
+      }
+      if (specifier === "@deftai/directive-runtime/package.json") {
+        return join(runtimeDir, "package.json");
+      }
+      throw new Error(`unexpected specifier: ${specifier}`);
+    };
+
+    const root = await resolveInstalledContentRoot(resolveSpecifier);
+    expect(root).toBe(runtimeDir);
   });
 });
 

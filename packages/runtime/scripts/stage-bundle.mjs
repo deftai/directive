@@ -185,21 +185,25 @@ function listJsFiles(root) {
   return out;
 }
 
+/**
+ * Rewrite only real import/require/resolve specifiers — never package-name
+ * string constants (e.g. CONTENT_PACKAGE_NAME = "@deftai/directive-content").
+ */
 function rewriteFile(file, resolvers, vendorRoots) {
   let text = readFileSync(file, "utf8");
   const original = text;
 
-  // Prefer longest scoped names first (already ordered types/content/core uniquely).
   for (const entry of PRIVATE) {
     const resolveSub = resolvers.get(entry.folder);
     const vendorRoot = vendorRoots.get(entry.folder);
-    const scoped = entry.scoped;
-    // Specifiers: "@deftai/directive-core", ".../sub", with ' or "
+    const scoped = entry.scoped.replace(/\//g, "\\/");
+    // from "..."; import("..."); require("..."); require.resolve("...");
+    // import.meta.resolve("...")
     const re = new RegExp(
-      `(["'])${scoped.replace(/\//g, "\\/")}(\\/[^"'\\s]*)?\\1`,
+      `(from\\s+|import\\s*\\(|(?:require(?:\\.resolve)?|import\\.meta\\.resolve)\\s*\\(\\s*)(["'])${scoped}(\\/[^"'\\s]*)?\\2`,
       "g",
     );
-    text = text.replace(re, (match, quote, sub) => {
+    text = text.replace(re, (match, prefix, quote, sub) => {
       const subpath = sub ? sub.slice(1) : "";
       let targetRel;
       try {
@@ -210,27 +214,19 @@ function rewriteFile(file, resolvers, vendorRoots) {
       if (!targetRel) return match;
       const absTarget = join(vendorRoot, targetRel);
       const rel = toPosixRelative(file, absTarget);
-      return `${quote}${rel}${quote}`;
+      return `${prefix}${quote}${rel}${quote}`;
     });
-
-    // require.resolve / bare string forms without forcing quote reuse already handled.
   }
 
   // Path-join segments for private packages → runtime (content hoisted) or vendor.
   // join(..., "node_modules", "@deftai", "directive-content", ...) → directive-runtime
   text = text.split(`"@deftai", "directive-content"`).join(`"@deftai", "directive-runtime"`);
   text = text.split(`'@deftai', 'directive-content'`).join(`'@deftai', 'directive-runtime'`);
-  // directive-core path probes → vendor path under the runtime package (no @deftai scope)
-  // join(dir, "node_modules", "@deftai", "directive-core", ...) cannot point at vendor
-  // easily; strip to a non-@deftai probe that won't create false package identities.
+  // directive-core/types path probes → non-@deftai markers (no nested package identity).
   text = text.split(`"@deftai", "directive-core"`).join(`"directive-core-absent"`);
   text = text.split(`'@deftai', 'directive-core'`).join(`'directive-core-absent'`);
   text = text.split(`"@deftai", "directive-types"`).join(`"directive-types-absent"`);
   text = text.split(`'@deftai', 'directive-types'`).join(`'directive-types-absent'`);
-
-  // CONTENT_PACKAGE_NAME / similar string constants for content → runtime (hoisted).
-  text = text.split('"@deftai/directive-content"').join('"@deftai/directive-runtime"');
-  text = text.split("'@deftai/directive-content'").join("'@deftai/directive-runtime'");
 
   if (text !== original) writeFileSync(file, text);
 }

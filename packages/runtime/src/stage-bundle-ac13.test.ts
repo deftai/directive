@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -126,4 +126,71 @@ describe("stage-bundle AC1.3 packaging purity (PKG-AC13-NEST)", () => {
     },
     120_000,
   );
+
+  it("does not rewrite CONTENT_PACKAGE_NAME; resolveInstalledContentRoot works on staged layout", async () => {
+    const outDir = mkdtempSync(join(tmpdir(), "stage-ac13-content-"));
+    try {
+      const staged = spawnSync(process.execPath, [STAGE_SCRIPT, outDir], {
+        cwd: REPO_ROOT,
+        encoding: "utf8",
+      });
+      expect(staged.status, staged.stderr || staged.stdout).toBe(0);
+
+      const resolveContentJs = join(
+        outDir,
+        "vendor",
+        "directive-core",
+        "dist",
+        "deposit",
+        "resolve-content.js",
+      );
+      expect(existsSync(resolveContentJs)).toBe(true);
+      const src = readFileSync(resolveContentJs, "utf8");
+      // Greptile P1: package-name constants must stay package names, not relative paths.
+      expect(src).toMatch(
+        /CONTENT_PACKAGE_NAME\s*=\s*["']@deftai\/directive-content["']/,
+      );
+      expect(src).not.toMatch(/CONTENT_PACKAGE_NAME\s*=\s*["']\.\.?\//);
+
+      // Installed layout: content hoisted at runtime package root.
+      expect(existsSync(join(outDir, "templates"))).toBe(true);
+      expect(existsSync(join(outDir, "vendor", "directive-content", "package.json"))).toBe(
+        false,
+      );
+
+      const { CONTENT_PACKAGE_NAME, resolveInstalledContentRoot } = await import(
+        pathToFileURL(resolveContentJs).href
+      );
+      expect(CONTENT_PACKAGE_NAME).toBe("@deftai/directive-content");
+
+      const root = await resolveInstalledContentRoot(async (specifier: string) => {
+        if (specifier.startsWith("@deftai/directive-content")) {
+          throw new Error("private content package absent in published stage");
+        }
+        if (specifier === "@deftai/directive-runtime/package.json") {
+          return join(outDir, "package.json");
+        }
+        throw new Error(`unexpected specifier: ${specifier}`);
+      });
+      expect(root).toBe(outDir);
+      expect(existsSync(join(root, "templates"))).toBe(true);
+
+      // P2: vendor/directive-core has no package.json; version reader walks to runtime.
+      const engineVersionJs = join(
+        outDir,
+        "vendor",
+        "directive-core",
+        "dist",
+        "engine-version.js",
+      );
+      expect(existsSync(engineVersionJs)).toBe(true);
+      const { readCorePackageVersion } = await import(pathToFileURL(engineVersionJs).href);
+      const runtimePkg = JSON.parse(readFileSync(join(outDir, "package.json"), "utf8")) as {
+        version?: string;
+      };
+      expect(readCorePackageVersion()).toBe(runtimePkg.version);
+    } finally {
+      rmSync(outDir, { recursive: true, force: true });
+    }
+  }, 120_000);
 });

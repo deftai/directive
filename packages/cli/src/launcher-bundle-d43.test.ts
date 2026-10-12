@@ -1,9 +1,17 @@
 /**
  * D4.3 / AC3.2: launcher ships as exactly one self-contained JS file.
- * AC3.5: directive / deft / deft-hook all point at that file.
+ * AC3.5: directive / deft point at dist/bin.js; deft-hook is a PATH shim that
+ * sets DEFT_LAUNCHER_MODE=hook and execs the same dist/bin.js.
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  symlinkSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,6 +21,9 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const CLI_ROOT = join(HERE, "..");
 const DIST = join(CLI_ROOT, "dist");
 const BUNDLE_SCRIPT = join(CLI_ROOT, "scripts", "bundle.mjs");
+
+/** Symlink-based argv[1] basename tests are POSIX-oriented (Windows npm uses .cmd). */
+const itSymlink = it.skipIf(process.platform === "win32");
 
 function npmSpawn(
   args: string[],
@@ -79,6 +90,7 @@ describe("launcher single-file bundle (D4.3 / AC3.2)", () => {
       const jsEntries = entries.filter((n) => n.endsWith(".js") && !n.endsWith(".js.map"));
       expect(jsEntries).toEqual(["package/dist/bin.js"]);
       expect(entries.some((n) => n.includes("hook-bin"))).toBe(false);
+      expect(entries).toEqual(expect.arrayContaining(["package/bin/deft-hook", "package/bin/deft-hook.cmd"]));
 
       const pkgJson = JSON.parse(
         spawnSync("tar", ["-xOf", tgz, "package/package.json"], { encoding: "utf8" }).stdout,
@@ -88,40 +100,42 @@ describe("launcher single-file bundle (D4.3 / AC3.2)", () => {
         files?: string[];
       };
       expect(pkgJson.dependencies ?? {}).toEqual({});
-      expect(pkgJson.files).toEqual(["dist/bin.js"]);
+      expect(pkgJson.files).toEqual(["dist/bin.js", "bin/deft-hook", "bin/deft-hook.cmd"]);
       expect(pkgJson.bin).toEqual({
         directive: "./dist/bin.js",
         deft: "./dist/bin.js",
-        "deft-hook": "./dist/bin.js",
+        "deft-hook": "./bin/deft-hook",
       });
     } finally {
       rmSync(art, { recursive: true, force: true });
     }
   });
 
-  it("packages/cli package.json files allowlist is dist/bin.js only", () => {
+  it("packages/cli package.json files allowlist is dist/bin.js + deft-hook shims", () => {
     const pkg = JSON.parse(readFileSync(join(CLI_ROOT, "package.json"), "utf8")) as {
       files?: string[];
       dependencies?: Record<string, string>;
       bin?: Record<string, string>;
     };
     expect(pkg.dependencies).toEqual({});
-    expect(pkg.files).toEqual(["dist/bin.js"]);
+    expect(pkg.files).toEqual(["dist/bin.js", "bin/deft-hook", "bin/deft-hook.cmd"]);
     expect(pkg.bin).toEqual({
       directive: "./dist/bin.js",
       deft: "./dist/bin.js",
-      "deft-hook": "./dist/bin.js",
+      "deft-hook": "./bin/deft-hook",
     });
     // Sanity: dist may still have tsc intermediates locally; pack allowlist is what matters.
     expect(readdirSync(DIST).includes("bin.js")).toBe(true);
+    expect(existsSync(join(CLI_ROOT, "bin", "deft-hook"))).toBe(true);
+    expect(existsSync(join(CLI_ROOT, "bin", "deft-hook.cmd"))).toBe(true);
   });
 
-  it("deft-hook invocation name dispatches to hook launcher (AC3.5)", () => {
+  itSymlink("deft-hook invocation name dispatches to hook launcher (AC3.5)", () => {
     const art = mkdtempSync(join(tmpdir(), "launcher-hook-dispatch-"));
     try {
       const bin = join(DIST, "bin.js");
       const hookLink = join(art, "deft-hook");
-      spawnSync("ln", ["-s", bin, hookLink], { encoding: "utf8" });
+      symlinkSync(bin, hookLink);
       // Invoke via node so argv[1] is the symlink basename (no +x required).
       const hook = spawnSync(process.execPath, [hookLink], {
         encoding: "utf8",
@@ -135,5 +149,17 @@ describe("launcher single-file bundle (D4.3 / AC3.2)", () => {
     } finally {
       rmSync(art, { recursive: true, force: true });
     }
+  });
+
+  it("DEFT_LAUNCHER_MODE=hook dispatches when argv[1] basename is bin.js (Windows shim)", () => {
+    const hook = spawnSync(process.execPath, [join(DIST, "bin.js")], {
+      encoding: "utf8",
+      env: { ...process.env, DEFT_LAUNCHER_MODE: "hook" },
+      cwd: mkdtempSync(join(tmpdir(), "launcher-hook-mode-")),
+    });
+    expect(hook.status).not.toBe(0);
+    const out = `${hook.stderr ?? ""}${hook.stdout ?? ""}`;
+    expect(out).toMatch(/deft-hook:/);
+    expect(out).not.toMatch(/Usage: directive/i);
   });
 });

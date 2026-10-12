@@ -2,9 +2,10 @@
 /**
  * Single launcher entry (D4.3 / AC3.2 / AC3.5).
  *
- * package.json bins `directive`, `deft`, and `deft-hook` all point here.
- * Dispatch: basename(process.argv[1]) matching `deft-hook`, or
- * DEFT_LAUNCHER_MODE=hook (Windows npm shims often leave argv[1] as bin.js).
+ * package.json bins `directive` / `deft` point here; `deft-hook` is a thin
+ * PATH shim (bin/deft-hook[+.cmd]) that sets DEFT_LAUNCHER_MODE=hook and execs
+ * this file. Dispatch: basename(argv[1]) matching `deft-hook`, or
+ * DEFT_LAUNCHER_MODE=hook (Windows npm .cmd shims leave argv[1] as bin.js).
  */
 import { basename } from "node:path";
 import { runHookLauncher } from "./hook-launcher.js";

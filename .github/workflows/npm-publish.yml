@@ -176,13 +176,7 @@ jobs:
             const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
             pkg.version = ver;
             fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
-            for (const name of ['directive-core', 'directive-content', 'directive-types']) {
-              const p = path.join(stage, 'node_modules', '@deftai', name, 'package.json');
-              if (!fs.existsSync(p)) continue;
-              const sub = JSON.parse(fs.readFileSync(p, 'utf8'));
-              sub.version = ver;
-              fs.writeFileSync(p, JSON.stringify(sub, null, 2) + '\n');
-            }
+            // PKG-AC13-NEST: private pkgs live under vendor/ without package.json — no nested version bump.
           "
 
       - name: Pack two @deftai packages (launcher + runtime)
@@ -199,8 +193,9 @@ jobs:
           ls -la tarballs
           test -f "tarballs/deftai-directive-runtime-${VERSION}.tgz"
           test -f "tarballs/deftai-directive-${VERSION}.tgz"
-          # AC3.1 + AC1.3 + D4.3 + AC13.4: launcher empty deps / single-file bins;
-          # runtime has no @deftai deps and vendors private pkgs under node_modules.
+          # AC3.1 + AC1.3 + D4.3 + AC13.4: launcher empty deps / single JS bin +
+          # PATH shims; runtime has no @deftai deps and vendors under vendor/ (no
+          # nested node_modules/@deftai/*/package.json).
           node --input-type=commonjs -e "
             const {execSync}=require('node:child_process');
             const ver=process.env.VERSION;
@@ -209,12 +204,26 @@ jobs:
               console.error('AC3.1 fail: launcher deps not empty', launcher.dependencies);
               process.exit(1);
             }
-            const launcherListing=execSync('tar -tzf '+JSON.stringify('tarballs/deftai-directive-'+ver+'.tgz'),{encoding:'utf8'});
-            const launcherJs=launcherListing.split('\n').filter(n=>n.endsWith('.js')&&!n.endsWith('.js.map')).sort();
-            const wantJs=['package/dist/bin.js','package/dist/hook-bin.js'].sort();
-            if (launcherJs.join('\n')!==wantJs.join('\n')) {
-              console.error('D4.3 fail: launcher JS entries', launcherJs);
+            if (!launcher.bin || launcher.bin.directive!=='./dist/bin.js' || launcher.bin.deft!=='./dist/bin.js' || launcher.bin['deft-hook']!=='./bin/deft-hook') {
+              console.error('D4.3/AC3.5 fail: launcher bin map', launcher.bin);
               process.exit(1);
+            }
+            const launcherListing=execSync('tar -tzf '+JSON.stringify('tarballs/deftai-directive-'+ver+'.tgz'),{encoding:'utf8'});
+            const launcherEntries=launcherListing.split('\n').filter(Boolean);
+            const launcherJs=launcherEntries.filter(n=>n.endsWith('.js')&&!n.endsWith('.js.map')).sort();
+            if (launcherJs.join('\n')!=='package/dist/bin.js') {
+              console.error('D4.3 fail: expected exactly one launcher JS', launcherJs);
+              process.exit(1);
+            }
+            if (launcherEntries.some(n=>n.includes('hook-bin'))) {
+              console.error('D4.3 fail: legacy hook-bin present in launcher tarball');
+              process.exit(1);
+            }
+            for (const need of ['package/bin/deft-hook','package/bin/deft-hook.cmd']) {
+              if (!launcherEntries.includes(need)) {
+                console.error('AC3.5 fail: missing PATH shim', need);
+                process.exit(1);
+              }
             }
             const runtime=JSON.parse(execSync('tar -xOf '+JSON.stringify('tarballs/deftai-directive-runtime-'+ver+'.tgz')+' package/package.json',{encoding:'utf8'}));
             if (!runtime.directive || runtime.directive.contract!==1) {
@@ -231,13 +240,27 @@ jobs:
               process.exit(1);
             }
             const listing=execSync('tar -tzf '+JSON.stringify('tarballs/deftai-directive-runtime-'+ver+'.tgz'),{encoding:'utf8'});
-            for (const need of [
+            const names=listing.split('\n');
+            for (const nested of [
               'package/node_modules/@deftai/directive-core/package.json',
               'package/node_modules/@deftai/directive-content/package.json',
               'package/node_modules/@deftai/directive-types/package.json',
+              'package/vendor/directive-core/package.json',
+              'package/vendor/directive-content/package.json',
+              'package/vendor/directive-types/package.json',
             ]) {
-              if (!listing.split('\n').includes(need)) {
-                console.error('AC13.4 fail: missing vendored', need);
+              if (names.includes(nested)) {
+                console.error('AC1.3 fail: nested package.json must be absent', nested);
+                process.exit(1);
+              }
+            }
+            for (const prefix of [
+              'package/vendor/directive-core/',
+              'package/vendor/directive-content/',
+              'package/vendor/directive-types/',
+            ]) {
+              if (!names.some(n=>n.startsWith(prefix))) {
+                console.error('AC13.4 fail: missing vendor tree', prefix);
                 process.exit(1);
               }
             }

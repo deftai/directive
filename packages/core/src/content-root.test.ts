@@ -131,6 +131,23 @@ describe("contentRoot three operating modes (#11 S2 / @deftai/directive-content)
     expect(resolveContentPackageRoot(frameworkRoot)).toBeNull();
   });
 
+  it("prefers hoisted runtime package when private content package is absent (AC1.3)", () => {
+    const project = freshProject();
+    const frameworkRoot = join(project, "app");
+    mkdirSync(frameworkRoot, { recursive: true });
+    const runtimeDir = join(project, "node_modules", "@deftai", "directive-runtime");
+    mkdirSync(join(runtimeDir, "templates"), { recursive: true });
+    writeFileSync(
+      join(runtimeDir, "package.json"),
+      JSON.stringify({ name: "@deftai/directive-runtime", version: "0.0.0" }),
+      "utf-8",
+    );
+    writeFileSync(join(runtimeDir, "templates", "agents-entry.md"), "# runtime", "utf-8");
+
+    expect(resolveContentPackageRoot(frameworkRoot)).toBe(runtimeDir);
+    expect(contentRoot(frameworkRoot)).toBe(runtimeDir);
+  });
+
   it("hybrid npm-engine: resolves the npm package over a flattened vendored deposit", () => {
     const project = freshProject();
     const frameworkRoot = join(project, ".deft", "core");

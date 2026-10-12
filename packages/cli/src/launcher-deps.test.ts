@@ -46,13 +46,13 @@ describe("launcher package collapse (AC3.1 / AC13.4)", () => {
     }
   });
 
-  it("packages/cli files allowlist is the single self-contained bin entry (D4.3)", () => {
+  it("packages/cli files allowlist is the single self-contained bin + PATH shims (D4.3)", () => {
     const pkg = readPkg(join(HERE, ".."));
-    expect(pkg.files).toEqual(["dist/bin.js"]);
+    expect(pkg.files).toEqual(["dist/bin.js", "bin/deft-hook", "bin/deft-hook.cmd"]);
     expect(pkg.bin).toEqual({
       directive: "./dist/bin.js",
       deft: "./dist/bin.js",
-      "deft-hook": "./dist/bin.js",
+      "deft-hook": "./bin/deft-hook",
     });
   });
 });

@@ -59,14 +59,18 @@ const MAX_ANCESTOR_WALK_DEPTH = 256;
  */
 export function resolveContentPackageRoot(searchFrom: string): string | null {
   let dir = resolve(searchFrom);
+  // Prefer private content package; fall back to runtime (content hoisted, AC1.3).
+  const nestedNames = ["directive-content", "directive-runtime"] as const;
   for (let depth = 0; depth < MAX_ANCESTOR_WALK_DEPTH; depth += 1) {
-    const pkgJson = join(dir, "node_modules", "@deftai", "directive-content", "package.json");
-    try {
-      if (statSync(pkgJson).isFile()) {
-        return dirname(pkgJson);
+    for (const name of nestedNames) {
+      const pkgJson = join(dir, "node_modules", "@deftai", name, "package.json");
+      try {
+        if (statSync(pkgJson).isFile()) {
+          return dirname(pkgJson);
+        }
+      } catch {
+        // No physical install at this ancestor -- try next name / keep walking.
       }
-    } catch {
-      // No physical install at this ancestor -- keep walking.
     }
     const parent = dirname(dir);
     if (parent === dir) break;
