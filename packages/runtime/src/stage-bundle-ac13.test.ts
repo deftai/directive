@@ -1,6 +1,7 @@
 /**
- * AC1.3 / PKG-AC13: staged + packed runtime has zero @deftai/* dependency keys
- * while still shipping vendored core/content/types under node_modules.
+ * AC1.3 / PKG-AC13-NEST: staged + packed runtime has zero @deftai deps and
+ * zero nested node_modules/@deftai/<pkg>/package.json identities.
+ * Private core/content/types are vendored under vendor/ without package.json.
  */
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
@@ -20,6 +21,12 @@ function deftaiDepKeys(pkg: { dependencies?: Record<string, string> }): string[]
   return Object.keys(pkg.dependencies ?? {}).filter((k) => k.startsWith("@deftai/"));
 }
 
+function nestedDeftaiPackageJsonPaths(listing: string): string[] {
+  return listing
+    .split("\n")
+    .filter((n) => n.includes("node_modules/@deftai/") && n.endsWith("/package.json"));
+}
+
 beforeAll(() => {
   if (existsSync(RUNTIME_DIST_BIN)) return;
   const built = spawnSync("pnpm", ["-w", "run", "build"], {
@@ -34,8 +41,8 @@ beforeAll(() => {
   }
 }, 300_000);
 
-describe("stage-bundle AC1.3 packaging purity", () => {
-  it("staged package.json has no @deftai/* dependencies and vendors private packages", () => {
+describe("stage-bundle AC1.3 packaging purity (PKG-AC13-NEST)", () => {
+  it("staged package.json has no @deftai/* deps and vendors without package.json", () => {
     const outDir = mkdtempSync(join(tmpdir(), "stage-ac13-"));
     try {
       const staged = spawnSync(process.execPath, [STAGE_SCRIPT, outDir], {
@@ -48,16 +55,23 @@ describe("stage-bundle AC1.3 packaging purity", () => {
         name?: string;
         dependencies?: Record<string, string>;
         bundledDependencies?: string[];
+        files?: string[];
       };
       expect(pkg.name).toBe("@deftai/directive-runtime");
       expect(deftaiDepKeys(pkg)).toEqual([]);
       expect(pkg.bundledDependencies).toBeUndefined();
+      expect(pkg.files?.some((f) => f.startsWith("vendor"))).toBe(true);
 
       for (const name of PRIVATE) {
+        expect(existsSync(join(outDir, "vendor", name)), `missing vendor/${name}`).toBe(true);
+        expect(
+          existsSync(join(outDir, "vendor", name, "package.json")),
+          `vendor/${name}/package.json must be absent`,
+        ).toBe(false);
         expect(
           existsSync(join(outDir, "node_modules", "@deftai", name, "package.json")),
-          `missing vendored ${name}`,
-        ).toBe(true);
+          `scoped nested @deftai/${name} must be absent`,
+        ).toBe(false);
       }
     } finally {
       rmSync(outDir, { recursive: true, force: true });
@@ -65,7 +79,7 @@ describe("stage-bundle AC1.3 packaging purity", () => {
   });
 
   it(
-    "packed tarball package.json has no @deftai/* deps but keeps nested vendors",
+    "packed tarball has no nested @deftai package.json and keeps vendor trees",
     () => {
       const outDir = mkdtempSync(join(tmpdir(), "stage-ac13-pack-"));
       const artDir = mkdtempSync(join(tmpdir(), "art-ac13-"));
@@ -99,10 +113,12 @@ describe("stage-bundle AC1.3 packaging purity", () => {
 
         const listing = spawnSync("tar", ["-tzf", tgz!], { encoding: "utf8" });
         expect(listing.status).toBe(0);
-        const names = new Set(listing.stdout.split("\n"));
+        const names = listing.stdout.split("\n");
         for (const name of PRIVATE) {
-          expect(names.has(`package/node_modules/@deftai/${name}/package.json`)).toBe(true);
+          expect(names.some((n) => n.startsWith(`package/vendor/${name}/`))).toBe(true);
+          expect(names.includes(`package/vendor/${name}/package.json`)).toBe(false);
         }
+        expect(nestedDeftaiPackageJsonPaths(listing.stdout)).toEqual([]);
       } finally {
         rmSync(outDir, { recursive: true, force: true });
         rmSync(artDir, { recursive: true, force: true });

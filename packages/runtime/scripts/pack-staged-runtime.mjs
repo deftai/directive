@@ -1,13 +1,10 @@
 #!/usr/bin/env node
 /**
- * Pack a stage-bundle directory into a publishable tarball (AC1.3 / AC13.4).
+ * Pack a stage-bundle directory into a publishable tarball (AC1.3 / PKG-AC13-NEST).
  *
- * npm pack only embeds nested node_modules when the packages are listed in both
- * dependencies and bundledDependencies. The staged package.json deliberately
- * omits @deftai/* from dependencies (AC1.3), so this helper:
- *   1. temporarily lists vendored @deftai/* for npm pack
- *   2. packs
- *   3. rewrites the tarball package.json back to zero @deftai/* dependency keys
+ * Private vendors live under vendor/directive-* without package.json and are
+ * included via the staged files allowlist (vendor/**). No temporary @deftai
+ * (or unscoped private) dependency keys are required for npm pack.
  *
  * Usage:
  *   node packages/runtime/scripts/pack-staged-runtime.mjs <stageDir> <packDestDir>
@@ -27,7 +24,7 @@ import {
 import { tmpdir } from "node:os";
 import { isAbsolute, join, resolve } from "node:path";
 
-const PRIVATE_NAMES = ["directive-types", "directive-core", "directive-content"];
+const PRIVATE_FOLDERS = ["directive-types", "directive-core", "directive-content"];
 
 function fail(msg) {
   throw new Error(`pack-staged-runtime: ${msg}`);
@@ -37,7 +34,6 @@ function npmPack(args, opts) {
   return spawnSync("npm", args, {
     ...opts,
     encoding: "utf8",
-    // Native Windows: npm is a .cmd shim (#5383).
     shell: process.platform === "win32",
   });
 }
@@ -74,51 +70,44 @@ function main() {
 
   const pkgPath = join(stageDir, "package.json");
   if (!existsSync(pkgPath)) fail(`missing ${pkgPath}`);
-  for (const name of PRIVATE_NAMES) {
-    const p = join(stageDir, "node_modules", "@deftai", name, "package.json");
-    if (!existsSync(p)) fail(`vendored package missing: ${p}`);
+
+  for (const name of PRIVATE_FOLDERS) {
+    const vendorDir = join(stageDir, "vendor", name);
+    if (!existsSync(vendorDir)) fail(`vendored folder missing: ${vendorDir}`);
+    const badPkg = join(vendorDir, "package.json");
+    if (existsSync(badPkg)) fail(`vendor must not include package.json: ${badPkg}`);
+    const scoped = join(stageDir, "node_modules", "@deftai", name, "package.json");
+    if (existsSync(scoped)) fail(`scoped nested vendor must be absent: ${scoped}`);
   }
 
   const cleanPkg = readJson(pkgPath);
-  const version = cleanPkg.version || "0.0.0";
   const deftaiKeys = Object.keys(cleanPkg.dependencies || {}).filter((k) =>
     k.startsWith("@deftai/"),
   );
   if (deftaiKeys.length > 0) {
     fail(`stage package.json still has @deftai deps: ${deftaiKeys.join(", ")}`);
   }
-
-  // Temporary pack shape so npm embeds nested node_modules.
-  const packPkg = structuredClone(cleanPkg);
-  packPkg.dependencies = { ...(cleanPkg.dependencies || {}) };
-  const bundled = PRIVATE_NAMES.map((n) => `@deftai/${n}`);
-  for (const name of bundled) packPkg.dependencies[name] = version;
-  packPkg.bundledDependencies = bundled;
-  writeJson(pkgPath, packPkg);
-
-  let tgzPath;
-  try {
-    // COPYFILE_DISABLE avoids macOS AppleDouble ._* entries in the tarball.
-    const packed = npmPack(["pack", "--pack-destination", packDest], {
-      cwd: stageDir,
-      env: { ...process.env, COPYFILE_DISABLE: "1" },
-    });
-    if (packed.status !== 0) {
-      fail(`npm pack failed: ${packed.stderr || packed.stdout}`);
-    }
-    const lines = (packed.stdout || "").trim().split("\n").filter(Boolean);
-    const filename = lines[lines.length - 1];
-    if (!filename || !filename.endsWith(".tgz")) {
-      fail(`npm pack did not print tarball name; output=${packed.stdout}`);
-    }
-    tgzPath = join(packDest, filename);
-    if (!existsSync(tgzPath)) fail(`packed tarball missing: ${tgzPath}`);
-  } finally {
-    // Always restore staged manifest so retries are not poisoned.
-    writeJson(pkgPath, cleanPkg);
+  if (cleanPkg.bundledDependencies) {
+    fail("stage package.json must not declare bundledDependencies");
   }
 
-  // Strip @deftai/* from the published package.json inside the tarball.
+  // COPYFILE_DISABLE avoids macOS AppleDouble ._* entries in the tarball.
+  const packed = npmPack(["pack", "--pack-destination", packDest], {
+    cwd: stageDir,
+    env: { ...process.env, COPYFILE_DISABLE: "1" },
+  });
+  if (packed.status !== 0) {
+    fail(`npm pack failed: ${packed.stderr || packed.stdout}`);
+  }
+  const lines = (packed.stdout || "").trim().split("\n").filter(Boolean);
+  const filename = lines[lines.length - 1];
+  if (!filename || !filename.endsWith(".tgz")) {
+    fail(`npm pack did not print tarball name; output=${packed.stdout}`);
+  }
+  const tgzPath = join(packDest, filename);
+  if (!existsSync(tgzPath)) fail(`packed tarball missing: ${tgzPath}`);
+
+  // Ensure published package.json inside tarball matches clean stage (idempotent rewrite).
   const work = mkdtempSync(join(tmpdir(), "pack-staged-runtime-"));
   try {
     const tarEnv = { ...process.env, COPYFILE_DISABLE: "1" };
@@ -128,7 +117,6 @@ function main() {
     });
     if (extracted.status !== 0) fail(`tar extract failed: ${extracted.stderr}`);
     writeJson(join(work, "package", "package.json"), cleanPkg);
-    // Write beside destination first (cross-filesystem safe).
     const tmpOut = join(packDest, `.pack-staged-runtime-${process.pid}.tgz`);
     const repacked = spawnSync("tar", ["-czf", tmpOut, "-C", work, "package"], {
       encoding: "utf8",
@@ -140,7 +128,6 @@ function main() {
     rmSync(work, { recursive: true, force: true });
   }
 
-  // Gate: packed package.json has no @deftai deps; nested vendors present.
   const verify = spawnSync("tar", ["-xOf", tgzPath, "package/package.json"], {
     encoding: "utf8",
   });
@@ -153,12 +140,26 @@ function main() {
   if (published.bundledDependencies) {
     fail("packed package.json must not declare bundledDependencies");
   }
+
   const listing = spawnSync("tar", ["-tzf", tgzPath], { encoding: "utf8" });
   if (listing.status !== 0) fail("tar -tzf failed");
-  const names = new Set(listing.stdout.split("\n"));
-  for (const name of PRIVATE_NAMES) {
-    const need = `package/node_modules/@deftai/${name}/package.json`;
-    if (!names.has(need)) fail(`packed tarball missing vendored ${need}`);
+  const names = listing.stdout.split("\n");
+  const nameSet = new Set(names);
+  for (const name of PRIVATE_FOLDERS) {
+    // vendor tree present (dist or content files); no package.json
+    const prefix = `package/vendor/${name}/`;
+    if (![...nameSet].some((n) => n.startsWith(prefix))) {
+      fail(`packed tarball missing vendored tree ${prefix}`);
+    }
+    if (nameSet.has(`package/vendor/${name}/package.json`)) {
+      fail(`packed tarball must not include vendor package.json for ${name}`);
+    }
+  }
+  const nestedScoped = names.filter(
+    (n) => n.includes("node_modules/@deftai/") && n.endsWith("/package.json"),
+  );
+  if (nestedScoped.length > 0) {
+    fail(`packed tarball has nested @deftai package.json: ${nestedScoped.join(", ")}`);
   }
 
   process.stdout.write(`${tgzPath}\n`);

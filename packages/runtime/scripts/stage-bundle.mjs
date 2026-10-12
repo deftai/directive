@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 /**
- * Stage a self-contained @deftai/directive-runtime pack directory (AC13.4 / AC1.3).
+ * Stage a self-contained @deftai/directive-runtime pack directory (AC1.3 / PKG-AC13-NEST).
  *
- * Vendors private workspace packages (core / content / types) under
- * node_modules/@deftai/ and rewrites production dependencies to public npm
- * packages only — published dependencies contain zero @deftai/* keys.
- * Pack via pack-staged-runtime.mjs (npm pack alone drops nested node_modules).
+ * Private workspace packages are copied under vendor/directive-{core,content,types}
+ * WITHOUT package.json (so consumer find under @deftai sees only the runtime).
+ * Staged JS import/resolve strings are rewritten to relative paths into vendor/
+ * using each package's exports map. Content surfaces are also hoisted to the
+ * runtime root for AC9.6 pointers. Published dependencies contain zero @deftai
+ * package keys.
  *
  * Usage: node packages/runtime/scripts/stage-bundle.mjs [outDir]
  * Default outDir: packages/runtime/.pack-stage
@@ -21,7 +23,7 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, isAbsolute, join, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -35,9 +37,27 @@ const outDir = outArg
   : join(runtimePkg, ".pack-stage");
 
 const PRIVATE = [
-  { name: "directive-types", src: join(repoRoot, "packages", "types"), copy: copyTypes },
-  { name: "directive-core", src: join(repoRoot, "packages", "core"), copy: copyCore },
-  { name: "directive-content", src: join(repoRoot, "packages", "content"), copy: copyContent },
+  {
+    id: "types",
+    scoped: "@deftai/directive-types",
+    folder: "directive-types",
+    src: join(repoRoot, "packages", "types"),
+    copy: copyTypes,
+  },
+  {
+    id: "core",
+    scoped: "@deftai/directive-core",
+    folder: "directive-core",
+    src: join(repoRoot, "packages", "core"),
+    copy: copyCore,
+  },
+  {
+    id: "content",
+    scoped: "@deftai/directive-content",
+    folder: "directive-content",
+    src: join(repoRoot, "packages", "content"),
+    copy: copyContent,
+  },
 ];
 
 function fail(msg) {
@@ -53,12 +73,45 @@ function writeJson(path, value) {
   writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`);
 }
 
+function exportTarget(entry) {
+  if (typeof entry === "string") return entry;
+  if (!entry || typeof entry !== "object") return null;
+  return entry.default || entry.import || entry.require || null;
+}
+
+/** Map subpath ("" | "policy" | "dist/foo.js") → package-relative file (./dist/...). */
+function buildExportResolver(pkgJson) {
+  const exportsMap = pkgJson.exports || {};
+  const exact = new Map();
+  for (const [key, val] of Object.entries(exportsMap)) {
+    const target = exportTarget(val);
+    if (!target) continue;
+    if (key === ".") exact.set("", target.replace(/^\.\//, ""));
+    else if (key.startsWith("./")) exact.set(key.slice(2), target.replace(/^\.\//, ""));
+  }
+  if (!exact.has("")) {
+    const main = pkgJson.module || pkgJson.main || "dist/index.js";
+    exact.set("", String(main).replace(/^\.\//, ""));
+  }
+  return (subpath) => {
+    if (exact.has(subpath)) return exact.get(subpath);
+    if (subpath.startsWith("dist/")) return subpath;
+    if (subpath.endsWith(".js") || subpath.endsWith(".json")) return subpath.startsWith("dist/") ? subpath : `dist/${subpath}`;
+    // Try index under dist/<subpath>/
+    return `dist/${subpath}/index.js`;
+  };
+}
+
+function toPosixRelative(fromFile, toFile) {
+  let rel = relative(dirname(fromFile), toFile);
+  if (sep !== "/") rel = rel.split(sep).join("/");
+  if (!rel.startsWith(".") ) rel = `./${rel}`;
+  return rel;
+}
+
 function copyTypes(src, dest) {
   mkdirSync(dest, { recursive: true });
-  const pkg = readJson(join(src, "package.json"));
-  delete pkg.private;
-  delete pkg.scripts;
-  writeJson(join(dest, "package.json"), pkg);
+  if (!existsSync(join(src, "dist"))) fail("packages/types/dist missing — run pnpm -w run build");
   cpSync(join(src, "dist"), join(dest, "dist"), { recursive: true });
   if (existsSync(join(src, "schemas"))) {
     cpSync(join(src, "schemas"), join(dest, "schemas"), { recursive: true });
@@ -67,15 +120,6 @@ function copyTypes(src, dest) {
 
 function copyCore(src, dest) {
   mkdirSync(dest, { recursive: true });
-  const pkg = readJson(join(src, "package.json"));
-  delete pkg.private;
-  delete pkg.scripts;
-  delete pkg.devDependencies;
-  // Private workspace deps are siblings under the staged node_modules/@deftai.
-  pkg.dependencies = Object.fromEntries(
-    Object.entries(pkg.dependencies || {}).filter(([k]) => !k.startsWith("@deftai/")),
-  );
-  writeJson(join(dest, "package.json"), pkg);
   if (!existsSync(join(src, "dist"))) fail("packages/core/dist missing — run pnpm -w run build");
   cpSync(join(src, "dist"), join(dest, "dist"), { recursive: true });
 }
@@ -98,10 +142,6 @@ function copyContent(src, dest) {
   if (staged.status !== 0) fail("content stage-pack failed");
   try {
     mkdirSync(dest, { recursive: true });
-    const pkg = readJson(join(src, "package.json"));
-    delete pkg.private;
-    delete pkg.scripts;
-    writeJson(join(dest, "package.json"), pkg);
     for (const name of readdirSync(src)) {
       if (name === "package.json" || name === "stage-pack.mjs" || name === "node_modules") continue;
       cpSync(join(src, name), join(dest, name), { recursive: true });
@@ -120,6 +160,107 @@ function publicDepsFromCore() {
   return out;
 }
 
+function listJsFiles(root) {
+  const out = [];
+  if (!existsSync(root)) return out;
+  const stack = [root];
+  while (stack.length) {
+    const dir = stack.pop();
+    for (const name of readdirSync(dir)) {
+      const full = join(dir, name);
+      let st;
+      try {
+        st = statSync(full);
+      } catch {
+        continue;
+      }
+      if (st.isDirectory()) {
+        if (name === "node_modules") continue;
+        stack.push(full);
+      } else if (st.isFile() && /\.(js|mjs|cjs)$/.test(name)) {
+        out.push(full);
+      }
+    }
+  }
+  return out;
+}
+
+function rewriteFile(file, resolvers, vendorRoots) {
+  let text = readFileSync(file, "utf8");
+  const original = text;
+
+  // Prefer longest scoped names first (already ordered types/content/core uniquely).
+  for (const entry of PRIVATE) {
+    const resolveSub = resolvers.get(entry.folder);
+    const vendorRoot = vendorRoots.get(entry.folder);
+    const scoped = entry.scoped;
+    // Specifiers: "@deftai/directive-core", ".../sub", with ' or "
+    const re = new RegExp(
+      `(["'])${scoped.replace(/\//g, "\\/")}(\\/[^"'\\s]*)?\\1`,
+      "g",
+    );
+    text = text.replace(re, (match, quote, sub) => {
+      const subpath = sub ? sub.slice(1) : "";
+      let targetRel;
+      try {
+        targetRel = resolveSub(subpath);
+      } catch {
+        return match;
+      }
+      if (!targetRel) return match;
+      const absTarget = join(vendorRoot, targetRel);
+      const rel = toPosixRelative(file, absTarget);
+      return `${quote}${rel}${quote}`;
+    });
+
+    // require.resolve / bare string forms without forcing quote reuse already handled.
+  }
+
+  // Path-join segments for private packages → runtime (content hoisted) or vendor.
+  // join(..., "node_modules", "@deftai", "directive-content", ...) → directive-runtime
+  text = text.split(`"@deftai", "directive-content"`).join(`"@deftai", "directive-runtime"`);
+  text = text.split(`'@deftai', 'directive-content'`).join(`'@deftai', 'directive-runtime'`);
+  // directive-core path probes → vendor path under the runtime package (no @deftai scope)
+  // join(dir, "node_modules", "@deftai", "directive-core", ...) cannot point at vendor
+  // easily; strip to a non-@deftai probe that won't create false package identities.
+  text = text.split(`"@deftai", "directive-core"`).join(`"directive-core-absent"`);
+  text = text.split(`'@deftai', 'directive-core'`).join(`'directive-core-absent'`);
+  text = text.split(`"@deftai", "directive-types"`).join(`"directive-types-absent"`);
+  text = text.split(`'@deftai', 'directive-types'`).join(`'directive-types-absent'`);
+
+  // CONTENT_PACKAGE_NAME / similar string constants for content → runtime (hoisted).
+  text = text.split('"@deftai/directive-content"').join('"@deftai/directive-runtime"');
+  text = text.split("'@deftai/directive-content'").join("'@deftai/directive-runtime'");
+
+  if (text !== original) writeFileSync(file, text);
+}
+
+function assertNoNestedDeftaiPackageJson(root) {
+  const stack = [root];
+  while (stack.length) {
+    const dir = stack.pop();
+    for (const name of readdirSync(dir)) {
+      const full = join(dir, name);
+      let st;
+      try {
+        st = statSync(full);
+      } catch {
+        continue;
+      }
+      if (st.isDirectory()) stack.push(full);
+      else if (name === "package.json") {
+        const posixPath = full.split(sep).join("/");
+        if (posixPath.includes("/node_modules/@deftai/") || /\/vendor\/directive-[^/]+\/package\.json$/.test(posixPath)) {
+          // Allow only the staged root package.json (handled separately).
+          if (full !== join(outDir, "package.json")) {
+            fail(`unexpected package.json under stage tree: ${full}`);
+          }
+        }
+      }
+    }
+  }
+}
+
 function main() {
   if (!existsSync(join(runtimePkg, "dist", "bin.js"))) {
     fail("packages/runtime/dist/bin.js missing — run pnpm -w run build");
@@ -131,45 +272,54 @@ function main() {
   cpSync(join(runtimePkg, "dist"), join(outDir, "dist"), { recursive: true });
   mkdirSync(join(outDir, "scripts"), { recursive: true });
   for (const name of readdirSync(join(runtimePkg, "scripts"))) {
-    if (name === "stage-bundle.mjs") continue;
+    if (name === "stage-bundle.mjs" || name === "pack-staged-runtime.mjs") continue;
     cpSync(join(runtimePkg, "scripts", name), join(outDir, "scripts", name), {
       recursive: true,
     });
   }
 
-  const nm = join(outDir, "node_modules", "@deftai");
-  mkdirSync(nm, { recursive: true });
+  const vendorRoot = join(outDir, "vendor");
+  mkdirSync(vendorRoot, { recursive: true });
+
+  const resolvers = new Map();
+  const vendorRoots = new Map();
   for (const entry of PRIVATE) {
-    entry.copy(entry.src, join(nm, entry.name));
+    const pkgJson = readJson(join(entry.src, "package.json"));
+    resolvers.set(entry.folder, buildExportResolver(pkgJson));
+    const dest = join(vendorRoot, entry.folder);
+    entry.copy(entry.src, dest);
+    vendorRoots.set(entry.folder, dest);
+    // Critical for AC1.3 find-probe: do not ship vendor package.json.
+    const nestedPkg = join(dest, "package.json");
+    if (existsSync(nestedPkg)) rmSync(nestedPkg, { force: true });
   }
 
-  // Hoist content surfaces to the runtime package root so AC9.6 pointers
-  // (`node_modules/@deftai/directive-runtime/main.md`, `skills/…`) resolve
-  // without walking into nested @deftai/directive-content (Wave 2c / AC13.1).
-  // Hoist every top-level content entry so main.md relative links (coding/,
-  // languages/, tools/, …) resolve in the published runtime (Greptile P1).
-  const contentRoot = join(nm, "directive-content");
+  // Hoist content surfaces to the runtime package root (AC9.6 / AC13.1).
+  const contentRoot = join(vendorRoot, "directive-content");
   const HOIST_SKIP = new Set(["package.json", "stage-pack.mjs", "node_modules"]);
   const hoistedNames = [];
   if (existsSync(contentRoot)) {
     for (const name of readdirSync(contentRoot)) {
       if (HOIST_SKIP.has(name)) continue;
-      const from = join(contentRoot, name);
-      cpSync(from, join(outDir, name), { recursive: true });
+      cpSync(join(contentRoot, name), join(outDir, name), { recursive: true });
       hoistedNames.push(name);
+    }
+  }
+
+  // Rewrite imports in runtime dist + vendored JS to relative vendor paths.
+  for (const file of listJsFiles(join(outDir, "dist"))) {
+    rewriteFile(file, resolvers, vendorRoots);
+  }
+  for (const entry of PRIVATE) {
+    for (const file of listJsFiles(join(vendorRoot, entry.folder))) {
+      rewriteFile(file, resolvers, vendorRoots);
     }
   }
 
   const runtime = readJson(join(runtimePkg, "package.json"));
   delete runtime.private;
-  // AC1.3: published dependencies must contain zero @deftai/* keys. Private
-  // workspace packages are vendored under node_modules/@deftai/ for resolution;
-  // pack-staged-runtime.mjs temporarily re-lists them for npm pack then strips
-  // them from the tarball package.json (npm only bundles when both fields set).
-  const deps = publicDepsFromCore();
-  runtime.dependencies = deps;
+  runtime.dependencies = publicDepsFromCore();
   delete runtime.bundledDependencies;
-  // Include hoisted content + dist in the packed tarball.
   const filesEntries = hoistedNames.map((name) => {
     try {
       return statSync(join(outDir, name)).isDirectory() ? `${name}/**` : name;
@@ -180,6 +330,7 @@ function main() {
   runtime.files = [
     "dist/**/*.js",
     "dist/**/*.d.ts",
+    "vendor/**",
     "scripts/remove-windows-ps1-shims.mjs",
     ...filesEntries,
   ];
@@ -187,6 +338,20 @@ function main() {
     delete runtime.publishConfig.provenance;
   }
   writeJson(join(outDir, "package.json"), runtime);
+
+  // Gates
+  for (const entry of PRIVATE) {
+    if (existsSync(join(outDir, "node_modules", "@deftai", entry.folder, "package.json"))) {
+      fail(`scoped vendor present: ${entry.folder}`);
+    }
+    if (existsSync(join(vendorRoot, entry.folder, "package.json"))) {
+      fail(`vendor package.json must be absent: ${entry.folder}`);
+    }
+    if (!existsSync(join(vendorRoot, entry.folder))) {
+      fail(`vendor folder missing: ${entry.folder}`);
+    }
+  }
+  assertNoNestedDeftaiPackageJson(outDir);
 
   process.stdout.write(`${outDir}\n`);
 }
