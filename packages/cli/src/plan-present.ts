@@ -14,8 +14,13 @@ export interface PresentIo {
 /** 0 = human default; 1 = -v/--verbose; 2 = -vv/--debug */
 export type Verbosity = 0 | 1 | 2;
 
+/**
+ * Truthful default disclosure: PM exact-add always passes --ignore-scripts.
+ * §C9 Example A’s “may run scripts…” phrasing is the shape; content matches
+ * INSTALL_SCRIPT_POLICY_PLAN_LINE / AC5.1 without contradicting the command.
+ */
 export const HUMAN_INSTALL_SCRIPT_LINE =
-  "Installation may run scripts allowed by your project's settings.";
+  "Installation skips package lifecycle scripts for the Directive pin add; other project registry, authentication, proxy, and lockfile settings still apply.";
 
 export const HUMAN_GIT_HOOKS_INACTIVE_LINE =
   "Git hooks stay inactive until you run git init, then repair or an eligible runtime command.";
@@ -250,7 +255,14 @@ export function presentUpgradePlan(io: PresentIo, fields: UpgradePlanFields): vo
   writeLabeled(io, "Current version:", fields.currentVersion);
   writeLabeled(io, "Target version:", fields.targetVersion);
   writeBlank(io);
-  if (fields.versionChange) {
+  if (fields.oldStyle) {
+    io.writeOut(
+      "This project uses an older Directive layout (old-style).\n" +
+        "I'll remove the legacy `.deft/core` content copy (including any local edits),\n" +
+        `replace the legacy launcher pin with @deftai/directive-runtime@${fields.targetVersion},\n` +
+        `update ${lock}, and run setup and any required project-data migrations.\n`,
+    );
+  } else if (fields.versionChange) {
     io.writeOut(
       "I'll update the exact version in package.json, update\n" +
         `${lock}, and run project setup and any required project-data\n` +
@@ -297,6 +309,14 @@ export function presentUpgradePlan(io: PresentIo, fields: UpgradePlanFields): vo
       `global launcher: unchanged`,
       INSTALL_SCRIPT_POLICY_PLAN_LINE,
     ];
+    if (fields.oldStyle) {
+      keyed.splice(
+        5,
+        0,
+        `remove: .deft/core (legacy content copy, even if edited)`,
+        `replace: @deftai/directive pin → @deftai/directive-runtime@${fields.targetVersion}`,
+      );
+    }
     if (fields.gitHooksInactive) {
       keyed.push(
         "Git hooks: inactive until git init + eligible repair/self-complete (cannot set core.hooksPath=.githooks yet)",
@@ -406,11 +426,21 @@ export function presentInstallSuccess(
   },
 ): void {
   const lock = lockfileNameFor(opts.pm);
+  const hooksNote = inactiveHooksNote(opts.summary);
   io.writeOut(`✓ Installed Directive ${opts.version}\n`);
   io.writeOut(`✓ Created Directive's project files\n`);
-  io.writeOut(`✓ Verified the project-local installation\n`);
+  if (hooksNote) {
+    io.writeOut(`✓ Verified the project-local installation (Git hooks not yet active)\n`);
+  } else {
+    io.writeOut(`✓ Verified the project-local installation\n`);
+  }
   writeBlank(io);
-  io.writeOut(`Directive ${opts.version} is ready in ${opts.projectRoot}.\n`);
+  if (hooksNote) {
+    io.writeOut(`Directive ${opts.version} is installed in ${opts.projectRoot}.\n`);
+    io.writeOut(`${hooksNote}\n`);
+  } else {
+    io.writeOut(`Directive ${opts.version} is ready in ${opts.projectRoot}.\n`);
+  }
   writeBlank(io);
   io.writeOut("Next:\n");
   io.writeOut("  directive --help\n");
@@ -441,6 +471,7 @@ export function presentRepairSuccess(
     verbosity: Verbosity;
   },
 ): void {
+  const hooksNote = inactiveHooksNote(opts.summary);
   if (opts.restoredPackage) {
     io.writeOut(`✓ Restored the installed Directive ${opts.version} package\n`);
   } else {
@@ -451,7 +482,12 @@ export function presentRepairSuccess(
     io.writeOut(`✓ Restored managed project files\n`);
   }
   writeBlank(io);
-  io.writeOut(`Directive ${opts.version} is ready.\n`);
+  if (hooksNote) {
+    io.writeOut(`Directive ${opts.version} setup finished.\n`);
+    io.writeOut(`${hooksNote}\n`);
+  } else {
+    io.writeOut(`Directive ${opts.version} is ready.\n`);
+  }
   io.writeOut("The project version has not changed.\n");
   const review = collectReviewPaths(opts.summary);
   if (review.length > 0) {
@@ -579,7 +615,16 @@ function writeBlankErr(io: PresentIo): void {
   io.writeErr("\n");
 }
 
-/** Prefer a short, human review list — skip noisy skill forests on default. */
+function inactiveHooksNote(summary: SetupSummary | null | undefined): string | null {
+  const msg = summary?.message ?? "";
+  if (/Git hooks inactive/i.test(msg)) return msg;
+  return null;
+}
+
+/**
+ * Prefer a short, human review list — skip noisy skill forests on default.
+ * Always include migrated paths (AC5.16 / Greptile): e.g. data-schema.json.
+ */
 function collectReviewPaths(summary: SetupSummary | null | undefined): string[] {
   if (!summary) return [];
   const prefer = [
@@ -588,12 +633,15 @@ function collectReviewPaths(summary: SetupSummary | null | undefined): string[] 
     "Taskfile.yml",
     ".deft/GENERATION.json",
   ];
-  const all = [...summary.created, ...summary.modified, ...(summary.migrated ?? [])];
+  const migrated = summary.migrated ?? [];
+  const all = [...summary.created, ...summary.modified, ...migrated];
   const out: string[] = [];
   for (const p of prefer) {
     if (all.includes(p)) out.push(p);
   }
-  // Include a few top-level host configs if present
+  for (const p of migrated) {
+    if (!out.includes(p)) out.push(p);
+  }
   for (const p of all) {
     if (out.includes(p)) continue;
     if (
@@ -605,7 +653,7 @@ function collectReviewPaths(summary: SetupSummary | null | undefined): string[] 
       out.push(p);
     }
   }
-  return out.slice(0, 12);
+  return out.slice(0, 16);
 }
 
 export function tryParseSetupSummary(stdout: string): SetupSummary | null {

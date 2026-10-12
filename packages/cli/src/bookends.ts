@@ -844,7 +844,11 @@ function handOffSetup(opts: {
       });
     }
     // upgrade: caller presents after migrate
-  } else if (opts.operation === "install" || opts.operation === "upgrade") {
+  } else if (
+    opts.operation === "install" ||
+    opts.operation === "upgrade" ||
+    opts.operation === "repair"
+  ) {
     presentSetupFailedAfterInstall(opts.io, {
       version: opts.runtime.version,
       operation: opts.operation,
