@@ -44,13 +44,9 @@ export function readInteractiveLine(options?: {
       n = read(buf, 0, buf.length);
     } catch (err) {
       const code = (err as NodeJS.ErrnoException | undefined)?.code;
-      // RED (UX-INT-TTY): mirror old readStdinLine `catch { break }` — EAGAIN
-      // becomes empty cancel. Green commit retries with wait(waitMs) instead.
       if (code && RETRY_ERRNOS.has(code)) {
-        void wait;
-        void waitMs;
-        if (chunks.length === 0) return { line: "", eof: false };
-        break;
+        wait(waitMs);
+        continue;
       }
       throw err;
     }
