@@ -21,8 +21,10 @@ const RESIDUAL_SURFACES = [
   "UPGRADING.md",
   "docs/skill-pin-policy.md",
   "docs/skill-discovery-hosts.md",
+  "docs/getting-started.md",
   "QUICK-START.md",
   "README.md",
+  "tools/installer.md",
 ] as const;
 
 const FORBIDDEN_COMMAND_RES = [
@@ -78,7 +80,7 @@ function hits(text: string, re: RegExp): string[] {
 }
 
 function isProhibitionLine(line: string): boolean {
-  return /do not (use|teach)|never (use|teach|recover)|avoid teaching|not teach|⊗\s*never recover via|has been removed|deleted|retired|historical|no longer|do not run/i.test(
+  return /do not (use|teach)|never (use|teach|recover)|avoid teaching|not teach|⊗\s*(never recover via|Teach)|has been removed|deleted|retired|historical|no longer|do not run/i.test(
     line,
   );
 }

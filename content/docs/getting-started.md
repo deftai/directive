@@ -10,7 +10,7 @@ Directive is two connected phases that repeat: an **inception** phase (Concept â
 
 ## Deft & Directive (naming)
 
-**Deft is the company; Directive is the product.** *Deft* names the organization and the on-disk footprint (`.deft/`, `@deftai/*` npm scope, user config under `~/.config/deft/`). *Directive* names the framework you install and run: the npm package is `@deftai/directive`, and the primary CLI is `directive` (`deft` is an alias). Legacy `deft-install` / `deft` paths in this guide refer to the same product during the staged transition ([#423](https://github.com/deftai/directive/issues/423)).
+**Deft is the company; Directive is the product.** *Deft* names the organization and the on-disk footprint (`.deft/`, `@deftai/*` npm scope, user config under `~/.config/deft/`). *Directive* names the framework you install and run: the npm package is `@deftai/directive`, and the primary CLI is `directive` (`deft` is an alias). The Go installer (`deft-install`) is deleted â€” use the global launcher + `directive install` / `directive upgrade` path only.
 
 Public consumer commands on this page use `directive` / `deft`. After `directive init`, the root Taskfile is include-only, so `task deft:<verb>` is the namespaced Task equivalent. Do not copy bare `task <verb>` from the framework source tree into a new project.
 
