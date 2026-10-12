@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "kind": "xbrief",
+  "title": "YOLO #5490 Wave 2z — validated-issues-v2 acceptance",
+  "status": "completed",
+  "branch": "yolo/wip-wave2z",
+  "tip": "7307b9078e52cbff9de6dfa0381338861c858a06",
+  "tag": "yolo-cp-wave2z",
+  "verdaccio": "0.0.0-yolo.cp-wave2z.1",
+  "smoke": "wave2z-validated-acceptance.sh PASS",
+  "acs": ["AC5.2", "AC1.3", "AC3.2", "AC8.1", "AC8.10", "AC9.6", "AC11.10", "AC8.6", "AC10.10", "AC13.8", "AC13.6"],
+  "findings": ["UX-INT-TTY", "PKG-AC13-NEST", "D4.3-FILE", "FEAT-PRESERVE", "AGENTS-STUB", "SKILL-INV", "OWN-SKILLS", "GIT-HOOKS-INACTIVE", "DEFT-INSTALL-DOC", "DOCS-RESIDUAL", "CLI-PARSE"],
+  "acceptance_log": "~/yolo-5490/logs/checkpoints/wave2z-acceptance-final.log",
+  "completion": "~/yolo-5490/logs/VALIDATED-ISSUES-V2-COMPLETION.md"
+}
