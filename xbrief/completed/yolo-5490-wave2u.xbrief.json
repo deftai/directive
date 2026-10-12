@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "kind": "xbrief",
+  "title": "YOLO #5490 Wave 2u — packaging purity AC1.3 + D4.3",
+  "status": "completed",
+  "branch": "yolo/wip-wave2u",
+  "tip": "ac256af567e23739c2c8bb83f3840c1674102809",
+  "tag": "yolo-cp-wave2u",
+  "verdaccio": "0.0.0-yolo.cp-wave2u.2",
+  "smoke": "wave2u.sh PASS",
+  "acs": ["AC1.3", "AC3.1", "AC3.2", "AC3.5", "D4.3", "AC13.4"],
+  "findings": ["PKG-AC13-NEST", "D4.3-FILE"]
+}
