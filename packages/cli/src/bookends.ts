@@ -841,6 +841,7 @@ function handOffSetup(opts: {
         restoredPackage: opts.restoredPackage ?? false,
         summary,
         verbosity: opts.verbosity,
+        pm: opts.pm,
       });
     }
     // upgrade: caller presents after migrate

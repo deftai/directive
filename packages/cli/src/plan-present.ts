@@ -469,6 +469,7 @@ export function presentRepairSuccess(
     restoredPackage: boolean;
     summary: SetupSummary | null;
     verbosity: Verbosity;
+    pm?: PackageManager;
   },
 ): void {
   const hooksNote = inactiveHooksNote(opts.summary);
@@ -490,6 +491,11 @@ export function presentRepairSuccess(
   }
   io.writeOut("The project version has not changed.\n");
   const review = collectReviewPaths(opts.summary);
+  if (opts.restoredPackage && opts.pm) {
+    const lock = lockfileNameFor(opts.pm);
+    if (!review.includes("package.json")) review.unshift("package.json");
+    if (!review.includes(lock)) review.splice(1, 0, lock);
+  }
   if (review.length > 0) {
     writeBlank(io);
     io.writeOut("Review and commit:\n");
