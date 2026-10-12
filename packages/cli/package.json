@@ -9,7 +9,7 @@
   "bin": {
     "directive": "./dist/bin.js",
     "deft": "./dist/bin.js",
-    "deft-hook": "./bin/deft-hook"
+    "deft-hook": "./dist/bin.js"
   },
   "files": [
     "dist/bin.js",

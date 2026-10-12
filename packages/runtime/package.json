@@ -1,7 +1,7 @@
 {
   "name": "@deftai/directive-runtime",
   "version": "0.0.0",
-  "description": "Directive runtime — pinned product commands, hooks, content, and engine.",
+  "description": "Directive runtime \u2014 pinned product commands, hooks, content, and engine.",
   "license": "MIT",
   "homepage": "https://deftai.github.io/directive/",
   "type": "module",
@@ -14,7 +14,8 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist/**/*.js",

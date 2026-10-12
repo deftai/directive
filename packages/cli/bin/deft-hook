@@ -1,6 +1,14 @@
 #!/bin/sh
-# PATH shim for deft-hook (AC3.5). Sets DEFT_LAUNCHER_MODE so Windows/.cmd and
-# this POSIX wrapper both dispatch through the single dist/bin.js (D4.3).
-DIR=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
+# PATH shim for deft-hook (AC3.5). Sets DEFT_LAUNCHER_MODE and runs the single
+# dist/bin.js (D4.3). Resolve symlinks so npm's .bin/deft-hook link finds dist/.
+SOURCE=$0
+while [ -L "$SOURCE" ]; do
+  TARGET=$(readlink "$SOURCE")
+  case "$TARGET" in
+    /*) SOURCE=$TARGET ;;
+    *) SOURCE=$(dirname "$SOURCE")/$TARGET ;;
+  esac
+done
+DIR=$(CDPATH= cd -- "$(dirname "$SOURCE")" && pwd)
 export DEFT_LAUNCHER_MODE=hook
 exec node "$DIR/../dist/bin.js" "$@"

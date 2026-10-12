@@ -104,7 +104,7 @@ describe("launcher single-file bundle (D4.3 / AC3.2)", () => {
       expect(pkgJson.bin).toEqual({
         directive: "./dist/bin.js",
         deft: "./dist/bin.js",
-        "deft-hook": "./bin/deft-hook",
+        "deft-hook": "./dist/bin.js",
       });
     } finally {
       rmSync(art, { recursive: true, force: true });
@@ -122,7 +122,7 @@ describe("launcher single-file bundle (D4.3 / AC3.2)", () => {
     expect(pkg.bin).toEqual({
       directive: "./dist/bin.js",
       deft: "./dist/bin.js",
-      "deft-hook": "./bin/deft-hook",
+      "deft-hook": "./dist/bin.js",
     });
     // Sanity: dist may still have tsc intermediates locally; pack allowlist is what matters.
     expect(readdirSync(DIST).includes("bin.js")).toBe(true);
