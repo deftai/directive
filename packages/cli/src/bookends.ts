@@ -1,7 +1,7 @@
 /**
  * Install / upgrade / uninstall / doctor bookends (Wave 2a–2g).
  */
-import { existsSync, readFileSync, readSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   CONTRACT_NUMBER,
@@ -11,6 +11,7 @@ import {
   RECOVERY_GUIDANCE,
   RUNTIME_PACKAGE_NAME,
 } from "./constants.js";
+import { readInteractiveLine, type InteractiveLine } from "./interactive-stdin.js";
 import {
   doctorArgv,
   doctorDiagnoseArgv,
@@ -87,6 +88,11 @@ export interface InstallDeps {
   readonly confirm?: (prompt: string) => boolean;
   /** Sync Repair/Cancel menu; injected in tests; production reads stdin. */
   readonly chooseMenu?: (opts: ChooseMenuOptions) => ConfiguredMenuChoice;
+  /**
+   * Production stdin line reader seam (UX-INT-TTY). Owner tests inject without mocking fs.
+   * When omitted, uses blocking interactive reader (retries EAGAIN).
+   */
+  readonly readInteractiveLine?: () => InteractiveLine;
   readonly env?: NodeJS.ProcessEnv;
   /** Override Node version for plan Node best-effort disclosure (AC14.54 tests). */
   readonly nodeVersion?: string;
@@ -123,6 +129,8 @@ export interface UpgradeDeps extends InstallDeps {
 export interface UninstallDeps {
   readonly stdinIsTTY?: boolean;
   readonly confirm?: (prompt: string) => boolean;
+  /** Production stdin line reader seam (UX-INT-TTY); see InstallDeps. */
+  readonly readInteractiveLine?: () => InteractiveLine;
   readonly env?: NodeJS.ProcessEnv;
   readonly invokeUninstall?: (argv: readonly string[]) => InvokeResult;
   readonly runPmRemove?: (opts: {
@@ -281,33 +289,15 @@ function reportPmFailure(io: BookendIo, add: Extract<PmAddResult, { ok: false }>
   return EXIT_CODES.FAILURE;
 }
 
-/** Read one line from stdin (fd 0) without depending on readline async. */
-function readStdinLine(): string {
-  const chunks: Buffer[] = [];
-  const buf = Buffer.alloc(256);
-  for (;;) {
-    let n = 0;
-    try {
-      n = readSync(0, buf, 0, buf.length, null);
-    } catch {
-      break;
-    }
-    if (n === 0) break;
-    const slice = Buffer.from(buf.subarray(0, n));
-    chunks.push(slice);
-    if (slice.includes(0x0a)) break;
-  }
-  return Buffer.concat(chunks).toString("utf8").split(/\r?\n/, 1)[0] ?? "";
-}
-
 function parseYesNo(answer: string): boolean {
   const trimmed = answer.trim().toLowerCase();
   return trimmed === "y" || trimmed === "yes";
 }
 
-function defaultConfirm(io: BookendIo, prompt: string): boolean {
-  io.writeOut(`${prompt} [y/N] `);
-  return parseYesNo(readStdinLine());
+function resolveLineReader(
+  deps: Pick<InstallDeps, "readInteractiveLine"> | Pick<UninstallDeps, "readInteractiveLine">,
+): () => InteractiveLine {
+  return deps.readInteractiveLine ?? readInteractiveLine;
 }
 
 /**
@@ -344,20 +334,27 @@ function parseMenuChoice(answer: string, defaultChoice: ConfiguredMenuChoice): C
   return "cancel";
 }
 
-function defaultChooseMenu(io: BookendIo, opts: ChooseMenuOptions): ConfiguredMenuChoice {
+function defaultChooseMenu(
+  io: BookendIo,
+  opts: ChooseMenuOptions,
+  readLine: () => InteractiveLine,
+): ConfiguredMenuChoice | "eof" {
   printConfiguredMenu(io, opts);
   const defaultLabel = opts.defaultChoice === "repair" ? "Repair" : "Cancel";
   io.writeOut(`Choice [Repair/Cancel] (default: ${defaultLabel}): `);
-  return parseMenuChoice(readStdinLine(), opts.defaultChoice);
+  const result = readLine();
+  if (result.eof) return "eof";
+  return parseMenuChoice(result.line, opts.defaultChoice);
 }
 
 /**
  * One operation-specific confirmation (AC5.2). Default No.
  * Returns null to proceed; otherwise an exit code (0 on cancel, 2 when --yes required).
+ * Claimed TTY + reader EOF → non-interactive (exit 2), not Cancelled (UX-INT-TTY).
  */
 function requireApproval(
   flags: BookendFlags,
-  deps: Pick<InstallDeps, "stdinIsTTY" | "confirm">,
+  deps: Pick<InstallDeps, "stdinIsTTY" | "confirm" | "readInteractiveLine">,
   io: BookendIo,
   prompt: string,
 ): number | null {
@@ -368,14 +365,19 @@ function requireApproval(
     io.writeErr(`Non-interactive session requires --yes to approve: ${prompt}\n`);
     return EXIT_CODES.USAGE;
   }
-  let approved: boolean;
   if (deps.confirm) {
     io.writeOut(`${prompt} [y/N]\n`);
-    approved = deps.confirm(prompt);
-  } else {
-    approved = defaultConfirm(io, prompt);
+    if (deps.confirm(prompt)) return null;
+    io.writeOut(`${CANCELLED_NO_CHANGES}\n`);
+    return EXIT_CODES.SUCCESS;
   }
-  if (approved) return null;
+  io.writeOut(`${prompt} [y/N] `);
+  const result = resolveLineReader(deps)();
+  if (result.eof) {
+    io.writeErr(`Non-interactive session requires --yes to approve: ${prompt}\n`);
+    return EXIT_CODES.USAGE;
+  }
+  if (parseYesNo(result.line)) return null;
   io.writeOut(`${CANCELLED_NO_CHANGES}\n`);
   return EXIT_CODES.SUCCESS;
 }
@@ -458,12 +460,20 @@ export function runInstall(
       pinVersion,
       defaultChoice: shouldDefaultToRepair(projectRoot, state) ? "repair" : "cancel",
     };
-    let choice: ConfiguredMenuChoice;
+    let choice: ConfiguredMenuChoice | "eof";
     if (deps.chooseMenu) {
       printConfiguredMenu(io, menuOpts);
       choice = deps.chooseMenu(menuOpts);
     } else {
-      choice = defaultChooseMenu(io, menuOpts);
+      choice = defaultChooseMenu(io, menuOpts, resolveLineReader(deps));
+    }
+    if (choice === "eof") {
+      io.writeErr(
+        `Non-interactive session requires --yes to approve. Pass --repair --yes to repair, or run interactively.\n` +
+          `  directive install --repair --yes\n` +
+          `  directive upgrade --yes\n`,
+      );
+      return EXIT_CODES.USAGE;
     }
     if (choice === "cancel") {
       io.writeOut(`${CANCELLED_NO_CHANGES}\n`);
@@ -1303,7 +1313,11 @@ export function runUninstall(
 
   const approval = requireApproval(
     flags,
-    { stdinIsTTY: deps.stdinIsTTY, confirm: deps.confirm },
+    {
+      stdinIsTTY: deps.stdinIsTTY,
+      confirm: deps.confirm,
+      readInteractiveLine: deps.readInteractiveLine,
+    },
     io,
     "Uninstall Directive from this project?",
   );

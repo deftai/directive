@@ -1069,4 +1069,144 @@ describe("interactive approval + Repair/Cancel menu (UX-INT / AC5.2 / AC6.4 / AC
     expect(confirmCalled).toBe(false);
     expect(c.out()).toMatch(/dry-run/i);
   });
+
+  it("TTY + reader eof → exit 2 requires --yes; not Cancelled; no PM (UX-INT-TTY)", () => {
+    const root = tempProject("wave2t-eof");
+    const before = readFileSync(join(root, "package.json"), "utf8");
+    const c = capture();
+    let pmCalled = false;
+    let readerCalls = 0;
+    const code = runInstall(
+      root,
+      stateFor(root),
+      ["--target-version", "1.2.3"],
+      "0.0.0-test",
+      c.io,
+      {
+        stdinIsTTY: true,
+        readInteractiveLine: () => {
+          readerCalls += 1;
+          return { line: "", eof: true };
+        },
+        runPmAdd: () => {
+          pmCalled = true;
+          return { ok: true as const };
+        },
+        invokeSetup: () => {
+          throw new Error("setup must not run after eof");
+        },
+      },
+    );
+    expect(code).toBe(2);
+    expect(pmCalled).toBe(false);
+    expect(readerCalls).toBe(1);
+    const text = c.out() + c.err();
+    expect(text).toMatch(/requires --yes/i);
+    expect(text).not.toContain("Cancelled. No project files were changed.");
+    expect(readFileSync(join(root, "package.json"), "utf8")).toBe(before);
+  });
+
+  it("TTY + empty Enter (eof false) → Cancelled exit 0 (AC14.39 / UX-INT-TTY)", () => {
+    const root = tempProject("wave2t-empty-enter");
+    const before = readFileSync(join(root, "package.json"), "utf8");
+    const c = capture();
+    let pmCalled = false;
+    const code = runInstall(
+      root,
+      stateFor(root),
+      ["--target-version", "1.2.3"],
+      "0.0.0-test",
+      c.io,
+      {
+        stdinIsTTY: true,
+        readInteractiveLine: () => ({ line: "", eof: false }),
+        runPmAdd: () => {
+          pmCalled = true;
+          return { ok: true as const };
+        },
+        invokeSetup: () => {
+          throw new Error("setup must not run after decline");
+        },
+      },
+    );
+    expect(code).toBe(0);
+    expect(pmCalled).toBe(false);
+    expect(c.out() + c.err()).toContain("Cancelled. No project files were changed.");
+    expect(readFileSync(join(root, "package.json"), "utf8")).toBe(before);
+  });
+
+  it("configured TTY + reader eof → exit 2 requires --yes; not Cancelled (UX-INT-TTY)", () => {
+    const root = tempProject("wave2t-menu-eof");
+    pinExact(root, "1.2.3");
+    writeInstalledRuntime(root, "1.2.3");
+    writeGeneration(root);
+    const before = readFileSync(join(root, "package.json"), "utf8");
+    const c = capture();
+    let pmCalled = false;
+    const code = runInstall(root, stateFor(root), [], "0.0.0-test", c.io, {
+      stdinIsTTY: true,
+      readInteractiveLine: () => ({ line: "", eof: true }),
+      runPmAdd: () => {
+        pmCalled = true;
+        return { ok: true as const };
+      },
+      invokeSetup: () => {
+        throw new Error("setup must not run after menu eof");
+      },
+    });
+    expect(code).toBe(2);
+    expect(pmCalled).toBe(false);
+    const text = c.out() + c.err();
+    expect(text).toMatch(/requires --yes/i);
+    expect(text).not.toContain("Cancelled. No project files were changed.");
+    expect(readFileSync(join(root, "package.json"), "utf8")).toBe(before);
+  });
+
+  it("TTY + readInteractiveLine y → approve proceeds without confirm seam", () => {
+    const root = tempProject("wave2t-reader-yes");
+    const c = capture();
+    let pmCalled = false;
+    const code = runInstall(
+      root,
+      stateFor(root),
+      ["--target-version", "1.2.3"],
+      "0.0.0-test",
+      c.io,
+      {
+        stdinIsTTY: true,
+        readInteractiveLine: () => ({ line: "y", eof: false }),
+        runPmAdd: ({ projectRoot, version }) => {
+          pmCalled = true;
+          const pkgPath = join(projectRoot, "package.json");
+          const pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as {
+            devDependencies?: Record<string, string>;
+          };
+          pkg.devDependencies = {
+            ...(pkg.devDependencies ?? {}),
+            "@deftai/directive-runtime": version,
+          };
+          writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
+          writeInstalledRuntime(projectRoot, version);
+          return { ok: true as const };
+        },
+        invokeSetup: () => ({
+          exitCode: 0,
+          stdout: JSON.stringify({
+            contract: 1,
+            entry: "setup",
+            created: [".deft/GENERATION.json"],
+            modified: [],
+            removed: [],
+            conflicts: [],
+          }),
+          stderr: "",
+          spawned: true,
+          message: null,
+        }),
+      },
+    );
+    expect(code).toBe(0);
+    expect(pmCalled).toBe(true);
+    expect(c.out() + c.err()).not.toContain("Cancelled. No project files were changed.");
+  });
 });
