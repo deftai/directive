@@ -209,7 +209,7 @@
         "sha256": "7e35ee7657416c1833d2583bbfb24962afa61cec76ab490cfe90893f8c17e0c0"
       },
       "swarm": {
-        "readiness": "ready",
+        "readiness": "not-ready",
         "conflict_group": "interactive-human-gate-override-audit",
         "expected_outputs": [
           "Tracking PR for #5542 Prefer-A Bound gate-override authz grant + waived enum"
