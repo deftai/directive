@@ -1,0 +1,236 @@
+{
+  "schemaVersion": 1,
+  "algo": "intent-extract-v1",
+  "plan": {
+    "title": "[framework-gap] BLOCKER Add audited interactive human overrides for framework gate blockers",
+    "narratives": {
+      "Description": "[framework-gap] BLOCKER Add audited interactive human overrides for framework gate blockers",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5542",
+      "Overview": "## Bound remedy (#5542 Prefer-A 6150081436)\n\n1. Mint only via operator-cli human-presence authz:grant; operator-session non-admitting.\n2. Atomic one-use admission bound to attempt id with baseSha+headSha+treeHash + gate id + refuse code.\n3. Closed waived/overridden enum arms; never map to pass.\n4. First eligible gate = coverage-applicability / coverage_headroom refuse; closed refuse codes.\n5. Named v1 consumers MUST honor the grant (pre-PR coverage_headroom + coverage:hotspots).\n6. Prefer authz template gate-override modeled on spec-drift-override.\n7. Keep-outs: #5541 separate; no fabricate green; no UAT silent suspend.\n\nconflict_group: interactive-human-gate-override-audit",
+      "Labels": "bug, design, agent-experience, process, harness, source-of-truth, urgent, area:cli, dogfood, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Mint only via existing operator-cli human-presence authz:grant; operator-session non-admitting; refuse chat/parent/fixture consent.",
+        "narrative": {
+          "Acceptance": "Mint only via existing operator-cli human-presence authz:grant; operator-session non-admitting; refuse chat/parent/fixture consent."
+        },
+        "x-directive/artifact_path": "packages/core/src/authz/origin.ts"
+      },
+      {
+        "id": "clause.2",
+        "title": "Atomic one-use admission bound to continuation/attempt id with baseSha+headSha+treeHash + gate id + refuse code + worktree/evaluator identity; inspection does not consume.",
+        "narrative": {
+          "Acceptance": "Atomic one-use admission bound to continuation/attempt id with baseSha+headSha+treeHash + gate id + refuse code + worktree/evaluator identity; inspection does not consume."
+        },
+        "x-directive/artifact_path": "packages/core/src/authz/store.ts"
+      },
+      {
+        "id": "clause.3",
+        "title": "Closed waived/overridden enum arms on CoverageApplicabilityResult and pre-PR evidence; never map waived onto pass; checkable review obligations.",
+        "narrative": {
+          "Acceptance": "Closed waived/overridden enum arms on CoverageApplicabilityResult and pre-PR evidence; never map waived onto pass; checkable review obligations."
+        },
+        "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts"
+      },
+      {
+        "id": "clause.4",
+        "title": "First eligible gate = coverage-applicability / coverage_headroom refuse; closed refuse codes; empty deferred peers; non-overridable set; no independent push/merge.",
+        "narrative": {
+          "Acceptance": "First eligible gate = coverage-applicability / coverage_headroom refuse; closed refuse codes; empty deferred peers; non-overridable set; no independent push/merge."
+        },
+        "x-directive/artifact_path": "packages/core/src/authz/templates.ts"
+      },
+      {
+        "id": "clause.5",
+        "title": "Named v1 consumers MUST honor the grant: pre-PR coverage_headroom and coverage:hotspots refuse path; others remain refuse-closed.",
+        "narrative": {
+          "Acceptance": "Named v1 consumers MUST honor the grant: pre-PR coverage_headroom and coverage:hotspots refuse path; others remain refuse-closed."
+        },
+        "x-directive/artifact_path": "packages/core/src/pre-pr-controller/phases.ts"
+      },
+      {
+        "id": "clause.6",
+        "title": "Prefer authz template gate-override modeled on spec-drift-override; no second mint engine; keep other hatches complementary.",
+        "narrative": {
+          "Acceptance": "Prefer authz template gate-override modeled on spec-drift-override; no second mint engine; keep other hatches complementary."
+        },
+        "x-directive/artifact_path": "packages/core/src/authz/templates.ts"
+      },
+      {
+        "id": "clause.7",
+        "title": "Keep-outs: do not absorb #5541; no fabricate green; no auto-ingest; no UAT silent suspend; no blanket env override.",
+        "narrative": {
+          "Acceptance": "Keep-outs: do not absorb #5541; no fabricate green; no auto-ingest; no UAT silent suspend; no blanket env override."
+        },
+        "x-directive/artifact_path": "content/contracts/human-origin-authz.md"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5542",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5542: [framework-gap] BLOCKER Add audited interactive human overrides for framework gate blockers"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5541",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5541"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "clauses": [
+        {
+          "id": "clause.1",
+          "text": "Mint only via existing operator-cli human-presence authz:grant; operator-session non-admitting; refuse chat/parent/fixture consent.",
+          "artifact_path": "packages/core/src/authz/origin.ts",
+          "status": "pending"
+        },
+        {
+          "id": "clause.2",
+          "text": "Atomic one-use admission bound to continuation/attempt id with baseSha+headSha+treeHash + gate id + refuse code + worktree/evaluator identity; inspection does not consume.",
+          "artifact_path": "packages/core/src/authz/store.ts",
+          "status": "pending"
+        },
+        {
+          "id": "clause.3",
+          "text": "Closed waived/overridden enum arms on CoverageApplicabilityResult and pre-PR evidence; never map waived onto pass; checkable review obligations.",
+          "artifact_path": "packages/core/src/coverage-applicability/evaluate.ts",
+          "status": "pending"
+        },
+        {
+          "id": "clause.4",
+          "text": "First eligible gate = coverage-applicability / coverage_headroom refuse; closed refuse codes; empty deferred peers; non-overridable set; no independent push/merge.",
+          "artifact_path": "packages/core/src/authz/templates.ts",
+          "status": "pending"
+        },
+        {
+          "id": "clause.5",
+          "text": "Named v1 consumers MUST honor the grant: pre-PR coverage_headroom and coverage:hotspots refuse path; others remain refuse-closed.",
+          "artifact_path": "packages/core/src/pre-pr-controller/phases.ts",
+          "status": "pending"
+        },
+        {
+          "id": "clause.6",
+          "text": "Prefer authz template gate-override modeled on spec-drift-override; no second mint engine; keep other hatches complementary.",
+          "artifact_path": "packages/core/src/authz/templates.ts",
+          "status": "pending"
+        },
+        {
+          "id": "clause.7",
+          "text": "Keep-outs: do not absorb #5541; no fabricate green; no auto-ingest; no UAT silent suspend; no blanket env override.",
+          "artifact_path": "content/contracts/human-origin-authz.md",
+          "status": "pending"
+        }
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/authz/templates.ts",
+          "packages/core/src/authz/types.ts",
+          "packages/core/src/authz/store.ts",
+          "packages/core/src/authz/store.test.ts",
+          "packages/core/src/authz/evaluate.ts",
+          "packages/core/src/authz/evaluate.test.ts",
+          "packages/core/src/authz/origin.ts",
+          "packages/core/src/authz/origin.test.ts",
+          "packages/core/src/authz/index.ts",
+          "packages/core/src/coverage-applicability/evaluate.ts",
+          "packages/core/src/coverage-applicability/evaluate.test.ts",
+          "packages/core/src/coverage-applicability/index.ts",
+          "packages/core/src/coverage-applicability/index.test.ts",
+          "packages/core/src/pre-pr-controller/phases.ts",
+          "packages/core/src/pre-pr-controller/phases.test.ts",
+          "packages/core/src/pre-pr-controller/types.ts",
+          "packages/core/src/pre-pr-controller/evaluate.ts",
+          "packages/core/src/coverage-hotspots/evaluate.ts",
+          "packages/core/src/coverage-hotspots/evaluate.test.ts",
+          "packages/core/src/coverage-hotspots/index.ts",
+          "packages/cli/src/dispatch.ts",
+          "content/contracts/human-origin-authz.md",
+          "content/docs/gate-integrity.md",
+          "CHANGELOG.md",
+          "packages/core/src/authz/gate-override.ts",
+          "packages/core/src/authz/gate-override.test.ts",
+          "packages/cli/src/authz.ts",
+          "packages/core/src/pre-pr-controller/controller.ts",
+          "packages/core/src/pre-pr-controller/index.ts"
+        ],
+        "module_boundary": "authz gate-override grant + coverage-applicability waived arm + pre-PR honor",
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased bullet; human-origin-authz.md + gate-integrity.md thin pointer for #5542 Prefer-A Bound."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5789353060,
+        "origin": "deftai/directive#5542",
+        "id": "github.issue.5789353060"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "7e35ee7657416c1833d2583bbfb24962afa61cec76ab490cfe90893f8c17e0c0"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/authz/templates.ts",
+          "packages/core/src/authz/types.ts",
+          "packages/core/src/authz/store.ts",
+          "packages/core/src/authz/store.test.ts",
+          "packages/core/src/authz/evaluate.ts",
+          "packages/core/src/authz/evaluate.test.ts",
+          "packages/core/src/authz/origin.ts",
+          "packages/core/src/authz/origin.test.ts",
+          "packages/core/src/authz/index.ts",
+          "packages/core/src/coverage-applicability/evaluate.ts",
+          "packages/core/src/coverage-applicability/evaluate.test.ts",
+          "packages/core/src/coverage-applicability/index.ts",
+          "packages/core/src/coverage-applicability/index.test.ts",
+          "packages/core/src/pre-pr-controller/phases.ts",
+          "packages/core/src/pre-pr-controller/phases.test.ts",
+          "packages/core/src/pre-pr-controller/types.ts",
+          "packages/core/src/pre-pr-controller/evaluate.ts",
+          "packages/core/src/coverage-hotspots/evaluate.ts",
+          "packages/core/src/coverage-hotspots/evaluate.test.ts",
+          "packages/core/src/coverage-hotspots/index.ts",
+          "packages/cli/src/dispatch.ts",
+          "content/contracts/human-origin-authz.md",
+          "content/docs/gate-integrity.md",
+          "CHANGELOG.md",
+          "packages/core/src/authz/gate-override.ts",
+          "packages/core/src/authz/gate-override.test.ts",
+          "packages/cli/src/authz.ts",
+          "packages/core/src/pre-pr-controller/controller.ts",
+          "packages/core/src/pre-pr-controller/index.ts"
+        ],
+        "Traces": [
+          "#5542"
+        ]
+      },
+      "x-directive/derived_reason": "Prefer-A Bound limbs hand-stamped after empty body harvest (#4374); clauses bind Bound remedy"
+    },
+    "id": "github.issue.5789353060"
+  },
+  "approvedRepos": [
+    "deftai/directive"
+  ],
+  "unknownPaths": [
+    "items[].x-directive/artifact_path",
+    "metadata.intended_placement",
+    "metadata.swarm.Traces",
+    "metadata.x-directive/admitted-target-digest",
+    "metadata.x-directive/derived_reason",
+    "metadata.x-directive/plan-id"
+  ]
+}
