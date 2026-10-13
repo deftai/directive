@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bump `actions/download-artifact` from 8.0.1 to 8.0.2 (#5555).
 
 ### Fixed
+- **Keep-active #5541 Path B activation.** Lands Prefer-A Bound active xBRIEF with reminted file_scope; productPullRequest unset. Tracking #5541.
 - Remint approved-scope for #4768 (acceptance-activate Path B widen).
 - **Complete the #5539 scope brief after product #5559.** Move the exact-argv spy brief into `xbrief/completed/` so orphan tracking clears. Tracking #5539.
 - **Keep the #5539 membership allowlist current after product #5559.** Records the approved file list so follow-on scope checks stay valid. Tracking #5539.
