@@ -186,7 +186,7 @@ jobs:
           test -f "tarballs/deftai-directive-content-${VERSION}.tgz"
           test -f "tarballs/deftai-directive-${VERSION}.tgz"
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: npm-tarballs-${{ steps.identity.outputs.version }}
           path: tarballs/*.tgz
@@ -196,7 +196,7 @@ jobs:
       # Post-publish runner: built at the peeled tag SHA in this job so the
       # downstream fixture never checkouts source_sha + pnpm install (CodeQL
       # actions/cache-poisoning/poisonable-step under workflow_dispatch).
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: post-publish-runner-${{ steps.identity.outputs.version }}
           path: |

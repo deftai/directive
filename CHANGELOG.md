@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Bump `actions/setup-node` from 7.0.0 to 7.1.0 (#5557).
+- Bump `actions/upload-artifact` 7.0.1→7.0.2 (#5554).
 - **chore(deps): bump astral-sh/setup-uv 10.2.0→10.3.0 (#5556).** SHA-pin refresh on the two `setup-uv` sites in `ci.yml` (merge-gate primary + GH-hosted failover). Minor toolchain action bump; no input changes.
 - Bump `actions/download-artifact` from 8.0.1 to 8.0.2 (#5555).
 
