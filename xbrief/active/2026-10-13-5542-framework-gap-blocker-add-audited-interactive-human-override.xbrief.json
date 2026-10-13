@@ -161,6 +161,7 @@
     },
     "metadata": {
       "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
         "files": [
           "packages/core/src/authz/templates.ts",
           "packages/core/src/authz/types.ts",
@@ -192,8 +193,8 @@
           "packages/core/src/pre-pr-controller/controller.ts",
           "packages/core/src/pre-pr-controller/index.ts"
         ],
-        "module_boundary": "packages/core/src/authz + human-origin gate-override Path B Prefer-A Bound",
-        "cohesion_exemption": "CHANGELOG.md Keep-active Path B activation entry only"
+        "module_boundary": "authz gate-override grant + coverage-applicability waived arm + pre-PR honor",
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased bullet; human-origin-authz.md + gate-integrity.md thin pointer for #5542 Prefer-A Bound."
       },
       "x-directive/plan-id": {
         "version": 1,
