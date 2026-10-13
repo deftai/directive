@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-10-13-4768-uat-tester-4-active-xbriefs-can-be-created-without-acceptanc.xbrief.json",
+  "planId": "github.issue.residual.5501877140.lean.6150748445",
+  "approvedAt": "2026-10-13T19:00:23Z",
+  "fileScope": [
+    "CHANGELOG.md",
+    "packages/core/src/scope/acceptance-activate-gate.test.ts",
+    "packages/core/src/scope/acceptance-activate-gate.ts",
+    "packages/core/src/scope/lifecycle-write.ts",
+    "packages/core/src/scope/transition.test.ts",
+    "packages/core/src/scope/transition.ts",
+    "packages/core/src/vbrief-activate/activate.test.ts",
+    "packages/core/src/vbrief-activate/activate.ts"
+  ],
+  "fileScopeDigest": "73664229940a35dd45efbd40f0818b3a4c0d66c24b86e424fad2a8a3071e6805",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-10-13T19:00:23Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "e725f809cc58cd9af42c4412f683cd1571884f8d2b481244f8e99f2e13164030",
+  "digestAlgo": "intent-extract-v1"
+}
