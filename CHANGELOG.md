@@ -24,8 +24,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bump `actions/download-artifact` from 8.0.1 to 8.0.2 (#5555).
 
 ### Fixed
+<<<<<<< HEAD
 - Remint approved-scope for #4768 (acceptance-activate Path B widen).
 - **Remint approved-scope for #5539 (exact-argv spy Path B).** Lands merge-base approved-scope twins for membership continuity after product #5559. Mint-only — no product code. Tracking #5539.
+=======
+- **Keep the #5539 membership allowlist current after product #5559.** Records the approved file list so follow-on scope checks stay valid. Tracking #5539.
+>>>>>>> 28483d04d (docs(changelog): plain-English #5539 membership allowlist note)
 - **fix(test): exact-argv spy no longer fabricates absent windowsVerbatimArguments on POSIX (#5539).** Capture the option only when Object.hasOwn on the spawn opts. Tracking #5539.
 - **Complete the #4981 tutorial brief after product #5464.** Move the active Directive Tutorial brief into xbrief/completed so orphan tracking clears. Tracking #4981.
 
