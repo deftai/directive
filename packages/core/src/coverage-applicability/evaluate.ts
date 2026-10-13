@@ -157,6 +157,8 @@ const COVERABLE_BASENAMES = new Set([
   "package-lock.json",
   "pnpm-lock.yaml",
   "yarn.lock",
+  "bun.lock",
+  "bun.lockb",
   "taskfile.yml",
   "taskfile.yaml",
   "dockerfile",
@@ -224,6 +226,7 @@ const INERT_BASENAMES = new Set([
   "contributing.md",
   "code_of_conduct.md",
   "security.md",
+  ".gitignore",
 ]);
 
 function extensionOf(path: string): string {
@@ -515,6 +518,13 @@ function isCoverableConfig(path: string): boolean {
   return false;
 }
 
+/** Repo-root fixtures/*.json only — not nested /fixtures/ segments or non-json (#5541). */
+function isRepoRootFixturesJson(path: string): boolean {
+  const p = posixPath(path).toLowerCase();
+  if (!p.startsWith("fixtures/")) return false;
+  return extensionOf(path) === ".json";
+}
+
 /**
  * Closed classifier rules. Markdown/JSON/xbrief are inert only when these rules
  * positively match — never by blanket extension alone outside planning/docs paths.
@@ -533,6 +543,9 @@ export function classifyChangedPath(
     // Declaration files remain coverable (they are TypeScript surface).
     return "coverable";
   }
+
+  // #5541: ordinary Bun consumer fixtures JSON is inert after coverable-first.
+  if (isRepoRootFixturesJson(p)) return "inert";
 
   if (INERT_BASENAMES.has(base)) return "inert";
 

@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bump `actions/download-artifact` from 8.0.1 to 8.0.2 (#5555).
 
 ### Fixed
+- **fix(coverage): classify Bun locks, .gitignore, and fixtures JSON for pre-PR applicability (#5541).** Bun lock diffs stay coverable; `.gitignore` and repo-root `fixtures/*.json` are inert N/A; unknown paths stay fail-closed. Tracking #5541.
 - **Keep-active #5541 Path B activation.** Lands Prefer-A Bound active xBRIEF with reminted file_scope; productPullRequest unset. Tracking #5541.
 - Remint approved-scope for #4768 (acceptance-activate Path B widen).
 - **Complete the #5539 scope brief after product #5559.** Move the exact-argv spy brief into `xbrief/completed/` so orphan tracking clears. Tracking #5539.

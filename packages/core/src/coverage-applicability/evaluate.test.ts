@@ -141,6 +141,26 @@ describe("classifyChangedPath", () => {
     expect(classifyChangedPath("coverage/coverage-final.json", "A", null)).toBe("inert");
     expect(classifyChangedPath("coverage/lcov.info", "M", null)).toBe("inert");
   });
+
+  it("classifies Bun locks coverable and .gitignore / fixtures JSON inert (#5541)", () => {
+    expect(classifyChangedPath("bun.lock", "M", null)).toBe("coverable");
+    expect(classifyChangedPath("bun.lockb", "A", null)).toBe("coverable");
+    expect(classifyChangedPath("fixtures/bun.lock", "M", null)).toBe("coverable");
+    expect(classifyChangedPath("fixtures/package.json", "M", null)).toBe("coverable");
+    expect(classifyChangedPath("fixtures/helper.ts", "A", null)).toBe("coverable");
+    expect(classifyChangedPath("fixtures/page.html", "M", null)).toBe("coverable");
+    expect(classifyChangedPath("fixtures/guide.mdx", "A", null)).toBe("coverable");
+    expect(classifyChangedPath(".gitignore", "M", null)).toBe("inert");
+    expect(classifyChangedPath("fixtures/catalog.json", "A", null)).toBe("inert");
+    expect(classifyChangedPath("fixtures/nested/data.json", "M", null)).toBe("inert");
+    // Negatives stay unknown: peer ignores, non-fixtures JSON, mystery binaries.
+    expect(classifyChangedPath(".customignore", "M", null)).toBe("unknown");
+    expect(classifyChangedPath(".dockerignore", "M", null)).toBe("unknown");
+    expect(classifyChangedPath("config/settings.json", "A", null)).toBe("unknown");
+    expect(classifyChangedPath("packages/core/fixtures/data.json", "A", null)).toBe("unknown");
+    expect(classifyChangedPath("fixtures/data.yaml", "A", null)).toBe("unknown");
+    expect(classifyChangedPath("mystery.bin", "A", null)).toBe("unknown");
+  });
 });
 
 describe("parseNameStatus", () => {
@@ -506,6 +526,56 @@ describe("evaluateCoverageApplicability", () => {
     if (result.outcome === "applicable") {
       expect(result.coverablePaths).toContain("src/app.ts");
     }
+  });
+
+  it("aggregates Bun lock applicable and fixtures/.gitignore N/A (#5541)", () => {
+    const bunRoot = gitRepo({ "README.md": "# base\n" });
+    const bunBase = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: bunRoot, encoding: "utf8" })
+      .trim();
+    writeFileSync(join(bunRoot, "bun.lock"), "lock\n");
+    writeFileSync(join(bunRoot, "bun.lockb"), "binary\n");
+    mkdirSync(join(bunRoot, "docs"), { recursive: true });
+    writeFileSync(join(bunRoot, "docs/note.md"), "note\n");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: bunRoot });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "bun-locks"], { cwd: bunRoot });
+    const bunResult = evaluateCoverageApplicability(bindingFor(bunRoot, bunBase));
+    expect(bunResult.outcome).toBe("applicable");
+    if (bunResult.outcome === "applicable") {
+      expect(bunResult.coverablePaths).toEqual(expect.arrayContaining(["bun.lock", "bun.lockb"]));
+    }
+
+    const inertRoot = gitRepo({ "README.md": "# base\n" });
+    const inertBase = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: inertRoot, encoding: "utf8" })
+      .trim();
+    writeFileSync(join(inertRoot, ".gitignore"), "node_modules/\n");
+    mkdirSync(join(inertRoot, "fixtures"), { recursive: true });
+    writeFileSync(join(inertRoot, "fixtures/catalog.json"), "{}\n");
+    mkdirSync(join(inertRoot, "docs"), { recursive: true });
+    writeFileSync(join(inertRoot, "docs/design.md"), "# design\n");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: inertRoot });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "inert-ordinary"], { cwd: inertRoot });
+    const inertResult = evaluateCoverageApplicability(bindingFor(inertRoot, inertBase));
+    expect(inertResult.outcome).toBe("not-applicable");
+    if (inertResult.outcome === "not-applicable") {
+      expect(inertResult.reason).toBe(COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP);
+    }
+
+    const unknownRoot = gitRepo({ "README.md": "# base\n" });
+    const unknownBase = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: unknownRoot, encoding: "utf8" })
+      .trim();
+    mkdirSync(join(unknownRoot, "config"), { recursive: true });
+    writeFileSync(join(unknownRoot, "config/settings.json"), "{}\n");
+    writeFileSync(join(unknownRoot, ".customignore"), "tmp/\n");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: unknownRoot });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "unknown-ordinary"], {
+      cwd: unknownRoot,
+    });
+    const unknownResult = evaluateCoverageApplicability(bindingFor(unknownRoot, unknownBase));
+    expect(unknownResult.outcome).toBe("refuse");
+    if (unknownResult.outcome === "refuse") expect(unknownResult.code).toBe("unknown-path");
   });
 });
 
