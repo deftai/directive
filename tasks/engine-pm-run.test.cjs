@@ -111,7 +111,9 @@ describe("runPackageScript security", () => {
           args: [...args],
           shell: opts?.shell,
           stdio: opts?.stdio,
-          windowsVerbatimArguments: opts?.windowsVerbatimArguments,
+          ...(opts && Object.hasOwn(opts, "windowsVerbatimArguments")
+            ? { windowsVerbatimArguments: opts.windowsVerbatimArguments }
+            : {}),
         });
         if (opts?.stdio === "inherit") {
           return;
