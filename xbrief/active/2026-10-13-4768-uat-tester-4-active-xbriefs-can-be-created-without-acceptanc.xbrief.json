@@ -129,7 +129,8 @@
           "artifact_path": "packages/core/src/scope/transition.ts",
           "status": "pending"
         }
-      ]
+      ],
+      "ambiguity_attestation": "none_found"
     },
     "metadata": {
       "intended_placement": {
