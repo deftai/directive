@@ -643,6 +643,59 @@ describe("runTransition", () => {
     }
   });
 
+  it("revalidates already-active command-present / clause-text-empty on activate (#4768 Prefer-A)", () => {
+    root = makeRepo();
+    const path = join(root, "xbrief", "active", "2026-01-01-cmd-active.xbrief.json");
+    writeFile(path, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "Already active command-only",
+        status: "running",
+        acceptance: {
+          commands: [{ command: "pnpm test" }],
+          none_stated: false,
+          source_rung: "stated",
+        },
+        items: [],
+      },
+    });
+    const before = readFileSync(path, "utf8");
+    const result = runTransition("activate", path);
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/#4768 Prefer-A/);
+    expect(result.message).toMatch(/command-present \/ clause-text-empty/);
+    expect(readFileSync(path, "utf8")).toBe(before);
+  });
+
+  it("no-ops already-active activate when usable clause text is present (#4768 Prefer-A)", () => {
+    root = makeRepo();
+    const path = join(root, "xbrief", "active", "2026-01-01-ok-active.xbrief.json");
+    writeFile(path, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "Already active with text",
+        status: "running",
+        acceptance: {
+          commands: [{ command: "pnpm test" }],
+          none_stated: false,
+          source_rung: "stated",
+          clauses: [
+            {
+              id: 1,
+              text: "Persist the session token in packages/core/src/session/token.ts",
+              artifact_path: null,
+              ambiguous: false,
+            },
+          ],
+        },
+        items: [],
+      },
+    });
+    const result = runTransition("activate", path);
+    expect(result.ok).toBe(true);
+    expect(result.message).toMatch(/No-op:.*already in active/);
+  });
+
   it("emits acceptance_stamp when activate first writes plan.acceptance (#3355)", () => {
     root = makeRepo();
     const summary = join(root, "summary.jsonl");

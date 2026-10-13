@@ -123,6 +123,87 @@ describe("activate", () => {
     expect(existsSync(src)).toBe(true);
   });
 
+  it("localizes command-only active writer: refuses pending command-present / clause-text-empty (#4768 Prefer-A)", () => {
+    const root = tempRoot();
+    const src = writeVbrief(root, "pending", {
+      payloadOverride: {
+        xBRIEFInfo: { version: "0.8", updated: "2026-04-30T00:00:00Z" },
+        plan: {
+          title: "Initialize workers from the config",
+          status: "pending",
+          narratives: { Overview: "Initialize workers from the config" },
+          acceptance: {
+            commands: [{ command: "pnpm test" }],
+            none_stated: false,
+            source_rung: "stated",
+          },
+          items: [],
+        },
+      },
+    });
+    const result = activate(src, { now: FIXED_NOW });
+    expect(result.exitCode).toBe(1);
+    expect(result.message).toMatch(/#4768 Prefer-A/);
+    expect(result.message).toMatch(/command-present \/ clause-text-empty/);
+    expect(existsSync(src)).toBe(true);
+    expect(existsSync(join(root, "xbrief", "active", FIXTURE_NAME))).toBe(false);
+  });
+
+  it("stamps usable clauses when activating a command-only brief with a derivable list (#4768 Prefer-A)", () => {
+    const root = tempRoot();
+    const src = writeVbrief(root, "pending", {
+      payloadOverride: {
+        xBRIEFInfo: { version: "0.8", updated: "2026-04-30T00:00:00Z" },
+        plan: {
+          title: "Command only",
+          status: "pending",
+          narratives: {
+            Overview:
+              "## Acceptance sketch\n- Persist the session token in packages/core/src/session/token.ts\n",
+          },
+          acceptance: {
+            commands: [{ command: "pnpm test" }],
+            none_stated: false,
+            source_rung: "stated",
+          },
+          items: [],
+        },
+      },
+    });
+    const result = activate(src, { now: FIXED_NOW });
+    expect(result.exitCode).toBe(0);
+    const dest = join(root, "xbrief", "active", FIXTURE_NAME);
+    const payload = JSON.parse(readFileSync(dest, "utf8")) as {
+      plan: { acceptance: { commands: unknown[]; clauses: { text: string }[] } };
+    };
+    expect(payload.plan.acceptance.commands).toEqual([{ command: "pnpm test" }]);
+    expect(payload.plan.acceptance.clauses.length).toBeGreaterThan(0);
+    expect(payload.plan.acceptance.clauses.every((c) => c.text.trim().length > 0)).toBe(true);
+  });
+
+  it("revalidates already-active command-present / clause-text-empty instead of blind no-op (#4768 Prefer-A)", () => {
+    const root = tempRoot();
+    const src = writeVbrief(root, "active", {
+      payloadOverride: {
+        xBRIEFInfo: { version: "0.8", updated: "2026-04-30T00:00:00Z" },
+        plan: {
+          title: "Already active command-only",
+          status: "running",
+          acceptance: {
+            commands: [{ command: "pnpm test" }],
+            none_stated: false,
+            source_rung: "stated",
+          },
+          items: [],
+        },
+      },
+    });
+    const result = activate(src, { now: FIXED_NOW });
+    expect(result.exitCode).toBe(1);
+    expect(result.message).toMatch(/#4768 Prefer-A/);
+    expect(existsSync(src)).toBe(true);
+  });
+
   it("rejects proposed folder", () => {
     const root = tempRoot();
     const src = writeVbrief(root, "proposed", { status: "proposed" });

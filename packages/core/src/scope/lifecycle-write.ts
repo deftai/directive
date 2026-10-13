@@ -4,9 +4,22 @@
  * Distinct from completionProvenance (#3686): this only records that
  * runTransition wrote the blob. Non-code-bearing completes and scope:fail
  * stamp this and still omit delivery provenance.
+ *
+ * Three-oracle split for active acceptance (#4768 Prefer-A Bound):
+ * - activate/promote refuse: usable `readAcceptanceClauses` after derivation
+ * - verify:ac: stated commands may verified-pass with clause_count 0
+ * - DCR texts: commands ignored; non-empty acceptance text required
+ * Active ingress owns landing usable clause text for the DCR consumer.
  */
 
 export const LIFECYCLE_WRITE_KEY = "lifecycleWrite" as const;
+
+/** Named oracles for #4768 Prefer-A active-acceptance consumers (keep-outs vs Bound owner). */
+export const ACTIVE_ACCEPTANCE_ORACLES = {
+  activateRefuse: "usable-readAcceptanceClauses",
+  verifyAcCommands: "stated-commands-may-pass-with-clause-count-0",
+  dcrTexts: "non-empty-acceptance-text-commands-ignored",
+} as const;
 
 export type LifecycleWriteAction = "complete" | "fail" | "cancel";
 
