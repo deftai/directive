@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "algo": "intent-extract-v1",
+  "plan": {
+    "title": "Package runner exact-argv test spy fabricates an absent Windows option on POSIX",
+    "narratives": {
+      "Description": "Package runner exact-argv test spy fabricates an absent Windows option on POSIX",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5539",
+      "Overview": "## Bound remedy (#5539 Prefer-A 6150303623)\n\n1. Edit only the exact-argv calls.push recorder in tasks/engine-pm-run.test.cjs so windowsVerbatimArguments is captured only when Object.hasOwn.\n2. file_scope: tasks/engine-pm-run.test.cjs (recorder-only).\n3. Keep expected argv/assertions/wrapper/win32 assertion unchanged; preserve explicitly present undefined.\n4. Keep-outs: no production executeAllowlisted change; no POSIX expected rewrite; no #3629 absorb.\n\nconflict_group: engine-pm-run-posix-spy-windowsverbatim-fabrication",
+      "Labels": "bug, agent-experience, process, source-of-truth, urgent, area:cli, dogfood, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Capture windowsVerbatimArguments in exact-argv calls.push only when Object.hasOwn(opts, \"windowsVerbatimArguments\"); keep expected argv/assertions/wrapper/win32 check unchanged.",
+        "narrative": {
+          "Acceptance": "Capture windowsVerbatimArguments in exact-argv calls.push only when Object.hasOwn(opts, \"windowsVerbatimArguments\"); keep expected argv/assertions/wrapper/win32 check unchanged."
+        },
+        "x-directive/artifact_path": "tasks/engine-pm-run.test.cjs"
+      },
+      {
+        "id": "clause.2",
+        "title": "Preserve an explicitly present windowsVerbatimArguments property whose value is undefined (Object.hasOwn true keeps the property).",
+        "narrative": {
+          "Acceptance": "Preserve an explicitly present windowsVerbatimArguments property whose value is undefined (Object.hasOwn true keeps the property)."
+        },
+        "x-directive/artifact_path": "tasks/engine-pm-run.test.cjs"
+      },
+      {
+        "id": "clause.3",
+        "title": "Do not change production executeAllowlisted / tasks/engine-pm-run.cjs; do not rewrite POSIX deepEqual expectations to include undefined.",
+        "narrative": {
+          "Acceptance": "Do not change production executeAllowlisted / tasks/engine-pm-run.cjs; do not rewrite POSIX deepEqual expectations to include undefined."
+        },
+        "x-directive/artifact_path": "tasks/engine-pm-run.test.cjs"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5539",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5539: Package runner exact-argv test spy fabricates an absent Windows option on POSIX"
+      }
+    ],
+    "metadata": {
+      "swarm": {
+        "file_scope": [
+          "tasks/engine-pm-run.test.cjs",
+          "CHANGELOG.md"
+        ],
+        "Traces": [
+          "#5539"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "tasks/engine-pm-run.test.cjs",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "engine-pm-run exact-argv spy recorder",
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased bullet only for #5539 Prefer-A Bound spy fix."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5788439670,
+        "origin": "deftai/directive#5539",
+        "id": "github.issue.5788439670"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "f9373448780be762a16f3c6d128a045e8e356fc49e15808ec4ec77581142d7ca"
+      },
+      "x-directive/derived_reason": "Prefer-A Bound limbs hand-stamped after empty body harvest (#4374); clauses bind Bound remedy"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "clauses": [
+        {
+          "id": "clause.1",
+          "text": "Capture windowsVerbatimArguments in exact-argv calls.push only when Object.hasOwn(opts, \"windowsVerbatimArguments\"); keep expected argv/assertions/wrapper/win32 check unchanged.",
+          "artifact_path": "tasks/engine-pm-run.test.cjs",
+          "status": "pending"
+        },
+        {
+          "id": "clause.2",
+          "text": "Preserve an explicitly present windowsVerbatimArguments property whose value is undefined (Object.hasOwn true keeps the property).",
+          "artifact_path": "tasks/engine-pm-run.test.cjs",
+          "status": "pending"
+        },
+        {
+          "id": "clause.3",
+          "text": "Do not change production executeAllowlisted / tasks/engine-pm-run.cjs; do not rewrite POSIX deepEqual expectations to include undefined.",
+          "artifact_path": "tasks/engine-pm-run.test.cjs",
+          "status": "pending"
+        }
+      ]
+    },
+    "id": "github.issue.5788439670"
+  },
+  "approvedRepos": [
+    "deftai/directive"
+  ],
+  "unknownPaths": [
+    "items[].x-directive/artifact_path",
+    "metadata.intended_placement",
+    "metadata.swarm.Traces",
+    "metadata.x-directive/admitted-target-digest",
+    "metadata.x-directive/derived_reason",
+    "metadata.x-directive/plan-id"
+  ]
+}

@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Remint approved-scope for #4768 (acceptance-activate Path B widen).
+- **Remint approved-scope for #5539 (exact-argv spy Path B).** Lands merge-base approved-scope twins for membership continuity after product #5559. Mint-only — no product code. Tracking #5539.
 - **fix(test): exact-argv spy no longer fabricates absent windowsVerbatimArguments on POSIX (#5539).** Capture the option only when Object.hasOwn on the spawn opts. Tracking #5539.
 - **Complete the #4981 tutorial brief after product #5464.** Move the active Directive Tutorial brief into xbrief/completed so orphan tracking clears. Tracking #4981.
 
