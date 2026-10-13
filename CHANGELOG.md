@@ -25,7 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Remint approved-scope for #4768 (acceptance-activate Path B widen).
-- **Keep the #5539 membership allowlist current after product #5559.** Records the approved file list so follow-on scope checks stay valid. Tracking #5539.- **fix(test): exact-argv spy no longer fabricates absent windowsVerbatimArguments on POSIX (#5539).** Capture the option only when Object.hasOwn on the spawn opts. Tracking #5539.
+- **Keep the #5539 membership allowlist current after product #5559.** Records the approved file list so follow-on scope checks stay valid. Tracking #5539.
+- **fix(test): exact-argv spy no longer fabricates absent windowsVerbatimArguments on POSIX (#5539).** Capture the option only when Object.hasOwn on the spawn opts. Tracking #5539.
 - **Complete the #4981 tutorial brief after product #5464.** Move the active Directive Tutorial brief into xbrief/completed so orphan tracking clears. Tracking #4981.
 
 - **fix(tutorial): keep progress when practice cwd changes (#4981 / #5464).** Tutorial state stays next to personal USER.md prefs so sandbox practice commands do not lose the saved run. Tracking #4981.
