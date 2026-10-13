@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bump `actions/download-artifact` from 8.0.1 to 8.0.2 (#5555).
 
 ### Fixed
+- **Complete the #4981 tutorial brief after product #5464.** Move the active Directive Tutorial brief into xbrief/completed so orphan tracking clears. Tracking #4981.
 
 - **fix(tutorial): keep progress when practice cwd changes (#4981 / #5464).** Tutorial state stays next to personal USER.md prefs so sandbox practice commands do not lose the saved run. Tracking #4981.
 - **fix(tutorial): Greptile 4/5 — stamp evidence before close + refuse Back when completed (#4981).** Close runs `scope:stamp-evidence` before `scope:complete --non-delivery`; Back refuses after status is completed so finished progress cannot reopen. Tracking #4981.

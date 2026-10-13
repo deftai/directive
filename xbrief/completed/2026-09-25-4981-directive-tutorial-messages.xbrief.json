@@ -3,12 +3,12 @@
     "version": "0.8",
     "description": "Directive Tutorial: first-run offer after Name, menu of sandbox projects, preferences progress, shared teaching beats, glossary hook.",
     "created": "2026-09-25T17:20:00Z",
-    "updated": "2026-10-09T16:26:03Z"
+    "updated": "2026-10-13T17:29:20.420Z"
   },
   "plan": {
     "id": "4981-directive-tutorial",
     "title": "Directive Tutorial — first-run menu, preferences progress, shared beats",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Ship the Directive Tutorial inside Directive. After the person first saves their Name in user preferences, offer an interactive walkthrough. They pick one of three fun controlled practice projects, learn lifecycle, main workflow, and language by doing, and can skip or re-run anytime. Progress is an object in user preferences (operator-scoped). Practice runs in a disposable local sandbox, not the real product repo. Version 1 does not push to GitHub or open a pull request. A wiki/doc site is out of scope.",
       "Offer": "Trigger the automatic offer when Name is first persisted in USER.md / user preferences and tutorial status is still not_started. Menu choices: Start tutorial, Skip for now, Discuss, Back. Do not wait for project definition or the specification interview. Do not re-ask Name or preference questions inside the tutorial. Skip records skipped and continues normal setup. An explicit tutorial command still works after skip or complete.",
@@ -27,6 +27,18 @@
         "status": "pending",
         "narrative": {
           "Acceptance": "Tutorial progress is stored in user preferences (status, selectedProject signal|postcard|echo, currentBeat, completedBeats, version, timestamps). The automatic offer fires after the first Name persist while status is not_started. Skip, Start, and Discuss/Back behave as specified. Explicit re-run works after skip or complete."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5464 squash-merge (Tracking #4981). Tutorial product shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5464",
+            "mintedAt": "2026-10-13T17:29:20.420Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-13T17:29:20.420Z"
         }
       },
       {
@@ -34,6 +46,18 @@
         "status": "pending",
         "narrative": {
           "Acceptance": "Signal, Postcard, and Echo each run the shared Step 1-7 sequence in a disposable sandbox. Glossary-backed wording appears in rendered steps. Editing the glossary changes words without rewriting the seven shared steps. Version 1 never pushes or opens a pull request."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5464 squash-merge (Tracking #4981). Tutorial product shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5464",
+            "mintedAt": "2026-10-13T17:29:20.420Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-13T17:29:20.420Z"
         }
       },
       {
@@ -41,6 +65,18 @@
         "status": "pending",
         "narrative": {
           "Acceptance": "The shipped skill tells the agent to read and follow the rendered step. CLI covers start, inspect, advance, resume, skip, reset, and public re-run. An end-to-end proof covers offer, skip, each menu pick, resume, failed-check retry on step 5, reset, and successful completion in a temporary sandbox."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5464 squash-merge (Tracking #4981). Tutorial product shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5464",
+            "mintedAt": "2026-10-13T17:29:20.420Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-13T17:29:20.420Z"
         }
       }
     ],
@@ -90,6 +126,10 @@
           "CHANGELOG.md",
           "xbrief/active/2026-09-25-4981-directive-tutorial-messages.xbrief.json"
         ]
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-13T17:29:20.420Z"
       }
     },
     "references": [
@@ -104,6 +144,6 @@
         "title": "Issue #4371: first-time run review umbrella (JT / visionik)"
       }
     ],
-    "updated": "2026-10-09T16:26:03Z"
+    "updated": "2026-10-13T17:29:20.420Z"
   }
 }
