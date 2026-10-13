@@ -28,7 +28,8 @@ export const PUBLISHER_REQUIRED =
 
 export type PrePrRunState = "started" | "running" | "failed" | "interrupted" | "complete";
 
-export type PrePrOutcome = "none" | "pass" | "block";
+/** pass = measured green; waived/overridden = scoped continuation ≠ pass (#5542). */
+export type PrePrOutcome = "none" | "pass" | "block" | "waived" | "overridden";
 
 export interface PrePrLiveBinding {
   readonly repo: string;
@@ -117,6 +118,9 @@ export interface PrePrExecutionRecord {
 
 export type PrePrDecisionCode =
   | "allow-pass"
+  /** Scoped waived continuation — ok for delivery consumers, never allow-pass (#5542). */
+  | "allow-waived"
+  | "allow-overridden"
   | "deny-missing-record"
   | "deny-not-bearer"
   | "deny-disk-not-sot"

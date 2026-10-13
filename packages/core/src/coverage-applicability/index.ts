@@ -2,6 +2,7 @@ export {
   type ClassifiedChange,
   type CoverageApplicabilityDeps,
   type CoverageApplicabilityResult,
+  type CoverageApplicabilityWaiver,
   classifyChangedPath,
   decodeGitQuotedPath,
   type EvaluateCoverageApplicabilityInput,
@@ -11,4 +12,5 @@ export {
   type NameStatusRow,
   type PathClassification,
   parseNameStatus,
+  toWaivedCoverageApplicability,
 } from "./evaluate.js";

@@ -98,6 +98,16 @@ export function requiredPhases(): readonly PrePrPhaseSpec[] {
 export const COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP =
   "reviewed diff has no coverable paths" as const;
 
+/**
+ * Closed skip token for coverage-applicability refuse waived via gate-override (#5542).
+ * Distinct from N/A and from measured pass — never maps to exit 0.
+ */
+export const COVERAGE_HEADROOM_WAIVED_SKIP =
+  "coverage-applicability refuse waived by gate-override grant" as const;
+
+/** Hotspots / pre-PR exit for waived continuation (≠ 0 green). */
+export const COVERAGE_HEADROOM_WAIVED_EXIT = 4 as const;
+
 export const ALLOWED_SKIP_REASONS: Partial<Record<PrePrPhaseId, string>> = {
   plan_sequence: "no active ordered-plan sequence",
   render_export: "no existing export files to refresh",
@@ -109,4 +119,9 @@ export function isAllowedSkip(phaseId: PrePrPhaseId, skipReason: string | null):
   if (skipReason === null || skipReason.length === 0) return false;
   const allowed = ALLOWED_SKIP_REASONS[phaseId];
   return allowed !== undefined && skipReason === allowed;
+}
+
+/** True when coverage_headroom recorded a waived (not passed) continuation (#5542). */
+export function isCoverageHeadroomWaivedSkip(skipReason: string | null): boolean {
+  return skipReason === COVERAGE_HEADROOM_WAIVED_SKIP;
 }

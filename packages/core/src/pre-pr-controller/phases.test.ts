@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   ALLOWED_SKIP_REASONS,
+  COVERAGE_HEADROOM_WAIVED_EXIT,
+  COVERAGE_HEADROOM_WAIVED_SKIP,
   isAllowedSkip,
+  isCoverageHeadroomWaivedSkip,
   PRE_PR_PHASES,
   RENDER_EXPORT_RULE,
   requiredPhases,
@@ -47,6 +50,10 @@ describe("pre-pr-controller phases (Limb 2)", () => {
       true,
     );
     expect(isAllowedSkip("coverage_headroom", "changed-file audit")).toBe(false);
+    expect(isCoverageHeadroomWaivedSkip(COVERAGE_HEADROOM_WAIVED_SKIP)).toBe(true);
+    expect(isCoverageHeadroomWaivedSkip(ALLOWED_SKIP_REASONS.coverage_headroom ?? "")).toBe(false);
+    expect(COVERAGE_HEADROOM_WAIVED_EXIT).toBe(4);
+    expect(COVERAGE_HEADROOM_WAIVED_EXIT).not.toBe(0);
     expect(requiredPhases().every((p) => p.required)).toBe(true);
   });
 });

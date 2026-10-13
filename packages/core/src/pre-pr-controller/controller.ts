@@ -13,7 +13,9 @@ import {
   evaluateCoverageApplicability,
 } from "../coverage-applicability/index.js";
 import {
+  COVERAGE_HEADROOM_WAIVED_EXIT,
   isAllowedSkip,
+  isCoverageHeadroomWaivedSkip,
   PRE_PR_CONTROLLER_VERSION,
   PRE_PR_PHASES,
   PRE_PR_WORKFLOW_VERSION,
@@ -192,7 +194,10 @@ export function observeCommandPhase(
     }
     const skipOk =
       observation.phaseId === "coverage_headroom"
-        ? observation.exitCode === 3 && isAllowedSkip(observation.phaseId, observation.skipReason)
+        ? (observation.exitCode === 3 &&
+            isAllowedSkip(observation.phaseId, observation.skipReason)) ||
+          (observation.exitCode === COVERAGE_HEADROOM_WAIVED_EXIT &&
+            isCoverageHeadroomWaivedSkip(observation.skipReason))
         : isAllowedSkip(observation.phaseId, observation.skipReason);
     const failed = observation.exitCode !== 0 && !skipOk;
     const row: CommandObservation = {
@@ -355,6 +360,10 @@ function commandSatisfied(
     if (row.exitCode === 0) {
       return spec.command !== null && coverageHotspotsCommandMatches(row.command, spec.command);
     }
+    // #5542: exit 4 + waived skip is scoped continuation (not pass / not N/A).
+    if (row.exitCode === COVERAGE_HEADROOM_WAIVED_EXIT) {
+      return isCoverageHeadroomWaivedSkip(row.skipReason);
+    }
     // Authorized N/A is exit 3 only (hotspots emits 3 when inert + no report).
     // Exit 1 measured floor fails must not launder into skip via inert re-derivation.
     // When coverage-final.json exists, Prefer-A keeps the Istanbul floor — refuse skip.
@@ -412,6 +421,7 @@ export function runObservablesComplete(
   }
   let previousAt: string | null = null;
   let previousId: string | null = null;
+  let sawCoverageWaived = false;
   for (const spec of PRE_PR_PHASES) {
     if (!spec.required) continue;
     const ok =
@@ -423,6 +433,16 @@ export function runObservablesComplete(
         "deny-omitted-phase",
         `required phase ${spec.id} has no controller-observed pass`,
       );
+    }
+    if (spec.id === "coverage_headroom") {
+      const row = record.phaseEvidence.commands.find((c) => c.phaseId === "coverage_headroom");
+      if (
+        row !== undefined &&
+        row.exitCode === COVERAGE_HEADROOM_WAIVED_EXIT &&
+        isCoverageHeadroomWaivedSkip(row.skipReason)
+      ) {
+        sawCoverageWaived = true;
+      }
     }
     const at = phaseObservedAt(record, spec);
     if (at === null || at.length === 0) {
@@ -442,6 +462,14 @@ export function runObservablesComplete(
   }
   if (!record.finalNoChange) {
     return deny("deny-incomplete", "completion requires the skill final no-change pass");
+  }
+  // Bound limb 3: waived ≠ allow-pass / exit-0 green.
+  if (sawCoverageWaived) {
+    return {
+      ok: true,
+      code: "allow-waived",
+      message: "observables complete with coverage_headroom waived (not passed)",
+    };
   }
   return { ok: true, code: "allow-pass", message: "observables complete" };
 }
@@ -470,15 +498,20 @@ export function completeRun(
   }
   const observables = runObservablesComplete(current, options);
   if (!observables.ok) return observables;
+  const waived = observables.code === "allow-waived" || observables.code === "allow-overridden";
   const published: PrePrExecutionRecord = {
     ...current,
     state: "complete",
-    outcome: "pass",
+    outcome: waived ? "waived" : "pass",
     completedAt: utcIso(now),
     publishedAt: utcIso(now),
   };
   store.put(published);
-  return { ok: true, code: "allow-pass", message: `published ${runId}` };
+  return {
+    ok: true,
+    code: waived ? "allow-waived" : "allow-pass",
+    message: `published ${runId}${waived ? " (waived ≠ pass)" : ""}`,
+  };
 }
 
 export function controllerPublisher(): PrePrPublisher {

@@ -84,7 +84,11 @@ function evaluateStoredRecord(
   if (live.prBodyHash !== record.prBodyHash) {
     return deny("deny-binding", `pre-PR record ${record.id} does not match live PR body hash`);
   }
-  if (record.outcome !== "pass" || record.state !== "complete" || record.publishedAt === null) {
+  const terminalOutcome =
+    record.outcome === "pass" ||
+    record.outcome === "waived" ||
+    record.outcome === "overridden";
+  if (!terminalOutcome || record.state !== "complete" || record.publishedAt === null) {
     if (record.state === "failed") return deny("deny-failed", "failed pre-PR run mints no pass");
     if (record.state === "interrupted") {
       return deny("deny-interrupted", "interrupted pre-PR run mints no pass");
@@ -93,13 +97,30 @@ function evaluateStoredRecord(
   }
   const observables = runObservablesComplete(record);
   if (!observables.ok) return observables;
-  return evaluateCriteriaAuthority({
+  const criteria = evaluateCriteriaAuthority({
     record,
     currentGeneration: input.currentGeneration,
     approved: input.approvedCriteria,
     headCriteria: input.headCriteria ?? null,
     lastInvalidationAt: input.lastInvalidationAt ?? null,
   });
+  if (!criteria.ok) return criteria;
+  // Preserve waived/overridden decision codes — never collapse onto allow-pass (#5542).
+  if (observables.code === "allow-waived" || record.outcome === "waived") {
+    return {
+      ok: true,
+      code: "allow-waived",
+      message: "pre-PR waived continuation (coverage_headroom); not allow-pass",
+    };
+  }
+  if (observables.code === "allow-overridden" || record.outcome === "overridden") {
+    return {
+      ok: true,
+      code: "allow-overridden",
+      message: "pre-PR overridden continuation; not allow-pass",
+    };
+  }
+  return criteria;
 }
 
 export function evaluateLivePrePrCheck(input: {

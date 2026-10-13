@@ -15,6 +15,17 @@ export interface ClassifiedChange {
   readonly classification: PathClassification;
 }
 
+/** Waiver / override receipt surfaced on waived|overridden arms (#5542). */
+export interface CoverageApplicabilityWaiver {
+  readonly grantId: string;
+  readonly attemptId: string;
+  readonly reviewObligation: string;
+  readonly admittedAt: string;
+  /** Original classifier refuse code (observed failure retained). */
+  readonly observedRefuseCode: string;
+  readonly observedRefuseReason: string;
+}
+
 export type CoverageApplicabilityResult =
   | {
       readonly outcome: "not-applicable";
@@ -31,7 +42,41 @@ export type CoverageApplicabilityResult =
       readonly code: string;
       readonly reason: string;
       readonly changes: readonly ClassifiedChange[];
+    }
+  | {
+      /** Scoped continuation after refuse; never maps to applicable/pass. */
+      readonly outcome: "waived";
+      readonly code: string;
+      readonly reason: string;
+      readonly changes: readonly ClassifiedChange[];
+      readonly waiver: CoverageApplicabilityWaiver;
+    }
+  | {
+      /** Pre-PR / evidence arm for waived continuation; distinct from allow-pass. */
+      readonly outcome: "overridden";
+      readonly code: string;
+      readonly reason: string;
+      readonly changes: readonly ClassifiedChange[];
+      readonly waiver: CoverageApplicabilityWaiver;
     };
+
+/**
+ * Map a refuse result to waived (continuation) or overridden (evidence).
+ * ⊗ Never call this for applicable / not-applicable / pass shapes.
+ */
+export function toWaivedCoverageApplicability(
+  refused: Extract<CoverageApplicabilityResult, { outcome: "refuse" }>,
+  waiver: CoverageApplicabilityWaiver,
+  arm: "waived" | "overridden" = "waived",
+): Extract<CoverageApplicabilityResult, { outcome: "waived" | "overridden" }> {
+  return {
+    outcome: arm,
+    code: refused.code,
+    reason: refused.reason,
+    changes: refused.changes,
+    waiver,
+  };
+}
 
 export interface EvaluateCoverageApplicabilityInput {
   readonly projectRoot: string;

@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **feat(authz): audited gate-override waiver for coverage-applicability refuse (#5542).** Operator-cli `authz:grant --template gate-override` mints a one-use attempt/tree-bound grant; pre-PR `coverage_headroom` and `coverage:hotspots` honor it as `waived` (exit 4), never as pass. Tracking #5542.
 
 ### Changed
 
