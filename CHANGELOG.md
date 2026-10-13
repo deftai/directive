@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Bump `actions/setup-node` from 7.0.0 to 7.1.0 (#5557).
+
 ### Fixed
 
 ### Removed
