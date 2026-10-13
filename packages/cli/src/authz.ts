@@ -805,7 +805,7 @@ export function main(
         }
         if (args.operations.length === 0) {
           process.stderr.write(
-            "authz:grant requires --operations <edit,push,...>, --template <finish-loop|release-*|spec-drift-override>, " +
+            "authz:grant requires --operations <edit,push,...>, --template <finish-loop|release-*|spec-drift-override|gate-override>, " +
               "or --parent + --draft (structural scope:decompose apply)\n",
           );
           return 2;
