@@ -1,0 +1,221 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5539",
+    "updated": "2026-10-13T20:39:35Z"
+  },
+  "plan": {
+    "title": "Package runner exact-argv test spy fabricates an absent Windows option on POSIX",
+    "status": "completed",
+    "narratives": {
+      "Description": "Package runner exact-argv test spy fabricates an absent Windows option on POSIX",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5539",
+      "Overview": "## Bound remedy (#5539 Prefer-A 6150303623)\n\n1. Edit only the exact-argv calls.push recorder in tasks/engine-pm-run.test.cjs so windowsVerbatimArguments is captured only when Object.hasOwn.\n2. file_scope: tasks/engine-pm-run.test.cjs (recorder-only).\n3. Keep expected argv/assertions/wrapper/win32 assertion unchanged; preserve explicitly present undefined.\n4. Keep-outs: no production executeAllowlisted change; no POSIX expected rewrite; no #3629 absorb.\n\nconflict_group: engine-pm-run-posix-spy-windowsverbatim-fabrication",
+      "Labels": "bug, agent-experience, process, source-of-truth, urgent, area:cli, dogfood, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Capture windowsVerbatimArguments in exact-argv calls.push only when Object.hasOwn(opts, \"windowsVerbatimArguments\"); keep expected argv/assertions/wrapper/win32 check unchanged.",
+        "status": "completed",
+        "x-directive/artifact_path": "tasks/engine-pm-run.test.cjs",
+        "narrative": {
+          "Acceptance": "Capture windowsVerbatimArguments in exact-argv calls.push only when Object.hasOwn(opts, \"windowsVerbatimArguments\"); keep expected argv/assertions/wrapper/win32 check unchanged."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5559 squash-merge (Tracking #5539). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5559",
+            "mintedAt": "2026-10-13T20:39:35Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-13T20:39:35Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Preserve an explicitly present windowsVerbatimArguments property whose value is undefined (Object.hasOwn true keeps the property).",
+        "status": "completed",
+        "x-directive/artifact_path": "tasks/engine-pm-run.test.cjs",
+        "narrative": {
+          "Acceptance": "Preserve an explicitly present windowsVerbatimArguments property whose value is undefined (Object.hasOwn true keeps the property)."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5559 squash-merge (Tracking #5539). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5559",
+            "mintedAt": "2026-10-13T20:39:35Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-13T20:39:35Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Do not change production executeAllowlisted / tasks/engine-pm-run.cjs; do not rewrite POSIX deepEqual expectations to include undefined.",
+        "status": "completed",
+        "x-directive/artifact_path": "tasks/engine-pm-run.test.cjs",
+        "narrative": {
+          "Acceptance": "Do not change production executeAllowlisted / tasks/engine-pm-run.cjs; do not rewrite POSIX deepEqual expectations to include undefined."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5559 squash-merge (Tracking #5539). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5559",
+            "mintedAt": "2026-10-13T20:39:35Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-13T20:39:35Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "urgent",
+      "area:cli",
+      "dogfood",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5539",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5539: Package runner exact-argv test spy fabricates an absent Windows option on POSIX"
+      }
+    ],
+    "metadata": {
+      "productPullRequest": 5559,
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "engine-pm-run-posix-spy-windowsverbatim-fabrication",
+        "expected_outputs": [
+          "Tracking PR for #5539 Prefer-A Bound Object.hasOwn spy recorder fix"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "node --test tasks/engine-pm-run.test.cjs"
+        ],
+        "file_scope": [
+          "tasks/engine-pm-run.test.cjs",
+          "CHANGELOG.md"
+        ],
+        "size": "S",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5539"
+        ],
+        "parallel_safe": true
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "tasks/engine-pm-run.test.cjs",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "engine-pm-run exact-argv spy recorder",
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased bullet only for #5539 Prefer-A Bound spy fix."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5788439670,
+        "origin": "deftai/directive#5539",
+        "id": "github.issue.5788439670"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "f9373448780be762a16f3c6d128a045e8e356fc49e15808ec4ec77581142d7ca"
+      },
+      "x-directive/derived_reason": "Prefer-A Bound limbs hand-stamped after empty body harvest (#4374); clauses bind Bound remedy",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-13T20:39:35Z"
+      },
+      "completedAt": "2026-10-13T20:39:35Z",
+      "completionProvenance": {
+        "productMerge": "cb97c3dbf37e72b7919bc3f0aa382c12286800ca",
+        "productPr": 5559
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "clauses": [
+        {
+          "id": "clause.1",
+          "text": "Capture windowsVerbatimArguments in exact-argv calls.push only when Object.hasOwn(opts, \"windowsVerbatimArguments\"); keep expected argv/assertions/wrapper/win32 check unchanged.",
+          "artifact_path": "tasks/engine-pm-run.test.cjs",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5559 squash-merge (Tracking #5539). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5559",
+              "mintedAt": "2026-10-13T20:39:35Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-13T20:39:35Z"
+          }
+        },
+        {
+          "id": "clause.2",
+          "text": "Preserve an explicitly present windowsVerbatimArguments property whose value is undefined (Object.hasOwn true keeps the property).",
+          "artifact_path": "tasks/engine-pm-run.test.cjs",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5559 squash-merge (Tracking #5539). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5559",
+              "mintedAt": "2026-10-13T20:39:35Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-13T20:39:35Z"
+          }
+        },
+        {
+          "id": "clause.3",
+          "text": "Do not change production executeAllowlisted / tasks/engine-pm-run.cjs; do not rewrite POSIX deepEqual expectations to include undefined.",
+          "artifact_path": "tasks/engine-pm-run.test.cjs",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5559 squash-merge (Tracking #5539). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5559",
+              "mintedAt": "2026-10-13T20:39:35Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-13T20:39:35Z"
+          }
+        }
+      ]
+    },
+    "id": "github.issue.5788439670",
+    "updated": "2026-10-13T20:39:35Z"
+  }
+}
