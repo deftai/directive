@@ -28,8 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Keep the #5539 membership allowlist current after product #5559.** Records the approved file list so follow-on scope checks stay valid. Tracking #5539.
 - **fix(test): exact-argv spy no longer fabricates absent windowsVerbatimArguments on POSIX (#5539).** Capture the option only when Object.hasOwn on the spawn opts. Tracking #5539.
 - Prepare approved scope for the Bun coverage fix. This records approval only; it does not change Bun coverage behavior. Refs #5541.
-- Prepare approved file permissions for the audited human-override work. This records approval only; it does not change product behavior. Refs #5542.- **Complete the #4981 tutorial brief after product #5464.** Move the active Directive Tutorial brief into xbrief/completed so orphan tracking clears. Tracking #4981.
-
+- Prepare approved file permissions for the audited human-override work. This records approval only; it does not change product behavior. Refs #5542.
+- **Complete the #4981 tutorial brief after product #5464.** Move the active Directive Tutorial brief into xbrief/completed so orphan tracking clears. Tracking #4981.
 - **fix(tutorial): keep progress when practice cwd changes (#4981 / #5464).** Tutorial state stays next to personal USER.md prefs so sandbox practice commands do not lose the saved run. Tracking #4981.
 - **fix(tutorial): Greptile 4/5 — stamp evidence before close + refuse Back when completed (#4981).** Close runs `scope:stamp-evidence` before `scope:complete --non-delivery`; Back refuses after status is completed so finished progress cannot reopen. Tracking #4981.
 - **fix(tutorial): Greptile 4/5 — refuse Back past close + Discuss hatch alias (#4981).** Once close has run, Back stops at close (no rewind to prove/change with a missing check command); `I have questions` pauses like Discuss. Tracking #4981.
