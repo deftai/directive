@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Keep-active #5541 Path B activation.** Lands Prefer-A Bound active xBRIEF with reminted file_scope; productPullRequest unset. Tracking #5541.
 - **Complete the #5541 scope brief after product #5568.** Move the Bun coverage applicability brief into `xbrief/completed/` so orphan tracking clears. Tracking #5541.
 - Keep active #4768 Path B activation (Prefer-A Bound file_scope membership fence).
+- Keep the #5542 human-override brief active with approved file permissions. This records Path B activation only; it does not change product behavior. Tracking #5542.
 - Remint approved-scope for #4768 (acceptance-activate Path B widen).
 - **Complete the #5539 scope brief after product #5559.** Move the exact-argv spy brief into `xbrief/completed/` so orphan tracking clears. Tracking #5539.
 - **Keep the #5539 membership allowlist current after product #5559.** Records the approved file list so follow-on scope checks stay valid. Tracking #5539.
