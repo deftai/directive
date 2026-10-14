@@ -1,0 +1,81 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Path B activate #5574 Prefer-A Bound",
+    "updated": "2026-10-14T07:20:25Z"
+  },
+  "plan": {
+    "id": "github.issue.5841024431",
+    "status": "running",
+    "title": "Path B activate #5574 Prefer-A Bound file_scope",
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5574",
+        "type": "x-xbrief/github-issue"
+      }
+    ],
+    "metadata": {
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5841024431,
+        "origin": "deftai/directive#5574",
+        "id": "github.issue.5841024431"
+      },
+      "swarm": {
+        "file_scope": [
+          "content/docs/intent-constraint.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-build/SKILL.md",
+          "content/templates/agent-prompt-preamble.md",
+          "content/skills/deft-directive-swarm/references/core-phase-0.md",
+          "packages/core/src/intent-constraint/types.ts",
+          "packages/core/src/intent-constraint/placement.test.ts",
+          "packages/core/src/intent-constraint/types.test.ts",
+          "CHANGELOG.md"
+        ],
+        "readiness": "ready",
+        "bound_cite": 6159841941
+      },
+      "intended_placement": {
+        "files": [
+          "content/docs/intent-constraint.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-build/SKILL.md",
+          "content/templates/agent-prompt-preamble.md",
+          "content/skills/deft-directive-swarm/references/core-phase-0.md",
+          "packages/core/src/intent-constraint/types.ts",
+          "packages/core/src/intent-constraint/placement.test.ts",
+          "packages/core/src/intent-constraint/types.test.ts",
+          "CHANGELOG.md"
+        ],
+        "cohesion_exemption": "CHANGELOG.md Unreleased Keep note for Path B mint",
+        "module_boundary": "Prefer-A Bound 6159841941 intent-constraint invariant throw+mint posture"
+      }
+    },
+    "acceptance": {
+      "none_stated": true,
+      "source_rung": "derived",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Prefer throw+mint for intent-constraint invariant failures vs operational returned-failure",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "commands": [],
+      "derived_reason": "derived 1 independently testable clauses from the task statement before product edit (#3323)",
+      "ambiguity_attestation": "none_found"
+    },
+    "items": [
+      {
+        "id": "limb-1",
+        "title": "Prefer throw+mint for intent-constraint invariant failures vs operational returned-failure",
+        "status": "pending"
+      }
+    ],
+    "updated": "2026-10-14T07:20:25Z"
+  }
+}
