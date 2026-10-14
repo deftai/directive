@@ -1345,6 +1345,43 @@ describe("runTransition", () => {
     expect(result.message).not.toMatch(/File not found|Already completed/);
   });
 
+  it("non-complete missing path stays File not found even with completed sibling (#4881)", () => {
+    root = makeRepo();
+    const name = "2026-10-14-promote-miss.xbrief.json";
+    writeFile(join(root, "xbrief", "completed", name), {
+      xBRIEFInfo: { version: "0.8" },
+      plan: { title: "done", status: "completed", items: [] },
+    });
+    const missingProposed = join(root, "xbrief", "proposed", name);
+    const result = runTransition("promote", missingProposed);
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/File not found/);
+    expect(result.message).not.toMatch(/Already completed|Already cancelled/);
+  });
+
+  it("complete missing path outside lifecycle folder stays File not found (#4881)", () => {
+    root = makeRepo();
+    const outside = join(root, "not-lifecycle", "ghost.xbrief.json");
+    mkdirSync(dirname(outside), { recursive: true });
+    const result = runTransition("complete", outside);
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/File not found/);
+    expect(result.message).not.toMatch(/Already completed|Already cancelled/);
+  });
+
+  it("complete missing non-artifact basename under lifecycle stays File not found (#4881)", () => {
+    root = makeRepo();
+    writeFile(join(root, "xbrief", "completed", "notes.txt"), {
+      xBRIEFInfo: { version: "0.8" },
+      plan: { title: "notes", status: "completed", items: [] },
+    });
+    const missing = join(root, "xbrief", "active", "notes.txt");
+    const result = runTransition("complete", missing);
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/File not found/);
+    expect(result.message).not.toMatch(/Already completed|Already cancelled/);
+  });
+
   it("normalizes item status complete to completed on complete (#4284)", () => {
     root = makeRepo();
     const path = join(root, "xbrief", "active", "alias-complete.xbrief.json");
