@@ -1,0 +1,275 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3583",
+    "updated": "2026-10-14T14:51:34Z"
+  },
+  "plan": {
+    "title": "bug(scope): scope:complete does not auto-discover the merged PR for delivery evidence",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(scope): scope:complete does not auto-discover the merged PR for delivery evidence",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3583",
+      "Overview": "## Summary\n\n`scope:complete` does not auto-discover the merged PR. Delivery evidence (`--repo`, `--pr`, `--merge-commit`, `--pr-base`, `--merged-at`) must be passed explicitly. An agent that omits them gets a late failure **after** the merge has already happened. Those fields are derivable from the branch’s merge commit / the origin issue’s merged pull.\n\nFiled from [comment on closed #3305](https://github.com/deftai/directive/issues/3305#issuecomment-5362873704). **Do not reopen #3305** — this is #3041 leftover, not the namespacing bug.\n\n## Observed\n\nRemediation today (`packages/core/src/scope/delivery-evidence.ts`):\n\n```\nPass scope:complete -- --merge-commit <sha> (and --pr <n> if you have one).\n```\n\nFlags are parsed in `packages/core/src/scope/main.ts`. `evidenceFromPrPayload` already exists for `swarm:finalize-cohort` and is **not** wired as a complete-time lookup from the current branch or origin issue.\n\n## Expected (thin v1)\n\nWhen `--pr` / `--merge-commit` are omitted on a **code-bearing** complete:\n\n1. Resolve the origin GitHub issue from the brief `references`.\n2. If that issue has exactly one merged PR into `plan.policy.deliveryBranch` (or the explicit `--delivery-branch`), stamp delivery evidence from that PR (`evidenceFromPrPayload`).\n3. If zero or more than one candidate, fail closed with the current explicit-flag remediation (do not guess).\n\nKeep explicit flags as override.\n\n## Non-goals\n\n- Inferring deploy/UAT from Git (already forbidden in delivery provenance).\n- Using `--non-delivery` as the happy path for shipped work.\n- Changing the #3305 evidence key namespacing.\n\n## Hostile / headless note\n\nAuto-pick of the wrong PR is the failure mode. Zero-or-many → fail closed is the control. Do not silently take the latest PR on the branch if it is not merged to delivery.\n\n## Refs\n\n#3041, #3380, #3305 (comment only).\n\n",
+      "Labels": "bug, agent-experience, urgent, area:cli, design-critique:ingest-ready, core-capabilities, promise:records"
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "On code-bearing scope:complete with --pr/--merge-commit omitted, auto-build delivery evidence before evaluateDeliveryGate",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5613. Bound limbs shipped.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5613",
+            "mintedAt": "2026-10-14T19:58:55.211Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-14T19:58:55.211Z"
+        }
+      },
+      {
+        "id": "2",
+        "title": "Reuse evidenceFromPrPayload with verifier scope:complete; share discovery helper across both complete entry paths",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5613. Bound limbs shipped.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5613",
+            "mintedAt": "2026-10-14T19:58:55.211Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-14T19:58:55.211Z"
+        }
+      },
+      {
+        "id": "3",
+        "title": "Primary seed productPullRequest; else closing-identity-proved complete deduped set; fail-closed on zero/many/incomplete",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5613. Bound limbs shipped.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5613",
+            "mintedAt": "2026-10-14T19:58:55.211Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-14T19:58:55.211Z"
+        }
+      },
+      {
+        "id": "4",
+        "title": "Resolve delivery branch via typed policy SoT; filter discovery on base.ref; CLI delivery-branch flag is matching assertion only",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/scope/transition.ts",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5613. Bound limbs shipped.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5613",
+            "mintedAt": "2026-10-14T19:58:55.211Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-14T19:58:55.211Z"
+        }
+      },
+      {
+        "id": "5",
+        "title": "CHANGELOG Unreleased Fixed note for scope:complete auto-discovery of delivery evidence",
+        "status": "completed",
+        "x-directive/artifact_path": "CHANGELOG.md",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5613. Bound limbs shipped.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5613",
+            "mintedAt": "2026-10-14T19:58:55.211Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-14T19:58:55.211Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "urgent",
+      "area:cli",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:records",
+      "prefer-a-bound",
+      "through-merge",
+      "swarm-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3583",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3583: bug(scope): scope:complete does not auto-discover the merged PR for delivery evidence"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3305",
+        "type": "x-xbrief/closes",
+        "title": "Issue #3305"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3041",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3041"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "Pass scope:complete -- --merge-commit <sha> (and --pr <n> if you have one)",
+          "reason": "shell metacharacter \"<\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L13"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "scope-complete-auto-discover-merged-pr-delivery-evidence",
+        "expected_outputs": [
+          "Tracking PR opened",
+          "tests green",
+          "CHANGELOG Unreleased note"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "task check"
+        ],
+        "file_scope": [
+          "packages/core/src/scope/delivery-evidence.ts",
+          "packages/core/src/scope/delivery-evidence.test.ts",
+          "packages/core/src/scope/transition.ts",
+          "packages/core/src/scope/transition.test.ts",
+          "packages/core/src/scope/main.ts",
+          "CHANGELOG.md"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "Prefer-A Bound harvest hand-stamped for through-merge cohort"
+        ],
+        "parallel_safe": true
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/scope/delivery-evidence.ts",
+          "packages/core/src/scope/delivery-evidence.test.ts",
+          "packages/core/src/scope/transition.ts",
+          "packages/core/src/scope/transition.test.ts",
+          "packages/core/src/scope/main.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/scope/delivery-evidence",
+        "cohesion_exemption": "Prefer-A Bound concrete file_scope for through-merge cohort"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5209891851,
+        "origin": "deftai/directive#3583",
+        "id": "github.issue.5209891851"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "67a176530c81bb60b01860e62d5cdea5f3f0c6e7089488e8a64372f970d25a0b"
+      },
+      "productPullRequest": 5613,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-14T19:40:56.000Z"
+      },
+      "completedAt": "2026-10-14T19:40:56.000Z",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 5613,
+        "prBase": "master",
+        "mergeCommit": "f84ab58276a1f60bf1f8eadf1db1b95bbc09e387",
+        "deliveryBranch": "master",
+        "deliveryCommit": "f84ab58276a1f60bf1f8eadf1db1b95bbc09e387",
+        "verifiedAt": "2026-10-14T19:40:56.000Z",
+        "verifier": "parent-closer-pulse/5617",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      }
+    },
+    "acceptance": {
+      "none_stated": true,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "On code-bearing scope:complete with --pr/--merge-commit omitted, auto-build delivery evidence before evaluateDeliveryGate",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Reuse evidenceFromPrPayload with verifier scope:complete; share discovery helper across both complete entry paths",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Primary seed productPullRequest; else closing-identity-proved complete deduped set; fail-closed on zero/many/incomplete",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Resolve delivery branch via typed policy SoT; filter discovery on base.ref; CLI delivery-branch flag is matching assertion only",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "CHANGELOG Unreleased Fixed note for scope:complete auto-discovery of delivery evidence",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "commands": [],
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5209891851",
+    "x-directive/plan-id": {
+      "version": 1,
+      "source": "github-rest-id",
+      "github_issue_id": 5209891851,
+      "origin": "deftai/directive#3583",
+      "id": "github.issue.5209891851"
+    },
+    "updated": "2026-10-14T14:51:34Z"
+  }
+}
