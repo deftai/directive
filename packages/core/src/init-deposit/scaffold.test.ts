@@ -226,7 +226,10 @@ describe("init-deposit scaffold", () => {
       const guard = depositGuard();
       expect(() => assertCoreGuardWorkflowLoadable(guard)).not.toThrow();
       expect(guard.startsWith("name: deft-core-guard\n")).toBe(true);
-      expect(guard).toMatch(/\non:\n {2}pull_request:\n/);
+      expect(guard).toMatch(/\non:\n {2}pull_request:\n {4}paths:\n/);
+      expect(guard).toContain("      - '.deft/core/**'");
+      expect(guard).toContain("      - '.deft/GENERATION.json'");
+      expect(guard).toContain("#5552");
       expect(guard).toMatch(/\njobs:\n {2}no-mixed-core-and-app:\n/);
       expect(guard).toContain("runs-on: ubuntu-latest");
     });
