@@ -6,7 +6,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, unlinkSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import {
   ContainedWriteError,
@@ -480,41 +480,36 @@ export function inspectGateOverrideGrant(
       };
     }
     const grant = loadGrant(projectRoot, admission.grantId);
-    if (grant === null) {
-      return { ok: false, reason: `gate-override admission grant ${admission.grantId} missing` };
-    }
-    if (grant.semantics.revokedAt !== null) {
-      return {
-        ok: false,
-        reason: `gate-override grant ${grant.id} revoked (revocation dominates)`,
-      };
-    }
-    if (grant.semantics.expiresAt !== null) {
-      const exp = Date.parse(grant.semantics.expiresAt);
-      if (Number.isFinite(exp) && exp <= now.getTime()) {
-        return { ok: false, reason: `gate-override grant ${grant.id} expired` };
+    const admissionGrantLive =
+      grant !== null &&
+      grant.semantics.revokedAt === null &&
+      (grant.semantics.expiresAt === null ||
+        !Number.isFinite(Date.parse(grant.semantics.expiresAt)) ||
+        Date.parse(grant.semantics.expiresAt) > now.getTime());
+    // Stale admission (missing/revoked/expired grant): fall through so a renewed
+    // matching grant can be discovered (#5542 Greptile P1).
+    if (admissionGrantLive) {
+      if (
+        admission.refuseCode !== binding.refuseCode.trim() ||
+        admission.baseSha !== binding.baseSha.trim() ||
+        admission.headSha !== binding.headSha.trim() ||
+        admission.treeHash !== binding.treeHash.trim()
+      ) {
+        return { ok: false, reason: "gate-override admission binding mismatch" };
       }
+      // Re-enforce grant worktree/evaluator limits on inspect-of-receipt (#5542).
+      if (!grantMatchesGateOverride(grant, binding, now)) {
+        return {
+          ok: false,
+          reason: "gate-override admission no longer matches grant worktree/evaluator limits",
+        };
+      }
+      const parsed = parseGateOverrideBinding(grant);
+      if (parsed === null) {
+        return { ok: false, reason: "gate-override grant surfaces unparseable" };
+      }
+      return { ok: true, grant, binding: parsed, admission };
     }
-    if (
-      admission.refuseCode !== binding.refuseCode.trim() ||
-      admission.baseSha !== binding.baseSha.trim() ||
-      admission.headSha !== binding.headSha.trim() ||
-      admission.treeHash !== binding.treeHash.trim()
-    ) {
-      return { ok: false, reason: "gate-override admission binding mismatch" };
-    }
-    // Re-enforce grant worktree/evaluator limits on inspect-of-receipt (#5542).
-    if (!grantMatchesGateOverride(grant, binding, now)) {
-      return {
-        ok: false,
-        reason: "gate-override admission no longer matches grant worktree/evaluator limits",
-      };
-    }
-    const parsed = parseGateOverrideBinding(grant);
-    if (parsed === null) {
-      return { ok: false, reason: "gate-override grant surfaces unparseable" };
-    }
-    return { ok: true, grant, binding: parsed, admission };
   }
 
   const state = loadAuthzState(projectRoot);
@@ -566,6 +561,7 @@ export function admitGateOverrideForAttempt(
     };
   }
 
+  let stalePriorFail: GateOverrideAdmitResult | null = null;
   const prior = loadGateOverrideAdmission(projectRoot, input.attemptId);
   if (prior !== null) {
     if (prior.attemptId !== input.attemptId.trim()) {
@@ -589,52 +585,54 @@ export function admitGateOverrideForAttempt(
     }
     const grant = loadGrant(projectRoot, prior.grantId);
     if (grant === null) {
-      return {
+      stalePriorFail = {
         ok: false,
         code: "grant-missing",
         reason: `gate-override: admission grant ${prior.grantId} missing`,
       };
-    }
-    if (grant.semantics.revokedAt !== null) {
-      return {
+    } else if (grant.semantics.revokedAt !== null) {
+      stalePriorFail = {
         ok: false,
         code: "revoked",
         reason: "gate-override: grant revoked after admission (revocation dominates)",
       };
-    }
-    if (grant.semantics.expiresAt !== null) {
+    } else if (grant.semantics.expiresAt !== null) {
       const exp = Date.parse(grant.semantics.expiresAt);
       if (Number.isFinite(exp) && exp <= now.getTime()) {
-        return {
+        stalePriorFail = {
           ok: false,
           code: "expired",
           reason: "gate-override: grant expired after admission (expiry dominates recheck)",
         };
       }
     }
-    // Re-enforce grant worktree/evaluator limits on reuse (#5542 Greptile P1).
-    if (
-      !grantMatchesGateOverride(
-        grant,
-        {
-          refuseCode,
-          baseSha: input.baseSha,
-          headSha: input.headSha,
-          treeHash: input.treeHash,
-          attemptId: input.attemptId,
-          worktree: input.worktree,
-          evaluatorId: input.evaluatorId,
-        },
-        now,
-      )
-    ) {
-      return {
-        ok: false,
-        code: "admission-mismatch",
-        reason: "gate-override: prior admission no longer matches grant worktree/evaluator limits",
-      };
+    // Live prior: reuse. Stale prior: fall through so a renewed matching grant
+    // can replace the admission (#5542 Greptile P1).
+    if (stalePriorFail === null) {
+      if (
+        !grantMatchesGateOverride(
+          grant as NonNullable<typeof grant>,
+          {
+            refuseCode,
+            baseSha: input.baseSha,
+            headSha: input.headSha,
+            treeHash: input.treeHash,
+            attemptId: input.attemptId,
+            worktree: input.worktree,
+            evaluatorId: input.evaluatorId,
+          },
+          now,
+        )
+      ) {
+        return {
+          ok: false,
+          code: "admission-mismatch",
+          reason:
+            "gate-override: prior admission no longer matches grant worktree/evaluator limits",
+        };
+      }
+      return { ok: true, grant: grant as NonNullable<typeof grant>, receipt: prior, reused: true };
     }
-    return { ok: true, grant, receipt: prior, reused: true };
   }
 
   const inspect = inspectGateOverrideGrant(
@@ -651,7 +649,21 @@ export function admitGateOverrideForAttempt(
     now,
   );
   if (!inspect.ok) {
+    if (stalePriorFail !== null) return stalePriorFail;
     return { ok: false, code: "grant-missing", reason: inspect.reason };
+  }
+
+  // Renewing after a stale admission: drop the old exclusive receipt so the
+  // fresh grant can write a replacement (#5542 Greptile P1).
+  if (stalePriorFail !== null) {
+    const stalePath = admissionPath(projectRoot, input.attemptId);
+    if (existsSync(stalePath)) {
+      try {
+        unlinkSync(stalePath);
+      } catch {
+        return stalePriorFail;
+      }
+    }
   }
 
   const grantId = inspect.grant.id;

@@ -84,9 +84,7 @@ function evaluateStoredRecord(
   if (live.prBodyHash !== record.prBodyHash) {
     return deny("deny-binding", `pre-PR record ${record.id} does not match live PR body hash`);
   }
-  const terminalOutcome =
-    record.outcome === "pass" || record.outcome === "waived" || record.outcome === "overridden";
-  if (!terminalOutcome || record.state !== "complete" || record.publishedAt === null) {
+  if (record.outcome !== "pass" || record.state !== "complete" || record.publishedAt === null) {
     if (record.state === "failed") return deny("deny-failed", "failed pre-PR run mints no pass");
     if (record.state === "interrupted") {
       return deny("deny-interrupted", "interrupted pre-PR run mints no pass");
@@ -94,36 +92,14 @@ function evaluateStoredRecord(
     return deny("deny-incomplete", "incomplete pre-PR run mints no pass");
   }
   const observables = runObservablesComplete(record);
-  // Waived observables are ok:false (not pass) but must still reach criteria
-  // authority — stale generation / changed approved criteria must deny (#5542).
-  const waivedObservables =
-    observables.code === "allow-waived" || observables.code === "allow-overridden";
-  if (!observables.ok && !waivedObservables) return observables;
-  const criteria = evaluateCriteriaAuthority({
+  if (!observables.ok) return observables;
+  return evaluateCriteriaAuthority({
     record,
     currentGeneration: input.currentGeneration,
     approved: input.approvedCriteria,
     headCriteria: input.headCriteria ?? null,
     lastInvalidationAt: input.lastInvalidationAt ?? null,
   });
-  if (!criteria.ok) return criteria;
-  // Preserve waived/overridden decision codes — never collapse onto allow-pass (#5542).
-  // ok:false so CLI adapters (`d.ok ? 0 : 1`) exit non-zero; waived ≠ pass.
-  if (waivedObservables || record.outcome === "waived") {
-    return {
-      ok: false,
-      code: "allow-waived",
-      message: "pre-PR waived continuation (coverage_headroom); not allow-pass",
-    };
-  }
-  if (record.outcome === "overridden") {
-    return {
-      ok: false,
-      code: "allow-overridden",
-      message: "pre-PR overridden continuation; not allow-pass",
-    };
-  }
-  return criteria;
 }
 
 export function evaluateLivePrePrCheck(input: {

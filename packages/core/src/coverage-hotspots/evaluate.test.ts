@@ -681,53 +681,6 @@ describe("evaluateCoverageHotspots", () => {
     expect(result.applicability?.outcome).toBe("refuse");
   });
 
-  it("honors gate-override grant as waived exit 4 never 0 (#5542)", async () => {
-    const { mintGateOverrideTemplateGrant } = await import("../authz/gate-override.js");
-    const { COVERAGE_HEADROOM_WAIVED_EXIT } = await import("../pre-pr-controller/phases.js");
-    const root = gitRepo({
-      "README.md": "# base\n",
-      "vitest.config.ts":
-        "export default { test: { coverage: { thresholds: { branches: 85 } } } };",
-    });
-    const baseSha = childProcess
-      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
-      .trim();
-    writeFileSync(join(root, "mystery.bin"), "x");
-    childProcess.execFileSync("git", ["add", "-A"], { cwd: root });
-    childProcess.execFileSync("git", ["commit", "-q", "-m", "unknown"], { cwd: root });
-    const headSha = childProcess
-      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
-      .trim();
-    const treeHash = childProcess
-      .execFileSync("git", ["rev-parse", "HEAD^{tree}"], { cwd: root, encoding: "utf8" })
-      .trim();
-    const minted = mintGateOverrideTemplateGrant({
-      projectRoot: root,
-      target: "unknown-path",
-      planRef: "hotspots-attempt-1",
-      baseSha,
-      headSha,
-      treeHash,
-    });
-    expect(minted.ok).toBe(true);
-    const refused = evaluateCoverageHotspots({
-      projectRoot: root,
-      inputBinding: { baseSha, headSha, treeHash },
-      useDiffPaths: false,
-    });
-    expect(refused.exitCode).toBe(2);
-    const waived = evaluateCoverageHotspots({
-      projectRoot: root,
-      inputBinding: { baseSha, headSha, treeHash },
-      useDiffPaths: false,
-      gateOverrideAttemptId: "hotspots-attempt-1",
-    });
-    expect(waived.exitCode).toBe(COVERAGE_HEADROOM_WAIVED_EXIT);
-    expect(waived.exitCode).not.toBe(0);
-    expect(waived.applicability?.outcome).toBe("waived");
-    expect(waived.applicability?.waiver?.reviewObligation).toBe("pre-merge-human-review-required");
-  });
-
   it("allows measured coverage when dirty-tree refuse has a report (blocks N/A only)", () => {
     const root = gitRepo({
       "README.md": "# base\n",

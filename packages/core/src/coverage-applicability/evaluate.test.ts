@@ -10,7 +10,6 @@ import {
   evaluateCoverageApplicability,
   isProjectDefinitionRegistryRefreshOnly,
   parseNameStatus,
-  toWaivedCoverageApplicability,
 } from "./evaluate.js";
 
 const PROJECT_DEF_PATH = "xbrief/PROJECT-DEFINITION.xbrief.json";
@@ -577,30 +576,6 @@ describe("evaluateCoverageApplicability", () => {
     const unknownResult = evaluateCoverageApplicability(bindingFor(unknownRoot, unknownBase));
     expect(unknownResult.outcome).toBe("refuse");
     if (unknownResult.outcome === "refuse") expect(unknownResult.code).toBe("unknown-path");
-  });
-
-  it("maps refuse to waived/overridden arms without claiming applicable (#5542)", () => {
-    const refused = {
-      outcome: "refuse" as const,
-      code: "unknown-path",
-      reason: "coverage-applicability: unknown path classification: mystery.bin",
-      changes: [] as const,
-    };
-    const waiver = {
-      grantId: "grant-1",
-      attemptId: "attempt-1",
-      reviewObligation: "pre-merge-human-review-required",
-      admittedAt: "2026-10-13T00:00:00Z",
-      observedRefuseCode: "unknown-path",
-      observedRefuseReason: refused.reason,
-    };
-    const waived = toWaivedCoverageApplicability(refused, waiver, "waived");
-    expect(waived.outcome).toBe("waived");
-    expect(waived.outcome).not.toBe("applicable");
-    expect(waived.code).toBe("unknown-path");
-    expect(waived.waiver.grantId).toBe("grant-1");
-    const overridden = toWaivedCoverageApplicability(refused, waiver, "overridden");
-    expect(overridden.outcome).toBe("overridden");
   });
 });
 

@@ -217,6 +217,57 @@ describe("gate-override (#5542 Prefer-A Bound)", () => {
     expect(recheck.code).toBe("revoked");
   });
 
+  it("renewed grant replaces a revoked prior admission for the same attempt", () => {
+    root = mkdtempSync(join(tmpdir(), "gate-override-"));
+    const baseSha = "4".repeat(40);
+    const headSha = "5".repeat(40);
+    const treeHash = "6".repeat(40);
+    const first = mintGateOverrideTemplateGrant({
+      projectRoot: root,
+      target: "unknown-path",
+      planRef: "attempt-renew",
+      baseSha,
+      headSha,
+      treeHash,
+    });
+    expect(first.ok).toBe(true);
+    if (!first.ok) return;
+    const admitted = admitGateOverrideForAttempt(root, {
+      refuseCode: "unknown-path",
+      baseSha,
+      headSha,
+      treeHash,
+      attemptId: "attempt-renew",
+      observedRefuseReason: "unknown path",
+    });
+    expect(admitted.ok).toBe(true);
+    if (!admitted.ok) return;
+    expect(revokeGrant({ projectRoot: root, grantId: first.grant.id }).ok).toBe(true);
+
+    const renewed = mintGateOverrideTemplateGrant({
+      projectRoot: root,
+      target: "unknown-path",
+      planRef: "attempt-renew",
+      baseSha,
+      headSha,
+      treeHash,
+    });
+    expect(renewed.ok).toBe(true);
+    if (!renewed.ok) return;
+    const readmit = admitGateOverrideForAttempt(root, {
+      refuseCode: "unknown-path",
+      baseSha,
+      headSha,
+      treeHash,
+      attemptId: "attempt-renew",
+      observedRefuseReason: "unknown path",
+    });
+    expect(readmit.ok).toBe(true);
+    if (!readmit.ok) return;
+    expect(readmit.reused).toBe(false);
+    expect(readmit.receipt.grantId).toBe(renewed.grant.id);
+  });
+
   it("attempt ids a/b and a_b do not share an admission file", () => {
     root = mkdtempSync(join(tmpdir(), "gate-override-"));
     const baseSha = "a".repeat(40);

@@ -8,15 +8,12 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
-import { loadGateOverrideAdmission, loadGrant } from "../authz/index.js";
 import {
   type CoverageApplicabilityDeps,
   evaluateCoverageApplicability,
 } from "../coverage-applicability/index.js";
 import {
-  COVERAGE_HEADROOM_WAIVED_EXIT,
   isAllowedSkip,
-  isCoverageHeadroomWaivedSkip,
   PRE_PR_CONTROLLER_VERSION,
   PRE_PR_PHASES,
   PRE_PR_WORKFLOW_VERSION,
@@ -178,9 +175,6 @@ export function observeCommandPhase(
   store: PrePrExecutionStore,
   runId: string,
   observation: Omit<CommandObservation, "completedAt"> & { readonly now?: Date },
-  options?: {
-    readonly projectRoot?: string;
-  },
 ): PrePrDecision {
   const spec = phaseSpec(observation.phaseId);
   if (spec.kind !== "command-observable") {
@@ -196,44 +190,9 @@ export function observeCommandPhase(
         "command observation input hash does not match the run binding",
       );
     }
-    // Waived coverage_headroom must land only with live admission + command match
-    // (#5542 Greptile P1) — forged exit-4/skip strings alone fail closed.
-    if (
-      observation.phaseId === "coverage_headroom" &&
-      observation.exitCode === COVERAGE_HEADROOM_WAIVED_EXIT
-    ) {
-      if (!isCoverageHeadroomWaivedSkip(observation.skipReason)) {
-        return deny(
-          "deny-input-mismatch",
-          "coverage_headroom waived observation requires the closed waived skip reason",
-        );
-      }
-      if (
-        spec.command === null ||
-        !coverageHotspotsCommandMatches(observation.command, spec.command)
-      ) {
-        return deny(
-          "deny-input-mismatch",
-          "coverage_headroom waived observation requires the coverage:hotspots command",
-        );
-      }
-      if (
-        !liveCoverageHeadroomWaiverAdmission(record, {
-          projectRoot: options?.projectRoot,
-        })
-      ) {
-        return deny(
-          "deny-input-mismatch",
-          "coverage_headroom waived observation requires a live gate-override admission for this run/tree",
-        );
-      }
-    }
     const skipOk =
       observation.phaseId === "coverage_headroom"
-        ? (observation.exitCode === 3 &&
-            isAllowedSkip(observation.phaseId, observation.skipReason)) ||
-          (observation.exitCode === COVERAGE_HEADROOM_WAIVED_EXIT &&
-            isCoverageHeadroomWaivedSkip(observation.skipReason))
+        ? observation.exitCode === 3 && isAllowedSkip(observation.phaseId, observation.skipReason)
         : isAllowedSkip(observation.phaseId, observation.skipReason);
     const failed = observation.exitCode !== 0 && !skipOk;
     const row: CommandObservation = {
@@ -343,35 +302,6 @@ export function noteSkillFileOpen(): PrePrDecision {
 }
 
 /**
- * Live gate-override admission + unrevoked/unexpired grant for this run/tree.
- * Used by observeCommandPhase (write path) and commandSatisfied (read path).
- */
-function liveCoverageHeadroomWaiverAdmission(
-  record: PrePrExecutionRecord,
-  options?: { readonly projectRoot?: string },
-): boolean {
-  const projectRoot = options?.projectRoot ?? process.cwd();
-  const attemptId = process.env.DEFT_GATE_OVERRIDE_ATTEMPT_ID?.trim() || record.id;
-  const admission = loadGateOverrideAdmission(projectRoot, attemptId);
-  if (admission === null) return false;
-  if (
-    admission.baseSha !== record.baseSha ||
-    admission.headSha !== record.headSha ||
-    admission.treeHash !== record.treeHash
-  ) {
-    return false;
-  }
-  const grant = loadGrant(projectRoot, admission.grantId);
-  if (grant === null) return false;
-  if (grant.semantics.revokedAt !== null) return false;
-  if (grant.semantics.expiresAt !== null) {
-    const exp = Date.parse(grant.semantics.expiresAt);
-    if (Number.isFinite(exp) && exp <= Date.now()) return false;
-  }
-  return true;
-}
-
-/**
  * Safe observation-only flags for measured coverage_headroom commands.
  * Reject `--project-root` / `--base-ref` redirects — they can measure another tree
  * while the observation stays labeled with this run's inputHash (#5421).
@@ -424,15 +354,6 @@ function commandSatisfied(
     const spec = phaseSpec(phaseId);
     if (row.exitCode === 0) {
       return spec.command !== null && coverageHotspotsCommandMatches(row.command, spec.command);
-    }
-    // #5542: exit 4 + waived skip requires a live admission receipt for this
-    // run/tree — forged observe-command skip strings alone must not satisfy.
-    if (row.exitCode === COVERAGE_HEADROOM_WAIVED_EXIT) {
-      if (!isCoverageHeadroomWaivedSkip(row.skipReason)) return false;
-      if (spec.command === null || !coverageHotspotsCommandMatches(row.command, spec.command)) {
-        return false;
-      }
-      return liveCoverageHeadroomWaiverAdmission(record, options);
     }
     // Authorized N/A is exit 3 only (hotspots emits 3 when inert + no report).
     // Exit 1 measured floor fails must not launder into skip via inert re-derivation.
@@ -491,7 +412,6 @@ export function runObservablesComplete(
   }
   let previousAt: string | null = null;
   let previousId: string | null = null;
-  let sawCoverageWaived = false;
   for (const spec of PRE_PR_PHASES) {
     if (!spec.required) continue;
     const ok =
@@ -503,16 +423,6 @@ export function runObservablesComplete(
         "deny-omitted-phase",
         `required phase ${spec.id} has no controller-observed pass`,
       );
-    }
-    if (spec.id === "coverage_headroom") {
-      const row = record.phaseEvidence.commands.find((c) => c.phaseId === "coverage_headroom");
-      if (
-        row !== undefined &&
-        row.exitCode === COVERAGE_HEADROOM_WAIVED_EXIT &&
-        isCoverageHeadroomWaivedSkip(row.skipReason)
-      ) {
-        sawCoverageWaived = true;
-      }
     }
     const at = phaseObservedAt(record, spec);
     if (at === null || at.length === 0) {
@@ -532,14 +442,6 @@ export function runObservablesComplete(
   }
   if (!record.finalNoChange) {
     return deny("deny-incomplete", "completion requires the skill final no-change pass");
-  }
-  // Bound limb 3: waived ≠ allow-pass / exit-0 green (ok:false for CLI adapters).
-  if (sawCoverageWaived) {
-    return {
-      ok: false,
-      code: "allow-waived",
-      message: "observables complete with coverage_headroom waived (not passed)",
-    };
   }
   return { ok: true, code: "allow-pass", message: "observables complete" };
 }
@@ -567,26 +469,16 @@ export function completeRun(
     return deny("deny-missing-record", `pre-PR run ${runId} is not in the private store`);
   }
   const observables = runObservablesComplete(current, options);
-  const waivedObservables =
-    observables.code === "allow-waived" || observables.code === "allow-overridden";
-  // Waived observables are ok:false (not pass) but still publishable; only true
-  // denies abort completion (#5542 Greptile P1).
-  if (!observables.ok && !waivedObservables) return observables;
-  const waived = waivedObservables;
+  if (!observables.ok) return observables;
   const published: PrePrExecutionRecord = {
     ...current,
     state: "complete",
-    outcome: waived ? "waived" : "pass",
+    outcome: "pass",
     completedAt: utcIso(now),
     publishedAt: utcIso(now),
   };
   store.put(published);
-  return {
-    // Published waived runs stay distinct from pass for CLI exit (#5542).
-    ok: !waived,
-    code: waived ? "allow-waived" : "allow-pass",
-    message: `published ${runId}${waived ? " (waived ≠ pass)" : ""}`,
-  };
+  return { ok: true, code: "allow-pass", message: `published ${runId}` };
 }
 
 export function controllerPublisher(): PrePrPublisher {
