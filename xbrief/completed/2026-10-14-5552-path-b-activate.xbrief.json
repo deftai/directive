@@ -1,7 +1,8 @@
 {
   "xBRIEFInfo": {
     "version": "0.8",
-    "description": "Path B activate #5552 Prefer-A Bound"
+    "description": "Path B activate #5552 Prefer-A Bound",
+    "updated": "2026-10-14T06:05:25.313Z"
   },
   "plan": {
     "id": "github.issue.5820237634",
@@ -39,7 +40,16 @@
         "cohesion_exemption": "CHANGELOG.md Unreleased Keep note for Path B mint",
         "module_boundary": "Prefer-A Bound 6152507405 for issue 5552"
       },
-      "productPullRequest": 5584
+      "productPullRequest": 5584,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-14T06:05:25.313Z"
+      },
+      "completionProvenance": {
+        "productMerge": "f716bbabf635a8829f1108d17a9ea68ac0af7157",
+        "productPr": 5584
+      },
+      "completedAt": "2026-10-14T06:05:25.313Z"
     },
     "acceptance": {
       "none_stated": true,
@@ -59,6 +69,7 @@
           "recorded_by": "parent-retained-closer/5552"
         }
       }
-    ]
+    ],
+    "updated": "2026-10-14T06:05:25.313Z"
   }
 }
