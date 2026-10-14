@@ -544,6 +544,37 @@ describe("orientation/session-bind index-only untrack (#3911)", () => {
     expect(again.outcome).toBe("already-clean");
   });
 
+  it("probes only migration targets — never whole-tree ls-files (Greptile P1)", () => {
+    const root = gitConsumer("gi-3911-probe-");
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(join(root, ".deft", "orientation-state.json"), '{"schema_version":1}\n', "utf8");
+    const probed: string[][] = [];
+    const gitLsFiles = (_dir: string, paths: readonly string[]): string | null => {
+      probed.push([...paths]);
+      // Simulate maxBuffer overflow on whole-tree listing.
+      if (paths.length === 1 && paths[0] === ".") return null;
+      if (paths.every((p) => ORIENTATION_SESSION_BIND_IGNORE_LINES.includes(p))) {
+        return ".deft/orientation-state.json\n";
+      }
+      if (
+        paths.some(
+          (p) => p === ".deft/orientation-state.json" || p === ".deft/orientation-state.json/",
+        )
+      ) {
+        return ".deft/orientation-state.json\n";
+      }
+      return "";
+    };
+    const result = untrackOrientationSessionBindRuntime(root, {
+      gitLsFiles,
+      gitRmCached: () => ({ ok: true, detail: "" }),
+    });
+    expect(probed.some((p) => p.length === 1 && p[0] === ".")).toBe(false);
+    expect(probed[0]).toEqual([...ORIENTATION_SESSION_BIND_IGNORE_LINES]);
+    expect(result.outcome).toBe("untracked");
+    expect(result.untrackedPaths).toContain(".deft/orientation-state.json");
+  });
+
   it("refuses staged-conflict targets and preserves working-file bytes", () => {
     const root = gitConsumer("gi-3911-conflict-");
     mkdirSync(join(root, ".deft"), { recursive: true });
@@ -630,9 +661,9 @@ describe("orientation/session-bind index-only untrack (#3911)", () => {
     const again = ensureInitGitignoreLines(root, { printf: () => {} });
     expect(again.changed).toBe(false);
     expect(again.localRuntimeUntrack?.outcome).toBe("already-clean");
-    expect(
-      execFileSync("git", ["status", "--short"], { cwd: root, encoding: "utf8" }).trim(),
-    ).toBe("");
+    expect(execFileSync("git", ["status", "--short"], { cwd: root, encoding: "utf8" }).trim()).toBe(
+      "",
+    );
   });
 });
 

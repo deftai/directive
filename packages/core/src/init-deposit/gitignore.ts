@@ -300,7 +300,9 @@ export function untrackOrientationSessionBindRuntime(
   const gitRmCached = options.gitRmCached ?? defaultGitRmCachedPaths;
   const targets = options.paths ?? ORIENTATION_SESSION_BIND_IGNORE_LINES;
 
-  const probe = gitLsFiles(projectDir, ["."]);
+  // Probe only the migration targets — never `git ls-files -- .` (default
+  // maxBuffer can overflow on large consumer trees and falsely skip-no-git).
+  const probe = gitLsFiles(projectDir, targets);
   if (probe === null) {
     return {
       outcome: "skipped-no-git",
