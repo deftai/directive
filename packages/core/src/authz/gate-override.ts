@@ -473,6 +473,12 @@ export function inspectGateOverrideGrant(
 ): GateOverrideInspectResult {
   const admission = loadGateOverrideAdmission(projectRoot, binding.attemptId);
   if (admission !== null) {
+    if (admission.attemptId !== binding.attemptId.trim()) {
+      return {
+        ok: false,
+        reason: "gate-override admission attempt id does not match requested attempt",
+      };
+    }
     const grant = loadGrant(projectRoot, admission.grantId);
     if (grant === null) {
       return { ok: false, reason: `gate-override admission grant ${admission.grantId} missing` };
@@ -496,6 +502,13 @@ export function inspectGateOverrideGrant(
       admission.treeHash !== binding.treeHash.trim()
     ) {
       return { ok: false, reason: "gate-override admission binding mismatch" };
+    }
+    // Re-enforce grant worktree/evaluator limits on inspect-of-receipt (#5542).
+    if (!grantMatchesGateOverride(grant, binding, now)) {
+      return {
+        ok: false,
+        reason: "gate-override admission no longer matches grant worktree/evaluator limits",
+      };
     }
     const parsed = parseGateOverrideBinding(grant);
     if (parsed === null) {

@@ -13,7 +13,12 @@ import {
 } from "./controller.js";
 import { digestApprovedCriteria } from "./criteria.js";
 import { evaluatePrePrEvidence } from "./evaluate.js";
-import { ALLOWED_SKIP_REASONS, PRE_PR_PHASES } from "./phases.js";
+import {
+  ALLOWED_SKIP_REASONS,
+  COVERAGE_HEADROOM_WAIVED_EXIT,
+  COVERAGE_HEADROOM_WAIVED_SKIP,
+  PRE_PR_PHASES,
+} from "./phases.js";
 import { InProcessPrePrStore, mintPublisher, type PrePrExecutionStore } from "./store.js";
 import { deny, type PrePrExecutionRecord } from "./types.js";
 
@@ -608,5 +613,20 @@ describe("controller observations", () => {
       }
       expect(runObservablesComplete(store.getById(rec.id) as PrePrExecutionRecord).ok).toBe(false);
     }
+  });
+
+  it("coverage_headroom waived observe requires live gate-override admission", () => {
+    const store = new InProcessPrePrStore();
+    const rec = start(store, "ppr_waived_no_admission");
+    const denied = observeCommandPhase(store, rec.id, {
+      phaseId: "coverage_headroom",
+      command: "deft coverage:hotspots",
+      exitCode: COVERAGE_HEADROOM_WAIVED_EXIT,
+      inputHash: rec.inputHash,
+      skipReason: COVERAGE_HEADROOM_WAIVED_SKIP,
+    });
+    expect(denied.ok).toBe(false);
+    expect(denied.code).toBe("deny-input-mismatch");
+    expect(store.getById(rec.id)?.phaseEvidence.commands).toHaveLength(0);
   });
 });
