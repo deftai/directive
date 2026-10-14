@@ -1,0 +1,175 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4881",
+    "updated": "2026-10-14T14:51:09Z"
+  },
+  "plan": {
+    "title": "scope:complete on an already-completed path reports File not found",
+    "status": "running",
+    "narratives": {
+      "Description": "Prefer-A Bound: clear already-completed or already-cancelled message instead of File not found on stale complete paths.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4881",
+      "Overview": "Prefer-A Bound #4881: on scope:complete when the path is missing, probe sibling lifecycle folders for the same basename; completed or cancelled siblings get clear messages; otherwise File not found. Tracking #4881.",
+      "Labels": "urgent, status:child, design-critique:ingest-ready, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "On complete when path missing, probe sibling lifecycle folders for same basename before File not found",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/scope/transition.ts"
+      },
+      {
+        "id": "2",
+        "title": "If basename under completed/, return clear already-completed message naming found path (no auto-restamp)",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/scope/transition.ts"
+      },
+      {
+        "id": "3",
+        "title": "If basename under cancelled/, return clear already-cancelled message naming found path",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/scope/transition.ts"
+      },
+      {
+        "id": "4",
+        "title": "Keep generic File not found only when no sibling basename exists; tests for stale/wrong/cancelled/restamp paths",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/scope/transition.test.ts"
+      },
+      {
+        "id": "5",
+        "title": "CHANGELOG Unreleased Fixed note for already-completed message",
+        "status": "pending",
+        "x-directive/artifact_path": "CHANGELOG.md"
+      }
+    ],
+    "tags": [
+      "urgent",
+      "status:child",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:gates",
+      "prefer-a-bound",
+      "through-merge",
+      "swarm-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4881",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4881: scope:complete on an already-completed path reports File not found"
+      }
+    ],
+    "acceptance": {
+      "none_stated": true,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "On complete when path missing, probe sibling lifecycle folders for same basename before File not found",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "If basename under completed/, return clear already-completed message naming found path (no auto-restamp)",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "If basename under cancelled/, return clear already-cancelled message naming found path",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Keep generic File not found only when no sibling basename exists; tests for stale/wrong/cancelled/restamp paths",
+          "artifact_path": "packages/core/src/scope/transition.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "CHANGELOG Unreleased Fixed note for already-completed message",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "commands": [],
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "scope:complete on an already-completed path reports File not found",
+        "Prefer-A Bound #4881: on scope:complete when the path is missing, probe sibling lifecycle folders for the same basename; completed or cancelled siblings get clear messages; otherwise File not found.",
+        "Tracking #4881.",
+        "Prefer-A Bound: clear already-completed or already-cancelled message instead of File not found on stale complete paths."
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/scope/transition.ts",
+          "packages/core/src/scope/transition.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/scope/transition",
+        "cohesion_exemption": "Prefer-A Bound concrete file_scope for through-merge cohort"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5540573498,
+        "origin": "deftai/directive#4881",
+        "id": "github.issue.5540573498"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "f79e7b51909baa84bd6daf7ddb89543a4eabf680745f12ce94445d8d960f5e93"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "scope-complete-already-completed-file-not-found-message",
+        "expected_outputs": [
+          "Tracking PR opened",
+          "tests green",
+          "CHANGELOG Unreleased note"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/scope/transition.test.ts"
+        ],
+        "file_scope": [
+          "packages/core/src/scope/transition.ts",
+          "packages/core/src/scope/transition.test.ts",
+          "CHANGELOG.md"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "Prefer-A Bound harvest hand-stamped for through-merge cohort"
+        ],
+        "parallel_safe": true
+      },
+      "productPullRequest": 5607
+    },
+    "id": "github.issue.5540573498",
+    "x-directive/plan-id": {
+      "version": 1,
+      "source": "github-rest-id",
+      "github_issue_id": 5540573498,
+      "origin": "deftai/directive#4881",
+      "id": "github.issue.5540573498"
+    },
+    "updated": "2026-10-14T14:51:09Z"
+  }
+}
