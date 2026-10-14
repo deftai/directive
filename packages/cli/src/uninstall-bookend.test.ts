@@ -271,8 +271,12 @@ describe("runUninstall bookend (AC11.3 / AC11.8)", () => {
       stdinIsTTY: false,
     });
     expect(code).toBe(0);
-    expect(io.out()).toMatch(/Uninstall Directive/i);
-    expect(io.out()).toMatch(/\[dry-run\]/);
+    const text = io.out();
+    expect(text).toMatch(/Uninstall Directive/i);
+    expect(text).toMatch(/If you approve, Directive will:/i);
+    expect(text).not.toMatch(/Remove command:/i);
+    expect(text).not.toMatch(/^Remove: /m);
+    expect(text).toMatch(/\[dry-run\]/);
     expect(existsSync(join(root, ".deft", "GENERATION.json"))).toBe(true);
     expect(existsSync(join(root, ".githooks", "pre-commit"))).toBe(true);
   });

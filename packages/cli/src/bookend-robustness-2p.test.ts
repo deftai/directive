@@ -156,7 +156,7 @@ describe("PM-GUIDE: missing declared PM → how-to before mutation (AC5.8 / AC14
 });
 
 describe("PLAN-DISC: install-script policy + Node best-effort in plan (AC5.1 / AC14.54)", () => {
-  it("dry-run plan discloses install-script policy", () => {
+  it("default dry-run plan is plain English; script-policy detail stays at -v (F-009)", () => {
     const root = tempProject("wave2p-scripts");
     const c = capture();
     const code = runInstall(
@@ -168,7 +168,8 @@ describe("PLAN-DISC: install-script policy + Node best-effort in plan (AC5.1 / A
     );
     expect(code).toBe(0);
     expect(c.out()).toMatch(/Set up Deft Directive/);
-    expect(c.out()).toMatch(/Installation skips package lifecycle scripts/);
+    expect(c.out()).toMatch(/If you approve, Directive will:/i);
+    expect(c.out()).not.toMatch(/Installation skips package lifecycle scripts/);
     expect(c.out()).not.toMatch(/install-script policy:/i);
   });
 

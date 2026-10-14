@@ -1,5 +1,6 @@
 /**
  * Human plan/progress/report presentation (UNIFIED §C9 Examples A–F / F-002 UX-PRESENT).
+ * Wave 3g: F-009 plain shop English, F-011 TTY word-wrap, F-014 uninstall summaries.
  * Default stdout is prose + labels; keyed machine dumps stay behind verbosity ≥1.
  */
 import type { PackageManager } from "./pm.js";
@@ -14,16 +15,21 @@ export interface PresentIo {
 /** 0 = human default; 1 = -v/--verbose; 2 = -vv/--debug */
 export type Verbosity = 0 | 1 | 2;
 
+/** Prefer readable paragraph width even on ultra-wide TTYs. */
+export const WRAP_FLOOR = 40;
+export const WRAP_CEILING = 100;
+export const WRAP_FALLBACK = 80;
+
 /**
- * Truthful default disclosure: PM exact-add always passes --ignore-scripts.
- * §C9 Example A’s “may run scripts…” phrasing is the shape; content matches
- * INSTALL_SCRIPT_POLICY_PLAN_LINE / AC5.1 without contradicting the command.
+ * Insider script-policy sentence — kept for tests / -v dumps only.
+ * Default plan uses bullets; AC5.1 detail lives at verbosity ≥1.
  */
 export const HUMAN_INSTALL_SCRIPT_LINE =
   "Installation skips package lifecycle scripts for the Directive pin add; other project registry, authentication, proxy, and lockfile settings still apply.";
 
+/** Plain no-git disclosure (F-009 / F-010 voice). */
 export const HUMAN_GIT_HOOKS_INACTIVE_LINE =
-  "Git hooks stay inactive until you run git init, then repair or an eligible runtime command.";
+  "This folder is not a git repository yet, so git hooks will not be installed. After you run git init, run directive install --repair so hooks get installed.";
 
 export function lockfileNameFor(pm: PackageManager): string {
   return pm === "pnpm" ? "pnpm-lock.yaml" : "package-lock.json";
@@ -87,6 +93,18 @@ export interface UpgradePlanFields extends CommonPlanFields {
   readonly convertShapeId?: string | null;
 }
 
+export interface UninstallRemovalSummary {
+  readonly skillPointers: number;
+  readonly hostHooks: number;
+  readonly gitHooks: number;
+  readonly projectWiring: number;
+  readonly other: number;
+  readonly legacyCore: boolean;
+  readonly willRemovePin: boolean;
+  readonly pathInventory: readonly string[];
+  readonly preserveLabels: readonly string[];
+}
+
 export interface UninstallPlanFields {
   readonly projectRoot: string;
   readonly pm: PackageManager | null;
@@ -94,6 +112,8 @@ export interface UninstallPlanFields {
   readonly pinVersion: string | null;
   readonly pmCommand: string | null;
   readonly verbosity: Verbosity;
+  readonly removal?: UninstallRemovalSummary | null;
+  /** @deprecated Prefer removal summary; kept for callers that still pass prose lines at -v. */
   readonly extraHumanLines?: readonly string[];
 }
 
@@ -106,21 +126,103 @@ function writeLabeled(io: PresentIo, label: string, value: string, width = 18): 
   io.writeOut(`${pad}${value}\n`);
 }
 
+/**
+ * Resolve wrap width for human paragraphs.
+ * Non-TTY → null (do not invent wraps for pipes/CI).
+ * TTY → columns clamped to [WRAP_FLOOR, WRAP_CEILING]; unknown → WRAP_FALLBACK.
+ */
+export function resolveWrapWidth(opts?: {
+  columns?: number | null;
+  isTTY?: boolean;
+}): number | null {
+  const isTTY = opts?.isTTY ?? Boolean(process.stdout.isTTY);
+  if (!isTTY) return null;
+  let cols = opts?.columns;
+  if (cols == null || !Number.isFinite(cols) || cols <= 0) {
+    const fromStdout = process.stdout.columns;
+    const fromEnv = Number(process.env.COLUMNS);
+    if (typeof fromStdout === "number" && fromStdout > 0) cols = fromStdout;
+    else if (Number.isFinite(fromEnv) && fromEnv > 0) cols = fromEnv;
+    else cols = WRAP_FALLBACK;
+  }
+  return Math.max(WRAP_FLOOR, Math.min(WRAP_CEILING, Math.floor(cols)));
+}
+
+/** Soft-wrap a single paragraph on word boundaries. Preserves the word sequence. */
+export function wrapWords(text: string, width: number): string {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  if (normalized.length === 0) return "";
+  if (width < 1) return normalized;
+  const words = normalized.split(" ");
+  const lines: string[] = [];
+  let current = "";
+  for (const word of words) {
+    if (current.length === 0) {
+      current = word;
+      continue;
+    }
+    if (current.length + 1 + word.length <= width) {
+      current = `${current} ${word}`;
+    } else {
+      lines.push(current);
+      current = word;
+    }
+  }
+  if (current.length > 0) lines.push(current);
+  return lines.join("\n");
+}
+
+/** Write a human paragraph; wraps on TTY only. */
+export function writeHumanParagraph(
+  io: PresentIo,
+  text: string,
+  wrapOpts?: { columns?: number | null; isTTY?: boolean },
+): void {
+  const width = resolveWrapWidth(wrapOpts);
+  const body = width == null ? text.replace(/\s+/g, " ").trim() : wrapWords(text, width);
+  if (body.length === 0) return;
+  io.writeOut(`${body}\n`);
+}
+
+function writeBullet(io: PresentIo, text: string): void {
+  const width = resolveWrapWidth();
+  if (width == null) {
+    io.writeOut(`  • ${text}\n`);
+    return;
+  }
+  const inner = Math.max(WRAP_FLOOR - 4, width - 4);
+  const wrapped = wrapWords(text, inner);
+  const parts = wrapped.split("\n");
+  io.writeOut(`  • ${parts[0]}\n`);
+  for (let i = 1; i < parts.length; i++) {
+    io.writeOut(`    ${parts[i]}\n`);
+  }
+}
+
+function writeGitHooksDisclosure(io: PresentIo, inactive: boolean): void {
+  if (!inactive) return;
+  writeHumanParagraph(io, HUMAN_GIT_HOOKS_INACTIVE_LINE);
+}
+
+function writeNodeWarning(io: PresentIo, warning: string | null): void {
+  if (!warning) return;
+  writeHumanParagraph(io, warning);
+}
+
+function writeVerboseScriptPolicy(io: PresentIo, verbosity: Verbosity): void {
+  if (verbosity < 1) return;
+  writeBlank(io);
+  io.writeOut(`  ${INSTALL_SCRIPT_POLICY_PLAN_LINE}\n`);
+}
+
 function writeDisclosures(
   io: PresentIo,
   fields: Pick<CommonPlanFields, "gitHooksInactive" | "nodeWarning" | "verbosity">,
 ): void {
-  io.writeOut(`${HUMAN_INSTALL_SCRIPT_LINE}\n`);
-  if (fields.gitHooksInactive) {
-    io.writeOut(`${HUMAN_GIT_HOOKS_INACTIVE_LINE}\n`);
-  }
-  if (fields.nodeWarning) {
-    io.writeOut(`${fields.nodeWarning}\n`);
-  }
-  if (fields.verbosity >= 1) {
-    writeBlank(io);
-    io.writeOut(`  ${INSTALL_SCRIPT_POLICY_PLAN_LINE}\n`);
-  }
+  // Default: plain git/node only. Script/PM insider detail at -v (F-009).
+  writeGitHooksDisclosure(io, fields.gitHooksInactive);
+  writeNodeWarning(io, fields.nodeWarning);
+  writeVerboseScriptPolicy(io, fields.verbosity);
 }
 
 function writeKeyedBlock(io: PresentIo, lines: readonly string[]): void {
@@ -130,7 +232,19 @@ function writeKeyedBlock(io: PresentIo, lines: readonly string[]): void {
   }
 }
 
-/** §C9 Example A — first initialization plan. */
+function writePmCommandVerbose(
+  io: PresentIo,
+  label: string,
+  command: string | null,
+  verbosity: Verbosity,
+): void {
+  if (verbosity < 1 || !command) return;
+  writeBlank(io);
+  io.writeOut(`${label}\n`);
+  io.writeOut(`  ${command}\n`);
+}
+
+/** §C9 Example A — first initialization plan (F-009 plain English). */
 export function presentFirstInstallPlan(io: PresentIo, fields: FirstInstallPlanFields): void {
   const lock = lockfileNameFor(fields.pm);
   io.writeOut("Set up Deft Directive\n");
@@ -139,27 +253,23 @@ export function presentFirstInstallPlan(io: PresentIo, fields: FirstInstallPlanF
   writeLabeled(io, "Package manager:", `${fields.pm} (${fields.pmEvidence})`);
   writeLabeled(io, "Directive version:", fields.version);
   writeBlank(io);
+  io.writeOut("If you approve, Directive will:\n");
   if (fields.willCreatePkg) {
-    io.writeOut(
-      "I'll create a minimal package.json, add Directive to this project's development\n" +
-        `tools, update ${lock}, and run the installed version to create\n` +
-        "Directive's project files.\n",
-    );
-  } else {
-    io.writeOut(
-      "I'll add Directive to this project's development tools, update\n" +
-        `package.json and ${lock}, and run the installed version\n` +
-        "to create Directive's project files.\n",
-    );
+    writeBullet(io, "create a minimal package.json for this project");
   }
-  writeBlank(io);
-  io.writeOut("Install command:\n");
-  io.writeOut(`  ${fields.pmCommand}\n`);
+  writeBullet(
+    io,
+    `add Directive ${fields.version} to this project's development tools with ${fields.pm}`,
+  );
+  writeBullet(io, `update ${lock}`);
+  writeBullet(io, "set up Directive's project files");
   writeBlank(io);
   writeDisclosures(io, fields);
   writeBlank(io);
+  writePmCommandVerbose(io, "Package manager command (Directive runs this):", fields.pmCommand, fields.verbosity);
 
   if (fields.verbosity >= 1) {
+    writeBlank(io);
     const keyed = [
       `operation: install (first-time)`,
       `root: ${fields.projectRoot}`,
@@ -175,7 +285,7 @@ export function presentFirstInstallPlan(io: PresentIo, fields: FirstInstallPlanF
     ];
     if (fields.gitHooksInactive) {
       keyed.push(
-        "Git hooks: inactive until git init + eligible repair/self-complete (cannot set core.hooksPath=.githooks yet)",
+        "Git hooks: not installed until git init + directive install --repair (cannot set core.hooksPath=.githooks yet)",
       );
     }
     if (fields.nodeWarning) keyed.push(`node: ${fields.nodeWarning}`);
@@ -193,35 +303,37 @@ export function presentRepairPlan(io: PresentIo, fields: RepairPlanFields): void
   writeLabeled(io, "Directive version:", `${fields.version} (unchanged)`);
   writeBlank(io);
   if (!fields.needsPmRestore) {
-    io.writeOut("The installed package is healthy. No reinstall is needed.\n");
+    writeHumanParagraph(io, "The installed package is healthy. No reinstall is needed.");
     writeBlank(io);
-    io.writeOut(
-      `I'll rerun setup using Directive ${fields.version} and recreate missing\n` +
-        "managed project files as needed.\n",
-    );
+    io.writeOut("If you approve, Directive will:\n");
+    writeBullet(io, `rerun setup using Directive ${fields.version}`);
+    writeBullet(io, "recreate missing managed project files as needed");
     writeBlank(io);
-    io.writeOut("Your existing settings and other files will be preserved.\n");
+    writeHumanParagraph(io, "Your existing settings and other files will be preserved.");
   } else {
-    io.writeOut(
-      `The installed package needs restoration (${fields.restoreReason ?? "mismatch"}).\n`,
+    writeHumanParagraph(
+      io,
+      `The installed package needs restoration (${fields.restoreReason ?? "mismatch"}).`,
     );
     writeBlank(io);
-    if (fields.pmCommand) {
-      io.writeOut("Install command:\n");
-      io.writeOut(`  ${fields.pmCommand}\n`);
-      writeBlank(io);
-    }
-    io.writeOut(
-      `I'll restore the pin and rerun setup using Directive ${fields.version}.\n`,
-    );
+    io.writeOut("If you approve, Directive will:\n");
+    writeBullet(io, `restore the Directive ${fields.version} pin with ${fields.pm}`);
+    writeBullet(io, "rerun project setup");
     writeBlank(io);
-    io.writeOut("Your existing settings and other files will be preserved.\n");
+    writeHumanParagraph(io, "Your existing settings and other files will be preserved.");
   }
   writeBlank(io);
   writeDisclosures(io, fields);
   writeBlank(io);
+  writePmCommandVerbose(
+    io,
+    "Package manager command (Directive runs this):",
+    fields.pmCommand,
+    fields.verbosity,
+  );
 
   if (fields.verbosity >= 1) {
+    writeBlank(io);
     const keyed = [
       `operation: repair`,
       `root: ${fields.projectRoot}`,
@@ -238,7 +350,7 @@ export function presentRepairPlan(io: PresentIo, fields: RepairPlanFields): void
     ];
     if (fields.gitHooksInactive) {
       keyed.push(
-        "Git hooks: inactive until git init + eligible repair/self-complete (cannot set core.hooksPath=.githooks yet)",
+        "Git hooks: not installed until git init + directive install --repair (cannot set core.hooksPath=.githooks yet)",
       );
     }
     if (fields.nodeWarning) keyed.push(`node: ${fields.nodeWarning}`);
@@ -258,44 +370,57 @@ export function presentUpgradePlan(io: PresentIo, fields: UpgradePlanFields): vo
   writeLabeled(io, "Target version:", fields.targetVersion);
   writeBlank(io);
   if (fields.oldStyle) {
-    io.writeOut(
-      "This project uses an older Directive layout (old-style).\n" +
-        "I'll remove the legacy `.deft/core` content copy (including any local edits),\n" +
-        `replace the legacy launcher pin with @deftai/directive-runtime@${fields.targetVersion},\n` +
-        `update ${lock}, and run setup and any required project-data migrations.\n`,
-    );
+    writeHumanParagraph(io, "This project uses an older Directive layout (old-style).");
   } else if (fields.convertShapeId) {
-    io.writeOut(
-      `This project uses a historical Directive layout ('${fields.convertShapeId}').\n` +
-        "I'll remove the legacy install footprint (preserving xbrief/ and user content),\n" +
-        `add @deftai/directive-runtime@${fields.targetVersion}, update ${lock},\n` +
-        "and run setup and any required project-data migrations.\n",
+    writeHumanParagraph(
+      io,
+      `This project uses a historical Directive layout ('${fields.convertShapeId}').`,
     );
+  }
+  io.writeOut("If you approve, Directive will:\n");
+  if (fields.oldStyle) {
+    writeBullet(io, "remove the legacy `.deft/core` content copy (including any local edits)");
+    writeBullet(
+      io,
+      `replace the legacy launcher pin with Directive ${fields.targetVersion}`,
+    );
+    writeBullet(io, `update ${lock}`);
+    writeBullet(io, "run setup and any required project-data migrations");
+  } else if (fields.convertShapeId) {
+    writeBullet(
+      io,
+      "remove the legacy install footprint (keeping xbrief/ and your files)",
+    );
+    writeBullet(io, `add Directive ${fields.targetVersion} with ${fields.pm}`);
+    writeBullet(io, `update ${lock}`);
+    writeBullet(io, "run setup and any required project-data migrations");
   } else if (fields.versionChange) {
-    io.writeOut(
-      "I'll update the exact version in package.json, update\n" +
-        `${lock}, and run project setup and any required project-data\n` +
-        `migrations using Directive ${fields.targetVersion}.\n`,
-    );
+    writeBullet(io, `update the exact version in package.json to ${fields.targetVersion}`);
+    writeBullet(io, `update ${lock}`);
+    writeBullet(io, "run project setup and any required project-data migrations");
   } else {
-    io.writeOut(
-      `I'll finish equal-version work for Directive ${fields.targetVersion}` +
-        (fields.needSetup ? " (setup, then migration as needed)" : " (migration as needed)") +
-        ".\n",
+    writeBullet(
+      io,
+      `finish equal-version work for Directive ${fields.targetVersion}` +
+        (fields.needSetup ? " (setup, then migration as needed)" : " (migration as needed)"),
     );
   }
   writeBlank(io);
-  io.writeOut("Your existing project settings will be preserved.\n");
+  writeHumanParagraph(io, "Your existing project settings will be preserved.");
   writeBlank(io);
-  if (fields.versionChange && fields.pmCommand) {
-    io.writeOut("Install command:\n");
-    io.writeOut(`  ${fields.pmCommand}\n`);
-    writeBlank(io);
-  }
   writeDisclosures(io, fields);
   writeBlank(io);
+  if (fields.versionChange) {
+    writePmCommandVerbose(
+      io,
+      "Package manager command (Directive runs this):",
+      fields.pmCommand,
+      fields.verbosity,
+    );
+  }
 
   if (fields.verbosity >= 1) {
+    writeBlank(io);
     const keyed = [
       `operation: upgrade`,
       `root: ${fields.projectRoot}`,
@@ -328,7 +453,7 @@ export function presentUpgradePlan(io: PresentIo, fields: UpgradePlanFields): vo
     }
     if (fields.gitHooksInactive) {
       keyed.push(
-        "Git hooks: inactive until git init + eligible repair/self-complete (cannot set core.hooksPath=.githooks yet)",
+        "Git hooks: not installed until git init + directive install --repair (cannot set core.hooksPath=.githooks yet)",
       );
     }
     if (fields.nodeWarning) keyed.push(`node: ${fields.nodeWarning}`);
@@ -337,7 +462,136 @@ export function presentUpgradePlan(io: PresentIo, fields: UpgradePlanFields): vo
   }
 }
 
-/** Uninstall plan — human title + disclosures (no §C9 lettered example; keep clear). */
+export type UninstallPathCategory =
+  | "skill"
+  | "host-hook"
+  | "git-hook"
+  | "wiring"
+  | "legacy-core"
+  | "other";
+
+/** Classify a removable path label for uninstall category counts (F-014). */
+export function classifyUninstallPath(pathLabel: string): UninstallPathCategory {
+  const p = pathLabel.replace(/\s*\(.*\)$/, "");
+  if (p === ".deft/core" || p.startsWith(".deft/core/")) return "legacy-core";
+  if (p.includes("/skills/") || /\/SKILL\.md$/i.test(p)) return "skill";
+  if (
+    p === ".claude/settings.json" ||
+    p === ".cursor/hooks.json" ||
+    p === ".codex/hooks.json" ||
+    p === ".grok/hooks/deft.json" ||
+    p.endsWith("/hooks.json") ||
+    p.includes("/hooks/")
+  ) {
+    return "host-hook";
+  }
+  if (p.startsWith(".githooks/") || p.includes("githooks")) return "git-hook";
+  if (
+    p === ".deft/GENERATION.json" ||
+    p.startsWith(".deft/directive/") ||
+    p === "AGENTS.md" ||
+    p.startsWith("AGENTS.md") ||
+    p === "Taskfile.yml" ||
+    p.startsWith("Taskfile.yml") ||
+    p === ".gitignore"
+  ) {
+    return "wiring";
+  }
+  return "other";
+}
+
+export function summarizeUninstallRemovals(
+  pathInventory: readonly string[],
+  opts: {
+    willRemovePin: boolean;
+    legacyCore?: boolean;
+    preserveLabels?: readonly string[];
+  },
+): UninstallRemovalSummary {
+  let skillPointers = 0;
+  let hostHooks = 0;
+  let gitHooks = 0;
+  let projectWiring = 0;
+  let other = 0;
+  let legacyCore = Boolean(opts.legacyCore);
+  for (const p of pathInventory) {
+    switch (classifyUninstallPath(p)) {
+      case "skill":
+        skillPointers += 1;
+        break;
+      case "host-hook":
+        hostHooks += 1;
+        break;
+      case "git-hook":
+        gitHooks += 1;
+        break;
+      case "wiring":
+        projectWiring += 1;
+        break;
+      case "legacy-core":
+        legacyCore = true;
+        break;
+      default:
+        other += 1;
+        break;
+    }
+  }
+  return {
+    skillPointers,
+    hostHooks,
+    gitHooks,
+    projectWiring,
+    other,
+    legacyCore,
+    willRemovePin: opts.willRemovePin,
+    pathInventory: [...pathInventory],
+    preserveLabels: [...(opts.preserveLabels ?? [])],
+  };
+}
+
+function writeUninstallActionBullets(io: PresentIo, removal: UninstallRemovalSummary, pm: string | null): void {
+  io.writeOut("If you approve, Directive will:\n");
+  if (removal.skillPointers > 0) {
+    writeBullet(
+      io,
+      `remove ${removal.skillPointers} skill pointer${removal.skillPointers === 1 ? "" : "s"} across agent hosts`,
+    );
+  }
+  if (removal.hostHooks > 0) {
+    writeBullet(
+      io,
+      `clear Directive entries from ${removal.hostHooks} host hook config${removal.hostHooks === 1 ? "" : "s"}`,
+    );
+  }
+  const wiringBits: string[] = [];
+  if (removal.gitHooks > 0) wiringBits.push("git hooks");
+  if (removal.projectWiring > 0) wiringBits.push("GENERATION and project wiring");
+  if (removal.legacyCore) wiringBits.push("legacy .deft/core");
+  if (wiringBits.length > 0) {
+    writeBullet(io, `remove ${wiringBits.join(", ")}`);
+  } else if (removal.other > 0) {
+    writeBullet(io, `remove ${removal.other} other Directive-owned path${removal.other === 1 ? "" : "s"}`);
+  }
+  if (removal.willRemovePin) {
+    writeBullet(
+      io,
+      pm
+        ? `remove the Directive runtime pin with ${pm}`
+        : "remove the Directive runtime pin from package.json",
+    );
+  }
+  if (
+    removal.skillPointers === 0 &&
+    removal.hostHooks === 0 &&
+    wiringBits.length === 0 &&
+    !removal.willRemovePin &&
+    removal.other === 0
+  ) {
+    writeBullet(io, "remove remaining Directive-owned wiring from this project");
+  }
+}
+
+/** Uninstall plan — category summary by default; path inventory at -v (F-014). */
 export function presentUninstallPlan(io: PresentIo, fields: UninstallPlanFields): void {
   io.writeOut("Uninstall Directive\n");
   writeBlank(io);
@@ -349,23 +603,44 @@ export function presentUninstallPlan(io: PresentIo, fields: UninstallPlanFields)
     writeLabeled(io, "Pinned version:", fields.pinVersion);
   }
   writeBlank(io);
-  io.writeOut(
-    "I'll remove Directive-owned wiring and the runtime pin from this project.\n" +
-      "Your xbrief/project data and unrelated files stay in place.\n",
-  );
+
+  if (fields.removal) {
+    writeUninstallActionBullets(io, fields.removal, fields.pm);
+    writeBlank(io);
+    const keep =
+      fields.removal.preserveLabels.length > 0
+        ? fields.removal.preserveLabels.join(", ")
+        : "xbrief/ project data and unrelated files";
+    writeHumanParagraph(io, `Your ${keep} stay in place.`);
+  } else {
+    writeHumanParagraph(
+      io,
+      "I'll remove Directive-owned wiring and the runtime pin from this project. Your xbrief/ project data and unrelated files stay in place.",
+    );
+  }
   writeBlank(io);
-  if (fields.pmCommand) {
-    io.writeOut("Remove command:\n");
-    io.writeOut(`  ${fields.pmCommand}\n`);
-    writeBlank(io);
-  }
-  if (fields.extraHumanLines) {
-    for (const line of fields.extraHumanLines) {
-      io.writeOut(`${line}\n`);
-    }
-    writeBlank(io);
-  }
+  writePmCommandVerbose(
+    io,
+    "Package manager command (Directive runs this):",
+    fields.pmCommand,
+    fields.verbosity,
+  );
+
   if (fields.verbosity >= 1) {
+    writeBlank(io);
+    if (fields.removal && fields.removal.pathInventory.length > 0) {
+      io.writeOut("Remove paths:\n");
+      for (const p of fields.removal.pathInventory) {
+        io.writeOut(`  ${p}\n`);
+      }
+      writeBlank(io);
+    }
+    if (fields.extraHumanLines) {
+      for (const line of fields.extraHumanLines) {
+        io.writeOut(`${line}\n`);
+      }
+      writeBlank(io);
+    }
     const keyed = [
       `operation: uninstall`,
       `root: ${fields.projectRoot}`,
@@ -373,6 +648,11 @@ export function presentUninstallPlan(io: PresentIo, fields: UninstallPlanFields)
       fields.pinVersion ? `pin: ${fields.pinVersion}` : `pin: (none)`,
       fields.pmCommand ? `PM command: ${fields.pmCommand}` : `PM command: (none)`,
     ];
+    if (fields.removal) {
+      keyed.push(
+        `counts: skills=${fields.removal.skillPointers} hostHooks=${fields.removal.hostHooks} gitHooks=${fields.removal.gitHooks} wiring=${fields.removal.projectWiring} other=${fields.removal.other}`,
+      );
+    }
     writeKeyedBlock(io, keyed);
     writeBlank(io);
   }
@@ -418,9 +698,14 @@ export function presentPathSummary(
     );
   }
   // verbosity 0: path dump omitted; checkmarks / ready block carry the story
-  if (summary.message) {
+  if (summary.message && verbosity >= 1) {
     io.writeOut(`${summary.message}\n`);
   }
+}
+
+function gitHooksInactiveFromSummary(summary: SetupSummary | null | undefined): boolean {
+  const msg = summary?.message ?? "";
+  return /Git hooks inactive/i.test(msg);
 }
 
 /** §C9 Example A completion after successful first install. */
@@ -435,20 +720,20 @@ export function presentInstallSuccess(
   },
 ): void {
   const lock = lockfileNameFor(opts.pm);
-  const hooksNote = inactiveHooksNote(opts.summary);
+  const hooksInactive = gitHooksInactiveFromSummary(opts.summary);
   io.writeOut(`✓ Installed Directive ${opts.version}\n`);
   io.writeOut(`✓ Created Directive's project files\n`);
-  if (hooksNote) {
-    io.writeOut(`✓ Verified the project-local installation (Git hooks not yet active)\n`);
+  if (hooksInactive) {
+    io.writeOut(`✓ Verified the project-local installation (git hooks not installed yet)\n`);
   } else {
     io.writeOut(`✓ Verified the project-local installation\n`);
   }
   writeBlank(io);
-  if (hooksNote) {
-    io.writeOut(`Directive ${opts.version} is installed in ${opts.projectRoot}.\n`);
-    io.writeOut(`${hooksNote}\n`);
+  if (hooksInactive) {
+    writeHumanParagraph(io, `Directive ${opts.version} is installed in ${opts.projectRoot}.`);
+    writeHumanParagraph(io, HUMAN_GIT_HOOKS_INACTIVE_LINE);
   } else {
-    io.writeOut(`Directive ${opts.version} is ready in ${opts.projectRoot}.\n`);
+    writeHumanParagraph(io, `Directive ${opts.version} is ready in ${opts.projectRoot}.`);
   }
   writeBlank(io);
   io.writeOut("Next:\n");
@@ -462,8 +747,8 @@ export function presentInstallSuccess(
     io.writeOut(`  ${p}\n`);
   }
   writeBlank(io);
-  io.writeOut("Commands in this project use its pinned Directive version.\n");
-  io.writeOut("Updating the global launcher will not upgrade this project.\n");
+  writeHumanParagraph(io, "Commands in this project use its pinned Directive version.");
+  writeHumanParagraph(io, "Updating the global launcher will not upgrade this project.");
   if (opts.verbosity >= 1 && opts.summary) {
     writeBlank(io);
     presentPathSummary(io, "setup install", opts.summary, opts.verbosity);
@@ -481,7 +766,7 @@ export function presentRepairSuccess(
     pm?: PackageManager;
   },
 ): void {
-  const hooksNote = inactiveHooksNote(opts.summary);
+  const hooksInactive = gitHooksInactiveFromSummary(opts.summary);
   if (opts.restoredPackage) {
     io.writeOut(`✓ Restored the installed Directive ${opts.version} package\n`);
   } else {
@@ -492,13 +777,13 @@ export function presentRepairSuccess(
     io.writeOut(`✓ Restored managed project files\n`);
   }
   writeBlank(io);
-  if (hooksNote) {
-    io.writeOut(`Directive ${opts.version} setup finished.\n`);
-    io.writeOut(`${hooksNote}\n`);
+  if (hooksInactive) {
+    writeHumanParagraph(io, `Directive ${opts.version} setup finished.`);
+    writeHumanParagraph(io, HUMAN_GIT_HOOKS_INACTIVE_LINE);
   } else {
-    io.writeOut(`Directive ${opts.version} is ready.\n`);
+    writeHumanParagraph(io, `Directive ${opts.version} is ready.`);
   }
-  io.writeOut("The project version has not changed.\n");
+  writeHumanParagraph(io, "The project version has not changed.");
   const review = collectReviewPaths(opts.summary);
   if (opts.restoredPackage && opts.pm) {
     const lock = lockfileNameFor(opts.pm);
@@ -537,11 +822,11 @@ export function presentUpgradeSuccess(
   io.writeOut(`✓ Verified the project-local installation\n`);
   writeBlank(io);
   if (opts.versionChange) {
-    io.writeOut(`This project now uses Directive ${opts.version}.\n`);
-    io.writeOut("The global launcher was not changed.\n");
+    writeHumanParagraph(io, `This project now uses Directive ${opts.version}.`);
+    writeHumanParagraph(io, "The global launcher was not changed.");
   } else {
-    io.writeOut(`Directive ${opts.version} is ready.\n`);
-    io.writeOut("The project version has not changed.\n");
+    writeHumanParagraph(io, `Directive ${opts.version} is ready.`);
+    writeHumanParagraph(io, "The project version has not changed.");
   }
   writeBlank(io);
   io.writeOut("Review and commit:\n");
@@ -564,6 +849,71 @@ export function presentUpgradeSuccess(
     if (opts.summary) presentPathSummary(io, "setup upgrade", opts.summary, opts.verbosity);
     if (opts.migrateSummary) {
       presentPathSummary(io, "migrate", opts.migrateSummary, opts.verbosity);
+    }
+  }
+}
+
+/** Uninstall completion — category voice; path inventory at -v (F-014). */
+export function presentUninstallSuccess(
+  io: PresentIo,
+  opts: {
+    projectRoot: string;
+    complete: boolean;
+    removal: UninstallRemovalSummary | null;
+    removedPaths?: readonly string[];
+    preserved?: readonly string[];
+    leftovers?: readonly string[];
+    verbosity: Verbosity;
+  },
+): void {
+  if (opts.complete) {
+    io.writeOut(`✓ Uninstalled Directive from ${opts.projectRoot}\n`);
+  } else {
+    io.writeOut(`⚠ Uninstall partially finished in ${opts.projectRoot}\n`);
+  }
+  writeBlank(io);
+
+  const parts: string[] = [];
+  if (opts.removal) {
+    if (opts.removal.skillPointers > 0) parts.push("skill pointers");
+    if (opts.removal.hostHooks > 0) parts.push("host hooks");
+    if (opts.removal.gitHooks > 0 || opts.removal.projectWiring > 0) parts.push("project wiring");
+    if (opts.removal.legacyCore) parts.push("legacy core");
+    if (opts.removal.willRemovePin) parts.push("the runtime pin");
+  }
+  if (parts.length > 0) {
+    writeHumanParagraph(io, `Removed ${parts.join(", ")}.`);
+  } else {
+    writeHumanParagraph(io, "Removed Directive-owned wiring from this project.");
+  }
+
+  const preserved = opts.preserved ?? opts.removal?.preserveLabels ?? [];
+  if (preserved.length > 0) {
+    writeHumanParagraph(io, `Preserved: ${preserved.join(", ")}.`);
+  } else {
+    writeHumanParagraph(io, "Preserved xbrief/ project data and unrelated files.");
+  }
+
+  if (!opts.complete && opts.leftovers && opts.leftovers.length > 0) {
+    writeBlank(io);
+    writeHumanParagraph(io, `Known leftovers: ${opts.leftovers.join(", ")}.`);
+  }
+
+  writeBlank(io);
+  writeHumanParagraph(
+    io,
+    "To uninstall the global launcher (other repos may still need it), run: npm uninstall -g @deftai/directive",
+  );
+
+  if (opts.verbosity >= 1) {
+    writeBlank(io);
+    const paths = opts.removedPaths ?? opts.removal?.pathInventory ?? [];
+    if (paths.length > 0) {
+      io.writeOut("Removed paths:\n");
+      for (const p of paths) io.writeOut(`  ${p}\n`);
+    }
+    if (preserved.length > 0) {
+      io.writeOut(`preserved: ${JSON.stringify(preserved)}\n`);
     }
   }
 }
@@ -628,12 +978,6 @@ export function presentSetupFailedAfterInstall(
 
 function writeBlankErr(io: PresentIo): void {
   io.writeErr("\n");
-}
-
-function inactiveHooksNote(summary: SetupSummary | null | undefined): string | null {
-  const msg = summary?.message ?? "";
-  if (/Git hooks inactive/i.test(msg)) return msg;
-  return null;
 }
 
 /**

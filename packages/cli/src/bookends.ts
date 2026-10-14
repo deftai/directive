@@ -53,8 +53,10 @@ import {
   presentRepairSuccess,
   presentSetupFailedAfterInstall,
   presentUninstallPlan,
+  presentUninstallSuccess,
   presentUpgradePlan,
   presentUpgradeSuccess,
+  summarizeUninstallRemovals,
   tryParseSetupSummary,
   type SetupSummary,
   type Verbosity,
@@ -1408,17 +1410,22 @@ export function runUninstall(
           .map((p) => formatPmRemoveCommand(pmDetect.pm, p, projectRoot))
           .join("; ")
       : null;
-  const extraHumanLines = [
-    `Ownership record: ${discovery.ownershipInspection}`,
-    `Installed runtime: ${state.installed?.version ?? "(missing/unavailable)"}`,
-    `Remove: ${removePaths.length > 0 ? removePaths.join(", ") : "(none listed)"}`,
-    discovery.hasLegacyCore ? "Remove: .deft/core (legacy)" : null,
-    `Keep: ${keepPaths.join(", ")}`,
-    state.installed && state.contractSupported
-      ? "Repository uninstaller: invoke when available, then launcher fallback"
-      : "Repository uninstaller: unavailable — launcher fallback only (no repair/upgrade required)",
-    "hooksPath: unset .githooks only when safe for sibling worktrees",
-  ].filter((l): l is string => l !== null);
+  const removal = summarizeUninstallRemovals(removePaths, {
+    willRemovePin: packagesToRemove.length > 0,
+    legacyCore: discovery.hasLegacyCore,
+    preserveLabels: keepPaths,
+  });
+  const extraHumanLines =
+    flags.verbosity >= 1
+      ? [
+          `Ownership record: ${discovery.ownershipInspection}`,
+          `Installed runtime: ${state.installed?.version ?? "(missing/unavailable)"}`,
+          state.installed && state.contractSupported
+            ? "Repository uninstaller: invoke when available, then launcher fallback"
+            : "Repository uninstaller: unavailable — launcher fallback only (no repair/upgrade required)",
+          "hooksPath: unset .githooks only when safe for sibling worktrees",
+        ]
+      : undefined;
 
   presentUninstallPlan(io, {
     projectRoot,
@@ -1427,6 +1434,7 @@ export function runUninstall(
     pinVersion,
     pmCommand,
     verbosity: flags.verbosity,
+    removal,
     extraHumanLines,
   });
 
@@ -1476,16 +1484,18 @@ export function runUninstall(
   const cleanup =
     deps.applyCleanup?.(projectRoot, discovery) ??
     applyLauncherCleanup(projectRoot, discovery);
-  io.writeOut(
-    `launcher cleanup: removed=${JSON.stringify(cleanup.removed)} ` +
-      `modified=${JSON.stringify(cleanup.modified)} ` +
-      `preserved=${JSON.stringify(cleanup.preserved)}\n`,
-  );
-  if (cleanup.leftovers.length > 0) {
-    io.writeOut(`leftovers: ${JSON.stringify(cleanup.leftovers)}\n`);
-  }
-  if (cleanup.uncertainty.length > 0) {
-    io.writeOut(`uncertainty: ${JSON.stringify(cleanup.uncertainty)}\n`);
+  if (flags.verbosity >= 1) {
+    io.writeOut(
+      `launcher cleanup: removed=${JSON.stringify(cleanup.removed)} ` +
+        `modified=${JSON.stringify(cleanup.modified)} ` +
+        `preserved=${JSON.stringify(cleanup.preserved)}\n`,
+    );
+    if (cleanup.leftovers.length > 0) {
+      io.writeOut(`leftovers: ${JSON.stringify(cleanup.leftovers)}\n`);
+    }
+    if (cleanup.uncertainty.length > 0) {
+      io.writeOut(`uncertainty: ${JSON.stringify(cleanup.uncertainty)}\n`);
+    }
   }
 
   // PM remove after wiring cleanup (AC11.6).
@@ -1511,7 +1521,7 @@ export function runUninstall(
           io.writeErr(
             `PM remove of ${packageName} failed; continuing remaining uninstall steps.\n`,
           );
-        } else {
+        } else if (flags.verbosity >= 1) {
           io.writeOut(`Removed ${packageName} via ${pmDetect.pm}.\n`);
         }
       }
@@ -1520,7 +1530,9 @@ export function runUninstall(
 
   const hooksPathResult =
     deps.cleanupHooksPath?.(projectRoot) ?? cleanupHooksPath(projectRoot);
-  io.writeOut(`core.hooksPath: ${hooksPathResult}\n`);
+  if (flags.verbosity >= 1) {
+    io.writeOut(`core.hooksPath: ${hooksPathResult}\n`);
+  }
 
   const verification = verifyUninstallComplete(projectRoot);
   // Legacy launcher pin leftover only matters for old-style; modern projects should not have it.
@@ -1532,23 +1544,20 @@ export function runUninstall(
   });
   const complete = filteredLeftovers.length === 0;
 
-  io.writeOut(
-    `directive uninstall: ${complete ? "complete" : "partial"} in ${projectRoot}\n`,
-  );
-  if (cleanup.preserved.length > 0) {
-    io.writeOut(`preserved: ${cleanup.preserved.join(", ")}\n`);
-  }
-  if (!complete) {
-    io.writeOut(`known leftovers: ${filteredLeftovers.join(", ")}\n`);
-  }
+  presentUninstallSuccess(io, {
+    projectRoot,
+    complete,
+    removal,
+    removedPaths: cleanup.removed,
+    preserved: cleanup.preserved.length > 0 ? cleanup.preserved : keepPaths,
+    leftovers: filteredLeftovers,
+    verbosity: flags.verbosity,
+  });
   if (runtimeUninstallAttempted && runtimeUninstallFailed && complete) {
     io.writeOut(
       "Repository uninstaller failed earlier, but launcher fallback verified complete removal.\n",
     );
   }
-  io.writeOut(
-    "To uninstall the global launcher (other repos may still need it): npm uninstall -g @deftai/directive\n",
-  );
 
   if (!complete) {
     return EXIT_CODES.FAILURE;

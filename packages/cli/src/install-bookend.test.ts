@@ -530,18 +530,19 @@ describe("install bookend flag matrix (AC5 / AC6)", () => {
     expect(c.out()).not.toContain(HUMAN_GIT_HOOKS_INACTIVE_LINE);
   });
 
-  it("pnpm plan discloses --save-exact", () => {
+  it("pnpm plan discloses --save-exact at -v (F-009: PM argv not default hero)", () => {
     const root = tempProject();
     const c = capture();
     const code = runInstall(
       root,
       stateFor(root),
-      ["--dry-run", "--package-manager", "pnpm", "--target-version", "1.2.3"],
+      ["--dry-run", "-v", "--package-manager", "pnpm", "--target-version", "1.2.3"],
       "0.0.0-test",
       c.io,
     );
     expect(code).toBe(0);
     expect(c.out()).toMatch(/pnpm add -D --save-exact/);
+    expect(c.out()).not.toMatch(/Install command:/i);
   });
 
   it("npm exact-add argv includes --include=dev (AC5.11 / AC14.48 / INIT-13)", () => {
@@ -557,7 +558,7 @@ describe("install bookend flag matrix (AC5 / AC6)", () => {
     const code = runInstall(
       root,
       stateFor(root),
-      ["--dry-run", "--package-manager", "npm", "--target-version", "1.2.3"],
+      ["--dry-run", "-v", "--package-manager", "npm", "--target-version", "1.2.3"],
       "0.0.0-test",
       c.io,
     );
@@ -587,7 +588,7 @@ describe("install bookend flag matrix (AC5 / AC6)", () => {
     const code = runInstall(
       root,
       stateFor(root),
-      ["--dry-run", "--package-manager", "pnpm", "--target-version", "1.2.3"],
+      ["--dry-run", "-v", "--package-manager", "pnpm", "--target-version", "1.2.3"],
       "0.0.0-test",
       c.io,
     );

@@ -108,8 +108,9 @@ describe("§C9 UX-PRESENT (F-002)", () => {
     expect(text).toMatch(/Project:/);
     expect(text).toMatch(/Package manager:/);
     expect(text).toMatch(/Directive version:/);
-    expect(text).toMatch(/Install command:/);
-    expect(text).toMatch(/Installation skips package lifecycle scripts/);
+    expect(text).toMatch(/If you approve, Directive will:/i);
+    expect(text).not.toMatch(/Install command:/);
+    expect(text).not.toMatch(/Installation skips package lifecycle scripts/);
     expect(text).not.toMatch(/^\s*operation:/m);
     expect(text).not.toMatch(/created=\[/);
     expect(text).not.toMatch(/Plan:/);
