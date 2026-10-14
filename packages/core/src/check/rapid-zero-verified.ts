@@ -7,15 +7,15 @@
  * These predicates do not change that. Rapid check reads only the #4866
  * path; scope:complete reads the #4870 overlay on the walk it consumes.
  *
- * #5477: waive #4866 for an in-diff completed walk under a
- * lifecycle-maintenance-only change set (leftover-complete / completing PR).
- * That walk already cleared #4870 to land in completed/.
+ * #5477: waive #4866 when the change set is lifecycle-maintenance-only and
+ * either the walk target is out of the added/renamed set, or it is an in-diff
+ * completed leftover/completing walk. Targeting stays mode-agnostic.
  */
 import { isProductAcGate } from "../product-first-done-gate/check-mode.js";
 import {
+  type CollectedChangeSet,
   collectLifecycleChangeSet,
   evaluateLifecycleMaintenanceEligibility,
-  type CollectedChangeSet,
 } from "./session-completed-ac.js";
 
 const CLAUSE_WALK_ZERO_VERIFIED =
@@ -24,11 +24,9 @@ const CLAUSE_WALK_ZERO_VERIFIED =
 const PASS_LEAD_ZERO_VERIFIED =
   /verify:ac passed \(#3284\)(?: served_from=\S+)? \(0 verified, \d+ unverifiable\)/;
 
-const JUST_COMPLETED_TARGET =
-  /verify:ac targeting just-completed brief \(#3357\):\s*(\S+)/;
+const JUST_COMPLETED_TARGET = /verify:ac targeting just-completed brief \(#3357\):\s*(.+?)\s*$/m;
 
-const EXECUTABLE_PASS_VERDICT =
-  /acceptance verdict \(#3497\):\s*executable-pass\b/;
+const EXECUTABLE_PASS_VERDICT = /acceptance verdict \(#3497\):\s*executable-pass\b/;
 
 export const RAPID_ZERO_VERIFIED_CHECK_NOTICE =
   "check: rapid product-first acceptance walk reported 0 verified clauses; not exit 0 (#4866)\n";
@@ -57,10 +55,8 @@ export function acceptanceTextReportsExecutablePass(text: string): boolean {
  * Rapid check must not exit 0 for this gate output. Other modes, other
  * gates, and a walk that does not report zero verified stay false.
  *
- * #5477 item 3: when the walk targets an in-diff completed brief under a
- * lifecycle-maintenance-only change set, do not apply #4866 — that print
- * already cleared #4870 on the complete path (executable-pass or the
- * Bound's "already passed #4870" overlay for leftover/completing PRs).
+ * #5477: waive when lifecycle-maintenance eligibility says skip-targeting
+ * (out-of-diff completed walk) or in-diff-completed-overlay.
  */
 export function rapidCheckRejectsZeroVerifiedWalk(input: {
   readonly mode: string;
@@ -97,7 +93,7 @@ export function rapidCheckRejectsZeroVerifiedWalk(input: {
       projectRoot,
       changeSet,
     });
-    if (decision.kind === "in-diff-completed-overlay") {
+    if (decision.kind === "skip-targeting" || decision.kind === "in-diff-completed-overlay") {
       return false;
     }
   }

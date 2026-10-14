@@ -157,10 +157,7 @@ describe("in-diff completed overlay (#5477)", () => {
       ok: true,
       paths: ["xbrief/completed/done.xbrief.json", "CHANGELOG.md"],
       flagsByPath: new Map([
-        [
-          "xbrief/completed/done.xbrief.json",
-          { addedOrRenamed: true, addedOrModified: true },
-        ],
+        ["xbrief/completed/done.xbrief.json", { addedOrRenamed: true, addedOrModified: true }],
         ["CHANGELOG.md", { addedOrRenamed: false, addedOrModified: true }],
       ]),
     };
@@ -189,10 +186,7 @@ describe("in-diff completed overlay (#5477)", () => {
       ok: true,
       paths: ["xbrief/completed/done.xbrief.json", "src/service.ts"],
       flagsByPath: new Map([
-        [
-          "xbrief/completed/done.xbrief.json",
-          { addedOrRenamed: true, addedOrModified: true },
-        ],
+        ["xbrief/completed/done.xbrief.json", { addedOrRenamed: true, addedOrModified: true }],
         ["src/service.ts", { addedOrRenamed: false, addedOrModified: true }],
       ]),
     };
@@ -207,6 +201,55 @@ describe("in-diff completed overlay (#5477)", () => {
     ).toBe(true);
   });
 
+  it("waives for lifecycle-only out-of-diff walks (skip-targeting)", () => {
+    const text =
+      "verify:ac targeting just-completed brief (#3357): xbrief/completed/done.xbrief.json\n" +
+      ZERO_WALK;
+    const lifeOnly: CollectedChangeSet = {
+      ok: true,
+      paths: [".deft/plan-sequence.json", "CHANGELOG.md"],
+      flagsByPath: new Map([
+        [".deft/plan-sequence.json", { addedOrRenamed: false, addedOrModified: true }],
+        ["CHANGELOG.md", { addedOrRenamed: false, addedOrModified: true }],
+      ]),
+    };
+    expect(
+      rapidCheckRejectsZeroVerifiedWalk({
+        mode: "rapid",
+        gateId: "verify:ac",
+        text,
+        projectRoot: "/repo",
+        changeSet: lifeOnly,
+      }),
+    ).toBe(false);
+  });
+
+  it("parses a spaced checkout path from the targeting line", () => {
+    const text =
+      "verify:ac targeting just-completed brief (#3357): /home/user/My Project/xbrief/completed/done.xbrief.json\n" +
+      ZERO_WALK;
+    expect(parseJustCompletedWalkTarget(text)).toBe(
+      "/home/user/My Project/xbrief/completed/done.xbrief.json",
+    );
+    const lifeOnly: CollectedChangeSet = {
+      ok: true,
+      paths: ["xbrief/completed/done.xbrief.json", "CHANGELOG.md"],
+      flagsByPath: new Map([
+        ["xbrief/completed/done.xbrief.json", { addedOrRenamed: true, addedOrModified: true }],
+        ["CHANGELOG.md", { addedOrRenamed: false, addedOrModified: true }],
+      ]),
+    };
+    expect(
+      rapidCheckRejectsZeroVerifiedWalk({
+        mode: "rapid",
+        gateId: "verify:ac",
+        text,
+        projectRoot: "/home/user/My Project",
+        changeSet: lifeOnly,
+      }),
+    ).toBe(false);
+  });
+
   it("honors an injected executable-pass overlay flag", () => {
     expect(
       rapidCheckRejectsZeroVerifiedWalk({
@@ -218,4 +261,3 @@ describe("in-diff completed overlay (#5477)", () => {
     ).toBe(false);
   });
 });
-

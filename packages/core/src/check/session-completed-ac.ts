@@ -5,15 +5,16 @@
  * "A story completed this session" targets xbrief/completed (most recent).
  * One remediation string when that target cannot be used.
  *
- * #5477: same-session rapid check may skip just-completed targeting when every
- * changed path is in the published lifecycle-maintenance set and the walk
- * target is not added or renamed. Unresolved change-set collection keeps
- * today's targeting. Membership is positive and literal (engine-constant).
+ * #5477: eligibility helpers for rapid check to waive #4866 when every
+ * changed path is in the published lifecycle-maintenance set. Targeting still
+ * returns the just-completed brief for all modes; only rapid check waives.
+ * Membership is positive and literal (engine-constant).
  */
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
 import { containedWrite } from "../fs/contained-write.js";
+import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
 import { defaultGitRunner, type GitRunner } from "../session/git.js";
 import { readRitualState } from "../session/ritual-sentinel.js";
 import { parseTimestamp } from "../session/time.js";
@@ -259,7 +260,10 @@ export function isLifecycleMaintenancePath(relPath: string): boolean {
 }
 
 /** True when a walk target sits under xbrief/completed or vbrief/completed. */
-export function isCompletedLifecycleWalkTarget(relOrAbsPath: string, projectRoot?: string): boolean {
+export function isCompletedLifecycleWalkTarget(
+  relOrAbsPath: string,
+  projectRoot?: string,
+): boolean {
   const rel =
     projectRoot !== undefined
       ? toProjectRelPath(projectRoot, relOrAbsPath)
@@ -277,6 +281,32 @@ export function toProjectRelPath(projectRoot: string, path: string): string {
     return normalizeLifecycleRelPath(relative(root, abs));
   }
   return normalizeLifecycleRelPath(path);
+}
+
+/**
+ * Map a git worktree-relative path into the projectRoot namespace (#5477 nested).
+ * Paths outside the project stay as-is (unmatched → keep #4866).
+ */
+export function gitPathToProjectRel(
+  projectRoot: string,
+  gitToplevel: string,
+  gitRelPath: string,
+): string {
+  const norm = normalizeLifecycleRelPath(gitRelPath);
+  if (norm.length === 0) return "";
+  const top = resolve(gitToplevel);
+  const root = resolve(projectRoot);
+  const prefix = normalizeLifecycleRelPath(relative(top, root));
+  if (prefix.length === 0 || prefix === ".") {
+    return norm;
+  }
+  const withSlash = `${prefix}/`;
+  if (norm === prefix) return "";
+  if (norm.startsWith(withSlash)) {
+    return norm.slice(withSlash.length);
+  }
+  // Outside the project tree — keep as a non-lifecycle path.
+  return norm;
 }
 
 function decodeGitPath(raw: string): string {
@@ -366,6 +396,7 @@ function ingestNameStatusZ(
   stdout: string,
   paths: Set<string>,
   flags: Map<string, MutableFlags>,
+  mapPath: (gitRel: string) => string = (p) => p,
 ): void {
   const tokens = splitNulPaths(stdout);
   let i = 0;
@@ -376,11 +407,17 @@ function ingestNameStatusZ(
       continue;
     }
     if (status.startsWith("R") || status.startsWith("C")) {
-      applyNameStatusToken(paths, flags, status, tokens[i + 1] ?? "", tokens[i + 2] ?? null);
+      applyNameStatusToken(
+        paths,
+        flags,
+        status,
+        mapPath(tokens[i + 1] ?? ""),
+        tokens[i + 2] !== undefined ? mapPath(tokens[i + 2] ?? "") : null,
+      );
       i += 3;
       continue;
     }
-    applyNameStatusToken(paths, flags, status, tokens[i + 1] ?? "", null);
+    applyNameStatusToken(paths, flags, status, mapPath(tokens[i + 1] ?? ""), null);
     i += 2;
   }
 }
@@ -396,7 +433,13 @@ function resolveMergeBaseRef(
     process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : undefined,
     process.env.GITHUB_BASE_REF,
   ].filter((x): x is string => typeof x === "string" && x.trim().length > 0);
-  for (const cand of [...envCandidates, "origin/master", "origin/main", "master", "main"]) {
+  const candidates: string[] = [...envCandidates];
+  const delivery = resolveDeliveryBranch(projectRoot, runGit);
+  if (delivery.error === null && delivery.branch.trim().length > 0) {
+    candidates.push(`origin/${delivery.branch}`, delivery.branch);
+  }
+  candidates.push("origin/master", "origin/main", "master", "main");
+  for (const cand of candidates) {
     const ran = runGit(projectRoot, ["rev-parse", "--verify", "-q", `${cand}^{commit}`]);
     if (ran.code === 0) return cand;
   }
@@ -418,6 +461,11 @@ export function collectLifecycleChangeSet(input: {
   if (inside.code !== 0 || inside.stdout.trim() !== "true") {
     return { ok: false, reason: "not a git working tree" };
   }
+  const top = runGit(projectRoot, ["rev-parse", "--show-toplevel"]);
+  if (top.code !== 0 || top.stdout.trim().length === 0) {
+    return { ok: false, reason: "git toplevel unresolved" };
+  }
+  const gitToplevel = top.stdout.trim();
   const baseRef = resolveMergeBaseRef(projectRoot, runGit, input.baseRef);
   if (baseRef === null) {
     return { ok: false, reason: "no merge-base ref" };
@@ -425,8 +473,13 @@ export function collectLifecycleChangeSet(input: {
 
   const paths = new Set<string>();
   const flags = new Map<string, MutableFlags>();
+  const mapPath = (gitRel: string): string => gitPathToProjectRel(projectRoot, gitToplevel, gitRel);
 
-  const committed = runGit(projectRoot, [
+  // Diff from the checkout root so sibling projects stay visible even when
+  // diff.relative=true would otherwise scope paths to projectRoot (#5477).
+  const committed = runGit(gitToplevel, [
+    "-c",
+    "diff.relative=false",
     "diff",
     "-z",
     "--name-status",
@@ -436,15 +489,25 @@ export function collectLifecycleChangeSet(input: {
   if (committed.code !== 0) {
     return { ok: false, reason: `git diff name-status ${baseRef}...HEAD failed` };
   }
-  ingestNameStatusZ(committed.stdout, paths, flags);
+  ingestNameStatusZ(committed.stdout, paths, flags, mapPath);
 
-  const vsHead = runGit(projectRoot, ["diff", "-z", "--name-status", "--find-renames", "HEAD"]);
+  const vsHead = runGit(gitToplevel, [
+    "-c",
+    "diff.relative=false",
+    "diff",
+    "-z",
+    "--name-status",
+    "--find-renames",
+    "HEAD",
+  ]);
   if (vsHead.code !== 0) {
     return { ok: false, reason: "git diff name-status HEAD failed" };
   }
-  ingestNameStatusZ(vsHead.stdout, paths, flags);
+  ingestNameStatusZ(vsHead.stdout, paths, flags, mapPath);
 
-  const cached = runGit(projectRoot, [
+  const cached = runGit(gitToplevel, [
+    "-c",
+    "diff.relative=false",
     "diff",
     "-z",
     "--cached",
@@ -454,14 +517,21 @@ export function collectLifecycleChangeSet(input: {
   if (cached.code !== 0) {
     return { ok: false, reason: "git diff --cached name-status failed" };
   }
-  ingestNameStatusZ(cached.stdout, paths, flags);
+  ingestNameStatusZ(cached.stdout, paths, flags, mapPath);
 
-  const untracked = runGit(projectRoot, ["ls-files", "-z", "--others", "--exclude-standard"]);
+  // List untracked from the checkout root so sibling projects are visible (#5477).
+  const untracked = runGit(gitToplevel, [
+    "ls-files",
+    "-z",
+    "--full-name",
+    "--others",
+    "--exclude-standard",
+  ]);
   if (untracked.code !== 0) {
     return { ok: false, reason: "git ls-files --others failed" };
   }
   for (const raw of splitNulPaths(untracked.stdout)) {
-    const path = normalizeLifecycleRelPath(decodeGitPath(raw));
+    const path = mapPath(decodeGitPath(raw));
     if (path.length === 0) continue;
     paths.add(path);
     const f = ensureFlags(flags, path);
@@ -517,30 +587,6 @@ export function evaluateLifecycleMaintenanceEligibility(input: {
   return { kind: "keep-targeting", reason: "walk target added or renamed" };
 }
 
-function maybeSkipLifecycleOnlyTarget(
-  projectRoot: string,
-  targetAbs: string,
-  input: ResolveSessionCompletedAcInput,
-): SessionCompletedAcTarget {
-  const changeSet =
-    input.changeSet !== undefined && input.changeSet !== null
-      ? input.changeSet
-      : collectLifecycleChangeSet({
-          projectRoot,
-          runGit: input.runGit,
-          baseRef: input.baseRef,
-        });
-  const decision = evaluateLifecycleMaintenanceEligibility({
-    walkTargetAbsOrRel: targetAbs,
-    projectRoot,
-    changeSet,
-  });
-  if (decision.kind === "skip-targeting") {
-    return { kind: "none" };
-  }
-  return { kind: "target", path: targetAbs };
-}
-
 /**
  * Resolve the just-completed brief for this session, if check must target it.
  */
@@ -563,7 +609,7 @@ export function resolveSessionCompletedVerifyAcTarget(
     if (candidate === "unreadable") {
       return { kind: "cannot", message: SESSION_COMPLETED_AC_REMEDIATION };
     }
-    return maybeSkipLifecycleOnlyTarget(projectRoot, candidate.path, input);
+    return { kind: "target", path: candidate.path };
   }
   const paths = listCompletedBriefPaths(projectRoot);
   if (paths.length === 0 || (sessionId === null && startedAt === null)) {
@@ -605,5 +651,5 @@ export function resolveSessionCompletedVerifyAcTarget(
   if (verified === "unreadable") {
     return { kind: "cannot", message: SESSION_COMPLETED_AC_REMEDIATION };
   }
-  return maybeSkipLifecycleOnlyTarget(projectRoot, verified.path, input);
+  return { kind: "target", path: verified.path };
 }
