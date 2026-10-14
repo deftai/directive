@@ -3,6 +3,11 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import {
+  runInPortRecordMode,
+  runWithMutationLedger,
+  snapshotMutationSummary,
+} from "../fs/mutation-ledger.js";
 import { runGitRmCached } from "./git-rm-cached.js";
 
 describe("runGitRmCached", () => {
@@ -59,5 +64,40 @@ describe("runGitRmCached", () => {
 
     const withIgnore = runGitRmCached(root, [".deft/missing.json"], { ignoreUnmatch: true });
     expect(withIgnore.ok).toBe(true);
+  });
+
+  it("port-record mode records exec and leaves the index untouched (#3911 / ADR-004)", () => {
+    const root = gitRoot("grc-record-");
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(join(root, ".deft", "orientation-state.json"), "{}\n", "utf8");
+    execFileSync("git", ["add", "-f", ".deft/orientation-state.json"], {
+      cwd: root,
+      stdio: "ignore",
+    });
+    execFileSync("git", ["-c", "commit.gpgsign=false", "commit", "-qm", "seed"], {
+      cwd: root,
+      stdio: "ignore",
+    });
+
+    const ledger = runWithMutationLedger(root, () =>
+      runInPortRecordMode(() => {
+        const result = runGitRmCached(root, [".deft/orientation-state.json"]);
+        expect(result.ok).toBe(true);
+        expect(result.detail).toBe("");
+        return snapshotMutationSummary();
+      }),
+    );
+
+    const tracked = execFileSync("git", ["ls-files", "--", ".deft/orientation-state.json"], {
+      cwd: root,
+      encoding: "utf8",
+    }).trim();
+    expect(tracked).toBe(".deft/orientation-state.json");
+    expect(execFileSync("git", ["status", "--short"], { cwd: root, encoding: "utf8" }).trim()).toBe(
+      "",
+    );
+    expect(
+      ledger.exec.some((p) => p.replace(/\\/g, "/").endsWith(".deft/orientation-state.json")),
+    ).toBe(true);
   });
 });

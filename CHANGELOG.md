@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`spec:render` keeps multiline phase How/Why/What newlines (#5042).** Object narrative prose is pass-through with `itemHandlerIndent` on nonblank lines (not `oneLine`), so narrative-carried overview bullets stay a Markdown list. #4511 heading taxonomy unchanged. Tracking #5042.
 - **Issue #5042 now has a tracked completion record.** The record links to the fix delivered in #5625, so the issue can close without losing its scope history. Tracking #5042.
-- **Keep orientation and session-bind state local (#3911).** Canonical TS/Go ignore baselines cover .deft/orientation-state.json, .deft/session-bind.json, and .deft/session-binds/; init/update heals those lines and exact-path index-only untracks already-indexed copies without deleting local files (staged-conflict refuse). Freshness docs state deposit/toolchain-only, not lifecycle authority. Tracking #3911.
+- **Keep orientation and session-bind state local (#3911).** Canonical TS/Go ignore baselines cover .deft/orientation-state.json, .deft/session-bind.json, and .deft/session-binds/; init/update heals those lines and exact-path index-only untracks already-indexed copies without deleting local files (staged-conflict refuse). Shared `git rm --cached` port honors ADR-004 port-record mode so `directive update --dry-run` / dest planning never stages those deletions. Freshness docs state deposit/toolchain-only, not lifecycle authority. Tracking #3911.
 - Leftover-complete closer trail for #4878 (after Tracking product #5604).
 
 ### Added
