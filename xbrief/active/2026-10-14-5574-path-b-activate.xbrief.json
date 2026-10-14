@@ -71,7 +71,7 @@
     },
     "items": [
       {
-        "id": "limb-1",
+        "id": "clause.1",
         "title": "Prefer throw+mint for intent-constraint invariant failures vs operational returned-failure",
         "status": "pending"
       }
