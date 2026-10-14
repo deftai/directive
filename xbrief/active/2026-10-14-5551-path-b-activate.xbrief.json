@@ -1,13 +1,12 @@
 {
   "xBRIEFInfo": {
     "version": "0.8",
-    "description": "Path B activate #5551 Prefer-A Bound",
-    "updated": "2026-10-14T06:47:12.974Z"
+    "description": "Path B activate #5551 Prefer-A Bound"
   },
   "plan": {
     "id": "github.issue.5820138360",
     "status": "running",
-    "title": "Path B activate #5551 Prefer-A Bound",
+    "title": "Path B activate #5551 Prefer-A Bound file_scope",
     "references": [
       {
         "uri": "https://github.com/deftai/directive/issues/5551",
@@ -41,8 +40,8 @@
           "content/docs/scope-provenance.md",
           "CHANGELOG.md"
         ],
-        "cohesion_exemption": "CHANGELOG.md Unreleased Keep active note for Path B activation",
-        "module_boundary": "Prefer-A Bound 6132953774"
+        "cohesion_exemption": "CHANGELOG.md Unreleased Keep note for Path B mint",
+        "module_boundary": "Prefer-A Bound 6132953774 for issue 5551"
       }
     },
     "acceptance": {
@@ -54,7 +53,7 @@
     "items": [
       {
         "id": "limb-1",
-        "title": "Implement Prefer-A Bound limbs for #5551",
+        "title": "Coverage sequence exact-path closed-shape inert plus plan/spec pointer demotion and Path A membership split",
         "status": "pending"
       }
     ]
