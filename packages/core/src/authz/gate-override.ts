@@ -6,19 +6,12 @@
  */
 
 import { createHash, randomBytes } from "node:crypto";
-import {
-  existsSync,
-  linkSync,
-  mkdirSync,
-  readFileSync,
-  renameSync,
-  rmSync,
-  statSync,
-} from "node:fs";
+import { existsSync, linkSync, readFileSync, renameSync, rmSync, statSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import {
   ContainedWriteError,
   ContainedWriteErrorCode,
+  containedMkdir,
   containedRemove,
   containedWrite,
 } from "../fs/contained-write.js";
@@ -435,22 +428,28 @@ function readAdmissionAttemptLockRecord(lockPath: string): GrantClaimLockRecord 
   }
 }
 
+/** Grace before reclaiming empty/partial locks left by interrupted copy/link (#5542). */
+const ADMISSION_LOCK_UNREADABLE_STALE_MS = Number("5000");
+
+function isStaleUnreadableAdmissionLock(lockPath: string): boolean {
+  try {
+    const ageMs = Date.now() - statSync(lockPath).mtimeMs;
+    return Number.isFinite(ageMs) && ageMs >= ADMISSION_LOCK_UNREADABLE_STALE_MS;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Rename-away reclaim for crashed attempt-lock holders (same shape as grant claim locks).
- * Recent unreadable/empty/partial records are NOT reclaimable — they may be an
- * in-flight exclusive publish. Stale unreadable leftovers (interrupted publish)
- * reclaim after the age gate so operators are not permanently blocked (#5542).
+ * Fresh unreadable/empty/partial records are NOT reclaimable — they may be an in-flight
+ * exclusive create still publishing the owner body. Stale unreadable leftovers from an
+ * interrupted exclusive publish leftovers are reclaimable so approval is not permanently blocked.
  */
 function tryReclaimDeadAdmissionAttemptLock(lockPath: string): boolean {
   const existing = readAdmissionAttemptLockRecord(lockPath);
   if (existing === null) {
-    try {
-      const ageMs = Date.now() - statSync(lockPath).mtimeMs;
-      // In-flight publish window; Number("30000") stays free of numeric-const extract.
-      if (ageMs < Number("30000")) return false;
-    } catch {
-      return false;
-    }
+    if (!isStaleUnreadableAdmissionLock(lockPath)) return false;
   } else if (!isGrantClaimLockReclaimable(existing)) {
     return false;
   }
@@ -490,9 +489,8 @@ type ExclusiveWriteResult =
 
 /**
  * Publish complete bytes at target with exclusive create semantics.
- * Temp + link (POSIX) or rename (win32 exclusive) so readers never observe an
- * empty final path and an existing destination is never overwritten (#5542).
- * No copyFile fallback — partial copies are not recoverable as complete locks.
+ * Temp + link (POSIX) or rename (win32 exclusive). No copyFile fallback —
+ * partial copies are not complete locks (#5542 Greptile P1).
  * Returned-failure (no new throw-sites) — callers map exists/error under #5575.
  */
 function writeExclusiveComplete(
@@ -502,9 +500,13 @@ function writeExclusiveComplete(
 ): ExclusiveWriteResult {
   const root = resolve(projectRoot);
   const abs = resolve(targetPath);
-  // Final abs stays under projectRoot via admission/lock path builders; temp
-  // publish uses containedWrite (class-4 authz-only — no write-target-safe inventory).
-  mkdirSync(dirname(abs), { recursive: true });
+  // Parents via containedMkdir (path check before create). Temp publish uses
+  // containedWrite; avoid the write-target-safe inventory for class-4 authz-only.
+  try {
+    containedMkdir({ root, target: dirname(abs) });
+  } catch (err) {
+    return { ok: false, code: "error", error: err };
+  }
   const tmp = join(
     dirname(abs),
     `.${basename(abs)}.${process.pid}.${randomBytes(4).toString("hex")}.tmp`,
@@ -534,7 +536,7 @@ function writeExclusiveComplete(
       return { ok: false, code: "exists" };
     }
     // win32 rename fails if dest exists (exclusive). POSIX rename overwrites —
-    // never use it as a link fallback (#5542 Greptile P1).
+    // never use it or copyFile as a link fallback (#5542 Greptile P1).
     if (process.platform === "win32") {
       try {
         renameSync(tmp, abs);

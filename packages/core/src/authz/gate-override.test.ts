@@ -327,7 +327,7 @@ describe("gate-override (#5542 Prefer-A Bound)", () => {
     expect(admitted.receipt.grantId).toBe(minted.grant.id);
   });
 
-  it("does not reclaim a recent empty attempt lock (in-flight owner publish)", () => {
+  it("does not reclaim an empty attempt lock (in-flight owner publish)", () => {
     root = mkdtempSync(join(tmpdir(), "gate-override-"));
     const baseSha = "1".repeat(40);
     const headSha = "2".repeat(40);
@@ -347,7 +347,7 @@ describe("gate-override (#5542 Prefer-A Bound)", () => {
     const safe = createHash("sha256").update(attemptId, "utf8").digest("hex");
     const lockDir = join(root, ".deft", "authz", "locks");
     mkdirSync(lockDir, { recursive: true });
-    // Empty final path mimics an in-flight exclusive publish before owner body lands.
+    // Empty final path mimics containedWrite O_CREAT|O_EXCL before owner body lands.
     writeFileSync(join(lockDir, `gate-override-admit-${safe}.lock`), "", "utf8");
 
     const admitted = admitGateOverrideForAttempt(root, {
@@ -364,7 +364,7 @@ describe("gate-override (#5542 Prefer-A Bound)", () => {
     expect(admitted.reason).toMatch(/reserved by a concurrent admit\/renew/i);
   });
 
-  it("reclaims a stale empty attempt lock after the age gate", () => {
+  it("reclaims a stale empty attempt lock left by interrupted publish", () => {
     root = mkdtempSync(join(tmpdir(), "gate-override-"));
     const baseSha = "a".repeat(40);
     const headSha = "b".repeat(40);
@@ -386,8 +386,8 @@ describe("gate-override (#5542 Prefer-A Bound)", () => {
     mkdirSync(lockDir, { recursive: true });
     const lockPath = join(lockDir, `gate-override-admit-${safe}.lock`);
     writeFileSync(lockPath, "", "utf8");
-    const staleMs = Date.now() - Number("60000");
-    utimesSync(lockPath, new Date(staleMs), new Date(staleMs));
+    const staleMs = Number("6000");
+    utimesSync(lockPath, new Date(Date.now() - staleMs), new Date(Date.now() - staleMs));
 
     const admitted = admitGateOverrideForAttempt(root, {
       refuseCode: "unknown-path",
