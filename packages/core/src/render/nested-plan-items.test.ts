@@ -339,11 +339,14 @@ describe("phase overview narrative newlines (#5042 Prefer-A)", () => {
       expect(result.markdown).toContain("#### Access work");
       expect(result.markdown).toMatch(/truncated at depth 2/);
       expect(result.markdown).not.toContain("0.1: AWS account");
+      // Limb 2: blank line before first child when phase How is non-empty.
+      expect(result.markdown).toMatch(/_\(after 0\.2\)_\n\n#### Access work/);
     } else {
       expect(result.markdown).toContain("#### Access work");
       expect(result.markdown).toContain("0.1: AWS account and CDK bootstrap");
       expect(result.markdown).toContain("**Traces**: NFR-11");
       expect(result.markdown).toMatch(/^\s*- bootstrap done/m);
+      expect(result.markdown).toMatch(/_\(after 0\.2\)_\n\n#### Access work/);
     }
   });
 

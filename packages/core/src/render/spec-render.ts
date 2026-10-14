@@ -115,14 +115,6 @@ function emitNarrativeProse(value: unknown, prefix: string, lines: string[]): vo
   lines.push(`${formatted}\n`);
 }
 
-/** Defense-in-depth blank before nested children when join would not already yield one (#5042). */
-function ensureBlankLineBeforeChildren(lines: string[]): void {
-  if (lines.length === 0) return;
-  const last = lines[lines.length - 1] ?? "";
-  if (last === "" || last.endsWith("\n")) return;
-  lines.push("");
-}
-
 function truncationNotice(cap: number, indent = ""): string {
   const named = cap === 3 ? " (phase, subphase, task)" : "";
   return (
@@ -180,7 +172,7 @@ function renderPlanItem(item: JsonObject, depth: number, cap: number, lines: str
   renderItemHandlers(item, lines, depth);
   const children = listNestedPlanItems(item);
   if (children.length === 0) return;
-  ensureBlankLineBeforeChildren(lines);
+  // Blank before children comes from trailing-newline prose chunks + lines.join("\n") (#5042 limb 2).
   if (depth >= cap) {
     lines.push(truncationNotice(cap, itemHandlerIndent(depth)));
     return;
