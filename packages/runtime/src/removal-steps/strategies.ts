@@ -60,12 +60,13 @@ export const STRATEGIES: Readonly<Record<StrategyShapeId, LayoutStrategy>> = {
   },
   "npm-hybrid-pin-copied-core": {
     shapeId: "npm-hybrid-pin-copied-core",
+    // Husk cleanup stays on uninstall only (F-016): convert must keep the
+    // ensurePackageJson + runtime pin that bookends just wrote.
     steps: [
       "clearOwnedHookEntries",
       "stripLegacyLauncherPin",
       "removeCopiedCore",
       "pruneEmptyAncestors",
-      "removeSoleAuthorHusks",
     ],
     needsRuntimePin: true,
   },
@@ -76,7 +77,6 @@ export const STRATEGIES: Readonly<Record<StrategyShapeId, LayoutStrategy>> = {
       "removeOwnedSkillPointers",
       "removeCopiedCore",
       "pruneEmptyAncestors",
-      "removeSoleAuthorHusks",
     ],
     needsRuntimePin: true,
   },
@@ -87,7 +87,6 @@ export const STRATEGIES: Readonly<Record<StrategyShapeId, LayoutStrategy>> = {
       "removeOwnedSkillPointers",
       "removeDeftFrameworkTree",
       "pruneEmptyAncestors",
-      "removeSoleAuthorHusks",
     ],
     needsRuntimePin: true,
   },
@@ -99,7 +98,6 @@ export const STRATEGIES: Readonly<Record<StrategyShapeId, LayoutStrategy>> = {
       "removeDeftFrameworkTree",
       "normalizeGitmodules",
       "pruneEmptyAncestors",
-      "removeSoleAuthorHusks",
     ],
     needsRuntimePin: true,
   },
@@ -111,7 +109,6 @@ export const STRATEGIES: Readonly<Record<StrategyShapeId, LayoutStrategy>> = {
       "removeDeftFrameworkTree",
       "removeCopiedCore",
       "pruneEmptyAncestors",
-      "removeSoleAuthorHusks",
     ],
     needsRuntimePin: true,
   },

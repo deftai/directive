@@ -1251,6 +1251,29 @@ export function runUpgrade(
       return setupResult.exitCode;
     }
 
+    // F-016 belt-and-braces: convert setup must not delete the runtime pin package.json
+    // (removeSoleAuthorHusks is uninstall-only). Fail closed instead of false success.
+    if (convertViaRemovals) {
+      const pkgPath = join(projectRoot, "package.json");
+      if (!existsSync(pkgPath)) {
+        io.writeErr(
+          `Convert upgrade lost package.json after setup (shape ${upgradeShape!.shapeId}). ` +
+            `Expected exact ${RUNTIME_PACKAGE_NAME}@${targetVersion}. ` +
+            `Fix the cause, then run: directive upgrade --yes.\n`,
+        );
+        return EXIT_CODES.FAILURE;
+      }
+      const pinAfterSetup = readProjectInstallState(projectRoot).pin;
+      if (pinAfterSetup.kind !== "exact" || pinAfterSetup.version !== targetVersion) {
+        io.writeErr(
+          `Convert upgrade lost runtime pin after setup (shape ${upgradeShape!.shapeId}): ` +
+            `expected ${RUNTIME_PACKAGE_NAME}@${targetVersion}, got ${pinAfterSetup.raw ?? "(none)"}. ` +
+            `Fix the cause, then run: directive upgrade --yes.\n`,
+        );
+        return EXIT_CODES.FAILURE;
+      }
+    }
+
     const migrateResult = handOffMigrate({
       projectRoot,
       launcherVersion,

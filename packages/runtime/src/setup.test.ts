@@ -325,6 +325,37 @@ describe("runSetup convert-via-removals (WAVE3-V2 3f)", () => {
     expect(readFileSync(join(root, "xbrief", "keep.txt"), "utf8")).toBe("user-data\n");
   });
 
+  it("F-016: vendored-core-go setup keeps private+runtime-pin package.json", () => {
+    // Simulate bookend ensurePackageJson + PM exact add before setup handoff.
+    const root = mkdtempSync(join(tmpdir(), "setup-f016-"));
+    TEMPS.push(root);
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
+    writeFileSync(join(root, ".deft", "core", "VERSION"), "ref: 'v0.40.0'\n");
+    writeFileSync(join(root, ".deft", "core", "main.md"), "# deposit\n");
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "keep.txt"), "keep-me\n");
+    writeFileSync(
+      join(root, "package.json"),
+      `${JSON.stringify(
+        { private: true, devDependencies: { "@deftai/directive-runtime": "9.9.9" } },
+        null,
+        2,
+      )}\n`,
+    );
+    const result = runSetup({ operation: "upgrade", from: "vendored-core-go", root });
+    expect(result.conflicts).toEqual([]);
+    expect(result.removed).toContain(".deft/core");
+    expect(result.removed).not.toContain("package.json");
+    expect(existsSync(join(root, "package.json"))).toBe(true);
+    const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
+      private?: boolean;
+      devDependencies?: Record<string, string>;
+    };
+    expect(pkg.private).toBe(true);
+    expect(pkg.devDependencies?.["@deftai/directive-runtime"]).toBe("9.9.9");
+    expect(readFileSync(join(root, "xbrief", "keep.txt"), "utf8")).toBe("keep-me\n");
+  });
+
   it("from go-tarball-deft-root removes deft/", () => {
     const root = tempRoot();
     mkdirSync(join(root, "deft"), { recursive: true });

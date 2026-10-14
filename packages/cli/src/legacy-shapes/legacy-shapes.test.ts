@@ -429,6 +429,109 @@ describe("WAVE3-V2 upgrade-convert path (era fixtures)", () => {
     expect(readFileSync(join(root, "xbrief", "keep.txt"), "utf8")).toBe("preserve\n");
   });
 
+  it("F-016: vendored-core-go with no root package.json keeps ensurePackageJson + exact pin", () => {
+    // Greenfield-ish legacy: .deft/core evidence, no package.json. Bookend creates
+    // {private:true} then PM pins runtime — end state must retain that pin.
+    const root = mkdtempSync(join(tmpdir(), "wave3k-f016-nopkg-"));
+    TEMPS.push(root);
+    mkdirSync(join(root, ".git"), { recursive: true });
+    writeFileSync(join(root, ".git", "HEAD"), "ref: refs/heads/main\n");
+    writeCopiedCoreEvidence(root);
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "keep.txt"), "xbrief-keep\n");
+    expect(existsSync(join(root, "package.json"))).toBe(false);
+
+    const c = capture();
+    const harness = convertDeps(root, "vendored-core-go");
+    const code = runUpgrade(
+      root,
+      readProjectInstallState(root),
+      ["--yes", "--target-version", "9.9.9"],
+      "0.0.0-test",
+      c.io,
+      harness.deps,
+    );
+    expect(code).toBe(0);
+    expect(harness.setupFrom).toBe("vendored-core-go");
+    expect(existsSync(join(root, "package.json"))).toBe(true);
+    const pin = readPin(root);
+    expect(pin.kind).toBe("exact");
+    expect(pin.version).toBe("9.9.9");
+    const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
+      private?: boolean;
+      devDependencies?: Record<string, string>;
+    };
+    expect(pkg.private).toBe(true);
+    expect(pkg.devDependencies?.[RUNTIME_PACKAGE_NAME]).toBe("9.9.9");
+    expect(readFileSync(join(root, "xbrief", "keep.txt"), "utf8")).toBe("xbrief-keep\n");
+    expect(c.text()).not.toMatch(/lost package\.json|lost runtime pin/i);
+  });
+
+  it("F-016: convert upgrade fails closed when setup deletes package.json (no false success)", () => {
+    const root = tempProject("wave3k-f016-brace");
+    writeCopiedCoreEvidence(root);
+    const c = capture();
+    let setupFrom: string | null = null;
+    const code = runUpgrade(
+      root,
+      readProjectInstallState(root),
+      ["--yes", "--target-version", "9.9.9"],
+      "0.0.0-test",
+      c.io,
+      {
+        resolvePublishedContract: () => ({ ok: true as const, contract: 1 }),
+        runPmAdd: ({ version }: { version: string }) => {
+          const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
+            private?: boolean;
+            devDependencies?: Record<string, string>;
+          };
+          // Simulate ensurePackageJson-shaped sole-author residue.
+          writeFileSync(
+            join(root, "package.json"),
+            `${JSON.stringify(
+              { private: true, devDependencies: { [RUNTIME_PACKAGE_NAME]: version } },
+              null,
+              2,
+            )}\n`,
+          );
+          void pkg;
+          installFakeRuntime(root, version);
+          return { ok: true as const };
+        },
+        invokeSetup: (argv: readonly string[]) => {
+          const fromIdx = argv.indexOf("--from");
+          setupFrom = fromIdx >= 0 ? String(argv[fromIdx + 1]) : null;
+          // Reproduce pre-F-016 husk deletion during convert setup.
+          rmSync(join(root, "package.json"), { force: true });
+          rmSync(join(root, "package-lock.json"), { force: true });
+          return {
+            exitCode: 0,
+            stdout: JSON.stringify({
+              contract: 1,
+              entry: "setup",
+              removed: ["package.json", "package-lock.json", ".deft/core"],
+              created: [],
+              modified: [],
+              conflicts: [],
+            }),
+            stderr: "",
+            message: null,
+          };
+        },
+        invokeMigrate: () => ({
+          exitCode: 0,
+          stdout: JSON.stringify({ contract: 1, entry: "migrate", migrated: [] }),
+          stderr: "",
+          message: null,
+        }),
+      },
+    );
+    expect(setupFrom).toBe("vendored-core-go");
+    expect(code).toBe(1);
+    expect(c.err()).toMatch(/lost package\.json after setup/i);
+    expect(c.out()).not.toMatch(/Upgrade complete|upgraded successfully|Success/i);
+  });
+
   it("upgrade on orphan-deft-version converts", () => {
     const root = tempProject("wave3f-orphan");
     mkdirSync(join(root, ".deft"), { recursive: true });

@@ -220,7 +220,8 @@ describe("STRATEGIES table (WAVE3-V2 convert shapes)", () => {
     expect(go.needsRuntimePin).toBe(true);
     expect(go.steps).toContain("removeDeftFrameworkTree");
     expect(go.steps).toContain("pruneEmptyAncestors");
-    expect(go.steps).toContain("removeSoleAuthorHusks");
+    // F-016: husk cleanup is uninstall-only; convert must keep runtime pin package.json.
+    expect(go.steps).not.toContain("removeSoleAuthorHusks");
 
     const vendored = strategyForShape("vendored-core-go");
     expect(vendored.needsRuntimePin).toBe(true);
@@ -228,11 +229,13 @@ describe("STRATEGIES table (WAVE3-V2 convert shapes)", () => {
     expect(vendored.steps.indexOf("removeCopiedCore")).toBeLessThan(
       vendored.steps.indexOf("pruneEmptyAncestors"),
     );
+    expect(vendored.steps).not.toContain("removeSoleAuthorHusks");
 
     const sub = strategyForShape("submodule-deft");
     expect(sub.needsRuntimePin).toBe(true);
     expect(sub.steps).toContain("normalizeGitmodules");
     expect(sub.steps).toContain("removeDeftFrameworkTree");
+    expect(sub.steps).not.toContain("removeSoleAuthorHusks");
   });
 
   it("lists dual-layout and orphan convert strategies", () => {
@@ -241,16 +244,19 @@ describe("STRATEGIES table (WAVE3-V2 convert shapes)", () => {
     expect(dual.steps.indexOf("removeDeftFrameworkTree")).toBeLessThan(
       dual.steps.indexOf("removeCopiedCore"),
     );
+    expect(dual.steps).not.toContain("removeSoleAuthorHusks");
 
     const orphan = STRATEGIES["orphan-deft-version"];
     expect(orphan.needsRuntimePin).toBe(true);
     expect(orphan.steps).toContain("removeOrphanDeftVersion");
+    expect(orphan.steps).not.toContain("removeSoleAuthorHusks");
   });
 
   it("keeps L0 ovpr / npm-hybrid rows as anchors", () => {
     expect(STRATEGIES["ovpr-runtime-pin"].steps).toEqual([]);
     expect(STRATEGIES["npm-hybrid-pin-copied-core"].needsRuntimePin).toBe(true);
     expect(STRATEGIES["npm-hybrid-pin-copied-core"].steps).toContain("removeCopiedCore");
+    expect(STRATEGIES["npm-hybrid-pin-copied-core"].steps).not.toContain("removeSoleAuthorHusks");
   });
 });
 
@@ -325,7 +331,7 @@ describe("layout removal steps (WAVE3-V2 3f)", () => {
 });
 
 describe("runStrategy (ordered convert)", () => {
-  it("vendored-core-go removes core then husks", () => {
+  it("vendored-core-go removes core and preserves xbrief", () => {
     const root = tempRoot("wave3f-strat-v");
     mkdirSync(join(root, ".deft", "core"), { recursive: true });
     writeFileSync(join(root, ".deft", "core", "main.md"), "# c\n");
@@ -336,6 +342,54 @@ describe("runStrategy (ordered convert)", () => {
     expect(result.removed).toContain(".deft/core");
     expect(existsSync(join(root, ".deft", "core"))).toBe(false);
     expect(readFileSync(join(root, "xbrief", "keep.txt"), "utf8")).toBe("ok\n");
+  });
+
+  it("F-016: vendored-core-go keeps ensurePackageJson + runtime pin package.json", () => {
+    // Bookend ensurePackageJson writes {private:true}; PM add pins runtime.
+    // isSoleAuthorPackageJson would treat that as a husk — convert must not delete it.
+    const root = tempRoot("wave3k-f016-strat");
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
+    writeFileSync(join(root, ".deft", "core", "VERSION"), "ref: 'v0.40.0'\n");
+    writeFileSync(join(root, ".deft", "core", "main.md"), "# deposit\n");
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "keep.txt"), "user\n");
+    writeFileSync(
+      join(root, "package.json"),
+      `${JSON.stringify(
+        { private: true, devDependencies: { "@deftai/directive-runtime": "9.9.9" } },
+        null,
+        2,
+      )}\n`,
+    );
+    writeFileSync(
+      join(root, "package-lock.json"),
+      `${JSON.stringify(
+        {
+          lockfileVersion: 3,
+          packages: {
+            "": { devDependencies: { "@deftai/directive-runtime": "9.9.9" } },
+            "node_modules/@deftai/directive-runtime": { version: "9.9.9" },
+          },
+        },
+        null,
+        2,
+      )}\n`,
+    );
+
+    const result = runStrategy("vendored-core-go", root);
+    expect(result.ok).toBe(true);
+    expect(result.removed).toContain(".deft/core");
+    expect(result.removed).not.toContain("package.json");
+    expect(result.removed).not.toContain("package-lock.json");
+    expect(existsSync(join(root, "package.json"))).toBe(true);
+    expect(existsSync(join(root, "package-lock.json"))).toBe(true);
+    const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
+      private?: boolean;
+      devDependencies?: Record<string, string>;
+    };
+    expect(pkg.private).toBe(true);
+    expect(pkg.devDependencies?.["@deftai/directive-runtime"]).toBe("9.9.9");
+    expect(readFileSync(join(root, "xbrief", "keep.txt"), "utf8")).toBe("user\n");
   });
 
   it("go-tarball-deft-root removes deft/", () => {
