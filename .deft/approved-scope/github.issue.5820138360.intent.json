@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "algo": "intent-extract-v1",
+  "plan": {
+    "id": "github.issue.5820138360",
+    "title": "Path B mint #5551",
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5551",
+        "type": "x-xbrief/github-issue"
+      }
+    ],
+    "metadata": {
+      "x-directive/plan-id": "github.issue.5820138360",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/coverage-applicability/evaluate.ts",
+          "packages/core/src/coverage-applicability/evaluate.test.ts",
+          "packages/core/src/plan-sequence/types.ts",
+          "content/docs/scope-provenance.md",
+          "CHANGELOG.md"
+        ]
+      },
+      "intended_placement": {
+        "files": [
+          "packages/core/src/coverage-applicability/evaluate.ts",
+          "packages/core/src/coverage-applicability/evaluate.test.ts",
+          "packages/core/src/plan-sequence/types.ts",
+          "content/docs/scope-provenance.md",
+          "CHANGELOG.md"
+        ],
+        "cohesion_exemption": "CHANGELOG.md Unreleased Keep note for Path B mint",
+        "module_boundary": "Prefer-A Bound 6132953774 for issue 5551"
+      }
+    },
+    "acceptance": {
+      "none_stated": true,
+      "clauses": [],
+      "commands": [],
+      "source_rung": "derived"
+    },
+    "x-directive/intentConstraint": null
+  },
+  "approvedRepos": [
+    "deftai/directive"
+  ],
+  "unknownPaths": [
+    "metadata.intended_placement",
+    "metadata.x-directive/plan-id",
+    "x-directive/intentConstraint"
+  ]
+}
