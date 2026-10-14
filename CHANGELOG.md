@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`spec:render` keeps multiline phase How/Why/What newlines (#5042).** Object narrative prose is pass-through with `itemHandlerIndent` on nonblank lines (not `oneLine`), so narrative-carried overview bullets stay a Markdown list. #4511 heading taxonomy unchanged. Tracking #5042.
 - Leftover-complete closer trail for #4878 (after Tracking product #5604).
 
 ### Added
