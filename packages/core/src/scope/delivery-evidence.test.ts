@@ -9,6 +9,7 @@ import {
   defaultFetchClosingIssueIds,
   defaultFetchPrPayload,
   evaluateDeliveryGate,
+  evaluateStoredCompletionProvenanceForWriteGuard,
   type FetchClosingIssueIdsFn,
   type FetchPrPayloadFn,
   isCodeBearingScope,
@@ -188,6 +189,55 @@ describe("delivery evidence (#3041)", () => {
         },
       }),
     ).toBe("delivered");
+  });
+
+  it("write-guard helper refuses informal keys and validates eligible dispositions (#5602)", () => {
+    const informal = evaluateStoredCompletionProvenanceForWriteGuard({
+      metadata: {
+        completionProvenance: { productMerge: "abc", productPr: 1 },
+      },
+    });
+    expect(informal.ok).toBe(false);
+    if (!informal.ok) {
+      expect(informal.detail).toMatch(/productMerge|productPr/);
+    }
+
+    const nonCode = evaluateStoredCompletionProvenanceForWriteGuard({
+      tags: ["docs-only"],
+      metadata: { kind: "docs", completedAt: "2026-10-14T00:00:00Z" },
+    });
+    expect(nonCode.ok).toBe(true);
+
+    const codeMissing = evaluateStoredCompletionProvenanceForWriteGuard({
+      references: [
+        { type: "x-xbrief/github-issue", uri: "https://github.com/deftai/directive/issues/1" },
+      ],
+      metadata: { completedAt: "2026-10-14T00:00:00Z" },
+    });
+    expect(codeMissing.ok).toBe(false);
+
+    // Classifier still cast-throughs arbitrary strings; write-guard does not.
+    expect(
+      classifyStoredDeliveryDisposition({
+        metadata: { completionProvenance: { disposition: "shipped-somehow" } },
+      }),
+    ).toBe("shipped-somehow");
+    const castThrough = evaluateStoredCompletionProvenanceForWriteGuard({
+      references: [
+        { type: "x-xbrief/github-issue", uri: "https://github.com/deftai/directive/issues/1" },
+      ],
+      metadata: {
+        completionProvenance: {
+          disposition: "shipped-somehow",
+          verifiedAt: "2026-10-14T00:00:00Z",
+          verifier: "t",
+          deliveryBranch: "master",
+          mergeCommit: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          deliveryCommit: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        },
+      },
+    });
+    expect(castThrough.ok).toBe(false);
   });
 
   it("fails closed on code-bearing complete without evidence", () => {
