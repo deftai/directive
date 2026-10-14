@@ -530,12 +530,7 @@ function isStringArray(value: unknown): boolean {
   return Array.isArray(value) && value.every((item) => typeof item === "string");
 }
 
-const INTERVIEW_CONFIRMATION_ALLOWED_KEYS = new Set([
-  "scope",
-  "target",
-  "revisionId",
-  "at",
-]);
+const INTERVIEW_CONFIRMATION_ALLOWED_KEYS = new Set(["scope", "target", "revisionId", "at"]);
 
 function isInterviewConfirmationEntry(value: unknown): boolean {
   if (!isPlainObject(value)) return false;
