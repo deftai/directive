@@ -19,11 +19,17 @@
         "title": "On complete when path missing, probe sibling lifecycle folders for same basename before File not found",
         "status": "completed",
         "x-directive/artifact_path": "packages/core/src/scope/transition.ts",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "09d68688736707f5414d8eef26ff0e39e996ec92",
-          "recorded_at": "2026-10-14T18:13:36.566Z",
-          "recorded_by": "Scott"
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5607 squash-merge (Tracking #4881). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set until Closes closer; attesting limbs for closeout-attestable (#3781).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5607",
+            "mintedAt": "2026-10-14T18:14:45.997Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-14T18:14:45.997Z"
         }
       },
       {
@@ -31,11 +37,17 @@
         "title": "If basename under completed/, return clear already-completed message naming found path (no auto-restamp)",
         "status": "completed",
         "x-directive/artifact_path": "packages/core/src/scope/transition.ts",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "09d68688736707f5414d8eef26ff0e39e996ec92",
-          "recorded_at": "2026-10-14T18:13:36.566Z",
-          "recorded_by": "Scott"
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5607 squash-merge (Tracking #4881). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set until Closes closer; attesting limbs for closeout-attestable (#3781).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5607",
+            "mintedAt": "2026-10-14T18:14:45.997Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-14T18:14:45.997Z"
         }
       },
       {
@@ -43,11 +55,17 @@
         "title": "If basename under cancelled/, return clear already-cancelled message naming found path",
         "status": "completed",
         "x-directive/artifact_path": "packages/core/src/scope/transition.ts",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "09d68688736707f5414d8eef26ff0e39e996ec92",
-          "recorded_at": "2026-10-14T18:13:36.566Z",
-          "recorded_by": "Scott"
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5607 squash-merge (Tracking #4881). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set until Closes closer; attesting limbs for closeout-attestable (#3781).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5607",
+            "mintedAt": "2026-10-14T18:14:45.997Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-14T18:14:45.997Z"
         }
       },
       {
@@ -55,11 +73,17 @@
         "title": "Keep generic File not found only when no sibling basename exists; tests for stale/wrong/cancelled/restamp paths",
         "status": "completed",
         "x-directive/artifact_path": "packages/core/src/scope/transition.test.ts",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "09d68688736707f5414d8eef26ff0e39e996ec92",
-          "recorded_at": "2026-10-14T18:13:36.566Z",
-          "recorded_by": "Scott"
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5607 squash-merge (Tracking #4881). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set until Closes closer; attesting limbs for closeout-attestable (#3781).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5607",
+            "mintedAt": "2026-10-14T18:14:45.997Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-14T18:14:45.997Z"
         }
       },
       {
@@ -67,11 +91,17 @@
         "title": "CHANGELOG Unreleased Fixed note for already-completed message",
         "status": "completed",
         "x-directive/artifact_path": "CHANGELOG.md",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "09d68688736707f5414d8eef26ff0e39e996ec92",
-          "recorded_at": "2026-10-14T18:13:36.566Z",
-          "recorded_by": "Scott"
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5607 squash-merge (Tracking #4881). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set until Closes closer; attesting limbs for closeout-attestable (#3781).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5607",
+            "mintedAt": "2026-10-14T18:14:45.997Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-14T18:14:45.997Z"
         }
       }
     ],
