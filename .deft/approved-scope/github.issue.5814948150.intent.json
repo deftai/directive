@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "algo": "intent-extract-v1",
+  "plan": {
+    "id": "github.issue.5814948150",
+    "title": "Path B mint #5545",
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5545",
+        "type": "x-xbrief/github-issue"
+      }
+    ],
+    "metadata": {
+      "x-directive/plan-id": "github.issue.5814948150",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/swarm/finalize-cohort.ts",
+          "packages/core/src/swarm/finalize-cohort.test.ts",
+          "packages/core/src/swarm/finalize-cohort-cli.ts",
+          "packages/core/src/swarm/origin-active-brief.ts",
+          "packages/core/src/swarm/origin-active-brief.test.ts",
+          "packages/core/src/swarm/finalize-owed-cli.ts",
+          "packages/core/src/swarm/finalize-owed.ts",
+          "packages/core/src/swarm/finalize-owed.test.ts",
+          "packages/core/src/scope/delivery-evidence.ts",
+          "packages/core/src/scope/delivery-evidence.test.ts",
+          "CHANGELOG.md"
+        ]
+      },
+      "intended_placement": {
+        "files": [
+          "packages/core/src/swarm/finalize-cohort.ts",
+          "packages/core/src/swarm/finalize-cohort.test.ts",
+          "packages/core/src/swarm/finalize-cohort-cli.ts",
+          "packages/core/src/swarm/origin-active-brief.ts",
+          "packages/core/src/swarm/origin-active-brief.test.ts",
+          "packages/core/src/swarm/finalize-owed-cli.ts",
+          "packages/core/src/swarm/finalize-owed.ts",
+          "packages/core/src/swarm/finalize-owed.test.ts",
+          "packages/core/src/scope/delivery-evidence.ts",
+          "packages/core/src/scope/delivery-evidence.test.ts",
+          "CHANGELOG.md"
+        ],
+        "cohesion_exemption": "CHANGELOG.md Unreleased Keep note for Path B mint",
+        "module_boundary": "Prefer-A Bound 6152219528 for issue 5545"
+      }
+    },
+    "acceptance": {
+      "none_stated": true,
+      "clauses": [],
+      "commands": [],
+      "source_rung": "derived"
+    },
+    "x-directive/intentConstraint": null
+  },
+  "approvedRepos": [
+    "deftai/directive"
+  ],
+  "unknownPaths": [
+    "metadata.intended_placement",
+    "metadata.x-directive/plan-id",
+    "x-directive/intentConstraint"
+  ]
+}
