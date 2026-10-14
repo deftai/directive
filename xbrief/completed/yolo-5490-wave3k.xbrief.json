@@ -1,0 +1,11 @@
+{
+  "schema": "xbrief",
+  "id": "yolo-5490-wave3k",
+  "title": "Wave 3k — F-016 keep package.json on convert upgrade",
+  "status": "completed",
+  "summary": "Convert strategies no longer run removeSoleAuthorHusks (that deleted private+runtime-pin package.json after PM add). Uninstall husks preserved. Post-setup pin verify fail-closed.",
+  "completedAt": "2026-10-14T20:00:00Z",
+  "wave": "3k",
+  "inbox": ["F-016"],
+  "verdaccio": { "tag": "yolo-cp-wave3k", "version": "0.0.0-yolo.cp-wave3k.1" }
+}
