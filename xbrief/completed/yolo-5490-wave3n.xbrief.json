@@ -1,0 +1,11 @@
+{
+  "schema": "xbrief",
+  "id": "yolo-5490-wave3n",
+  "title": "Wave 3n — F-017 fix-pass acceptance",
+  "status": "completed",
+  "summary": "Acceptance tip: upgrade migrates 0.5/0.6/0.7 to xbrief@0.8; archives unknowables; doctor names directive upgrade.",
+  "completedAt": "2026-10-14T22:45:00Z",
+  "wave": "3n",
+  "inbox": ["F-017"],
+  "verdaccio": { "tag": "yolo-cp-wave3n", "version": "0.0.0-yolo.cp-wave3n.1" }
+}
