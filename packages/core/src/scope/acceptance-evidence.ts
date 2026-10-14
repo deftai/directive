@@ -1835,7 +1835,7 @@ export function evaluateAcceptanceEvidenceGate(
   _options: EvaluateAcceptanceEvidenceGateOptions = {},
 ): AcceptanceEvidenceGateResult {
   const reports: CriterionAcceptanceReport[] = [];
-  walkItems(plan.items, "items", reports, clauseBindingKeysFromPlan(plan));
+  walkItems(plan.items, "plan.items", reports, clauseBindingKeysFromPlan(plan));
 
   const blockers = reports.filter((r) => r.outcome === "missing" || r.outcome === "invalid");
 
@@ -1865,7 +1865,9 @@ export function evaluateAcceptanceEvidenceGate(
       `{kind: test|review|merge|deploy|smoke|uat|observed_behavior, pointer, recorded_at, recorded_by} ` +
       `or ${ACCEPTANCE_DISPOSITION_KEY} {disposition: waived|deferred|not_applicable, reason, provenance ${DISPOSITION_PROVENANCE_SHAPE}, recorded_at}. ` +
       `Bare evidence/disposition keys are not valid (#1620 / #3305). ` +
-      `merge/review alone cannot satisfy smoke|uat|deploy|observed_behavior criteria.`,
+      `merge/review alone cannot satisfy smoke|uat|deploy|observed_behavior criteria. ` +
+      `Write evidence/disposition on the plan item at the reported path; ` +
+      `this gate does not read evidence/disposition from plan.acceptance.clauses[].`,
     reports,
   };
 }

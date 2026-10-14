@@ -589,8 +589,53 @@ describe("acceptance evidence gate (#3240 / #3305)", () => {
       ],
     });
     expect(gate.ok).toBe(false);
-    expect(gate.message).toMatch(/items\[0]/);
-    expect(gate.message).toMatch(/items\[2\]\.subItems\[0\]/);
+    expect(gate.message).toMatch(/plan\.items\[0\]/);
+    expect(gate.message).toMatch(/plan\.items\[2\]\.subItems\[0\]/);
+    expect(gate.message).toMatch(
+      /Write evidence\/disposition on the plan item at the reported path/,
+    );
+    expect(gate.message).toMatch(
+      /this gate does not read evidence\/disposition from plan\.acceptance\.clauses\[\]/,
+    );
+  });
+
+  it("clause-only evidence refuses when both arrays present; item evidence passes (#4878)", () => {
+    const clauseText = "Ship the acceptance path fix";
+    const clauseOnly = evaluateAcceptanceEvidenceGate({
+      items: [{ id: "1", title: clauseText, status: "pending" }],
+      acceptance: {
+        clauses: [
+          {
+            id: 1,
+            text: clauseText,
+            // Evidence on the clause must not satisfy the gate (Prefer-A reject C).
+            [ACCEPTANCE_EVIDENCE_KEY]: testEvidence,
+          },
+        ],
+      },
+    });
+    expect(clauseOnly.ok).toBe(false);
+    expect(clauseOnly.reports[0]?.path).toBe("plan.items[0]");
+    expect(clauseOnly.message).toMatch(/plan\.items\[0\]/);
+    expect(clauseOnly.message).toMatch(
+      /this gate does not read evidence\/disposition from plan\.acceptance\.clauses\[\]/,
+    );
+
+    const onItem = evaluateAcceptanceEvidenceGate({
+      items: [withEvidence({ id: "1", title: clauseText, status: "pending" }, testEvidence)],
+      acceptance: {
+        clauses: [
+          {
+            id: 1,
+            text: clauseText,
+            [ACCEPTANCE_EVIDENCE_KEY]: testEvidence,
+          },
+        ],
+      },
+    });
+    expect(onItem.ok).toBe(true);
+    expect(onItem.reports[0]?.path).toBe("plan.items[0]");
+    expect(onItem.reports[0]?.outcome).toBe("evidence");
   });
 
   it("landing-set terminals without typed evidence refuse completed/ entry (#4879)", () => {
@@ -1660,20 +1705,20 @@ describe("#4385 clause-keyed complete persist and scope:status", () => {
     expect(formatAcceptanceCompletionListing([])).toBe("Acceptance criteria: (none)");
     const listing = formatAcceptanceCompletionListing([
       {
-        path: "items[0]",
+        path: "plan.items[0]",
         title: "t",
         outcome: "already_terminal",
         detail: "status=completed (not advanced; typed evidence not re-checked)",
       },
       {
-        path: "items[1]",
+        path: "plan.items[1]",
         title: "e",
         outcome: "evidence",
         detail: "test @ p",
         evidence: testEvidence,
       },
       {
-        path: "items[2]",
+        path: "plan.items[2]",
         title: "d",
         outcome: "disposition",
         detail: "waived: r",
