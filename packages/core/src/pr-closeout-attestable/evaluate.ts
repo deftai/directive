@@ -570,7 +570,8 @@ export function evaluate(
       continue;
     }
     const itemsByPath = new Map<string, Record<string, unknown>>();
-    indexPlanItems(brief.plan.items, "items", itemsByPath);
+    // Must match evaluateAcceptanceEvidenceGate walk prefix (#4878).
+    indexPlanItems(brief.plan.items, "plan.items", itemsByPath);
     const unattested: UnattestedCriterion[] = gate.reports
       .filter((report) => report.outcome === "missing" || report.outcome === "invalid")
       .map((report) => {

@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Acceptance-evidence refusals name `plan.items[N]` and ignore `acceptance.clauses` (#4878).** Gate walk paths and completion listings use the qualified object path `plan.items[N]` (and nested `plan.items[N].subItems[M]` / `plan.items[N].items[M]`). Refusal trailer tells operators to stamp evidence/disposition on that plan item; the gate does not read evidence from `plan.acceptance.clauses[]`. Tracking #4878.
+- **Acceptance-evidence refusals name `plan.items[N]` and ignore `acceptance.clauses` (#4878).** Gate walk paths and completion listings use the qualified object path `plan.items[N]` (and nested `plan.items[N].subItems[M]` / `plan.items[N].items[M]`). Refusal trailer tells operators to stamp evidence/disposition on that plan item; the gate does not read evidence from `plan.acceptance.clauses[]`. `verify:pr-closeout-attestable` indexes the same `plan.items` prefix so closing-PR refusal guidance keeps axis/merge instructions. Tracking #4878.
 
 ### Removed
 
