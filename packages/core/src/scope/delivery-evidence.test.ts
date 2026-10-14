@@ -13,6 +13,7 @@ import {
   type FetchPrPayloadFn,
   isCodeBearingScope,
   NON_DELIVERY_DISPOSITIONS,
+  refreshRemoteDeliveryRef,
   resolveCompletionSessionId,
   resolvePlanGithubIssueRef,
   verifyStoryPrMergeIdentity,
@@ -1110,5 +1111,76 @@ describe("delivery evidence (#3041)", () => {
         ],
       }),
     ).toEqual({ repository: "deftai/directive", issueNumber: 99 });
+  });
+});
+
+describe("delivery-evidence AppSec fetch gate (#5545)", () => {
+  it("refreshRemoteDeliveryRef refuses hostile names before spawn and uses tracking argv", () => {
+    const calls: string[][] = [];
+    const runGit: GitRunner = (_cwd, args) => {
+      calls.push([...args]);
+      return { code: 0, stdout: "abc\n", stderr: "" };
+    };
+    for (const hostile of ["--upload-pack=evil", "attacker:main", "-x", "a..b", " ", ""]) {
+      calls.length = 0;
+      const result = refreshRemoteDeliveryRef("/tmp", hostile, runGit);
+      expect(result.ok).toBe(false);
+      expect(result.error).toMatch(/Invalid|must match/i);
+      expect(calls).toHaveLength(0);
+    }
+    calls.length = 0;
+    const ok = refreshRemoteDeliveryRef("/tmp", "release/1.0", runGit);
+    expect(ok.ok).toBe(true);
+    expect(calls[0]).toEqual([
+      "fetch",
+      "origin",
+      "--",
+      "refs/heads/release/1.0:refs/remotes/origin/release/1.0",
+    ]);
+    expect(calls[1]).toEqual(["rev-parse", "--verify", "origin/release/1.0"]);
+  });
+
+  it("evaluateDeliveryGate refuses empty/unsafe resolved delivery before assumeEvidenceValidated", () => {
+    const root = makeRepo();
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          title: "P",
+          status: "running",
+          policy: { deliveryBranch: "--upload-pack=x", wipCap: 20 },
+        },
+      }),
+      "utf8",
+    );
+    try {
+      const gate = evaluateDeliveryGate({
+        projectRoot: root,
+        plan: {
+          references: [
+            { type: "x-xbrief/github-issue", uri: "https://github.com/deftai/directive/issues/1" },
+          ],
+        },
+        evidence: {
+          prNumber: 1,
+          mergeCommit: "abc",
+          mergedAt: "2026-08-02T11:00:00Z",
+          deliveryBranch: "--upload-pack=x",
+        },
+        assumeEvidenceValidated: true,
+        fetchPrPayload: () => ({
+          merged_at: "2026-08-02T11:00:00Z",
+          merge_commit_sha: "abc",
+          base: { ref: "master" },
+          head: { sha: "h" },
+        }),
+        fetchClosingIssueIds: () => [1],
+        runGit: () => ({ code: 0, stdout: "", stderr: "" }),
+      });
+      expect(gate.ok).toBe(false);
+      expect(gate.message).toMatch(/Invalid plan\.policy\.deliveryBranch|--upload-pack/i);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

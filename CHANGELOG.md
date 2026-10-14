@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bump `actions/download-artifact` from 8.0.1 to 8.0.2 (#5555).
 
 ### Fixed
+- **Gate residual raw git fetch sites on safe branch argv (#5545).** Swarm finalize/launch tip probes and delivery-evidence refresh refuse hostile/empty branch overrides before spawn and use trackingFetchArgv / privateDestFetchArgv. Tracking #5545.
 - Keep active #5545 Path B Prefer-A Bound file_scope.
 - Keep active #5551 Path B Prefer-A Bound file_scope.
 - Keep active #5574 Path B Prefer-A Bound file_scope.

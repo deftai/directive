@@ -10,11 +10,35 @@
  */
 
 import { closerSetFromIssueIds } from "../one-pr-unit/closer-set.js";
-import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
+import {
+  assertSafeBranchName,
+  FIELD_DELIVERY_BRANCH,
+  isSafeBranchName,
+  resolveDeliveryBranch,
+  trackingFetchArgv,
+  type DeliveryBranchResult,
+} from "../policy/delivery-branch.js";
 import { defaultRunGh } from "../pr-protected-issues/gh.js";
 import type { RunGhFn, RunGhResult } from "../pr-protected-issues/types.js";
 import { defaultGitRunner, type GitRunner, gitIsAncestor } from "../session/git.js";
 import { readRitualState } from "../session/ritual-sentinel.js";
+
+/** Prefer-A #5545: refuse resolver error when branch is empty or unsafe. */
+function refuseUnsafeResolvedDelivery(resolved: DeliveryBranchResult): string | null {
+  if (resolved.error !== null) {
+    if (resolved.branch.length === 0 || !isSafeBranchName(resolved.branch)) {
+      return resolved.error;
+    }
+  }
+  if (resolved.branch.length === 0) {
+    return resolved.error ?? "delivery branch resolved empty";
+  }
+  const checked = assertSafeBranchName(resolved.branch, FIELD_DELIVERY_BRANCH);
+  if (!checked.ok) {
+    return checked.error;
+  }
+  return null;
+}
 
 /** Handoff states that Git delivery can assert (deploy/UAT never inferred). */
 export const HANDOFF_STATES = [
@@ -660,13 +684,21 @@ export function refreshRemoteDeliveryRef(
   deliveryBranch: string,
   runGit: GitRunner = defaultGitRunner,
 ): { ok: boolean; error: string | null; remoteRef: string } {
-  const remoteRef = remoteDeliveryRef(deliveryBranch);
-  const fetch = runGit(projectRoot, ["fetch", "origin", deliveryBranch]);
+  const safe = assertSafeBranchName(deliveryBranch, FIELD_DELIVERY_BRANCH);
+  if (!safe.ok) {
+    return { ok: false, error: safe.error, remoteRef: remoteDeliveryRef(deliveryBranch) };
+  }
+  const remoteRef = remoteDeliveryRef(safe.branch);
+  const fetchArgv = trackingFetchArgv("origin", safe.branch);
+  if (!fetchArgv.ok) {
+    return { ok: false, error: fetchArgv.error, remoteRef };
+  }
+  const fetch = runGit(projectRoot, fetchArgv.argv);
   if (fetch.code !== 0) {
     return {
       ok: false,
       error:
-        `git fetch origin ${deliveryBranch} failed: ` +
+        `git fetch origin ${safe.branch} failed: ` +
         `${fetch.stderr.trim() || fetch.stdout.trim() || `exit ${fetch.code}`}`,
       remoteRef,
     };
@@ -810,6 +842,15 @@ export function evaluateDeliveryGate(options: DeliveryGateOptions): DeliveryGate
       };
     }
     const branchResult = resolveDeliveryBranch(options.projectRoot, runGit);
+    const refused = refuseUnsafeResolvedDelivery(branchResult);
+    if (refused !== null) {
+      return {
+        ok: false,
+        message: refused,
+        provenance: null,
+        codeBearing: true,
+      };
+    }
     const provenance = buildProvenance({
       evidence: options.evidence,
       deliveryBranch: options.evidence?.deliveryBranch ?? branchResult.branch,
@@ -828,6 +869,16 @@ export function evaluateDeliveryGate(options: DeliveryGateOptions): DeliveryGate
 
   const evidence = options.evidence ?? null;
   const branchResult = resolveDeliveryBranch(options.projectRoot, runGit);
+  // Prefer-A #5545: refuse empty/unsafe resolver results before ancestry skip paths.
+  const refused = refuseUnsafeResolvedDelivery(branchResult);
+  if (refused !== null) {
+    return {
+      ok: false,
+      message: refused,
+      provenance: null,
+      codeBearing: true,
+    };
+  }
   // Policy/git-default is SoT — evidence may not redefine deliveryBranch (#3041 Greptile P1).
   const deliveryBranch = branchResult.branch;
   if (

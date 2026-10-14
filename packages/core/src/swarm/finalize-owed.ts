@@ -20,7 +20,13 @@ import {
   completedTwinRelPath,
   productPullRequestFromPlan,
 } from "../orphan-active/running-briefs.js";
-import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
+import {
+  assertSafeBranchName,
+  FIELD_DELIVERY_BRANCH,
+  isSafeBranchName,
+  privateDestFetchArgv,
+  resolveDeliveryBranch,
+} from "../policy/delivery-branch.js";
 import { defaultRunGh } from "../pr-protected-issues/gh.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
 import {
@@ -572,15 +578,18 @@ export function fetchDeliveryTipPrivate(
   runGit: GitRunner,
   timeoutMs = 30_000,
 ): { tip: string | null; error: string | null } {
-  const privateRef = `refs/deft/finalize-owed/${deliveryBranch}`;
+  const safe = assertSafeBranchName(deliveryBranch, FIELD_DELIVERY_BRANCH);
+  if (!safe.ok) {
+    return { tip: null, error: safe.error };
+  }
+  const privateRef = `refs/deft/finalize-owed/${safe.branch}`;
+  const fetchArgv = privateDestFetchArgv("origin", safe.branch, privateRef, { force: true });
+  if (!fetchArgv.ok) {
+    return { tip: null, error: fetchArgv.error };
+  }
   // Prefer injected runner (tests); otherwise bound the live fetch.
   const fetcher = runGit === defaultGitRunner ? timedGitRunner(timeoutMs) : runGit;
-  const fetch = fetcher(projectRoot, [
-    "fetch",
-    "origin",
-    `refs/heads/${deliveryBranch}:${privateRef}`,
-    "--force",
-  ]);
+  const fetch = fetcher(projectRoot, fetchArgv.argv);
   if (fetch.code !== 0) {
     return {
       tip: null,
@@ -1046,12 +1055,62 @@ export function finalizeOwed(args: FinalizeOwedArgs = {}): {
   }
 
   const policyDelivery = resolveDeliveryBranch(projectRoot, runGit);
-  const deliveryBranch =
-    args.deliveryBranch !== null &&
-    args.deliveryBranch !== undefined &&
-    args.deliveryBranch.trim().length > 0
-      ? args.deliveryBranch.trim()
-      : policyDelivery.branch;
+  // Prefer-A #5545: present CLI override before fallback; else refuse empty/unsafe resolver.
+  let deliveryBranch: string;
+  if (args.deliveryBranch !== null && args.deliveryBranch !== undefined) {
+    const checked = assertSafeBranchName(args.deliveryBranch, "--delivery-branch");
+    if (!checked.ok) {
+      return respondFinalizeOwed({
+        delivery_branch: "",
+        tip: null,
+        stories: [],
+        finalized: [],
+        skipped: [],
+        errors: [checked.error],
+        warnings: [],
+        fetch_error: null,
+        ok: false,
+        emitJson,
+        exitCode: EXIT_CONFIG_ERROR,
+      });
+    }
+    deliveryBranch = checked.branch;
+  } else {
+    if (policyDelivery.error !== null) {
+      if (policyDelivery.branch.length === 0 || !isSafeBranchName(policyDelivery.branch)) {
+        return respondFinalizeOwed({
+          delivery_branch: policyDelivery.branch,
+          tip: null,
+          stories: [],
+          finalized: [],
+          skipped: [],
+          errors: [policyDelivery.error],
+          warnings: [],
+          fetch_error: null,
+          ok: false,
+          emitJson,
+          exitCode: EXIT_CONFIG_ERROR,
+        });
+      }
+    }
+    const checked = assertSafeBranchName(policyDelivery.branch, FIELD_DELIVERY_BRANCH);
+    if (!checked.ok) {
+      return respondFinalizeOwed({
+        delivery_branch: policyDelivery.branch,
+        tip: null,
+        stories: [],
+        finalized: [],
+        skipped: [],
+        errors: [checked.error],
+        warnings: [],
+        fetch_error: null,
+        ok: false,
+        emitJson,
+        exitCode: EXIT_CONFIG_ERROR,
+      });
+    }
+    deliveryBranch = checked.branch;
+  }
 
   const repo = args.repo ?? process.env.GH_REPO ?? process.env.GITHUB_REPOSITORY ?? null;
   if (repo === null || repo.trim().length === 0) {

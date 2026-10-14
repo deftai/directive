@@ -2518,8 +2518,15 @@ describe("finalize-cohort sweep base and argv (#3554)", () => {
     expect(result.stdout).toContain("Delivery branch: main");
     expect(result.stdout).toContain("Sweep base: main");
     const fetches = commands.filter((c) => c.includes("fetch"));
-    expect(fetches.some((c) => c.includes("origin") && c.includes("master"))).toBe(false);
-    expect(fetches.some((c) => c.includes("origin") && c.includes("main"))).toBe(true);
+    const fetchJoined = fetches.map((c) => c.join(" "));
+    expect(fetchJoined.some((j) => j.includes("origin") && /\bmaster\b/.test(j))).toBe(false);
+    expect(
+      fetchJoined.some(
+        (j) =>
+          j.includes("origin") &&
+          j.includes("refs/heads/main:refs/remotes/origin/main"),
+      ),
+    ).toBe(true);
     rmSync(project, { recursive: true, force: true });
   });
 
@@ -2549,8 +2556,15 @@ describe("finalize-cohort sweep base and argv (#3554)", () => {
     expect(result.stdout).toContain("Delivery branch: main");
     expect(result.stdout).toContain("Sweep base: develop");
     const fetches = commands.filter((c) => c.includes("fetch"));
-    expect(fetches.some((c) => c.includes("origin") && c.includes("main"))).toBe(true);
-    expect(fetches.some((c) => c.includes("origin") && c.includes("master"))).toBe(false);
+    const fetchJoined = fetches.map((c) => c.join(" "));
+    expect(
+      fetchJoined.some(
+        (j) =>
+          j.includes("origin") &&
+          j.includes("refs/heads/main:refs/remotes/origin/main"),
+      ),
+    ).toBe(true);
+    expect(fetchJoined.some((j) => j.includes("origin") && /\bmaster\b/.test(j))).toBe(false);
     rmSync(project, { recursive: true, force: true });
   });
 
@@ -3232,5 +3246,101 @@ describe("unmarked finalize compose from orphan signature (#3791 P3 / #5122)", (
       plan,
     });
     expect(bound.kind).toBe("omit");
+  });
+});
+
+describe("finalize-cohort AppSec fetch gate (#5545)", () => {
+  it("refuses present-invalid --delivery-branch / --base-branch before git spawn", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-hostile-"));
+    mkdirSync(join(project, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(project, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({ plan: { title: "P", status: "running", policy: { wipCap: 20 } } }),
+      "utf8",
+    );
+    const calls: string[][] = [];
+    const runGit = (cmd: readonly string[]) => {
+      calls.push([...cmd]);
+      return { returncode: 0, stdout: "", stderr: "" } as TextCaptureResult;
+    };
+    const hostileDelivery = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [1],
+      repo: "deftai/directive",
+      deliveryBranch: "--upload-pack=evil",
+      dryRun: true,
+      runGit,
+      runGh: () => ({ returncode: 0, stdout: "{}", stderr: "" }),
+    });
+    expect(hostileDelivery.exitCode).toBe(EXIT_CONFIG_ERROR);
+    expect(hostileDelivery.result.errors.some((e) => /Invalid|--upload-pack/i.test(e))).toBe(true);
+    expect(calls.every((c) => !c.includes("fetch"))).toBe(true);
+
+    calls.length = 0;
+    const whitespace = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [1],
+      repo: "deftai/directive",
+      deliveryBranch: "   ",
+      dryRun: true,
+      runGit,
+      runGh: () => ({ returncode: 0, stdout: "{}", stderr: "" }),
+    });
+    expect(whitespace.exitCode).toBe(EXIT_CONFIG_ERROR);
+    expect(calls.every((c) => !c.includes("fetch"))).toBe(true);
+
+    calls.length = 0;
+    const hostileBase = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [1],
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      baseBranch: "attacker:master",
+      dryRun: true,
+      runGit,
+      runGh: () => ({ returncode: 0, stdout: "{}", stderr: "" }),
+    });
+    expect(hostileBase.exitCode).toBe(EXIT_CONFIG_ERROR);
+    expect(hostileBase.result.errors.some((e) => /Invalid|--base-branch|attacker/i.test(e))).toBe(
+      true,
+    );
+    expect(calls.every((c) => !c.includes("fetch"))).toBe(true);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("listLandedCompletedRelpaths path uses trackingFetchArgv order via mock capture", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-tracking-argv-"));
+    writeCompletedStory(project, "story-5545", 5545);
+    const commands: string[][] = [];
+    const inner = mockRunGit({
+      landedCompleted: ["xbrief/completed/story-5545.xbrief.json"],
+      fetchFail: true,
+    });
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [5546],
+      storyTokens: ["5545"],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: mockRunGh({ 5546: { merged: true, closingIssues: [] } }, { 5545: "open" }),
+      runGit: (command, options) => {
+        commands.push([...command]);
+        return inner(command, options);
+      },
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.result.errors.some((e) => e.includes("git fetch origin master failed"))).toBe(
+      true,
+    );
+    const fetch = commands.find((c) => c[1] === "fetch");
+    expect(fetch).toEqual([
+      "git",
+      "fetch",
+      "origin",
+      "--",
+      "refs/heads/master:refs/remotes/origin/master",
+    ]);
+    rmSync(project, { recursive: true, force: true });
   });
 });

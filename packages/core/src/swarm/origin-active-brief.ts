@@ -2,6 +2,7 @@
  * Origin-resident active brief probe (#4714 R2 lite).
  * swarm:launch / finalize require the selected active path on fetched delivery tip.
  */
+import { assertSafeBranchName, trackingFetchArgv } from "../policy/delivery-branch.js";
 import type { runText } from "./subprocess.js";
 
 export interface OriginActiveBriefResult {
@@ -17,16 +18,25 @@ export function originActiveBriefPresent(
   runGit: typeof runText,
 ): OriginActiveBriefResult {
   const rel = relPath.replace(/\\/g, "/");
-  const fetch = runGit(["git", "fetch", "origin", deliveryBranch], { cwd: projectRoot });
+  // Prefer-A #5545: gate inside the probe so launch.ts stays out of file_scope.
+  const safe = assertSafeBranchName(deliveryBranch, "deliveryBranch");
+  if (!safe.ok) {
+    return { present: false, error: safe.error };
+  }
+  const fetchArgv = trackingFetchArgv("origin", safe.branch);
+  if (!fetchArgv.ok) {
+    return { present: false, error: fetchArgv.error };
+  }
+  const fetch = runGit(["git", ...fetchArgv.argv], { cwd: projectRoot });
   if (fetch.returncode !== 0) {
     return {
       present: false,
       error:
-        `git fetch origin ${deliveryBranch} failed: ` +
+        `git fetch origin ${safe.branch} failed: ` +
         `${fetch.stderr.trim() || fetch.stdout.trim()}`,
     };
   }
-  const tip = `origin/${deliveryBranch}`;
+  const tip = `origin/${safe.branch}`;
   // Require a blob. `cat-file -e` also succeeds for trees, which would false-present
   // a directory path and then fail later on `git show` (#4714 SLizard P1).
   const probe = runGit(["git", "cat-file", "-t", `${tip}:${rel}`], { cwd: projectRoot });
