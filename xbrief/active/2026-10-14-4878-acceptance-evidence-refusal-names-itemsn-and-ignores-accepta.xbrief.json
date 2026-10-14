@@ -1,0 +1,168 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4878",
+    "updated": "2026-10-14T14:51:13Z"
+  },
+  "plan": {
+    "title": "Acceptance-evidence refusal names items[N] and ignores acceptance.clauses",
+    "status": "running",
+    "narratives": {
+      "Description": "Acceptance-evidence refusal names items[N] and ignores acceptance.clauses",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4878",
+      "Overview": "\n\n- Change walkItems path prefix in evaluateAcceptanceEvidenceGate from \"items\" to \"plan.items\" so refusals, pass listings, and formatAcceptanceCompletionListing print plan.items[N] and nested plan.items[N].subItems[M] / plan.items[N].items[M].\n- In the same refusal / remediation trailer, add an explicit sentence: write evidence/disposition on the plan item at the reported path; this gate does not read evidence/disposition from plan.acceptance.clauses[]. Prefer unconditional wording (not only when both arrays exist).\n- Update acceptance-evidence unit expectations that hard-code path: \"items[…]\" (including substring/nested forms) to plan.items[…]; add focused regression: with both arrays present, clause-only evidence still refuses and names the exact plan.items[N] target plus the non-stamp sentence; valid evidence on the corresponding item passes.\n- Do not dual-read or dual-write evidence onto plan.acceptance.clauses[]; keep Prefer-A reject C.\n- Keep #4877 (provenance mint copy), #4879 (already-terminal landing), and #4881 (already-completed File not found) out of this remainder.\n- Name the printed path as a qualified object path (plan.items[N]), not an RFC 6901 JSON Pointer; drop JSON-pointer-shaped wording from CHANGELOG/docs.\n- file_scope: packages/core/src/scope/acceptance-evidence.ts (+tests) + CHANGELOG.md. Thin commands.md cite only if the same-ship refusal string is quoted there.\n\n\n",
+      "Labels": "urgent, status:child, design-critique:ingest-ready, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "Change walkItems path prefix from items to plan.items (including nested subItems/items forms)",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/scope/acceptance-evidence.ts"
+      },
+      {
+        "id": "2",
+        "title": "Refusal/remediation trailer: write evidence on plan item path; gate does not read plan.acceptance.clauses[]",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/scope/acceptance-evidence.ts"
+      },
+      {
+        "id": "3",
+        "title": "Update unit expectations hard-coding items[…] to plan.items[…]; add both-arrays clause-only refuse regression",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/scope/acceptance-evidence.test.ts"
+      },
+      {
+        "id": "4",
+        "title": "Do not dual-read/dual-write evidence onto plan.acceptance.clauses[]",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/scope/acceptance-evidence.ts"
+      },
+      {
+        "id": "5",
+        "title": "Name printed path as qualified object path plan.items[N], not JSON Pointer; CHANGELOG note",
+        "status": "pending",
+        "x-directive/artifact_path": "CHANGELOG.md"
+      }
+    ],
+    "tags": [
+      "urgent",
+      "status:child",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:gates",
+      "prefer-a-bound",
+      "through-merge",
+      "swarm-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4878",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4878: Acceptance-evidence refusal names items[N] and ignores acceptance.clauses"
+      }
+    ],
+    "acceptance": {
+      "none_stated": true,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Change walkItems path prefix from items to plan.items (including nested subItems/items forms)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Refusal/remediation trailer: write evidence on plan item path; gate does not read plan.acceptance.clauses[]",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Update unit expectations hard-coding items[…] to plan.items[…]; add both-arrays clause-only refuse regression",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Do not dual-read/dual-write evidence onto plan.acceptance.clauses[]",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Name printed path as qualified object path plan.items[N], not JSON Pointer; CHANGELOG note",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "commands": [],
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/scope/acceptance-evidence.ts",
+          "packages/core/src/scope/acceptance-evidence.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/scope/acceptance-evidence",
+        "cohesion_exemption": "Prefer-A Bound concrete file_scope for through-merge cohort"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5540571010,
+        "origin": "deftai/directive#4878",
+        "id": "github.issue.5540571010"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "4f3ae14dd02f76d15361baffa8e29356b31b9cc9bbdb9cdf7a21adf34b8af42a"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "acceptance-evidence-refusal-items-path-vs-clauses",
+        "expected_outputs": [
+          "Tracking PR opened",
+          "tests green",
+          "CHANGELOG Unreleased note"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "task check"
+        ],
+        "file_scope": [
+          "packages/core/src/scope/acceptance-evidence.ts",
+          "packages/core/src/scope/acceptance-evidence.test.ts",
+          "CHANGELOG.md"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "Prefer-A Bound harvest hand-stamped for through-merge cohort"
+        ],
+        "parallel_safe": true
+      }
+    },
+    "id": "github.issue.5540571010",
+    "x-directive/plan-id": {
+      "version": 1,
+      "source": "github-rest-id",
+      "github_issue_id": 5540571010,
+      "origin": "deftai/directive#4878",
+      "id": "github.issue.5540571010"
+    },
+    "updated": "2026-10-14T14:51:13Z"
+  }
+}
