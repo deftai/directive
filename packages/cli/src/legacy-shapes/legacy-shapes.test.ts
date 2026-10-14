@@ -1,5 +1,6 @@
 /**
- * Wave 3b owner-boundary tests — L2 shape registry (detect → shape_id → decision).
+ * Wave 3b/3d owner-boundary tests — L2 shape registry (detect → shape_id → decision).
+ * WAVE3-V2 (3d): convert-via-removals lean; bookend refuse remains interim until 3f.
  * Survey shape_ids from specs/5490-wave3-historical-survey.md; L0 paths stay thin.
  */
 import {
@@ -20,6 +21,7 @@ import {
   DECISION_BY_SHAPE_ID,
   decisionForShapeId,
   formatShapeRecoveryMessage,
+  isL2RefusalDecision,
   resolveInstallShape,
   type RecoveryDecision,
   type SurveyShapeId,
@@ -110,35 +112,38 @@ function writeSubmoduleDeft(root: string): void {
   writeFileSync(join(root, "deft", ".git"), "gitdir: ../.git/modules/deft\n");
 }
 
-describe("L2 shape registry — data-driven decisions (survey shape_ids)", () => {
+describe("L2 shape registry — WAVE3-V2 convert-via-removals lean", () => {
   const expected: ReadonlyArray<readonly [SurveyShapeId, RecoveryDecision]> = [
     ["ovpr-runtime-pin", "l0-current"],
     ["npm-hybrid-pin-copied-core", "l0-latest-legacy-convert"],
-    ["go-tarball-deft-root", "uninstall-reinstall"],
-    ["submodule-deft", "uninstall-reinstall"],
-    ["vendored-core-go", "uninstall-reinstall"],
-    ["orphan-deft-version", "unsupported-honest"],
+    ["go-tarball-deft-root", "convert-via-removals"],
+    ["submodule-deft", "convert-via-removals"],
+    ["vendored-core-go", "convert-via-removals"],
+    ["orphan-deft-version", "convert-via-removals"],
   ];
 
-  it("maps every wired survey shape_id to the 3b lean decision", () => {
+  it("maps every wired survey shape_id to the WAVE3-V2 lean decision", () => {
     for (const [shapeId, decision] of expected) {
       expect(decisionForShapeId(shapeId)).toBe(decision);
       expect(DECISION_BY_SHAPE_ID[shapeId]).toBe(decision);
     }
   });
 
-  it("recovery enum is closed (no invented convert decisions for L2)", () => {
+  it("recovery enum includes convert-via-removals (L2 long-term path)", () => {
     const allowed = new Set<RecoveryDecision>([
       "l0-current",
       "l0-latest-legacy-convert",
+      "convert-via-removals",
       "uninstall-reinstall",
       "unsupported-honest",
     ]);
     for (const decision of Object.values(DECISION_BY_SHAPE_ID)) {
       expect(allowed.has(decision)).toBe(true);
     }
-    expect(decisionForShapeId("go-tarball-deft-root")).not.toBe("l0-latest-legacy-convert");
-    expect(decisionForShapeId("vendored-core-go")).not.toBe("l0-latest-legacy-convert");
+    expect(decisionForShapeId("go-tarball-deft-root")).toBe("convert-via-removals");
+    expect(decisionForShapeId("vendored-core-go")).toBe("convert-via-removals");
+    expect(decisionForShapeId("orphan-deft-version")).toBe("convert-via-removals");
+    expect(decisionForShapeId("go-tarball-deft-root")).not.toBe("uninstall-reinstall");
   });
 });
 
@@ -164,35 +169,35 @@ describe("L2 thin detect → shape_id (reuses pin + legacy fingerprints)", () =>
     expect(resolved!.decision).toBe("l0-latest-legacy-convert");
   });
 
-  it("vendored-core-go: copied core, no exact pin → uninstall-reinstall", () => {
+  it("vendored-core-go: copied core, no exact pin → convert-via-removals", () => {
     const root = tempProject();
     writeCopiedCoreEvidence(root);
     expect(readPin(root).oldStyle).toBe(false);
     const resolved = resolveInstallShape(root);
     expect(resolved).not.toBeNull();
     expect(resolved!.shapeId).toBe("vendored-core-go");
-    expect(resolved!.decision).toBe("uninstall-reinstall");
+    expect(resolved!.decision).toBe("convert-via-removals");
   });
 
-  it("go-tarball-deft-root / legacy-deft-prefixed → uninstall-reinstall", () => {
+  it("go-tarball-deft-root / legacy-deft-prefixed → convert-via-removals", () => {
     const root = tempProject();
     writeGoTarballDeft(root);
     const resolved = resolveInstallShape(root);
     expect(resolved).not.toBeNull();
     expect(resolved!.shapeId).toBe("go-tarball-deft-root");
-    expect(resolved!.decision).toBe("uninstall-reinstall");
+    expect(resolved!.decision).toBe("convert-via-removals");
   });
 
-  it("submodule-deft → uninstall-reinstall", () => {
+  it("submodule-deft → convert-via-removals", () => {
     const root = tempProject();
     writeSubmoduleDeft(root);
     const resolved = resolveInstallShape(root);
     expect(resolved).not.toBeNull();
     expect(resolved!.shapeId).toBe("submodule-deft");
-    expect(resolved!.decision).toBe("uninstall-reinstall");
+    expect(resolved!.decision).toBe("convert-via-removals");
   });
 
-  it("orphan-deft-version → unsupported-honest", () => {
+  it("orphan-deft-version → convert-via-removals", () => {
     const root = tempProject();
     mkdirSync(join(root, ".deft"), { recursive: true });
     writeFileSync(join(root, ".deft", "VERSION"), "orphan\n");
@@ -200,7 +205,7 @@ describe("L2 thin detect → shape_id (reuses pin + legacy fingerprints)", () =>
     const resolved = resolveInstallShape(root);
     expect(resolved).not.toBeNull();
     expect(resolved!.shapeId).toBe("orphan-deft-version");
-    expect(resolved!.decision).toBe("unsupported-honest");
+    expect(resolved!.decision).toBe("convert-via-removals");
   });
 
   it("greenfield (no footprint) → null (not a historical shape)", () => {
@@ -218,20 +223,20 @@ describe("L2 thin detect → shape_id (reuses pin + legacy fingerprints)", () =>
   });
 });
 
-describe("L2 dispatch messaging (uninstall→reinstall / unsupported-honest)", () => {
-  it("uninstall-reinstall message names uninstall then install", () => {
+describe("L2 dispatch messaging (convert-via-removals interim / unsupported)", () => {
+  it("convert-via-removals interim message still names uninstall then install", () => {
     const msg = formatShapeRecoveryMessage(
       {
         shapeId: "go-tarball-deft-root",
-        decision: "uninstall-reinstall",
+        decision: "convert-via-removals",
         evidence: ["deft/"],
       },
       "upgrade",
     );
     expect(msg).toMatch(/go-tarball-deft-root/);
+    expect(msg).toMatch(/WAVE3-V2|convert-via-removals/i);
     expect(msg).toMatch(/`directive uninstall` then `directive install`/);
-    expect(msg).not.toMatch(/Run `directive upgrade`/);
-    expect(msg).not.toMatch(/in-place convert is supported/i);
+    expect(isL2RefusalDecision("convert-via-removals")).toBe(true);
   });
 
   it("unsupported-honest message does not invent convert or upgrade", () => {
@@ -246,12 +251,11 @@ describe("L2 dispatch messaging (uninstall→reinstall / unsupported-honest)", (
     expect(msg).toMatch(/orphan-deft-version/);
     expect(msg).toMatch(/unsupported|not supported|automatic recovery/i);
     expect(msg).not.toMatch(/Run `directive upgrade`/);
-    expect(msg).not.toMatch(/convert/i);
   });
 });
 
-describe("bookend seam — L2 shapes name uninstall→install (L0 oldStyle unchanged)", () => {
-  it("upgrade on go-tarball names uninstall then install", () => {
+describe("bookend seam — interim L2 refuse until 3f (WAVE3-V2 superseded long-term)", () => {
+  it("upgrade on go-tarball still refuses interim (3d); names shape + uninstall", () => {
     const root = tempProject();
     writeGoTarballDeft(root);
     const c = capture();
@@ -260,9 +264,11 @@ describe("bookend seam — L2 shapes name uninstall→install (L0 oldStyle uncha
     expect(c.text()).toMatch(/uninstall/i);
     expect(c.text()).toMatch(/install/i);
     expect(c.text()).toMatch(/go-tarball-deft-root/);
+    // Long-term intent is convert — registry already says so.
+    expect(decisionForShapeId("go-tarball-deft-root")).toBe("convert-via-removals");
   });
 
-  it("upgrade on vendored-core-go names uninstall then install", () => {
+  it("upgrade on vendored-core-go still refuses interim; registry is convert-via-removals", () => {
     const root = tempProject();
     writeCopiedCoreEvidence(root);
     const c = capture();
@@ -270,9 +276,10 @@ describe("bookend seam — L2 shapes name uninstall→install (L0 oldStyle uncha
     expect(code).toBe(2);
     expect(c.text()).toMatch(/vendored-core-go/);
     expect(c.text()).toMatch(/uninstall/i);
+    expect(decisionForShapeId("vendored-core-go")).toBe("convert-via-removals");
   });
 
-  it("upgrade on orphan-deft-version is unsupported-honest", () => {
+  it("upgrade on orphan-deft-version interim-refuses as convert-via-removals", () => {
     const root = tempProject();
     mkdirSync(join(root, ".deft"), { recursive: true });
     writeFileSync(join(root, ".deft", "VERSION"), "orphan\n");
@@ -280,10 +287,10 @@ describe("bookend seam — L2 shapes name uninstall→install (L0 oldStyle uncha
     const code = runUpgrade(root, readProjectInstallState(root), ["--yes"], "0.0.0-test", c.io);
     expect(code).toBe(2);
     expect(c.text()).toMatch(/orphan-deft-version/);
-    expect(c.text()).toMatch(/unsupported|not supported|automatic recovery/i);
+    expect(decisionForShapeId("orphan-deft-version")).toBe("convert-via-removals");
   });
 
-  it("install on submodule-deft names uninstall then install", () => {
+  it("install on submodule-deft interim-refuses; registry is convert-via-removals", () => {
     const root = tempProject();
     writeSubmoduleDeft(root);
     const c = capture();
@@ -291,6 +298,7 @@ describe("bookend seam — L2 shapes name uninstall→install (L0 oldStyle uncha
     expect(code).toBe(1);
     expect(c.text()).toMatch(/submodule-deft/);
     expect(c.text()).toMatch(/uninstall/i);
+    expect(decisionForShapeId("submodule-deft")).toBe("convert-via-removals");
   });
 
   it("install on oldStyle still names upgrade (L0 convert path unchanged)", () => {
@@ -303,5 +311,31 @@ describe("bookend seam — L2 shapes name uninstall→install (L0 oldStyle uncha
     expect(code).toBe(1);
     expect(c.text()).toMatch(/directive upgrade/i);
     expect(c.text()).not.toMatch(/uninstall then install|uninstall` then/i);
+  });
+});
+
+/**
+ * RED until 3f: upgrade must run convert strategy (not refuse) for convert shapes.
+ * Documents WAVE3-V2 long-term contract; expected to fail on 3d tip.
+ */
+describe("WAVE3-V2 upgrade-convert path (RED until 3f)", () => {
+  it("upgrade on go-tarball-deft-root should convert (not exit refuse)", () => {
+    const root = tempProject();
+    writeGoTarballDeft(root);
+    const c = capture();
+    const code = runUpgrade(root, readProjectInstallState(root), ["--yes"], "0.0.0-test", c.io);
+    // 3f: strategy runs → setup/migrate; must not be the L2 refuse exit.
+    expect(code).not.toBe(2);
+    expect(c.text()).not.toMatch(/`directive uninstall` then `directive install`/);
+    expect(decisionForShapeId("go-tarball-deft-root")).toBe("convert-via-removals");
+  });
+
+  it("upgrade on vendored-core-go should convert (not exit refuse)", () => {
+    const root = tempProject();
+    writeCopiedCoreEvidence(root);
+    const c = capture();
+    const code = runUpgrade(root, readProjectInstallState(root), ["--yes"], "0.0.0-test", c.io);
+    expect(code).not.toBe(2);
+    expect(c.text()).not.toMatch(/Until then, run `directive uninstall`/);
   });
 });

@@ -3,11 +3,13 @@
 | | |
 | --- | --- |
 | Ticket | deftai/directive#5490 / UNIFIED-GITHUB-V2.md AC10.8 / AC14.32 / AC15.2 follow-up |
-| Strategy | `IMPLEMENTATION-STRATEGY-YOLO-WAVE3-V1.md` (orchestrator home) |
+| Strategy | `IMPLEMENTATION-STRATEGY-YOLO-WAVE3-V1.md` (survey method); **WAVE3-V2** (`IMPLEMENTATION-STRATEGY-YOLO-WAVE3-V2.md`) supersedes L2 user-facing uninstall-reinstall refuse for convert shapes |
+| Clarifications | `specs/5490-wave3-v2-unified-clarifications.md` (C1–C8) |
 | Tip surveyed | `yolo/wip-wave3a` / `yolo/cp-wave2zb` @ `0be7813c47929967a6a2e73b6ea91cb19f2d3780` |
+| WAVE3-V2 base | `yolo/cp-wave3c` @ `2a38865d8c04522e5228c6eb70377476c06c8336` |
 | xbrief ref | `~/Projects/xbrief` @ `56824ed4da99b4f6817e21809d998bf463163519` (`v0.8.0-3-g56824ed`) |
-| Status | **3a survey + 3b L2/L1 buildout.** See `specs/5490-wave3-completion.md`. |
-| Architecture | **L0 sacred** (new→new + latest-legacy→new). **L2** = older eras via isolated adapters or uninstall→reinstall into L0. Keep tight. |
+| Status | **3a–3c complete.** WAVE3-V2 **3d**: survey lean flipped to **convert** (composed removals + L0); fixture status **pending fixtures (3f)**. |
+| Architecture | **L0 sacred** (new→new + latest-legacy→new). **L2** = detect → removal strategy → L0 arrival (WAVE3-V2). Bookend refuse may remain until 3f greens. Keep tight. |
 
 Raw archaeology (not committed): `~/yolo-5490/logs/wave3/`  
 (`xbrief-schema-inventory.md`, `install-era-clusters.md`, seed lists, co-change logs).
@@ -67,7 +69,7 @@ Surfaces: `packages/core/src/xbrief-migrate/`, `packages/runtime/src/migrate-xbr
 | --- | --- | --- |
 | **L0** | `ovpr-runtime-pin`, `npm-hybrid-pin-copied-core` (latest legacy / 2f) | Highest robustness — Wave 3 must not soften |
 | **L1** | xbrief migrate 0.6→0.8 (+ optional thin 0.7) | Shared table-driven migrate; repair does not migrate |
-| **L2** | All older / sparse shapes below | Isolated detect→dispatch; prefer **uninstall→reinstall into L0** when convert is fat |
+| **L2** | All older / sparse shapes below | Isolated detect → **convert-via-removals** (WAVE3-V2) → L0; user-facing uninstall-reinstall refuse **superseded** once 3f greens |
 
 ### Shape table
 
@@ -77,12 +79,12 @@ Surfaces: `packages/core/src/xbrief-migrate/`, `packages/runtime/src/migrate-xbr
 | `npm-hybrid-pin-copied-core` | `v0.69.0+` (#2264…) | exact `@deftai/directive` + copied-core evidence + GENERATION | **pin wins**; GENERATION | `oldStyle:true` | **L0 convert (2f)** | tip `legacy-conversion` / wave2f |
 | `npm-ranged-or-pin-only` | npm era | ranged/`^` or pin without core evidence | ambiguous | not `oldStyle` | first-install/repair; not historical convert | optional |
 | `npm-bridge-refuse-legacy` | `v0.56.0+` | producer behavior era | N/A | legacy-detect refuse | historical note only | — |
-| `vendored-core-go` | `v0.28.0+` Go deposit | `.deft/core` evidence **without** exact pin | core `VERSION` YAML | copied-core, not `oldStyle` | **L2 uninstall→L0** (Wave-2 correctly refuses upgrade w/o pin) | needed |
-| `go-tarball-deft-root` | `v0.5.0`–~`v0.27` | `deft/` + markers; Go producer deleted on tip | `.deft-version` / framework VERSION | `legacy-deft-prefixed` | **L2 uninstall→L0** | needed (era) |
-| `submodule-deft` | ~`v0.20`–`v0.30` docs | `deft/` gitlink + `.gitmodules` | submodule SHA | `git-clone-or-submodule` | **L2 uninstall→L0** | needed |
-| `pre-v0.27-agents-md` | pre-managed-section | AGENTS without v2/v3 markers | coupled to layout | `pre-v0.27-sentinel-agents-md` | co-travel; alone → uninstall→L0 | share with go-tarball |
-| `dual-layout-deft-and-core` | post-relocate leftovers | both `deft/` and `.deft/core` | dual | `dual-layout` | L2: remove `deft/` or uninstall→L0 | needed |
-| `orphan-deft-version` | partial installs | `.deft/VERSION` without core | orphan | `orphan-deft-version` | **unsupported-honest** or uninstall→L0 | needed |
+| `vendored-core-go` | `v0.28.0+` Go deposit | `.deft/core` evidence **without** exact pin | core `VERSION` YAML | copied-core, not `oldStyle` | **convert** (composed removals + L0); status **pending fixtures (3f)** | pending 3f |
+| `go-tarball-deft-root` | `v0.5.0`–~`v0.27` | `deft/` + markers; Go producer deleted on tip | `.deft-version` / framework VERSION | `legacy-deft-prefixed` | **convert** (composed removals + L0); status **pending fixtures (3f)** | pending 3f |
+| `submodule-deft` | ~`v0.20`–`v0.30` docs | `deft/` gitlink + `.gitmodules` | submodule SHA | `git-clone-or-submodule` | **convert** (composed removals + L0; fail closed if gitlink unsafe); status **pending fixtures (3f)** | pending 3f |
+| `pre-v0.27-agents-md` | pre-managed-section | AGENTS without v2/v3 markers | coupled to layout | `pre-v0.27-sentinel-agents-md` | co-travel with go-tarball convert | share with go-tarball |
+| `dual-layout-deft-and-core` | post-relocate leftovers | both `deft/` and `.deft/core` | dual | `dual-layout` | **convert** (removeDeftFrameworkTree then removeCopiedCore → L0); status **pending fixtures (3f)** | pending 3f |
+| `orphan-deft-version` | partial installs | `.deft/VERSION` without core | orphan | `orphan-deft-version` | **convert** (removeOrphanDeftVersion → greenfield under upgrade/install); status **pending fixtures (3f)** | pending 3f |
 | `docs-only-pre-installer` | `v0.1`–`v0.4` | no installer markers | N/A | none | unsupported-honest / non-install | only if live |
 
 ### Detect / map pointers (existing tip)
@@ -96,32 +98,33 @@ Surfaces: `packages/core/src/xbrief-migrate/`, `packages/runtime/src/migrate-xbr
 
 ---
 
-## 3b priority queue (from this survey)
+## 3b priority queue (from this survey) — historical
 
 0. Protect L0 regressions (2f + OVPR happy path) — block-forward if red.
 1. L2 scaffolding: registry + detect → `shape_id` + dispatch seam.
 2. L1: harden 0.6→0.8 / hybrid / dual fixtures; decide thin 0.7 path vs honest refuse (no hop-1 bloat for 0.5).
-3. L2: wire `go-tarball-deft-root` / `submodule-deft` / `vendored-core-go` to **uninstall→reinstall into L0** messaging + uninstall-map coverage (era fixtures, not per tag).
+3. L2: wire `go-tarball-deft-root` / `submodule-deft` / `vendored-core-go` (3b: uninstall→reinstall messaging; **WAVE3-V2 flips to convert**).
 4. Defer remaining sparse shapes as `unsupported-honest` in 3c if time-boxed.
 
 ---
 
+## 3b decisions applied (tight) — superseded for convert shapes by WAVE3-V2
 
-
-## 3b decisions applied (tight)
-
-| shape_id / schema | Applied decision | Where |
+| shape_id / schema | 3b applied | WAVE3-V2 (3d+) |
 | --- | --- | --- |
-| L0 OVPR / latest-legacy | unchanged sacred paths | `pin.ts` / 2f / bookends fall-through |
-| `go-tarball-deft-root`, `submodule-deft`, `vendored-core-go` | **uninstall-reinstall** messaging | `packages/cli/src/legacy-shapes/` |
-| `orphan-deft-version` | **unsupported-honest** | same |
-| xbrief 0.7 | **migrate-through → 0.8** (reuse transform) | `packages/core/src/xbrief-migrate/` |
-| xbrief 0.5 | remains off-tip / unsupported-honest | no hop-1 port |
+| L0 OVPR / latest-legacy | unchanged sacred paths | **L0 stay** (unchanged) |
+| `go-tarball-deft-root`, `submodule-deft`, `vendored-core-go` | uninstall-reinstall messaging | **convert** via composed removals + L0; **pending fixtures (3f)** |
+| `dual-layout-deft-and-core` | deferred / uninstall lean | **convert**; **pending fixtures (3f)** |
+| `orphan-deft-version` | unsupported-honest | **convert**; **pending fixtures (3f)** |
+| xbrief 0.7 | migrate-through → 0.8 | unchanged |
+| xbrief 0.5 | off-tip / unsupported-honest | unchanged |
+
+**WAVE3-V2 supersession:** user-facing uninstall-reinstall refuse for the convert shapes above is **superseded** once 3f fixtures green. Until then, bookends may still refuse (interim). Registry decision enum is `convert-via-removals`. See `specs/5490-wave3-v2-unified-clarifications.md` C1–C3.
 
 ## Explicit non-claims (AC10.7)
 
-This 3a artifact does **not** advertise convert/uninstall support for L2 shapes. Support requires green fixtures in 3b. Latest-legacy and OVPR remain owned by initial-release / wave2zb.
+WAVE3-V2 **leans convert** for the shapes above but does **not** advertise green upgrade support until era fixtures pass in **3f**. Latest-legacy and OVPR remain owned by initial-release / wave2zb (L0). Unsupported-honest remains for shapes that fail fixtures or operator deferral.
 
 ---
 
-*End of 3a survey table.*
+*End of survey table (living under AC10.8 / WAVE3-V2).*

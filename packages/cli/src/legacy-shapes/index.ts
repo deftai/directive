@@ -1,6 +1,7 @@
 /**
  * L2 historical shape seam — thin detect → survey shape_id → recovery decision.
- * Bookends call once; L0 convert/OVPR paths stay unchanged.
+ * WAVE3-V2: convert-via-removals lean; bookends refuse interim until 3f.
+ * Removal step implementations live in packages/runtime/src/removal-steps/ (AC3.1).
  */
 export {
   resolveInstallShape,
