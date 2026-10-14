@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Complete the #5542 scope brief after product #5570.** Move the gate-override brief into xbrief/completed/ so orphan tracking clears. Tracking #5542.
 - **Gate-override admission locks publish without stealing live owners (#5542).**
+- Mint approved-scope for #5552 (Path B Prefer-A Bound file_scope).
 - Mint intent-constraint for #5542 (approve gate-override invariant throw sites).
 - **Complete the #4768 scope brief after product #5571.** Move the acceptance-activate brief into xbrief/completed/ so orphan tracking clears. Tracking #4768.
 - Activating a brief that contains commands now requires usable acceptance text. Activation derives that text when possible and otherwise refuses, including when the brief is already active. Already-active restamp uses temp+rename, and settled active briefs skip D7 re-block on ingress no-op. Tracking #4768.
