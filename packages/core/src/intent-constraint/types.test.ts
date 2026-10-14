@@ -18,6 +18,15 @@ describe("intent-constraint constants (#4541)", () => {
     expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/rewrite or park/);
     expect(INTENT_CONSTRAINT_REMEDIATION).toContain("scope:record-intent-constraint");
     expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/legacy repair only/);
+    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(
+      /Classify the condition|invariant \/ corruption \/ impossible-if-healthy/,
+    );
+    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(
+      /rewrite solely to clear the gate is forbidden/,
+    );
+    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(
+      /park pending a human mint/,
+    );
     expect(FACT_KINDS).toEqual(["throw-site", "reject-site", "abort-site", "numeric-const"]);
     expect(REJECTION_SCOPES).toEqual(["item", "invocation", "operation"]);
   });

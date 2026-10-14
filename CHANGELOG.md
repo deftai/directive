@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **docs(intent-constraint): Prefer-A throw+mint for invariant/corruption (#5574).** Operational denials stay returned-failure/filter; invariant / corruption / impossible-if-healthy keep fail-fast + attended mint (unattended parks). Bound 6159841941. Tracking #5574.
 - Bump `actions/setup-node` from 7.0.0 to 7.1.0 (#5557).
 - Bump `actions/upload-artifact` 7.0.1→7.0.2 (#5554).
 - **chore(deps): bump astral-sh/setup-uv 10.2.0→10.3.0 (#5556).** SHA-pin refresh on the two `setup-uv` sites in `ci.yml` (merge-gate primary + GH-hosted failover). Minor toolchain action bump; no input changes.
