@@ -1702,6 +1702,34 @@ describe("evaluateCompletedWriteGuard Prefer-A leftover provenance (#5602)", () 
     expect(result.findings).toHaveLength(0);
   });
 
+  it("refuses completed status with fail stamp and no provenance (#5602)", () => {
+    const mismatched = JSON.stringify({
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "completed with fail stamp",
+        status: "completed",
+        references: [
+          {
+            uri: "https://github.com/deftai/directive/issues/5602",
+            type: "x-xbrief/github-issue",
+          },
+        ],
+        metadata: {
+          lifecycleWrite: {
+            action: "fail",
+            writtenAt: "2026-10-14T15:00:00Z",
+          },
+        },
+      },
+    });
+    const result = evaluateCompletedWriteGuard("/tmp/proj", {
+      addedFiles: [completedRel],
+      payloads: new Map([[completedRel, mismatched]]),
+    });
+    expect(result.code).toBe(1);
+    expect(result.findings[0]?.detail).toMatch(/missing completionProvenance|#5602/);
+  });
+
   it("does not apply #5602 delivery contract to completed/ mods (#4906 residual)", () => {
     // #5551 is shape comparison only in skill text — not writer-success proof.
     // Mod path must not newly refuse informal keys in first-ship.
