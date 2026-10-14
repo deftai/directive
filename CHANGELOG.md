@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bump `actions/download-artifact` from 8.0.1 to 8.0.2 (#5555).
 
 ### Fixed
-- **Gate-override admission locks publish atomically and never reclaim empty in-flight locks (#5542).** Incomplete receipts clear under the attempt lock so retries are not stuck.
+- **Gate-override admission locks publish atomically and never reclaim empty in-flight locks (#5542).** Incomplete receipts clear under the attempt lock so retries are not stuck. Exclusive publish uses returned-failure (keeps #5575 invariant throws).
 - Mint intent-constraint for #5542 (approve gate-override invariant throw sites).
 - **Complete the #4768 scope brief after product #5571.** Move the acceptance-activate brief into xbrief/completed/ so orphan tracking clears. Tracking #4768.
 - Activating a brief that contains commands now requires usable acceptance text. Activation derives that text when possible and otherwise refuses, including when the brief is already active. Already-active restamp uses temp+rename, and settled active briefs skip D7 re-block on ingress no-op. Tracking #4768.

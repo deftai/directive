@@ -6,14 +6,7 @@
  */
 
 import { createHash, randomBytes } from "node:crypto";
-import {
-  existsSync,
-  linkSync,
-  mkdirSync,
-  readFileSync,
-  renameSync,
-  rmSync,
-} from "node:fs";
+import { existsSync, linkSync, mkdirSync, readFileSync, renameSync, rmSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import {
   ContainedWriteError,
@@ -470,16 +463,22 @@ function tryReclaimDeadAdmissionAttemptLock(lockPath: string): boolean {
   return true;
 }
 
+type ExclusiveWriteResult =
+  | { ok: true }
+  | { ok: false; code: "exists" }
+  | { ok: false; code: "error"; error: unknown };
+
 /**
  * Publish complete bytes at target with exclusive create semantics.
  * Temp+link (or Windows rename) so readers never observe an empty final path
  * mid-write (#5542 Greptile P1 live-lock / interrupted-admission).
+ * Returned-failure (no new throw-sites) — callers map exists/error under #5575.
  */
 function writeExclusiveComplete(
   projectRoot: string,
   targetPath: string,
   data: string,
-): void {
+): ExclusiveWriteResult {
   const root = resolve(projectRoot);
   const abs = resolve(targetPath);
   assertWriteTargetSafe(root, abs);
@@ -495,33 +494,27 @@ function writeExclusiveComplete(
     } catch (err) {
       const code = (err as NodeJS.ErrnoException).code;
       if (code === "EEXIST") {
-        throw new ContainedWriteError(
-          `contained write refused: target ${abs} already exists (mode=create)`,
-          {
-            code: ContainedWriteErrorCode.EXISTS,
-            root,
-            target: abs,
-            offendingPath: abs,
-          },
-        );
+        try {
+          rmSync(tmp, { force: true });
+        } catch {
+          /* best-effort temp cleanup */
+        }
+        return { ok: false, code: "exists" };
       }
       // link may be unsupported; rename is exclusive on win32 when dest exists.
       try {
         renameSync(tmp, abs);
       } catch (renameErr) {
         const rcode = (renameErr as NodeJS.ErrnoException).code;
-        if (rcode === "EEXIST" || rcode === "EPERM") {
-          throw new ContainedWriteError(
-            `contained write refused: target ${abs} already exists (mode=create)`,
-            {
-              code: ContainedWriteErrorCode.EXISTS,
-              root,
-              target: abs,
-              offendingPath: abs,
-            },
-          );
+        try {
+          rmSync(tmp, { force: true });
+        } catch {
+          /* best-effort temp cleanup */
         }
-        throw renameErr;
+        if (rcode === "EEXIST" || rcode === "EPERM") {
+          return { ok: false, code: "exists" };
+        }
+        return { ok: false, code: "error", error: renameErr };
       }
     }
   } catch (err) {
@@ -530,13 +523,17 @@ function writeExclusiveComplete(
     } catch {
       /* best-effort temp cleanup */
     }
-    throw err;
+    if (err instanceof ContainedWriteError && err.code === ContainedWriteErrorCode.EXISTS) {
+      return { ok: false, code: "exists" };
+    }
+    return { ok: false, code: "error", error: err };
   }
   try {
     rmSync(tmp, { force: true });
   } catch {
     /* best-effort: rename already moved tmp; link leaves a second name */
   }
+  return { ok: true };
 }
 
 /**
@@ -558,16 +555,11 @@ function withAdmissionAttemptLock<T>(
   } satisfies GrantClaimLockRecord)}\n`;
 
   const tryCreate = (): boolean => {
-    try {
-      // Atomic exclusive publish — no empty final path for reclaim to steal.
-      writeExclusiveComplete(projectRoot, lockPath, lockBody);
-      return true;
-    } catch (err) {
-      if (err instanceof ContainedWriteError && err.code === ContainedWriteErrorCode.EXISTS) {
-        return false;
-      }
-      throw err;
-    }
+    // Atomic exclusive publish — no empty final path for reclaim to steal.
+    const wrote = writeExclusiveComplete(projectRoot, lockPath, lockBody);
+    if (wrote.ok) return true;
+    if (wrote.code === "exists") return false;
+    throw wrote.error instanceof Error ? wrote.error : new Error(String(wrote.error));
   };
 
   let locked = false;
@@ -618,12 +610,12 @@ function isLiveAdmissionGrant(
 }
 
 /** Exclusive create of admission receipt. Concurrent admit fails closed. */
-function writeAdmissionExclusive(projectRoot: string, targetPath: string, payload: unknown): void {
-  writeExclusiveComplete(
-    projectRoot,
-    targetPath,
-    `${JSON.stringify(payload, null, 2)}\n`,
-  );
+function writeAdmissionExclusive(
+  projectRoot: string,
+  targetPath: string,
+  payload: unknown,
+): ExclusiveWriteResult {
+  return writeExclusiveComplete(projectRoot, targetPath, `${JSON.stringify(payload, null, 2)}\n`);
 }
 
 /** True when a receipt path exists but does not parse as a live admission. */
@@ -922,18 +914,17 @@ export function admitGateOverrideForAttempt(
           actor: g.origin.actor,
           observedRefuseReason: input.observedRefuseReason,
         };
-        try {
-          writeAdmissionExclusive(
-            projectRoot,
-            admissionPath(projectRoot, parsed.attemptId),
-            receipt,
-          );
-        } catch (err) {
-          if (err instanceof ContainedWriteError && err.code === ContainedWriteErrorCode.EXISTS) {
+        const wrote = writeAdmissionExclusive(
+          projectRoot,
+          admissionPath(projectRoot, parsed.attemptId),
+          receipt,
+        );
+        if (!wrote.ok) {
+          if (wrote.code === "exists") {
             // Concurrent admit won the receipt create — claim rolls back usedAt.
             throw new Error("gate-override admission race: receipt already exists");
           }
-          throw err;
+          throw wrote.error instanceof Error ? wrote.error : new Error(String(wrote.error));
         }
       },
     });
