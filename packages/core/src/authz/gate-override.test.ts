@@ -1,4 +1,5 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -280,6 +281,50 @@ describe("gate-override (#5542 Prefer-A Bound)", () => {
     if (!reuse.ok) return;
     expect(reuse.reused).toBe(true);
     expect(reuse.receipt.grantId).toBe(renewed.grant.id);
+  });
+
+  it("reclaims a dead attempt lock so admit can resume", () => {
+    root = mkdtempSync(join(tmpdir(), "gate-override-"));
+    const baseSha = "7".repeat(40);
+    const headSha = "8".repeat(40);
+    const treeHash = "9".repeat(40);
+    const attemptId = "attempt-dead-lock";
+    const minted = mintGateOverrideTemplateGrant({
+      projectRoot: root,
+      target: "unknown-path",
+      planRef: attemptId,
+      baseSha,
+      headSha,
+      treeHash,
+    });
+    expect(minted.ok).toBe(true);
+    if (!minted.ok) return;
+
+    const safe = createHash("sha256").update(attemptId, "utf8").digest("hex");
+    const lockDir = join(root, ".deft", "authz", "locks");
+    mkdirSync(lockDir, { recursive: true });
+    writeFileSync(
+      join(lockDir, `gate-override-admit-${safe}.lock`),
+      `${JSON.stringify({
+        pid: 2_147_483_647,
+        startedAt: new Date().toISOString(),
+        token: "dead-holder",
+      })}\n`,
+      "utf8",
+    );
+
+    const admitted = admitGateOverrideForAttempt(root, {
+      refuseCode: "unknown-path",
+      baseSha,
+      headSha,
+      treeHash,
+      attemptId,
+      observedRefuseReason: "unknown path",
+    });
+    expect(admitted.ok).toBe(true);
+    if (!admitted.ok) return;
+    expect(admitted.reused).toBe(false);
+    expect(admitted.receipt.grantId).toBe(minted.grant.id);
   });
 
   it("attempt ids a/b and a_b do not share an admission file", () => {

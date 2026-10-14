@@ -6,7 +6,7 @@
  */
 
 import { createHash, randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import {
   ContainedWriteError,
@@ -18,6 +18,8 @@ import { type MintGrantInput, type MintGrantResult, mintHumanOriginGrant } from 
 import { isHumanOrigin, isHumanOriginKind } from "./origin.js";
 import {
   claimSingleUseGrantForApply,
+  type GrantClaimLockRecord,
+  isGrantClaimLockReclaimable,
   listActiveHumanGrants,
   loadAuthzState,
   loadGrant,
@@ -408,9 +410,60 @@ function admissionAttemptLockPath(projectRoot: string, attemptId: string): strin
   return join(resolve(projectRoot), ".deft", "authz", "locks", `gate-override-admit-${safe}.lock`);
 }
 
+function readAdmissionAttemptLockRecord(lockPath: string): GrantClaimLockRecord | null {
+  try {
+    const raw = readFileSync(lockPath, "utf8").trim();
+    if (!raw.startsWith("{")) return null;
+    const parsed = JSON.parse(raw) as unknown;
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    const o = parsed as Record<string, unknown>;
+    const pid = typeof o.pid === "number" ? o.pid : Number(o.pid);
+    const startedAt = typeof o.startedAt === "string" ? o.startedAt : "";
+    const token = typeof o.token === "string" ? o.token : "";
+    if (!Number.isFinite(pid) || token.length === 0) return null;
+    return { pid, startedAt, token };
+  } catch {
+    return null;
+  }
+}
+
+/** Rename-away reclaim for crashed attempt-lock holders (same shape as grant claim locks). */
+function tryReclaimDeadAdmissionAttemptLock(lockPath: string): boolean {
+  const existing = readAdmissionAttemptLockRecord(lockPath);
+  if (!isGrantClaimLockReclaimable(existing)) return false;
+  const expectedPid = existing?.pid ?? null;
+  const expectedToken = existing?.token ?? null;
+  const side = `${lockPath}.reclaim.${randomBytes(6).toString("hex")}`;
+  try {
+    renameSync(lockPath, side);
+  } catch {
+    return false;
+  }
+  const got = readAdmissionAttemptLockRecord(side);
+  const sameDead =
+    existing === null
+      ? got === null
+      : got !== null && got.pid === expectedPid && got.token === expectedToken;
+  if (!sameDead) {
+    try {
+      renameSync(side, lockPath);
+    } catch {
+      /* best-effort restore of live replacement */
+    }
+    return false;
+  }
+  try {
+    rmSync(side, { force: true });
+  } catch {
+    /* best-effort side cleanup */
+  }
+  return true;
+}
+
 /**
  * Serialize admit/renew for one attempt id so concurrent renewers cannot delete
- * each other's replacement receipt (#5542 Greptile P1).
+ * each other's replacement receipt (#5542 Greptile P1). Dead-owner locks reclaim
+ * via rename-away (same recovery as claimSingleUseGrantForApply).
  */
 function withAdmissionAttemptLock<T>(
   projectRoot: string,
@@ -424,31 +477,46 @@ function withAdmissionAttemptLock<T>(
     pid: process.pid,
     startedAt: utcIso(),
     token: lockToken,
-  })}\n`;
-  try {
-    containedWrite({ root, target: lockPath, data: lockBody, mode: "create" });
-  } catch (err) {
-    if (err instanceof ContainedWriteError && err.code === ContainedWriteErrorCode.EXISTS) {
-      return {
-        ok: false,
-        reason:
-          "gate-override: admission for attempt is reserved by a concurrent admit/renew; retry",
-      };
+  } satisfies GrantClaimLockRecord)}\n`;
+
+  const tryCreate = (): boolean => {
+    try {
+      containedWrite({ root, target: lockPath, data: lockBody, mode: "create" });
+      return true;
+    } catch (err) {
+      if (err instanceof ContainedWriteError && err.code === ContainedWriteErrorCode.EXISTS) {
+        return false;
+      }
+      throw err;
     }
+  };
+
+  let locked = false;
+  try {
+    locked = tryCreate();
+    if (!locked && tryReclaimDeadAdmissionAttemptLock(lockPath)) {
+      locked = tryCreate();
+    }
+  } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return { ok: false, reason: `gate-override: admission lock failed: ${msg}` };
+  }
+  if (!locked) {
+    return {
+      ok: false,
+      reason: "gate-override: admission for attempt is reserved by a concurrent admit/renew; retry",
+    };
   }
   try {
     return { ok: true, value: fn() };
   } finally {
     try {
-      const raw = readFileSync(lockPath, "utf8");
-      const rec = JSON.parse(raw) as { pid?: unknown; token?: unknown };
-      if (rec.pid === process.pid && rec.token === lockToken) {
+      const rec = readAdmissionAttemptLockRecord(lockPath);
+      if (rec !== null && rec.pid === process.pid && rec.token === lockToken) {
         rmSync(lockPath, { force: true });
       }
     } catch {
-      // Lock release best-effort; leftover dead locks reclaim via operator.
+      // Lock release best-effort; leftover dead locks reclaim on next admit.
     }
   }
 }
