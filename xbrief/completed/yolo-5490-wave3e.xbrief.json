@@ -1,0 +1,11 @@
+{
+  "schema": "xbrief",
+  "id": "yolo-5490-wave3e",
+  "title": "Wave 3e — F-012/F-013 prune empty husks + sole-author cleanup",
+  "status": "completed",
+  "summary": "pruneEmptyAncestors + removeSoleAuthorHusks wired into repository uninstall. Empty Directive skill/command/.githooks/.deft husks gone. Intentional RED remains for upgrade-convert (3f).",
+  "completedAt": "2026-10-14T14:30:00Z",
+  "wave": "3e",
+  "inbox": ["F-012", "F-013"],
+  "verdaccio": { "tag": "yolo-cp-wave3e", "version": "0.0.0-yolo.cp-wave3e.1" }
+}
