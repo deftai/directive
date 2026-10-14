@@ -6,7 +6,7 @@
 | Strategy | `IMPLEMENTATION-STRATEGY-YOLO-WAVE3-V1.md` (orchestrator home) |
 | Tip surveyed | `yolo/wip-wave3a` / `yolo/cp-wave2zb` @ `0be7813c47929967a6a2e73b6ea91cb19f2d3780` |
 | xbrief ref | `~/Projects/xbrief` @ `56824ed4da99b4f6817e21809d998bf463163519` (`v0.8.0-3-g56824ed`) |
-| Status | **3a survey checked in.** Recovery claims require 3b fixtures. |
+| Status | **3a survey + 3b L2/L1 buildout.** See `specs/5490-wave3-completion.md`. |
 | Architecture | **L0 sacred** (new→new + latest-legacy→new). **L2** = older eras via isolated adapters or uninstall→reinstall into L0. Keep tight. |
 
 Raw archaeology (not committed): `~/yolo-5490/logs/wave3/`  
@@ -105,6 +105,18 @@ Surfaces: `packages/core/src/xbrief-migrate/`, `packages/runtime/src/migrate-xbr
 4. Defer remaining sparse shapes as `unsupported-honest` in 3c if time-boxed.
 
 ---
+
+
+
+## 3b decisions applied (tight)
+
+| shape_id / schema | Applied decision | Where |
+| --- | --- | --- |
+| L0 OVPR / latest-legacy | unchanged sacred paths | `pin.ts` / 2f / bookends fall-through |
+| `go-tarball-deft-root`, `submodule-deft`, `vendored-core-go` | **uninstall-reinstall** messaging | `packages/cli/src/legacy-shapes/` |
+| `orphan-deft-version` | **unsupported-honest** | same |
+| xbrief 0.7 | **migrate-through → 0.8** (reuse transform) | `packages/core/src/xbrief-migrate/` |
+| xbrief 0.5 | remains off-tip / unsupported-honest | no hop-1 port |
 
 ## Explicit non-claims (AC10.7)
 
