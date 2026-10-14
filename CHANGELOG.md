@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bump `actions/download-artifact` from 8.0.1 to 8.0.2 (#5555).
 
 ### Fixed
+- **Complete the #5477 scope brief after product #5598.** Move the Path B activate brief into xbrief/completed/ so orphan tracking clears. Tracking #5477.
 - **Complete the #5551 scope brief after product #5595.** Move the Path B activate brief into xbrief/completed/ so orphan tracking clears. Tracking #5551.
 - **Complete the #5574 scope brief after product #5596.** Move the Path B activate brief into xbrief/completed/ so orphan tracking clears. Tracking #5574.
 - **Complete the #5545 scope brief after product #5594.** Move the Path B activate brief into xbrief/completed/ so orphan tracking clears. Tracking #5545.

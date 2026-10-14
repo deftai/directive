@@ -1,11 +1,12 @@
 {
   "xBRIEFInfo": {
     "version": "0.8",
-    "description": "Path B activate #5477 Prefer-A Bound"
+    "description": "Path B activate #5477 Prefer-A Bound",
+    "updated": "2026-10-14T09:45:59.031Z"
   },
   "plan": {
     "id": "github.issue.5754500324",
-    "status": "running",
+    "status": "completed",
     "title": "Path B activate #5477 Prefer-A Bound file_scope",
     "references": [
       {
@@ -46,7 +47,17 @@
         ],
         "cohesion_exemption": "CHANGELOG.md Unreleased Keep note for Path B mint",
         "module_boundary": "Prefer-A Bound 6135476931 for issue 5477"
-      }
+      },
+      "productPullRequest": 5598,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-14T09:45:59.031Z"
+      },
+      "completionProvenance": {
+        "productMerge": "ef8649398175bb3773fd49047a964fcada0ffce2",
+        "productPr": 5598
+      },
+      "completedAt": "2026-10-14T09:45:59.031Z"
     },
     "acceptance": {
       "none_stated": true,
@@ -60,6 +71,7 @@
         "title": "Rapid check zero-verified walk Bound remedy for lifecycle-only PRs",
         "status": "pending"
       }
-    ]
+    ],
+    "updated": "2026-10-14T09:45:59.031Z"
   }
 }
