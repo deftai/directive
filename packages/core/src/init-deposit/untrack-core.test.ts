@@ -333,7 +333,7 @@ describe("runUntrackCoreCli", () => {
 });
 
 describe("destructive-mutation boundary (#2269 a1)", () => {
-  it("git rm --cached is invoked only from untrack-core.ts across init-deposit + init-cli", () => {
+  it("git rm --cached is invoked only from untrack-core.ts and gitignore.ts (#3911) across init-deposit + init-cli", () => {
     // Portable __dirname (avoids relying on the Node-version-gated
     // `import.meta.dirname`, which some type-checkers reject).
     const initDepositDir = dirname(fileURLToPath(import.meta.url));
@@ -342,20 +342,22 @@ describe("destructive-mutation boundary (#2269 a1)", () => {
     // adjacency — NOT a bare `--cached` (e.g. the non-destructive
     // `git diff --cached` read in hygiene.ts).
     const gitRmCached = /["']rm["']\s*,\s*["']--cached["']/;
+    // #2269 deposit untrack + #3911 orientation/session-bind local-runtime rail.
+    const allowed = new Set(["untrack-core.ts", "gitignore.ts"]);
 
     const offenders: string[] = [];
     for (const dir of [initDepositDir, initCliDir]) {
       for (const name of readdirSync(dir)) {
         if (!name.endsWith(".ts")) continue;
         if (name.endsWith(".test.ts")) continue;
-        if (name === "untrack-core.ts") continue;
+        if (allowed.has(name)) continue;
         const text = readFileSync(join(dir, name), "utf8");
         if (gitRmCached.test(text)) offenders.push(join(dir, name));
       }
     }
 
     expect(offenders).toEqual([]);
-    // And the sole allowed call site actually contains the mutation.
     expect(readFileSync(join(initDepositDir, "untrack-core.ts"), "utf8")).toMatch(gitRmCached);
+    expect(readFileSync(join(initDepositDir, "gitignore.ts"), "utf8")).toMatch(gitRmCached);
   });
 });

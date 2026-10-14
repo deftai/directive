@@ -37,6 +37,16 @@ export const GITIGNORE_DEFT_CORE_LINE = ".deft/core/";
 const DEFT_CORE_COVERING_LINES = new Set([".deft/core/", ".deft/core"]);
 
 /**
+ * Orientation + session-bind local-runtime paths (#3911). Exact-path ignore and
+ * index-only untrack targets. `.deft/GENERATION.json` is intentionally absent.
+ */
+export const ORIENTATION_SESSION_BIND_IGNORE_LINES: readonly string[] = [
+  ".deft/orientation-state.json",
+  ".deft/session-bind.json",
+  ".deft/session-binds/",
+];
+
+/**
  * Canonical baseline mirrored from cmd/deft-install/setup.go::canonicalGitignoreLines
  * (excluding `.deft/core/` — that line is greenfield-only per Option B / #1941 split).
  */
@@ -48,6 +58,12 @@ export const CANONICAL_GITIGNORE_BASELINE: readonly string[] = [
   ".deft/last-session.json",
   ".deft/occupancy.json",
   ".deft/routing.local.json",
+  // #3911: orientation + session-bind are local cache/runtime only (not
+  // branch/plan/scope/occupancy/lifecycle authority). Keep GENERATION.json
+  // trackable and outside this ignore/untrack set. Never blanket `.deft/`.
+  ".deft/orientation-state.json",
+  ".deft/session-bind.json",
+  ".deft/session-binds/",
   // #3612: remaining local-cache writer roots kept at historical names
   // (on-disk contracts). Relocating them would break existing consumer state.
   ".deft/authz/",
@@ -121,7 +137,29 @@ export interface EnsureInitGitignoreResult {
   readonly changed: boolean;
   readonly deftCoreIgnored: boolean;
   readonly skippedDeftCoreBecauseTracked: boolean;
+  /** #3911 companion: index-only untrack of orientation/session-bind paths. */
+  readonly localRuntimeUntrack?: UntrackLocalRuntimeResult;
 }
+
+export type UntrackLocalRuntimeOutcome =
+  | "untracked"
+  | "already-clean"
+  | "refused-staged-conflict"
+  | "git-error"
+  | "skipped-no-git";
+
+export interface UntrackLocalRuntimeResult {
+  readonly outcome: UntrackLocalRuntimeOutcome;
+  readonly untrackedPaths: readonly string[];
+  readonly refusedPaths: readonly string[];
+  readonly message: string;
+}
+
+/** Injected `git rm --cached` for #3911 local-runtime paths (default shells out). */
+export type GitRmCachedPaths = (
+  projectDir: string,
+  paths: readonly string[],
+) => { readonly ok: boolean; readonly detail: string };
 
 /**
  * True when `.gitignore` is absent or does not carry the canonical cache
@@ -174,6 +212,168 @@ function gitignoreCoversLine(present: ReadonlySet<string>, line: string): boolea
     return [...DEFT_CORE_COVERING_LINES].some((candidate) => present.has(candidate));
   }
   return false;
+}
+
+function defaultGitRmCachedPaths(
+  projectDir: string,
+  paths: readonly string[],
+): { ok: boolean; detail: string } {
+  try {
+    const out = execFileSync("git", ["rm", "--cached", "-r", "--ignore-unmatch", "--", ...paths], {
+      cwd: projectDir,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    return { ok: true, detail: out };
+  } catch (err: unknown) {
+    const detail = err instanceof Error ? err.message : String(err);
+    return { ok: false, detail };
+  }
+}
+
+function listTrackedUnder(projectDir: string, relPath: string, gitLsFiles: GitLsFiles): string[] {
+  const normalized = normalizeGitignorePath(relPath);
+  const probe = normalized.endsWith("/") ? normalized.slice(0, -1) : normalized;
+  const listed = gitLsFiles(projectDir, [probe, `${probe}/`]);
+  if (listed === null) return [];
+  return listed
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+}
+
+/**
+ * True when the index blob differs from HEAD and also from the working file
+ * (#3911 staged-conflict refuse). Safe untrack requires the staged version not
+ * be a third distinct copy that `git rm --cached` would discard.
+ */
+export function pathHasStagedConflictDistinctFromHeadAndWorktree(
+  projectDir: string,
+  relPath: string,
+): boolean {
+  let indexDiffersFromHead = false;
+  try {
+    execFileSync("git", ["diff", "--cached", "--quiet", "--", relPath], {
+      cwd: projectDir,
+      stdio: "ignore",
+    });
+  } catch {
+    indexDiffersFromHead = true;
+  }
+  if (!indexDiffersFromHead) return false;
+  let worktreeDiffersFromIndex = false;
+  try {
+    execFileSync("git", ["diff", "--quiet", "--", relPath], {
+      cwd: projectDir,
+      stdio: "ignore",
+    });
+  } catch {
+    worktreeDiffersFromIndex = true;
+  }
+  return worktreeDiffersFromIndex;
+}
+
+function stagedConflictRemediation(paths: readonly string[]): string {
+  return (
+    `directive init/update: refusing index-only untrack for staged-conflict path(s): ` +
+    `${paths.join(", ")}. Staged content differs from both HEAD and the working file. ` +
+    `Commit, restore --staged, or otherwise reconcile the index entry, then re-run ` +
+    `directive update (or init). Working-tree files were not deleted.`
+  );
+}
+
+/**
+ * Exact-path, index-only untrack for orientation + session-bind local runtime
+ * (#3911). Preserves working-file bytes; absent/untracked targets are no-ops;
+ * staged content distinct from both HEAD and the working file refuses with
+ * remediation. Attach after ignore heal — not a third CLI surface.
+ */
+export function untrackOrientationSessionBindRuntime(
+  projectDir: string,
+  options: {
+    gitLsFiles?: GitLsFiles;
+    gitRmCached?: GitRmCachedPaths;
+    paths?: readonly string[];
+  } = {},
+): UntrackLocalRuntimeResult {
+  const gitLsFiles = options.gitLsFiles ?? defaultGitLsFiles;
+  const gitRmCached = options.gitRmCached ?? defaultGitRmCachedPaths;
+  const targets = options.paths ?? ORIENTATION_SESSION_BIND_IGNORE_LINES;
+
+  const probe = gitLsFiles(projectDir, ["."]);
+  if (probe === null) {
+    return {
+      outcome: "skipped-no-git",
+      untrackedPaths: [],
+      refusedPaths: [],
+      message: "orientation/session-bind untrack skipped: git unavailable or not a repository",
+    };
+  }
+
+  const trackedTargets: string[] = [];
+  const refused: string[] = [];
+
+  for (const target of targets) {
+    const tracked = listTrackedUnder(projectDir, target, gitLsFiles);
+    if (tracked.length === 0) continue;
+
+    const conflicted = tracked.filter((p) =>
+      pathHasStagedConflictDistinctFromHeadAndWorktree(projectDir, p),
+    );
+    if (conflicted.length > 0) {
+      refused.push(normalizeGitignorePath(target));
+      continue;
+    }
+    trackedTargets.push(normalizeGitignorePath(target));
+  }
+
+  if (refused.length > 0 && trackedTargets.length === 0) {
+    return {
+      outcome: "refused-staged-conflict",
+      untrackedPaths: [],
+      refusedPaths: refused,
+      message: stagedConflictRemediation(refused),
+    };
+  }
+
+  if (trackedTargets.length === 0) {
+    return {
+      outcome: "already-clean",
+      untrackedPaths: [],
+      refusedPaths: refused,
+      message: "orientation/session-bind runtime paths already untracked in the index",
+    };
+  }
+
+  const rm = gitRmCached(projectDir, trackedTargets);
+  if (!rm.ok) {
+    return {
+      outcome: "git-error",
+      untrackedPaths: [],
+      refusedPaths: refused,
+      message: `orientation/session-bind untrack: git rm --cached failed: ${rm.detail.trim()}`,
+    };
+  }
+
+  if (refused.length > 0) {
+    return {
+      outcome: "refused-staged-conflict",
+      untrackedPaths: trackedTargets,
+      refusedPaths: refused,
+      message:
+        `Removed ${trackedTargets.join(", ")} from the index (working tree untouched). ` +
+        stagedConflictRemediation(refused),
+    };
+  }
+
+  return {
+    outcome: "untracked",
+    untrackedPaths: trackedTargets,
+    refusedPaths: [],
+    message:
+      `Removed ${trackedTargets.join(", ")} from the git index (working tree untouched). ` +
+      "Commit the .gitignore heal and index deletions to finish the one-time migration.",
+  };
 }
 
 /**
@@ -377,7 +577,11 @@ function reconcileGitignoreFile(
 export function ensureInitGitignoreLines(
   projectDir: string,
   io: InitDepositIo,
-  options: { gitLsFiles?: GitLsFiles } = {},
+  options: {
+    gitLsFiles?: GitLsFiles;
+    gitRmCached?: GitRmCachedPaths;
+    skipLocalRuntimeUntrack?: boolean;
+  } = {},
 ): EnsureInitGitignoreResult {
   const gitLsFiles = options.gitLsFiles ?? defaultGitLsFiles;
   const { lines: targetLines, includeDeftCore } = resolveInitGitignoreLines(projectDir, gitLsFiles);
@@ -387,29 +591,40 @@ export function ensureInitGitignoreLines(
 
   if (res.alreadyCovered) {
     io.printf(".gitignore already covers the canonical deft entries — skipping.\n");
-    return {
-      changed: false,
-      deftCoreIgnored: res.deftCoreIgnored,
-      skippedDeftCoreBecauseTracked: tracked === true,
-    };
+  } else {
+    if (res.additions.length > 0) {
+      io.printf(`.gitignore updated with canonical entries: ${res.additions.join(", ")}\n`);
+    }
+    if (res.blanketRemoved) {
+      io.printf(".gitignore healed: removed forbidden blanket ignore line(s) (#1464 / #4116).\n");
+    }
+    if (tracked === true) {
+      io.printf(
+        ".deft/core is tracked in git — leaving it tracked; vendored→hybrid un-commit is #1941.\n",
+      );
+    }
   }
 
-  if (res.additions.length > 0) {
-    io.printf(`.gitignore updated with canonical entries: ${res.additions.join(", ")}\n`);
-  }
-  if (res.blanketRemoved) {
-    io.printf(".gitignore healed: removed forbidden blanket ignore line(s) (#1464 / #4116).\n");
-  }
-  if (tracked === true) {
-    io.printf(
-      ".deft/core is tracked in git — leaving it tracked; vendored→hybrid un-commit is #1941.\n",
-    );
+  let localRuntimeUntrack: UntrackLocalRuntimeResult | undefined;
+  if (options.skipLocalRuntimeUntrack !== true) {
+    localRuntimeUntrack = untrackOrientationSessionBindRuntime(projectDir, {
+      gitLsFiles,
+      gitRmCached: options.gitRmCached,
+    });
+    if (
+      localRuntimeUntrack.outcome === "untracked" ||
+      localRuntimeUntrack.outcome === "refused-staged-conflict" ||
+      localRuntimeUntrack.outcome === "git-error"
+    ) {
+      io.printf(`${localRuntimeUntrack.message}\n`);
+    }
   }
 
   return {
-    changed: true,
+    changed: !res.alreadyCovered,
     deftCoreIgnored: res.deftCoreIgnored,
     skippedDeftCoreBecauseTracked: tracked === true,
+    localRuntimeUntrack,
   };
 }
 

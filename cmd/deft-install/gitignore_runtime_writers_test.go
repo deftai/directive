@@ -260,6 +260,87 @@ func TestApprovedScopeRecordsStageWithoutForce(t *testing.T) {
 	}
 }
 
+func TestOrientationSessionBindLinesPresentOnGoBaseline(t *testing.T) {
+	for _, line := range []string{
+		".deft/orientation-state.json",
+		".deft/session-bind.json",
+		".deft/session-binds/",
+	} {
+		found := false
+		for _, have := range canonicalGitignoreLines {
+			if have == line {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("Go canonicalGitignoreLines missing %q", line)
+		}
+		if !ignoreSetCoversPath(canonicalGitignoreLines, strings.TrimSuffix(line, "/")) {
+			t.Errorf("Go baseline does not cover %q", line)
+		}
+	}
+	if ignoreSetCoversPath(canonicalGitignoreLines, ".deft/GENERATION.json") {
+		t.Fatal("GENERATION.json must stay trackable")
+	}
+}
+
+func TestEnsureGitignoreLinesUntracksOrientationSessionBind(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git not on PATH")
+	}
+	tmp := t.TempDir()
+	run := func(args ...string) string {
+		t.Helper()
+		cmd := exec.Command("git", args...)
+		cmd.Dir = tmp
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("git %s: %v\n%s", strings.Join(args, " "), err, out)
+		}
+		return string(out)
+	}
+	run("init")
+	run("config", "user.email", "t@t.dev")
+	run("config", "user.name", "t")
+	if err := os.WriteFile(filepath.Join(tmp, ".gitignore"), []byte("node_modules/\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	deft := filepath.Join(tmp, ".deft")
+	if err := os.MkdirAll(filepath.Join(deft, "session-binds"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(deft, "orientation-state.json"), []byte("{}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(deft, "session-bind.json"), []byte("{}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(deft, "session-binds", "x.json"), []byte("{}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(deft, "GENERATION.json"), []byte(`{"generation":1}`+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	run("add", "-f", ".gitignore", ".deft/orientation-state.json", ".deft/session-bind.json", ".deft/session-binds/x.json", ".deft/GENERATION.json")
+	run("-c", "commit.gpgsign=false", "commit", "-qm", "seed")
+
+	w := NewWizard(strings.NewReader(""), bytes.NewBuffer(nil), false)
+	if _, err := EnsureGitignoreLines(w, tmp); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(deft, "orientation-state.json")); err != nil {
+		t.Fatalf("working file deleted: %v", err)
+	}
+	tracked := run("ls-files", "--", ".deft")
+	if strings.Contains(tracked, "orientation-state.json") || strings.Contains(tracked, "session-bind.json") || strings.Contains(tracked, "session-binds/") {
+		t.Fatalf("expected orientation/session-bind untracked, got:\n%s", tracked)
+	}
+	if !strings.Contains(tracked, "GENERATION.json") {
+		t.Fatalf("GENERATION.json must remain tracked:\n%s", tracked)
+	}
+}
+
 func TestEnsureGitignoreLinesHealsApprovedScopeDirectoryIgnore(t *testing.T) {
 	tmp := t.TempDir()
 	pre := "node_modules/\n.deft/approved-scope/\n.deft/approved-scope\n/.deft/approved-scope/\n/.deft/approved-scope\n"

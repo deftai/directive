@@ -114,10 +114,20 @@ describe("runtime writer ignore containment (#3612 / #4116)", () => {
       ".deft/metrics/",
       ".deft/delivery-attempts/",
       ".deft/escalations/",
+      ".deft/orientation-state.json",
+      ".deft/session-bind.json",
+      ".deft/session-binds/",
     ]) {
       expect(CANONICAL_GITIGNORE_BASELINE).toContain(line);
       expect(parseGoCanonicalGitignoreLines()).toContain(line);
     }
+  });
+
+  it("does not ignore GENERATION.json when covering orientation/session-bind (#3911)", () => {
+    expect(ignoreSetCoversPath(CANONICAL_GITIGNORE_BASELINE, ".deft/GENERATION.json")).toBe(false);
+    expect(ignoreSetCoversPath(parseGoCanonicalGitignoreLines(), ".deft/GENERATION.json")).toBe(
+      false,
+    );
   });
 
   it("lists approved-scope sidecar globs on both baselines", () => {

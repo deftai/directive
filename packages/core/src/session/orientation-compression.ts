@@ -105,7 +105,10 @@ export interface RunOrientationOptions {
   /** Skip cache_fresh or inject. */
   readonly cacheFreshSection?: OrientationSectionResult | null;
   readonly cacheFreshOptions?: EvaluateOptions;
-  /** When true (default), persist orientation-state for next-session fast-path. */
+  /**
+   * When true (default), persist orientation-state for next-session fast-path.
+   * Persistence remains local cache (#3911); ignore/untrack must not disable it.
+   */
   readonly persistState?: boolean;
   /** Disable individual sections (tests / re-arm). */
   readonly includeDoctor?: boolean;

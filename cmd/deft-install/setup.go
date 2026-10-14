@@ -407,6 +407,11 @@ var canonicalGitignoreLines = []string{
 	".deft/last-session.json",
 	".deft/occupancy.json",
 	".deft/routing.local.json",
+	// #3911: orientation + session-bind are local cache/runtime only.
+	// Keep .deft/GENERATION.json trackable; never blanket .deft/.
+	".deft/orientation-state.json",
+	".deft/session-bind.json",
+	".deft/session-binds/",
 	".claude/worktrees/",
 	// Swarm worktree default (#4841). Directory rule, same shape as the line above.
 	".deft-scratch/",
@@ -905,6 +910,94 @@ func WriteAgentsMD(w *Wizard, projectDir string) error {
 // 4.2b .gitignore upkeep -- canonical F2 default (#1015, #1020)
 // ---------------------------------------------------------------------------
 
+// orientationSessionBindIgnoreLines are the #3911 local-runtime paths healed
+// into consumer .gitignore and eligible for exact-path index-only untrack.
+// .deft/GENERATION.json is intentionally absent.
+var orientationSessionBindIgnoreLines = []string{
+	".deft/orientation-state.json",
+	".deft/session-bind.json",
+	".deft/session-binds/",
+}
+
+func gitAvailableIn(projectDir string) bool {
+	cmd := exec.Command("git", "rev-parse", "--is-inside-work-tree")
+	cmd.Dir = projectDir
+	return cmd.Run() == nil
+}
+
+func listTrackedUnder(projectDir, relPath string) ([]string, error) {
+	normalized := normalizeGitignorePath(relPath)
+	probe := strings.TrimSuffix(normalized, "/")
+	cmd := exec.Command("git", "ls-files", "--", probe, probe+"/")
+	cmd.Dir = projectDir
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, err
+	}
+	var paths []string
+	for _, line := range strings.Split(string(out), "\n") {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			paths = append(paths, line)
+		}
+	}
+	return paths, nil
+}
+
+func pathHasStagedConflictDistinctFromHeadAndWorktree(projectDir, relPath string) bool {
+	cached := exec.Command("git", "diff", "--cached", "--quiet", "--", relPath)
+	cached.Dir = projectDir
+	indexDiffersFromHead := cached.Run() != nil
+	if !indexDiffersFromHead {
+		return false
+	}
+	work := exec.Command("git", "diff", "--quiet", "--", relPath)
+	work.Dir = projectDir
+	return work.Run() != nil
+}
+
+// untrackOrientationSessionBindRuntime removes already-tracked orientation /
+// session-bind paths from the index only (#3911). Preserves working-tree bytes;
+// refuses when staged content differs from both HEAD and the working file.
+func untrackOrientationSessionBindRuntime(w *Wizard, projectDir string) {
+	if !gitAvailableIn(projectDir) {
+		return
+	}
+	var trackedTargets []string
+	var refused []string
+	for _, target := range orientationSessionBindIgnoreLines {
+		tracked, err := listTrackedUnder(projectDir, target)
+		if err != nil || len(tracked) == 0 {
+			continue
+		}
+		conflict := false
+		for _, p := range tracked {
+			if pathHasStagedConflictDistinctFromHeadAndWorktree(projectDir, p) {
+				conflict = true
+				break
+			}
+		}
+		if conflict {
+			refused = append(refused, normalizeGitignorePath(target))
+			continue
+		}
+		trackedTargets = append(trackedTargets, normalizeGitignorePath(target))
+	}
+	if len(trackedTargets) > 0 {
+		args := append([]string{"rm", "--cached", "-r", "--ignore-unmatch", "--"}, trackedTargets...)
+		cmd := exec.Command("git", args...)
+		cmd.Dir = projectDir
+		if out, err := cmd.CombinedOutput(); err != nil {
+			w.printf("orientation/session-bind untrack: git rm --cached failed: %s\n", strings.TrimSpace(string(out)))
+		} else {
+			w.printf("Removed %s from the git index (working tree untouched). Commit the .gitignore heal and index deletions to finish the one-time migration.\n", strings.Join(trackedTargets, ", "))
+		}
+	}
+	if len(refused) > 0 {
+		w.printf("directive init/update: refusing index-only untrack for staged-conflict path(s): %s. Staged content differs from both HEAD and the working file. Commit, restore --staged, or otherwise reconcile the index entry, then re-run. Working-tree files were not deleted.\n", strings.Join(refused, ", "))
+	}
+}
+
 // EnsureGitignoreLines ensures the canonical baseline (the runtime cache dir +
 // the SELECTIVE .deft runtime sentinels + the SELECTIVE vbrief/.eval/* entries
 // + the leaked-artefact guards) is present in the consumer's .gitignore,
@@ -916,7 +1009,8 @@ func WriteAgentsMD(w *Wizard, projectDir string) error {
 // warns). Every other line is preserved verbatim. Mirrors
 // scripts/relocate.py::_ensure_gitignore_lines for cross-rail parity (#1015 F2
 // canonical default). Returns true if the file was modified -- a heal with no
-// additions still counts as a modification.
+// additions still counts as a modification. After ignore heal, runs the #3911
+// exact-path index-only untrack companion for orientation/session-bind paths.
 func EnsureGitignoreLines(w *Wizard, projectDir string) (bool, error) {
 	if err := assertConsumerProjectionContained(projectDir, ".gitignore"); err != nil {
 		return false, err
@@ -961,42 +1055,45 @@ func EnsureGitignoreLines(w *Wizard, projectDir string) (bool, error) {
 			additions = append(additions, line)
 		}
 	}
+	changed := false
 	if !blanketRemoved && len(additions) == 0 {
 		w.printf(".gitignore already covers the canonical deft entries — skipping.\n")
-		return false, nil
+	} else {
+		healed := strings.Join(kept, "\n")
+		if len(kept) > 0 && trailingNewline {
+			healed += "\n"
+		}
+
+		var body strings.Builder
+		body.WriteString(healed)
+		if len(additions) > 0 {
+			if healed != "" && !strings.HasSuffix(healed, "\n") {
+				body.WriteString("\n")
+			}
+			if healed != "" && !strings.HasSuffix(healed, "\n\n") {
+				body.WriteString("\n")
+			}
+			body.WriteString("# Deft framework: ignore local-only caches and scratch directories\n")
+			for _, add := range additions {
+				body.WriteString(add)
+				body.WriteString("\n")
+			}
+		}
+
+		if err := os.WriteFile(path, []byte(body.String()), 0o644); err != nil {
+			return false, fmt.Errorf("could not write .gitignore: %w", err)
+		}
+		if len(additions) > 0 {
+			w.printf(".gitignore updated with canonical entries: %s\n", strings.Join(additions, ", "))
+		}
+		if blanketRemoved {
+			w.printf(".gitignore healed: removed forbidden blanket ignore line(s) (#1464 / #4116).\n")
+		}
+		changed = true
 	}
 
-	healed := strings.Join(kept, "\n")
-	if len(kept) > 0 && trailingNewline {
-		healed += "\n"
-	}
-
-	var body strings.Builder
-	body.WriteString(healed)
-	if len(additions) > 0 {
-		if healed != "" && !strings.HasSuffix(healed, "\n") {
-			body.WriteString("\n")
-		}
-		if healed != "" && !strings.HasSuffix(healed, "\n\n") {
-			body.WriteString("\n")
-		}
-		body.WriteString("# Deft framework: ignore local-only caches and scratch directories\n")
-		for _, add := range additions {
-			body.WriteString(add)
-			body.WriteString("\n")
-		}
-	}
-
-	if err := os.WriteFile(path, []byte(body.String()), 0o644); err != nil {
-		return false, fmt.Errorf("could not write .gitignore: %w", err)
-	}
-	if len(additions) > 0 {
-		w.printf(".gitignore updated with canonical entries: %s\n", strings.Join(additions, ", "))
-	}
-	if blanketRemoved {
-		w.printf(".gitignore healed: removed forbidden blanket ignore line(s) (#1464 / #4116).\n")
-	}
-	return true, nil
+	untrackOrientationSessionBindRuntime(w, projectDir)
+	return changed, nil
 }
 
 const installConsumerInvariantRefuseRecovery = "Re-run `directive init` / `directive update` after the other scaffolder is quiet."
