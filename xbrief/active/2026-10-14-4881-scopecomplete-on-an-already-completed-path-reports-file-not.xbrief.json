@@ -21,8 +21,8 @@
         "x-directive/artifact_path": "packages/core/src/scope/transition.ts",
         "x-directive/evidence": {
           "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/5607",
-          "recorded_at": "2026-10-14T18:12:27.965Z",
+          "pointer": "09d68688736707f5414d8eef26ff0e39e996ec92",
+          "recorded_at": "2026-10-14T18:13:36.566Z",
           "recorded_by": "Scott"
         }
       },
@@ -33,8 +33,8 @@
         "x-directive/artifact_path": "packages/core/src/scope/transition.ts",
         "x-directive/evidence": {
           "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/5607",
-          "recorded_at": "2026-10-14T18:12:27.965Z",
+          "pointer": "09d68688736707f5414d8eef26ff0e39e996ec92",
+          "recorded_at": "2026-10-14T18:13:36.566Z",
           "recorded_by": "Scott"
         }
       },
@@ -45,8 +45,8 @@
         "x-directive/artifact_path": "packages/core/src/scope/transition.ts",
         "x-directive/evidence": {
           "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/5607",
-          "recorded_at": "2026-10-14T18:12:27.965Z",
+          "pointer": "09d68688736707f5414d8eef26ff0e39e996ec92",
+          "recorded_at": "2026-10-14T18:13:36.566Z",
           "recorded_by": "Scott"
         }
       },
@@ -57,8 +57,8 @@
         "x-directive/artifact_path": "packages/core/src/scope/transition.test.ts",
         "x-directive/evidence": {
           "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/5607",
-          "recorded_at": "2026-10-14T18:12:27.965Z",
+          "pointer": "09d68688736707f5414d8eef26ff0e39e996ec92",
+          "recorded_at": "2026-10-14T18:13:36.566Z",
           "recorded_by": "Scott"
         }
       },
@@ -69,8 +69,8 @@
         "x-directive/artifact_path": "CHANGELOG.md",
         "x-directive/evidence": {
           "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/5607",
-          "recorded_at": "2026-10-14T18:12:27.965Z",
+          "pointer": "09d68688736707f5414d8eef26ff0e39e996ec92",
+          "recorded_at": "2026-10-14T18:13:36.566Z",
           "recorded_by": "Scott"
         }
       }
