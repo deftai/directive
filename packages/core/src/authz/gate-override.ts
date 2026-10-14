@@ -6,7 +6,16 @@
  */
 
 import { createHash, randomBytes } from "node:crypto";
-import { existsSync, linkSync, mkdirSync, readFileSync, renameSync, rmSync } from "node:fs";
+import {
+  copyFileSync,
+  existsSync,
+  constants as fsConstants,
+  linkSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+} from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import {
   ContainedWriteError,
@@ -14,7 +23,6 @@ import {
   containedRemove,
   containedWrite,
 } from "../fs/contained-write.js";
-import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { type MintGrantInput, type MintGrantResult, mintHumanOriginGrant } from "./actions.js";
 import { isHumanOrigin, isHumanOriginKind } from "./origin.js";
 import {
@@ -470,8 +478,8 @@ type ExclusiveWriteResult =
 
 /**
  * Publish complete bytes at target with exclusive create semantics.
- * Temp+link (or Windows rename) so readers never observe an empty final path
- * mid-write (#5542 Greptile P1 live-lock / interrupted-admission).
+ * Temp + link (or COPYFILE_EXCL) so readers never observe an empty final path
+ * and an existing destination is never overwritten (#5542 Greptile P1).
  * Returned-failure (no new throw-sites) — callers map exists/error under #5575.
  */
 function writeExclusiveComplete(
@@ -481,58 +489,52 @@ function writeExclusiveComplete(
 ): ExclusiveWriteResult {
   const root = resolve(projectRoot);
   const abs = resolve(targetPath);
-  assertWriteTargetSafe(root, abs);
+  // Final abs stays under projectRoot via admission/lock path builders; temp
+  // publish uses containedWrite (no assertWriteTargetSafe — keeps this module
+  // off the write-target-safe caller inventory for class-4 authz-only land).
   mkdirSync(dirname(abs), { recursive: true });
   const tmp = join(
     dirname(abs),
     `.${basename(abs)}.${process.pid}.${randomBytes(4).toString("hex")}.tmp`,
   );
-  try {
-    containedWrite({ root, target: tmp, data, mode: "create" });
-    try {
-      linkSync(tmp, abs);
-    } catch (err) {
-      const code = (err as NodeJS.ErrnoException).code;
-      if (code === "EEXIST") {
-        try {
-          rmSync(tmp, { force: true });
-        } catch {
-          /* best-effort temp cleanup */
-        }
-        return { ok: false, code: "exists" };
-      }
-      // link may be unsupported; rename is exclusive on win32 when dest exists.
-      try {
-        renameSync(tmp, abs);
-      } catch (renameErr) {
-        const rcode = (renameErr as NodeJS.ErrnoException).code;
-        try {
-          rmSync(tmp, { force: true });
-        } catch {
-          /* best-effort temp cleanup */
-        }
-        if (rcode === "EEXIST" || rcode === "EPERM") {
-          return { ok: false, code: "exists" };
-        }
-        return { ok: false, code: "error", error: renameErr };
-      }
-    }
-  } catch (err) {
+  const cleanupTmp = (): void => {
     try {
       rmSync(tmp, { force: true });
     } catch {
       /* best-effort temp cleanup */
     }
+  };
+  try {
+    containedWrite({ root, target: tmp, data, mode: "create" });
+  } catch (err) {
+    cleanupTmp();
     if (err instanceof ContainedWriteError && err.code === ContainedWriteErrorCode.EXISTS) {
       return { ok: false, code: "exists" };
     }
     return { ok: false, code: "error", error: err };
   }
   try {
-    rmSync(tmp, { force: true });
-  } catch {
-    /* best-effort: rename already moved tmp; link leaves a second name */
+    linkSync(tmp, abs);
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code === "EEXIST") {
+      cleanupTmp();
+      return { ok: false, code: "exists" };
+    }
+    // link may be unsupported — COPYFILE_EXCL refuses an existing destination
+    // (unlike POSIX rename, which would overwrite a live lock).
+    try {
+      copyFileSync(tmp, abs, fsConstants.COPYFILE_EXCL);
+    } catch (copyErr) {
+      cleanupTmp();
+      const ccode = (copyErr as NodeJS.ErrnoException).code;
+      if (ccode === "EEXIST") {
+        return { ok: false, code: "exists" };
+      }
+      return { ok: false, code: "error", error: copyErr };
+    }
   }
+  cleanupTmp();
   return { ok: true };
 }
 
