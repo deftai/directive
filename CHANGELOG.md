@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bump `actions/download-artifact` from 8.0.1 to 8.0.2 (#5555).
 
 ### Fixed
+- **deft-core-guard skips app-only PRs via paths filter (#5552).** Deposited workflow runs only when `.deft/core/**` or `.deft/GENERATION.json` changes; document required-check removal (missing check ≠ skipped job) and the first-300-files residual. Tracking #5552.
 - Keep active #5552 Path B Prefer-A Bound file_scope.
 - **Complete the #5542 scope brief after product #5570.** Move the gate-override brief into xbrief/completed/ so orphan tracking clears. Tracking #5542.
 - **Gate-override admission locks publish without stealing live owners (#5542).**

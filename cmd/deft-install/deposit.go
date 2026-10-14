@@ -358,7 +358,7 @@ func guardWouldFail(changed []string) bool {
 }
 
 // coreGuardWorkflowContent renders the optional CI guard deposited at
-// coreGuardWorkflowRelPath (#1430, #1440, #3127, #3193). It fails a PR that
+// coreGuardWorkflowRelPath (#1430, #1440, #3127, #3193, #5552). It fails a PR that
 // mixes changes to the vendored framework payload (.deft/core/**) with changes
 // to the consumer's own files, so a framework update from deft-install/upgrade
 // lands in its own PR and reviewers can treat it as a packaged, machine-managed
@@ -373,6 +373,12 @@ func guardWouldFail(changed []string) bool {
 // When .deft/core/** is present, package.json / lockfiles are further
 // content-checked for @deftai/directive* pin-only + lock follow-through (#3193)
 // via the embedded python3 heredoc (core_guard_pin_content.embed).
+//
+// Workflow-level pull_request.paths (#5552) limits billing to PRs that touch
+// .deft/core/** or .deft/GENERATION.json so ordinary app PRs skip (no check
+// posted). GENERATION-only PRs still run the #4120 monotonic check. Path
+// filters that miss (e.g. GitHub's first-300-files ceiling) are a documented
+// residual, not a detection guarantee.
 func coreGuardWorkflowContent() string {
 	// Indent embedded python for the workflow `run: |` block and wrap in a
 	// single-quoted heredoc so GHA does not expand shell variables inside PY.
@@ -395,14 +401,19 @@ func coreGuardWorkflowContent() string {
 
 	return `name: deft-core-guard
 
-# Deft framework guard (#1430 / #3127 / #3193): a single PR should not mix changes to the
+# Deft framework guard (#1430 / #3127 / #3193 / #5552): a single PR should not mix changes to the
 # vendored framework payload (.deft/core/**) with true application/product files.
 # One upgrade PR MAY include deposit + installer-managed paths + package.json pin/lock
 # + .deft/GENERATION.json when package.json is @deftai/directive* dependency-key pin-only
 # and lockfiles are pin follow-through (#3193). Framework updates come from ` + "`deft-install`" + ` /
 # upgrade and should land without product feature work. Delete this file if you do not want the guard.
+# Paths filter (#5552): skip (no check) on app-only PRs; still run for .deft/core/**
+# or .deft/GENERATION.json so #4120 monotonic stays live. Missing check ≠ skipped job.
 on:
   pull_request:
+    paths:
+      - '.deft/core/**'
+      - '.deft/GENERATION.json'
 
 permissions:
   contents: read
