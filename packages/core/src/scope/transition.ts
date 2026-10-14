@@ -27,8 +27,13 @@ import {
   type IssueCloseKind,
 } from "../lifecycle/completed-tracked-on-delivery.js";
 import type { LiteralAcceptanceRunner } from "../literal-acceptance/index.js";
+import { evaluateOnePrUnit } from "../one-pr-unit/evaluate.js";
+import { exactOriginSetEquals, normalizeOrigin, uniqueOrigins } from "../one-pr-unit/origin-set.js";
+import { listOnePrUnitGrants } from "../one-pr-unit/store.js";
+import type { OriginRef } from "../one-pr-unit/types.js";
 import type { IssueRef } from "../orphan-active/refs.js";
 import { resolveSpecGuard } from "../policy/spec-guard.js";
+import { defaultRunGh, fetchClosingIssuesReferences } from "../pr-protected-issues/gh.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
 import type { GitRunner } from "../session/git.js";
 import { ITEM_STATUS_ALIASES } from "../vbrief-validate/constants.js";
@@ -137,6 +142,70 @@ export interface TransitionOptions {
   readonly resolveIssueCloseKind?: (ref: IssueRef) => IssueCloseKind;
   /** Test seam: override completed tip-twin probe for cancel refuse. */
   readonly hasCompletedTipTwin?: (ref: IssueRef) => CompletedTipTwinResult;
+}
+
+/**
+ * After #3583 discovery (or explicit --pr), re-run one-PR-unit on the closer-set
+ * before complete/restamp mutates. CLI skips this when --pr is omitted; discovery
+ * must not bypass the multi-origin grant (#4494 / Greptile P1 on #3583).
+ */
+function enforceOnePrUnitForDiscoveredEvidence(
+  projectRoot: string,
+  evidence: DeliveryEvidenceInput | null | undefined,
+  options: {
+    readonly runGh?: RunGhFn;
+    readonly fetchClosingIssueIds?: FetchClosingIssueIdsFn;
+  } = {},
+): { ok: true } | { ok: false; message: string } {
+  if (evidence === null || evidence === undefined) {
+    return { ok: true };
+  }
+  const prNumber = evidence.prNumber;
+  if (typeof prNumber !== "number" || !Number.isInteger(prNumber) || prNumber <= 0) {
+    return { ok: true };
+  }
+  const repo = typeof evidence.repository === "string" ? evidence.repository.trim() : "";
+  if (repo.length === 0) {
+    return { ok: true };
+  }
+
+  let closerSet: OriginRef[];
+  if (options.fetchClosingIssueIds !== undefined) {
+    const refs = options.fetchClosingIssueIds(prNumber, repo);
+    if (refs === null) {
+      return {
+        ok: false,
+        message:
+          "could not read closing-issue references for one-PR-unit recheck. " +
+          "Retry after fixing gh auth, rate limit, or network.",
+      };
+    }
+    closerSet = uniqueOrigins(refs.map((ref) => normalizeOrigin(ref.repository, ref.issueNumber)));
+  } else {
+    const linked = fetchClosingIssuesReferences(prNumber, repo, options.runGh ?? defaultRunGh);
+    if (linked === null) {
+      return {
+        ok: false,
+        message:
+          "could not read closing-issue references for one-PR-unit recheck. " +
+          "Retry after fixing gh auth, rate limit, or network.",
+      };
+    }
+    closerSet = uniqueOrigins(linked.map((issueNumber) => normalizeOrigin(repo, issueNumber)));
+  }
+
+  const grant =
+    listOnePrUnitGrants(projectRoot).find((g) => exactOriginSetEquals(g.origins, closerSet)) ??
+    null;
+  const unit = evaluateOnePrUnit({
+    closerSet,
+    grant,
+    binding: { repo },
+  });
+  if (!unit.ok) {
+    return { ok: false, message: unit.message };
+  }
+  return { ok: true };
 }
 
 /** Item statuses that still represent unfinished work and should advance on terminal transitions (#2862). */
@@ -458,6 +527,13 @@ export function runTransition(
     });
     if (!discovered.ok) {
       return { ok: false, message: discovered.message };
+    }
+    const onePrUnit = enforceOnePrUnitForDiscoveredEvidence(projectRoot, discovered.evidence, {
+      runGh: options.runGh,
+      fetchClosingIssueIds: options.fetchClosingIssueIds,
+    });
+    if (!onePrUnit.ok) {
+      return { ok: false, message: onePrUnit.message };
     }
     const gate = evaluateDeliveryGate({
       projectRoot,
@@ -997,6 +1073,13 @@ function restampCompletedBrief(args: RestampArgs): TransitionResult {
   });
   if (!discovered.ok) {
     return { ok: false, message: discovered.message };
+  }
+  const onePrUnit = enforceOnePrUnitForDiscoveredEvidence(projectRoot, discovered.evidence, {
+    runGh: options.runGh,
+    fetchClosingIssueIds: options.fetchClosingIssueIds,
+  });
+  if (!onePrUnit.ok) {
+    return { ok: false, message: onePrUnit.message };
   }
   const gate = evaluateDeliveryGate({
     projectRoot,

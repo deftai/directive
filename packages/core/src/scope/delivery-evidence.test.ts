@@ -3,10 +3,12 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import type { RunGhFn } from "../pr-protected-issues/types.js";
 import type { GitRunner } from "../session/git.js";
 import {
   classifyStoredDeliveryDisposition,
   defaultFetchClosingIssueIds,
+  defaultFetchClosingPrRefs,
   defaultFetchPrPayload,
   discoverDeliveryEvidenceForComplete,
   evaluateDeliveryGate,
@@ -1493,6 +1495,72 @@ describe("delivery evidence auto-discovery (#3583)", () => {
     };
     expect(data.plan.metadata.completionProvenance.verifier).toBe("scope:complete");
     expect(data.plan.metadata.completionProvenance.prNumber).toBe(42);
+  });
+
+  it("refuses discovered multi-origin PR without one-PR-unit grant", () => {
+    root = makeRepo();
+    const file = writeCodeBearing(root);
+    const identity = identityOk({
+      prNumber: 42,
+      closingIssues: [3041, 9999],
+    });
+    const result = runTransition("complete", file, new Date("2026-08-02T12:00:00Z"), {
+      runGit: gitOk(),
+      ...identity,
+      fetchClosingPrRefs: () => ({
+        ok: true,
+        refs: [{ repository: "deftai/directive", prNumber: 42 }],
+      }),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/one-PR-unit|missing one-PR-unit consent|#3041|#9999/i);
+  });
+
+  it("defaultFetchClosingPrRefs fails closed on unreadable nodes", () => {
+    const runGh: RunGhFn = () => ({
+      returncode: 0,
+      stdout: JSON.stringify({
+        data: {
+          repository: {
+            issue: {
+              closedByPullRequestsReferences: {
+                pageInfo: { hasNextPage: false, endCursor: null },
+                nodes: [null],
+              },
+            },
+          },
+        },
+      }),
+      stderr: "",
+    });
+    const result = defaultFetchClosingPrRefs(3041, "deftai/directive", runGh);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toMatch(/unreadable closedByPullRequestsReferences node/);
+    }
+  });
+
+  it("defaultFetchClosingPrRefs fails closed on missing pageInfo", () => {
+    const runGh: RunGhFn = () => ({
+      returncode: 0,
+      stdout: JSON.stringify({
+        data: {
+          repository: {
+            issue: {
+              closedByPullRequestsReferences: {
+                nodes: [{ number: 42, url: "https://github.com/deftai/directive/pull/42" }],
+              },
+            },
+          },
+        },
+      }),
+      stderr: "",
+    });
+    const result = defaultFetchClosingPrRefs(3041, "deftai/directive", runGh);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toMatch(/missing pageInfo/);
+    }
   });
 
   it("shares discovery on completed-brief restamp path", () => {

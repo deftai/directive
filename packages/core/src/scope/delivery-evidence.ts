@@ -1472,7 +1472,12 @@ export function defaultFetchClosingPrRefs(
     for (const entry of nodes) {
       const parsed = parseClosingPrNode(entry, repository);
       if (parsed === null) {
-        continue;
+        return {
+          ok: false,
+          error:
+            `closing-PR discovery incomplete for ${repository}#${issueNumber}: ` +
+            `unreadable closedByPullRequestsReferences node`,
+        };
       }
       const key = `${parsed.repository.toLowerCase()}:${parsed.prNumber}`;
       if (seen.has(key)) {
@@ -1483,8 +1488,22 @@ export function defaultFetchClosingPrRefs(
     }
 
     const pageInfo = asRecord(connRec.pageInfo);
-    const hasNextPage = pageInfo?.hasNextPage === true;
-    if (!hasNextPage) {
+    if (pageInfo === null) {
+      return {
+        ok: false,
+        error:
+          `closing-PR discovery incomplete for ${repository}#${issueNumber}: ` + `missing pageInfo`,
+      };
+    }
+    if (typeof pageInfo.hasNextPage !== "boolean") {
+      return {
+        ok: false,
+        error:
+          `closing-PR discovery incomplete for ${repository}#${issueNumber}: ` +
+          `invalid pageInfo.hasNextPage`,
+      };
+    }
+    if (!pageInfo.hasNextPage) {
       return { ok: true, refs };
     }
     const endCursor = typeof pageInfo?.endCursor === "string" ? pageInfo.endCursor.trim() : "";
