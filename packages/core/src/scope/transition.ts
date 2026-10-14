@@ -261,7 +261,10 @@ export function runTransition(
     };
   }
 
-  if (act === "promote" || act === "activate") {
+  // Already-active activate is acceptance ingress revalidation only (#4768).
+  // D7 filename was enforced when the brief first landed; do not re-block a
+  // settled active brief on a fixture / legacy name during no-op revalidation.
+  if ((act === "promote" || act === "activate") && !activateAlreadyActive) {
     const d7 = validateFilename(basename);
     if (d7.length > 0) {
       return { ok: false, message: d7.join("\n") };

@@ -696,6 +696,23 @@ describe("runTransition", () => {
     expect(result.message).toMatch(/No-op:.*already in active/);
   });
 
+  it("no-ops already-active activate for a legacy non-D7 filename (#4768 Prefer-A)", () => {
+    root = makeRepo();
+    // Settled active briefs keep ingress revalidation; D7 was for first land.
+    const path = join(root, "xbrief", "active", "3828-origin.xbrief.json");
+    writeFile(path, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "Legacy active name",
+        status: "running",
+        items: [],
+      },
+    });
+    const result = runTransition("activate", path);
+    expect(result.ok).toBe(true);
+    expect(result.message).toMatch(/No-op:.*already in active/);
+  });
+
   it("emits acceptance_stamp when activate first writes plan.acceptance (#3355)", () => {
     root = makeRepo();
     const summary = join(root, "summary.jsonl");
