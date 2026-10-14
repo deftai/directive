@@ -15,16 +15,51 @@ import {
 export const PLAN_SEQUENCE_FILENAME = "plan-sequence.json";
 export const PLAN_SEQUENCE_CONTRACT = "ordered-plan-continuation" as const;
 
-export type PlanSequenceKind =
-  | "delivery"
-  | "review"
-  | "implementation"
-  | "swarm"
-  | "triage"
-  | "cohort"
-  | "checklist";
+/** Exact tracked planning path for coverage closed-shape inertness (#5551). */
+export const PLAN_SEQUENCE_REL_PATH = `.deft/${PLAN_SEQUENCE_FILENAME}`;
 
-export type PlanTargetKind = "pr" | "issue" | "story" | "task" | "phase" | "checklist" | "review";
+export const PLAN_SEQUENCE_KINDS = [
+  "delivery",
+  "review",
+  "implementation",
+  "swarm",
+  "triage",
+  "cohort",
+  "checklist",
+] as const;
+
+export type PlanSequenceKind = (typeof PLAN_SEQUENCE_KINDS)[number];
+
+export const PLAN_TARGET_KINDS = [
+  "pr",
+  "issue",
+  "story",
+  "task",
+  "phase",
+  "checklist",
+  "review",
+] as const;
+
+export type PlanTargetKind = (typeof PLAN_TARGET_KINDS)[number];
+
+const PLAN_SEQUENCE_ENTRY_STATUSES = new Set(["pending", "completed", "skipped"]);
+
+/** Closed top-level keys admitted by coverage closed-shape proof (#5551). */
+const PLAN_SEQUENCE_CLOSED_TOP_KEYS = new Set([
+  "sequence_id",
+  "sequence_kind",
+  "entries",
+  "current_index",
+  "batching_allowed",
+  "continuation_past_final",
+  "exhausted",
+  "authorized_by",
+  "created_at",
+  "updated_at",
+  "contract",
+]);
+
+const PLAN_SEQUENCE_ENTRY_CLOSED_KEYS = new Set(["id", "kind", "title", "issue", "status"]);
 
 export interface PlanSequenceEntry {
   readonly id: string;
@@ -46,6 +81,61 @@ export interface PlanSequence {
   readonly authorized_by: string;
   readonly created_at: string;
   readonly updated_at: string;
+  /** Optional stamp; when present must equal PLAN_SEQUENCE_CONTRACT (#5551). */
+  readonly contract?: typeof PLAN_SEQUENCE_CONTRACT;
+}
+
+export function isPlanSequenceKind(value: unknown): value is PlanSequenceKind {
+  return typeof value === "string" && (PLAN_SEQUENCE_KINDS as readonly string[]).includes(value);
+}
+
+export function isPlanTargetKind(value: unknown): value is PlanTargetKind {
+  return typeof value === "string" && (PLAN_TARGET_KINDS as readonly string[]).includes(value);
+}
+
+/**
+ * Closed-shape proof for coverage inertness (#5551 Prefer-A Bound).
+ * Stronger than parsePlanSequence: refuses unknown keys, non-enum kinds,
+ * non-integer / out-of-range current_index, and mismatched contract stamps.
+ */
+export function isClosedPlanSequenceShape(raw: unknown): boolean {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return false;
+  const obj = raw as Record<string, unknown>;
+  for (const key of Object.keys(obj)) {
+    if (!PLAN_SEQUENCE_CLOSED_TOP_KEYS.has(key)) return false;
+  }
+  if (typeof obj.sequence_id !== "string" || obj.sequence_id.length === 0) return false;
+  if (!isPlanSequenceKind(obj.sequence_kind)) return false;
+  if (!Array.isArray(obj.entries) || obj.entries.length === 0) return false;
+  if (typeof obj.current_index !== "number" || !Number.isInteger(obj.current_index)) return false;
+  if (obj.current_index < 0 || obj.current_index > obj.entries.length) return false;
+  if (typeof obj.batching_allowed !== "boolean") return false;
+  if (typeof obj.continuation_past_final !== "boolean") return false;
+  if (typeof obj.exhausted !== "boolean") return false;
+  if (typeof obj.authorized_by !== "string") return false;
+  if (typeof obj.created_at !== "string" || obj.created_at.length === 0) return false;
+  if (typeof obj.updated_at !== "string" || obj.updated_at.length === 0) return false;
+  if (Object.hasOwn(obj, "contract") && obj.contract !== PLAN_SEQUENCE_CONTRACT) return false;
+
+  for (let i = 0; i < obj.entries.length; i++) {
+    const item = obj.entries[i];
+    if (item === null || typeof item !== "object" || Array.isArray(item)) return false;
+    const entry = item as Record<string, unknown>;
+    for (const key of Object.keys(entry)) {
+      if (!PLAN_SEQUENCE_ENTRY_CLOSED_KEYS.has(key)) return false;
+    }
+    if (typeof entry.id !== "string" || entry.id.length === 0) return false;
+    if (!isPlanTargetKind(entry.kind)) return false;
+    if (Object.hasOwn(entry, "title") && typeof entry.title !== "string") return false;
+    if (Object.hasOwn(entry, "issue") && typeof entry.issue !== "number") return false;
+    if (
+      Object.hasOwn(entry, "status") &&
+      (typeof entry.status !== "string" || !PLAN_SEQUENCE_ENTRY_STATUSES.has(entry.status))
+    ) {
+      return false;
+    }
+  }
+  return true;
 }
 
 export interface PlanSequenceVerifyInput {

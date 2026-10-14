@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Gate residual raw git fetch sites on safe branch argv (#5545).** Swarm finalize/launch tip probes and delivery-evidence refresh refuse hostile/empty branch overrides before spawn and use trackingFetchArgv / privateDestFetchArgv. Tracking #5545.
+- **Coverage treats a closed-shape `.deft/plan-sequence.json` and closed plan/spec pointer refreshes as inert (#5551).** Exact-path sequence A/M rows need closed-shape proof (not bare parse); root plan/specification stay coverable unless the #5479-style pointer allowlist matches; Path A membership split is documented so coverage N/A is not membership authorization. Tracking #5551.
 - Keep active #5545 Path B Prefer-A Bound file_scope.
 - Keep active #5551 Path B Prefer-A Bound file_scope.
 - Keep active #5574 Path B Prefer-A Bound file_scope.

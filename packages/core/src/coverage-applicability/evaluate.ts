@@ -4,6 +4,10 @@
  */
 
 import * as childProcess from "node:child_process";
+import {
+  isClosedPlanSequenceShape,
+  PLAN_SEQUENCE_REL_PATH,
+} from "../plan-sequence/types.js";
 import { COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP } from "../pre-pr-controller/phases.js";
 
 export type PathClassification = "coverable" | "inert" | "unknown";
@@ -258,6 +262,9 @@ const LIVE_SETTINGS_PATHS = new Set([
 ]);
 
 const PROJECT_DEFINITION_PATH = "xbrief/project-definition.xbrief.json";
+const PLAN_XBRIEF_PATH = "xbrief/plan.xbrief.json";
+const SPECIFICATION_XBRIEF_PATH = "xbrief/specification.xbrief.json";
+const INTERVIEW_CONTINUATION_KEY = "x-directive/interviewContinuation";
 
 /** Closed LifecycleItem keys emitted by project:render / scanLifecycleFolders (#5479). */
 const REGISTRY_ITEM_KEYS = new Set(["id", "title", "status", "metadata"]);
@@ -270,12 +277,34 @@ const REGISTRY_ITEM_METADATA_KEYS = new Set([
   "error",
 ]);
 
+/** Named interviewContinuation keys eligible for plan.xbrief.json M demotion (#5551). */
+const PLAN_INTERVIEW_CONTINUATION_DEMOTION_KEYS = new Set([
+  "targetDeliverable",
+  "reopenableDecisionSet",
+  "confirmations",
+]);
+
+/** Named requirements/design narrative keys for specification M demotion (#5551). */
+const SPEC_NARRATIVE_DEMOTION_KEYS = new Set(["Requirements", "Design"]);
+
 function isLiveSettingsPath(path: string): boolean {
   return LIVE_SETTINGS_PATHS.has(posixPath(path).toLowerCase());
 }
 
 function isProjectDefinitionPath(path: string): boolean {
   return posixPath(path).toLowerCase() === PROJECT_DEFINITION_PATH;
+}
+
+function isPlanXbriefPath(path: string): boolean {
+  return posixPath(path).toLowerCase() === PLAN_XBRIEF_PATH;
+}
+
+function isSpecificationXbriefPath(path: string): boolean {
+  return posixPath(path).toLowerCase() === SPECIFICATION_XBRIEF_PATH;
+}
+
+function isPlanSequencePath(path: string): boolean {
+  return posixPath(path) === PLAN_SEQUENCE_REL_PATH;
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -491,6 +520,225 @@ function demoteProjectDefinitionRefreshChanges(
     if (!isProjectDefinitionRegistryRefreshOnly(baseBlob.value, headBlob.value)) {
       return change;
     }
+    return {
+      status: change.status,
+      path: change.path,
+      oldPath: change.oldPath,
+      classification: "inert",
+    };
+  });
+}
+
+function isStringArray(value: unknown): boolean {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
+function isInterviewConfirmationEntry(value: unknown): boolean {
+  if (!isPlainObject(value)) return false;
+  if (value.scope !== "answer" && value.scope !== "artifact" && value.scope !== "phase") {
+    return false;
+  }
+  if (Object.hasOwn(value, "target") && typeof value.target !== "string") return false;
+  if (Object.hasOwn(value, "revisionId") && typeof value.revisionId !== "string") return false;
+  if (Object.hasOwn(value, "at") && typeof value.at !== "string") return false;
+  return true;
+}
+
+/** Type-check demotion-eligible interviewContinuation fields; other keys ignored. */
+function interviewContinuationDemotionFieldsValid(value: unknown): boolean {
+  if (!isPlainObject(value)) return false;
+  if (
+    Object.hasOwn(value, "targetDeliverable") &&
+    typeof value.targetDeliverable !== "string"
+  ) {
+    return false;
+  }
+  if (
+    Object.hasOwn(value, "reopenableDecisionSet") &&
+    !isStringArray(value.reopenableDecisionSet)
+  ) {
+    return false;
+  }
+  if (Object.hasOwn(value, "confirmations")) {
+    if (
+      !Array.isArray(value.confirmations) ||
+      !value.confirmations.every(isInterviewConfirmationEntry)
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function interviewContinuationIsDemotionOnlySlice(value: unknown): boolean {
+  if (!isPlainObject(value)) return false;
+  for (const key of Object.keys(value)) {
+    if (!PLAN_INTERVIEW_CONTINUATION_DEMOTION_KEYS.has(key)) return false;
+  }
+  return interviewContinuationDemotionFieldsValid(value);
+}
+
+/**
+ * Prefer-A Bound #5551: plan.xbrief.json M demotion for updated + named
+ * interviewContinuation carrier keys only (not registry / policy / phase).
+ */
+export function isPlanInterviewContinuationRefreshOnly(
+  baseDoc: unknown,
+  headDoc: unknown,
+): boolean {
+  if (!isPlainObject(baseDoc) || !isPlainObject(headDoc)) return false;
+  const basePlan = isPlainObject(baseDoc.plan) ? baseDoc.plan : null;
+  const headPlan = isPlainObject(headDoc.plan) ? headDoc.plan : null;
+  if (basePlan === null || headPlan === null) return false;
+
+  const baseInfoRoot = resolveInfoRootKey(baseDoc);
+  const headInfoRoot = resolveInfoRootKey(headDoc);
+  if (baseInfoRoot === null || headInfoRoot === null || baseInfoRoot !== headInfoRoot) {
+    return false;
+  }
+  const baseUpdated = (baseDoc[baseInfoRoot] as Record<string, unknown>).updated;
+  const headUpdated = (headDoc[headInfoRoot] as Record<string, unknown>).updated;
+  if (typeof baseUpdated !== "string" || typeof headUpdated !== "string") {
+    return false;
+  }
+
+  const baseCarrier = Object.hasOwn(basePlan, INTERVIEW_CONTINUATION_KEY)
+    ? basePlan[INTERVIEW_CONTINUATION_KEY]
+    : undefined;
+  const headCarrier = Object.hasOwn(headPlan, INTERVIEW_CONTINUATION_KEY)
+    ? headPlan[INTERVIEW_CONTINUATION_KEY]
+    : undefined;
+  if (baseCarrier !== undefined && !interviewContinuationDemotionFieldsValid(baseCarrier)) {
+    return false;
+  }
+  if (headCarrier !== undefined && !interviewContinuationDemotionFieldsValid(headCarrier)) {
+    return false;
+  }
+
+  const changed = collectChangedPointers(baseDoc, headDoc);
+  const carrierPrefix = `/plan/${jsonPointerEscape(INTERVIEW_CONTINUATION_KEY)}`;
+  const allow = new Set<string>([
+    `/${baseInfoRoot}/updated`,
+    `${carrierPrefix}/targetDeliverable`,
+    `${carrierPrefix}/reopenableDecisionSet`,
+    `${carrierPrefix}/confirmations`,
+  ]);
+  // First-time carrier create appears as the parent pointer (no child recurse).
+  // Only demote when the new object is demotion-key-only (phase/etc. stay coverable).
+  if (
+    baseCarrier === undefined &&
+    headCarrier !== undefined &&
+    interviewContinuationIsDemotionOnlySlice(headCarrier)
+  ) {
+    allow.add(carrierPrefix);
+  }
+  return changed.every((pointer) => allow.has(pointer));
+}
+
+/**
+ * Prefer-A Bound #5551: specification.xbrief.json M demotion for updated +
+ * named Requirements/Design narrative strings only.
+ */
+export function isSpecificationNarrativeRefreshOnly(
+  baseDoc: unknown,
+  headDoc: unknown,
+): boolean {
+  if (!isPlainObject(baseDoc) || !isPlainObject(headDoc)) return false;
+  const basePlan = isPlainObject(baseDoc.plan) ? baseDoc.plan : null;
+  const headPlan = isPlainObject(headDoc.plan) ? headDoc.plan : null;
+  if (basePlan === null || headPlan === null) return false;
+
+  const baseInfoRoot = resolveInfoRootKey(baseDoc);
+  const headInfoRoot = resolveInfoRootKey(headDoc);
+  if (baseInfoRoot === null || headInfoRoot === null || baseInfoRoot !== headInfoRoot) {
+    return false;
+  }
+  const baseUpdated = (baseDoc[baseInfoRoot] as Record<string, unknown>).updated;
+  const headUpdated = (headDoc[headInfoRoot] as Record<string, unknown>).updated;
+  if (typeof baseUpdated !== "string" || typeof headUpdated !== "string") {
+    return false;
+  }
+
+  const baseNarratives = isPlainObject(basePlan.narratives) ? basePlan.narratives : null;
+  const headNarratives = isPlainObject(headPlan.narratives) ? headPlan.narratives : null;
+  for (const key of SPEC_NARRATIVE_DEMOTION_KEYS) {
+    if (
+      baseNarratives !== null &&
+      Object.hasOwn(baseNarratives, key) &&
+      typeof baseNarratives[key] !== "string"
+    ) {
+      return false;
+    }
+    if (
+      headNarratives !== null &&
+      Object.hasOwn(headNarratives, key) &&
+      typeof headNarratives[key] !== "string"
+    ) {
+      return false;
+    }
+  }
+
+  const changed = collectChangedPointers(baseDoc, headDoc);
+  const allow = new Set<string>([`/${baseInfoRoot}/updated`]);
+  for (const key of SPEC_NARRATIVE_DEMOTION_KEYS) {
+    allow.add(`/plan/narratives/${jsonPointerEscape(key)}`);
+  }
+  // First-time narratives object / key create.
+  if (baseNarratives === null && headNarratives !== null) {
+    allow.add("/plan/narratives");
+  } else if (baseNarratives !== null && headNarratives !== null) {
+    for (const key of SPEC_NARRATIVE_DEMOTION_KEYS) {
+      if (!Object.hasOwn(baseNarratives, key) && Object.hasOwn(headNarratives, key)) {
+        // Key add is already the child pointer from collectChangedPointers.
+      }
+    }
+  }
+  return changed.every((pointer) => allow.has(pointer));
+}
+
+function demoteLiveSettingsClosedPointerChanges(
+  changes: readonly ClassifiedChange[],
+  input: EvaluateCoverageApplicabilityInput,
+  runGit: (args: readonly string[], cwd: string) => GitRunResult,
+): ClassifiedChange[] {
+  return changes.map((change) => {
+    if (change.classification !== "coverable") return change;
+    if (change.status !== "M") return change;
+    const planPath = isPlanXbriefPath(change.path);
+    const specPath = isSpecificationXbriefPath(change.path);
+    if (!planPath && !specPath) return change;
+    const baseBlob = readBlobJson(runGit, input.projectRoot, input.baseSha, change.path);
+    const headBlob = readBlobJson(runGit, input.projectRoot, input.headSha, change.path);
+    if (!baseBlob.ok || !headBlob.ok) return change;
+    const ok = planPath
+      ? isPlanInterviewContinuationRefreshOnly(baseBlob.value, headBlob.value)
+      : isSpecificationNarrativeRefreshOnly(baseBlob.value, headBlob.value);
+    if (!ok) return change;
+    return {
+      status: change.status,
+      path: change.path,
+      oldPath: change.oldPath,
+      classification: "inert",
+    };
+  });
+}
+
+/**
+ * Prefer-A Bound #5551: exact-path `.deft/plan-sequence.json` unknown→inert only
+ * for A/M after closed-shape proof. R/D/malformed/approved-scope stay unknown.
+ */
+function provePlanSequenceClosedShapeInert(
+  changes: readonly ClassifiedChange[],
+  input: EvaluateCoverageApplicabilityInput,
+  runGit: (args: readonly string[], cwd: string) => GitRunResult,
+): ClassifiedChange[] {
+  return changes.map((change) => {
+    if (!isPlanSequencePath(change.path)) return change;
+    if (change.status !== "A" && change.status !== "M") return change;
+    if (change.classification !== "unknown") return change;
+    const headBlob = readBlobJson(runGit, input.projectRoot, input.headSha, change.path);
+    if (!headBlob.ok) return change;
+    if (!isClosedPlanSequenceShape(headBlob.value)) return change;
     return {
       status: change.status,
       path: change.path,
@@ -845,22 +1093,29 @@ export function evaluateCoverageApplicability(
     });
   }
 
-  if (changes.some((c) => c.classification === "unknown")) {
-    const unknownPaths = changes.filter((c) => c.classification === "unknown").map((c) => c.path);
+  // #5551: exact-path plan-sequence A/M unknown→inert only after closed-shape proof.
+  const afterSequenceProof = provePlanSequenceClosedShapeInert(changes, input, runGit);
+
+  if (afterSequenceProof.some((c) => c.classification === "unknown")) {
+    const unknownPaths = afterSequenceProof
+      .filter((c) => c.classification === "unknown")
+      .map((c) => c.path);
     return {
       outcome: "refuse",
       code: "unknown-path",
       reason: `coverage-applicability: unknown path classification: ${unknownPaths.join(", ")}`,
-      changes,
+      changes: afterSequenceProof,
     };
   }
 
-  if (!changes.every((c) => c.classification === "coverable" || c.classification === "inert")) {
+  if (
+    !afterSequenceProof.every((c) => c.classification === "coverable" || c.classification === "inert")
+  ) {
     return {
       outcome: "refuse",
       code: "mixed-unclassified",
       reason: "coverage-applicability: mixed classification without all-inert proof",
-      changes,
+      changes: afterSequenceProof,
     };
   }
 
@@ -876,13 +1131,24 @@ export function evaluateCoverageApplicability(
       reason:
         "coverage-applicability: dirty working tree is not the bound reviewed tree; " +
         "commit or stash coverable edits before coverage N/A",
-      changes,
+      changes: afterSequenceProof,
     };
   }
 
   // #5479 Prefer-A Bound: demote PROJECT-DEFINITION refresh-only M rows after
   // path classify + binding refuses, before applicable aggregation.
-  const evaluatedChanges = demoteProjectDefinitionRefreshChanges(changes, input, runGit);
+  const afterProjectDef = demoteProjectDefinitionRefreshChanges(
+    afterSequenceProof,
+    input,
+    runGit,
+  );
+  // #5551 Prefer-A Bound: demote plan/spec closed-pointer M rows; LIVE_SETTINGS stay
+  // coverable by default when the allowlist proof fails.
+  const evaluatedChanges = demoteLiveSettingsClosedPointerChanges(
+    afterProjectDef,
+    input,
+    runGit,
+  );
 
   const coverable = evaluatedChanges.filter((c) => c.classification === "coverable");
   if (coverable.length > 0) {
