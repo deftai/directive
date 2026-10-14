@@ -2522,9 +2522,7 @@ describe("finalize-cohort sweep base and argv (#3554)", () => {
     expect(fetchJoined.some((j) => j.includes("origin") && /\bmaster\b/.test(j))).toBe(false);
     expect(
       fetchJoined.some(
-        (j) =>
-          j.includes("origin") &&
-          j.includes("refs/heads/main:refs/remotes/origin/main"),
+        (j) => j.includes("origin") && j.includes("refs/heads/main:refs/remotes/origin/main"),
       ),
     ).toBe(true);
     rmSync(project, { recursive: true, force: true });
@@ -2559,9 +2557,7 @@ describe("finalize-cohort sweep base and argv (#3554)", () => {
     const fetchJoined = fetches.map((c) => c.join(" "));
     expect(
       fetchJoined.some(
-        (j) =>
-          j.includes("origin") &&
-          j.includes("refs/heads/main:refs/remotes/origin/main"),
+        (j) => j.includes("origin") && j.includes("refs/heads/main:refs/remotes/origin/main"),
       ),
     ).toBe(true);
     expect(fetchJoined.some((j) => j.includes("origin") && /\bmaster\b/.test(j))).toBe(false);

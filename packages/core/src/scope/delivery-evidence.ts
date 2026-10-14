@@ -12,11 +12,11 @@
 import { closerSetFromIssueIds } from "../one-pr-unit/closer-set.js";
 import {
   assertSafeBranchName,
+  type DeliveryBranchResult,
   FIELD_DELIVERY_BRANCH,
   isSafeBranchName,
   resolveDeliveryBranch,
   trackingFetchArgv,
-  type DeliveryBranchResult,
 } from "../policy/delivery-branch.js";
 import { defaultRunGh } from "../pr-protected-issues/gh.js";
 import type { RunGhFn, RunGhResult } from "../pr-protected-issues/types.js";

@@ -79,12 +79,17 @@ describe("origin-active-brief (#4714 R2)", () => {
       expect(calls).toHaveLength(0);
     }
     calls.length = 0;
-    const ok = originActiveBriefPresent("/tmp/proj", "release/1.0", "xbrief/active/a.json", (cmd) => {
-      calls.push([...cmd]);
-      if (cmd[1] === "fetch") return { returncode: 0, stdout: "", stderr: "" };
-      if (cmd[1] === "cat-file") return { returncode: 0, stdout: "blob\n", stderr: "" };
-      return { returncode: 1, stdout: "", stderr: "unexpected" };
-    });
+    const ok = originActiveBriefPresent(
+      "/tmp/proj",
+      "release/1.0",
+      "xbrief/active/a.json",
+      (cmd) => {
+        calls.push([...cmd]);
+        if (cmd[1] === "fetch") return { returncode: 0, stdout: "", stderr: "" };
+        if (cmd[1] === "cat-file") return { returncode: 0, stdout: "blob\n", stderr: "" };
+        return { returncode: 1, stdout: "", stderr: "unexpected" };
+      },
+    );
     expect(ok.present).toBe(true);
     expect(calls[0]).toEqual([
       "git",
