@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "[UAT Tester 4] Active xBRIEFs can be created without acceptance commands",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "[UAT Tester 4 residual] Windows Grok R.4768 command-present / empty acceptance text",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4768",
@@ -97,37 +97,37 @@
           "id": "clause.1",
           "text": "Keep the live residual framed as Windows Grok active with command-present / clause-text-empty acceptance under DCR agent.active_xbrief_has_acceptance; do not collapse into #5544 cascade.",
           "artifact_path": "packages/core/src/scope/transition.ts",
-          "status": "pending"
+          "status": "completed"
         },
         {
           "id": "clause.2",
           "text": "Do not extend zeroClauseDerivationRefusal / #4984 activate-promote refuse as the primary fix; pin inventory already refuses command-present/clauseless on actual transition.",
           "artifact_path": "packages/core/src/scope/acceptance-activate-gate.ts",
-          "status": "pending"
+          "status": "completed"
         },
         {
           "id": "clause.3",
           "text": "Localize active ingress with fixture evidence among already-active no-op, direct/hand-authored active write, post-activate strip/overwrite, or restore/materialize before any new product refuse.",
           "artifact_path": "packages/core/src/scope/transition.test.ts",
-          "status": "pending"
+          "status": "completed"
         },
         {
           "id": "clause.4",
           "text": "Keep DCR as a non-empty acceptance text consumer; reject remedying by counting commands as acceptance texts; compare scanned artifact to readAcceptanceClauses.",
           "artifact_path": "packages/core/src/scope/acceptance-activate-gate.test.ts",
-          "status": "pending"
+          "status": "completed"
         },
         {
           "id": "clause.5",
           "text": "Name the three-oracle split (activate refuse / verify:ac commands / DCR texts); Bound owns landing usable clause text into active via ingress fix or revalidation.",
           "artifact_path": "packages/core/src/scope/lifecycle-write.ts",
-          "status": "pending"
+          "status": "completed"
         },
         {
           "id": "clause.6",
           "text": "Keep #3284 intake floor legal before activate; recovery stays operator-visible definition step or #4374 declared surfaces; no silent agent authorship from the issue thread.",
           "artifact_path": "packages/core/src/scope/transition.ts",
-          "status": "pending"
+          "status": "completed"
         }
       ]
     },
@@ -193,9 +193,10 @@
         ],
         "parallel_safe": true
       },
-      "x-directive/derived_reason": "Prefer-A Bound limbs hand-stamped after empty body harvest (#4374); clauses bind Bound remedy"
+      "x-directive/derived_reason": "Prefer-A Bound limbs hand-stamped after empty body harvest (#4374); clauses bind Bound remedy",
+      "productPullRequest": 5571
     },
     "id": "github.issue.residual.5501877140.lean.6150748445",
-    "updated": "2026-10-13T19:15:00Z"
+    "updated": "2026-10-14T01:00:01.690Z"
   }
 }
