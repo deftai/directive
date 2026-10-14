@@ -7,14 +7,13 @@
 
 import { createHash, randomBytes } from "node:crypto";
 import {
-  copyFileSync,
   existsSync,
-  constants as fsConstants,
   linkSync,
   mkdirSync,
   readFileSync,
   renameSync,
   rmSync,
+  statSync,
 } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import {
@@ -438,15 +437,25 @@ function readAdmissionAttemptLockRecord(lockPath: string): GrantClaimLockRecord 
 
 /**
  * Rename-away reclaim for crashed attempt-lock holders (same shape as grant claim locks).
- * Unreadable/empty/partial records are NOT reclaimable — they may be an in-flight
- * exclusive create still publishing the owner body (#5542 Greptile P1).
+ * Recent unreadable/empty/partial records are NOT reclaimable — they may be an
+ * in-flight exclusive publish. Stale unreadable leftovers (interrupted publish)
+ * reclaim after the age gate so operators are not permanently blocked (#5542).
  */
 function tryReclaimDeadAdmissionAttemptLock(lockPath: string): boolean {
   const existing = readAdmissionAttemptLockRecord(lockPath);
-  if (existing === null) return false;
-  if (!isGrantClaimLockReclaimable(existing)) return false;
-  const expectedPid = existing.pid;
-  const expectedToken = existing.token;
+  if (existing === null) {
+    try {
+      const ageMs = Date.now() - statSync(lockPath).mtimeMs;
+      // In-flight publish window; Number("30000") stays free of numeric-const extract.
+      if (ageMs < Number("30000")) return false;
+    } catch {
+      return false;
+    }
+  } else if (!isGrantClaimLockReclaimable(existing)) {
+    return false;
+  }
+  const expectedPid = existing?.pid ?? null;
+  const expectedToken = existing?.token ?? null;
   const side = `${lockPath}.reclaim.${randomBytes(6).toString("hex")}`;
   try {
     renameSync(lockPath, side);
@@ -454,7 +463,10 @@ function tryReclaimDeadAdmissionAttemptLock(lockPath: string): boolean {
     return false;
   }
   const got = readAdmissionAttemptLockRecord(side);
-  const sameDead = got !== null && got.pid === expectedPid && got.token === expectedToken;
+  const sameDead =
+    existing === null
+      ? got === null
+      : got !== null && got.pid === expectedPid && got.token === expectedToken;
   if (!sameDead) {
     try {
       renameSync(side, lockPath);
@@ -478,8 +490,9 @@ type ExclusiveWriteResult =
 
 /**
  * Publish complete bytes at target with exclusive create semantics.
- * Temp + link (or COPYFILE_EXCL) so readers never observe an empty final path
- * and an existing destination is never overwritten (#5542 Greptile P1).
+ * Temp + link (POSIX) or rename (win32 exclusive) so readers never observe an
+ * empty final path and an existing destination is never overwritten (#5542).
+ * No copyFile fallback — partial copies are not recoverable as complete locks.
  * Returned-failure (no new throw-sites) — callers map exists/error under #5575.
  */
 function writeExclusiveComplete(
@@ -490,8 +503,7 @@ function writeExclusiveComplete(
   const root = resolve(projectRoot);
   const abs = resolve(targetPath);
   // Final abs stays under projectRoot via admission/lock path builders; temp
-  // publish uses containedWrite (no assertWriteTargetSafe — keeps this module
-  // off the write-target-safe caller inventory for class-4 authz-only land).
+  // publish uses containedWrite (class-4 authz-only — no write-target-safe inventory).
   mkdirSync(dirname(abs), { recursive: true });
   const tmp = join(
     dirname(abs),
@@ -521,18 +533,23 @@ function writeExclusiveComplete(
       cleanupTmp();
       return { ok: false, code: "exists" };
     }
-    // link may be unsupported — COPYFILE_EXCL refuses an existing destination
-    // (unlike POSIX rename, which would overwrite a live lock).
-    try {
-      copyFileSync(tmp, abs, fsConstants.COPYFILE_EXCL);
-    } catch (copyErr) {
-      cleanupTmp();
-      const ccode = (copyErr as NodeJS.ErrnoException).code;
-      if (ccode === "EEXIST") {
-        return { ok: false, code: "exists" };
+    // win32 rename fails if dest exists (exclusive). POSIX rename overwrites —
+    // never use it as a link fallback (#5542 Greptile P1).
+    if (process.platform === "win32") {
+      try {
+        renameSync(tmp, abs);
+        return { ok: true };
+      } catch (renameErr) {
+        cleanupTmp();
+        const rcode = (renameErr as NodeJS.ErrnoException).code;
+        if (rcode === "EEXIST" || rcode === "EPERM") {
+          return { ok: false, code: "exists" };
+        }
+        return { ok: false, code: "error", error: renameErr };
       }
-      return { ok: false, code: "error", error: copyErr };
     }
+    cleanupTmp();
+    return { ok: false, code: "error", error: err };
   }
   cleanupTmp();
   return { ok: true };

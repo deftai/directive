@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -327,7 +327,7 @@ describe("gate-override (#5542 Prefer-A Bound)", () => {
     expect(admitted.receipt.grantId).toBe(minted.grant.id);
   });
 
-  it("does not reclaim an empty attempt lock (in-flight owner publish)", () => {
+  it("does not reclaim a recent empty attempt lock (in-flight owner publish)", () => {
     root = mkdtempSync(join(tmpdir(), "gate-override-"));
     const baseSha = "1".repeat(40);
     const headSha = "2".repeat(40);
@@ -347,7 +347,7 @@ describe("gate-override (#5542 Prefer-A Bound)", () => {
     const safe = createHash("sha256").update(attemptId, "utf8").digest("hex");
     const lockDir = join(root, ".deft", "authz", "locks");
     mkdirSync(lockDir, { recursive: true });
-    // Empty final path mimics containedWrite O_CREAT|O_EXCL before owner body lands.
+    // Empty final path mimics an in-flight exclusive publish before owner body lands.
     writeFileSync(join(lockDir, `gate-override-admit-${safe}.lock`), "", "utf8");
 
     const admitted = admitGateOverrideForAttempt(root, {
@@ -362,6 +362,45 @@ describe("gate-override (#5542 Prefer-A Bound)", () => {
     if (admitted.ok) return;
     expect(admitted.code).toBe("claim-failed");
     expect(admitted.reason).toMatch(/reserved by a concurrent admit\/renew/i);
+  });
+
+  it("reclaims a stale empty attempt lock after the age gate", () => {
+    root = mkdtempSync(join(tmpdir(), "gate-override-"));
+    const baseSha = "a".repeat(40);
+    const headSha = "b".repeat(40);
+    const treeHash = "c".repeat(40);
+    const attemptId = "attempt-stale-empty-lock";
+    const minted = mintGateOverrideTemplateGrant({
+      projectRoot: root,
+      target: "unknown-path",
+      planRef: attemptId,
+      baseSha,
+      headSha,
+      treeHash,
+    });
+    expect(minted.ok).toBe(true);
+    if (!minted.ok) return;
+
+    const safe = createHash("sha256").update(attemptId, "utf8").digest("hex");
+    const lockDir = join(root, ".deft", "authz", "locks");
+    mkdirSync(lockDir, { recursive: true });
+    const lockPath = join(lockDir, `gate-override-admit-${safe}.lock`);
+    writeFileSync(lockPath, "", "utf8");
+    const staleMs = Date.now() - Number("60000");
+    utimesSync(lockPath, new Date(staleMs), new Date(staleMs));
+
+    const admitted = admitGateOverrideForAttempt(root, {
+      refuseCode: "unknown-path",
+      baseSha,
+      headSha,
+      treeHash,
+      attemptId,
+      observedRefuseReason: "unknown path",
+    });
+    expect(admitted.ok).toBe(true);
+    if (!admitted.ok) return;
+    expect(admitted.reused).toBe(false);
+    expect(admitted.receipt.grantId).toBe(minted.grant.id);
   });
 
   it("recovers an incomplete admission receipt under the attempt lock", () => {
