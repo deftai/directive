@@ -5,12 +5,13 @@
  * operator-session is non-admitting in v1. Inspection does not consume.
  */
 
-import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, unlinkSync } from "node:fs";
+import { createHash, randomBytes } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import {
   ContainedWriteError,
   ContainedWriteErrorCode,
+  containedRemove,
   containedWrite,
 } from "../fs/contained-write.js";
 import { type MintGrantInput, type MintGrantResult, mintHumanOriginGrant } from "./actions.js";
@@ -402,6 +403,73 @@ function admissionPath(projectRoot: string, attemptId: string): string {
   return join(admissionsDir(projectRoot), `${safe}.json`);
 }
 
+function admissionAttemptLockPath(projectRoot: string, attemptId: string): string {
+  const safe = createHash("sha256").update(attemptId, "utf8").digest("hex");
+  return join(resolve(projectRoot), ".deft", "authz", "locks", `gate-override-admit-${safe}.lock`);
+}
+
+/**
+ * Serialize admit/renew for one attempt id so concurrent renewers cannot delete
+ * each other's replacement receipt (#5542 Greptile P1).
+ */
+function withAdmissionAttemptLock<T>(
+  projectRoot: string,
+  attemptId: string,
+  fn: () => T,
+): { ok: true; value: T } | { ok: false; reason: string } {
+  const root = resolve(projectRoot);
+  const lockPath = admissionAttemptLockPath(projectRoot, attemptId);
+  const lockToken = randomBytes(8).toString("hex");
+  const lockBody = `${JSON.stringify({
+    pid: process.pid,
+    startedAt: utcIso(),
+    token: lockToken,
+  })}\n`;
+  try {
+    containedWrite({ root, target: lockPath, data: lockBody, mode: "create" });
+  } catch (err) {
+    if (err instanceof ContainedWriteError && err.code === ContainedWriteErrorCode.EXISTS) {
+      return {
+        ok: false,
+        reason:
+          "gate-override: admission for attempt is reserved by a concurrent admit/renew; retry",
+      };
+    }
+    const msg = err instanceof Error ? err.message : String(err);
+    return { ok: false, reason: `gate-override: admission lock failed: ${msg}` };
+  }
+  try {
+    return { ok: true, value: fn() };
+  } finally {
+    try {
+      const raw = readFileSync(lockPath, "utf8");
+      const rec = JSON.parse(raw) as { pid?: unknown; token?: unknown };
+      if (rec.pid === process.pid && rec.token === lockToken) {
+        rmSync(lockPath, { force: true });
+      }
+    } catch {
+      // Lock release best-effort; leftover dead locks reclaim via operator.
+    }
+  }
+}
+
+function isLiveAdmissionGrant(
+  grant: HumanOriginGrant | null,
+  binding: {
+    readonly refuseCode: string;
+    readonly baseSha: string;
+    readonly headSha: string;
+    readonly treeHash: string;
+    readonly attemptId: string;
+    readonly worktree?: string | null;
+    readonly evaluatorId?: string | null;
+  },
+  now: Date,
+): grant is HumanOriginGrant {
+  if (grant === null) return false;
+  return grantMatchesGateOverride(grant, binding, now);
+}
+
 /** Exclusive create of admission receipt (O_EXCL). Concurrent admit fails closed. */
 function writeAdmissionExclusive(projectRoot: string, targetPath: string, payload: unknown): void {
   const root = resolve(projectRoot);
@@ -561,180 +629,175 @@ export function admitGateOverrideForAttempt(
     };
   }
 
-  let stalePriorFail: GateOverrideAdmitResult | null = null;
-  const prior = loadGateOverrideAdmission(projectRoot, input.attemptId);
-  if (prior !== null) {
-    if (prior.attemptId !== input.attemptId.trim()) {
-      return {
-        ok: false,
-        code: "admission-mismatch",
-        reason: "gate-override: prior admission attempt id does not match requested attempt",
-      };
-    }
-    if (
-      prior.refuseCode !== refuseCode ||
-      prior.baseSha !== input.baseSha.trim() ||
-      prior.headSha !== input.headSha.trim() ||
-      prior.treeHash !== input.treeHash.trim()
-    ) {
-      return {
-        ok: false,
-        code: "admission-mismatch",
-        reason: "gate-override: prior admission for attempt does not match refuse/tree binding",
-      };
-    }
-    const grant = loadGrant(projectRoot, prior.grantId);
-    if (grant === null) {
-      stalePriorFail = {
-        ok: false,
-        code: "grant-missing",
-        reason: `gate-override: admission grant ${prior.grantId} missing`,
-      };
-    } else if (grant.semantics.revokedAt !== null) {
-      stalePriorFail = {
-        ok: false,
-        code: "revoked",
-        reason: "gate-override: grant revoked after admission (revocation dominates)",
-      };
-    } else if (grant.semantics.expiresAt !== null) {
-      const exp = Date.parse(grant.semantics.expiresAt);
-      if (Number.isFinite(exp) && exp <= now.getTime()) {
-        stalePriorFail = {
-          ok: false,
-          code: "expired",
-          reason: "gate-override: grant expired after admission (expiry dominates recheck)",
+  const binding = {
+    refuseCode,
+    baseSha: input.baseSha,
+    headSha: input.headSha,
+    treeHash: input.treeHash,
+    attemptId: input.attemptId,
+    worktree: input.worktree,
+    evaluatorId: input.evaluatorId,
+  };
+
+  // Hold an attempt-id lock across reuse / stale-replace / claim so concurrent
+  // renewers re-read before deleting and cannot erase a winner's receipt (#5542).
+  const locked = withAdmissionAttemptLock(projectRoot, input.attemptId, () => {
+    let stalePriorFail: GateOverrideAdmitResult | null = null;
+    let staleGrantId: string | null = null;
+    const prior = loadGateOverrideAdmission(projectRoot, input.attemptId);
+    if (prior !== null) {
+      if (prior.attemptId !== input.attemptId.trim()) {
+        return {
+          ok: false as const,
+          code: "admission-mismatch" as const,
+          reason: "gate-override: prior admission attempt id does not match requested attempt",
         };
       }
-    }
-    // Live prior: reuse. Stale prior: fall through so a renewed matching grant
-    // can replace the admission (#5542 Greptile P1).
-    if (stalePriorFail === null) {
       if (
-        !grantMatchesGateOverride(
-          grant as NonNullable<typeof grant>,
-          {
-            refuseCode,
-            baseSha: input.baseSha,
-            headSha: input.headSha,
-            treeHash: input.treeHash,
-            attemptId: input.attemptId,
-            worktree: input.worktree,
-            evaluatorId: input.evaluatorId,
-          },
-          now,
-        )
+        prior.refuseCode !== refuseCode ||
+        prior.baseSha !== input.baseSha.trim() ||
+        prior.headSha !== input.headSha.trim() ||
+        prior.treeHash !== input.treeHash.trim()
       ) {
         return {
-          ok: false,
-          code: "admission-mismatch",
-          reason:
-            "gate-override: prior admission no longer matches grant worktree/evaluator limits",
+          ok: false as const,
+          code: "admission-mismatch" as const,
+          reason: "gate-override: prior admission for attempt does not match refuse/tree binding",
         };
       }
-      return { ok: true, grant: grant as NonNullable<typeof grant>, receipt: prior, reused: true };
-    }
-  }
-
-  const inspect = inspectGateOverrideGrant(
-    projectRoot,
-    {
-      refuseCode,
-      baseSha: input.baseSha,
-      headSha: input.headSha,
-      treeHash: input.treeHash,
-      attemptId: input.attemptId,
-      worktree: input.worktree,
-      evaluatorId: input.evaluatorId,
-    },
-    now,
-  );
-  if (!inspect.ok) {
-    if (stalePriorFail !== null) return stalePriorFail;
-    return { ok: false, code: "grant-missing", reason: inspect.reason };
-  }
-
-  // Renewing after a stale admission: drop the old exclusive receipt so the
-  // fresh grant can write a replacement (#5542 Greptile P1).
-  if (stalePriorFail !== null) {
-    const stalePath = admissionPath(projectRoot, input.attemptId);
-    if (existsSync(stalePath)) {
-      try {
-        unlinkSync(stalePath);
-      } catch {
-        return stalePriorFail;
-      }
-    }
-  }
-
-  const grantId = inspect.grant.id;
-  const claimed = claimSingleUseGrantForApply(projectRoot, grantId, {
-    now,
-    revalidate: (g) => {
-      if (
-        !grantMatchesGateOverride(
-          g,
-          {
-            refuseCode,
-            baseSha: input.baseSha,
-            headSha: input.headSha,
-            treeHash: input.treeHash,
-            attemptId: input.attemptId,
-            worktree: input.worktree,
-            evaluatorId: input.evaluatorId,
-          },
-          now,
-        )
-      ) {
-        return { ok: false, reason: "gate-override revalidate: grant no longer matches binding" };
-      }
-      return { ok: true };
-    },
-    apply: (g) => {
-      const parsed = parseGateOverrideBinding(g);
-      if (parsed === null) {
-        throw new Error("gate-override apply: unparseable binding");
-      }
-      const receipt: GateOverrideAdmissionReceipt = {
-        schemaVersion: 1,
-        grantId: g.id,
-        attemptId: parsed.attemptId,
-        gateId: GATE_OVERRIDE_GATE_ID,
-        refuseCode: parsed.refuseCode,
-        baseSha: parsed.baseSha,
-        headSha: parsed.headSha,
-        treeHash: parsed.treeHash,
-        worktree: parsed.worktree,
-        evaluatorId: parsed.evaluatorId,
-        reviewObligation: GATE_OVERRIDE_REVIEW_OBLIGATION,
-        admittedAt: utcIso(now),
-        actor: g.origin.actor,
-        observedRefuseReason: input.observedRefuseReason,
-      };
-      try {
-        writeAdmissionExclusive(projectRoot, admissionPath(projectRoot, parsed.attemptId), receipt);
-      } catch (err) {
-        if (err instanceof ContainedWriteError && err.code === ContainedWriteErrorCode.EXISTS) {
-          // Concurrent admit won the receipt create — claim rolls back usedAt.
-          throw new Error("gate-override admission race: receipt already exists");
+      const grant = loadGrant(projectRoot, prior.grantId);
+      if (grant === null) {
+        stalePriorFail = {
+          ok: false,
+          code: "grant-missing",
+          reason: `gate-override: admission grant ${prior.grantId} missing`,
+        };
+        staleGrantId = prior.grantId;
+      } else if (grant.semantics.revokedAt !== null) {
+        stalePriorFail = {
+          ok: false,
+          code: "revoked",
+          reason: "gate-override: grant revoked after admission (revocation dominates)",
+        };
+        staleGrantId = prior.grantId;
+      } else if (grant.semantics.expiresAt !== null) {
+        const exp = Date.parse(grant.semantics.expiresAt);
+        if (Number.isFinite(exp) && exp <= now.getTime()) {
+          stalePriorFail = {
+            ok: false,
+            code: "expired",
+            reason: "gate-override: grant expired after admission (expiry dominates recheck)",
+          };
+          staleGrantId = prior.grantId;
         }
-        throw err;
       }
-    },
+      // Live prior: reuse under the same lock.
+      if (stalePriorFail === null) {
+        if (!isLiveAdmissionGrant(grant, binding, now)) {
+          return {
+            ok: false as const,
+            code: "admission-mismatch" as const,
+            reason:
+              "gate-override: prior admission no longer matches grant worktree/evaluator limits",
+          };
+        }
+        return { ok: true as const, grant, receipt: prior, reused: true as const };
+      }
+    }
+
+    const inspect = inspectGateOverrideGrant(projectRoot, binding, now);
+    if (!inspect.ok) {
+      if (stalePriorFail !== null) return stalePriorFail;
+      return { ok: false as const, code: "grant-missing" as const, reason: inspect.reason };
+    }
+
+    // Under lock: re-read then drop only the still-stale receipt before claim.
+    if (stalePriorFail !== null && staleGrantId !== null) {
+      const current = loadGateOverrideAdmission(projectRoot, input.attemptId);
+      if (current !== null) {
+        const currentGrant = loadGrant(projectRoot, current.grantId);
+        if (isLiveAdmissionGrant(currentGrant, binding, now)) {
+          return {
+            ok: true as const,
+            grant: currentGrant,
+            receipt: current,
+            reused: true as const,
+          };
+        }
+        if (current.grantId === staleGrantId) {
+          containedRemove({
+            root: resolve(projectRoot),
+            target: admissionPath(projectRoot, input.attemptId),
+          });
+        }
+      }
+    }
+
+    const grantId = inspect.grant.id;
+    const claimed = claimSingleUseGrantForApply(projectRoot, grantId, {
+      now,
+      revalidate: (g) => {
+        if (!grantMatchesGateOverride(g, binding, now)) {
+          return { ok: false, reason: "gate-override revalidate: grant no longer matches binding" };
+        }
+        return { ok: true };
+      },
+      apply: (g) => {
+        const parsed = parseGateOverrideBinding(g);
+        if (parsed === null) {
+          throw new Error("gate-override apply: unparseable binding");
+        }
+        const receipt: GateOverrideAdmissionReceipt = {
+          schemaVersion: 1,
+          grantId: g.id,
+          attemptId: parsed.attemptId,
+          gateId: GATE_OVERRIDE_GATE_ID,
+          refuseCode: parsed.refuseCode,
+          baseSha: parsed.baseSha,
+          headSha: parsed.headSha,
+          treeHash: parsed.treeHash,
+          worktree: parsed.worktree,
+          evaluatorId: parsed.evaluatorId,
+          reviewObligation: GATE_OVERRIDE_REVIEW_OBLIGATION,
+          admittedAt: utcIso(now),
+          actor: g.origin.actor,
+          observedRefuseReason: input.observedRefuseReason,
+        };
+        try {
+          writeAdmissionExclusive(
+            projectRoot,
+            admissionPath(projectRoot, parsed.attemptId),
+            receipt,
+          );
+        } catch (err) {
+          if (err instanceof ContainedWriteError && err.code === ContainedWriteErrorCode.EXISTS) {
+            // Concurrent admit won the receipt create — claim rolls back usedAt.
+            throw new Error("gate-override admission race: receipt already exists");
+          }
+          throw err;
+        }
+      },
+    });
+
+    if (!claimed.ok) {
+      return { ok: false as const, code: "claim-failed" as const, reason: claimed.reason };
+    }
+
+    const receipt = loadGateOverrideAdmission(projectRoot, input.attemptId);
+    if (receipt === null) {
+      return {
+        ok: false as const,
+        code: "admission-missing" as const,
+        reason: "gate-override: claim succeeded but admission receipt missing",
+      };
+    }
+    return { ok: true as const, grant: claimed.grant, receipt, reused: false as const };
   });
 
-  if (!claimed.ok) {
-    return { ok: false, code: "claim-failed", reason: claimed.reason };
+  if (!locked.ok) {
+    return { ok: false, code: "claim-failed", reason: locked.reason };
   }
-
-  const receipt = loadGateOverrideAdmission(projectRoot, input.attemptId);
-  if (receipt === null) {
-    return {
-      ok: false,
-      code: "admission-missing",
-      reason: "gate-override: claim succeeded but admission receipt missing",
-    };
-  }
-  return { ok: true, grant: claimed.grant, receipt, reused: false };
+  return locked.value;
 }
 
 export function findLiveGateOverrideGrant(

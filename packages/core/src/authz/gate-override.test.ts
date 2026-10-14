@@ -266,6 +266,20 @@ describe("gate-override (#5542 Prefer-A Bound)", () => {
     if (!readmit.ok) return;
     expect(readmit.reused).toBe(false);
     expect(readmit.receipt.grantId).toBe(renewed.grant.id);
+
+    // Second admit after successful renew reuses the live receipt (no double-spend).
+    const reuse = admitGateOverrideForAttempt(root, {
+      refuseCode: "unknown-path",
+      baseSha,
+      headSha,
+      treeHash,
+      attemptId: "attempt-renew",
+      observedRefuseReason: "unknown path",
+    });
+    expect(reuse.ok).toBe(true);
+    if (!reuse.ok) return;
+    expect(reuse.reused).toBe(true);
+    expect(reuse.receipt.grantId).toBe(renewed.grant.id);
   });
 
   it("attempt ids a/b and a_b do not share an admission file", () => {

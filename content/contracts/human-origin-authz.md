@@ -91,8 +91,11 @@ deft authz:revoke -- grant-…
 
 ## Gate-override hatch (#5542)
 
-Audited interactive waiver for **coverage-applicability refuse** on the pre-PR
-`coverage_headroom` / `deft coverage:hotspots` path.
+Mint + admission APIs for an audited interactive override bound to a coverage-
+applicability refuse. **This release ships grant minting and admission only.**
+Wiring that turns a live admission into a `waived` / exit-4 result on the pre-PR
+`coverage_headroom` / `deft coverage:hotspots` path is a follow-up PR; operators
+minting a grant here will still see the refuse until that consumer lands.
 
 ```bash
 deft authz:grant -- --template gate-override --target <refuseCode> \
@@ -103,8 +106,8 @@ deft authz:grant -- --template gate-override --target <refuseCode> \
 | --- | --- |
 | Mint provenance | `origin.kind=operator-cli` only via live `authz:grant` human-presence; `operator-session` non-admitting; refuse chat/parent/fixture consent |
 | Binding | gate id + refuse code + `baseSha+headSha+treeHash` + attempt id (+ optional worktree/evaluator) |
-| Admission | Atomic one-use via claim lock; inspection does **not** consume; same attempt reuses receipt |
-| Result arms | `waived` / `overridden` on coverage-applicability + pre-PR evidence — **never** map to pass / exit 0 |
+| Admission | Atomic one-use via claim lock; inspection does **not** consume; same attempt reuses receipt; renew after revoke/expiry replaces under an attempt-id lock |
+| Result arms (follow-up) | Planned `waived` / `overridden` on coverage-applicability + pre-PR evidence — **never** map to pass / exit 0; not wired in this authz-only landing |
 | Eligible refuse codes | Closed set (`unknown-path`, `dirty-tree`, …); non-overridable authenticity codes (`tree-mismatch`, `invalid-*`) dominate |
 | Deferred peers | Empty list in v1 |
 | Push/merge | Grant is `settings` only — no independent push/merge permission |

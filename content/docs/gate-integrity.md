@@ -74,7 +74,7 @@ Field notes and parent framing: issue [#3156](https://github.com/deftai/directiv
 - ! Gate-definition PRs MUST state the intended standard change in the PR body and issue link.
 - ⊗ Bundle silent gate weakening with an unrelated product fix to “make CI green.”
 - ? Temporary operator-approved debt (`--allow-coverage-debt=#N`, policy override with audit) MAY exist when the framework already defines that escape hatch — still not a free rewrite of the gate.
-- ? Audited interactive **gate-override** (`authz:grant --template gate-override`, [#5542](https://github.com/deftai/directive/issues/5542)) MAY waive an eligible coverage-applicability refuse as `waived` / exit 4 — never as pass / exit 0, and never by rewriting the gate. Non-overridable authenticity / gate-integrity denials stay refuse-closed. See [human-origin-authz.md](../contracts/human-origin-authz.md) § Gate-override hatch.
+- ? Audited interactive **gate-override** (`authz:grant --template gate-override`, [#5542](https://github.com/deftai/directive/issues/5542)) MAY mint + admit an override for an eligible coverage-applicability refuse. Consumer wiring that surfaces that admission as `waived` / exit 4 (never pass / exit 0) is a follow-up; this hatch never rewrites the gate. Non-overridable authenticity / gate-integrity denials stay refuse-closed. See [human-origin-authz.md](../contracts/human-origin-authz.md) § Gate-override hatch.
 
 ---
 
