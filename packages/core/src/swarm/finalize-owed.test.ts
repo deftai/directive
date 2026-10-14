@@ -7,6 +7,7 @@ import { EXIT_INCOMPLETE, EXIT_OK } from "./constants.js";
 import {
   bindUnmarkedFinalizePair,
   discoverFinalizeOwed,
+  fetchDeliveryTipPrivate,
   finalizeOwed,
   formatFinalizeOwedInventoryLines,
   inventoryHasBlockingOwed,
@@ -1536,5 +1537,57 @@ describe("finalize-owed proposed historical cite refuse (#5143)", () => {
       productPr: 8,
       detail: "later unique pair",
     });
+  });
+});
+
+describe("finalize-owed AppSec fetch gate (#5545)", () => {
+  it("fetchDeliveryTipPrivate uses privateDestFetchArgv and refuses hostile names before spawn", () => {
+    const calls: string[][] = [];
+    const runGit = (_cwd: string, args: readonly string[]) => {
+      calls.push([...args]);
+      if (args[0] === "rev-parse") {
+        return { code: 0, stdout: "TIPSHA\n", stderr: "" };
+      }
+      return { code: 0, stdout: "", stderr: "" };
+    };
+    for (const hostile of ["--upload-pack=evil", "attacker:master", "-x", "a..b", " ", ""]) {
+      calls.length = 0;
+      const result = fetchDeliveryTipPrivate("/tmp", hostile, runGit);
+      expect(result.tip).toBeNull();
+      expect(result.error).toMatch(/Invalid|must match/i);
+      expect(calls).toHaveLength(0);
+    }
+    calls.length = 0;
+    const ok = fetchDeliveryTipPrivate("/tmp", "release/1.0", runGit);
+    expect(ok.tip).toBe("TIPSHA");
+    expect(calls[0]).toEqual([
+      "fetch",
+      "--force",
+      "origin",
+      "--",
+      "refs/heads/release/1.0:refs/deft/finalize-owed/release/1.0",
+    ]);
+    expect(calls[1]).toEqual(["rev-parse", "refs/deft/finalize-owed/release/1.0"]);
+  });
+
+  it("finalizeOwed refuses present-invalid --delivery-branch before fetch", () => {
+    const root = mkdtempSync(join(tmpdir(), "finalize-owed-hostile-"));
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    const calls: string[][] = [];
+    const result = finalizeOwed({
+      projectRoot: root,
+      repo: "deftai/directive",
+      deliveryBranch: "--upload-pack=evil",
+      inventoryOnly: true,
+      runGit: (_cwd, args) => {
+        calls.push([...args]);
+        return { code: 0, stdout: "", stderr: "" };
+      },
+      runGh: () => ({ returncode: 0, stdout: "[]", stderr: "" }),
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.result.errors.some((e) => /Invalid|--upload-pack/i.test(e))).toBe(true);
+    expect(calls.every((c) => c[0] !== "fetch")).toBe(true);
+    rmSync(root, { recursive: true, force: true });
   });
 });

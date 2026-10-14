@@ -23,12 +23,12 @@ Anti-pattern: editing files before activating the xBRIEF, then activating "to ma
 
 The gate also requires an explicit action-verb directive from the user (`build`, `implement`, `ship`, `swarm`, `run agents`, `start agent`). Affirmative continuation phrases ("yes", "go", "proceed") are NOT authorisation unless the prior turn explicitly proposed implementation.
 
-### Intent-constraint authorship (#4587 / #4541 / #5010)
+### Intent-constraint authorship (#4587 / #4541 / #5010 / #5574 Prefer-A)
 
 ! Author `plan["x-directive/intentConstraint"]` when the operator already names value/unit/rejectionScope, before the implementation PR that introduces throw/reject/abort or numeric-const facts. File-scope can be named at allocation. Throw values usually cannot.
-! Prefer returned failures over new throw/abort/numeric-const facts. Returned-failure-only changes are already free in extract.
-! When a remaining hard fact appears: attended → ask the human in the parent chat and land merge-base `.deft/intent-constraint/` with humanApproval (`mintedVia` in-harness-ask); unattended/C1 → rewrite or park. Leave-harness TTY `scope:record-intent-constraint` is not the primary fail path (legacy repair only). Parent-agent auto-approve is out of scope.
-⊗ Recut `evaluateIntentConstraint`. ⊗ Let an approved-scope digest authorize throw sites. ⊗ Paste a mint argv into the agent shell. ⊗ Sibling mint at `record-approved-scope` or park. ⊗ Ask an empty room or invent substitute approval.
+! Classify the condition, not the API name. Expected operational deny (missing grant / caller-may-retry / lock-busy) → returned-failure / filter (free in extract; no mint). Invariant / corruption / impossible-if-healthy → fail-fast throw (or language-equivalent) + attended mint; rewrite solely to clear the gate is forbidden.
+! When a remaining hard fact appears (invariant throw or any of the four FACT_KINDS, including numeric-const on an otherwise operational path): attended → ask the human in the parent chat and land merge-base `.deft/intent-constraint/` with humanApproval (`mintedVia` in-harness-ask); unattended/C1 → park pending a human mint (operational returned-failure may still rewrite or park). Leave-harness TTY `scope:record-intent-constraint` is not the primary fail path (legacy repair only). Parent-agent auto-approve is out of scope.
+⊗ Recut `evaluateIntentConstraint`. ⊗ Let an approved-scope digest authorize throw sites. ⊗ Paste a mint argv into the agent shell. ⊗ Sibling mint at `record-approved-scope` or park. ⊗ Ask an empty room or invent substitute approval. ⊗ Soften an invariant throw solely to clear `verify:intent-constraint`.
 
 ## 2.5 Allocation context -- swarm-cohort consent token (#1378)
 

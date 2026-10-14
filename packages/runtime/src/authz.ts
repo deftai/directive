@@ -11,6 +11,8 @@
  *   deft authz:grant -- --template release-publish --target 0.30.0 [--confirm]
  *   deft authz:grant -- --template finish-loop [--confirm]
  *   deft authz:grant -- --template spec-drift-override --target <baseline> --plan-ref <scopeId> --story-ids <ids> [--confirm]
+ *   deft authz:grant -- --template gate-override --target <refuseCode> --plan-ref <attemptId> \\
+ *       --base-sha <sha> --head-sha <sha> --tree-hash <hash> [--confirm]
  *   deft authz:grant -- --parent <parent.xbrief.json> --draft <draft.json> [--repo owner/name] [--confirm]
  *   deft authz:revoke -- <grant-id> [--confirm]
  *
@@ -34,11 +36,14 @@ import {
   CLOSED_VERB_TEMPLATE_NAMES,
   FINISH_LOOP_TEMPLATE_NAME,
   formatDecomposeStructuralMintCommand,
+  GATE_OVERRIDE_TEMPLATE_NAME,
   isAfkTemplateName,
   isClosedVerbTemplateName,
   isFinishLoopTemplateName,
+  isGateOverrideTemplateName,
   mintAfkTemplateGrant,
   mintDecomposeStructuralApplyGrant,
+  mintGateOverrideTemplateGrant,
   mintHumanOriginGrant,
   revokeGrant,
   showAuthzSnapshot,
@@ -88,6 +93,12 @@ interface Parsed {
   parent: string | null;
   /** Draft path for structural decompose apply mint (#3291). */
   draft: string | null;
+  /** Classifier binding for gate-override (#5542). */
+  baseSha: string | null;
+  headSha: string | null;
+  treeHash: string | null;
+  worktree: string | null;
+  evaluatorId: string | null;
   format: "text" | "json";
   /** Explicit operator confirm for non-TTY / agent shells (#3110). */
   confirm: boolean;
@@ -130,6 +141,11 @@ function parseArgv(argv: string[]): Parsed {
     target: null,
     parent: null,
     draft: null,
+    baseSha: null,
+    headSha: null,
+    treeHash: null,
+    worktree: null,
+    evaluatorId: null,
     format: "text",
     confirm: false,
   };
@@ -258,6 +274,26 @@ function parseArgv(argv: string[]): Parsed {
       base.draft = args[++i] ?? null;
       continue;
     }
+    if (a === "--base-sha" || a === "--baseSha") {
+      base.baseSha = args[++i] ?? null;
+      continue;
+    }
+    if (a === "--head-sha" || a === "--headSha") {
+      base.headSha = args[++i] ?? null;
+      continue;
+    }
+    if (a === "--tree-hash" || a === "--treeHash") {
+      base.treeHash = args[++i] ?? null;
+      continue;
+    }
+    if (a === "--worktree") {
+      base.worktree = args[++i] ?? null;
+      continue;
+    }
+    if (a === "--evaluator-id" || a === "--evaluatorId") {
+      base.evaluatorId = args[++i] ?? null;
+      continue;
+    }
     if (a === "--confirm") {
       base.confirm = true;
       continue;
@@ -318,6 +354,11 @@ function helpText(): string {
     `  Finish-loop (#871): ${FINISH_LOOP_TEMPLATE_NAME} — edit/push/pr/merge (no release ops)`,
     "  Templates call mintHumanOriginGrant only — no second session-auth mint engine.",
     "  Env bypass for a single shell: DEFT_ALLOW_RELEASE_PUBLISH=1 / DEFT_ALLOW_FINISH_LOOP=1.",
+    "",
+    `Gate-override (#5542): ${GATE_OVERRIDE_TEMPLATE_NAME}`,
+    "  deft authz:grant -- --template gate-override --target <refuseCode> --plan-ref <attemptId> \\",
+    "      --base-sha <sha> --head-sha <sha> --tree-hash <hash> [--worktree <id>] [--evaluator-id <id>] [--confirm]",
+    "  operator-cli human-presence only; waived ≠ passed; no independent push/merge.",
   ].join("\n");
 }
 
@@ -583,6 +624,74 @@ export function main(
           );
           return 0;
         }
+        // Gate-override hatch (#5542 Prefer-A Bound): coverage-applicability refuse waiver.
+        if (args.template !== null && isGateOverrideTemplateName(args.template)) {
+          if (args.target === null || args.target.trim().length === 0) {
+            process.stderr.write(
+              "authz:grant --template gate-override requires --target <refuseCode>\n",
+            );
+            return 2;
+          }
+          if (args.planRef === null || args.planRef.trim().length === 0) {
+            process.stderr.write(
+              "authz:grant --template gate-override requires --plan-ref <attemptId>\n",
+            );
+            return 2;
+          }
+          if (
+            args.baseSha === null ||
+            args.baseSha.trim().length === 0 ||
+            args.headSha === null ||
+            args.headSha.trim().length === 0 ||
+            args.treeHash === null ||
+            args.treeHash.trim().length === 0
+          ) {
+            process.stderr.write(
+              "authz:grant --template gate-override requires --base-sha --head-sha --tree-hash\n",
+            );
+            return 2;
+          }
+          const blockedGate = gateConfirm();
+          if (blockedGate !== null) return blockedGate;
+          const mintedGate = mintGateOverrideTemplateGrant({
+            projectRoot: args.projectRoot,
+            target: args.target,
+            planRef: args.planRef,
+            baseSha: args.baseSha,
+            headSha: args.headSha,
+            treeHash: args.treeHash,
+            actor: args.actor,
+            expiresAt: args.expiresAt,
+            // gate-override template is always single-use (#5542 Greptile P2).
+            singleUse: true,
+            repo: args.repo,
+            branch: args.branch,
+            worktree: args.worktree,
+            evaluatorId: args.evaluatorId,
+            failedGateEvidence: args.note,
+          });
+          if (!mintedGate.ok) {
+            process.stderr.write(`authz:grant: ${mintedGate.reason}\n`);
+            return 2;
+          }
+          const gateGrant = mintedGate.grant;
+          process.stdout.write(
+            `✓ human-origin grant minted id=${gateGrant.id} origin=${gateGrant.origin.kind} ` +
+              `template=${GATE_OVERRIDE_TEMPLATE_NAME}\n`,
+          );
+          process.stdout.write(
+            `  ops=[${gateGrant.scope.operations.join(",")}] attempt=${gateGrant.scope.planRef} ` +
+              `surfaces=${gateGrant.scope.surfaces.join(", ")}\n`,
+          );
+          process.stdout.write(
+            "  Hatch: waives coverage-applicability refuse for bound attempt/tree only; " +
+              "waived ≠ passed; reviewObligation=pre-merge-human-review-required.\n",
+          );
+          process.stdout.write(
+            "  Authorization SoT: Wave 1 grant store (.deft/authz/grants) — not session-auth / chat.\n",
+          );
+          return 0;
+        }
         // Spec-drift override hatch (#5350): policy module, not authz/** (class 4).
         if (args.template !== null && isSpecDriftOverrideTemplateName(args.template)) {
           if (args.target === null || args.target.trim().length === 0) {
@@ -641,7 +750,7 @@ export function main(
         if (args.template !== null && args.template.trim().length > 0) {
           if (!isAfkTemplateName(args.template)) {
             process.stderr.write(
-              `authz:grant unknown --template '${args.template}'; expected one of: ${AFK_TEMPLATE_NAMES.join(", ")}, ${SPEC_DRIFT_OVERRIDE_TEMPLATE_NAME}\n`,
+              `authz:grant unknown --template '${args.template}'; expected one of: ${AFK_TEMPLATE_NAMES.join(", ")}, ${SPEC_DRIFT_OVERRIDE_TEMPLATE_NAME}, ${GATE_OVERRIDE_TEMPLATE_NAME}\n`,
             );
             return 2;
           }
@@ -697,7 +806,7 @@ export function main(
         }
         if (args.operations.length === 0) {
           process.stderr.write(
-            "authz:grant requires --operations <edit,push,...>, --template <finish-loop|release-*|spec-drift-override>, " +
+            "authz:grant requires --operations <edit,push,...>, --template <finish-loop|release-*|spec-drift-override|gate-override>, " +
               "or --parent + --draft (structural scope:decompose apply)\n",
           );
           return 2;

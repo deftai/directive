@@ -16,9 +16,81 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Stricter completion checks (#5602).** New completed briefs are checked for unfinished items and informal delivery records. Code-bearing briefs also need recorded delivery proof. Swarm guidance directs agents to finish leftover work through `task swarm:finalize-cohort` or `task scope:complete` with delivery evidence, and to stop if those commands refuse.
+
 ### Changed
 
+- Activate Prefer-A leftover-complete write-guard Path B brief for #5602 (productPullRequest unset; swarm-ready story fields). Tracking #5602.
+- **Track the completed #4881 scope record after #5607.** The shipped already-completed scope:complete message now has its completed brief on the delivery branch. Tracking #4881.
+
 ### Fixed
+
+- **Class-checks exclude lifecycle xBRIEF records from pipeline-path classification (#5159).** `pathLooksLikePipeline` returns false when `isLifecycleArtifactPath` is true. Real pipeline configs still fail class 2/3.
+- **`scope:complete` now finds delivery evidence automatically (#3583).** You can omit `--pr` and `--merge-commit` when the recorded product PR or a single matching closing PR proves delivery. Explicit flags still override automatic discovery, and completion refuses missing, ambiguous, or incomplete evidence. Tracking #3583.
+- **Finish #5602 leftover-complete after product #5610.** Lands the completed Prefer-A leftover-complete write-guard brief with delivery provenance so the issue can close and scope records stay tracked. Tracking #5602.
+- **Land the #4878 active scope brief after product #5604.** Carrier lands the dest-local active xBRIEF onto delivery so leftover-complete / swarm:finalize-cohort can run. Tracking #4878.
+- **scope:complete on a stale active path names the completed/cancelled sibling (#4881).** When the target file is missing, complete probes sibling lifecycle folders for the same basename and returns already-completed (with #3679 restamp path) or already-cancelled instead of File not found; wrong basenames stay File not found; a real completed/ path still restamps. Tracking #4881.
+- **Acceptance-evidence refusals name `plan.items[N]` and ignore `acceptance.clauses` (#4878).** Gate walk paths and completion listings use the qualified object path `plan.items[N]` (and nested `plan.items[N].subItems[M]` / `plan.items[N].items[M]`). Refusal trailer tells operators to stamp evidence/disposition on that plan item; the gate does not read evidence from `plan.acceptance.clauses[]`. `verify:pr-closeout-attestable` indexes the same `plan.items` prefix so closing-PR refusal guidance keeps axis/merge instructions. Tracking #4878.
+
+### Removed
+
+## [0.125.1] - 2026-10-14
+
+> Prefer-A cohort: gate-override (#5542), deft-core-guard paths (#5552), coverage skips (#5551), safe fetch argv (#5545), acceptance-activate (#4768), tutorial (#4981); Path B leftover completes; intent-constraint throw+mint docs (#5574).
+
+### Added
+
+### Changed
+
+- **docs(intent-constraint): Prefer-A throw+mint for invariant/corruption (#5574).** Operational denials stay returned-failure/filter; invariant / corruption / impossible-if-healthy keep fail-fast + attended mint (unattended parks). Bound 6159841941. Tracking #5574.
+- Bump `actions/setup-node` from 7.0.0 to 7.1.0 (#5557).
+- Bump `actions/upload-artifact` 7.0.1→7.0.2 (#5554).
+- **chore(deps): bump astral-sh/setup-uv 10.2.0→10.3.0 (#5556).** SHA-pin refresh on the two `setup-uv` sites in `ci.yml` (merge-gate primary + GH-hosted failover). Minor toolchain action bump; no input changes.
+- Bump `actions/download-artifact` from 8.0.1 to 8.0.2 (#5555).
+
+### Fixed
+- **Complete the #5477 scope brief after product #5598.** Move the Path B activate brief into xbrief/completed/ so orphan tracking clears. Tracking #5477.
+- **Complete the #5551 scope brief after product #5595.** Move the Path B activate brief into xbrief/completed/ so orphan tracking clears. Tracking #5551.
+- **Complete the #5574 scope brief after product #5596.** Move the Path B activate brief into xbrief/completed/ so orphan tracking clears. Tracking #5574.
+- **Complete the #5545 scope brief after product #5594.** Move the Path B activate brief into xbrief/completed/ so orphan tracking clears. Tracking #5545.
+- Rapid check no longer rejects lifecycle-only PRs because a just-completed brief has no verified acceptance clauses. PRs that change product files keep the existing acceptance checks. Tracking #5477.
+- **Gate residual raw git fetch sites on safe branch argv (#5545).** Swarm finalize/launch tip probes and delivery-evidence refresh refuse hostile/empty branch overrides before spawn and use trackingFetchArgv / privateDestFetchArgv. Tracking #5545.
+- **Coverage skips closed-shape plan-sequence and closed plan/spec pointer refreshes (#5551).** Planning-only sequence and narrative/interview edits no longer demand a coverage report; other plan/spec edits still do. Tracking #5551.
+- Keep active #5545 Path B Prefer-A Bound file_scope.
+- Keep active #5551 Path B Prefer-A Bound file_scope.
+- Keep active #5574 Path B Prefer-A Bound file_scope.
+- Keep active #5477 Path B Prefer-A Bound file_scope.
+- **Complete the #5552 scope brief after product #5584.** Move the Path B activate brief into xbrief/completed/ so orphan tracking clears. Tracking #5552.
+- **deft-core-guard skips app-only PRs via paths filter (#5552).** Deposited workflow runs only when `.deft/core/**` or `.deft/GENERATION.json` changes; document required-check removal (missing check ≠ skipped job) and the first-300-files residual. Tracking #5552.
+- Keep active #5552 Path B Prefer-A Bound file_scope.
+- **Complete the #5542 scope brief after product #5570.** Move the gate-override brief into xbrief/completed/ so orphan tracking clears. Tracking #5542.
+- **Gate-override admission locks publish without stealing live owners (#5542).**
+- Mint approved-scope for #5552 (Path B Prefer-A Bound file_scope).
+- Mint approved-scope for #5551 (Path B Prefer-A Bound file_scope).
+- Mint approved-scope for #5545 (Path B Prefer-A Bound file_scope).
+- Mint approved-scope for #5477 (Path B Prefer-A Bound file_scope).
+- Mint approved-scope for #5574 (Path B Prefer-A Bound file_scope).
+- Mint intent-constraint for #5542 (approve gate-override invariant throw sites).
+- **Complete the #4768 scope brief after product #5571.** Move the acceptance-activate brief into xbrief/completed/ so orphan tracking clears. Tracking #4768.
+- Activating a brief that contains commands now requires usable acceptance text. Activation derives that text when possible and otherwise refuses, including when the brief is already active. Already-active restamp uses temp+rename, and settled active briefs skip D7 re-block on ingress no-op. Tracking #4768.
+- **Harden gate-override admission for audited coverage refusals (#5542).** Operators can renew a matching grant after expiry without colliding on attempt receipts. Tracking #5542.
+- **Operators can grant a one-use audited override for eligible coverage-applicability refuse codes (#5542).** The grant records a review obligation and is single-use. Tracking #5542.
+- **fix(coverage): classify Bun locks, .gitignore, and fixtures JSON for pre-PR applicability (#5541).** Bun lock diffs stay coverable; `.gitignore` and repo-root `fixtures/*.json` are inert N/A; unknown paths stay fail-closed. Tracking #5541.
+- **Keep-active #5541 Path B activation.** Lands Prefer-A Bound active xBRIEF with reminted file_scope; productPullRequest unset. Tracking #5541.
+- **Complete the #5541 scope brief after product #5568.** Move the Bun coverage applicability brief into `xbrief/completed/` so orphan tracking clears. Tracking #5541.
+- Keep active #4768 Path B activation (Prefer-A Bound file_scope membership fence).
+- Keep the #5542 human-override brief active with approved file permissions. This records Path B activation only; it does not change product behavior. Tracking #5542.
+- Remint approved-scope for #4768 (acceptance-activate Path B widen).
+- Remint approved-scope for #4768 (widen membership for preflight/evaluate.test.ts).
+- **Complete the #5539 scope brief after product #5559.** Move the exact-argv spy brief into `xbrief/completed/` so orphan tracking clears. Tracking #5539.
+- **Keep the #5539 membership allowlist current after product #5559.** Records the approved file list so follow-on scope checks stay valid. Tracking #5539.
+- **fix(test): exact-argv spy no longer fabricates absent windowsVerbatimArguments on POSIX (#5539).** Capture the option only when Object.hasOwn on the spawn opts. Tracking #5539.
+- Prepare approved scope for the Bun coverage fix. This records approval only; it does not change Bun coverage behavior. Refs #5541.
+- Prepare approved file permissions for the audited human-override work. This records approval only; it does not change product behavior. Refs #5542.
+- **Complete the #4981 tutorial brief after product #5464.** Move the active Directive Tutorial brief into xbrief/completed so orphan tracking clears. Tracking #4981.
+- **fix(tutorial): keep progress when practice cwd changes (#4981 / #5464).** Tutorial state stays next to personal USER.md prefs so sandbox practice commands do not lose the saved run. Tracking #4981.
+- **fix(tutorial): Greptile 4/5 — stamp evidence before close + refuse Back when completed (#4981).** Close runs `scope:stamp-evidence` before `scope:complete --non-delivery`; Back refuses after status is completed so finished progress cannot reopen. Tracking #4981.
+- **fix(tutorial): Greptile 4/5 — refuse Back past close + Discuss hatch alias (#4981).** Once close has run, Back stops at close (no rewind to prove/change with a missing check command); `I have questions` pauses like Discuss. Tracking #4981.
 
 ### Removed
 
@@ -37,6 +109,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Record the completed work for #5521 after product PR #5529.
 - Rule-to-verb parity accepts router-branch colon verbs and requires complete Taskfile keys (#5521).
+
 - Path B activation for #5521 membership fence.
 - Record the completed work for #5479 after product PR #5530.
 - Record the completed work for #5526 after product PR #5528.
@@ -70,6 +143,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Leftover-complete #5488 after product #5498.
 
 ### Added
+- **feat(guidance): Directive Tutorial after Name — Signal, Postcard, or Echo (Tracking #4981).** After Name is first saved, setup offers Start / Skip / Discuss / Back. Progress lives next to USER.md (`tutorial-state.json`). Shared seven steps read `content/tutorial/glossary.md`; project names live under `content/tutorial/projects/`. `deft tutorial:offer|start|inspect|advance|resume|skip|reset` (plus decline/defer aliases) drive the sitting in a disposable local sandbox. A failed check stays on prove-it. Reset clears progress without re-firing the automatic offer. Refs #4371.
 - **Design-critique later-arc closed-findings (#5489).** Later arcs on the same ticket no longer re-litigate findings the parent already closed: critics demote authorized restatements, and reopen needs evidence. Adjacent-polish hydra remainder deferred to #5493. Tracking #5489. Refs Prefer-A Bound 6065006497.
 
 ### Fixed
@@ -91,6 +165,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore: leftover-complete #5465 after Tracking PR #5468 (completed xBRIEF + #3675 Prefer-A residual).
 
 ### Fixed
+- **fix(tutorial): Greptile 4/5 — suppress verify:ac after close on Back (#4981).** Once close has run, Back to prove-it does not re-emit `verify:ac` against the moved work file. Tracking #4981.
+- **fix(tutorial): Greptile 4/5 — close Back nulling + literal field expansion (#4981).** Remember close already ran so Back from wrap-up does not re-emit `scope:complete`; expand `{slots}` only in authored project templates, not in learner content or paths. Tracking #4981.
+- **fix(tutorial): Greptile 4/5 — shell-safe path quoting + protect completed leave (#4981).** Quote practice paths for the host shell (POSIX single quotes; Windows double quotes); refuse `tutorial:leave` for every completed sitting (including wrap-up). Tracking #4981.
+- **fix(tutorial): Greptile 4/5 — put promote/activate/complete in shared beats (#4981).** Practice lifecycle commands live in `beats.json` (promote, activate, branch, verify, non-delivery complete) so close is visible without per-project command fields. Tracking #4981.
+- **fix(tutorial): Greptile 4/5 findings — accept displayed menu labels + lead with promote/activate (#4981).** Advance accepts the on-screen labels (Use the example, No — change the plan, Try again). Start commands promote and activate before creating the branch so practice work can close. Tracking #4981.
+- **fix(tutorial): Greptile P1 — Windows-safe link fixture for sandbox path compare (#4981).** Use a directory junction on Windows (or skip when links cannot be created) so the suite does not fail without symlink privilege. Tracking #4981.
+- **fix(tutorial): Greptile P1 — physical-path compare for sandbox Git roots (#4981).** Compare practice paths with `realpath` so macOS `/tmp` vs `/private/tmp` (and other directory links) are not refused as a foreign checkout. Tracking #4981.
+- **fix(tutorial): Greptile P1 — require a working Git root before accepting `.git` (#4981).** Do not treat a broken `.git` as a ready practice sandbox; init or refuse. Tracking #4981.
+- **fix(tutorial): Greptile P1s — sandbox post-create isolation + Back command nulling (#4981).** Re-check disposable isolation after materializing `--repo`, refuse nested foreign Git checkouts, refuse completed/bad `--project` before creating a sandbox, and teach the skill that null `command` means do not re-run promote/activate after Back. Tracking #4981.
+- **fix(tutorial): Greptile P1s — missing `--repo` sandbox + Back re-run of start commands (#4981).** Create/init a missing disposable `--repo` path (or refuse a non-directory); remember start lifecycle so Back from change does not re-emit promote/activate. Tracking #4981.
+- **fix(tutorial): address Greptile/SLizard P1s on practice paths, Back proof, and skill deposit (#4981).** Quote work-file paths in practice commands; rewrite Windows proposed/pending separators to active; clear check/completion on Back; add tutorial to daily-core frontmatter list and Go `.agents/skills` deposit. Tracking #4981.
+- **fix(tutorial): learner-copy polish for work-file prompt, step-1 Back, and wrap-up (#4981).** Work-file pending text drops `--work-item`; step 1 labels Back as not available yet; step 7 displays as Wrap up. Tracking #4981.
+- **fix(tutorial): returned-failure paths + trigger-case coverage (#4981).** Drop throw-sites for intent-constraint; add eval trigger cases for deft-directive-tutorial. Tracking #4981.
+- **fix(tutorial): clear stale plan on Back, non-delivery close, and census/budget (#4981).** Rewind or project change clears plan/work-file; practice `scope:complete` uses `--non-delivery experiment_archived`; Skills Index triggers, FILES census, RULE-MAP grouping, OpenPackage 7/27 counts, and skillFrontmatterMaxBytes 2337. Tracking #4981.
+- **fix(tutorial): review-cycle harden for install path, menus, and lifecycle (#4981).** Load deposited `tutorial/` via `contentRoot`; fill promote/activate and active work-file commands; require Discuss/Back; refuse completed restart / skip-graduate / in-tree sandboxes; renew evaluator-surface disclosure for `Taskfile.yml`. Tracking #4981.
 
 - **npm publish review residual (#5365):** map numeric prerelease ids (e.g. `v1.2.3-1`) to dist-tag `next`; run post-publish fixture from a prepare-built runner artifact downloaded into `packages/core` (no `source_sha` checkout + `pnpm install`, clears CodeQL cache-poisoning); strengthen contract tests for refusal `exit 1` and the artifact path. Tracking #5365.
 - **npm publish: Environment gate, SemVer tag hygiene, identity peel, and tarball-only OIDC job (#5365).** Workflow uses `environment: npm`, `v*.*.*` tags, master-ancestry tag peel, prepare-without-`id-token`, and same-run tarball publish; contract tests pin the shape. Operator forge evidence still required before merge: (1) create Environment `npm` with reviewers + Selected branches/tags including release tags; (2) bind trusted publisher for all four `@deftai/*` packages to that Environment; (3) add ruleset creation restriction on `refs/tags/v*` (named bypass only; incident recovery is deprecate/dist-tag while deletion stays blocked). YAML alone does not close. Tracking #5365. Refs Prefer-A Bound 6050330747.
@@ -7096,7 +7185,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.125.0...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.125.1...HEAD
+[0.125.1]: https://github.com/deftai/directive/compare/v0.125.0...v0.125.1
 [0.125.0]: https://github.com/deftai/directive/compare/v0.124.0...v0.125.0
 [0.124.0]: https://github.com/deftai/directive/compare/v0.123.0...v0.124.0
 [0.123.0]: https://github.com/deftai/directive/compare/v0.122.0...v0.123.0
@@ -7359,6 +7449,7 @@ If you have custom scripts or references to deft files, update these paths:
 [0.2.0]: https://github.com/visionik/warping/releases/tag/v0.2.0
 
 [0.1.0]: https://github.com/visionik/warping/releases/tag/v0.1.0
+
 
 
 

@@ -1,0 +1,298 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5602",
+    "updated": "2026-10-14T16:41:28.689Z"
+  },
+  "plan": {
+    "title": "framework-gap: Prefer-A leftover-complete must use scope:complete / stampDeliveryProvenance (no hand productMerge stamps)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Prefer-A leftover-complete must call swarm:finalize-cohort or scope:complete so stampDeliveryProvenance writes canonical disposition. Informal productMerge or productPr stamps on completed briefs are refused by verify:completed-write-guard going forward.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5602",
+      "Overview": "One writer rule: leftover-complete MUST call swarm:finalize-cohort or scope:complete → stampDeliveryProvenance; no hand productMerge/productPr. Fail-closed verify:completed-write-guard on new completed/ adds: consistency + informal-stamp refuse + code-bearing disposition contract. Thin skill pin in swarm Phase 6 / Grok through-merge Prefer-A: leftover = finalize-cohort + delivery evidence. Reuse stampDeliveryProvenance / evaluateDeliveryGate / evaluateCompletedPlanConsistency; name two disposition surfaces. Regression specimens: #5477/#5601 negative fixture; #5551 shape comparison only; CHANGELOG note.",
+      "Labels": "swarm, agent-experience, process, source-of-truth, urgent, area:cli, area:vbrief, design-critique:ingest-ready, framework-gap, core-capabilities, promise:lifecycle, promise:gates, promise:swarm",
+      "ImplementationPlan": "Add fail-closed verify:completed-write-guard so new completed adds require evaluateCompletedPlanConsistency green and classifyStoredDeliveryDisposition not unverified. Route Prefer-A leftover-complete exclusively through swarm:finalize-cohort or scope:complete into stampDeliveryProvenance. Pin swarm Phase 6 Prefer-A leftover text to finalize-cohort plus delivery evidence and cite the #5551 positive shape. Reuse stampDeliveryProvenance, evaluateDeliveryGate, and evaluateCompletedPlanConsistency without inventing a second leftover dialect. Add regression specimens for #5477/#5601 negatives and #5551 shape comparison, plus a CHANGELOG Unreleased note.",
+      "UserStory": "As a through-merge operator, I want leftover-complete to use stampDeliveryProvenance, so that completed briefs never land with informal productMerge stamps.",
+      "Traces": "Prefer-A Bound leftover-complete write-guard; issue #5602; positive shape #5551; negative specimens #5477/#5601."
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "One writer rule: leftover-complete MUST call swarm:finalize-cohort or scope:complete → stampDeliveryProvenance; no hand productMerge/productPr",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/lifecycle/completed-write-guard.ts",
+        "narrative": {
+          "Acceptance": "Given a Prefer-A leftover-complete attempt, when the writer skips stampDeliveryProvenance, then verify:completed-write-guard rejects the informal productMerge stamp."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5610 squash-merge (Tracking #5602). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5610",
+            "mintedAt": "2026-10-14T19:23:05.113Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-14T19:23:05.113Z"
+        }
+      },
+      {
+        "id": "2",
+        "title": "Fail-closed verify:completed-write-guard on new completed/ adds: consistency + informal-stamp refuse + code-bearing disposition contract",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/lifecycle/completed-write-guard.ts",
+        "narrative": {
+          "Acceptance": "Given a new completed brief add, when limbs stay pending or disposition is missing, then verify:completed-write-guard fails closed."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5610 squash-merge (Tracking #5602). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5610",
+            "mintedAt": "2026-10-14T19:23:05.113Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-14T19:23:05.113Z"
+        }
+      },
+      {
+        "id": "3",
+        "title": "Thin skill pin in swarm Phase 6 / Grok through-merge Prefer-A: leftover = finalize-cohort + delivery evidence",
+        "status": "completed",
+        "x-directive/artifact_path": "content/skills/deft-directive-swarm/references/core-phase-5-6.md",
+        "narrative": {
+          "Acceptance": "Given swarm Phase 6 Prefer-A leftover guidance, when an agent runs leftover-complete, then the skill pin returns finalize-cohort plus delivery evidence."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5610 squash-merge (Tracking #5602). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5610",
+            "mintedAt": "2026-10-14T19:23:05.113Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-14T19:23:05.113Z"
+        }
+      },
+      {
+        "id": "4",
+        "title": "Reuse stampDeliveryProvenance / evaluateDeliveryGate / evaluateCompletedPlanConsistency; name two disposition surfaces",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+        "narrative": {
+          "Acceptance": "Given an existing stampDeliveryProvenance path, when leftover-complete runs, then disposition surfaces reuse evaluateDeliveryGate without a second dialect."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5610 squash-merge (Tracking #5602). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5610",
+            "mintedAt": "2026-10-14T19:23:05.113Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-14T19:23:05.113Z"
+        }
+      },
+      {
+        "id": "5",
+        "title": "Regression specimens: #5477/#5601 negative fixture; #5551 shape comparison only; CHANGELOG note",
+        "status": "completed",
+        "x-directive/artifact_path": "CHANGELOG.md",
+        "narrative": {
+          "Acceptance": "Given #5477/#5601 negative fixtures and the #5551 positive shape, when the regression suite runs, then the guard records the refuse and admit cases."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5610 squash-merge (Tracking #5602). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5610",
+            "mintedAt": "2026-10-14T19:23:05.113Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-14T19:23:05.113Z"
+        }
+      }
+    ],
+    "tags": [
+      "swarm",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "urgent",
+      "area:cli",
+      "area:vbrief",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:lifecycle",
+      "promise:gates",
+      "promise:swarm",
+      "prefer-a-bound",
+      "through-merge",
+      "swarm-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5602",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5602: framework-gap: Prefer-A leftover-complete must use scope:complete / stampDeliveryProvenance (no hand productMerge stamps)"
+      }
+    ],
+    "acceptance": {
+      "none_stated": false,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "One writer rule: leftover-complete MUST call swarm:finalize-cohort or scope:complete → stampDeliveryProvenance; no hand productMerge/productPr.",
+          "artifact_path": "packages/core/src/lifecycle/completed-write-guard.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Fail-closed verify:completed-write-guard on new completed/ adds: consistency + informal-stamp refuse + code-bearing disposition contract.",
+          "artifact_path": "packages/core/src/lifecycle/completed-write-guard.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Thin skill pin in swarm Phase 6 / Grok through-merge Prefer-A: leftover = finalize-cohort + delivery evidence.",
+          "artifact_path": "content/skills/deft-directive-swarm/references/core-phase-5-6.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Reuse stampDeliveryProvenance / evaluateDeliveryGate / evaluateCompletedPlanConsistency; name two disposition surfaces.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Regression specimens: #5477/#5601 negative fixture; #5551 shape comparison only; CHANGELOG note.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "commands": [
+        "pnpm exec vitest run packages/core/src/lifecycle/completed-write-guard.test.ts packages/core/src/scope/delivery-evidence.test.ts"
+      ],
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "framework-gap: Prefer-A leftover-complete must use scope:complete / stampDeliveryProvenance (no hand productMerge stamps)"
+      ],
+      "sentences": [
+        "One writer rule: leftover-complete MUST call swarm:finalize-cohort or scope:complete → stampDeliveryProvenance; no hand productMerge/productPr.",
+        "Fail-closed verify:completed-write-guard on new completed/ adds: consistency + informal-stamp refuse + code-bearing disposition contract.",
+        "Thin skill pin in swarm Phase 6 / Grok through-merge Prefer-A: leftover = finalize-cohort + delivery evidence.",
+        "Reuse stampDeliveryProvenance / evaluateDeliveryGate / evaluateCompletedPlanConsistency; name two disposition surfaces.",
+        "Regression specimens: #5477/#5601 negative fixture; #5551 shape comparison only; CHANGELOG note."
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/lifecycle/completed-write-guard.ts",
+          "packages/core/src/lifecycle/completed-write-guard.test.ts",
+          "packages/core/src/lifecycle/completed-consistency.ts",
+          "packages/core/src/scope/delivery-evidence.ts",
+          "packages/core/src/scope/delivery-evidence.test.ts",
+          "content/skills/deft-directive-swarm/references/core-phase-5-6.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/lifecycle/completed-write-guard",
+        "cohesion_exemption": "Prefer-A Bound concrete file_scope for through-merge cohort"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5848574804,
+        "origin": "deftai/directive#5602",
+        "id": "github.issue.5848574804"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "a13a1bdb92f84a5231c24ffccc172de2ec7d0715d5e41f089c86cc0d7b56adf3"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "leftover-complete-hand-productMerge-vs-stampDeliveryProvenance",
+        "expected_outputs": [
+          "Tracking PR opened",
+          "tests green",
+          "CHANGELOG Unreleased note"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/lifecycle/completed-write-guard.test.ts packages/core/src/scope/delivery-evidence.test.ts"
+        ],
+        "file_scope": [
+          "packages/core/src/lifecycle/completed-write-guard.ts",
+          "packages/core/src/lifecycle/completed-write-guard.test.ts",
+          "packages/core/src/lifecycle/completed-consistency.ts",
+          "packages/core/src/scope/delivery-evidence.ts",
+          "packages/core/src/scope/delivery-evidence.test.ts",
+          "content/skills/deft-directive-swarm/references/core-phase-5-6.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "CHANGELOG.md"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "Prefer-A Bound harvest hand-stamped for through-merge cohort"
+        ],
+        "parallel_safe": true
+      },
+      "kind": "story",
+      "productPullRequest": 5610,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-14T19:32:49.000Z"
+      },
+      "completedAt": "2026-10-14T19:32:49.000Z",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 5610,
+        "prBase": "master",
+        "mergeCommit": "23c8b01ad48c19f478b69a78a973bafffca4882d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "23c8b01ad48c19f478b69a78a973bafffca4882d",
+        "verifiedAt": "2026-10-14T19:32:49.000Z",
+        "verifier": "parent-closer-pulse/5616",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      }
+    },
+    "id": "github.issue.5848574804",
+    "x-directive/plan-id": {
+      "version": 1,
+      "source": "github-rest-id",
+      "github_issue_id": 5848574804,
+      "origin": "deftai/directive#5602",
+      "id": "github.issue.5848574804"
+    },
+    "updated": "2026-10-14T16:41:28.689Z"
+  }
+}

@@ -6,14 +6,27 @@
  * verify:ac may still exit 0 on an unverifiable no-oracle walk (#3826).
  * These predicates do not change that. Rapid check reads only the #4866
  * path; scope:complete reads the #4870 overlay on the walk it consumes.
+ *
+ * #5477: waive #4866 when the change set is lifecycle-maintenance-only and
+ * either the walk target is out of the added/renamed set, or it is an in-diff
+ * completed leftover/completing walk. Targeting stays mode-agnostic.
  */
 import { isProductAcGate } from "../product-first-done-gate/check-mode.js";
+import {
+  type CollectedChangeSet,
+  collectLifecycleChangeSet,
+  evaluateLifecycleMaintenanceEligibility,
+} from "./session-completed-ac.js";
 
 const CLAUSE_WALK_ZERO_VERIFIED =
   /verify:ac clause walk \(#3323\): 0 verified, \d+ unverifiable, \d+ failed/;
 
 const PASS_LEAD_ZERO_VERIFIED =
   /verify:ac passed \(#3284\)(?: served_from=\S+)? \(0 verified, \d+ unverifiable\)/;
+
+const JUST_COMPLETED_TARGET = /verify:ac targeting just-completed brief \(#3357\):\s*(.+?)\s*$/m;
+
+const EXECUTABLE_PASS_VERDICT = /acceptance verdict \(#3497\):\s*executable-pass\b/;
 
 export const RAPID_ZERO_VERIFIED_CHECK_NOTICE =
   "check: rapid product-first acceptance walk reported 0 verified clauses; not exit 0 (#4866)\n";
@@ -26,20 +39,66 @@ export function acceptanceWalkReportsZeroVerified(text: string): boolean {
   return CLAUSE_WALK_ZERO_VERIFIED.test(text) || PASS_LEAD_ZERO_VERIFIED.test(text);
 }
 
+/** Parse the #3357 just-completed target path from verify:ac text, if present. */
+export function parseJustCompletedWalkTarget(text: string): string | null {
+  const m = JUST_COMPLETED_TARGET.exec(text);
+  const path = m?.[1]?.trim() ?? "";
+  return path.length > 0 ? path : null;
+}
+
+/** True when verify:ac text names the #3497 executable-pass predicate. */
+export function acceptanceTextReportsExecutablePass(text: string): boolean {
+  return EXECUTABLE_PASS_VERDICT.test(text);
+}
+
 /**
  * Rapid check must not exit 0 for this gate output. Other modes, other
  * gates, and a walk that does not report zero verified stay false.
+ *
+ * #5477: waive when lifecycle-maintenance eligibility says skip-targeting
+ * (out-of-diff completed walk) or in-diff-completed-overlay.
  */
 export function rapidCheckRejectsZeroVerifiedWalk(input: {
   readonly mode: string;
   readonly gateId: string;
   readonly text: string;
+  readonly projectRoot?: string;
+  readonly changeSet?: CollectedChangeSet | null;
+  /** Injected overlay decision (tests). */
+  readonly inDiffCompletedExecutablePass?: boolean;
 }): boolean {
-  return (
-    input.mode === "rapid" &&
-    isProductAcGate(input.gateId) &&
-    acceptanceWalkReportsZeroVerified(input.text)
-  );
+  if (
+    !(
+      input.mode === "rapid" &&
+      isProductAcGate(input.gateId) &&
+      acceptanceWalkReportsZeroVerified(input.text)
+    )
+  ) {
+    return false;
+  }
+
+  if (input.inDiffCompletedExecutablePass === true) {
+    return false;
+  }
+
+  const walkTarget = parseJustCompletedWalkTarget(input.text);
+  const projectRoot = input.projectRoot?.trim() ?? "";
+  if (walkTarget !== null && projectRoot.length > 0) {
+    const changeSet =
+      input.changeSet !== undefined && input.changeSet !== null
+        ? input.changeSet
+        : collectLifecycleChangeSet({ projectRoot });
+    const decision = evaluateLifecycleMaintenanceEligibility({
+      walkTargetAbsOrRel: walkTarget,
+      projectRoot,
+      changeSet,
+    });
+    if (decision.kind === "skip-targeting" || decision.kind === "in-diff-completed-overlay") {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 /**

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-10-13-5539-package-runner-exact-argv-test-spy-fabricates-an-absent-wind.xbrief.json",
+  "planId": "github.issue.5788439670",
+  "approvedAt": "2026-10-13T19:00:28Z",
+  "fileScope": [
+    "CHANGELOG.md",
+    "tasks/engine-pm-run.test.cjs"
+  ],
+  "fileScopeDigest": "f816f89b11a43fb2ed29c8b1f9c6b409ec26ce6ec530f9f4d0ef59bc74377d2c",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-10-13T19:00:26Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "0ec806a54c3e928a56f918645bd26190e955a5b5e598edfa34cbedd80dad9f18",
+  "digestAlgo": "intent-extract-v1"
+}

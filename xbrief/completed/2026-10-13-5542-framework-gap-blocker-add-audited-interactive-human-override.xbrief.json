@@ -1,0 +1,303 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5542",
+    "updated": "2026-10-13T18:44:17Z"
+  },
+  "plan": {
+    "title": "[framework-gap] BLOCKER Add audited interactive human overrides for framework gate blockers",
+    "status": "completed",
+    "narratives": {
+      "Description": "[framework-gap] BLOCKER Add audited interactive human overrides for framework gate blockers",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5542",
+      "Overview": "## Bound remedy (#5542 Prefer-A 6150081436)\n\n1. Mint only via operator-cli human-presence authz:grant; operator-session non-admitting.\n2. Atomic one-use admission bound to attempt id with baseSha+headSha+treeHash + gate id + refuse code.\n3. Closed waived/overridden enum arms; never map to pass.\n4. First eligible gate = coverage-applicability / coverage_headroom refuse; closed refuse codes.\n5. Named v1 consumers MUST honor the grant (pre-PR coverage_headroom + coverage:hotspots).\n6. Prefer authz template gate-override modeled on spec-drift-override.\n7. Keep-outs: #5541 separate; no fabricate green; no UAT silent suspend.\n\nconflict_group: interactive-human-gate-override-audit",
+      "Labels": "bug, design, agent-experience, process, harness, source-of-truth, urgent, area:cli, dogfood, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Mint only via existing operator-cli human-presence authz:grant; operator-session non-admitting; refuse chat/parent/fixture consent.",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/authz/origin.ts",
+        "narrative": {
+          "Acceptance": "Mint only via existing operator-cli human-presence authz:grant; operator-session non-admitting; refuse chat/parent/fixture consent."
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Atomic one-use admission bound to continuation/attempt id with baseSha+headSha+treeHash + gate id + refuse code + worktree/evaluator identity; inspection does not consume.",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/authz/store.ts",
+        "narrative": {
+          "Acceptance": "Atomic one-use admission bound to continuation/attempt id with baseSha+headSha+treeHash + gate id + refuse code + worktree/evaluator identity; inspection does not consume."
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Closed waived/overridden enum arms on CoverageApplicabilityResult and pre-PR evidence; never map waived onto pass; checkable review obligations.",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts",
+        "narrative": {
+          "Acceptance": "Closed waived/overridden enum arms on CoverageApplicabilityResult and pre-PR evidence; never map waived onto pass; checkable review obligations."
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "First eligible gate = coverage-applicability / coverage_headroom refuse; closed refuse codes; empty deferred peers; non-overridable set; no independent push/merge.",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/authz/templates.ts",
+        "narrative": {
+          "Acceptance": "First eligible gate = coverage-applicability / coverage_headroom refuse; closed refuse codes; empty deferred peers; non-overridable set; no independent push/merge."
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Named v1 consumers MUST honor the grant: pre-PR coverage_headroom and coverage:hotspots refuse path; others remain refuse-closed.",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/pre-pr-controller/phases.ts",
+        "narrative": {
+          "Acceptance": "Named v1 consumers MUST honor the grant: pre-PR coverage_headroom and coverage:hotspots refuse path; others remain refuse-closed."
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "Prefer authz template gate-override modeled on spec-drift-override; no second mint engine; keep other hatches complementary.",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/authz/templates.ts",
+        "narrative": {
+          "Acceptance": "Prefer authz template gate-override modeled on spec-drift-override; no second mint engine; keep other hatches complementary."
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "Keep-outs: do not absorb #5541; no fabricate green; no auto-ingest; no UAT silent suspend; no blanket env override.",
+        "status": "pending",
+        "x-directive/artifact_path": "content/contracts/human-origin-authz.md",
+        "narrative": {
+          "Acceptance": "Keep-outs: do not absorb #5541; no fabricate green; no auto-ingest; no UAT silent suspend; no blanket env override."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design",
+      "agent-experience",
+      "process",
+      "harness",
+      "source-of-truth",
+      "urgent",
+      "area:cli",
+      "dogfood",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5542",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5542: [framework-gap] BLOCKER Add audited interactive human overrides for framework gate blockers"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5541",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5541"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "clauses": [
+        {
+          "id": "clause.1",
+          "text": "Mint only via existing operator-cli human-presence authz:grant; operator-session non-admitting; refuse chat/parent/fixture consent.",
+          "artifact_path": "packages/core/src/authz/origin.ts",
+          "status": "completed",
+          "disposition": {
+            "kind": "not_applicable",
+            "reason": "pathless Prefer-A leftover after Tracking/Refs product squash-merge (#3675)"
+          }
+        },
+        {
+          "id": "clause.2",
+          "text": "Atomic one-use admission bound to continuation/attempt id with baseSha+headSha+treeHash + gate id + refuse code + worktree/evaluator identity; inspection does not consume.",
+          "artifact_path": "packages/core/src/authz/store.ts",
+          "status": "completed",
+          "disposition": {
+            "kind": "not_applicable",
+            "reason": "pathless Prefer-A leftover after Tracking/Refs product squash-merge (#3675)"
+          }
+        },
+        {
+          "id": "clause.3",
+          "text": "Closed waived/overridden enum arms on CoverageApplicabilityResult and pre-PR evidence; never map waived onto pass; checkable review obligations.",
+          "artifact_path": "packages/core/src/coverage-applicability/evaluate.ts",
+          "status": "completed",
+          "disposition": {
+            "kind": "not_applicable",
+            "reason": "pathless Prefer-A leftover after Tracking/Refs product squash-merge (#3675)"
+          }
+        },
+        {
+          "id": "clause.4",
+          "text": "First eligible gate = coverage-applicability / coverage_headroom refuse; closed refuse codes; empty deferred peers; non-overridable set; no independent push/merge.",
+          "artifact_path": "packages/core/src/authz/templates.ts",
+          "status": "completed",
+          "disposition": {
+            "kind": "not_applicable",
+            "reason": "pathless Prefer-A leftover after Tracking/Refs product squash-merge (#3675)"
+          }
+        },
+        {
+          "id": "clause.5",
+          "text": "Named v1 consumers MUST honor the grant: pre-PR coverage_headroom and coverage:hotspots refuse path; others remain refuse-closed.",
+          "artifact_path": "packages/core/src/pre-pr-controller/phases.ts",
+          "status": "completed",
+          "disposition": {
+            "kind": "not_applicable",
+            "reason": "pathless Prefer-A leftover after Tracking/Refs product squash-merge (#3675)"
+          }
+        },
+        {
+          "id": "clause.6",
+          "text": "Prefer authz template gate-override modeled on spec-drift-override; no second mint engine; keep other hatches complementary.",
+          "artifact_path": "packages/core/src/authz/templates.ts",
+          "status": "completed",
+          "disposition": {
+            "kind": "not_applicable",
+            "reason": "pathless Prefer-A leftover after Tracking/Refs product squash-merge (#3675)"
+          }
+        },
+        {
+          "id": "clause.7",
+          "text": "Keep-outs: do not absorb #5541; no fabricate green; no auto-ingest; no UAT silent suspend; no blanket env override.",
+          "artifact_path": "content/contracts/human-origin-authz.md",
+          "status": "completed",
+          "disposition": {
+            "kind": "not_applicable",
+            "reason": "pathless Prefer-A leftover after Tracking/Refs product squash-merge (#3675)"
+          }
+        }
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/authz/templates.ts",
+          "packages/core/src/authz/types.ts",
+          "packages/core/src/authz/store.ts",
+          "packages/core/src/authz/store.test.ts",
+          "packages/core/src/authz/evaluate.ts",
+          "packages/core/src/authz/evaluate.test.ts",
+          "packages/core/src/authz/origin.ts",
+          "packages/core/src/authz/origin.test.ts",
+          "packages/core/src/authz/index.ts",
+          "packages/core/src/coverage-applicability/evaluate.ts",
+          "packages/core/src/coverage-applicability/evaluate.test.ts",
+          "packages/core/src/coverage-applicability/index.ts",
+          "packages/core/src/coverage-applicability/index.test.ts",
+          "packages/core/src/pre-pr-controller/phases.ts",
+          "packages/core/src/pre-pr-controller/phases.test.ts",
+          "packages/core/src/pre-pr-controller/types.ts",
+          "packages/core/src/pre-pr-controller/evaluate.ts",
+          "packages/core/src/coverage-hotspots/evaluate.ts",
+          "packages/core/src/coverage-hotspots/evaluate.test.ts",
+          "packages/core/src/coverage-hotspots/index.ts",
+          "packages/cli/src/dispatch.ts",
+          "content/contracts/human-origin-authz.md",
+          "content/docs/gate-integrity.md",
+          "CHANGELOG.md",
+          "packages/core/src/authz/gate-override.ts",
+          "packages/core/src/authz/gate-override.test.ts",
+          "packages/cli/src/authz.ts",
+          "packages/core/src/pre-pr-controller/controller.ts",
+          "packages/core/src/pre-pr-controller/index.ts"
+        ],
+        "module_boundary": "authz gate-override grant + coverage-applicability waived arm + pre-PR honor",
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased bullet; human-origin-authz.md + gate-integrity.md thin pointer for #5542 Prefer-A Bound."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5789353060,
+        "origin": "deftai/directive#5542",
+        "id": "github.issue.5789353060"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "7e35ee7657416c1833d2583bbfb24962afa61cec76ab490cfe90893f8c17e0c0"
+      },
+      "swarm": {
+        "readiness": "not-ready",
+        "conflict_group": "interactive-human-gate-override-audit",
+        "expected_outputs": [
+          "Tracking PR for #5542 Prefer-A Bound gate-override authz grant + waived enum"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/authz packages/core/src/coverage-applicability packages/core/src/pre-pr-controller packages/core/src/coverage-hotspots"
+        ],
+        "file_scope": [
+          "packages/core/src/authz/templates.ts",
+          "packages/core/src/authz/types.ts",
+          "packages/core/src/authz/store.ts",
+          "packages/core/src/authz/store.test.ts",
+          "packages/core/src/authz/evaluate.ts",
+          "packages/core/src/authz/evaluate.test.ts",
+          "packages/core/src/authz/origin.ts",
+          "packages/core/src/authz/origin.test.ts",
+          "packages/core/src/authz/index.ts",
+          "packages/core/src/coverage-applicability/evaluate.ts",
+          "packages/core/src/coverage-applicability/evaluate.test.ts",
+          "packages/core/src/coverage-applicability/index.ts",
+          "packages/core/src/coverage-applicability/index.test.ts",
+          "packages/core/src/pre-pr-controller/phases.ts",
+          "packages/core/src/pre-pr-controller/phases.test.ts",
+          "packages/core/src/pre-pr-controller/types.ts",
+          "packages/core/src/pre-pr-controller/evaluate.ts",
+          "packages/core/src/coverage-hotspots/evaluate.ts",
+          "packages/core/src/coverage-hotspots/evaluate.test.ts",
+          "packages/core/src/coverage-hotspots/index.ts",
+          "packages/cli/src/dispatch.ts",
+          "content/contracts/human-origin-authz.md",
+          "content/docs/gate-integrity.md",
+          "CHANGELOG.md",
+          "packages/core/src/authz/gate-override.ts",
+          "packages/core/src/authz/gate-override.test.ts",
+          "packages/cli/src/authz.ts",
+          "packages/core/src/pre-pr-controller/controller.ts",
+          "packages/core/src/pre-pr-controller/index.ts"
+        ],
+        "size": "L",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5542"
+        ],
+        "parallel_safe": true
+      },
+      "x-directive/derived_reason": "Prefer-A Bound limbs hand-stamped after empty body harvest (#4374); clauses bind Bound remedy",
+      "productPullRequest": 5570,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-14T04:16:36.081Z"
+      },
+      "completionProvenance": {
+        "productMerge": "3d59fe30de61450c6585f0e4a59e9f50d1fa46ff",
+        "productPr": 5570
+      },
+      "completedAt": "2026-10-14T04:16:36.081Z"
+    },
+    "id": "github.issue.5789353060",
+    "updated": "2026-10-14T04:16:36.081Z"
+  }
+}

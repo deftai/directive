@@ -178,6 +178,11 @@
       "note": "Framework templates (agents-entry.md, agent-prompt-preamble.md, ...)."
     },
     {
+      "path": "content/tutorial",
+      "bucket": "content",
+      "note": "Directive Tutorial beats, glossary, and Signal/Postcard/Echo practice-project data (#4981)."
+    },
+    {
       "path": "content/tools",
       "bucket": "content",
       "note": "Tooling standards docs (taskfile.md, ...)."

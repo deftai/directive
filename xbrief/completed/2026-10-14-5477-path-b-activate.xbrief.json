@@ -1,0 +1,77 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Path B activate #5477 Prefer-A Bound",
+    "updated": "2026-10-14T09:45:59.031Z"
+  },
+  "plan": {
+    "id": "github.issue.5754500324",
+    "status": "completed",
+    "title": "Path B activate #5477 Prefer-A Bound file_scope",
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5477",
+        "type": "x-xbrief/github-issue"
+      }
+    ],
+    "metadata": {
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5754500324,
+        "origin": "deftai/directive#5477",
+        "id": "github.issue.5754500324"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/check/session-completed-ac.ts",
+          "packages/core/src/check/session-completed-ac.test.ts",
+          "packages/core/src/check/rapid-zero-verified.ts",
+          "packages/core/src/check/rapid-zero-verified.test.ts",
+          "packages/core/src/check/cached-orchestrator.ts",
+          "packages/core/src/scope/acceptance-evidence.ts",
+          "CHANGELOG.md"
+        ],
+        "readiness": "ready",
+        "bound_cite": 6135476931
+      },
+      "intended_placement": {
+        "files": [
+          "packages/core/src/check/session-completed-ac.ts",
+          "packages/core/src/check/session-completed-ac.test.ts",
+          "packages/core/src/check/rapid-zero-verified.ts",
+          "packages/core/src/check/rapid-zero-verified.test.ts",
+          "packages/core/src/check/cached-orchestrator.ts",
+          "packages/core/src/scope/acceptance-evidence.ts",
+          "CHANGELOG.md"
+        ],
+        "cohesion_exemption": "CHANGELOG.md Unreleased Keep note for Path B mint",
+        "module_boundary": "Prefer-A Bound 6135476931 for issue 5477"
+      },
+      "productPullRequest": 5598,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-14T09:45:59.031Z"
+      },
+      "completionProvenance": {
+        "productMerge": "ef8649398175bb3773fd49047a964fcada0ffce2",
+        "productPr": 5598
+      },
+      "completedAt": "2026-10-14T09:45:59.031Z"
+    },
+    "acceptance": {
+      "none_stated": true,
+      "source_rung": "derived",
+      "clauses": [],
+      "commands": []
+    },
+    "items": [
+      {
+        "id": "limb-1",
+        "title": "Rapid check zero-verified walk Bound remedy for lifecycle-only PRs",
+        "status": "pending"
+      }
+    ],
+    "updated": "2026-10-14T09:45:59.031Z"
+  }
+}

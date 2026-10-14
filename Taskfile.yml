@@ -178,6 +178,9 @@ includes:
   session:
     taskfile: ./tasks/session.yml
     optional: true
+  tutorial:
+    taskfile: ./tasks/tutorial.yml
+    optional: true
   occupancy:
     taskfile: ./tasks/occupancy.yml
     optional: true

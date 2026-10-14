@@ -1,0 +1,96 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Path B activate #5551 Prefer-A Bound",
+    "updated": "2026-10-14T08:35:27.911Z"
+  },
+  "plan": {
+    "id": "github.issue.5820138360",
+    "status": "completed",
+    "title": "Path B activate #5551 Prefer-A Bound file_scope",
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5551",
+        "type": "x-xbrief/github-issue"
+      }
+    ],
+    "metadata": {
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5820138360,
+        "origin": "deftai/directive#5551",
+        "id": "github.issue.5820138360"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/coverage-applicability/evaluate.ts",
+          "packages/core/src/coverage-applicability/evaluate.test.ts",
+          "packages/core/src/plan-sequence/types.ts",
+          "content/docs/scope-provenance.md",
+          "CHANGELOG.md"
+        ],
+        "readiness": "ready",
+        "bound_cite": 6132953774
+      },
+      "intended_placement": {
+        "files": [
+          "packages/core/src/coverage-applicability/evaluate.ts",
+          "packages/core/src/coverage-applicability/evaluate.test.ts",
+          "packages/core/src/plan-sequence/types.ts",
+          "content/docs/scope-provenance.md",
+          "CHANGELOG.md"
+        ],
+        "cohesion_exemption": "CHANGELOG.md Unreleased Keep note for Path B mint",
+        "module_boundary": "Prefer-A Bound 6132953774 for issue 5551"
+      },
+      "productPullRequest": 5595,
+      "completedAt": "2026-10-14T08:35:27.911Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-14T08:35:27.911Z"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 5595,
+        "prBase": "master",
+        "mergeCommit": "45c152bd7dd15feaab0394e222c1016a228f48a4",
+        "deliveryBranch": "master",
+        "deliveryCommit": "45c152bd7dd15feaab0394e222c1016a228f48a4",
+        "verifiedAt": "2026-10-14T08:35:27.911Z",
+        "verifier": "approach1-leftover-stamp-residual",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      }
+    },
+    "acceptance": {
+      "none_stated": true,
+      "source_rung": "derived",
+      "clauses": [],
+      "commands": []
+    },
+    "items": [
+      {
+        "id": "limb-1",
+        "title": "Coverage sequence exact-path closed-shape inert plus plan/spec pointer demotion and Path A membership split",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5595 squash-merge (Tracking #5551). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5595",
+            "mintedAt": "2026-10-14T08:35:27.911Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-14T08:35:27.911Z"
+        }
+      }
+    ],
+    "updated": "2026-10-14T08:35:27.911Z"
+  }
+}

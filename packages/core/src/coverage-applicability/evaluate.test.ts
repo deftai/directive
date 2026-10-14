@@ -3,12 +3,20 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
+import {
+  isClosedPlanSequenceShape,
+  PLAN_SEQUENCE_CONTRACT,
+  PLAN_SEQUENCE_REL_PATH,
+} from "../plan-sequence/types.js";
 import { COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP } from "../pre-pr-controller/phases.js";
 import {
   classifyChangedPath,
   decodeGitQuotedPath,
   evaluateCoverageApplicability,
+  isCoverageHeadroomNotApplicable,
+  isPlanInterviewContinuationRefreshOnly,
   isProjectDefinitionRegistryRefreshOnly,
+  isSpecificationNarrativeRefreshOnly,
   parseNameStatus,
 } from "./evaluate.js";
 
@@ -140,6 +148,26 @@ describe("classifyChangedPath", () => {
   it("classifies coverage tool output as inert measurement artifacts", () => {
     expect(classifyChangedPath("coverage/coverage-final.json", "A", null)).toBe("inert");
     expect(classifyChangedPath("coverage/lcov.info", "M", null)).toBe("inert");
+  });
+
+  it("classifies Bun locks coverable and .gitignore / fixtures JSON inert (#5541)", () => {
+    expect(classifyChangedPath("bun.lock", "M", null)).toBe("coverable");
+    expect(classifyChangedPath("bun.lockb", "A", null)).toBe("coverable");
+    expect(classifyChangedPath("fixtures/bun.lock", "M", null)).toBe("coverable");
+    expect(classifyChangedPath("fixtures/package.json", "M", null)).toBe("coverable");
+    expect(classifyChangedPath("fixtures/helper.ts", "A", null)).toBe("coverable");
+    expect(classifyChangedPath("fixtures/page.html", "M", null)).toBe("coverable");
+    expect(classifyChangedPath("fixtures/guide.mdx", "A", null)).toBe("coverable");
+    expect(classifyChangedPath(".gitignore", "M", null)).toBe("inert");
+    expect(classifyChangedPath("fixtures/catalog.json", "A", null)).toBe("inert");
+    expect(classifyChangedPath("fixtures/nested/data.json", "M", null)).toBe("inert");
+    // Negatives stay unknown: peer ignores, non-fixtures JSON, mystery binaries.
+    expect(classifyChangedPath(".customignore", "M", null)).toBe("unknown");
+    expect(classifyChangedPath(".dockerignore", "M", null)).toBe("unknown");
+    expect(classifyChangedPath("config/settings.json", "A", null)).toBe("unknown");
+    expect(classifyChangedPath("packages/core/fixtures/data.json", "A", null)).toBe("unknown");
+    expect(classifyChangedPath("fixtures/data.yaml", "A", null)).toBe("unknown");
+    expect(classifyChangedPath("mystery.bin", "A", null)).toBe("unknown");
   });
 });
 
@@ -507,6 +535,56 @@ describe("evaluateCoverageApplicability", () => {
       expect(result.coverablePaths).toContain("src/app.ts");
     }
   });
+
+  it("aggregates Bun lock applicable and fixtures/.gitignore N/A (#5541)", () => {
+    const bunRoot = gitRepo({ "README.md": "# base\n" });
+    const bunBase = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: bunRoot, encoding: "utf8" })
+      .trim();
+    writeFileSync(join(bunRoot, "bun.lock"), "lock\n");
+    writeFileSync(join(bunRoot, "bun.lockb"), "binary\n");
+    mkdirSync(join(bunRoot, "docs"), { recursive: true });
+    writeFileSync(join(bunRoot, "docs/note.md"), "note\n");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: bunRoot });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "bun-locks"], { cwd: bunRoot });
+    const bunResult = evaluateCoverageApplicability(bindingFor(bunRoot, bunBase));
+    expect(bunResult.outcome).toBe("applicable");
+    if (bunResult.outcome === "applicable") {
+      expect(bunResult.coverablePaths).toEqual(expect.arrayContaining(["bun.lock", "bun.lockb"]));
+    }
+
+    const inertRoot = gitRepo({ "README.md": "# base\n" });
+    const inertBase = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: inertRoot, encoding: "utf8" })
+      .trim();
+    writeFileSync(join(inertRoot, ".gitignore"), "node_modules/\n");
+    mkdirSync(join(inertRoot, "fixtures"), { recursive: true });
+    writeFileSync(join(inertRoot, "fixtures/catalog.json"), "{}\n");
+    mkdirSync(join(inertRoot, "docs"), { recursive: true });
+    writeFileSync(join(inertRoot, "docs/design.md"), "# design\n");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: inertRoot });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "inert-ordinary"], { cwd: inertRoot });
+    const inertResult = evaluateCoverageApplicability(bindingFor(inertRoot, inertBase));
+    expect(inertResult.outcome).toBe("not-applicable");
+    if (inertResult.outcome === "not-applicable") {
+      expect(inertResult.reason).toBe(COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP);
+    }
+
+    const unknownRoot = gitRepo({ "README.md": "# base\n" });
+    const unknownBase = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: unknownRoot, encoding: "utf8" })
+      .trim();
+    mkdirSync(join(unknownRoot, "config"), { recursive: true });
+    writeFileSync(join(unknownRoot, "config/settings.json"), "{}\n");
+    writeFileSync(join(unknownRoot, ".customignore"), "tmp/\n");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: unknownRoot });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "unknown-ordinary"], {
+      cwd: unknownRoot,
+    });
+    const unknownResult = evaluateCoverageApplicability(bindingFor(unknownRoot, unknownBase));
+    expect(unknownResult.outcome).toBe("refuse");
+    if (unknownResult.outcome === "refuse") expect(unknownResult.code).toBe("unknown-path");
+  });
 });
 
 describe("isProjectDefinitionRegistryRefreshOnly", () => {
@@ -541,5 +619,523 @@ describe("isProjectDefinitionRegistryRefreshOnly", () => {
       }),
     ) as unknown;
     expect(isProjectDefinitionRegistryRefreshOnly(base, unknownItem)).toBe(false);
+  });
+});
+
+const PLAN_PATH = "xbrief/plan.xbrief.json";
+const SPEC_PATH = "xbrief/specification.xbrief.json";
+
+function closedSequenceDoc(overrides?: Record<string, unknown>): string {
+  return `${JSON.stringify(
+    {
+      sequence_id: "phase-a-publication",
+      sequence_kind: "delivery",
+      entries: [
+        { id: "parked-prefix", kind: "pr", status: "completed" },
+        { id: "pr:phase-a-refinement", kind: "pr", status: "pending" },
+      ],
+      current_index: 1,
+      batching_allowed: false,
+      continuation_past_final: false,
+      exhausted: false,
+      authorized_by: "operator",
+      created_at: "2026-10-01T00:00:00Z",
+      updated_at: "2026-10-09T00:00:00Z",
+      contract: PLAN_SEQUENCE_CONTRACT,
+      ...overrides,
+    },
+    null,
+    2,
+  )}\n`;
+}
+
+function planDoc(options: {
+  readonly updated?: string;
+  readonly interviewContinuation?: Record<string, unknown>;
+  readonly policy?: unknown;
+  readonly extraPlan?: Record<string, unknown>;
+}): string {
+  const plan: Record<string, unknown> = {
+    title: "Work plan",
+    status: "active",
+    ...(options.extraPlan ?? {}),
+  };
+  if (options.policy !== undefined) plan.policy = options.policy;
+  if (options.interviewContinuation !== undefined) {
+    plan["x-directive/interviewContinuation"] = options.interviewContinuation;
+  }
+  return `${JSON.stringify(
+    {
+      xBRIEFInfo: { version: "0.8", updated: options.updated ?? "2026-10-01T00:00:00Z" },
+      plan,
+    },
+    null,
+    2,
+  )}\n`;
+}
+
+function specDoc(options: {
+  readonly updated?: string;
+  readonly narratives?: Record<string, unknown>;
+  readonly extraPlan?: Record<string, unknown>;
+}): string {
+  const plan: Record<string, unknown> = {
+    title: "Specification",
+    status: "approved",
+    ...(options.extraPlan ?? {}),
+  };
+  if (options.narratives !== undefined) plan.narratives = options.narratives;
+  return `${JSON.stringify(
+    {
+      xBRIEFInfo: { version: "0.8", updated: options.updated ?? "2026-10-01T00:00:00Z" },
+      plan,
+    },
+    null,
+    2,
+  )}\n`;
+}
+
+describe("isClosedPlanSequenceShape (#5551)", () => {
+  it("accepts closed shape and refuses parsePlanSequence-soft malformations", () => {
+    expect(isClosedPlanSequenceShape(JSON.parse(closedSequenceDoc()))).toBe(true);
+    expect(
+      isClosedPlanSequenceShape(
+        JSON.parse(closedSequenceDoc({ sequence_kind: "not-a-kind", contract: undefined })),
+      ),
+    ).toBe(false);
+    expect(isClosedPlanSequenceShape(JSON.parse(closedSequenceDoc({ current_index: 1.5 })))).toBe(
+      false,
+    );
+    expect(
+      isClosedPlanSequenceShape(JSON.parse(closedSequenceDoc({ extra_authority: true }))),
+    ).toBe(false);
+    expect(isClosedPlanSequenceShape(JSON.parse(closedSequenceDoc({ contract: "forged" })))).toBe(
+      false,
+    );
+  });
+});
+
+describe("plan/spec closed-pointer demotion helpers (#5551)", () => {
+  it("demotes interviewContinuation allowlist and refuses policy/phase", () => {
+    const base = JSON.parse(
+      planDoc({
+        updated: "2026-10-01T00:00:00Z",
+        interviewContinuation: {
+          targetDeliverable: "phase-a",
+          reopenableDecisionSet: ["a"],
+          confirmations: [{ scope: "answer", target: "q1" }],
+          phase: "planning-draft-approved",
+        },
+      }),
+    ) as unknown;
+    const headOk = JSON.parse(
+      planDoc({
+        updated: "2026-10-09T00:00:00Z",
+        interviewContinuation: {
+          targetDeliverable: "phase-a-refinement",
+          reopenableDecisionSet: ["a", "b"],
+          confirmations: [{ scope: "artifact", target: "plan", revisionId: "r1" }],
+          phase: "planning-draft-approved",
+        },
+      }),
+    ) as unknown;
+    expect(isPlanInterviewContinuationRefreshOnly(base, headOk)).toBe(true);
+
+    const headPhase = JSON.parse(
+      planDoc({
+        updated: "2026-10-09T00:00:00Z",
+        interviewContinuation: {
+          targetDeliverable: "phase-a",
+          reopenableDecisionSet: ["a"],
+          confirmations: [{ scope: "answer", target: "q1" }],
+          phase: "correction-or-gap-review",
+        },
+      }),
+    ) as unknown;
+    expect(isPlanInterviewContinuationRefreshOnly(base, headPhase)).toBe(false);
+
+    const headPolicy = JSON.parse(
+      planDoc({
+        updated: "2026-10-09T00:00:00Z",
+        policy: { wipCap: 1 },
+        interviewContinuation: {
+          targetDeliverable: "phase-a",
+          reopenableDecisionSet: ["a"],
+          confirmations: [{ scope: "answer", target: "q1" }],
+        },
+      }),
+    ) as unknown;
+    expect(isPlanInterviewContinuationRefreshOnly(base, headPolicy)).toBe(false);
+  });
+
+  it("demotes Requirements/Design narrative strings and refuses Architecture", () => {
+    const base = JSON.parse(
+      specDoc({
+        updated: "2026-10-01T00:00:00Z",
+        narratives: { Requirements: "old", Design: "old", Architecture: "keep" },
+      }),
+    ) as unknown;
+    const headOk = JSON.parse(
+      specDoc({
+        updated: "2026-10-09T00:00:00Z",
+        narratives: { Requirements: "new", Design: "new", Architecture: "keep" },
+      }),
+    ) as unknown;
+    expect(isSpecificationNarrativeRefreshOnly(base, headOk)).toBe(true);
+
+    const headArch = JSON.parse(
+      specDoc({
+        updated: "2026-10-09T00:00:00Z",
+        narratives: { Requirements: "new", Design: "new", Architecture: "changed" },
+      }),
+    ) as unknown;
+    expect(isSpecificationNarrativeRefreshOnly(base, headArch)).toBe(false);
+  });
+
+  it("demotes first-time Requirements/Design narratives create and refuses Architecture create", () => {
+    const base = JSON.parse(specDoc({ updated: "2026-10-01T00:00:00Z" })) as unknown;
+    const headOk = JSON.parse(
+      specDoc({
+        updated: "2026-10-09T00:00:00Z",
+        narratives: { Requirements: "new", Design: "new" },
+      }),
+    ) as unknown;
+    expect(isSpecificationNarrativeRefreshOnly(base, headOk)).toBe(true);
+
+    const headArch = JSON.parse(
+      specDoc({
+        updated: "2026-10-09T00:00:00Z",
+        narratives: { Architecture: "new" },
+      }),
+    ) as unknown;
+    expect(isSpecificationNarrativeRefreshOnly(base, headArch)).toBe(false);
+
+    const headMixed = JSON.parse(
+      specDoc({
+        updated: "2026-10-09T00:00:00Z",
+        narratives: { Requirements: "new", Architecture: "new" },
+      }),
+    ) as unknown;
+    expect(isSpecificationNarrativeRefreshOnly(base, headMixed)).toBe(false);
+  });
+});
+
+describe("evaluateCoverageApplicability #5551 Prefer-A Bound", () => {
+  it("classifies closed-shape plan-sequence A/M as inert N/A (report-absent shape)", () => {
+    const root = gitRepo({ "README.md": "# base\n" });
+    const baseSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(join(root, PLAN_SEQUENCE_REL_PATH), closedSequenceDoc());
+    mkdirSync(join(root, "docs"), { recursive: true });
+    writeFileSync(join(root, "docs/note.md"), "planning\n");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: root });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "sequence-closed"], { cwd: root });
+    const result = evaluateCoverageApplicability(bindingFor(root, baseSha));
+    expect(result.outcome).toBe("not-applicable");
+    if (result.outcome === "not-applicable") {
+      expect(result.reason).toBe(COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP);
+      const seq = result.changes.find((c) => c.path === PLAN_SEQUENCE_REL_PATH);
+      expect(seq?.classification).toBe("inert");
+      expect(seq?.status).toBe("A");
+    }
+  });
+
+  it("keeps malformed sequence and approved-scope unknown", () => {
+    const malformed = evaluateCoverageApplicability(
+      {
+        projectRoot: "/tmp",
+        baseSha: "base",
+        headSha: "head",
+        treeHash: "tree",
+        requireTreeMatch: false,
+      },
+      {
+        runGit: (args) => {
+          const joined = args.join(" ");
+          if (joined.includes("name-status")) {
+            return { ok: true as const, stdout: `A\t${PLAN_SEQUENCE_REL_PATH}\n` };
+          }
+          if (joined.includes("status")) return { ok: true as const, stdout: "" };
+          if (joined.includes("show")) {
+            return {
+              ok: true as const,
+              stdout: closedSequenceDoc({ sequence_kind: "forged-kind", contract: undefined }),
+            };
+          }
+          return { ok: true as const, stdout: "base" };
+        },
+      },
+    );
+    expect(malformed.outcome).toBe("refuse");
+    if (malformed.outcome === "refuse") expect(malformed.code).toBe("unknown-path");
+
+    const approved = evaluateCoverageApplicability(
+      {
+        projectRoot: "/tmp",
+        baseSha: "base",
+        headSha: "head",
+        treeHash: "tree",
+        requireTreeMatch: false,
+      },
+      {
+        runGit: (args) => {
+          const joined = args.join(" ");
+          if (joined.includes("name-status")) {
+            return { ok: true as const, stdout: "A\t.deft/approved-scope/x.json\n" };
+          }
+          if (joined.includes("status")) return { ok: true as const, stdout: "" };
+          return { ok: true as const, stdout: "base" };
+        },
+      },
+    );
+    expect(approved.outcome).toBe("refuse");
+    if (approved.outcome === "refuse") expect(approved.code).toBe("unknown-path");
+  });
+
+  it("keeps mixed sequence plus src applicable (report-present measured path retained)", () => {
+    const root = gitRepo({ "README.md": "# base\n" });
+    const baseSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(join(root, PLAN_SEQUENCE_REL_PATH), closedSequenceDoc());
+    mkdirSync(join(root, "src"), { recursive: true });
+    writeFileSync(join(root, "src/app.ts"), "export const n = 1;\n");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: root });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "mixed-seq"], { cwd: root });
+    const result = evaluateCoverageApplicability(bindingFor(root, baseSha));
+    expect(result.outcome).toBe("applicable");
+    if (result.outcome === "applicable") {
+      expect(result.coverablePaths).toContain("src/app.ts");
+      const seq = result.changes.find((c) => c.path === PLAN_SEQUENCE_REL_PATH);
+      expect(seq?.classification).toBe("inert");
+    }
+  });
+
+  it("demotes plan/spec allowlisted M rows to N/A and keeps policy/LIVE_SETTINGS default coverable", () => {
+    const root = gitRepo({
+      "README.md": "# base\n",
+      [PLAN_PATH]: planDoc({
+        updated: "2026-10-01T00:00:00Z",
+        interviewContinuation: {
+          targetDeliverable: "old",
+          reopenableDecisionSet: [],
+          confirmations: [],
+        },
+      }),
+      [SPEC_PATH]: specDoc({
+        updated: "2026-10-01T00:00:00Z",
+        narratives: { Requirements: "old", Design: "old" },
+      }),
+    });
+    const baseSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    writeFileSync(
+      join(root, PLAN_PATH),
+      planDoc({
+        updated: "2026-10-09T00:00:00Z",
+        interviewContinuation: {
+          targetDeliverable: "new",
+          reopenableDecisionSet: ["k"],
+          confirmations: [{ scope: "answer", target: "q" }],
+        },
+      }),
+    );
+    writeFileSync(
+      join(root, SPEC_PATH),
+      specDoc({
+        updated: "2026-10-09T00:00:00Z",
+        narratives: { Requirements: "new", Design: "new" },
+      }),
+    );
+    mkdirSync(join(root, "docs"), { recursive: true });
+    writeFileSync(join(root, "docs/plan.md"), "note\n");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: root });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "plan-spec-refresh"], {
+      cwd: root,
+    });
+    const na = evaluateCoverageApplicability(bindingFor(root, baseSha));
+    expect(na.outcome).toBe("not-applicable");
+    if (na.outcome === "not-applicable") {
+      expect(na.changes.find((c) => c.path === PLAN_PATH)?.classification).toBe("inert");
+      expect(na.changes.find((c) => c.path === SPEC_PATH)?.classification).toBe("inert");
+    }
+
+    const policyRoot = gitRepo({
+      [PLAN_PATH]: planDoc({
+        updated: "2026-10-01T00:00:00Z",
+        interviewContinuation: {
+          targetDeliverable: "old",
+          reopenableDecisionSet: [],
+          confirmations: [],
+        },
+        policy: { wipCap: 20 },
+      }),
+    });
+    const policyBase = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: policyRoot, encoding: "utf8" })
+      .trim();
+    writeFileSync(
+      join(policyRoot, PLAN_PATH),
+      planDoc({
+        updated: "2026-10-09T00:00:00Z",
+        interviewContinuation: {
+          targetDeliverable: "new",
+          reopenableDecisionSet: [],
+          confirmations: [],
+        },
+        policy: { wipCap: 5 },
+      }),
+    );
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: policyRoot });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "plan-policy"], { cwd: policyRoot });
+    const policyResult = evaluateCoverageApplicability(bindingFor(policyRoot, policyBase));
+    expect(policyResult.outcome).toBe("applicable");
+  });
+
+  it("does not treat coverage inertness as membership authorization (docs contract fixture)", () => {
+    // Path A: planning package without active brief → coverage N/A; sequence never
+    // membership-freed (documented in content/docs/scope-provenance.md § Membership).
+    expect(classifyChangedPath(PLAN_SEQUENCE_REL_PATH, "A", null)).toBe("unknown");
+    expect(classifyChangedPath(".deft/approved-scope/x.json", "A", null)).toBe("unknown");
+    expect(classifyChangedPath(PLAN_PATH, "M", null)).toBe("coverable");
+    expect(classifyChangedPath(SPEC_PATH, "M", null)).toBe("coverable");
+  });
+
+  it("refuses delete/rename of plan-sequence without closed-shape A/M proof", () => {
+    const deleted = evaluateCoverageApplicability(
+      {
+        projectRoot: "/tmp",
+        baseSha: "base",
+        headSha: "head",
+        treeHash: "tree",
+        requireTreeMatch: false,
+      },
+      {
+        runGit: (args) => {
+          const joined = args.join(" ");
+          if (joined.includes("name-status")) {
+            return { ok: true as const, stdout: `D\t${PLAN_SEQUENCE_REL_PATH}\n` };
+          }
+          if (joined.includes("status")) return { ok: true as const, stdout: "" };
+          return { ok: true as const, stdout: "base" };
+        },
+      },
+    );
+    expect(deleted.outcome).toBe("refuse");
+    if (deleted.outcome === "refuse") expect(deleted.code).toBe("unknown-path");
+  });
+
+  it("demotes plan-sequence M and first-time demotion-only interviewContinuation create", () => {
+    const root = gitRepo({
+      "README.md": "# base\n",
+      [PLAN_SEQUENCE_REL_PATH]: closedSequenceDoc({ current_index: 0 }),
+      [PLAN_PATH]: planDoc({ updated: "2026-10-01T00:00:00Z" }),
+    });
+    const baseSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    writeFileSync(join(root, PLAN_SEQUENCE_REL_PATH), closedSequenceDoc({ current_index: 1 }));
+    writeFileSync(
+      join(root, PLAN_PATH),
+      planDoc({
+        updated: "2026-10-09T00:00:00Z",
+        interviewContinuation: {
+          targetDeliverable: "phase-a",
+          reopenableDecisionSet: ["a"],
+          confirmations: [],
+        },
+      }),
+    );
+    mkdirSync(join(root, "docs"), { recursive: true });
+    writeFileSync(join(root, "docs/m.md"), "m\n");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: root });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "seq-m-plan-create"], { cwd: root });
+    const result = evaluateCoverageApplicability(bindingFor(root, baseSha));
+    expect(result.outcome).toBe("not-applicable");
+    if (result.outcome === "not-applicable") {
+      expect(result.changes.find((c) => c.path === PLAN_SEQUENCE_REL_PATH)?.status).toBe("M");
+      expect(result.changes.find((c) => c.path === PLAN_PATH)?.classification).toBe("inert");
+    }
+  });
+
+  it("refuses first-time interviewContinuation create that includes phase", () => {
+    const base = JSON.parse(planDoc({ updated: "2026-10-01T00:00:00Z" })) as unknown;
+    const head = JSON.parse(
+      planDoc({
+        updated: "2026-10-09T00:00:00Z",
+        interviewContinuation: {
+          targetDeliverable: "x",
+          reopenableDecisionSet: [],
+          confirmations: [],
+          phase: "planning-draft-approved",
+        },
+      }),
+    ) as unknown;
+    expect(isPlanInterviewContinuationRefreshOnly(base, head)).toBe(false);
+  });
+
+  it("refuses non-string Design narrative and bad confirmation shapes", () => {
+    const base = JSON.parse(
+      specDoc({ updated: "2026-10-01T00:00:00Z", narratives: { Design: "old" } }),
+    ) as unknown;
+    const head = JSON.parse(
+      specDoc({
+        updated: "2026-10-09T00:00:00Z",
+        narratives: { Design: { nested: true } },
+      }),
+    ) as unknown;
+    expect(isSpecificationNarrativeRefreshOnly(base, head)).toBe(false);
+
+    const planBase = JSON.parse(
+      planDoc({
+        updated: "2026-10-01T00:00:00Z",
+        interviewContinuation: { confirmations: [{ scope: "answer", target: "q" }] },
+      }),
+    ) as unknown;
+    const planHead = JSON.parse(
+      planDoc({
+        updated: "2026-10-09T00:00:00Z",
+        interviewContinuation: { confirmations: [{ scope: "artifact" }] },
+      }),
+    ) as unknown;
+    // artifact without target+revisionId still type-checks as entry shape for demotion
+    // field validity; scope-only artifact is still an object with valid scope enum.
+    expect(isPlanInterviewContinuationRefreshOnly(planBase, planHead)).toBe(true);
+
+    const badConfirm = JSON.parse(
+      planDoc({
+        updated: "2026-10-09T00:00:00Z",
+        interviewContinuation: { confirmations: [{ scope: "nope" }] },
+      }),
+    ) as unknown;
+    expect(isPlanInterviewContinuationRefreshOnly(planBase, badConfirm)).toBe(false);
+
+    const unknownConfirmKey = JSON.parse(
+      planDoc({
+        updated: "2026-10-09T00:00:00Z",
+        interviewContinuation: {
+          confirmations: [{ scope: "answer", target: "q", extra: { nested: true } }],
+        },
+      }),
+    ) as unknown;
+    expect(isPlanInterviewContinuationRefreshOnly(planBase, unknownConfirmKey)).toBe(false);
+  });
+
+  it("exposes isCoverageHeadroomNotApplicable for closed-shape sequence N/A", () => {
+    const root = gitRepo({ "README.md": "# base\n" });
+    const baseSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(join(root, PLAN_SEQUENCE_REL_PATH), closedSequenceDoc());
+    mkdirSync(join(root, "docs"), { recursive: true });
+    writeFileSync(join(root, "docs/h.md"), "h\n");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: root });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "headroom-na"], { cwd: root });
+    expect(isCoverageHeadroomNotApplicable(bindingFor(root, baseSha))).toBe(true);
   });
 });

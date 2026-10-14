@@ -454,7 +454,9 @@ describe("pr-closeout-attestable evaluate", () => {
     const result = evaluate(root, 3786, opts(closing(3609)));
 
     expect(result.code).toBe(1);
-    expect(result.findings[0]?.unattested.map((c) => c.path)).toEqual(["items[0].subItems[0]"]);
+    expect(result.findings[0]?.unattested.map((c) => c.path)).toEqual([
+      "plan.items[0].subItems[0]",
+    ]);
   });
 });
 

@@ -1,0 +1,16 @@
+{
+  "id": "signal",
+  "title": "Signal",
+  "pitch": "A tiny CLI that prints your personal status line.",
+  "fields": {
+    "name": "Signal",
+    "contentExample": "Alex — on the bridge.",
+    "contentPrompt": "Reply with the status line Signal should print — or using the example is fine.",
+    "workSentence": "Signal prints this status line: {content}",
+    "acceptanceSentence": "running it prints exactly: {content}",
+    "ownedFiles": "signal.mjs, signal.test.mjs, and package.json",
+    "ownedFilesChange": "signal.mjs, signal.test.mjs, and the test script in package.json",
+    "testCommand": "npm test",
+    "branch": "feat/signal-prints-this-line"
+  }
+}

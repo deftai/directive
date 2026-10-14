@@ -4,13 +4,20 @@
  * Agents author Test / AcceptanceCriteria / Verification prose in narratives
  * and then skip the executable plan.acceptance block. Activation fails closed
  * with one remediation: stamp plan.acceptance via clause derivation.
+ *
+ * Prefer-A #4768 residual: active ingress (vbrief-activate writer + already-active
+ * revalidation) must land usable acceptance *text* for the DCR consumer. Commands
+ * alone do not count. This is a writer/ingress boundary fix — not an extension of
+ * transition `zeroClauseDerivationRefusal` / #4984 as the primary remedy.
  */
 
+import { applyClauseDerivationToPlan } from "../intake/clause-derivation.js";
 import { validatePlanAcceptance } from "../product-first-done-gate/acceptance.js";
 import {
   DECLARED_ACCEPTANCE_NARRATIVE_KEYS,
   formatZeroClauseAcceptanceShapedNotice,
   normalizeAcceptanceNarrativeKey,
+  readAcceptanceClauses,
 } from "../verify-ac/clauses.js";
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -28,6 +35,13 @@ export interface AcceptanceActivateGateResult {
   readonly ok: boolean;
   readonly message: string;
   readonly hits: readonly AcceptanceActivateHit[];
+}
+
+export interface ActiveIngressAcceptanceResult {
+  readonly ok: boolean;
+  readonly message: string;
+  /** True when derivation mutated plan.acceptance with usable clauses. */
+  readonly applied: boolean;
 }
 
 /** Narrative keys that look like authored acceptance (non-empty string values). */
@@ -89,4 +103,48 @@ export function evaluateAcceptanceActivateGate(
       `the criteria are in the wrong, non-executable field.`,
     hits,
   };
+}
+
+function commandCount(acceptance: unknown): number {
+  const rec = asRecord(acceptance);
+  if (rec === null || !Array.isArray(rec.commands)) {
+    return 0;
+  }
+  return rec.commands.length;
+}
+
+/**
+ * Active-ingress localization (#4768 Prefer-A): when acceptance is
+ * command-present, require usable clause text before the brief may land or
+ * remain in active/. Stated commands do not count as DCR acceptance texts.
+ * Bare / floor briefs without commands are not this residual shape — leave
+ * those to the shipped transition refuse (#4984), not this writer boundary.
+ */
+export function prepareActiveIngressAcceptance(
+  plan: Record<string, unknown>,
+  options: { readonly projectRoot: string },
+): ActiveIngressAcceptanceResult {
+  const hadCommands = commandCount(plan.acceptance) > 0;
+  if (!hadCommands) {
+    // Not the Windows command-present residual; do not widen into #4984 here.
+    return { ok: true, message: "", applied: false };
+  }
+  const derivation = applyClauseDerivationToPlan(plan, {
+    projectRoot: options.projectRoot,
+    emitStamp: false,
+  });
+  if (derivation.applied || readAcceptanceClauses(plan.acceptance).length > 0) {
+    return {
+      ok: true,
+      message: derivation.notice,
+      applied: derivation.applied,
+    };
+  }
+  const recovery =
+    "Refusing active ingress (#4768 Prefer-A): command-present / clause-text-empty " +
+    "acceptance cannot land or remain in active/ under the DCR text oracle. " +
+    "Supply list items, test: lines, or acceptance: lines (#4374), then retry. " +
+    "Stated commands alone are not acceptance texts.";
+  const message = derivation.notice.length > 0 ? `${derivation.notice}\n${recovery}` : recovery;
+  return { ok: false, message, applied: false };
 }

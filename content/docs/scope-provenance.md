@@ -49,12 +49,25 @@ When the bound story is in the change set:
 3. Free paths: bound brief, verified peer briefs, `CHANGELOG.md`, and continuity lifecycle paths of the bound identity. An xBRIEF-only change set may omit a mint.
 4. Empty / invalid / unreadable mint records fail closed (they are not absence).
 
+#### Path A planning split (#5551)
+
+When an active implementation brief is **outside** the change set, membership is a no-op for that identity (Path A). Supported planning publication is two change sets, not one:
+
+1. **PR-1 — planning package:** pending/proposed briefs, root plan/specification/PROJECT-DEFINITION companions, docs/decisions, and optional `.deft/plan-sequence.json` — with **no** active brief in the change set. Coverage may N/A after closed-shape / closed-pointer proof; membership does not bind companions to an absent active fence.
+2. **PR-2 — active lineage retarget:** the active brief alone (plus free paths such as `CHANGELOG.md`) when only lifecycle lineage refs move. No content predicate frees planning paths because the active diff is lineage-only.
+
+`.deft/plan-sequence.json` is **never** membership-freed. Coverage inertness / N/A is **not** membership authorization for sequence, plan, spec, pending briefs, production fence, intent, identity, or lifecycle checks. `authorized_by`, narrative text, and head-authored confirmations are not consent; keep `verify:plan-sequence` and spec-guard on those records.
+
+**Write-time requirements posture:** pending briefs and root plan/specification are merge-time (Path A / activation), not write-time under an active implementation fence. Do not widen write-time requirements-posture to admit them while the active story fence is live. Stale `parent_lineage` `target_path` values that still name `proposed/` after briefs move to `pending/` recover via unique-`plan.id` / documented parent_lineage resolver — not a membership exemption.
+
 ### What this remedy does not do
 
 - No pre-Wave-1 root-count refusal.
 - Protected-glob / class checks are **#4980** (not defined here).
 - Legacy `.deft/approved-scope` records may still exist for intent-pin history (#3385). Same-PR rewrite of those files with the active brief still hard-fails. Proceed does not write them for scope.
 - Does not free test/fixture roots in membership, treat glob matches as membership without a mint, or restore leave-harness proceed mint as the Path B remedy (#5192).
+- Does not add a one-PR lineage-unlock that frees planning paths from an active-brief lineage-only predicate (#5551 named residual).
+- Does not treat coverage N/A or inert classification as membership authorization (#5551).
 
 ### Path B activation vs `productPullRequest` (#5387)
 

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-10-14-5545-cohort-path-b-mint.xbrief.json",
+  "planId": "github.issue.5814948150",
+  "approvedAt": "2026-10-14T03:04:01Z",
+  "fileScope": [
+    "CHANGELOG.md",
+    "packages/core/src/scope/delivery-evidence.test.ts",
+    "packages/core/src/scope/delivery-evidence.ts",
+    "packages/core/src/swarm/finalize-cohort-cli.ts",
+    "packages/core/src/swarm/finalize-cohort.test.ts",
+    "packages/core/src/swarm/finalize-cohort.ts",
+    "packages/core/src/swarm/finalize-owed-cli.ts",
+    "packages/core/src/swarm/finalize-owed.test.ts",
+    "packages/core/src/swarm/finalize-owed.ts",
+    "packages/core/src/swarm/origin-active-brief.test.ts",
+    "packages/core/src/swarm/origin-active-brief.ts"
+  ],
+  "fileScopeDigest": "195e7615ef10138a43e59e600ec326b64cf100f65ac8b356f4ca3cc566fe16d5",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-10-14T03:04:01Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "15b58b0912bacc11f688db3dd0b0612a7574fb4da0f6aca3fadfeb8df4a0f817",
+  "digestAlgo": "intent-extract-v1"
+}

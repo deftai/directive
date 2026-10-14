@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "algo": "intent-extract-v1",
+  "plan": {
+    "id": "github.issue.5841024431",
+    "title": "Path B mint #5574 intent-constraint invariant-throw posture",
+    "references": [
+      {
+        "type": "x-xbrief/github-issue",
+        "uri": "https://github.com/deftai/directive/issues/5574"
+      }
+    ],
+    "metadata": {
+      "x-directive/plan-id": "github.issue.5841024431",
+      "swarm": {
+        "file_scope": [
+          "content/docs/intent-constraint.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-build/SKILL.md",
+          "content/templates/agent-prompt-preamble.md",
+          "content/skills/deft-directive-swarm/references/core-phase-0.md",
+          "packages/core/src/intent-constraint/types.ts",
+          "packages/core/src/intent-constraint/placement.test.ts",
+          "packages/core/src/intent-constraint/types.test.ts",
+          "CHANGELOG.md"
+        ]
+      },
+      "intended_placement": {
+        "files": [
+          "content/docs/intent-constraint.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-build/SKILL.md",
+          "content/templates/agent-prompt-preamble.md",
+          "content/skills/deft-directive-swarm/references/core-phase-0.md",
+          "packages/core/src/intent-constraint/types.ts",
+          "packages/core/src/intent-constraint/placement.test.ts",
+          "packages/core/src/intent-constraint/types.test.ts",
+          "CHANGELOG.md"
+        ],
+        "cohesion_exemption": "CHANGELOG.md Unreleased Keep note for Path B mint",
+        "module_boundary": "Prefer-A Bound 6159841941 intent-constraint invariant throw+mint posture"
+      }
+    },
+    "acceptance": {
+      "source_rung": "derived",
+      "clauses": [],
+      "commands": [],
+      "none_stated": true
+    }
+  },
+  "approvedRepos": [
+    "deftai/directive"
+  ],
+  "unknownPaths": [
+    "metadata.intended_placement",
+    "metadata.x-directive/plan-id"
+  ]
+}

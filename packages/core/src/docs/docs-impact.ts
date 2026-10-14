@@ -492,8 +492,6 @@ export function parseDocsImpactArgs(argv: readonly string[]): DocsImpactArgs {
     } else if (arg?.startsWith("--base-ref=")) {
       baseRef = arg.slice("--base-ref=".length);
     } else if (arg === "--") {
-      // Same end-of-options skip as scope/main.ts / xbrief parsers (#5391).
-      continue;
     } else if (arg?.startsWith("-")) {
       return emptyArgs(`unrecognized arguments: ${arg}`);
     }

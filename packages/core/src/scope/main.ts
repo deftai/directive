@@ -99,7 +99,7 @@ const LIFECYCLE_USAGE_STDERR =
   "The verb already encodes the action (e.g. deft scope:promote <file>). Do not pass the action again.\n" +
   "(promote --batch may omit file and promotes all proposed/ scopes; #3011)\n" +
   "(promote --from-issue=N may omit file; #1136)\n" +
-  "(complete --merge-commit / --pr are required for code-bearing delivery evidence; #3041 / #3721)\n";
+  "(complete auto-discovers delivery evidence from productPullRequest or a singleton closing PR when --pr/--merge-commit are omitted; #3041 / #3583)\n";
 
 function parseLifecycleArgv(argv: string[]): { args: LifecycleArgs | null; error?: string } {
   if (argv.length < 1) {

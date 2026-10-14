@@ -64,4 +64,40 @@ describe("origin-active-brief (#4714 R2)", () => {
     expect(result.present).toBe(false);
     expect(result.error).toContain("git fetch origin master failed");
   });
+
+  it("refuses hostile branch names before spawn and uses trackingFetchArgv (#5545)", () => {
+    const calls: string[][] = [];
+    const runGit = (cmd: readonly string[]): TextCaptureResult => {
+      calls.push([...cmd]);
+      return { returncode: 0, stdout: "blob\n", stderr: "" };
+    };
+    for (const hostile of ["--upload-pack=evil", "attacker:master", "-x", "a..b", " ", ""]) {
+      calls.length = 0;
+      const result = originActiveBriefPresent("/tmp/proj", hostile, "xbrief/active/a.json", runGit);
+      expect(result.present).toBe(false);
+      expect(result.error).toMatch(/Invalid|must match/i);
+      expect(calls).toHaveLength(0);
+    }
+    calls.length = 0;
+    const ok = originActiveBriefPresent(
+      "/tmp/proj",
+      "release/1.0",
+      "xbrief/active/a.json",
+      (cmd) => {
+        calls.push([...cmd]);
+        if (cmd[1] === "fetch") return { returncode: 0, stdout: "", stderr: "" };
+        if (cmd[1] === "cat-file") return { returncode: 0, stdout: "blob\n", stderr: "" };
+        return { returncode: 1, stdout: "", stderr: "unexpected" };
+      },
+    );
+    expect(ok.present).toBe(true);
+    expect(calls[0]).toEqual([
+      "git",
+      "fetch",
+      "origin",
+      "--",
+      "refs/heads/release/1.0:refs/remotes/origin/release/1.0",
+    ]);
+    expect(calls[1]?.[3]).toBe("origin/release/1.0:xbrief/active/a.json");
+  });
 });

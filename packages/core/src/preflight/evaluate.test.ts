@@ -586,12 +586,13 @@ describe("origin-freshness recovery (#3828)", () => {
     expect(reject.exitCode).toBe(1);
     expect(reject.message).toContain("newer than this xBRIEF");
 
-    // The withdrawn advice must be absent, and it must be absent for a reason:
-    // `activate` hard-errors from the state this reject is printed in.
+    // The withdrawn advice must stay absent: already-active activate is an
+    // ingress revalidation / no-op (#4768), not an origin-freshness restamp.
+    // Recovery remains block/unblock (#3857), not scope:activate.
     expect(reject.message).not.toContain("scope:activate");
     expect(runTransition("activate", path)).toMatchObject({
-      ok: false,
-      message: expect.stringContaining("requires file in pending/"),
+      ok: true,
+      message: expect.stringMatching(/No-op:.*already in active/),
     });
 
     // The printed advice must succeed from that same state and clear the reject.

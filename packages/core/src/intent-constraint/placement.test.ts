@@ -32,6 +32,10 @@ describe("intent-constraint authorship placement (#4587 / #5010)", () => {
       /Tests and in-scope file paths are not authority/,
     );
     expect(INTENT_CONSTRAINT_REMEDIATION).toContain("scope:record-intent-constraint");
+    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(
+      /Classify the condition|invariant \/ corruption \/ impossible-if-healthy/,
+    );
+    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/rewrite solely to clear the gate is forbidden/);
     const named = remedyForGate("verify:intent-constraint", "no merge-base mint");
     expect(named).toMatch(/parent chat|in-harness-ask/);
     expect(named).toMatch(/rewrite or park/);
@@ -42,6 +46,9 @@ describe("intent-constraint authorship placement (#4587 / #5010)", () => {
     expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/Unattended\/C1/);
     expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/rewrite or park/);
     expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/do not ask an empty room/);
+    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(
+      /park pending a human mint|do not soften\/remove that failure solely to clear the gate/,
+    );
     expect(INTENT_CONSTRAINT_REMEDIATION).not.toMatch(/--actor/);
     expect(INTENT_CONSTRAINT_REMEDIATION).not.toMatch(/--confirm/);
     expect(INTENT_CONSTRAINT_REMEDIATION).not.toMatch(/<xbrief/);
@@ -84,5 +91,19 @@ describe("intent-constraint authorship placement (#4587 / #5010)", () => {
     );
     expect(build).toMatch(/rewrite or park|legacy repair only/);
     expect(build).toMatch(/Paste a mint argv/);
+    expect(docs).toMatch(/Failure-handling split|#5574 Prefer-A/);
+    expect(docs).toMatch(/impossible-if-healthy/);
+    expect(docs).toMatch(/returned-failure|operational deny|missing grant/);
+    expect(docs).toMatch(/park pending a human mint|unattended.*park|must park/);
+    expect(docs).toMatch(/FACT_KINDS|numeric-const/);
+    expect(preamble).toMatch(/impossible-if-healthy/);
+    expect(preamble).toMatch(/returned-failure|operational deny/);
+    expect(preamble).toMatch(/park pending a human mint|unattended\/C1.*park|park pending/);
+    expect(phase0).toMatch(/impossible-if-healthy/);
+    expect(phase0).toMatch(/returned-failure|operational deny/);
+    expect(phase0).toMatch(/park pending|do not soften/);
+    expect(build).toMatch(/impossible-if-healthy/);
+    expect(build).toMatch(/returned-failure|operational deny/);
+    expect(build).toMatch(/park pending a human mint|must park|do not soften/);
   });
 });

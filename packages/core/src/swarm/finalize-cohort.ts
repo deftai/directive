@@ -10,7 +10,13 @@ import {
   productPullRequestFromPlan,
   stampProductPullRequestOntoPlan,
 } from "../orphan-active/running-briefs.js";
-import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
+import {
+  assertSafeBranchName,
+  FIELD_DELIVERY_BRANCH,
+  isSafeBranchName,
+  resolveDeliveryBranch,
+  trackingFetchArgv,
+} from "../policy/delivery-branch.js";
 import { policyColonInvocation } from "../policy/policy-invocation.js";
 import {
   ENV_ALLOW_BOT_MERGE,
@@ -554,7 +560,11 @@ function listLandedCompletedRelpaths(
   deliveryBranch: string,
   runGit: typeof runText,
 ): { names: Set<string>; error: string | null } {
-  const fetch = runGit(["git", "fetch", "origin", deliveryBranch], { cwd: projectRoot });
+  const fetchArgv = trackingFetchArgv("origin", deliveryBranch);
+  if (!fetchArgv.ok) {
+    return { names: new Set(), error: fetchArgv.error };
+  }
+  const fetch = runGit(["git", ...fetchArgv.argv], { cwd: projectRoot });
   if (fetch.returncode !== 0) {
     return {
       names: new Set(),
@@ -912,7 +922,11 @@ function syncBaseBranch(
   baseBranch: string,
   runGit: typeof runText,
 ): { ok: boolean; error: string | null } {
-  const fetch = runGit(["git", "fetch", "origin", baseBranch], { cwd: projectRoot });
+  const fetchArgv = trackingFetchArgv("origin", baseBranch);
+  if (!fetchArgv.ok) {
+    return { ok: false, error: fetchArgv.error };
+  }
+  const fetch = runGit(["git", ...fetchArgv.argv], { cwd: projectRoot });
   if (fetch.returncode !== 0) {
     return {
       ok: false,
@@ -1210,7 +1224,11 @@ function prepareLifecycleCheckout(
   deliveryBranch: string,
   runGit: typeof runText,
 ): { ok: true; checkout: string; parent: string } | { ok: false; error: string } {
-  const fetch = runGit(["git", "fetch", "origin", deliveryBranch], { cwd: projectRoot });
+  const fetchArgv = trackingFetchArgv("origin", deliveryBranch);
+  if (!fetchArgv.ok) {
+    return { ok: false, error: `${fetchArgv.error} The implement worktree was not updated.` };
+  }
+  const fetch = runGit(["git", ...fetchArgv.argv], { cwd: projectRoot });
   if (fetch.returncode !== 0) {
     return {
       ok: false,
@@ -1505,12 +1523,63 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
   // plan.policy.deliveryBranch (or git default) is SoT. CLI may only fill when policy is
   // not typed — never redefine a typed delivery branch to an integration target (#3041).
   const policyDelivery = resolveDeliveryBranch(projectRoot, gitRunner);
-  const cliDelivery =
-    args.deliveryBranch !== null &&
-    args.deliveryBranch !== undefined &&
-    args.deliveryBranch.trim().length > 0
-      ? args.deliveryBranch.trim()
-      : null;
+  // Prefer-A #5545 limb 2: gate present CLI overrides before trim/fallback.
+  let cliDelivery: string | null = null;
+  if (args.deliveryBranch !== null && args.deliveryBranch !== undefined) {
+    const checked = assertSafeBranchName(args.deliveryBranch, "--delivery-branch");
+    if (!checked.ok) {
+      return buildResponse({
+        projectRoot,
+        dryRun,
+        noCommit,
+        prNumbers,
+        storyPaths: [],
+        closingIssues: [],
+        sweep: null,
+        commitSha: null,
+        branch: null,
+        prUrl: null,
+        deliveryBranch: "",
+        sweepBase: "",
+        deliveryErrors: [],
+        errors: [checked.error],
+        warnings: [],
+        pending: null,
+        ok: false,
+        emitJson: args.emitJson ?? false,
+        exitCode: EXIT_CONFIG_ERROR,
+      });
+    }
+    cliDelivery = checked.branch;
+  }
+  let explicitSweepBase: string | null = null;
+  if (args.baseBranch !== undefined && args.baseBranch !== null) {
+    const checked = assertSafeBranchName(args.baseBranch, "--base-branch");
+    if (!checked.ok) {
+      return buildResponse({
+        projectRoot,
+        dryRun,
+        noCommit,
+        prNumbers,
+        storyPaths: [],
+        closingIssues: [],
+        sweep: null,
+        commitSha: null,
+        branch: null,
+        prUrl: null,
+        deliveryBranch: cliDelivery ?? policyDelivery.branch,
+        sweepBase: "",
+        deliveryErrors: [],
+        errors: [checked.error],
+        warnings: [],
+        pending: null,
+        ok: false,
+        emitJson: args.emitJson ?? false,
+        exitCode: EXIT_CONFIG_ERROR,
+      });
+    }
+    explicitSweepBase = checked.branch;
+  }
   if (cliDelivery !== null && cliDelivery !== policyDelivery.branch) {
     if (policyDelivery.source === "typed") {
       errors.push(
@@ -1519,16 +1588,65 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       );
     }
   }
-  const deliveryBranch =
+  // Prefer-A #5545 limb 1: refuse empty/unsafe resolver before side effects.
+  // Untyped valid CLI override may still fill; typed empty/unsafe always refuses.
+  const needsPolicyBranch = policyDelivery.source === "typed" || cliDelivery === null;
+  if (needsPolicyBranch && policyDelivery.error !== null) {
+    if (policyDelivery.branch.length === 0 || !isSafeBranchName(policyDelivery.branch)) {
+      return buildResponse({
+        projectRoot,
+        dryRun,
+        noCommit,
+        prNumbers,
+        storyPaths: [],
+        closingIssues: [],
+        sweep: null,
+        commitSha: null,
+        branch: null,
+        prUrl: null,
+        deliveryBranch: policyDelivery.branch,
+        sweepBase: explicitSweepBase ?? policyDelivery.branch,
+        deliveryErrors: [],
+        errors: [policyDelivery.error],
+        warnings: [],
+        pending: null,
+        ok: false,
+        emitJson: args.emitJson ?? false,
+        exitCode: EXIT_CONFIG_ERROR,
+      });
+    }
+  }
+  const deliveryBranchRaw =
     policyDelivery.source === "typed"
       ? policyDelivery.branch
       : (cliDelivery ?? policyDelivery.branch);
+  const deliveryChecked = assertSafeBranchName(deliveryBranchRaw, FIELD_DELIVERY_BRANCH);
+  if (!deliveryChecked.ok) {
+    return buildResponse({
+      projectRoot,
+      dryRun,
+      noCommit,
+      prNumbers,
+      storyPaths: [],
+      closingIssues: [],
+      sweep: null,
+      commitSha: null,
+      branch: null,
+      prUrl: null,
+      deliveryBranch: deliveryBranchRaw,
+      sweepBase: explicitSweepBase ?? deliveryBranchRaw,
+      deliveryErrors: [],
+      errors: [deliveryChecked.error],
+      warnings: [],
+      pending: null,
+      ok: false,
+      emitJson: args.emitJson ?? false,
+      exitCode: EXIT_CONFIG_ERROR,
+    });
+  }
+  const deliveryBranch = deliveryChecked.branch;
   // Sweep/PR base is distinct from delivery proof (#3041). Default via the resolved
   // delivery branch — never a hardcoded "master". --base-branch remains the override.
-  const explicitSweepBase =
-    args.baseBranch !== undefined && args.baseBranch !== null && args.baseBranch.trim().length > 0
-      ? args.baseBranch.trim()
-      : null;
   const baseBranch = explicitSweepBase ?? deliveryBranch;
   const alternateBase =
     explicitSweepBase !== null && explicitSweepBase !== deliveryBranch ? explicitSweepBase : null;

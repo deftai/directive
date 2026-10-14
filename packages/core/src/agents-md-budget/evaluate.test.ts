@@ -511,7 +511,7 @@ description: ${description}
       expect("error" in bootstrap).toBe(false);
       if ("error" in bootstrap) return;
       expect(bootstrap.skillFrontmatter.tier).toBe("daily-core");
-      expect(bootstrap.skillFrontmatter.skillCount).toBe(6);
+      expect(bootstrap.skillFrontmatter.skillCount).toBe(7);
     } finally {
       if (prev === undefined) delete process.env.DEFT_AGENTS_MD_BUDGET_SKILL_TIER;
       else process.env.DEFT_AGENTS_MD_BUDGET_SKILL_TIER = prev;

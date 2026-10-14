@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-10-13-5541-framework-gap-blocker-latest-directive-blocks-fresh-bun-cons.xbrief.json",
+  "planId": "github.issue.5789093473",
+  "approvedAt": "2026-10-13T19:00:20Z",
+  "fileScope": [
+    "CHANGELOG.md",
+    "packages/core/src/coverage-applicability/evaluate.test.ts",
+    "packages/core/src/coverage-applicability/evaluate.ts",
+    "packages/core/src/coverage-applicability/index.test.ts",
+    "packages/core/src/coverage-applicability/index.ts"
+  ],
+  "fileScopeDigest": "5cf5a9a1818199a15630de38dbb354c4409826c328a77ab13ec5b799b7696b8e",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-10-13T19:00:20Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "86bc4afecfc565550341847d328a5939fd3e5cf3935c6da04a790d8ebed5b3ee",
+  "digestAlgo": "intent-extract-v1"
+}

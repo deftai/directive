@@ -6,13 +6,14 @@
     "opencode"
   ],
   "defaultInstallTier": "daily-core",
-  "dailyCoreFrontmatterBudgetBytes": 2080,
+  "dailyCoreFrontmatterBudgetBytes": 2337,
   "tiers": {
     "daily-core": {
       "description": "Always-on entrypoints — orient, configure, scope, build, review (spike #2370 prototype).",
       "skills": [
         "deft-directive-setup",
         "deft-directive-sync",
+        "deft-directive-tutorial",
         "deft-directive-build",
         "deft-directive-pre-pr",
         "deft-directive-review-cycle",

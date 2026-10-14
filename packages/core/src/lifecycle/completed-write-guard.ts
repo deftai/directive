@@ -15,15 +15,22 @@
  * transitionWriteFitsFolder accepts completed (#4906). Merge-base presence
  * alone does not. A committed edit the worktree restores to the merge-base
  * blob does not. A D or R of that completed path does not.
+ * Restamp/mod revalidation of delivery provenance stays #4906 residual —
+ * first-ship #5602 closes new adds only.
  *
- * Present typed dispositions on new completed/ adds and mods are parsed with
- * acceptance-evidence parseDisposition / isHumanOrigin (#3819). Bare-string
- * provenance shapes are refused. Missing disposition records are not required.
- * Historical corpus at the merge base is not re-audited.
+ * Two disposition surfaces on completed/ lands (do not conflate):
+ * - acceptance-item `#3819` parseDisposition / isHumanOrigin on plan.items
+ * - delivery `plan.metadata.completionProvenance.disposition` via
+ *   evaluateStoredCompletionProvenanceForWriteGuard (#5602)
+ *
+ * New completed/ adds also require evaluateCompletedPlanConsistency green and
+ * refuse informal productMerge/productPr stamps. Code-bearing adds need an
+ * eligible writer disposition + evidence fields; non-code may omit delivery
+ * provenance. Missing acceptance-item disposition records are not required.
+ * Historical corpus at the merge base is not re-audited (doctor advisory).
  *
  * Historical corpus is advisory (doctor). New work in the change set is hard
- * (verify:completed-write-guard). Does not read completionProvenance and does
- * not change verify:completed-tracked.
+ * (verify:completed-write-guard). Does not change verify:completed-tracked.
  *
  * Disk reads are capped at COMPLETED_WRITE_GUARD_MAX_BYTES so a huge
  * contributor-controlled completed/ blob fails through the guard instead of
@@ -40,6 +47,7 @@ import {
   MIGRATED_ARTIFACT_DIR,
 } from "../layout/resolve.js";
 import { parseDisposition, readNamespacedAcceptanceFields } from "../scope/acceptance-evidence.js";
+import { evaluateStoredCompletionProvenanceForWriteGuard } from "../scope/delivery-evidence.js";
 import {
   hasTransitionWrite,
   LEFTOVER_LAND_PR_REMEDIATION,
@@ -48,6 +56,7 @@ import {
 import { resolveDefaultBaseRef, unquoteGitPath } from "../scope-provenance/evaluate.js";
 import { CACHE_DIR_NAME, CACHE_SOURCE_GITHUB_ISSUE } from "../triage/queue/constants.js";
 import { parseGithubIssueUri } from "../triage/reconcile/parse-uri.js";
+import { evaluateCompletedPlanConsistency } from "./completed-consistency.js";
 
 export type CompletedWriteGuardCode = 0 | 1 | 2;
 
@@ -837,9 +846,32 @@ export function evaluateCompletedWriteGuard(
       });
       continue;
     }
+    // Acceptance-item disposition surface (#3819) — not delivery provenance.
     const dispositionFinding = dispositionFindingForCompletedPlan(plan, rel);
     if (dispositionFinding !== null) {
       findings.push(dispositionFinding);
+      continue;
+    }
+    // Prefer-A leftover-complete (#5602): consistency + informal refuse +
+    // code-bearing delivery contract on NEW adds only (#4906 restamp residual).
+    const consistency = evaluateCompletedPlanConsistency(plan, { relPath: rel });
+    if (!consistency.ok) {
+      const first = consistency.findings[0];
+      findings.push({
+        relPath: rel,
+        detail: sanitizeDetail(
+          first?.detail ??
+            `${rel}: evaluateCompletedPlanConsistency failed on completed/ add (#5602)`,
+        ),
+      });
+      continue;
+    }
+    const storedProv = evaluateStoredCompletionProvenanceForWriteGuard(plan);
+    if (!storedProv.ok) {
+      findings.push({
+        relPath: rel,
+        detail: sanitizeDetail(`${rel}: ${storedProv.detail}`),
+      });
       continue;
     }
     rememberDest(rel, plan);

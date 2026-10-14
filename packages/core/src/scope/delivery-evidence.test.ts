@@ -3,16 +3,26 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { mintOnePrUnitGrant } from "../one-pr-unit/mint.js";
+import { getDefaultAppStore } from "../one-pr-unit/simulator.js";
+import type { RunGhFn } from "../pr-protected-issues/types.js";
 import type { GitRunner } from "../session/git.js";
 import {
   classifyStoredDeliveryDisposition,
   defaultFetchClosingIssueIds,
+  defaultFetchClosingPrRefs,
   defaultFetchPrPayload,
+  discoverDeliveryEvidenceForComplete,
   evaluateDeliveryGate,
+  evaluateStoredCompletionProvenanceForWriteGuard,
   type FetchClosingIssueIdsFn,
+  type FetchClosingPrRefsFn,
   type FetchPrPayloadFn,
+  hasExplicitDeliverySelectors,
   isCodeBearingScope,
+  isEligibleStoredDeliveryDisposition,
   NON_DELIVERY_DISPOSITIONS,
+  refreshRemoteDeliveryRef,
   resolveCompletionSessionId,
   resolvePlanGithubIssueRef,
   verifyStoryPrMergeIdentity,
@@ -189,13 +199,107 @@ describe("delivery evidence (#3041)", () => {
     ).toBe("delivered");
   });
 
+  it("write-guard helper refuses informal keys and validates eligible dispositions (#5602)", () => {
+    const informal = evaluateStoredCompletionProvenanceForWriteGuard({
+      metadata: {
+        completionProvenance: { productMerge: "abc", productPr: 1 },
+      },
+    });
+    expect(informal.ok).toBe(false);
+    if (!informal.ok) {
+      expect(informal.detail).toMatch(/productMerge|productPr/);
+    }
+
+    const nonCode = evaluateStoredCompletionProvenanceForWriteGuard({
+      tags: ["docs-only"],
+      metadata: { kind: "docs", completedAt: "2026-10-14T00:00:00Z" },
+    });
+    expect(nonCode.ok).toBe(true);
+
+    const codeMissing = evaluateStoredCompletionProvenanceForWriteGuard({
+      references: [
+        { type: "x-xbrief/github-issue", uri: "https://github.com/deftai/directive/issues/1" },
+      ],
+      metadata: { completedAt: "2026-10-14T00:00:00Z" },
+    });
+    expect(codeMissing.ok).toBe(false);
+
+    // Failed gate outcomes are not eligible writer success stamps (#5602 P1).
+    expect(isEligibleStoredDeliveryDisposition("not_delivered")).toBe(false);
+    expect(isEligibleStoredDeliveryDisposition("merged_to_integration")).toBe(false);
+    expect(isEligibleStoredDeliveryDisposition("delivered")).toBe(true);
+    expect(isEligibleStoredDeliveryDisposition("accepted_not_delivered")).toBe(true);
+
+    // Classifier still cast-throughs arbitrary strings; write-guard does not.
+    expect(
+      classifyStoredDeliveryDisposition({
+        metadata: { completionProvenance: { disposition: "shipped-somehow" } },
+      }),
+    ).toBe("shipped-somehow");
+    const castThrough = evaluateStoredCompletionProvenanceForWriteGuard({
+      references: [
+        { type: "x-xbrief/github-issue", uri: "https://github.com/deftai/directive/issues/1" },
+      ],
+      metadata: {
+        completionProvenance: {
+          disposition: "shipped-somehow",
+          verifiedAt: "2026-10-14T00:00:00Z",
+          verifier: "t",
+          deliveryBranch: "master",
+          mergeCommit: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          deliveryCommit: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        },
+      },
+    });
+    expect(castThrough.ok).toBe(false);
+  });
+
+  it("write-guard exempts code-bearing scope:fail without completionProvenance (#5602)", () => {
+    const failed = evaluateStoredCompletionProvenanceForWriteGuard({
+      status: "failed",
+      references: [
+        {
+          type: "x-xbrief/github-issue",
+          uri: "https://github.com/deftai/directive/issues/5602",
+        },
+      ],
+      metadata: {
+        lifecycleWrite: { action: "fail", writtenAt: "2026-10-14T15:00:00Z" },
+      },
+    });
+    expect(failed.ok).toBe(true);
+  });
+
+  it("write-guard refuses completed status with fail stamp and no provenance (#5602)", () => {
+    const mismatched = evaluateStoredCompletionProvenanceForWriteGuard({
+      status: "completed",
+      references: [
+        {
+          type: "x-xbrief/github-issue",
+          uri: "https://github.com/deftai/directive/issues/5602",
+        },
+      ],
+      metadata: {
+        lifecycleWrite: { action: "fail", writtenAt: "2026-10-14T15:00:00Z" },
+      },
+    });
+    expect(mismatched.ok).toBe(false);
+    if (!mismatched.ok) {
+      expect(mismatched.detail).toMatch(/missing completionProvenance/);
+    }
+  });
+
   it("fails closed on code-bearing complete without evidence", () => {
     root = makeRepo();
     const file = writeCodeBearing(root);
-    const result = runTransition("complete", file, new Date(), { runGit: gitOk() });
+    const result = runTransition("complete", file, new Date(), {
+      runGit: gitOk(),
+      // Offline: empty complete closing set (no productPullRequest) (#3583).
+      fetchClosingPrRefs: () => ({ ok: true, refs: [] }),
+    });
     expect(result.ok).toBe(false);
-    expect(result.message).toMatch(/Delivery evidence required|#3041/);
-    expect(result.message).toMatch(/--merge-commit/);
+    expect(result.message).toMatch(/Delivery auto-discovery found zero|#3041|#3583/);
+    expect(result.message).toMatch(/--merge-commit|productPullRequest/);
     expect(result.message).toMatch(/policy:show --field=deliveryBranch/);
     expect(result.message).toMatch(/Do not use --non-delivery for work that shipped/);
     expect(readFileSync(file, "utf8")).toContain("running");
@@ -568,6 +672,21 @@ describe("delivery evidence (#3041)", () => {
     expect(evidence.prBase).toBe("master");
     expect(evidence.mergeCommit).toBe("merge1");
     expect(evidence.implementationCommit).toBe("head1");
+    expect(evidence.verifier).toBe("swarm:finalize-cohort");
+
+    const completeAttr = evidenceFromPrPayload(
+      {
+        merged_at: "2026-08-02T11:00:00Z",
+        base: { ref: "master" },
+        head: { sha: "head1" },
+        merge_commit_sha: "merge1",
+      },
+      5,
+      "o/r",
+      "master",
+      "scope:complete",
+    );
+    expect(completeAttr.verifier).toBe("scope:complete");
 
     const nullMerged = evidenceFromPrPayload(
       { merged_at: null, base: {}, head: {}, merge_commit_sha: "" },
@@ -576,6 +695,7 @@ describe("delivery evidence (#3041)", () => {
     );
     expect(nullMerged.mergedAt).toBeNull();
     expect(nullMerged.mergeCommit).toBeNull();
+    expect(nullMerged.verifier).toBe("swarm:finalize-cohort");
 
     const failTip: GitRunner = (_r, args) => {
       const j = args.join(" ");
@@ -1110,5 +1230,421 @@ describe("delivery evidence (#3041)", () => {
         ],
       }),
     ).toEqual({ repository: "deftai/directive", issueNumber: 99 });
+  });
+});
+
+describe("delivery-evidence AppSec fetch gate (#5545)", () => {
+  it("refreshRemoteDeliveryRef refuses hostile names before spawn and uses tracking argv", () => {
+    const calls: string[][] = [];
+    const runGit: GitRunner = (_cwd, args) => {
+      calls.push([...args]);
+      return { code: 0, stdout: "abc\n", stderr: "" };
+    };
+    for (const hostile of ["--upload-pack=evil", "attacker:main", "-x", "a..b", " ", ""]) {
+      calls.length = 0;
+      const result = refreshRemoteDeliveryRef("/tmp", hostile, runGit);
+      expect(result.ok).toBe(false);
+      expect(result.error).toMatch(/Invalid|must match/i);
+      expect(calls).toHaveLength(0);
+    }
+    calls.length = 0;
+    const ok = refreshRemoteDeliveryRef("/tmp", "release/1.0", runGit);
+    expect(ok.ok).toBe(true);
+    expect(calls[0]).toEqual([
+      "fetch",
+      "origin",
+      "--",
+      "refs/heads/release/1.0:refs/remotes/origin/release/1.0",
+    ]);
+    expect(calls[1]).toEqual(["rev-parse", "--verify", "origin/release/1.0"]);
+  });
+
+  it("evaluateDeliveryGate refuses empty/unsafe resolved delivery before assumeEvidenceValidated", () => {
+    const root = makeRepo();
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          title: "P",
+          status: "running",
+          policy: { deliveryBranch: "--upload-pack=x", wipCap: 20 },
+        },
+      }),
+      "utf8",
+    );
+    try {
+      const gate = evaluateDeliveryGate({
+        projectRoot: root,
+        plan: {
+          references: [
+            { type: "x-xbrief/github-issue", uri: "https://github.com/deftai/directive/issues/1" },
+          ],
+        },
+        evidence: {
+          prNumber: 1,
+          mergeCommit: "abc",
+          mergedAt: "2026-08-02T11:00:00Z",
+          deliveryBranch: "--upload-pack=x",
+        },
+        assumeEvidenceValidated: true,
+        fetchPrPayload: () => ({
+          merged_at: "2026-08-02T11:00:00Z",
+          merge_commit_sha: "abc",
+          base: { ref: "master" },
+          head: { sha: "h" },
+        }),
+        fetchClosingIssueIds: () => [1],
+        runGit: () => ({ code: 0, stdout: "", stderr: "" }),
+      });
+      expect(gate.ok).toBe(false);
+      expect(gate.message).toMatch(/Invalid plan\.policy\.deliveryBranch|--upload-pack/i);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("delivery evidence auto-discovery (#3583)", () => {
+  let root = "";
+  afterEach(() => {
+    if (root.length > 0) {
+      rmSync(root, { recursive: true, force: true });
+      root = "";
+    }
+  });
+
+  function stampProductPr(file: string, prNumber: number): void {
+    const data = JSON.parse(readFileSync(file, "utf8")) as {
+      plan: { metadata: Record<string, unknown> };
+    };
+    data.plan.metadata.productPullRequest = prNumber;
+    writeFileSync(file, JSON.stringify(data), "utf8");
+  }
+
+  it("hasExplicitDeliverySelectors triggers on --pr or --merge-commit only", () => {
+    expect(hasExplicitDeliverySelectors(undefined)).toBe(false);
+    expect(hasExplicitDeliverySelectors({})).toBe(false);
+    expect(hasExplicitDeliverySelectors({ deliveryBranch: "master" })).toBe(false);
+    expect(hasExplicitDeliverySelectors({ prNumber: 9 })).toBe(true);
+    expect(hasExplicitDeliverySelectors({ mergeCommit: "abc" })).toBe(true);
+  });
+
+  it("auto-discovers from productPullRequest with scope:complete verifier", () => {
+    root = makeRepo();
+    const file = writeCodeBearing(root);
+    stampProductPr(file, 42);
+    const identity = identityOk();
+    const result = runTransition("complete", file, new Date("2026-08-02T12:00:00Z"), {
+      runGit: gitOk(),
+      ...identity,
+      fetchClosingPrRefs: () => {
+        throw new Error("must not open multi-PR search when productPullRequest is stamped");
+      },
+    });
+    expect(result.ok).toBe(true);
+    const dest = join(root, "xbrief", "completed", "story.xbrief.json");
+    const data = JSON.parse(readFileSync(dest, "utf8")) as {
+      plan: {
+        metadata: {
+          completionProvenance: {
+            disposition: string;
+            prNumber: number;
+            mergeCommit: string;
+            verifier: string;
+          };
+        };
+      };
+    };
+    expect(data.plan.metadata.completionProvenance.disposition).toBe("delivered");
+    expect(data.plan.metadata.completionProvenance.prNumber).toBe(42);
+    expect(data.plan.metadata.completionProvenance.mergeCommit).toBe("mergecommitsha");
+    expect(data.plan.metadata.completionProvenance.verifier).toBe("scope:complete");
+  });
+
+  it("skips discovery when explicit --pr is supplied", () => {
+    root = makeRepo();
+    const file = writeCodeBearing(root);
+    stampProductPr(file, 99);
+    const identity = identityOk({ prNumber: 42 });
+    let closingCalls = 0;
+    const result = runTransition("complete", file, new Date("2026-08-02T12:00:00Z"), {
+      runGit: gitOk(),
+      ...identity,
+      fetchClosingPrRefs: () => {
+        closingCalls += 1;
+        return { ok: true, refs: [] };
+      },
+      deliveryEvidence: {
+        repository: "deftai/directive",
+        prNumber: 42,
+        prBase: "master",
+        mergeCommit: "mergecommitsha",
+        mergedAt: "2026-08-02T11:00:00Z",
+        deliveryBranch: "master",
+      },
+    });
+    expect(result.ok).toBe(true);
+    expect(closingCalls).toBe(0);
+  });
+
+  it("refuses CLI delivery-branch mismatch before discovery", () => {
+    root = makeRepo();
+    const file = writeCodeBearing(root);
+    stampProductPr(file, 42);
+    const discovered = discoverDeliveryEvidenceForComplete({
+      projectRoot: root,
+      plan: JSON.parse(readFileSync(file, "utf8")).plan as Record<string, unknown>,
+      evidence: { deliveryBranch: "develop" },
+      runGit: gitOk(),
+      fetchPrPayload: () => {
+        throw new Error("must refuse mismatch before fetch");
+      },
+    });
+    expect(discovered.ok).toBe(false);
+    if (!discovered.ok) {
+      expect(discovered.message).toMatch(/does not match|deliveryBranch|--delivery-branch|#3583/);
+    }
+  });
+
+  it("fail-closed on many delivery-base closing PRs", () => {
+    root = makeRepo();
+    const file = writeCodeBearing(root);
+    const payloads: Record<number, Record<string, unknown>> = {
+      10: {
+        merged_at: "2026-08-01T00:00:00Z",
+        merge_commit_sha: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        base: { ref: "master" },
+        head: { sha: "h1" },
+      },
+      11: {
+        merged_at: "2026-08-02T00:00:00Z",
+        merge_commit_sha: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        base: { ref: "master" },
+        head: { sha: "h2" },
+      },
+    };
+    const fetchPrPayload: FetchPrPayloadFn = (n, repo) => {
+      if (repo !== "deftai/directive") return null;
+      return payloads[n] ?? null;
+    };
+    const fetchClosingPrRefs: FetchClosingPrRefsFn = () => ({
+      ok: true,
+      refs: [
+        { repository: "deftai/directive", prNumber: 10 },
+        { repository: "deftai/directive", prNumber: 11 },
+      ],
+    });
+    const result = runTransition("complete", file, new Date("2026-08-02T12:00:00Z"), {
+      runGit: gitOk(),
+      fetchPrPayload,
+      fetchClosingPrRefs,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/found 2 merged delivery-base PRs|#10|#11|refuse to guess/);
+  });
+
+  it("fail-closed on incomplete closing-PR discovery", () => {
+    root = makeRepo();
+    const file = writeCodeBearing(root);
+    const result = runTransition("complete", file, new Date(), {
+      runGit: gitOk(),
+      fetchClosingPrRefs: () => ({
+        ok: false,
+        error:
+          "closing-PR discovery incomplete for deftai/directive#3041: hasNextPage without endCursor",
+      }),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/incomplete|hasNextPage|#3583|#3041/);
+  });
+
+  it("filters integration-base closing PRs out of the candidate set", () => {
+    root = makeRepo();
+    const file = writeCodeBearing(root);
+    const result = runTransition("complete", file, new Date(), {
+      runGit: gitOk(),
+      fetchPrPayload: () => ({
+        merged_at: "2026-08-02T11:00:00Z",
+        merge_commit_sha: "mergecommitsha",
+        base: { ref: "develop" },
+        head: { sha: "head" },
+      }),
+      fetchClosingPrRefs: () => ({
+        ok: true,
+        refs: [{ repository: "deftai/directive", prNumber: 42 }],
+      }),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/zero merged delivery-base|productPullRequest|#3583/);
+  });
+
+  it("singleton closing PR auto-discovers on primary complete", () => {
+    root = makeRepo();
+    const file = writeCodeBearing(root);
+    const identity = identityOk({ prNumber: 42 });
+    const result = runTransition("complete", file, new Date("2026-08-02T12:00:00Z"), {
+      runGit: gitOk(),
+      ...identity,
+      fetchClosingPrRefs: () => ({
+        ok: true,
+        refs: [{ repository: "deftai/directive", prNumber: 42 }],
+      }),
+    });
+    expect(result.ok).toBe(true);
+    const dest = join(root, "xbrief", "completed", "story.xbrief.json");
+    const data = JSON.parse(readFileSync(dest, "utf8")) as {
+      plan: { metadata: { completionProvenance: { verifier: string; prNumber: number } } };
+    };
+    expect(data.plan.metadata.completionProvenance.verifier).toBe("scope:complete");
+    expect(data.plan.metadata.completionProvenance.prNumber).toBe(42);
+  });
+
+  it("refuses discovered multi-origin PR without one-PR-unit grant", () => {
+    root = makeRepo();
+    const file = writeCodeBearing(root);
+    const identity = identityOk({
+      prNumber: 42,
+      closingIssues: [3041, 9999],
+    });
+    const runGh: RunGhFn = (cmd) => {
+      const joined = cmd.join(" ");
+      if (joined.includes("repos/deftai/directive/pulls/42")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({ node_id: "PR_kwDOTestNode42" }),
+          stderr: "",
+        };
+      }
+      return { returncode: 1, stdout: "", stderr: "unexpected gh" };
+    };
+    const result = runTransition("complete", file, new Date("2026-08-02T12:00:00Z"), {
+      runGit: gitOk(),
+      runGh,
+      ...identity,
+      fetchClosingPrRefs: () => ({
+        ok: true,
+        refs: [{ repository: "deftai/directive", prNumber: 42 }],
+      }),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/one-PR-unit|missing one-PR-unit consent|#3041|#9999/i);
+  });
+
+  it("allows discovered multi-origin PR when App grant is bound to PR node", () => {
+    root = makeRepo();
+    const file = writeCodeBearing(root);
+    const identity = identityOk({
+      prNumber: 42,
+      closingIssues: [3041, 9999],
+    });
+    const store = getDefaultAppStore();
+    const claim = mintOnePrUnitGrant({
+      store,
+      actor: "tester",
+      approvalRef: "ref-3583",
+      rationale: "cohort close",
+      origins: [
+        { repo: "deftai/directive", issueId: 3041 },
+        { repo: "deftai/directive", issueId: 9999 },
+      ],
+      repo: "deftai/directive",
+    });
+    store.bind(claim.id, "PR_kwDOTestNode42");
+    const runGh: RunGhFn = (cmd) => {
+      const joined = cmd.join(" ");
+      if (joined.includes("repos/deftai/directive/pulls/42")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({ node_id: "PR_kwDOTestNode42" }),
+          stderr: "",
+        };
+      }
+      return { returncode: 1, stdout: "", stderr: "unexpected gh" };
+    };
+    const result = runTransition("complete", file, new Date("2026-08-02T12:00:00Z"), {
+      runGit: gitOk(),
+      runGh,
+      ...identity,
+      fetchClosingPrRefs: () => ({
+        ok: true,
+        refs: [{ repository: "deftai/directive", prNumber: 42 }],
+      }),
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("defaultFetchClosingPrRefs fails closed on unreadable nodes", () => {
+    const runGh: RunGhFn = () => ({
+      returncode: 0,
+      stdout: JSON.stringify({
+        data: {
+          repository: {
+            issue: {
+              closedByPullRequestsReferences: {
+                pageInfo: { hasNextPage: false, endCursor: null },
+                nodes: [null],
+              },
+            },
+          },
+        },
+      }),
+      stderr: "",
+    });
+    const result = defaultFetchClosingPrRefs(3041, "deftai/directive", runGh);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toMatch(/unreadable closedByPullRequestsReferences node/);
+    }
+  });
+
+  it("defaultFetchClosingPrRefs fails closed on missing pageInfo", () => {
+    const runGh: RunGhFn = () => ({
+      returncode: 0,
+      stdout: JSON.stringify({
+        data: {
+          repository: {
+            issue: {
+              closedByPullRequestsReferences: {
+                nodes: [{ number: 42, url: "https://github.com/deftai/directive/pull/42" }],
+              },
+            },
+          },
+        },
+      }),
+      stderr: "",
+    });
+    const result = defaultFetchClosingPrRefs(3041, "deftai/directive", runGh);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toMatch(/missing pageInfo/);
+    }
+  });
+
+  it("shares discovery on completed-brief restamp path", () => {
+    root = makeRepo();
+    const active = writeCodeBearing(root);
+    stampProductPr(active, 42);
+    const identity = identityOk();
+    const first = runTransition("complete", active, new Date("2026-08-02T12:00:00Z"), {
+      runGit: gitOk(),
+      ...identity,
+      fetchClosingPrRefs: () => {
+        throw new Error("productPullRequest seed must skip closing search");
+      },
+    });
+    expect(first.ok).toBe(true);
+    const completed = join(root, "xbrief", "completed", "story.xbrief.json");
+    const restamp = runTransition("complete", completed, new Date("2026-08-02T13:00:00Z"), {
+      runGit: gitOk(),
+      ...identity,
+      fetchClosingPrRefs: () => {
+        throw new Error("productPullRequest seed must skip closing search on restamp");
+      },
+    });
+    expect(restamp.ok).toBe(true);
+    const data = JSON.parse(readFileSync(completed, "utf8")) as {
+      plan: { metadata: { completionProvenance: { verifier: string } } };
+    };
+    expect(data.plan.metadata.completionProvenance.verifier).toBe("scope:complete");
   });
 });

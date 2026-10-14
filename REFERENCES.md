@@ -74,6 +74,7 @@ Skills live under [`content/skills/`](./content/skills/) (installed as `.deft/co
 | Skill | Description | Triggers |
 |---|---|---|
 | [deft-directive-setup](./content/skills/deft-directive-setup/SKILL.md) | Set up a new project: bootstrap user preferences, project config, or generate a specification conversationally. | `setup`, `bootstrap`, `onboard` |
+| [deft-directive-tutorial](./content/skills/deft-directive-tutorial/SKILL.md) | Runs the Directive Tutorial inside the current session after Name is first saved, or when asked to start, skip, resume, or re-run Signal / Postcard / Echo. | `tutorial`, `directive tutorial`, `start the tutorial`, `resume the tutorial` |
 | [deft-directive-cost](./content/skills/deft-directive-cost/SKILL.md) | Pre-build cost & budget transparency phase producing a plain-English `COST-ESTIMATE.md` with a recorded build / rescope / no-build / skip decision. | `cost`, `budget`, `pre-build cost`, `how much will this cost` |
 | [deft-directive-build](./content/skills/deft-directive-build/SKILL.md) | Implement a project from its scope xBRIEFs phase by phase with quality gates. | `build`, `implement`, `implement spec` |
 | [deft-directive-pre-pr](./content/skills/deft-directive-pre-pr/SKILL.md) | Iterative pre-PR quality loop (read / write / lint / diff) run before pushing a branch until a pass yields zero changes. | `pre-pr`, `quality loop`, `self-review` |

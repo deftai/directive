@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-10-14-5552-cohort-path-b-mint.xbrief.json",
+  "planId": "github.issue.5820237634",
+  "approvedAt": "2026-10-14T03:03:56Z",
+  "fileScope": [
+    "CHANGELOG.md",
+    "cmd/deft-install/deposit.go",
+    "content/UPGRADING.md"
+  ],
+  "fileScopeDigest": "87a9f6cec16b0921ad5f489ee7375dc3b3fceca93945075d30f2d1e509b87a8a",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-10-14T03:03:56Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "cd8b711074ac9c648330508ed0fd8b5f089eb17ef683ad85c80083857c1a564c",
+  "digestAlgo": "intent-extract-v1"
+}

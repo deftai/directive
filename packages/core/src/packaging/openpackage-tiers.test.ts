@@ -12,14 +12,15 @@ describe("openpackage-tiers (#2494)", () => {
     expect(getOpenPackageDefaultInstallTier(REPO_ROOT)).toBe("daily-core");
     const dailyCore = resolveOpenPackageTierSkills(REPO_ROOT, "daily-core");
     expect(dailyCore).toContain("deft-directive-setup");
-    expect(dailyCore).toHaveLength(6);
+    expect(dailyCore).toHaveLength(7);
+    expect(dailyCore).toContain("deft-directive-tutorial");
     expect(dailyCore).not.toContain("deft-directive-release");
   });
 
   it("resolveOpenPackageTierSkills all returns every mapped skill without duplicates", () => {
     const all = resolveOpenPackageTierSkills(REPO_ROOT, "all");
     expect(all).toContain("deft-directive-spec-reconstruct");
-    expect(all).toHaveLength(26);
-    expect(new Set(all).size).toBe(26);
+    expect(all).toHaveLength(27);
+    expect(new Set(all).size).toBe(27);
   });
 });

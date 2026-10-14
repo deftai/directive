@@ -5,10 +5,6 @@
 
 # Roadmap
 
-## Active
-
-- **#4981** -- Directive Tutorial — first-run menu, preferences progress, shared beats -- `[running]`
-
 ## Proposed
 
 _Scopes not yet promoted to pending. Orientation only — not a substitute for `task triage:queue`._
@@ -40,8 +36,18 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 1790 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1800 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#5477** -- Path B activate #5477 Prefer-A Bound file_scope -- `[completed]`
+- **#5574** -- Path B activate #5574 Prefer-A Bound -- `[completed]`
+- **#5551** -- Path B activate #5551 Prefer-A Bound file_scope -- `[completed]`
+- **#5545** -- Path B activate #5545 Prefer-A Bound -- `[completed]`
+- **#5552** -- Path B activate #5552 Prefer-A Bound file_scope -- `[completed]`
+- **#5542** -- [framework-gap] BLOCKER Add audited interactive human overrides for framework gate blockers -- `[completed]`
+- **#4768** -- [UAT Tester 4] Active xBRIEFs can be created without acceptance commands -- `[completed]`
+- **#5541** -- [framework-gap] BLOCKER Latest Directive blocks fresh Bun consumer pre-PR on ordinary artifact classification -- `[completed]`
+- **#5539** -- Package runner exact-argv test spy fabricates an absent Windows option on POSIX -- `[completed]`
+- **#4981** -- Directive Tutorial — first-run menu, preferences progress, shared beats -- `[completed]`
 - **#5521** -- Pinned AGENTS rule names deft scm:body:* but the verbs are Taskfile-only; unknown-verb hint recommends the failing form; no rule-to-verb parity check -- `[completed]`
 - **#5526** -- bug(release): v0.124.0 Windows Step 5 hang under 60m at ts:check-lane (cursor deft_run_resolver.test.ts) -- `[completed]`
 - **#5479** -- BLOCKER: generated project registry refresh requires coverage in a design-only consumer -- `[completed]`
@@ -57,14 +63,4 @@ _Showing 25 of 1790 completed scopes (newest first). Full history: lifecycle `co
 - **#5467** -- BLOCKER 0.123.0 still fail-closes Visage vbrief:validate on proposed/active history after #5427; consumer remains on 0.119.2 -- `[completed]`
 - **#5463** -- docs(installer): 0.122.0 consumer text has a non-runnable task command, missing required flags, and a .gitattributes comment/attribute mismatch -- `[completed]`
 - **#5465** -- docs(agents): 0.123.0 agents-entry #5278 drops required --scope-id/--target-id on pre-dispatch cancel -- `[completed]`
-- fix(triage): worktrees probe fail-closed must not case-fold sibling admin entries -- `[completed]`
-- **#5385** -- 0.121.0 schema makes narratives.Confidence an enum under the same 0.8 version, invalidating existing briefs with no migration -- `[completed]`
-- **#5382** -- scope:stamp-evidence writes kind:test evidence on markdown pointers that scope:complete then rejects (#5105) -- `[completed]`
-- **#5194** -- [framework-gap] bug(verify): global CLI cannot resolve its bundled TypeScript parser in a .NET consumer -- `[completed]`
-- **#5193** -- [framework-gap] bug(scope): completion prep creates clause ID titles that fail its own sentence coverage gate -- `[completed]`
-- **#4880** -- Path-write fence tells a dispatched worker to set host-only DEFT_ACTIVE_SCOPE -- `[completed]`
-- **#5421** -- bug(pre-pr): coverage applicability is undefined for non-executable consumer refinements -- `[completed]`
-- **#5403** -- Multi-active write fence poisoned by already-merged actives that cannot scope:complete under #3284 acceptance.commands -- `[completed]`
-- **#5195** -- [framework-gap] bug(content): consumer debug skill names an absent investigation template -- `[completed]`
-- **#5386** -- Write fence: stale DEFT_ACTIVE_SCOPE naming an absent brief denies every write, with misleading recovery -- `[completed]`
 

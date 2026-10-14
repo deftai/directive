@@ -736,6 +736,7 @@ export function dispatchCachedTaskCheck(
         mode: modeResolution.mode,
         gateId,
         text: acText,
+        projectRoot: resolvedProject,
       })
     ) {
       process.stderr.write(RAPID_ZERO_VERIFIED_CHECK_NOTICE);

@@ -334,6 +334,24 @@ for project-scoped settings (strategy, coverage).
 **See**: [../../main.md](../../../main.md) for framework defaults.
 ```
 
+### Directive Tutorial offer (#4981)
+
+! After Name is first persisted to USER.md in this Phase 1 write (status still `not_started`), run `deft tutorial:offer --json`.
+! When `"offerNow": true`, present this deterministic menu before the Phase 2 transition:
+
+> "Directive Tutorial is ready — about 10 minutes, one practice project, no GitHub. What would you like to do?"
+> 1. Start tutorial
+> 2. Skip for now
+> 3. Discuss
+> 4. Back
+
+! Start → follow `skills/deft-directive-tutorial/SKILL.md` (`deft tutorial:start`).
+! Skip for now → `deft tutorial:skip`, then continue normal setup.
+! Discuss / Back → stay in setup; do not mark skipped.
+⊗ Wait for PROJECT-DEFINITION or the specification interview before offering.
+⊗ Re-ask Name or preference questions inside the tutorial.
+⊗ Offer again when `"offerNow": false`.
+
 ### Then
 
 - ! Emit a structured-tool question asking whether to continue to Phase 2 (project configuration) only when the host preserves numeric labels; otherwise emit the deterministic numbered menu in chat. Options: `1. Yes (continue)`, `2. Not now (exit setup)`, `3. Discuss`, `4. Back (revisit previous phase)`. The numeric labels MUST remain visible and be returned as numeric selections or exact displayed option text.

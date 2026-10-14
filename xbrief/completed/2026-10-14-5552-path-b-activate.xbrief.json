@@ -1,0 +1,75 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Path B activate #5552 Prefer-A Bound",
+    "updated": "2026-10-14T06:05:25.313Z"
+  },
+  "plan": {
+    "id": "github.issue.5820237634",
+    "status": "completed",
+    "title": "Path B activate #5552 Prefer-A Bound file_scope",
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5552",
+        "type": "x-xbrief/github-issue"
+      }
+    ],
+    "metadata": {
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5820237634,
+        "origin": "deftai/directive#5552",
+        "id": "github.issue.5820237634"
+      },
+      "swarm": {
+        "file_scope": [
+          "cmd/deft-install/deposit.go",
+          "content/UPGRADING.md",
+          "CHANGELOG.md"
+        ],
+        "readiness": "ready",
+        "bound_cite": 6152507405
+      },
+      "intended_placement": {
+        "files": [
+          "cmd/deft-install/deposit.go",
+          "content/UPGRADING.md",
+          "CHANGELOG.md"
+        ],
+        "cohesion_exemption": "CHANGELOG.md Unreleased Keep note for Path B mint",
+        "module_boundary": "Prefer-A Bound 6152507405 for issue 5552"
+      },
+      "productPullRequest": 5584,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-14T06:05:25.313Z"
+      },
+      "completionProvenance": {
+        "productMerge": "f716bbabf635a8829f1108d17a9ea68ac0af7157",
+        "productPr": 5584
+      },
+      "completedAt": "2026-10-14T06:05:25.313Z"
+    },
+    "acceptance": {
+      "none_stated": true,
+      "source_rung": "derived",
+      "clauses": [],
+      "commands": []
+    },
+    "items": [
+      {
+        "id": "limb-1",
+        "title": "Add paths filter for deft-core-guard when .deft/core changes",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5584",
+          "recorded_at": "2026-10-14T05:59:05.257Z",
+          "recorded_by": "parent-retained-closer/5552"
+        }
+      }
+    ],
+    "updated": "2026-10-14T06:05:25.313Z"
+  }
+}

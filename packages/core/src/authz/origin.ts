@@ -71,3 +71,13 @@ export function evidenceSatisfiesImplementationApproval(evidence: {
   void evidence.lifecycleAdvancedBy;
   return false;
 }
+
+/**
+ * Gate-override admitting origin (#5542 Prefer-A Bound limb 1).
+ * v1 admits operator-cli only; operator-session remains non-admitting.
+ * Chat / parent / fixture / dispatch consent never mint or admit.
+ */
+export function isGateOverrideAdmittingOriginKind(kind: string | null | undefined): boolean {
+  if (kind === null || kind === undefined) return false;
+  return kind.trim().toLowerCase() === "operator-cli";
+}

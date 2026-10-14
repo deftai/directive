@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-10-14-5551-cohort-path-b-mint.xbrief.json",
+  "planId": "github.issue.5820138360",
+  "approvedAt": "2026-10-14T03:03:59Z",
+  "fileScope": [
+    "CHANGELOG.md",
+    "content/docs/scope-provenance.md",
+    "packages/core/src/coverage-applicability/evaluate.test.ts",
+    "packages/core/src/coverage-applicability/evaluate.ts",
+    "packages/core/src/plan-sequence/types.ts"
+  ],
+  "fileScopeDigest": "ccdd18fce348380cb49151eb2051a42530984795cfb1140b8888b60cd79503f2",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-10-14T03:03:59Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "74963a5cbb9a9ed25875a4a9912cc2e59c33bdbadb187814bd1c285f10edc2b8",
+  "digestAlgo": "intent-extract-v1"
+}

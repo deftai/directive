@@ -9,6 +9,7 @@ export * from "./classify.js";
 export * from "./closed-verb.js";
 export * from "./decompose-apply.js";
 export * from "./evaluate.js";
+export * from "./gate-override.js";
 export * from "./origin.js";
 export * from "./paths.js";
 export * from "./store.js";

@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import {
   existsSync,
   mkdirSync,
@@ -7,7 +8,7 @@ import {
   statSync,
   unlinkSync,
 } from "node:fs";
-import { basename, dirname, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { containedWrite } from "../fs/contained-write.js";
 import {
   assertProjectionContained,
@@ -19,6 +20,7 @@ import {
   missingEnvelopeMessage,
   stampExistingEnvelopes,
 } from "../lifecycle/brief-envelope.js";
+import { prepareActiveIngressAcceptance } from "../scope/acceptance-activate-gate.js";
 import { evaluateEffortActivateGate } from "../scope/effort-activate-gate.js";
 import { utcNowIso } from "../scope/vbrief-json.js";
 import { pythonJsonPretty } from "../vbrief-build/json.js";
@@ -150,9 +152,49 @@ export function activate(vbriefPath: string, options: ActivateOptions = {}): Act
   }
 
   const folder = basename(dirname(vbriefPath));
+  const vbriefDirEarly = dirname(dirname(vbriefPath));
+  const projectRootEarly = dirname(vbriefDirEarly);
 
   if (folder === ACTIVE_FOLDER && status === TARGET_STATUS) {
-    return { exitCode: 0, message: `No-op: ${vbriefPath} already active.` };
+    // #4768 Prefer-A: localize already-active no-op — revalidate usable clause
+    // text so command-present / clause-text-empty cannot remain under DCR.
+    const ingress = prepareActiveIngressAcceptance(planObj, {
+      projectRoot: projectRootEarly,
+    });
+    if (!ingress.ok) {
+      return { exitCode: 1, message: ingress.message };
+    }
+    if (ingress.applied) {
+      // Prefer-A Bound #4768 / Greptile P1: never truncate the only active
+      // copy in place — write a sibling .tmp then rename (same shape as the
+      // pending→active path below).
+      const restampTmp = join(
+        dirname(vbriefPath),
+        `${basename(vbriefPath)}.${randomBytes(4).toString("hex")}.tmp`,
+      );
+      try {
+        containedWrite({
+          root: resolve(projectRootEarly),
+          target: resolve(restampTmp),
+          data: pythonJsonPretty(payload),
+          mode: "create",
+        });
+        renameSync(restampTmp, resolve(vbriefPath));
+      } catch (err: unknown) {
+        const e = err as NodeJS.ErrnoException;
+        try {
+          rmSync(restampTmp, { force: true });
+        } catch {
+          /* best-effort cleanup */
+        }
+        return {
+          exitCode: 1,
+          message: `Could not restamp ${vbriefPath}: ${String(e.message)}.`,
+        };
+      }
+    }
+    const suffix = ingress.message.length > 0 ? ` ${ingress.message}` : "";
+    return { exitCode: 0, message: `No-op: ${vbriefPath} already active.${suffix}` };
   }
 
   if (folder === ACTIVE_FOLDER) {
@@ -189,8 +231,15 @@ export function activate(vbriefPath: string, options: ActivateOptions = {}): Act
   if (!effortGate.ok) {
     return { exitCode: 1, message: effortGate.message };
   }
+  // #4768 Prefer-A: vbrief-activate is the fixture-localized command-only
+  // active writer — refuse / stamp usable clause text before the folder move.
+  const ingress = prepareActiveIngressAcceptance(planObj, {
+    projectRoot: projectRootEarly,
+  });
+  if (!ingress.ok) {
+    return { exitCode: 1, message: ingress.message };
+  }
 
-  const vbriefDirEarly = dirname(dirname(vbriefPath));
   const runAdmitted = (): ActivateResult => {
     const admission = evaluateIssuePlanIdAdmission({
       lifecycleRoot: vbriefDirEarly,
@@ -200,7 +249,7 @@ export function activate(vbriefPath: string, options: ActivateOptions = {}): Act
     if (!admission.ok) {
       return { exitCode: 1, message: admission.message };
     }
-    return activateAfterIdentity(vbriefPath, payload, planObj, now);
+    return activateAfterIdentity(vbriefPath, payload, planObj, now, ingress.message);
   };
   try {
     return withPlanIdIdentityLock(vbriefDirEarly, runAdmitted);
@@ -218,6 +267,7 @@ function activateAfterIdentity(
   payload: Record<string, unknown>,
   planObj: Record<string, unknown>,
   now: Date,
+  ingressNotice = "",
 ): ActivateResult {
   // Resolve destination early so containment can refuse before any mutation.
   // Parity with scope:activate / #2447: projectRoot is parent of the xbrief/ root.
@@ -310,8 +360,9 @@ function activateAfterIdentity(
     };
   }
 
+  const base = `Activated ${fileName}: pending/ -> active/ (status: ${TARGET_STATUS}).`;
   return {
     exitCode: 0,
-    message: `Activated ${fileName}: pending/ -> active/ (status: ${TARGET_STATUS}).`,
+    message: ingressNotice.length > 0 ? `${base} ${ingressNotice}` : base,
   };
 }

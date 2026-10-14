@@ -1,12 +1,11 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 5521,
+  "issue": 5159,
   "surfaces": [
-    "Taskfile.yml",
-    "packages/core/src/check/gate-lists.ts",
-    "tasks/verify.yml",
+    "packages/core/src/class-checks/evaluate.ts",
+    "packages/core/src/class-checks/evaluate.test.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renewed disclosure for #5521 / PR #5529: wire verify:rule-to-verb-parity into FRAMEWORK_CHECK_GATES, tasks/verify.yml, and check:framework-source Taskfile deps. Disclosure only; not #3164 authorization."
+  "note": "Renewed disclosure for #5159 class-checks lifecycle-artifact pipeline-path skip. Disclosure only; not #3164 authorization."
 }

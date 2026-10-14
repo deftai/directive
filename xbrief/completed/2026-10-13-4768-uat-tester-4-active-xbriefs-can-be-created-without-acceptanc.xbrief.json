@@ -1,0 +1,283 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4768",
+    "updated": "2026-10-14T01:07:05.671Z"
+  },
+  "plan": {
+    "title": "[UAT Tester 4] Active xBRIEFs can be created without acceptance commands",
+    "status": "completed",
+    "narratives": {
+      "Description": "[UAT Tester 4 residual] Windows Grok R.4768 command-present / empty acceptance text",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4768",
+      "Overview": "## Bound remedy (#4768 Prefer-A residual 6150748445)\n\n1. Keep residual framed as Windows Grok active with command-present / clause-text-empty under DCR text oracle.\n2. Do not extend zeroClauseDerivationRefusal / #4984 activate refuse as primary fix.\n3. Localize active ingress with fixture evidence before any new product refuse.\n4. Keep DCR as non-empty acceptance text consumer; reject counting commands as texts.\n5. Name three-oracle split; Bound owns landing usable clause text into active.\n6. Keep #3284 intake floor legal before activate; no silent thread recovery.\n\nconflict_group: windows-grok-r4768-active-ingress-vs-text-oracle",
+      "Labels": "bug, adoption-blocker, agent-experience, process, area:vbrief, design-critique:ingest-ready, focused-test-pass-1, core-capabilities, promise:requirements, reopened"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Keep the live residual framed as Windows Grok active with command-present / clause-text-empty acceptance under DCR agent.active_xbrief_has_acceptance; do not collapse into #5544 cascade.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/scope/transition.ts",
+        "narrative": {
+          "Acceptance": "Keep the live residual framed as Windows Grok active with command-present / clause-text-empty acceptance under DCR agent.active_xbrief_has_acceptance; do not collapse into #5544 cascade."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5571 squash-merge (Tracking #4768). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5571",
+            "mintedAt": "2026-10-14T01:07:05.671Z",
+            "mintedVia": "approach1-babysit-restamp"
+          },
+          "recorded_at": "2026-10-14T01:07:05.671Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Do not extend zeroClauseDerivationRefusal / #4984 activate-promote refuse as the primary fix; pin inventory already refuses command-present/clauseless on actual transition.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/scope/acceptance-activate-gate.ts",
+        "narrative": {
+          "Acceptance": "Do not extend zeroClauseDerivationRefusal / #4984 activate-promote refuse as the primary fix; pin inventory already refuses command-present/clauseless on actual transition."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5571 squash-merge (Tracking #4768). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5571",
+            "mintedAt": "2026-10-14T01:07:05.671Z",
+            "mintedVia": "approach1-babysit-restamp"
+          },
+          "recorded_at": "2026-10-14T01:07:05.671Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Localize active ingress with fixture evidence among already-active no-op, direct/hand-authored active write, post-activate strip/overwrite, or restore/materialize before any new product refuse.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/scope/transition.test.ts",
+        "narrative": {
+          "Acceptance": "Localize active ingress with fixture evidence among already-active no-op, direct/hand-authored active write, post-activate strip/overwrite, or restore/materialize before any new product refuse."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5571 squash-merge (Tracking #4768). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5571",
+            "mintedAt": "2026-10-14T01:07:05.671Z",
+            "mintedVia": "approach1-babysit-restamp"
+          },
+          "recorded_at": "2026-10-14T01:07:05.671Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Keep DCR as a non-empty acceptance text consumer; reject remedying by counting commands as acceptance texts; compare scanned artifact to readAcceptanceClauses.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/scope/acceptance-activate-gate.test.ts",
+        "narrative": {
+          "Acceptance": "Keep DCR as a non-empty acceptance text consumer; reject remedying by counting commands as acceptance texts; compare scanned artifact to readAcceptanceClauses."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5571 squash-merge (Tracking #4768). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5571",
+            "mintedAt": "2026-10-14T01:07:05.671Z",
+            "mintedVia": "approach1-babysit-restamp"
+          },
+          "recorded_at": "2026-10-14T01:07:05.671Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Name the three-oracle split (activate refuse / verify:ac commands / DCR texts); Bound owns landing usable clause text into active via ingress fix or revalidation.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/scope/lifecycle-write.ts",
+        "narrative": {
+          "Acceptance": "Name the three-oracle split (activate refuse / verify:ac commands / DCR texts); Bound owns landing usable clause text into active via ingress fix or revalidation."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5571 squash-merge (Tracking #4768). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5571",
+            "mintedAt": "2026-10-14T01:07:05.671Z",
+            "mintedVia": "approach1-babysit-restamp"
+          },
+          "recorded_at": "2026-10-14T01:07:05.671Z"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "Keep #3284 intake floor legal before activate; recovery stays operator-visible definition step or #4374 declared surfaces; no silent agent authorship from the issue thread.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/scope/transition.ts",
+        "narrative": {
+          "Acceptance": "Keep #3284 intake floor legal before activate; recovery stays operator-visible definition step or #4374 declared surfaces; no silent agent authorship from the issue thread."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5571 squash-merge (Tracking #4768). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5571",
+            "mintedAt": "2026-10-14T01:07:05.671Z",
+            "mintedVia": "approach1-babysit-restamp"
+          },
+          "recorded_at": "2026-10-14T01:07:05.671Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "agent-experience",
+      "process",
+      "area:vbrief",
+      "design-critique:ingest-ready",
+      "focused-test-pass-1",
+      "core-capabilities",
+      "promise:requirements",
+      "reopened"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4768",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4768: [UAT Tester 4] Active xBRIEFs can be created without acceptance commands"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "clauses": [
+        {
+          "id": "clause.1",
+          "text": "Keep the live residual framed as Windows Grok active with command-present / clause-text-empty acceptance under DCR agent.active_xbrief_has_acceptance; do not collapse into #5544 cascade.",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "status": "completed"
+        },
+        {
+          "id": "clause.2",
+          "text": "Do not extend zeroClauseDerivationRefusal / #4984 activate-promote refuse as the primary fix; pin inventory already refuses command-present/clauseless on actual transition.",
+          "artifact_path": "packages/core/src/scope/acceptance-activate-gate.ts",
+          "status": "completed"
+        },
+        {
+          "id": "clause.3",
+          "text": "Localize active ingress with fixture evidence among already-active no-op, direct/hand-authored active write, post-activate strip/overwrite, or restore/materialize before any new product refuse.",
+          "artifact_path": "packages/core/src/scope/transition.test.ts",
+          "status": "completed"
+        },
+        {
+          "id": "clause.4",
+          "text": "Keep DCR as a non-empty acceptance text consumer; reject remedying by counting commands as acceptance texts; compare scanned artifact to readAcceptanceClauses.",
+          "artifact_path": "packages/core/src/scope/acceptance-activate-gate.test.ts",
+          "status": "completed"
+        },
+        {
+          "id": "clause.5",
+          "text": "Name the three-oracle split (activate refuse / verify:ac commands / DCR texts); Bound owns landing usable clause text into active via ingress fix or revalidation.",
+          "artifact_path": "packages/core/src/scope/lifecycle-write.ts",
+          "status": "completed"
+        },
+        {
+          "id": "clause.6",
+          "text": "Keep #3284 intake floor legal before activate; recovery stays operator-visible definition step or #4374 declared surfaces; no silent agent authorship from the issue thread.",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "status": "completed"
+        }
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/scope/transition.ts",
+          "packages/core/src/scope/transition.test.ts",
+          "packages/core/src/scope/acceptance-activate-gate.ts",
+          "packages/core/src/scope/acceptance-activate-gate.test.ts",
+          "packages/core/src/scope/lifecycle-write.ts",
+          "packages/core/src/vbrief-activate/activate.ts",
+          "packages/core/src/vbrief-activate/activate.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "scope active ingress localization vs DCR acceptance-text oracle; xbrief/vbrief activate writer parity",
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased bullet only for #4768 Prefer-A residual ingress localization; vbrief-activate is the fixture-localized command-only active writer."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-residual",
+        "github_issue_id": 5501877140,
+        "origin": "deftai/directive#4768",
+        "id": "github.issue.residual.5501877140.lean.6150748445"
+      },
+      "x-directive/residual-lineage": {
+        "schema": "deft.scope.residual-lineage.v1",
+        "predecessor_plan_id": "github.issue.5501877140",
+        "predecessor_path": "completed/2026-09-23-4768-uat-tester-4-active-xbriefs-can-be-created-without-acceptanc.xbrief.json",
+        "bound_lean_comment_id": 6150748445
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "c28f74e53835f29c93bf29fddbc9956a08f54ddf3ab40087e415941f96624099"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "windows-grok-r4768-active-ingress-vs-text-oracle",
+        "expected_outputs": [
+          "Tracking PR for #4768 Prefer-A residual Windows Grok active ingress localization"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/scope/transition.test.ts packages/core/src/scope/acceptance-activate-gate.test.ts"
+        ],
+        "file_scope": [
+          "packages/core/src/scope/transition.ts",
+          "packages/core/src/scope/transition.test.ts",
+          "packages/core/src/scope/acceptance-activate-gate.ts",
+          "packages/core/src/scope/acceptance-activate-gate.test.ts",
+          "packages/core/src/scope/lifecycle-write.ts",
+          "packages/core/src/vbrief-activate/activate.ts",
+          "packages/core/src/vbrief-activate/activate.test.ts",
+          "CHANGELOG.md"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#4768"
+        ],
+        "parallel_safe": true
+      },
+      "x-directive/derived_reason": "Prefer-A Bound limbs hand-stamped after empty body harvest (#4374); clauses bind Bound remedy",
+      "productPullRequest": 5571,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-14T01:07:05.671Z"
+      },
+      "completedAt": "2026-10-14T01:07:05.671Z",
+      "completionProvenance": {
+        "productMerge": "d0da3a42d52cb06844b1673e730c11018e298123",
+        "productPr": 5571
+      }
+    },
+    "id": "github.issue.residual.5501877140.lean.6150748445",
+    "updated": "2026-10-14T01:07:05.671Z"
+  }
+}
