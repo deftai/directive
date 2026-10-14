@@ -13,6 +13,7 @@ import {
   MANAGED_SECTION_OPEN_PREFIX,
   type OwnedArtifact,
 } from "@deftai/directive-core/dist/install-health/index.js";
+import { pruneEmptyAncestors, removeSoleAuthorHusks } from "./removal-steps/steps.js";
 import {
   HOOK_BIN_COMMAND,
   RUNTIME_PREFIX,
@@ -152,7 +153,12 @@ function safeRemove(root: string, rel: string, removed: string[]): void {
       target: rel,
       recursive: true,
     });
-    if (result.removed) removed.push(rel.replace(/\\/g, "/"));
+    if (result.removed) {
+      const posix = rel.replace(/\\/g, "/");
+      removed.push(posix);
+      // F-012 / C4: prune empty ancestors under host skill/command/hook trees.
+      removed.push(...pruneEmptyAncestors(root, posix));
+    }
   } catch {
     /* best-effort; launcher fallback continues */
   }
@@ -380,13 +386,24 @@ export function runUninstall(options: { readonly root: string }): UninstallResul
     }
   }
 
+  // F-013 / C5: drop sole-author husks ({} hooks, seed AGENTS, private-only package.json).
+  // F-012 prune runs inside husk removals for emptied parents.
+  const husks = removeSoleAuthorHusks(root);
+  removed.push(...husks);
+  // Drop modified markers for files husks deleted entirely.
+  const huskSet = new Set(husks);
+  const modifiedAfterHusks = modified.filter((m) => {
+    const path = m.split("#")[0] ?? m;
+    return !huskSet.has(path);
+  });
+
   return {
     contract: 1,
     entry: "uninstall",
     stub: false,
     root,
     removed: [...new Set(removed)],
-    modified: [...new Set(modified)],
+    modified: [...new Set(modifiedAfterHusks)],
     remaining: [...new Set(remaining)],
     preserved: [...new Set(preserved)],
     message:

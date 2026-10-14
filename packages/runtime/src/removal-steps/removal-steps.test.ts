@@ -1,19 +1,23 @@
 /**
- * Wave 3d RED — owner-boundary contracts for removal steps + strategy table.
- * pruneEmptyAncestors / removeSoleAuthorHusks intentionally fail until 3e.
- * Strategy table rows are present (data) so convert path shape is documented.
+ * Wave 3e — owner-boundary contracts for removal steps + strategy table.
+ * pruneEmptyAncestors / removeSoleAuthorHusks (F-012 / F-013).
  */
 import {
   existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  readdirSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import {
+  CONSUMER_HEADER_PLACEHOLDER_ONELINER,
+  renderConsumerHeader,
+} from "@deftai/directive-core/dist/platform/agents-consumer-header.js";
 import { pruneEmptyAncestors, removeSoleAuthorHusks } from "./steps.js";
 import { STRATEGIES, strategyForShape } from "./strategies.js";
 
@@ -26,13 +30,13 @@ afterEach(() => {
   }
 });
 
-function tempRoot(name = "wave3d-removal"): string {
+function tempRoot(name = "wave3e-removal"): string {
   const root = mkdtempSync(join(tmpdir(), `${name}-`));
   TEMPS.push(root);
   return root;
 }
 
-describe("pruneEmptyAncestors (C4 / F-012) — RED until 3e", () => {
+describe("pruneEmptyAncestors (C4 / F-012)", () => {
   it("removes empty dirs after file delete and stops at non-empty / foreign", () => {
     const root = tempRoot();
     const skillDir = join(root, ".agents", "skills", "directive-coding");
@@ -54,9 +58,41 @@ describe("pruneEmptyAncestors (C4 / F-012) — RED until 3e", () => {
     expect(existsSync(join(root, ".agents", "skills", "user-skill", "SKILL.md"))).toBe(true);
     expect(existsSync(join(root, ".agents", "skills"))).toBe(true);
   });
+
+  it("prunes empty command and githooks trees up to host roots", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, ".claude", "commands"), { recursive: true });
+    writeFileSync(join(root, ".claude", "commands", "deft-continue.md"), "# cmd\n");
+    mkdirSync(join(root, ".githooks"), { recursive: true });
+    writeFileSync(join(root, ".githooks", "pre-commit"), "#!/bin/sh\n");
+
+    rmSync(join(root, ".claude", "commands", "deft-continue.md"));
+    rmSync(join(root, ".githooks", "pre-commit"));
+
+    const cmds = pruneEmptyAncestors(root, ".claude/commands/deft-continue.md");
+    expect(cmds).toEqual(
+      expect.arrayContaining([".claude/commands", ".claude"]),
+    );
+    expect(existsSync(join(root, ".claude"))).toBe(false);
+
+    const hooks = pruneEmptyAncestors(root, ".githooks/pre-commit");
+    expect(hooks).toContain(".githooks");
+    expect(existsSync(join(root, ".githooks"))).toBe(false);
+  });
+
+  it("does not prune outside known host / .deft / .githooks trees", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, "src", "empty-nest"), { recursive: true });
+    writeFileSync(join(root, "src", "empty-nest", "x.ts"), "export {};\n");
+    rmSync(join(root, "src", "empty-nest", "x.ts"));
+
+    const removed = pruneEmptyAncestors(root, "src/empty-nest/x.ts");
+    expect(removed).toEqual([]);
+    expect(existsSync(join(root, "src", "empty-nest"))).toBe(true);
+  });
 });
 
-describe("removeSoleAuthorHusks (C5 / F-013) — RED until 3e", () => {
+describe("removeSoleAuthorHusks (C5 / F-013)", () => {
   it("removes {private:true}-only package.json and {} hooks we created", () => {
     const root = tempRoot();
     writeFileSync(
@@ -81,6 +117,90 @@ describe("removeSoleAuthorHusks (C5 / F-013) — RED until 3e", () => {
     expect(existsSync(join(root, ".cursor", "hooks.json"))).toBe(false);
     expect(existsSync(join(root, "xbrief", "keep.txt"))).toBe(true);
     expect(JSON.parse(readFileSync(join(root, "real-pkg.json"), "utf8")).name).toBe("app");
+  });
+
+  it("removes install-seeded AGENTS stub but preserves user body", () => {
+    const root = tempRoot();
+    writeFileSync(join(root, "AGENTS.md"), `${renderConsumerHeader()}\n`);
+    const removed = removeSoleAuthorHusks(root);
+    expect(removed).toContain("AGENTS.md");
+    expect(existsSync(join(root, "AGENTS.md"))).toBe(false);
+
+    const root2 = tempRoot("wave3e-agents-user");
+    writeFileSync(
+      join(root2, "AGENTS.md"),
+      `# Project\n\nUser prose stays.\n\n## Session orientation\n\nCustom notes.\n`,
+    );
+    expect(removeSoleAuthorHusks(root2)).not.toContain("AGENTS.md");
+    expect(readFileSync(join(root2, "AGENTS.md"), "utf8")).toContain("User prose stays.");
+  });
+
+  it("removes Directive-only pin package.json + near-empty lockfile", () => {
+    const root = tempRoot();
+    writeFileSync(
+      join(root, "package.json"),
+      `${JSON.stringify(
+        { private: true, devDependencies: { "@deftai/directive-runtime": "0.0.0-yolo" } },
+        null,
+        2,
+      )}\n`,
+    );
+    writeFileSync(
+      join(root, "package-lock.json"),
+      `${JSON.stringify(
+        {
+          name: "t",
+          lockfileVersion: 3,
+          requires: true,
+          packages: {
+            "": {
+              devDependencies: { "@deftai/directive-runtime": "0.0.0-yolo" },
+            },
+          },
+        },
+        null,
+        2,
+      )}\n`,
+    );
+
+    const removed = removeSoleAuthorHusks(root);
+    expect(removed).toEqual(expect.arrayContaining(["package.json", "package-lock.json"]));
+    expect(existsSync(join(root, "package.json"))).toBe(false);
+    expect(existsSync(join(root, "package-lock.json"))).toBe(false);
+  });
+
+  it("preserves host hooks JSON that still have foreign entries", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, ".cursor"), { recursive: true });
+    writeFileSync(
+      join(root, ".cursor", "hooks.json"),
+      `${JSON.stringify(
+        { version: 1, hooks: { sessionStart: [{ command: "echo user" }] } },
+        null,
+        2,
+      )}\n`,
+    );
+    expect(removeSoleAuthorHusks(root)).not.toContain(".cursor/hooks.json");
+    expect(existsSync(join(root, ".cursor", "hooks.json"))).toBe(true);
+  });
+
+  it("removes sole-author Taskfile / .gitignore seed residue", () => {
+    const root = tempRoot();
+    writeFileSync(
+      join(root, "Taskfile.yml"),
+      "version: '3'\n\n# Installed by Directive setup (Wave 2c). Framework tasks under deft:.\nincludes:\n",
+    );
+    writeFileSync(
+      join(root, ".gitignore"),
+      "node_modules/\n.deft/directive/wiring-ready.*.json\n",
+    );
+    // Placeholder one-liner present confirms seed recognition helpers stay imported.
+    expect(CONSUMER_HEADER_PLACEHOLDER_ONELINER.length).toBeGreaterThan(0);
+
+    const removed = removeSoleAuthorHusks(root);
+    expect(removed).toEqual(expect.arrayContaining(["Taskfile.yml", ".gitignore"]));
+    expect(existsSync(join(root, "Taskfile.yml"))).toBe(false);
+    expect(existsSync(join(root, ".gitignore"))).toBe(false);
   });
 });
 
@@ -121,5 +241,17 @@ describe("STRATEGIES table (WAVE3-V2 convert shapes)", () => {
     expect(STRATEGIES["ovpr-runtime-pin"].steps).toEqual([]);
     expect(STRATEGIES["npm-hybrid-pin-copied-core"].needsRuntimePin).toBe(true);
     expect(STRATEGIES["npm-hybrid-pin-copied-core"].steps).toContain("removeCopiedCore");
+  });
+});
+
+describe("prune + husks composition", () => {
+  it("husk-delete of {} hooks also prunes empty .cursor parent", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, ".cursor"), { recursive: true });
+    writeFileSync(join(root, ".cursor", "hooks.json"), "{}\n");
+    const removed = removeSoleAuthorHusks(root);
+    expect(removed).toEqual(expect.arrayContaining([".cursor/hooks.json", ".cursor"]));
+    expect(existsSync(join(root, ".cursor"))).toBe(false);
+    expect(readdirSync(root)).toEqual([]);
   });
 });
