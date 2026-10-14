@@ -120,7 +120,8 @@
           "packages/core/src/scope/lifecycle-write.ts",
           "packages/core/src/vbrief-activate/activate.ts",
           "packages/core/src/vbrief-activate/activate.test.ts",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "packages/core/src/preflight/evaluate.test.ts"
         ],
         "module_boundary": "scope active ingress localization vs DCR acceptance-text oracle; xbrief/vbrief activate writer parity",
         "cohesion_exemption": "CHANGELOG.md shared Unreleased bullet only for #4768 Prefer-A residual ingress localization; vbrief-activate is the fixture-localized command-only active writer."
@@ -152,7 +153,8 @@
           "packages/core/src/scope/lifecycle-write.ts",
           "packages/core/src/vbrief-activate/activate.ts",
           "packages/core/src/vbrief-activate/activate.test.ts",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "packages/core/src/preflight/evaluate.test.ts"
         ],
         "Traces": [
           "#4768"
