@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bump `actions/download-artifact` from 8.0.1 to 8.0.2 (#5555).
 
 ### Fixed
+- **Keep-active #5552 Path B activation.** Lands Prefer-A Bound active xBRIEF with reminted file_scope; productPullRequest unset. Tracking #5552.
 - **Complete the #5542 scope brief after product #5570.** Move the gate-override brief into xbrief/completed/ so orphan tracking clears. Tracking #5542.
 - **Gate-override admission locks publish without stealing live owners (#5542).**
 - Mint approved-scope for #5552 (Path B Prefer-A Bound file_scope).
