@@ -1,0 +1,11 @@
+{
+  "schema": "xbrief",
+  "id": "yolo-5490-wave3j",
+  "title": "Wave 3j — WAVE3-V2 acceptance",
+  "status": "completed",
+  "summary": "Acceptance PASS: F-009…F-015 closed; universal upgrade strategies green; L0 regressions green. Tip yolo-cp-wave3j for human re-test.",
+  "completedAt": "2026-10-14T17:30:00Z",
+  "wave": "3j",
+  "inbox": ["F-009", "F-010", "F-011", "F-012", "F-013", "F-014", "F-015"],
+  "verdaccio": { "tag": "yolo-cp-wave3j", "version": "0.0.0-yolo.cp-wave3j.1" }
+}
