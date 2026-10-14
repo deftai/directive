@@ -32,6 +32,7 @@ Tracker: [#3039](https://github.com/deftai/directive/issues/3039).
 | **Agent** | Always-on AGENTS contract: stop further Directive process load; echo recovery. |
 | **CLI** (`session:start`, ritual paths) | Disabled + recovery; no ritual write / no half-DD automation. |
 | **Host hooks** | SessionStart / PreToolUse / compact skip ritual and enforcement. |
+| **Git hooks** | Deposited `.githooks/_directive-run.sh` skips CLI spawn (exit 0 + recovery) when the flag is local/untracked (#5543 / #3039). Tracked flag does **not** disable. |
 
 Deposit (`.deft/core`) **may remain**. Init/update are not blocked by this flag alone (unlike permanent opt-out).
 

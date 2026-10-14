@@ -305,6 +305,39 @@ describe("runSetup package-relative wiring (Wave 2c / R9)", () => {
     expect(helper).not.toContain(".deft/core/");
   });
 
+  it("git hook helper short-circuits on local .deft-directive-disable (#5543 / #3039)", () => {
+    const root = tempRoot();
+    runSetup({ operation: "install", from: "none", root });
+    const helper = readFileSync(join(root, ".githooks", "_directive-run.sh"), "utf8");
+    expect(helper).toContain(".deft-directive-disable");
+    expect(helper).toContain("#5543");
+    expect(helper).toMatch(/ls-files --error-unmatch/);
+    // Fake runtime bin so sourcing the helper succeeds; short-circuit must avoid executing it.
+    const binPath = join(root, RUNTIME_PREFIX, "dist", "bin.js");
+    mkdirSync(join(root, RUNTIME_PREFIX, "dist"), { recursive: true });
+    writeFileSync(
+      binPath,
+      '#!/usr/bin/env node\nprocess.stderr.write("BIN_RAN\\n"); process.exit(99);\n',
+      "utf8",
+    );
+    writeFileSync(join(root, ".deft-directive-disable"), "", "utf8");
+    const combined = execFileSync(
+      "sh",
+      [
+        "-c",
+        `. "$REPO_ROOT/.githooks/_directive-run.sh"; run_directive doctor 2>&1; echo EXIT:$?`,
+      ],
+      {
+        encoding: "utf8",
+        cwd: root,
+        env: { ...process.env, REPO_ROOT: root },
+      },
+    );
+    expect(combined).toMatch(/DISABLED|skipping Directive CLI/i);
+    expect(combined).toContain("EXIT:0");
+    expect(combined).not.toContain("BIN_RAN");
+  });
+
   it("never creates .deft/core on install (AC13.1)", () => {
     const root = tempRoot();
     runSetup({ operation: "install", from: "none", root });
