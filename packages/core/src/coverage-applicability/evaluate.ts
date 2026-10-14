@@ -4,10 +4,7 @@
  */
 
 import * as childProcess from "node:child_process";
-import {
-  isClosedPlanSequenceShape,
-  PLAN_SEQUENCE_REL_PATH,
-} from "../plan-sequence/types.js";
+import { isClosedPlanSequenceShape, PLAN_SEQUENCE_REL_PATH } from "../plan-sequence/types.js";
 import { COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP } from "../pre-pr-controller/phases.js";
 
 export type PathClassification = "coverable" | "inert" | "unknown";
@@ -547,10 +544,7 @@ function isInterviewConfirmationEntry(value: unknown): boolean {
 /** Type-check demotion-eligible interviewContinuation fields; other keys ignored. */
 function interviewContinuationDemotionFieldsValid(value: unknown): boolean {
   if (!isPlainObject(value)) return false;
-  if (
-    Object.hasOwn(value, "targetDeliverable") &&
-    typeof value.targetDeliverable !== "string"
-  ) {
+  if (Object.hasOwn(value, "targetDeliverable") && typeof value.targetDeliverable !== "string") {
     return false;
   }
   if (
@@ -639,10 +633,7 @@ export function isPlanInterviewContinuationRefreshOnly(
  * Prefer-A Bound #5551: specification.xbrief.json M demotion for updated +
  * named Requirements/Design narrative strings only.
  */
-export function isSpecificationNarrativeRefreshOnly(
-  baseDoc: unknown,
-  headDoc: unknown,
-): boolean {
+export function isSpecificationNarrativeRefreshOnly(baseDoc: unknown, headDoc: unknown): boolean {
   if (!isPlainObject(baseDoc) || !isPlainObject(headDoc)) return false;
   const basePlan = isPlainObject(baseDoc.plan) ? baseDoc.plan : null;
   const headPlan = isPlainObject(headDoc.plan) ? headDoc.plan : null;
@@ -1109,7 +1100,9 @@ export function evaluateCoverageApplicability(
   }
 
   if (
-    !afterSequenceProof.every((c) => c.classification === "coverable" || c.classification === "inert")
+    !afterSequenceProof.every(
+      (c) => c.classification === "coverable" || c.classification === "inert",
+    )
   ) {
     return {
       outcome: "refuse",
@@ -1137,18 +1130,10 @@ export function evaluateCoverageApplicability(
 
   // #5479 Prefer-A Bound: demote PROJECT-DEFINITION refresh-only M rows after
   // path classify + binding refuses, before applicable aggregation.
-  const afterProjectDef = demoteProjectDefinitionRefreshChanges(
-    afterSequenceProof,
-    input,
-    runGit,
-  );
+  const afterProjectDef = demoteProjectDefinitionRefreshChanges(afterSequenceProof, input, runGit);
   // #5551 Prefer-A Bound: demote plan/spec closed-pointer M rows; LIVE_SETTINGS stay
   // coverable by default when the allowlist proof fails.
-  const evaluatedChanges = demoteLiveSettingsClosedPointerChanges(
-    afterProjectDef,
-    input,
-    runGit,
-  );
+  const evaluatedChanges = demoteLiveSettingsClosedPointerChanges(afterProjectDef, input, runGit);
 
   const coverable = evaluatedChanges.filter((c) => c.classification === "coverable");
   if (coverable.length > 0) {
