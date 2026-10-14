@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "[framework-gap] BLOCKER Add audited interactive human overrides for framework gate blockers",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "[framework-gap] BLOCKER Add audited interactive human overrides for framework gate blockers",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5542",
@@ -119,43 +119,43 @@
           "id": "clause.1",
           "text": "Mint only via existing operator-cli human-presence authz:grant; operator-session non-admitting; refuse chat/parent/fixture consent.",
           "artifact_path": "packages/core/src/authz/origin.ts",
-          "status": "pending"
+          "status": "completed"
         },
         {
           "id": "clause.2",
           "text": "Atomic one-use admission bound to continuation/attempt id with baseSha+headSha+treeHash + gate id + refuse code + worktree/evaluator identity; inspection does not consume.",
           "artifact_path": "packages/core/src/authz/store.ts",
-          "status": "pending"
+          "status": "completed"
         },
         {
           "id": "clause.3",
           "text": "Closed waived/overridden enum arms on CoverageApplicabilityResult and pre-PR evidence; never map waived onto pass; checkable review obligations.",
           "artifact_path": "packages/core/src/coverage-applicability/evaluate.ts",
-          "status": "pending"
+          "status": "completed"
         },
         {
           "id": "clause.4",
           "text": "First eligible gate = coverage-applicability / coverage_headroom refuse; closed refuse codes; empty deferred peers; non-overridable set; no independent push/merge.",
           "artifact_path": "packages/core/src/authz/templates.ts",
-          "status": "pending"
+          "status": "completed"
         },
         {
           "id": "clause.5",
           "text": "Named v1 consumers MUST honor the grant: pre-PR coverage_headroom and coverage:hotspots refuse path; others remain refuse-closed.",
           "artifact_path": "packages/core/src/pre-pr-controller/phases.ts",
-          "status": "pending"
+          "status": "completed"
         },
         {
           "id": "clause.6",
           "text": "Prefer authz template gate-override modeled on spec-drift-override; no second mint engine; keep other hatches complementary.",
           "artifact_path": "packages/core/src/authz/templates.ts",
-          "status": "pending"
+          "status": "completed"
         },
         {
           "id": "clause.7",
           "text": "Keep-outs: do not absorb #5541; no fabricate green; no auto-ingest; no UAT silent suspend; no blanket env override.",
           "artifact_path": "content/contracts/human-origin-authz.md",
-          "status": "pending"
+          "status": "completed"
         }
       ]
     },
@@ -257,9 +257,10 @@
         ],
         "parallel_safe": true
       },
-      "x-directive/derived_reason": "Prefer-A Bound limbs hand-stamped after empty body harvest (#4374); clauses bind Bound remedy"
+      "x-directive/derived_reason": "Prefer-A Bound limbs hand-stamped after empty body harvest (#4374); clauses bind Bound remedy",
+      "productPullRequest": 5570
     },
     "id": "github.issue.5789353060",
-    "updated": "2026-10-13T18:08:40Z"
+    "updated": "2026-10-14T04:07:42.460Z"
   }
 }

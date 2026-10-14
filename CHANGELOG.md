@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bump `actions/download-artifact` from 8.0.1 to 8.0.2 (#5555).
 
 ### Fixed
+- **Complete the #5542 scope brief after product #5570.** Move the gate-override brief into xbrief/completed/ so orphan tracking clears. Tracking #5542.
 - **Gate-override admission locks publish without stealing live owners (#5542).**
 - Mint intent-constraint for #5542 (approve gate-override invariant throw sites).
 - **Complete the #4768 scope brief after product #5571.** Move the acceptance-activate brief into xbrief/completed/ so orphan tracking clears. Tracking #4768.
