@@ -8,7 +8,7 @@ import { handleContractEntrypoint } from "./contract-entry.js";
 import { maybeSelfCompleteSetup } from "./self-complete.js";
 
 const argv = process.argv.slice(2);
-const contractCode = handleContractEntrypoint(argv);
+const contractCode = await handleContractEntrypoint(argv);
 if (contractCode !== null) {
   process.exit(contractCode);
 }
