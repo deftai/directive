@@ -6,14 +6,22 @@
  */
 
 import { createHash, randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, renameSync, rmSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import {
+  existsSync,
+  linkSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+} from "node:fs";
+import { basename, dirname, join, resolve } from "node:path";
 import {
   ContainedWriteError,
   ContainedWriteErrorCode,
   containedRemove,
   containedWrite,
 } from "../fs/contained-write.js";
+import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { type MintGrantInput, type MintGrantResult, mintHumanOriginGrant } from "./actions.js";
 import { isHumanOrigin, isHumanOriginKind } from "./origin.js";
 import {
@@ -427,12 +435,17 @@ function readAdmissionAttemptLockRecord(lockPath: string): GrantClaimLockRecord 
   }
 }
 
-/** Rename-away reclaim for crashed attempt-lock holders (same shape as grant claim locks). */
+/**
+ * Rename-away reclaim for crashed attempt-lock holders (same shape as grant claim locks).
+ * Unreadable/empty/partial records are NOT reclaimable — they may be an in-flight
+ * exclusive create still publishing the owner body (#5542 Greptile P1).
+ */
 function tryReclaimDeadAdmissionAttemptLock(lockPath: string): boolean {
   const existing = readAdmissionAttemptLockRecord(lockPath);
+  if (existing === null) return false;
   if (!isGrantClaimLockReclaimable(existing)) return false;
-  const expectedPid = existing?.pid ?? null;
-  const expectedToken = existing?.token ?? null;
+  const expectedPid = existing.pid;
+  const expectedToken = existing.token;
   const side = `${lockPath}.reclaim.${randomBytes(6).toString("hex")}`;
   try {
     renameSync(lockPath, side);
@@ -440,10 +453,7 @@ function tryReclaimDeadAdmissionAttemptLock(lockPath: string): boolean {
     return false;
   }
   const got = readAdmissionAttemptLockRecord(side);
-  const sameDead =
-    existing === null
-      ? got === null
-      : got !== null && got.pid === expectedPid && got.token === expectedToken;
+  const sameDead = got !== null && got.pid === expectedPid && got.token === expectedToken;
   if (!sameDead) {
     try {
       renameSync(side, lockPath);
@@ -461,6 +471,75 @@ function tryReclaimDeadAdmissionAttemptLock(lockPath: string): boolean {
 }
 
 /**
+ * Publish complete bytes at target with exclusive create semantics.
+ * Temp+link (or Windows rename) so readers never observe an empty final path
+ * mid-write (#5542 Greptile P1 live-lock / interrupted-admission).
+ */
+function writeExclusiveComplete(
+  projectRoot: string,
+  targetPath: string,
+  data: string,
+): void {
+  const root = resolve(projectRoot);
+  const abs = resolve(targetPath);
+  assertWriteTargetSafe(root, abs);
+  mkdirSync(dirname(abs), { recursive: true });
+  const tmp = join(
+    dirname(abs),
+    `.${basename(abs)}.${process.pid}.${randomBytes(4).toString("hex")}.tmp`,
+  );
+  try {
+    containedWrite({ root, target: tmp, data, mode: "create" });
+    try {
+      linkSync(tmp, abs);
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (code === "EEXIST") {
+        throw new ContainedWriteError(
+          `contained write refused: target ${abs} already exists (mode=create)`,
+          {
+            code: ContainedWriteErrorCode.EXISTS,
+            root,
+            target: abs,
+            offendingPath: abs,
+          },
+        );
+      }
+      // link may be unsupported; rename is exclusive on win32 when dest exists.
+      try {
+        renameSync(tmp, abs);
+      } catch (renameErr) {
+        const rcode = (renameErr as NodeJS.ErrnoException).code;
+        if (rcode === "EEXIST" || rcode === "EPERM") {
+          throw new ContainedWriteError(
+            `contained write refused: target ${abs} already exists (mode=create)`,
+            {
+              code: ContainedWriteErrorCode.EXISTS,
+              root,
+              target: abs,
+              offendingPath: abs,
+            },
+          );
+        }
+        throw renameErr;
+      }
+    }
+  } catch (err) {
+    try {
+      rmSync(tmp, { force: true });
+    } catch {
+      /* best-effort temp cleanup */
+    }
+    throw err;
+  }
+  try {
+    rmSync(tmp, { force: true });
+  } catch {
+    /* best-effort: rename already moved tmp; link leaves a second name */
+  }
+}
+
+/**
  * Serialize admit/renew for one attempt id so concurrent renewers cannot delete
  * each other's replacement receipt (#5542 Greptile P1). Dead-owner locks reclaim
  * via rename-away (same recovery as claimSingleUseGrantForApply).
@@ -470,7 +549,6 @@ function withAdmissionAttemptLock<T>(
   attemptId: string,
   fn: () => T,
 ): { ok: true; value: T } | { ok: false; reason: string } {
-  const root = resolve(projectRoot);
   const lockPath = admissionAttemptLockPath(projectRoot, attemptId);
   const lockToken = randomBytes(8).toString("hex");
   const lockBody = `${JSON.stringify({
@@ -481,7 +559,8 @@ function withAdmissionAttemptLock<T>(
 
   const tryCreate = (): boolean => {
     try {
-      containedWrite({ root, target: lockPath, data: lockBody, mode: "create" });
+      // Atomic exclusive publish — no empty final path for reclaim to steal.
+      writeExclusiveComplete(projectRoot, lockPath, lockBody);
       return true;
     } catch (err) {
       if (err instanceof ContainedWriteError && err.code === ContainedWriteErrorCode.EXISTS) {
@@ -538,16 +617,20 @@ function isLiveAdmissionGrant(
   return grantMatchesGateOverride(grant, binding, now);
 }
 
-/** Exclusive create of admission receipt (O_EXCL). Concurrent admit fails closed. */
+/** Exclusive create of admission receipt. Concurrent admit fails closed. */
 function writeAdmissionExclusive(projectRoot: string, targetPath: string, payload: unknown): void {
-  const root = resolve(projectRoot);
-  mkdirSync(dirname(resolve(targetPath)), { recursive: true });
-  containedWrite({
-    root,
-    target: targetPath,
-    data: `${JSON.stringify(payload, null, 2)}\n`,
-    mode: "create",
-  });
+  writeExclusiveComplete(
+    projectRoot,
+    targetPath,
+    `${JSON.stringify(payload, null, 2)}\n`,
+  );
+}
+
+/** True when a receipt path exists but does not parse as a live admission. */
+function isIncompleteAdmissionReceipt(projectRoot: string, attemptId: string): boolean {
+  const path = admissionPath(projectRoot, attemptId.trim());
+  if (!existsSync(path)) return false;
+  return loadGateOverrideAdmission(projectRoot, attemptId) === null;
 }
 
 export function loadGateOverrideAdmission(
@@ -712,6 +795,14 @@ export function admitGateOverrideForAttempt(
   const locked = withAdmissionAttemptLock(projectRoot, input.attemptId, () => {
     let stalePriorFail: GateOverrideAdmitResult | null = null;
     let staleGrantId: string | null = null;
+    // Clear empty/partial leftovers under the attempt lock so retries are not
+    // permanently blocked by an interrupted exclusive create (#5542 Greptile P1).
+    if (isIncompleteAdmissionReceipt(projectRoot, input.attemptId)) {
+      containedRemove({
+        root: resolve(projectRoot),
+        target: admissionPath(projectRoot, input.attemptId),
+      });
+    }
     const prior = loadGateOverrideAdmission(projectRoot, input.attemptId);
     if (prior !== null) {
       if (prior.attemptId !== input.attemptId.trim()) {
