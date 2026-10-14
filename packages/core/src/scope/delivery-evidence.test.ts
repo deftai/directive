@@ -3,6 +3,8 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { mintOnePrUnitGrant } from "../one-pr-unit/mint.js";
+import { getDefaultAppStore } from "../one-pr-unit/simulator.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
 import type { GitRunner } from "../session/git.js";
 import {
@@ -1504,8 +1506,20 @@ describe("delivery evidence auto-discovery (#3583)", () => {
       prNumber: 42,
       closingIssues: [3041, 9999],
     });
+    const runGh: RunGhFn = (cmd) => {
+      const joined = cmd.join(" ");
+      if (joined.includes("repos/deftai/directive/pulls/42")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({ node_id: "PR_kwDOTestNode42" }),
+          stderr: "",
+        };
+      }
+      return { returncode: 1, stdout: "", stderr: "unexpected gh" };
+    };
     const result = runTransition("complete", file, new Date("2026-08-02T12:00:00Z"), {
       runGit: gitOk(),
+      runGh,
       ...identity,
       fetchClosingPrRefs: () => ({
         ok: true,
@@ -1514,6 +1528,49 @@ describe("delivery evidence auto-discovery (#3583)", () => {
     });
     expect(result.ok).toBe(false);
     expect(result.message).toMatch(/one-PR-unit|missing one-PR-unit consent|#3041|#9999/i);
+  });
+
+  it("allows discovered multi-origin PR when App grant is bound to PR node", () => {
+    root = makeRepo();
+    const file = writeCodeBearing(root);
+    const identity = identityOk({
+      prNumber: 42,
+      closingIssues: [3041, 9999],
+    });
+    const store = getDefaultAppStore();
+    const claim = mintOnePrUnitGrant({
+      store,
+      actor: "tester",
+      approvalRef: "ref-3583",
+      rationale: "cohort close",
+      origins: [
+        { repo: "deftai/directive", issueId: 3041 },
+        { repo: "deftai/directive", issueId: 9999 },
+      ],
+      repo: "deftai/directive",
+    });
+    store.bind(claim.id, "PR_kwDOTestNode42");
+    const runGh: RunGhFn = (cmd) => {
+      const joined = cmd.join(" ");
+      if (joined.includes("repos/deftai/directive/pulls/42")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({ node_id: "PR_kwDOTestNode42" }),
+          stderr: "",
+        };
+      }
+      return { returncode: 1, stdout: "", stderr: "unexpected gh" };
+    };
+    const result = runTransition("complete", file, new Date("2026-08-02T12:00:00Z"), {
+      runGit: gitOk(),
+      runGh,
+      ...identity,
+      fetchClosingPrRefs: () => ({
+        ok: true,
+        refs: [{ repository: "deftai/directive", prNumber: 42 }],
+      }),
+    });
+    expect(result.ok).toBe(true);
   });
 
   it("defaultFetchClosingPrRefs fails closed on unreadable nodes", () => {

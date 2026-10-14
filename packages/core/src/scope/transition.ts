@@ -28,8 +28,9 @@ import {
 } from "../lifecycle/completed-tracked-on-delivery.js";
 import type { LiteralAcceptanceRunner } from "../literal-acceptance/index.js";
 import { evaluateOnePrUnit } from "../one-pr-unit/evaluate.js";
-import { exactOriginSetEquals, normalizeOrigin, uniqueOrigins } from "../one-pr-unit/origin-set.js";
-import { listOnePrUnitGrants } from "../one-pr-unit/store.js";
+import { normalizeOrigin, uniqueOrigins } from "../one-pr-unit/origin-set.js";
+import { getDefaultAppStore } from "../one-pr-unit/simulator.js";
+import { enforceLiveOnePrUnitCheck, resolveProductionAppStore } from "../one-pr-unit/store.js";
 import type { OriginRef } from "../one-pr-unit/types.js";
 import type { IssueRef } from "../orphan-active/refs.js";
 import { resolveSpecGuard } from "../policy/spec-guard.js";
@@ -144,13 +145,40 @@ export interface TransitionOptions {
   readonly hasCompletedTipTwin?: (ref: IssueRef) => CompletedTipTwinResult;
 }
 
+/** REST node_id for one-PR-unit binding; mirrors pr-closing-keywords live path. */
+function fetchDeliveryPrNodeId(pr: number, repo: string, runGh: RunGhFn): string | null {
+  let result: { readonly returncode: number; readonly stdout: string; readonly stderr: string };
+  try {
+    result = runGh(["gh", "api", `repos/${repo}/pulls/${pr}`]);
+  } catch {
+    return null;
+  }
+  if (result.returncode !== 0) {
+    return null;
+  }
+  try {
+    const payload: unknown = JSON.parse(result.stdout);
+    if (payload === null || typeof payload !== "object" || Array.isArray(payload)) {
+      return null;
+    }
+    const node = (payload as { node_id?: unknown }).node_id;
+    if (typeof node === "string" && node.trim().length > 0) {
+      return node.trim();
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 /**
  * After #3583 discovery (or explicit --pr), re-run one-PR-unit on the closer-set
  * before complete/restamp mutates. CLI skips this when --pr is omitted; discovery
  * must not bypass the multi-origin grant (#4494 / Greptile P1 on #3583).
+ * Multi-origin uses the production App store + PR node id (enforceLiveOnePrUnitCheck).
  */
 function enforceOnePrUnitForDiscoveredEvidence(
-  projectRoot: string,
+  _projectRoot: string,
   evidence: DeliveryEvidenceInput | null | undefined,
   options: {
     readonly runGh?: RunGhFn;
@@ -169,6 +197,7 @@ function enforceOnePrUnitForDiscoveredEvidence(
     return { ok: true };
   }
 
+  const runGh = options.runGh ?? defaultRunGh;
   let closerSet: OriginRef[];
   if (options.fetchClosingIssueIds !== undefined) {
     const refs = options.fetchClosingIssueIds(prNumber, repo);
@@ -182,7 +211,7 @@ function enforceOnePrUnitForDiscoveredEvidence(
     }
     closerSet = uniqueOrigins(refs.map((ref) => normalizeOrigin(ref.repository, ref.issueNumber)));
   } else {
-    const linked = fetchClosingIssuesReferences(prNumber, repo, options.runGh ?? defaultRunGh);
+    const linked = fetchClosingIssuesReferences(prNumber, repo, runGh);
     if (linked === null) {
       return {
         ok: false,
@@ -194,13 +223,46 @@ function enforceOnePrUnitForDiscoveredEvidence(
     closerSet = uniqueOrigins(linked.map((issueNumber) => normalizeOrigin(repo, issueNumber)));
   }
 
-  const grant =
-    listOnePrUnitGrants(projectRoot).find((g) => exactOriginSetEquals(g.origins, closerSet)) ??
-    null;
-  const unit = evaluateOnePrUnit({
+  if (closerSet.length <= 1) {
+    const unit = evaluateOnePrUnit({
+      closerSet,
+      grant: null,
+      binding: { repo },
+    });
+    if (!unit.ok) {
+      return { ok: false, message: unit.message };
+    }
+    return { ok: true };
+  }
+
+  const prNodeId = fetchDeliveryPrNodeId(prNumber, repo, runGh);
+  if (prNodeId === null) {
+    return {
+      ok: false,
+      message: `could not read PR #${prNumber} node id for one-PR-unit recheck.`,
+    };
+  }
+
+  const resolved = resolveProductionAppStore();
+  const store = resolved.ok
+    ? resolved.store
+    : options.fetchClosingIssueIds !== undefined
+      ? getDefaultAppStore()
+      : null;
+  if (store === null) {
+    return {
+      ok: false,
+      message: resolved.ok
+        ? "one-PR-unit App store unavailable for multi-origin discovery recheck."
+        : resolved.message,
+    };
+  }
+
+  const unit = enforceLiveOnePrUnitCheck({
+    store,
     closerSet,
-    grant,
-    binding: { repo },
+    repo,
+    prNodeId,
   });
   if (!unit.ok) {
     return { ok: false, message: unit.message };
