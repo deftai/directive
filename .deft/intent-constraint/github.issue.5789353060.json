@@ -1,0 +1,35 @@
+{
+  "schema": "deft.intent-constraint.v1",
+  "planId": "github.issue.5789353060",
+  "xbriefRelPath": "xbrief/active/2026-10-13-5542-framework-gap-blocker-add-audited-interactive-human-override.xbrief.json",
+  "approvedAt": "2026-10-14T02:44:02Z",
+  "constraints": [
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "operation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "corruption",
+      "unit": "throw-site",
+      "rejectionScope": "operation"
+    },
+    {
+      "value": "race",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    }
+  ],
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-10-14T02:44:02Z",
+    "mintedVia": "in-harness-ask"
+  },
+  "contractDigest": "5b9e2f3cec4837472c9f1cc5b719e636f449b932b2642aa6e04942830cc0b8ac"
+}
