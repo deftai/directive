@@ -13,6 +13,7 @@ import {
   type FetchClosingIssueIdsFn,
   type FetchPrPayloadFn,
   isCodeBearingScope,
+  isEligibleStoredDeliveryDisposition,
   NON_DELIVERY_DISPOSITIONS,
   refreshRemoteDeliveryRef,
   resolveCompletionSessionId,
@@ -216,6 +217,12 @@ describe("delivery evidence (#3041)", () => {
     });
     expect(codeMissing.ok).toBe(false);
 
+    // Failed gate outcomes are not eligible writer success stamps (#5602 P1).
+    expect(isEligibleStoredDeliveryDisposition("not_delivered")).toBe(false);
+    expect(isEligibleStoredDeliveryDisposition("merged_to_integration")).toBe(false);
+    expect(isEligibleStoredDeliveryDisposition("delivered")).toBe(true);
+    expect(isEligibleStoredDeliveryDisposition("accepted_not_delivered")).toBe(true);
+
     // Classifier still cast-throughs arbitrary strings; write-guard does not.
     expect(
       classifyStoredDeliveryDisposition({
@@ -238,6 +245,22 @@ describe("delivery evidence (#3041)", () => {
       },
     });
     expect(castThrough.ok).toBe(false);
+  });
+
+  it("write-guard exempts code-bearing scope:fail without completionProvenance (#5602)", () => {
+    const failed = evaluateStoredCompletionProvenanceForWriteGuard({
+      status: "failed",
+      references: [
+        {
+          type: "x-xbrief/github-issue",
+          uri: "https://github.com/deftai/directive/issues/5602",
+        },
+      ],
+      metadata: {
+        lifecycleWrite: { action: "fail", writtenAt: "2026-10-14T15:00:00Z" },
+      },
+    });
+    expect(failed.ok).toBe(true);
   });
 
   it("fails closed on code-bearing complete without evidence", () => {

@@ -1158,8 +1158,8 @@ describe("evaluateCompletedWriteGuard (#3766 active deletion)", () => {
         { cwd: root, encoding: "utf8", env: isolatedGitEnv(root) },
       );
       expect(shown.status).toBe(0);
-      expect(shown.stdout).toContain("D\t" + active);
-      expect(shown.stdout).toContain("M\t" + completed);
+      expect(shown.stdout).toContain(`D\t${active}`);
+      expect(shown.stdout).toContain(`M\t${completed}`);
       expect(shown.stdout).not.toMatch(/^R/m);
       const result = evaluateCompletedWriteGuard(root, { baseRef: base.stdout.trim() });
       expect(result.code, result.message).toBe(0);
@@ -1203,7 +1203,7 @@ describe("evaluateCompletedWriteGuard (#3766 active deletion)", () => {
         { cwd: root, encoding: "utf8", env: isolatedGitEnv(root) },
       );
       expect(shown.status).toBe(0);
-      expect(shown.stdout).toContain("D\t" + active);
+      expect(shown.stdout).toContain(`D\t${active}`);
       expect(shown.stdout).not.toContain(completed);
       const result = evaluateCompletedWriteGuard(root, { baseRef: baseSha });
       expect(result.code, result.message).toBe(1);
@@ -1670,6 +1670,36 @@ describe("evaluateCompletedWriteGuard Prefer-A leftover provenance (#5602)", () 
       payloads: new Map([[completedRel, docsOnly]]),
     });
     expect(result.code).toBe(0);
+  });
+
+  it("accepts code-bearing scope:fail without completionProvenance (#5602)", () => {
+    // Existing husk("failed") fixture is non-code (kind:fix); this regression
+    // covers a GitHub-issue-referenced fail stamp that is code-bearing.
+    const failedCode = JSON.stringify({
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "failed code bearing",
+        status: "failed",
+        references: [
+          {
+            uri: "https://github.com/deftai/directive/issues/5602",
+            type: "x-xbrief/github-issue",
+          },
+        ],
+        metadata: {
+          lifecycleWrite: {
+            action: "fail",
+            writtenAt: "2026-10-14T15:00:00Z",
+          },
+        },
+      },
+    });
+    const result = evaluateCompletedWriteGuard("/tmp/proj", {
+      addedFiles: [completedRel],
+      payloads: new Map([[completedRel, failedCode]]),
+    });
+    expect(result.code).toBe(0);
+    expect(result.findings).toHaveLength(0);
   });
 
   it("does not apply #5602 delivery contract to completed/ mods (#4906 residual)", () => {
