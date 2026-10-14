@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-10-14-5574-cohort-path-b-mint.xbrief.json",
+  "planId": "github.issue.5841024431",
+  "approvedAt": "2026-10-14T03:06:05Z",
+  "fileScope": [
+    "CHANGELOG.md",
+    "content/docs/intent-constraint.md",
+    "content/packs/skills/skills-pack-0.1.json",
+    "content/skills/deft-directive-build/SKILL.md",
+    "content/skills/deft-directive-swarm/references/core-phase-0.md",
+    "content/templates/agent-prompt-preamble.md",
+    "packages/core/src/intent-constraint/placement.test.ts",
+    "packages/core/src/intent-constraint/types.test.ts",
+    "packages/core/src/intent-constraint/types.ts"
+  ],
+  "fileScopeDigest": "4552c638c8c12d0da3ef7d48cc4983a06026e853a866531f3d2fe74729209abf",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-10-14T03:06:05Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "6aac3a8720a7856686c9ba71a6a6076a38f9aa32b58bc189cd1ed9650b734808",
+  "digestAlgo": "intent-extract-v1"
+}
