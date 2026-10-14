@@ -263,6 +263,25 @@ describe("delivery evidence (#3041)", () => {
     expect(failed.ok).toBe(true);
   });
 
+  it("write-guard refuses completed status with fail stamp and no provenance (#5602)", () => {
+    const mismatched = evaluateStoredCompletionProvenanceForWriteGuard({
+      status: "completed",
+      references: [
+        {
+          type: "x-xbrief/github-issue",
+          uri: "https://github.com/deftai/directive/issues/5602",
+        },
+      ],
+      metadata: {
+        lifecycleWrite: { action: "fail", writtenAt: "2026-10-14T15:00:00Z" },
+      },
+    });
+    expect(mismatched.ok).toBe(false);
+    if (!mismatched.ok) {
+      expect(mismatched.detail).toMatch(/missing completionProvenance/);
+    }
+  });
+
   it("fails closed on code-bearing complete without evidence", () => {
     root = makeRepo();
     const file = writeCodeBearing(root);

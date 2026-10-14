@@ -731,13 +731,10 @@ function nonemptyStringField(value: unknown): string | null {
 /**
  * True when a completed/ plan is a failed outcome (`scope:fail`).
  * Fail stamps omit completionProvenance by design (#3679 / #5602).
+ * Status must be `failed` — a lone `lifecycleWrite.action: "fail"` on a
+ * `completed` status must not skip delivery proof.
  */
 export function isFailedCompletionOutcome(plan: Record<string, unknown>): boolean {
-  const meta = asRecord(plan.metadata);
-  const stamp = asRecord(meta?.lifecycleWrite);
-  if (stamp !== null && stamp.action === "fail") {
-    return true;
-  }
   return String(plan.status ?? "") === "failed";
 }
 
