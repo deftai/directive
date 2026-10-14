@@ -1,0 +1,62 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Path B activate #5551 Prefer-A Bound",
+    "updated": "2026-10-14T06:47:12.974Z"
+  },
+  "plan": {
+    "id": "github.issue.5820138360",
+    "status": "running",
+    "title": "Path B activate #5551 Prefer-A Bound",
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5551",
+        "type": "x-xbrief/github-issue"
+      }
+    ],
+    "metadata": {
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5820138360,
+        "origin": "deftai/directive#5551",
+        "id": "github.issue.5820138360"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/coverage-applicability/evaluate.ts",
+          "packages/core/src/coverage-applicability/evaluate.test.ts",
+          "packages/core/src/plan-sequence/types.ts",
+          "content/docs/scope-provenance.md",
+          "CHANGELOG.md"
+        ],
+        "readiness": "ready",
+        "bound_cite": 6132953774
+      },
+      "intended_placement": {
+        "files": [
+          "packages/core/src/coverage-applicability/evaluate.ts",
+          "packages/core/src/coverage-applicability/evaluate.test.ts",
+          "packages/core/src/plan-sequence/types.ts",
+          "content/docs/scope-provenance.md",
+          "CHANGELOG.md"
+        ],
+        "cohesion_exemption": "CHANGELOG.md Unreleased Keep active note for Path B activation",
+        "module_boundary": "Prefer-A Bound 6132953774"
+      }
+    },
+    "acceptance": {
+      "none_stated": true,
+      "source_rung": "derived",
+      "clauses": [],
+      "commands": []
+    },
+    "items": [
+      {
+        "id": "limb-1",
+        "title": "Implement Prefer-A Bound limbs for #5551",
+        "status": "pending"
+      }
+    ]
+  }
+}
