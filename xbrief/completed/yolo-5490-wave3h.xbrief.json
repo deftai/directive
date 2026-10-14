@@ -1,0 +1,11 @@
+{
+  "schema": "xbrief",
+  "id": "yolo-5490-wave3h",
+  "title": "Wave 3h — F-010 no-git precondition story",
+  "status": "completed",
+  "summary": "Warn+partial install; plan/doctor/recovery say incomplete without git; next step git init then install --repair. AC6.2 scoped to preconditions met.",
+  "completedAt": "2026-10-14T16:30:00Z",
+  "wave": "3h",
+  "inbox": ["F-010"],
+  "verdaccio": { "tag": "yolo-cp-wave3h", "version": "0.0.0-yolo.cp-wave3h.1" }
+}
