@@ -63,9 +63,7 @@ describe("active ingress acceptance (#4768 Prefer-A)", () => {
     expect(ACTIVE_ACCEPTANCE_ORACLES.verifyAcCommands).toBe(
       "stated-commands-may-pass-with-clause-count-0",
     );
-    expect(ACTIVE_ACCEPTANCE_ORACLES.dcrTexts).toBe(
-      "non-empty-acceptance-text-commands-ignored",
-    );
+    expect(ACTIVE_ACCEPTANCE_ORACLES.dcrTexts).toBe("non-empty-acceptance-text-commands-ignored");
   });
 
   it("allows bare / floor briefs without commands (not the Windows residual)", () => {
@@ -100,7 +98,8 @@ describe("active ingress acceptance (#4768 Prefer-A)", () => {
     const plan: Record<string, unknown> = {
       title: "Command only",
       narratives: {
-        Overview: "## Acceptance sketch\n- Persist the session token in packages/core/src/session/token.ts\n",
+        Overview:
+          "## Acceptance sketch\n- Persist the session token in packages/core/src/session/token.ts\n",
       },
       acceptance: {
         commands: [{ command: "pnpm test" }],

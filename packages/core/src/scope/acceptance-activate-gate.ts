@@ -145,7 +145,6 @@ export function prepareActiveIngressAcceptance(
     "acceptance cannot land or remain in active/ under the DCR text oracle. " +
     "Supply list items, test: lines, or acceptance: lines (#4374), then retry. " +
     "Stated commands alone are not acceptance texts.";
-  const message =
-    derivation.notice.length > 0 ? `${derivation.notice}\n${recovery}` : recovery;
+  const message = derivation.notice.length > 0 ? `${derivation.notice}\n${recovery}` : recovery;
   return { ok: false, message, applied: false };
 }
