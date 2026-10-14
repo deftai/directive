@@ -27,6 +27,7 @@ import {
   stripGitignoreInlineComment,
 } from "../triage/bootstrap/gitignore.js";
 import { CANONICAL_INSTALL_ROOT } from "./constants.js";
+import { type GitRmCached, runGitRmCached } from "./git-rm-cached.js";
 import { bareVersionMarkerTargets } from "./hygiene.js";
 import { buildInstallManifestText, type InitDepositIo } from "./scaffold.js";
 
@@ -156,10 +157,7 @@ export interface UntrackLocalRuntimeResult {
 }
 
 /** Injected `git rm --cached` for #3911 local-runtime paths (default shells out). */
-export type GitRmCachedPaths = (
-  projectDir: string,
-  paths: readonly string[],
-) => { readonly ok: boolean; readonly detail: string };
+export type GitRmCachedPaths = GitRmCached;
 
 /**
  * True when `.gitignore` is absent or does not carry the canonical cache
@@ -218,17 +216,7 @@ function defaultGitRmCachedPaths(
   projectDir: string,
   paths: readonly string[],
 ): { ok: boolean; detail: string } {
-  try {
-    const out = execFileSync("git", ["rm", "--cached", "-r", "--ignore-unmatch", "--", ...paths], {
-      cwd: projectDir,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    return { ok: true, detail: out };
-  } catch (err: unknown) {
-    const detail = err instanceof Error ? err.message : String(err);
-    return { ok: false, detail };
-  }
+  return runGitRmCached(projectDir, paths, { ignoreUnmatch: true });
 }
 
 function listTrackedUnder(projectDir: string, relPath: string, gitLsFiles: GitLsFiles): string[] {

@@ -21,9 +21,9 @@
  * Refs #2269, #2264, #2123, #2124, #2203.
  */
 
-import { execFileSync } from "node:child_process";
 import { PIN_DEPENDENCY_NAME, type PinReadResult, readPin } from "../resolution/pin.js";
 import type { InitDepositIo } from "./constants.js";
+import { type GitRmCached, type GitRmCachedResult, runGitRmCached } from "./git-rm-cached.js";
 import {
   ensureUntrackCoreGitignoreLines,
   type GitLsFiles,
@@ -52,15 +52,7 @@ export interface UntrackCoreResult {
   readonly message: string;
 }
 
-/** Outcome of the injected `git rm --cached -r <paths>` runner. */
-export interface GitRmCachedResult {
-  readonly ok: boolean;
-  /** stdout on success, or the error detail on failure. */
-  readonly detail: string;
-}
-
-/** Injected git runner for the destructive index mutation (default shells out). */
-export type GitRmCached = (projectDir: string, paths: readonly string[]) => GitRmCachedResult;
+export type { GitRmCached, GitRmCachedResult };
 
 export interface UntrackCoreSeams {
   /** Probe whether `.deft/core` is git-tracked (default: `git ls-files`). */
@@ -80,17 +72,7 @@ export interface UntrackCoreSeams {
 
 /** Default `git rm --cached -r <paths>`: index-only removal, working tree preserved. */
 function defaultGitRmCached(projectDir: string, paths: readonly string[]): GitRmCachedResult {
-  try {
-    const out = execFileSync("git", ["rm", "--cached", "-r", "--", ...paths], {
-      cwd: projectDir,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    return { ok: true, detail: out };
-  } catch (err: unknown) {
-    const detail = err instanceof Error ? err.message : String(err);
-    return { ok: false, detail };
-  }
+  return runGitRmCached(projectDir, paths);
 }
 
 function refusedMissingPinMessage(pin: PinReadResult): string {
