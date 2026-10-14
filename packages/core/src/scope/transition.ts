@@ -80,8 +80,10 @@ import {
   briefWithoutDurableCompletionProvenance,
   classifyStoredDeliveryDisposition,
   type DeliveryEvidenceInput,
+  discoverDeliveryEvidenceForComplete,
   evaluateDeliveryGate,
   type FetchClosingIssueIdsFn,
+  type FetchClosingPrRefsFn,
   type FetchPrPayloadFn,
   type NonDeliveryDisposition,
   resolveCompletionSessionId,
@@ -112,6 +114,8 @@ export interface TransitionOptions {
   /** Prefer-A identity-join seams (#3675); forwarded to evaluateDeliveryGate. */
   readonly fetchPrPayload?: FetchPrPayloadFn;
   readonly fetchClosingIssueIds?: FetchClosingIssueIdsFn;
+  /** Prefer-A complete-time issue→PR discovery seam (#3583). */
+  readonly fetchClosingPrRefs?: FetchClosingPrRefsFn;
   /**
    * Test-only escape hatch: skip the #3240 per-item acceptance evidence gate.
    * Production callers MUST leave this false/undefined.
@@ -440,11 +444,26 @@ export function runTransition(
   // #3041: fail closed before mutating a code-bearing complete without delivery evidence.
   let reuseValidatedDeliveryAncestry = false;
   if (act === "complete") {
+    // #3583: auto-discover delivery evidence before the validate-only gate.
+    const discovered = discoverDeliveryEvidenceForComplete({
+      projectRoot,
+      plan: planObj,
+      evidence: options.deliveryEvidence,
+      nonDeliveryDisposition: options.nonDeliveryDisposition,
+      runGit: options.runGit,
+      runGh: options.runGh,
+      fetchPrPayload: options.fetchPrPayload,
+      fetchClosingPrRefs: options.fetchClosingPrRefs,
+      verifier: options.verifier ?? "scope:complete",
+    });
+    if (!discovered.ok) {
+      return { ok: false, message: discovered.message };
+    }
     const gate = evaluateDeliveryGate({
       projectRoot,
       plan: planObj,
       nowIso,
-      evidence: options.deliveryEvidence,
+      evidence: discovered.evidence,
       nonDeliveryDisposition: options.nonDeliveryDisposition,
       runGit: options.runGit,
       runGh: options.runGh,
@@ -964,11 +983,26 @@ function restampCompletedBrief(args: RestampArgs): TransitionResult {
   const { resolvedPath, basename, data, planObj, projectRoot, vbriefRoot, now, nowIso, options } =
     args;
 
+  // #3583: share discovery with the primary complete path before validate-only gate.
+  const discovered = discoverDeliveryEvidenceForComplete({
+    projectRoot,
+    plan: planObj,
+    evidence: options.deliveryEvidence,
+    nonDeliveryDisposition: options.nonDeliveryDisposition,
+    runGit: options.runGit,
+    runGh: options.runGh,
+    fetchPrPayload: options.fetchPrPayload,
+    fetchClosingPrRefs: options.fetchClosingPrRefs,
+    verifier: options.verifier ?? "scope:complete",
+  });
+  if (!discovered.ok) {
+    return { ok: false, message: discovered.message };
+  }
   const gate = evaluateDeliveryGate({
     projectRoot,
     plan: planObj,
     nowIso,
-    evidence: options.deliveryEvidence,
+    evidence: discovered.evidence,
     nonDeliveryDisposition: options.nonDeliveryDisposition,
     runGit: options.runGit,
     runGh: options.runGh,

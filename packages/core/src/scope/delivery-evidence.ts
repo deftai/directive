@@ -10,6 +10,7 @@
  */
 
 import { closerSetFromIssueIds } from "../one-pr-unit/closer-set.js";
+import { productPullRequestFromPlan } from "../orphan-active/running-briefs.js";
 import {
   assertSafeBranchName,
   type DeliveryBranchResult,
@@ -1260,12 +1261,15 @@ export function briefWithoutDurableCompletionProvenance(
 /**
  * Parse a PR REST payload into delivery evidence fields.
  * Expects GitHub pulls API shape (merged_at, base.ref, merge_commit_sha, …).
+ * `verifier` defaults to swarm:finalize-cohort; complete-time callers MUST pass
+ * `scope:complete` (#3583 Prefer-A Bound).
  */
 export function evidenceFromPrPayload(
   payload: Record<string, unknown>,
   prNumber: number,
   repository: string | null,
   deliveryBranch?: string | null,
+  verifier: string = "swarm:finalize-cohort",
 ): DeliveryEvidenceInput {
   const base = asRecord(payload.base);
   const head = asRecord(payload.head);
@@ -1295,6 +1299,484 @@ export function evidenceFromPrPayload(
     mergeCommit,
     deliveryBranch: deliveryBranch ?? null,
     mergedAt,
-    verifier: "swarm:finalize-cohort",
+    verifier,
+  };
+}
+
+/** Forge closing PR ref for issue→PR discovery (#3583). */
+export interface ClosingPrRef {
+  readonly repository: string;
+  readonly prNumber: number;
+}
+
+export type FetchClosingPrRefsResult =
+  | { readonly ok: true; readonly refs: readonly ClosingPrRef[] }
+  | { readonly ok: false; readonly error: string };
+
+/**
+ * Fetch complete, deduplicated forge closers for an issue (#3583 Prefer-A).
+ * Incomplete pagination or lookup errors MUST return ok:false (fail closed).
+ */
+export type FetchClosingPrRefsFn = (
+  issueNumber: number,
+  repository: string,
+) => FetchClosingPrRefsResult;
+
+/** GraphQL: issue → closedByPullRequestsReferences with completeness cursor. */
+const CLOSING_PRS_GRAPHQL = [
+  "query($owner:String!,$name:String!,$number:Int!,$after:String){",
+  "repository(owner:$owner,name:$name){",
+  "issue(number:$number){",
+  "closedByPullRequestsReferences(first:100,includeClosedPrs:true,after:$after){",
+  "pageInfo{hasNextPage endCursor}",
+  "nodes{number url repository{nameWithOwner}}",
+  "}}}}",
+].join("");
+
+function parseClosingPrNode(entry: unknown, fallbackRepository: string): ClosingPrRef | null {
+  const rec = asRecord(entry);
+  if (rec === null) {
+    return null;
+  }
+  let prNumber: number | null = null;
+  if (typeof rec.number === "number" && Number.isInteger(rec.number) && rec.number > 0) {
+    prNumber = rec.number;
+  } else if (typeof rec.number === "string" && /^[0-9]+$/.test(rec.number)) {
+    prNumber = Number(rec.number);
+  }
+  if (prNumber === null) {
+    return null;
+  }
+
+  if (typeof rec.url === "string" && rec.url.trim().length > 0) {
+    const cleaned = rec.url.trim().replace(/\/$/, "");
+    const pathOnly = (cleaned.split(/[?#]/, 1)[0] ?? cleaned).replace(/\/$/, "");
+    const parts =
+      pathOnly
+        .split("://")
+        .pop()
+        ?.split("/")
+        .filter((p) => p.length > 0) ?? [];
+    if (
+      parts.length >= 4 &&
+      parts[parts.length - 2] === "pull" &&
+      /^\d+$/.test(parts[parts.length - 1] ?? "")
+    ) {
+      const owner = parts[parts.length - 4];
+      const name = parts[parts.length - 3];
+      if (typeof owner === "string" && typeof name === "string") {
+        return { repository: `${owner}/${name}`, prNumber };
+      }
+    }
+  }
+
+  const repoRec = asRecord(rec.repository);
+  const nameWithOwner =
+    typeof repoRec?.nameWithOwner === "string" ? repoRec.nameWithOwner.trim() : "";
+  if (nameWithOwner.includes("/")) {
+    return { repository: nameWithOwner, prNumber };
+  }
+  return { repository: fallbackRepository, prNumber };
+}
+
+/**
+ * Authoritative issue→PR closers via closedByPullRequestsReferences (#3583).
+ * Paginates to completion; incomplete pages or lookup failure fail closed.
+ */
+export function defaultFetchClosingPrRefs(
+  issueNumber: number,
+  repository: string,
+  runGh: RunGhFn = defaultRunGh,
+): FetchClosingPrRefsResult {
+  const parsedRepo = parseOwnerRepo(repository);
+  if (parsedRepo === null) {
+    return { ok: false, error: `invalid repository for closing-PR discovery: ${repository}` };
+  }
+
+  const seen = new Set<string>();
+  const refs: ClosingPrRef[] = [];
+  let after: string | null = null;
+  // Bound hard stop: refuse unbounded GraphQL walks under concurrent complete (#954).
+  const maxPages = 20;
+
+  for (let page = 0; page < maxPages; page += 1) {
+    const cmd = [
+      "gh",
+      "api",
+      "graphql",
+      "-f",
+      `query=${CLOSING_PRS_GRAPHQL}`,
+      "-F",
+      `owner=${parsedRepo.owner}`,
+      "-F",
+      `name=${parsedRepo.name}`,
+      "-F",
+      `number=${issueNumber}`,
+    ];
+    // Omit nullable $after on the first page; pass endCursor thereafter.
+    if (after !== null) {
+      cmd.push("-F", `after=${after}`);
+    }
+
+    let result: RunGhResult;
+    try {
+      result = runGh(cmd);
+    } catch (exc: unknown) {
+      const message = exc instanceof Error ? exc.message : String(exc);
+      return {
+        ok: false,
+        error: `closing-PR discovery failed for ${repository}#${issueNumber}: ${message}`,
+      };
+    }
+    if (result.returncode !== 0) {
+      return {
+        ok: false,
+        error:
+          `closing-PR discovery failed for ${repository}#${issueNumber}: ` +
+          `${result.stderr.trim() || result.stdout.trim() || "gh api graphql non-zero"}`,
+      };
+    }
+
+    let payload: unknown;
+    try {
+      payload = JSON.parse(result.stdout) as unknown;
+    } catch {
+      return {
+        ok: false,
+        error: `closing-PR discovery returned unparseable JSON for ${repository}#${issueNumber}`,
+      };
+    }
+
+    const connection = asRecord(
+      asRecord(asRecord(asRecord(payload)?.data)?.repository)?.issue,
+    )?.closedByPullRequestsReferences;
+    const connRec = asRecord(connection);
+    if (connRec === null) {
+      return {
+        ok: false,
+        error:
+          `closing-PR discovery incomplete for ${repository}#${issueNumber}: ` +
+          `missing closedByPullRequestsReferences connection`,
+      };
+    }
+
+    const nodes = connRec.nodes;
+    if (!Array.isArray(nodes)) {
+      return {
+        ok: false,
+        error:
+          `closing-PR discovery incomplete for ${repository}#${issueNumber}: nodes not an array`,
+      };
+    }
+
+    for (const entry of nodes) {
+      const parsed = parseClosingPrNode(entry, repository);
+      if (parsed === null) {
+        continue;
+      }
+      const key = `${parsed.repository.toLowerCase()}:${parsed.prNumber}`;
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      refs.push(parsed);
+    }
+
+    const pageInfo = asRecord(connRec.pageInfo);
+    const hasNextPage = pageInfo?.hasNextPage === true;
+    if (!hasNextPage) {
+      return { ok: true, refs };
+    }
+    const endCursor = typeof pageInfo?.endCursor === "string" ? pageInfo.endCursor.trim() : "";
+    if (endCursor.length === 0) {
+      return {
+        ok: false,
+        error:
+          `closing-PR discovery incomplete for ${repository}#${issueNumber}: ` +
+          `hasNextPage without endCursor`,
+      };
+    }
+    after = endCursor;
+  }
+
+  return {
+    ok: false,
+    error:
+      `closing-PR discovery incomplete for ${repository}#${issueNumber}: ` +
+      `exceeded ${maxPages} pages without completion`,
+  };
+}
+
+/** True when evidence already carries explicit --pr or --merge-commit selectors (#3583). */
+export function hasExplicitDeliverySelectors(
+  evidence: DeliveryEvidenceInput | null | undefined,
+): boolean {
+  if (evidence === null || evidence === undefined) {
+    return false;
+  }
+  const pr =
+    typeof evidence.prNumber === "number" &&
+    Number.isInteger(evidence.prNumber) &&
+    evidence.prNumber > 0;
+  const merge =
+    typeof evidence.mergeCommit === "string" && evidence.mergeCommit.trim().length > 0;
+  return pr || merge;
+}
+
+export interface DiscoverDeliveryEvidenceOptions {
+  readonly projectRoot: string;
+  readonly plan: Record<string, unknown>;
+  readonly evidence?: DeliveryEvidenceInput | null;
+  readonly nonDeliveryDisposition?: NonDeliveryDisposition | null;
+  readonly runGit?: GitRunner;
+  readonly runGh?: RunGhFn;
+  readonly fetchPrPayload?: FetchPrPayloadFn;
+  readonly fetchClosingPrRefs?: FetchClosingPrRefsFn;
+  readonly verifier?: string;
+}
+
+export type DiscoverDeliveryEvidenceResult =
+  | {
+      readonly ok: true;
+      readonly evidence: DeliveryEvidenceInput | null | undefined;
+      readonly discovered: boolean;
+      readonly message: string;
+    }
+  | { readonly ok: false; readonly message: string };
+
+function mergePreservingExplicitFacts(
+  existing: DeliveryEvidenceInput | null | undefined,
+  discovered: DeliveryEvidenceInput,
+): DeliveryEvidenceInput {
+  return {
+    ...existing,
+    ...discovered,
+    deployed: existing?.deployed ?? discovered.deployed ?? null,
+    uatVerified: existing?.uatVerified ?? discovered.uatVerified ?? null,
+  };
+}
+
+function candidatePassesDeliveryBaseFilter(
+  payload: Record<string, unknown>,
+  deliveryBranch: string,
+): boolean {
+  const mergedAt =
+    typeof payload.merged_at === "string" && payload.merged_at.trim().length > 0
+      ? payload.merged_at.trim()
+      : null;
+  const mergeCommit =
+    typeof payload.merge_commit_sha === "string" && payload.merge_commit_sha.trim().length > 0
+      ? payload.merge_commit_sha.trim()
+      : null;
+  if (mergedAt === null || mergeCommit === null) {
+    return false;
+  }
+  const base = asRecord(payload.base);
+  const prBase = typeof base?.ref === "string" ? base.ref.trim() : "";
+  return prBase === deliveryBranch;
+}
+
+/**
+ * Auto-build delivery evidence for code-bearing scope:complete when both
+ * `--pr` and `--merge-commit` are omitted (#3583 Prefer-A Bound).
+ *
+ * Primary seed: plan.metadata.productPullRequest. Else: complete deduplicated
+ * closedByPullRequestsReferences set filtered to base.ref === resolved delivery.
+ * Fail closed on zero/many/incomplete. Does not set assumeEvidenceValidated.
+ * evaluateDeliveryGate stays validate-only.
+ */
+export function discoverDeliveryEvidenceForComplete(
+  options: DiscoverDeliveryEvidenceOptions,
+): DiscoverDeliveryEvidenceResult {
+  const existing = options.evidence;
+  if (options.nonDeliveryDisposition !== null && options.nonDeliveryDisposition !== undefined) {
+    return {
+      ok: true,
+      evidence: existing,
+      discovered: false,
+      message: "non-delivery disposition set; skip delivery auto-discovery",
+    };
+  }
+  if (!isCodeBearingScope(options.plan)) {
+    return {
+      ok: true,
+      evidence: existing,
+      discovered: false,
+      message: "non-code-bearing; skip delivery auto-discovery",
+    };
+  }
+  if (hasExplicitDeliverySelectors(existing)) {
+    return {
+      ok: true,
+      evidence: existing,
+      discovered: false,
+      message: "explicit --pr/--merge-commit present; skip delivery auto-discovery",
+    };
+  }
+
+  const runGit = options.runGit ?? defaultGitRunner;
+  const runGh = options.runGh ?? defaultRunGh;
+  const fetchPrPayload =
+    options.fetchPrPayload ??
+    ((prNumber: number, repository: string) => defaultFetchPrPayload(prNumber, repository, runGh));
+  const fetchClosingPrRefs =
+    options.fetchClosingPrRefs ??
+    ((issueNumber: number, repository: string) =>
+      defaultFetchClosingPrRefs(issueNumber, repository, runGh));
+  const verifier = options.verifier ?? "scope:complete";
+
+  const branchResult = resolveDeliveryBranch(options.projectRoot, runGit);
+  const refused = refuseUnsafeResolvedDelivery(branchResult);
+  if (refused !== null) {
+    return { ok: false, message: refused };
+  }
+  const deliveryBranch = branchResult.branch;
+
+  // CLI --delivery-branch is a matching assertion only (#3583 / #3041).
+  if (
+    existing !== null &&
+    existing !== undefined &&
+    typeof existing.deliveryBranch === "string" &&
+    existing.deliveryBranch.trim().length > 0 &&
+    existing.deliveryBranch.trim() !== deliveryBranch
+  ) {
+    return {
+      ok: false,
+      message:
+        `Evidence deliveryBranch '${existing.deliveryBranch.trim()}' does not match ` +
+        `configured delivery branch '${deliveryBranch}' (source: ${branchResult.source}). ` +
+        `Callers cannot redefine plan.policy.deliveryBranch via --delivery-branch (#3583). ` +
+        deliveryEvidenceRemediation(deliveryBranch),
+    };
+  }
+
+  const expected = resolvePlanGithubIssueRef(options.plan);
+  const productPr = productPullRequestFromPlan(options.plan);
+
+  if (productPr !== null) {
+    if (expected === null) {
+      return {
+        ok: false,
+        message:
+          `Delivery auto-discovery failed: plan has productPullRequest=${productPr} but no ` +
+          `x-xbrief/github-issue reference to derive repository (#3583). ` +
+          deliveryEvidenceRemediation(deliveryBranch),
+      };
+    }
+    const payload = fetchPrPayload(productPr, expected.repository);
+    if (payload === null) {
+      return {
+        ok: false,
+        message:
+          `Delivery auto-discovery failed: could not fetch productPullRequest #${productPr} ` +
+          `in ${expected.repository} (#3583). ${deliveryEvidenceRemediation(deliveryBranch)}`,
+      };
+    }
+    if (!candidatePassesDeliveryBaseFilter(payload, deliveryBranch)) {
+      return {
+        ok: false,
+        message:
+          `Delivery auto-discovery failed: productPullRequest #${productPr} is not a merged ` +
+          `delivery-base PR for '${deliveryBranch}' (integration-base merges stay explicit-flag ` +
+          `territory in v1) (#3583). ${deliveryEvidenceRemediation(deliveryBranch)}`,
+      };
+    }
+    const discovered = evidenceFromPrPayload(
+      payload,
+      productPr,
+      expected.repository,
+      deliveryBranch,
+      verifier,
+    );
+    return {
+      ok: true,
+      evidence: mergePreservingExplicitFacts(existing, discovered),
+      discovered: true,
+      message: `auto-discovered delivery evidence from productPullRequest #${productPr}`,
+    };
+  }
+
+  // No productPullRequest: closing-identity-proved complete deduped set (#3583).
+  if (expected === null) {
+    return {
+      ok: false,
+      message:
+        `Delivery evidence required for code-bearing scope completion (#3041). ` +
+        `A merge commit that is an ancestor of refreshed origin/${deliveryBranch} is delivery; ` +
+        `PR base is provenance only. Stamp plan.metadata.productPullRequest or ` +
+        deliveryEvidenceRemediation(deliveryBranch),
+    };
+  }
+
+  const closing = fetchClosingPrRefs(expected.issueNumber, expected.repository);
+  if (!closing.ok) {
+    return {
+      ok: false,
+      message: `${closing.error} ${deliveryEvidenceRemediation(deliveryBranch)}`,
+    };
+  }
+
+  const qualifying: DeliveryEvidenceInput[] = [];
+  for (const ref of closing.refs) {
+    // Cross-repo closers stay out of the delivery-base set in v1.
+    if (ref.repository.toLowerCase() !== expected.repository.toLowerCase()) {
+      continue;
+    }
+    const payload = fetchPrPayload(ref.prNumber, ref.repository);
+    if (payload === null) {
+      return {
+        ok: false,
+        message:
+          `Delivery auto-discovery incomplete: could not fetch closing PR #${ref.prNumber} ` +
+          `in ${ref.repository} (#3583). ${deliveryEvidenceRemediation(deliveryBranch)}`,
+      };
+    }
+    if (!candidatePassesDeliveryBaseFilter(payload, deliveryBranch)) {
+      continue;
+    }
+    qualifying.push(
+      evidenceFromPrPayload(payload, ref.prNumber, ref.repository, deliveryBranch, verifier),
+    );
+  }
+
+  if (qualifying.length === 0) {
+    return {
+      ok: false,
+      message:
+        `Delivery auto-discovery found zero merged delivery-base PRs for ` +
+        `${expected.repository}#${expected.issueNumber} on '${deliveryBranch}' (#3583). ` +
+        `Stamp plan.metadata.productPullRequest or ` +
+        deliveryEvidenceRemediation(deliveryBranch),
+    };
+  }
+  if (qualifying.length > 1) {
+    const nums = qualifying
+      .map((e) => e.prNumber)
+      .filter((n): n is number => typeof n === "number")
+      .sort((a, b) => a - b);
+    return {
+      ok: false,
+      message:
+        `Delivery auto-discovery found ${qualifying.length} merged delivery-base PRs ` +
+        `(${nums.map((n) => `#${n}`).join(", ")}) for ` +
+        `${expected.repository}#${expected.issueNumber}; refuse to guess (#3583). ` +
+        deliveryEvidenceRemediation(deliveryBranch),
+    };
+  }
+
+  const sole = qualifying[0];
+  if (sole === undefined) {
+    return {
+      ok: false,
+      message:
+        `Delivery auto-discovery failed unexpectedly (#3583). ` +
+        deliveryEvidenceRemediation(deliveryBranch),
+    };
+  }
+  return {
+    ok: true,
+    evidence: mergePreservingExplicitFacts(existing, sole),
+    discovered: true,
+    message: `auto-discovered delivery evidence from closing PR #${sole.prNumber}`,
   };
 }

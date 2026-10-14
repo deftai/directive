@@ -8,10 +8,13 @@ import {
   classifyStoredDeliveryDisposition,
   defaultFetchClosingIssueIds,
   defaultFetchPrPayload,
+  discoverDeliveryEvidenceForComplete,
   evaluateDeliveryGate,
   evaluateStoredCompletionProvenanceForWriteGuard,
   type FetchClosingIssueIdsFn,
+  type FetchClosingPrRefsFn,
   type FetchPrPayloadFn,
+  hasExplicitDeliverySelectors,
   isCodeBearingScope,
   isEligibleStoredDeliveryDisposition,
   NON_DELIVERY_DISPOSITIONS,
@@ -285,10 +288,14 @@ describe("delivery evidence (#3041)", () => {
   it("fails closed on code-bearing complete without evidence", () => {
     root = makeRepo();
     const file = writeCodeBearing(root);
-    const result = runTransition("complete", file, new Date(), { runGit: gitOk() });
+    const result = runTransition("complete", file, new Date(), {
+      runGit: gitOk(),
+      // Offline: empty complete closing set (no productPullRequest) (#3583).
+      fetchClosingPrRefs: () => ({ ok: true, refs: [] }),
+    });
     expect(result.ok).toBe(false);
-    expect(result.message).toMatch(/Delivery evidence required|#3041/);
-    expect(result.message).toMatch(/--merge-commit/);
+    expect(result.message).toMatch(/Delivery auto-discovery found zero|#3041|#3583/);
+    expect(result.message).toMatch(/--merge-commit|productPullRequest/);
     expect(result.message).toMatch(/policy:show --field=deliveryBranch/);
     expect(result.message).toMatch(/Do not use --non-delivery for work that shipped/);
     expect(readFileSync(file, "utf8")).toContain("running");
@@ -661,6 +668,21 @@ describe("delivery evidence (#3041)", () => {
     expect(evidence.prBase).toBe("master");
     expect(evidence.mergeCommit).toBe("merge1");
     expect(evidence.implementationCommit).toBe("head1");
+    expect(evidence.verifier).toBe("swarm:finalize-cohort");
+
+    const completeAttr = evidenceFromPrPayload(
+      {
+        merged_at: "2026-08-02T11:00:00Z",
+        base: { ref: "master" },
+        head: { sha: "head1" },
+        merge_commit_sha: "merge1",
+      },
+      5,
+      "o/r",
+      "master",
+      "scope:complete",
+    );
+    expect(completeAttr.verifier).toBe("scope:complete");
 
     const nullMerged = evidenceFromPrPayload(
       { merged_at: null, base: {}, head: {}, merge_commit_sha: "" },
@@ -669,6 +691,7 @@ describe("delivery evidence (#3041)", () => {
     );
     expect(nullMerged.mergedAt).toBeNull();
     expect(nullMerged.mergeCommit).toBeNull();
+    expect(nullMerged.verifier).toBe("swarm:finalize-cohort");
 
     const failTip: GitRunner = (_r, args) => {
       const j = args.join(" ");
@@ -1274,5 +1297,228 @@ describe("delivery-evidence AppSec fetch gate (#5545)", () => {
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
+  });
+});
+
+describe("delivery evidence auto-discovery (#3583)", () => {
+  let root = "";
+  afterEach(() => {
+    if (root.length > 0) {
+      rmSync(root, { recursive: true, force: true });
+      root = "";
+    }
+  });
+
+  function stampProductPr(file: string, prNumber: number): void {
+    const data = JSON.parse(readFileSync(file, "utf8")) as {
+      plan: { metadata: Record<string, unknown> };
+    };
+    data.plan.metadata.productPullRequest = prNumber;
+    writeFileSync(file, JSON.stringify(data), "utf8");
+  }
+
+  it("hasExplicitDeliverySelectors triggers on --pr or --merge-commit only", () => {
+    expect(hasExplicitDeliverySelectors(undefined)).toBe(false);
+    expect(hasExplicitDeliverySelectors({})).toBe(false);
+    expect(hasExplicitDeliverySelectors({ deliveryBranch: "master" })).toBe(false);
+    expect(hasExplicitDeliverySelectors({ prNumber: 9 })).toBe(true);
+    expect(hasExplicitDeliverySelectors({ mergeCommit: "abc" })).toBe(true);
+  });
+
+  it("auto-discovers from productPullRequest with scope:complete verifier", () => {
+    root = makeRepo();
+    const file = writeCodeBearing(root);
+    stampProductPr(file, 42);
+    const identity = identityOk();
+    const result = runTransition("complete", file, new Date("2026-08-02T12:00:00Z"), {
+      runGit: gitOk(),
+      ...identity,
+      fetchClosingPrRefs: () => {
+        throw new Error("must not open multi-PR search when productPullRequest is stamped");
+      },
+    });
+    expect(result.ok).toBe(true);
+    const dest = join(root, "xbrief", "completed", "story.xbrief.json");
+    const data = JSON.parse(readFileSync(dest, "utf8")) as {
+      plan: {
+        metadata: {
+          completionProvenance: {
+            disposition: string;
+            prNumber: number;
+            mergeCommit: string;
+            verifier: string;
+          };
+        };
+      };
+    };
+    expect(data.plan.metadata.completionProvenance.disposition).toBe("delivered");
+    expect(data.plan.metadata.completionProvenance.prNumber).toBe(42);
+    expect(data.plan.metadata.completionProvenance.mergeCommit).toBe("mergecommitsha");
+    expect(data.plan.metadata.completionProvenance.verifier).toBe("scope:complete");
+  });
+
+  it("skips discovery when explicit --pr is supplied", () => {
+    root = makeRepo();
+    const file = writeCodeBearing(root);
+    stampProductPr(file, 99);
+    const identity = identityOk({ prNumber: 42 });
+    let closingCalls = 0;
+    const result = runTransition("complete", file, new Date("2026-08-02T12:00:00Z"), {
+      runGit: gitOk(),
+      ...identity,
+      fetchClosingPrRefs: () => {
+        closingCalls += 1;
+        return { ok: true, refs: [] };
+      },
+      deliveryEvidence: {
+        repository: "deftai/directive",
+        prNumber: 42,
+        prBase: "master",
+        mergeCommit: "mergecommitsha",
+        mergedAt: "2026-08-02T11:00:00Z",
+        deliveryBranch: "master",
+      },
+    });
+    expect(result.ok).toBe(true);
+    expect(closingCalls).toBe(0);
+  });
+
+  it("refuses CLI delivery-branch mismatch before discovery", () => {
+    root = makeRepo();
+    const file = writeCodeBearing(root);
+    stampProductPr(file, 42);
+    const discovered = discoverDeliveryEvidenceForComplete({
+      projectRoot: root,
+      plan: JSON.parse(readFileSync(file, "utf8")).plan as Record<string, unknown>,
+      evidence: { deliveryBranch: "develop" },
+      runGit: gitOk(),
+      fetchPrPayload: () => {
+        throw new Error("must refuse mismatch before fetch");
+      },
+    });
+    expect(discovered.ok).toBe(false);
+    if (!discovered.ok) {
+      expect(discovered.message).toMatch(/does not match|deliveryBranch|--delivery-branch|#3583/);
+    }
+  });
+
+  it("fail-closed on many delivery-base closing PRs", () => {
+    root = makeRepo();
+    const file = writeCodeBearing(root);
+    const payloads: Record<number, Record<string, unknown>> = {
+      10: {
+        merged_at: "2026-08-01T00:00:00Z",
+        merge_commit_sha: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        base: { ref: "master" },
+        head: { sha: "h1" },
+      },
+      11: {
+        merged_at: "2026-08-02T00:00:00Z",
+        merge_commit_sha: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        base: { ref: "master" },
+        head: { sha: "h2" },
+      },
+    };
+    const fetchPrPayload: FetchPrPayloadFn = (n, repo) => {
+      if (repo !== "deftai/directive") return null;
+      return payloads[n] ?? null;
+    };
+    const fetchClosingPrRefs: FetchClosingPrRefsFn = () => ({
+      ok: true,
+      refs: [
+        { repository: "deftai/directive", prNumber: 10 },
+        { repository: "deftai/directive", prNumber: 11 },
+      ],
+    });
+    const result = runTransition("complete", file, new Date("2026-08-02T12:00:00Z"), {
+      runGit: gitOk(),
+      fetchPrPayload,
+      fetchClosingPrRefs,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/found 2 merged delivery-base PRs|#10|#11|refuse to guess/);
+  });
+
+  it("fail-closed on incomplete closing-PR discovery", () => {
+    root = makeRepo();
+    const file = writeCodeBearing(root);
+    const result = runTransition("complete", file, new Date(), {
+      runGit: gitOk(),
+      fetchClosingPrRefs: () => ({
+        ok: false,
+        error: "closing-PR discovery incomplete for deftai/directive#3041: hasNextPage without endCursor",
+      }),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/incomplete|hasNextPage|#3583|#3041/);
+  });
+
+  it("filters integration-base closing PRs out of the candidate set", () => {
+    root = makeRepo();
+    const file = writeCodeBearing(root);
+    const result = runTransition("complete", file, new Date(), {
+      runGit: gitOk(),
+      fetchPrPayload: () => ({
+        merged_at: "2026-08-02T11:00:00Z",
+        merge_commit_sha: "mergecommitsha",
+        base: { ref: "develop" },
+        head: { sha: "head" },
+      }),
+      fetchClosingPrRefs: () => ({
+        ok: true,
+        refs: [{ repository: "deftai/directive", prNumber: 42 }],
+      }),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/zero merged delivery-base|productPullRequest|#3583/);
+  });
+
+  it("singleton closing PR auto-discovers on primary complete", () => {
+    root = makeRepo();
+    const file = writeCodeBearing(root);
+    const identity = identityOk({ prNumber: 42 });
+    const result = runTransition("complete", file, new Date("2026-08-02T12:00:00Z"), {
+      runGit: gitOk(),
+      ...identity,
+      fetchClosingPrRefs: () => ({
+        ok: true,
+        refs: [{ repository: "deftai/directive", prNumber: 42 }],
+      }),
+    });
+    expect(result.ok).toBe(true);
+    const dest = join(root, "xbrief", "completed", "story.xbrief.json");
+    const data = JSON.parse(readFileSync(dest, "utf8")) as {
+      plan: { metadata: { completionProvenance: { verifier: string; prNumber: number } } };
+    };
+    expect(data.plan.metadata.completionProvenance.verifier).toBe("scope:complete");
+    expect(data.plan.metadata.completionProvenance.prNumber).toBe(42);
+  });
+
+  it("shares discovery on completed-brief restamp path", () => {
+    root = makeRepo();
+    const active = writeCodeBearing(root);
+    stampProductPr(active, 42);
+    const identity = identityOk();
+    const first = runTransition("complete", active, new Date("2026-08-02T12:00:00Z"), {
+      runGit: gitOk(),
+      ...identity,
+      fetchClosingPrRefs: () => {
+        throw new Error("productPullRequest seed must skip closing search");
+      },
+    });
+    expect(first.ok).toBe(true);
+    const completed = join(root, "xbrief", "completed", "story.xbrief.json");
+    const restamp = runTransition("complete", completed, new Date("2026-08-02T13:00:00Z"), {
+      runGit: gitOk(),
+      ...identity,
+      fetchClosingPrRefs: () => {
+        throw new Error("productPullRequest seed must skip closing search on restamp");
+      },
+    });
+    expect(restamp.ok).toBe(true);
+    const data = JSON.parse(readFileSync(completed, "utf8")) as {
+      plan: { metadata: { completionProvenance: { verifier: string } } };
+    };
+    expect(data.plan.metadata.completionProvenance.verifier).toBe("scope:complete");
   });
 });
