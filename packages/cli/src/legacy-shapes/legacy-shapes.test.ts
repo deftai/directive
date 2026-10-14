@@ -1,6 +1,6 @@
 /**
- * Wave 3b/3d owner-boundary tests — L2 shape registry (detect → shape_id → decision).
- * WAVE3-V2 (3d): convert-via-removals lean; bookend refuse remains interim until 3f.
+ * Wave 3b/3d/3f owner-boundary tests — L2 shape registry (detect → shape_id → decision).
+ * WAVE3-V2 (3f): convert-via-removals upgrade/install succeeds (strategy → pin → setup).
  * Survey shape_ids from specs/5490-wave3-historical-survey.md; L0 paths stay thin.
  */
 import {
@@ -119,6 +119,7 @@ describe("L2 shape registry — WAVE3-V2 convert-via-removals lean", () => {
     ["go-tarball-deft-root", "convert-via-removals"],
     ["submodule-deft", "convert-via-removals"],
     ["vendored-core-go", "convert-via-removals"],
+    ["dual-layout-deft-and-core", "convert-via-removals"],
     ["orphan-deft-version", "convert-via-removals"],
   ];
 
@@ -208,6 +209,16 @@ describe("L2 thin detect → shape_id (reuses pin + legacy fingerprints)", () =>
     expect(resolved!.decision).toBe("convert-via-removals");
   });
 
+  it("dual-layout-deft-and-core → convert-via-removals", () => {
+    const root = tempProject();
+    writeCopiedCoreEvidence(root);
+    writeGoTarballDeft(root);
+    const resolved = resolveInstallShape(root);
+    expect(resolved).not.toBeNull();
+    expect(resolved!.shapeId).toBe("dual-layout-deft-and-core");
+    expect(resolved!.decision).toBe("convert-via-removals");
+  });
+
   it("greenfield (no footprint) → null (not a historical shape)", () => {
     const root = tempProject();
     expect(resolveInstallShape(root)).toBeNull();
@@ -223,8 +234,11 @@ describe("L2 thin detect → shape_id (reuses pin + legacy fingerprints)", () =>
   });
 });
 
-describe("L2 dispatch messaging (convert-via-removals interim / unsupported)", () => {
-  it("convert-via-removals interim message still names uninstall then install", () => {
+describe("L2 dispatch messaging (convert vs unsupported)", () => {
+  it("convert-via-removals is not an L2 refusal decision", () => {
+    expect(isL2RefusalDecision("convert-via-removals")).toBe(false);
+    expect(isL2RefusalDecision("unsupported-honest")).toBe(true);
+    expect(isL2RefusalDecision("uninstall-reinstall")).toBe(true);
     const msg = formatShapeRecoveryMessage(
       {
         shapeId: "go-tarball-deft-root",
@@ -234,73 +248,110 @@ describe("L2 dispatch messaging (convert-via-removals interim / unsupported)", (
       "upgrade",
     );
     expect(msg).toMatch(/go-tarball-deft-root/);
-    expect(msg).toMatch(/WAVE3-V2|convert-via-removals/i);
-    expect(msg).toMatch(/`directive uninstall` then `directive install`/);
-    expect(isL2RefusalDecision("convert-via-removals")).toBe(true);
+    expect(msg).not.toMatch(/`directive uninstall` then `directive install`/);
   });
 
   it("unsupported-honest message does not invent convert or upgrade", () => {
     const msg = formatShapeRecoveryMessage(
       {
-        shapeId: "orphan-deft-version",
+        shapeId: "submodule-deft",
         decision: "unsupported-honest",
-        evidence: [".deft/VERSION"],
+        evidence: ["deft/", "gitlink mode 160000"],
       },
       "upgrade",
     );
-    expect(msg).toMatch(/orphan-deft-version/);
+    expect(msg).toMatch(/submodule-deft/);
     expect(msg).toMatch(/unsupported|not supported|automatic recovery/i);
     expect(msg).not.toMatch(/Run `directive upgrade`/);
   });
 });
 
-describe("bookend seam — interim L2 refuse until 3f (WAVE3-V2 superseded long-term)", () => {
-  it("upgrade on go-tarball still refuses interim (3d); names shape + uninstall", () => {
-    const root = tempProject();
-    writeGoTarballDeft(root);
-    const c = capture();
-    const code = runUpgrade(root, readProjectInstallState(root), ["--yes"], "0.0.0-test", c.io);
-    expect(code).toBe(2);
-    expect(c.text()).toMatch(/uninstall/i);
-    expect(c.text()).toMatch(/install/i);
-    expect(c.text()).toMatch(/go-tarball-deft-root/);
-    // Long-term intent is convert — registry already says so.
-    expect(decisionForShapeId("go-tarball-deft-root")).toBe("convert-via-removals");
-  });
+function installFakeRuntime(root: string, version: string): void {
+  const nm = join(root, "node_modules", "@deftai", "directive-runtime");
+  mkdirSync(nm, { recursive: true });
+  writeFileSync(
+    join(nm, "package.json"),
+    `${JSON.stringify(
+      { name: RUNTIME_PACKAGE_NAME, version, directive: { contract: 1 } },
+      null,
+      2,
+    )}\n`,
+  );
+  mkdirSync(join(nm, "dist"), { recursive: true });
+  writeFileSync(join(nm, "dist", "bin.js"), "#!/usr/bin/env node\nprocess.exit(0);\n");
+  writeFileSync(
+    join(root, "package-lock.json"),
+    `${JSON.stringify(
+      {
+        lockfileVersion: 3,
+        packages: {
+          "": { name: "shape-t", devDependencies: { [RUNTIME_PACKAGE_NAME]: version } },
+          [`node_modules/${RUNTIME_PACKAGE_NAME}`]: { version },
+        },
+      },
+      null,
+      2,
+    )}\n`,
+  );
+}
 
-  it("upgrade on vendored-core-go still refuses interim; registry is convert-via-removals", () => {
-    const root = tempProject();
-    writeCopiedCoreEvidence(root);
-    const c = capture();
-    const code = runUpgrade(root, readProjectInstallState(root), ["--yes"], "0.0.0-test", c.io);
-    expect(code).toBe(2);
-    expect(c.text()).toMatch(/vendored-core-go/);
-    expect(c.text()).toMatch(/uninstall/i);
-    expect(decisionForShapeId("vendored-core-go")).toBe("convert-via-removals");
-  });
+function convertDeps(root: string, expectedFrom: string) {
+  let setupFrom: string | null = null;
+  let migrateFrom: string | null = null;
+  return {
+    get setupFrom() {
+      return setupFrom;
+    },
+    get migrateFrom() {
+      return migrateFrom;
+    },
+    deps: {
+      resolvePublishedContract: () => ({ ok: true as const, contract: 1 }),
+      runPmAdd: ({ version }: { version: string }) => {
+        const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
+          devDependencies?: Record<string, string>;
+        };
+        pkg.devDependencies = {
+          ...(pkg.devDependencies ?? {}),
+          [RUNTIME_PACKAGE_NAME]: version,
+        };
+        writeFileSync(join(root, "package.json"), `${JSON.stringify(pkg, null, 2)}\n`);
+        installFakeRuntime(root, version);
+        return { ok: true as const };
+      },
+      invokeSetup: (argv: readonly string[]) => {
+        const fromIdx = argv.indexOf("--from");
+        setupFrom = fromIdx >= 0 ? String(argv[fromIdx + 1]) : null;
+        expect(setupFrom).toBe(expectedFrom);
+        return {
+          exitCode: 0,
+          stdout: JSON.stringify({
+            contract: 1,
+            entry: "setup",
+            removed: [],
+            created: [".deft/GENERATION.json"],
+            modified: [],
+            conflicts: [],
+          }),
+          stderr: "",
+          message: null,
+        };
+      },
+      invokeMigrate: (argv: readonly string[]) => {
+        const fromIdx = argv.indexOf("--from");
+        migrateFrom = fromIdx >= 0 ? String(argv[fromIdx + 1]) : null;
+        return {
+          exitCode: 0,
+          stdout: JSON.stringify({ contract: 1, entry: "migrate", migrated: [] }),
+          stderr: "",
+          message: null,
+        };
+      },
+    },
+  };
+}
 
-  it("upgrade on orphan-deft-version interim-refuses as convert-via-removals", () => {
-    const root = tempProject();
-    mkdirSync(join(root, ".deft"), { recursive: true });
-    writeFileSync(join(root, ".deft", "VERSION"), "orphan\n");
-    const c = capture();
-    const code = runUpgrade(root, readProjectInstallState(root), ["--yes"], "0.0.0-test", c.io);
-    expect(code).toBe(2);
-    expect(c.text()).toMatch(/orphan-deft-version/);
-    expect(decisionForShapeId("orphan-deft-version")).toBe("convert-via-removals");
-  });
-
-  it("install on submodule-deft interim-refuses; registry is convert-via-removals", () => {
-    const root = tempProject();
-    writeSubmoduleDeft(root);
-    const c = capture();
-    const code = runInstall(root, readProjectInstallState(root), ["--yes"], "0.0.0-test", c.io);
-    expect(code).toBe(1);
-    expect(c.text()).toMatch(/submodule-deft/);
-    expect(c.text()).toMatch(/uninstall/i);
-    expect(decisionForShapeId("submodule-deft")).toBe("convert-via-removals");
-  });
-
+describe("bookend seam — L0 oldStyle unchanged; unsupported still refuses", () => {
   it("install on oldStyle still names upgrade (L0 convert path unchanged)", () => {
     const root = tempProject();
     pinLegacyExact(root);
@@ -312,30 +363,170 @@ describe("bookend seam — interim L2 refuse until 3f (WAVE3-V2 superseded long-
     expect(c.text()).toMatch(/directive upgrade/i);
     expect(c.text()).not.toMatch(/uninstall then install|uninstall` then/i);
   });
+
+  it("upgrade refuses unsupported-honest submodule (gitlink residual messaging)", () => {
+    // Simulate detect override: unsupported decision path via format + isL2Refusal.
+    expect(isL2RefusalDecision("unsupported-honest")).toBe(true);
+    const msg = formatShapeRecoveryMessage(
+      {
+        shapeId: "submodule-deft",
+        decision: "unsupported-honest",
+        evidence: ["gitlink mode 160000"],
+      },
+      "upgrade",
+    );
+    expect(msg).toMatch(/unsupported/i);
+  });
 });
 
 /**
- * RED until 3f: upgrade must run convert strategy (not refuse) for convert shapes.
- * Documents WAVE3-V2 long-term contract; expected to fail on 3d tip.
+ * WAVE3-V2 3f: upgrade --yes converts surveyed layouts without dump-out refuse.
  */
-describe("WAVE3-V2 upgrade-convert path (RED until 3f)", () => {
-  it("upgrade on go-tarball-deft-root should convert (not exit refuse)", () => {
-    const root = tempProject();
+describe("WAVE3-V2 upgrade-convert path (era fixtures)", () => {
+  it("upgrade on go-tarball-deft-root converts (not refuse)", () => {
+    const root = tempProject("wave3f-go");
     writeGoTarballDeft(root);
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "keep.txt"), "user-xbrief\n");
     const c = capture();
-    const code = runUpgrade(root, readProjectInstallState(root), ["--yes"], "0.0.0-test", c.io);
-    // 3f: strategy runs → setup/migrate; must not be the L2 refuse exit.
-    expect(code).not.toBe(2);
+    const harness = convertDeps(root, "go-tarball-deft-root");
+    const code = runUpgrade(
+      root,
+      readProjectInstallState(root),
+      ["--yes", "--target-version", "9.9.9"],
+      "0.0.0-test",
+      c.io,
+      harness.deps,
+    );
+    expect(code).toBe(0);
     expect(c.text()).not.toMatch(/`directive uninstall` then `directive install`/);
+    expect(c.text()).toMatch(/go-tarball-deft-root/);
+    expect(harness.setupFrom).toBe("go-tarball-deft-root");
+    expect(harness.migrateFrom).toBe("go-tarball-deft-root");
+    expect(readFileSync(join(root, "xbrief", "keep.txt"), "utf8")).toBe("user-xbrief\n");
     expect(decisionForShapeId("go-tarball-deft-root")).toBe("convert-via-removals");
   });
 
-  it("upgrade on vendored-core-go should convert (not exit refuse)", () => {
-    const root = tempProject();
+  it("upgrade on vendored-core-go converts (not refuse)", () => {
+    const root = tempProject("wave3f-vendored");
     writeCopiedCoreEvidence(root);
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "keep.txt"), "preserve\n");
     const c = capture();
-    const code = runUpgrade(root, readProjectInstallState(root), ["--yes"], "0.0.0-test", c.io);
-    expect(code).not.toBe(2);
+    const harness = convertDeps(root, "vendored-core-go");
+    const code = runUpgrade(
+      root,
+      readProjectInstallState(root),
+      ["--yes", "--target-version", "9.9.9"],
+      "0.0.0-test",
+      c.io,
+      harness.deps,
+    );
+    expect(code).toBe(0);
     expect(c.text()).not.toMatch(/Until then, run `directive uninstall`/);
+    expect(c.text()).toMatch(/vendored-core-go/);
+    expect(harness.setupFrom).toBe("vendored-core-go");
+    expect(readFileSync(join(root, "xbrief", "keep.txt"), "utf8")).toBe("preserve\n");
+  });
+
+  it("upgrade on orphan-deft-version converts", () => {
+    const root = tempProject("wave3f-orphan");
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(join(root, ".deft", "VERSION"), "orphan\n");
+    const c = capture();
+    const harness = convertDeps(root, "orphan-deft-version");
+    const code = runUpgrade(
+      root,
+      readProjectInstallState(root),
+      ["--yes", "--target-version", "9.9.9"],
+      "0.0.0-test",
+      c.io,
+      harness.deps,
+    );
+    expect(code).toBe(0);
+    expect(harness.setupFrom).toBe("orphan-deft-version");
+    expect(c.text()).not.toMatch(/`directive uninstall` then/);
+  });
+
+  it("upgrade on dual-layout-deft-and-core converts", () => {
+    const root = tempProject("wave3f-dual");
+    writeCopiedCoreEvidence(root);
+    writeGoTarballDeft(root);
+    const c = capture();
+    const harness = convertDeps(root, "dual-layout-deft-and-core");
+    const code = runUpgrade(
+      root,
+      readProjectInstallState(root),
+      ["--yes", "--target-version", "9.9.9"],
+      "0.0.0-test",
+      c.io,
+      harness.deps,
+    );
+    expect(code).toBe(0);
+    expect(harness.setupFrom).toBe("dual-layout-deft-and-core");
+  });
+
+  it("upgrade on submodule-deft (file gitlink, safe) converts", () => {
+    const root = tempProject("wave3f-sub");
+    writeSubmoduleDeft(root);
+    const c = capture();
+    const harness = convertDeps(root, "submodule-deft");
+    const code = runUpgrade(
+      root,
+      readProjectInstallState(root),
+      ["--yes", "--target-version", "9.9.9"],
+      "0.0.0-test",
+      c.io,
+      harness.deps,
+    );
+    expect(code).toBe(0);
+    expect(harness.setupFrom).toBe("submodule-deft");
+    expect(c.text()).not.toMatch(/`directive uninstall` then/);
+  });
+
+  it("install on submodule-deft converts via first-install from=shape", () => {
+    const root = tempProject("wave3f-sub-install");
+    writeSubmoduleDeft(root);
+    const c = capture();
+    let setupFrom: string | null = null;
+    const code = runInstall(
+      root,
+      readProjectInstallState(root),
+      ["--yes", "--target-version", "9.9.9"],
+      "0.0.0-test",
+      c.io,
+      {
+        resolveLatest: () => ({ ok: true as const, version: "9.9.9" }),
+        runPmAdd: ({ version }) => {
+          const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
+            devDependencies?: Record<string, string>;
+          };
+          pkg.devDependencies = { [RUNTIME_PACKAGE_NAME]: version };
+          writeFileSync(join(root, "package.json"), `${JSON.stringify(pkg, null, 2)}\n`);
+          installFakeRuntime(root, version);
+          return { ok: true as const };
+        },
+        invokeSetup: (argv) => {
+          const fromIdx = argv.indexOf("--from");
+          setupFrom = fromIdx >= 0 ? String(argv[fromIdx + 1]) : null;
+          return {
+            exitCode: 0,
+            stdout: JSON.stringify({
+              contract: 1,
+              entry: "setup",
+              removed: ["deft"],
+              created: [],
+              modified: [],
+              conflicts: [],
+            }),
+            stderr: "",
+            message: null,
+          };
+        },
+      },
+    );
+    expect(code).toBe(0);
+    expect(setupFrom).toBe("submodule-deft");
+    expect(c.text()).not.toMatch(/`directive uninstall` then/);
   });
 });

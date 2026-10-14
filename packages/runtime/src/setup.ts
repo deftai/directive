@@ -28,6 +28,10 @@ import {
   DATA_SCHEMA_MARKER_REL,
 } from "./migrate.js";
 import {
+  isConvertStrategyFrom,
+  runStrategy,
+} from "./removal-steps/index.js";
+import {
   ensureAgentsManagedSection,
   ensureGitHooks,
   ensureHostHooks,
@@ -306,16 +310,43 @@ export function runSetup(options: {
   const genExisted = existsSync(join(root, GEN_REL));
   const priorRecord = readOwnershipRecord(root);
   const legacyConversion = from === "old-style";
+  const convertViaRemovals = isConvertStrategyFrom(from);
   // AC10.5 / AC10.9: read prior generation as evidence before rewriting GENERATION.json.
-  const priorGeneration = legacyConversion ? readEvidenceGenerationNumber(root) : 0;
-  const raisedGeneration = legacyConversion ? priorGeneration + 1 : undefined;
+  const raiseGeneration = legacyConversion || convertViaRemovals;
+  const priorGeneration = raiseGeneration ? readEvidenceGenerationNumber(root) : 0;
+  const raisedGeneration = raiseGeneration ? priorGeneration + 1 : undefined;
 
   try {
     // AC8.6: drop superseded version markers when rewiring begins; keep current
     // for idempotent repair. Fail/conflict paths clear all (including current).
     invalidateReadinessMarkers(root, removed, { exceptVersion: runtimeVersion });
 
-    // AC10.3 / AC10.6: conversion removes legacy .deft/core even if edited.
+    // WAVE3-V2: historical convert shapes run ordered removal strategy first.
+    if (convertViaRemovals) {
+      const strategyResult = runStrategy(from, root);
+      removed.push(...strategyResult.removed);
+      if (!strategyResult.ok) {
+        const msg = strategyResult.message ?? `convert strategy '${from}' failed`;
+        conflicts.push(msg);
+        return {
+          contract: 1,
+          entry: "setup",
+          stub: false,
+          operation,
+          from,
+          root,
+          runtimeVersion,
+          created,
+          modified,
+          removed: [...new Set(removed)],
+          conflicts,
+          message: msg,
+        };
+      }
+    }
+
+    // AC10.3 / AC10.6: old-style conversion removes legacy .deft/core even if edited.
+    // (L0 2f path — convert-via-removals uses removeCopiedCore in its strategy.)
     if (legacyConversion && existsSync(join(root, ".deft", "core"))) {
       const rem = containedRemove({
         root,
@@ -391,7 +422,8 @@ export function runSetup(options: {
     const unchanged =
       priorRecord !== null &&
       ownershipRecordsEqual(priorRecord, desired) &&
-      !legacyConversion;
+      !legacyConversion &&
+      !convertViaRemovals;
 
     writeOwnershipRecord(
       root,
@@ -399,7 +431,7 @@ export function runSetup(options: {
       raisedGeneration !== undefined ? { generation: raisedGeneration } : undefined,
     );
     if (!genExisted) created.push(GEN_REL);
-    else if (!unchanged || legacyConversion) modified.push(GEN_REL);
+    else if (!unchanged || legacyConversion || convertViaRemovals) modified.push(GEN_REL);
 
     if (conflicts.length > 0) {
       // Never publish readiness after conflict; invalidate any existing marker (AC8.6).

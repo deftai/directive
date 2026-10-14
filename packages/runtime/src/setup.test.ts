@@ -309,3 +309,46 @@ describe("runSetup old-style conversion (Wave 2f / AC10.3 / AC10.6 / AC10.9)", (
     expect(existsSync(join(root, ".deft", "core", "VERSION"))).toBe(true);
   });
 });
+
+describe("runSetup convert-via-removals (WAVE3-V2 3f)", () => {
+  it("from vendored-core-go removes .deft/core and preserves xbrief", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
+    writeFileSync(join(root, ".deft", "core", "VERSION"), "ref: 'v0.40.0'\n");
+    writeFileSync(join(root, ".deft", "core", "main.md"), "# deposit\n");
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "keep.txt"), "user-data\n");
+    const result = runSetup({ operation: "upgrade", from: "vendored-core-go", root });
+    expect(result.conflicts).toEqual([]);
+    expect(result.removed).toContain(".deft/core");
+    expect(existsSync(join(root, ".deft", "core"))).toBe(false);
+    expect(readFileSync(join(root, "xbrief", "keep.txt"), "utf8")).toBe("user-data\n");
+  });
+
+  it("from go-tarball-deft-root removes deft/", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, "deft"), { recursive: true });
+    writeFileSync(join(root, "deft", "main.md"), "# legacy\n");
+    writeFileSync(join(root, "deft", "VERSION"), "0.25.0\n");
+    const result = runSetup({ operation: "upgrade", from: "go-tarball-deft-root", root });
+    expect(result.conflicts).toEqual([]);
+    expect(result.removed).toContain("deft");
+    expect(existsSync(join(root, "deft"))).toBe(false);
+  });
+
+  it("from dual-layout-deft-and-core removes deft then core", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, "deft"), { recursive: true });
+    writeFileSync(join(root, "deft", "main.md"), "# d\n");
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
+    writeFileSync(join(root, ".deft", "core", "VERSION"), "v\n");
+    const result = runSetup({
+      operation: "upgrade",
+      from: "dual-layout-deft-and-core",
+      root,
+    });
+    expect(result.conflicts).toEqual([]);
+    expect(existsSync(join(root, "deft"))).toBe(false);
+    expect(existsSync(join(root, ".deft", "core"))).toBe(false);
+  });
+});

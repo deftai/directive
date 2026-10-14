@@ -453,8 +453,8 @@ export function runInstall(
     return EXIT_CODES.USAGE;
   }
 
-  // L2 historical shapes: single registry dispatch (Wave 3b). L0 oldStyle
-  // still names upgrade; Go-era / vendored-core-go name uninstall→install.
+  // L2: unsupported-honest / residual uninstall-reinstall refuse.
+  // convert-via-removals falls through to first-install with from=shapeId (3f).
   const installShape = resolveInstallShape(projectRoot);
   if (installShape !== null && isL2RefusalDecision(installShape.decision)) {
     io.writeErr(`${formatShapeRecoveryMessage(installShape, "install")}\n`);
@@ -466,6 +466,9 @@ export function runInstall(
     io.writeErr("This project uses an older Directive layout. Run `directive upgrade`.\n");
     return EXIT_CODES.FAILURE;
   }
+  // Stash convert shape for first-install setup --from (WAVE3-V2).
+  const convertShapeId =
+    installShape?.decision === "convert-via-removals" ? installShape.shapeId : null;
 
   const configuredExact = state.pin.kind === "exact" && state.pin.version !== null;
 
@@ -526,7 +529,16 @@ export function runInstall(
     return runRepair(projectRoot, state, flags, launcherVersion, io, deps, env);
   }
 
-  return runFirstInstall(projectRoot, state, flags, launcherVersion, io, deps, env);
+  return runFirstInstall(
+    projectRoot,
+    state,
+    flags,
+    launcherVersion,
+    io,
+    deps,
+    env,
+    convertShapeId,
+  );
 }
 
 function runFirstInstall(
@@ -537,6 +549,7 @@ function runFirstInstall(
   io: BookendIo,
   deps: InstallDeps,
   env: NodeJS.ProcessEnv,
+  convertShapeId: string | null = null,
 ): number {
   // Invalid / ranged pin present (not "none", not exact) — do not treat as first install (AC6.3)
   if (state.pin.kind === "range" || state.pin.kind === "invalid") {
@@ -655,7 +668,7 @@ function runFirstInstall(
     launcherVersion,
     runtime: installed,
     operation: "install",
-    from: "none",
+    from: convertShapeId ?? "none",
     io,
     deps,
     verbosity: flags.verbosity,
@@ -1008,25 +1021,32 @@ export function runUpgrade(
     return EXIT_CODES.USAGE;
   }
 
-  // L2 historical shapes: single registry dispatch (Wave 3b). Prefer
-  // uninstall→reinstall / unsupported-honest over inventing convert.
+  // L2: only unsupported-honest / residual uninstall-reinstall refuse.
+  // convert-via-removals continues into strategy → pin → setup → migrate (3f).
   const upgradeShape = resolveInstallShape(projectRoot);
   if (upgradeShape !== null && isL2RefusalDecision(upgradeShape.decision)) {
     io.writeErr(`${formatShapeRecoveryMessage(upgradeShape, "upgrade")}\n`);
     return EXIT_CODES.USAGE;
   }
 
-  // AC7.1: exact pin or old-style; else exit 2 naming install
+  const convertViaRemovals =
+    upgradeShape !== null && upgradeShape.decision === "convert-via-removals";
+
+  // AC7.1: exact pin or old-style; WAVE3-V2 also allows convert-via-removals shapes.
   const exactPin = state.pin.kind === "exact" && state.pin.version !== null;
-  if (!exactPin && !state.oldStyle) {
+  if (!exactPin && !state.oldStyle && !convertViaRemovals) {
     io.writeErr(
       `Upgrade requires an exact ${RUNTIME_PACKAGE_NAME} pin or a supported old-style layout. Run \`directive install\`.\n`,
     );
     return EXIT_CODES.USAGE;
   }
 
-  const currentPin = state.pin.version!;
-  const fromLabel = state.oldStyle ? "old-style" : currentPin;
+  const currentPin = state.pin.version ?? "none";
+  const fromLabel = state.oldStyle
+    ? "old-style"
+    : convertViaRemovals
+      ? upgradeShape!.shapeId
+      : currentPin;
 
   // Resolve target once before plan (AC7.2)
   let targetVersion: string;
@@ -1053,15 +1073,19 @@ export function runUpgrade(
   }
 
   // Target older than pin → reject (AC7.3). Parse failure is never treated as equal.
+  // old-style / convert-via-removals always treat as version-changing conversion.
   let versionOrd: number;
   try {
-    versionOrd = state.oldStyle ? 1 : compareExactVersions(targetVersion, currentPin);
+    versionOrd =
+      state.oldStyle || convertViaRemovals
+        ? 1
+        : compareExactVersions(targetVersion, currentPin);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     io.writeErr(`${msg}\n`);
     return EXIT_CODES.FAILURE;
   }
-  if (!state.oldStyle && versionOrd < 0) {
+  if (!state.oldStyle && !convertViaRemovals && versionOrd < 0) {
     io.writeErr(
       `Target ${targetVersion} is older than pin ${currentPin}; upgrade rejects downgrades.\n`,
     );
@@ -1086,7 +1110,7 @@ export function runUpgrade(
     return EXIT_CODES.FAILURE;
   }
 
-  const versionChange = state.oldStyle || versionOrd !== 0;
+  const versionChange = state.oldStyle || convertViaRemovals || versionOrd !== 0;
   const pmDetect = detectPackageManager(projectRoot, flags.packageManager);
   if (!pmDetect.ok) {
     io.writeErr(`${pmDetect.message}\n`);
@@ -1148,6 +1172,7 @@ export function runUpgrade(
     needSetup,
     needMigrate,
     oldStyle: state.oldStyle,
+    convertShapeId: convertViaRemovals ? upgradeShape!.shapeId : null,
     gitHooksInactive: !existsSync(join(projectRoot, ".git")),
     nodeWarning: checkNodeVersion(deps.nodeVersion).warning ?? null,
     verbosity: flags.verbosity,
@@ -1176,6 +1201,10 @@ export function runUpgrade(
     // AC10.3: replace pre-split @deftai/directive pin before PM adds the runtime.
     if (state.oldStyle) {
       removeLegacyDirectivePin(projectRoot);
+    }
+    // Convert shapes may lack a package.json (rare); ensure before PM add.
+    if (convertViaRemovals && !existsSync(join(projectRoot, "package.json"))) {
+      ensurePackageJson(projectRoot);
     }
     const add =
       deps.runPmAdd?.({ projectRoot, pm: pmDetect.pm, version: targetVersion }) ??

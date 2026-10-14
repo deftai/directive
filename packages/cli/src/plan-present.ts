@@ -83,6 +83,8 @@ export interface UpgradePlanFields extends CommonPlanFields {
   readonly needSetup: boolean;
   readonly needMigrate: boolean;
   readonly oldStyle: boolean;
+  /** WAVE3-V2 convert-via-removals shape id when upgrading a historical layout. */
+  readonly convertShapeId?: string | null;
 }
 
 export interface UninstallPlanFields {
@@ -261,6 +263,13 @@ export function presentUpgradePlan(io: PresentIo, fields: UpgradePlanFields): vo
         "I'll remove the legacy `.deft/core` content copy (including any local edits),\n" +
         `replace the legacy launcher pin with @deftai/directive-runtime@${fields.targetVersion},\n` +
         `update ${lock}, and run setup and any required project-data migrations.\n`,
+    );
+  } else if (fields.convertShapeId) {
+    io.writeOut(
+      `This project uses a historical Directive layout ('${fields.convertShapeId}').\n` +
+        "I'll remove the legacy install footprint (preserving xbrief/ and user content),\n" +
+        `add @deftai/directive-runtime@${fields.targetVersion}, update ${lock},\n` +
+        "and run setup and any required project-data migrations.\n",
     );
   } else if (fields.versionChange) {
     io.writeOut(

@@ -1,8 +1,16 @@
 /**
  * Shared removal-step primitives for uninstall + WAVE3-V2 upgrade convert.
  * pruneEmptyAncestors / removeSoleAuthorHusks: F-012 / F-013 (C4 / C5).
+ * Layout steps (core / deft / hooks / skills / gitmodules / orphan): wave 3f.
  */
-import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import {
+  existsSync,
+  lstatSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join, sep } from "node:path";
 import { containedRemove } from "@deftai/directive-core/dist/fs/contained-write.js";
 import {
@@ -10,6 +18,12 @@ import {
   renderConsumerHeader,
   unmanagedHeaderOneLiner,
 } from "@deftai/directive-core/dist/platform/agents-consumer-header.js";
+import {
+  HOOK_BIN_COMMAND,
+  RUNTIME_PREFIX,
+  SKILL_HOST_ROOTS,
+  SKILL_POINTER_INVENTORY,
+} from "../setup-wiring.js";
 
 export type RemovalStepId =
   | "removeCopiedCore"
@@ -26,12 +40,26 @@ export interface StepContext {
   readonly root: string;
   /** Relative path that was just removed; prune walks from its parent. */
   readonly emptiedFrom?: string;
+  /** Paths removed by earlier steps in a strategy run (for prune sweep). */
+  readonly priorRemoved?: readonly string[];
+  /** Shape id when running a convert strategy (normalizeGitmodules fail-closed). */
+  readonly shapeId?: string;
 }
 
 export interface StepResult {
   readonly stepId: RemovalStepId;
   readonly removed: readonly string[];
   readonly modified: readonly string[];
+}
+
+/** Thrown when a step cannot proceed safely (e.g. submodule gitlink). */
+export class RemovalStepError extends Error {
+  readonly stepId: RemovalStepId;
+  constructor(stepId: RemovalStepId, message: string) {
+    super(message);
+    this.name = "RemovalStepError";
+    this.stepId = stepId;
+  }
 }
 
 /** Host / wiring trees we may prune when emptied (F-012). */
@@ -399,21 +427,326 @@ export function removeSoleAuthorHusks(root: string): string[] {
   return [...new Set(removed)];
 }
 
-/** Dispatch a named step. Layout steps beyond husks land in 3f. */
+const GITHOOK_RELS = [
+  ".githooks/pre-commit",
+  ".githooks/pre-push",
+  ".githooks/_directive-run.sh",
+] as const;
+
+function object(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function isManagedHookCommand(command: string): boolean {
+  return (
+    command.includes(HOOK_BIN_COMMAND) ||
+    command.includes("directive-runtime/dist/hook-bin.js") ||
+    command.includes(".deft/core/") ||
+    /(^|[\s"`'])deft-hook([\s"`']|$)/.test(command) ||
+    command.includes("deft hook:dispatch")
+  );
+}
+
+function stripHostHooks(cfg: Record<string, unknown>): Record<string, unknown> {
+  const hooks = object(cfg.hooks);
+  if (hooks === null) return cfg;
+  const nextHooks: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(hooks)) {
+    if (!Array.isArray(value)) {
+      nextHooks[key] = value;
+      continue;
+    }
+    const filtered = value.filter((entry) => {
+      const e = object(entry);
+      if (e === null) return true;
+      if (typeof e.command === "string" && isManagedHookCommand(e.command)) return false;
+      if (Array.isArray(e.hooks)) {
+        const nestedManaged = e.hooks.some((h) => {
+          const hook = object(h);
+          return typeof hook?.command === "string" && isManagedHookCommand(hook.command);
+        });
+        if (nestedManaged) return false;
+      }
+      return true;
+    });
+    if (filtered.length > 0) nextHooks[key] = filtered;
+  }
+  if (Object.keys(nextHooks).length === 0) {
+    const { hooks: _h, ...rest } = cfg;
+    if ("version" in rest && Object.keys(rest).length === 1) {
+      const { version: _v, ...rest2 } = rest;
+      return rest2;
+    }
+    return rest;
+  }
+  return { ...cfg, hooks: nextHooks };
+}
+
+function isOurSkillPointer(body: string): boolean {
+  return (
+    body.includes(RUNTIME_PREFIX) ||
+    body.includes("npm i -g @deftai/directive") ||
+    body.includes(".deft/core/") ||
+    body.includes("Read and follow:")
+  );
+}
+
+function isOurGitHook(rel: string, body: string): boolean {
+  if (rel.endsWith("_directive-run.sh")) return true;
+  return (
+    body.includes("_directive-run.sh") ||
+    body.includes(RUNTIME_PREFIX) ||
+    body.includes("run_directive") ||
+    body.includes(".deft/core/")
+  );
+}
+
+/** True when parent git index records `deft` as a gitlink (mode 160000). */
+export function isUnsafeSubmoduleGitlink(root: string): boolean {
+  try {
+    const out = execFileSync("git", ["-C", root, "ls-files", "-s", "--", "deft"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    for (const line of out.split(/\r?\n/)) {
+      if (/^160000\s/.test(line.trim())) return true;
+    }
+  } catch {
+    /* no git / not a repo / deft untracked — treat as safe fs-only cleanup */
+  }
+  return false;
+}
+
+/**
+ * Remove `.deft/core` (even if edited). Used by vendored-core-go / dual / hybrid.
+ */
+export function removeCopiedCore(root: string): string[] {
+  const removed: string[] = [];
+  if (existsSync(join(root, ".deft", "core"))) {
+    if (safeContainedRemove(root, ".deft/core")) {
+      removed.push(".deft/core");
+    }
+  }
+  return removed;
+}
+
+/**
+ * Remove framework-marked top-level `deft/` tree when present.
+ * Does not touch xbrief/ or user content outside deft/.
+ */
+export function removeDeftFrameworkTree(root: string): string[] {
+  const removed: string[] = [];
+  const deftAbs = join(root, "deft");
+  if (!existsSync(deftAbs)) return removed;
+  if (safeContainedRemove(root, "deft")) {
+    removed.push("deft");
+  }
+  return removed;
+}
+
+/** Strip Directive-owned host hook registrations; leave foreign entries. */
+export function clearOwnedHookEntries(root: string): StepResult {
+  const removed: string[] = [];
+  const modified: string[] = [];
+  for (const rel of HOST_HOOK_RELS) {
+    const abs = join(root, rel);
+    if (!existsSync(abs)) continue;
+    const cfg = readJsonObject(abs);
+    if (cfg === null) continue;
+    const stripped = stripHostHooks(cfg);
+    const prior = readText(abs) ?? "";
+    const next = `${JSON.stringify(stripped, null, 2)}\n`;
+    if (next === prior) continue;
+    const keys = Object.keys(stripped);
+    const emptyAfterStrip =
+      keys.length === 0 ||
+      (keys.length === 1 && keys[0] === "hooks" && isEmptyishObject(stripped.hooks)) ||
+      (keys.length === 1 && keys[0] === "version") ||
+      (keys.length === 2 &&
+        keys.includes("version") &&
+        keys.includes("hooks") &&
+        isEmptyishObject(stripped.hooks));
+    if (emptyAfterStrip) {
+      if (safeContainedRemove(root, rel)) {
+        removed.push(toPosix(rel));
+        removed.push(...pruneEmptyAncestors(root, rel));
+      }
+      continue;
+    }
+    writeFileSync(abs, next);
+    modified.push(`${toPosix(rel)}#hooks`);
+  }
+  for (const rel of GITHOOK_RELS) {
+    const abs = join(root, rel);
+    if (!existsSync(abs)) continue;
+    const body = readText(abs);
+    if (body === null) continue;
+    if (!isOurGitHook(rel, body)) continue;
+    if (safeContainedRemove(root, rel)) {
+      removed.push(toPosix(rel));
+      removed.push(...pruneEmptyAncestors(root, rel));
+    }
+  }
+  return { stepId: "clearOwnedHookEntries", removed, modified };
+}
+
+/** Remove wholly-owned skill pointer files (Directive thin wrappers). */
+export function removeOwnedSkillPointers(root: string): string[] {
+  const removed: string[] = [];
+  for (const host of SKILL_HOST_ROOTS) {
+    for (const entry of SKILL_POINTER_INVENTORY) {
+      const rel = `${host}/${entry.dir}/SKILL.md`;
+      const body = readText(join(root, rel));
+      if (body === null) continue;
+      if (!isOurSkillPointer(body)) continue;
+      if (safeContainedRemove(root, rel)) {
+        removed.push(toPosix(rel));
+        removed.push(...pruneEmptyAncestors(root, rel));
+      }
+    }
+  }
+  return removed;
+}
+
+/**
+ * Strip exact `@deftai/directive` / leftover runtime pins from package.json
+ * when converting (hybrid / leftover). Lockfile is refreshed by subsequent PM add.
+ */
+export function stripLegacyLauncherPin(root: string): StepResult {
+  const removed: string[] = [];
+  const modified: string[] = [];
+  const abs = join(root, "package.json");
+  if (!existsSync(abs)) return { stepId: "stripLegacyLauncherPin", removed, modified };
+  const pkg = readJsonObject(abs);
+  if (pkg === null) return { stepId: "stripLegacyLauncherPin", removed, modified };
+  let changed = false;
+  for (const key of ["dependencies", "devDependencies", "optionalDependencies"] as const) {
+    const block = pkg[key];
+    if (block === null || typeof block !== "object" || Array.isArray(block)) continue;
+    const deps = block as Record<string, unknown>;
+    for (const name of DIRECTIVE_PACKAGE_NAMES) {
+      if (name in deps) {
+        delete deps[name];
+        changed = true;
+      }
+    }
+    if (Object.keys(deps).length === 0) {
+      delete pkg[key];
+    }
+  }
+  if (!changed) return { stepId: "stripLegacyLauncherPin", removed, modified };
+  writeFileSync(abs, `${JSON.stringify(pkg, null, 2)}\n`);
+  modified.push("package.json");
+  return { stepId: "stripLegacyLauncherPin", removed, modified };
+}
+
+/** Clear sparse `.deft/VERSION` (orphan marker) when safe. Preserves other .deft contents. */
+export function removeOrphanDeftVersion(root: string): string[] {
+  const removed: string[] = [];
+  const rel = ".deft/VERSION";
+  if (!existsSync(join(root, ".deft", "VERSION"))) return removed;
+  // Refuse if .deft/core still exists — wrong step for that shape.
+  if (existsSync(join(root, ".deft", "core"))) return removed;
+  if (safeContainedRemove(root, rel)) {
+    removed.push(rel);
+    removed.push(...pruneEmptyAncestors(root, rel));
+  }
+  return removed;
+}
+
+/**
+ * Normalize `.gitmodules` / leftover submodule metadata after deft/ removal.
+ * Fail closed when parent index still has a gitlink (mode 160000) — caller must
+ * leave unsupported-honest rather than corrupt the index.
+ */
+export function normalizeGitmodules(root: string): StepResult {
+  if (isUnsafeSubmoduleGitlink(root)) {
+    throw new RemovalStepError(
+      "normalizeGitmodules",
+      "submodule-deft: gitlink (mode 160000) for deft/ is still in the git index; " +
+        "automatic convert refuses. Run `git submodule deinit -f deft` and `git rm -f deft` " +
+        "(or remove the gitlink), then `directive upgrade` / `directive install`.",
+    );
+  }
+  const removed: string[] = [];
+  const modified: string[] = [];
+  const gmAbs = join(root, ".gitmodules");
+  if (existsSync(gmAbs)) {
+    const text = readText(gmAbs);
+    if (text !== null) {
+      // Drop submodule stanzas whose path is deft / .deft or url mentions deftai/directive.
+      const next = text.replace(
+        /(^|\n)(\[submodule\s+[^\]]+\])([\s\S]*?)(?=\n\[submodule|\n*$)/g,
+        (full, lead: string, _header: string, body: string) => {
+          const lower = body.toLowerCase();
+          const pathDeft = /(^|\n)\s*path\s*=\s*\.?deft(\/|\s|$)/.test(lower);
+          const urlDirective = lower.includes("deftai/directive");
+          if (pathDeft || urlDirective) return lead === "\n" ? "\n" : "";
+          return full;
+        },
+      );
+      const cleaned = next.replace(/\n{3,}/g, "\n\n").trim();
+      if (cleaned.length === 0) {
+        if (safeContainedRemove(root, ".gitmodules")) {
+          removed.push(".gitmodules");
+        }
+      } else if (cleaned !== text.replace(/\r\n/g, "\n").trim()) {
+        writeFileSync(gmAbs, `${cleaned}\n`);
+        modified.push(".gitmodules");
+      }
+    }
+  }
+  return { stepId: "normalizeGitmodules", removed, modified };
+}
+
+/** Dispatch a named removal step. */
 export function runStep(stepId: RemovalStepId, ctx: StepContext): StepResult {
   switch (stepId) {
     case "pruneEmptyAncestors": {
-      if (ctx.emptiedFrom === undefined) {
-        throw new Error("pruneEmptyAncestors requires ctx.emptiedFrom");
+      const seeds =
+        ctx.emptiedFrom !== undefined
+          ? [ctx.emptiedFrom]
+          : [...(ctx.priorRemoved ?? [])];
+      if (seeds.length === 0) {
+        // Standalone call still requires a seed (uninstall / unit API).
+        throw new Error("pruneEmptyAncestors requires ctx.emptiedFrom or ctx.priorRemoved");
       }
-      const removed = pruneEmptyAncestors(ctx.root, ctx.emptiedFrom);
-      return { stepId, removed, modified: [] };
+      const removed: string[] = [];
+      for (const seed of seeds) {
+        removed.push(...pruneEmptyAncestors(ctx.root, seed));
+      }
+      return { stepId, removed: [...new Set(removed)], modified: [] };
     }
     case "removeSoleAuthorHusks": {
       const removed = removeSoleAuthorHusks(ctx.root);
       return { stepId, removed, modified: [] };
     }
-    default:
-      throw new Error(`removal step '${stepId}' not implemented`);
+    case "removeCopiedCore": {
+      return { stepId, removed: removeCopiedCore(ctx.root), modified: [] };
+    }
+    case "removeDeftFrameworkTree": {
+      return { stepId, removed: removeDeftFrameworkTree(ctx.root), modified: [] };
+    }
+    case "clearOwnedHookEntries": {
+      return clearOwnedHookEntries(ctx.root);
+    }
+    case "removeOwnedSkillPointers": {
+      return { stepId, removed: removeOwnedSkillPointers(ctx.root), modified: [] };
+    }
+    case "stripLegacyLauncherPin": {
+      return stripLegacyLauncherPin(ctx.root);
+    }
+    case "removeOrphanDeftVersion": {
+      return { stepId, removed: removeOrphanDeftVersion(ctx.root), modified: [] };
+    }
+    case "normalizeGitmodules": {
+      return normalizeGitmodules(ctx.root);
+    }
+    default: {
+      const _exhaustive: never = stepId;
+      throw new Error(`removal step '${String(_exhaustive)}' not implemented`);
+    }
   }
 }

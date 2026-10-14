@@ -8,7 +8,7 @@
 | Tip surveyed | `yolo/wip-wave3a` / `yolo/cp-wave2zb` @ `0be7813c47929967a6a2e73b6ea91cb19f2d3780` |
 | WAVE3-V2 base | `yolo/cp-wave3c` @ `2a38865d8c04522e5228c6eb70377476c06c8336` |
 | xbrief ref | `~/Projects/xbrief` @ `56824ed4da99b4f6817e21809d998bf463163519` (`v0.8.0-3-g56824ed`) |
-| Status | **3a–3c complete.** WAVE3-V2 **3d**: survey lean flipped to **convert** (composed removals + L0); fixture status **pending fixtures (3f)**. |
+| Status | **3a–3c complete.** WAVE3-V2 **3d–3f**: survey lean **convert**; **3f fixtures delivered** (upgrade --yes converts without dump-out refuse). |
 | Architecture | **L0 sacred** (new→new + latest-legacy→new). **L2** = detect → removal strategy → L0 arrival (WAVE3-V2). Bookend refuse may remain until 3f greens. Keep tight. |
 
 Raw archaeology (not committed): `~/yolo-5490/logs/wave3/`  
@@ -69,7 +69,7 @@ Surfaces: `packages/core/src/xbrief-migrate/`, `packages/runtime/src/migrate-xbr
 | --- | --- | --- |
 | **L0** | `ovpr-runtime-pin`, `npm-hybrid-pin-copied-core` (latest legacy / 2f) | Highest robustness — Wave 3 must not soften |
 | **L1** | xbrief migrate 0.6→0.8 (+ optional thin 0.7) | Shared table-driven migrate; repair does not migrate |
-| **L2** | All older / sparse shapes below | Isolated detect → **convert-via-removals** (WAVE3-V2) → L0; user-facing uninstall-reinstall refuse **superseded** once 3f greens |
+| **L2** | All older / sparse shapes below | Isolated detect → **convert-via-removals** (WAVE3-V2) → L0; user-facing uninstall-reinstall refuse **superseded** (3f green). Unsafe submodule gitlink → unsupported-honest |
 
 ### Shape table
 
@@ -79,12 +79,12 @@ Surfaces: `packages/core/src/xbrief-migrate/`, `packages/runtime/src/migrate-xbr
 | `npm-hybrid-pin-copied-core` | `v0.69.0+` (#2264…) | exact `@deftai/directive` + copied-core evidence + GENERATION | **pin wins**; GENERATION | `oldStyle:true` | **L0 convert (2f)** | tip `legacy-conversion` / wave2f |
 | `npm-ranged-or-pin-only` | npm era | ranged/`^` or pin without core evidence | ambiguous | not `oldStyle` | first-install/repair; not historical convert | optional |
 | `npm-bridge-refuse-legacy` | `v0.56.0+` | producer behavior era | N/A | legacy-detect refuse | historical note only | — |
-| `vendored-core-go` | `v0.28.0+` Go deposit | `.deft/core` evidence **without** exact pin | core `VERSION` YAML | copied-core, not `oldStyle` | **convert** (composed removals + L0); status **pending fixtures (3f)** | pending 3f |
-| `go-tarball-deft-root` | `v0.5.0`–~`v0.27` | `deft/` + markers; Go producer deleted on tip | `.deft-version` / framework VERSION | `legacy-deft-prefixed` | **convert** (composed removals + L0); status **pending fixtures (3f)** | pending 3f |
-| `submodule-deft` | ~`v0.20`–`v0.30` docs | `deft/` gitlink + `.gitmodules` | submodule SHA | `git-clone-or-submodule` | **convert** (composed removals + L0; fail closed if gitlink unsafe); status **pending fixtures (3f)** | pending 3f |
+| `vendored-core-go` | `v0.28.0+` Go deposit | `.deft/core` evidence **without** exact pin | core `VERSION` YAML | copied-core, not `oldStyle` | **convert** (composed removals + L0); fixtures **delivered (3f)** | `legacy-shapes` / `removal-steps` / setup convert |
+| `go-tarball-deft-root` | `v0.5.0`–~`v0.27` | `deft/` + markers; Go producer deleted on tip | `.deft-version` / framework VERSION | `legacy-deft-prefixed` | **convert** (composed removals + L0); fixtures **delivered (3f)** | `legacy-shapes` / `removal-steps` / setup convert |
+| `submodule-deft` | ~`v0.20`–`v0.30` docs | `deft/` gitlink + `.gitmodules` | submodule SHA | `git-clone-or-submodule` | **convert** (file gitlink safe); **unsupported-honest** if index mode 160000; fixtures **delivered (3f)** | `legacy-shapes` / `removal-steps` |
 | `pre-v0.27-agents-md` | pre-managed-section | AGENTS without v2/v3 markers | coupled to layout | `pre-v0.27-sentinel-agents-md` | co-travel with go-tarball convert | share with go-tarball |
-| `dual-layout-deft-and-core` | post-relocate leftovers | both `deft/` and `.deft/core` | dual | `dual-layout` | **convert** (removeDeftFrameworkTree then removeCopiedCore → L0); status **pending fixtures (3f)** | pending 3f |
-| `orphan-deft-version` | partial installs | `.deft/VERSION` without core | orphan | `orphan-deft-version` | **convert** (removeOrphanDeftVersion → greenfield under upgrade/install); status **pending fixtures (3f)** | pending 3f |
+| `dual-layout-deft-and-core` | post-relocate leftovers | both `deft/` and `.deft/core` | dual | `dual-layout` | **convert** (removeDeftFrameworkTree then removeCopiedCore → L0); fixtures **delivered (3f)** | `legacy-shapes` / setup convert |
+| `orphan-deft-version` | partial installs | `.deft/VERSION` without core | orphan | `orphan-deft-version` | **convert** (removeOrphanDeftVersion → greenfield under upgrade/install); fixtures **delivered (3f)** | `legacy-shapes` / `removal-steps` |
 | `docs-only-pre-installer` | `v0.1`–`v0.4` | no installer markers | N/A | none | unsupported-honest / non-install | only if live |
 
 ### Detect / map pointers (existing tip)
@@ -113,9 +113,9 @@ Surfaces: `packages/core/src/xbrief-migrate/`, `packages/runtime/src/migrate-xbr
 | shape_id / schema | 3b applied | WAVE3-V2 (3d+) |
 | --- | --- | --- |
 | L0 OVPR / latest-legacy | unchanged sacred paths | **L0 stay** (unchanged) |
-| `go-tarball-deft-root`, `submodule-deft`, `vendored-core-go` | uninstall-reinstall messaging | **convert** via composed removals + L0; **pending fixtures (3f)** |
-| `dual-layout-deft-and-core` | deferred / uninstall lean | **convert**; **pending fixtures (3f)** |
-| `orphan-deft-version` | unsupported-honest | **convert**; **pending fixtures (3f)** |
+| `go-tarball-deft-root`, `submodule-deft`, `vendored-core-go` | uninstall-reinstall messaging | **convert** via composed removals + L0; **fixtures delivered (3f)** |
+| `dual-layout-deft-and-core` | deferred / uninstall lean | **convert**; **fixtures delivered (3f)** |
+| `orphan-deft-version` | unsupported-honest | **convert**; **fixtures delivered (3f)** |
 | xbrief 0.7 | migrate-through → 0.8 | unchanged |
 | xbrief 0.5 | off-tip / unsupported-honest | unchanged |
 

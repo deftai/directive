@@ -1,8 +1,7 @@
 /**
  * Wave 3 L2 shape registry — survey shape_id → recovery decision.
  * WAVE3-V2: pre-latest-legacy shapes lean convert-via-removals (composed
- * removal steps in runtime + L0 arrival). Bookends may still refuse until 3f.
- * L0 stays sacred. See specs/5490-wave3-v2-unified-clarifications.md C1–C3.
+ * removal steps in runtime + L0 arrival). See clarifications C1–C3.
  */
 
 export type RecoveryDecision =
@@ -19,12 +18,13 @@ export type SurveyShapeId =
   | "vendored-core-go"
   | "go-tarball-deft-root"
   | "submodule-deft"
+  | "dual-layout-deft-and-core"
   | "orphan-deft-version";
 
 /**
- * WAVE3-V2 lean: convert-via-removals for surveyed L2 layouts (pending 3f fixtures).
+ * WAVE3-V2 lean: convert-via-removals for surveyed L2 layouts.
  * Latest-legacy stays L0 convert (2f); OVPR stays L0 current.
- * uninstall-reinstall remains in the enum for interim messaging / unsupported paths.
+ * uninstall-reinstall remains in the enum for residual messaging.
  */
 export const DECISION_BY_SHAPE_ID: Readonly<Record<SurveyShapeId, RecoveryDecision>> = {
   "ovpr-runtime-pin": "l0-current",
@@ -32,6 +32,7 @@ export const DECISION_BY_SHAPE_ID: Readonly<Record<SurveyShapeId, RecoveryDecisi
   "vendored-core-go": "convert-via-removals",
   "go-tarball-deft-root": "convert-via-removals",
   "submodule-deft": "convert-via-removals",
+  "dual-layout-deft-and-core": "convert-via-removals",
   "orphan-deft-version": "convert-via-removals",
 };
 

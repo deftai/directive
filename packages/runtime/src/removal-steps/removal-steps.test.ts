@@ -18,8 +18,18 @@ import {
   CONSUMER_HEADER_PLACEHOLDER_ONELINER,
   renderConsumerHeader,
 } from "@deftai/directive-core/dist/platform/agents-consumer-header.js";
-import { pruneEmptyAncestors, removeSoleAuthorHusks } from "./steps.js";
-import { STRATEGIES, strategyForShape } from "./strategies.js";
+import {
+  isUnsafeSubmoduleGitlink,
+  normalizeGitmodules,
+  pruneEmptyAncestors,
+  removeCopiedCore,
+  removeDeftFrameworkTree,
+  removeOrphanDeftVersion,
+  removeSoleAuthorHusks,
+  RemovalStepError,
+  runStep,
+} from "./steps.js";
+import { runStrategy, STRATEGIES, strategyForShape } from "./strategies.js";
 
 const TEMPS: string[] = [];
 
@@ -253,5 +263,115 @@ describe("prune + husks composition", () => {
     expect(removed).toEqual(expect.arrayContaining([".cursor/hooks.json", ".cursor"]));
     expect(existsSync(join(root, ".cursor"))).toBe(false);
     expect(readdirSync(root)).toEqual([]);
+  });
+});
+
+describe("layout removal steps (WAVE3-V2 3f)", () => {
+  it("removeCopiedCore deletes .deft/core and preserves xbrief", () => {
+    const root = tempRoot("wave3f-core");
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
+    writeFileSync(join(root, ".deft", "core", "VERSION"), "v0.40.0\n");
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "keep.txt"), "user\n");
+    expect(removeCopiedCore(root)).toContain(".deft/core");
+    expect(existsSync(join(root, ".deft", "core"))).toBe(false);
+    expect(readFileSync(join(root, "xbrief", "keep.txt"), "utf8")).toBe("user\n");
+  });
+
+  it("removeDeftFrameworkTree deletes deft/ markers", () => {
+    const root = tempRoot("wave3f-deft");
+    mkdirSync(join(root, "deft"), { recursive: true });
+    writeFileSync(join(root, "deft", "main.md"), "# legacy\n");
+    writeFileSync(join(root, "deft", "VERSION"), "0.25.0\n");
+    expect(removeDeftFrameworkTree(root)).toContain("deft");
+    expect(existsSync(join(root, "deft"))).toBe(false);
+  });
+
+  it("removeOrphanDeftVersion clears .deft/VERSION only", () => {
+    const root = tempRoot("wave3f-orphan");
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(join(root, ".deft", "VERSION"), "orphan\n");
+    writeFileSync(join(root, ".deft", "settings.json"), "{}\n");
+    expect(removeOrphanDeftVersion(root)).toContain(".deft/VERSION");
+    expect(existsSync(join(root, ".deft", "VERSION"))).toBe(false);
+    expect(existsSync(join(root, ".deft", "settings.json"))).toBe(true);
+  });
+
+  it("normalizeGitmodules strips deft stanza; unsafe gitlink throws", () => {
+    const root = tempRoot("wave3f-gm");
+    writeFileSync(
+      join(root, ".gitmodules"),
+      '[submodule "deft"]\n\tpath = deft\n\turl = https://github.com/deftai/directive.git\n',
+    );
+    const result = normalizeGitmodules(root);
+    expect(result.removed).toContain(".gitmodules");
+    expect(existsSync(join(root, ".gitmodules"))).toBe(false);
+    // isUnsafeSubmoduleGitlink is false without a real gitlink index entry.
+    expect(isUnsafeSubmoduleGitlink(root)).toBe(false);
+  });
+
+  it("runStep pruneEmptyAncestors accepts priorRemoved seeds", () => {
+    const root = tempRoot("wave3f-prune-prior");
+    mkdirSync(join(root, ".agents", "skills", "deft"), { recursive: true });
+    // emptied already — dir empty
+    const result = runStep("pruneEmptyAncestors", {
+      root,
+      priorRemoved: [".agents/skills/deft/SKILL.md"],
+    });
+    expect(result.removed).toEqual(
+      expect.arrayContaining([".agents/skills/deft", ".agents/skills", ".agents"]),
+    );
+  });
+});
+
+describe("runStrategy (ordered convert)", () => {
+  it("vendored-core-go removes core then husks", () => {
+    const root = tempRoot("wave3f-strat-v");
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
+    writeFileSync(join(root, ".deft", "core", "main.md"), "# c\n");
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "keep.txt"), "ok\n");
+    const result = runStrategy("vendored-core-go", root);
+    expect(result.ok).toBe(true);
+    expect(result.removed).toContain(".deft/core");
+    expect(existsSync(join(root, ".deft", "core"))).toBe(false);
+    expect(readFileSync(join(root, "xbrief", "keep.txt"), "utf8")).toBe("ok\n");
+  });
+
+  it("go-tarball-deft-root removes deft/", () => {
+    const root = tempRoot("wave3f-strat-go");
+    mkdirSync(join(root, "deft"), { recursive: true });
+    writeFileSync(join(root, "deft", "VERSION"), "0.25\n");
+    writeFileSync(join(root, "deft", "main.md"), "# m\n");
+    const result = runStrategy("go-tarball-deft-root", root);
+    expect(result.ok).toBe(true);
+    expect(result.removed).toContain("deft");
+    expect(existsSync(join(root, "deft"))).toBe(false);
+  });
+
+  it("dual-layout removes deft then core (order)", () => {
+    const root = tempRoot("wave3f-strat-dual");
+    mkdirSync(join(root, "deft"), { recursive: true });
+    writeFileSync(join(root, "deft", "main.md"), "# d\n");
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
+    writeFileSync(join(root, ".deft", "core", "VERSION"), "v\n");
+    const result = runStrategy("dual-layout-deft-and-core", root);
+    expect(result.ok).toBe(true);
+    expect(result.removed.indexOf("deft")).toBeLessThan(result.removed.indexOf(".deft/core"));
+    expect(existsSync(join(root, "deft"))).toBe(false);
+    expect(existsSync(join(root, ".deft", "core"))).toBe(false);
+  });
+
+  it("orphan-deft-version clears VERSION", () => {
+    const root = tempRoot("wave3f-strat-or");
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(join(root, ".deft", "VERSION"), "x\n");
+    const result = runStrategy("orphan-deft-version", root);
+    expect(result.ok).toBe(true);
+    expect(result.removed).toContain(".deft/VERSION");
+  });
+
+  it("RemovalStepError is the fail-closed type for unsafe gitlink", () => {
+    expect(new RemovalStepError("normalizeGitmodules", "boom").stepId).toBe("normalizeGitmodules");
   });
 });

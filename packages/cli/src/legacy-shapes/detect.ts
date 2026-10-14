@@ -3,14 +3,15 @@
  * Reuses pin.ts (readPin / hasCopiedCoreEvidence). FS fingerprints align with
  * packages/core LegacyLayoutKind names mapped to survey shape_ids.
  */
+import { execFileSync } from "node:child_process";
 import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { hasCopiedCoreEvidence, readPin } from "../pin.js";
-import { decisionForShapeId, type SurveyShapeId } from "./registry.js";
+import { decisionForShapeId, type RecoveryDecision, type SurveyShapeId } from "./registry.js";
 
 export interface ShapeResolution {
   readonly shapeId: SurveyShapeId;
-  readonly decision: ReturnType<typeof decisionForShapeId>;
+  readonly decision: RecoveryDecision;
   readonly evidence: readonly string[];
 }
 
@@ -58,15 +59,40 @@ function gitmodulesReferencesFramework(text: string): boolean {
   return /(^|\n)\s*path\s*=\s*\.?deft(\/|\s|$)/.test(normalized);
 }
 
-function resolution(shapeId: SurveyShapeId, evidence: readonly string[]): ShapeResolution {
-  return { shapeId, decision: decisionForShapeId(shapeId), evidence };
+/** Parent index still has deft as gitlink (mode 160000) — convert refuses. */
+function isUnsafeSubmoduleGitlink(projectRoot: string): boolean {
+  try {
+    const out = execFileSync("git", ["-C", projectRoot, "ls-files", "-s", "--", "deft"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    for (const line of out.split(/\r?\n/)) {
+      if (/^160000\s/.test(line.trim())) return true;
+    }
+  } catch {
+    /* no git / untracked — fs-only cleanup is safe */
+  }
+  return false;
+}
+
+function resolution(
+  shapeId: SurveyShapeId,
+  evidence: readonly string[],
+  decisionOverride?: RecoveryDecision,
+): ShapeResolution {
+  return {
+    shapeId,
+    decision: decisionOverride ?? decisionForShapeId(shapeId),
+    evidence,
+  };
 }
 
 /**
  * Classify install layout → survey shape_id + recovery decision.
  * Returns null for greenfield / non-historical (caller keeps existing gates).
  *
- * Priority: L0 pin shapes first, then vendored-core-go, then legacy-detect-aligned FS.
+ * Priority: L0 pin shapes first, then dual-layout, vendored-core-go, then
+ * legacy-detect-aligned FS (orphan / submodule / go-tarball).
  */
 export function resolveInstallShape(projectRoot: string): ShapeResolution | null {
   const pin = readPin(projectRoot);
@@ -84,8 +110,16 @@ export function resolveInstallShape(projectRoot: string): ShapeResolution | null
     ]);
   }
 
+  const hasCore = hasCopiedCoreEvidence(projectRoot);
+  const frameworkDeft = isFrameworkDeftDir(projectRoot);
+
+  // Dual layout: framework deft/ + copied-core (no exact pin). Order: deft then core.
+  if (hasCore && frameworkDeft) {
+    return resolution("dual-layout-deft-and-core", [".deft/core", "deft/"]);
+  }
+
   // L2: copied core without exact pin (Go deposit / pin-stripped).
-  if (hasCopiedCoreEvidence(projectRoot)) {
+  if (hasCore) {
     return resolution("vendored-core-go", [".deft/core (copied-core evidence, no exact pin)"]);
   }
 
@@ -95,12 +129,18 @@ export function resolveInstallShape(projectRoot: string): ShapeResolution | null
   }
 
   const deftDir = join(projectRoot, LEGACY_DEFT_DIR);
-  if (isFrameworkDeftDir(projectRoot)) {
+  if (frameworkDeft) {
     const submoduleGit = isFile(join(deftDir, ".git")) || isDir(join(deftDir, ".git"));
     if (submoduleGit) {
+      if (isUnsafeSubmoduleGitlink(projectRoot)) {
+        return resolution(
+          "submodule-deft",
+          ["deft/", "deft/.git", "gitlink mode 160000"],
+          "unsupported-honest",
+        );
+      }
       return resolution("submodule-deft", ["deft/", "deft/.git"]);
     }
-    // Survey: legacy-deft-prefixed → go-tarball-deft-root
     return resolution("go-tarball-deft-root", ["deft/"]);
   }
 
@@ -109,6 +149,13 @@ export function resolveInstallShape(projectRoot: string): ShapeResolution | null
   if (isFile(gitmodulesPath)) {
     const text = readText(gitmodulesPath);
     if (text !== null && gitmodulesReferencesFramework(text)) {
+      if (isUnsafeSubmoduleGitlink(projectRoot)) {
+        return resolution(
+          "submodule-deft",
+          [".gitmodules", "gitlink mode 160000"],
+          "unsupported-honest",
+        );
+      }
       return resolution("submodule-deft", [".gitmodules"]);
     }
   }
