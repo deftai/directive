@@ -18,6 +18,17 @@ import { readProjectDataStatus, type DataStatusValue } from "./data-status.js";
 
 export { DEFT_DOCTOR_HOOK_DIAGNOSTIC };
 
+/**
+ * F-010 / C7 — no-.git partial install: primary recovery is git init then repair,
+ * not the generic AC9.7 global reinstall line.
+ */
+export const GIT_PRECONDITION_RECOVERY_GUIDANCE =
+  "git init, then directive install --repair";
+
+/** Readiness detail when wiring-ready is withheld solely because there is no .git. */
+export const GIT_PRECONDITION_READINESS_DETAIL =
+  "incomplete install — wiring-ready withheld until git init (hooksPath not activatable)";
+
 /** Patterns that must never appear as doctor remedies (AC12.5–12.7 / AC9.11). */
 export const FORBIDDEN_DOCTOR_REMEDY_PATTERNS: readonly RegExp[] = [
   /\balign-pin\b/i,
@@ -55,10 +66,18 @@ export interface DoctorDiagnosis {
   readonly version: string | null;
   readonly failClosed: boolean;
   readonly dataStatus: DataStatusValue;
-  /** AC9.7 when install/wiring recovery is needed; null when healthy or schema-only. */
+  /**
+   * Install/wiring recovery guidance, or F-010 git-precondition recovery.
+   * Null when healthy or schema-only.
+   */
   readonly remedy: string | null;
   /** Schema/data migration remedy; never `install --repair`. */
   readonly schemaRemedy: "directive upgrade" | null;
+  /**
+   * F-010: set when pin/lock/installed/GENERATION/wiring are ok but readiness is
+   * withheld because the project has no `.git` (incomplete install / precondition).
+   */
+  readonly incompleteInstall: "git-precondition" | null;
   readonly surfaces: {
     readonly pin: DoctorSurface;
     readonly lockfile: DoctorSurface;
@@ -202,10 +221,32 @@ function defaultHookProbe(projectRoot: string): DoctorHookProbeResult {
   };
 }
 
+function projectHasGitDir(projectRoot: string): boolean {
+  return existsSync(join(projectRoot, ".git"));
+}
+
+/**
+ * F-010 / C7: otherwise-healthy install with readiness withheld solely because
+ * there is no `.git` (hooksPath cannot activate → wiring-ready not written).
+ */
+export function isNoGitReadinessGap(sync: FullInSyncResult, projectRoot: string): boolean {
+  if (projectHasGitDir(projectRoot)) return false;
+  if (sync.failClosed) return false;
+  if (sync.predicates.readiness.ok) return false;
+  const p = sync.predicates;
+  return p.pin.ok && p.lockfile.ok && p.installed.ok && p.generation.ok && p.wiring.ok;
+}
+
 function chooseRemedy(
   sync: FullInSyncResult,
   dataStatus: DataStatusValue,
+  projectRoot: string,
 ): { remedy: string | null; schemaRemedy: "directive upgrade" | null } {
+  // F-010: incomplete no-git install — do not lead with AC9.7 global reinstall.
+  if (isNoGitReadinessGap(sync, projectRoot)) {
+    return { remedy: GIT_PRECONDITION_RECOVERY_GUIDANCE, schemaRemedy: null };
+  }
+
   const installBroken =
     sync.failClosed || !sync.inSync || !sync.predicates.installed.ok || !sync.predicates.pin.ok;
 
@@ -242,9 +283,14 @@ export function runDoctorDiagnosis(
     hookProbe = probe({ projectRoot, env });
   }
 
-  const { remedy, schemaRemedy } = chooseRemedy(sync, dataStatus);
+  const gitPrecondition = isNoGitReadinessGap(sync, projectRoot);
+  const { remedy, schemaRemedy } = chooseRemedy(sync, dataStatus, projectRoot);
   const healthy =
     sync.inSync && dataStatus === "current" && form.hookCommandForm.ok && form.skillPointers.ok;
+
+  const readinessSurface = gitPrecondition
+    ? { ok: false, detail: GIT_PRECONDITION_READINESS_DETAIL }
+    : surfaceFromPred(sync.predicates.readiness);
 
   return {
     inSync: sync.inSync,
@@ -253,13 +299,14 @@ export function runDoctorDiagnosis(
     dataStatus,
     remedy,
     schemaRemedy,
+    incompleteInstall: gitPrecondition ? "git-precondition" : null,
     surfaces: {
       pin: surfaceFromPred(sync.predicates.pin),
       lockfile: surfaceFromPred(sync.predicates.lockfile),
       installed: surfaceFromPred(sync.predicates.installed),
       generation: surfaceFromPred(sync.predicates.generation),
       wiring: surfaceFromPred(sync.predicates.wiring),
-      readiness: surfaceFromPred(sync.predicates.readiness),
+      readiness: readinessSurface,
       hookCommandForm: form.hookCommandForm,
       skillPointers: form.skillPointers,
       schemaCurrency: schemaSurface(dataStatus),
@@ -279,12 +326,20 @@ function line(ok: boolean, name: string, detail: string | null): string {
   return detail ? `  ${name}: ${mark} — ${detail}` : `  ${name}: ${mark}`;
 }
 
-/** Human-readable doctor report (AC12.3 / AC12.5). */
+/** Human-readable doctor report (AC12.3 / AC12.5 / F-010). */
 export function formatDoctorReport(diag: DoctorDiagnosis): string {
   const lines: string[] = [];
   // Header tracks overall health (exitCode), not install-health inSync alone —
   // skill/hook form failures must not still print "in sync" (AC12.3 / POST-CONV-DOC).
-  lines.push(diag.exitCode === 0 ? "directive doctor: in sync" : "directive doctor: not in sync");
+  // F-010: no-git readiness withhold is an incomplete install / precondition, not a
+  // generic "not in sync" that reads like a broken pin.
+  if (diag.exitCode === 0) {
+    lines.push("directive doctor: in sync");
+  } else if (diag.incompleteInstall === "git-precondition") {
+    lines.push("directive doctor: incomplete install (git precondition)");
+  } else {
+    lines.push("directive doctor: not in sync");
+  }
 
   if (diag.version) lines.push(`  version: ${diag.version}`);
   lines.push(line(diag.surfaces.pin.ok, "pin", diag.surfaces.pin.detail));

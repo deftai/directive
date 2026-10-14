@@ -112,10 +112,18 @@ describe("F-009 first-install plain English", () => {
     });
     const text = c.out();
     expect(text).toMatch(/✓ Installed Directive 1\.2\.3/);
+    expect(text).toMatch(/Incomplete install/i);
     expect(text).toMatch(/not a git repository|git hooks (will )?not|were not installed/i);
     expect(text).toMatch(/directive install --repair/i);
+    expect(text).toMatch(/Next:\s*\n\s*git init/i);
     expect(text).not.toMatch(/Install command:/i);
     expect(text).not.toMatch(/eligible runtime/i);
+  });
+
+  it("F-010 plan line names incomplete install + git init repair", () => {
+    expect(HUMAN_GIT_HOOKS_INACTIVE_LINE).toMatch(/Incomplete install/i);
+    expect(HUMAN_GIT_HOOKS_INACTIVE_LINE).toMatch(/git init/i);
+    expect(HUMAN_GIT_HOOKS_INACTIVE_LINE).toMatch(/directive install --repair/);
   });
 
   it("legacy HUMAN_INSTALL_SCRIPT_LINE is not default-path copy", () => {

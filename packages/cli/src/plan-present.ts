@@ -27,9 +27,9 @@ export const WRAP_FALLBACK = 80;
 export const HUMAN_INSTALL_SCRIPT_LINE =
   "Installation skips package lifecycle scripts for the Directive pin add; other project registry, authentication, proxy, and lockfile settings still apply.";
 
-/** Plain no-git disclosure (F-009 / F-010 voice). */
+/** Plain no-git disclosure (F-009 / F-010 voice) — incomplete install / precondition. */
 export const HUMAN_GIT_HOOKS_INACTIVE_LINE =
-  "This folder is not a git repository yet, so git hooks will not be installed. After you run git init, run directive install --repair so hooks get installed.";
+  "Incomplete install: this folder is not a git repository yet, so git hooks will not be installed. After you run git init, run directive install --repair so hooks get installed.";
 
 export function lockfileNameFor(pm: PackageManager): string {
   return pm === "pnpm" ? "pnpm-lock.yaml" : "package-lock.json";
@@ -737,7 +737,12 @@ export function presentInstallSuccess(
   }
   writeBlank(io);
   io.writeOut("Next:\n");
-  io.writeOut("  directive --help\n");
+  if (hooksInactive) {
+    io.writeOut("  git init\n");
+    io.writeOut("  directive install --repair\n");
+  } else {
+    io.writeOut("  directive --help\n");
+  }
   writeBlank(io);
   io.writeOut("Review and commit:\n");
   io.writeOut("  package.json\n");
@@ -780,6 +785,10 @@ export function presentRepairSuccess(
   if (hooksInactive) {
     writeHumanParagraph(io, `Directive ${opts.version} setup finished.`);
     writeHumanParagraph(io, HUMAN_GIT_HOOKS_INACTIVE_LINE);
+    writeBlank(io);
+    io.writeOut("Next:\n");
+    io.writeOut("  git init\n");
+    io.writeOut("  directive install --repair\n");
   } else {
     writeHumanParagraph(io, `Directive ${opts.version} is ready.`);
   }

@@ -289,6 +289,7 @@ describe("POST-CONV-DOC / AC12.3 header vs skill pointers (AC10.3)", () => {
       dataStatus: "current",
       remedy: null,
       schemaRemedy: null,
+      incompleteInstall: null,
       surfaces: {
         pin: { ok: true, detail: null },
         lockfile: { ok: true, detail: null },
