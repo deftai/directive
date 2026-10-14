@@ -199,7 +199,7 @@ describe("patchAgentsMdHeader", () => {
     expect(outcome.kind).toBe("failed");
     expect(outcome.error).toContain("EACCES");
     expect(renderHeaderPatchSummary(outcome)).toContain("patch failed");
-    expect(renderHeaderPatchSummary(outcome)).toContain("migrate:xbrief");
+    expect(renderHeaderPatchSummary(outcome)).toContain("directive upgrade");
   });
 
   itSymlink("refuses patch when AGENTS.md is a symlink outside the project (#2668)", () => {

@@ -53,9 +53,9 @@ describe("layout resolution (#2109 part 1)", () => {
 
   it("throws with a migration hint when only vbrief/ is present (#2112)", () => {
     seedVbrief();
-    expect(() => resolveLifecycleLayout(root)).toThrow(/deft migrate:xbrief/);
+    expect(() => resolveLifecycleLayout(root)).toThrow(/directive upgrade/);
     expect(() => resolveLifecycleLayout(root)).toThrow(/No xbrief\/ layout found/);
-    expect(() => resolveLifecycleRoot(root)).toThrow(/deft migrate:xbrief/);
+    expect(() => resolveLifecycleRoot(root)).toThrow(/directive upgrade/);
   });
 
   it("returns the xbrief layout when an xbrief/ tree with .xbrief.json files exists", () => {
@@ -81,13 +81,13 @@ describe("layout resolution (#2109 part 1)", () => {
     mkdirSync(join(root, "xbrief", "active"), { recursive: true });
     // Only a legacy-suffixed file under xbrief/ -- not a migrated artifact.
     writeFileSync(join(root, "xbrief", "active", "stray.vbrief.json"), "{}", "utf8");
-    expect(() => resolveLifecycleLayout(root)).toThrow(/deft migrate:xbrief/);
+    expect(() => resolveLifecycleLayout(root)).toThrow(/directive upgrade/);
   });
 
   it("resolveLayoutRootOrCanonical refuses empty xbrief that hides legacy scopes (#4756)", () => {
     seedVbrief();
     mkdirSync(join(root, "xbrief"), { recursive: true });
-    expect(() => resolveLayoutRootOrCanonical(root)).toThrow(/deft migrate:xbrief/);
+    expect(() => resolveLayoutRootOrCanonical(root)).toThrow(/directive upgrade/);
   });
 
   it("resolveLayoutRootOrCanonical keeps canonical fallback for empty/new roots (#4756 R5)", () => {
@@ -98,7 +98,7 @@ describe("layout resolution (#2109 part 1)", () => {
 
   it("throws with a migration hint when neither layout is present (#2112)", () => {
     expect(() => resolveLifecycleLayout(root)).toThrow(/No xbrief\/ layout found/);
-    expect(() => resolveLifecycleLayout(root)).toThrow(/deft migrate:xbrief/);
+    expect(() => resolveLifecycleLayout(root)).toThrow(/directive upgrade/);
   });
 });
 
@@ -165,12 +165,12 @@ describe("layout-aware path helpers (#2109 part 2a)", () => {
 
   it("throws on a pure vbrief/ tree -- no fallback read path after #2112", () => {
     seedVbrief();
-    expect(() => resolveLifecycleFolder(root, "pending")).toThrow(/deft migrate:xbrief/);
-    expect(() => resolveEvalDir(root)).toThrow(/deft migrate:xbrief/);
-    expect(() => resolveAuditDir(root)).toThrow(/deft migrate:xbrief/);
-    expect(() => resolveProjectDefinitionPath(root)).toThrow(/deft migrate:xbrief/);
-    expect(() => projectDefinitionFilename(root)).toThrow(/deft migrate:xbrief/);
-    expect(() => projectDefinitionRelPath(root)).toThrow(/deft migrate:xbrief/);
+    expect(() => resolveLifecycleFolder(root, "pending")).toThrow(/directive upgrade/);
+    expect(() => resolveEvalDir(root)).toThrow(/directive upgrade/);
+    expect(() => resolveAuditDir(root)).toThrow(/directive upgrade/);
+    expect(() => resolveProjectDefinitionPath(root)).toThrow(/directive upgrade/);
+    expect(() => projectDefinitionFilename(root)).toThrow(/directive upgrade/);
+    expect(() => projectDefinitionRelPath(root)).toThrow(/directive upgrade/);
   });
 
   it("resolves the same helpers under xbrief once the migrated tree exists", () => {

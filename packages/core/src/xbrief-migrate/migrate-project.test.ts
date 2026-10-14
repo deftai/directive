@@ -108,6 +108,125 @@ describe("runXbriefMigration", () => {
     expect(migrated.plan.references[0].uri).toBe("xbrief/active/child.xbrief.json");
   });
 
+  it("F-017: migrates vBRIEFInfo@0.5 (+ optional 0.6) to xBRIEFInfo@0.8 under xbrief/", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-migrate-05-"));
+    temps.push(base);
+    const project = join(base, "consumer");
+    mkdirSync(join(project, LEGACY_ARTIFACT_DIR, "active"), { recursive: true });
+    mkdirSync(join(project, LEGACY_ARTIFACT_DIR, "completed"), { recursive: true });
+    writeFileSync(
+      join(project, LEGACY_ARTIFACT_DIR, "active", "story.vbrief.json"),
+      `${JSON.stringify({
+        vBRIEFInfo: { version: "0.5", description: "from-05", created: "2026-06-01T00:00:00Z" },
+        plan: {
+          title: "0.5 story",
+          status: "running",
+          items: [
+            {
+              id: "p1",
+              title: "Phase",
+              status: "running",
+              subItems: [{ id: "p1.t1", title: "T", status: "pending" }],
+            },
+          ],
+        },
+      })}\n`,
+      "utf8",
+    );
+    writeFileSync(
+      join(project, LEGACY_ARTIFACT_DIR, "completed", "done.vbrief.json"),
+      `${JSON.stringify({
+        vBRIEFInfo: { version: "0.6", description: "from-06", created: "2026-06-02T00:00:00Z" },
+        plan: { title: "0.6 story", status: "completed", items: [] },
+      })}\n`,
+      "utf8",
+    );
+    execFileSync("git", ["init"], { cwd: project });
+
+    const outcome = runXbriefMigration(
+      { projectRoot: project, force: true },
+      { writeOut: () => {}, writeErr: () => {} },
+    );
+    expect(outcome.kind).toBe("migrated");
+    if (outcome.kind !== "migrated") return;
+    expect(outcome.archivedPaths).toEqual([]);
+    expect(outcome.migratedPaths.length).toBe(2);
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR))).toBe(false);
+
+    const from05 = JSON.parse(
+      readFileSync(join(project, MIGRATED_ARTIFACT_DIR, "active", "story.xbrief.json"), "utf8"),
+    );
+    expect(from05.xBRIEFInfo.version).toBe("0.8");
+    expect(from05.plan.items[0].items[0].id).toBe("p1.t1");
+    expect(from05.plan.items[0]).not.toHaveProperty("subItems");
+
+    const from06 = JSON.parse(
+      readFileSync(join(project, MIGRATED_ARTIFACT_DIR, "completed", "done.xbrief.json"), "utf8"),
+    );
+    expect(from06.xBRIEFInfo.version).toBe("0.8");
+  });
+
+  it("F-017: archives unparseable / no-info JSON under xbrief/archive/ without hard-fail", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-migrate-archive-"));
+    temps.push(base);
+    const project = join(base, "consumer");
+    mkdirSync(join(project, LEGACY_ARTIFACT_DIR, "active"), { recursive: true });
+    writeFileSync(
+      join(project, LEGACY_ARTIFACT_DIR, "active", "good.vbrief.json"),
+      `${JSON.stringify({
+        vBRIEFInfo: { version: "0.5", description: "ok", created: "2026-06-01T00:00:00Z" },
+        plan: { title: "Good", status: "running", items: [] },
+      })}\n`,
+      "utf8",
+    );
+    writeFileSync(
+      join(project, LEGACY_ARTIFACT_DIR, "active", "corrupt.vbrief.json"),
+      "{ not json !!!\n",
+      "utf8",
+    );
+    writeFileSync(
+      join(project, LEGACY_ARTIFACT_DIR, "active", "noinfo.vbrief.json"),
+      `${JSON.stringify({ plan: { title: "No info", status: "running", items: [] } })}\n`,
+      "utf8",
+    );
+    writeFileSync(
+      join(project, LEGACY_ARTIFACT_DIR, "active", "ancient.vbrief.json"),
+      `${JSON.stringify({
+        vBRIEFInfo: { version: "0.3", description: "pre-0.5" },
+        plan: { title: "Ancient", status: "running", items: [] },
+      })}\n`,
+      "utf8",
+    );
+    execFileSync("git", ["init"], { cwd: project });
+
+    const outcome = runXbriefMigration(
+      { projectRoot: project, force: true },
+      { writeOut: () => {}, writeErr: () => {} },
+    );
+    expect(outcome.kind).toBe("migrated");
+    if (outcome.kind !== "migrated") return;
+    expect(outcome.migratedPaths).toContain(`${MIGRATED_ARTIFACT_DIR}/active/good.xbrief.json`);
+    expect(outcome.archivedPaths.length).toBe(3);
+    expect(existsSync(join(project, MIGRATED_ARTIFACT_DIR, "archive", "README.md"))).toBe(true);
+    expect(
+      readFileSync(
+        join(project, MIGRATED_ARTIFACT_DIR, "archive", "active", "corrupt.xbrief.json"),
+        "utf8",
+      ),
+    ).toBe("{ not json !!!\n");
+    expect(
+      existsSync(join(project, MIGRATED_ARTIFACT_DIR, "archive", "active", "noinfo.xbrief.json")),
+    ).toBe(true);
+    expect(
+      existsSync(join(project, MIGRATED_ARTIFACT_DIR, "archive", "active", "ancient.xbrief.json")),
+    ).toBe(true);
+    const good = JSON.parse(
+      readFileSync(join(project, MIGRATED_ARTIFACT_DIR, "active", "good.xbrief.json"), "utf8"),
+    );
+    expect(good.xBRIEFInfo.version).toBe("0.8");
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR))).toBe(false);
+  });
+
   itSymlink("refuses migration when vbrief/ is a symlink outside the project (#2601)", () => {
     const base = mkdtempSync(join(tmpdir(), "xbrief-migrate-symlink-"));
     temps.push(base);
@@ -213,7 +332,7 @@ describe("runXbriefMigration", () => {
     expect(runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO).kind).toBe("noop");
   });
 
-  it("returns config when a legacy artifact cannot be transformed", () => {
+  it("F-017: archives lifecycle JSON missing info block instead of hard-failing", () => {
     const base = mkdtempSync(join(tmpdir(), "xbrief-migrate-bad-json-"));
     temps.push(base);
     const project = scaffoldLegacyProject(base);
@@ -227,8 +346,13 @@ describe("runXbriefMigration", () => {
       { projectRoot: project, force: true },
       { writeOut: () => {}, writeErr: () => {} },
     );
-    expect(outcome.kind).toBe("config");
-    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR))).toBe(true);
+    expect(outcome.kind).toBe("migrated");
+    if (outcome.kind !== "migrated") return;
+    expect(outcome.archivedPaths.some((p) => p.includes("bad"))).toBe(true);
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR))).toBe(false);
+    expect(
+      existsSync(join(project, MIGRATED_ARTIFACT_DIR, "archive", "active", "bad.xbrief.json")),
+    ).toBe(true);
   });
 
   it("omits framework vbrief.md during migrate:xbrief (#2806) [2806-a1]", () => {
@@ -303,7 +427,8 @@ describe("emitXbriefMigration", () => {
         { signpostOnly: true, projectRoot: project },
       ),
     ).toBe(0);
-    expect(lines.join("")).toContain("migrate:xbrief");
+    expect(lines.join("")).toContain("directive upgrade");
+    expect(lines.join("")).not.toContain("migrate:xbrief");
   });
 
   it("uses process.cwd() when signpostOnly=true and projectRoot is omitted", () => {
@@ -340,7 +465,19 @@ describe("emitXbriefMigration", () => {
   it("returns exit code 0 and writes to stdout for migrated outcome", () => {
     const outs: string[] = [];
     const code = emitXbriefMigration(
-      { kind: "migrated", backupDir: "/tmp/backup-xyz", files: 5 },
+      {
+        kind: "migrated",
+        backupDir: "/tmp/backup-xyz",
+        files: 5,
+        migratedPaths: [
+          "xbrief/a.xbrief.json",
+          "xbrief/b.xbrief.json",
+          "xbrief/c.xbrief.json",
+          "xbrief/d.xbrief.json",
+          "xbrief/e.xbrief.json",
+        ],
+        archivedPaths: [],
+      },
       { writeOut: (t) => outs.push(t), writeErr: () => {} },
     );
     expect(code).toBe(0);
@@ -790,7 +927,9 @@ describe("runXbriefMigration hybrid in-place rewrite (#3236)", () => {
       { writeOut: (t) => outs.push(t), writeErr: () => {} },
     );
     expect(code).toBe(0);
-    expect(outs.join("")).toMatch(/Rewrote 1 residual envelope\(s\) \(0\.6\/0\.7\).*xBRIEFInfo@0\.8/);
+    expect(outs.join("")).toMatch(
+      /Rewrote 1 residual envelope\(s\) \(0\.5\/0\.6\/0\.7\).*xBRIEFInfo@0\.8/,
+    );
   });
 
   it("does not rewrite schema deposits; hybrid envelopes still rewrite beside them (#3236 / #2368)", () => {

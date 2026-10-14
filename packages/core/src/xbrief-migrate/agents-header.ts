@@ -255,7 +255,7 @@ export function renderHeaderPatchSummary(outcome: HeaderPatchOutcome): string {
   if (outcome.kind === "failed") {
     return (
       `AGENTS.md unmanaged header: patch failed (${outcome.error ?? "unknown error"}) — ` +
-      "re-run `deft migrate:xbrief` (idempotent) or hand-edit the header."
+      "re-run `directive upgrade` (idempotent) or hand-edit the header."
     );
   }
   const total = outcome.replacements.reduce((sum, r) => sum + r.count, 0);

@@ -395,8 +395,8 @@ export function validateVbriefSchema(
         `${filepath}: '${resolved.key}.version' must be one of ` +
           `${[...VALID_VBRIEF_VERSIONS].map((v) => `'${v}'`).join(", ")} ` +
           `(canonical v0.6/v0.8 schema, #2107), got ` +
-          `${pyStrRepr(String(version))}. Run \`task migrate:vbrief\` to ` +
-          `upgrade pre-existing v0.5 vBRIEFs in-place.`,
+          `${pyStrRepr(String(version))}. Run \`directive upgrade\` to ` +
+          `migrate supported envelopes (including v0.5) to current xBRIEF.`,
       );
     }
   }

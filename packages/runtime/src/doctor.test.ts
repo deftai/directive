@@ -267,7 +267,7 @@ describe("doctor CLI", () => {
     expect(out).toContain("xBrief migration: none");
   });
 
-  it("flags legacy vbrief layout with migrate:xbrief guidance (#2110)", async () => {
+  it("flags legacy vbrief layout with directive upgrade guidance (F-017 / AC8.9)", async () => {
     const root = makeRoot("doctor-xbrief-legacy-");
     mkdirSync(join(root, "vbrief", "active"), { recursive: true });
     writeFileSync(
@@ -283,7 +283,9 @@ describe("doctor CLI", () => {
     });
     expect(out).toContain("xBrief migration: migrate required");
     expect(out).toContain("only vbrief/ found");
-    expect(out).toContain("migrate:xbrief");
+    expect(out).toContain("directive upgrade");
+    expect(out).not.toContain("migrate:xbrief");
+    expect(out).not.toMatch(/task migrate:vbrief/);
   });
 
   it("signposts a half-migrated AGENTS.md header (xbrief tree + vbrief header) (#2154)", async () => {

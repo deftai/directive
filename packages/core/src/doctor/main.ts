@@ -248,7 +248,7 @@ export function classifyProjectLifecycle(projectRoot: string): ProjectLifecycleR
         healthy: false,
         message:
           `Project-lifecycle dual-populated: unmarked populated vbrief/ coexists with xbrief/ at ${path}; ` +
-          `run deft migrate:xbrief`,
+          `run directive upgrade`,
       };
     }
     if (hasMigratedLifecycleArtifacts(projectRoot)) {
@@ -259,7 +259,7 @@ export function classifyProjectLifecycle(projectRoot: string): ProjectLifecycleR
         ...base,
         state: "legacy-only",
         healthy: false,
-        message: `Project-lifecycle legacy-only at ${path}; run deft migrate:xbrief`,
+        message: `Project-lifecycle legacy-only at ${path}; run directive upgrade`,
       };
     }
     if (conv.xbriefPresent && conv.xbriefHasContent) {
@@ -1699,11 +1699,11 @@ function runTaskfileIncludeCheck(
 
 /**
  * Fail closed when any scanned project xbrief lifecycle `*.xbrief.json` envelope
- * declares a schema major behind the framework target (#2971 / #3243). Greenfield
- * (no envelopes) skips. Behind-major records `deft migrate:xbrief` as the next
- * action (hybrid in-place rewrite on already-xbrief trees — #3236). Distinct from
- * deposited-schema (`stale-xbrief-schema-deposit`) which must NOT route to
- * migrate:xbrief when only framework schema files are stale.
+ * declares a schema major behind the framework target (#2971 / #3243 / F-017).
+ * Greenfield (no envelopes) skips. Behind-major records `directive upgrade` as
+ * the next action (0.5/0.6/0.7 including hybrid in-place rewrite — #3236).
+ * Distinct from deposited-schema (`stale-xbrief-schema-deposit`) which must NOT
+ * route to lifecycle migrate when only framework schema files are stale.
  */
 export function runXbriefEnvelopeVersionCheck(
   projectRoot: string,
@@ -1836,7 +1836,7 @@ function emitXbriefEnvelopeFinding(
   if (probe.distance === "behind-minor") {
     const warnMessage =
       `${checkName}: behind-minor -- declared ${probe.declaredVersion ?? "unknown"}, ` +
-      `framework ${probe.targetVersion}. Prefer \`deft migrate:xbrief\` when convenient.`;
+      `framework ${probe.targetVersion}. Prefer \`directive upgrade\` when convenient.`;
     sink.warn(warnMessage);
     addFinding({
       severity: "warning",

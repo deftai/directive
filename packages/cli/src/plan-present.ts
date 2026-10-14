@@ -663,6 +663,8 @@ export interface SetupSummary {
   readonly modified: readonly string[];
   readonly removed: readonly string[];
   readonly migrated?: readonly string[];
+  /** Unknowable / corrupt envelopes copied under xbrief/archive/ (F-017). */
+  readonly archived?: readonly string[];
   readonly conflicts?: readonly string[];
   readonly message?: string;
 }
@@ -678,6 +680,7 @@ export function presentPathSummary(
   const modified = summary.modified ?? [];
   const removed = summary.removed ?? [];
   const migrated = summary.migrated ?? [];
+  const archived = summary.archived ?? [];
   if (verbosity >= 2) {
     io.writeOut(
       `${label}: ` +
@@ -685,6 +688,7 @@ export function presentPathSummary(
         `modified=${JSON.stringify(modified)} ` +
         `removed=${JSON.stringify(removed)}` +
         (migrated.length > 0 ? ` migrated=${JSON.stringify(migrated)}` : "") +
+        (archived.length > 0 ? ` archived=${JSON.stringify(archived)}` : "") +
         (summary.conflicts && summary.conflicts.length > 0
           ? ` conflicts=${JSON.stringify(summary.conflicts)}`
           : "") +
@@ -694,6 +698,7 @@ export function presentPathSummary(
     io.writeOut(
       `${label}: created=${created.length} modified=${modified.length} removed=${removed.length}` +
         (migrated.length > 0 ? ` migrated=${migrated.length}` : "") +
+        (archived.length > 0 ? ` archived=${archived.length}` : "") +
         "\n",
     );
   }
@@ -1002,12 +1007,13 @@ function collectReviewPaths(summary: SetupSummary | null | undefined): string[] 
     ".deft/GENERATION.json",
   ];
   const migrated = summary.migrated ?? [];
-  const all = [...summary.created, ...summary.modified, ...migrated];
+  const archived = summary.archived ?? [];
+  const all = [...summary.created, ...summary.modified, ...migrated, ...archived];
   const out: string[] = [];
   for (const p of prefer) {
     if (all.includes(p)) out.push(p);
   }
-  for (const p of migrated) {
+  for (const p of [...migrated, ...archived]) {
     if (!out.includes(p)) out.push(p);
   }
   for (const p of all) {
@@ -1037,6 +1043,7 @@ export function tryParseSetupSummary(stdout: string): SetupSummary | null {
       modified: Array.isArray(rec.modified) ? (rec.modified as string[]) : [],
       removed: Array.isArray(rec.removed) ? (rec.removed as string[]) : [],
       migrated: Array.isArray(rec.migrated) ? (rec.migrated as string[]) : undefined,
+      archived: Array.isArray(rec.archived) ? (rec.archived as string[]) : undefined,
       conflicts: Array.isArray(rec.conflicts) ? (rec.conflicts as string[]) : undefined,
       message: typeof rec.message === "string" ? rec.message : undefined,
     };

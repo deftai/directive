@@ -29,7 +29,8 @@ import type {
 } from "./types.js";
 
 export const DIRECTIVE_UPGRADE_COMMAND = "npm i -g @deftai/directive@latest";
-export const XBRIEF_MIGRATE_COMMAND = "deft migrate:xbrief";
+/** Install-management recovery for behind envelopes (AC8.9 / F-017). */
+export const XBRIEF_MIGRATE_COMMAND = "directive upgrade";
 
 export interface StalenessTicklerOptions {
   readonly now?: Date;

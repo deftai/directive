@@ -76,7 +76,7 @@ function makePlan(
 
 function legacyVbriefWarning(facts: ResolutionFacts): string | null {
   if (facts.hasVbrief && !facts.hasXbrief) {
-    return "legacy vbrief/ tree present without xbrief/; run `directive migrate:xbrief`";
+    return "legacy vbrief/ tree present without xbrief/; run `directive upgrade`";
   }
   return null;
 }

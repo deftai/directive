@@ -524,7 +524,7 @@ describe("wip cap", () => {
     const r = mkdtempSync(join(tmpdir(), "deft-wip-legacy-"));
     roots.push(r);
     mkdirSync(join(r, "vbrief", "pending"), { recursive: true });
-    expect(() => countVbriefWip(r)).toThrow("Run `deft migrate:xbrief`");
+    expect(() => countVbriefWip(r)).toThrow("Run `directive upgrade`");
   });
 
   it("returns 0 when xbrief/ exists but has no .xbrief.json artifacts", () => {

@@ -7,6 +7,7 @@ import {
   MIGRATED_ARTIFACT_SUFFIX,
   MIGRATED_INFO_ROOT_KEY,
   MIGRATE_THROUGH_VBRIEF_VERSION,
+  PRE_LEGACY_VBRIEF_VERSION,
   V08_CONTAINER_ITEM_TYPES,
   V08_ITEM_STATUS_AUTO,
   VBRIEF_REFERENCE_PREFIX,
@@ -101,24 +102,32 @@ function isAlreadyV08Artifact(artifact: JsonObject): boolean {
   return isPlainObject(info) && info.version === VBRIEF_VERSION;
 }
 
-/** True when declared version is a tip migrate source (0.6 or orphan 0.7). */
+/**
+ * True when declared version is a tip migrate source:
+ * 0.5 (thin→0.6), 0.6, or orphan 0.7.
+ */
 function isMigratableSourceVersion(version: unknown): boolean {
-  return version === LEGACY_VBRIEF_VERSION || version === MIGRATE_THROUGH_VBRIEF_VERSION;
+  return (
+    version === PRE_LEGACY_VBRIEF_VERSION ||
+    version === LEGACY_VBRIEF_VERSION ||
+    version === MIGRATE_THROUGH_VBRIEF_VERSION
+  );
 }
 
 function unsupportedSourceVersionMessage(infoKey: string, declaredVersion: unknown): string {
   return (
     `unsupported ${infoKey}.version ${String(declaredVersion)}; ` +
-    `migrate:xbrief accepts ${LEGACY_VBRIEF_VERSION} and orphan ${MIGRATE_THROUGH_VBRIEF_VERSION}→${VBRIEF_VERSION} only`
+    `migrate accepts ${PRE_LEGACY_VBRIEF_VERSION}→${LEGACY_VBRIEF_VERSION}, ` +
+    `${LEGACY_VBRIEF_VERSION}, and orphan ${MIGRATE_THROUGH_VBRIEF_VERSION}→${VBRIEF_VERSION}`
   );
 }
 
 /**
  * Resolve a migratable info block from classic `vBRIEFInfo` or hybrid `xBRIEFInfo`
- * at 0.6 (or orphan rename-era 0.7). Prefer the classic key when both are present.
- * Layout rename ≠ envelope bump (#2970). 0.7 is migrate-through, not ACCEPTED forever.
+ * at 0.5 / 0.6 / orphan rename-era 0.7. Prefer the classic key when both are present.
+ * Layout rename ≠ envelope bump (#2970). 0.5/0.7 are migrate-through, not ACCEPTED forever.
  */
-function resolveV06InfoBlock(artifact: JsonObject): JsonObject {
+function resolveMigratableInfoBlock(artifact: JsonObject): JsonObject {
   if (LEGACY_INFO_ROOT_KEY in artifact) {
     const legacyInfo = artifact[LEGACY_INFO_ROOT_KEY];
     if (!isPlainObject(legacyInfo)) {
@@ -141,23 +150,59 @@ function resolveV06InfoBlock(artifact: JsonObject): JsonObject {
     const declaredVersion = hybridInfo.version;
     if (!isMigratableSourceVersion(declaredVersion)) {
       throw new TransformError(
-        `expected hybrid ${MIGRATED_INFO_ROOT_KEY}.version ${LEGACY_VBRIEF_VERSION} or orphan ${MIGRATE_THROUGH_VBRIEF_VERSION} (or ${VBRIEF_VERSION} for already-migrated), got ${String(declaredVersion)}`,
+        `expected hybrid ${MIGRATED_INFO_ROOT_KEY}.version ${PRE_LEGACY_VBRIEF_VERSION}|${LEGACY_VBRIEF_VERSION}|${MIGRATE_THROUGH_VBRIEF_VERSION} (or ${VBRIEF_VERSION} for already-migrated), got ${String(declaredVersion)}`,
       );
     }
     return hybridInfo;
   }
 
   throw new TransformError(
-    `missing required legacy info block '${LEGACY_INFO_ROOT_KEY}' or hybrid '${MIGRATED_INFO_ROOT_KEY}'@${LEGACY_VBRIEF_VERSION}|${MIGRATE_THROUGH_VBRIEF_VERSION} for -> v0.8 transform`,
+    `missing required legacy info block '${LEGACY_INFO_ROOT_KEY}' or hybrid '${MIGRATED_INFO_ROOT_KEY}'@${PRE_LEGACY_VBRIEF_VERSION}|${LEGACY_VBRIEF_VERSION}|${MIGRATE_THROUGH_VBRIEF_VERSION} for -> v0.8 transform`,
   );
 }
 
 /**
- * Convert a single v0.6 in-document artifact to v0.8 semantics.
- * Accepts classic `vBRIEFInfo@0.6` or hybrid `xBRIEFInfo@0.6` (layout renamed,
- * envelope not bumped — #2970). Idempotent: v0.8 artifacts are returned
- * unchanged (deep-cloned). Transactional: on failure the original input
- * object is not mutated.
+ * Thin v0.5 → v0.6 (MIGRATION.md): bump version; rename nested `subItems` → `items`
+ * where present. Does not invent heavy 0.4→0.5 semantics. Mutates `working` in place.
+ */
+export function applyThinV05ToV06(working: JsonObject): void {
+  for (const key of [LEGACY_INFO_ROOT_KEY, MIGRATED_INFO_ROOT_KEY] as const) {
+    const block = working[key];
+    if (isPlainObject(block) && block.version === PRE_LEGACY_VBRIEF_VERSION) {
+      block.version = LEGACY_VBRIEF_VERSION;
+    }
+  }
+  renameSubItemsToItems(working);
+}
+
+/** Recursively rename PlanItem `subItems` → `items` (v0.5→v0.6). */
+function renameSubItemsToItems(value: unknown): void {
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      renameSubItemsToItems(entry);
+    }
+    return;
+  }
+  if (!isPlainObject(value)) {
+    return;
+  }
+  if (Object.hasOwn(value, "subItems")) {
+    const sub = value.subItems;
+    if (!Object.hasOwn(value, "items")) {
+      value.items = sub;
+    }
+    delete value.subItems;
+  }
+  for (const entry of Object.values(value)) {
+    renameSubItemsToItems(entry);
+  }
+}
+
+/**
+ * Convert a single migratable in-document artifact to v0.8 semantics.
+ * Accepts classic/hybrid @0.5 (thin→0.6 first), @0.6, or orphan @0.7.
+ * Idempotent: v0.8 artifacts are returned unchanged (deep-cloned).
+ * Transactional: on failure the original input object is not mutated.
  */
 export function transformArtifactV06ToV08(input: JsonObject): JsonObject {
   const working = structuredClone(input) as JsonObject;
@@ -166,7 +211,12 @@ export function transformArtifactV06ToV08(input: JsonObject): JsonObject {
     return working;
   }
 
-  const info = resolveV06InfoBlock(working);
+  const declared = readDeclaredArtifactVersion(working);
+  if (declared === PRE_LEGACY_VBRIEF_VERSION) {
+    applyThinV05ToV06(working);
+  }
+
+  const info = resolveMigratableInfoBlock(working);
 
   // Drop both keys so a dual-key hybrid cannot leave a stale vBRIEFInfo behind.
   delete working[LEGACY_INFO_ROOT_KEY];

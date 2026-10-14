@@ -592,8 +592,8 @@ describe("runResolutionDecision state matrix (#2267)", () => {
     expect(summary.mode).toBe("proceed");
     expect(summary.actionRequired).toBe(false);
     expect(countNextCommands(text)).toBe(0);
-    expect(text).toContain("directive migrate:xbrief");
-    expect(summary.warnings.some((w) => w.includes("migrate:xbrief"))).toBe(true);
+    expect(text).toContain("directive upgrade");
+    expect(summary.warnings.some((w) => w.includes("directive upgrade"))).toBe(true);
     const resolutionFinding = findings.filter((f) => f.check === "resolution")[0];
     expect(resolutionFinding?.severity).toBe("skip");
     // Exercise the proceed-branch guard message so a regression fails the suite
@@ -697,7 +697,7 @@ describe("xbrief envelope version check (#2971)", () => {
     expect(text).toContain("framework 0.8");
   });
 
-  it("fails closed on 0.6 under xbrief layout with migrate:xbrief next action", () => {
+  it("fails closed on 0.6 under xbrief layout with directive upgrade next action", () => {
     const root = makeRoot();
     writeProjectDefinition(root, {
       xBRIEFInfo: { version: "0.6", description: "stale write-path" },
@@ -706,9 +706,9 @@ describe("xbrief envelope version check (#2971)", () => {
     const { findings, text } = runEnvelope(root);
     expect(findings[0]?.severity).toBe("error");
     expect(findings[0]?.status).toBe("behind-major");
-    expect(findings[0]?.next_command).toBe("deft migrate:xbrief");
-    expect(findings[0]?.suggestion).toBe("deft migrate:xbrief");
-    expect(text).toContain("migrate:xbrief");
+    expect(findings[0]?.next_command).toBe("directive upgrade");
+    expect(findings[0]?.suggestion).toBe("directive upgrade");
+    expect(text).toContain("directive upgrade");
     expect(text).toContain("behind-major");
     expect(text).toContain("declared 0.6");
     expect(text).toContain("framework 0.8");
@@ -724,7 +724,7 @@ describe("xbrief envelope version check (#2971)", () => {
     const { findings } = runEnvelope(root);
     expect(findings[0]?.severity).toBe("error");
     expect(findings[0]?.status).toBe("behind-major");
-    expect(findings[0]?.next_command).toBe("deft migrate:xbrief");
+    expect(findings[0]?.next_command).toBe("directive upgrade");
   });
 
   it("fails closed when a lifecycle story is 0.6 even if PROJECT-DEFINITION is 0.8 (#3243)", () => {
@@ -1354,7 +1354,7 @@ describe("framework-layout split identities (#4162)", () => {
       state: "dual-populated",
       healthy: false,
     });
-    expect(classifyProjectLifecycle(dual).message).toContain("migrate:xbrief");
+    expect(classifyProjectLifecycle(dual).message).toContain("directive upgrade");
 
     const marked = makeRoot();
     seedEnvelope(marked);

@@ -1,11 +1,12 @@
 /**
- * Read-only equal-version data-status diagnostic (AC4.10 / Contract 1).
+ * Read-only equal-version data-status diagnostic (AC4.10 / Contract 1 / F-017).
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   CURRENT_DATA_SCHEMA_VERSION,
   DATA_SCHEMA_MARKER_REL,
+  projectNeedsXbriefMigration,
 } from "./migrate.js";
 
 export type DataStatusValue = "current" | "migration_needed" | "diagnosis_failed";
@@ -17,6 +18,7 @@ export interface DataStatusResult {
 
 /**
  * Inspect project data schema currency without mutating anything.
+ * Marker behind/missing OR unmigrated vbrief/residual envelopes → migration_needed.
  */
 export function readProjectDataStatus(projectRoot: string): DataStatusResult {
   const abs = join(projectRoot, DATA_SCHEMA_MARKER_REL);
@@ -37,6 +39,9 @@ export function readProjectDataStatus(projectRoot: string): DataStatusResult {
     }
     if (ver > CURRENT_DATA_SCHEMA_VERSION) {
       return { contract: 1, dataStatus: "diagnosis_failed" };
+    }
+    if (projectNeedsXbriefMigration(projectRoot)) {
+      return { contract: 1, dataStatus: "migration_needed" };
     }
     return { contract: 1, dataStatus: "current" };
   } catch {

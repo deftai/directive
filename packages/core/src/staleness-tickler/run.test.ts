@@ -88,7 +88,7 @@ describe("maybeRunStalenessTickler (#2488/#2489)", () => {
     });
     expect(result.prompted).toBe(true);
     expect(result.lines.join("\n")).toContain("xBRIEF schema behind-major");
-    expect(result.lines.join("\n")).toContain("deft migrate:xbrief");
+    expect(result.lines.join("\n")).toContain("directive upgrade");
   });
 
   it("prompts when both dimensions are stale", () => {

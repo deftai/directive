@@ -197,13 +197,17 @@ describe("precutover helpers", () => {
     expect(result.reasons.some((r) => r.includes("xbrief/"))).toBe(true);
   });
 
-  it("renderPrecutoverLine prints frozen guidance when pre-cutover", () => {
+  it("renderPrecutoverLine teaches directive upgrade when pre-cutover (F-017 / AC8.9)", () => {
     const base = mkdtempSync(join(tmpdir(), "precutover-"));
     temps.push(base);
     writeFileSync(join(base, "PROJECT.md"), "# project\n", "utf8");
     const line = renderPrecutoverLine(base);
     expect(line).toContain("Pre-cutover:");
-    expect(line).toContain("v0.59.0");
+    expect(line).toContain("directive upgrade");
+    // May mention historical migrate:vbrief as diagnostic fact; must not prescribe it.
+    expect(line).not.toMatch(/run `task migrate:vbrief`/);
+    expect(line).not.toContain("deft migrate:xbrief");
+    expect(line).toMatch(/no longer the taught path|Diagnostic note/i);
   });
 
   it("renderPrecutoverLine reports clean state for greenfield layout", () => {
@@ -215,16 +219,21 @@ describe("precutover helpers", () => {
     expect(renderPrecutoverLine(base)).toContain("Pre-cutover: none");
   });
 
-  it("frozenPreCutoverMigrationGuidance cites v0.59.0 and #2068", () => {
+  it("frozenPreCutoverMigrationGuidance teaches directive upgrade (F-017 / AC8.9)", () => {
     const guidance = frozenPreCutoverMigrationGuidance();
-    expect(guidance).toContain("v0.59.0");
+    expect(guidance).toContain("directive upgrade");
     expect(guidance).toContain("#2068");
+    expect(guidance).toContain("v0.59.0"); // diagnostic fact only
+    expect(guidance).not.toMatch(/run `task migrate:vbrief`/);
+    expect(guidance).not.toContain("deft migrate:xbrief");
+    expect(guidance).toMatch(/no longer the taught path/i);
   });
 
-  it("frozenPreCutoverMigrationGuidance names the fresh-start fallback and two-hop chain (#2297)", () => {
+  it("frozenPreCutoverMigrationGuidance names the fresh-start fallback (#2297 / F-017)", () => {
     const guidance = frozenPreCutoverMigrationGuidance();
     expect(guidance).toContain("directive init");
-    expect(guidance).toContain("two-hop");
-    expect(guidance).toContain("git tag");
+    expect(guidance).toContain("directive upgrade");
+    // Historical two-hop is no longer the primary taught recovery.
+    expect(guidance).not.toMatch(/Best-effort path/);
   });
 });

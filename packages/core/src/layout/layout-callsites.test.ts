@@ -30,7 +30,7 @@ describe("layout-aware call sites accept the xbrief layout (#2109 part 1)", () =
   it("readiness throws on a pure vbrief/ tree after the read-path removal (#2112)", () => {
     mkdirSync(join(root, "vbrief", "active"), { recursive: true });
     writeFileSync(join(root, "vbrief", "active", "2026-06-30-v.vbrief.json"), STORY, "utf8");
-    expect(() => expandReadinessPaths(root, [])).toThrow(/deft migrate:xbrief/);
+    expect(() => expandReadinessPaths(root, [])).toThrow(/directive upgrade/);
   });
 
   it("validate discovery picks up .xbrief.json artifacts", () => {
@@ -53,7 +53,7 @@ describe("layout-aware call sites accept the xbrief layout (#2109 part 1)", () =
     mkdirSync(join(root, "vbrief", "active"), { recursive: true });
     writeFileSync(join(root, "vbrief", "pending", "a.vbrief.json"), STORY, "utf8");
     writeFileSync(join(root, "vbrief", "active", "b.vbrief.json"), STORY, "utf8");
-    expect(() => countVbriefWip(root)).toThrow(/deft migrate:xbrief/);
+    expect(() => countVbriefWip(root)).toThrow(/directive upgrade/);
   });
 
   it("WIP count resolves pending+active under a migrated xbrief/ tree", () => {

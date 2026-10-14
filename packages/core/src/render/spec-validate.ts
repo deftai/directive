@@ -121,7 +121,7 @@ function validateSchema(data: JsonObject): string[] {
     if (!VALID_VBRIEF_VERSIONS.has(String(version))) {
       const allowed = [...VALID_VBRIEF_VERSIONS].map((v) => `'${v}'`).join(", ");
       errors.push(
-        `'${resolved.key}.version' must be one of ${allowed} (canonical v0.6/v0.8 schema, #2107), got ${JSON.stringify(version)}. Run \`task migrate:xbrief\` to upgrade pre-existing v0.5 vBRIEFs in-place.`,
+        `'${resolved.key}.version' must be one of ${allowed} (canonical v0.6/v0.8 schema, #2107), got ${JSON.stringify(version)}. Run \`directive upgrade\` to migrate supported envelopes (including v0.5) to current xBRIEF.`,
       );
     }
   }

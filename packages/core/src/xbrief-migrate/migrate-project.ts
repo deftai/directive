@@ -7,6 +7,9 @@ import { applyAgentsRefresh } from "../platform/agents-md.js";
 import { validateVbriefSchema } from "../vbrief-validate/schema.js";
 import { patchAgentsMdHeader, renderHeaderPatchSummary } from "./agents-header.js";
 import {
+  ARCHIVE_README_BODY,
+  ARCHIVE_README_FILENAME,
+  ARCHIVE_REL_DIR,
   LEGACY_ARTIFACT_DIR,
   LEGACY_ARTIFACT_SUFFIX,
   LEGACY_INFO_ROOT_KEY,
@@ -16,6 +19,7 @@ import {
   MIGRATED_INFO_ROOT_KEY,
   MIGRATE_THROUGH_VBRIEF_VERSION,
   OBSOLETE_FRAMEWORK_NARRATIVE_FILENAME,
+  PRE_LEGACY_VBRIEF_VERSION,
   VBRIEF_DEPRECATION_MARKER_BODY,
   VBRIEF_DEPRECATION_MARKER_FILENAME,
   VBRIEF_VERSION,
@@ -59,7 +63,13 @@ export type VbriefConvergeAction = "removed" | "marker";
 export type XbriefMigrationOutcome =
   | { readonly kind: "noop"; readonly message: string }
   | { readonly kind: "refused"; readonly message: string }
-  | { readonly kind: "migrated"; readonly backupDir: string; readonly files: number }
+  | {
+      readonly kind: "migrated";
+      readonly backupDir: string;
+      readonly files: number;
+      readonly migratedPaths: readonly string[];
+      readonly archivedPaths: readonly string[];
+    }
   | {
       readonly kind: "rewritten";
       readonly files: number;
@@ -113,36 +123,115 @@ function mapRelativePath(relativePath: string): string {
     .join("/");
 }
 
-function writeMigratedFile(projectRoot: string, srcPath: string, destPath: string): void {
-  // #2980 wave C: product write sink routes through containedWrite.
-  const root = resolve(projectRoot);
-  if (srcPath.endsWith(LEGACY_ARTIFACT_SUFFIX)) {
-    const parsed = JSON.parse(readFileSync(srcPath, "utf8")) as JsonObject;
-    const result = transformArtifactV06ToV08Transactional(parsed);
-    if (!result.ok) {
-      throw new Error(result.error);
-    }
-    containedWrite({
-      root,
-      target: destPath,
-      data: `${JSON.stringify(result.artifact, null, 2)}\n`,
-      mode: "replace",
-    });
-    return;
+/** Versions tip can envelope-migrate (0.5 thin→0.6→0.8; 0.6/0.7→0.8; 0.8 no-op). */
+function isSupportedMigrateVersion(version: string | null): boolean {
+  return (
+    version === PRE_LEGACY_VBRIEF_VERSION ||
+    version === LEGACY_VBRIEF_VERSION ||
+    version === MIGRATE_THROUGH_VBRIEF_VERSION ||
+    version === VBRIEF_VERSION
+  );
+}
+
+export type MigrateFileDisposition =
+  | { readonly kind: "migrate"; readonly body: string }
+  | { readonly kind: "archive"; readonly reason: string }
+  | { readonly kind: "copy"; readonly body: string };
+
+/**
+ * Classify a legacy lifecycle file: migrate envelope, archive unknowable, or
+ * token-rewrite copy (non-envelope). F-017: never hard-fail the tree for S5/corrupt.
+ */
+export function classifyLegacyMigrationFile(
+  srcPath: string,
+  raw: string,
+): MigrateFileDisposition {
+  const isLifecycleEnvelope =
+    srcPath.endsWith(LEGACY_ARTIFACT_SUFFIX) || srcPath.endsWith(MIGRATED_ARTIFACT_SUFFIX);
+  if (!isLifecycleEnvelope) {
+    // schemas/, .triage-cache/, notes, etc. — token rewrite only.
+    return { kind: "copy", body: rewriteEmbeddedTokens(raw) };
   }
 
-  const raw = readFileSync(srcPath, "utf8");
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    return { kind: "archive", reason: `unparseable JSON: ${detail}` };
+  }
+  if (!isPlainJsonObject(parsed)) {
+    return { kind: "archive", reason: "JSON root is not an object" };
+  }
+  const version = readDeclaredArtifactVersion(parsed);
+  if (version === null) {
+    return { kind: "archive", reason: "missing vBRIEFInfo/xBRIEFInfo version" };
+  }
+  if (!isSupportedMigrateVersion(version)) {
+    return {
+      kind: "archive",
+      reason: `unsupported envelope version ${version}`,
+    };
+  }
+  const result = transformArtifactV06ToV08Transactional(parsed);
+  if (!result.ok) {
+    return { kind: "archive", reason: result.error };
+  }
+  return { kind: "migrate", body: `${JSON.stringify(result.artifact, null, 2)}\n` };
+}
+
+function archiveDestRelative(legacyRel: string): string {
+  const mapped = mapRelativePath(legacyRel);
+  return `${ARCHIVE_REL_DIR}/${mapped}`;
+}
+
+function ensureArchiveReadme(projectRoot: string, stagedOrMigratedDir: string): void {
+  const readme = join(stagedOrMigratedDir, ARCHIVE_REL_DIR, ARCHIVE_README_FILENAME);
+  if (existsSync(readme)) return;
   containedWrite({
-    root,
-    target: destPath,
-    data: rewriteEmbeddedTokens(raw),
+    root: resolve(projectRoot),
+    target: readme,
+    data: ARCHIVE_README_BODY,
     mode: "replace",
   });
 }
 
+function writeMigratedFile(
+  projectRoot: string,
+  srcPath: string,
+  destPath: string,
+  archivePath: string,
+): "migrated" | "archived" | "copied" {
+  const root = resolve(projectRoot);
+  const raw = readFileSync(srcPath, "utf8");
+  const disposition = classifyLegacyMigrationFile(srcPath, raw);
+
+  if (disposition.kind === "archive") {
+    containedWrite({
+      root,
+      target: archivePath,
+      data: raw,
+      mode: "replace",
+    });
+    return "archived";
+  }
+
+  containedWrite({
+    root,
+    target: destPath,
+    data: disposition.body,
+    mode: "replace",
+  });
+  return disposition.kind === "migrate" ? "migrated" : "copied";
+}
+
 /** True when declared version is a residual hybrid/orphan rewrite candidate. */
 function isHybridRewriteSourceVersion(version: string | null): boolean {
-  return version === LEGACY_VBRIEF_VERSION || version === MIGRATE_THROUGH_VBRIEF_VERSION;
+  return (
+    version === PRE_LEGACY_VBRIEF_VERSION ||
+    version === LEGACY_VBRIEF_VERSION ||
+    version === MIGRATE_THROUGH_VBRIEF_VERSION
+  );
 }
 
 /**
@@ -520,7 +609,12 @@ function migrateLegacyTree(
   projectRoot: string,
   legacyDir: string,
   options: { keepLegacy: boolean },
-): { backupDir: string; files: number } {
+): {
+  backupDir: string;
+  files: number;
+  migratedPaths: string[];
+  archivedPaths: string[];
+} {
   const migratedDir = join(projectRoot, MIGRATED_ARTIFACT_DIR);
   const convergence = detectXbriefConvergence(projectRoot);
   const hasCanonicalCache = isDirectory(join(migratedDir, ".triage-cache"));
@@ -539,12 +633,27 @@ function migrateLegacyTree(
   mkdirSync(stagedDir, { recursive: true });
 
   const files = collectFiles(legacyDir);
+  const migratedPaths: string[] = [];
+  const archivedPaths: string[] = [];
   try {
     for (const srcPath of files) {
-      const rel = relative(legacyDir, srcPath);
+      const rel = relative(legacyDir, srcPath).replace(/\\/g, "/");
       if (shouldOmitLegacyMigrationFile(rel)) continue;
-      const destPath = join(stagedDir, mapRelativePath(rel));
-      writeMigratedFile(projectRoot, srcPath, destPath);
+      const destRel = mapRelativePath(rel);
+      const destPath = join(stagedDir, destRel);
+      const archiveRel = archiveDestRelative(rel);
+      const archivePath = join(stagedDir, archiveRel);
+      const disposition = writeMigratedFile(projectRoot, srcPath, destPath, archivePath);
+      if (disposition === "archived") {
+        archivedPaths.push(`${MIGRATED_ARTIFACT_DIR}/${archiveRel}`);
+      } else if (disposition === "migrated") {
+        migratedPaths.push(`${MIGRATED_ARTIFACT_DIR}/${destRel}`);
+      } else {
+        migratedPaths.push(`${MIGRATED_ARTIFACT_DIR}/${destRel}`);
+      }
+    }
+    if (archivedPaths.length > 0) {
+      ensureArchiveReadme(projectRoot, stagedDir);
     }
     overlayCanonicalTriageCache(migratedDir, stagedDir);
     renameOrReplace(stagedDir, migratedDir);
@@ -556,7 +665,12 @@ function migrateLegacyTree(
     } else {
       rmSync(legacyDir, { recursive: true, force: true });
     }
-    return { backupDir, files: files.length };
+    return {
+      backupDir,
+      files: files.length,
+      migratedPaths,
+      archivedPaths,
+    };
   } catch (err) {
     rmSync(stagedDir, { recursive: true, force: true });
     throw err;
@@ -726,7 +840,7 @@ export function runXbriefMigration(
       return {
         kind: "rewritten",
         files,
-        message: `Rewrote ${files} residual envelope(s) (${LEGACY_VBRIEF_VERSION}/${MIGRATE_THROUGH_VBRIEF_VERSION}) in place to xBRIEFInfo@${VBRIEF_VERSION} under '${MIGRATED_ARTIFACT_DIR}/'.`,
+        message: `Rewrote ${files} residual envelope(s) (${PRE_LEGACY_VBRIEF_VERSION}/${LEGACY_VBRIEF_VERSION}/${MIGRATE_THROUGH_VBRIEF_VERSION}) in place to xBRIEFInfo@${VBRIEF_VERSION} under '${MIGRATED_ARTIFACT_DIR}/'.`,
       };
     }
 
@@ -792,8 +906,12 @@ export function runXbriefMigration(
   }
 
   try {
-    const { backupDir, files } = migrateLegacyTree(projectRoot, legacyDir, { keepLegacy });
-    return { kind: "migrated", backupDir, files };
+    const { backupDir, files, migratedPaths, archivedPaths } = migrateLegacyTree(
+      projectRoot,
+      legacyDir,
+      { keepLegacy },
+    );
+    return { kind: "migrated", backupDir, files, migratedPaths, archivedPaths };
   } catch (err) {
     return {
       kind: "config",
@@ -824,12 +942,17 @@ export function emitXbriefMigration(
     case "config":
       io.writeErr(`migrate:xbrief: ${outcome.message}\n`);
       return 2;
-    case "migrated":
+    case "migrated": {
+      const archived = outcome.archivedPaths.length;
+      const migrated = outcome.migratedPaths.length;
       io.writeOut(
-        `Migrated ${outcome.files} file(s) from ${LEGACY_ARTIFACT_DIR}/ to ${MIGRATED_ARTIFACT_DIR}/.\n` +
+        `Migrated ${migrated} file(s) from ${LEGACY_ARTIFACT_DIR}/ to ${MIGRATED_ARTIFACT_DIR}/` +
+          (archived > 0 ? `; archived ${archived} unknowable file(s) under ${MIGRATED_ARTIFACT_DIR}/${ARCHIVE_REL_DIR}/` : "") +
+          `.\n` +
           `Backup written to ${outcome.backupDir}.\n`,
       );
       return 0;
+    }
     case "rewritten":
       io.writeOut(`${outcome.message}\n`);
       return 0;

@@ -1,6 +1,7 @@
 /**
- * Contract migrate entry tests (Wave 2b / AC7.8).
+ * Contract migrate entry tests (Wave 2b / AC7.8 / F-017).
  */
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -8,8 +9,10 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   CURRENT_DATA_SCHEMA_VERSION,
   DATA_SCHEMA_MARKER_REL,
+  projectNeedsXbriefMigration,
   runMigrate,
 } from "./migrate.js";
+import { readProjectDataStatus } from "./data-status.js";
 
 const TEMPS: string[] = [];
 
@@ -94,5 +97,40 @@ describe("runMigrate (R7 / AC7.8)", () => {
     expect(result.message).toMatch(/migrate failed:.*newer/i);
     expect(result.migrated).toEqual([]);
     expect(readFileSync(abs, "utf8")).toBe(before);
+  });
+
+  it("F-017: runMigrate migrates vbrief@0.5 to xbrief@0.8 and surfaces archived", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, "vbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "vbrief", "active", "story.vbrief.json"),
+      `${JSON.stringify({
+        vBRIEFInfo: { version: "0.5", description: "contract-migrate", created: "2026-06-01T00:00:00Z" },
+        plan: { title: "Story", status: "running", items: [] },
+      })}\n`,
+      "utf8",
+    );
+    writeFileSync(join(root, "vbrief", "active", "bad.vbrief.json"), "{nope\n", "utf8");
+    execFileSync("git", ["init"], { cwd: root });
+
+    expect(projectNeedsXbriefMigration(root)).toBe(true);
+    expect(readProjectDataStatus(root).dataStatus).toBe("migration_needed");
+
+    const result = runMigrate({ from: "old-style", root });
+    expect(result.message).not.toMatch(/^migrate failed/);
+    expect(existsSync(join(root, DATA_SCHEMA_MARKER_REL))).toBe(true);
+    expect(existsSync(join(root, "vbrief"))).toBe(false);
+    expect(existsSync(join(root, "xbrief", "active", "story.xbrief.json"))).toBe(true);
+    const body = JSON.parse(
+      readFileSync(join(root, "xbrief", "active", "story.xbrief.json"), "utf8"),
+    );
+    expect(body.xBRIEFInfo.version).toBe("0.8");
+    expect(result.archived.some((p) => p.includes("archive") && p.includes("bad"))).toBe(true);
+    expect(existsSync(join(root, "xbrief", "archive", "README.md"))).toBe(true);
+    // Must not leave empty xbrief + full vbrief (F-017 defect shape).
+    expect(existsSync(join(root, "xbrief", "active", "story.xbrief.json"))).toBe(true);
+
+    expect(projectNeedsXbriefMigration(root)).toBe(false);
+    expect(readProjectDataStatus(root).dataStatus).toBe("current");
   });
 });

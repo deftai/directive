@@ -122,9 +122,10 @@ describe("resolution/plan precedence table (#2264 a1)", () => {
     expect(p.nextAction.remediation).not.toMatch(/\bnpx\b|pnpm exec/);
   });
 
-  it("legacy vbrief without xbrief adds a migrate:xbrief warning", () => {
+  it("legacy vbrief without xbrief adds a directive upgrade warning (F-017 / AC8.9)", () => {
     const p = plan(facts({ deftCorePayloadVersion: "0.63.0", hasVbrief: true, hasXbrief: false }));
-    expect(p.warnings.join(" ")).toContain("migrate:xbrief");
+    expect(p.warnings.join(" ")).toContain("directive upgrade");
+    expect(p.warnings.join(" ")).not.toContain("migrate:xbrief");
   });
 
   it("warm sandbox (global absent, local intact >= pin) -> proceed", () => {
