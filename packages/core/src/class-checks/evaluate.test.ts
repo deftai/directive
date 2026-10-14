@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { defaultTestBoundaryPolicy, type TestBoundaryPolicy } from "../test-boundary/policy.js";
+import {
+  DEFAULT_TEST_ROOTS,
+  defaultTestBoundaryPolicy,
+  type TestBoundaryPolicy,
+} from "../test-boundary/policy.js";
 import {
   contentMarksTestOnly,
   evaluateClassChecks,
   parseClassChecksFromProjectDefinition,
   scanTestIdentityInInfra,
 } from "./evaluate.js";
-import { defaultClassChecksPolicy } from "./policy.js";
+import { DEFAULT_PROTECTED_GLOBS, defaultClassChecksPolicy } from "./policy.js";
 
 function baseTb(overrides: Partial<TestBoundaryPolicy> = {}): TestBoundaryPolicy {
   return {
@@ -376,6 +380,127 @@ describe("evaluateClassChecks (#4980)", () => {
     });
     expect(result.exitCode).toBe(1);
     expect(result.findings.some((f) => f.kind === "production-references-test-root")).toBe(true);
+  });
+
+  describe("lifecycle artifacts are not pipeline infra (#5159)", () => {
+    const class2Needle = '{ "seed": "tests/fixtures/seed.json" }\n';
+    const class3Needle = '{ "identity": { "name": "smoke-test-identity" } }\n';
+    const bothNeedles =
+      '{ "seed": "tests/fixtures/seed.json", "identity": { "name": "smoke-test-identity" } }\n';
+    const yamlNeedles = "seed: tests/fixtures/seed.json\nname: 'smoke-test-identity'\n";
+    const lifecycleFolders = ["proposed", "pending", "active", "completed", "cancelled"] as const;
+    const pipelineSlug = "2026-10-14-5159-ci-pipeline-fix.xbrief.json";
+
+    function run(changedFiles: string[], fileContents: Map<string, string>) {
+      return evaluateClassChecks("/tmp/proj", {
+        baseRef: "origin/master",
+        changedFiles,
+        baseTestBoundaryPolicy: baseTb({
+          sourceRoots: ["src/**"],
+          testRoots: ["tests/**"],
+          fixtureRoots: ["tests/fixtures/**"],
+        }),
+        classChecksPolicy: classPolicy,
+        fileContents,
+      });
+    }
+
+    it("cleans class 2 needles on pipeline-named lifecycle artifacts in every folder", () => {
+      for (const folder of lifecycleFolders) {
+        const path = `xbrief/${folder}/${pipelineSlug}`;
+        const result = run([path], new Map([[path, class2Needle]]));
+        expect(result.findings.filter((f) => f.kind === "production-references-test-root")).toEqual(
+          [],
+        );
+        expect(result.exitCode).toBe(0);
+      }
+    });
+
+    it("cleans class 3 needles on pipeline-named lifecycle artifacts in every folder", () => {
+      for (const folder of lifecycleFolders) {
+        const path = `xbrief/${folder}/${pipelineSlug}`;
+        const result = run([path], new Map([[path, class3Needle]]));
+        expect(result.findings.filter((f) => f.kind === "test-identity-in-infra")).toEqual([]);
+        expect(result.exitCode).toBe(0);
+      }
+    });
+
+    it("cleans leftover-complete rename onto completed/", () => {
+      const dest = `xbrief/completed/${pipelineSlug}`;
+      const result = run([dest], new Map([[dest, bothNeedles]]));
+      expect(result.exitCode).toBe(0);
+      expect(result.findings).toEqual([]);
+    });
+
+    it("keeps the same needles clean at a non-pipeline xBRIEF path", () => {
+      const path = "xbrief/completed/2026-10-14-5159-neutral-slug.xbrief.json";
+      const result = run([path], new Map([[path, bothNeedles]]));
+      expect(result.exitCode).toBe(0);
+      expect(result.findings).toEqual([]);
+    });
+
+    it("still fails class 2 and 3 independently on ci/pipelines/prod.json and pipeline.json", () => {
+      for (const path of ["ci/pipelines/prod.json", "pipeline.json"]) {
+        const class2 = run([path], new Map([[path, class2Needle]]));
+        expect(class2.findings.some((f) => f.kind === "production-references-test-root")).toBe(
+          true,
+        );
+        const class3 = run([path], new Map([[path, class3Needle]]));
+        expect(class3.findings.some((f) => f.kind === "test-identity-in-infra")).toBe(true);
+        const both = run([path], new Map([[path, bothNeedles]]));
+        expect(both.exitCode).toBe(1);
+        expect(both.findings.some((f) => f.kind === "production-references-test-root")).toBe(true);
+        expect(both.findings.some((f) => f.kind === "test-identity-in-infra")).toBe(true);
+      }
+    });
+
+    it("still fails class 2 and 3 on root-level azure/bitbucket pipelines", () => {
+      for (const path of ["azure-pipelines.yml", "bitbucket-pipelines.yml"]) {
+        const result = run([path], new Map([[path, yamlNeedles]]));
+        expect(result.exitCode).toBe(1);
+        expect(result.findings.some((f) => f.kind === "production-references-test-root")).toBe(
+          true,
+        );
+        expect(result.findings.some((f) => f.kind === "test-identity-in-infra")).toBe(true);
+      }
+    });
+
+    it("preserves class 2 on ordinary GitHub release workflows without adding class 3", () => {
+      const path = ".github/workflows/release.yml";
+      const result = run([path], new Map([[path, yamlNeedles]]));
+      expect(result.findings.some((f) => f.kind === "production-references-test-root")).toBe(true);
+      expect(result.findings.some((f) => f.kind === "test-identity-in-infra")).toBe(false);
+    });
+
+    it("keeps non-artifact pipeline JSON under xbrief/ eligible", () => {
+      const path = "xbrief/pipeline-notes.json";
+      const result = run([path], new Map([[path, bothNeedles]]));
+      expect(result.exitCode).toBe(1);
+      expect(result.findings.some((f) => f.kind === "production-references-test-root")).toBe(true);
+      expect(result.findings.some((f) => f.kind === "test-identity-in-infra")).toBe(true);
+    });
+
+    it("cleans a legacy vbrief/completed pipeline artifact outside tests/**", () => {
+      const path = "vbrief/completed/2026-04-21-51-ci-pipeline-bootstrap.vbrief.json";
+      const result = run([path], new Map([[path, bothNeedles]]));
+      expect(result.exitCode).toBe(0);
+      expect(result.findings).toEqual([]);
+    });
+
+    it("cleans a leftover-complete change set that only adds a 720-shaped completed xBRIEF", () => {
+      const path = "xbrief/completed/2026-04-28-720-release-e2e-pipeline-mirror.xbrief.json";
+      const content = JSON.stringify({
+        plan: { narratives: { Test: "Verification: tests/cli/test_release_e2e.py" } },
+      });
+      const result = run([path], new Map([[path, content]]));
+      expect(result.exitCode).toBe(0);
+      expect(result.findings).toEqual([]);
+    });
+
+    it("does not add xbrief/** to DEFAULT_PROTECTED_GLOBS or default test roots", () => {
+      expect(DEFAULT_PROTECTED_GLOBS.some((g) => g.includes("xbrief"))).toBe(false);
+      expect(DEFAULT_TEST_ROOTS.some((r) => r.includes("xbrief"))).toBe(false);
+    });
   });
 
   it("allows GitHub Actions workflows to reference declared fixture roots (#5097)", () => {

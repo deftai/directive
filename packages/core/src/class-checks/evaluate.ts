@@ -8,6 +8,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { isLifecycleArtifactPath } from "../layout/resolve.js";
 import { unquoteGitPath } from "../scope-provenance/evaluate.js";
 import {
   isRecognizedTestBasename,
@@ -588,6 +589,7 @@ function scanProductionReferences(
  */
 function pathLooksLikePipeline(relPath: string, extensions: readonly string[]): boolean {
   const posix = relPath.replace(/\\/g, "/").toLowerCase();
+  if (isLifecycleArtifactPath(posix)) return false;
   const slash = posix.lastIndexOf("/");
   const base = slash >= 0 ? posix.slice(slash + 1) : posix;
   if (!extensions.some((ext) => base.endsWith(ext))) return false;
