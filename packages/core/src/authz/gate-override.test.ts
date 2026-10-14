@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -362,6 +362,45 @@ describe("gate-override (#5542 Prefer-A Bound)", () => {
     if (admitted.ok) return;
     expect(admitted.code).toBe("claim-failed");
     expect(admitted.reason).toMatch(/reserved by a concurrent admit\/renew/i);
+  });
+
+  it("reclaims a stale empty attempt lock left by interrupted publish", () => {
+    root = mkdtempSync(join(tmpdir(), "gate-override-"));
+    const baseSha = "a".repeat(40);
+    const headSha = "b".repeat(40);
+    const treeHash = "c".repeat(40);
+    const attemptId = "attempt-stale-empty-lock";
+    const minted = mintGateOverrideTemplateGrant({
+      projectRoot: root,
+      target: "unknown-path",
+      planRef: attemptId,
+      baseSha,
+      headSha,
+      treeHash,
+    });
+    expect(minted.ok).toBe(true);
+    if (!minted.ok) return;
+
+    const safe = createHash("sha256").update(attemptId, "utf8").digest("hex");
+    const lockDir = join(root, ".deft", "authz", "locks");
+    mkdirSync(lockDir, { recursive: true });
+    const lockPath = join(lockDir, `gate-override-admit-${safe}.lock`);
+    writeFileSync(lockPath, "", "utf8");
+    const staleMs = Number("6000");
+    utimesSync(lockPath, new Date(Date.now() - staleMs), new Date(Date.now() - staleMs));
+
+    const admitted = admitGateOverrideForAttempt(root, {
+      refuseCode: "unknown-path",
+      baseSha,
+      headSha,
+      treeHash,
+      attemptId,
+      observedRefuseReason: "unknown path",
+    });
+    expect(admitted.ok).toBe(true);
+    if (!admitted.ok) return;
+    expect(admitted.reused).toBe(false);
+    expect(admitted.receipt.grantId).toBe(minted.grant.id);
   });
 
   it("recovers an incomplete admission receipt under the attempt lock", () => {

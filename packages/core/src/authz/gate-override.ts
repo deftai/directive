@@ -11,15 +11,16 @@ import {
   existsSync,
   constants as fsConstants,
   linkSync,
-  mkdirSync,
   readFileSync,
   renameSync,
   rmSync,
+  statSync,
 } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import {
   ContainedWriteError,
   ContainedWriteErrorCode,
+  containedMkdir,
   containedRemove,
   containedWrite,
 } from "../fs/contained-write.js";
@@ -436,17 +437,33 @@ function readAdmissionAttemptLockRecord(lockPath: string): GrantClaimLockRecord 
   }
 }
 
+/** Grace before reclaiming empty/partial locks left by interrupted copy/link (#5542). */
+const ADMISSION_LOCK_UNREADABLE_STALE_MS = Number("5000");
+
+function isStaleUnreadableAdmissionLock(lockPath: string): boolean {
+  try {
+    const ageMs = Date.now() - statSync(lockPath).mtimeMs;
+    return Number.isFinite(ageMs) && ageMs >= ADMISSION_LOCK_UNREADABLE_STALE_MS;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Rename-away reclaim for crashed attempt-lock holders (same shape as grant claim locks).
- * Unreadable/empty/partial records are NOT reclaimable — they may be an in-flight
- * exclusive create still publishing the owner body (#5542 Greptile P1).
+ * Fresh unreadable/empty/partial records are NOT reclaimable — they may be an in-flight
+ * exclusive create still publishing the owner body. Stale unreadable leftovers from an
+ * interrupted COPYFILE_EXCL/link are reclaimable so approval is not permanently blocked.
  */
 function tryReclaimDeadAdmissionAttemptLock(lockPath: string): boolean {
   const existing = readAdmissionAttemptLockRecord(lockPath);
-  if (existing === null) return false;
-  if (!isGrantClaimLockReclaimable(existing)) return false;
-  const expectedPid = existing.pid;
-  const expectedToken = existing.token;
+  if (existing === null) {
+    if (!isStaleUnreadableAdmissionLock(lockPath)) return false;
+  } else if (!isGrantClaimLockReclaimable(existing)) {
+    return false;
+  }
+  const expectedPid = existing?.pid ?? null;
+  const expectedToken = existing?.token ?? null;
   const side = `${lockPath}.reclaim.${randomBytes(6).toString("hex")}`;
   try {
     renameSync(lockPath, side);
@@ -454,7 +471,10 @@ function tryReclaimDeadAdmissionAttemptLock(lockPath: string): boolean {
     return false;
   }
   const got = readAdmissionAttemptLockRecord(side);
-  const sameDead = got !== null && got.pid === expectedPid && got.token === expectedToken;
+  const sameDead =
+    existing === null
+      ? got === null
+      : got !== null && got.pid === expectedPid && got.token === expectedToken;
   if (!sameDead) {
     try {
       renameSync(side, lockPath);
@@ -489,10 +509,13 @@ function writeExclusiveComplete(
 ): ExclusiveWriteResult {
   const root = resolve(projectRoot);
   const abs = resolve(targetPath);
-  // Final abs stays under projectRoot via admission/lock path builders; temp
-  // publish uses containedWrite (no assertWriteTargetSafe — keeps this module
-  // off the write-target-safe caller inventory for class-4 authz-only land).
-  mkdirSync(dirname(abs), { recursive: true });
+  // Parents via containedMkdir (path check before create). Temp publish uses
+  // containedWrite; avoid the write-target-safe inventory for class-4 authz-only.
+  try {
+    containedMkdir({ root, target: dirname(abs) });
+  } catch (err) {
+    return { ok: false, code: "error", error: err };
+  }
   const tmp = join(
     dirname(abs),
     `.${basename(abs)}.${process.pid}.${randomBytes(4).toString("hex")}.tmp`,
