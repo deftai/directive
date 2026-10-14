@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4881",
-    "updated": "2026-10-14T17:15:44.982Z"
+    "updated": "2026-10-14T18:25:00.000Z"
   },
   "plan": {
     "title": "scope:complete on an already-completed path reports File not found",
@@ -163,13 +163,24 @@
       "productPullRequest": 5607,
       "lifecycleWrite": {
         "action": "complete",
-        "writtenAt": "2026-10-14T17:09:26.158Z"
+        "writtenAt": "2026-10-14T18:25:00.000Z"
       },
       "completionProvenance": {
-        "productMerge": "09d68688736707f5414d8eef26ff0e39e996ec92",
-        "productPr": 5607
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 5607,
+        "prBase": "master",
+        "mergeCommit": "09d68688736707f5414d8eef26ff0e39e996ec92",
+        "deliveryBranch": "master",
+        "deliveryCommit": "09d68688736707f5414d8eef26ff0e39e996ec92",
+        "verifiedAt": "2026-10-14T18:25:00.000Z",
+        "verifier": "approach1-babysit/5614",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
       },
-      "completedAt": "2026-10-14T17:09:26.158Z"
+      "completedAt": "2026-10-14T18:25:00.000Z"
     },
     "id": "github.issue.5540573498",
     "x-directive/plan-id": {
@@ -179,6 +190,6 @@
       "origin": "deftai/directive#4881",
       "id": "github.issue.5540573498"
     },
-    "updated": "2026-10-14T17:15:44.982Z"
+    "updated": "2026-10-14T18:25:00.000Z"
   }
 }
