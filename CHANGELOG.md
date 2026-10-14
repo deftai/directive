@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Activate Prefer-A leftover-complete write-guard Path B brief for #5602 (productPullRequest unset; swarm-ready story fields). Tracking #5602.
+
 ### Fixed
 
 - **scope:complete on a stale active path names the completed/cancelled sibling (#4881).** When the target file is missing, complete probes sibling lifecycle folders for the same basename and returns already-completed (with #3679 restamp path) or already-cancelled instead of File not found; wrong basenames stay File not found; a real completed/ path still restamps. Tracking #4881.
