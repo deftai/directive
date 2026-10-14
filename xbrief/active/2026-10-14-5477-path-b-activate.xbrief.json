@@ -1,13 +1,12 @@
 {
   "xBRIEFInfo": {
     "version": "0.8",
-    "description": "Path B activate #5477 Prefer-A Bound",
-    "updated": "2026-10-14T06:45:02.663Z"
+    "description": "Path B activate #5477 Prefer-A Bound"
   },
   "plan": {
     "id": "github.issue.5754500324",
     "status": "running",
-    "title": "Path B activate #5477 Prefer-A Bound",
+    "title": "Path B activate #5477 Prefer-A Bound file_scope",
     "references": [
       {
         "uri": "https://github.com/deftai/directive/issues/5477",
@@ -45,8 +44,8 @@
           "packages/core/src/scope/acceptance-evidence.ts",
           "CHANGELOG.md"
         ],
-        "cohesion_exemption": "CHANGELOG.md Unreleased Keep active note for Path B activation",
-        "module_boundary": "Prefer-A Bound 6135476931"
+        "cohesion_exemption": "CHANGELOG.md Unreleased Keep note for Path B mint",
+        "module_boundary": "Prefer-A Bound 6135476931 for issue 5477"
       }
     },
     "acceptance": {
@@ -58,7 +57,7 @@
     "items": [
       {
         "id": "limb-1",
-        "title": "Implement Prefer-A Bound limbs for #5477",
+        "title": "Rapid check zero-verified walk Bound remedy for lifecycle-only PRs",
         "status": "pending"
       }
     ]
