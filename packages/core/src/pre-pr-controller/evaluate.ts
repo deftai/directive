@@ -85,9 +85,7 @@ function evaluateStoredRecord(
     return deny("deny-binding", `pre-PR record ${record.id} does not match live PR body hash`);
   }
   const terminalOutcome =
-    record.outcome === "pass" ||
-    record.outcome === "waived" ||
-    record.outcome === "overridden";
+    record.outcome === "pass" || record.outcome === "waived" || record.outcome === "overridden";
   if (!terminalOutcome || record.state !== "complete" || record.publishedAt === null) {
     if (record.state === "failed") return deny("deny-failed", "failed pre-PR run mints no pass");
     if (record.state === "interrupted") {
