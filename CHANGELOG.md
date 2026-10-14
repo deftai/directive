@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Complete the #5551 scope brief after product #5595.** Move the Path B activate brief into xbrief/completed/ so orphan tracking clears. Tracking #5551.
 - **Complete the #5574 scope brief after product #5596.** Move the Path B activate brief into xbrief/completed/ so orphan tracking clears. Tracking #5574.
 - **Complete the #5545 scope brief after product #5594.** Move the Path B activate brief into xbrief/completed/ so orphan tracking clears. Tracking #5545.
+- **fix(check): rapid check does not fail lifecycle-only PRs on a just-completed zero-verified walk (#5477).** Skip #3357 just-completed targeting when every changed path is in the published lifecycle-maintenance set (including .deft/plan-sequence.json and xbrief/vbrief registry files) and the walk target is not added or renamed; waive #4866 for in-diff completed leftover/completing walks under that set. Unmatched product paths keep both targeting and #4866. Tracking #5477.
 - **Gate residual raw git fetch sites on safe branch argv (#5545).** Swarm finalize/launch tip probes and delivery-evidence refresh refuse hostile/empty branch overrides before spawn and use trackingFetchArgv / privateDestFetchArgv. Tracking #5545.
 - **Coverage skips closed-shape plan-sequence and closed plan/spec pointer refreshes (#5551).** Planning-only sequence and narrative/interview edits no longer demand a coverage report; other plan/spec edits still do. Tracking #5551.
 - Keep active #5545 Path B Prefer-A Bound file_scope.

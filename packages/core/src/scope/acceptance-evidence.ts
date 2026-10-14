@@ -1743,6 +1743,8 @@ export function evaluateScopeCompleteAcceptanceWalk(
   if (walk.ok) {
     // #4870: refuse the #4866 zero-verified print on complete unless a green
     // executable oracle ran. verify:ac / #3826 stay unreverted.
+    // #5477: rapid check may waive the same print for an in-diff completed
+    // walk under the lifecycle-maintenance set (see rapid-zero-verified).
     if (
       scopeCompleteRejectsZeroVerifiedWalk({
         text: walk.message,

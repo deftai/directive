@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   acceptanceWalkReportsZeroVerified,
+  parseJustCompletedWalkTarget,
   rapidCheckRejectsZeroVerifiedWalk,
   scopeCompleteRejectsZeroVerifiedWalk,
 } from "./rapid-zero-verified.js";
+import type { CollectedChangeSet } from "./session-completed-ac.js";
 
 const ZERO_WALK =
   "verify:ac clause walk (#3323): 0 verified, 5 unverifiable, 0 failed\n" +
@@ -144,3 +146,76 @@ describe("scopeCompleteRejectsZeroVerifiedWalk (#4870)", () => {
     ).toBe(false);
   });
 });
+
+describe("in-diff completed overlay (#5477)", () => {
+  const ZERO_WITH_TARGET =
+    "verify:ac targeting just-completed brief (#3357): xbrief/completed/done.xbrief.json\n" +
+    ZERO_WALK;
+
+  function lifeOnlyCompleted(): CollectedChangeSet {
+    return {
+      ok: true,
+      paths: ["xbrief/completed/done.xbrief.json", "CHANGELOG.md"],
+      flagsByPath: new Map([
+        [
+          "xbrief/completed/done.xbrief.json",
+          { addedOrRenamed: true, addedOrModified: true },
+        ],
+        ["CHANGELOG.md", { addedOrRenamed: false, addedOrModified: true }],
+      ]),
+    };
+  }
+
+  it("parses the just-completed targeting line", () => {
+    expect(parseJustCompletedWalkTarget(ZERO_WITH_TARGET)).toBe(
+      "xbrief/completed/done.xbrief.json",
+    );
+  });
+
+  it("does not reject an in-diff completed lifecycle-only walk", () => {
+    expect(
+      rapidCheckRejectsZeroVerifiedWalk({
+        mode: "rapid",
+        gateId: "verify:ac",
+        text: ZERO_WITH_TARGET,
+        projectRoot: "/repo",
+        changeSet: lifeOnlyCompleted(),
+      }),
+    ).toBe(false);
+  });
+
+  it("still rejects when an unmatched product path is in the set", () => {
+    const mixed: CollectedChangeSet = {
+      ok: true,
+      paths: ["xbrief/completed/done.xbrief.json", "src/service.ts"],
+      flagsByPath: new Map([
+        [
+          "xbrief/completed/done.xbrief.json",
+          { addedOrRenamed: true, addedOrModified: true },
+        ],
+        ["src/service.ts", { addedOrRenamed: false, addedOrModified: true }],
+      ]),
+    };
+    expect(
+      rapidCheckRejectsZeroVerifiedWalk({
+        mode: "rapid",
+        gateId: "verify:ac",
+        text: ZERO_WITH_TARGET,
+        projectRoot: "/repo",
+        changeSet: mixed,
+      }),
+    ).toBe(true);
+  });
+
+  it("honors an injected executable-pass overlay flag", () => {
+    expect(
+      rapidCheckRejectsZeroVerifiedWalk({
+        mode: "rapid",
+        gateId: "verify:ac",
+        text: ZERO_WALK,
+        inDiffCompletedExecutablePass: true,
+      }),
+    ).toBe(false);
+  });
+});
+

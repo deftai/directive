@@ -4,9 +4,12 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { newRitualStatePayload, writeRitualState } from "../session/ritual-sentinel.js";
 import {
+  evaluateLifecycleMaintenanceEligibility,
+  isLifecycleMaintenancePath,
   resolveSessionCompletedVerifyAcTarget,
   SESSION_COMPLETED_AC_REMEDIATION,
   writeSessionCompletedMarker,
+  type CollectedChangeSet,
 } from "./session-completed-ac.js";
 
 function writeCompleted(
@@ -225,3 +228,171 @@ describe("resolveSessionCompletedVerifyAcTarget (#3357)", () => {
     ).toEqual({ kind: "cannot", message: SESSION_COMPLETED_AC_REMEDIATION });
   });
 });
+
+function changeSet(
+  entries: readonly { path: string; addedOrRenamed?: boolean; addedOrModified?: boolean }[],
+): CollectedChangeSet {
+  const flagsByPath = new Map(
+    entries.map((e) => [
+      e.path,
+      {
+        addedOrRenamed: e.addedOrRenamed === true,
+        addedOrModified: e.addedOrModified === true,
+      },
+    ]),
+  );
+  return { ok: true, paths: entries.map((e) => e.path), flagsByPath };
+}
+
+describe("lifecycle-maintenance eligibility (#5477)", () => {
+  it("admits the published set including plan-sequence and registry files", () => {
+    expect(isLifecycleMaintenancePath(".deft/plan-sequence.json")).toBe(true);
+    expect(isLifecycleMaintenancePath("xbrief/PROJECT-DEFINITION.xbrief.json")).toBe(true);
+    expect(isLifecycleMaintenancePath("xbrief/specification.xbrief.json")).toBe(true);
+    expect(isLifecycleMaintenancePath("CHANGELOG.md")).toBe(true);
+    expect(isLifecycleMaintenancePath("xbrief/completed/a.xbrief.json")).toBe(true);
+    expect(isLifecycleMaintenancePath("src/service.ts")).toBe(false);
+    expect(isLifecycleMaintenancePath("server.js")).toBe(false);
+    expect(isLifecycleMaintenancePath("app/api/route.ts")).toBe(false);
+    expect(isLifecycleMaintenancePath("package.json")).toBe(false);
+    expect(isLifecycleMaintenancePath(".deft/test-boundary.policy.json")).toBe(false);
+  });
+
+  it("skips just-completed targeting for lifecycle-only out-of-diff walks", () => {
+    const root = mkdtempSync(join(tmpdir(), "sess-ac-life-skip-"));
+    const target = writeCompleted(root, "done.xbrief.json", {
+      completedAt: "2026-08-14T12:00:00Z",
+      completedSessionId: "sess-1",
+    });
+    writeSessionCompletedMarker(root, {
+      path: target,
+      sessionId: "sess-1",
+      completedAt: "2026-08-14T12:00:00Z",
+    });
+    expect(
+      resolveSessionCompletedVerifyAcTarget({
+        projectRoot: root,
+        sessionId: "sess-1",
+        changeSet: changeSet([
+          { path: ".deft/plan-sequence.json", addedOrModified: true },
+          { path: "xbrief/PROJECT-DEFINITION.xbrief.json", addedOrModified: true },
+          { path: "xbrief/specification.xbrief.json", addedOrModified: true },
+        ]),
+      }),
+    ).toEqual({ kind: "none" });
+  });
+
+  it("keeps targeting when an unmatched product path is present", () => {
+    const root = mkdtempSync(join(tmpdir(), "sess-ac-life-prod-"));
+    const target = writeCompleted(root, "done.xbrief.json", {
+      completedAt: "2026-08-14T12:00:00Z",
+      completedSessionId: "sess-1",
+    });
+    writeSessionCompletedMarker(root, {
+      path: target,
+      sessionId: "sess-1",
+      completedAt: "2026-08-14T12:00:00Z",
+    });
+    expect(
+      resolveSessionCompletedVerifyAcTarget({
+        projectRoot: root,
+        sessionId: "sess-1",
+        changeSet: changeSet([
+          { path: ".deft/plan-sequence.json", addedOrModified: true },
+          { path: "src/service.ts", addedOrModified: true },
+        ]),
+      }),
+    ).toEqual({ kind: "target", path: target });
+  });
+
+  it("keeps targeting for unmatched executables and policy rewrites", () => {
+    const root = mkdtempSync(join(tmpdir(), "sess-ac-life-exe-"));
+    const target = writeCompleted(root, "done.xbrief.json", {
+      completedAt: "2026-08-14T12:00:00Z",
+      completedSessionId: "sess-1",
+    });
+    for (const bad of ["server.js", "app/api/route.ts", ".deft/test-boundary.policy.json"]) {
+      expect(
+        resolveSessionCompletedVerifyAcTarget({
+          projectRoot: root,
+          sessionId: "sess-1",
+          changeSet: changeSet([{ path: bad, addedOrModified: true }]),
+        }),
+      ).toEqual({ kind: "target", path: target });
+    }
+  });
+
+  it("keeps targeting when merge-base collection fails", () => {
+    const root = mkdtempSync(join(tmpdir(), "sess-ac-life-fail-"));
+    const target = writeCompleted(root, "done.xbrief.json", {
+      completedAt: "2026-08-14T12:00:00Z",
+      completedSessionId: "sess-1",
+    });
+    writeSessionCompletedMarker(root, {
+      path: target,
+      sessionId: "sess-1",
+      completedAt: "2026-08-14T12:00:00Z",
+    });
+    expect(
+      resolveSessionCompletedVerifyAcTarget({
+        projectRoot: root,
+        sessionId: "sess-1",
+        changeSet: { ok: false, reason: "no merge-base ref" },
+      }),
+    ).toEqual({ kind: "target", path: target });
+  });
+
+  it("keeps targeting when the walk target itself is added or renamed", () => {
+    const root = mkdtempSync(join(tmpdir(), "sess-ac-life-add-"));
+    const target = writeCompleted(root, "done.xbrief.json", {
+      completedAt: "2026-08-14T12:00:00Z",
+      completedSessionId: "sess-1",
+    });
+    const rel = "xbrief/completed/done.xbrief.json";
+    expect(
+      resolveSessionCompletedVerifyAcTarget({
+        projectRoot: root,
+        sessionId: "sess-1",
+        changeSet: changeSet([
+          { path: rel, addedOrRenamed: true, addedOrModified: true },
+          { path: "CHANGELOG.md", addedOrModified: true },
+        ]),
+      }),
+    ).toEqual({ kind: "target", path: target });
+  });
+
+  it("names the in-diff completed overlay for leftover-complete shapes", () => {
+    const decision = evaluateLifecycleMaintenanceEligibility({
+      projectRoot: "/repo",
+      walkTargetAbsOrRel: "xbrief/completed/done.xbrief.json",
+      changeSet: changeSet([
+        {
+          path: "xbrief/completed/done.xbrief.json",
+          addedOrRenamed: true,
+          addedOrModified: true,
+        },
+        { path: "CHANGELOG.md", addedOrModified: true },
+      ]),
+    });
+    expect(decision).toEqual({
+      kind: "in-diff-completed-overlay",
+      walkTargetRel: "xbrief/completed/done.xbrief.json",
+    });
+  });
+
+  it("does not select a foreign-session completed brief", () => {
+    const root = mkdtempSync(join(tmpdir(), "sess-ac-life-foreign-"));
+    writeCompleted(root, "theirs.xbrief.json", {
+      completedAt: "2026-08-14T12:00:00Z",
+      completedSessionId: "sess-other",
+    });
+    expect(
+      resolveSessionCompletedVerifyAcTarget({
+        projectRoot: root,
+        sessionId: "sess-1",
+        changeSet: changeSet([{ path: "CHANGELOG.md", addedOrModified: true }]),
+      }),
+    ).toEqual({ kind: "none" });
+  });
+});
+
