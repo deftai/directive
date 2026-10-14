@@ -8,6 +8,12 @@ import { VALID_PLAN_ITEM_TYPES } from "../vbrief-validate/constants.js";
 
 export { LEGACY_VBRIEF_VERSION, VBRIEF_REFERENCE_PREFIX, VBRIEF_VERSION, XBRIEF_REFERENCE_PREFIX };
 
+/**
+ * Orphan rename-era format (vBRIEF→xBRIEF @ 0.7). Migrate-through to 0.8 only —
+ * not in ACCEPTED/VALID forever (validators still target 0.6+0.8).
+ */
+export const MIGRATE_THROUGH_VBRIEF_VERSION = "0.7" as const;
+
 /** PlanItem container `type` values introduced in xBRIEF v0.8 (excludes `task`). */
 export const V08_CONTAINER_ITEM_TYPES = new Set(
   [...VALID_PLAN_ITEM_TYPES].filter((t) => t !== "task"),

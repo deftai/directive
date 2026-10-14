@@ -700,7 +700,8 @@ describe("runXbriefMigration hybrid in-place rewrite (#3236)", () => {
     expect(outcome.kind).toBe("rewritten");
     if (outcome.kind === "rewritten") {
       expect(outcome.files).toBe(1);
-      expect(outcome.message).toMatch(/Rewrote 1 hybrid xBRIEFInfo@0\.6/);
+      expect(outcome.message).toMatch(/Rewrote 1 /);
+      expect(outcome.message).toMatch(/xBRIEFInfo@0\.8/);
     }
 
     const rewritten = JSON.parse(readFileSync(artifact, "utf8"));
@@ -709,6 +710,57 @@ describe("runXbriefMigration hybrid in-place rewrite (#3236)", () => {
     expect(rewritten.plan.references[0].type).toBe("x-xbrief/github-issue");
     expect(rewritten.plan.references[1].type).toBe("x-xbrief/plan");
     expect(existsSync(join(project, LEGACY_ARTIFACT_DIR))).toBe(false);
+  });
+
+  it("thin-rewrites orphan xBRIEFInfo@0.7 envelopes on an xbrief-only tree", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-orphan-07-"));
+    temps.push(base);
+    const project = join(base, "consumer");
+    mkdirSync(join(project, MIGRATED_ARTIFACT_DIR, "active"), { recursive: true });
+    const artifact = join(project, MIGRATED_ARTIFACT_DIR, "active", "story.xbrief.json");
+    writeFileSync(
+      artifact,
+      `${JSON.stringify(
+        {
+          xBRIEFInfo: {
+            version: "0.7",
+            description: "orphan 0.7 residual",
+            created: "2026-06-26T00:00:00Z",
+            updated: "2026-06-26T00:00:00Z",
+          },
+          plan: {
+            title: "Orphan 0.7",
+            status: "running",
+            items: [],
+            references: [
+              {
+                uri: "xbrief/active/child.xbrief.json",
+                type: "x-vbrief/plan",
+                title: "Child",
+              },
+            ],
+          },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+    execFileSync("git", ["init"], { cwd: project });
+
+    const outcome = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    expect(outcome.kind).toBe("rewritten");
+    if (outcome.kind === "rewritten") {
+      expect(outcome.files).toBe(1);
+    }
+
+    const rewritten = JSON.parse(readFileSync(artifact, "utf8"));
+    expect(rewritten.xBRIEFInfo.version).toBe("0.8");
+    expect(rewritten.plan.references[0].type).toBe("x-xbrief/plan");
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR))).toBe(false);
+
+    const second = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    expect(second.kind).toBe("noop");
   });
 
   it("is idempotent: second pass on already-0.8 hybrid trees is a clean noop", () => {
@@ -738,7 +790,7 @@ describe("runXbriefMigration hybrid in-place rewrite (#3236)", () => {
       { writeOut: (t) => outs.push(t), writeErr: () => {} },
     );
     expect(code).toBe(0);
-    expect(outs.join("")).toMatch(/Rewrote 1 hybrid xBRIEFInfo@0\.6/);
+    expect(outs.join("")).toMatch(/Rewrote 1 residual envelope\(s\) \(0\.6\/0\.7\).*xBRIEFInfo@0\.8/);
   });
 
   it("does not rewrite schema deposits; hybrid envelopes still rewrite beside them (#3236 / #2368)", () => {

@@ -6,6 +6,7 @@ import {
   LEGACY_INFO_ROOT_KEY,
   LEGACY_VBRIEF_VERSION,
   MIGRATED_ARTIFACT_DIR,
+  MIGRATE_THROUGH_VBRIEF_VERSION,
   VBRIEF_REFERENCE_PREFIX,
 } from "./constants.js";
 import { hasVbriefDeprecationMarker, isEffectivelyEmptyDir } from "./fs-helpers.js";
@@ -127,6 +128,9 @@ function scanFileContent(path: string, content: string, reasons: Set<string>): v
   }
   if (content.includes(`"version": "${LEGACY_VBRIEF_VERSION}"`)) {
     reasons.add(`declared version ${LEGACY_VBRIEF_VERSION} in ${path}`);
+  }
+  if (content.includes(`"version": "${MIGRATE_THROUGH_VBRIEF_VERSION}"`)) {
+    reasons.add(`declared version ${MIGRATE_THROUGH_VBRIEF_VERSION} in ${path}`);
   }
   if (content.includes(VBRIEF_REFERENCE_PREFIX)) {
     reasons.add(`legacy reference prefix ${VBRIEF_REFERENCE_PREFIX} in ${path}`);

@@ -14,6 +14,7 @@ import {
   MIGRATED_ARTIFACT_DIR,
   MIGRATED_ARTIFACT_SUFFIX,
   MIGRATED_INFO_ROOT_KEY,
+  MIGRATE_THROUGH_VBRIEF_VERSION,
   OBSOLETE_FRAMEWORK_NARRATIVE_FILENAME,
   VBRIEF_DEPRECATION_MARKER_BODY,
   VBRIEF_DEPRECATION_MARKER_FILENAME,
@@ -139,12 +140,17 @@ function writeMigratedFile(projectRoot: string, srcPath: string, destPath: strin
   });
 }
 
+/** True when declared version is a residual hybrid/orphan rewrite candidate. */
+function isHybridRewriteSourceVersion(version: string | null): boolean {
+  return version === LEGACY_VBRIEF_VERSION || version === MIGRATE_THROUGH_VBRIEF_VERSION;
+}
+
 /**
  * Plan in-place hybrid envelope rewrites for xbrief lifecycle `.xbrief.json`
- * artifacts that still declare `xBRIEFInfo@0.6` after the layout rename
- * (#3236 / #2974). Pure probe — no writes. Already-0.8 artifacts, schema
- * deposits, and non-0.6 JSON are skipped so residual #2368 schema-only markers
- * still route to `directive update`.
+ * artifacts that still declare `xBRIEFInfo@0.6` (or orphan rename-era `@0.7`)
+ * after the layout rename (#3236 / #2974 / wave3b L1). Pure probe — no writes.
+ * Already-0.8 artifacts, schema deposits, and other versions are skipped so
+ * residual #2368 schema-only markers still route to `directive update`.
  */
 function planHybridEnvelopeRewrites(
   projectRoot: string,
@@ -168,8 +174,8 @@ function planHybridEnvelopeRewrites(
         error: `failed to parse hybrid envelope candidate ${relative(projectRoot, filePath)}: ${detail}`,
       };
     }
-    // Only residual v0.6 envelopes are rewrite candidates; skip 0.8 and unknown.
-    if (readDeclaredArtifactVersion(parsed) !== LEGACY_VBRIEF_VERSION) {
+    // Residual 0.6 + orphan 0.7 only; skip 0.8 and unknown (0.7 is migrate-through).
+    if (!isHybridRewriteSourceVersion(readDeclaredArtifactVersion(parsed))) {
       continue;
     }
     const result = transformArtifactV06ToV08Transactional(parsed);
@@ -697,8 +703,8 @@ export function runXbriefMigration(
       break;
   }
 
-  // #3236: on already-xbrief trees with no vbrief/, rewrite residual hybrid
-  // xBRIEFInfo@0.6 envelopes in place (transform accepts hybrid — #2974).
+  // #3236 / wave3b L1: on already-xbrief trees with no vbrief/, rewrite residual
+  // hybrid xBRIEFInfo@0.6 and orphan @0.7 envelopes in place (same transform).
   // Run before the layout-detection short-circuit so compact `"version":"0.6"`
   // JSON that the string-scan may miss still gets rewritten.
   if (convergence.xbriefHasContent && !convergence.vbriefPresent) {
@@ -720,7 +726,7 @@ export function runXbriefMigration(
       return {
         kind: "rewritten",
         files,
-        message: `Rewrote ${files} hybrid xBRIEFInfo@0.6 envelope(s) in place to xBRIEFInfo@0.8 under '${MIGRATED_ARTIFACT_DIR}/'.`,
+        message: `Rewrote ${files} residual envelope(s) (${LEGACY_VBRIEF_VERSION}/${MIGRATE_THROUGH_VBRIEF_VERSION}) in place to xBRIEFInfo@${VBRIEF_VERSION} under '${MIGRATED_ARTIFACT_DIR}/'.`,
       };
     }
 

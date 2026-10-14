@@ -6,6 +6,7 @@ import {
   MIGRATED_ARTIFACT_DIR,
   MIGRATED_ARTIFACT_SUFFIX,
   MIGRATED_INFO_ROOT_KEY,
+  MIGRATE_THROUGH_VBRIEF_VERSION,
   V08_CONTAINER_ITEM_TYPES,
   V08_ITEM_STATUS_AUTO,
   VBRIEF_REFERENCE_PREFIX,
@@ -100,9 +101,22 @@ function isAlreadyV08Artifact(artifact: JsonObject): boolean {
   return isPlainObject(info) && info.version === VBRIEF_VERSION;
 }
 
+/** True when declared version is a tip migrate source (0.6 or orphan 0.7). */
+function isMigratableSourceVersion(version: unknown): boolean {
+  return version === LEGACY_VBRIEF_VERSION || version === MIGRATE_THROUGH_VBRIEF_VERSION;
+}
+
+function unsupportedSourceVersionMessage(infoKey: string, declaredVersion: unknown): string {
+  return (
+    `unsupported ${infoKey}.version ${String(declaredVersion)}; ` +
+    `migrate:xbrief accepts ${LEGACY_VBRIEF_VERSION} and orphan ${MIGRATE_THROUGH_VBRIEF_VERSION}→${VBRIEF_VERSION} only`
+  );
+}
+
 /**
- * Resolve a v0.6 info block from classic `vBRIEFInfo` or hybrid `xBRIEFInfo@0.6`.
- * Prefer the classic key when both are present. Layout rename ≠ envelope bump (#2970).
+ * Resolve a migratable info block from classic `vBRIEFInfo` or hybrid `xBRIEFInfo`
+ * at 0.6 (or orphan rename-era 0.7). Prefer the classic key when both are present.
+ * Layout rename ≠ envelope bump (#2970). 0.7 is migrate-through, not ACCEPTED forever.
  */
 function resolveV06InfoBlock(artifact: JsonObject): JsonObject {
   if (LEGACY_INFO_ROOT_KEY in artifact) {
@@ -111,9 +125,9 @@ function resolveV06InfoBlock(artifact: JsonObject): JsonObject {
       throw new TransformError(`'${LEGACY_INFO_ROOT_KEY}' must be an object`);
     }
     const declaredVersion = legacyInfo.version;
-    if (declaredVersion !== LEGACY_VBRIEF_VERSION) {
+    if (!isMigratableSourceVersion(declaredVersion)) {
       throw new TransformError(
-        `expected ${LEGACY_INFO_ROOT_KEY}.version ${LEGACY_VBRIEF_VERSION}, got ${String(declaredVersion)}`,
+        unsupportedSourceVersionMessage(LEGACY_INFO_ROOT_KEY, declaredVersion),
       );
     }
     return legacyInfo;
@@ -125,16 +139,16 @@ function resolveV06InfoBlock(artifact: JsonObject): JsonObject {
       throw new TransformError(`'${MIGRATED_INFO_ROOT_KEY}' must be an object`);
     }
     const declaredVersion = hybridInfo.version;
-    if (declaredVersion !== LEGACY_VBRIEF_VERSION) {
+    if (!isMigratableSourceVersion(declaredVersion)) {
       throw new TransformError(
-        `expected hybrid ${MIGRATED_INFO_ROOT_KEY}.version ${LEGACY_VBRIEF_VERSION} (or ${VBRIEF_VERSION} for already-migrated), got ${String(declaredVersion)}`,
+        `expected hybrid ${MIGRATED_INFO_ROOT_KEY}.version ${LEGACY_VBRIEF_VERSION} or orphan ${MIGRATE_THROUGH_VBRIEF_VERSION} (or ${VBRIEF_VERSION} for already-migrated), got ${String(declaredVersion)}`,
       );
     }
     return hybridInfo;
   }
 
   throw new TransformError(
-    `missing required legacy info block '${LEGACY_INFO_ROOT_KEY}' or hybrid '${MIGRATED_INFO_ROOT_KEY}'@${LEGACY_VBRIEF_VERSION} for v0.6 -> v0.8 transform`,
+    `missing required legacy info block '${LEGACY_INFO_ROOT_KEY}' or hybrid '${MIGRATED_INFO_ROOT_KEY}'@${LEGACY_VBRIEF_VERSION}|${MIGRATE_THROUGH_VBRIEF_VERSION} for -> v0.8 transform`,
   );
 }
 
