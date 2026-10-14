@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Prefer-A leftover-complete write-guard (#5602).** New completed/ adds must pass `evaluateCompletedPlanConsistency`, refuse informal `productMerge`/`productPr` stamps, and (code-bearing only) require eligible `completionProvenance.disposition` + writer evidence fields via `evaluateStoredCompletionProvenanceForWriteGuard`. Non-code may omit delivery provenance. Names two disposition surfaces: acceptance-item `#3819` vs delivery provenance. Swarm Phase 6 pin: leftover = finalize-cohort / scope:complete → stamp; stop on closer-set refuse; `#5551` shape comparison only. Tracking #5602.
+
 ### Changed
 
 - Activate Prefer-A leftover-complete write-guard Path B brief for #5602 (productPullRequest unset; swarm-ready story fields). Tracking #5602.

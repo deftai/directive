@@ -649,6 +649,10 @@ export function verifyStoryPrMergeIdentity(input: {
 /**
  * Classify stored completion provenance for read paths.
  * Legacy completed records without provenance → unknown/unverified (not delivered).
+ *
+ * Read classifier only — cast-through of any nonempty disposition string is
+ * intentional here and is NOT a write-guard validator (#5602 Reject C / Codex F2).
+ * New completed/ adds use {@link evaluateStoredCompletionProvenanceForWriteGuard}.
  */
 export function classifyStoredDeliveryDisposition(
   plan: Record<string, unknown>,
@@ -670,6 +674,144 @@ export function classifyStoredDeliveryDisposition(
     return disposition as DeliveryDisposition;
   }
   return "unverified";
+}
+
+/**
+ * Informal leftover-complete dialect keys that must not appear on
+ * completionProvenance (#5602 Prefer-A Bound). Readers that alias these into
+ * mergeCommit launder unverified stamps (Reject C).
+ */
+export const INFORMAL_COMPLETION_PROVENANCE_KEYS = ["productMerge", "productPr"] as const;
+
+/**
+ * Closed eligible delivery dispositions for new completed/ adds (#5602).
+ * Excludes `unknown` / `unverified` — those are read-classifier residues, not
+ * writer outputs. Do not bind universal classify!==unverified (Reject E).
+ */
+export const ELIGIBLE_STORED_DELIVERY_DISPOSITIONS = [
+  "delivered",
+  "merged_to_integration",
+  "not_delivered",
+  ...NON_DELIVERY_DISPOSITIONS,
+] as const;
+
+export type EligibleStoredDeliveryDisposition =
+  (typeof ELIGIBLE_STORED_DELIVERY_DISPOSITIONS)[number];
+
+const DELIVERED_CLASS_DISPOSITIONS = new Set<string>(["delivered", "merged_to_integration"]);
+
+export function isEligibleStoredDeliveryDisposition(
+  value: unknown,
+): value is EligibleStoredDeliveryDisposition {
+  return (
+    typeof value === "string" &&
+    (ELIGIBLE_STORED_DELIVERY_DISPOSITIONS as readonly string[]).includes(value)
+  );
+}
+
+export function hasInformalCompletionProvenanceKeys(
+  provenance: Record<string, unknown>,
+): boolean {
+  for (const key of INFORMAL_COMPLETION_PROVENANCE_KEYS) {
+    if (Object.prototype.hasOwnProperty.call(provenance, key)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function nonemptyStringField(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+/**
+ * Fail-closed stored completionProvenance check for new completed/ adds (#5602).
+ *
+ * Two disposition surfaces (do not conflate):
+ * - acceptance-item `#3819` parseDisposition on plan.items
+ * - delivery `plan.metadata.completionProvenance.disposition` (this helper)
+ *
+ * Rules:
+ * - Refuse informal `productMerge` / `productPr` keys on any add.
+ * - Code-bearing: require present provenance with an eligible disposition enum
+ *   and writer-shaped evidence fields (not any nonempty disposition string).
+ * - Non-code: missing delivery provenance remains legal (canonical writer may
+ *   omit it; Reject E / Grok+Codex F1).
+ *
+ * Does not call classifyStoredDeliveryDisposition as a gate (Reject C/E).
+ * Direct stampDeliveryProvenance without evaluateDeliveryGate is not an
+ * equivalent Prefer-A leftover bypass — this only validates stored shape.
+ */
+export function evaluateStoredCompletionProvenanceForWriteGuard(
+  plan: Record<string, unknown>,
+): { ok: true } | { ok: false; detail: string } {
+  const meta = asRecord(plan.metadata);
+  const prov = asRecord(meta?.completionProvenance);
+
+  if (prov !== null && hasInformalCompletionProvenanceKeys(prov)) {
+    return {
+      ok: false,
+      detail:
+        "completionProvenance uses informal productMerge/productPr keys; " +
+        "Prefer-A leftover-complete must use swarm:finalize-cohort or scope:complete " +
+        "→ evaluateDeliveryGate → stampDeliveryProvenance (#5602)",
+    };
+  }
+
+  if (!isCodeBearingScope(plan)) {
+    return { ok: true };
+  }
+
+  if (prov === null) {
+    return {
+      ok: false,
+      detail:
+        "code-bearing completed/ add missing completionProvenance; " +
+        "run swarm:finalize-cohort or scope:complete with delivery evidence (#5602)",
+    };
+  }
+
+  if (!isEligibleStoredDeliveryDisposition(prov.disposition)) {
+    return {
+      ok: false,
+      detail:
+        `code-bearing completionProvenance.disposition ${JSON.stringify(prov.disposition ?? null)} ` +
+        `is not an eligible writer disposition ` +
+        `(${ELIGIBLE_STORED_DELIVERY_DISPOSITIONS.join("|")}); ` +
+        `unknown/unverified/cast-through strings are refused (#5602)`,
+    };
+  }
+
+  const verifiedAt = nonemptyStringField(prov.verifiedAt);
+  const verifier = nonemptyStringField(prov.verifier);
+  const deliveryBranch = nonemptyStringField(prov.deliveryBranch);
+  if (verifiedAt === null || verifier === null || deliveryBranch === null) {
+    return {
+      ok: false,
+      detail:
+        "code-bearing completionProvenance missing verifiedAt, verifier, or deliveryBranch " +
+        "(mirror stampDeliveryProvenance outputs) (#5602)",
+    };
+  }
+
+  if (DELIVERED_CLASS_DISPOSITIONS.has(prov.disposition)) {
+    const mergeCommit = nonemptyStringField(prov.mergeCommit);
+    const deliveryCommit = nonemptyStringField(prov.deliveryCommit);
+    if (mergeCommit === null || deliveryCommit === null) {
+      return {
+        ok: false,
+        detail:
+          `code-bearing disposition ${prov.disposition} requires mergeCommit and deliveryCommit ` +
+          `(mirror stampDeliveryProvenance / evaluateDeliveryGate) (#5602)`,
+      };
+    }
+  }
+
+  return { ok: true };
 }
 
 function remoteDeliveryRef(branch: string): string {

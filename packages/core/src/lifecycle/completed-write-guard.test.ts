@@ -319,10 +319,12 @@ describe("evaluateCompletedWriteGuard (#3766 active deletion)", () => {
   ): string {
     const data = JSON.parse(raw) as {
       plan: {
+        status?: string;
         items?: Array<Record<string, unknown>>;
         narratives?: Record<string, string>;
         references?: Array<{ type: string; uri: string }>;
         id?: string;
+        metadata?: Record<string, unknown>;
       };
     };
     data.plan.references = [{ type: "x-xbrief/github-issue", uri }];
@@ -334,6 +336,38 @@ describe("evaluateCompletedWriteGuard (#3766 active deletion)", () => {
     }
     if (extra?.id !== undefined) {
       data.plan.id = extra.id;
+    }
+    // Code-bearing completed dests need writer-shaped delivery provenance (#5602).
+    const status = String(data.plan.status ?? "");
+    if (status === "completed" || status === "failed" || status === "complete") {
+      const meta =
+        typeof data.plan.metadata === "object" &&
+        data.plan.metadata !== null &&
+        !Array.isArray(data.plan.metadata)
+          ? data.plan.metadata
+          : {};
+      data.plan.metadata = meta;
+      if (
+        typeof meta.completionProvenance !== "object" ||
+        meta.completionProvenance === null ||
+        Array.isArray(meta.completionProvenance)
+      ) {
+        meta.completionProvenance = {
+          repository: "deftai/directive",
+          implementationCommit: null,
+          prNumber: 4784,
+          prBase: "master",
+          mergeCommit: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          deliveryBranch: "master",
+          deliveryCommit: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          verifiedAt: "2026-08-25T00:00:00Z",
+          verifier: "scope:complete",
+          disposition: "delivered",
+          handoffState: "delivered",
+          deployed: null,
+          uatVerified: null,
+        };
+      }
     }
     return JSON.stringify(data);
   }
@@ -405,7 +439,7 @@ describe("evaluateCompletedWriteGuard (#3766 active deletion)", () => {
         items: [{ title: "story-item", status: "pending" }],
       }),
       withOrigin(stamped(), ISSUE_URI, {
-        items: [{ title: "other-item", status: "pending" }],
+        items: [{ title: "other-item", status: "completed" }],
       }),
     );
   });
@@ -475,7 +509,7 @@ describe("evaluateCompletedWriteGuard (#3766 active deletion)", () => {
       withOrigin(stamped(), ISSUE_URI, {
         items: [
           { title: "story-item", status: "completed" },
-          { id: "clause_1", title: "clause_1", status: "pending" },
+          { id: "clause_1", title: "clause_1", status: "completed" },
         ],
       }),
     );
@@ -997,13 +1031,28 @@ describe("evaluateCompletedWriteGuard (#3766 active deletion)", () => {
           status: "completed",
           items: [
             { title: "story-item", status: "completed" },
-            { id: "clause.1", title: "clause.1", status: "pending" },
+            { id: "clause.1", title: "clause.1", status: "completed" },
           ],
           references: [{ type: "x-xbrief/github-issue", uri: ISSUE_URI }],
           metadata: {
             lifecycleWrite: {
               action: "complete",
               writtenAt: "2026-08-25T00:00:00Z",
+            },
+            completionProvenance: {
+              repository: "deftai/directive",
+              implementationCommit: null,
+              prNumber: 4784,
+              prBase: "master",
+              mergeCommit: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              deliveryBranch: "master",
+              deliveryCommit: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              verifiedAt: "2026-08-25T00:00:00Z",
+              verifier: "scope:complete",
+              disposition: "delivered",
+              handoffState: "delivered",
+              deployed: null,
+              uatVerified: null,
             },
           },
         },
@@ -1321,7 +1370,8 @@ describe("evaluateCompletedWriteGuard disposition provenance (#3819)", () => {
     const ok = stampedWithItems([
       {
         title: "waived with eventRef",
-        status: "pending",
+        // Terminal checklist status required on new completed/ adds (#5602).
+        status: "completed",
         "x-directive/disposition": {
           disposition: "waived",
           reason: "operator waived on thread",
@@ -1346,7 +1396,7 @@ describe("evaluateCompletedWriteGuard disposition provenance (#3819)", () => {
     const missingRef = stampedWithItems([
       {
         title: "waived without eventRef",
-        status: "pending",
+        status: "completed",
         "x-directive/disposition": {
           disposition: "waived",
           reason: "operator waived",
@@ -1367,6 +1417,7 @@ describe("evaluateCompletedWriteGuard disposition provenance (#3819)", () => {
     const historical = stampedWithItems([
       {
         title: "historical waiver",
+        // Mods keep #4906 residual: consistency/#5602 delivery contract is adds-only.
         status: "pending",
         "x-directive/disposition": {
           disposition: "waived",
@@ -1419,6 +1470,215 @@ describe("evaluateCompletedWriteGuard disposition provenance (#3819)", () => {
     const result = evaluateCompletedWriteGuard("/tmp/proj", {
       addedFiles: [completedRel],
       payloads: new Map([[completedRel, stamped()]]),
+    });
+    expect(result.code).toBe(0);
+  });
+});
+
+describe("evaluateCompletedWriteGuard Prefer-A leftover provenance (#5602)", () => {
+  const completedRel = "xbrief/completed/2026-10-14-5602-specimen.xbrief.json";
+
+  /** Shape of #5477/#5601 informal leftover stamp — fixture negative, tip corpus untouched. */
+  function informal5477Shape(): string {
+    return JSON.stringify({
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "path-b-activate specimen",
+        status: "completed",
+        references: [
+          {
+            uri: "https://github.com/deftai/directive/issues/5477",
+            type: "x-xbrief/github-issue",
+            title: "Issue #5477",
+          },
+        ],
+        items: [
+          {
+            id: "limb-1",
+            title: "Rapid check zero-verified walk Bound remedy",
+            status: "pending",
+          },
+        ],
+        metadata: {
+          lifecycleWrite: {
+            action: "complete",
+            writtenAt: "2026-10-14T09:45:59.031Z",
+          },
+          completedAt: "2026-10-14T09:45:59.031Z",
+          completionProvenance: {
+            productMerge: "ef8649398175bb3773fd49047a964fcada0ffce2",
+            productPr: 5598,
+          },
+        },
+      },
+    });
+  }
+
+  function writerShapedDelivered(overrides: Record<string, unknown> = {}): string {
+    return JSON.stringify({
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "synthetic writer positive",
+        status: "completed",
+        references: [
+          {
+            uri: "https://github.com/deftai/directive/issues/5602",
+            type: "x-xbrief/github-issue",
+            title: "Issue #5602",
+          },
+        ],
+        items: [{ id: "1", title: "done", status: "completed" }],
+        metadata: {
+          lifecycleWrite: {
+            action: "complete",
+            writtenAt: "2026-10-14T15:00:00Z",
+          },
+          completionProvenance: {
+            repository: "deftai/directive",
+            implementationCommit: null,
+            prNumber: 5600,
+            prBase: "master",
+            mergeCommit: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            deliveryBranch: "master",
+            deliveryCommit: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            verifiedAt: "2026-10-14T15:00:00Z",
+            verifier: "scope:complete",
+            disposition: "delivered",
+            handoffState: "delivered",
+            deployed: null,
+            uatVerified: null,
+            ...overrides,
+          },
+        },
+      },
+    });
+  }
+
+  it("refuses #5477/#5601-shaped informal productMerge/productPr with open limb", () => {
+    const result = evaluateCompletedWriteGuard("/tmp/proj", {
+      addedFiles: [completedRel],
+      payloads: new Map([[completedRel, informal5477Shape()]]),
+    });
+    expect(result.code).toBe(1);
+    expect(result.findings.length).toBeGreaterThan(0);
+    const detail = result.findings.map((f) => f.detail).join("\n");
+    // Consistency (open limb) and/or informal keys — either finding closes Prefer-A.
+    expect(detail).toMatch(/open_items|pending|productMerge|productPr|#5602/);
+  });
+
+  it("refuses informal productMerge keys even when limbs are terminal", () => {
+    const informalOnly = JSON.stringify({
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "informal only",
+        status: "completed",
+        references: [
+          {
+            uri: "https://github.com/deftai/directive/issues/5477",
+            type: "x-xbrief/github-issue",
+          },
+        ],
+        items: [{ id: "1", title: "done", status: "completed" }],
+        metadata: {
+          lifecycleWrite: {
+            action: "complete",
+            writtenAt: "2026-10-14T09:45:59.031Z",
+          },
+          completionProvenance: {
+            productMerge: "ef8649398175bb3773fd49047a964fcada0ffce2",
+            productPr: 5598,
+          },
+        },
+      },
+    });
+    const result = evaluateCompletedWriteGuard("/tmp/proj", {
+      addedFiles: [completedRel],
+      payloads: new Map([[completedRel, informalOnly]]),
+    });
+    expect(result.code).toBe(1);
+    expect(result.findings[0]?.detail).toMatch(/productMerge|productPr|#5602/);
+  });
+
+  it("refuses code-bearing add missing completionProvenance", () => {
+    const missing = JSON.stringify({
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "code bearing no provenance",
+        status: "completed",
+        references: [
+          {
+            uri: "https://github.com/deftai/directive/issues/5602",
+            type: "x-xbrief/github-issue",
+          },
+        ],
+        metadata: {
+          lifecycleWrite: {
+            action: "complete",
+            writtenAt: "2026-10-14T15:00:00Z",
+          },
+          completedAt: "2026-10-14T15:00:00Z",
+        },
+      },
+    });
+    const result = evaluateCompletedWriteGuard("/tmp/proj", {
+      addedFiles: [completedRel],
+      payloads: new Map([[completedRel, missing]]),
+    });
+    expect(result.code).toBe(1);
+    expect(result.findings[0]?.detail).toMatch(/missing completionProvenance|#5602/);
+  });
+
+  it("refuses cast-through nonempty disposition string that is not eligible", () => {
+    const result = evaluateCompletedWriteGuard("/tmp/proj", {
+      addedFiles: [completedRel],
+      payloads: new Map([
+        [completedRel, writerShapedDelivered({ disposition: "shipped-somehow" })],
+      ]),
+    });
+    expect(result.code).toBe(1);
+    expect(result.findings[0]?.detail).toMatch(/not an eligible writer disposition|#5602/);
+  });
+
+  it("accepts synthetic writer-shaped delivered provenance (canonical positive)", () => {
+    const result = evaluateCompletedWriteGuard("/tmp/proj", {
+      addedFiles: [completedRel],
+      payloads: new Map([[completedRel, writerShapedDelivered()]]),
+    });
+    expect(result.code).toBe(0);
+    expect(result.findings).toHaveLength(0);
+  });
+
+  it("accepts non-code completed/ add without delivery provenance", () => {
+    const docsOnly = JSON.stringify({
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "docs only",
+        status: "completed",
+        tags: ["docs-only"],
+        metadata: {
+          kind: "docs",
+          lifecycleWrite: {
+            action: "complete",
+            writtenAt: "2026-10-14T15:00:00Z",
+          },
+          completedAt: "2026-10-14T15:00:00Z",
+        },
+      },
+    });
+    const result = evaluateCompletedWriteGuard("/tmp/proj", {
+      addedFiles: [completedRel],
+      payloads: new Map([[completedRel, docsOnly]]),
+    });
+    expect(result.code).toBe(0);
+  });
+
+  it("does not apply #5602 delivery contract to completed/ mods (#4906 residual)", () => {
+    // #5551 is shape comparison only in skill text — not writer-success proof.
+    // Mod path must not newly refuse informal keys in first-ship.
+    const informalMod = informal5477Shape();
+    const result = evaluateCompletedWriteGuard("/tmp/proj", {
+      nameStatus: `M\t${completedRel}`,
+      payloads: new Map([[completedRel, informalMod]]),
     });
     expect(result.code).toBe(0);
   });
