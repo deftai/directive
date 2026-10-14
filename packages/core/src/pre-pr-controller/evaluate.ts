@@ -94,7 +94,11 @@ function evaluateStoredRecord(
     return deny("deny-incomplete", "incomplete pre-PR run mints no pass");
   }
   const observables = runObservablesComplete(record);
-  if (!observables.ok) return observables;
+  // Waived observables are ok:false (not pass) but must still reach criteria
+  // authority — stale generation / changed approved criteria must deny (#5542).
+  const waivedObservables =
+    observables.code === "allow-waived" || observables.code === "allow-overridden";
+  if (!observables.ok && !waivedObservables) return observables;
   const criteria = evaluateCriteriaAuthority({
     record,
     currentGeneration: input.currentGeneration,
@@ -105,14 +109,14 @@ function evaluateStoredRecord(
   if (!criteria.ok) return criteria;
   // Preserve waived/overridden decision codes — never collapse onto allow-pass (#5542).
   // ok:false so CLI adapters (`d.ok ? 0 : 1`) exit non-zero; waived ≠ pass.
-  if (observables.code === "allow-waived" || record.outcome === "waived") {
+  if (waivedObservables || record.outcome === "waived") {
     return {
       ok: false,
       code: "allow-waived",
       message: "pre-PR waived continuation (coverage_headroom); not allow-pass",
     };
   }
-  if (observables.code === "allow-overridden" || record.outcome === "overridden") {
+  if (record.outcome === "overridden") {
     return {
       ok: false,
       code: "allow-overridden",
