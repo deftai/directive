@@ -21,11 +21,10 @@ describe("intent-constraint constants (#4541)", () => {
     expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(
       /Classify the condition|invariant \/ corruption \/ impossible-if-healthy/,
     );
+    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/rewrite solely to clear the gate is forbidden/);
+    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/park pending a human mint/);
     expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(
-      /rewrite solely to clear the gate is forbidden/,
-    );
-    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(
-      /park pending a human mint/,
+      /remaining new hard fact|numeric-const on an otherwise operational path/,
     );
     expect(FACT_KINDS).toEqual(["throw-site", "reject-site", "abort-site", "numeric-const"]);
     expect(REJECTION_SCOPES).toEqual(["item", "invocation", "operation"]);

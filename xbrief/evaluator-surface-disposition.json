@@ -1,10 +1,12 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 4981,
+  "issue": 5574,
   "surfaces": [
-    "Taskfile.yml",
+    "packages/core/src/intent-constraint/types.ts",
+    "packages/core/src/intent-constraint/types.test.ts",
+    "packages/core/src/intent-constraint/placement.test.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renewed disclosure for #4981 / PR #5464: Taskfile.yml includes tasks/tutorial.yml. Disclosure only; not #3164 authorization."
+  "note": "Renewed disclosure for #5574 / PR #5596 Prefer-A INTENT_CONSTRAINT_REMEDIATION + placement/types expectations. Disclosure only; not #3164 authorization."
 }
