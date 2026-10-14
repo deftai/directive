@@ -685,20 +685,22 @@ export const INFORMAL_COMPLETION_PROVENANCE_KEYS = ["productMerge", "productPr"]
 
 /**
  * Closed eligible delivery dispositions for new completed/ adds (#5602).
- * Excludes `unknown` / `unverified` — those are read-classifier residues, not
- * writer outputs. Do not bind universal classify!==unverified (Reject E).
+ * Successful completion records only: `delivered` or explicit
+ * `NON_DELIVERY_DISPOSITIONS`. Gate refuse outcomes (`not_delivered`,
+ * `merged_to_integration`) are not writer success stamps — both
+ * `scope:complete` paths stop before writing those. Excludes `unknown` /
+ * `unverified` (read-classifier residues). Do not bind universal
+ * classify!==unverified (Reject E).
  */
 export const ELIGIBLE_STORED_DELIVERY_DISPOSITIONS = [
   "delivered",
-  "merged_to_integration",
-  "not_delivered",
   ...NON_DELIVERY_DISPOSITIONS,
 ] as const;
 
 export type EligibleStoredDeliveryDisposition =
   (typeof ELIGIBLE_STORED_DELIVERY_DISPOSITIONS)[number];
 
-const DELIVERED_CLASS_DISPOSITIONS = new Set<string>(["delivered", "merged_to_integration"]);
+const DELIVERED_CLASS_DISPOSITIONS = new Set<string>(["delivered"]);
 
 export function isEligibleStoredDeliveryDisposition(
   value: unknown,
@@ -709,11 +711,9 @@ export function isEligibleStoredDeliveryDisposition(
   );
 }
 
-export function hasInformalCompletionProvenanceKeys(
-  provenance: Record<string, unknown>,
-): boolean {
+export function hasInformalCompletionProvenanceKeys(provenance: Record<string, unknown>): boolean {
   for (const key of INFORMAL_COMPLETION_PROVENANCE_KEYS) {
-    if (Object.prototype.hasOwnProperty.call(provenance, key)) {
+    if (Object.hasOwn(provenance, key)) {
       return true;
     }
   }
@@ -729,6 +729,19 @@ function nonemptyStringField(value: unknown): string | null {
 }
 
 /**
+ * True when a completed/ plan is a failed outcome (`scope:fail`).
+ * Fail stamps omit completionProvenance by design (#3679 / #5602).
+ */
+export function isFailedCompletionOutcome(plan: Record<string, unknown>): boolean {
+  const meta = asRecord(plan.metadata);
+  const stamp = asRecord(meta?.lifecycleWrite);
+  if (stamp !== null && stamp.action === "fail") {
+    return true;
+  }
+  return String(plan.status ?? "") === "failed";
+}
+
+/**
  * Fail-closed stored completionProvenance check for new completed/ adds (#5602).
  *
  * Two disposition surfaces (do not conflate):
@@ -737,6 +750,8 @@ function nonemptyStringField(value: unknown): string | null {
  *
  * Rules:
  * - Refuse informal `productMerge` / `productPr` keys on any add.
+ * - Failed outcomes (`scope:fail`) are exempt from delivery proof — they land
+ *   without completionProvenance by design.
  * - Code-bearing: require present provenance with an eligible disposition enum
  *   and writer-shaped evidence fields (not any nonempty disposition string).
  * - Non-code: missing delivery provenance remains legal (canonical writer may
@@ -760,6 +775,11 @@ export function evaluateStoredCompletionProvenanceForWriteGuard(
         "Prefer-A leftover-complete must use swarm:finalize-cohort or scope:complete " +
         "→ evaluateDeliveryGate → stampDeliveryProvenance (#5602)",
     };
+  }
+
+  // scope:fail lands code-bearing briefs without delivery proof (#5602 P1).
+  if (isFailedCompletionOutcome(plan)) {
+    return { ok: true };
   }
 
   if (!isCodeBearingScope(plan)) {

@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Prefer-A leftover-complete write-guard (#5602).** New completed/ adds must pass `evaluateCompletedPlanConsistency`, refuse informal `productMerge`/`productPr` stamps, and (code-bearing only) require eligible `completionProvenance.disposition` + writer evidence fields via `evaluateStoredCompletionProvenanceForWriteGuard`. Non-code may omit delivery provenance. Names two disposition surfaces: acceptance-item `#3819` vs delivery provenance. Swarm Phase 6 pin: leftover = finalize-cohort / scope:complete → stamp; stop on closer-set refuse; `#5551` shape comparison only. Tracking #5602.
+- **Stricter completion checks (#5602).** New completed briefs are checked for unfinished items and informal delivery records. Code-bearing briefs also need recorded delivery proof. Swarm guidance directs agents to finish leftover work through `task swarm:finalize-cohort` or `task scope:complete` with delivery evidence, and to stop if those commands refuse.
 
 ### Changed
 
