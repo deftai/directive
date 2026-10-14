@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-10-14-5477-cohort-path-b-mint.xbrief.json",
+  "planId": "github.issue.5754500324",
+  "approvedAt": "2026-10-14T03:04:06Z",
+  "fileScope": [
+    "CHANGELOG.md",
+    "packages/core/src/check/cached-orchestrator.ts",
+    "packages/core/src/check/rapid-zero-verified.test.ts",
+    "packages/core/src/check/rapid-zero-verified.ts",
+    "packages/core/src/check/session-completed-ac.test.ts",
+    "packages/core/src/check/session-completed-ac.ts",
+    "packages/core/src/scope/acceptance-evidence.ts"
+  ],
+  "fileScopeDigest": "cd1c9ea17dc3c9d5a2ba325132d5a7a31c2ab114756fc01bc722526cf08a9c29",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-10-14T03:04:06Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "03db6aed62aac3635aaf45473d0f627cf67a4918dfb7e01e98375ddb783d16d3",
+  "digestAlgo": "intent-extract-v1"
+}
