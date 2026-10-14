@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import {
   existsSync,
   mkdirSync,
@@ -7,7 +8,7 @@ import {
   statSync,
   unlinkSync,
 } from "node:fs";
-import { basename, dirname, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { containedWrite } from "../fs/contained-write.js";
 import {
   assertProjectionContained,
@@ -167,7 +168,10 @@ export function activate(vbriefPath: string, options: ActivateOptions = {}): Act
       // Prefer-A Bound #4768 / Greptile P1: never truncate the only active
       // copy in place — write a sibling .tmp then rename (same shape as the
       // pending→active path below).
-      const restampTmp = `${vbriefPath}.tmp`;
+      const restampTmp = join(
+        dirname(vbriefPath),
+        `${basename(vbriefPath)}.${randomBytes(4).toString("hex")}.tmp`,
+      );
       try {
         containedWrite({
           root: resolve(projectRootEarly),

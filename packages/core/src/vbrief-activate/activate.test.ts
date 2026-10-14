@@ -2,13 +2,14 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { validateVbriefSchema } from "../vbrief-validate/schema.js";
 import { activate } from "./activate.js";
@@ -207,7 +208,11 @@ describe("activate", () => {
     expect(result.exitCode).toBe(0);
     expect(result.message).toContain("No-op");
     expect(existsSync(src)).toBe(true);
-    expect(existsSync(`${src}.tmp`)).toBe(false);
+    expect(
+      readdirSync(dirname(src)).some(
+        (name) => name.startsWith(`${basename(src)}.`) && name.endsWith(".tmp"),
+      ),
+    ).toBe(false);
     const after = readFileSync(src, "utf8");
     expect(after).not.toBe(before);
     const payload = JSON.parse(after) as {
