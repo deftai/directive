@@ -1,13 +1,12 @@
 {
   "xBRIEFInfo": {
     "version": "0.8",
-    "description": "Path B activate #5545 Prefer-A Bound",
-    "updated": "2026-10-14T06:45:02.568Z"
+    "description": "Path B activate #5545 Prefer-A Bound"
   },
   "plan": {
     "id": "github.issue.5814948150",
     "status": "running",
-    "title": "Path B activate #5545 Prefer-A Bound",
+    "title": "Path B activate #5545 Prefer-A Bound file_scope",
     "references": [
       {
         "uri": "https://github.com/deftai/directive/issues/5545",
@@ -26,8 +25,10 @@
         "file_scope": [
           "packages/core/src/swarm/finalize-cohort.ts",
           "packages/core/src/swarm/finalize-cohort.test.ts",
+          "packages/core/src/swarm/finalize-cohort-cli.ts",
           "packages/core/src/swarm/origin-active-brief.ts",
           "packages/core/src/swarm/origin-active-brief.test.ts",
+          "packages/core/src/swarm/finalize-owed-cli.ts",
           "packages/core/src/swarm/finalize-owed.ts",
           "packages/core/src/swarm/finalize-owed.test.ts",
           "packages/core/src/scope/delivery-evidence.ts",
@@ -41,16 +42,18 @@
         "files": [
           "packages/core/src/swarm/finalize-cohort.ts",
           "packages/core/src/swarm/finalize-cohort.test.ts",
+          "packages/core/src/swarm/finalize-cohort-cli.ts",
           "packages/core/src/swarm/origin-active-brief.ts",
           "packages/core/src/swarm/origin-active-brief.test.ts",
+          "packages/core/src/swarm/finalize-owed-cli.ts",
           "packages/core/src/swarm/finalize-owed.ts",
           "packages/core/src/swarm/finalize-owed.test.ts",
           "packages/core/src/scope/delivery-evidence.ts",
           "packages/core/src/scope/delivery-evidence.test.ts",
           "CHANGELOG.md"
         ],
-        "cohesion_exemption": "CHANGELOG.md Unreleased Keep active note for Path B activation",
-        "module_boundary": "Prefer-A Bound 6152219528"
+        "cohesion_exemption": "CHANGELOG.md Unreleased Keep note for Path B mint",
+        "module_boundary": "Prefer-A Bound 6152219528 for issue 5545"
       }
     },
     "acceptance": {
@@ -62,7 +65,7 @@
     "items": [
       {
         "id": "limb-1",
-        "title": "Implement Prefer-A Bound limbs for #5545",
+        "title": "Validate branch names before git fetch refspecs in subprocess-scm-01 Bound remedy",
         "status": "pending"
       }
     ]
