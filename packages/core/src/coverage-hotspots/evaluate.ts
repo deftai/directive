@@ -397,55 +397,54 @@ export function evaluateCoverageHotspots(options: CoverageHotspotsOptions): Cove
     }
 
     if (applicability.outcome === "refuse") {
-      // #5542: named v1 consumer honors gate-override grant → waived (exit 4), never exit 0.
-      const attemptId = resolvedAttemptId ?? "";
-      if (attemptId.length > 0) {
-        const admitted = admitGateOverrideForAttempt(projectRoot, {
-          refuseCode: applicability.code,
-          baseSha: binding.baseSha,
-          headSha: binding.headSha,
-          treeHash: binding.treeHash,
-          attemptId,
-          observedRefuseReason: applicability.reason,
-          worktree: options.gateOverrideWorktree,
-          evaluatorId: options.gateOverrideEvaluatorId,
-        });
-        if (admitted.ok) {
-          const waived = toWaivedCoverageApplicability(applicability, {
-            grantId: admitted.receipt.grantId,
-            attemptId: admitted.receipt.attemptId,
-            reviewObligation: admitted.receipt.reviewObligation,
-            admittedAt: admitted.receipt.admittedAt,
-            observedRefuseCode: admitted.receipt.refuseCode,
-            observedRefuseReason: admitted.receipt.observedRefuseReason,
-          });
-          const waivedArtifact = buildApplicabilityArtifact(waived, binding);
-          const payload = `${JSON.stringify(waivedArtifact, null, 2)}\n`;
-          return {
-            exitCode: COVERAGE_HEADROOM_WAIVED_EXIT,
-            report: null,
-            message:
-              `coverage-hotspots: waived (${COVERAGE_HEADROOM_WAIVED_SKIP})\n` +
-              `  Observed refuse=${applicability.code}; grant=${admitted.receipt.grantId}; ` +
-              `reviewObligation=${admitted.receipt.reviewObligation}.\n` +
-              `  Waived is not a measured pass (exit ${COVERAGE_HEADROOM_WAIVED_EXIT} ≠ 0).\n` +
-              payload,
-            applicability: waivedArtifact,
-          };
-        }
-      }
+      // dirty-tree / empty-selection with a report must still hit the measured
+      // floor — a waiver of applicability must not also waive coverage floors
+      // (#5542 Greptile P1).
+      const continueToMeasured =
+        (applicability.code === "empty-selection" || applicability.code === "dirty-tree") &&
+        reportExists;
 
-      // Fail closed on refuse even when a prior report exists — unknown/mismatched
-      // diffs must not inherit a measured pass from stale Istanbul dogfood.
-      // Exceptions that continue to the measured floor when a report exists:
-      // - empty-selection: not proof of N/A (Bound limb 4 dogfood)
-      // - dirty-tree: blocks N/A only; before-commit measured hotspots must still run
-      if (
-        !(
-          (applicability.code === "empty-selection" || applicability.code === "dirty-tree") &&
-          reportExists
-        )
-      ) {
+      if (!continueToMeasured) {
+        // #5542: named v1 consumer honors gate-override grant → waived (exit 4), never exit 0.
+        const attemptId = resolvedAttemptId ?? "";
+        if (attemptId.length > 0) {
+          const admitted = admitGateOverrideForAttempt(projectRoot, {
+            refuseCode: applicability.code,
+            baseSha: binding.baseSha,
+            headSha: binding.headSha,
+            treeHash: binding.treeHash,
+            attemptId,
+            observedRefuseReason: applicability.reason,
+            worktree: options.gateOverrideWorktree,
+            evaluatorId: options.gateOverrideEvaluatorId,
+          });
+          if (admitted.ok) {
+            const waived = toWaivedCoverageApplicability(applicability, {
+              grantId: admitted.receipt.grantId,
+              attemptId: admitted.receipt.attemptId,
+              reviewObligation: admitted.receipt.reviewObligation,
+              admittedAt: admitted.receipt.admittedAt,
+              observedRefuseCode: admitted.receipt.refuseCode,
+              observedRefuseReason: admitted.receipt.observedRefuseReason,
+            });
+            const waivedArtifact = buildApplicabilityArtifact(waived, binding);
+            const payload = `${JSON.stringify(waivedArtifact, null, 2)}\n`;
+            return {
+              exitCode: COVERAGE_HEADROOM_WAIVED_EXIT,
+              report: null,
+              message:
+                `coverage-hotspots: waived (${COVERAGE_HEADROOM_WAIVED_SKIP})\n` +
+                `  Observed refuse=${applicability.code}; grant=${admitted.receipt.grantId}; ` +
+                `reviewObligation=${admitted.receipt.reviewObligation}.\n` +
+                `  Waived is not a measured pass (exit ${COVERAGE_HEADROOM_WAIVED_EXIT} ≠ 0).\n` +
+                payload,
+              applicability: waivedArtifact,
+            };
+          }
+        }
+
+        // Fail closed on refuse even when a prior report exists — unknown/mismatched
+        // diffs must not inherit a measured pass from stale Istanbul dogfood.
         return {
           exitCode: 2,
           report: null,

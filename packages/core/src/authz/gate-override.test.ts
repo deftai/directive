@@ -216,4 +216,93 @@ describe("gate-override (#5542 Prefer-A Bound)", () => {
     if (recheck.ok) return;
     expect(recheck.code).toBe("revoked");
   });
+
+  it("attempt ids a/b and a_b do not share an admission file", () => {
+    root = mkdtempSync(join(tmpdir(), "gate-override-"));
+    const baseSha = "a".repeat(40);
+    const headSha = "b".repeat(40);
+    const treeHash = "c".repeat(40);
+    const minted = mintGateOverrideTemplateGrant({
+      projectRoot: root,
+      target: "unknown-path",
+      planRef: "a/b",
+      baseSha,
+      headSha,
+      treeHash,
+    });
+    expect(minted.ok).toBe(true);
+    if (!minted.ok) return;
+    const first = admitGateOverrideForAttempt(root, {
+      refuseCode: "unknown-path",
+      baseSha,
+      headSha,
+      treeHash,
+      attemptId: "a/b",
+      observedRefuseReason: "unknown path",
+    });
+    expect(first.ok).toBe(true);
+    if (!first.ok) return;
+    expect(first.reused).toBe(false);
+
+    const colliding = mintGateOverrideTemplateGrant({
+      projectRoot: root,
+      target: "unknown-path",
+      planRef: "a_b",
+      baseSha,
+      headSha,
+      treeHash,
+    });
+    expect(colliding.ok).toBe(true);
+    if (!colliding.ok) return;
+    const second = admitGateOverrideForAttempt(root, {
+      refuseCode: "unknown-path",
+      baseSha,
+      headSha,
+      treeHash,
+      attemptId: "a_b",
+      observedRefuseReason: "unknown path",
+    });
+    expect(second.ok).toBe(true);
+    if (!second.ok) return;
+    expect(second.reused).toBe(false);
+    expect(second.receipt.attemptId).toBe("a_b");
+    expect(second.receipt.grantId).not.toBe(first.receipt.grantId);
+  });
+
+  it("grant worktree limit binds even when caller omits worktree", () => {
+    root = mkdtempSync(join(tmpdir(), "gate-override-"));
+    const baseSha = "d".repeat(40);
+    const headSha = "e".repeat(40);
+    const treeHash = "f".repeat(40);
+    const minted = mintGateOverrideTemplateGrant({
+      projectRoot: root,
+      target: "unknown-path",
+      planRef: "attempt-wt",
+      baseSha,
+      headSha,
+      treeHash,
+      worktree: "wt-required",
+    });
+    expect(minted.ok).toBe(true);
+    if (!minted.ok) return;
+    const without = admitGateOverrideForAttempt(root, {
+      refuseCode: "unknown-path",
+      baseSha,
+      headSha,
+      treeHash,
+      attemptId: "attempt-wt",
+      observedRefuseReason: "unknown path",
+    });
+    expect(without.ok).toBe(false);
+    const withWt = admitGateOverrideForAttempt(root, {
+      refuseCode: "unknown-path",
+      baseSha,
+      headSha,
+      treeHash,
+      attemptId: "attempt-wt",
+      observedRefuseReason: "unknown path",
+      worktree: "wt-required",
+    });
+    expect(withWt.ok).toBe(true);
+  });
 });

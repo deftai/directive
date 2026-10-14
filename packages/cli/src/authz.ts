@@ -662,7 +662,8 @@ export function main(
             treeHash: args.treeHash,
             actor: args.actor,
             expiresAt: args.expiresAt,
-            singleUse: args.singleUse,
+            // gate-override template is always single-use (#5542 Greptile P2).
+            singleUse: true,
             repo: args.repo,
             branch: args.branch,
             worktree: args.worktree,

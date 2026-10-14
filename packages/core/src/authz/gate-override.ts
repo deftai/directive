@@ -5,6 +5,7 @@
  * operator-session is non-admitting in v1. Inspection does not consume.
  */
 
+import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import {
@@ -266,19 +267,23 @@ export function grantMatchesGateOverride(
   if (parsed.headSha !== binding.headSha.trim()) return false;
   if (parsed.treeHash !== binding.treeHash.trim()) return false;
   if (parsed.attemptId !== binding.attemptId.trim()) return false;
-  if (
+  // Grant-set worktree/evaluator limits always bind — omitting them on the
+  // caller must not drop the limit (#5542 Greptile P1).
+  if (parsed.worktree !== null && parsed.worktree.length > 0) {
+    if ((binding.worktree ?? "").trim() !== parsed.worktree) return false;
+  } else if (
     binding.worktree !== undefined &&
     binding.worktree !== null &&
-    binding.worktree.trim().length > 0 &&
-    (parsed.worktree ?? "") !== binding.worktree.trim()
+    binding.worktree.trim().length > 0
   ) {
     return false;
   }
-  if (
+  if (parsed.evaluatorId !== null && parsed.evaluatorId.length > 0) {
+    if ((binding.evaluatorId ?? "").trim() !== parsed.evaluatorId) return false;
+  } else if (
     binding.evaluatorId !== undefined &&
     binding.evaluatorId !== null &&
-    binding.evaluatorId.trim().length > 0 &&
-    (parsed.evaluatorId ?? "") !== binding.evaluatorId.trim()
+    binding.evaluatorId.trim().length > 0
   ) {
     return false;
   }
@@ -374,7 +379,8 @@ export function mintGateOverrideTemplateGrant(
     operations: ["settings"],
     surfaces,
     expiresAt,
-    singleUse: input.singleUse !== false,
+    // Template is single-use; CLI default false must not override (#5542).
+    singleUse: true,
     planRef: attemptId,
     repo: input.repo ?? null,
     branch: input.branch ?? null,
@@ -391,7 +397,8 @@ function admissionsDir(projectRoot: string): string {
 }
 
 function admissionPath(projectRoot: string, attemptId: string): string {
-  const safe = attemptId.replace(/[^a-zA-Z0-9._-]/g, "_");
+  // Hash the attempt id so a/b and a_b cannot collide on disk (#5542 Greptile P1).
+  const safe = createHash("sha256").update(attemptId, "utf8").digest("hex");
   return join(admissionsDir(projectRoot), `${safe}.json`);
 }
 
@@ -548,6 +555,13 @@ export function admitGateOverrideForAttempt(
 
   const prior = loadGateOverrideAdmission(projectRoot, input.attemptId);
   if (prior !== null) {
+    if (prior.attemptId !== input.attemptId.trim()) {
+      return {
+        ok: false,
+        code: "admission-mismatch",
+        reason: "gate-override: prior admission attempt id does not match requested attempt",
+      };
+    }
     if (
       prior.refuseCode !== refuseCode ||
       prior.baseSha !== input.baseSha.trim() ||
@@ -584,6 +598,28 @@ export function admitGateOverrideForAttempt(
           reason: "gate-override: grant expired after admission (expiry dominates recheck)",
         };
       }
+    }
+    // Re-enforce grant worktree/evaluator limits on reuse (#5542 Greptile P1).
+    if (
+      !grantMatchesGateOverride(
+        grant,
+        {
+          refuseCode,
+          baseSha: input.baseSha,
+          headSha: input.headSha,
+          treeHash: input.treeHash,
+          attemptId: input.attemptId,
+          worktree: input.worktree,
+          evaluatorId: input.evaluatorId,
+        },
+        now,
+      )
+    ) {
+      return {
+        ok: false,
+        code: "admission-mismatch",
+        reason: "gate-override: prior admission no longer matches grant worktree/evaluator limits",
+      };
     }
     return { ok: true, grant, receipt: prior, reused: true };
   }

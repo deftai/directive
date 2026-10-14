@@ -104,16 +104,17 @@ function evaluateStoredRecord(
   });
   if (!criteria.ok) return criteria;
   // Preserve waived/overridden decision codes — never collapse onto allow-pass (#5542).
+  // ok:false so CLI adapters (`d.ok ? 0 : 1`) exit non-zero; waived ≠ pass.
   if (observables.code === "allow-waived" || record.outcome === "waived") {
     return {
-      ok: true,
+      ok: false,
       code: "allow-waived",
       message: "pre-PR waived continuation (coverage_headroom); not allow-pass",
     };
   }
   if (observables.code === "allow-overridden" || record.outcome === "overridden") {
     return {
-      ok: true,
+      ok: false,
       code: "allow-overridden",
       message: "pre-PR overridden continuation; not allow-pass",
     };

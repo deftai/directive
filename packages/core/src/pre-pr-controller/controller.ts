@@ -8,6 +8,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
+import { loadGateOverrideAdmission, loadGrant } from "../authz/index.js";
 import {
   type CoverageApplicabilityDeps,
   evaluateCoverageApplicability,
@@ -360,9 +361,32 @@ function commandSatisfied(
     if (row.exitCode === 0) {
       return spec.command !== null && coverageHotspotsCommandMatches(row.command, spec.command);
     }
-    // #5542: exit 4 + waived skip is scoped continuation (not pass / not N/A).
+    // #5542: exit 4 + waived skip requires a live admission receipt for this
+    // run/tree — forged observe-command skip strings alone must not satisfy.
     if (row.exitCode === COVERAGE_HEADROOM_WAIVED_EXIT) {
-      return isCoverageHeadroomWaivedSkip(row.skipReason);
+      if (!isCoverageHeadroomWaivedSkip(row.skipReason)) return false;
+      if (spec.command === null || !coverageHotspotsCommandMatches(row.command, spec.command)) {
+        return false;
+      }
+      const projectRoot = options?.projectRoot ?? process.cwd();
+      const attemptId = process.env.DEFT_GATE_OVERRIDE_ATTEMPT_ID?.trim() || record.id;
+      const admission = loadGateOverrideAdmission(projectRoot, attemptId);
+      if (admission === null) return false;
+      if (
+        admission.baseSha !== record.baseSha ||
+        admission.headSha !== record.headSha ||
+        admission.treeHash !== record.treeHash
+      ) {
+        return false;
+      }
+      const grant = loadGrant(projectRoot, admission.grantId);
+      if (grant === null) return false;
+      if (grant.semantics.revokedAt !== null) return false;
+      if (grant.semantics.expiresAt !== null) {
+        const exp = Date.parse(grant.semantics.expiresAt);
+        if (Number.isFinite(exp) && exp <= Date.now()) return false;
+      }
+      return true;
     }
     // Authorized N/A is exit 3 only (hotspots emits 3 when inert + no report).
     // Exit 1 measured floor fails must not launder into skip via inert re-derivation.
@@ -497,8 +521,12 @@ export function completeRun(
     return deny("deny-missing-record", `pre-PR run ${runId} is not in the private store`);
   }
   const observables = runObservablesComplete(current, options);
-  if (!observables.ok) return observables;
-  const waived = observables.code === "allow-waived" || observables.code === "allow-overridden";
+  const waivedObservables =
+    observables.code === "allow-waived" || observables.code === "allow-overridden";
+  // Waived observables use ok:true internally so publish can proceed; CLI exit
+  // is forced non-zero on the returned decision below (#5542 Greptile P1).
+  if (!observables.ok && !waivedObservables) return observables;
+  const waived = waivedObservables;
   const published: PrePrExecutionRecord = {
     ...current,
     state: "complete",
@@ -508,7 +536,8 @@ export function completeRun(
   };
   store.put(published);
   return {
-    ok: true,
+    // Published waived runs stay distinct from pass for CLI exit (#5542).
+    ok: !waived,
     code: waived ? "allow-waived" : "allow-pass",
     message: `published ${runId}${waived ? " (waived ≠ pass)" : ""}`,
   };
