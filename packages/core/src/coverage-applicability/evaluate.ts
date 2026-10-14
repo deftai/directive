@@ -530,8 +530,18 @@ function isStringArray(value: unknown): boolean {
   return Array.isArray(value) && value.every((item) => typeof item === "string");
 }
 
+const INTERVIEW_CONFIRMATION_ALLOWED_KEYS = new Set([
+  "scope",
+  "target",
+  "revisionId",
+  "at",
+]);
+
 function isInterviewConfirmationEntry(value: unknown): boolean {
   if (!isPlainObject(value)) return false;
+  for (const key of Object.keys(value)) {
+    if (!INTERVIEW_CONFIRMATION_ALLOWED_KEYS.has(key)) return false;
+  }
   if (value.scope !== "answer" && value.scope !== "artifact" && value.scope !== "phase") {
     return false;
   }
@@ -674,15 +684,14 @@ export function isSpecificationNarrativeRefreshOnly(baseDoc: unknown, headDoc: u
   for (const key of SPEC_NARRATIVE_DEMOTION_KEYS) {
     allow.add(`/plan/narratives/${jsonPointerEscape(key)}`);
   }
-  // First-time narratives object / key create.
-  if (baseNarratives === null && headNarratives !== null) {
+  // First-time narratives object create: demote only when every new key is
+  // Requirements/Design (Architecture etc. stay coverable).
+  if (
+    baseNarratives === null &&
+    headNarratives !== null &&
+    Object.keys(headNarratives).every((key) => SPEC_NARRATIVE_DEMOTION_KEYS.has(key))
+  ) {
     allow.add("/plan/narratives");
-  } else if (baseNarratives !== null && headNarratives !== null) {
-    for (const key of SPEC_NARRATIVE_DEMOTION_KEYS) {
-      if (!Object.hasOwn(baseNarratives, key) && Object.hasOwn(headNarratives, key)) {
-        // Key add is already the child pointer from collectChangedPointers.
-      }
-    }
   }
   return changed.every((pointer) => allow.has(pointer));
 }

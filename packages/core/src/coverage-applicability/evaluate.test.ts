@@ -791,6 +791,33 @@ describe("plan/spec closed-pointer demotion helpers (#5551)", () => {
     ) as unknown;
     expect(isSpecificationNarrativeRefreshOnly(base, headArch)).toBe(false);
   });
+
+  it("demotes first-time Requirements/Design narratives create and refuses Architecture create", () => {
+    const base = JSON.parse(specDoc({ updated: "2026-10-01T00:00:00Z" })) as unknown;
+    const headOk = JSON.parse(
+      specDoc({
+        updated: "2026-10-09T00:00:00Z",
+        narratives: { Requirements: "new", Design: "new" },
+      }),
+    ) as unknown;
+    expect(isSpecificationNarrativeRefreshOnly(base, headOk)).toBe(true);
+
+    const headArch = JSON.parse(
+      specDoc({
+        updated: "2026-10-09T00:00:00Z",
+        narratives: { Architecture: "new" },
+      }),
+    ) as unknown;
+    expect(isSpecificationNarrativeRefreshOnly(base, headArch)).toBe(false);
+
+    const headMixed = JSON.parse(
+      specDoc({
+        updated: "2026-10-09T00:00:00Z",
+        narratives: { Requirements: "new", Architecture: "new" },
+      }),
+    ) as unknown;
+    expect(isSpecificationNarrativeRefreshOnly(base, headMixed)).toBe(false);
+  });
 });
 
 describe("evaluateCoverageApplicability #5551 Prefer-A Bound", () => {
@@ -1086,6 +1113,16 @@ describe("evaluateCoverageApplicability #5551 Prefer-A Bound", () => {
       }),
     ) as unknown;
     expect(isPlanInterviewContinuationRefreshOnly(planBase, badConfirm)).toBe(false);
+
+    const unknownConfirmKey = JSON.parse(
+      planDoc({
+        updated: "2026-10-09T00:00:00Z",
+        interviewContinuation: {
+          confirmations: [{ scope: "answer", target: "q", extra: { nested: true } }],
+        },
+      }),
+    ) as unknown;
+    expect(isPlanInterviewContinuationRefreshOnly(planBase, unknownConfirmKey)).toBe(false);
   });
 
   it("exposes isCoverageHeadroomNotApplicable for closed-shape sequence N/A", () => {
