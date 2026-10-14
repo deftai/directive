@@ -1,0 +1,12 @@
+{
+  "terminal_state": null,
+  "agent_id": "01a13ae8-55e6-73c3-952b-00969d920162",
+  "last_message": "preflight ok; starting implement for #4881",
+  "parent_id": "through-merge-5602-4881-4878-3583-2026-10-14",
+  "phase": "starting",
+  "last_heartbeat_at": "2026-10-14T14:55:16Z",
+  "extra": {
+    "issue": 4881,
+    "stop_at": "pr-open"
+  }
+}
