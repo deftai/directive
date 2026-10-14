@@ -1,7 +1,8 @@
 {
   "xBRIEFInfo": {
     "version": "0.8",
-    "description": "Path B activate #5545 Prefer-A Bound"
+    "description": "Path B activate #5545 Prefer-A Bound",
+    "updated": "2026-10-14T07:50:00.000Z"
   },
   "plan": {
     "id": "github.issue.5814948150",

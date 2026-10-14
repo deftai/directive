@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bump `actions/download-artifact` from 8.0.1 to 8.0.2 (#5555).
 
 ### Fixed
+- Align the active #5545 brief with its approved scope, including both CLI files and the placement notes.
 - Keep active #5545 Path B Prefer-A Bound file_scope.
 - Keep active #5551 Path B Prefer-A Bound file_scope.
 - Keep active #5574 Path B Prefer-A Bound file_scope.
