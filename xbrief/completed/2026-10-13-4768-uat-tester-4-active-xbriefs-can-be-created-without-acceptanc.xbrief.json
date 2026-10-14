@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4768",
-    "updated": "2026-10-13T19:15:00Z"
+    "updated": "2026-10-14T01:07:05.671Z"
   },
   "plan": {
     "title": "[UAT Tester 4] Active xBRIEFs can be created without acceptance commands",
@@ -17,55 +17,127 @@
       {
         "id": "clause.1",
         "title": "Keep the live residual framed as Windows Grok active with command-present / clause-text-empty acceptance under DCR agent.active_xbrief_has_acceptance; do not collapse into #5544 cascade.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/scope/transition.ts",
         "narrative": {
           "Acceptance": "Keep the live residual framed as Windows Grok active with command-present / clause-text-empty acceptance under DCR agent.active_xbrief_has_acceptance; do not collapse into #5544 cascade."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5571 squash-merge (Tracking #4768). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5571",
+            "mintedAt": "2026-10-14T01:07:05.671Z",
+            "mintedVia": "approach1-babysit-restamp"
+          },
+          "recorded_at": "2026-10-14T01:07:05.671Z"
         }
       },
       {
         "id": "clause.2",
         "title": "Do not extend zeroClauseDerivationRefusal / #4984 activate-promote refuse as the primary fix; pin inventory already refuses command-present/clauseless on actual transition.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/scope/acceptance-activate-gate.ts",
         "narrative": {
           "Acceptance": "Do not extend zeroClauseDerivationRefusal / #4984 activate-promote refuse as the primary fix; pin inventory already refuses command-present/clauseless on actual transition."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5571 squash-merge (Tracking #4768). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5571",
+            "mintedAt": "2026-10-14T01:07:05.671Z",
+            "mintedVia": "approach1-babysit-restamp"
+          },
+          "recorded_at": "2026-10-14T01:07:05.671Z"
         }
       },
       {
         "id": "clause.3",
         "title": "Localize active ingress with fixture evidence among already-active no-op, direct/hand-authored active write, post-activate strip/overwrite, or restore/materialize before any new product refuse.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/scope/transition.test.ts",
         "narrative": {
           "Acceptance": "Localize active ingress with fixture evidence among already-active no-op, direct/hand-authored active write, post-activate strip/overwrite, or restore/materialize before any new product refuse."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5571 squash-merge (Tracking #4768). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5571",
+            "mintedAt": "2026-10-14T01:07:05.671Z",
+            "mintedVia": "approach1-babysit-restamp"
+          },
+          "recorded_at": "2026-10-14T01:07:05.671Z"
         }
       },
       {
         "id": "clause.4",
         "title": "Keep DCR as a non-empty acceptance text consumer; reject remedying by counting commands as acceptance texts; compare scanned artifact to readAcceptanceClauses.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/scope/acceptance-activate-gate.test.ts",
         "narrative": {
           "Acceptance": "Keep DCR as a non-empty acceptance text consumer; reject remedying by counting commands as acceptance texts; compare scanned artifact to readAcceptanceClauses."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5571 squash-merge (Tracking #4768). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5571",
+            "mintedAt": "2026-10-14T01:07:05.671Z",
+            "mintedVia": "approach1-babysit-restamp"
+          },
+          "recorded_at": "2026-10-14T01:07:05.671Z"
         }
       },
       {
         "id": "clause.5",
         "title": "Name the three-oracle split (activate refuse / verify:ac commands / DCR texts); Bound owns landing usable clause text into active via ingress fix or revalidation.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/scope/lifecycle-write.ts",
         "narrative": {
           "Acceptance": "Name the three-oracle split (activate refuse / verify:ac commands / DCR texts); Bound owns landing usable clause text into active via ingress fix or revalidation."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5571 squash-merge (Tracking #4768). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5571",
+            "mintedAt": "2026-10-14T01:07:05.671Z",
+            "mintedVia": "approach1-babysit-restamp"
+          },
+          "recorded_at": "2026-10-14T01:07:05.671Z"
         }
       },
       {
         "id": "clause.6",
         "title": "Keep #3284 intake floor legal before activate; recovery stays operator-visible definition step or #4374 declared surfaces; no silent agent authorship from the issue thread.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/scope/transition.ts",
         "narrative": {
           "Acceptance": "Keep #3284 intake floor legal before activate; recovery stays operator-visible definition step or #4374 declared surfaces; no silent agent authorship from the issue thread."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5571 squash-merge (Tracking #4768). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5571",
+            "mintedAt": "2026-10-14T01:07:05.671Z",
+            "mintedVia": "approach1-babysit-restamp"
+          },
+          "recorded_at": "2026-10-14T01:07:05.671Z"
         }
       }
     ],
@@ -194,9 +266,18 @@
         "parallel_safe": true
       },
       "x-directive/derived_reason": "Prefer-A Bound limbs hand-stamped after empty body harvest (#4374); clauses bind Bound remedy",
-      "productPullRequest": 5571
+      "productPullRequest": 5571,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-14T01:07:05.671Z"
+      },
+      "completedAt": "2026-10-14T01:07:05.671Z",
+      "completionProvenance": {
+        "productMerge": "d0da3a42d52cb06844b1673e730c11018e298123",
+        "productPr": 5571
+      }
     },
     "id": "github.issue.residual.5501877140.lean.6150748445",
-    "updated": "2026-10-14T01:00:01.690Z"
+    "updated": "2026-10-14T01:07:05.671Z"
   }
 }
