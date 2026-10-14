@@ -24,6 +24,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bump `actions/download-artifact` from 8.0.1 to 8.0.2 (#5555).
 
 ### Fixed
+- Keep active #5574 Path B Prefer-A Bound file_scope.
+- Keep active #5477 Path B Prefer-A Bound file_scope.
+- Keep active #5545 Path B Prefer-A Bound file_scope.
+- Keep active #5551 Path B Prefer-A Bound file_scope.
 - **Complete the #5552 scope brief after product #5584.** Move the Path B activate brief into xbrief/completed/ so orphan tracking clears. Tracking #5552.
 - **deft-core-guard skips app-only PRs via paths filter (#5552).** Deposited workflow runs only when `.deft/core/**` or `.deft/GENERATION.json` changes; document required-check removal (missing check ≠ skipped job) and the first-300-files residual. Tracking #5552.
 - Keep active #5552 Path B Prefer-A Bound file_scope.
