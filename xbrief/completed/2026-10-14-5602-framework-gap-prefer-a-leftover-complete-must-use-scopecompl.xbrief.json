@@ -263,7 +263,27 @@
         "parallel_safe": true
       },
       "kind": "story",
-      "productPullRequest": 5610
+      "productPullRequest": 5610,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-14T19:32:49.000Z"
+      },
+      "completedAt": "2026-10-14T19:32:49.000Z",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 5610,
+        "prBase": "master",
+        "mergeCommit": "23c8b01ad48c19f478b69a78a973bafffca4882d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "23c8b01ad48c19f478b69a78a973bafffca4882d",
+        "verifiedAt": "2026-10-14T19:32:49.000Z",
+        "verifier": "parent-closer-pulse/5616",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      }
     },
     "id": "github.issue.5848574804",
     "x-directive/plan-id": {
