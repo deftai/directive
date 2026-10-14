@@ -52,8 +52,7 @@ export const GATE_OVERRIDE_ELIGIBLE_REFUSE_CODES = [
   "git-failure",
 ] as const;
 
-export type GateOverrideEligibleRefuseCode =
-  (typeof GATE_OVERRIDE_ELIGIBLE_REFUSE_CODES)[number];
+export type GateOverrideEligibleRefuseCode = (typeof GATE_OVERRIDE_ELIGIBLE_REFUSE_CODES)[number];
 
 /**
  * Refuse codes that remain non-overridable (authenticity / SCM identity binding).
@@ -201,9 +200,7 @@ export function isGateOverrideAdmittingOrigin(grant: HumanOriginGrant): boolean 
   return grant.origin.kind.trim().toLowerCase() === "operator-cli";
 }
 
-export function parseGateOverrideBinding(
-  grant: HumanOriginGrant,
-): GateOverrideBinding | null {
+export function parseGateOverrideBinding(grant: HumanOriginGrant): GateOverrideBinding | null {
   const surfaces = grant.scope.surfaces;
   const gateId = surfaceValue(surfaces, GATE_OVERRIDE_GATE_PREFIX);
   const refuseCode = surfaceValue(surfaces, GATE_OVERRIDE_REFUSE_PREFIX);
@@ -229,8 +226,7 @@ export function parseGateOverrideBinding(
     headSha,
     treeHash,
     attemptId,
-    worktree:
-      surfaceValue(surfaces, GATE_OVERRIDE_WORKTREE_PREFIX) ?? grant.scope.worktree ?? null,
+    worktree: surfaceValue(surfaces, GATE_OVERRIDE_WORKTREE_PREFIX) ?? grant.scope.worktree ?? null,
     evaluatorId: surfaceValue(surfaces, GATE_OVERRIDE_EVALUATOR_PREFIX),
   };
 }
@@ -400,11 +396,7 @@ function admissionPath(projectRoot: string, attemptId: string): string {
 }
 
 /** Exclusive create of admission receipt (O_EXCL). Concurrent admit fails closed. */
-function writeAdmissionExclusive(
-  projectRoot: string,
-  targetPath: string,
-  payload: unknown,
-): void {
+function writeAdmissionExclusive(projectRoot: string, targetPath: string, payload: unknown): void {
   const root = resolve(projectRoot);
   mkdirSync(dirname(resolve(targetPath)), { recursive: true });
   containedWrite({
@@ -479,7 +471,10 @@ export function inspectGateOverrideGrant(
       return { ok: false, reason: `gate-override admission grant ${admission.grantId} missing` };
     }
     if (grant.semantics.revokedAt !== null) {
-      return { ok: false, reason: `gate-override grant ${grant.id} revoked (revocation dominates)` };
+      return {
+        ok: false,
+        reason: `gate-override grant ${grant.id} revoked (revocation dominates)`,
+      };
     }
     if (grant.semantics.expiresAt !== null) {
       const exp = Date.parse(grant.semantics.expiresAt);
@@ -655,11 +650,7 @@ export function admitGateOverrideForAttempt(
         observedRefuseReason: input.observedRefuseReason,
       };
       try {
-        writeAdmissionExclusive(
-          projectRoot,
-          admissionPath(projectRoot, parsed.attemptId),
-          receipt,
-        );
+        writeAdmissionExclusive(projectRoot, admissionPath(projectRoot, parsed.attemptId), receipt);
       } catch (err) {
         if (err instanceof ContainedWriteError && err.code === ContainedWriteErrorCode.EXISTS) {
           // Concurrent admit won the receipt create — claim rolls back usedAt.

@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { revokeGrant } from "./actions.js";
 import {
   admitGateOverrideForAttempt,
   GATE_OVERRIDE_DEFAULT_EXPIRY_HOURS,
@@ -19,7 +20,6 @@ import {
   mintGateOverrideTemplateGrant,
   parseGateOverrideBinding,
 } from "./gate-override.js";
-import { revokeGrant } from "./actions.js";
 
 describe("gate-override (#5542 Prefer-A Bound)", () => {
   let root = "";
