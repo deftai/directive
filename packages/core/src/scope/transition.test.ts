@@ -1297,6 +1297,54 @@ describe("runTransition", () => {
     expect(result.message).not.toMatch(/ROADMAP/);
   });
 
+  it("stale active complete path names completed sibling instead of File not found (#4881)", () => {
+    root = makeRepo();
+    const name = "2026-10-14-stale-active.xbrief.json";
+    const completed = join(root, "xbrief", "completed", name);
+    writeFile(completed, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: { title: "stale", status: "completed", items: [] },
+    });
+    const staleActive = join(root, "xbrief", "active", name);
+    expect(existsSync(staleActive)).toBe(false);
+    const result = runTransition("complete", staleActive);
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/Already completed/);
+    expect(result.message).toContain(completed);
+    expect(result.message).toMatch(/#3679|restamp/);
+    expect(result.message).not.toMatch(/File not found/);
+    expect(existsSync(completed)).toBe(true);
+  });
+
+  it("wrong guessed completed basename stays File not found (#4881)", () => {
+    root = makeRepo();
+    writeFile(join(root, "xbrief", "completed", "2026-10-14-real.xbrief.json"), {
+      xBRIEFInfo: { version: "0.8" },
+      plan: { title: "real", status: "completed", items: [] },
+    });
+    const wrong = join(root, "xbrief", "active", "2026-10-14-guessed-wrong.xbrief.json");
+    const result = runTransition("complete", wrong);
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/File not found/);
+    expect(result.message).not.toMatch(/Already completed|Already cancelled/);
+  });
+
+  it("cancelled sibling on missing complete path reports already-cancelled (#4881)", () => {
+    root = makeRepo();
+    const name = "2026-10-14-cancelled-sibling.xbrief.json";
+    const cancelled = join(root, "xbrief", "cancelled", name);
+    writeFile(cancelled, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: { title: "cancelled", status: "cancelled", items: [] },
+    });
+    const staleActive = join(root, "xbrief", "active", name);
+    const result = runTransition("complete", staleActive);
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/Already cancelled/);
+    expect(result.message).toContain(cancelled);
+    expect(result.message).not.toMatch(/File not found|Already completed/);
+  });
+
   it("normalizes item status complete to completed on complete (#4284)", () => {
     root = makeRepo();
     const path = join(root, "xbrief", "active", "alias-complete.xbrief.json");

@@ -219,6 +219,14 @@ export function runTransition(
   const resolvedPath = resolve(filePath);
 
   if (!existsSync(resolvedPath)) {
+    // #4881: complete on a stale path after active→completed/cancelled move
+    // should name the sibling, not read as a corrupted File not found.
+    if (act === "complete") {
+      const missingHint = hintMissingCompleteSibling(resolvedPath);
+      if (missingHint !== null) {
+        return { ok: false, message: missingHint };
+      }
+    }
     return { ok: false, message: `File not found: ${resolvedPath}` };
   }
   const basename = resolvedPath.split(/[/\\]/).pop() ?? "";
@@ -902,6 +910,37 @@ export function runTransition(
     });
   }
   return commitTransition();
+}
+
+/**
+ * When complete targets a missing path whose parent is a lifecycle folder,
+ * probe sibling folders for the same basename (#4881 / Prefer-A Bound).
+ * Returns a clear already-completed / already-cancelled message, or null
+ * when no sibling exists (caller keeps generic File not found). Does not
+ * auto-restamp — caller must pass the found completed path (#3679).
+ */
+function hintMissingCompleteSibling(resolvedPath: string): string | null {
+  const parentFolder = detectLifecycleFolder(resolvedPath);
+  if (parentFolder === null) {
+    return null;
+  }
+  const basename = resolvedPath.split(/[/\\]/).pop() ?? "";
+  if (basename.length === 0 || !hasArtifactSuffix(basename)) {
+    return null;
+  }
+  const lifecycleRoot = dirname(dirname(resolvedPath));
+  const completedSibling = join(lifecycleRoot, "completed", basename);
+  if (existsSync(completedSibling)) {
+    return (
+      `Already completed: ${basename} is at ${completedSibling}. ` +
+      `Run scope:complete on that path to restamp (#3679).`
+    );
+  }
+  const cancelledSibling = join(lifecycleRoot, "cancelled", basename);
+  if (existsSync(cancelledSibling)) {
+    return `Already cancelled: ${basename} is at ${cancelledSibling}.`;
+  }
+  return null;
 }
 
 interface RestampArgs {
