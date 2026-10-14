@@ -72,6 +72,11 @@ import {
   verifyUninstallComplete,
   type UninstallDiscovery,
 } from "./uninstall-map.js";
+import {
+  formatShapeRecoveryMessage,
+  isL2RefusalDecision,
+  resolveInstallShape,
+} from "./legacy-shapes/index.js";
 
 export interface BookendIo {
   writeOut(text: string): void;
@@ -448,9 +453,16 @@ export function runInstall(
     return EXIT_CODES.USAGE;
   }
 
+  // L2 historical shapes: single registry dispatch (Wave 3b). L0 oldStyle
+  // still names upgrade; Go-era / vendored-core-go name uninstall→install.
+  const installShape = resolveInstallShape(projectRoot);
+  if (installShape !== null && isL2RefusalDecision(installShape.decision)) {
+    io.writeErr(`${formatShapeRecoveryMessage(installShape, "install")}\n`);
+    return EXIT_CODES.FAILURE;
+  }
   // Old-style: install changes nothing and names upgrade (AC6.13).
   // Launcher usually gates this earlier; keep a belt-and-braces check.
-  if (state.oldStyle) {
+  if (state.oldStyle || installShape?.decision === "l0-latest-legacy-convert") {
     io.writeErr("This project uses an older Directive layout. Run `directive upgrade`.\n");
     return EXIT_CODES.FAILURE;
   }
@@ -993,6 +1005,14 @@ export function runUpgrade(
   }
   if (rest.length > 0) {
     io.writeErr(`Unknown argument(s): ${rest.join(" ")}\n`);
+    return EXIT_CODES.USAGE;
+  }
+
+  // L2 historical shapes: single registry dispatch (Wave 3b). Prefer
+  // uninstall→reinstall / unsupported-honest over inventing convert.
+  const upgradeShape = resolveInstallShape(projectRoot);
+  if (upgradeShape !== null && isL2RefusalDecision(upgradeShape.decision)) {
+    io.writeErr(`${formatShapeRecoveryMessage(upgradeShape, "upgrade")}\n`);
     return EXIT_CODES.USAGE;
   }
 
