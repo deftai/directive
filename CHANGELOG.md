@@ -14,10 +14,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-
-- Leftover-complete closer trail for #3583 (after Tracking product #5613).
-
 ### Added
 
 - **Stricter completion checks (#5602).** New completed briefs are checked for unfinished items and informal delivery records. Code-bearing briefs also need recorded delivery proof. Swarm guidance directs agents to finish leftover work through `task swarm:finalize-cohort` or `task scope:complete` with delivery evidence, and to stop if those commands refuse.
@@ -31,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`scope:complete` now finds delivery evidence automatically (#3583).** You can omit `--pr` and `--merge-commit` when the recorded product PR or a single matching closing PR proves delivery. Explicit flags still override automatic discovery, and completion refuses missing, ambiguous, or incomplete evidence. Tracking #3583.
 - **Finish #5602 leftover-complete after product #5610.** Lands the completed Prefer-A leftover-complete write-guard brief with delivery provenance so the issue can close and scope records stay tracked. Tracking #5602.
+- **Finish #4878 leftover-complete after product #5604.** Lands the completed acceptance-evidence brief with delivery provenance so operators can close the issue and keep scope records tracked. Tracking #4878.
+- **Finish #3583 leftover-complete after product #5613.** Lands the completed auto-discover delivery-evidence brief with delivery provenance so the issue can close and scope records stay tracked. Tracking #3583.
 - **Land the #4878 active scope brief after product #5604.** Carrier lands the dest-local active xBRIEF onto delivery so leftover-complete / swarm:finalize-cohort can run. Tracking #4878.
 - **scope:complete on a stale active path names the completed/cancelled sibling (#4881).** When the target file is missing, complete probes sibling lifecycle folders for the same basename and returns already-completed (with #3679 restamp path) or already-cancelled instead of File not found; wrong basenames stay File not found; a real completed/ path still restamps. Tracking #4881.
 - **Acceptance-evidence refusals name `plan.items[N]` and ignore `acceptance.clauses` (#4878).** Gate walk paths and completion listings use the qualified object path `plan.items[N]` (and nested `plan.items[N].subItems[M]` / `plan.items[N].items[M]`). Refusal trailer tells operators to stamp evidence/disposition on that plan item; the gate does not read evidence from `plan.acceptance.clauses[]`. `verify:pr-closeout-attestable` indexes the same `plan.items` prefix so closing-PR refusal guidance keeps axis/merge instructions. Tracking #4878.
