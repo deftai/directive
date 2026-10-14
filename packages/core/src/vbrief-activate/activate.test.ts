@@ -181,6 +181,42 @@ describe("activate", () => {
     expect(payload.plan.acceptance.clauses.every((c) => c.text.trim().length > 0)).toBe(true);
   });
 
+  it("restamps already-active command-only brief via tmp+rename without leaving .tmp (#4768 Greptile P1)", () => {
+    const root = tempRoot();
+    const src = writeVbrief(root, "active", {
+      payloadOverride: {
+        xBRIEFInfo: { version: "0.8", updated: "2026-04-30T00:00:00Z" },
+        plan: {
+          title: "Already active stampable",
+          status: "running",
+          narratives: {
+            Overview:
+              "## Acceptance sketch\n- Persist the session token in packages/core/src/session/token.ts\n",
+          },
+          acceptance: {
+            commands: [{ command: "pnpm test" }],
+            none_stated: false,
+            source_rung: "stated",
+          },
+          items: [],
+        },
+      },
+    });
+    const before = readFileSync(src, "utf8");
+    const result = activate(src, { now: FIXED_NOW });
+    expect(result.exitCode).toBe(0);
+    expect(result.message).toContain("No-op");
+    expect(existsSync(src)).toBe(true);
+    expect(existsSync(`${src}.tmp`)).toBe(false);
+    const after = readFileSync(src, "utf8");
+    expect(after).not.toBe(before);
+    const payload = JSON.parse(after) as {
+      plan: { acceptance: { clauses: { text: string }[] } };
+    };
+    expect(payload.plan.acceptance.clauses.length).toBeGreaterThan(0);
+    expect(payload.plan.acceptance.clauses.every((c) => c.text.trim().length > 0)).toBe(true);
+  });
+
   it("revalidates already-active command-present / clause-text-empty instead of blind no-op (#4768 Prefer-A)", () => {
     const root = tempRoot();
     const src = writeVbrief(root, "active", {

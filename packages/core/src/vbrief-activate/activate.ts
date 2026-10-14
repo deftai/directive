@@ -164,15 +164,25 @@ export function activate(vbriefPath: string, options: ActivateOptions = {}): Act
       return { exitCode: 1, message: ingress.message };
     }
     if (ingress.applied) {
+      // Prefer-A Bound #4768 / Greptile P1: never truncate the only active
+      // copy in place — write a sibling .tmp then rename (same shape as the
+      // pending→active path below).
+      const restampTmp = `${vbriefPath}.tmp`;
       try {
         containedWrite({
           root: resolve(projectRootEarly),
-          target: resolve(vbriefPath),
+          target: resolve(restampTmp),
           data: pythonJsonPretty(payload),
-          mode: "replace",
+          mode: "create",
         });
+        renameSync(restampTmp, resolve(vbriefPath));
       } catch (err: unknown) {
         const e = err as NodeJS.ErrnoException;
+        try {
+          rmSync(restampTmp, { force: true });
+        } catch {
+          /* best-effort cleanup */
+        }
         return {
           exitCode: 1,
           message: `Could not restamp ${vbriefPath}: ${String(e.message)}.`,
