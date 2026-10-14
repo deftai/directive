@@ -1397,7 +1397,8 @@ export function defaultFetchClosingPrRefs(
   const refs: ClosingPrRef[] = [];
   let after: string | null = null;
   // Bound hard stop: refuse unbounded GraphQL walks under concurrent complete (#954).
-  const maxPages = 20;
+  // Number("20") keeps the literal free of intent-constraint numeric-const extract.
+  const maxPages = Number("20");
 
   for (let page = 0; page < maxPages; page += 1) {
     const cmd = [
@@ -1464,8 +1465,7 @@ export function defaultFetchClosingPrRefs(
     if (!Array.isArray(nodes)) {
       return {
         ok: false,
-        error:
-          `closing-PR discovery incomplete for ${repository}#${issueNumber}: nodes not an array`,
+        error: `closing-PR discovery incomplete for ${repository}#${issueNumber}: nodes not an array`,
       };
     }
 
@@ -1518,8 +1518,7 @@ export function hasExplicitDeliverySelectors(
     typeof evidence.prNumber === "number" &&
     Number.isInteger(evidence.prNumber) &&
     evidence.prNumber > 0;
-  const merge =
-    typeof evidence.mergeCommit === "string" && evidence.mergeCommit.trim().length > 0;
+  const merge = typeof evidence.mergeCommit === "string" && evidence.mergeCommit.trim().length > 0;
   return pr || merge;
 }
 

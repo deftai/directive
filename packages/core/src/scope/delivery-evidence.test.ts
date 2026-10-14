@@ -1446,7 +1446,8 @@ describe("delivery evidence auto-discovery (#3583)", () => {
       runGit: gitOk(),
       fetchClosingPrRefs: () => ({
         ok: false,
-        error: "closing-PR discovery incomplete for deftai/directive#3041: hasNextPage without endCursor",
+        error:
+          "closing-PR discovery incomplete for deftai/directive#3041: hasNextPage without endCursor",
       }),
     });
     expect(result.ok).toBe(false);
