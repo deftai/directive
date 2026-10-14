@@ -3,12 +3,12 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP } from "../pre-pr-controller/phases.js";
 import {
   isClosedPlanSequenceShape,
   PLAN_SEQUENCE_CONTRACT,
   PLAN_SEQUENCE_REL_PATH,
 } from "../plan-sequence/types.js";
+import { COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP } from "../pre-pr-controller/phases.js";
 import {
   classifyChangedPath,
   decodeGitQuotedPath,
@@ -703,15 +703,15 @@ describe("isClosedPlanSequenceShape (#5551)", () => {
         JSON.parse(closedSequenceDoc({ sequence_kind: "not-a-kind", contract: undefined })),
       ),
     ).toBe(false);
-    expect(
-      isClosedPlanSequenceShape(JSON.parse(closedSequenceDoc({ current_index: 1.5 }))),
-    ).toBe(false);
+    expect(isClosedPlanSequenceShape(JSON.parse(closedSequenceDoc({ current_index: 1.5 })))).toBe(
+      false,
+    );
     expect(
       isClosedPlanSequenceShape(JSON.parse(closedSequenceDoc({ extra_authority: true }))),
     ).toBe(false);
-    expect(
-      isClosedPlanSequenceShape(JSON.parse(closedSequenceDoc({ contract: "forged" }))),
-    ).toBe(false);
+    expect(isClosedPlanSequenceShape(JSON.parse(closedSequenceDoc({ contract: "forged" })))).toBe(
+      false,
+    );
   });
 });
 
@@ -940,7 +940,11 @@ describe("evaluateCoverageApplicability #5551 Prefer-A Bound", () => {
     const policyRoot = gitRepo({
       [PLAN_PATH]: planDoc({
         updated: "2026-10-01T00:00:00Z",
-        interviewContinuation: { targetDeliverable: "old", reopenableDecisionSet: [], confirmations: [] },
+        interviewContinuation: {
+          targetDeliverable: "old",
+          reopenableDecisionSet: [],
+          confirmations: [],
+        },
         policy: { wipCap: 20 },
       }),
     });
