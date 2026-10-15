@@ -1,0 +1,293 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5366",
+    "updated": "2026-10-15T00:58:50Z"
+  },
+  "plan": {
+    "title": "[AppSec] MEDIUM hooks-authz-05: PreToolUse dest harvest miss fail-opens write-shaped MCP and the path fence",
+    "status": "completed",
+    "narratives": {
+      "Description": "[AppSec] MEDIUM hooks-authz-05: PreToolUse dest harvest miss fail-opens write-shaped MCP and the path fence",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5366",
+      "Overview": "## AppSec remediation\n\n- **Product:** Directive (`deftai/directive`)\n- **Finding:** `hooks-authz-05`\n- **Severity:** medium\n- **Scan:** 2026-10-05 @ `d855dc0f784a24ed6d99cffd488a85f41d22431c`\n- **Report:** [2026-10-05 AppSec report § directive / hooks-authz-05](https://github.com/deftai/appsec-scans/blob/3dd35fd7f6b54922c56759157c13c821b4374dec/reports/directive/2026-10-05/report.md#directive-hooks-authz-05)\n\n### Impact\n\nA write whose dest sits in an unharvested field (MCP `uri`, nested non-pathish dest) is allowed under active UAT and a live occupancy/write-fence that would deny the same tool once `path` is present. Inner `run_terminal_command`/`Bash` via `use_tool`/`CallMcpTool` never hits the Shell/UAT classifier.\n\n### Remediation\n\nFail closed when the name is write-shaped (or an MCP/proxy wrapper whose inner name is write- or shell-shaped) and dest harvest is empty, matching ApplyPatch. Harvest MCP `uri`/`file` dests. After unwrap, re-run `isShellTool(effectiveName)` / `isDirectWriteTool(effectiveName)` so inner Grok shell cannot skip the Shell slice. Keep `relPathPosix === null` from silently allowing an active write fence.\n\nFiled by the scheduled AppSec scan. Do not close until the control is in the default branch. The next weekly scan will comment here if this ID is still confirmed.\n\n\n\n## Derived reason\nPrefer-A Bound limbs hand-stamped (#4374). Bound cite 6181324854. YOLO add-to-cohort overrides no-ingest.",
+      "Labels": "bug, security, agent-experience, process, source-of-truth, agent-safety, dogfood, design-critique:ingest-ready, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "id": "item.1",
+        "status": "completed",
+        "title": "Harvest uri and file alongside PATHISH_KEYS in collectPathishFields / hookMutationTargetPaths.",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d7635f0dcf1bd9e2c6a3b3da882a44b27afe1617",
+          "recorded_at": "2026-10-15T03:05:19.036Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "item.2",
+        "status": "completed",
+        "title": "Fail closed when effective name is write-shaped and dest harvest is empty; parallel ApplyPatch unclassified-body deny.",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d7635f0dcf1bd9e2c6a3b3da882a44b27afe1617",
+          "recorded_at": "2026-10-15T03:05:19.036Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "item.3",
+        "status": "completed",
+        "title": "After effectiveHookToolName unwrap, reclassify shell/direct-write/MCP; project effective argument view for nested command; route shell proxy through Shell/UAT.",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d7635f0dcf1bd9e2c6a3b3da882a44b27afe1617",
+          "recorded_at": "2026-10-15T03:05:19.036Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "item.4",
+        "status": "completed",
+        "title": "Supported local file: URI decode before fence; refuse unsupported schemes; under active write fence deny empty or unclassified null targets at dispatcher.",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d7635f0dcf1bd9e2c6a3b3da882a44b27afe1617",
+          "recorded_at": "2026-10-15T03:05:19.036Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "item.5",
+        "status": "completed",
+        "title": "CHANGELOG Unreleased Fixed for Tracking 5366; keep-outs no wholesale 3593 rewrite and no ApplyPatch weaken.",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d7635f0dcf1bd9e2c6a3b3da882a44b27afe1617",
+          "recorded_at": "2026-10-15T03:05:19.036Z",
+          "recorded_by": "scope:complete"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "security",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "agent-safety",
+      "dogfood",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5366",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5366: [AppSec] MEDIUM hooks-authz-05: PreToolUse dest harvest miss fail-opens write-shaped MCP and the path fence"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "relPathPosix === null",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L17"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "hooks-authz-05-pretooluse-dest-harvest-miss-fail-open",
+        "expected_outputs": [
+          "uri/file harvest",
+          "empty-harvest fail-closed",
+          "CHANGELOG Fixed #5366"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/hooks"
+        ],
+        "file_scope": [
+          "packages/core/src/hooks/classify/paths.ts",
+          "packages/core/src/hooks/classify/paths.test.ts",
+          "packages/core/src/hooks/classify/index.ts",
+          "packages/core/src/hooks/tools.ts",
+          "packages/core/src/hooks/tools.test.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "CHANGELOG.md"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "Prefer-A Bound 6181324854",
+          "issue #5366"
+        ],
+        "parallel_safe": true
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/hooks/classify/paths.ts",
+          "packages/core/src/hooks/classify/paths.test.ts",
+          "packages/core/src/hooks/classify/index.ts",
+          "packages/core/src/hooks/tools.ts",
+          "packages/core/src/hooks/tools.test.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/hooks",
+        "cohesion_exemption": "CHANGELOG companion."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5712451830,
+        "origin": "deftai/directive#5366",
+        "id": "github.issue.5712451830"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "f88efd85dc9967a37a845312d0e494b973f477f8492916fef9f35b38b7a27135"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "productPullRequest": 5639,
+      "mergeCommit": "d7635f0dcf1bd9e2c6a3b3da882a44b27afe1617",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "37dc5d6f58c856dcb690118e524e0b52b8a3148d",
+        "prNumber": 5639,
+        "prBase": "master",
+        "mergeCommit": "d7635f0dcf1bd9e2c6a3b3da882a44b27afe1617",
+        "deliveryBranch": "master",
+        "deliveryCommit": "d7635f0dcf1bd9e2c6a3b3da882a44b27afe1617",
+        "verifiedAt": "2026-10-15T03:05:19.036Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTNjNDItM2E5Zi03ZWUwLWFkZDYtN2RiYThjOTI4MGI5"
+      },
+      "completedAt": "2026-10-15T03:05:19.036Z",
+      "completedSessionId": "host:grok:v1:MDFhMTNjNDItM2E5Zi03ZWUwLWFkZDYtN2RiYThjOTI4MGI5",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-15T03:05:19.036Z"
+      }
+    },
+    "acceptance": {
+      "none_stated": true,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Harvest uri and file alongside PATHISH_KEYS in collectPathishFields / hookMutationTargetPaths.",
+          "artifact_path": "packages/core/src/hooks/classify/paths.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "d7635f0dcf1bd9e2c6a3b3da882a44b27afe1617",
+            "recorded_at": "2026-10-15T03:05:19.036Z",
+            "recorded_by": "scope:complete"
+          }
+        },
+        {
+          "id": 2,
+          "text": "Fail closed when effective name is write-shaped and dest harvest is empty; parallel ApplyPatch unclassified-body deny.",
+          "artifact_path": "packages/core/src/hooks/tools.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "d7635f0dcf1bd9e2c6a3b3da882a44b27afe1617",
+            "recorded_at": "2026-10-15T03:05:19.036Z",
+            "recorded_by": "scope:complete"
+          }
+        },
+        {
+          "id": 3,
+          "text": "After effectiveHookToolName unwrap, reclassify shell/direct-write/MCP; project effective argument view for nested command; route shell proxy through Shell/UAT.",
+          "artifact_path": "packages/core/src/hooks/tools.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "d7635f0dcf1bd9e2c6a3b3da882a44b27afe1617",
+            "recorded_at": "2026-10-15T03:05:19.036Z",
+            "recorded_by": "scope:complete"
+          }
+        },
+        {
+          "id": 4,
+          "text": "Supported local file: URI decode before fence; refuse unsupported schemes; under active write fence deny empty or unclassified null targets at dispatcher.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "d7635f0dcf1bd9e2c6a3b3da882a44b27afe1617",
+            "recorded_at": "2026-10-15T03:05:19.036Z",
+            "recorded_by": "scope:complete"
+          }
+        },
+        {
+          "id": 5,
+          "text": "CHANGELOG Unreleased Fixed for Tracking 5366; keep-outs no wholesale 3593 rewrite and no ApplyPatch weaken.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "d7635f0dcf1bd9e2c6a3b3da882a44b27afe1617",
+            "recorded_at": "2026-10-15T03:05:19.036Z",
+            "recorded_by": "scope:complete"
+          }
+        }
+      ],
+      "commands": [],
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "[AppSec] MEDIUM hooks-authz-05: PreToolUse dest harvest miss fail-opens write-shaped MCP and the path fence",
+        "AppSec remediation - Product: Directive (`deftai/directive`) - Finding: `hooks-authz-05` - Severity: medium - Scan: 2026-10-05 @ `d855dc0f784a24ed6d99cffd488a85f41d22431c` - Report: [2026-10-05 AppSec report § directive / hooks-authz-05](https://github.com/deftai/appsec-scans/blob/3dd35fd7f6b54922c56759157c13c821b4374dec/reports/directive/2026-10-05/report.md#directive-hooks-authz-05) ### Impact A write whose dest sits in an unharvested field (MCP `uri`, nested non-pathish dest) is allowed under active UAT and a live occupancy/write-fence that would deny the same tool once `path` is present.",
+        "Inner `run_terminal_command`/`Bash` via `use_tool`/`CallMcpTool` never hits the Shell/UAT classifier.",
+        "Remediation Fail closed when the name is write-shaped (or an MCP/proxy wrapper whose inner name is write- or shell-shaped) and dest harvest is empty, matching ApplyPatch.",
+        "Harvest MCP `uri`/`file` dests.",
+        "After unwrap, re-run `isShellTool(effectiveName)` / `isDirectWriteTool(effectiveName)` so inner Grok shell cannot skip the Shell slice.",
+        "Keep `relPathPosix === null` from silently allowing an active write fence.",
+        "Filed by the scheduled AppSec scan.",
+        "Do not close until the control is in the default branch.",
+        "The next weekly scan will comment here if this ID is still confirmed.",
+        "Derived reason Prefer-A Bound limbs hand-stamped (#4374).",
+        "Bound cite 6181324854.",
+        "YOLO add-to-cohort overrides no-ingest."
+      ]
+    },
+    "id": "github.issue.5712451830",
+    "updated": "2026-10-15T00:58:50Z"
+  }
+}
