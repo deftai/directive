@@ -149,6 +149,41 @@ export function isMcpWriteShaped(toolName: string): boolean {
   return false;
 }
 
+/**
+ * True when a write-shaped name is expected to carry a local filesystem dest.
+ * Remote forge/API mutations (create_issue, …) match write-shaped verb markers
+ * but must not empty-harvest fail-close (#5366 Greptile P1).
+ */
+export function expectsLocalMutationDest(toolName: string): boolean {
+  if (isDirectWriteTool(toolName) || isApplyPatchTool(toolName)) return true;
+  const n = normalizedToolName(toolName);
+  if (n.includes("searchreplace") || n.includes("applypatch") || n.includes("applyedit")) {
+    return true;
+  }
+  const localMarkers = [
+    "write",
+    "replace",
+    "patch",
+    "save",
+    "mkdir",
+    "unlink",
+    "rename",
+    "append",
+    "move",
+    "filesystem",
+    "writefile",
+    "editfile",
+    "deletefile",
+    "createfile",
+  ] as const;
+  if (localMarkers.some((marker) => n.includes(marker))) return true;
+  // Bare "edit"/"create"/"delete" are too broad (issue/repo APIs).
+  if (n.includes("edit") && (n.includes("file") || n.includes("path") || n.includes("content"))) {
+    return true;
+  }
+  return false;
+}
+
 /** Inner tool name for CallMcpTool / use_tool payloads. */
 export function innerMcpToolName(payload: unknown): string | null {
   const input = record(payload);

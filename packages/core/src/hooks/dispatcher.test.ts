@@ -9,6 +9,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { writeKillAttestation } from "../orchestration/subagent-kill-attestation.js";
 import { DEFAULT_RUNTIME_AUTHORITY_POLICY } from "../policy/runtime-authority.js";
@@ -5846,6 +5847,49 @@ describe("MCP dest-bearing writes share inspectMutationGates (#3593)", () => {
       code: "runtime-policy-deny-path",
     });
     expect(decision.message).toMatch(/no classifiable mutation target/i);
+  });
+
+  it("keeps remote write-shaped MCP on the MCP route when harvest is empty (#5366)", () => {
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "mcp__github__create_issue",
+          tool_input: { title: "remote", body: "no local dest" },
+        },
+      },
+      readySeams(),
+    );
+    expect(decision.verdict).toBe("allow");
+    expect(decision.code).not.toBe("runtime-policy-deny-path");
+    expect(decision.message ?? "").not.toMatch(/no classifiable mutation target/i);
+  });
+
+  it("denies percent-encoded file: URI writes into the inventoried authz store (#5366)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-5366-encoded-authz-"));
+    hookTemps.push(root);
+    mkdirSync(join(root, ".deft", "authz", "grants"), { recursive: true });
+    const evil = join(root, ".deft", "authz", "grants", "evil.json");
+    // Encode `.deft` as `%2Edeft` so raw-URI approval would miss the store path.
+    const encodedUri = pathToFileURL(evil).href.replace("/.deft/", "/%2Edeft/");
+    expect(encodedUri).toContain("%2Edeft");
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "mcp__filesystem__write_file",
+          tool_input: { uri: encodedUri, contents: '{"origin":{"kind":"operator-cli"}}' },
+        },
+      },
+      readySeams(),
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(decision.code).toMatch(/^authz-/);
+    expect(decision.message).toMatch(/covering-grant escape|inventoried authz store/i);
   });
 
   it("routes use_tool inner shell through Shell/UAT with nested command (#5366)", () => {

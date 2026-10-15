@@ -182,6 +182,7 @@ import { classifyShellWriteTargets, isInRepoShellWritePath } from "./shell-write
 import {
   effectiveHookArgumentView,
   effectiveHookToolName,
+  expectsLocalMutationDest,
   isApplyPatchTool,
   isDirectWriteTool,
   isKillTool,
@@ -217,6 +218,7 @@ export {
   HOST_TOOL_SURFACE_AUDIT,
   type HostMutationToolCatalog,
   type HostToolSurfaceAudit,
+  expectsLocalMutationDest,
   isApplyPatchTool,
   isDirectWriteTool,
   isKillTool,
@@ -680,7 +682,20 @@ function authzForMutationTargets(
     projectRoot: string;
   },
 ): HookDecision | null {
-  const targets = hookMutationTargetPaths(input.payload);
+  // Decode file: URIs before approval / protected-store checks (#5366 Greptile P1).
+  // Admission already normalized; authz must not re-check raw percent-encoded text.
+  const harvested = hookMutationTargetPaths(input.payload);
+  const normalized = normalizeMutationTargetPaths(harvested);
+  if (!normalized.ok) {
+    return deny(
+      input,
+      "runtime-policy-deny-path",
+      toolName,
+      `${UNSUPPORTED_MUTATION_URI_MESSAGE} (${normalized.detail}).`,
+      options.scopePath,
+    );
+  }
+  const targets = normalized.paths;
   const paths: readonly (string | null)[] = targets.length > 0 ? targets : [null];
   const pendingConsume: string[] = [];
   for (const target of paths) {
@@ -3738,8 +3753,10 @@ function routeHookDecision(
   }
 
   // #3593 / #5366: write-shaped MCP / proxy wrappers share inspectMutationGates
-  // with Write/Edit. Empty dest harvest fail-closes (ApplyPatch class). Shell-shaped
-  // inners already routed above. Reads (list_issues) stay fail-open.
+  // with Write/Edit. Empty dest harvest fail-closes for local-filesystem writers
+  // only (ApplyPatch class). Remote forge/API create/edit/delete keep the MCP
+  // route — empty harvest must not blanket-deny create_issue (#5366 Greptile P1).
+  // Shell-shaped inners already routed above. Reads (list_issues) stay fail-open.
   if (
     isMcpWriteShaped(effectiveName) &&
     !isShellTool(toolName) &&
@@ -3747,12 +3764,15 @@ function routeHookDecision(
     !isDirectWriteTool(toolName)
   ) {
     if (hookMutationTargetPaths(input.payload).length === 0) {
-      return deny(
-        input,
-        "runtime-policy-deny-path",
-        effectiveName,
-        WRITE_SHAPED_EMPTY_HARVEST_MESSAGE,
-      );
+      if (expectsLocalMutationDest(effectiveName)) {
+        return deny(
+          input,
+          "runtime-policy-deny-path",
+          effectiveName,
+          WRITE_SHAPED_EMPTY_HARVEST_MESSAGE,
+        );
+      }
+      return decideShellOrMcpRuntimeAuthority(input, toolName, seams);
     }
     return inspectMutationGates(input, effectiveName, seams, {
       proposedLifecycleExempt: true,

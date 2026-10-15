@@ -4,11 +4,13 @@ import {
   DIRECT_WRITE_HOOK_MATCHER,
   effectiveHookArgumentView,
   effectiveHookToolName,
+  expectsLocalMutationDest,
   HOST_TOOL_SURFACE_AUDIT,
   isApplyPatchTool,
   isDirectWriteTool,
   isKillTool,
   isMcpTool,
+  isMcpWriteShaped,
   isShellTool,
   isSpawnTool,
   KILL_HOOK_MATCHER,
@@ -43,6 +45,15 @@ describe("hooks tools classifiers (#2711 / #2952)", () => {
     // Bare push/merge names are NOT isMcpTool — classifyMcpTool owns them.
     expect(isMcpTool("merge_pull_request")).toBe(false);
     expect(isMcpTool("git_push")).toBe(false);
+  });
+
+  it("expectsLocalMutationDest separates filesystem writers from remote APIs (#5366)", () => {
+    expect(isMcpWriteShaped("mcp__github__create_issue")).toBe(true);
+    expect(expectsLocalMutationDest("mcp__github__create_issue")).toBe(false);
+    expect(expectsLocalMutationDest("mcp__filesystem__write_file")).toBe(true);
+    expect(expectsLocalMutationDest("edit_file")).toBe(true);
+    expect(expectsLocalMutationDest("Write")).toBe(true);
+    expect(expectsLocalMutationDest("mcp__github__delete_issue")).toBe(false);
   });
 
   it("isDirectWriteTool and isSpawnTool stay narrow", () => {
