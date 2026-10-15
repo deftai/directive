@@ -383,10 +383,13 @@ func regenerateBareVersionMarker(projectDir, tag string) (string, error) {
 }
 
 // resolvePinnedFrameworkRef returns the only allowed framework tarball ref.
-// Empty means "use the hard-coded pin" (default install/upgrade identity).
+// Empty means "use the hard-coded pin" (default install/upgrade identity when
+// --branch is omitted — callers must NOT pass ldflags defaultBranch here, or
+// release builds whose github.ref_name ≠ pin refuse their own defaults).
 // Any other non-pin ref (default-branch names, free --branch values, arbitrary
-// tags) fails closed — no silent rewrite to the pinned download while reporting
-// the requested identity (#5627 / install-deposit-03).
+// tags, including an explicit release ref that is not the pin) fails closed —
+// no silent rewrite to the pinned download while reporting the requested
+// identity (#5627 / install-deposit-03).
 func resolvePinnedFrameworkRef(ref string) (string, error) {
 	r := strings.TrimSpace(ref)
 	if r == "" {

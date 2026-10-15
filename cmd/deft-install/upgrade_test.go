@@ -1283,3 +1283,76 @@ func TestDownloadAndExtractCore_PassesOnDigestMatch(t *testing.T) {
 		t.Errorf("extracted content missing: data=%q err=%v", data, err)
 	}
 }
+
+// TestInstall_DigestMismatch_LeavesHooksUntouched is the install()-level
+// Greptile P2: VendorDeft-only spies miss WriteConsumerGitHooks (runs later in
+// install). Trust refuse must exit non-zero before hooks are rewritten.
+func TestInstall_DigestMismatch_LeavesHooksUntouched(t *testing.T) {
+	gitPath, err := exec.LookPath("git")
+	if err != nil {
+		t.Skip("git not available; skipping install()-level mismatch test")
+	}
+
+	origFetch := fetchCoreTarballFunc
+	origExtract := extractCoreTarballFunc
+	origGit := runGitCaptureFunc
+	origSet := setGitHooksPathFunc
+	origSHA := pinnedFrameworkTarballSHA256
+	origTag := pinnedFrameworkTarballTag
+	defer func() {
+		fetchCoreTarballFunc = origFetch
+		extractCoreTarballFunc = origExtract
+		runGitCaptureFunc = origGit
+		setGitHooksPathFunc = origSet
+		pinnedFrameworkTarballSHA256 = origSHA
+		pinnedFrameworkTarballTag = origTag
+	}()
+
+	proj := newDirtyUpgradeRepo(t, gitPath)
+	core := filepath.Join(proj, ".deft", "core")
+	hooksDir := filepath.Join(proj, ".githooks")
+	if err := os.MkdirAll(hooksDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	hookPC := "#!/bin/sh\n# already-wired pre-commit\nexit 0\n"
+	hookPP := "#!/bin/sh\n# already-wired pre-push\nexit 0\n"
+	if err := os.WriteFile(filepath.Join(hooksDir, "pre-commit"), []byte(hookPC), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(hooksDir, "pre-push"), []byte(hookPP), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	oldPayload := "EXISTING-PAYLOAD-MUST-SURVIVE\n"
+	if err := os.WriteFile(filepath.Join(core, "KEEP.txt"), []byte(oldPayload), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	runGitCaptureFunc = func(string, ...string) (string, error) { return "", fmt.Errorf("not a repo") }
+	tmpPath := filepath.Join(t.TempDir(), "bad.tar.gz")
+	if err := os.WriteFile(tmpPath, []byte("tampered-install-level"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	pinnedFrameworkTarballTag = "v0.125.1"
+	pinnedFrameworkTarballSHA256 = strings.Repeat("ab", 32)
+	fetchCoreTarballFunc = func(string) (string, error) { return tmpPath, nil }
+	extractCoreTarballFunc = func(string, string) (string, error) {
+		t.Fatal("SECURITY: extract must not run on install()-level mismatch")
+		return "", nil
+	}
+	hooksPathWrites := 0
+	setGitHooksPathFunc = func(string, string) error {
+		hooksPathWrites++
+		t.Fatal("SECURITY: WriteConsumerGitHooks must not run after trust refuse")
+		return nil
+	}
+	t.Setenv("DEFT_USER_PATH", filepath.Join(t.TempDir(), "cfg"))
+
+	code := install(false, "", false, true, true, proj, false, false, true, false, true)
+	if code == 0 {
+		t.Fatal("install()-level digest mismatch must exit non-zero")
+	}
+	if hooksPathWrites != 0 {
+		t.Fatalf("hooksPath writes = %d, want 0", hooksPathWrites)
+	}
+	assertActivationUnchanged(t, proj, core, oldPayload, hookPC, hookPP)
+}
