@@ -2960,15 +2960,9 @@ function remapProxyShellUpdatedInput(
             command,
           },
         };
-  return {
-    ...decision,
-    updatedInput: {
-      ...outer,
-      tool_name: outerToolName,
-      toolName: outerToolName,
-      tool_input: nextToolInput,
-    },
-  };
+  // Hosts replace the proxy tool_input/arguments object, not the whole payload
+  // (#5366 Greptile P1). nextToolInput keeps the inner tool name + rewritten command.
+  return { ...decision, updatedInput: nextToolInput };
 }
 
 /**

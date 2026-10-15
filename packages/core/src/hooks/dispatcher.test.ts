@@ -5906,13 +5906,11 @@ describe("MCP dest-bearing writes share inspectMutationGates (#3593)", () => {
     );
     expect(decision.verdict).toBe("allow");
     expect(decision.code).not.toBe("occupancy-identity-unavailable");
+    // Hosts replace proxy arguments, not the whole CallMcpTool payload.
     expect(decision.updatedInput).toMatchObject({
-      tool_name: "CallMcpTool",
-      tool_input: {
-        tool_name: "run_terminal_command",
-        arguments: {
-          command: "deft session:start --session-id=host:cursor:v1:Y29udmVyc2F0aW9uLWE",
-        },
+      tool_name: "run_terminal_command",
+      arguments: {
+        command: "deft session:start --session-id=host:cursor:v1:Y29udmVyc2F0aW9uLWE",
       },
     });
   });
