@@ -175,12 +175,18 @@ export function expectsLocalMutationDest(toolName: string): boolean {
     "editfile",
     "deletefile",
     "createfile",
+    "textfile",
   ] as const;
   if (localMarkers.some((marker) => n.includes(marker))) return true;
-  // Bare "edit"/"create"/"delete" are too broad (issue/repo APIs).
-  if (n.includes("edit") && (n.includes("file") || n.includes("path") || n.includes("content"))) {
+  // create_text_file / delete_file: create|delete|edit + file (not create_issue).
+  if (
+    n.includes("file") &&
+    (n.includes("create") || n.includes("delete") || n.includes("edit") || n.includes("path"))
+  ) {
     return true;
   }
+  // Bare "edit"/"create"/"delete" alone are too broad (issue/repo APIs).
+  if (n.includes("edit") && n.includes("content")) return true;
   return false;
 }
 

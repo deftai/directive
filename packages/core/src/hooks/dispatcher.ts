@@ -213,12 +213,12 @@ export {
   DIRECT_WRITE_TOOL_NAMES,
   effectiveHookArgumentView,
   effectiveHookToolName,
+  expectsLocalMutationDest,
   GROK_MUTATION_TOOL_CATALOG,
   GROK_NON_MUTATION_TOOLS,
   HOST_TOOL_SURFACE_AUDIT,
   type HostMutationToolCatalog,
   type HostToolSurfaceAudit,
-  expectsLocalMutationDest,
   isApplyPatchTool,
   isDirectWriteTool,
   isKillTool,
@@ -2909,6 +2909,70 @@ function hostAcceptsUpdatedInput(host: HookHost): boolean {
   return (UPDATED_INPUT_WIRE_HOSTS as readonly string[]).includes(host);
 }
 
+/** Stamp tool_name/toolName so exact-lifecycle inspection sees a shell spelling. */
+function stampHookToolName(payload: unknown, toolName: string): unknown {
+  const input = record(payload);
+  if (input === null) return payload;
+  return { ...input, tool_name: toolName, toolName };
+}
+
+/**
+ * After proxy-shell inspection, restore the outer CallMcpTool/use_tool name on
+ * any rewritten updatedInput while keeping the unwrapped command rewrite.
+ */
+function remapProxyShellUpdatedInput(
+  outerPayload: unknown,
+  outerToolName: string,
+  shellProxyUnwrap: boolean,
+  decision: HookDecision,
+): HookDecision {
+  if (!shellProxyUnwrap || decision.updatedInput === undefined) return decision;
+  const outer = record(outerPayload);
+  const rewritten = record(decision.updatedInput);
+  if (outer === null || rewritten === null) return decision;
+  const outerToolInput = toolInputRecord(outer);
+  const rewrittenToolInput = toolInputRecord(rewritten);
+  const command =
+    rewrittenToolInput !== null && typeof rewrittenToolInput.command === "string"
+      ? rewrittenToolInput.command
+      : typeof rewritten.command === "string"
+        ? rewritten.command
+        : null;
+  if (command === null || outerToolInput === null) {
+    return {
+      ...decision,
+      updatedInput: stampHookToolName(decision.updatedInput, outerToolName),
+    };
+  }
+  const nestedKey =
+    record(outerToolInput.arguments) !== null
+      ? "arguments"
+      : record(outerToolInput.tool_input) !== null
+        ? "tool_input"
+        : record(outerToolInput.params) !== null
+          ? "params"
+          : null;
+  const nextToolInput =
+    nestedKey === null
+      ? { ...outerToolInput, command }
+      : {
+          ...outerToolInput,
+          [nestedKey]: {
+            ...(record(outerToolInput[nestedKey]) ?? {}),
+            command,
+          },
+        };
+  return {
+    ...decision,
+    updatedInput: {
+      ...outer,
+      tool_name: outerToolName,
+      toolName: outerToolName,
+      tool_input: nextToolInput,
+    },
+  };
+}
+
 /**
  * Add the claim-time owner only after the existing shell decision allowed the
  * command. The host wire format must emit `allow` with updated input, so this
@@ -3706,13 +3770,21 @@ function routeHookDecision(
 
   // #5366 Prefer-A: unwrap proxy shell inners (use_tool → run_terminal_command)
   // with an effective argument view before the Shell/UAT slice. Payload-root
-  // identity (projectRoot, grants) stays on the outer input.
+  // identity (projectRoot, grants) stays on the outer input. Inspection sees the
+  // effective shell name so exact lifecycle rewrite can bind; host updatedInput
+  // is remapped onto the original wrapper (#5366 Greptile P1).
   const effectiveName = effectiveHookToolName(toolName, input.payload);
   const shellProxyUnwrap =
     isMcpProxyWrapper(toolName) && isShellTool(effectiveName) && !isShellTool(toolName);
   const shellToolName = shellProxyUnwrap ? effectiveName : toolName;
   const shellInput: HookDispatchInput = shellProxyUnwrap
-    ? { ...input, payload: effectiveHookArgumentView(toolName, input.payload) }
+    ? {
+        ...input,
+        payload: stampHookToolName(
+          effectiveHookArgumentView(toolName, input.payload),
+          effectiveName,
+        ),
+      }
     : input;
 
   // Tree-wide destructive git (#3917): always-on, independent of shellDestForms.
@@ -3731,11 +3803,21 @@ function routeHookDecision(
     }
     const destructive = decideGitDestructive(shellInput, shellToolName);
     if (destructive !== null) {
-      return attachLifecycleIdentityRewrite(shellInput, shellToolName, destructive, seams);
+      return remapProxyShellUpdatedInput(
+        input.payload,
+        toolName,
+        shellProxyUnwrap,
+        attachLifecycleIdentityRewrite(shellInput, shellToolName, destructive, seams),
+      );
     }
     const writeReissue = decideShellWriteReissue(shellInput, shellToolName, seams, observation);
     if (writeReissue !== null) {
-      return attachLifecycleIdentityRewrite(shellInput, shellToolName, writeReissue, seams);
+      return remapProxyShellUpdatedInput(
+        input.payload,
+        toolName,
+        shellProxyUnwrap,
+        attachLifecycleIdentityRewrite(shellInput, shellToolName, writeReissue, seams),
+      );
     }
     const decision = decideShellDestFormsThenRuntimeAuthority(
       shellInput,
@@ -3743,7 +3825,12 @@ function routeHookDecision(
       seams,
       observation,
     );
-    return attachLifecycleIdentityRewrite(shellInput, shellToolName, decision, seams);
+    return remapProxyShellUpdatedInput(
+      input.payload,
+      toolName,
+      shellProxyUnwrap,
+      attachLifecycleIdentityRewrite(shellInput, shellToolName, decision, seams),
+    );
   }
 
   // Host kill deny-class / attestation gate (#5281 Prefer-A Bound).

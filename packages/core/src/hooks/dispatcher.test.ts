@@ -5867,6 +5867,56 @@ describe("MCP dest-bearing writes share inspectMutationGates (#3593)", () => {
     expect(decision.message ?? "").not.toMatch(/no classifiable mutation target/i);
   });
 
+  it("routes serena create_text_file with relative_path through Write gates (#5366)", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          toolName: "use_tool",
+          tool_input: {
+            tool_name: "mcp__serena__create_text_file",
+            arguments: { relative_path: "src/a.ts", content: "x" },
+          },
+        },
+      },
+      ritualNotReady,
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "ritual-not-ready" });
+  });
+
+  it("allows CallMcpTool-wrapped session:start rewrite under ready seams (#5366)", () => {
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "CallMcpTool",
+          conversation_id: "conversation-a",
+          tool_input: {
+            tool_name: "run_terminal_command",
+            arguments: { command: "deft session:start" },
+          },
+        },
+        environ: {},
+      },
+      readySeams(),
+    );
+    expect(decision.verdict).toBe("allow");
+    expect(decision.code).not.toBe("occupancy-identity-unavailable");
+    expect(decision.updatedInput).toMatchObject({
+      tool_name: "CallMcpTool",
+      tool_input: {
+        tool_name: "run_terminal_command",
+        arguments: {
+          command: "deft session:start --session-id=host:cursor:v1:Y29udmVyc2F0aW9uLWE",
+        },
+      },
+    });
+  });
+
   it("denies percent-encoded file: URI writes into the inventoried authz store (#5366)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-5366-encoded-authz-"));
     hookTemps.push(root);

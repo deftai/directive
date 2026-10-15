@@ -214,6 +214,12 @@ describe("path/shell extractors (#2950)", () => {
       }),
     ).toEqual(["nested/via-file.ts"]);
     expect(hookWriteTargetPath({ tool_input: { uri: "only-uri.ts" } })).toBe("only-uri.ts");
+    expect(
+      hookMutationTargetPaths({
+        tool_name: "mcp__serena__create_text_file",
+        tool_input: { relative_path: "src/a.ts", content: "x" },
+      }),
+    ).toEqual(["src/a.ts"]);
   });
 
   it("decodes local file: URIs and refuses unsupported schemes (#5366)", () => {

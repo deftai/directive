@@ -54,6 +54,7 @@ describe("hooks tools classifiers (#2711 / #2952)", () => {
     expect(expectsLocalMutationDest("edit_file")).toBe(true);
     expect(expectsLocalMutationDest("Write")).toBe(true);
     expect(expectsLocalMutationDest("mcp__github__delete_issue")).toBe(false);
+    expect(expectsLocalMutationDest("mcp__serena__create_text_file")).toBe(true);
   });
 
   it("isDirectWriteTool and isSpawnTool stay narrow", () => {

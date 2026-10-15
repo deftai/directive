@@ -18,6 +18,9 @@ const PATHISH_KEYS = [
   // MCP dest spellings (#5366 Prefer-A).
   "uri",
   "file",
+  // Serena / workspace-relative MCP writers (#5366 Greptile P1).
+  "relative_path",
+  "relativePath",
 ] as const;
 
 /** Nested MCP/proxy arguments (#3593). Depth-capped; does not invent free-text paths. */
@@ -57,16 +60,22 @@ export function hookWriteTargetPath(payload: unknown): string | null {
     toolInput?.target_file,
     toolInput?.uri,
     toolInput?.file,
+    toolInput?.relative_path,
+    toolInput?.relativePath,
     nested?.file_path,
     nested?.path,
     nested?.target_file,
     nested?.uri,
     nested?.file,
+    nested?.relative_path,
+    nested?.relativePath,
     input.file_path,
     input.filePath,
     input.path,
     input.uri,
     input.file,
+    input.relative_path,
+    input.relativePath,
   ]);
 }
 
