@@ -16,6 +16,7 @@ Dispatch envelope skeleton for one critic or synthesis pass. Fill the fields. Re
 - Materiality bar (`materiality-bar: open` | `materiality-bar: ship-ready`; ship-ready / lgtm launch tokens):
 - Target (work issue or umbrella):
 - Audit targets (marker ids, comma-separated, or `none`; ids only, no parent rationale). Copy onto the posted critic comment as an operative line-start `audit-targets:`. Pain-audit of relieves uses those ids (`pain-P1`), not an English heading:
+- Pain (Stop 1 bind list; closed forms `pain: P1` / `pain: P1, P2` / `pain:` then `- P1`). Copy onto the Stop 1 write-back (`role: triage`) as an operative line-start `pain:`. Do not copy onto critic comments. This is not `audit-targets` / `pain-P1`:
 - Seat families (N≥3: three claimed families before spawn):
 - Dual-stop reserved literacy (N≥3 + non-vacuous pain: record `dual-stop-reserved:` on Stop 1 / parent; raise after reserved spent):
 - Verification path (process-only dest before panel-deposit: `verification-path: pin-read …` default, or provisioned runnable path):
