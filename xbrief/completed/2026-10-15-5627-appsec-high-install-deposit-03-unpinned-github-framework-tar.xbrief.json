@@ -1,0 +1,256 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5627",
+    "updated": "2026-10-15T00:59:25Z"
+  },
+  "plan": {
+    "title": "[AppSec] HIGH install-deposit-03: Unpinned GitHub framework tarball is extracted and planted as git hooks",
+    "status": "completed",
+    "narratives": {
+      "Description": "[AppSec] HIGH install-deposit-03: Unpinned GitHub framework tarball is extracted and planted as git hooks",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5627",
+      "Overview": "## AppSec remediation\n\n- **Product:** Directive (`deftai/directive`)\n- **Finding:** `install-deposit-03`\n- **Severity:** high\n- **Scan:** 2026-09-21 @ `557873cf26f14fe17a289eea4a297584b4a1432e`\n- **Parent:** #4838\n- **Report:** [2026-09-21 AppSec report § directive / install-deposit-03](https://github.com/deftai/appsec-scans/blob/8e432e9f247c97c335cedbd82fd18fe76f694fc8/reports/directive/2026-09-21/report.md)\n\n### Impact\n\n`downloadCoreTarball` GETs the GitHub source tarball with no SHA-256 pin. `WriteConsumerGitHooks` then copies payload `.githooks/` to the consumer, chmod 0755, and sets `core.hooksPath=.githooks`, so an unverified archive becomes pre-commit/pre-push as the developer. Distinct from pinned third-party bootstraps (#2908 / #2909) and from the npm `@deftai/directive-content` path.\n\n### Remediation\n\nPin release tag plus SHA-256 of the source tarball (fail closed before extract), or stop fetching GitHub tarballs and only deposit npm-integrity-backed `@deftai/directive-content`. Do not wire `core.hooksPath` until the payload hash matches.\n\n### Location\n\n- `cmd/deft-install/upgrade.go` (`downloadCoreTarball` / `extractCoreTarball`)\n- `cmd/deft-install/githooks.go` (`WriteConsumerGitHooks`)\n\nDo not close until the control is in the default branch (or a later AppSec pass rejects this ID for this sink).\r\n\n\n\n## Derived reason\nPrefer-A Bound limbs hand-stamped (#4374). Bound cite 6181295657. YOLO add-to-cohort overrides no-ingest.",
+      "Labels": "bug, security, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "id": "item.1",
+        "status": "completed",
+        "title": "After downloadCoreTarball and before extractCoreTarball, verifyFileSHA256 against Bound pin; on mismatch remove temp and fail closed.",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e8b28230fdd25b283105145cb41b86411bbe2383",
+          "recorded_at": "2026-10-15T01:46:20.777Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "item.2",
+        "status": "completed",
+        "title": "VendorDeft/UpdateDeft/migrate/refresh return trust failure as fatal nonzero before WriteConsumerGitHooks; no hooks from unverified deftDir.",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e8b28230fdd25b283105145cb41b86411bbe2383",
+          "recorded_at": "2026-10-15T01:46:20.777Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "item.3",
+        "status": "completed",
+        "title": "Hard-code pinnedFrameworkTarballTag plus pinnedFrameworkTarballSHA256; refuse non-pinned refs; bind UpdateOutcome identity to pinned verify.",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e8b28230fdd25b283105145cb41b86411bbe2383",
+          "recorded_at": "2026-10-15T01:46:20.777Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "item.4",
+        "status": "completed",
+        "title": "Activation-boundary tests for mismatch and absent pin: nonzero, no extract/deposit/swap, payload and hooks unchanged, temp cleaned.",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e8b28230fdd25b283105145cb41b86411bbe2383",
+          "recorded_at": "2026-10-15T01:46:20.777Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "item.5",
+        "status": "completed",
+        "title": "Reuse verifyFileSHA256 helper; document the fix in CHANGELOG Unreleased Fixed for Tracking 5627; frozen-installer honesty footnote.",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e8b28230fdd25b283105145cb41b86411bbe2383",
+          "recorded_at": "2026-10-15T01:46:20.777Z",
+          "recorded_by": "scope:complete"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "security",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5627",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5627: [AppSec] HIGH install-deposit-03: Unpinned GitHub framework tarball is extracted and planted as git hooks"
+      }
+    ],
+    "acceptance": {
+      "none_stated": true,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "After downloadCoreTarball and before extractCoreTarball, verifyFileSHA256 against Bound pin; on mismatch remove temp and fail closed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "e8b28230fdd25b283105145cb41b86411bbe2383",
+            "recorded_at": "2026-10-15T01:46:20.777Z",
+            "recorded_by": "scope:complete"
+          }
+        },
+        {
+          "id": 2,
+          "text": "VendorDeft/UpdateDeft/migrate/refresh return trust failure as fatal nonzero before WriteConsumerGitHooks; no hooks from unverified deftDir.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "e8b28230fdd25b283105145cb41b86411bbe2383",
+            "recorded_at": "2026-10-15T01:46:20.777Z",
+            "recorded_by": "scope:complete"
+          }
+        },
+        {
+          "id": 3,
+          "text": "Hard-code pinnedFrameworkTarballTag plus pinnedFrameworkTarballSHA256; refuse non-pinned refs; bind UpdateOutcome identity to pinned verify.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "e8b28230fdd25b283105145cb41b86411bbe2383",
+            "recorded_at": "2026-10-15T01:46:20.777Z",
+            "recorded_by": "scope:complete"
+          }
+        },
+        {
+          "id": 4,
+          "text": "Activation-boundary tests for mismatch and absent pin: nonzero, no extract/deposit/swap, payload and hooks unchanged, temp cleaned.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "e8b28230fdd25b283105145cb41b86411bbe2383",
+            "recorded_at": "2026-10-15T01:46:20.777Z",
+            "recorded_by": "scope:complete"
+          }
+        },
+        {
+          "id": 5,
+          "text": "Reuse verifyFileSHA256 helper; document the fix in CHANGELOG Unreleased Fixed for Tracking 5627; frozen-installer honesty footnote.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "e8b28230fdd25b283105145cb41b86411bbe2383",
+            "recorded_at": "2026-10-15T01:46:20.777Z",
+            "recorded_by": "scope:complete"
+          }
+        }
+      ],
+      "commands": [],
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "cmd/deft-install/upgrade.go",
+          "cmd/deft-install/git.go",
+          "cmd/deft-install/main.go",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "cmd/deft-install",
+        "cohesion_exemption": "CHANGELOG companion; git.go only if verifyFileSHA256 export needed."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5857602912,
+        "origin": "deftai/directive#5627",
+        "id": "github.issue.5857602912"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "3acba8536beebe74210f38d275aa5314683db495e02694c456676c0f5319f454"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "install-deposit-03-unpinned-framework-tarball-hooks",
+        "expected_outputs": [
+          "pin+verify before extract",
+          "fatal trust refuse before hooks",
+          "CHANGELOG Fixed #5627"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "go test ./cmd/deft-install/...",
+          "task check"
+        ],
+        "file_scope": [
+          "cmd/deft-install/upgrade.go",
+          "cmd/deft-install/git.go",
+          "cmd/deft-install/main.go",
+          "CHANGELOG.md"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "Prefer-A Bound 6181295657",
+          "issue #5627"
+        ],
+        "parallel_safe": true
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "productPullRequest": 5634,
+      "mergeCommit": "e8b28230fdd25b283105145cb41b86411bbe2383",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "8aa85b527c994e5148e8c31d9b36a3c28f441855",
+        "prNumber": 5634,
+        "prBase": "master",
+        "mergeCommit": "e8b28230fdd25b283105145cb41b86411bbe2383",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e8b28230fdd25b283105145cb41b86411bbe2383",
+        "verifiedAt": "2026-10-15T01:46:20.777Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTNjNDItM2E5Zi03ZWUwLWFkZDYtN2RiYThjOTI4MGI5"
+      },
+      "completedAt": "2026-10-15T01:46:20.777Z",
+      "completedSessionId": "host:grok:v1:MDFhMTNjNDItM2E5Zi03ZWUwLWFkZDYtN2RiYThjOTI4MGI5",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-15T01:46:20.777Z"
+      }
+    },
+    "id": "github.issue.5857602912",
+    "updated": "2026-10-15T00:59:25Z"
+  }
+}
