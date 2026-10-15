@@ -4,6 +4,8 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
@@ -12,6 +14,41 @@ import (
 	"strings"
 	"testing"
 )
+
+// stubPinnedFrameworkTarball retargets the #5627 pin (tag + SHA-256) to match
+// tarballPath and stubs fetchCoreTarballFunc to return that fixture. Callers
+// must pass tag to VendorDeft / UpdateDeft. Restores pin+fetch via t.Cleanup.
+func stubPinnedFrameworkTarball(t *testing.T, tarballPath, tag string) {
+	t.Helper()
+	sum, err := fileSHA256Hex(tarballPath)
+	if err != nil {
+		t.Fatalf("hash fixture tarball: %v", err)
+	}
+	origTag := pinnedFrameworkTarballTag
+	origSHA := pinnedFrameworkTarballSHA256
+	origFetch := fetchCoreTarballFunc
+	t.Cleanup(func() {
+		pinnedFrameworkTarballTag = origTag
+		pinnedFrameworkTarballSHA256 = origSHA
+		fetchCoreTarballFunc = origFetch
+	})
+	pinnedFrameworkTarballTag = tag
+	pinnedFrameworkTarballSHA256 = sum
+	fetchCoreTarballFunc = func(string) (string, error) { return tarballPath, nil }
+}
+
+func fileSHA256Hex(path string) (string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(h.Sum(nil)), nil
+}
 
 // makeCoreTarball writes a gzipped tar fixture mimicking the GitHub source
 // tarball shape: every entry lives under a single wrapper directory named
@@ -417,11 +454,9 @@ func TestSwapInCore_BackupAndReplace(t *testing.T) {
 // command is ever issued through runCmdFunc.
 func TestUpdateDeft_VendoredUsesFileSwapNoGit(t *testing.T) {
 	origGit := runGitCaptureFunc
-	origFetch := fetchCoreTarballFunc
 	origRun := runCmdFunc
 	defer func() {
 		runGitCaptureFunc = origGit
-		fetchCoreTarballFunc = origFetch
 		runCmdFunc = origRun
 	}()
 
@@ -438,12 +473,13 @@ func TestUpdateDeft_VendoredUsesFileSwapNoGit(t *testing.T) {
 	runGitCaptureFunc = func(string, ...string) (string, error) {
 		return "", fmt.Errorf("not a repo")
 	}
-	// Tarball fixture stands in for the network download.
+	// Tarball fixture stands in for the network download; pin retargeted (#5627).
+	const pinTag = "v9.9.9"
 	tarball := makeCoreTarball(t, "deftai-directive-cafe1234", map[string]string{
 		"marker.txt":  "new",
 		".git/config": "[core]",
 	})
-	fetchCoreTarballFunc = func(ref string) (string, error) { return tarball, nil }
+	stubPinnedFrameworkTarball(t, tarball, pinTag)
 
 	// Guardrail probe: record any git command. There MUST be none.
 	var gitCalls []string
@@ -456,7 +492,7 @@ func TestUpdateDeft_VendoredUsesFileSwapNoGit(t *testing.T) {
 
 	result := &WizardResult{ProjectName: "proj", ProjectDir: proj, DeftDir: core, Update: true}
 	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
-	outcome, err := UpdateDeft(w, result, "v9.9.9")
+	outcome, err := UpdateDeft(w, result, pinTag)
 	if err != nil {
 		t.Fatalf("UpdateDeft (vendored): %v", err)
 	}
@@ -473,8 +509,8 @@ func TestUpdateDeft_VendoredUsesFileSwapNoGit(t *testing.T) {
 	if outcome.SHA != "cafe1234" {
 		t.Errorf("SHA = %q, want cafe1234 (from tarball wrapper)", outcome.SHA)
 	}
-	if outcome.Tag != "v9.9.9" {
-		t.Errorf("Tag = %q, want v9.9.9", outcome.Tag)
+	if outcome.Tag != pinTag {
+		t.Errorf("Tag = %q, want %s", outcome.Tag, pinTag)
 	}
 	if data, err := os.ReadFile(filepath.Join(core, "marker.txt")); err != nil || string(data) != "new" {
 		t.Errorf("refreshed core missing marker.txt: data=%q err=%v", data, err)
@@ -533,17 +569,14 @@ func TestUpdateDeft_VendoredNeverMutatesParentRepo(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Stub only the network fetch; classification uses REAL git.
-	origFetch := fetchCoreTarballFunc
+	// Stub only the network fetch + pin; classification uses REAL git.
 	origRun := runCmdFunc
-	defer func() {
-		fetchCoreTarballFunc = origFetch
-		runCmdFunc = origRun
-	}()
+	defer func() { runCmdFunc = origRun }()
+	const pinTag = "v9.9.9"
 	tarball := makeCoreTarball(t, "deftai-directive-feed1234", map[string]string{
 		"marker.txt": "new",
 	})
-	fetchCoreTarballFunc = func(ref string) (string, error) { return tarball, nil }
+	stubPinnedFrameworkTarball(t, tarball, pinTag)
 	runCmdFunc = func(out io.Writer, name string, args ...string) error {
 		if name == "git" {
 			t.Fatalf("installer ran a git command on a vendored payload: git %s", strings.Join(args, " "))
@@ -553,7 +586,7 @@ func TestUpdateDeft_VendoredNeverMutatesParentRepo(t *testing.T) {
 
 	result := &WizardResult{ProjectName: "proj", ProjectDir: parent, DeftDir: core, Update: true}
 	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
-	outcome, err := UpdateDeft(w, result, "v9.9.9")
+	outcome, err := UpdateDeft(w, result, pinTag)
 	if err != nil {
 		t.Fatalf("UpdateDeft: %v", err)
 	}
@@ -584,19 +617,18 @@ func TestUpdateDeft_VendoredNeverMutatesParentRepo(t *testing.T) {
 func TestUpdateDeft_AbsentVendorsFreshCopy(t *testing.T) {
 	origRun := runCmdFunc
 	origGit := runGitCaptureFunc
-	origFetch := fetchCoreTarballFunc
 	defer func() {
 		runCmdFunc = origRun
 		runGitCaptureFunc = origGit
-		fetchCoreTarballFunc = origFetch
 	}()
 
 	tmp := t.TempDir()
 	proj := filepath.Join(tmp, "proj")
 	core := filepath.Join(proj, ".deft", "core") // intentionally absent
 
+	const pinTag = "v1.2.3"
 	tarball := makeCoreTarball(t, "deftai-directive-abc1234", map[string]string{"marker.txt": "new"})
-	fetchCoreTarballFunc = func(string) (string, error) { return tarball, nil }
+	stubPinnedFrameworkTarball(t, tarball, pinTag)
 
 	// Guardrail: there must be NO git command on a vendored fresh install.
 	var gitCalls []string
@@ -610,7 +642,7 @@ func TestUpdateDeft_AbsentVendorsFreshCopy(t *testing.T) {
 
 	result := &WizardResult{ProjectName: "proj", ProjectDir: proj, DeftDir: core, Update: true}
 	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
-	outcome, err := UpdateDeft(w, result, "v1.2.3")
+	outcome, err := UpdateDeft(w, result, pinTag)
 	if err != nil {
 		t.Fatalf("UpdateDeft (absent): %v", err)
 	}
@@ -636,22 +668,19 @@ func TestUpdateDeft_AbsentVendorsFreshCopy(t *testing.T) {
 // git command and WITHOUT leaving .git, and re-stamps the framework source SHA
 // recovered from the tarball wrapper.
 func TestVendorDeft_FreshInstallNoGit(t *testing.T) {
-	origFetch := fetchCoreTarballFunc
 	origRun := runCmdFunc
-	defer func() {
-		fetchCoreTarballFunc = origFetch
-		runCmdFunc = origRun
-	}()
+	defer func() { runCmdFunc = origRun }()
 
 	tmp := t.TempDir()
 	proj := filepath.Join(tmp, "proj")
 	core := filepath.Join(proj, ".deft", "core") // greenfield: absent
 
+	const pinTag = "v1.2.3"
 	tarball := makeCoreTarball(t, "deftai-directive-abc1234", map[string]string{
 		"SKILL.md":    "skill body",
 		".git/config": "[core]", // must be excluded by extraction
 	})
-	fetchCoreTarballFunc = func(string) (string, error) { return tarball, nil }
+	stubPinnedFrameworkTarball(t, tarball, pinTag)
 
 	var gitCalls []string
 	runCmdFunc = func(out io.Writer, name string, args ...string) error {
@@ -663,7 +692,7 @@ func TestVendorDeft_FreshInstallNoGit(t *testing.T) {
 
 	result := &WizardResult{ProjectName: "proj", ProjectDir: proj, DeftDir: core}
 	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
-	outcome, err := VendorDeft(w, result, "v1.2.3")
+	outcome, err := VendorDeft(w, result, pinTag)
 	if err != nil {
 		t.Fatalf("VendorDeft: %v", err)
 	}
@@ -676,8 +705,8 @@ func TestVendorDeft_FreshInstallNoGit(t *testing.T) {
 	if outcome.SHA != "abc1234" {
 		t.Errorf("SHA = %q, want abc1234 (from tarball wrapper)", outcome.SHA)
 	}
-	if outcome.Tag != "v1.2.3" {
-		t.Errorf("Tag = %q, want v1.2.3", outcome.Tag)
+	if outcome.Tag != pinTag {
+		t.Errorf("Tag = %q, want %s", outcome.Tag, pinTag)
 	}
 	if outcome.Backup != "" {
 		t.Errorf("greenfield vendor should not back up (no prior payload), got %q", outcome.Backup)
@@ -728,14 +757,11 @@ func TestUpdateDeft_CloneTagDetachedHeadMigratesWithoutGit(t *testing.T) {
 	runGit("tag", "v9.9.9")
 	runGit("checkout", "-q", "v9.9.9") // detached HEAD
 
-	origFetch := fetchCoreTarballFunc
 	origRun := runCmdFunc
-	defer func() {
-		fetchCoreTarballFunc = origFetch
-		runCmdFunc = origRun
-	}()
+	defer func() { runCmdFunc = origRun }()
+	const pinTag = "v9.9.9"
 	tarball := makeCoreTarball(t, "deftai-directive-feed1234", map[string]string{"marker.txt": "new"})
-	fetchCoreTarballFunc = func(string) (string, error) { return tarball, nil }
+	stubPinnedFrameworkTarball(t, tarball, pinTag)
 	runCmdFunc = func(out io.Writer, name string, args ...string) error {
 		if name == "git" {
 			t.Fatalf("migration ran a git command (safety/regression): git %s", strings.Join(args, " "))
@@ -745,7 +771,7 @@ func TestUpdateDeft_CloneTagDetachedHeadMigratesWithoutGit(t *testing.T) {
 
 	result := &WizardResult{ProjectName: "proj", ProjectDir: proj, DeftDir: core, Update: true}
 	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
-	outcome, err := UpdateDeft(w, result, "v9.9.9")
+	outcome, err := UpdateDeft(w, result, pinTag)
 	if err != nil {
 		t.Fatalf("UpdateDeft (detached-HEAD clone migration): %v", err)
 	}
@@ -881,11 +907,7 @@ func TestRegenerateBareVersionMarker_SymlinkVbriefDir_RejectsProjection(t *testi
 // vendored path against a real-shaped (pax-header) tarball, hermetically.
 func TestRefreshVendoredCore_RegeneratesBareVersionMarker(t *testing.T) {
 	origGit := runGitCaptureFunc
-	origFetch := fetchCoreTarballFunc
-	defer func() {
-		runGitCaptureFunc = origGit
-		fetchCoreTarballFunc = origFetch
-	}()
+	defer func() { runGitCaptureFunc = origGit }()
 
 	proj := t.TempDir()
 	core := filepath.Join(proj, ".deft", "core")
@@ -903,12 +925,13 @@ func TestRefreshVendoredCore_RegeneratesBareVersionMarker(t *testing.T) {
 
 	// Classify as vendored (no git work tree); stand in a real-shaped tarball.
 	runGitCaptureFunc = func(string, ...string) (string, error) { return "", fmt.Errorf("not a repo") }
+	const pinTag = "v0.39.3"
 	tarball := makeCoreTarballWithPaxHeader(t, "deftai-directive-cafef00d1234", map[string]string{"main.md": "framework"})
-	fetchCoreTarballFunc = func(string) (string, error) { return tarball, nil }
+	stubPinnedFrameworkTarball(t, tarball, pinTag)
 
 	result := &WizardResult{ProjectName: "proj", ProjectDir: proj, DeftDir: core, Update: true}
 	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
-	outcome, err := UpdateDeft(w, result, "v0.39.3")
+	outcome, err := UpdateDeft(w, result, pinTag)
 	if err != nil {
 		t.Fatalf("UpdateDeft (vendored refresh): %v", err)
 	}
@@ -921,5 +944,342 @@ func TestRefreshVendoredCore_RegeneratesBareVersionMarker(t *testing.T) {
 	}
 	if strings.TrimSpace(string(got)) != "0.39.3" {
 		t.Errorf("vbrief/.deft-version = %q, want %q (regenerated from the resolved tag)", strings.TrimSpace(string(got)), "0.39.3")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// #5627 / install-deposit-03 -- pin + SHA-256 verify framework tarball before
+// extract; fatal refuse before WriteConsumerGitHooks (activation boundary).
+// ---------------------------------------------------------------------------
+
+// TestPinnedFrameworkTarballSHA256_WellFormed guards the trust anchor's shape.
+func TestPinnedFrameworkTarballSHA256_WellFormed(t *testing.T) {
+	got := pinnedFrameworkTarballSHA256
+	if len(got) != 64 {
+		t.Fatalf("pinned SHA-256 must be 64 hex chars, got %d (%q)", len(got), got)
+	}
+	if strings.HasPrefix(got, "sha256:") {
+		t.Fatalf("pinned SHA-256 must not carry a sha256: prefix: %q", got)
+	}
+	if _, err := hex.DecodeString(got); err != nil {
+		t.Fatalf("pinned SHA-256 is not valid hex: %v", err)
+	}
+	if got != strings.ToLower(got) {
+		t.Errorf("pinned SHA-256 should be lowercase: %q", got)
+	}
+	if pinnedFrameworkTarballTagDefault == "" || pinnedFrameworkTarballTag == "" {
+		t.Fatal("pinned framework tag must be non-empty")
+	}
+}
+
+// TestResolvePinnedFrameworkRef_RefuseNonPin fails closed on free refs.
+func TestResolvePinnedFrameworkRef_RefuseNonPin(t *testing.T) {
+	origTag := pinnedFrameworkTarballTag
+	t.Cleanup(func() { pinnedFrameworkTarballTag = origTag })
+	pinnedFrameworkTarballTag = "v0.125.1"
+
+	if got, err := resolvePinnedFrameworkRef(""); err != nil || got != "v0.125.1" {
+		t.Fatalf("empty ref should default to pin: got %q err=%v", got, err)
+	}
+	if _, err := resolvePinnedFrameworkRef("master"); err == nil {
+		t.Fatal("expected refuse for master")
+	}
+	if _, err := resolvePinnedFrameworkRef("v9.9.9"); err == nil {
+		t.Fatal("expected refuse for arbitrary tag")
+	}
+	if got, err := resolvePinnedFrameworkRef("v0.125.1"); err != nil || got != "v0.125.1" {
+		t.Fatalf("exact pin must pass: got %q err=%v", got, err)
+	}
+}
+
+// activationBoundaryFixture seeds a consumer with an existing payload + wired
+// consumer-root hooks so mismatch tests can assert bytes/config stay put.
+func activationBoundaryFixture(t *testing.T) (proj, core string, oldPayload, hookPC, hookPP string) {
+	t.Helper()
+	proj = t.TempDir()
+	core = filepath.Join(proj, ".deft", "core")
+	if err := os.MkdirAll(core, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	oldPayload = "EXISTING-PAYLOAD-MUST-SURVIVE\n"
+	if err := os.WriteFile(filepath.Join(core, "KEEP.txt"), []byte(oldPayload), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	// Already-wired consumer hooks (core.hooksPath=.githooks case): plant
+	// consumer-root hook bytes that must not change on trust refusal.
+	hooksDir := filepath.Join(proj, ".githooks")
+	if err := os.MkdirAll(hooksDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	hookPC = "#!/bin/sh\n# already-wired pre-commit\nexit 0\n"
+	hookPP = "#!/bin/sh\n# already-wired pre-push\nexit 0\n"
+	if err := os.WriteFile(filepath.Join(hooksDir, "pre-commit"), []byte(hookPC), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(hooksDir, "pre-push"), []byte(hookPP), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	return proj, core, oldPayload, hookPC, hookPP
+}
+
+func assertActivationUnchanged(t *testing.T, proj, core, oldPayload, hookPC, hookPP string) {
+	t.Helper()
+	got, err := os.ReadFile(filepath.Join(core, "KEEP.txt"))
+	if err != nil || string(got) != oldPayload {
+		t.Fatalf("payload mutated on trust refuse: data=%q err=%v", got, err)
+	}
+	gotPC, err := os.ReadFile(filepath.Join(proj, ".githooks", "pre-commit"))
+	if err != nil || string(gotPC) != hookPC {
+		t.Fatalf("consumer pre-commit mutated on trust refuse: data=%q err=%v", gotPC, err)
+	}
+	gotPP, err := os.ReadFile(filepath.Join(proj, ".githooks", "pre-push"))
+	if err != nil || string(gotPP) != hookPP {
+		t.Fatalf("consumer pre-push mutated on trust refuse: data=%q err=%v", gotPP, err)
+	}
+}
+
+// TestDownloadAndExtractCore_FailClosedOnDigestMismatch is the core #5627
+// activation gate: mismatched bytes must not extract/deposit, and the temp
+// download must be removed.
+func TestDownloadAndExtractCore_FailClosedOnDigestMismatch(t *testing.T) {
+	origFetch := fetchCoreTarballFunc
+	origExtract := extractCoreTarballFunc
+	origTag := pinnedFrameworkTarballTag
+	origSHA := pinnedFrameworkTarballSHA256
+	defer func() {
+		fetchCoreTarballFunc = origFetch
+		extractCoreTarballFunc = origExtract
+		pinnedFrameworkTarballTag = origTag
+		pinnedFrameworkTarballSHA256 = origSHA
+	}()
+
+	dir := t.TempDir()
+	tmpPath := filepath.Join(dir, "tampered.tar.gz")
+	if err := os.WriteFile(tmpPath, []byte("MALICIOUS or corrupted framework archive"), 0o600); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+	pinnedFrameworkTarballTag = "v0.125.1"
+	// Keep production-shaped pin (will not match fixture bytes).
+	pinnedFrameworkTarballSHA256 = origSHA
+	if pinnedFrameworkTarballSHA256 == "" || len(pinnedFrameworkTarballSHA256) != 64 {
+		pinnedFrameworkTarballSHA256 = strings.Repeat("ab", 32)
+	}
+
+	fetchCoreTarballFunc = func(string) (string, error) { return tmpPath, nil }
+	extracted := false
+	extractCoreTarballFunc = func(string, string) (string, error) {
+		extracted = true
+		return "", nil
+	}
+
+	_, _, cleanup, err := downloadAndExtractCore("v0.125.1")
+	cleanup()
+	if err == nil {
+		t.Fatal("expected fail-closed error on digest mismatch, got nil")
+	}
+	if !strings.Contains(err.Error(), "refusing to extract unverified") && !strings.Contains(err.Error(), "mismatch") {
+		t.Errorf("expected refusal/mismatch error, got: %v", err)
+	}
+	if extracted {
+		t.Fatal("SECURITY: extract ran despite SHA-256 mismatch")
+	}
+	if _, statErr := os.Stat(tmpPath); !os.IsNotExist(statErr) {
+		t.Errorf("rejected tarball temp file should be removed, stat err = %v", statErr)
+	}
+}
+
+// TestDownloadAndExtractCore_FailClosedOnAbsentPin refuses before fetch/extract
+// when pin metadata is empty or malformed.
+func TestDownloadAndExtractCore_FailClosedOnAbsentPin(t *testing.T) {
+	origFetch := fetchCoreTarballFunc
+	origExtract := extractCoreTarballFunc
+	origSHA := pinnedFrameworkTarballSHA256
+	origTag := pinnedFrameworkTarballTag
+	defer func() {
+		fetchCoreTarballFunc = origFetch
+		extractCoreTarballFunc = origExtract
+		pinnedFrameworkTarballSHA256 = origSHA
+		pinnedFrameworkTarballTag = origTag
+	}()
+
+	pinnedFrameworkTarballTag = "v0.125.1"
+	fetched := false
+	fetchCoreTarballFunc = func(string) (string, error) {
+		fetched = true
+		return "", fmt.Errorf("fetch must not run")
+	}
+	extracted := false
+	extractCoreTarballFunc = func(string, string) (string, error) {
+		extracted = true
+		return "", nil
+	}
+
+	for _, bad := range []string{"", "not-hex", "deadbeef", strings.Repeat("g", 64)} {
+		pinnedFrameworkTarballSHA256 = bad
+		_, _, cleanup, err := downloadAndExtractCore("v0.125.1")
+		cleanup()
+		if err == nil {
+			t.Fatalf("expected refuse for malformed pin %q", bad)
+		}
+		if !strings.Contains(err.Error(), "absent or malformed") {
+			t.Errorf("pin %q: want absent/malformed error, got: %v", bad, err)
+		}
+	}
+	if fetched {
+		t.Fatal("SECURITY: fetch ran despite absent/malformed pin")
+	}
+	if extracted {
+		t.Fatal("SECURITY: extract ran despite absent/malformed pin")
+	}
+}
+
+// TestVendorDeft_FailClosedOnDigestMismatch_LeavesHooksUntouched covers fresh
+// vendor + already-wired consumer: trust refusal must not swap payload or
+// replace consumer hook bytes (a setGitHooksPathFunc-only spy would miss this).
+func TestVendorDeft_FailClosedOnDigestMismatch_LeavesHooksUntouched(t *testing.T) {
+	origFetch := fetchCoreTarballFunc
+	origExtract := extractCoreTarballFunc
+	origGit := runGitCaptureFunc
+	origSHA := pinnedFrameworkTarballSHA256
+	origTag := pinnedFrameworkTarballTag
+	origSet := setGitHooksPathFunc
+	defer func() {
+		fetchCoreTarballFunc = origFetch
+		extractCoreTarballFunc = origExtract
+		runGitCaptureFunc = origGit
+		pinnedFrameworkTarballSHA256 = origSHA
+		pinnedFrameworkTarballTag = origTag
+		setGitHooksPathFunc = origSet
+	}()
+
+	proj, core, oldPayload, hookPC, hookPP := activationBoundaryFixture(t)
+	runGitCaptureFunc = func(string, ...string) (string, error) { return "", fmt.Errorf("not a repo") }
+
+	tmpPath := filepath.Join(t.TempDir(), "bad.tar.gz")
+	if err := os.WriteFile(tmpPath, []byte("tampered-framework"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	pinnedFrameworkTarballTag = "v0.125.1"
+	pinnedFrameworkTarballSHA256 = strings.Repeat("cd", 32) // nonzero well-formed, won't match
+	fetchCoreTarballFunc = func(string) (string, error) { return tmpPath, nil }
+	extractCoreTarballFunc = func(string, string) (string, error) {
+		t.Fatal("SECURITY: extract must not run on mismatch")
+		return "", nil
+	}
+	setGitHooksPathFunc = func(string, string) error {
+		t.Fatal("SECURITY: hooksPath must not be written after trust refuse")
+		return nil
+	}
+
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	result := &WizardResult{ProjectName: "proj", ProjectDir: proj, DeftDir: core}
+	_, err := VendorDeft(w, result, "v0.125.1")
+	if err == nil {
+		t.Fatal("expected VendorDeft trust failure, got nil")
+	}
+	assertActivationUnchanged(t, proj, core, oldPayload, hookPC, hookPP)
+}
+
+// TestUpdateDeft_VendoredRefresh_FailClosedOnDigestMismatch covers the
+// vendored-refresh activation path.
+func TestUpdateDeft_VendoredRefresh_FailClosedOnDigestMismatch(t *testing.T) {
+	origFetch := fetchCoreTarballFunc
+	origExtract := extractCoreTarballFunc
+	origGit := runGitCaptureFunc
+	origSHA := pinnedFrameworkTarballSHA256
+	origTag := pinnedFrameworkTarballTag
+	defer func() {
+		fetchCoreTarballFunc = origFetch
+		extractCoreTarballFunc = origExtract
+		runGitCaptureFunc = origGit
+		pinnedFrameworkTarballSHA256 = origSHA
+		pinnedFrameworkTarballTag = origTag
+	}()
+
+	proj, core, oldPayload, hookPC, hookPP := activationBoundaryFixture(t)
+	runGitCaptureFunc = func(string, ...string) (string, error) { return "", fmt.Errorf("not a repo") }
+
+	tmpPath := filepath.Join(t.TempDir(), "bad.tar.gz")
+	if err := os.WriteFile(tmpPath, []byte("tampered-refresh"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	pinnedFrameworkTarballTag = "v0.125.1"
+	pinnedFrameworkTarballSHA256 = strings.Repeat("ef", 32)
+	fetchCoreTarballFunc = func(string) (string, error) { return tmpPath, nil }
+	extractCoreTarballFunc = func(string, string) (string, error) {
+		t.Fatal("SECURITY: extract must not run on mismatch")
+		return "", nil
+	}
+
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	result := &WizardResult{ProjectName: "proj", ProjectDir: proj, DeftDir: core, Update: true}
+	_, err := UpdateDeft(w, result, "v0.125.1")
+	if err == nil {
+		t.Fatal("expected UpdateDeft trust failure, got nil")
+	}
+	assertActivationUnchanged(t, proj, core, oldPayload, hookPC, hookPP)
+}
+
+// TestUpdateDeft_CloneMigrate_FailClosedOnDigestMismatch covers clone->vendored.
+func TestUpdateDeft_CloneMigrate_FailClosedOnDigestMismatch(t *testing.T) {
+	origFetch := fetchCoreTarballFunc
+	origExtract := extractCoreTarballFunc
+	origSHA := pinnedFrameworkTarballSHA256
+	origTag := pinnedFrameworkTarballTag
+	defer func() {
+		fetchCoreTarballFunc = origFetch
+		extractCoreTarballFunc = origExtract
+		pinnedFrameworkTarballSHA256 = origSHA
+		pinnedFrameworkTarballTag = origTag
+	}()
+
+	proj, core, oldPayload, hookPC, hookPP := activationBoundaryFixture(t)
+	// Force clone layout classification.
+	origGit := forceCloneLayoutGit(core)
+	defer func() { runGitCaptureFunc = origGit }()
+	if err := os.MkdirAll(filepath.Join(core, ".git"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	tmpPath := filepath.Join(t.TempDir(), "bad.tar.gz")
+	if err := os.WriteFile(tmpPath, []byte("tampered-migrate"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	pinnedFrameworkTarballTag = "v0.125.1"
+	pinnedFrameworkTarballSHA256 = strings.Repeat("11", 32)
+	fetchCoreTarballFunc = func(string) (string, error) { return tmpPath, nil }
+	extractCoreTarballFunc = func(string, string) (string, error) {
+		t.Fatal("SECURITY: extract must not run on mismatch")
+		return "", nil
+	}
+
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	result := &WizardResult{ProjectName: "proj", ProjectDir: proj, DeftDir: core, Update: true}
+	_, err := UpdateDeft(w, result, "v0.125.1")
+	if err == nil {
+		t.Fatal("expected migrate trust failure, got nil")
+	}
+	assertActivationUnchanged(t, proj, core, oldPayload, hookPC, hookPP)
+	if _, err := os.Stat(filepath.Join(core, ".git")); err != nil {
+		t.Errorf("clone .git must remain when migration refuses: %v", err)
+	}
+}
+
+// TestDownloadAndExtractCore_PassesOnDigestMatch verifies the happy path still
+// extracts when the fixture matches the (test-substituted) pin.
+func TestDownloadAndExtractCore_PassesOnDigestMatch(t *testing.T) {
+	tarball := makeCoreTarball(t, "deftai-directive-abcd1234", map[string]string{"ok.txt": "yes"})
+	stubPinnedFrameworkTarball(t, tarball, "v0.125.1")
+
+	root, sha, cleanup, err := downloadAndExtractCore("v0.125.1")
+	defer cleanup()
+	if err != nil {
+		t.Fatalf("expected match path to succeed: %v", err)
+	}
+	if sha != "abcd1234" {
+		t.Errorf("wrapper SHA = %q, want abcd1234", sha)
+	}
+	if data, err := os.ReadFile(filepath.Join(root, "ok.txt")); err != nil || string(data) != "yes" {
+		t.Errorf("extracted content missing: data=%q err=%v", data, err)
 	}
 }

@@ -76,7 +76,8 @@ Usage:
   deft-install [options]
 
 Options:
-  --branch <name>           Clone from a specific branch (default: repo default)
+  --branch <name>           Framework ref to vendor (default: pinned release tag;
+                            only the hard-coded pin is accepted — #5627)
   --legacy-layout           Deposit at legacy 'deft/' instead of canonical '.deft/core/'
                             (back-compat path; pre-v0.27 in-flight migrations only)
   --yes, --non-interactive  Non-interactive/agent mode: skip all prompts; requires

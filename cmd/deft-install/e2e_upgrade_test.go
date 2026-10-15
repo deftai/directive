@@ -39,11 +39,7 @@ import (
 // appended AND vbrief/.deft-version stays 0.0.0-dev) and PASSES after the fix.
 func TestEndToEnd_VendoredUpgrade_DoctorInvariants(t *testing.T) {
 	origGit := runGitCaptureFunc
-	origFetch := fetchCoreTarballFunc
-	defer func() {
-		runGitCaptureFunc = origGit
-		fetchCoreTarballFunc = origFetch
-	}()
+	defer func() { runGitCaptureFunc = origGit }()
 
 	proj := t.TempDir()
 	core := filepath.Join(proj, ".deft", "core")
@@ -83,17 +79,16 @@ func TestEndToEnd_VendoredUpgrade_DoctorInvariants(t *testing.T) {
 	}
 
 	// Classify as vendored (no git work tree); stand in a real-shaped tarball
-	// for the network download.
+	// for the network download. Pin retargeted for #5627 trust gate.
 	runGitCaptureFunc = func(string, ...string) (string, error) {
 		return "", fmt.Errorf("not a git repository")
 	}
+	const upgradeTag = "v0.39.3"
 	tarball := makeCoreTarballWithPaxHeader(t, "deftai-directive-abc1234def567", map[string]string{
 		"main.md":           "framework main",
 		"scripts/doctor.py": "print('hi')",
 	})
-	fetchCoreTarballFunc = func(string) (string, error) { return tarball, nil }
-
-	const upgradeTag = "v0.39.3"
+	stubPinnedFrameworkTarball(t, tarball, upgradeTag)
 
 	// --- Drive the REAL upgrade sequence main.go runs for an --upgrade. ---
 	result := &WizardResult{ProjectName: "myproj", ProjectDir: proj, DeftDir: core, Update: true}

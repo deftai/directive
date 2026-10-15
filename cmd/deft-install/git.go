@@ -350,8 +350,8 @@ func fetchInstallerToTemp(w *Wizard, dlURL string) (string, error) {
 // verifyFileSHA256 hashes the file at path and compares it, case-insensitively,
 // against wantHex (an optional "sha256:" prefix is tolerated). It returns a
 // descriptive error on any open/read failure or digest mismatch so callers can
-// fail closed. This is the single trust gate for the silent Git-for-Windows
-// install (#2908).
+// fail closed. Shared trust gate for the silent Git-for-Windows install (#2908)
+// and the framework source-tarball pin before extract (#5627 / install-deposit-03).
 func verifyFileSHA256(path, wantHex string) error {
 	f, err := os.Open(path)
 	if err != nil {

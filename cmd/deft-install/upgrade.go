@@ -38,11 +38,49 @@ const (
 )
 
 // deftTarballAPIBase is the GitHub tarball endpoint for the framework repo.
-// `GET .../tarball/<ref>` (ref optional => default branch) returns a gzipped
-// tar of the repo tree wrapped in a single top-level directory named
-// `<owner>-<repo>-<sha>` -- the wrapper SHA is the framework source SHA we
-// re-stamp into the VERSION manifest (fixing the #1323/#1324 wrong-sha class).
+// `GET .../tarball/<ref>` returns a gzipped tar of the repo tree wrapped in a
+// single top-level directory named `<owner>-<repo>-<sha>` -- the wrapper SHA is
+// the framework source SHA we re-stamp into the VERSION manifest (fixing the
+// #1323/#1324 wrong-sha class). Empty/default-branch refs are refused: only the
+// pinned tag below may be fetched (#5627 / install-deposit-03).
 const deftTarballAPIBase = "https://api.github.com/repos/deftai/directive/tarball"
+
+// Framework tarball trust anchor (#5627 / install-deposit-03).
+//
+// Trust-artifact class (a): SHA-256 of the bytes returned by
+// `GET .../tarball/<pinnedFrameworkTarballTag>`. This is NOT the wrapper-dir
+// commit SHA (shaFromContentRoot) and NOT a dynamically fetched digest from an
+// unauthenticated manifest that shares the payload trust boundary.
+//
+// Pin-bump procedure (when cutting a new installer that vendors a newer tag,
+// or when GitHub regenerates the source archive under the same tag):
+//  1. Download the finalized target: GET .../tarball/<newTag> (authenticated
+//     build host or release machine), OUTSIDE the archive being verified.
+//  2. Hash the .tar.gz bytes (sha256sum / Get-FileHash SHA256); store the
+//     lowercase 64-hex digest in pinnedFrameworkTarballSHA256 and the tag in
+//     pinnedFrameworkTarballTag together in one change.
+//  3. Do not embed a digest computed from an archive that already contains that
+//     digest (circular). Capture from an already-published release tag tip.
+//  4. Note: GitHub may regenerate source tarballs under the same tag; a pin
+//     mismatch after regeneration is a bump (re-hash + ship), not a soft warn.
+//
+// Frozen-installer honesty: Prefer-A secures the maintained Go tarball rail in
+// builds that include this change. Already-distributed frozen installer
+// binaries are not retroactively fixed; npm / `npx @deftai/directive init`
+// remains the documented future-upgrade path for those hosts.
+const pinnedFrameworkTarballTagDefault = "v0.125.1"
+
+// pinnedFrameworkTarballTag is the only ref VendorDeft / UpdateDeft may fetch.
+// Var (not const) so hermetic unit tests can retarget the pin to a fixture tag;
+// production never mutates this value.
+var pinnedFrameworkTarballTag = pinnedFrameworkTarballTagDefault
+
+// pinnedFrameworkTarballSHA256 is the known-good lowercase-hex SHA-256 of the
+// GitHub source tarball for pinnedFrameworkTarballTag. Captured out-of-band at
+// pin time from the finalized v0.125.1 archive bytes (see pin-bump procedure).
+// Var so fail-closed unit tests can substitute a digest for fixture bytes;
+// production never mutates this value.
+var pinnedFrameworkTarballSHA256 = "a9f6f4270302ea0d79966017a0e848424c0ab391da26f0354e458e0f3bad1555"
 
 // tarballExcludedTopLevel mirrors the webinstaller's EXCLUDED_PREFIXES
 // (deftai/webinstaller src/lib/bootstrap/emitDeftCore.ts): a vendored payload
@@ -93,9 +131,15 @@ var runGitCaptureFunc = func(dir string, args ...string) (string, error) {
 }
 
 // fetchCoreTarballFunc downloads the deftai/directive source tarball at ref
-// (empty => default branch) to a temp .tar.gz and returns its path. Indirected
-// for tests so the vendored-refresh path is exercised without network.
+// to a temp .tar.gz and returns its path. Indirected for tests so the
+// vendored-refresh path is exercised without network. Callers must pass the
+// pinned tag only (#5627); empty/default-branch refs are refused upstream.
 var fetchCoreTarballFunc = downloadCoreTarball
+
+// extractCoreTarballFunc extracts a verified framework .tar.gz into destDir.
+// Indirected so activation-boundary tests can assert extract is NOT called on
+// pin mismatch / absent pin (#5627 / install-deposit-03).
+var extractCoreTarballFunc = extractCoreTarball
 
 // UpdateDeft refreshes an existing framework deposit. It classifies the
 // on-disk payload layout FIRST and dispatches to the only safe strategy for
@@ -166,7 +210,6 @@ func VendorDeft(w *Wizard, result *WizardResult, branch string) (*UpdateOutcome,
 	outcome := &UpdateOutcome{
 		Layout:   payloadLayoutVendored,
 		Strategy: strategyVendor,
-		Tag:      tagFromRef(branch),
 	}
 	if err := os.MkdirAll(result.ProjectDir, 0o755); err != nil {
 		return outcome, fmt.Errorf("vendor install: could not create project directory: %w", err)
@@ -178,6 +221,8 @@ func VendorDeft(w *Wizard, result *WizardResult, branch string) (*UpdateOutcome,
 		return outcome, fmt.Errorf("vendor install: %w", err)
 	}
 	defer cleanup()
+	// Bind identity to the resolved pinned tag after successful verify (#5627).
+	outcome.Tag = pinnedFrameworkTarballTag
 	if sha != "" {
 		outcome.SHA = sha
 	}
@@ -214,7 +259,6 @@ func migrateCloneToVendored(w *Wizard, result *WizardResult, branch string) (*Up
 	outcome := &UpdateOutcome{
 		Layout:   payloadLayoutVendored, // POST-migration layout (#1426 report-resulting-state precedent)
 		Strategy: strategyMigrate,
-		Tag:      tagFromRef(branch),
 	}
 	w.printf("Detected a git-clone framework payload at %s; migrating to a vendored (git-free) payload ...\n", result.DeftDir)
 
@@ -223,6 +267,7 @@ func migrateCloneToVendored(w *Wizard, result *WizardResult, branch string) (*Up
 		return outcome, fmt.Errorf("clone->vendored migration: %w", err)
 	}
 	defer cleanup()
+	outcome.Tag = pinnedFrameworkTarballTag
 	if sha != "" {
 		outcome.SHA = sha
 	}
@@ -256,7 +301,6 @@ func refreshVendoredCore(w *Wizard, result *WizardResult, branch string) (*Updat
 	outcome := &UpdateOutcome{
 		Layout:   payloadLayoutVendored,
 		Strategy: strategyFileSwap,
-		Tag:      tagFromRef(branch),
 	}
 	w.printf("Detected a vendored framework payload at %s (no .git of its own).\n", result.DeftDir)
 	w.printf("Refreshing via git-free file swap -- the installer will NOT run git against your project repo ...\n")
@@ -266,6 +310,7 @@ func refreshVendoredCore(w *Wizard, result *WizardResult, branch string) (*Updat
 		return outcome, fmt.Errorf("vendored refresh: %w", err)
 	}
 	defer cleanup()
+	outcome.Tag = pinnedFrameworkTarballTag
 	if sha != "" {
 		outcome.SHA = sha
 	}
@@ -337,18 +382,68 @@ func regenerateBareVersionMarker(projectDir, tag string) (string, error) {
 	return path, nil
 }
 
-// downloadAndExtractCore downloads the framework source tarball at ref (empty
-// => default branch) and extracts it into a fresh temp staging dir, returning
-// the extracted content root, the framework source SHA recovered from the
-// tarball wrapper (best-effort, may be ""), and a cleanup func the caller MUST
-// defer to remove the tarball + staging dir. On error the cleanup has already
-// run and a no-op func is returned so callers can defer unconditionally.
+// resolvePinnedFrameworkRef returns the only allowed framework tarball ref.
+// Empty means "use the hard-coded pin" (default install/upgrade identity).
+// Any other non-pin ref (default-branch names, free --branch values, arbitrary
+// tags) fails closed — no silent rewrite to the pinned download while reporting
+// the requested identity (#5627 / install-deposit-03).
+func resolvePinnedFrameworkRef(ref string) (string, error) {
+	r := strings.TrimSpace(ref)
+	if r == "" {
+		return pinnedFrameworkTarballTag, nil
+	}
+	if r != pinnedFrameworkTarballTag {
+		return "", fmt.Errorf("refusing unpinned framework ref %q: only pinned tag %s is allowed (#5627 / install-deposit-03)", r, pinnedFrameworkTarballTag)
+	}
+	return r, nil
+}
+
+// requirePinnedFrameworkDigest returns the normalized lowercase 64-hex pin or a
+// fatal error when the pin metadata is absent/malformed. Checked before
+// download so a broken build never fetches then soft-fails (#5627).
+func requirePinnedFrameworkDigest() (string, error) {
+	want := strings.ToLower(strings.TrimPrefix(strings.TrimSpace(pinnedFrameworkTarballSHA256), "sha256:"))
+	if len(want) != 64 || !isHex(want) {
+		return "", fmt.Errorf("refusing framework tarball: pinned SHA-256 is absent or malformed (#5627 / install-deposit-03)")
+	}
+	return want, nil
+}
+
+// downloadAndExtractCore downloads the pinned framework source tarball, verifies
+// SHA-256 against pinnedFrameworkTarballSHA256 BEFORE extract (reusing
+// verifyFileSHA256 from git.go), then extracts into a fresh temp staging dir.
+// Returns the extracted content root, the framework source SHA recovered from
+// the tarball wrapper (best-effort, may be ""; wrapper SHA is provenance only —
+// integrity was closed by the tarball digest gate), and a cleanup func the
+// caller MUST defer to remove the tarball + staging dir. On error the cleanup
+// has already run (or the temp download was removed) and a no-op func is
+// returned so callers can defer unconditionally.
 func downloadAndExtractCore(ref string) (contentRoot, sha string, cleanup func(), err error) {
 	noop := func() {}
-	tarballPath, err := fetchCoreTarballFunc(ref)
+
+	pinnedRef, err := resolvePinnedFrameworkRef(ref)
 	if err != nil {
-		return "", "", noop, fmt.Errorf("could not download the release tarball for %s: %w", refLabel(ref), err)
+		return "", "", noop, err
 	}
+	wantDigest, err := requirePinnedFrameworkDigest()
+	if err != nil {
+		return "", "", noop, err
+	}
+
+	tarballPath, err := fetchCoreTarballFunc(pinnedRef)
+	if err != nil {
+		return "", "", noop, fmt.Errorf("could not download the release tarball for %s: %w", refLabel(pinnedRef), err)
+	}
+
+	// FAIL-CLOSED trust gate (#5627 / install-deposit-03): verify the downloaded
+	// .tar.gz against the hard-coded pin BEFORE extract+deposit+swap. A MitM or
+	// regenerated/compromised archive changes the digest and is refused here so
+	// WriteConsumerGitHooks never sees an unverified deftDir.
+	if err := verifyFileSHA256(tarballPath, wantDigest); err != nil {
+		os.Remove(tarballPath)
+		return "", "", noop, fmt.Errorf("refusing to extract unverified framework tarball (pinned %s): %w", pinnedRef, err)
+	}
+
 	staging, err := os.MkdirTemp("", "deft-core-stage-*")
 	if err != nil {
 		os.Remove(tarballPath)
@@ -358,7 +453,7 @@ func downloadAndExtractCore(ref string) (contentRoot, sha string, cleanup func()
 		os.Remove(tarballPath)
 		os.RemoveAll(staging)
 	}
-	root, err := extractCoreTarball(tarballPath, staging)
+	root, err := extractCoreTarballFunc(tarballPath, staging)
 	if err != nil {
 		cleanup()
 		return "", "", noop, fmt.Errorf("could not extract tarball: %w", err)
@@ -366,15 +461,16 @@ func downloadAndExtractCore(ref string) (contentRoot, sha string, cleanup func()
 	return root, shaFromContentRoot(root), cleanup, nil
 }
 
-// downloadCoreTarball fetches the framework source tarball at ref (empty =>
-// default branch) to a temp .tar.gz and returns its path. Reuses the
-// long-lived installerDownloadClient (transport-level timeouts + generous body
-// backstop) so a slow link does not abort a healthy stream.
+// downloadCoreTarball fetches the framework source tarball at ref to a temp
+// .tar.gz and returns its path. Ref must already be the pinned tag (callers
+// resolve via resolvePinnedFrameworkRef). Reuses the long-lived
+// installerDownloadClient (transport-level timeouts + generous body backstop)
+// so a slow link does not abort a healthy stream.
 func downloadCoreTarball(ref string) (string, error) {
-	url := deftTarballAPIBase
-	if ref != "" {
-		url += "/" + ref
+	if strings.TrimSpace(ref) == "" {
+		return "", fmt.Errorf("framework tarball ref is empty; pinned tag required (#5627)")
 	}
+	url := deftTarballAPIBase + "/" + ref
 	resp, err := installerDownloadClient.Get(url)
 	if err != nil {
 		return "", fmt.Errorf("GET %s: %w", url, err)

@@ -386,11 +386,7 @@ func forceCloneLayoutGit(deftDir string) func(string, ...string) (string, error)
 // post-migration vendored layout + clone-to-vendored strategy.
 func TestUpdateDeft_CloneMigratesToVendored(t *testing.T) {
 	origRun := runCmdFunc
-	origFetch := fetchCoreTarballFunc
-	defer func() {
-		runCmdFunc = origRun
-		fetchCoreTarballFunc = origFetch
-	}()
+	defer func() { runCmdFunc = origRun }()
 
 	tmp := t.TempDir()
 	deftDir := filepath.Join(tmp, "myproj", ".deft", "core")
@@ -408,8 +404,9 @@ func TestUpdateDeft_CloneMigratesToVendored(t *testing.T) {
 	origGit := forceCloneLayoutGit(deftDir)
 	defer func() { runGitCaptureFunc = origGit }()
 
+	const pinTag = "v9.9.9"
 	tarball := makeCoreTarball(t, "deftai-directive-abc1234", map[string]string{"marker.txt": "new"})
-	fetchCoreTarballFunc = func(string) (string, error) { return tarball, nil }
+	stubPinnedFrameworkTarball(t, tarball, pinTag)
 
 	// Guardrail: record any git command. There MUST be none on the migration.
 	var gitCalls []string
@@ -428,7 +425,7 @@ func TestUpdateDeft_CloneMigratesToVendored(t *testing.T) {
 	}
 
 	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
-	outcome, err := UpdateDeft(w, result, "v9.9.9")
+	outcome, err := UpdateDeft(w, result, pinTag)
 	if err != nil {
 		t.Fatalf("UpdateDeft (clone->vendored): %v", err)
 	}
@@ -748,13 +745,11 @@ func TestInstallPathConsistency_SkillPointersUseCanonicalPrefix(t *testing.T) {
 // workflow creates only AGENTS.md, .agents/, .gitignore, vbrief/, and the
 // canonical .deft/ framework parent at the project root.
 func TestInstallPathConsistency_OnlyExpectedRootFiles(t *testing.T) {
-	origFetch := fetchCoreTarballFunc
-	defer func() { fetchCoreTarballFunc = origFetch }()
-
 	// Vendor a tarball fixture into result.DeftDir (.deft/core) -- git-free, so
-	// the deposit leaves no .git and no stray root files of its own.
+	// the deposit leaves no .git and no stray root files of its own. Empty ref
+	// resolves to the (test-retargeted) pin (#5627).
 	tarball := makeCoreTarball(t, "deftai-directive-abc1234", map[string]string{"SKILL.md": "skill"})
-	fetchCoreTarballFunc = func(string) (string, error) { return tarball, nil }
+	stubPinnedFrameworkTarball(t, tarball, "v0.0.0-testpin")
 
 	tmp := t.TempDir()
 	projectDir := filepath.Join(tmp, "myproj")
@@ -1619,20 +1614,16 @@ func TestInstall_ForceUpgradesDirtyTree(t *testing.T) {
 	if err != nil {
 		t.Skip("git not available; skipping install()-level --force test")
 	}
-	origFetch := fetchCoreTarballFunc
 	origGit := runGitCaptureFunc
-	defer func() {
-		fetchCoreTarballFunc = origFetch
-		runGitCaptureFunc = origGit
-	}()
+	defer func() { runGitCaptureFunc = origGit }()
 
 	proj := newDirtyUpgradeRepo(t, gitPath)
 	core := filepath.Join(proj, ".deft", "core")
 	// Classify the payload as vendored deterministically so the upgrade uses
-	// the git-free file swap.
+	// the git-free file swap. Empty --branch resolves to the test pin (#5627).
 	runGitCaptureFunc = func(string, ...string) (string, error) { return "", fmt.Errorf("not a repo") }
 	tarball := makeCoreTarball(t, "deftai-directive-beef1234", map[string]string{"marker.txt": "new"})
-	fetchCoreTarballFunc = func(string) (string, error) { return tarball, nil }
+	stubPinnedFrameworkTarball(t, tarball, "v0.0.0-testpin")
 	t.Setenv("DEFT_USER_PATH", filepath.Join(t.TempDir(), "cfg"))
 
 	code := install(false, "", false, true, true, proj, false, false, true, false, true)

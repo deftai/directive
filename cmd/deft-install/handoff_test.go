@@ -49,19 +49,16 @@ func TestInstall_SuccessPrintsNpmHandoff(t *testing.T) {
 	if err != nil {
 		t.Skip("git not available; skipping install()-level success handoff test")
 	}
-	origFetch := fetchCoreTarballFunc
 	origGit := runGitCaptureFunc
-	defer func() {
-		fetchCoreTarballFunc = origFetch
-		runGitCaptureFunc = origGit
-	}()
+	defer func() { runGitCaptureFunc = origGit }()
 
 	proj := newDirtyUpgradeRepo(t, gitPath)
 	// Classify the payload as vendored so the upgrade uses the git-free swap,
-	// and feed a fixture tarball so no network fetch is attempted.
+	// and feed a fixture tarball so no network fetch is attempted. Empty
+	// --branch resolves to the test-retargeted pin (#5627).
 	runGitCaptureFunc = func(string, ...string) (string, error) { return "", fmt.Errorf("not a repo") }
 	tarball := makeCoreTarball(t, "deftai-directive-beef1234", map[string]string{"marker.txt": "new"})
-	fetchCoreTarballFunc = func(string) (string, error) { return tarball, nil }
+	stubPinnedFrameworkTarball(t, tarball, "v0.0.0-testpin")
 	t.Setenv("DEFT_USER_PATH", filepath.Join(t.TempDir(), "cfg"))
 
 	var code int

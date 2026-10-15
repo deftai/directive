@@ -107,12 +107,10 @@ func TestRefreshVendoredCore_NoInTreeBackup(t *testing.T) {
 	backupRoot := t.TempDir()
 	origBackup := backupRootDirFunc
 	origGit := runGitCaptureFunc
-	origFetch := fetchCoreTarballFunc
 	backupRootDirFunc = func() string { return backupRoot }
 	defer func() {
 		backupRootDirFunc = origBackup
 		runGitCaptureFunc = origGit
-		fetchCoreTarballFunc = origFetch
 	}()
 
 	proj := t.TempDir()
@@ -128,12 +126,13 @@ func TestRefreshVendoredCore_NoInTreeBackup(t *testing.T) {
 	runGitCaptureFunc = func(string, ...string) (string, error) {
 		return "", fmt.Errorf("not a repo")
 	}
+	const pinTag = "v1.2.3"
 	tarball := makeCoreTarball(t, "deftai-directive-abc1234", map[string]string{"marker.txt": "new"})
-	fetchCoreTarballFunc = func(string) (string, error) { return tarball, nil }
+	stubPinnedFrameworkTarball(t, tarball, pinTag)
 
 	result := &WizardResult{ProjectName: "proj", ProjectDir: proj, DeftDir: core, Update: true}
 	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
-	outcome, err := UpdateDeft(w, result, "v1.2.3")
+	outcome, err := UpdateDeft(w, result, pinTag)
 	if err != nil {
 		t.Fatalf("UpdateDeft (vendored refresh): %v", err)
 	}
