@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Design-critique brief Stop 1 `pain:` envelope field (#4514).** Copyable brief lists closed forms (`pain: P1` / `pain: P1, P2` / `pain:` then `- P1`) for the triage write-back only, not critic comments; content-contract locks `` `pain:` `` and skill `Pain coverage`. Tracking #4514.
+- **Issue #4514 now has a tracked completion record.** The record links to the fix delivered in #5630, so the issue can close without losing its scope history. Tracking #4514.
 - **`spec:render` keeps multiline phase How/Why/What newlines (#5042).** Object narrative prose is pass-through with `itemHandlerIndent` on nonblank lines (not `oneLine`), so narrative-carried overview bullets stay a Markdown list. #4511 heading taxonomy unchanged. Tracking #5042.
 - **Issue #5042 now has a tracked completion record.** The record links to the fix delivered in #5625, so the issue can close without losing its scope history. Tracking #5042.
 - **Keep orientation and session-bind state local (#3911).** Canonical TS/Go ignore baselines cover .deft/orientation-state.json, .deft/session-bind.json, and .deft/session-binds/; init/update heals those lines and exact-path index-only untracks already-indexed copies without deleting local files (staged-conflict refuse). Shared `git rm --cached` port honors ADR-004 port-record mode so `directive update --dry-run` / dest planning never stages those deletions. Freshness docs state deposit/toolchain-only, not lifecycle authority. Tracking #3911.
