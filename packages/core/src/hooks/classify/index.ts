@@ -37,6 +37,8 @@ export {
   hookPathSet,
   hookShellCommand,
   hookWriteTargetPath,
+  normalizeMutationTargetPaths,
+  resolveMutationTargetPath,
 } from "./paths.js";
 export {
   fieldPresent,

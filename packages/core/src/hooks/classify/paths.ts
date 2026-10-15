@@ -3,6 +3,7 @@
  * No process I/O — does not resolve against projectRoot or realpath.
  */
 
+import { fileURLToPath } from "node:url";
 import { firstString, record, toolInputRecord } from "./payload.js";
 import { applyPatchBodyTextFromParsed, applyPatchMutationPaths } from "./stdin.js";
 
@@ -14,6 +15,9 @@ const PATHISH_KEYS = [
   "targetFile",
   "target_path",
   "targetPath",
+  // MCP dest spellings (#5366 Prefer-A).
+  "uri",
+  "file",
 ] as const;
 
 /** Nested MCP/proxy arguments (#3593). Depth-capped; does not invent free-text paths. */
@@ -51,13 +55,77 @@ export function hookWriteTargetPath(payload: unknown): string | null {
     toolInput?.filePath,
     toolInput?.path,
     toolInput?.target_file,
+    toolInput?.uri,
+    toolInput?.file,
     nested?.file_path,
     nested?.path,
     nested?.target_file,
+    nested?.uri,
+    nested?.file,
     input.file_path,
     input.filePath,
     input.path,
+    input.uri,
+    input.file,
   ]);
+}
+
+/**
+ * Resolve a harvested dest string for fence/admission (#5366 Prefer-A).
+ * Ordinary paths and Windows drive letters pass through. Local `file:` URIs
+ * decode via fileURLToPath. Other schemes (https:/mcp:/…) refuse — nonempty
+ * harvest is not complete classification.
+ */
+export function resolveMutationTargetPath(
+  raw: string,
+): { status: "path"; path: string } | { status: "refuse"; detail: string } {
+  const trimmed = raw.trim();
+  if (trimmed.length === 0) {
+    return { status: "refuse", detail: "empty mutation target" };
+  }
+  const schemeMatch = /^([a-zA-Z][a-zA-Z0-9+.-]*):/.exec(trimmed);
+  const schemeRaw = schemeMatch?.[1];
+  if (schemeRaw === undefined) {
+    return { status: "path", path: trimmed };
+  }
+  const scheme = schemeRaw.toLowerCase();
+  // Single-letter schemes are Windows drive paths (C:\… / C:/…), not URIs.
+  if (scheme.length === 1) {
+    return { status: "path", path: trimmed };
+  }
+  if (scheme !== "file") {
+    return { status: "refuse", detail: `unsupported URI scheme: ${scheme}` };
+  }
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol !== "file:") {
+      return { status: "refuse", detail: "malformed file URI" };
+    }
+    return { status: "path", path: fileURLToPath(url) };
+  } catch {
+    return { status: "refuse", detail: "malformed file URI" };
+  }
+}
+
+/**
+ * Decode/validate harvested dests. One refused target fails the whole set
+ * so a valid sibling cannot conceal an unresolved destination (#5366).
+ */
+export function normalizeMutationTargetPaths(
+  rawTargets: readonly string[],
+): { ok: true; paths: string[] } | { ok: false; detail: string } {
+  const paths: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of rawTargets) {
+    const resolved = resolveMutationTargetPath(raw);
+    if (resolved.status === "refuse") {
+      return { ok: false, detail: resolved.detail };
+    }
+    if (seen.has(resolved.path)) continue;
+    seen.add(resolved.path);
+    paths.push(resolved.path);
+  }
+  return { ok: true, paths };
 }
 
 /**

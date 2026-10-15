@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { hookShellCommand } from "./classify/paths.js";
 import {
   DIRECT_WRITE_HOOK_MATCHER,
+  effectiveHookArgumentView,
+  effectiveHookToolName,
   HOST_TOOL_SURFACE_AUDIT,
   isApplyPatchTool,
   isDirectWriteTool,
@@ -95,5 +98,22 @@ describe("hooks tools classifiers (#2711 / #2952)", () => {
     expect(HOST_TOOL_SURFACE_AUDIT.grok.unobservedReason).toBeNull();
     expect(QUESTION_HOOK_MATCHER).toContain("ask_user_question");
     expect(QUESTION_HOOK_MATCHER).toContain("AskQuestion");
+  });
+
+  it("projects nested proxy arguments for shell command parity (#5366)", () => {
+    const wrapped = {
+      toolName: "use_tool",
+      tool_input: {
+        tool_name: "run_terminal_command",
+        arguments: { command: "git push origin HEAD", path: "decoy/src/a.ts" },
+      },
+    };
+    expect(effectiveHookToolName("use_tool", wrapped)).toBe("run_terminal_command");
+    expect(isShellTool(effectiveHookToolName("use_tool", wrapped))).toBe(true);
+    expect(hookShellCommand(wrapped)).toBeNull();
+    const view = effectiveHookArgumentView("use_tool", wrapped);
+    expect(hookShellCommand(view)).toBe("git push origin HEAD");
+    const direct = { tool_name: "Bash", tool_input: { command: "git status" } };
+    expect(effectiveHookArgumentView("Bash", direct)).toBe(direct);
   });
 });
