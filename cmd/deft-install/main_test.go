@@ -41,6 +41,57 @@ func TestResolveBranch(t *testing.T) {
 	}
 }
 
+// TestResolveInstallManifestFields_EmptyUsesPin locks #5627: omitted --branch
+// must stamp the hard-coded pin into VERSION, not release ldflags defaultBranch.
+func TestResolveInstallManifestFields_EmptyUsesPin(t *testing.T) {
+	origDefault := defaultBranch
+	origTag := pinnedFrameworkTarballTag
+	t.Cleanup(func() {
+		defaultBranch = origDefault
+		pinnedFrameworkTarballTag = origTag
+	})
+	defaultBranch = "v9.9.9"
+	pinnedFrameworkTarballTag = "v0.125.1"
+
+	result := &WizardResult{
+		ProjectName: "proj",
+		ProjectDir:  t.TempDir(),
+		DeftDir:     filepath.Join(t.TempDir(), ".deft", "core"),
+	}
+	fields := resolveInstallManifestFields(result, "")
+	if fields.Ref != "v0.125.1" || fields.Tag != "v0.125.1" {
+		t.Fatalf("empty branch must use pin, got ref=%q tag=%q (defaultBranch=%q)", fields.Ref, fields.Tag, defaultBranch)
+	}
+}
+
+// TestInstall_OmittedBranchIgnoresReleaseDefaultBranch is the Greptile P1
+// regression: release builds set defaultBranch=github.ref_name; omitting
+// --branch must still install via the pin, not refuse the later release tag.
+func TestInstall_OmittedBranchIgnoresReleaseDefaultBranch(t *testing.T) {
+	origDefault := defaultBranch
+	t.Cleanup(func() { defaultBranch = origDefault })
+	defaultBranch = "v9.9.9"
+
+	origGit := runGitCaptureFunc
+	t.Cleanup(func() { runGitCaptureFunc = origGit })
+	runGitCaptureFunc = func(string, ...string) (string, error) { return "", fmt.Errorf("not a repo") }
+
+	tarball := makeCoreTarball(t, "deftai-directive-deadbeef", map[string]string{"marker.txt": "pinned"})
+	stubPinnedFrameworkTarball(t, tarball, "v0.0.0-testpin")
+	t.Setenv("DEFT_USER_PATH", filepath.Join(t.TempDir(), "cfg"))
+
+	proj := t.TempDir()
+	code := install(false, "", false, true, false, proj, false, false, false, false, true)
+	if code != 0 {
+		t.Fatalf("omitted --branch with defaultBranch=%q must exit 0 via pin, got %d", defaultBranch, code)
+	}
+	core := filepath.Join(proj, ".deft", "core", "marker.txt")
+	got, err := os.ReadFile(core)
+	if err != nil || string(got) != "pinned" {
+		t.Fatalf("expected pinned payload marker, got %q err=%v", got, err)
+	}
+}
+
 // ---------------------------------------------------------------------------
 // Phase 1 — smoke test
 // ---------------------------------------------------------------------------

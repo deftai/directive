@@ -31,15 +31,16 @@ var semverTagPattern = regexp.MustCompile(`^v?\d+\.\d+\.\d+([-+][0-9A-Za-z.-]+)?
 //	go build -ldflags "-X main.version=v1.0.0" ./cmd/deft-install/
 var version = "1.0.0"
 
-// defaultBranch is set at build time via ldflags to pair the installer
-// binary with the framework ref it was built from. Empty means "origin
-// default branch" (usually master). Typical values:
+// defaultBranch is set at build time via ldflags (typically github.ref_name
+// on release builds). After #5627 it is provenance metadata only — the
+// framework download identity is pinnedFrameworkTarballTag. Omitting
+// --branch must NOT inherit defaultBranch into resolvePinnedFrameworkRef,
+// or every release after the pin tag would refuse its own default install.
+// Typical ldflags values remain informative for VERSION / debug output:
 //
 //	-X main.defaultBranch=v0.20.0            (tagged release)
 //	-X main.defaultBranch=v0.20.0-rc.1       (pre-release)
 //	-X main.defaultBranch=phase2/vbrief-cutover  (dispatch/branch build)
-//
-// User-provided --branch / /branch flag takes precedence.
 var defaultBranch = ""
 
 // npmHandoffMessage is printed to stderr on the installer success path so a
@@ -59,9 +60,10 @@ func printNpmHandoff() {
 	fmt.Fprintln(os.Stderr, npmHandoffMessage)
 }
 
-// resolveBranch returns the effective branch to use for clone/update.
-// A user-provided --branch value takes precedence over the build-time
-// defaultBranch. An empty result means "origin default branch".
+// resolveBranch returns the effective branch when a caller still wants
+// build-time defaultBranch fallback. Framework download paths must NOT use
+// this helper for the omitted-flag case (#5627) — pass the raw --branch
+// value (empty => hard-coded pin via resolvePinnedFrameworkRef).
 func resolveBranch(flagValue, defaultValue string) string {
 	if flagValue != "" {
 		return flagValue
@@ -76,8 +78,8 @@ Usage:
   deft-install [options]
 
 Options:
-  --branch <name>           Framework ref to vendor (default: pinned release tag;
-                            only the hard-coded pin is accepted — #5627)
+  --branch <name>           Framework ref to vendor (omit for hard-coded pin;
+                            only the pin is accepted — #5627)
   --legacy-layout           Deposit at legacy 'deft/' instead of canonical '.deft/core/'
                             (back-compat path; pre-v0.27 in-flight migrations only)
   --yes, --non-interactive  Non-interactive/agent mode: skip all prompts; requires
@@ -122,7 +124,6 @@ User configuration:
 
 Examples:
   deft-install                              Interactive install (canonical layout)
-  deft-install --branch beta                Install from beta branch
   deft-install --yes --repo-root C:\proj    Non-interactive agent install
   deft-install --yes --repo-root . --json   Machine-readable result for scripting
   deft-install --yes --upgrade --repo-root .  Force refresh of existing install
@@ -201,9 +202,11 @@ func main() {
 		return
 	}
 
-	// If the user did not explicitly pass --branch, fall back to the
-	// build-time default (if any).
-	effectiveBranch := resolveBranch(*branch, defaultBranch)
+	// #5627: pass the raw --branch flag only. Omitting the flag must stay
+	// empty so resolvePinnedFrameworkRef selects the hard-coded pin. Do NOT
+	// inject build-time defaultBranch (release ldflags github.ref_name) —
+	// that rejects every release after the pin tag on a normal install.
+	effectiveBranch := strings.TrimSpace(*branch)
 
 	nonInt := *yes || *nonInteractive
 	// --force and --allow-dirty are synonyms: either bypasses the #1458
@@ -381,24 +384,22 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 	// alongside VendorDeft / UpdateDeft so the framework records the
 	// install_root field as the single source of truth for the install-
 	// layout contract. Best-effort: a failure to resolve git provenance
-	// (vendored payload, git unavailable) falls back to the resolved
-	// values from the installer binary (defaultBranch + empty SHA) so the
-	// manifest still carries install_root.
+	// (vendored payload, git unavailable) still carries install_root.
 	installFields := resolveInstallManifestFields(result, branch)
 	// #1425: on a vendored refresh, resolveInstallManifestFields() resolved the
 	// SHA via `git -C <core> rev-parse HEAD`, which on a no-.git payload climbs
 	// to the PARENT consumer repo's HEAD (the #1323/#1324 wrong-sha class).
 	// Override with the framework source SHA/tag recovered from the release
 	// tarball wrapper so the manifest records true framework provenance.
+	// #5627: always bind Ref/Tag to the verified pin outcome — never leave
+	// Ref stuck on release ldflags defaultBranch when --branch was omitted.
 	if updateOutcome != nil && updateOutcome.Layout == payloadLayoutVendored {
 		if updateOutcome.SHA != "" {
 			installFields.SHA = updateOutcome.SHA
 		}
 		if updateOutcome.Tag != "" {
 			installFields.Tag = updateOutcome.Tag
-			if installFields.Ref == "" {
-				installFields.Ref = updateOutcome.Tag
-			}
+			installFields.Ref = updateOutcome.Tag
 		}
 	}
 	if _, err := WriteInstallManifest(result.ProjectDir, result.DeftDir, installFields); err != nil {
@@ -822,8 +823,8 @@ func buildNonInteractiveResult(absRoot string, legacyLayout, upgrade bool) *Wiza
 // installer writes into <deftDir>/VERSION (#1062). The SHA is resolved via
 // `git rev-parse HEAD` rooted at deftDir; failure (fresh shallow clone, git
 // unavailable) falls back to an empty string so the manifest still carries
-// the other fields. Ref / tag fall back to the build-time defaultBranch
-// when no explicit --branch was passed.
+// the other fields. When --branch is omitted, Ref/Tag default to the
+// hard-coded framework pin (#5627), not build-time defaultBranch.
 //
 // Tag is populated ONLY when the resolved ref looks like a semver release
 // tag (per semverTagPattern). Branch refs (`master`, `main`, `feat/...`)
@@ -833,9 +834,12 @@ func buildNonInteractiveResult(absRoot string, legacyLayout, upgrade bool) *Wiza
 // the manifest preserves the full provenance trail (Greptile P1 review on
 // PR #1063 closing PR for #1062).
 func resolveInstallManifestFields(result *WizardResult, branch string) InstallManifestFields {
-	effectiveRef := branch
+	effectiveRef := strings.TrimSpace(branch)
 	if effectiveRef == "" {
-		effectiveRef = defaultBranch
+		effectiveRef = pinnedFrameworkTarballTag
+		if effectiveRef == "" {
+			effectiveRef = defaultBranch
+		}
 	}
 	effectiveTag := ""
 	if semverTagPattern.MatchString(effectiveRef) {
