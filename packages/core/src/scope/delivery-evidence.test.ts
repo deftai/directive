@@ -268,6 +268,25 @@ describe("delivery evidence (#3041)", () => {
       },
     });
     expect(failed.ok).toBe(true);
+
+    // #5540: migrate-authored complete+migration does not invent or require provenance.
+    const migrated = evaluateStoredCompletionProvenanceForWriteGuard({
+      status: "completed",
+      references: [
+        {
+          type: "x-xbrief/github-issue",
+          uri: "https://github.com/deftai/directive/issues/5540",
+        },
+      ],
+      metadata: {
+        lifecycleWrite: {
+          action: "complete",
+          writtenAt: "2026-10-15T12:00:00Z",
+          migration: true,
+        },
+      },
+    });
+    expect(migrated.ok).toBe(true);
   });
 
   it("write-guard refuses completed status with fail stamp and no provenance (#5602)", () => {

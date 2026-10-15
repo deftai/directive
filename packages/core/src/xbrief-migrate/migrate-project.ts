@@ -24,6 +24,11 @@ import {
   VBRIEF_DEPRECATION_MARKER_FILENAME,
   VBRIEF_VERSION,
 } from "./constants.js";
+import {
+  hasLifecycleWriteStamp,
+  isMigrationLifecycleWrite,
+  stampLifecycleWrite,
+} from "../scope/lifecycle-write.js";
 import { deleteTopLevelJsonKey } from "./delete-top-level-json-key.js";
 import { detectLegacyVbriefLayout, detectXbriefConvergence } from "./detect.js";
 import {
@@ -40,6 +45,31 @@ import {
   rewriteEmbeddedTokens,
   transformArtifactV06ToV08Transactional,
 } from "./transforms.js";
+
+/**
+ * #5540: for completed/ envelopes with no durable lifecycleWrite yet, add
+ * `{ action: "complete", writtenAt: now, migration: true }`. Never overwrites
+ * an existing complete/fail/cancel stamp. Leaves completedAt alone.
+ */
+export function maybeStampMigratedCompletedArtifact(
+  artifact: JsonObject,
+  srcPath: string,
+  nowIso: string = new Date().toISOString(),
+): void {
+  const norm = srcPath.replace(/\\/g, "/");
+  if (!norm.includes("/completed/")) {
+    return;
+  }
+  const planRaw = artifact.plan;
+  if (typeof planRaw !== "object" || planRaw === null || Array.isArray(planRaw)) {
+    return;
+  }
+  const plan = planRaw as Record<string, unknown>;
+  if (hasLifecycleWriteStamp(plan)) {
+    return;
+  }
+  stampLifecycleWrite(plan, "complete", nowIso, { migration: true });
+}
 
 export interface XbriefMigrationArgs {
   readonly projectRoot: string;
@@ -177,6 +207,7 @@ export function classifyLegacyMigrationFile(
   if (!result.ok) {
     return { kind: "archive", reason: result.error };
   }
+  maybeStampMigratedCompletedArtifact(result.artifact, srcPath);
   return { kind: "migrate", body: `${JSON.stringify(result.artifact, null, 2)}\n` };
 }
 
@@ -274,7 +305,21 @@ function planHybridEnvelopeRewrites(
         error: `failed to transform hybrid envelope ${relative(projectRoot, filePath)}: ${result.error}`,
       };
     }
-    if (!result.changed) {
+    const planBefore = result.artifact.plan;
+    const hadStamp =
+      typeof planBefore === "object" &&
+      planBefore !== null &&
+      !Array.isArray(planBefore) &&
+      hasLifecycleWriteStamp(planBefore as Record<string, unknown>);
+    // Stamp so a stamp-only #5540 pass still rewrites completed/ hybrids.
+    maybeStampMigratedCompletedArtifact(result.artifact, filePath);
+    const addedMigrationStamp =
+      !hadStamp &&
+      typeof result.artifact.plan === "object" &&
+      result.artifact.plan !== null &&
+      !Array.isArray(result.artifact.plan) &&
+      isMigrationLifecycleWrite(result.artifact.plan as Record<string, unknown>);
+    if (!result.changed && !addedMigrationStamp) {
       continue;
     }
     pending.push({

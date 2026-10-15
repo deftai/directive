@@ -164,6 +164,51 @@ describe("runXbriefMigration", () => {
       readFileSync(join(project, MIGRATED_ARTIFACT_DIR, "completed", "done.xbrief.json"), "utf8"),
     );
     expect(from06.xBRIEFInfo.version).toBe("0.8");
+    // #5540: completed migrate gets complete+migration stamp; completedAt left alone.
+    expect(from06.plan.metadata?.lifecycleWrite).toEqual({
+      action: "complete",
+      writtenAt: expect.any(String),
+      migration: true,
+    });
+    expect(from06.plan.metadata?.completedAt).toBeUndefined();
+    expect(from05.plan.metadata?.lifecycleWrite).toBeUndefined();
+  });
+
+  it("#5540: does not overwrite an existing complete stamp on completed migrate", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-migrate-5540-keep-"));
+    temps.push(base);
+    const project = join(base, "consumer");
+    mkdirSync(join(project, LEGACY_ARTIFACT_DIR, "completed"), { recursive: true });
+    writeFileSync(
+      join(project, LEGACY_ARTIFACT_DIR, "completed", "done.vbrief.json"),
+      `${JSON.stringify({
+        vBRIEFInfo: { version: "0.6", description: "stamped", created: "2026-06-02T00:00:00Z" },
+        plan: {
+          title: "Already stamped",
+          status: "completed",
+          items: [],
+          metadata: {
+            completedAt: "2026-06-02T12:00:00Z",
+            lifecycleWrite: { action: "complete", writtenAt: "2026-06-02T12:00:00Z" },
+          },
+        },
+      })}\n`,
+      "utf8",
+    );
+    execFileSync("git", ["init"], { cwd: project });
+    const outcome = runXbriefMigration(
+      { projectRoot: project, force: true },
+      { writeOut: () => {}, writeErr: () => {} },
+    );
+    expect(outcome.kind).toBe("migrated");
+    const done = JSON.parse(
+      readFileSync(join(project, MIGRATED_ARTIFACT_DIR, "completed", "done.xbrief.json"), "utf8"),
+    );
+    expect(done.plan.metadata.lifecycleWrite).toEqual({
+      action: "complete",
+      writtenAt: "2026-06-02T12:00:00Z",
+    });
+    expect(done.plan.metadata.completedAt).toBe("2026-06-02T12:00:00Z");
   });
 
   it("F-017: archives unparseable / no-info JSON under xbrief/archive/ without hard-fail", () => {

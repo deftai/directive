@@ -26,6 +26,18 @@ export type LifecycleWriteAction = "complete" | "fail" | "cancel";
 export interface LifecycleWriteStamp {
   readonly action: LifecycleWriteAction;
   readonly writtenAt: string;
+  /**
+   * Set only by format/layout migrate (#5540). Means: upgrade wrote a complete
+   * stamp for an already-finished brief. Absent/false on ordinary complete/fail/cancel.
+   * Any later stampLifecycleWrite without migration:true replaces the whole object
+   * and clears this flag.
+   */
+  readonly migration?: boolean;
+}
+
+export interface StampLifecycleWriteOptions {
+  /** When true, include `migration: true` on the stamp (#5540). Default: omit. */
+  readonly migration?: boolean;
 }
 
 /** Solo leftover-land recovery after empty-active / scope-not-ready (#4421 / #3476 / #3679). */
@@ -66,17 +78,27 @@ function metadataRecord(plan: Record<string, unknown>): Record<string, unknown> 
   return created;
 }
 
-/** Stamp that runTransition wrote this plan into completed/ or cancelled/. */
+/**
+ * Stamp that runTransition (or #5540 migrate) wrote this plan into completed/
+ * or cancelled/. Replaces the entire lifecycleWrite object — optional migration
+ * flag is included only when options.migration === true; otherwise it is cleared.
+ */
 export function stampLifecycleWrite(
   plan: Record<string, unknown>,
   action: LifecycleWriteAction,
   writtenAt: string,
+  options?: StampLifecycleWriteOptions,
 ): void {
   const meta = metadataRecord(plan);
-  meta[LIFECYCLE_WRITE_KEY] = { action, writtenAt };
+  const stamp: Record<string, unknown> = { action, writtenAt };
+  if (options?.migration === true) {
+    stamp.migration = true;
+  }
+  meta[LIFECYCLE_WRITE_KEY] = stamp;
 }
 
-function hasLifecycleWriteStamp(plan: Record<string, unknown>): boolean {
+/** True when plan.metadata.lifecycleWrite is a durable complete/fail/cancel stamp. */
+export function hasLifecycleWriteStamp(plan: Record<string, unknown>): boolean {
   const meta = asRecord(plan.metadata);
   if (meta === null) {
     return false;
@@ -91,6 +113,27 @@ function hasLifecycleWriteStamp(plan: Record<string, unknown>): boolean {
     (action === "complete" || action === "fail" || action === "cancel") &&
     typeof writtenAt === "string" &&
     writtenAt.trim().length > 0
+  );
+}
+
+/**
+ * True when the stamp is a #5540 migrate-authored complete mark
+ * (`action: "complete"` + `migration: true`).
+ */
+export function isMigrationLifecycleWrite(plan: Record<string, unknown>): boolean {
+  const meta = asRecord(plan.metadata);
+  if (meta === null) {
+    return false;
+  }
+  const stamp = asRecord(meta[LIFECYCLE_WRITE_KEY]);
+  if (stamp === null) {
+    return false;
+  }
+  return (
+    stamp.action === "complete" &&
+    stamp.migration === true &&
+    typeof stamp.writtenAt === "string" &&
+    stamp.writtenAt.trim().length > 0
   );
 }
 
