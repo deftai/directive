@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   hookApplyPatchBodyText,
@@ -6,6 +7,8 @@ import {
   hookPathSet,
   hookShellCommand,
   hookWriteTargetPath,
+  normalizeMutationTargetPaths,
+  resolveMutationTargetPath,
 } from "./paths.js";
 
 describe("path/shell extractors (#2950)", () => {
@@ -193,5 +196,54 @@ describe("path/shell extractors (#2950)", () => {
         tool_input: "*** Begin Patch\n*** Update File: linked.ts\n+x\n*** End Patch",
       }),
     ).toEqual([]);
+  });
+
+  it("harvests MCP uri and file dest fields (#5366)", () => {
+    expect(
+      hookMutationTargetPaths({
+        tool_name: "mcp__filesystem__write_file",
+        tool_input: { uri: "src/via-uri.ts", contents: "x" },
+      }),
+    ).toEqual(["src/via-uri.ts"]);
+    expect(
+      hookMutationTargetPaths({
+        tool_input: {
+          tool_name: "write_file",
+          arguments: { file: "nested/via-file.ts" },
+        },
+      }),
+    ).toEqual(["nested/via-file.ts"]);
+    expect(hookWriteTargetPath({ tool_input: { uri: "only-uri.ts" } })).toBe("only-uri.ts");
+  });
+
+  it("decodes local file: URIs and refuses unsupported schemes (#5366)", () => {
+    const localFile =
+      process.platform === "win32" ? "file:///C:/tmp/secret%20x.ts" : "file:///tmp/secret%20x.ts";
+    expect(resolveMutationTargetPath(localFile)).toEqual({
+      status: "path",
+      path: fileURLToPath(localFile),
+    });
+    expect(resolveMutationTargetPath("https://example.com/a.ts")).toEqual({
+      status: "refuse",
+      detail: "unsupported URI scheme: https",
+    });
+    expect(resolveMutationTargetPath("mcp://server/tool")).toEqual({
+      status: "refuse",
+      detail: "unsupported URI scheme: mcp",
+    });
+    expect(resolveMutationTargetPath("src/plain.ts")).toEqual({
+      status: "path",
+      path: "src/plain.ts",
+    });
+    // Windows drive letter is not a URI scheme.
+    expect(resolveMutationTargetPath("C:/repo/a.ts")).toEqual({
+      status: "path",
+      path: "C:/repo/a.ts",
+    });
+    expect(normalizeMutationTargetPaths(["src/ok.ts", "https://evil.example/x"]).ok).toBe(false);
+    expect(normalizeMutationTargetPaths(["src/ok.ts", "src/ok.ts"])).toEqual({
+      ok: true,
+      paths: ["src/ok.ts"],
+    });
   });
 });

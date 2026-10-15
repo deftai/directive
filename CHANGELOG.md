@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **PreToolUse dest harvest miss no longer fail-opens write-shaped MCP (#5366).** Harvest `uri`/`file`; empty-harvest fail-closes write-shaped effective names (ApplyPatch class); unwrap `use_tool`/`CallMcpTool` shell inners with an effective argument view into Shell/UAT; decode local `file:` URIs and refuse unsupported schemes; active write fence denies empty/unclassified targets. Tracking #5366.
 
 - **Pin + verify the Go installer framework tarball before extract (#5627 / install-deposit-03).** `downloadAndExtractCore` checks SHA-256 of `GET .../tarball/<pinnedTag>` against a hard-coded pin (reuse `verifyFileSHA256`) and fails closed before extract/deposit/swap so `WriteConsumerGitHooks` never wires hooks from an unverified payload. Non-pinned refs refuse; omitting `--branch` defaults to the pin and does not inherit release ldflags `defaultBranch`/`github.ref_name`. Trust-artifact class is the GitHub source-tarball digest (pin-bump when GitHub regenerates under the same tag). Frozen already-shipped installer binaries are not retroactively fixed — `npx @deftai/directive init` remains the upgrade path for those hosts. Tracking #5627.
 - **Design-critique brief Stop 1 `pain:` envelope field (#4514).** Copyable brief lists closed forms (`pain: P1` / `pain: P1, P2` / `pain:` then `- P1`) for the triage write-back only, not critic comments; content-contract locks `` `pain:` `` and skill `Pain coverage`. Tracking #4514.

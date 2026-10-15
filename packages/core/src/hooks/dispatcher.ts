@@ -130,6 +130,7 @@ import {
   inspectHintedLifecycleSessionId,
   landProcessOnlyFlagOnToolInput,
   missingToolNameMessage,
+  normalizeMutationTargetPaths,
   record,
   resolveHookHostIdentity,
   rewriteExactLifecycleCommand,
@@ -179,10 +180,12 @@ import {
 } from "./scope.js";
 import { classifyShellWriteTargets, isInRepoShellWritePath } from "./shell-write-targets.js";
 import {
+  effectiveHookArgumentView,
   effectiveHookToolName,
   isApplyPatchTool,
   isDirectWriteTool,
   isKillTool,
+  isMcpProxyWrapper,
   isMcpTool,
   isMcpWriteShaped,
   isShellTool,
@@ -207,6 +210,7 @@ export {
 export {
   DIRECT_WRITE_HOOK_MATCHER,
   DIRECT_WRITE_TOOL_NAMES,
+  effectiveHookArgumentView,
   effectiveHookToolName,
   GROK_MUTATION_TOOL_CATALOG,
   GROK_NON_MUTATION_TOOLS,
@@ -625,6 +629,16 @@ function applyPatchBodyUnclassified(payload: unknown): boolean {
 const APPLY_PATCH_UNCLASSIFIED_BODY_MESSAGE =
   "Directive denied this direct write: apply_patch body named no classifiable mutation target, so the write fence cannot authorize it.";
 
+/** Write-shaped empty dest harvest — parallel ApplyPatch unclassified-body deny (#5366). */
+const WRITE_SHAPED_EMPTY_HARVEST_MESSAGE =
+  "Directive denied this direct write: write-shaped tool named no classifiable mutation target, so the write fence cannot authorize it.";
+
+const ACTIVE_FENCE_UNCLASSIFIED_TARGET_MESSAGE =
+  "Directive denied this direct write: write fence is active but no classifiable write target was harvested.";
+
+const UNSUPPORTED_MUTATION_URI_MESSAGE =
+  "Directive denied this direct write: mutation target URI is not a local file path.";
+
 /**
  * Lifecycle exemption is universally quantified over every mutated path, not
  * the declared write target alone (#3614 / #4422).
@@ -635,9 +649,10 @@ function allMutationTargetsMatch(
   match: (root: string, target: string) => boolean,
 ): boolean {
   if (applyPatchBodyUnclassified(payload)) return false;
-  const targets = hookMutationTargetPaths(payload);
-  if (targets.length === 0) return false;
-  return targets.every((target) => match(projectRoot, target));
+  const harvested = hookMutationTargetPaths(payload);
+  const normalized = normalizeMutationTargetPaths(harvested);
+  if (!normalized.ok || normalized.paths.length === 0) return false;
+  return normalized.paths.every((target) => match(projectRoot, target));
 }
 
 function allMutationTargetsAreProposedLifecycleWrites(
@@ -732,12 +747,17 @@ function requirementsPathAllowed(projectRoot: string, target: string): boolean {
 
 function allMutationTargetsAreRequirementsClass(projectRoot: string, payload: unknown): boolean {
   if (applyPatchBodyUnclassified(payload)) return false;
-  const targets = hookMutationTargetPaths(payload);
-  if (targets.length === 0) {
+  const harvested = hookMutationTargetPaths(payload);
+  const normalized = normalizeMutationTargetPaths(harvested);
+  if (!normalized.ok) return false;
+  if (normalized.paths.length === 0) {
     const one = hookWriteTargetPath(payload);
-    return one !== null && requirementsPathAllowed(projectRoot, one);
+    if (one === null) return false;
+    const decoded = normalizeMutationTargetPaths([one]);
+    const only = decoded.ok ? decoded.paths[0] : undefined;
+    return only !== undefined && requirementsPathAllowed(projectRoot, only);
   }
-  return targets.every((target) => requirementsPathAllowed(projectRoot, target));
+  return normalized.paths.every((target) => requirementsPathAllowed(projectRoot, target));
 }
 
 function allMutationTargetsAreAssistScratch(
@@ -746,11 +766,19 @@ function allMutationTargetsAreAssistScratch(
   environ: NodeJS.ProcessEnv,
 ): boolean {
   if (applyPatchBodyUnclassified(payload)) return false;
-  const targets = hookMutationTargetPaths(payload);
-  if (targets.length === 0) {
-    return isAssistScratchWrite(projectRoot, hookWriteTargetPath(payload), payload, environ);
+  const harvested = hookMutationTargetPaths(payload);
+  const normalized = normalizeMutationTargetPaths(harvested);
+  if (!normalized.ok) return false;
+  if (normalized.paths.length === 0) {
+    const one = hookWriteTargetPath(payload);
+    if (one === null) return false;
+    const decoded = normalizeMutationTargetPaths([one]);
+    const only = decoded.ok ? decoded.paths[0] : undefined;
+    return only !== undefined && isAssistScratchWrite(projectRoot, only, payload, environ);
   }
-  return targets.every((target) => isAssistScratchWrite(projectRoot, target, payload, environ));
+  return normalized.paths.every((target) =>
+    isAssistScratchWrite(projectRoot, target, payload, environ),
+  );
 }
 
 /**
@@ -1212,10 +1240,30 @@ function runtimeAuthorityForDirectWrite(
       scopePath,
     );
   }
-  const targets = hookMutationTargetPaths(input.payload);
-  const toCheck: readonly (string | null)[] = targets.length > 0 ? targets : [null];
-  for (const target of toCheck) {
-    const relPath = target !== null ? toProjectRelativePosix(fenceRoot, target) : null;
+  const harvested = hookMutationTargetPaths(input.payload);
+  const normalized = normalizeMutationTargetPaths(harvested);
+  if (!normalized.ok) {
+    return deny(
+      input,
+      "runtime-policy-deny-path",
+      toolName,
+      `${UNSUPPORTED_MUTATION_URI_MESSAGE} (${normalized.detail}).${fenceRootNote}`,
+      scopePath,
+    );
+  }
+  // Active fence: empty or unclassified null must not pass (#5366 Prefer-A P4).
+  // Library evaluateRuntimeAuthorityDirectWrite still null-allows; deny here.
+  if (normalized.paths.length === 0) {
+    return deny(
+      input,
+      "runtime-policy-deny-path",
+      toolName,
+      ACTIVE_FENCE_UNCLASSIFIED_TARGET_MESSAGE + fenceRootNote,
+      scopePath,
+    );
+  }
+  for (const target of normalized.paths) {
+    const relPath = toProjectRelativePosix(fenceRoot, target);
     const verdict = evaluateRuntimeAuthorityDirectWrite({
       policy: fence.policy,
       relPathPosix: relPath,
@@ -1557,7 +1605,20 @@ function inspectMutationGates(
   const projectRoot = payloadRoot;
   const environ = input.environ ?? process.env;
   const dispatchGit = memoizeGitRunner(seams.ritualRunGit ?? defaultGitRunner);
-  const mutationTargets = isSpawnTool(toolName) ? [] : hookMutationTargetPaths(input.payload);
+  let mutationTargets: string[] = [];
+  if (!isSpawnTool(toolName)) {
+    const harvested = hookMutationTargetPaths(input.payload);
+    const normalized = normalizeMutationTargetPaths(harvested);
+    if (!normalized.ok) {
+      return deny(
+        input,
+        "runtime-policy-deny-path",
+        toolName,
+        `${UNSUPPORTED_MUTATION_URI_MESSAGE} (${normalized.detail}).`,
+      );
+    }
+    mutationTargets = normalized.paths;
+  }
   if (
     isApplyPatchTool(toolName) &&
     (mutationTargets.length === 0 || applyPatchHarvestedInputUnclassified(input.payload))
@@ -3628,30 +3689,46 @@ function routeHookDecision(
     );
   }
 
+  // #5366 Prefer-A: unwrap proxy shell inners (use_tool → run_terminal_command)
+  // with an effective argument view before the Shell/UAT slice. Payload-root
+  // identity (projectRoot, grants) stays on the outer input.
+  const effectiveName = effectiveHookToolName(toolName, input.payload);
+  const shellProxyUnwrap =
+    isMcpProxyWrapper(toolName) && isShellTool(effectiveName) && !isShellTool(toolName);
+  const shellToolName = shellProxyUnwrap ? effectiveName : toolName;
+  const shellInput: HookDispatchInput = shellProxyUnwrap
+    ? { ...input, payload: effectiveHookArgumentView(toolName, input.payload) }
+    : input;
+
   // Tree-wide destructive git (#3917): always-on, independent of shellDestForms.
   // Dest-forms (#3438): recognized product mutations share inspectMutationGates
   // with Edit/Write (assist/scratch, proposed lifecycle, file_scope). Push/merge stay
   // on runtimeAuthority (#2711). Non-dest unclassifiable shell (git status) fail-open.
-  if (isShellTool(toolName)) {
-    const command = hookShellCommand(input.payload);
+  if (isShellTool(shellToolName)) {
+    const command = hookShellCommand(shellInput.payload);
     if (command !== null) {
       const launcher = classifyLauncherFamilyArgv(command, {
-        payloadCwd: hookExecutionCwd(input.payload),
+        payloadCwd: hookExecutionCwd(shellInput.payload),
       });
       if (launcher.kind === "launcher" || launcher.kind === "compound") {
-        return decideLauncherFamilyArgv(input, toolName, launcher, seams);
+        return decideLauncherFamilyArgv(shellInput, shellToolName, launcher, seams);
       }
     }
-    const destructive = decideGitDestructive(input, toolName);
+    const destructive = decideGitDestructive(shellInput, shellToolName);
     if (destructive !== null) {
-      return attachLifecycleIdentityRewrite(input, toolName, destructive, seams);
+      return attachLifecycleIdentityRewrite(shellInput, shellToolName, destructive, seams);
     }
-    const writeReissue = decideShellWriteReissue(input, toolName, seams, observation);
+    const writeReissue = decideShellWriteReissue(shellInput, shellToolName, seams, observation);
     if (writeReissue !== null) {
-      return attachLifecycleIdentityRewrite(input, toolName, writeReissue, seams);
+      return attachLifecycleIdentityRewrite(shellInput, shellToolName, writeReissue, seams);
     }
-    const decision = decideShellDestFormsThenRuntimeAuthority(input, toolName, seams, observation);
-    return attachLifecycleIdentityRewrite(input, toolName, decision, seams);
+    const decision = decideShellDestFormsThenRuntimeAuthority(
+      shellInput,
+      shellToolName,
+      seams,
+      observation,
+    );
+    return attachLifecycleIdentityRewrite(shellInput, shellToolName, decision, seams);
   }
 
   // Host kill deny-class / attestation gate (#5281 Prefer-A Bound).
@@ -3660,16 +3737,23 @@ function routeHookDecision(
     return decideKillAttestationGate(input, toolName, seams, environ);
   }
 
-  // #3593: dest-bearing write-shaped MCP / proxy wrappers share inspectMutationGates
-  // with Write/Edit. Unwrap CallMcpTool / use_tool inner names. Reads (list_issues)
-  // stay on the runtime-authority fail-open path.
-  const effectiveName = effectiveHookToolName(toolName, input.payload);
+  // #3593 / #5366: write-shaped MCP / proxy wrappers share inspectMutationGates
+  // with Write/Edit. Empty dest harvest fail-closes (ApplyPatch class). Shell-shaped
+  // inners already routed above. Reads (list_issues) stay fail-open.
   if (
     isMcpWriteShaped(effectiveName) &&
     !isShellTool(toolName) &&
     !isSpawnTool(toolName) &&
-    hookMutationTargetPaths(input.payload).length > 0
+    !isDirectWriteTool(toolName)
   ) {
+    if (hookMutationTargetPaths(input.payload).length === 0) {
+      return deny(
+        input,
+        "runtime-policy-deny-path",
+        effectiveName,
+        WRITE_SHAPED_EMPTY_HARVEST_MESSAGE,
+      );
+    }
     return inspectMutationGates(input, effectiveName, seams, {
       proposedLifecycleExempt: true,
       observation,

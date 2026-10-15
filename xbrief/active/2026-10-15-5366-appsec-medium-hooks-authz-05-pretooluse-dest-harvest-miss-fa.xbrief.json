@@ -1,0 +1,455 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5366",
+    "updated": "2026-10-15T01:38:35Z"
+  },
+  "plan": {
+    "title": "[AppSec] MEDIUM hooks-authz-05: PreToolUse dest harvest miss fail-opens write-shaped MCP and the path fence",
+    "status": "running",
+    "narratives": {
+      "Description": "[AppSec] MEDIUM hooks-authz-05: PreToolUse dest harvest miss fail-opens write-shaped MCP and the path fence",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5366",
+      "Overview": "## AppSec remediation\n\n- **Product:** Directive (`deftai/directive`)\n- **Finding:** `hooks-authz-05`\n- **Severity:** medium\n- **Scan:** 2026-10-05 @ `d855dc0f784a24ed6d99cffd488a85f41d22431c`\n- **Report:** [2026-10-05 AppSec report § directive / hooks-authz-05](https://github.com/deftai/appsec-scans/blob/3dd35fd7f6b54922c56759157c13c821b4374dec/reports/directive/2026-10-05/report.md#directive-hooks-authz-05)\n\n### Impact\n\nA write whose dest sits in an unharvested field (MCP `uri`, nested non-pathish dest) is allowed under active UAT and a live occupancy/write-fence that would deny the same tool once `path` is present. Inner `run_terminal_command`/`Bash` via `use_tool`/`CallMcpTool` never hits the Shell/UAT classifier.\n\n### Remediation\n\nFail closed when the name is write-shaped (or an MCP/proxy wrapper whose inner name is write- or shell-shaped) and dest harvest is empty, matching ApplyPatch. Harvest MCP `uri`/`file` dests. After unwrap, re-run `isShellTool(effectiveName)` / `isDirectWriteTool(effectiveName)` so inner Grok shell cannot skip the Shell slice. Keep `relPathPosix === null` from silently allowing an active write fence.\n\nFiled by the scheduled AppSec scan. Do not close until the control is in the default branch. The next weekly scan will comment here if this ID is still confirmed.\n\n",
+      "Labels": "bug, security, agent-experience, process, source-of-truth, agent-safety, dogfood, design-critique:ingest-ready, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "id": "item.1",
+        "status": "pending",
+        "title": "Harvest uri and file alongside PATHISH_KEYS in collectPathishFields / hookMutationTargetPaths.",
+        "x-directive/artifact_path": "packages/core/src/hooks/classify/paths.ts"
+      },
+      {
+        "id": "item.2",
+        "status": "pending",
+        "title": "Fail closed when effective name is write-shaped and dest harvest is empty; parallel ApplyPatch unclassified-body deny.",
+        "x-directive/artifact_path": "packages/core/src/hooks/tools.ts"
+      },
+      {
+        "id": "item.3",
+        "status": "pending",
+        "title": "After effectiveHookToolName unwrap, reclassify shell/direct-write/MCP; project effective argument view for nested command; route shell proxy through Shell/UAT.",
+        "x-directive/artifact_path": "packages/core/src/hooks/tools.ts"
+      },
+      {
+        "id": "item.4",
+        "status": "pending",
+        "title": "Supported local file: URI decode before fence; refuse unsupported schemes; under active write fence deny empty or unclassified null targets at dispatcher.",
+        "x-directive/artifact_path": "packages/core/src/hooks/dispatcher.ts"
+      },
+      {
+        "id": "item.5",
+        "status": "pending",
+        "title": "CHANGELOG Unreleased Fixed for Tracking 5366; keep-outs no wholesale 3593 rewrite and no ApplyPatch weaken.",
+        "x-directive/artifact_path": "CHANGELOG.md"
+      }
+    ],
+    "tags": [
+      "bug",
+      "security",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "agent-safety",
+      "dogfood",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5366",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5366: [AppSec] MEDIUM hooks-authz-05: PreToolUse dest harvest miss fail-opens write-shaped MCP and the path fence"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "relPathPosix === null",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L17"
+        }
+      ],
+      "swarm": {},
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/hooks/classify/paths.ts",
+          "packages/core/src/hooks/classify/paths.test.ts",
+          "packages/core/src/hooks/classify/index.ts",
+          "packages/core/src/hooks/tools.ts",
+          "packages/core/src/hooks/tools.test.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "hooks PreToolUse dest harvest fail-closed",
+        "cohesion_exemption": "Pre-existing oversized dispatcher.ts/dispatcher.test.ts/CHANGELOG; this slice only adds Prefer-A dest-harvest fail-closed paths."
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A (draft)\nTarget-digest: sha256:f88efd85dc9967a37a845312d0e494b973f477f8492916fef9f35b38b7a27135\nconflict_group: hooks-authz-05-pretooluse-dest-harvest-miss-fail-open\nspend-recommend: N≥3\n\n## In plain English\nPreToolUse lets some write-shaped MCP/proxy calls skip the write fence when the dest path sits in fields we do not harvest (uri/file) or when harvest is empty. Inner shell via use_tool/CallMcpTool can also skip the Shell classifier. Prefer-A matches ApplyPatch: fail closed on empty harvest for write-shaped names, harvest uri/file, and after unwrap re-classify shell vs direct-write so the right slice runs.\n\n## Draft remedy sketch\n1. Harvest MCP uri/file (and keep existing pathish keys) in hookMutationTargetPaths / collectPathishFields.\n2. Fail closed when effective name is write-shaped (or proxy wrapper whose inner is write- or shell-shaped) and dest harvest is empty — same class as ApplyPatch unclassified-body deny.\n3. After effectiveHookToolName unwrap, re-run isShellTool(effectiveName) / isDirectWriteTool(effectiveName) (and isMcpWriteShaped) so inner Grok shell hits the Shell/UAT slice.\n4. Keep relPathPosix === null from silently allowing an active write fence (deny under fence when path cannot be classified).\n5. file_scope: packages/core/src/hooks/classify/paths.ts (+tests), packages/core/src/hooks/tools.ts (+tests as needed), packages/core/src/hooks/dispatcher.ts (+tests), CHANGELOG.md.\n6. Keep-outs: do not rewrite #3593 MCP write-shaped admission grammar wholesale; do not absorb unrelated authz classify Shell harvest (#4199); do not weaken ApplyPatch empty-body deny.\n\nReject (draft): harvest-only without empty-harvest fail-closed; fail-open docs-only; treating outer use_tool name as non-write forever without unwrap reclassify.",
+          "id": 6181223893,
+          "html_url": "https://github.com/deftai/directive/issues/5366#issuecomment-6181223893",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-15T00:04:34Z",
+          "updated_at": "2026-10-15T00:04:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because PreToolUse dest harvest miss fail-opens write-shaped MCP and path fence under active UAT — mechanism gap with a closed ApplyPatch precedent and concrete harvest/reclassify limbs.\ncharter: open critique\nspend: N≥3\nspend-ask: resolved\nspend-recommend: N≥3\nspend-why: high blast authz fail-open across MCP/proxy wrappers; open remedy space on harvest keys vs empty-harvest deny vs unwrap reclassify; Stop 2 panel permission applies.\narc-mode: no-ingest\nyolo-standing: yes\ndest: .deft-scratch/worktrees/arc-5366\ndispatch-sha: 97ca8ce33f54cacf87733a156ab6ad7430cbca5b\nverification-path: git show 97ca8ce33f54cacf87733a156ab6ad7430cbca5b: (pin-read); dest cwd-without-occupy for on-pin file reads\ndual-stop-reserved: yes\nTarget-digest: sha256:f88efd85dc9967a37a845312d0e494b973f477f8492916fef9f35b38b7a27135\nrefutation-target: empty dest harvest on write-shaped MCP/proxy must fail open (or skip Shell) under active UAT/write-fence\n\npain: P1, P2, P3, P4\n- P1: PATHISH_KEYS omit uri/file so MCP dests in those fields yield empty harvest\n- P2: isMcpWriteShaped branch requires hookMutationTargetPaths.length > 0, so empty harvest skips inspectMutationGates → fail-open\n- P3: after CallMcpTool/use_tool unwrap, outer toolName still gates !isShellTool(toolName); inner shell never hits Shell/UAT classifier\n- P4: relPathPosix === null can silently allow under an active write fence instead of deny\n\n## Plain-language summary\nAppSec MEDIUM hooks-authz-05: when a write dest hides in uri/file or harvest is empty, PreToolUse allows the write even with UAT and a live fence that would deny the same tool once path is present. Inner shell via MCP proxy skips Shell classification. Arc is no-ingest yolo N≥3 against origin tip 97ca8ce33f54.\n\nStop 2: open critique + panel spend N≥3 (Prefer-A draft above).",
+          "id": 6181224099,
+          "html_url": "https://github.com/deftai/directive/issues/5366#issuecomment-6181224099",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-15T00:04:35Z",
+          "updated_at": "2026-10-15T00:04:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-build\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 6181243726\nfamilies: claude, codex, grok\nverification-path: pin-read git show 97ca8ce33f54cacf87733a156ab6ad7430cbca5b: (+ dest cwd-without-occupy)\nPrefer-A-draft: 6181223893\nStop-1: 6181224099\ndispatch-sha: 97ca8ce33f54cacf87733a156ab6ad7430cbca5b\ndest: .deft-scratch/worktrees/arc-5366\nlaunch-probe: claude=pong rc0; codex=pong rc0; grok=pong rc0\n\nRound-1 seats claim families claude / codex / grok. Critics may read only through this deposit's inclusive input-ceiling after PATCH-to-self. Sibling Round-1 posts stay outside each other's envelope.",
+          "id": 6181243726,
+          "html_url": "https://github.com/deftai/directive/issues/5366#issuecomment-6181243726",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-15T00:06:04Z",
+          "updated_at": "2026-10-15T00:06:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "gpt-6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\nclean-result: no\n\n## In plain English\nThe proposed direction closes real gaps, but it needs two explicit rules before binding: unwrap the command arguments as well as the tool name, and convert supported file URIs into actual filesystem paths before checking the fence. A nonempty string is not proof that the destination has been understood.\n\nVerification: pin-read via git show at 97ca8ce33f54cacf87733a156ab6ad7430cbca5b. Read issue body and comments only through 6181243726; no sibling posts. Static source verification, not executed fixtures or live-host coverage.\n\nExisting mechanisms: paths.ts already recursively collects named path fields through arguments/tool_input/toolInput/input/params, deduplicates targets, and unions ApplyPatch body paths. tools.ts already admits proxy names and the #3593 write-name grammar. dispatcher.ts already denies ApplyPatch with empty/unclassified body harvest, admits target sets against effective worktree roots, and composes project/story fences. Reuse these mechanisms.\n\n### F1 — blocks-the-design — P3: name-only unwrap does not unwrap shell input\nEvidence: [effectiveHookToolName and innerMcpToolName](https://github.com/deftai/directive/blob/97ca8ce33f54cacf87733a156ab6ad7430cbca5b/packages/core/src/hooks/tools.ts) return a name only. [hookShellCommand](https://github.com/deftai/directive/blob/97ca8ce33f54cacf87733a156ab6ad7430cbca5b/packages/core/src/hooks/classify/paths.ts) reads command/cmd from the first tool-input record or top level, not tool_input.arguments.command. The existing shell dispatcher also runs before effectiveName is computed.\n\nFailure: use_tool with tool_input={tool_name:\"Bash\",arguments:{command:\"git push\",path:\"src/a.ts\"}} has a harvested path, but merely changing the name predicates still yields no command for Shell/UAT. An untrusted extra path also defeats an empty-harvest-only shell fallback.\n\nConsequence: amend limb 3 to route a consistent effective name AND effective argument view through the existing shell pipeline, including UAT and destructive-command checks. Preserve payload-root identity for grants and worktree attribution. Require wrapped/unwrapped command parity fixtures, including a decoy path. This is wrapper extraction, not expansion of #4199 shell-command grammar.\n\n### F2 — blocks-the-design — P1/P4: URI strings are not filesystem destinations\nEvidence: collectPathishFields passes strings unchanged; [dispatcher.toProjectRelativePosix](https://github.com/deftai/directive/blob/97ca8ce33f54cacf87733a156ab6ad7430cbca5b/packages/core/src/hooks/dispatcher.ts) uses path.resolve/relative, with no URI decoding.\n\nFailure: adding uri to PATHISH_KEYS makes file:///repo/secret.txt nonempty, but lexical path resolution checks a synthetic file:/... path instead of /repo/secret.txt. A denylist-only fence can therefore miss the real target; unsupported schemes likewise become apparent local paths.\n\nConsequence: specify supported local file-URI decoding before root admission and fence evaluation, with explicit refusal of unsupported or malformed destinations in the applicable write gate. Test percent escapes, Windows drive/authority cases, and mixed valid/invalid targets; one valid target must not conceal an unresolved destination. Do not equate nonempty harvest with complete classification.\n\n### F3 — sharpens-framing — P2/P3: distinguish unknown writes from ordinary shell commands\nEvidence: the current dispatcher intentionally routes shell commands through operation classifiers and allows unclassifiable nonmutating commands such as git status. The draft's limb 2 also covers every shell-shaped proxy with empty destination harvest.\n\nFailure: a wrapped git status normally has no path field, so a literal universal empty-harvest deny blocks it even though its direct spelling remains allowed.\n\nConsequence: state whether this asymmetry is intentional. Prefer effective shell classification first, preserving recognized read-only behavior and denying unresolved mutation under the applicable authority policy. Keep unconditional unknown-destination denial for write-shaped calls explicit. If all wrapped shell without a destination is deliberately forbidden, record that compatibility cost and test it rather than claiming transparent reclassification.\n\n### F4 — sharpens-framing — P4: keep the null-path fix at the active-fence boundary\nEvidence: dispatcher already returns early when fenceActive is false, then passes [null to evaluateRuntimeAuthorityDirectWrite](https://github.com/deftai/directive/blob/97ca8ce33f54cacf87733a156ab6ad7430cbca5b/packages/core/src/policy/runtime-authority.ts), whose null branch allows when edits are enabled. The dispatcher conversion itself returns string, not null.\n\nFailure: an empty target set under an active denylist/story fence reaches that permissive branch. Describing this only as failed path conversion obscures the actual trigger.\n\nConsequence: make the dispatcher active-fence/null-target deny explicit, with project-only and story-only fence tests and an inactive-fence control. That fits the declared file_scope without silently widening the shared policy evaluator's contract.\n\n### F5 — footnote — protocol/recording\nThe deposit matches the inclusive ceiling and names three claimed families; it does not prove panel completion. Stop 1 includes a refutation-target despite the open-critique charter; I treated it as thread data, not a restriction on this audit. Parent should preserve open critique in subsequent envelopes and own the sibling census, successor disposition map, and Dual-stop/pain audit. No implementation or repository edits were performed.\n\r\n\n",
+          "id": 6181267819,
+          "html_url": "https://github.com/deftai/directive/issues/5366#issuecomment-6181267819",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-15T00:07:53Z",
+          "updated_at": "2026-10-15T00:07:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "grok-4-5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\nclean-result: yes\n\n## Pin verification (dispatch-sha 97ca8ce33f54cacf87733a156ab6ad7430cbca5b)\n\nMethod: `git show 97ca8ce33f54cacf87733a156ab6ad7430cbca5b:<path>` for paths.ts, tools.ts, dispatcher.ts, and evaluateRuntimeAuthorityDirectWrite in runtime-authority.ts. Prefer-A draft 6181223893 + Stop 1 6181224099 + panel-deposit 6181243726 only (input-ceiling inclusive). No sibling Round-1 reads.\n\n## Inventory (existing mechanisms)\n\n- PATHISH_KEYS / collectPathishFields / hookMutationTargetPaths (paths.ts): harvests file_path|filePath|path|target_file|targetFile|target_path|targetPath (+ nested arguments/tool_input/input/params). Omits uri and file.\n- #3593 MCP write-shaped admission: isMcpWriteShaped + isMcpProxyWrapper + effectiveHookToolName unwrap; MCP_HOOK_MATCHER selects CallMcpTool|use_tool.\n- ApplyPatch empty-harvest / unclassified-body deny: applyPatchBodyUnclassified; inspectMutationGates denies ApplyPatch when mutationTargets.length===0 or applyPatchHarvestedInputUnclassified; runtimeAuthorityForDirectWrite also denies applyPatchBodyUnclassified under an active fence. Precedent Prefer-A limb 2 matches.\n- Shell/UAT slice: decideHook gates on outer isShellTool(toolName) before the MCP branch.\n- Write fence: resolveWriteFence + evaluateRuntimeAuthorityDirectWrite; documented null-path pass at library layer.\n\n## Pain audit vs Prefer-A draft 6181223893\n\n### pain-P1 — CONFIRMED; Prefer-A limb 1 addresses\nEvidence: PATHISH_KEYS at pin has no uri/file. MCP dests only in those fields → collectPathishFields / hookMutationTargetPaths empty.\nFailure mode: write-shaped MCP with dest in uri/file never enters inspectMutationGates via the length>0 conjunct.\nDisposition: limb 1 (add uri/file, keep existing keys) is necessary; harvest-only without limb 2 is in Prefer-A Reject and remains rejected here.\n\n### pain-P2 — CONFIRMED; Prefer-A limb 2 addresses\nEvidence: decideHook MCP branch requires `isMcpWriteShaped(effectiveName) && !isShellTool(toolName) && !isSpawnTool(toolName) && hookMutationTargetPaths(...).length > 0` before inspectMutationGates. Empty harvest skips the gate; outer use_tool/CallMcpTool is not isDirectWriteTool → not-direct-write allow.\nFailure mode: write-shaped effective name + empty dest harvest fail-opens under active UAT/fence.\nDisposition: limb 2 fail-closed on write-shaped (or proxy with write-/shell-shaped inner) + empty harvest, matching ApplyPatch unclassified-body deny, closes the skip.\n\n### pain-P3 — CONFIRMED; Prefer-A limbs 2–3 address\nEvidence: Shell routing uses outer `isShellTool(toolName)`. MCP branch computes effectiveName but still gates `!isShellTool(toolName)` on the outer name. isMcpWriteShaped(\"run_terminal_command\") is false (no write markers; falls through to false). Inner Grok shell via use_tool never hits Shell/UAT; falls through to not-direct-write allow.\nFailure mode: proxy-wrapped run_terminal_command/monitor/Bash skips Shell classifier and UAT shell path.\nDisposition: after unwrap, re-run isShellTool(effectiveName) / isDirectWriteTool(effectiveName) / isMcpWriteShaped so inner shell hits Shell/UAT (limb 3). See F1 for ordering vs limb 2.\n\n### pain-P4 — CONFIRMED; Prefer-A limb 4 addresses\nEvidence: runtimeAuthorityForDirectWrite does `toCheck = targets.length > 0 ? targets : [null]` under fenceActive. evaluateRuntimeAuthorityDirectWrite: when relPathPosix is null it returns allowed true, with comment that unclassifiable paths pass (host gap documented for Shell/MCP). dispatcher toProjectRelativePosix returns string (null only when target is null).\nFailure mode: active write fence silently allows when dest cannot be classified.\nDisposition: limb 4 deny under active fence when path cannot be classified. See F2 for file_scope vs library SoT.\n\n## Findings\n\n### F1 — sharpens-framing\nEvidence: isMcpWriteShaped(run_terminal_command) is false; SHELL_TOOL_NAMES includes run_terminal_command/monitor; shell harvests command, not dest path.\nFailure mode: applying limb-2 ApplyPatch-class empty-dest deny to shell-shaped proxy inners would mis-deny or still skip Shell/UAT.\nDisposition consequence: Bound MUST sequence limb-3 unwrap then isShellTool(effectiveName) routing (and isDirectWriteTool) ahead of / disjoint from limb-2 write-shaped empty-harvest fail-closed. Empty-dest deny targets write-shaped effective names; shell-shaped inners go to Shell/UAT.\n\n### F2 — sharpens-framing\nEvidence: P4 silent-allow lives at (a) dispatcher toCheck:[null] under fenceActive and (b) runtime-authority.ts null→allow. Prefer-A file_scope lists paths.ts / tools.ts / dispatcher.ts / CHANGELOG — not runtime-authority.ts.\nFailure mode: changing only the library without dispatcher, or only MCP empty-harvest without the fence null path, leaves a residual allow under fenceActive.\nDisposition consequence: Prefer-A file_scope as drafted is fine if Bound names the dispatcher fenceActive + unclassifiable/null deny (the toCheck:[null] site) as the P4 limb. Widen file_scope to runtime-authority.ts only if Bound changes the library null-pass itself. Limb 2 alone does not close P4 for non-MCP direct-write empty targets that reach runtimeAuthorityForDirectWrite.\n\n### F3 — footnote\nEvidence: uri/file values may be https:/mcp: schemes, not filesystem paths.\nFailure mode: over-parsing URIs in this slice risks scope creep past #3593 keep-outs.\nDisposition consequence: harvest uri/file as pathish strings; rely on existing relative/foreign/fence deny paths for non-fs values. Do not invent URI grammar here. Aligns with keep-out: do not rewrite #3593 admission grammar wholesale.\n\n### F4 — footnote\nEvidence: ApplyPatch empty-body deny already exists at inspectMutationGates and runtimeAuthorityForDirectWrite; Prefer-A keep-outs say do not weaken it.\nFailure mode: none if limb 2 mirrors rather than merges/weakens ApplyPatch.\nDisposition consequence: Bound should add a parallel write-shaped-empty-harvest deny; leave ApplyPatch unclassified-body messages and predicates intact.\n\n## Prefer-A limb stress (summary)\n\n1. Harvest uri/file — necessary for P1; keep existing keys.\n2. Empty-harvest fail-closed for write-shaped / write-shaped inners — necessary for P2; match ApplyPatch class; Reject harvest-only stands.\n3. Unwrap then reclassify shell/direct-write/MCP-write — necessary for P3; order per F1.\n4. No silent allow on relPathPosix null under active fence — necessary for P4; site per F2.\n5. file_scope — adequate with F2 disposition; tools.ts may be tests-only if helpers already export what dispatcher needs.\n6. Keep-outs — agree: no #3593 rewrite, no #4199 Shell-harvest absorb, no ApplyPatch weaken.\nReject list — agree; do not accept harvest-only, docs-only fail-open, or outer-name forever without unwrap reclassify.\n\n## In plain English\n\nAt pin 97ca8ce, PreToolUse really does miss MCP dests sitting in uri/file, skip the write gates when harvest is empty for write-shaped MCP/proxy names, miss Shell/UAT for inner shell wrapped in use_tool/CallMcpTool, and allow under an active write fence when the relative path is null. Prefer-A draft 6181223893 hits all four pains. No design blockers. Two framing sharpens: (1) route shell-shaped proxy inners to Shell/UAT before applying write-shaped empty-dest deny; (2) put the P4 deny at the dispatcher fenceActive+null site unless file_scope widens to runtime-authority.ts. Footnotes only on URI schemes and preserving ApplyPatch deny. clean-result: yes.\r\n\n",
+          "id": 6181309551,
+          "html_url": "https://github.com/deftai/directive/issues/5366#issuecomment-6181309551",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-15T00:11:05Z",
+          "updated_at": "2026-10-15T00:11:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-build\n```quarantined\nrole: parent\n```\n\namend-the-spend-down: N≥3 → N=2\nreason: Claude family critic seat hung 0-byte after launch-probe pong-ok (progress-fail ~180s); cite deftai/directive#5478. Bind from posted Codex + Grok Round-1.\nposted-families: codex=6181267819; grok=6181309551\nclaude-seat: abandoned (pid progress-killed; outSz=0 errSz=0)",
+          "id": 6181317482,
+          "html_url": "https://github.com/deftai/directive/issues/5366#issuecomment-6181317482",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-15T00:11:41Z",
+          "updated_at": "2026-10-15T00:11:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-build\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A\nTarget-digest: sha256:f88efd85dc9967a37a845312d0e494b973f477f8492916fef9f35b38b7a27135\nconflict_group: hooks-authz-05-pretooluse-dest-harvest-miss-fail-open\nspend: N=2 (amended from N≥3; Claude #5478)\nRound-1 cites: Codex 6181267819; Grok 6181309551; amend 6181317482\n\n## In plain English\nClose hooks-authz-05 by harvesting MCP uri/file dests, fail-closing write-shaped empty harvest like ApplyPatch, routing unwrapped proxy shells through Shell/UAT with an effective argument view, decoding only local file: URIs before the fence, and denying unclassified null paths under an active write fence at the dispatcher boundary.\n\n## Bound remedy\n- Harvest `uri` and `file` alongside existing PATHISH_KEYS in collectPathishFields / hookMutationTargetPaths (paths.ts). Keep nested arguments/tool_input/input/params walks. relieves: P1\n- Fail closed when the effective name is write-shaped (or a CallMcpTool/use_tool wrapper whose inner is write-shaped) and dest harvest is empty — parallel to ApplyPatch unclassified-body deny; do not weaken ApplyPatch predicates or messages. Empty-harvest deny applies to write-shaped effective names only. relieves: P2\n- After effectiveHookToolName unwrap, re-run isShellTool(effectiveName) / isDirectWriteTool(effectiveName) / isMcpWriteShaped(effectiveName). For shell-shaped inners, also project an effective argument view so hookShellCommand sees nested tool_input.arguments.command (not name-only unwrap). Route shell-shaped proxy inners through the existing Shell/UAT pipeline before / disjoint from write-shaped empty-harvest deny. Preserve payload-root identity for grants/worktree attribution. Require wrapped/unwrapped command parity fixtures including a decoy path. This is wrapper extraction, not #4199 Shell-harvest grammar expansion. relieves: P3\n- Supported local `file:` URI decoding only before root admission and fence evaluation; refuse unsupported/malformed schemes (https:/mcp:/etc.) in the applicable write gate. Do not invent general URI grammar. Mixed valid/invalid targets: one valid target must not conceal an unresolved destination. Nonempty harvest ≠ complete classification. Absorbs Codex F2; aligns with Grok F3 keep-narrow. relieves: P1\n- Under an active write fence, deny when the target set is empty or relPathPosix cannot be classified (dispatcher fenceActive + toCheck:[null] site). Do not change evaluateRuntimeAuthorityDirectWrite null-pass library contract in this slice unless a later Recut widens file_scope. Inactive-fence control remains. Absorbs Codex F4 + Grok F2. relieves: P4\n- file_scope: packages/core/src/hooks/classify/paths.ts (+tests), packages/core/src/hooks/tools.ts (+tests as needed for unwrap/arg view), packages/core/src/hooks/dispatcher.ts (+tests), CHANGELOG.md. Keep-outs: no wholesale #3593 rewrite; no #4199 Shell-harvest absorb; no ApplyPatch empty-body weaken; no runtime-authority.ts library null-pass rewrite in first slice.\n\n## Reject\n- Harvest-only without empty-harvest fail-closed\n- Fail-open / docs-only remediation\n- Outer use_tool name forever without unwrap + effective argument reclassify\n- Universal empty-harvest deny on all shell-shaped proxies that would break recognized read-only shell (git status class) without first classifying through Shell\n- General URI parser / https:/mcp: scheme inventiveness beyond local file: decode + refuse-unsupported\n\n## Harvest disposition notes (pre-PA)\n- Codex F1 blocks → absorbed into Bound remedy limb 3 (effective argument view)\n- Codex F2 blocks → absorbed into Bound remedy limb 4 (local file: decode + refuse unsupported)\n- Codex F3 sharpen → Bound sequences shell classify first; empty-harvest deny stays write-shaped-only\n- Codex F4 sharpen → Bound limb 5 at dispatcher active-fence boundary\n- Grok F1/F2 sharpen → ordering + P4 site absorbed; Grok F3/F4 footnotes → keep-outs",
+          "id": 6181324854,
+          "html_url": "https://github.com/deftai/directive/issues/5366#issuecomment-6181324854",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-15T00:12:13Z",
+          "updated_at": "2026-10-15T00:12:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "grok-4-5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\nfinding-classes: none\nharvest-changed: false\n\nPrefer-A Bound (cite only): 6181324854\ndispatch-sha: 97ca8ce33f54cacf87733a156ab6ad7430cbca5b\ndest: .deft-scratch/worktrees/arc-5366\n\n## Pin verification\nPin-read Prefer-A Bound 6181324854, Stop 1 6181224099, issue body #5366. Checked Codex blockers 6181267819 F1/F2 and Grok sharpens 6181309551 F1/F2 for absorption into Bound limbs. No Round-1 sibling authority.\n\n## P1–P4 disposal (Bound remedy)\n- P1: limb 1 harvests uri/file into PATHISH_KEYS; limb 4 adds local file: decode + refuse unsupported/malformed before fence. Cite relieves: P1 on both limbs.\n- P2: limb 2 fail-closes write-shaped (or write-shaped inner) + empty dest harvest, ApplyPatch-parallel; empty-harvest deny stays write-shaped-only. Cite relieves: P2.\n- P3: limb 3 unwraps then reclassifies; projects effective argument view so hookShellCommand sees nested tool_input.arguments.command; routes shell-shaped proxy inners through Shell/UAT before/disjoint from limb-2. Cite relieves: P3.\n- P4: limb 5 denies at dispatcher fenceActive + toCheck:[null] when target set empty or unclassified; leaves evaluateRuntimeAuthorityDirectWrite null-pass library contract unchanged in this slice. Cite relieves: P4.\n\n## Round-1 absorption check\n- Codex F1 (blocks, shell arg unwrap): absorbed in Bound limb 3 (effective argument view + parity fixtures + decoy path).\n- Codex F2 (blocks, URI as filesystem dest): absorbed in Bound limb 4 (local file: decode + refuse unsupported; nonempty harvest is not complete classification).\n- Codex F3 (sharpen, shell vs write empty-harvest): Bound sequences shell classify first; Reject bars universal empty-harvest on all shell proxies.\n- Codex F4 (sharpen, P4 site): absorbed in Bound limb 5 (dispatcher active-fence boundary).\n- Grok F1 (sharpen, order shell before write empty-deny): absorbed in Bound limb 3 wording + Reject list.\n- Grok F2 (sharpen, P4 at dispatcher not library): absorbed in Bound limb 5 keep-out on runtime-authority.ts.\n- Grok F3/F4 footnotes: keep-outs (no general URI inventiveness; preserve ApplyPatch predicates).\n\n## Verdict\nBound is bindable-as-posted. Every Stop 1 pain P1–P4 has an operative relieves cite. Codex blockers and Grok sharpens are absorbed without harvest-changing residual. No Recut required.\n\n",
+          "id": 6181348039,
+          "html_url": "https://github.com/deftai/directive/issues/5366#issuecomment-6181348039",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-15T00:14:01Z",
+          "updated_at": "2026-10-15T00:14:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-build\n```quarantined\nrole: parent\n```\n\nVerified-claims table (non-operative lean cite)\nPrefer-A Bound (cite only): 6181324854\npain-audit (cite only): 6181348039\n\n| Claim | Evidence | Status |\n|---|---|---|\n| P1 uri/file harvest miss | pin paths.ts PATHISH_KEYS; Round-1 Codex+Grok; Bound limb 1+4 | disposed |\n| P2 empty-harvest fail-open | pin dispatcher MCP length>0 conjunct; Bound limb 2 | disposed |\n| P3 proxy shell skips Shell/UAT | pin outer isShellTool before effectiveName; Bound limb 3 effective arg view | disposed |\n| P4 null path under active fence | pin runtimeAuthority toCheck:[null]; Bound limb 5 dispatcher fenceActive deny | disposed |\n| Codex F1/F2 blockers absorbed | 6181267819 → Bound limbs 3–4 | absorbed |\n| Grok F1/F2 sharpens absorbed | 6181309551 → ordering + P4 site | absorbed |\n| Claude seat abandoned | 6181317482 #5478; spend N=2 | recorded |\n| Critic PA clear | 6181348039 finding-classes: none; harvest-changed: false | clear |",
+          "id": 6181355779,
+          "html_url": "https://github.com/deftai/directive/issues/5366#issuecomment-6181355779",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-15T00:14:37Z",
+          "updated_at": "2026-10-15T00:14:37Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-build\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\nsuccessor lean 6181324854\n\n## In plain English\nPrefer-A Bound 6181324854 closes hooks-authz-05: harvest uri/file, fail-closed write-shaped empty harvest (ApplyPatch class), unwrap+effective-arg Shell/UAT routing for proxy shells, local file: URI decode with refuse-unsupported, and dispatcher active-fence null-path deny. Codex 6181267819 and Grok 6181309551 Round-1 findings are absorbed; critic PA 6181348039 cleared with finding-classes none and harvest-changed false. Spend amended N≥3→N=2 after Claude #5478 hang (6181317482). Arc-mode remains no-ingest; ingest is a later separate operator verb.\n\nStop 1 (cite only): 6181224099\nconflict_group: hooks-authz-05-pretooluse-dest-harvest-miss-fail-open",
+          "id": 6181356009,
+          "html_url": "https://github.com/deftai/directive/issues/5366#issuecomment-6181356009",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-15T00:14:38Z",
+          "updated_at": "2026-10-15T00:14:38Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5712451830,
+        "origin": "deftai/directive#5366",
+        "id": "github.issue.5712451830"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "f88efd85dc9967a37a845312d0e494b973f477f8492916fef9f35b38b7a27135"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "derived 2 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "[AppSec] MEDIUM hooks-authz-05: PreToolUse dest harvest miss fail-opens write-shaped MCP and the path fence",
+        "AppSec remediation - Product: Directive (`deftai/directive`) - Finding: `hooks-authz-05` - Severity: medium - Scan: 2026-10-05 @ `d855dc0f784a24ed6d99cffd488a85f41d22431c` - Report: [2026-10-05 AppSec report § directive / hooks-authz-05](https://github.com/deftai/appsec-scans/blob/3dd35fd7f6b54922c56759157c13c821b4374dec/reports/directive/2026-10-05/report.md#directive-hooks-authz-05) ### Impact A write whose dest sits in an unharvested field (MCP `uri`, nested non-pathish dest) is allowed under active UAT and a live occupancy/write-fence that would deny the same tool once `path` is present.",
+        "Inner `run_terminal_command`/`Bash` via `use_tool`/`CallMcpTool` never hits the Shell/UAT classifier.",
+        "Remediation Fail closed when the name is write-shaped (or an MCP/proxy wrapper whose inner name is write- or shell-shaped) and dest harvest is empty, matching ApplyPatch.",
+        "Harvest MCP `uri`/`file` dests.",
+        "After unwrap, re-run `isShellTool(effectiveName)` / `isDirectWriteTool(effectiveName)` so inner Grok shell cannot skip the Shell slice.",
+        "Keep `relPathPosix === null` from silently allowing an active write fence.",
+        "Filed by the scheduled AppSec scan.",
+        "Do not close until the control is in the default branch.",
+        "The next weekly scan will comment here if this ID is still confirmed."
+      ],
+      "admitted_source_sentences": [
+        "AppSec remediation - Product: Directive (`deftai/directive`) - Finding: `hooks-authz-05` - Severity: medium - Scan: 2026-10-05 @ `d855dc0f784a24ed6d99cffd488a85f41d22431c` - Report: [2026-10-05 AppSec report § directive / hooks-authz-05](https://github.com/deftai/appsec-scans/blob/3dd35fd7f6b54922c56759157c13c821b4374dec/reports/directive/2026-10-05/report.md#directive-hooks-authz-05) ### Impact A write whose dest sits in an unharvested field (MCP `uri`, nested non-pathish dest) is allowed under active UAT and a live occupancy/write-fence that would deny the same tool once `path` is present.",
+        "Inner `run_terminal_command`/`Bash` via `use_tool`/`CallMcpTool` never hits the Shell/UAT classifier.",
+        "Remediation Fail closed when the name is write-shaped (or an MCP/proxy wrapper whose inner name is write- or shell-shaped) and dest harvest is empty, matching ApplyPatch.",
+        "Harvest MCP `uri`/`file` dests.",
+        "After unwrap, re-run `isShellTool(effectiveName)` / `isDirectWriteTool(effectiveName)` so inner Grok shell cannot skip the Shell slice.",
+        "Keep `relPathPosix === null` from silently allowing an active write fence.",
+        "Filed by the scheduled AppSec scan.",
+        "Do not close until the control is in the default branch.",
+        "The next weekly scan will comment here if this ID is still confirmed."
+      ],
+      "admitted_source_digest": "4ce66cff08302a87fd8f065b46e6d8ac7af9eaf2a8b5267b4c9d6592f42abadc",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Harvest uri/file dests; fail closed on write-shaped empty harvest.",
+          "artifact_path": "packages/core/src/hooks/classify/paths.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Unwrap MCP/proxy then reclassify shell/write; deny empty/null fence targets.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Tests + CHANGELOG Unreleased Fixed for Tracking 5366.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "quality_notice": "plan.items is empty after body harvest (checkbox list, Acceptance Criteria heading, or whole-line Requirements: colon-label). Add structured list items on the issue body before promote/activate; bare prose stays under #4374. Example harvestable shape: a `## Acceptance Criteria` heading with a list item such as `- [ ] ship the fix` (fenced command blocks alone are not harvested)."
+    },
+    "id": "github.issue.5712451830",
+    "updated": "2026-10-15T01:38:35Z"
+  }
+}

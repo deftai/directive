@@ -174,6 +174,30 @@ export function effectiveHookToolName(toolName: string, payload: unknown): strin
 }
 
 /**
+ * Project nested proxy arguments so shell/write extractors see command/path
+ * at tool_input.* (#5366 Prefer-A). Name unwrap alone leaves
+ * tool_input.arguments.command invisible to hookShellCommand. Preserves
+ * payload-root identity fields (cwd, session_id, …).
+ */
+export function effectiveHookArgumentView(toolName: string, payload: unknown): unknown {
+  if (!isMcpProxyWrapper(toolName)) return payload;
+  const input = record(payload);
+  if (input === null) return payload;
+  const toolInput = toolInputRecord(input);
+  if (toolInput === null) return payload;
+  if (typeof toolInput.command === "string" && toolInput.command.trim().length > 0) {
+    return payload;
+  }
+  const nested =
+    record(toolInput.arguments) ?? record(toolInput.tool_input) ?? record(toolInput.params);
+  if (nested === null) return payload;
+  return {
+    ...input,
+    tool_input: { ...nested },
+  };
+}
+
+/**
  * Bare tool names that hosts may emit without mcp__/server__ prefixes and that
  * `classifyMcpTool` treats as push or merge (#2711).
  * Keep in sync with classifyMcpTool name patterns (narrow list for PreToolUse matchers).
