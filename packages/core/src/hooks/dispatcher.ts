@@ -2939,10 +2939,8 @@ function remapProxyShellUpdatedInput(
         ? rewritten.command
         : null;
   if (command === null || outerToolInput === null) {
-    return {
-      ...decision,
-      updatedInput: stampHookToolName(decision.updatedInput, outerToolName),
-    };
+    const stamped = record(stampHookToolName(decision.updatedInput, outerToolName));
+    return stamped === null ? decision : { ...decision, updatedInput: stamped };
   }
   const nestedKey =
     record(outerToolInput.arguments) !== null
