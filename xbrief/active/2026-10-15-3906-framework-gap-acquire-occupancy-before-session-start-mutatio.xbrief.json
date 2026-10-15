@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "[framework-gap] Acquire occupancy before session-start mutations",
-    "status": "proposed",
+    "status": "running",
     "narratives": {
       "Description": "[framework-gap] Acquire occupancy before session-start mutations",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3906",
@@ -520,6 +520,6 @@
       }
     },
     "id": "github.issue.5283615249",
-    "updated": "2026-10-15T16:39:02.832Z"
+    "updated": "2026-10-15T18:35:43.287Z"
   }
 }

@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3908",
-    "updated": "2026-10-15T13:20:20Z"
+    "updated": "2026-10-15T18:35:29Z"
   },
   "plan": {
     "title": "[framework-gap] Fence scope lifecycle moves across processes",
-    "status": "proposed",
+    "status": "running",
     "narratives": {
       "Description": "[framework-gap] Fence scope lifecycle moves across processes",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3908",
@@ -525,6 +525,6 @@
       }
     },
     "id": "github.issue.5283616449",
-    "updated": "2026-10-15T16:39:03.075Z"
+    "updated": "2026-10-15T18:35:29Z"
   }
 }
