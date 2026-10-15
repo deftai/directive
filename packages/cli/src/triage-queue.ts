@@ -427,20 +427,16 @@ function runShow(args: ShowArgs): number {
     ...(cacheRoot !== null ? { cacheRoot } : {}),
   });
 
-  let issue: ReturnType<typeof loadCachedIssueDetail>;
-  try {
-    issue = loadCachedIssueDetail(repo, number, {
-      projectRoot,
-      cacheRoot,
-    });
-  } catch (err) {
-    // Typed quarantine refuse (#5367): exit 1 + stderr notice; never emit raw.json.
-    if (err instanceof ShowQuarantineRefuseError) {
-      process.stderr.write(`${err.message}\n`);
-      return 1;
-    }
-    throw err;
+  const loaded = loadCachedIssueDetail(repo, number, {
+    projectRoot,
+    cacheRoot,
+  });
+  // Typed quarantine refuse (#5367): returned-failure → exit 1 + stderr; never emit raw.json.
+  if (loaded instanceof ShowQuarantineRefuseError) {
+    process.stderr.write(`${loaded.message}\n`);
+    return 1;
   }
+  const issue = loaded;
   const logPath = args.auditLog ?? resolveTriageCachePath(projectRoot, "candidates.jsonl");
   const history = findByIssue(number, repo, logPath)
     .slice()

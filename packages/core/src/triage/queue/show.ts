@@ -44,7 +44,8 @@ export type ShowQuarantineRefuseReason =
 
 /**
  * Typed quarantine refusal — distinct from cache miss (`null`).
- * Caught by CLI `runShow`; must not be treated as a silent miss.
+ * Returned (not thrown) by `loadCachedIssueDetail` as operational deny
+ * (#5367 / intent-constraint returned-failure). CLI `runShow` prints stderr + exit 1.
  */
 export class ShowQuarantineRefuseError extends Error {
   readonly repo: string;
@@ -68,6 +69,12 @@ export class ShowQuarantineRefuseError extends Error {
     this.number = number;
     this.reason = reason;
   }
+}
+
+export function isShowQuarantineRefuse(
+  value: CachedIssueDetail | ShowQuarantineRefuseError | null,
+): value is ShowQuarantineRefuseError {
+  return value instanceof ShowQuarantineRefuseError;
 }
 
 function parseLabels(raw: unknown): readonly string[] {
@@ -138,7 +145,10 @@ export function omitQuarantinedFenceRegions(text: string): string {
   return out.join("\n");
 }
 
-/** Load a single cached issue (include closed) or null on miss. */
+/**
+ * Load a single cached issue (include closed), null on miss, or a returned
+ * quarantine refuse (operational deny — not thrown) (#5367).
+ */
 export function loadCachedIssueDetail(
   repo: string,
   number: number,
@@ -150,7 +160,7 @@ export function loadCachedIssueDetail(
   } = {
     projectRoot: process.cwd(),
   },
-): CachedIssueDetail | null {
+): CachedIssueDetail | ShowQuarantineRefuseError | null {
   if (!repo.includes("/")) {
     throw new Error(`repo must be 'owner/name'; got '${repo}'`);
   }
@@ -172,23 +182,24 @@ export function loadCachedIssueDetail(
   }
 
   // Gate printable fields on scan meta + scanned content before reading raw
-  // body/title into CachedIssueDetail (#5367 Prefer-A Bound).
+  // body/title into CachedIssueDetail (#5367 Prefer-A Bound). Operational deny
+  // uses returned-failure (no throw) so intent-constraint stays mint-free.
   const scanPassed = readCacheScanPassed(entryDir);
   if (scanPassed === false) {
-    throw new ShowQuarantineRefuseError(repo, number, "hard-fail");
+    return new ShowQuarantineRefuseError(repo, number, "hard-fail");
   }
   if (scanPassed === null) {
-    throw new ShowQuarantineRefuseError(repo, number, "unknown-scan");
+    return new ShowQuarantineRefuseError(repo, number, "unknown-scan");
   }
   const contentPath = join(entryDir, "content.md");
   if (!existsSync(contentPath)) {
-    throw new ShowQuarantineRefuseError(repo, number, "missing-content");
+    return new ShowQuarantineRefuseError(repo, number, "missing-content");
   }
   let scannedContent: string;
   try {
     scannedContent = readFileSync(contentPath, { encoding: "utf8" });
   } catch {
-    throw new ShowQuarantineRefuseError(repo, number, "missing-content");
+    return new ShowQuarantineRefuseError(repo, number, "missing-content");
   }
 
   let payload: Record<string, unknown>;
@@ -207,7 +218,7 @@ export function loadCachedIssueDetail(
   const rawTitle = typeof payload.title === "string" ? payload.title : "";
   const safeTitle = sanitizeQueueTitle(rawTitle);
   if (safeTitle === null) {
-    throw new ShowQuarantineRefuseError(repo, number, "nonprintable-title");
+    return new ShowQuarantineRefuseError(repo, number, "nonprintable-title");
   }
   const title = safeTitle.length > 0 ? safeTitle : QUARANTINED_TITLE_PLACEHOLDER;
   const body = stripRenderedIssueHeader(scannedContent, n);

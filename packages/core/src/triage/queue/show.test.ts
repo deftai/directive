@@ -114,7 +114,7 @@ describe("loadCachedIssueDetail", () => {
     expect(issue?.htmlUrl).toBe("https://github.com/owner/repo/issues/7");
   });
 
-  it("throws typed refuse on quarantine hard-fail without reading raw body into detail", () => {
+  it("returns typed refuse on quarantine hard-fail without reading raw body into detail", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-show-hard-fail-"));
     temps.push(root);
     seedIssue(root, "owner/repo", 88, {
@@ -122,21 +122,14 @@ describe("loadCachedIssueDetail", () => {
       body: "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
       scanPassed: false,
     });
-    expect(() => loadCachedIssueDetail("owner/repo", 88, { projectRoot: root })).toThrow(
-      ShowQuarantineRefuseError,
-    );
-    try {
-      loadCachedIssueDetail("owner/repo", 88, { projectRoot: root });
-    } catch (err) {
-      expect(err).toBeInstanceOf(ShowQuarantineRefuseError);
-      const refuse = err as ShowQuarantineRefuseError;
-      expect(refuse.reason).toBe("hard-fail");
-      expect(refuse.message).toContain("hard-fail");
-      expect(refuse.message).toContain("nothing written");
-    }
+    const refuse = loadCachedIssueDetail("owner/repo", 88, { projectRoot: root });
+    expect(refuse).toBeInstanceOf(ShowQuarantineRefuseError);
+    expect((refuse as ShowQuarantineRefuseError).reason).toBe("hard-fail");
+    expect((refuse as ShowQuarantineRefuseError).message).toContain("hard-fail");
+    expect((refuse as ShowQuarantineRefuseError).message).toContain("nothing written");
   });
 
-  it("throws typed refuse when scan passed but content.md missing", () => {
+  it("returns typed refuse when scan passed but content.md missing", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-show-missing-content-"));
     temps.push(root);
     seedIssue(root, "owner/repo", 89, {
@@ -145,12 +138,12 @@ describe("loadCachedIssueDetail", () => {
       scanPassed: true,
       omitContent: true,
     });
-    expect(() => loadCachedIssueDetail("owner/repo", 89, { projectRoot: root })).toThrow(
-      /missing|unreadable/i,
-    );
+    const refuse = loadCachedIssueDetail("owner/repo", 89, { projectRoot: root });
+    expect(refuse).toBeInstanceOf(ShowQuarantineRefuseError);
+    expect((refuse as ShowQuarantineRefuseError).message).toMatch(/missing|unreadable/i);
   });
 
-  it("throws typed refuse when scan status is unknown (stricter than queue omit)", () => {
+  it("returns typed refuse when scan status is unknown (stricter than queue omit)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-show-unknown-scan-"));
     temps.push(root);
     seedIssue(root, "owner/repo", 90, {
@@ -158,19 +151,21 @@ describe("loadCachedIssueDetail", () => {
       body: "raw body must not print",
       scanPassed: null,
     });
-    expect(() => loadCachedIssueDetail("owner/repo", 90, { projectRoot: root })).toThrow(
-      /scan status unknown/i,
-    );
+    const refuse = loadCachedIssueDetail("owner/repo", 90, { projectRoot: root });
+    expect(refuse).toBeInstanceOf(ShowQuarantineRefuseError);
+    expect((refuse as ShowQuarantineRefuseError).message).toMatch(/scan status unknown/i);
   });
 
-  it("throws typed refuse when title hard-fails sanitize", () => {
+  it("returns typed refuse when title hard-fails sanitize", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-show-title-hard-"));
     temps.push(root);
     seedIssue(root, "owner/repo", 91, {
       title: `token AKIA${"A".repeat(16)}`,
       body: "safe body",
     });
-    expect(() => loadCachedIssueDetail("owner/repo", 91, { projectRoot: root })).toThrow(
+    const refuse = loadCachedIssueDetail("owner/repo", 91, { projectRoot: root });
+    expect(refuse).toBeInstanceOf(ShowQuarantineRefuseError);
+    expect((refuse as ShowQuarantineRefuseError).message).toMatch(
       /title failed quarantine sanitize/i,
     );
   });
