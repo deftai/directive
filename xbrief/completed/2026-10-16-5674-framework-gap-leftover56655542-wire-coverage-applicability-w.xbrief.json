@@ -237,11 +237,27 @@
         "deliveryBranch": "master"
       },
       "completionProvenance": {
-        "schema": "deft.scope.completion-provenance.v1",
-        "productPullRequest": 5681,
+        "schema": "deft.completionProvenance.v1",
+        "repository": "deftai/directive",
+        "implementationCommit": "d55cbc6e03e4e49fe3621db77089a2594225434e",
+        "prNumber": 5681,
+        "prBase": "master",
         "mergeCommit": "d55cbc6e03e4e49fe3621db77089a2594225434e",
         "deliveryBranch": "master",
-        "lifecycleWrite": "leftover-complete"
+        "deliveryCommit": "d55cbc6e03e4e49fe3621db77089a2594225434e",
+        "verifiedAt": "2026-10-16T18:39:46.828Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedAt": "2026-10-16T18:39:46.828Z"
+      },
+      "productPullRequest": 5681,
+      "mergeCommit": "d55cbc6e03e4e49fe3621db77089a2594225434e",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-16T18:39:46.828Z"
       }
     },
     "acceptance": {
