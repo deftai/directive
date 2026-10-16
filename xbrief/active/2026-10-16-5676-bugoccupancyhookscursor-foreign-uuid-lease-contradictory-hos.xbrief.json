@@ -196,7 +196,8 @@
           "#4660"
         ],
         "parallel_safe": true
-      }
+      },
+      "productPullRequest": 5682
     },
     "id": "github.issue.5887128674",
     "updated": "2026-10-16T17:00:36Z",
