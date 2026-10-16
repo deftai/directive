@@ -3976,8 +3976,11 @@ describe("Harbor UUID lease vs declared host Prefer-A (#5544)", () => {
     expect(remediation).toContain("occupancy:steal");
     expect(remediation).toContain(`--session-id=${hostId}`);
     expect(remediation).toContain("--occupant=minted-uuid");
-    expect(remediation).toContain(`--project-root=${resolveOccupancyLeaseRoot(root)}`);
-    expect(remediation).toContain(`session:start --rearm --session-id=${hostId} --project-root=`);
+    const leaseRoot = resolveOccupancyLeaseRoot(root);
+    expect(remediation).toContain(`--project-root=${JSON.stringify(leaseRoot)}`);
+    expect(remediation).toContain(
+      `session:start --rearm --session-id=${hostId} --project-root=${JSON.stringify(leaseRoot)}`,
+    );
     expect(remediation).not.toMatch(/Do not steal this lease(?! unless)/);
     const gate = evaluateOccupancyWriteGate(root, {
       sessionId: hostId,

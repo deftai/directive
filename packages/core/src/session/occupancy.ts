@@ -526,7 +526,7 @@ export function formatOccupancyMintedDeclaredHostStealRemediation(
   const path = root !== undefined ? occupancyPath(root) : undefined;
   const occupantArg = commandSessionId(record.sessionId, "<reported-session-id>");
   const hostArg = commandSessionId(presented, "<host-published-id>");
-  const rootFlag = root !== undefined ? ` --project-root=${root}` : "";
+  const rootFlag = root !== undefined ? ` --project-root=${JSON.stringify(root)}` : "";
   const view = path !== undefined ? ` Lease view: ${formatOccupancyLeaseViewNote(path)}.` : "";
   const rootNote = root !== undefined ? ` Target root: ${root}.` : "";
   return (
@@ -1224,6 +1224,8 @@ function occupancyMintRefusalDecision(
 }
 
 export function readOccupancy(projectRoot: string): OccupancyRecord | null {
+  // #5544: reads share the claim/release lease-root view.
+  projectRoot = resolveOccupancyLeaseRoot(projectRoot);
   const path = occupancyPath(projectRoot);
   try {
     if (!existsSync(path)) return null;
@@ -2078,6 +2080,8 @@ export function rollbackAcquiredOccupancy(
   acquired: OccupancyDecision,
   input: { readonly lockDeps?: LockDeps } = {},
 ): OccupancyDecision {
+  // #5544: rollback must target the same lease root claim wrote.
+  projectRoot = resolveOccupancyLeaseRoot(projectRoot);
   const path = occupancyPath(projectRoot);
   if (!isPersistTimeAcquisition(acquired.action)) {
     return {
@@ -2596,6 +2600,11 @@ export interface OccupancyWriteGateInput {
    */
   readonly persistProductMutationMarker?: boolean;
   readonly lockDeps?: LockDeps;
+  /**
+   * Already-resolved lease root (Write-hook `effectiveRoot`). When set, skip
+   * a second `git rev-parse --show-toplevel` (#5544 P2 hook-timeout class).
+   */
+  readonly leaseRoot?: string;
 }
 
 /**
@@ -2611,8 +2620,8 @@ export function evaluateOccupancyWriteGate(
   input: OccupancyWriteGateInput = {},
 ): OccupancyWriteGateResult {
   const now = input.now ?? new Date();
-  // #5544 P2: Write-gate effectiveRoot and CLI lease root share one resolver.
-  projectRoot = resolveOccupancyLeaseRoot(projectRoot);
+  // #5544: share one lease-root view; reuse caller-resolved effectiveRoot when present.
+  projectRoot = input.leaseRoot ?? resolveOccupancyLeaseRoot(projectRoot);
   const incoming =
     input.sessionId?.trim() || (input.env ?? process.env).DEFT_SESSION_ID?.trim() || "";
   const stored = readOccupancy(projectRoot);

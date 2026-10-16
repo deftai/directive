@@ -1765,6 +1765,7 @@ function inspectMutationGates(
           sessionId: actor?.sessionId,
           // Hosts with a resolved owner must not fall back to a stale ambient one.
           env: actor?.hostAuthoritative === true ? {} : environ,
+          leaseRoot: effectiveRoot,
         }),
         actor?.sessionId ?? "",
         undefined,
@@ -2073,6 +2074,7 @@ function inspectMutationGates(
         env: actor.hostAuthoritative ? {} : environ,
         refresh: true,
         persistProductMutationMarker,
+        leaseRoot: effectiveRoot,
       }),
       actor.sessionId ?? "",
       undefined,
