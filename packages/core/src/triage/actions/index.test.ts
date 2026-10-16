@@ -127,10 +127,11 @@ describe("createDefaultDeps", () => {
     mockIngest.mockClear();
     const root = makeRepo();
     const deps = createDefaultDeps(root);
-    const decisionId = accept(2350, "deftai/directive", deps, { projectRoot: root });
-    expect(decisionId).toMatch(
+    const outcome = accept(2350, "deftai/directive", deps, { projectRoot: root });
+    expect(outcome.decisionId).toMatch(
       /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/,
     );
+    expect(outcome.disposition).toBe("created");
     // The production wiring authored the brief via the in-process TS intake
     // path; the removed Python `issue_ingest` shell-out (pre-#2350) would have
     // raised ModuleNotFoundError and rolled the audit entry back.
@@ -284,15 +285,40 @@ describe("rollbackAuditEntry", () => {
 
 describe("formatAcceptOutput", () => {
   it("names the design-critique command after the accept line (#3708)", () => {
-    expect(formatAcceptOutput(12, "owner/repo", "dec-1")).toBe(
-      "accept #12 (owner/repo) -> dec-1\noptional: deft-directive-design-critique (declining writes nothing)",
+    expect(
+      formatAcceptOutput(12, "owner/repo", "dec-1", {
+        disposition: "created",
+        relativePath: "proposed/12.xbrief.json",
+      }),
+    ).toBe(
+      "accept #12 (owner/repo) -> dec-1\nCREATED proposed/12.xbrief.json\noptional: deft-directive-design-critique (declining writes nothing)",
     );
   });
 
   it("keeps the same offer after --auto-promote (#3708)", () => {
-    const text = formatAcceptOutput(12, "owner/repo", "dec-1", { autoPromote: true });
+    const text = formatAcceptOutput(12, "owner/repo", "dec-1", {
+      autoPromote: true,
+      disposition: "created",
+      relativePath: "proposed/12.xbrief.json",
+    });
     expect(text).toContain("accept #12 (owner/repo) -> dec-1 + auto-promote");
+    expect(text).toContain("CREATED proposed/12.xbrief.json");
     expect(text).toContain("optional: deft-directive-design-critique (declining writes nothing)");
+  });
+
+  it("discloses reuse and refuse outcomes (#4962)", () => {
+    expect(
+      formatAcceptOutput(1, "o/r", "dec-1", {
+        disposition: "duplicate",
+        relativePath: "pending/1.xbrief.json",
+      }),
+    ).toContain("already-ingested/reuse pending/1.xbrief.json");
+    expect(
+      formatAcceptOutput(1, "o/r", null, {
+        disposition: "refused",
+        ingestMessage: "#1 refuse: multiple owning briefs",
+      }),
+    ).toContain("#1 refuse: multiple owning briefs");
   });
 });
 
@@ -300,11 +326,12 @@ describe("accept", () => {
   it("appends audit entry and delegates ingest", () => {
     const root = makeRepo();
     const deps = fakeDeps(root);
-    const decisionId = accept(123, "deftai/directive", deps, {
+    const outcome = accept(123, "deftai/directive", deps, {
       actor: "agent:test",
       projectRoot: root,
     });
-    expect(decisionId).toBe("11111111-1111-1111-1111-111111111111");
+    expect(outcome.decisionId).toBe("11111111-1111-1111-1111-111111111111");
+    expect(outcome.disposition).toBe("created");
     const path = resolveAuditLogPath(root);
     const text = readFileSync(path, "utf8");
     expect(text).toContain('"decision":"accept"');
@@ -317,13 +344,14 @@ describe("accept", () => {
     expect(readFileSync(resolveAuditLogPath(root), "utf8")).toContain('"actor":"human:me"');
   });
 
-  it("rolls back audit entry on ingest failure", () => {
+  it("does not append audit when ingest fails (#4962 refuse-before-write)", () => {
     const root = makeRepo();
     const deps = fakeDeps(root, { ingestFail: true });
     expect(() =>
       accept(42, "deftai/directive", deps, { actor: "agent:test", projectRoot: root }),
     ).toThrow(TriageError);
-    expect(readFileSync(resolveAuditLogPath(root), "utf8").trim()).toBe("");
+    const path = resolveAuditLogPath(root);
+    expect(existsSync(path) ? readFileSync(path, "utf8").trim() : "").toBe("");
   });
 
   it("is idempotent when already accepted", () => {
@@ -337,7 +365,9 @@ describe("accept", () => {
       actor: "agent:test",
     };
     const deps = fakeDeps(root, { latest: prior });
-    expect(accept(9, "deftai/directive", deps, { projectRoot: root })).toBe("prior-id");
+    const outcome = accept(9, "deftai/directive", deps, { projectRoot: root });
+    expect(outcome.decisionId).toBe("prior-id");
+    expect(outcome.disposition).toBe("idempotent");
     const path = resolveAuditLogPath(root);
     expect(existsSync(path)).toBe(false);
   });
@@ -375,12 +405,13 @@ describe("accept", () => {
         return proposedPath;
       },
     };
-    const decisionId = accept(77, "deftai/directive", deps, {
+    const outcome = accept(77, "deftai/directive", deps, {
       actor: "agent:test",
       projectRoot: root,
       autoPromote: true,
     });
-    expect(decisionId).toBe("11111111-1111-1111-1111-111111111111");
+    expect(outcome.decisionId).toBe("11111111-1111-1111-1111-111111111111");
+    expect(outcome.relativePath).toBe("proposed/2026-01-01-auto.xbrief.json");
     expect(existsSync(join(root, "xbrief", "pending", "2026-01-01-auto.xbrief.json"))).toBe(true);
     expect(existsSync(proposedPath)).toBe(false);
   });
@@ -405,6 +436,26 @@ describe("accept", () => {
     ).toThrow(/auto-promote failed/);
     // Accept audit remains
     expect(readFileSync(resolveAuditLogPath(root), "utf8")).toContain('"decision":"accept"');
+  });
+
+  it("refuses without audit when ingest reports refused (#4962)", () => {
+    const root = makeRepo();
+    const deps = fakeDeps(root);
+    deps.issueIngest = {
+      ingestSingleForAccept() {
+        return {
+          result: "refused",
+          path: null,
+          message: "#1 refuse: multiple owning briefs for the same issue+repo",
+        };
+      },
+    };
+    const outcome = accept(1, "deftai/directive", deps, { projectRoot: root });
+    expect(outcome.disposition).toBe("refused");
+    expect(outcome.decisionId).toBeNull();
+    expect(outcome.ingestMessage).toContain("multiple owning briefs");
+    const path = resolveAuditLogPath(root);
+    expect(existsSync(path) ? readFileSync(path, "utf8").trim() : "").toBe("");
   });
 });
 

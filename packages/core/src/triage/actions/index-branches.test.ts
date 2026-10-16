@@ -101,7 +101,7 @@ describe("reject scm branches", () => {
 });
 
 describe("accept ingest branches", () => {
-  it("rolls back when ingest throws non-Error value", () => {
+  it("leaves no accept audit when ingest throws non-Error value (#4962)", () => {
     const root = makeRepo();
     const deps = fakeDeps(root);
     deps.issueIngest = {
@@ -110,8 +110,8 @@ describe("accept ingest branches", () => {
       },
     };
     expect(() => accept(1, "deftai/directive", deps, { projectRoot: root })).toThrow(TriageError);
-    expect(existsSync(resolveAuditLogPath(root))).toBe(true);
-    expect(readFileSync(resolveAuditLogPath(root), "utf8").trim()).toBe("");
+    const path = resolveAuditLogPath(root);
+    expect(existsSync(path) ? readFileSync(path, "utf8").trim() : "").toBe("");
   });
 });
 
