@@ -2,7 +2,7 @@
  * Wave4e RED: convert strip must drop retired triad packages
  * (@deftai/directive-core|content|types) as well as the pre-split launcher pin.
  */
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -83,6 +83,23 @@ describe("removeLegacyDirectivePackages / expanded removeLegacyDirectivePin (wav
     }
     expect(deps.lodash).toBe("^4.17.21");
     expect(dev.prettier).toBe("^3.0.0");
+  });
+
+  it("purges lockfiles that still reference retired triad packages", () => {
+    const root = tempProject();
+    writePkg(root, {
+      name: "lock-triad",
+      version: "0.0.0",
+      private: true,
+      dependencies: { lodash: "^4.17.21" },
+    });
+    writeFileSync(
+      join(root, "pnpm-lock.yaml"),
+      `lockfileVersion: '9.0'\n\nimporters:\n  .:\n    dependencies:\n      '@deftai/directive-core':\n        specifier: 0.121.0\n        version: 0.121.0\n      lodash:\n        specifier: ^4.17.21\n        version: 4.17.21\n`,
+    );
+    const purged = pm.purgeRetiredDirectiveLockfiles(root);
+    expect(purged).toEqual(["pnpm-lock.yaml"]);
+    expect(existsSync(join(root, "pnpm-lock.yaml"))).toBe(false);
   });
 
   it("strips triad-only pins when launcher pin is already absent", () => {

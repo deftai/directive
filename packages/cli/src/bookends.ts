@@ -34,6 +34,7 @@ import {
   PARTIAL_CHANGES_MAY_REMAIN,
   planFingerprintChanged,
   readDeclaredPackageManagerVersion,
+  purgeRetiredDirectiveLockfiles,
   removeLegacyDirectivePackages,
   removeLegacyDirectivePin,
   RETIRED_DIRECTIVE_PACKAGE_NAMES,
@@ -1227,6 +1228,11 @@ export function runUpgrade(
         // Non-ok (already absent, etc.): continue — strip + add still proceed.
       }
       removeLegacyDirectivePackages(projectRoot);
+      // Lockfile-only triad (pnpm) still 404s hybrid Verdaccio — drop those lockfiles.
+      const purged = purgeRetiredDirectiveLockfiles(projectRoot);
+      if (purged.length > 0 && flags.verbosity >= 1) {
+        io.writeOut(`Purged lockfile(s) referencing retired Directive packages: ${purged.join(", ")}\n`);
+      }
     }
     // Convert shapes may lack a package.json (rare); ensure before PM add.
     if (convertViaRemovals && !existsSync(join(projectRoot, "package.json"))) {

@@ -3,7 +3,7 @@
  * Node builtins + child_process only — no runtime/core dependency.
  */
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { spawnSync, type SpawnSyncReturns } from "node:child_process";
 import { LAUNCHER_PACKAGE_NAME, RUNTIME_PACKAGE_NAME } from "./constants.js";
@@ -663,6 +663,51 @@ export function removeLegacyDirectivePackages(projectRoot: string): boolean {
  */
 export function removeLegacyDirectivePin(projectRoot: string): boolean {
   return removeLegacyDirectivePackages(projectRoot);
+}
+
+const LOCKFILE_CANDIDATES = ["pnpm-lock.yaml", "package-lock.json", "npm-shrinkwrap.json"] as const;
+
+function lockfileReferencesRetiredDirective(contents: string): boolean {
+  for (const name of RETIRED_DIRECTIVE_PACKAGE_NAMES) {
+    // Match package name as a dependency key / snapshot id, not random substrings.
+    if (contents.includes(`"${name}"`) || contents.includes(`${name}@`) || contents.includes(`${name}:`)) {
+      return true;
+    }
+    // pnpm lock often uses "'@deftai/directive-core'" quoted forms already covered;
+    // also bare specifier lines: "@deftai/directive-core":
+    if (contents.includes(name)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * When convert cannot PM-remove triad because entries are lockfile-only (or the
+ * registry lacks retired packages), delete lockfiles that still reference them
+ * so the subsequent exact-add rebuilds the lock without fetching old triad
+ * tarballs (wave4e / ledgerd residual).
+ */
+export function purgeRetiredDirectiveLockfiles(projectRoot: string): string[] {
+  const purged: string[] = [];
+  for (const rel of LOCKFILE_CANDIDATES) {
+    const abs = join(projectRoot, rel);
+    if (!existsSync(abs)) continue;
+    let contents: string;
+    try {
+      contents = readFileSync(abs, "utf8");
+    } catch {
+      continue;
+    }
+    if (!lockfileReferencesRetiredDirective(contents)) continue;
+    try {
+      unlinkSync(abs);
+      purged.push(rel);
+    } catch {
+      /* best-effort */
+    }
+  }
+  return purged;
 }
 
 /**
