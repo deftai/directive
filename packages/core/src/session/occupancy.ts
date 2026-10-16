@@ -468,7 +468,7 @@ export type ApplyingHostLifecycleAdmission =
   | {
       readonly kind: "foreign-owner";
       readonly record: ApplyingHostRecord;
-      readonly namedSessionId: string;
+      readonly namedSessionId: string | null;
       readonly message: string;
     }
   | {
@@ -705,9 +705,9 @@ export function evaluateApplyingHostLifecycleAdmission(input: {
   const named = input.namedSessionId?.trim() || null;
   const matchingDeposit = input.depositHost === record.provider;
   if (!matchingDeposit) {
-    // Non-matching deposits soft-pass when argv already names the applying host,
-    // or when argv is absent so only the matching deposit should rewrite (#5676).
-    if (named === null || named === record.applyingHostSessionId) {
+    // Soft-pass only when argv already names applyingHostSessionId (#5676).
+    // Bare commands must not skip the owner rewrite / explicit-owner gate.
+    if (named === record.applyingHostSessionId) {
       return {
         kind: "soft-pass",
         record,
@@ -719,9 +719,13 @@ export function evaluateApplyingHostLifecycleAdmission(input: {
       record,
       namedSessionId: named,
       message:
-        `Directive refused foreign owner ${named}; applying-host is ` +
-        `${record.applyingHostSessionId}. Re-run with ` +
-        `--session-id=${record.applyingHostSessionId}.`,
+        named === null
+          ? `Directive refused bare lifecycle command; applying-host is ` +
+            `${record.applyingHostSessionId}. Re-run with ` +
+            `--session-id=${record.applyingHostSessionId}.`
+          : `Directive refused foreign owner ${named}; applying-host is ` +
+            `${record.applyingHostSessionId}. Re-run with ` +
+            `--session-id=${record.applyingHostSessionId}.`,
     };
   }
   if (named !== null && named !== record.applyingHostSessionId) {

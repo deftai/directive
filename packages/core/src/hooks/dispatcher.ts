@@ -3291,7 +3291,8 @@ function attachLifecycleIdentityRewrite(
     ) {
       const admission = evaluateApplyingHostLifecycleAdmission({
         projectRoot: resolve(input.projectRoot),
-        depositHost: input.host,
+        // Resolved provider (e.g. Claude+GROK_HOOK_EVENT → grok), not wire host.
+        depositHost: identity.provider,
         depositSessionId: identity.sessionId,
         namedSessionId: hintedSession.sessionId,
       });
@@ -3340,8 +3341,14 @@ function attachLifecycleIdentityRewrite(
   }
   // #4660: non-claiming read-only session:start keeps the prior allow, and may
   // publish/repair the applying-host record without requiring a prior record (#5676).
+  // Skip when --project-root (rewriteUnsafe) is present so this hook does not
+  // overwrite a different worktree; the CLI publishes the command target.
   if (!lifecycle.requiresOwner) {
-    if (lifecycle.sessionIdStatus === "present" && lifecycle.sessionId !== null) {
+    if (
+      lifecycle.rewriteSafe &&
+      lifecycle.sessionIdStatus === "present" &&
+      lifecycle.sessionId !== null
+    ) {
       try {
         const environ = input.environ ?? process.env;
         const transport: ApplyingHostTransport = environ.GROK_HOOK_EVENT?.trim()
@@ -3413,7 +3420,8 @@ function attachLifecycleIdentityRewrite(
   }
   const applyingAdmission = evaluateApplyingHostLifecycleAdmission({
     projectRoot: resolve(input.projectRoot),
-    depositHost: input.host,
+    // Resolved provider (e.g. Claude+GROK_HOOK_EVENT → grok), not wire host.
+    depositHost: identity.provider,
     depositSessionId: identity.sessionId,
     namedSessionId:
       lifecycle.sessionIdStatus === "present" ? (lifecycle.sessionId ?? null) : null,
