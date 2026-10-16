@@ -4,10 +4,13 @@ import { describe, expect, it } from "vitest";
 import type { RunGhFn } from "../pr-merge-readiness/types.js";
 import { EXIT_CONFIG_ERROR, EXIT_TIMEOUT_OR_ESCALATION } from "./constants.js";
 import {
+  ALLOWED_CANDIDATE_VALIDATION_COMMANDS,
+  buildCandidateValidationAttestationFromProbe,
   CANDIDATE_VALIDATION_SCHEMA,
+  type CandidateValidationAttestation,
+  evaluateNonCascadeCandidateGreen,
   evaluateSemanticGreen,
   validateCandidateAttestation,
-  type CandidateValidationAttestation,
 } from "./semantic-green.js";
 
 const PR = 2379;
@@ -507,7 +510,7 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
     expect(noHead.error).toContain("PR head SHA");
   });
 
-  it("accepts injected prHeadSha and matching localHeadSha", () => {
+  it("rejects supplied prHeadSha that differs from live fetched head", () => {
     const injectedHead = "e".repeat(40);
     const runGh = makeRunGh({
       "/pulls/": pullsHandler(CURRENT_HEAD),
@@ -522,8 +525,83 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
       resolveLifecycleDirty: () => null,
       runGh,
     });
+    expect(result.ok).toBe(false);
+    expect(result.outcome).toBe("candidate-validation-head-mismatch");
+    expect(result.error).toContain("does not match live fetched PR head");
+  });
+
+  it("accepts matching localHeadSha when prHeadSha matches live head", () => {
+    const runGh = makeRunGh({
+      "/pulls/": pullsHandler(CURRENT_HEAD),
+      "/git/ref/heads/": branchRefHandler(CURRENT_HEAD),
+    });
+    const result = evaluateSemanticGreen(PR, REPO, {
+      requireCandidateValidation: true,
+      checkLifecycleDirty: false,
+      prHeadSha: PR_HEAD,
+      localHeadSha: PR_HEAD,
+      candidateValidationAttestation: validAttestation(),
+      resolveLifecycleDirty: () => null,
+      runGh,
+    });
     expect(result.ok).toBe(true);
-    expect(result.payload.pr_head_sha).toBe(injectedHead);
+    expect(result.payload.pr_head_sha).toBe(PR_HEAD);
+  });
+
+  it("evaluateNonCascadeCandidateGreen always requires attestation", () => {
+    const runGh = makeRunGh({
+      "/pulls/": pullsHandler(CURRENT_HEAD),
+      "/git/ref/heads/": branchRefHandler(CURRENT_HEAD),
+    });
+    const missing = evaluateNonCascadeCandidateGreen(PR, REPO, {
+      checkLifecycleDirty: false,
+      runGh,
+    });
+    expect(missing.ok).toBe(false);
+    expect(missing.outcome).toBe("candidate-validation-missing-or-stale");
+
+    const ok = evaluateNonCascadeCandidateGreen(PR, REPO, {
+      checkLifecycleDirty: false,
+      candidateValidationAttestation: validAttestation(),
+      runGh,
+    });
+    expect(ok.ok).toBe(true);
+  });
+
+  it("buildCandidateValidationAttestationFromProbe rejects forged commands and non-zero exits", () => {
+    expect(() =>
+      buildCandidateValidationAttestationFromProbe({
+        pr_head_sha: PR_HEAD,
+        target_head_sha: CURRENT_HEAD,
+        command: "true",
+        exit_code: 0,
+      }),
+    ).toThrow(/refuses command/);
+    expect(() =>
+      buildCandidateValidationAttestationFromProbe({
+        pr_head_sha: PR_HEAD,
+        target_head_sha: CURRENT_HEAD,
+        command: "task check",
+        exit_code: 1,
+      }),
+    ).toThrow(/non-zero exit_code/);
+    const built = buildCandidateValidationAttestationFromProbe({
+      pr_head_sha: PR_HEAD,
+      target_head_sha: CURRENT_HEAD,
+      command: "  deft   check  ",
+      exit_code: 0,
+      attested_at: "2026-10-08T12:00:00Z",
+    });
+    expect(built.command).toBe("deft check");
+    expect(ALLOWED_CANDIDATE_VALIDATION_COMMANDS).toContain(built.command);
+    expect(validateCandidateAttestation(built, PR_HEAD, CURRENT_HEAD)).toBeNull();
+  });
+
+  it("validateCandidateAttestation rejects non-allowlisted commands like true", () => {
+    const forged = { ...validAttestation(), command: "true" };
+    expect(validateCandidateAttestation(forged, PR_HEAD, CURRENT_HEAD)).toContain(
+      "ALLOWED_CANDIDATE_VALIDATION_COMMANDS",
+    );
   });
 });
 
@@ -538,6 +616,7 @@ describe("content-contract: three-axis semantic policy (#4888)", () => {
     expect(scm).toContain("policy");
     expect(scm).toContain("evaluateSemanticGreen");
     expect(scm).toContain("requireCandidateValidation");
+    expect(scm).toContain("evaluateNonCascadeCandidateGreen");
     expect(scm).toContain("#4888");
     expect(scm).toContain("#633");
     expect(scm).toMatch(/#4883/);

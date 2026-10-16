@@ -65,10 +65,10 @@ task verify:plan-sequence -- --target-kind <entry-kind> --target <entry-id>
 GitHub `mergeable_state` is **textual only**. Post-open behavioral/policy gates stay invisible until the merge-chokepoint `task check` / `deft check` runs against the current base (#4888).
 
 - ! On **conflict-resolve**, **behind-rebase**, and **pre-push**, MUST treat the merge-chokepoint full gate as candidate validation against current base — not optional polish. Prefer `deft check`; else tree-correct `task check` / `task deft:check`.
-- ! When calling `evaluateSemanticGreen` for those non-cascade routes, pass `requireCandidateValidation: true` with a machine-checkable attestation keyed to `(pr_head_sha, target_head_sha)` (`deft.semantic-green.candidate-validation.v1`). Fail closed names the probe.
+- ! For those non-cascade routes call `evaluateNonCascadeCandidateGreen` (or `evaluateSemanticGreen` with `requireCandidateValidation: true`) with an attestation from `buildCandidateValidationAttestationFromProbe` keyed to `(pr_head_sha, target_head_sha)`. Fail closed names the probe.
 - ! Frame `#4883` CLEAN / forge `mergeable_state=clean` as axis-1 necessity only — never three-axis sufficiency.
 - ⊗ Skip the merge-chokepoint `task check` after conflict-resolve or behind-rebase because GitHub shows mergeable/clean (#4888).
-- ⊗ Satisfy semantic-drift visibility with a Python `scripts/check_pr_semantic_drift.py` SoT (withdrawn; TS owns the probe).
+- ⊗ Satisfy semantic-drift visibility with a withdrawn Python semantic-drift script SoT (TS evaluateSemanticGreen owns the probe).
 - Depth: `scm/github.md` § Cascade / Three-axis (#4888); forge supersession `#633`/`#1517`.
 
 ## Gate throughput — iteration fast lane vs merge chokepoint (#1704)

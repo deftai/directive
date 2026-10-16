@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Fixed**: Land tracked completion record for exclusive-create dest on lifecycle folder-moves. Refs #3908.
 - **Fixed**: Prepare approved file permissions for the scope lifecycle exclusive-create dest work. This records approval only; it does not change product behavior. Refs #3908.
 ### Added
-- **Three-axis semantic policy visibility (#4888).** `evaluateSemanticGreen` accepts non-cascade `requireCandidateValidation` keyed to `(pr_head_sha, target_head_sha)` with machine-checkable attestation; scm documents textual/behavioral/policy axes; pre-pr owns the `task check` attach; lessons pack entry + forge `#633`/`#1517` supersession disclosure. Withdraws the optional Python `scripts/check_pr_semantic_drift.py` SoT from parent #964 AC. Keeps #4889 out. Prefer-A Bound 6050812821. Tracking #4888.
+- **Three-axis semantic policy visibility (#4888).** `evaluateSemanticGreen` accepts non-cascade `requireCandidateValidation` keyed to `(pr_head_sha, target_head_sha)` with machine-checkable attestation; scm documents textual/behavioral/policy axes; pre-pr owns the `task check` attach; lessons pack entry + forge `#633`/`#1517` supersession disclosure. Withdraws the optional withdrawn Python semantic-drift script SoT from parent #964 AC. Keeps #4889 out. Prefer-A Bound 6050812821. Tracking #4888.
 ### Changed
 - Activate Prefer-A Bound keep-active brief for #3907 (productPullRequest unset; swarm-ready story fields). Tracking #3907.
 - Restore Prefer-A Bound keep-active brief for #3906 (productPullRequest unset; concrete file_scope). Tracking #3906.

@@ -104,7 +104,7 @@ Same as managed below; `task verify:story-ready`, `task scope:promote -- <path>`
 
 ## Contextual guardrails (runtime-detect lazy-load)
 
-Same as managed below; `task verify:encoding`, `task verify:scm-boundary`, `task pr:wait-mergeable-and-merge`; three-axis `#4888` (`evaluateSemanticGreen` + pre-pr `task check`); `content/scm/github.md` (#2157 / #2369).
+Same as managed below; `task verify:encoding`, `task verify:scm-boundary`, `task pr:wait-mergeable-and-merge`; three-axis `#4888` (`evaluateNonCascadeCandidateGreen` + pre-pr `task check`); `content/scm/github.md` (#2157 / #2369).
 
 ## Headless swarm launch gate-stack (#1387)
 
@@ -166,7 +166,7 @@ Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after 
 
 <!-- placeholder -->
 
-<!-- deft:managed-section v3 sha=121ec0220c77 refreshed=2026-10-16T02:36:14Z session=db0f3c33d010 -->
+<!-- deft:managed-section v3 sha=0.125.2 refreshed=2026-10-16T03:27:03Z session=ebf1bac3121e -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -338,7 +338,6 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 ## Contextual guardrails (runtime-detect lazy-load)
 
 ! Detect OS/shell; use portable syntax or explicit shell (#2568). `.deft/core/scm/github.md` (#2157/#2369): PS encoding→`deft verify:encoding` (#798); TS capture; cascade→`deft pr:wait-mergeable-and-merge`; SCM→`deft verify:scm-boundary`.
-! Three-axis merge readiness (#4888): `mergeable_state` is textual only; conflict-resolve / behind-rebase / pre-push MUST use `evaluateSemanticGreen` candidate validation + pre-pr `task check`. Depth: `scm/github.md` § Cascade / Three-axis; forge supersession `#633`/`#1517`.
 ! Forge outage (#3422): drop GitHub I/O on attributed outage or repeated 429/502/503; report once to the human; re-probe on `plan.policy.forgeOutageRetryMinutes` (default 30; USER.md Personal wins). Depth: `scm/github.md` § #3180.
 ! Credential-class ban (#3858 / #2275): installation authentication may be admitted without claiming App identity when no user is required (#5016). Those three verbs parse `--repo` / `-R` before `requireScmReady` at depth deep. Doctor and default `session:start` stay shallow. Depth: `scm/github.md` § #2275.
 ! Registered-worker auth (#3663): local linked-worktree workers validate the independently stored assignment at `requireScmReady`; an inferred parent stamp is never exported as `DEFT_GITHUB_AUTH_MODE=host-gh` for those workers. Depth: `scm/github.md`.

@@ -1,15 +1,74 @@
+import {
+  type ResolveLifecycleDirtyFn,
+  resolveLifecycleDirty,
+  shasMatch,
+} from "../pr-closeout-attestable/pr-head-assert.js";
 import { buildCiSummaryLine, evaluateCiGate } from "../pr-merge-readiness/ci-gate.js";
 import { defaultRunGh, fetchCheckRunsRest } from "../pr-merge-readiness/gh.js";
 import type { RunGhFn } from "../pr-merge-readiness/types.js";
-import {
-  shasMatch,
-  type ResolveLifecycleDirtyFn,
-} from "../pr-closeout-attestable/pr-head-assert.js";
 import { EXIT_CONFIG_ERROR, EXIT_TIMEOUT_OR_ESCALATION } from "./constants.js";
 
 /** Machine-checkable candidate validation attestation (#4888 Prefer-A Bound). */
-export const CANDIDATE_VALIDATION_SCHEMA =
-  "deft.semantic-green.candidate-validation.v1" as const;
+export const CANDIDATE_VALIDATION_SCHEMA = "deft.semantic-green.candidate-validation.v1" as const;
+
+/** Named merge-chokepoint probes admitted for candidate attestation (#4888). */
+export const ALLOWED_CANDIDATE_VALIDATION_COMMANDS = [
+  "task check",
+  "deft check",
+  "task deft:check",
+  "directive check",
+] as const;
+
+export type AllowedCandidateValidationCommand =
+  (typeof ALLOWED_CANDIDATE_VALIDATION_COMMANDS)[number];
+
+export function normalizeCandidateCommand(command: string): string {
+  return command.trim().replace(/\s+/g, " ");
+}
+
+/**
+ * Blessed producer for candidate-validation attestations (#4888).
+ * Rejects non-zero exits and non-allowlisted commands — callers must not hand-write success stamps.
+ */
+export function buildCandidateValidationAttestationFromProbe(input: {
+  readonly pr_head_sha: string;
+  readonly target_head_sha: string;
+  readonly command: string;
+  readonly exit_code: number;
+  readonly attested_at?: string;
+  readonly merge_result_sha?: string | null;
+}): CandidateValidationAttestation {
+  const command = normalizeCandidateCommand(input.command);
+  if (input.exit_code !== 0) {
+    throw new Error(
+      "buildCandidateValidationAttestationFromProbe refuses non-zero exit_code (#4888); " +
+        "run the named merge-chokepoint probe and pass its real exit.",
+    );
+  }
+  if (!(ALLOWED_CANDIDATE_VALIDATION_COMMANDS as readonly string[]).includes(command)) {
+    throw new Error(
+      "buildCandidateValidationAttestationFromProbe refuses command " +
+        JSON.stringify(command) +
+        " (#4888); allowed: " +
+        ALLOWED_CANDIDATE_VALIDATION_COMMANDS.join(" | ") +
+        ".",
+    );
+  }
+  if (!input.pr_head_sha || !input.target_head_sha) {
+    throw new Error(
+      "buildCandidateValidationAttestationFromProbe requires pr_head_sha and target_head_sha (#4888).",
+    );
+  }
+  return {
+    schema: CANDIDATE_VALIDATION_SCHEMA,
+    pr_head_sha: input.pr_head_sha,
+    target_head_sha: input.target_head_sha,
+    command,
+    exit_code: 0,
+    attested_at: input.attested_at ?? new Date().toISOString(),
+    merge_result_sha: input.merge_result_sha ?? null,
+  };
+}
 
 export interface CandidateValidationAttestation {
   readonly schema: typeof CANDIDATE_VALIDATION_SCHEMA;
@@ -269,8 +328,16 @@ export function validateCandidateAttestation(
     );
   }
   if (typeof attestation.command !== "string" || attestation.command.trim().length === 0) {
+    return "Candidate-validation attestation missing named command for evaluateSemanticGreen (#4888).";
+  }
+  const normalizedCommand = normalizeCandidateCommand(attestation.command);
+  if (!(ALLOWED_CANDIDATE_VALIDATION_COMMANDS as readonly string[]).includes(normalizedCommand)) {
     return (
-      "Candidate-validation attestation missing named command for evaluateSemanticGreen (#4888)."
+      "Candidate-validation attestation command not in ALLOWED_CANDIDATE_VALIDATION_COMMANDS for evaluateSemanticGreen (#4888): " +
+      JSON.stringify(attestation.command) +
+      ". Use buildCandidateValidationAttestationFromProbe after a controlled probe (" +
+      ALLOWED_CANDIDATE_VALIDATION_COMMANDS.join(" | ") +
+      ")."
     );
   }
   if (!shasMatch(attestation.pr_head_sha, prHeadSha)) {
@@ -351,6 +418,31 @@ function evaluateCandidateValidationLimb(
     };
   }
 
+  if (
+    typeof options.prHeadSha === "string" &&
+    options.prHeadSha.length > 0 &&
+    pr.headSha !== null &&
+    pr.headSha.length > 0 &&
+    !shasMatch(options.prHeadSha, pr.headSha)
+  ) {
+    return {
+      ok: false,
+      outcome: "candidate-validation-head-mismatch",
+      exitCode: EXIT_TIMEOUT_OR_ESCALATION,
+      error:
+        "Supplied prHeadSha does not match live fetched PR head for evaluateSemanticGreen (#4888). " +
+        `supplied=${options.prHeadSha} live=${pr.headSha}. ` +
+        "Use the fetched head as authority; re-fetch before attesting.",
+      payload: {
+        ...emptyPayload(),
+        pr_base_sha: pr.baseSha,
+        pr_head_sha: pr.headSha,
+        target_branch: targetBranch,
+        target_head_sha: branchHead.sha,
+      },
+    };
+  }
+
   const prHeadSha =
     typeof options.prHeadSha === "string" && options.prHeadSha.length > 0
       ? options.prHeadSha
@@ -401,20 +493,18 @@ function evaluateCandidateValidationLimb(
   const checkDirty = options.checkLifecycleDirty !== false;
   if (checkDirty) {
     const projectRoot = options.projectRoot ?? process.cwd();
-    const dirtyFn = options.resolveLifecycleDirty;
-    if (typeof dirtyFn === "function") {
-      const dirty = dirtyFn(projectRoot);
-      if (dirty !== null && dirty.length > 0) {
-        return {
-          ok: false,
-          outcome: "candidate-validation-dirty-tree",
-          exitCode: EXIT_TIMEOUT_OR_ESCALATION,
-          error:
-            "Lifecycle paths are dirty for evaluateSemanticGreen candidate validation (#4888). " +
-            `${dirty}. Commit or stash before attesting.`,
-          payload: payloadBase,
-        };
-      }
+    const dirtyFn = options.resolveLifecycleDirty ?? resolveLifecycleDirty;
+    const dirty = dirtyFn(projectRoot);
+    if (dirty !== null && dirty.length > 0) {
+      return {
+        ok: false,
+        outcome: "candidate-validation-dirty-tree",
+        exitCode: EXIT_TIMEOUT_OR_ESCALATION,
+        error:
+          "Lifecycle paths are dirty for evaluateSemanticGreen candidate validation (#4888). " +
+          `${dirty}. Commit or stash before attesting.`,
+        payload: payloadBase,
+      };
     }
   }
 
@@ -583,6 +673,23 @@ export function evaluateSemanticGreen(
   }
 
   return { ok: true, outcome: null, exitCode: null, error: null, payload };
+}
+
+/**
+ * Non-cascade entry point for conflict-resolve / behind-rebase / pre-push (#4888).
+ * Always requires machine-checkable candidate validation; use this instead of the
+ * bare evaluateSemanticGreen no-op when cascadeMode is off.
+ */
+export function evaluateNonCascadeCandidateGreen(
+  prNumber: number,
+  repo: string,
+  options: Omit<SemanticGreenOptions, "cascadeMode" | "requireCandidateValidation"> = {},
+): SemanticGreenResult {
+  return evaluateSemanticGreen(prNumber, repo, {
+    ...options,
+    cascadeMode: false,
+    requireCandidateValidation: true,
+  });
 }
 
 export type SemanticGreenFn = typeof evaluateSemanticGreen;
