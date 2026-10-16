@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Seed PROJECT-DEFINITION narratives from a design doc or answers file (#4961).** `deft setup:seed` writes a draft-only six-key Phase 2 preview; confirm via the Post-Interview gate, then `deft project:write-narratives`. Refuses `--out` onto PROJECT-DEFINITION or the input path. Tracking #4961.
 - **Consumer deposit now includes ADR-003 for Continuity (#4892).** MUST cites resolve to `.deft/core/docs/decisions/ADR-003-a2a-nuclear-family-topology.md` via the content/docs flatten. Maintainer `docs/decisions/ADR-003` stays heavyweight SoT (dual-path; no root-docs prepack carve-out). Leaves #3940 as tracker; cross-links only #3847 / #4890. Closes #4892.
 ### Changed
+
+- **docs(authz): cite #5674 for #5542 pre-PR/hotspots waived-exit follow-up.** Gate-override hatch and released 0.125.1 CHANGELOG wording now name #5674 so closed #5542 is not over-read as consumer-wired. Refs #5674 / #5665 / #5542.
 - Widen Prefer-A Bound keep-active #5656 file_scope for companion hooks/tests/RULE-MAP (productPullRequest unset). Tracking #5656.
 - Activate Prefer-A Bound keep-active brief for #5656 (productPullRequest unset; concrete file_scope). Tracking #5656.
 - Activate Prefer-A Bound keep-active brief for #3907 (productPullRequest unset; swarm-ready story fields). Tracking #3907.
@@ -88,7 +90,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.125.1] - 2026-10-14
 
-> Prefer-A cohort: gate-override (#5542), deft-core-guard paths (#5552), coverage skips (#5551), safe fetch argv (#5545), acceptance-activate (#4768), tutorial (#4981); Path B leftover completes; intent-constraint throw+mint docs (#5574).
+> Prefer-A cohort: gate-override mint/admission (#5542; pre-PR waived-exit consumer #5674), deft-core-guard paths (#5552), coverage skips (#5551), safe fetch argv (#5545), acceptance-activate (#4768), tutorial (#4981); Path B leftover completes; intent-constraint throw+mint docs (#5574).
 
 ### Added
 
@@ -126,7 +128,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Complete the #4768 scope brief after product #5571.** Move the acceptance-activate brief into xbrief/completed/ so orphan tracking clears. Tracking #4768.
 - Activating a brief that contains commands now requires usable acceptance text. Activation derives that text when possible and otherwise refuses, including when the brief is already active. Already-active restamp uses temp+rename, and settled active briefs skip D7 re-block on ingress no-op. Tracking #4768.
 - **Harden gate-override admission for audited coverage refusals (#5542).** Operators can renew a matching grant after expiry without colliding on attempt receipts. Tracking #5542.
-- **Operators can grant a one-use audited override for eligible coverage-applicability refuse codes (#5542).** The grant records a review obligation and is single-use. Tracking #5542.
+- **Operators can grant a one-use audited override for eligible coverage-applicability refuse codes (#5542).** The grant records a review obligation and is single-use. Pre-PR / `coverage:hotspots` waived-exit wiring was not included in that landing — tracked as #5674. Tracking #5542 / #5674.
 - **fix(coverage): classify Bun locks, .gitignore, and fixtures JSON for pre-PR applicability (#5541).** Bun lock diffs stay coverable; `.gitignore` and repo-root `fixtures/*.json` are inert N/A; unknown paths stay fail-closed. Tracking #5541.
 - **Keep-active #5541 Path B activation.** Lands Prefer-A Bound active xBRIEF with reminted file_scope; productPullRequest unset. Tracking #5541.
 - **Complete the #5541 scope brief after product #5568.** Move the Bun coverage applicability brief into `xbrief/completed/` so orphan tracking clears. Tracking #5541.
