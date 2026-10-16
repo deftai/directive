@@ -2,7 +2,11 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { parseIncludeScopesFlag, main as specRenderMain } from "./spec-render.js";
+import {
+  parseIncludeScopesFlag,
+  renderImplementationPlanLines,
+  main as specRenderMain,
+} from "./spec-render.js";
 
 const MINIMAL_SPEC_V08 = {
   xBRIEFInfo: { version: "0.8" },
@@ -67,5 +71,61 @@ describe("spec-render bare -- (#548 / #5251 shape)", () => {
     expect(content).toContain("Test Spec v08");
     expect(content).toContain("AUTO-GENERATED");
     expect(existsSync(join(root, "--"))).toBe(false);
+  });
+});
+
+describe("AcceptanceCriteria bullet alias (#4871 Prefer-A P3)", () => {
+  it("renders AcceptanceCriteria as splitAcceptance bullets", () => {
+    const lines = renderImplementationPlanLines(
+      [
+        {
+          id: "p",
+          title: "Phase",
+          status: "pending",
+          narrative: { AcceptanceCriteria: "first\nsecond" },
+        },
+      ],
+      2,
+    );
+    const md = lines.join("\n");
+    expect(md).toMatch(/^- first$/m);
+    expect(md).toMatch(/^- second$/m);
+    // Prose path would emit bare lines without the bullet alias.
+    expect(md).not.toMatch(/^first$/m);
+  });
+
+  it("preserves distinct Acceptance and AcceptanceCriteria when both exist", () => {
+    const lines = renderImplementationPlanLines(
+      [
+        {
+          id: "p",
+          title: "Phase",
+          status: "pending",
+          narrative: {
+            AcceptanceCriteria: "- canonical AC",
+            Acceptance: "- legacy acceptance",
+          },
+        },
+      ],
+      2,
+    );
+    const md = lines.join("\n");
+    expect(md).toMatch(/^- canonical AC$/m);
+    expect(md).toMatch(/^- legacy acceptance$/m);
+  });
+
+  it("keeps Acceptance alias bullets for backward compatibility", () => {
+    const lines = renderImplementationPlanLines(
+      [
+        {
+          id: "p",
+          title: "Phase",
+          status: "pending",
+          narrative: { Acceptance: "- still bullets" },
+        },
+      ],
+      2,
+    );
+    expect(lines.join("\n")).toMatch(/^- still bullets$/m);
   });
 });
