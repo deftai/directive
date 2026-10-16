@@ -40,8 +40,6 @@ export function buildCandidateValidationAttestationFromProbe(input: {
   readonly exit_code: number;
   readonly attested_at?: string;
   readonly merge_result_sha?: string | null;
-  /** Blessed producer id — only buildCandidateValidationAttestationFromProbe may set this. */
-  readonly producer: typeof CANDIDATE_VALIDATION_PRODUCER;
 }): CandidateValidationAttestation {
   const command = normalizeCandidateCommand(input.command);
   if (input.exit_code !== 0) {
@@ -86,6 +84,8 @@ export interface CandidateValidationAttestation {
   readonly attested_at: string;
   /** Optional merge-result identity when produced. */
   readonly merge_result_sha?: string | null;
+  /** Blessed producer id — only buildCandidateValidationAttestationFromProbe may set this. */
+  readonly producer: typeof CANDIDATE_VALIDATION_PRODUCER;
 }
 
 export interface SemanticGreenOptions {
