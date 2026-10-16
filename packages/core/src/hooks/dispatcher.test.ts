@@ -3787,6 +3787,27 @@ describe("runtime authority policy (#1394)", () => {
     expect(paths).toMatchObject({ verdict: "deny", code: "prospective-scope-cover-deny" });
   });
 
+  it("allows quoted multiword git commit -m messages (#5656)", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          tool_input: { command: 'git commit -m "fix the bug"' },
+        },
+      },
+      readySeams({
+        inspectScope: () => READY_SCOPE,
+        loadStoryWriteFence: () => ({ fileScope: ["src/**"], denyPaths: [] }),
+        listStagedRelPaths: () => ["src/a.ts"],
+      }),
+    );
+    expect(decision.verdict).toBe("allow");
+    expect(decision.code).not.toBe("prospective-scope-cover-deny");
+  });
+
   it("refuses git commit checkout retargets for prospective scope-cover (#5656)", () => {
     const decision = decideHook(
       {

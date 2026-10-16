@@ -19,6 +19,7 @@ import { shellCommandHasPayloadRootProtectedDestAfterRealpath } from "../authz/p
 import { prepareGithubOnlyDest } from "../design-critique/run-posture.js";
 import { runningInsideDeftRepo } from "../doctor/paths.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
+import { isInstallerManagedPath } from "../init-deposit/hygiene.js";
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import { matchAny } from "../orchestration/pathspec.js";
 import {
@@ -4376,6 +4377,44 @@ export function listStagedRelPathsIncludingDeletes(projectRoot: string): string[
   }
 }
 
+/** Quote-aware argv split so `-m "fix the bug"` stays one message token (#5656). */
+export function splitShellArgvPreservingQuotes(part: string): string[] {
+  const out: string[] = [];
+  let cur = "";
+  let quote: '"' | "'" | null = null;
+  for (let i = 0; i < part.length; i++) {
+    const ch = part[i];
+    if (ch === undefined) continue;
+    if (quote !== null) {
+      if (ch === quote) {
+        quote = null;
+        continue;
+      }
+      if (ch === "\\" && quote === '"' && i + 1 < part.length) {
+        cur += part[i + 1] ?? "";
+        i += 1;
+        continue;
+      }
+      cur += ch;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+      continue;
+    }
+    if (/\s/.test(ch)) {
+      if (cur.length > 0) {
+        out.push(cur);
+        cur = "";
+      }
+      continue;
+    }
+    cur += ch;
+  }
+  if (cur.length > 0) out.push(cur);
+  return out;
+}
+
 /**
  * True when a Shell git commit uses -a/--all/-am/--include or trailing pathspecs
  * that can change the checked file set after the pre-tool index snapshot (#5656).
@@ -4384,10 +4423,7 @@ export function commandHasGitCommitIndexMutatingForm(command: string): boolean {
   if (!commandHasGitCommitSubcommand(command)) return false;
   const normalized = command.replace(/\r\n/g, "\n");
   for (const part of normalized.split(/(?:&&|\|\||;|\n)/)) {
-    const words = part
-      .trim()
-      .split(/\s+/)
-      .filter((w) => w.length > 0);
+    const words = splitShellArgvPreservingQuotes(part.trim());
     let i = 0;
     while (i < words.length) {
       const envTok = words[i];
@@ -4570,7 +4606,8 @@ export function isLifecycleOrInstallerRelPath(relPathPosix: string): boolean {
   if (p.length === 0) return false;
   if (MANAGED_HOOK_DEPOSIT_REL_PATHS.has(p)) return true;
   if (p.startsWith("xbrief/") || p.startsWith("vbrief/")) return true;
-  return false;
+  // Full installer-managed deposit set (AGENTS.md, .githooks/, Taskfile.yml, …).
+  return isInstallerManagedPath(p);
 }
 
 export function evaluateProspectiveScopeCover(
