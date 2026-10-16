@@ -109,7 +109,10 @@ describe("accept ingest branches", () => {
         throw "bad-ingest";
       },
     };
-    expect(() => accept(1, "deftai/directive", deps, { projectRoot: root })).toThrow(TriageError);
+    const outcome = accept(1, "deftai/directive", deps, { projectRoot: root });
+    expect(outcome.disposition).toBe("refused");
+    expect(outcome.decisionId).toBeNull();
+    expect(outcome.ingestMessage).toMatch(/issue:ingest delegation failed/);
     const path = resolveAuditLogPath(root);
     expect(existsSync(path) ? readFileSync(path, "utf8").trim() : "").toBe("");
   });

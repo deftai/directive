@@ -595,9 +595,13 @@ export function accept(
       deps.issueIngest.ingestSingleForAccept(issueNumber, repo, { projectRoot }),
     );
   } catch (exc) {
-    throw new TriageError(
-      `accept #${issueNumber} (${repo}): issue:ingest delegation failed. Cause: ${exc instanceof Error ? exc.message : String(exc)}`,
-    );
+    // Operational deny: ingest delegation failure returns refused (no throw-site hard fact) (#4962).
+    return {
+      decisionId: null,
+      disposition: "refused",
+      relativePath: null,
+      ingestMessage: `accept #${issueNumber} (${repo}): issue:ingest delegation failed. Cause: ${exc instanceof Error ? exc.message : String(exc)}`,
+    };
   }
 
   let relativePath =
