@@ -463,7 +463,9 @@ export type ApplyingHostLifecycleAdmission =
   | {
       readonly kind: "soft-pass";
       readonly record: ApplyingHostRecord;
-      readonly reason: "non-matching-deposit-names-applying-host";
+      readonly reason:
+        | "non-matching-deposit-names-applying-host"
+        | "live-lease-owner-cleanup";
     }
   | {
       readonly kind: "foreign-owner";
