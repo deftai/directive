@@ -262,13 +262,24 @@
         "deliveryBranch": "master"
       },
       "completionProvenance": {
-        "schema": "deft.scope.completion-provenance.v1",
-        "productPullRequest": 5685,
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 5685,
+        "prBase": "master",
         "mergeCommit": "8bb40c58064d1d4e508430b8031157bc5e4c397b",
         "deliveryBranch": "master",
-        "lifecycleWrite": "leftover-complete"
+        "deliveryCommit": "8bb40c58064d1d4e508430b8031157bc5e4c397b",
+        "verifiedAt": "2026-10-16T23:20:42.608Z",
+        "verifier": "parent-retained-closer/5698",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
       },
-      "lifecycleWrite": "leftover-complete"
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-16T23:20:42.608Z"
+      }
     },
     "acceptance": {
       "commands": [],
