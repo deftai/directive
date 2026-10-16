@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Remint approved-scope for #4375 with co-located test paths in file_scope.** Widens mint twins file_scope to include three co-located .test.ts paths. Mint-only - no product code. Refs #4375.
 - **Fixed**: Land tracked completion record for triage:accept disclose-and-reuse after product #5678. Refs #4962.
 - **Mint approved-scope for #4375 mid-session filing path.** Lands merge-base `.deft/approved-scope/github.issue.5420717734{,.intent}.json` first; product PR #5685 already carries the bound active brief and rebases onto this tip after squash-merge. Mint-only twins - no product code. Refs #4375.
 - **Fixed**: Land tracked completion record for Harbor UUID lease / Write-hook split-brain after product #5679. Refs #5544.
