@@ -2137,7 +2137,11 @@ describe("ingestOne Target-digest (#4243)", () => {
 describe("ingest ownership exact identity (#4962 Prefer-A Bound)", () => {
   function ownedBrief(issue: number, repo = "o/r"): Record<string, unknown> {
     return {
-      xBRIEFInfo: { version: "0.8", description: `Scope #${issue}`, updated: "2026-01-01T00:00:00Z" },
+      xBRIEFInfo: {
+        version: "0.8",
+        description: `Scope #${issue}`,
+        updated: "2026-01-01T00:00:00Z",
+      },
       plan: {
         title: `issue-${issue}`,
         status: "proposed",
@@ -2179,9 +2183,7 @@ describe("ingest ownership exact identity (#4962 Prefer-A Bound)", () => {
           repoUrl: "https://github.com/o/r",
           cwd: root,
           scmCall: () => completed("[]", "", 0),
-          existingRefs: new Map([
-            [1, ["proposed/a.xbrief.json", "pending/b.xbrief.json"]],
-          ]),
+          existingRefs: new Map([[1, ["proposed/a.xbrief.json", "pending/b.xbrief.json"]]]),
         },
       );
       expect(result).toBe("refused");
@@ -2198,6 +2200,53 @@ describe("ingest ownership exact identity (#4962 Prefer-A Bound)", () => {
     const classified = classifyOwningBriefPaths(7, "/tmp/xbrief", ["active/only.xbrief.json"]);
     expect(classified?.[0]).toBe("duplicate");
     expect(classified?.[2]).toContain("already ingested at active/only.xbrief.json");
+  });
+
+  it("refuses when refs and Origin owners compete (#4962)", () => {
+    const root = mkdtempSync(join(tmpdir(), "4962-compete-"));
+    const xbriefDir = join(root, "xbrief");
+    mkdirSync(join(xbriefDir, "proposed"), { recursive: true });
+    writeFileSync(
+      join(xbriefDir, "proposed", "ref-owner.xbrief.json"),
+      `${JSON.stringify(ownedBrief(1))}\n`,
+    );
+    writeFileSync(
+      join(xbriefDir, "proposed", "origin-owner.xbrief.json"),
+      `${JSON.stringify({
+        xBRIEFInfo: { version: "0.8", description: "origin only", updated: "2026-01-01T00:00:00Z" },
+        plan: {
+          title: "origin-only",
+          status: "proposed",
+          narratives: { Origin: "Ingested from https://github.com/o/r/issues/1" },
+          references: [],
+          items: [],
+        },
+      })}\n`,
+    );
+    try {
+      const [result, path, msg] = ingestOne(
+        { number: 1, title: "compete", url: "https://github.com/o/r/issues/1" },
+        {
+          vbriefDir: xbriefDir,
+          status: "proposed",
+          repoUrl: "https://github.com/o/r",
+          cwd: root,
+          scmCall: () => completed("[]", "", 0),
+          existingRefs: new Map([[1, ["proposed/ref-owner.xbrief.json"]]]),
+          existingOrigins: new Map([
+            ["o/r#1", ["proposed/origin-owner.xbrief.json"]],
+            ["number-only:1", ["proposed/origin-owner.xbrief.json"]],
+          ]),
+        },
+      );
+      expect(result).toBe("refused");
+      expect(path).toBeNull();
+      expect(msg).toContain("multiple owning briefs");
+      expect(msg).toContain("proposed/ref-owner.xbrief.json");
+      expect(msg).toContain("proposed/origin-owner.xbrief.json");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
 

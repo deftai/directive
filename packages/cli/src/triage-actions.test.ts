@@ -106,13 +106,7 @@ describe("run", () => {
   });
 
   it("parses --auto-promote for accept (#4962)", () => {
-    const parsed = parseArgs([
-      "accept",
-      "--issue=1",
-      "--repo=o/r",
-      "--auto-promote",
-      "--force",
-    ]);
+    const parsed = parseArgs(["accept", "--issue=1", "--repo=o/r", "--auto-promote", "--force"]);
     expect(parsed.autoPromote).toBe(true);
     expect(parsed.force).toBe(true);
   });
