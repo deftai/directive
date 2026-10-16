@@ -145,6 +145,14 @@ describe("OVPR docs AC13.8 / AC9.11 / AC13.10 (wave2r)", () => {
     }
   });
 
+  // F-4B-AGENTS-CORE / AC6.2 / AC9.6 — setup treats any managed `.deft/core/` as conflict
+  // and withholds wiring-ready. Template must never teach that path as current.
+  it("agents-entry template contains zero .deft/core (F-4B-AGENTS-CORE)", () => {
+    const text = readText("templates/agents-entry.md");
+    expect(text).not.toMatch(/\.deft\/core/);
+    expect(text).toContain(`${RUNTIME_PREFIX}docs/decisions/ADR-003`);
+  });
+
   it("known-limitations covers §A9 catalogue in user terms (AC13.10)", () => {
     const text = readText("docs/known-limitations.md");
     const missing = A9_TOPICS.filter((t) => !t.re.test(text)).map((t) => t.id);

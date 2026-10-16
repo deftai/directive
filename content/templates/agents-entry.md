@@ -120,7 +120,7 @@ Deft runtime is pinned as `@deftai/directive-runtime`. Full guidelines: node_mod
 
 ## Nuclear-family A2A topology (#3155)
 
-! Agent-to-agent messaging is **nuclear-family** only: parent / sibling (same cohort) / child. Cross-cohort or cross-session coordination goes through a shared parent or durable parent-owned artifacts — not peer mesh. Depth: swarm.md / security.md / docs/decisions/ADR-003 (.deft/core/docs) (#2705). Pair: #3158; #3179.
+! Agent-to-agent messaging is **nuclear-family** only: parent / sibling (same cohort) / child. Cross-cohort or cross-session coordination goes through a shared parent or durable parent-owned artifacts — not peer mesh. Depth: swarm.md / security.md / node_modules/@deftai/directive-runtime/docs/decisions/ADR-003 (#2705). Pair: #3158; #3179.
 ⊗ Open-mesh agent-to-agent messaging across cohorts or sessions ("agents everywhere").
 ⊗ Treat retained / re-addressable children as license to mesh outside the nuclear family.
 
