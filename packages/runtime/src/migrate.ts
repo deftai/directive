@@ -166,6 +166,8 @@ export function runMigrate(options: {
   const removed: string[] = [];
   const migrated: string[] = [];
   const archived: string[] = [];
+  /** True only while the schema-marker write is in flight (Greptile: do not blame marker for earlier failures). */
+  let markerWritePending = false;
 
   try {
     const prior = readMarkerVersion(root);
@@ -196,6 +198,7 @@ export function runMigrate(options: {
     if (!markerCurrent) {
       const body = `${JSON.stringify({ schemaVersion: CURRENT_DATA_SCHEMA_VERSION }, null, 2)}\n`;
       const existed = prior !== null;
+      markerWritePending = true;
       write({
         root,
         target: DATA_SCHEMA_MARKER_REL,
@@ -203,6 +206,7 @@ export function runMigrate(options: {
         mode: "replace",
         mkdir: true,
       });
+      markerWritePending = false;
       if (!existed) created.push(DATA_SCHEMA_MARKER_REL);
       else modified.push(DATA_SCHEMA_MARKER_REL);
       migrated.push(DATA_SCHEMA_MARKER_REL);
@@ -249,9 +253,13 @@ export function runMigrate(options: {
         : err instanceof Error
           ? err.message
           : String(err);
-    // AC14.18: keep paths already migrated; name the failed write in conflicts.
+    // AC14.18: keep paths already migrated; name only the step that failed.
     const conflictTarget =
-      err instanceof ContainedWriteError ? err.target : DATA_SCHEMA_MARKER_REL;
+      err instanceof ContainedWriteError
+        ? err.target
+        : markerWritePending
+          ? DATA_SCHEMA_MARKER_REL
+          : null;
     return {
       contract: 1,
       entry: "migrate",
@@ -263,7 +271,7 @@ export function runMigrate(options: {
       created,
       modified,
       removed,
-      conflicts: [conflictTarget],
+      conflicts: conflictTarget === null ? [] : [conflictTarget],
       message: `migrate failed: ${msg}`,
     };
   }
