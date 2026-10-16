@@ -1,0 +1,556 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4871",
+    "updated": "2026-10-16T08:42:01.591Z"
+  },
+  "plan": {
+    "title": "project:export-spec drops Requirements, AcceptanceCriteria, and TechStack",
+    "status": "completed",
+    "narratives": {
+      "Description": "project:export-spec drops Requirements, AcceptanceCriteria, and TechStack",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4871",
+      "Overview": "Parent: #4814\n\n## Finding\n\nSPECIFICATION.md renders plan items under a heading called Acceptance and omits narratives.Requirements, narratives.AcceptanceCriteria, and TechStack. The markdown view drifts from the xbrief.\n\nSplit out of #4814 so the parent stays a tracker and this failure can be triaged on its own. A fix for the other findings on that report would not close this one.\n\n## Normalization\n\n- Promise: RECORDS\n- Priority: High (audit scale S2)\n- Source: #4814\n\n\n\n## Prefer-A Bound\nImplement Prefer-A Bound https://github.com/deftai/directive/issues/4871#issuecomment-6195759132. Tracking/Refs only.",
+      "Labels": "status:child, design-critique:ingest-ready, core-capabilities, promise:records"
+    },
+    "items": [
+      {
+        "id": "1",
+        "status": "completed",
+        "title": "Restore Requirements/AcceptanceCriteria fidelity with full-spec vs PD merge/fallback (no silent array coerce)",
+        "x-directive/artifact_path": "packages/core/src/spec-authority/narratives.ts",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5661 Tracking/Refs-only; criteria satisfied by merged product delivery",
+          "recorded_at": "2026-10-16T08:42:01.591Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5661",
+            "mintedAt": "2026-10-16T08:42:01.591Z"
+          }
+        }
+      },
+      {
+        "id": "2",
+        "status": "completed",
+        "title": "Keep TechStack on Wave 0 §5 exclude; split from Requirements/AC restore",
+        "x-directive/artifact_path": "packages/core/src/spec-authority/narratives.ts",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5661 Tracking/Refs-only; criteria satisfied by merged product delivery",
+          "recorded_at": "2026-10-16T08:42:01.591Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5661",
+            "mintedAt": "2026-10-16T08:42:01.591Z"
+          }
+        }
+      },
+      {
+        "id": "3",
+        "status": "completed",
+        "title": "AcceptanceCriteria bullet alias in renderItemHandlers (canonical AcceptanceCriteria)",
+        "x-directive/artifact_path": "packages/core/src/render/spec-render.ts",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5661 Tracking/Refs-only; criteria satisfied by merged product delivery",
+          "recorded_at": "2026-10-16T08:42:01.591Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5661",
+            "mintedAt": "2026-10-16T08:42:01.591Z"
+          }
+        }
+      },
+      {
+        "id": "4",
+        "status": "completed",
+        "title": "Add AcceptanceCriteria to SPECIFICATION_NARRATIVE_KEY_ORDER",
+        "x-directive/artifact_path": "packages/core/src/render/constants.ts",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5661 Tracking/Refs-only; criteria satisfied by merged product delivery",
+          "recorded_at": "2026-10-16T08:42:01.591Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5661",
+            "mintedAt": "2026-10-16T08:42:01.591Z"
+          }
+        }
+      },
+      {
+        "id": "5",
+        "status": "completed",
+        "title": "CHANGELOG Unreleased Fixed for Tracking #4871",
+        "x-directive/artifact_path": "CHANGELOG.md",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5661 Tracking/Refs-only; criteria satisfied by merged product delivery",
+          "recorded_at": "2026-10-16T08:42:01.591Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5661",
+            "mintedAt": "2026-10-16T08:42:01.591Z"
+          }
+        }
+      }
+    ],
+    "tags": [
+      "status:child",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:records"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4871",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4871: project:export-spec drops Requirements, AcceptanceCriteria, and TechStack"
+      }
+    ],
+    "acceptance": {
+      "none_stated": false,
+      "ambiguity_attestation": "none_found",
+      "commands": [
+        "pnpm exec vitest run packages/core/src/spec-authority packages/core/src/render"
+      ],
+      "confessions": [
+        "project:export-spec drops Requirements, AcceptanceCriteria, and TechStack",
+        "Parent: #4814 ## Finding SPECIFICATION.md renders plan items under a heading called Acceptance and omits narratives.Requirements, narratives.AcceptanceCriteria, and TechStack.",
+        "The markdown view drifts from the xbrief.",
+        "Split out of #4814 so the parent stays a tracker and this failure can be triaged on its own.",
+        "A fix for the other findings on that report would not close this one.",
+        "Normalization - Promise: RECORDS - Priority: High (audit scale S2) - Source: #4814 ## Prefer-A Bound Implement Prefer-A Bound https://github.com/deftai/directive/issues/4871#issuecomment-6195759132.",
+        "Tracking/Refs only.",
+        "Restore Requirements/AcceptanceCriteria fidelity with full-spec vs PD merge/fallback (no silent array coerce)",
+        "Keep TechStack on Wave 0 §5 exclude; split from Requirements/AC restore",
+        "AcceptanceCriteria bullet alias in renderItemHandlers (canonical AcceptanceCriteria)",
+        "Add AcceptanceCriteria to SPECIFICATION_NARRATIVE_KEY_ORDER",
+        "CHANGELOG Unreleased Fixed for Tracking #4871"
+      ],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "packages/core/src/spec-authority/narratives.ts exists",
+          "artifact_path": "packages/core/src/spec-authority/narratives.ts",
+          "ambiguous": false,
+          "provenance": "bound"
+        },
+        {
+          "id": 2,
+          "text": "narratives.ts contains \"PRODUCT_MISSING_KEY_FALLBACK\"",
+          "artifact_path": "packages/core/src/spec-authority/narratives.ts",
+          "ambiguous": false,
+          "provenance": "bound"
+        },
+        {
+          "id": 3,
+          "text": "packages/core/src/render/spec-render.ts exists",
+          "artifact_path": "packages/core/src/render/spec-render.ts",
+          "ambiguous": false,
+          "provenance": "bound"
+        },
+        {
+          "id": 4,
+          "text": "SPECIFICATION_NARRATIVE_KEY_ORDER contains \"AcceptanceCriteria\"",
+          "artifact_path": "packages/core/src/render/constants.ts",
+          "ambiguous": false,
+          "provenance": "bound"
+        },
+        {
+          "id": 5,
+          "text": "CHANGELOG.md contains \"Tracking #4871\"",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "bound"
+        }
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A\nTarget-digest: sha256:03c5e355610436ce72620271ec57216c29a06ba1ea0abcc0b8c5e567f6fdfda1\nconflict_group: export-spec-drops-requirements-ac-techstack\nspend-recommend: N≥3\n\n## Prefer-A draft\n\nBind Approach A: restore SPECIFICATION.md fidelity to xbrief narratives for Requirements, AcceptanceCriteria, and TechStack, and align plan-item acceptance rendering with the AcceptanceCriteria key.\n\n### Draft remedy limbs\n- relieves: P1 — Coerce non-string plan.narratives values (arrays of strings/lines) in planNarratives / resolveExportNarratives so Requirements and AcceptanceCriteria are not silently dropped when authored as lists.\n- relieves: P2 — Stop excluding TechStack (tech stack / techstack) from stakeholder export, or render it as a first-class product narrative section; keep ProjectConfig/Configuration excluded.\n- relieves: P3 — In renderItemHandlers, treat narrative key AcceptanceCriteria the same as Acceptance (bullet list), and prefer AcceptanceCriteria as the canonical key (Acceptance remains alias).\n- relieves: P4 — Add AcceptanceCriteria (and TechStack when retained) to SPECIFICATION_NARRATIVE_KEY_ORDER so top-level sections render in stable product order.\n\n### Reject (for now)\n- B: Docs-only note that stakeholder exports intentionally omit these keys — does not close RECORDS drift named in the finding.\n- C: Only fix plan-item Acceptance heading without restoring top-level Requirements/AcceptanceCriteria/TechStack.\n\n## In plain English\n\nThe exported SPECIFICATION.md should show the same Requirements, AcceptanceCriteria, and TechStack the xbrief already holds, and plan-item acceptance lines should follow the AcceptanceCriteria key instead of a legacy Acceptance-only special case.",
+          "id": 6195141556,
+          "html_url": "https://github.com/deftai/directive/issues/4871#issuecomment-6195141556",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-15T14:58:48Z",
+          "updated_at": "2026-10-15T14:59:00Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because the finding names a concrete export/render fidelity failure (SPECIFICATION.md drifts from xbrief narratives) with open remedy space across narrative coercion, stakeholder exclusion, plan-item key aliasing, and key-order — panel permission applies.\n\ncharter: open critique\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nspend-why: open remedy space (coerce vs reshape vs exclude-recut) and RECORDS blast across export-spec + narrative order; Stop 2 panel permission used.\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\ndest: .deft-scratch/worktrees/arc-4871\ndispatch-sha: d000d96acfae3566300516c9be9afd6e8a6a6e12\nverification-path: pin-read git show d000d96acfae3566300516c9be9afd6e8a6a6e12: packages/core/src/render/export-spec.ts packages/core/src/spec-authority/narratives.ts packages/core/src/render/spec-render.ts packages/core/src/render/constants.ts packages/core/src/spec-authority/constants.ts\ndual-stop-reserved: 1\nTarget-digest: sha256:03c5e355610436ce72620271ec57216c29a06ba1ea0abcc0b8c5e567f6fdfda1\n\npain: P1, P2, P3, P4\n\n- P1: planNarratives keeps only typeof string values, so Requirements / AcceptanceCriteria authored as arrays never reach SPECIFICATION.md.\n- P2: STAKEHOLDER_EXCLUDED_NARRATIVE_KEYS drops TechStack (tech stack / techstack) from stakeholder export while the xbrief still holds it — RECORDS drift named in the finding.\n- P3: renderItemHandlers special-cases narrative key Acceptance for bullet lists; AcceptanceCriteria (canonical elsewhere) falls through to prose and the markdown shape drifts from the xbrief key.\n- P4: SPECIFICATION_NARRATIVE_KEY_ORDER lists Requirements but omits AcceptanceCriteria (and TechStack), so restored sections lack stable product order.\n\nStop 2: open critique + spend N≥3 (panel permission: open remedy space / RECORDS blast).\n\n## Plain-language summary\n\nExport-spec is dropping product narratives the xbrief already has. This arc will bind a Prefer-A that restores Requirements, AcceptanceCriteria, and TechStack in SPECIFICATION.md and aligns plan-item acceptance rendering with AcceptanceCriteria.\n\nPrefer-A draft (cite only): 6195141556",
+          "id": 6195151402,
+          "html_url": "https://github.com/deftai/directive/issues/4871#issuecomment-6195151402",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-15T14:59:15Z",
+          "updated_at": "2026-10-15T14:59:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 6195159452\nfamilies: claude, codex, grok\nverification-path: pin-read git show d000d96acfae3566300516c9be9afd6e8a6a6e12:\nPrefer-A-draft: 6195141556\nStop-1: 6195151402\ndispatch-sha: d000d96acfae3566300516c9be9afd6e8a6a6e12\ndest: .deft-scratch/worktrees/arc-4871\nspend: N≥3\ncharter: open critique\narc-mode: no-ingest\nyolo-standing: on\n\nRound-1 critics share this input-ceiling inclusive. Sibling Round-1 posts stay outside each other envelope.",
+          "id": 6195159452,
+          "html_url": "https://github.com/deftai/directive/issues/4871#issuecomment-6195159452",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-15T14:59:37Z",
+          "updated_at": "2026-10-15T14:59:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\nRound 1, fresh critic. Reviewed draft [6195141556](https://github.com/deftai/directive/issues/4871#issuecomment-6195141556) and Stop 1 [6195151402](https://github.com/deftai/directive/issues/4871#issuecomment-6195151402), using only thread comments at or below 6195159452. Source anchors below were re-read with git show at d000d96acfae3566300516c9be9afd6e8a6a6e12. Static review; no product changes or test execution.\n\nExisting mechanisms: exportSpec resolves authority, validates full-spec input, merges narratives, then renders narrative sections and the shared implementation-plan renderer. The merger already retains nonempty string Requirements/AcceptanceCriteria from the selected source; unlisted section keys already have a sorted fallback. The item renderer already handles legacy Acceptance through splitAcceptance. These mechanisms should be the starting point.\n\n1. **blocks-the-design — Array coercion does not repair the full-spec path and changes the narrative contract.** Evidence: [export-spec.ts:137-149](https://github.com/deftai/directive/blob/d000d96acfae3566300516c9be9afd6e8a6a6e12/packages/core/src/render/export-spec.ts#L137) calls validateSpec before resolveExportNarratives; [spec-validate.ts:55-65](https://github.com/deftai/directive/blob/d000d96acfae3566300516c9be9afd6e8a6a6e12/packages/core/src/render/spec-validate.ts#L55) rejects every non-string narrative value. The pinned xBRIEF 0.8 schema likewise declares string-valued Plan.narratives and PlanItem.narrative. Failure: adding array coercion only to planNarratives leaves a full-spec Requirements array rejected before reaching that code, while greenfield input gains different acceptance behavior. Disposition: do not bind generic coercion as the remedy yet. Establish a reproducer identifying source and value shape; preserve valid multiline string narratives. If legacy array tolerance is required, explicitly define its validation/normalization boundary and invalid-value behavior rather than silently broadening this helper. The listed export tests at render.test.ts:444-537 exercise version acceptance and containment, not this contract.\n\n2. **blocks-the-design — Removing the TechStack exclusion is insufficient when the value resides only in PROJECT-DEFINITION.** Evidence: [narratives.ts:44-60](https://github.com/deftai/directive/blob/d000d96acfae3566300516c9be9afd6e8a6a6e12/packages/core/src/spec-authority/narratives.ts#L44) imports spec narratives, then adds only PD identity hints (overview, architecture, risks/unknowns). TechStack, Requirements and AcceptanceCriteria do not match those hints. Failure: a valid full spec plus PD-only TechStack still exports no TechStack after the proposed exclusion change; PD-only Requirements/AcceptanceCriteria similarly remain absent. Disposition: bind the authoritative input location and missing-key fallback policy before claiming restoration. Keep spec precedence explicit; do not indiscriminately union potentially stale PD requirements. Acceptance coverage needs greenfield and full-spec cases, including PD-only values and conflicting values in both sources.\n\n3. **sharpens-framing — The reported Acceptance wrapper is already absent at the dispatch SHA; item aliasing is a separate formatting decision.** Evidence: [spec-render.ts:183-192](https://github.com/deftai/directive/blob/d000d96acfae3566300516c9be9afd6e8a6a6e12/packages/core/src/render/spec-render.ts#L183) emits `## Implementation Plan`, while lines 138-145 render AcceptanceCriteria through ordinary prose. Failure: treating an alias-formatting change as the fix for the old wrapper can close the wrong symptom; a naive canonical-preference rule can also discard distinct text when both keys exist. Disposition: mark the wrapper symptom already addressed at this SHA, reproduce any remaining item-formatting defect, and specify both-key precedence/preservation plus multiline Markdown behavior before changing the shared renderer (also used by spec:render).\n\n4. **sharpens-framing — Ordering is already deterministic; preferred order and key spelling need a narrower claim.** Evidence: [narratives.ts:66-80](https://github.com/deftai/directive/blob/d000d96acfae3566300516c9be9afd6e8a6a6e12/packages/core/src/spec-authority/narratives.ts#L66) renders ordered keys then lexically sorts all remaining keys. Failure: adding only `TechStack` to the order does not order the existing `tech stack` skeleton spelling, since lookup is exact. Disposition: describe this as preferred product ordering, not restoration of omitted content or deterministic ordering. Define whether spellings remain distinct or normalize, including collisions, and test the chosen behavior.\n\nOperative census: **2 blocks-the-design, 2 sharpens-framing, 0 footnote**. Revise the draft before binding implementation: resolve the input-shape and authority-source blockers, then retain only demonstrated rendering changes with explicit regression cases.",
+          "id": 6195698040,
+          "html_url": "https://github.com/deftai/directive/issues/4871#issuecomment-6195698040",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-15T15:24:15Z",
+          "updated_at": "2026-10-15T15:24:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nPin-read at `d000d96acfae3566300516c9be9afd6e8a6a6e12` of Prefer-A draft `6195141556` and Stop 1 `6195151402` against #4871 (export-spec drops Requirements, AcceptanceCriteria, TechStack).\n\n## Finding census\n- blocks-the-design: 1\n- sharpens-framing: 4\n- footnote: 2\n\n## Findings\n\n### F1 — blocks-the-design — Prefer-A P2 recuts Wave 0 §5 as if TechStack omit were RECORDS drift\n**Evidence:** `packages/core/src/spec-authority/constants.ts` documents `STAKEHOLDER_EXCLUDED_NARRATIVE_KEYS` as stakeholder SPEC/PRD exclusions (#2013 Wave 0 §5) and lists `tech stack` / `techstack` beside `projectconfig` / `configuration`. `resolveExportNarratives` always applies `isExcludedNarrativeKey`. Locked test `filters config narratives from stakeholder export` in `spec-authority.test.ts` expects `narratives[\"tech stack\"]` undefined. `PRODUCT_NARRATIVE_KEYS` already lists `Requirements` and `AcceptanceCriteria` and omits TechStack; PD planning tracks tech stack via `TRACKED_PLANNING_NARRATIVE_KEYS` / skeleton `\"tech stack\"`.\n**Failure mode:** Binding “stop excluding TechStack” as the same RECORDS restore as Requirements/AcceptanceCriteria overturns an intentional stakeholder filter and will red the existing exclusion test without a named policy decision.\n**Disposition consequence:** Split TechStack from the product-narrative restore. Bind Requirements + AcceptanceCriteria fidelity first; treat TechStack as an explicit Wave 0 §5 policy choice (keep exclude / audience-gate / include) before Prefer-A absorbs it.\n\n### F2 — sharpens-framing — Prefer-A P1 array-coerce fights string-only schema on the full-spec path\n**Evidence:** `planNarratives` keeps only `typeof val === \"string\"` (`narratives.ts`). `validateNarratives` in both `render/spec-validate.ts` and `vbrief-validate/schema.ts` errors non-string narrative values. `exportSpec` runs `validateSpec` before `resolveExportNarratives` on full-spec authority, so array Requirements/AcceptanceCriteria never reach coerce on that path.\n**Failure mode:** Shipping silent array→string coerce as the primary Requirements restore either is dead on validated specs or forces an undeclared schema widen. Greenfield PD export skips `validateSpec`, so coerce would only paper over invalid PD shapes.\n**Disposition consequence:** Do not bind P1 as the main restore limb. Prefer fail-loud / keep string schema, or pair any coerce with an explicit schema change; restore string Requirements/AcceptanceCriteria through the exclusion/order/alias surfaces that actually drop or mis-shape them.\n\n### F3 — sharpens-framing — Prefer-A P3 overstates omit; item AcceptanceCriteria already emits as prose\n**Evidence:** `renderItemHandlers` special-cases only `key === \"Acceptance\"` into `splitAcceptance` bullets (`spec-render.ts`). Other keys, including `AcceptanceCriteria`, take `emitNarrativeProse` — content still appears, shape differs. Nested-plan tests pin the `Acceptance` bullet path. Issue prose “heading called Acceptance” does not match this handler (no `## Acceptance` heading; bare `-` bullets). Sibling `scope-outlook.ts` still reads only `.Acceptance` for scope/item acceptance blocks.\n**Failure mode:** Framing P3 as “restore omitted AcceptanceCriteria” mis-targets a shape/alias problem and can miss the outlook sibling.\n**Disposition consequence:** Sharpen P3 to bullet-shape alias + canonical `AcceptanceCriteria` (Acceptance remains alias), and note outlook/read sites that still key only `Acceptance` if the Bound claims export-surface consistency.\n\n### F4 — sharpens-framing — Prefer-A P4 is order polish, not the omit fix\n**Evidence:** `SPECIFICATION_NARRATIVE_KEY_ORDER` includes `Requirements` and omits `AcceptanceCriteria` / TechStack (`render/constants.ts`). `renderNarrativeSections` still emits unknown keys in sorted leftover order after the ordered pass — so string AcceptanceCriteria already renders, only later/unsorted relative to product order. TechStack still cannot appear from KEY_ORDER alone while exclusion remains (F1).\n**Failure mode:** Treating KEY_ORDER as the omit root causes a Bound that “fixes order” while TechStack stays filtered and Requirements-as-string already showed.\n**Disposition consequence:** Keep P4 as stable product-order after surviving keys are retained; do not cite it as the Requirements/TechStack drop remedy.\n\n### F5 — sharpens-framing — “stakeholder export” exclusion is audience-blind today\n**Evidence:** Constant name and comment say stakeholder, but `resolveExportNarratives` (used by `export-spec` and `prd-render`) applies the set with no `audience` check. `exportSpec` audience only changes scope-outlook policy, not narrative filtering.\n**Failure mode:** Prefer-A wording “stop excluding … from stakeholder export” under-describes current behavior: internal export also drops TechStack/ProjectConfig/Configuration.\n**Disposition consequence:** If TechStack is reopened (after F1), decide audience-gated vs global retention explicitly; do not assume stakeholder-only toggle exists.\n\n### F6 — footnote — dead set member under normalized lookup\n`isExcludedNarrativeKey` lowercases and strips spaces before `Set.has`. The `\"tech stack\"` entry (with space) is unreachable beside `\"techstack\"`; cleanup-only if the set is touched.\n\n### F7 — footnote — existing mechanisms to reuse before inventing\nInventory already present: `splitAcceptance` (string + array lines), `PRODUCT_NARRATIVE_KEYS` (includes AcceptanceCriteria), speckit `pick(\"Acceptance\", \"AcceptanceCriteria\")`, PD `TechStack`↔techstack normalization in persisted-planning narratives, `renderNarrativeSections` leftover pass, locked Wave 0 exclusion test. Prefer extending these over a parallel coerce/order stack.\n\n## Plain read for synthesis\nApproach A’s Requirements + AcceptanceCriteria fidelity goal holds. TechStack-as-same-limb and array-coerce-as-primary-restore do not. Tighten Prefer-A to product-narrative restore + AcceptanceCriteria bullet alias + KEY_ORDER, and park TechStack behind an explicit Wave 0 §5 policy call.\r\n\n",
+          "id": 6195730810,
+          "html_url": "https://github.com/deftai/directive/issues/4871#issuecomment-6195730810",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-15T15:25:49Z",
+          "updated_at": "2026-10-15T15:25:49Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nspend-amend: N≥3 → N=2\nreason: Claude Round-1 seat first-byte-timeout at 180s with 0-byte logs after launch-probe pong-ok (#5478). Codex posted 6195698040; Grok posted 6195730810. Bind from posted families (codex, grok). Prevention cite deftai/directive#5478.\ndispatch-sha: d000d96acfae3566300516c9be9afd6e8a6a6e12\ndest: .deft-scratch/worktrees/arc-4871",
+          "id": 6195749886,
+          "html_url": "https://github.com/deftai/directive/issues/4871#issuecomment-6195749886",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-15T15:26:46Z",
+          "updated_at": "2026-10-15T15:26:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A\nTarget-digest: sha256:03c5e355610436ce72620271ec57216c29a06ba1ea0abcc0b8c5e567f6fdfda1\nconflict_group: export-spec-drops-requirements-ac-techstack\nspend: N=2\nspend-amend: 6195749886\nRound-1: Codex 6195698040, Grok 6195730810 (Claude #5478 first-byte-timeout)\n\n## Prefer-A Bound\n\nBind Approach A Recut after Round-1: restore SPECIFICATION.md fidelity for product narratives Requirements and AcceptanceCriteria; align plan-item AcceptanceCriteria bullet shape; keep TechStack on the intentional Wave 0 §5 exclude path until a separate policy call.\n\n## Bound remedy\n\n- relieves: P1 — Do **not** ship silent array→string coerce in planNarratives as the primary restore. Keep Plan.narratives / PlanItem.narrative string-valued (validateSpec + xBRIEF 0.8). If a legacy array shape must be tolerated, bind an explicit validation/normalization boundary and invalid-value behavior with reproducers for greenfield vs full-spec; otherwise fail-loud. Preserve valid multiline string narratives. (Absorbs Codex F1 / Grok F2.)\n- relieves: P2 — Split TechStack from the Requirements/AcceptanceCriteria restore. Keep `STAKEHOLDER_EXCLUDED_NARRATIVE_KEYS` TechStack / techstack exclusion as Wave 0 §5 stakeholder/config filter (locked exclusion test stays green). Park audience-gated vs global retention as a follow-on policy choice; do not claim TechStack omit as the same RECORDS drift as product Requirements/AcceptanceCriteria. Dead set member `\"tech stack\"` (space) is cleanup-only if the set is touched. (Absorbs Grok F1 / F5 / F6; Codex F2 authority-source note retained for Requirements/AC only.)\n- relieves: P3 — In `renderItemHandlers`, treat narrative key `AcceptanceCriteria` the same as `Acceptance` for `splitAcceptance` bullet lists; keep `Acceptance` as alias. Prefer `AcceptanceCriteria` as canonical. Specify both-key precedence when both exist (preserve distinct text; do not discard). Note sibling readers (e.g. scope-outlook `.Acceptance`) only if this Bound claims export-surface consistency beyond the shared renderer. The old `## Acceptance` wrapper symptom is already absent at dispatch SHA. (Absorbs Codex F3 / Grok F3.)\n- relieves: P4 — Add `AcceptanceCriteria` to `SPECIFICATION_NARRATIVE_KEY_ORDER` for preferred product order. Do not treat KEY_ORDER as the omit root (string AcceptanceCriteria already renders via leftover sorted pass). TechStack KEY_ORDER only if a later policy retains it. Exact-key spelling stays; document collision/normalization if touched. (Absorbs Codex F4 / Grok F4.)\n- Authority / merge (Codex F2, in-Bound for Requirements/AcceptanceCriteria): Before claiming restore, bind the authoritative input location and missing-key fallback for full-spec vs PROJECT-DEFINITION — keep spec precedence; do not indiscriminately union potentially stale PD Requirements/AcceptanceCriteria. Acceptance coverage: greenfield + full-spec, PD-only values, and conflicting values in both sources. Reuse `PRODUCT_NARRATIVE_KEYS`, `splitAcceptance`, and `renderNarrativeSections` leftover pass (Grok F7).\n\n### Reject (for now)\n- B: Docs-only note that stakeholder exports intentionally omit Requirements/AcceptanceCriteria — does not close the named product-narrative RECORDS drift.\n- C: Only fix plan-item Acceptance heading without restoring top-level Requirements/AcceptanceCriteria fidelity and KEY_ORDER.\n- D: Silent array coerce in planNarratives as the sole restore (Codex/Grok blockers).\n- E: Removing TechStack exclusion in the same limb as Requirements/AcceptanceCriteria restore without a Wave 0 §5 policy call.\n\n### file_scope (product)\n- packages/core/src/spec-authority/narratives.ts (+tests)\n- packages/core/src/render/spec-render.ts (+tests as needed for AcceptanceCriteria alias)\n- packages/core/src/render/constants.ts (SPECIFICATION_NARRATIVE_KEY_ORDER)\n- packages/core/src/render/export-spec.ts / render.test.ts only if merge/fallback coverage lands there\n- CHANGELOG.md\n- Keep-outs: wholesale Wave 0 §5 TechStack include; schema widen without explicit limb; inventing parallel coerce stack\n\n## In plain English\n\nExport-spec should keep showing Requirements and AcceptanceCriteria that the xbrief already holds as strings, with AcceptanceCriteria bullets on plan items and stable section order. TechStack stays on the existing intentional exclude list until we make a separate policy call. We will not paper over bad array-shaped narratives with a silent coerce.\n\n## Round-1 map\n- Codex 6195698040: 2 blocks / 2 sharpens — absorbed above\n- Grok 6195730810: 1 block / 4 sharpens / 2 footnotes — absorbed above\n- Claude: dispatch-fail (#5478); spend amended to N=2",
+          "id": 6195759132,
+          "html_url": "https://github.com/deftai/directive/issues/4871#issuecomment-6195759132",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-15T15:27:13Z",
+          "updated_at": "2026-10-15T15:27:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\nfinding-classes: none\nharvest-changed: false\n\nPain-audit of [Prefer-A Bound](https://github.com/deftai/directive/issues/4871#issuecomment-6195759132) against [Stop 1](https://github.com/deftai/directive/issues/4871#issuecomment-6195151402). Source inspection at dispatch SHA d000d96acfae3566300516c9be9afd6e8a6a6e12 (local HEAD matches). This assesses the remedy contract, not an implemented fix. No comments beyond the ceiling were read.\n\n- **pain-P1 — disposed by explicit input-contract correction; relief is bound.** `planNarratives` in `spec-authority/narratives.ts` silently filters nonstrings, while `validateNarratives` in `render/spec-validate.ts` rejects nonstring plan and item narratives. `exportSpec` validates the full spec but greenfield only checks Overview, so the greenfield/full-spec distinction matters. The Bound already requires an explicit normalization/validation boundary or fail-loud behavior, reproducers for both paths, and preservation of valid multiline strings. Its authority clause also covers PD-only and conflicting product narratives: current full-spec merging adds only PD identity hints, not Requirements/AcceptanceCriteria. These are existing obligations in the Bound, not new harvest deltas. Rejecting invalid arrays visibly is a disposition of the original array pain, not a promise to render arrays unchanged.\n- **pain-P2 — explicitly disposed/deferred, not technically relieved.** `STAKEHOLDER_EXCLUDED_NARRATIVE_KEYS` deliberately contains `techstack`; the resolver lowercases and strips whitespace before matching, so TechStack and tech stack remain excluded. The Bound openly preserves that policy and parks retention for a separate decision. That is a coherent scope disposition of Stop 1's original broader promise; it must not be reported later as restored TechStack fidelity. No additional harvest delta remains.\n- **pain-P3 — relieved by the bound renderer change.** `renderItemHandlers` special-cases only `Acceptance`; `AcceptanceCriteria` currently takes ordinary prose rendering. Using the same `splitAcceptance` path for the canonical key and retaining the alias addresses the mismatch. The Bound already requires both-key precedence without discarding distinct text. `renderImplementationPlanLines` already emits `Implementation Plan`, so repairing a presumed old Acceptance wrapper would add no relief at this SHA. No additional harvest delta remains.\n- **pain-P4 — relieved for product narratives; TechStack portion follows P2's disposition.** `SPECIFICATION_NARRATIVE_KEY_ORDER` includes Requirements but omits AcceptanceCriteria. Both `renderNarrativeSections` and `renderSpecMarkdown` have sorted leftover passes, so omission from the preferred list affects order rather than suppressing an otherwise valid string section. Adding AcceptanceCriteria to the preferred order addresses the actual pain. The Bound correctly leaves TechStack ordering conditional on a later retention policy. No additional harvest delta remains.\n\nAll five required pin-read files were inspected; `render/export-spec.ts` was also read to verify the validation and authority paths. No product code was changed and no runtime tests were run for this process-only audit.",
+          "id": 6195793870,
+          "html_url": "https://github.com/deftai/directive/issues/4871#issuecomment-6195793870",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-15T15:28:52Z",
+          "updated_at": "2026-10-15T15:28:52Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nPrefer-A Bound (cite only): 6195759132\nRound-1: Codex 6195698040, Grok 6195730810\nPain-audit: Codex 6195793870 (finding-classes: none, harvest-changed: false)\nSpend-amend: 6195749886 (N≥3→N=2, Claude #5478)\n\n| Claim | Evidence | Status |\n|---|---|---|\n| Silent array coerce is not the primary Requirements/AC restore | Codex F1 / Grok F2; validateSpec rejects non-string; Bound P1 limb | accepted |\n| TechStack exclude is Wave 0 §5 intentional; split from product restore | Grok F1; STAKEHOLDER_EXCLUDED + locked exclusion test; Bound P2 | accepted |\n| AcceptanceCriteria item bullet alias (Acceptance remains alias) | Codex F3 / Grok F3; renderItemHandlers; Bound P3 | accepted |\n| KEY_ORDER adds AcceptanceCriteria as preferred order, not omit root | Codex F4 / Grok F4; leftover sorted pass; Bound P4 | accepted |\n| Full-spec vs PD merge/fallback for Requirements/AC must be bound before claim restore | Codex F2; Bound authority clause | accepted |\n| Claude Round-1 dispatch-fail; bind from Codex+Grok | #5478 first-byte-timeout; spend-amend 6195749886 | accepted |\n\nDisagreement set: empty (posted families all-accept after Bound Recut).",
+          "id": 6195805505,
+          "html_url": "https://github.com/deftai/directive/issues/4871#issuecomment-6195805505",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-15T15:29:27Z",
+          "updated_at": "2026-10-15T15:29:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nsuccessor lean 6195759132\n\nRound-1 Codex 6195698040 and Grok 6195730810 sharpened Prefer-A draft 6195141556. Prefer-A Bound Recut 6195759132 absorbs both panels: keep string narrative schema (no silent array coerce), restore Requirements/AcceptanceCriteria fidelity with explicit full-spec vs PD merge/fallback, AcceptanceCriteria bullet alias in renderItemHandlers, AcceptanceCriteria in SPECIFICATION_NARRATIVE_KEY_ORDER, and park TechStack on Wave 0 §5 exclude until a separate policy call. Claude seat first-byte-timeout (#5478); spend amended N≥3→N=2 via 6195749886. Critic pain-audit 6195793870 cleared with finding-classes: none and harvest-changed: false.\n\n## In plain English\n\nThe accepted design keeps Requirements and AcceptanceCriteria visible and correctly shaped in SPECIFICATION.md, leaves TechStack on the existing intentional exclude list for now, and refuses a silent coerce that would hide bad array-shaped narratives.\n\narc-mode: no-ingest\nyolo-standing: on\nNext operator verb (separate): task issue:ingest",
+          "id": 6195806044,
+          "html_url": "https://github.com/deftai/directive/issues/4871#issuecomment-6195806044",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-15T15:29:28Z",
+          "updated_at": "2026-10-15T15:29:28Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5540564752,
+        "origin": "deftai/directive#4871",
+        "id": "github.issue.5540564752"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "03c5e355610436ce72620271ec57216c29a06ba1ea0abcc0b8c5e567f6fdfda1"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "export-spec-drops-requirements-ac-techstack",
+        "expected_outputs": [
+          "Requirements/AcceptanceCriteria fidelity restore",
+          "AcceptanceCriteria KEY_ORDER + bullet alias",
+          "CHANGELOG Fixed #4871"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/spec-authority packages/core/src/render"
+        ],
+        "file_scope": [
+          "packages/core/src/spec-authority/narratives.ts",
+          "packages/core/src/spec-authority/narratives.test.ts",
+          "packages/core/src/render/spec-render.ts",
+          "packages/core/src/render/spec-render.test.ts",
+          "packages/core/src/render/constants.ts",
+          "CHANGELOG.md"
+        ],
+        "intended_placement": {
+          "schema": "deft.scope.intended_placement.v1",
+          "files": [
+            "packages/core/src/spec-authority/narratives.ts",
+            "packages/core/src/spec-authority/narratives.test.ts",
+            "packages/core/src/render/spec-render.ts",
+            "packages/core/src/render/spec-render.test.ts",
+            "packages/core/src/render/constants.ts",
+            "CHANGELOG.md"
+          ],
+          "module_boundary": "packages/core/src/spec-authority + packages/core/src/render"
+        }
+      },
+      "preferABoundCite": 6195759132,
+      "githubIssueNumber": 4871,
+      "productPullRequest": 5661,
+      "completionProvenance": {
+        "schema": "deft.completionProvenance.v1",
+        "repository": "deftai/directive",
+        "implementationCommit": "19e0acccd33e1f640969f10df2c1faad9afadb41",
+        "prNumber": 5661,
+        "prBase": "master",
+        "mergeCommit": "19e0acccd33e1f640969f10df2c1faad9afadb41",
+        "deliveryBranch": "master",
+        "deliveryCommit": "19e0acccd33e1f640969f10df2c1faad9afadb41",
+        "verifiedAt": "2026-10-16T08:42:01.591Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedAt": "2026-10-16T08:42:01.591Z"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-16T08:42:01.591Z"
+      },
+      "completedAt": "2026-10-16T08:42:01.591Z",
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered"
+    },
+    "id": "github.issue.5540564752",
+    "updated": "2026-10-16T08:42:01.591Z"
+  }
+}
