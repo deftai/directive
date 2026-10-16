@@ -6,7 +6,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { basename, dirname, isAbsolute, relative, resolve } from "node:path";
-import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
+import { containedWrite } from "../fs/contained-write.js";
 import {
   PHASE2_NARRATIVE_KEYS,
   type Phase2NarrativeKey,
@@ -706,11 +706,9 @@ export function seedFromDesignMain(argv: readonly string[]): number {
         });
       }
     } catch (err) {
-      if (err instanceof ContainedWriteError) {
-        process.stderr.write(`could not write seed draft: ${err.message}\n`);
-        return 2;
-      }
-      throw err;
+      const message = err instanceof Error ? err.message : String(err);
+      process.stderr.write(`could not write seed draft: ${message}\n`);
+      return 2;
     }
     process.stdout.write(`wrote seed draft to ${parsed.outPath}\n`);
   } else {
