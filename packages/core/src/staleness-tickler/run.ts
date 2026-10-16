@@ -117,22 +117,26 @@ function formatDimensionLines(probe: StalenessProbeResult): string[] {
 
 function buildPromptLine(tier: StalenessTicklerTier, probe: StalenessProbeResult): string {
   const tone = TIER_TONE[tier];
-  const actions: string[] = [];
+  const needs: string[] = [];
   if (probe.directive.stale) {
-    actions.push("upgrade Directive");
+    needs.push("Directive upgrade");
   }
   if (probe.xbrief.stale) {
-    actions.push("migrate xBRIEF");
+    needs.push("xBRIEF migrate");
   }
-  const actionText = actions.join(" and ");
+  const needText = needs.join(" / ");
+  // Advice-only (TICKLER-GLOBAL): yes prints how to run `directive upgrade`; never mutates.
   if (tier === "assert") {
     return (
-      `[deft staleness:${tone}] Version drift is compounding (${actionText}). ` +
-      "Plain snooze is unavailable — choose yes, opt-out via plan.policy.stalenessTickler.optOut, " +
-      "or remind after next release."
+      `[deft staleness:${tone}] Version drift is compounding (${needText}). ` +
+      `You must run \`${DIRECTIVE_UPGRADE_COMMAND}\` yourself — choose yes for the command, ` +
+      "opt-out via plan.policy.stalenessTickler.optOut, or remind after next release."
     );
   }
-  return `[deft staleness:${tone}] ${actionText} now? [y/n/s]`;
+  return (
+    `[deft staleness:${tone}] ${needText} needed. ` +
+    `Show \`${DIRECTIVE_UPGRADE_COMMAND}\` command? [y/n/s]`
+  );
 }
 
 function nextStateAfterPrompt(

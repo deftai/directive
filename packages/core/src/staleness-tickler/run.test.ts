@@ -103,6 +103,8 @@ describe("maybeRunStalenessTickler (#2488/#2489)", () => {
     expect(migrateCalls).toBe(0);
     const text = result.lines.join("\n");
     expect(text).toContain("directive upgrade");
+    expect(text).toMatch(/Show `directive upgrade` command\?/);
+    expect(text).not.toMatch(/upgrade Directive and migrate xBRIEF now\?/);
     expect(text).not.toMatch(/Running `npm i -g/);
     expect(text).not.toContain("Running xBRIEF migration");
     expect(text).not.toContain("should-not-run");
