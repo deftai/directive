@@ -664,20 +664,23 @@ export function seedFromDesignMain(argv: readonly string[]): number {
   };
   const encoded = `${JSON.stringify(payload, null, 2)}\n`;
   if (parsed.outPath !== undefined) {
-    if (sameResolvedPath(parsed.outPath, artifactPath)) {
+    // Resolve --out against project root so relative paths cannot bypass the
+    // artifact/input identity check when cwd differs from --project-root.
+    const outAbs = resolve(root, parsed.outPath);
+    if (sameResolvedPath(outAbs, artifactPath)) {
       process.stderr.write(
         `refusing --out ${parsed.outPath}: resolves to PROJECT-DEFINITION; draft must not overwrite the authoritative artifact\n`,
       );
       return 2;
     }
     const inputPath = parsed.fromPath ?? parsed.answersPath;
-    if (inputPath !== undefined && sameResolvedPath(parsed.outPath, inputPath)) {
+    if (inputPath !== undefined && sameResolvedPath(outAbs, resolve(root, inputPath))) {
       process.stderr.write(
         `refusing --out ${parsed.outPath}: resolves to the input file (${inputPath})\n`,
       );
       return 2;
     }
-    writeFileSync(parsed.outPath, encoded, "utf8");
+    writeFileSync(outAbs, encoded, "utf8");
     process.stdout.write(`wrote seed draft to ${parsed.outPath}\n`);
   } else {
     process.stdout.write(encoded);

@@ -254,6 +254,18 @@ describe("setup:seed CLI draft-only (#4961)", () => {
     );
     expect(readFileSync(artifact, "utf8")).toBe("{}\n");
 
+    expect(
+      seedFromDesignMain([
+        "--project-root",
+        root,
+        "--from",
+        design,
+        "--out",
+        "xbrief/PROJECT-DEFINITION.xbrief.json",
+      ]),
+    ).toBe(2);
+    expect(readFileSync(artifact, "utf8")).toBe("{}\n");
+
     expect(seedFromDesignMain(["--project-root", root, "--from", design, "--out", design])).toBe(2);
     expect(readFileSync(design, "utf8")).toBe(SAMPLE_DOC);
   });
