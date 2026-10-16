@@ -2622,18 +2622,22 @@ export function ingestBulk(
     }
     const [result, path, msg] = ingested;
     const rel = path !== null ? path.replace(`${options.vbriefDir}/`, "").replace(/\\/g, "/") : "";
+    const label = rel.length > 0 ? rel : `#${String(issue.number)}`;
     if (result === "refused") {
-      (summary.failed as string[]).push(rel.length > 0 ? rel : `#${String(issue.number)}`);
+      (summary.failed as string[]).push(label);
+      // Keep the full refusal reason (often a single line with residual recovery).
+      if (msg.trim().length > 0) {
+        (summary.notices as string[]).push(msg.trimEnd());
+      }
     } else {
       (summary[result] as string[]).push(rel);
-    }
-    // Bulk already prints CREATED/DRY-RUN from the path list; keep notice body with
-    // a path/issue label so operators can tell which brief needs remediation (#4671).
-    if (msg.includes("\n")) {
-      const noticeBody = msg.slice(msg.indexOf("\n") + 1).trimEnd();
-      if (noticeBody.length > 0) {
-        const label = rel.length > 0 ? rel : `#${String(issue.number)}`;
-        (summary.notices as string[]).push(`${label}\n${noticeBody}`);
+      // Bulk already prints CREATED/DRY-RUN from the path list; keep notice body with
+      // a path/issue label so operators can tell which brief needs remediation (#4671).
+      if (msg.includes("\n")) {
+        const noticeBody = msg.slice(msg.indexOf("\n") + 1).trimEnd();
+        if (noticeBody.length > 0) {
+          (summary.notices as string[]).push(`${label}\n${noticeBody}`);
+        }
       }
     }
     if (result === "created" && path !== null) {
