@@ -323,6 +323,18 @@ describe("AC10.3 launcher upgrade conversion (pin replace + handoff)", () => {
   it("upgrade --yes removes legacy pin, adds runtime pin, hands off setup/migrate from old-style", () => {
     const root = tempProject("conv-yes");
     pinLegacyExact(root, "0.119.2");
+    // Seed retired triad so convert must PM-remove them before add (wave4e lockfile).
+    const seeded = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+    };
+    seeded.dependencies = {
+      ...(seeded.dependencies ?? {}),
+      "@deftai/directive-core": "0.119.2",
+      "@deftai/directive-content": "0.119.2",
+      "@deftai/directive-types": "0.119.2",
+    };
+    writeFileSync(join(root, "package.json"), `${JSON.stringify(seeded, null, 2)}\n`);
     writeCopiedCoreEvidence(root, { edited: true });
     writeLegacyGeneration(root, 4);
     writePreservedData(root);
@@ -332,6 +344,7 @@ describe("AC10.3 launcher upgrade conversion (pin replace + handoff)", () => {
     let setupFrom: string | null = null;
     let migrateFrom: string | null = null;
     let pmAddCalled = false;
+    const pmRemoved: string[] = [];
 
     const code = runUpgrade(
       root,
@@ -341,6 +354,10 @@ describe("AC10.3 launcher upgrade conversion (pin replace + handoff)", () => {
       c.io,
       {
         resolvePublishedContract: () => ({ ok: true, contract: 1 }),
+        runPmRemove: ({ packageName }) => {
+          pmRemoved.push(packageName);
+          return { ok: true };
+        },
         runPmAdd: ({ version }) => {
           pmAddCalled = true;
           // After launcher strips legacy pin, simulate PM adding runtime.
@@ -349,11 +366,14 @@ describe("AC10.3 launcher upgrade conversion (pin replace + handoff)", () => {
             devDependencies?: Record<string, string>;
             optionalDependencies?: Record<string, string>;
           };
-          // Legacy pin must already be gone before PM add returns.
+          // Legacy pin + triad must already be gone before PM add returns.
           for (const key of ["dependencies", "devDependencies", "optionalDependencies"] as const) {
             const block = pkg[key];
             if (block) {
               expect(block[LAUNCHER_PACKAGE_NAME]).toBeUndefined();
+              expect(block["@deftai/directive-core"]).toBeUndefined();
+              expect(block["@deftai/directive-content"]).toBeUndefined();
+              expect(block["@deftai/directive-types"]).toBeUndefined();
             }
           }
           pkg.devDependencies = {
@@ -403,6 +423,14 @@ describe("AC10.3 launcher upgrade conversion (pin replace + handoff)", () => {
     expect(pmAddCalled).toBe(true);
     expect(setupFrom).toBe("old-style");
     expect(migrateFrom).toBe("old-style");
+    expect(pmRemoved).toEqual(
+      expect.arrayContaining([
+        LAUNCHER_PACKAGE_NAME,
+        "@deftai/directive-core",
+        "@deftai/directive-content",
+        "@deftai/directive-types",
+      ]),
+    );
 
     const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
       devDependencies?: Record<string, string>;
@@ -411,6 +439,7 @@ describe("AC10.3 launcher upgrade conversion (pin replace + handoff)", () => {
     const deps = { ...pkg.dependencies, ...pkg.devDependencies };
     expect(deps[RUNTIME_PACKAGE_NAME]).toBe("9.9.9");
     expect(deps[LAUNCHER_PACKAGE_NAME]).toBeUndefined();
+    expect(deps["@deftai/directive-core"]).toBeUndefined();
 
     // Settings/data untouched by launcher bookend itself
     expect(readFileSync(join(root, "xbrief", "USER-NOTE.txt"), "utf8")).toBe("preserve-me\n");

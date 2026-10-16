@@ -36,6 +36,7 @@ import {
   readDeclaredPackageManagerVersion,
   removeLegacyDirectivePackages,
   removeLegacyDirectivePin,
+  RETIRED_DIRECTIVE_PACKAGE_NAMES,
   runPmExactAdd,
   runPmRemove,
   type PackageManager,
@@ -149,6 +150,12 @@ export interface UpgradeDeps extends InstallDeps {
   readonly invokeDoctorDataStatus?: () =>
     | { ok: true; dataStatus: DataStatusValue }
     | { ok: false; message: string };
+  /** Wave4e: prune retired triad/launcher from lockfile before runtime add. */
+  readonly runPmRemove?: (opts: {
+    projectRoot: string;
+    pm: PackageManager;
+    packageName: string;
+  }) => PmAddResult;
 }
 
 /** Testable seams for uninstall (R11). */
@@ -1207,6 +1214,18 @@ export function runUpgrade(
     if (state.oldStyle || convertViaRemovals) {
       // Strip launcher pin + retired triad before PM add (wave4e / AC10.3).
       // Upgrade must not require old triad tarballs on the registry.
+      // 1) PM remove first so lockfiles drop triad entries (pnpm otherwise 404s
+      //    hybrid @deftai→Verdaccio scopes — ledgerd residual).
+      // 2) package.json strip as belt-and-suspenders if PM remove no-ops.
+      for (const packageName of RETIRED_DIRECTIVE_PACKAGE_NAMES) {
+        const rm =
+          deps.runPmRemove?.({ projectRoot, pm: pmDetect.pm, packageName }) ??
+          runPmRemove({ projectRoot, pm: pmDetect.pm, packageName, env });
+        if (!rm.ok && rm.interrupted) {
+          return reportPmFailure(io, rm);
+        }
+        // Non-ok (already absent, etc.): continue — strip + add still proceed.
+      }
       removeLegacyDirectivePackages(projectRoot);
     }
     // Convert shapes may lack a package.json (rare); ensure before PM add.
