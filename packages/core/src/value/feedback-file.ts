@@ -79,9 +79,28 @@ function sanitizeOneLine(value: string): string {
   return value.replace(/\r?\n/g, " ").trim();
 }
 
+/**
+ * Fence free-text so line-leading `#` / `---` cannot break issue markdown (#4375).
+ * Indent those lines before insertion into structured sections.
+ */
+export function fenceFreeTextSection(value: string): string {
+  return value
+    .split(/\r?\n/)
+    .map((line) => {
+      if (/^#{1,6}(\s|$)/.test(line) || /^---\s*$/.test(line)) {
+        return `    ${line}`;
+      }
+      return line;
+    })
+    .join("\n");
+}
+
 function sectionOrPlaceholder(value: string | undefined, placeholder: string): string {
   const trimmed = value?.trim() ?? "";
-  return trimmed.length > 0 ? trimmed : placeholder;
+  if (trimmed.length === 0) {
+    return placeholder;
+  }
+  return fenceFreeTextSection(trimmed);
 }
 
 /** True when the resolved project root is the directive maintainer source checkout. */
@@ -172,7 +191,7 @@ export function buildFrameworkGapBody(input: FeedbackGapInput): string {
     "",
     ...buildAdoptionImpactSection(input),
     "---",
-    "_Filed via `task feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._",
+    "_Filed via `deft feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._",
     "",
   ];
   return lines.join("\n");
@@ -279,6 +298,10 @@ export function runFeedbackFile(options: FeedbackFileOptions): FeedbackFileResul
 
   const policy = resolveValueFeedback(projectRoot);
   if (!isValueFeedbackPathAllowed("upstreamPrompt", policy)) {
+    const readout =
+      options.dryRun === true || options.json === true
+        ? `${buildConfirmationPrompt(title, body)}\n`
+        : "";
     return {
       outcome: "blocked-policy",
       exitCode: 1,
@@ -287,8 +310,9 @@ export function runFeedbackFile(options: FeedbackFileOptions): FeedbackFileResul
       repo,
       message:
         "[deft feedback] Blocked: plan.policy.valueFeedback upstreamPrompt is OFF. " +
-        `Enable with \`${policyColonInvocation("enable-value-feedback", " -- --confirm")}\` and set upstreamPrompt, ` +
-        `or inspect via \`${policyColonInvocation("show", " --field=valueFeedback")}\`.\n`,
+        `Enable with \`${policyColonInvocation("enable-value-feedback", " -- --confirm --upstream-prompt")}\`, ` +
+        `or inspect via \`${policyColonInvocation("show", " --field=valueFeedback")}\`.\n` +
+        readout,
     };
   }
 

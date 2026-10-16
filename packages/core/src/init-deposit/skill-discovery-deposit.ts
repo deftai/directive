@@ -184,6 +184,21 @@ description: >-
 Read and follow: .deft/core/skills/deft-directive-tutorial/SKILL.md
 `,
   },
+  {
+    dir: "deft-directive-feedback",
+    content: `---
+name: deft-directive-feedback
+description: >-
+  Mid-session and session-end framework-gap escalation for directive consumers.
+  Collects friction/gap reports, drafts deduped framework-gap issues against
+  deftai/directive, and files upstream only after explicit operator confirmation.
+  Use when the operator says "file a directive issue", "file this upstream",
+  or "report a framework gap".
+---
+
+Read and follow: .deft/core/skills/deft-directive-feedback/SKILL.md
+`,
+  },
 ];
 
 /** Max bytes for a thin pointer body — fat full-skill copies fail this guard. */
