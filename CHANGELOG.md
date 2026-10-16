@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Mint approved-scope for #4375 mid-session filing path.** Lands merge-base `.deft/approved-scope/github.issue.5420717734{,.intent}.json` so product PR #5685 can clear Prefer-A Bound scope-provenance membership. Mint-only - no product code. Refs #4375.
 - **Fixed**: Land tracked completion record for Harbor UUID lease / Write-hook split-brain after product #5679. Refs #5544.
 - **Fixed**: Record intent-constraint mint for #5676 publishApplyingHost invariant throw-site. This records approval only; it does not change product behavior. Refs #5676.
 - **Fixed**: Land tracked completion record for coverage waived-exit-4 / residual deposit wiring after product #5681. Refs #5674.
