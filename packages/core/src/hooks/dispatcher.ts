@@ -71,7 +71,11 @@ import {
   worktreePathOrNull,
 } from "../session/git.js";
 import { isLinkedWorktreePath } from "../session/main-worktree.js";
-import { evaluateOccupancyWriteGate } from "../session/occupancy.js";
+import {
+  evaluateOccupancyWriteGate,
+  formatOccupancyLeaseViewNote,
+  occupancyPath,
+} from "../session/occupancy.js";
 import { occupancyAwareDenialMessage } from "../session/occupancy-recovery.js";
 import {
   ENV_SESSION_POSTURE,
@@ -1837,6 +1841,13 @@ function inspectMutationGates(
       inspected !== null && inspected.code !== 0
         ? ` Also ritual-not-ready: ${inspected.message}`
         : "";
+    // #5544 P2: denials from the Write gate always name occupancyFile + effectiveRoot.
+    const leaseView = formatOccupancyLeaseViewNote(occupancyPath(effectiveRoot), {
+      effectiveRoot,
+    });
+    const leaseNote = occupancyGate.message.includes("occupancyFile=")
+      ? ""
+      : ` ${leaseView}`;
     emitSessionRitualBlockedProcessCost(
       {
         toolName,
@@ -1851,7 +1862,7 @@ function inspectMutationGates(
       "occupancy-occupied",
       toolName,
       occupancyAwareText(
-        `Directive denied ${toolName}: ${occupancyGate.message}${ritualNote}${rootsNote}`,
+        `Directive denied ${toolName}: ${occupancyGate.message}${ritualNote}${leaseNote}${rootsNote}`,
         inspected?.recoveryTier === "rearm" ? "rearm" : "cold",
       ),
     );

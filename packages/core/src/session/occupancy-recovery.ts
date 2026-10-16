@@ -12,7 +12,10 @@ import { formatFrameworkCommand } from "../render/framework-commands.js";
 import {
   type ApplyOccupancyInput,
   evaluateOccupancyCeremonyEligibility,
+  formatOccupancyLeaseViewNote,
+  occupancyPath,
   type OccupancyCeremonyEligibility,
+  resolveOccupancyLeaseRoot,
 } from "./occupancy.js";
 import { formatSessionStartRecoveryCommand, type SessionCeremonyTier } from "./session-start.js";
 import { formatRitualRecoveryInstruction } from "./verify-session-ritual.js";
@@ -21,6 +24,33 @@ import { formatRitualRecoveryInstruction } from "./verify-session-ritual.js";
 export const SHELL_COVERAGE_HONESTY =
   "Dedicated Write/Edit and recognized in-repository shell forms are gated; " +
   "unrecognized shell forms remain outside that coverage.";
+
+/**
+ * #5544 Prefer-A P3: steal that only changes the lease is incomplete while
+ * ritual still denies writes. Name target root, presenter, permitted lease
+ * operation, and required rearm/cold ceremony.
+ */
+export function formatCeremonyRecoveryAfterOccupancySteal(input: {
+  readonly projectRoot: string;
+  readonly presenterSessionId: string;
+  readonly tier?: SessionCeremonyTier;
+}): string {
+  const root = resolveOccupancyLeaseRoot(input.projectRoot);
+  const path = occupancyPath(root);
+  const tier = input.tier ?? "cold";
+  const ceremony =
+    tier === "rearm"
+      ? formatSessionStartRecoveryCommand("rearm")
+      : formatSessionStartRecoveryCommand("cold");
+  return (
+    `Ceremony recovery after occupancy:steal: target root=${root}; ` +
+    `presenter=${input.presenterSessionId}; permitted lease operation=occupancy:steal; ` +
+    `required ceremony=\`${ceremony} --session-id=${input.presenterSessionId}\` ` +
+    `(rearm when eligible, otherwise cold). ` +
+    `${formatOccupancyLeaseViewNote(path, { effectiveRoot: root })}. ` +
+    SHELL_COVERAGE_HONESTY
+  );
+}
 
 export function formatOccupancyAwareRitualRecovery(
   eligibility: OccupancyCeremonyEligibility,
@@ -80,7 +110,10 @@ function alreadyNamesOccupancyRecovery(text: string): boolean {
     text.includes("primary-claim-exception") ||
     text.includes("owner-only") ||
     text.includes("must not mutation-claim") ||
-    text.includes("Do not steal this lease")
+    text.includes("Do not steal this lease") ||
+    text.includes("occupancy:steal") ||
+    text.includes("Closed recovery for a minted lease") ||
+    text.includes("Ceremony recovery after occupancy:steal")
   );
 }
 
