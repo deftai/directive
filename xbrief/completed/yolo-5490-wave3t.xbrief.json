@@ -52,7 +52,7 @@
         "DEFT-INSTALL-RESIDUAL"
       ],
       "base": "yolo/cp-wave3s@fd90fcbcae2e5cffb32699f9887199f10eb036c4",
-      "productCommit": "ba5866d4ab1fad8aa072a6c95ff899e3b6763812"
+      "productCommit": "8d48c7588002642e372648938a3545bfe119e400"
     }
   }
 }
