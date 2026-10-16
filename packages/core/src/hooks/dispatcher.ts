@@ -4354,13 +4354,15 @@ export type ListStagedRelPathsResult =
   | { ok: true; paths: string[] }
   | { ok: false; message: string };
 
-/** Staged index paths including deletions (ACMRD), project-relative POSIX. */
+/** Staged index paths including deletions/typechanges (ACMRDT), project-relative POSIX. */
 export function listStagedRelPathsIncludingDeletes(projectRoot: string): ListStagedRelPathsResult {
   try {
     // -z: NUL-delimited so quoted non-ASCII names are not treated as literal paths (#5656).
+    // --no-renames: emit delete+add so rename sources stay in the cover set (#5656 Greptile).
+    // T: typechange (e.g. file→symlink) must not skip story checks (#5656 Greptile).
     const stdout = execFileSync(
       "git",
-      ["diff", "--cached", "--name-only", "-z", "--diff-filter=ACMRD"],
+      ["diff", "--cached", "--name-only", "-z", "--diff-filter=ACMRDT", "--no-renames"],
       {
         cwd: projectRoot,
         encoding: "utf8",
@@ -4501,6 +4503,13 @@ export function commandHasGitCommitIndexMutatingForm(command: string): boolean {
         w === "--untracked-files"
       ) {
         i += 2;
+        continue;
+      }
+      // Attached value-taking shorts (-mMSG / -Ffile / -cSHA / -CSHA) before
+      // combined-flag scan so letters inside the value are not treated as -a/-i
+      // (#5656 Greptile: `git commit -m"fix parser"` / `-Fmessage.txt`).
+      if (w.startsWith("-") && !w.startsWith("--") && /^[mFcC].+/.test(w.slice(1))) {
+        i += 1;
         continue;
       }
       if (w.startsWith("-") && !w.startsWith("--") && /[ai]/.test(w.slice(1))) {

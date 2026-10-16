@@ -3744,6 +3744,13 @@ describe("runtime authority policy (#1394)", () => {
     );
   });
 
+  it("commandHasGitCommitIndexMutatingForm ignores letters inside attached -m/-F values (#5656)", () => {
+    expect(commandHasGitCommitIndexMutatingForm('git commit -m"fix parser"')).toBe(false);
+    expect(commandHasGitCommitIndexMutatingForm("git commit -Fmessage.txt")).toBe(false);
+    expect(commandHasGitCommitIndexMutatingForm("git commit -am msg")).toBe(true);
+    expect(commandHasGitCommitIndexMutatingForm("git commit -a -m msg")).toBe(true);
+  });
+
   it("Shell git commit denies when staged paths fail prospective scope-cover (#5656)", () => {
     const decision = decideHook(
       {
@@ -3901,6 +3908,40 @@ describe("runtime authority policy (#1394)", () => {
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.message.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("listStagedRelPathsIncludingDeletes covers rename sources via --no-renames (#5656)", async () => {
+    const fs = await import("node:fs");
+    const os = await import("node:os");
+    const path = await import("node:path");
+    const { execFileSync } = await import("node:child_process");
+    const { listStagedRelPathsIncludingDeletes } = await import("./dispatcher.js");
+    const src = fs.readFileSync(new URL("./dispatcher.ts", import.meta.url), "utf8");
+    expect(src).toContain("--diff-filter=ACMRDT");
+    expect(src).toContain("--no-renames");
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "deft-staged-acmrdt-"));
+    try {
+      execFileSync("git", ["init"], { cwd: root, stdio: "ignore" });
+      execFileSync("git", ["config", "user.email", "t@example.com"], {
+        cwd: root,
+        stdio: "ignore",
+      });
+      execFileSync("git", ["config", "user.name", "t"], { cwd: root, stdio: "ignore" });
+      fs.mkdirSync(path.join(root, "docs"), { recursive: true });
+      fs.mkdirSync(path.join(root, "src"), { recursive: true });
+      fs.writeFileSync(path.join(root, "docs", "out.md"), "old\n", "utf8");
+      execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+      execFileSync("git", ["commit", "-m", "seed"], { cwd: root, stdio: "ignore" });
+      fs.renameSync(path.join(root, "docs", "out.md"), path.join(root, "src", "in.md"));
+      execFileSync("git", ["add", "-A"], { cwd: root, stdio: "ignore" });
+      const listed = listStagedRelPathsIncludingDeletes(root);
+      expect(listed.ok).toBe(true);
+      if (!listed.ok) return;
+      const normalized = listed.paths.map((p) => p.replace(/\\/g, "/"));
+      expect(normalized).toEqual(expect.arrayContaining(["docs/out.md", "src/in.md"]));
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
     }
   });
 
