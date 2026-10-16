@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import {
   type ResolveLifecycleDirtyFn,
   resolveLifecycleDirty,
@@ -27,6 +28,49 @@ export const CANDIDATE_VALIDATION_PRODUCER =
 
 export function normalizeCandidateCommand(command: string): string {
   return command.trim().replace(/\s+/g, " ");
+}
+
+export interface ControlledCandidateProbeResult {
+  readonly command: AllowedCandidateValidationCommand;
+  readonly exit_code: number;
+  readonly stdout: string;
+  readonly stderr: string;
+}
+
+/**
+ * Run an allowlisted merge-chokepoint probe and return its real exit (#4888).
+ * This is the controlled-run path Greptile requires — not a caller-written stamp.
+ */
+export function runControlledCandidateProbe(
+  options: {
+    readonly command?: AllowedCandidateValidationCommand;
+    readonly cwd?: string;
+    readonly env?: NodeJS.ProcessEnv;
+  } = {},
+): ControlledCandidateProbeResult {
+  const command = (options.command ?? "deft check") as AllowedCandidateValidationCommand;
+  if (!(ALLOWED_CANDIDATE_VALIDATION_COMMANDS as readonly string[]).includes(command)) {
+    throw new Error(
+      "runControlledCandidateProbe refuses command " + JSON.stringify(command) + " (#4888).",
+    );
+  }
+  const parts = command.split(" ");
+  const file = parts[0] ?? "deft";
+  const args = parts.slice(1);
+  const result = spawnSync(file, args, {
+    cwd: options.cwd ?? process.cwd(),
+    encoding: "utf8",
+    env: options.env ?? process.env,
+    windowsHide: true,
+    shell: false,
+  });
+  const exit_code = result.error ? 127 : (result.status ?? 1);
+  return {
+    command,
+    exit_code,
+    stdout: typeof result.stdout === "string" ? result.stdout : "",
+    stderr: typeof result.stderr === "string" ? result.stderr : (result.error?.message ?? ""),
+  };
 }
 
 /**
@@ -115,6 +159,12 @@ export interface SemanticGreenOptions {
   readonly resolveLifecycleDirty?: ResolveLifecycleDirtyFn;
   /** When false, skip dirty-lifecycle refuse (tests only). Default enabled when requireCandidateValidation. */
   readonly checkLifecycleDirty?: boolean;
+  /** When true (or when attestation missing on evaluateNonCascadeCandidateGreen), run allowlisted probe via spawnSync and build attestation (#4888). */
+  readonly runControlledProbe?: boolean;
+  /** Override probe command for runControlledProbe (must be allowlisted). */
+  readonly controlledProbeCommand?: AllowedCandidateValidationCommand;
+  /** Injected controlled probe for tests. */
+  readonly runControlledCandidateProbeFn?: typeof runControlledCandidateProbe;
   /** Project root for dirty-lifecycle probe (default cwd). */
   readonly projectRoot?: string;
 }
@@ -521,11 +571,35 @@ function evaluateCandidateValidationLimb(
     }
   }
 
-  const attestationError = validateCandidateAttestation(
-    options.candidateValidationAttestation,
-    prHeadSha,
-    targetHeadSha,
-  );
+  // Materialize attestation from controlled probe when requested / missing (#4888).
+  let attestation: CandidateValidationAttestation | null | undefined =
+    options.candidateValidationAttestation;
+  if (attestation == null && options.runControlledProbe === true) {
+    const probeFn = options.runControlledCandidateProbeFn ?? runControlledCandidateProbe;
+    const probe = probeFn({
+      command: options.controlledProbeCommand,
+      cwd: options.projectRoot,
+    });
+    try {
+      attestation = buildCandidateValidationAttestationFromProbe({
+        pr_head_sha: prHeadSha,
+        target_head_sha: targetHeadSha,
+        command: probe.command,
+        exit_code: probe.exit_code,
+      });
+    } catch (exc: unknown) {
+      const message = exc instanceof Error ? exc.message : String(exc);
+      return {
+        ok: false,
+        outcome: "candidate-validation-probe-failed",
+        exitCode: EXIT_TIMEOUT_OR_ESCALATION,
+        error: message,
+        payload: payloadBase,
+      };
+    }
+  }
+
+  const attestationError = validateCandidateAttestation(attestation, prHeadSha, targetHeadSha);
   if (attestationError !== null) {
     return {
       ok: false,
@@ -538,13 +612,13 @@ function evaluateCandidateValidationLimb(
           required: true,
           pr_head_sha: prHeadSha,
           target_head_sha: targetHeadSha,
-          attestation_present: options.candidateValidationAttestation != null,
+          attestation_present: attestation != null,
         },
       },
     };
   }
 
-  const attestation = options.candidateValidationAttestation as CandidateValidationAttestation;
+  const finalAttestation = attestation as CandidateValidationAttestation;
   return {
     ok: true,
     outcome: null,
@@ -554,13 +628,14 @@ function evaluateCandidateValidationLimb(
       ...payloadBase,
       candidate_validation: {
         required: true,
-        schema: attestation.schema,
-        command: attestation.command,
-        exit_code: attestation.exit_code,
-        pr_head_sha: attestation.pr_head_sha,
-        target_head_sha: attestation.target_head_sha,
-        attested_at: attestation.attested_at,
-        merge_result_sha: attestation.merge_result_sha ?? null,
+        schema: finalAttestation.schema,
+        command: finalAttestation.command,
+        exit_code: finalAttestation.exit_code,
+        pr_head_sha: finalAttestation.pr_head_sha,
+        target_head_sha: finalAttestation.target_head_sha,
+        attested_at: finalAttestation.attested_at,
+        merge_result_sha: finalAttestation.merge_result_sha ?? null,
+        producer: finalAttestation.producer,
       },
     },
   };
@@ -698,10 +773,13 @@ export function evaluateNonCascadeCandidateGreen(
   repo: string,
   options: Omit<SemanticGreenOptions, "cascadeMode" | "requireCandidateValidation"> = {},
 ): SemanticGreenResult {
+  const runControlledProbe =
+    options.runControlledProbe ?? (options.candidateValidationAttestation == null ? true : false);
   return evaluateSemanticGreen(prNumber, repo, {
     ...options,
     cascadeMode: false,
     requireCandidateValidation: true,
+    runControlledProbe,
   });
 }
 

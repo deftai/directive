@@ -557,6 +557,7 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
     });
     const missing = evaluateNonCascadeCandidateGreen(PR, REPO, {
       checkLifecycleDirty: false,
+      runControlledProbe: false,
       runGh,
     });
     expect(missing.ok).toBe(false);
@@ -597,6 +598,29 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
     expect(built.command).toBe("deft check");
     expect(ALLOWED_CANDIDATE_VALIDATION_COMMANDS).toContain(built.command);
     expect(validateCandidateAttestation(built, PR_HEAD, CURRENT_HEAD)).toBeNull();
+  });
+
+  it("controlled probe builds attestation on evaluateNonCascadeCandidateGreen", () => {
+    const runGh = makeRunGh({
+      "/pulls/": pullsHandler(CURRENT_HEAD),
+      "/git/ref/heads/": branchRefHandler(CURRENT_HEAD),
+    });
+    const result = evaluateNonCascadeCandidateGreen(PR, REPO, {
+      checkLifecycleDirty: false,
+      runControlledProbe: true,
+      runControlledCandidateProbeFn: () => ({
+        command: "deft check",
+        exit_code: 0,
+        stdout: "ok",
+        stderr: "",
+      }),
+      runGh,
+    });
+    expect(result.ok).toBe(true);
+    expect(result.payload.candidate_validation).toMatchObject({
+      command: "deft check",
+      producer: CANDIDATE_VALIDATION_PRODUCER,
+    });
   });
 
   it("validateCandidateAttestation rejects non-allowlisted commands like true", () => {
