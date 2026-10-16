@@ -607,13 +607,12 @@ export function publishApplyingHost(
   try {
     containedWrite({ root, target: tmpName, data: text, mode: "create" });
     renameSync(tmpName, target);
-  } catch (err) {
+  } finally {
     try {
       rmSync(tmpName, { force: true });
     } catch {
-      /* best-effort cleanup */
+      /* best-effort cleanup of tmp only */
     }
-    throw err;
   }
   return record;
 }
