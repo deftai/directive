@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5656",
-    "updated": "2026-10-16T00:12:51Z"
+    "updated": "2026-10-16T07:53:44Z"
   },
   "plan": {
     "title": "bug(grok-build,hooks): missing deft-hook fails open, so product writes and implement spawns proceed with no scope xBRIEF",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(grok-build,hooks): missing deft-hook fails open, so product writes and implement spawns proceed with no scope xBRIEF",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5656",
@@ -16,51 +16,147 @@
     "items": [
       {
         "id": "item.1",
-        "status": "pending",
+        "status": "completed",
         "title": "Outer deny for missing or non-decision deft-hook on Grok via attested host fail-closed or observable wrapper plus durable gate-off record (closes P1 and P3).",
-        "x-directive/artifact_path": "packages/core/src/init-deposit/agent-hooks.ts"
+        "x-directive/artifact_path": "packages/core/src/init-deposit/agent-hooks.ts",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5658 Tracking/Refs-only; criteria satisfied by merged product delivery",
+          "recorded_at": "2026-10-16T07:53:44.966Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5658",
+            "mintedAt": "2026-10-16T07:53:44.966Z"
+          }
+        }
       },
       {
         "id": "item.2",
-        "status": "pending",
+        "status": "completed",
         "title": "Update FAIL_CLOSED travel class and recovery docs so Grok is not described as universally fail-open once authority lands.",
-        "x-directive/artifact_path": "packages/core/src/init-deposit/hook-runtime-travel.ts"
+        "x-directive/artifact_path": "packages/core/src/init-deposit/hook-runtime-travel.ts",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5658 Tracking/Refs-only; criteria satisfied by merged product delivery",
+          "recorded_at": "2026-10-16T07:53:44.966Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5658",
+            "mintedAt": "2026-10-16T07:53:44.966Z"
+          }
+        }
       },
       {
         "id": "item.3",
-        "status": "pending",
+        "status": "completed",
         "title": "Rewrite full-stop recovery prose for Grok fail-closed authority and silent gate-loss naming.",
-        "x-directive/artifact_path": "content/docs/full-stop.md"
+        "x-directive/artifact_path": "content/docs/full-stop.md",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5658 Tracking/Refs-only; criteria satisfied by merged product delivery",
+          "recorded_at": "2026-10-16T07:53:44.966Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5658",
+            "mintedAt": "2026-10-16T07:53:44.966Z"
+          }
+        }
       },
       {
         "id": "item.4",
-        "status": "pending",
+        "status": "completed",
         "title": "Rewrite hook-runtime-unavailable recovery prose for Grok fail-closed authority.",
-        "x-directive/artifact_path": "content/docs/hook-runtime-unavailable.md"
+        "x-directive/artifact_path": "content/docs/hook-runtime-unavailable.md",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5658 Tracking/Refs-only; criteria satisfied by merged product delivery",
+          "recorded_at": "2026-10-16T07:53:44.966Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5658",
+            "mintedAt": "2026-10-16T07:53:44.966Z"
+          }
+        }
       },
       {
         "id": "item.5",
-        "status": "pending",
+        "status": "completed",
         "title": "Require positive governing allow coverage for writes and implement spawn; refuse deny-only and active-fence-alone admission (closes P4).",
-        "x-directive/artifact_path": "packages/core/src/hooks/scope.ts"
+        "x-directive/artifact_path": "packages/core/src/hooks/scope.ts",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5658 Tracking/Refs-only; criteria satisfied by merged product delivery",
+          "recorded_at": "2026-10-16T07:53:44.966Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5658",
+            "mintedAt": "2026-10-16T07:53:44.966Z"
+          }
+        }
       },
       {
         "id": "item.6",
-        "status": "pending",
+        "status": "completed",
         "title": "Add pathless and deny-only sole-brief fixtures that deny Write and implement spawn.",
-        "x-directive/artifact_path": "packages/core/src/hooks/dispatcher.test.ts"
+        "x-directive/artifact_path": "packages/core/src/hooks/dispatcher.test.ts",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5658 Tracking/Refs-only; criteria satisfied by merged product delivery",
+          "recorded_at": "2026-10-16T07:53:44.966Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5658",
+            "mintedAt": "2026-10-16T07:53:44.966Z"
+          }
+        }
       },
       {
         "id": "item.7",
-        "status": "pending",
+        "status": "completed",
         "title": "Add prospective commit scope-cover gate for staged index paths without historical rewrite (closes P2).",
-        "x-directive/artifact_path": "packages/core/src/hooks/dispatcher.ts"
+        "x-directive/artifact_path": "packages/core/src/hooks/dispatcher.ts",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5658 Tracking/Refs-only; criteria satisfied by merged product delivery",
+          "recorded_at": "2026-10-16T07:53:44.966Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5658",
+            "mintedAt": "2026-10-16T07:53:44.966Z"
+          }
+        }
       },
       {
         "id": "item.8",
-        "status": "pending",
+        "status": "completed",
         "title": "Record Unreleased Fixed note for Tracking issue 5656.",
-        "x-directive/artifact_path": "CHANGELOG.md"
+        "x-directive/artifact_path": "CHANGELOG.md",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5658 Tracking/Refs-only; criteria satisfied by merged product delivery",
+          "recorded_at": "2026-10-16T07:53:44.966Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5658",
+            "mintedAt": "2026-10-16T07:53:44.966Z"
+          }
+        }
       }
     ],
     "tags": [
@@ -186,7 +282,29 @@
       },
       "preferABoundCite": 6201860683,
       "githubIssueNumber": 5656,
-      "productPullRequest": 5658
+      "productPullRequest": 5658,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "c19aa69497d3eff3a6befa65d12b7a6e3dc87fe7",
+        "prNumber": 5658,
+        "prBase": "master",
+        "mergeCommit": "40ed6432d0105a96342164ea8d1742f863dde6cb",
+        "deliveryBranch": "master",
+        "deliveryCommit": "40ed6432d0105a96342164ea8d1742f863dde6cb",
+        "verifiedAt": "2026-10-16T07:53:44Z",
+        "verifier": "leftover-complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-16T07:53:44Z"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-16T07:53:44Z"
     },
     "acceptance": {
       "none_stated": true,
@@ -259,6 +377,6 @@
       ]
     },
     "id": "github.issue.5873050134",
-    "updated": "2026-10-16T00:12:51Z"
+    "updated": "2026-10-16T07:53:44Z"
   }
 }
