@@ -126,6 +126,8 @@ function staleSeams(): HookPolicySeams {
     inspectRitual: () => STALE_RITUAL,
     inspectScope: () => READY_SCOPE,
     runningInsideDeftRepo: () => true,
+    // #5656: fixture stubs lack merge-base fence bytes; default positive allow.
+    loadStoryWriteFence: () => ({ fileScope: ["**"], denyPaths: [] }),
   };
 }
 
@@ -144,6 +146,8 @@ function readySeams(boundSessionId: string): HookPolicySeams {
     }),
     inspectScope: () => READY_SCOPE,
     runningInsideDeftRepo: () => true,
+    // #5656: fixture stubs lack merge-base fence bytes; default positive allow.
+    loadStoryWriteFence: () => ({ fileScope: ["**"], denyPaths: [] }),
   };
 }
 

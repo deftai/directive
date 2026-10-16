@@ -42,8 +42,11 @@ import {
   CURSOR_SESSION_START_PLANNING_LINE,
   CURSOR_TASK_SPAWN_CLASS_RECOVERY,
   CURSOR_TASK_SPAWN_READ_ONLY_RECOVERY,
+  commandHasGitCommitIndexMutatingForm,
+  commandHasGitCommitSubcommand,
   DIRECT_WRITE_TOOL_NAMES,
   decideHook,
+  evaluateProspectiveScopeCover,
   HOOK_HOSTS,
   type HookDecision,
   type HookHost,
@@ -65,10 +68,12 @@ import {
   isShellTool,
   isSpawnTool,
   normalizeHookProjectRoot,
+  POSITIVE_GOVERNING_ALLOW_REQUIRED,
   projectRootFromHookPayload,
   READ_ONLY_HOOK_ENV,
   renderHostDecision,
   SPAWN_TOOL_NAMES,
+  splitShellArgvPreservingQuotes,
 } from "./index.js";
 import { SPAWN_CLASS_RECOVERY } from "./readonly.js";
 
@@ -118,9 +123,14 @@ function readySeams(overrides: Partial<HookPolicySeams> = {}): HookPolicySeams {
     sessionStart: () => ({ code: 0, stdout: "", stderr: "" }),
     runningInsideDeftRepo: () => true,
     realpathLifecycleExecutionRoot: (path) => resolve(path),
-    // Fixtures are not authoritative git merge-base trees; path seam keeps allow
-    // paths while write-fence / scope-provenance tests cover merge-base authority.
-    loadStoryWriteFence: (_root, scopePath) => loadStoryWriteFenceFromPath(scopePath),
+    // Fixtures are not authoritative git merge-base trees. Default positive
+    // governing allow (#5656) so write-ready tests stay admitted; pathless /
+    // deny-only / coverage tests override this seam explicitly.
+    loadStoryWriteFence: (_root, scopePath) => {
+      const fromPath = loadStoryWriteFenceFromPath(scopePath);
+      if (fromPath.fileScope.length > 0 || fromPath.denyPaths.length > 0) return fromPath;
+      return { fileScope: ["**"], denyPaths: [] };
+    },
     ...overrides,
   };
 }
@@ -593,7 +603,13 @@ describe("direct-write hook policy", () => {
       host: "grok" as const,
       event: "tool.before" as const,
       projectRoot: "/project",
-      payload: { toolName: "Edit", workspaceRoot: "/project" },
+      // Path required: readySeams positive allow (#5656) activates story fence,
+      // and active fence denies unclassified/empty targets (#5366).
+      payload: {
+        toolName: "Edit",
+        workspaceRoot: "/project",
+        tool_input: { file_path: "/project/src/app.ts" },
+      },
     };
 
     expect(decideHook(input, seams)).toMatchObject({ verdict: "allow", code: "write-ready" });
@@ -1787,7 +1803,12 @@ describe("direct-write hook policy", () => {
         host: "claude",
         event: "tool.before",
         projectRoot: "/project",
-        payload: { tool_name: "Write", cwd: "/project" },
+        // Concrete path: readySeams positive allow (#5656) activates story fence.
+        payload: {
+          tool_name: "Write",
+          cwd: "/project",
+          tool_input: { file_path: "/project/src/app.ts", contents: "x" },
+        },
       },
       readySeams(),
     );
@@ -3551,6 +3572,377 @@ describe("runtime authority policy (#1394)", () => {
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "runtime-policy-deny-path" });
     expect(decision.message).toMatch(/story file_scope/);
+  });
+
+  it("denies Write when sole brief is pathless / empty-allow (#5656)", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          tool_input: { file_path: "/project/src/product.ts", contents: "x" },
+        },
+      },
+      readySeams({
+        loadStoryWriteFence: () => ({ fileScope: [], denyPaths: [] }),
+      }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    expect(decision.message).toContain("positive governing");
+    expect(decision.message).toMatch(/scope:promote|preflight/);
+  });
+
+  it("denies Write when sole brief is deny-only (#5656 PA1)", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          tool_input: { file_path: "/project/src/product.ts", contents: "x" },
+        },
+      },
+      readySeams({
+        loadStoryWriteFence: () => ({ fileScope: [], denyPaths: ["docs/**"] }),
+      }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    expect(decision.message).toContain("positive governing");
+  });
+
+  it("denies implement spawn when sole brief lacks positive governing allow (#5656)", () => {
+    // Claude Task + isolation:worktree reaches the positive-allow gate; Grok
+    // spawn_subagent without cwd stops earlier on the dest require (#4066).
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Task",
+          tool_input: {
+            subagent_type: "generalPurpose",
+            isolation: "worktree",
+            prompt: "implement the fix",
+          },
+        },
+        environ: {},
+      },
+      readySeams({
+        loadStoryWriteFence: () => ({ fileScope: [], denyPaths: [] }),
+      }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.message).toContain("positive governing");
+    expect(POSITIVE_GOVERNING_ALLOW_REQUIRED).toMatch(/file_scope/);
+  });
+
+  it("evaluateProspectiveScopeCover refuses uncovered staged paths (#5656)", () => {
+    const denied = evaluateProspectiveScopeCover({
+      projectRoot: "/project",
+      stagedRelPaths: ["src/a.ts", "docs/b.md"],
+      inspectScope: () => READY_SCOPE,
+      loadStoryWriteFence: () => ({ fileScope: ["src/**"], denyPaths: [] }),
+      env: {},
+    });
+    expect(denied.ok).toBe(false);
+    expect(denied.uncovered).toEqual(["docs/b.md"]);
+    expect(denied.message).toMatch(/Prospective scope-cover/);
+    expect(denied.message).toMatch(/does not rewrite/);
+
+    const covered = evaluateProspectiveScopeCover({
+      projectRoot: "/project",
+      stagedRelPaths: ["src/a.ts"],
+      inspectScope: () => READY_SCOPE,
+      loadStoryWriteFence: () => ({ fileScope: ["src/**"], denyPaths: [] }),
+      env: {},
+    });
+    expect(covered.ok).toBe(true);
+    expect(covered.uncovered).toEqual([]);
+  });
+
+  it("evaluateProspectiveScopeCover refuses pathless / deny-only governing allow (#5656)", () => {
+    const pathless = evaluateProspectiveScopeCover({
+      projectRoot: "/project",
+      stagedRelPaths: ["src/a.ts"],
+      inspectScope: () => READY_SCOPE,
+      loadStoryWriteFence: () => ({ fileScope: [], denyPaths: [] }),
+      env: {},
+    });
+    expect(pathless.ok).toBe(false);
+    expect(pathless.message).toMatch(/positive governing/);
+
+    const denyOnly = evaluateProspectiveScopeCover({
+      projectRoot: "/project",
+      stagedRelPaths: ["src/a.ts"],
+      inspectScope: () => READY_SCOPE,
+      loadStoryWriteFence: () => ({ fileScope: [], denyPaths: ["docs/**"] }),
+      env: {},
+    });
+    expect(denyOnly.ok).toBe(false);
+  });
+
+  it("evaluateProspectiveScopeCover skips lifecycle/installer-only staged sets (#5656)", () => {
+    const lifecycleOnly = evaluateProspectiveScopeCover({
+      projectRoot: "/project",
+      stagedRelPaths: [
+        "xbrief/proposed/story.xbrief.json",
+        ".grok/hooks/deft.json",
+        ".cursor/hooks.json",
+      ],
+      inspectScope: () => ({ ready: false, path: null, message: "no running scope" }),
+      loadStoryWriteFence: () => ({ fileScope: [], denyPaths: [] }),
+      env: {},
+    });
+    expect(lifecycleOnly.ok).toBe(true);
+    expect(lifecycleOnly.message).toMatch(/Lifecycle\/installer-only/);
+
+    const mixed = evaluateProspectiveScopeCover({
+      projectRoot: "/project",
+      stagedRelPaths: ["src/a.ts", "xbrief/active/story.xbrief.json"],
+      inspectScope: () => READY_SCOPE,
+      loadStoryWriteFence: () => ({ fileScope: ["src/**"], denyPaths: [] }),
+      env: {},
+    });
+    expect(mixed.ok).toBe(true);
+    expect(mixed.uncovered).toEqual([]);
+
+    const customHook = evaluateProspectiveScopeCover({
+      projectRoot: "/project",
+      stagedRelPaths: [".cursor/hooks/consumer-custom.mjs"],
+      inspectScope: () => READY_SCOPE,
+      loadStoryWriteFence: () => ({ fileScope: ["src/**"], denyPaths: [] }),
+      env: {},
+    });
+    expect(customHook.ok).toBe(false);
+    expect(customHook.uncovered).toEqual([".cursor/hooks/consumer-custom.mjs"]);
+
+    const packageJsonOnly = evaluateProspectiveScopeCover({
+      projectRoot: "/project",
+      stagedRelPaths: ["package.json"],
+      inspectScope: () => ({ ready: false, path: null, message: "no running scope" }),
+      loadStoryWriteFence: () => ({ fileScope: [], denyPaths: [] }),
+      env: {},
+    });
+    expect(packageJsonOnly.ok).toBe(false);
+    expect(packageJsonOnly.uncovered).toEqual(["package.json"]);
+  });
+
+  it("splitShellArgvPreservingQuotes keeps empty quoted tokens (#5656)", () => {
+    expect(splitShellArgvPreservingQuotes('git commit -m "" -a')).toEqual([
+      "git",
+      "commit",
+      "-m",
+      "",
+      "-a",
+    ]);
+    expect(commandHasGitCommitIndexMutatingForm('git commit -m "" -a --allow-empty-message')).toBe(
+      true,
+    );
+  });
+
+  it("commandHasGitCommitIndexMutatingForm ignores letters inside attached -m/-F values (#5656)", () => {
+    expect(commandHasGitCommitIndexMutatingForm('git commit -m"fix parser"')).toBe(false);
+    expect(commandHasGitCommitIndexMutatingForm("git commit -Fmessage.txt")).toBe(false);
+    expect(commandHasGitCommitIndexMutatingForm("git commit -am msg")).toBe(true);
+    expect(commandHasGitCommitIndexMutatingForm("git commit -a -m msg")).toBe(true);
+  });
+
+  it("Shell git commit denies when staged paths fail prospective scope-cover (#5656)", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          tool_input: { command: "git commit -m msg" },
+        },
+      },
+      {
+        ...readySeams({
+          inspectScope: () => READY_SCOPE,
+          loadStoryWriteFence: () => ({ fileScope: ["src/**"], denyPaths: [] }),
+          listStagedRelPaths: () => ["src/a.ts", "docs/out.md"],
+        }),
+      },
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "prospective-scope-cover-deny" });
+    expect(decision.message).toMatch(/docs\/out\.md/);
+  });
+
+  it("commandHasGitCommitSubcommand recognizes common agent forms (#5656)", () => {
+    expect(commandHasGitCommitSubcommand("git commit -m x")).toBe(true);
+    expect(commandHasGitCommitSubcommand("GIT_EDITOR=true git -C /tmp/r commit -F msg")).toBe(true);
+    expect(commandHasGitCommitSubcommand("git status && git commit -m msg")).toBe(true);
+    expect(commandHasGitCommitSubcommand("git status; git commit -m msg")).toBe(true);
+    expect(commandHasGitCommitSubcommand("git status")).toBe(false);
+    expect(commandHasGitCommitSubcommand("echo commit")).toBe(false);
+  });
+
+  it("refuses git commit -am / pathspecs that change the checked file set (#5656)", () => {
+    const am = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { tool_name: "Bash", tool_input: { command: "git commit -am msg" } },
+      },
+      readySeams({
+        inspectScope: () => READY_SCOPE,
+        loadStoryWriteFence: () => ({ fileScope: ["src/**"], denyPaths: [] }),
+        listStagedRelPaths: () => [],
+      }),
+    );
+    expect(am).toMatchObject({ verdict: "deny", code: "prospective-scope-cover-deny" });
+    expect(am.message).toMatch(/-a|--all|-am/);
+
+    const paths = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          tool_input: { command: "git commit -m msg -- src/a.ts" },
+        },
+      },
+      readySeams({
+        inspectScope: () => READY_SCOPE,
+        loadStoryWriteFence: () => ({ fileScope: ["src/**"], denyPaths: [] }),
+        listStagedRelPaths: () => [],
+      }),
+    );
+    expect(paths).toMatchObject({ verdict: "deny", code: "prospective-scope-cover-deny" });
+  });
+
+  it("allows quoted multiword git commit -m messages (#5656)", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          tool_input: { command: 'git commit -m "fix the bug"' },
+        },
+      },
+      readySeams({
+        inspectScope: () => READY_SCOPE,
+        loadStoryWriteFence: () => ({ fileScope: ["src/**"], denyPaths: [] }),
+        listStagedRelPaths: () => ["src/a.ts"],
+      }),
+    );
+    expect(decision.verdict).toBe("allow");
+    expect(decision.code).not.toBe("prospective-scope-cover-deny");
+  });
+
+  it("refuses git commit checkout retargets for prospective scope-cover (#5656)", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          tool_input: { command: "git -C /other/worktree commit -m msg" },
+        },
+      },
+      readySeams({
+        inspectScope: () => READY_SCOPE,
+        loadStoryWriteFence: () => ({ fileScope: ["src/**"], denyPaths: [] }),
+        listStagedRelPaths: () => [],
+      }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "prospective-scope-cover-deny" });
+    expect(decision.message).toMatch(/-C|--git-dir|--work-tree/);
+  });
+
+  it("prospective scope-cover includes staged deletions (#5656)", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          tool_input: { command: "git commit -m delete-out-of-scope" },
+        },
+      },
+      readySeams({
+        inspectScope: () => READY_SCOPE,
+        loadStoryWriteFence: () => ({ fileScope: ["src/**"], denyPaths: [] }),
+        listStagedRelPaths: () => ["docs/out.md"],
+      }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "prospective-scope-cover-deny" });
+    expect(decision.message).toMatch(/docs\/out\.md/);
+  });
+
+  it("prospective scope-cover denies on listStaged RelPaths Result failure without throw (#5656)", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/nonexistent-git-root-5656",
+        payload: {
+          tool_name: "Bash",
+          tool_input: { command: "git commit -m msg" },
+        },
+      },
+      readySeams({
+        inspectScope: () => READY_SCOPE,
+        loadStoryWriteFence: () => ({ fileScope: ["src/**"], denyPaths: [] }),
+      }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "prospective-scope-cover-deny" });
+    expect(decision.message).toMatch(/could not list staged paths/i);
+  });
+
+  it("listStagedRelPathsIncludingDeletes returns Result not throw (#5656)", async () => {
+    const { listStagedRelPathsIncludingDeletes } = await import("./dispatcher.js");
+    const result = listStagedRelPathsIncludingDeletes("/nonexistent-git-root-5656-list");
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.message.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("listStagedRelPathsIncludingDeletes covers rename sources via --no-renames (#5656)", async () => {
+    const fs = await import("node:fs");
+    const os = await import("node:os");
+    const path = await import("node:path");
+    const { execFileSync } = await import("node:child_process");
+    const { listStagedRelPathsIncludingDeletes } = await import("./dispatcher.js");
+    const src = fs.readFileSync(new URL("./dispatcher.ts", import.meta.url), "utf8");
+    expect(src).toContain("--diff-filter=ACMRDT");
+    expect(src).toContain("--no-renames");
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "deft-staged-acmrdt-"));
+    try {
+      execFileSync("git", ["init"], { cwd: root, stdio: "ignore" });
+      execFileSync("git", ["config", "user.email", "t@example.com"], {
+        cwd: root,
+        stdio: "ignore",
+      });
+      execFileSync("git", ["config", "user.name", "t"], { cwd: root, stdio: "ignore" });
+      fs.mkdirSync(path.join(root, "docs"), { recursive: true });
+      fs.mkdirSync(path.join(root, "src"), { recursive: true });
+      fs.writeFileSync(path.join(root, "docs", "out.md"), "old\n", "utf8");
+      execFileSync("git", ["add", "."], { cwd: root, stdio: "ignore" });
+      execFileSync("git", ["commit", "-m", "seed"], { cwd: root, stdio: "ignore" });
+      fs.renameSync(path.join(root, "docs", "out.md"), path.join(root, "src", "in.md"));
+      execFileSync("git", ["add", "-A"], { cwd: root, stdio: "ignore" });
+      const listed = listStagedRelPathsIncludingDeletes(root);
+      expect(listed.ok).toBe(true);
+      if (!listed.ok) return;
+      const normalized = listed.paths.map((p) => p.replace(/\\/g, "/"));
+      expect(normalized).toEqual(expect.arrayContaining(["docs/out.md", "src/in.md"]));
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("allows path inside project+story intersection", () => {
@@ -6040,7 +6432,9 @@ describe("MCP dest-bearing writes share inspectMutationGates (#3593)", () => {
     expect(decision.message).toMatch(/write fence is active/i);
   });
 
-  it("inactive fence still allows when no path under ready seams (#5366 control)", () => {
+  it("inactive fence pathless Write is refused by positive governing allow (#5656 / #5366)", () => {
+    // Empty story allow keeps the write fence inactive (#5366), but #5656
+    // positive governing allow refuses Write before that inactive-fence allow.
     const decision = decideHook(
       {
         host: "claude",
@@ -6055,9 +6449,11 @@ describe("MCP dest-bearing writes share inspectMutationGates (#3593)", () => {
           denyPaths: [],
           scopes: { edits: true, push: true, merge: true },
         }),
+        loadStoryWriteFence: () => ({ fileScope: [], denyPaths: [] }),
       }),
     );
-    expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
+    expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    expect(decision.message).toContain("positive governing");
   });
 });
 

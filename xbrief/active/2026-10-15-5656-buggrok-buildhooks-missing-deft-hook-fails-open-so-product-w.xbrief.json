@@ -185,7 +185,8 @@
         "sha256": "045fec0bbd81e122ac2b4e2275f938d378f509b2d0ebb10e828bb660cdb18389"
       },
       "preferABoundCite": 6201860683,
-      "githubIssueNumber": 5656
+      "githubIssueNumber": 5656,
+      "productPullRequest": 5658
     },
     "acceptance": {
       "none_stated": true,

@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, realpathSync } from "node:fs";
 import { basename, isAbsolute, join, relative, resolve, sep } from "node:path";
 import {
@@ -19,6 +20,7 @@ import { prepareGithubOnlyDest } from "../design-critique/run-posture.js";
 import { runningInsideDeftRepo } from "../doctor/paths.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { hasArtifactSuffix } from "../layout/resolve.js";
+import { matchAny } from "../orchestration/pathspec.js";
 import {
   defaultKillAttestationDir,
   evaluateKillAttestation,
@@ -47,6 +49,7 @@ import {
   type RuntimeAuthorityShellOp,
 } from "../policy/runtime-authority.js";
 import {
+  hasPositiveGoverningStoryAllow,
   isStoryWriteFenceUnreadable,
   loadStoryWriteFenceFromMergeBase,
   resolveWriteFence,
@@ -177,6 +180,8 @@ import {
   type ActiveScopeInspection,
   type InspectActiveScopeOptions,
   inspectActiveScope,
+  POSITIVE_GOVERNING_ALLOW_REQUIRED,
+  selectedBriefHasPositiveGoverningAllow,
 } from "./scope.js";
 import { classifyShellWriteTargets, isInRepoShellWritePath } from "./shell-write-targets.js";
 import {
@@ -322,6 +327,8 @@ export type HookDecisionCode =
   | "git-destructive-deny"
   /** Tree-wide destructive git aimed at an absolute out-of-root fixture. Tracking #3917. */
   | "git-destructive-fixture"
+  /** Shell git commit staged paths outside governing file_scope (#5656 limb 3). */
+  | "prospective-scope-cover-deny"
   | "plan-choice-allow-non-plan"
   | "plan-choice-question"
   | "plan-choice-selected-receipt"
@@ -578,6 +585,11 @@ export interface HookPolicySeams {
     payload: unknown;
     environ: NodeJS.ProcessEnv;
   }) => string;
+  /**
+   * Test seam for #5656 prospective git-commit scope-cover staged paths.
+   * Defaults to `git diff --cached --name-only`.
+   */
+  readonly listStagedRelPaths?: (projectRoot: string) => readonly string[];
 }
 
 /** POSIX-ish project-relative path for lifecycle matching. */
@@ -680,6 +692,14 @@ function authzForMutationTargets(
     scopePath: string | null;
     runGit?: GitRunner;
     projectRoot: string;
+    /**
+     * When true, permission checks run but single-use grants are not spent yet.
+     * Caller must {@link consumePendingSingleUseGrants} after later write gates pass
+     * (#5656 Greptile: denied writes must not spend approvals).
+     */
+    deferGrantConsume?: boolean;
+    /** Out-bag for deferred grant refs when `deferGrantConsume` is set. */
+    pendingConsumeOut?: string[];
   },
 ): HookDecision | null {
   // Decode file: URIs before approval / protected-store checks (#5366 Greptile P1).
@@ -710,17 +730,28 @@ function authzForMutationTargets(
     });
     if (denied !== null) return denied;
   }
+  if (options.deferGrantConsume) {
+    if (options.pendingConsumeOut !== undefined) {
+      for (const ref of pendingConsume) options.pendingConsumeOut.push(ref);
+    }
+    return null;
+  }
+  consumePendingSingleUseGrants(options.projectRoot, pendingConsume);
+  return null;
+}
+
+/** Persist single-use grant spend after remaining write gates have passed. */
+function consumePendingSingleUseGrants(projectRoot: string, refs: readonly string[]): void {
   const seen = new Set<string>();
-  for (const ref of pendingConsume) {
+  for (const ref of refs) {
     if (seen.has(ref)) continue;
     seen.add(ref);
     try {
-      markGrantUsed(options.projectRoot, ref);
+      markGrantUsed(projectRoot, ref);
     } catch {
       // Persistence failure must not flip allow after a successful check.
     }
   }
-  return null;
 }
 
 function requirementsFencePolicy(): RuntimeAuthorityPolicy {
@@ -2266,15 +2297,42 @@ function inspectMutationGates(
       return deny(input, "intent-ceiling-deny", toolName, intent.reason);
     }
   }
+  // #5656 Prefer-A Bound limb 2: positive governing story allow is mandatory for
+  // Write and implement-class spawn once a brief is selected. Deny-only /
+  // pathless / active-fence-alone do not admit. Outside-root #2885 fallthrough
+  // (scope not ready) must not hit this gate.
+  // Write: authz permission check first (UAT visible codes), but defer single-use
+  // grant spend until positive-allow + runtimeAuthority also pass (#5656 Greptile).
+  // Spawn: positive-allow before allow.
+  const requirePositiveGoverningAllow = (): HookDecision | null => {
+    if (!(scope.ready && scope.path !== null)) return null;
+    const loadFence = seams.loadStoryWriteFence ?? loadStoryWriteFenceFromMergeBase;
+    if (selectedBriefHasPositiveGoverningAllow(effectiveRoot, scope.path, loadFence)) {
+      return null;
+    }
+    const denyCode = isSpawnTool(toolName) ? "spawn-not-ready" : "scope-not-ready";
+    return deny(
+      input,
+      denyCode,
+      toolName,
+      `${POSITIVE_GOVERNING_ALLOW_REQUIRED}${rootsNote}`,
+      scope.path,
+    );
+  };
   if (!isSpawnTool(toolName)) {
     // Wave 1 authz (UAT lease + human-origin grant) before runtimeAuthority (#2944 / #2948 L1–L2).
+    const pendingGrantConsume: string[] = [];
     const authzDeny = authzForMutationTargets(input, toolName, seams, {
       isDirectWrite: true,
       scopePath: scope.path,
       runGit: dispatchGit,
       projectRoot,
+      deferGrantConsume: true,
+      pendingConsumeOut: pendingGrantConsume,
     });
     if (authzDeny !== null) return authzDeny;
+    const positiveDeny = requirePositiveGoverningAllow();
+    if (positiveDeny !== null) return positiveDeny;
     const runtimeDeny = runtimeAuthorityForDirectWrite(
       input,
       toolName,
@@ -2283,9 +2341,13 @@ function inspectMutationGates(
       effectiveRoot,
     );
     if (runtimeDeny !== null) return runtimeDeny;
+    consumePendingSingleUseGrants(projectRoot, pendingGrantConsume);
     // Intentional product-write allow: Prefer-A durable marker (#5176 / #4544).
     const occupancyDeny = recheckOccupancyBeforeWriteAllow(true);
     if (occupancyDeny !== null) return occupancyDeny;
+  } else {
+    const positiveDeny = requirePositiveGoverningAllow();
+    if (positiveDeny !== null) return positiveDeny;
   }
   // #5386 limb 4: scope.warning is independent of occupancyWarning so spawn
   // allows (which skip recheckOccupancyBeforeWriteAllow) still surface it.
@@ -4019,6 +4081,15 @@ function routeHookDecision(
         attachLifecycleIdentityRewrite(shellInput, shellToolName, destructive, seams),
       );
     }
+    const prospective = decideProspectiveGitCommitScopeCover(shellInput, shellToolName, seams);
+    if (prospective !== null) {
+      return remapProxyShellUpdatedInput(
+        input.payload,
+        toolName,
+        shellProxyUnwrap,
+        attachLifecycleIdentityRewrite(shellInput, shellToolName, prospective, seams),
+      );
+    }
     const writeReissue = decideShellWriteReissue(shellInput, shellToolName, seams, observation);
     if (writeReissue !== null) {
       return remapProxyShellUpdatedInput(
@@ -4169,6 +4240,478 @@ function composeCursorSessionStartAdditionalContext(
     return undefined;
   }
   return parts.join("\n\n");
+}
+
+/**
+ * Detect `git commit` as the git subcommand in a Shell command string (#5656).
+ * Handles common agent forms (env prefixes, -C/-c globals, &&/; compounds).
+ * Obscured forms remain a hooks-installed / `--no-verify` residual.
+ */
+export function commandHasGitCommitSubcommand(command: string): boolean {
+  const normalized = command.replace(/\r\n/g, "\n");
+  for (const part of normalized.split(/(?:&&|\|\||;|\n)/)) {
+    const words = part
+      .trim()
+      .split(/\s+/)
+      .filter((w) => w.length > 0);
+    let i = 0;
+    while (i < words.length) {
+      const envTok = words[i];
+      if (envTok === undefined || !/^[A-Za-z_][\w.]*=.*/.test(envTok)) break;
+      i++;
+    }
+    if (i >= words.length) continue;
+    const binTok = words[i];
+    if (binTok === undefined) continue;
+    const bin = binTok.replace(/^.*[/\\]/, "").toLowerCase();
+    if (bin !== "git" && bin !== "git.exe") continue;
+    i++;
+    while (i < words.length) {
+      const w = words[i];
+      if (w === undefined) break;
+      if (w === "-C" || w === "-c" || w === "--git-dir" || w === "--work-tree") {
+        i += 2;
+        continue;
+      }
+      if (
+        w.startsWith("--git-dir=") ||
+        w.startsWith("--work-tree=") ||
+        (w.startsWith("-c") && w.includes("="))
+      ) {
+        i += 1;
+        continue;
+      }
+      if (w.startsWith("-") && w !== "--") {
+        i += 1;
+        continue;
+      }
+      // Non-commit git subcommands must not stop compound scanning (#5656):
+      // `git status && git commit` still needs the later commit part.
+      if (w.toLowerCase() === "commit") return true;
+      break;
+    }
+  }
+  return false;
+}
+
+/**
+ * True when a Shell git commit retargets checkout via -C / --git-dir / --work-tree.
+ * Prospective scope-cover reads the index at projectRoot; refuse retargets (#5656).
+ */
+export function commandHasGitCommitCheckoutRetarget(command: string): boolean {
+  if (!commandHasGitCommitSubcommand(command)) return false;
+  const normalized = command.replace(/\r\n/g, "\n");
+  for (const part of normalized.split(/(?:&&|\|\||;|\n)/)) {
+    const words = part
+      .trim()
+      .split(/\s+/)
+      .filter((w) => w.length > 0);
+    let i = 0;
+    while (i < words.length) {
+      const envTok = words[i];
+      if (envTok === undefined || !/^[A-Za-z_][\w.]*=.*/.test(envTok)) break;
+      i++;
+    }
+    if (i >= words.length) continue;
+    const binTok = words[i];
+    if (binTok === undefined) continue;
+    const bin = binTok.replace(/^.*[/\\]/, "").toLowerCase();
+    if (bin !== "git" && bin !== "git.exe") continue;
+    i++;
+    let sawRetarget = false;
+    let sub: string | undefined;
+    while (i < words.length) {
+      const w = words[i];
+      if (w === undefined) break;
+      if (w === "-C" || w === "--git-dir" || w === "--work-tree") {
+        sawRetarget = true;
+        i += 2;
+        continue;
+      }
+      if (w.startsWith("--git-dir=") || w.startsWith("--work-tree=")) {
+        sawRetarget = true;
+        i += 1;
+        continue;
+      }
+      if (w === "-c" || (w.startsWith("-c") && w.includes("="))) {
+        i += w === "-c" ? 2 : 1;
+        continue;
+      }
+      if (w.startsWith("-") && w !== "--") {
+        i += 1;
+        continue;
+      }
+      sub = w.toLowerCase();
+      break;
+    }
+    if (sub === "commit" && sawRetarget) return true;
+  }
+  return false;
+}
+
+/** Staged index list result — no throw; caller maps `ok:false` to deny (#5656). */
+export type ListStagedRelPathsResult =
+  | { ok: true; paths: string[] }
+  | { ok: false; message: string };
+
+/** Staged index paths including deletions/typechanges (ACMRDT), project-relative POSIX. */
+export function listStagedRelPathsIncludingDeletes(projectRoot: string): ListStagedRelPathsResult {
+  try {
+    // -z: NUL-delimited so quoted non-ASCII names are not treated as literal paths (#5656).
+    // --no-renames: emit delete+add so rename sources stay in the cover set (#5656 Greptile).
+    // T: typechange (e.g. file→symlink) must not skip story checks (#5656 Greptile).
+    const stdout = execFileSync(
+      "git",
+      ["diff", "--cached", "--name-only", "-z", "--diff-filter=ACMRDT", "--no-renames"],
+      {
+        cwd: projectRoot,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
+    const paths = stdout
+      .split("\0")
+      .map((line) => line.replace(/\r/g, "").trim())
+      .filter((line) => line.length > 0);
+    return { ok: true, paths };
+  } catch (err: unknown) {
+    const e = err as NodeJS.ErrnoException & { stderr?: string };
+    if (e.code === "ENOENT") {
+      return { ok: false, message: "'git' executable not found on PATH" };
+    }
+    const stderr = typeof e.stderr === "string" ? e.stderr.trim() : String(e.message ?? err);
+    return { ok: false, message: `git diff --cached --name-only failed: ${stderr}` };
+  }
+}
+
+/** Quote-aware argv split so `-m "fix the bug"` stays one message token (#5656). */
+export function splitShellArgvPreservingQuotes(part: string): string[] {
+  const out: string[] = [];
+  let cur = "";
+  let quote: '"' | "'" | null = null;
+  let tokenHadQuote = false;
+  const flush = (): void => {
+    if (cur.length > 0 || tokenHadQuote) {
+      out.push(cur);
+      cur = "";
+      tokenHadQuote = false;
+    }
+  };
+  for (let i = 0; i < part.length; i++) {
+    const ch = part[i];
+    if (ch === undefined) continue;
+    if (quote !== null) {
+      if (ch === quote) {
+        quote = null;
+        continue;
+      }
+      if (ch === "\\" && quote === '"' && i + 1 < part.length) {
+        cur += part[i + 1] ?? "";
+        i += 1;
+        continue;
+      }
+      cur += ch;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+      tokenHadQuote = true;
+      continue;
+    }
+    if (/\s/.test(ch)) {
+      flush();
+      continue;
+    }
+    cur += ch;
+  }
+  flush();
+  return out;
+}
+
+/**
+ * True when a Shell git commit uses -a/--all/-am/--include or trailing pathspecs
+ * that can change the checked file set after the pre-tool index snapshot (#5656).
+ */
+export function commandHasGitCommitIndexMutatingForm(command: string): boolean {
+  if (!commandHasGitCommitSubcommand(command)) return false;
+  const normalized = command.replace(/\r\n/g, "\n");
+  for (const part of normalized.split(/(?:&&|\|\||;|\n)/)) {
+    const words = splitShellArgvPreservingQuotes(part.trim());
+    let i = 0;
+    while (i < words.length) {
+      const envTok = words[i];
+      if (envTok === undefined || !/^[A-Za-z_][\w.]*=.*/.test(envTok)) break;
+      i++;
+    }
+    if (i >= words.length) continue;
+    const binTok = words[i];
+    if (binTok === undefined) continue;
+    const bin = binTok.replace(/^.*[/\\]/, "").toLowerCase();
+    if (bin !== "git" && bin !== "git.exe") continue;
+    i++;
+    let sub: string | undefined;
+    while (i < words.length) {
+      const w = words[i];
+      if (w === undefined) break;
+      if (w === "-C" || w === "--git-dir" || w === "--work-tree") {
+        i += 2;
+        continue;
+      }
+      if (w.startsWith("--git-dir=") || w.startsWith("--work-tree=")) {
+        i += 1;
+        continue;
+      }
+      if (w === "-c" || (w.startsWith("-c") && w.includes("="))) {
+        i += w === "-c" ? 2 : 1;
+        continue;
+      }
+      if (w.startsWith("-") && w !== "--") {
+        i += 1;
+        continue;
+      }
+      sub = w.toLowerCase();
+      i += 1;
+      break;
+    }
+    if (sub !== "commit") continue;
+    while (i < words.length) {
+      const w = words[i];
+      if (w === undefined) break;
+      if (w === "--") {
+        return i + 1 < words.length;
+      }
+      if (w === "-a" || w === "--all" || w === "-i" || w === "--include" || w === "-am") {
+        return true;
+      }
+      if (w.startsWith("--message=") || w.startsWith("--file=") || w.startsWith("--author=")) {
+        i += 1;
+        continue;
+      }
+      if (
+        w === "-m" ||
+        w === "-F" ||
+        w === "--message" ||
+        w === "--file" ||
+        w === "--author" ||
+        w === "--date" ||
+        w === "-c" ||
+        w === "-C" ||
+        w === "--reuse-message" ||
+        w === "--reedit-message" ||
+        w === "--fix" ||
+        w === "--cleanup" ||
+        w === "--untracked-files"
+      ) {
+        i += 2;
+        continue;
+      }
+      // Attached value-taking shorts (-mMSG / -Ffile / -cSHA / -CSHA) before
+      // combined-flag scan so letters inside the value are not treated as -a/-i
+      // (#5656 Greptile: `git commit -m"fix parser"` / `-Fmessage.txt`).
+      if (w.startsWith("-") && !w.startsWith("--") && /^[mFcC].+/.test(w.slice(1))) {
+        i += 1;
+        continue;
+      }
+      if (w.startsWith("-") && !w.startsWith("--") && /[ai]/.test(w.slice(1))) {
+        return true;
+      }
+      if (w.startsWith("-") && w !== "--") {
+        i += 1;
+        continue;
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Shell `git commit` → prospective staged/index scope-cover (#5656 limb 3).
+ * Returns deny when cover fails; null when the command is not a git commit.
+ */
+function decideProspectiveGitCommitScopeCover(
+  input: HookDispatchInput,
+  toolName: string,
+  seams: HookPolicySeams,
+): HookDecision | null {
+  const command = hookShellCommand(input.payload);
+  if (command === null || !commandHasGitCommitSubcommand(command)) return null;
+  if (commandHasGitCommitCheckoutRetarget(command)) {
+    return deny(
+      input,
+      "prospective-scope-cover-deny",
+      toolName,
+      `Directive denied ${toolName}: git commit with -C/--git-dir/--work-tree retargets the checkout; ` +
+        "prospective scope-cover reads the index at the hook project root and refuses retargets (#5656). " +
+        "Run the commit in the scoped checkout without checkout-changing globals.",
+    );
+  }
+  if (commandHasGitCommitIndexMutatingForm(command)) {
+    return deny(
+      input,
+      "prospective-scope-cover-deny",
+      toolName,
+      `Directive denied ${toolName}: git commit -a/--all/-am/--include or pathspecs change the ` +
+        "file set after the pre-tool index snapshot (#5656). Stage the intended paths first " +
+        "(git add …) then commit with -m/-F only — no -a/--all and no trailing pathspecs.",
+    );
+  }
+  const projectRoot = resolve(input.projectRoot);
+  let staged: readonly string[];
+  if (seams.listStagedRelPaths) {
+    staged = seams.listStagedRelPaths(projectRoot);
+  } else {
+    const listed = listStagedRelPathsIncludingDeletes(projectRoot);
+    if (!listed.ok) {
+      return deny(
+        input,
+        "prospective-scope-cover-deny",
+        toolName,
+        `Directive denied ${toolName}: prospective scope-cover could not list staged paths (#5656). ${listed.message}`,
+      );
+    }
+    staged = listed.paths;
+  }
+  const cover = evaluateProspectiveScopeCover({
+    projectRoot,
+    stagedRelPaths: staged,
+    inspectScope: seams.inspectScope,
+    loadStoryWriteFence: seams.loadStoryWriteFence,
+    env: input.environ ?? process.env,
+  });
+  if (cover.ok) return null;
+  return deny(input, "prospective-scope-cover-deny", toolName, cover.message);
+}
+
+/**
+ * Prospective staged/index scope-cover gate (#5656 Prefer-A Bound limb 3).
+ * Refuses when any staged product path lacks covering running-scope governing
+ * allow `file_scope`. Does not rewrite or bless historical uncovered commits.
+ * Lifecycle/installer-only staged sets skip product coverage (setup deposits +
+ * xBRIEF lifecycle commits before the first activate) (#5656 Greptile).
+ * Reachability residuals: `verify:hooks-installed` and `--no-verify`.
+ */
+export interface ProspectiveScopeCoverInput {
+  readonly projectRoot: string;
+  /** Staged/index paths as project-relative POSIX (deletions/renames included). */
+  readonly stagedRelPaths: readonly string[];
+  readonly inspectScope?: typeof inspectActiveScope;
+  readonly loadStoryWriteFence?: (
+    projectRoot: string,
+    scopePath: string | null,
+  ) => StoryWriteFenceView;
+  readonly env?: NodeJS.ProcessEnv;
+}
+
+export interface ProspectiveScopeCoverResult {
+  readonly ok: boolean;
+  readonly message: string;
+  readonly uncovered: readonly string[];
+  readonly scopePath: string | null;
+}
+
+/**
+ * Lifecycle xBRIEF trees and exact Directive-managed host-hook deposit paths
+ * are not product coverage targets for prospective git-commit scope-cover
+ * (#5656). Consumer-owned files under `.cursor/hooks/` (etc.) stay product.
+ */
+const MANAGED_HOOK_DEPOSIT_REL_PATHS: ReadonlySet<string> = new Set([
+  ".claude/settings.json",
+  ".grok/hooks/deft.json",
+  ".grok/hooks/deft-pretooluse-wrapper.sh",
+  ".cursor/hooks.json",
+  ".codex/hooks.json",
+  ".deft/hook-gate-off.json",
+]);
+
+export function isLifecycleOrInstallerRelPath(relPathPosix: string): boolean {
+  const p = relPathPosix.replace(/\\/g, "/").replace(/^\.\//, "");
+  if (p.length === 0) return false;
+  if (MANAGED_HOOK_DEPOSIT_REL_PATHS.has(p)) return true;
+  // Lifecycle trees only — do not use isInstallerManagedPath here: that set
+  // includes package.json / lockfiles used for ordinary product edits (#5656).
+  if (p.startsWith("xbrief/") || p.startsWith("vbrief/")) return true;
+  return false;
+}
+
+export function evaluateProspectiveScopeCover(
+  input: ProspectiveScopeCoverInput,
+): ProspectiveScopeCoverResult {
+  const projectRoot = resolve(input.projectRoot);
+  const staged = input.stagedRelPaths
+    .map((p) => p.replace(/\\/g, "/").replace(/^\.\//, ""))
+    .filter((p) => p.length > 0);
+  if (staged.length === 0) {
+    return {
+      ok: true,
+      message: "No staged paths to cover.",
+      uncovered: [],
+      scopePath: null,
+    };
+  }
+  const productStaged = staged.filter((rel) => !isLifecycleOrInstallerRelPath(rel));
+  if (productStaged.length === 0) {
+    return {
+      ok: true,
+      message:
+        "Lifecycle/installer-only staged set; product prospective scope-cover not required (#5656).",
+      uncovered: [],
+      scopePath: null,
+    };
+  }
+  const scope = (input.inspectScope ?? inspectActiveScope)(projectRoot, {
+    env: input.env ?? {},
+  });
+  if (!scope.ready || scope.path === null) {
+    return {
+      ok: false,
+      message:
+        `Prospective scope-cover denied: no ready running scope for staged paths (#5656). ` +
+        `${scope.message} Recovery: ${SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE}.`,
+      uncovered: productStaged,
+      scopePath: null,
+    };
+  }
+  const loadFence = input.loadStoryWriteFence ?? loadStoryWriteFenceFromMergeBase;
+  const fence = loadFence(projectRoot, scope.path);
+  if (isStoryWriteFenceUnreadable(fence)) {
+    return {
+      ok: false,
+      message:
+        `Prospective scope-cover denied: story write fence unreadable (#5656). ` +
+        `${fence.unreadableDetail}`,
+      uncovered: productStaged,
+      scopePath: scope.path,
+    };
+  }
+  if (!hasPositiveGoverningStoryAllow(fence)) {
+    return {
+      ok: false,
+      message:
+        `Prospective scope-cover denied: selected scope lacks positive governing ` +
+        `allow file_scope (#5656). ${POSITIVE_GOVERNING_ALLOW_REQUIRED}`,
+      uncovered: productStaged,
+      scopePath: scope.path,
+    };
+  }
+  const uncovered = productStaged.filter((rel) => !matchAny(fence.fileScope, rel));
+  if (uncovered.length > 0) {
+    return {
+      ok: false,
+      message:
+        `Prospective scope-cover denied: staged path(s) outside governing file_scope ` +
+        `(#5656): ${uncovered.join(", ")}. This gate is prospective only — it does not ` +
+        "rewrite or bless earlier uncovered commits. Residuals: verify:hooks-installed; --no-verify.",
+      uncovered,
+      scopePath: scope.path,
+    };
+  }
+  return {
+    ok: true,
+    message: `Prospective scope-cover passed for ${String(productStaged.length)} product staged path(s).`,
+    uncovered: [],
+    scopePath: scope.path,
+  };
 }
 
 /**

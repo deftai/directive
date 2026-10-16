@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { loadStoryWriteFenceFromPath } from "../policy/write-fence.js";
 import { SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE } from "../scope/transition-hint.js";
 import { applyWorktreeOccupancy } from "../session/occupancy.js";
 import {
@@ -126,6 +127,8 @@ function readySeams(overrides: Partial<HookPolicySeams> = {}): HookPolicySeams {
     sessionStart: () => ({ code: 0, stdout: "", stderr: "" }),
     runningInsideDeftRepo: () => true,
     realpathLifecycleExecutionRoot: (path) => path,
+    // #5656: fixture stubs lack merge-base fence bytes; default positive allow.
+    loadStoryWriteFence: () => ({ fileScope: ["**"], denyPaths: [] }),
     ...overrides,
   };
 }
@@ -1567,6 +1570,12 @@ function liveScopeSeams(overrides: Partial<HookPolicySeams> = {}): HookPolicySea
     sessionStart: () => ({ code: 0, stdout: "", stderr: "" }),
     runningInsideDeftRepo: () => true,
     realpathLifecycleExecutionRoot: (path) => path,
+    // #5656: live fixtures write fence bytes to WT; merge-base default is empty.
+    loadStoryWriteFence: (_root, scopePath) => {
+      const fromPath = loadStoryWriteFenceFromPath(scopePath);
+      if (fromPath.fileScope.length > 0 || fromPath.denyPaths.length > 0) return fromPath;
+      return { fileScope: ["**"], denyPaths: [] };
+    },
     ...overrides,
   };
 }

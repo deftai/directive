@@ -3112,6 +3112,8 @@ describe("explicit lease membership (#3755)", () => {
         path: "xbrief/active/story.xbrief.json",
         message: "OK active scope",
       }),
+      // #5656: fixture stubs lack merge-base fence bytes; default positive allow.
+      loadStoryWriteFence: () => ({ fileScope: ["**"], denyPaths: [] }),
     };
     const write = {
       host: "grok" as const,

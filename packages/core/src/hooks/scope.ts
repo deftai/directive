@@ -1,13 +1,31 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, isAbsolute, join, relative, resolve } from "node:path";
 import { hasArtifactSuffix } from "../layout/resolve.js";
+import { matchAny } from "../orchestration/pathspec.js";
 import {
+  hasPositiveGoverningStoryAllow,
   isStoryWriteFenceUnreadable,
   loadStoryWriteFenceFromMergeBase,
   type StoryWriteFenceView,
 } from "../policy/write-fence.js";
 import { evaluate } from "../preflight/evaluate.js";
 import { fenceUntrustedAcceptanceText } from "../scope/acceptance-evidence.js";
+
+export { hasPositiveGoverningStoryAllow } from "../policy/write-fence.js";
+
+/**
+ * Deny copy when a selected brief lacks positive governing allow (#5656).
+ * Recovery text is inlined (same promote-then-activate wording as
+ * SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE) so module init cannot see a
+ * circular-import `undefined`.
+ */
+export const POSITIVE_GOVERNING_ALLOW_REQUIRED =
+  "Directive denied this mutation: the selected running scope lacks positive " +
+  "governing story allow coverage (non-empty file_scope / allow list). " +
+  "Deny-only and pathless fences do not admit Write or implement spawn (#5656). " +
+  "Recovery: for a newly written proposal, run `deft scope:promote -- <path>` then " +
+  "`deft scope:activate -- <path>` (auto-promote from proposed/ is refused); " +
+  "for an already-pending xBRIEF run `deft scope:activate -- <path>`.";
 
 /** Hook/process env pin for the dispatched story when more than one brief is active (#4007). */
 export const ACTIVE_SCOPE_PIN_ENV = "DEFT_ACTIVE_SCOPE";
@@ -293,6 +311,36 @@ function formatStaleEnvPinFallbackWarning(pin: string, selectedPath: string): st
 }
 
 /**
+ * Whether the selected brief supplies positive governing allow for a mutation
+ * (#5656 Prefer-A Bound limb 2). Uses the same fence loader as the write gate
+ * (merge-base by default) so agent-widened working-tree scope bytes alone do
+ * not admit. Pathless and deny-only briefs return false.
+ */
+export function selectedBriefHasPositiveGoverningAllow(
+  projectRoot: string,
+  scopePath: string | null,
+  loadFence: (
+    projectRoot: string,
+    scopePath: string,
+  ) => StoryWriteFenceView = loadStoryWriteFenceFromMergeBase,
+): boolean {
+  if (scopePath === null || scopePath.trim().length === 0) return false;
+  return hasPositiveGoverningStoryAllow(loadFence(projectRoot, scopePath));
+}
+
+/**
+ * Whether governing story allow covers a project-relative POSIX path (#5656).
+ * Empty allow never covers; deny lists are not a substitute.
+ */
+export function governingAllowCoversRelPath(
+  fence: StoryWriteFenceView,
+  relPathPosix: string,
+): boolean {
+  if (!hasPositiveGoverningStoryAllow(fence)) return false;
+  return matchAny(fence.fileScope, relPathPosix);
+}
+
+/**
  * Find an implementation-eligible scope by delegating every candidate to the
  * existing xBRIEF preflight evaluator for lifecycle/status. A second, narrower
  * predicate applies only on the unpinned multi-eligible path (#4880 Prefer-A C'):
@@ -302,6 +350,9 @@ function formatStaleEnvPinFallbackWarning(pin: string, selectedPath: string): st
  *
  * When more than one candidate remains eligible after that partition, first-wins
  * is not used (#4007): bind {@link ACTIVE_SCOPE_PIN_ENV} / `boundPath`, or fail closed.
+ *
+ * Note (#5656): inspect readiness alone is not Write/spawn admission. Dispatcher
+ * still requires {@link selectedBriefHasPositiveGoverningAllow} for those tools.
  */
 export function inspectActiveScope(
   projectRoot: string,

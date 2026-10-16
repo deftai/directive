@@ -25,11 +25,14 @@ Partition before you act. These are not one leftover list.
 
 ### 1. Live host-hook authority
 
-`.cursor/hooks.json` is trackable `failClosed: true`. After `npm uninstall -g`, leftover Cursor hook files still deny every mutation with opaque exit 127. Other leftover host files (`.claude`, `.codex`, `.grok`) fail open after the CLI is gone. They are not the same class.
+`.cursor/hooks.json` is trackable `failClosed: true`. After `npm uninstall -g`, leftover Cursor hook files still deny every mutation with opaque exit 127.
 
-! Strip live Cursor hook authority while the CLI still exists.
-! Reuse leftover-free strip: write empty host hook files (`{}`).
+Grok is not universally fail-open once Prefer-A Bound #5656 lands: `.grok/hooks/deft.json` deposits a PreToolUse shell wrapper that emits Grok's deny envelope when `deft-hook` is missing or non-decision. Leftover Grok wrapper + registration can therefore still deny after uninstall when the host starts the wrapper. Wrapper-never-starts (missing interpreter / host timeout with no decision) remains a host-contract residual. Claude and Codex leftovers still fail open after the CLI is gone — silent gate loss, not Cursor/Grok fail-closed parity.
+
+! Strip live Cursor **and** Grok fail-closed / wrapper-mediated hook authority while the CLI still exists.
+! Reuse leftover-free strip: write empty host hook files (`{}`) and remove `.grok/hooks/deft-pretooluse-wrapper.sh` via hostHooks opt-out + `directive update`.
 ⊗ Do not `rm` host dirs (`.cursor/`, `.claude/`, `.codex/`, `.grok/`, `.agents/`). Leftover-free strip preserves consumer host settings.
+⊗ Do not read Cursor-only `failClosed` prose as host-universal — Claude/Codex remain fail-open; Grok deny is wrapper-mediated (#5656).
 
 See [hook runtime unavailable](./hook-runtime-unavailable.md).
 
@@ -69,16 +72,17 @@ Reverse-init of tracked deposits is a separate explicit destructive operation. U
 
 Run these in order. Do not uninstall first.
 
-1. Strip Cursor failClosed hooks (disable, then leftover-free write):
+1. Strip fail-closed / wrapper-mediated hooks (disable, then leftover-free write):
 
 ```bash
 directive policy:disable-host-hooks --host cursor --confirm
+directive policy:disable-host-hooks --host grok --confirm
 directive update
 ```
 
-`disable-host-hooks` persists `plan.policy.hostHooks.cursor=false`. It does not write host files. The next `directive update` writes leftover-free `{}` for opted-out Directive-only deposits. That empty-file write is the strip.
+`disable-host-hooks` persists `plan.policy.hostHooks.<host>=false`. It does not write host files. The next `directive update` writes leftover-free `{}` for opted-out Directive-only deposits and removes the Grok outer-deny wrapper. That empty-file / wrapper strip is the strip.
 
-? You may repeat disable for `claude`, `codex`, and `grok` for hygiene. Cursor is the failClosed host this recipe must strip.
+? You may repeat disable for `claude` and `codex` for hygiene. Cursor (schema failClosed) and Grok (wrapper-mediated deny, #5656) are the hosts this recipe must strip before uninstall.
 
 2. Unset git hook dispatch (thin reverse of `task setup`):
 
