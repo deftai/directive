@@ -684,6 +684,20 @@ export function evaluateApplyingHostLifecycleAdmission(input: {
     return { kind: "absent", record: null };
   }
   const record = read.record;
+  // Live occupancy owner must still heartbeat/release/session:end when a later
+  // SessionStart replaced applying-host (#5676 Greptile P1).
+  const live = liveOccupant(input.projectRoot, input.now ?? new Date());
+  const liveId = live?.sessionId ?? null;
+  if (
+    liveId !== null &&
+    (input.namedSessionId?.trim() === liveId || input.depositSessionId?.trim() === liveId)
+  ) {
+    return {
+      kind: "soft-pass",
+      record,
+      reason: "live-lease-owner-cleanup",
+    };
+  }
   if (
     isHookHostIdentityProvider(input.depositHost) &&
     input.depositHost === record.provider &&
