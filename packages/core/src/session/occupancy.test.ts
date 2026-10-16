@@ -4292,6 +4292,48 @@ describe("applying-host record (#5676 Prefer-A)", () => {
     ).not.toBe("soft-pass");
   });
 
+  it("soft-passes named live occupancy owner when applying-host is stale (#5676 P1)", () => {
+    const root = mkdtempSync(join(tmpdir(), "applying-host-stale-live-"));
+    ephemeralTemps.push(root);
+    const claimedAt = new Date("2026-10-01T00:00:00Z");
+    applyWorktreeOccupancy(root, {
+      sessionId: CURSOR_OWNER,
+      now: claimedAt,
+      intent: "mutation",
+    });
+    publishApplyingHost(root, {
+      provider: "cursor",
+      rawSessionId: RAW,
+      claimedAt,
+    });
+    const later = new Date(claimedAt.getTime() + APPLYING_HOST_STALE_MS + 1);
+    // Heartbeat keeps the occupancy lease live past applying-host TTL.
+    applyWorktreeOccupancy(root, {
+      sessionId: CURSOR_OWNER,
+      now: later,
+      intent: "mutation",
+    });
+    expect(readApplyingHost(root, later).status).toBe("stale");
+    expect(
+      evaluateApplyingHostLifecycleAdmission({
+        projectRoot: root,
+        depositHost: "cursor",
+        depositSessionId: CURSOR_OWNER,
+        namedSessionId: CURSOR_OWNER,
+        now: later,
+      }),
+    ).toMatchObject({ kind: "soft-pass", reason: "live-lease-owner-cleanup" });
+    expect(
+      evaluateApplyingHostLifecycleAdmission({
+        projectRoot: root,
+        depositHost: "cursor",
+        depositSessionId: CURSOR_OWNER,
+        namedSessionId: null,
+        now: later,
+      }).kind,
+    ).toBe("repair");
+  });
+
   it("isolates concurrent worktrees and replaces same-worktree claims", () => {
     const a = mkdtempSync(join(tmpdir(), "applying-host-a-"));
     const b = mkdtempSync(join(tmpdir(), "applying-host-b-"));
