@@ -83,7 +83,7 @@ export async function handleContractEntrypoint(
     }
     const result = runMigrate({ from, root });
     process.stdout.write(`${JSON.stringify(result)}\n`);
-    if (result.message.startsWith("migrate failed")) return 1;
+    if (result.conflicts.length > 0 || result.message.startsWith("migrate failed")) return 1;
     return 0;
   }
 

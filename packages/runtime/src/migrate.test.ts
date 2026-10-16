@@ -1,11 +1,17 @@
 /**
- * Contract migrate entry tests (Wave 2b / AC7.8 / F-017).
+ * Contract migrate entry tests (Wave 2b / AC7.8 / F-017 / AC14.18).
  */
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import {
+  ContainedWriteError,
+  ContainedWriteErrorCode,
+  type ContainedWriteInput,
+  type ContainedWriteResult,
+} from "@deftai/directive-core/dist/fs/contained-write.js";
 import {
   CURRENT_DATA_SCHEMA_VERSION,
   DATA_SCHEMA_MARKER_REL,
@@ -118,6 +124,7 @@ describe("runMigrate (R7 / AC7.8)", () => {
 
     const result = runMigrate({ from: "old-style", root });
     expect(result.message).not.toMatch(/^migrate failed/);
+    expect(result.conflicts).toEqual([]);
     expect(existsSync(join(root, DATA_SCHEMA_MARKER_REL))).toBe(true);
     expect(existsSync(join(root, "vbrief"))).toBe(false);
     expect(existsSync(join(root, "xbrief", "active", "story.xbrief.json"))).toBe(true);
@@ -132,5 +139,48 @@ describe("runMigrate (R7 / AC7.8)", () => {
 
     expect(projectNeedsXbriefMigration(root)).toBe(false);
     expect(readProjectDataStatus(root).dataStatus).toBe("current");
+  });
+
+  it("AC14.18: marker ContainedWrite failure preserves xbrief migrated + conflicts", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, "vbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "vbrief", "active", "story.vbrief.json"),
+      `${JSON.stringify({
+        vBRIEFInfo: { version: "0.5", description: "partial-fail", created: "2026-06-01T00:00:00Z" },
+        plan: { title: "Story", status: "running", items: [] },
+      })}\n`,
+      "utf8",
+    );
+    execFileSync("git", ["init"], { cwd: root });
+
+    const result = runMigrate({
+      from: "1.0.0",
+      root,
+      write: (_input: ContainedWriteInput): ContainedWriteResult => {
+        throw new ContainedWriteError("injected marker write failure", {
+          code: ContainedWriteErrorCode.IO,
+          root,
+          target: DATA_SCHEMA_MARKER_REL,
+        });
+      },
+    });
+
+    expect(result.message).toMatch(/^migrate failed:/);
+    expect(result.migrated.length).toBeGreaterThan(0);
+    expect(result.migrated.some((p) => p.includes("xbrief") || p.includes("vbrief"))).toBe(true);
+    expect(result.conflicts).toEqual([DATA_SCHEMA_MARKER_REL]);
+    // Marker must not have been written; xbrief migration must have landed.
+    expect(existsSync(join(root, DATA_SCHEMA_MARKER_REL))).toBe(false);
+    expect(existsSync(join(root, "xbrief", "active", "story.xbrief.json"))).toBe(true);
+
+    // Contract JSON shape includes conflicts + migrated for bookend parse.
+    const serialized = JSON.parse(JSON.stringify(result)) as {
+      migrated: string[];
+      conflicts: string[];
+      message: string;
+    };
+    expect(serialized.conflicts).toEqual([DATA_SCHEMA_MARKER_REL]);
+    expect(serialized.migrated.length).toBeGreaterThan(0);
   });
 });

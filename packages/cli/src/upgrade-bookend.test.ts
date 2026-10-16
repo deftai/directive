@@ -46,7 +46,68 @@ function stateFor(root: string): ProjectInstallState {
   return readProjectInstallState(root);
 }
 
-function pinExact(root: string, version: string, opts?: { contract?: number; install?: boolean }): void {
+/**
+ * Fake runtime bin for AC7.6: V writes ac76-v-marker; W writes ac76-w-marker.
+ * Real invokeRuntime spawns this file — no invokeSetup override.
+ */
+function ac76MarkerRuntimeBinSource(): string {
+  return `#!/usr/bin/env node
+const fs = require("node:fs");
+const path = require("node:path");
+const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "package.json"), "utf8"));
+const version = pkg.version;
+const argv = process.argv.slice(2);
+const entry = argv[0];
+const rootIdx = argv.indexOf("--root");
+const root =
+  (rootIdx >= 0 ? argv[rootIdx + 1] : null) ||
+  process.env.DIRECTIVE_PROJECT_ROOT ||
+  process.cwd();
+const markerDir = path.join(root, ".deft", "directive");
+if (entry === "setup") {
+  fs.mkdirSync(markerDir, { recursive: true });
+  const isW = version === "2.0.0";
+  const rel = isW ? ".deft/directive/ac76-w-marker" : ".deft/directive/ac76-v-marker";
+  const body = isW ? "written-by-w-setup\\n" : "written-by-v-setup\\n";
+  fs.writeFileSync(path.join(root, rel), body);
+  process.stdout.write(
+    JSON.stringify({
+      contract: 1,
+      entry: "setup",
+      operation: "upgrade",
+      created: [rel],
+      modified: [],
+      removed: [],
+      conflicts: [],
+    }) + "\\n",
+  );
+  process.exit(0);
+}
+if (entry === "migrate") {
+  process.stdout.write(
+    JSON.stringify({
+      contract: 1,
+      entry: "migrate",
+      migrated: [],
+      created: [],
+      modified: [],
+      removed: [],
+      conflicts: [],
+      message: "migrate: data schema already current",
+    }) + "\\n",
+  );
+  process.exit(0);
+}
+process.stderr.write("ac76 fake runtime: unknown entry " + String(entry) + "\\n");
+process.exit(2);
+`;
+}
+
+function pinExact(
+  root: string,
+  version: string,
+  opts?: { contract?: number; install?: boolean; binSource?: string },
+): void {
   const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as Record<
     string,
     unknown
@@ -66,7 +127,10 @@ function pinExact(root: string, version: string, opts?: { contract?: number; ins
     )}\n`,
   );
   mkdirSync(join(nm, "dist"), { recursive: true });
-  writeFileSync(join(nm, "dist", "bin.js"), "#!/usr/bin/env node\nprocess.exit(0);\n");
+  writeFileSync(
+    join(nm, "dist", "bin.js"),
+    opts?.binSource ?? "#!/usr/bin/env node\nprocess.exit(0);\n",
+  );
   writeFileSync(
     join(root, "package-lock.json"),
     `${JSON.stringify(
@@ -639,14 +703,18 @@ describe("version-change upgrade (AC7.2 / AC7.4 / AC7.5 / AC7.9)", () => {
     const root = tempProject("ac76");
     const v = "1.2.3";
     const w = "2.0.0";
-    const markerRel = join(".deft", "directive", "ac76-w-marker");
-    const markerAbs = join(root, markerRel);
-    pinExact(root, v);
+    const wMarkerAbs = join(root, ".deft", "directive", "ac76-w-marker");
+    const vMarkerAbs = join(root, ".deft", "directive", "ac76-v-marker");
+    const fakeBin = ac76MarkerRuntimeBinSource();
+    // Pin V with a V-aware fake executable (would write V marker if invoked).
+    pinExact(root, v, { binSource: fakeBin });
     markWiringCurrent(root, v);
-    expect(existsSync(markerAbs)).toBe(false);
+    expect(existsSync(wMarkerAbs)).toBe(false);
+    expect(existsSync(vMarkerAbs)).toBe(false);
 
     const c = capture();
-    let setupVersionSeen: string | null = null;
+    // No invokeSetup/invokeMigrate override: real handOff → invokeRuntime spawns
+    // the installed package's dist/bin.js (W after PM-add).
     const code = runUpgrade(
       root,
       stateFor(root),
@@ -656,53 +724,17 @@ describe("version-change upgrade (AC7.2 / AC7.4 / AC7.5 / AC7.9)", () => {
       {
         resolvePublishedContract: () => ({ ok: true as const, contract: 1 }),
         runPmAdd: ({ projectRoot, version }) => {
-          pinExact(projectRoot, version);
+          pinExact(projectRoot, version, { binSource: fakeBin });
           return { ok: true as const };
         },
-        invokeSetup: () => {
-          // Differential: only W's setup knows this marker; V's would not write it.
-          const installed = readProjectInstallState(root).installed;
-          setupVersionSeen = installed?.version ?? null;
-          if (installed?.version === w) {
-            mkdirSync(join(root, ".deft", "directive"), { recursive: true });
-            writeFileSync(markerAbs, "written-by-w-setup\n");
-          }
-          return {
-            exitCode: 0,
-            stdout: JSON.stringify({
-              contract: 1,
-              entry: "setup",
-              operation: "upgrade",
-              created: [markerRel],
-              modified: [],
-              removed: [],
-              conflicts: [],
-            }),
-            stderr: "",
-            spawned: true,
-            message: null,
-          };
-        },
-        invokeMigrate: () => ({
-          exitCode: 0,
-          stdout: JSON.stringify({
-            contract: 1,
-            entry: "migrate",
-            migrated: [],
-            created: [],
-            modified: [],
-            removed: [],
-          }),
-          stderr: "",
-          spawned: true,
-          message: null,
-        }),
       },
     );
     expect(code).toBe(0);
-    expect(setupVersionSeen).toBe(w);
-    expect(existsSync(markerAbs)).toBe(true);
-    expect(readFileSync(markerAbs, "utf8")).toMatch(/written-by-w-setup/);
+    expect(readProjectInstallState(root).installed?.version).toBe(w);
+    expect(existsSync(wMarkerAbs)).toBe(true);
+    expect(readFileSync(wMarkerAbs, "utf8")).toMatch(/written-by-w-setup/);
+    // V's executable must not have run after the handoff.
+    expect(existsSync(vMarkerAbs)).toBe(false);
     expect(readProjectInstallState(root).pin.version).toBe(w);
   });
 

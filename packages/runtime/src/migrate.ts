@@ -30,6 +30,8 @@ export interface MigrateResult {
   readonly created: string[];
   readonly modified: string[];
   readonly removed: string[];
+  /** Failed paths when migrate stops after partial progress (AC14.18). */
+  readonly conflicts: readonly string[];
   readonly message: string;
 }
 
@@ -63,6 +65,7 @@ function emptyResult(
     created: [],
     modified: [],
     removed: [],
+    conflicts: [],
     message,
   };
 }
@@ -153,8 +156,11 @@ function applyXbriefMigration(root: string): {
 export function runMigrate(options: {
   readonly from: string;
   readonly root: string;
+  /** Test seam for ContainedWrite failure injection (AC14.18). */
+  readonly write?: typeof containedWrite;
 }): MigrateResult {
   const { from, root } = options;
+  const write = options.write ?? containedWrite;
   const created: string[] = [];
   const modified: string[] = [];
   const removed: string[] = [];
@@ -190,7 +196,7 @@ export function runMigrate(options: {
     if (!markerCurrent) {
       const body = `${JSON.stringify({ schemaVersion: CURRENT_DATA_SCHEMA_VERSION }, null, 2)}\n`;
       const existed = prior !== null;
-      containedWrite({
+      write({
         root,
         target: DATA_SCHEMA_MARKER_REL,
         data: body,
@@ -217,6 +223,7 @@ export function runMigrate(options: {
         created,
         modified,
         removed,
+        conflicts: [],
         message: `migrate: data schema already at ${CURRENT_DATA_SCHEMA_VERSION}`,
       };
     }
@@ -232,6 +239,7 @@ export function runMigrate(options: {
       created,
       modified,
       removed,
+      conflicts: [],
       message: `migrate completed: ${parts.filter(Boolean).join("; ")}`,
     };
   } catch (err) {
@@ -241,6 +249,22 @@ export function runMigrate(options: {
         : err instanceof Error
           ? err.message
           : String(err);
-    return emptyResult(from, root, `migrate failed: ${msg}`);
+    // AC14.18: keep paths already migrated; name the failed write in conflicts.
+    const conflictTarget =
+      err instanceof ContainedWriteError ? err.target : DATA_SCHEMA_MARKER_REL;
+    return {
+      contract: 1,
+      entry: "migrate",
+      stub: false,
+      from,
+      root,
+      migrated,
+      archived,
+      created,
+      modified,
+      removed,
+      conflicts: [conflictTarget],
+      message: `migrate failed: ${msg}`,
+    };
   }
 }
