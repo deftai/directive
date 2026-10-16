@@ -1,0 +1,810 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3907",
+    "updated": "2026-10-16T03:54:27Z"
+  },
+  "plan": {
+    "title": "[framework-gap] Add same-worktree CAS to ordered-plan mutations",
+    "status": "completed",
+    "narratives": {
+      "Description": "[framework-gap] Add same-worktree CAS to ordered-plan mutations",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3907",
+      "Overview": "\n\n1. Recut P1 exclusive store section: `writePlanSequence` and `clearPlanSequence` take `expected_generation`, re-read inside an exclusive same-worktree sidecar lock beside `planSequencePath` (reuse the #3909 sidecar-lock pattern; do not call the PROJECT-DEFINITION lock on this file), reject a mismatch without writing or unlinking, and mint N+1 only for the lock holder. Missing `expected_generation` fail-closes. Absent file is expected 0 / exclusive create inside the same section.\n2. Recut P1 overlapping tests: two-process overlap tests are required for advance-versus-advance, replace-versus-advance, and clear-versus-advance. Sequential stale-expected tests are insufficient.\n3. Recut P1 closed-key admission: add monotonic generation and source Git revision to `PlanSequence` and `PLAN_SEQUENCE_CLOSED_TOP_KEYS`. `parse` / `create` / `advance` round-trip and increment generation. Coverage closed-shape proof admits those keys. Source revision is recorded for #3910; it is not the compare key.\n4. Recut P1 store choke: CLI `set` / `advance` / `clear` attest `expected_generation` into the store signatures. Those store functions are the only mutators. `clear` goes through `containedRemove` inside the same section. Unconditional `unlinkSync` and public unconditional exports go away.\n5. Recut P1 legacy: missing generation on disk is expected 0 compared inside that section. Do not \"write anyway\" on legacy files.\n6. Preserve: offline same-worktree CAS (no network). Occupancy stays unused by these verbs.\n7. Exclude: occupancy as the mutex; unique dest as the mutex; `updated_at` as the compare key; CLI-only `expected_generation` in front of today's unconditional `writePlanSequence`; merge-time stale-generation rejection (#3910).\n\nTarget-digest: sha256:3f9125554031c4cf1b64598bde7b9af1348ce58dc1c459c0da6c79292606203f\n\n",
+      "Labels": "design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Recut P1 exclusive store section: `writePlanSequence` and `clearPlanSequence` take `expected_generation`, re-read inside an exclusive same-worktree sidecar lock beside `planSequencePath` (reuse the #3909 sidecar-lock pattern; do not call the PROJECT-DEFINITION lock on this file), reject a mismatch without writing or unlinking, and mint N+1 only for the lock holder. Missing `expected_generation` fail-closes. Absent file is expected 0 / exclusive create inside the same section.",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/plan-sequence/store.ts",
+          "recorded_at": "2026-10-16T03:54:22Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "title": "Recut P1 overlapping tests: two-process overlap tests are required for advance-versus-advance, replace-versus-advance, and clear-versus-advance. Sequential stale-expected tests are insufficient.",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/plan-sequence/store.ts",
+          "recorded_at": "2026-10-16T03:54:22Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "title": "Recut P1 closed-key admission: add monotonic generation and source Git revision to `PlanSequence` and `PLAN_SEQUENCE_CLOSED_TOP_KEYS`. `parse` / `create` / `advance` round-trip and increment generation. Coverage closed-shape proof admits those keys. Source revision is recorded for #3910; it is not the compare key.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/plan-sequence/store.ts",
+          "recorded_at": "2026-10-16T03:54:22Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "title": "Recut P1 store choke: CLI `set` / `advance` / `clear` attest `expected_generation` into the store signatures. Those store functions are the only mutators. `clear` goes through `containedRemove` inside the same section. Unconditional `unlinkSync` and public unconditional exports go away.",
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/plan-sequence/store.ts",
+          "recorded_at": "2026-10-16T03:54:22Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "title": "Recut P1 legacy: missing generation on disk is expected 0 compared inside that section. Do not \"write anyway\" on legacy files.",
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/plan-sequence/store.ts",
+          "recorded_at": "2026-10-16T03:54:22Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "title": "Preserve: offline same-worktree CAS (no network). Occupancy stays unused by these verbs.",
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/plan-sequence/store.ts",
+          "recorded_at": "2026-10-16T03:54:22Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "title": "Exclude: occupancy as the mutex; unique dest as the mutex; `updated_at` as the compare key; CLI-only `expected_generation` in front of today's unconditional `writePlanSequence`; merge-time stale-generation rejection (#3910).",
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/plan-sequence/store.ts",
+          "recorded_at": "2026-10-16T03:54:22Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/plan-sequence/store.ts",
+          "recorded_at": "2026-10-16T03:54:22Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/plan-sequence/store.ts",
+          "recorded_at": "2026-10-16T03:54:22Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/plan-sequence/store.ts",
+          "recorded_at": "2026-10-16T03:54:22Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/plan-sequence/store.ts",
+          "recorded_at": "2026-10-16T03:54:22Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/plan-sequence/store.ts",
+          "recorded_at": "2026-10-16T03:54:22Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "clause.13",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/plan-sequence/store.ts",
+          "recorded_at": "2026-10-16T03:54:22Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "clause.14",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/plan-sequence/store.ts",
+          "recorded_at": "2026-10-16T03:54:22Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.15",
+        "title": "clause.15",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/plan-sequence/store.ts",
+          "recorded_at": "2026-10-16T03:54:22Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.16",
+        "title": "clause.16",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/plan-sequence/store.ts",
+          "recorded_at": "2026-10-16T03:54:22Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.17",
+        "title": "clause.17",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/plan-sequence/store.ts",
+          "recorded_at": "2026-10-16T03:54:22Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.18",
+        "title": "clause.18",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/plan-sequence/store.ts",
+          "recorded_at": "2026-10-16T03:54:22Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.19",
+        "title": "clause.19",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/plan-sequence/store.ts",
+          "recorded_at": "2026-10-16T03:54:22Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.20",
+        "title": "clause.20",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/plan-sequence/store.ts",
+          "recorded_at": "2026-10-16T03:54:22Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.21",
+        "title": "clause.21",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/plan-sequence/store.ts",
+          "recorded_at": "2026-10-16T03:54:22Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.22",
+        "title": "clause.22",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/plan-sequence/store.ts",
+          "recorded_at": "2026-10-16T03:54:22Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.23",
+        "title": "clause.23",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/plan-sequence/store.ts",
+          "recorded_at": "2026-10-16T03:54:22Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.24",
+        "title": "clause.24",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/plan-sequence/store.ts",
+          "recorded_at": "2026-10-16T03:54:22Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.25",
+        "title": "clause.25",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/plan-sequence/store.ts",
+          "recorded_at": "2026-10-16T03:54:22Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3907",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3907: [framework-gap] Add same-worktree CAS to ordered-plan mutations"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 7 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "Recut P1 exclusive store section: `writePlanSequence` and `clearPlanSequence` take `expected_generation`, re-read inside an exclusive same-worktree sidecar lock beside `planSequencePath` (reuse the #3909 sidecar-lock pattern; do not call the PROJECT-DEFINITION lock on this file), reject a mismatch without writing or unlinking, and mint N+1 only for the lock holder. Missing `expected_generation` fail-closes. Absent file is expected 0 / exclusive create inside the same section.",
+        "Recut P1 overlapping tests: two-process overlap tests are required for advance-versus-advance, replace-versus-advance, and clear-versus-advance. Sequential stale-expected tests are insufficient.",
+        "Recut P1 closed-key admission: add monotonic generation and source Git revision to `PlanSequence` and `PLAN_SEQUENCE_CLOSED_TOP_KEYS`. `parse` / `create` / `advance` round-trip and increment generation. Coverage closed-shape proof admits those keys. Source revision is recorded for #3910; it is not the compare key.",
+        "Recut P1 store choke: CLI `set` / `advance` / `clear` attest `expected_generation` into the store signatures. Those store functions are the only mutators. `clear` goes through `containedRemove` inside the same section. Unconditional `unlinkSync` and public unconditional exports go away.",
+        "Recut P1 legacy: missing generation on disk is expected 0 compared inside that section. Do not \"write anyway\" on legacy files.",
+        "Preserve: offline same-worktree CAS (no network). Occupancy stays unused by these verbs.",
+        "Exclude: occupancy as the mutex; unique dest as the mutex; `updated_at` as the compare key; CLI-only `expected_generation` in front of today's unconditional `writePlanSequence`; merge-time stale-generation rejection (#3910)."
+      ],
+      "admitted_source_sentences": [
+        "Recut P1 exclusive store section: `writePlanSequence` and `clearPlanSequence` take `expected_generation`, re-read inside an exclusive same-worktree sidecar lock beside `planSequencePath` (reuse the #3909 sidecar-lock pattern; do not call the PROJECT-DEFINITION lock on this file), reject a mismatch without writing or unlinking, and mint N+1 only for the lock holder.",
+        "Missing `expected_generation` fail-closes.",
+        "Absent file is expected 0 / exclusive create inside the same section.",
+        "Recut P1 overlapping tests: two-process overlap tests are required for advance-versus-advance, replace-versus-advance, and clear-versus-advance.",
+        "Sequential stale-expected tests are insufficient.",
+        "Recut P1 closed-key admission: add monotonic generation and source Git revision to `PlanSequence` and `PLAN_SEQUENCE_CLOSED_TOP_KEYS`.",
+        "`parse` / `create` / `advance` round-trip and increment generation.",
+        "Coverage closed-shape proof admits those keys.",
+        "Source revision is recorded for #3910; it is not the compare key.",
+        "Recut P1 store choke: CLI `set` / `advance` / `clear` attest `expected_generation` into the store signatures.",
+        "Those store functions are the only mutators.",
+        "`clear` goes through `containedRemove` inside the same section.",
+        "Unconditional `unlinkSync` and public unconditional exports go away.",
+        "Recut P1 legacy: missing generation on disk is expected 0 compared inside that section.",
+        "Do not \"write anyway\" on legacy files.",
+        "Preserve: offline same-worktree CAS (no network).",
+        "Occupancy stays unused by these verbs.",
+        "Exclude: occupancy as the mutex; unique dest as the mutex; `updated_at` as the compare key; CLI-only `expected_generation` in front of today's unconditional `writePlanSequence`; merge-time stale-generation rejection (#3910).",
+        "Target-digest: sha256:3f9125554031c4cf1b64598bde7b9af1348ce58dc1c459c0da6c79292606203f"
+      ],
+      "admitted_source_digest": "04eb315e2175342020f5de9cde9062e9742bdad7b7659f8e233ff1dff7d2119b",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Recut P1 exclusive store section: `writePlanSequence` and `clearPlanSequence` take `expected_generation`, re-read inside an exclusive same-worktree sidecar lock beside `planSequencePath` (reuse the #3909 sidecar-lock pattern; do not call the PROJECT-DEFINITION lock on this file), reject a mismatch without writing or unlinking, and mint N+1 only for the lock holder. Missing `expected_generation` fail-closes. Absent file is expected 0 / exclusive create inside the same section.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Recut P1 overlapping tests: two-process overlap tests are required for advance-versus-advance, replace-versus-advance, and clear-versus-advance. Sequential stale-expected tests are insufficient.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Recut P1 closed-key admission: add monotonic generation and source Git revision to `PlanSequence` and `PLAN_SEQUENCE_CLOSED_TOP_KEYS`. `parse` / `create` / `advance` round-trip and increment generation. Coverage closed-shape proof admits those keys. Source revision is recorded for #3910; it is not the compare key.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Recut P1 store choke: CLI `set` / `advance` / `clear` attest `expected_generation` into the store signatures. Those store functions are the only mutators. `clear` goes through `containedRemove` inside the same section. Unconditional `unlinkSync` and public unconditional exports go away.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Recut P1 legacy: missing generation on disk is expected 0 compared inside that section. Do not \"write anyway\" on legacy files.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Preserve: offline same-worktree CAS (no network). Occupancy stays unused by these verbs.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Exclude: occupancy as the mutex; unique dest as the mutex; `updated_at` as the compare key; CLI-only `expected_generation` in front of today's unconditional `writePlanSequence`; merge-time stale-generation rejection (#3910).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Recut P1 exclusive store section: `writePlanSequence` and `clearPlanSequence` take `expected_generation`, re-read inside an exclusive same-worktree sidecar lock beside `planSequencePath` (reuse the #3909 sidecar-lock pattern; do not call the PROJECT-DEFINITION lock on this file), reject a mismatch without writing or unlinking, and mint N+1 only for the lock holder.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Missing `expected_generation` fail-closes.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Absent file is expected 0 / exclusive create inside the same section.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Recut P1 overlapping tests: two-process overlap tests are required for advance-versus-advance, replace-versus-advance, and clear-versus-advance.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Sequential stale-expected tests are insufficient.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Recut P1 closed-key admission: add monotonic generation and source Git revision to `PlanSequence` and `PLAN_SEQUENCE_CLOSED_TOP_KEYS`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "`parse` / `create` / `advance` round-trip and increment generation.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Coverage closed-shape proof admits those keys.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Source revision is recorded for #3910; it is not the compare key.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Recut P1 store choke: CLI `set` / `advance` / `clear` attest `expected_generation` into the store signatures.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "Those store functions are the only mutators.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "`clear` goes through `containedRemove` inside the same section.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "Unconditional `unlinkSync` and public unconditional exports go away.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "Recut P1 legacy: missing generation on disk is expected 0 compared inside that section.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 22,
+          "text": "Do not \"write anyway\" on legacy files.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 23,
+          "text": "Preserve: offline same-worktree CAS (no network).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 24,
+          "text": "Occupancy stays unused by these verbs.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 25,
+          "text": "Target-digest: sha256:3f9125554031c4cf1b64598bde7b9af1348ce58dc1c459c0da6c79292606203f",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "### v0.108.0 release audit\n\n**Result: not addressed; this issue also owns the ordered-plan portion of the residual authority work from #3909.**\n\nThe released [PlanSequence](https://github.com/deftai/directive/blob/v0.108.0/packages/core/src/plan-sequence/types.ts#L31-L43) has no authority generation or source revision, and set, advance, and clear still mutate local state without expected-generation compare-and-swap ([source](https://github.com/deftai/directive/blob/v0.108.0/packages/cli/src/plan-sequence.ts#L115-L164)). Same-worktree PROJECT-DEFINITION synchronization was released through #3796 and #3832, but it does not make a branch-local plan current across worktrees.\n\nThe remaining scope includes monotonic generation and source revision, expected-generation checks on every plan mutator, local-versus-authoritative freshness reporting, merge-time stale-generation rejection, and concurrent-update or merge-order-reversal coverage.\n\n",
+          "id": 5459517113,
+          "html_url": "https://github.com/deftai/directive/issues/3907#issuecomment-5459517113",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-08-29T01:32:15Z",
+          "updated_at": "2026-08-29T01:32:15Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because PlanSequence closed keys still have no generation or source revision, and set, advance, and clear still replace or delete .deft/plan-sequence.json without expected-generation compare-and-swap.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\nmateriality-bar: open\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-3907-dc\norigin-ref: origin/HEAD\ndispatch-sha: 805209c849cac0481f780108c8e78a4c5b7cb3bc\ndest-wo: leftover-complete\nverification-path: pin-read git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:; dest cwd-without-occupy\n\ncharter: refutation\ncharter-why: the issue names a defensible presumption with a refutation target\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: operator \"use appropriate n\" is missing-token; spend-resolve --recommend N=1. Body already names monotonic generation, expected_generation, and offline CAS; merge-time authority stays on #3910.\nDual-stop cap: 6 posts\n\npain: P1\n\ntarget: #3907\ntarget-shape: single-issue (default)\naudit-targets: none\nrefutation-target: ordered-plan mutators replace or delete local state without expected-generation compare-and-swap\n\n",
+          "id": 6181717290,
+          "html_url": "https://github.com/deftai/directive/issues/3907#issuecomment-6181717290",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-15T00:43:17Z",
+          "updated_at": "2026-10-15T00:43:17Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\npin: 805209c849cac0481f780108c8e78a4c5b7cb3bc\nid-ceiling: 6181717290\ncharter: refutation\nrefutation-target: ordered-plan mutators replace or delete local state without expected-generation compare-and-swap\n\n## Verdict\n\nThe refutation target survives. At the dispatch SHA, `set`, `advance`, and `clear` still publish or delete `.deft/plan-sequence.json` with no expected-generation compare. A monotonic generation field plus a CLI flag still leaves overlapping same-worktree writers able to mint the same next generation. Bind the generation token only as something one exclusive store section can mint.\n\nRe-verified by `git show` / `git rev-parse` / `git grep` on `805209c849cac0481f780108c8e78a4c5b7cb3bc` (blobs `4b03692f395b67cf0d15dfd850912cb91af78f22`, `d2ace9d0733cf823981c051f1aad2b1eb004918c`, `785b3580c527044dedb5dff8901695e0bcd29452`). Envelope comments through `6181717290` contain no embedded-instruction payload.\n\n## Injection / swarm\n\nTriggered. `.deft/plan-sequence.json` is shared worktree identity. `current_index`, `exhausted`, and `authorized_by` are what a later worker treats as owned local state. Same-dest writers are operator CLI plus agent, and cwd-without-occupy dest sharing. Unique implement dests leave that same-file race in place. A generation number both overlapping writers can mint as N+1 becomes a forged ownership token.\n\n## F1 blocks-the-design: generation CAS is not exclusive unless the store compare runs inside a lock section\n\nEvidence:\n- `git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:packages/core/src/plan-sequence/store.ts` — `writePlanSequence` is `containedWrite` `mode: \"replace\"` with no expected token; `clearPlanSequence` is `unlinkSync` when the file exists.\n- `git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:packages/cli/src/plan-sequence.ts` — `set` writes the payload; `advance` reads then `writePlanSequence`; `clear` unlinks. No `expected_generation` flag. `git grep` on that SHA under `packages/core/src/plan-sequence` and `packages/cli/src/plan-sequence.ts` has no `expected_generation`.\n- `git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:packages/core/src/fs/contained-write.ts` (replace arm) — replace is `O_WRONLY|O_CREAT|O_TRUNC`, not a compare. `mode: \"create\"` is the exclusive create (`O_EXCL`).\n- Existing same-worktree artifact protocol: `git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:packages/core/src/vbrief-build/project-definition-io.ts` (`projectDefinitionMutationLock`, sidecar `${path}.lock`) and `git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:packages/core/src/vbrief-build/project-definition-mutation.ts` (`withProjectDefinitionMutation` load/compare/persist inside the lock). Issue body names #3909 as the resolved sibling.\n- Occupancy does not serialize these verbs: `git grep` of `plan-sequence` against `packages/core/src/session/occupancy.ts` is empty; the CLI mutators take no lease.\n\nFailure mode: processes A and B both read generation N. Both pass `expected_generation=N`. Both publish generation N+1 and both succeed. Last truncate wins. Two `advance`s leave `current_index` one step short. A later worker reads N+1 and treats that snapshot as exclusive ownership.\n\nSequential stale-expected tests pass on check-then-replace after A has already finished. The body's advance-versus-advance / replace-versus-advance / clear-versus-advance list can be implemented as that sequential shape. Overlap is the hole.\n\nDisposition: the lean cannot bind a generation token as authority until `writePlanSequence` / `clearPlanSequence` take `expected_generation`, re-read inside an exclusive same-worktree section (reuse the #3909 sidecar-lock pattern beside `planSequencePath`; do not call the PROJECT-DEFINITION lock on this file), reject a mismatch without writing or unlinking, and mint N+1 only for the lock holder. Overlapping two-process tests are required; sequential stale-expected tests are insufficient. Missing `expected_generation` fail-closes. Absent file is expected 0 / exclusive create inside the same section.\n\n## F2 sharpens-framing: the type field is inert unless parse, closed keys, and the public store choke carry it\n\nEvidence:\n- `git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:packages/core/src/plan-sequence/types.ts` — `PlanSequence` (72-86) has `created_at` / `updated_at` / optional `contract` and no generation or source revision. `PLAN_SEQUENCE_CLOSED_TOP_KEYS` (48-60) is the #5551 closed set. `createPlanSequence` (326-351) and `parsePlanSequence` (375-422) rebuild a whitelist; extra JSON keys never round-trip. `advancePlanSequence` (354-373) spreads that parsed object and bumps `updated_at` only.\n- `git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:packages/core/src/coverage-applicability/evaluate.test.ts` — `isClosedPlanSequenceShape` refuses `extra_authority`. `git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:packages/core/src/coverage-applicability/evaluate.ts` (`provePlanSequenceClosedShapeInert`) marks `.deft/plan-sequence.json` inert only after that proof.\n- `git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:packages/core/src/plan-sequence/index.ts` exports unconditional `writePlanSequence` / `clearPlanSequence`. `clearPlanSequence` stays on `unlinkSync` while `writePlanSequence` comments #2980 `containedWrite`.\n\nFailure mode: the file grows a generation key, `parsePlanSequence` drops it on `advance`, coverage closed-shape proof fails on the new keys, or callers keep the unconditional export / unlink sink. The on-disk token never participates in a compare. Legacy records treated as \"write anyway\" reopen P1 for every existing file.\n\nDisposition: the lean can bind after it names, in the same bound remedy: closed-key admission for generation and source revision; `parse` / `create` / `advance` round-trip and increment; store signatures as the only mutators (CLI flags are attestation into that choke); `clear` through `containedRemove` inside the same section; missing generation is expected 0 compared inside that section. Source revision is recorded for #3910; it is not the compare key.\n\n## F3 footnote: containedWrite replace is truncate-in-place\n\n`git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:packages/core/src/fs/contained-write.ts` replace arm uses `O_TRUNC`. Sibling `atomicWriteProjectDefinition` is tmp + `renameSync`. The body sentence about atomic replacement preventing torn bytes overstates the current plan-sequence sink. Adjacent to P1; the lost-update remains the generation/lock hole.\n\n## F4 footnote: comment 5459517113 still lists merge-time rejection\n\nThat in-envelope v0.108.0 audit still names merge-time stale-generation rejection as remaining scope. The issue body and Stop 1 `6181717290` already leave repository-wide / merge-time authority on #3910. Keep it there.\n\n## Road-not-taken\n\nInventory before a new protocol: #3909 sidecar lock plus expected-generation compare inside the section (chosen). Occupancy as the mutex (lease never checked by these verbs). Unique dest as the mutex (same-file writers remain). `updated_at` as the compare key (clock ties, no compare on write). CLI-only `expected_generation` in front of today's `writePlanSequence` (public store bypass, overlap still lost-updates).\n\n## Steelman\n\nStrongest rejected position: occupancy already serializes mutation sessions, so a generation field plus sequential stale-expected tests close P1, and the lock is extra machinery.\n\nWhat would flip F1: pin-SHA evidence that `plan-sequence:set` / `advance` / `clear` refuse without the dest occupancy lease, and that dest-wo / a second CLI in the same worktree cannot run those mutators. The pin shows the opposite.\n\n",
+          "id": 6181916568,
+          "html_url": "https://github.com/deftai/directive/issues/3907#issuecomment-6181916568",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-15T00:59:09Z",
+          "updated_at": "2026-10-15T00:59:09Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\n`plan-sequence` set, advance, and clear still replace or delete `.deft/plan-sequence.json` with no expected-generation compare. A generation field both overlapping writers can mint as N+1 is not exclusive ownership. Closed-shape coverage will refuse an extra key unless the closed set admits it.\n\nIf this map is confirmed, the store is the only mutator. It takes `expected_generation`, re-reads inside a sidecar lock beside the plan-sequence file, mints N+1 only for the lock holder, and rejects a mismatch without writing. Legacy files compare as generation 0. Merge-time authority stays on #3910.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. grok-4.6 was the round-1 critic. Takes accept that critic's classified headings.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: pain-P1 asserted until a pain-audit critic targets the cites.\nSpec-path: next-build contract is not this body.\n\n**Lean:** round-1 successor after one critic. Cites critic 6181916568. Supersedes Stop 1 write-back 6181717290. Round 1 sibling count 1.\n\narc-mode: no-ingest\nyolo-standing: yes\nmateriality-bar: open\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-3907-dc\norigin-ref: origin/HEAD\ndispatch-sha: 805209c849cac0481f780108c8e78a4c5b7cb3bc\ndest-wo: leftover-complete\nverification-path: pin-read git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:; dest cwd-without-occupy\ntarget shape: single-issue\nround: 1\nsiblings: 1\nDual-stop cap: 6 posts\n\nTakes:\n\n- 6181916568 F1 generation CAS is not exclusive unless the store compare runs inside a lock section — accept-into-contract\n- 6181916568 F2 the type field is inert unless parse, closed keys, and the public store choke carry it — accept-into-contract\n\nFootnotes stay footnotes.\n\nrelieves: P1\n\n## Bound remedy\n\n1. Recut P1 exclusive store section: `writePlanSequence` and `clearPlanSequence` take `expected_generation`, re-read inside an exclusive same-worktree sidecar lock beside `planSequencePath` (reuse the #3909 sidecar-lock pattern; do not call the PROJECT-DEFINITION lock on this file), reject a mismatch without writing or unlinking, and mint N+1 only for the lock holder. Missing `expected_generation` fail-closes. Absent file is expected 0 / exclusive create inside the same section.\n2. Recut P1 overlapping tests: two-process overlap tests are required for advance-versus-advance, replace-versus-advance, and clear-versus-advance. Sequential stale-expected tests are insufficient.\n3. Recut P1 closed-key admission: add monotonic generation and source Git revision to `PlanSequence` and `PLAN_SEQUENCE_CLOSED_TOP_KEYS`. `parse` / `create` / `advance` round-trip and increment generation. Coverage closed-shape proof admits those keys. Source revision is recorded for #3910; it is not the compare key.\n4. Recut P1 store choke: CLI `set` / `advance` / `clear` attest `expected_generation` into the store signatures. Those store functions are the only mutators. `clear` goes through `containedRemove` inside the same section. Unconditional `unlinkSync` and public unconditional exports go away.\n5. Recut P1 legacy: missing generation on disk is expected 0 compared inside that section. Do not \"write anyway\" on legacy files.\n6. Preserve: offline same-worktree CAS (no network). Occupancy stays unused by these verbs.\n7. Exclude: occupancy as the mutex; unique dest as the mutex; `updated_at` as the compare key; CLI-only `expected_generation` in front of today's unconditional `writePlanSequence`; merge-time stale-generation rejection (#3910).\n\nTarget-digest: sha256:3f9125554031c4cf1b64598bde7b9af1348ce58dc1c459c0da6c79292606203f\n\n",
+          "id": 6181978468,
+          "html_url": "https://github.com/deftai/directive/issues/3907#issuecomment-6181978468",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-15T01:04:20Z",
+          "updated_at": "2026-10-15T01:04:20Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\nfinding-classes: none\nharvest-changed: false\n\npin: 805209c849cac0481f780108c8e78a4c5b7cb3bc\nid-ceiling: 6181978468\nround: pain-audit\ncite: 6181978468 relieves: P1\n\n## Verdict\n\nBind lean 6181978468 `relieves: P1` is honest. The Bound-remedy covers ordered-plan mutators replacing or deleting `.deft/plan-sequence.json` without expected-generation compare-and-swap. Harvest stays as written.\n\n## Re-verified at pin\n\n`git grep expected_generation 805209c849cac0481f780108c8e78a4c5b7cb3bc -- packages/core/src/plan-sequence packages/cli/src/plan-sequence.ts` is empty.\n\n`git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:packages/core/src/plan-sequence/store.ts` (blob `d2ace9d0733cf823981c051f1aad2b1eb004918c`): `writePlanSequence` is `containedWrite` `mode: \"replace\"` with no expected token; `clearPlanSequence` is `existsSync` then `unlinkSync`.\n\n`git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:packages/cli/src/plan-sequence.ts` (blob `785b3580c527044dedb5dff8901695e0bcd29452`): `set` writes the payload; `advance` reads then writes; `clear` unlinks. No expected-generation flag. `parseArgs` rejects unknown flags. CLI tests (`git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:packages/cli/src/plan-sequence.test.ts`) run `set` / `advance` / `clear` to exit 0 with no generation token.\n\n`git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:packages/core/src/plan-sequence/types.ts` (blob `4b03692f395b67cf0d15dfd850912cb91af78f22`): `PlanSequence` has timestamps and no generation or source revision. `PLAN_SEQUENCE_CLOSED_TOP_KEYS` is the #5551 closed set. `parsePlanSequence` rebuilds a whitelist; extra JSON keys never round-trip. `createPlanSequence` and `advancePlanSequence` do not mint a generation.\n\n`git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:packages/core/src/fs/contained-write.ts`: replace arm is `O_WRONLY|O_CREAT|O_TRUNC`. `mode: \"create\"` is `O_EXCL`. `containedRemove` already exists.\n\n`git grep` of `plan-sequence` against `packages/core/src/session/occupancy.ts` is empty. Production writers are the store functions; CLI is the only production caller (`git grep writePlanSequence` / `clearPlanSequence` excluding tests).\n\nP1 is still the pin-SHA behavior. The harvest is what closes it.\n\n## Harvest vs P1\n\n1. Exclusive section: `writePlanSequence` and `clearPlanSequence` take `expected_generation`, re-read inside a sidecar lock beside `planSequencePath`, reject a mismatch without write or unlink, and mint N+1 only for the lock holder. Missing `expected_generation` fail-closes. Absent file is expected 0 / exclusive create in that section.\n2. Overlap tests: two-process advance-versus-advance, replace-versus-advance, and clear-versus-advance. Sequential stale-expected tests are named insufficient. Existing spawn fixture: `git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:packages/core/src/vbrief-build/project-definition-io.test.ts` (serializes separate processes through the mutation sidecar).\n3. Closed keys: monotonic generation and source Git revision admitted on `PlanSequence` and `PLAN_SEQUENCE_CLOSED_TOP_KEYS`; `parse` / `create` / `advance` round-trip and increment; coverage closed-shape proof admits those keys. `git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:packages/core/src/coverage-applicability/evaluate.ts` (`provePlanSequenceClosedShapeInert`) plus `isClosedPlanSequenceShape` refusing `extra_authority` in `evaluate.test.ts`. Source revision is recorded for #3910; it is the non-compare field.\n4. Store choke: CLI `set` / `advance` / `clear` attest `expected_generation` into the store signatures. Those store functions are the only mutators. `clear` goes through `containedRemove` inside the same section. Unconditional `unlinkSync` and public unconditional exports go away.\n5. Legacy: missing generation on disk is expected 0 compared inside that section.\n6. Offline same-worktree CAS. Occupancy stays unused by these verbs.\n7. Exclude: occupancy as the mutex; unique dest as the mutex; `updated_at` as the compare key; CLI-only `expected_generation` in front of today's unconditional `writePlanSequence`; merge-time stale-generation rejection (#3910).\n\nFollowed as written, two processes that both read generation N serialize on the sidecar. The lock holder mints N+1 from the re-read. The waiter re-reads a mismatch and leaves the file. `loadSetPayload` / `createPlanSequence` still construct a payload without reading disk; item 1 already makes the store stamp published generation from that re-read (0 if absent or legacy) plus one.\n\n## Injection / swarm\n\nTriggered. `.deft/plan-sequence.json` is shared worktree identity (`current_index`, `exhausted`, `authorized_by`). Same-dest writers are operator CLI plus agent, including cwd-without-occupy dest sharing. Unique implement dests leave that same-file race. Occupancy does not serialize these verbs. A generation both overlapping writers can mint as N+1 is a forged ownership token; item 1 mints only inside the exclusive section. Expected-generation is an attestation of a prior read, which is this issue's CAS scope.\n\n## Inventory\n\nReuse `git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:packages/core/src/vbrief-build/project-definition-io.ts` directory-rename sidecar (`${path}.lock`, non-empty claim rename, dead-PID reap only). `projectDefinitionMutationLock` resolves PROJECT-DEFINITION; the harvest already keeps that function off this file. `containedRemove` and `containedWrite` `mode: \"create\"` already exist. `packages/core/src/slice/lock.ts` (wx file plus mtime reclaim) and the occupancy ritual-state sidecar stay on the exclude list.\n\n`git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:.gitignore` already lists the PROJECT-DEFINITION lock sidecars and omits `.deft/plan-sequence.json.lock`. Adding that ignore is part of reusing the #3909 pattern. A committed lock directory is fail-closed recovery for clones.\n\nEnvelope comments through 6181978468 carry no embedded-instruction payload that this audit executed. Bind lean 6181978468's builder-disclaimer sentence is described content.\n\n",
+          "id": 6182128034,
+          "html_url": "https://github.com/deftai/directive/issues/3907#issuecomment-6182128034",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-15T01:16:39Z",
+          "updated_at": "2026-10-15T01:16:39Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Status | Method |\n|---|---|---|\n| At dispatch SHA `805209c849cac0481f780108c8e78a4c5b7cb3bc`, `writePlanSequence` is `containedWrite` replace with no expected token; `clearPlanSequence` is `unlinkSync` | verified | pain-audit 6182128034 pin-read store.ts blob `d2ace9d0733cf823981c051f1aad2b1eb004918c` |\n| CLI `set` / `advance` / `clear` have no `expected_generation`; `git grep expected_generation` on plan-sequence paths is empty | verified | same 6182128034 `git grep` plus CLI blob `785b3580c527044dedb5dff8901695e0bcd29452` |\n| `PlanSequence` and `PLAN_SEQUENCE_CLOSED_TOP_KEYS` have no generation or source revision; parse rebuilds a whitelist | verified | 6182128034 pin-read types.ts blob `4b03692f395b67cf0d15dfd850912cb91af78f22` |\n| Occupancy does not serialize these verbs | verified | 6182128034 `git grep` of plan-sequence against occupancy.ts is empty |\n| Bind lean 6181978468 Bound-remedy covers P1 as written: sidecar lock, overlapping two-process tests, closed-key generation, store choke, legacy expected 0 | verified | live harvest of 6181978468; pain-audit 6182128034 `finding-classes: none` `harvest-changed: false` |\n\nNon-self-arbitration: grok-4.6 parent authored Stop 1 and lean 6181978468. Rows rest on pin-read at dispatch SHA `805209c849cac0481f780108c8e78a4c5b7cb3bc` and grok-4.6 pain-audit 6182128034.\n\n",
+          "id": 6182166755,
+          "html_url": "https://github.com/deftai/directive/issues/3907#issuecomment-6182166755",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-15T01:19:42Z",
+          "updated_at": "2026-10-15T01:19:42Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\n`plan-sequence` set, advance, and clear still replace or delete `.deft/plan-sequence.json` with no expected-generation compare. A generation field both overlapping writers can mint as N+1 is not exclusive ownership. Closed-shape coverage will refuse an extra key unless the closed set admits it.\n\nThe accepted next-build recut makes the store the only mutator. It takes `expected_generation`, re-reads inside a sidecar lock beside the plan-sequence file, mints N+1 only for the lock holder, and rejects a mismatch without writing. Legacy files compare as generation 0. Merge-time authority stays on #3910.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCites successor lean 6181978468 and verified-claims table 6182166755.\npain-audit 6182128034 is footnote-only; leftover-pain of relieves: P1 is satisfied.\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-3907-dc\norigin-ref: origin/HEAD\ndispatch-sha: 805209c849cac0481f780108c8e78a4c5b7cb3bc\nDual-stop cap: 6 posts\ndest-wo: leftover-complete\n\n",
+          "id": 6182167140,
+          "html_url": "https://github.com/deftai/directive/issues/3907#issuecomment-6182167140",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-15T01:19:44Z",
+          "updated_at": "2026-10-15T01:19:44Z",
+          "author_association": "COLLABORATOR"
+        }
+      ],
+      "issueBody": "## Status and scope\n\nConfirmed against v0.108.0 and current `master`.\n\nThis issue owns **same-worktree ordered-plan mutation safety**: a versioned state record and compare-and-swap semantics for `set`, `advance`, and `clear`. Repository-wide authority and proposed-merge validation belong to epic #3910.\n\n## Summary\n\nPrevent stale concurrent writers from replacing a newer `.deft/plan-sequence.json` generation in the same worktree.\n\n## Confirmed implementation evidence\n\n- `PlanSequence` has timestamps but no mutation generation or source revision: [`types.ts:31-43`](https://github.com/deftai/directive/blob/v0.108.0/packages/core/src/plan-sequence/types.ts#L31-L43).\n- The store reads the local file and performs unconditional replace/delete operations: [`store.ts:10-38`](https://github.com/deftai/directive/blob/v0.108.0/packages/core/src/plan-sequence/store.ts#L10-L38).\n- CLI `set`, `advance`, and `clear` do not provide an expected generation: [`plan-sequence.ts:115-164`](https://github.com/deftai/directive/blob/v0.108.0/packages/cli/src/plan-sequence.ts#L115-L164).\n\n## Same-worktree reproduction\n\n1. Processes A and B read generation N from the same worktree.\n2. A advances or replaces the plan and publishes generation N+1.\n3. B performs `set`, `advance`, or `clear` from its stale N snapshot.\n4. Observe B overwrite or delete the newer state without detecting the stale read.\n\nAtomic file replacement prevents torn bytes; it does not prevent this lost update.\n\n## Expected behavior\n\nEvery ordered-plan mutation declares the generation it read. The store publishes the change only if that generation is still current; otherwise it leaves the plan unchanged and reports a retry/reload remediation.\n\nThe state should also carry a source revision that downstream repository-authority checks can consume. This issue does not decide which worktree or branch is globally authoritative.\n\n## Acceptance criteria\n\n- [ ] Add a monotonic mutation generation to `PlanSequence`.\n- [ ] Record the source Git revision observed when the generation is created.\n- [ ] Require `expected_generation` for `set`, `advance`, and `clear` mutations.\n- [ ] Reject a stale expected generation without changing or deleting the file.\n- [ ] Return the current generation and source revision in human and JSON output.\n- [ ] Define migration behavior for legacy records that have no generation.\n- [ ] Define offline behavior; same-worktree CAS must not require network access.\n- [ ] Add deterministic concurrent tests for advance-versus-advance, replace-versus-advance, and clear-versus-advance.\n- [ ] Expose sufficient generation data for #3910 to validate repository/merge authority without duplicating plan parsing.\n\n## Out of scope\n\n- Selecting a repository-wide authoritative branch or worktree.\n- Rejecting semantically stale pull requests at merge time.\n- A transaction envelope spanning plan, approvals, lifecycle files, registries, and closeout.\n\nThose are owned by #3910.\n\n## Related\n\n- #3910 — merge-order-safe multi-artifact lifecycle authority\n- #1618 — source-of-truth and projection architecture\n- #3909 — same-artifact PROJECT-DEFINITION locking (resolved)\n\n---\n_Filed via `task feedback:file` from a Directive consumer project (Refs #1709 value-feedback gap escalation)._\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5283616312,
+        "origin": "deftai/directive#3907",
+        "id": "github.issue.5283616312"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "3f9125554031c4cf1b64598bde7b9af1348ce58dc1c459c0da6c79292606203f"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/plan-sequence/store.ts",
+          "packages/core/src/plan-sequence/types.ts",
+          "packages/core/src/plan-sequence/index.ts",
+          "packages/core/src/plan-sequence/mutation-lock.ts",
+          "packages/cli/src/plan-sequence.ts",
+          ".gitignore",
+          "packages/core/src/plan-sequence/store.test.ts",
+          "packages/core/src/plan-sequence/mutation-lock.test.ts",
+          "packages/core/src/plan-sequence/types.test.ts",
+          "packages/core/src/plan-sequence/index.test.ts",
+          "packages/cli/src/plan-sequence.test.ts",
+          "packages/core/src/session/verify-session-ritual.test.ts",
+          "packages/core/src/triage/evaluate/evaluate.test.ts",
+          "packages/cli/src/verify-plan-sequence.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/plan-sequence packages/cli/src/plan-sequence.test.ts"
+        ],
+        "expected_outputs": [
+          "same-worktree plan-sequence CAS with sidecar lock and two-process overlap tests"
+        ],
+        "depends_on": [],
+        "conflict_group": "plan-sequence-3907",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": [
+          "Issue-ingested Bound-remedy story; FR traces live in GitHub #3907 comments."
+        ]
+      },
+      "productPullRequest": 5651,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "01a60ba16d627d13210202bd0180ad9ec993fe29",
+        "prNumber": 5651,
+        "prBase": "master",
+        "mergeCommit": "eb9750e3005a6b107d8f1144722e58a8249f19af",
+        "deliveryBranch": "master",
+        "deliveryCommit": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+        "verifiedAt": "2026-10-16T03:54:27Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-16T03:54:27Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-16T03:54:27Z"
+      }
+    },
+    "id": "github.issue.5283616312",
+    "updated": "2026-10-16T03:54:27Z"
+  }
+}

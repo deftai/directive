@@ -3,6 +3,10 @@
  *
  * Enables agents:refresh / verify:cache-fresh one-line sha-match no-ops on
  * repeat sessions when payload + templates + engine are unchanged.
+ *
+ * All fields are local cache/runtime state (#3911): deposit identity, update
+ * timestamps, and optional surface command outcomes. Not branch, ordered-plan,
+ * scope, occupancy, or lifecycle authority. Keep the file gitignored.
  */
 
 import { existsSync, mkdirSync, readFileSync } from "node:fs";

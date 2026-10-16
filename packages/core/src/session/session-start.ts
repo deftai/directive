@@ -112,11 +112,14 @@ import {
   type ApplyOccupancyInput,
   applyWorktreeOccupancy,
   evaluateOccupancyCeremonyEligibility,
+  formatOccupancyRemediation,
+  isPersistTimeAcquisition,
+  liveOccupant,
   type OccupancyDecision,
   type OccupancyIdentityProvenance,
   type PrimaryClaimException,
-  releaseOccupancy,
   resolveOccupancySessionClaim,
+  rollbackAcquiredOccupancy,
 } from "./occupancy.js";
 import {
   type OrientationBundle,
@@ -363,7 +366,8 @@ export interface SessionStartOptions {
   readonly applyOccupancy?: (projectRoot: string, input: ApplyOccupancyInput) => OccupancyDecision;
   readonly persistSessionPosture?: typeof persistTrustedSessionPosture;
   readonly clearSessionPosture?: typeof clearPersistedSessionPosture;
-  readonly releaseOccupancy?: typeof releaseOccupancy;
+  /** #3906 / #4444: compare-and-delete persist-time claimed|stolen only. */
+  readonly rollbackAcquiredOccupancy?: typeof rollbackAcquiredOccupancy;
   readonly runTriageWelcome?: (
     projectRoot: string,
     options: { writeHistory: boolean; now: Date; output: (line: string) => void },
@@ -1371,6 +1375,109 @@ function persistOccupancyOrDeny(
   return occupancy;
 }
 
+function persistTimeAcquisition(occupancy: OccupancyDecision): OccupancyDecision | null {
+  return isPersistTimeAcquisition(occupancy.action) ? occupancy : null;
+}
+
+function rollbackUnalignedAcquisition(
+  projectRoot: string,
+  options: SessionStartOptions,
+  acquired: OccupancyDecision | null,
+): string | null {
+  if (acquired === null) return null;
+  try {
+    const rolled = (options.rollbackAcquiredOccupancy ?? rollbackAcquiredOccupancy)(
+      projectRoot,
+      acquired,
+    );
+    return rolled.code !== 0 ? rolled.message : null;
+  } catch (err) {
+    return err instanceof Error ? err.message : String(err);
+  }
+}
+
+function returnAfterUnalignedAcquisition(
+  projectRoot: string,
+  options: SessionStartOptions,
+  acquired: OccupancyDecision | null,
+  result: SessionStartResult,
+): SessionStartResult {
+  const rollbackFailure = rollbackUnalignedAcquisition(projectRoot, options, acquired);
+  if (rollbackFailure === null) return result;
+  const recovery = `${String(result.payload.message)}; occupancy rollback failed: ${rollbackFailure}`;
+  return {
+    ...result,
+    payload: { ...result.payload, message: recovery },
+    lines: [...result.lines, recovery],
+  };
+}
+
+/**
+ * Persist-first stays; re-read occupancy immediately before ritual write so a
+ * confirmed steal mid-ceremony cannot overwrite the new owner's ritual (#3906).
+ */
+function refuseRitualWriteIfOccupancyLost(
+  projectRoot: string,
+  options: SessionStartOptions,
+  sessionId: string,
+  now: Date,
+  acquired: OccupancyDecision | null,
+  persisted: OccupancyDecision,
+  environment: EnvironmentContext,
+  context: {
+    ceremonyTier: SessionCeremonyTier;
+    overallStarted: number;
+    stepTimings: SessionStartStepTiming[];
+    allowOptionalNetwork: boolean;
+    lines: string[];
+  },
+): SessionStartResult | null {
+  // Injected applyOccupancy with no durable record is the unit-test seam.
+  // Production CLI does not inject it; steal coverage uses real occupancy.
+  if (options.applyOccupancy !== undefined && persisted.record === null) {
+    return null;
+  }
+  const live = liveOccupant(projectRoot, now);
+  if (live !== null && live.sessionId === sessionId) {
+    return null;
+  }
+  const occupantId = live?.sessionId ?? null;
+  const message =
+    `session:start refused to write ritual: occupancy is no longer owned by session ${sessionId}` +
+    ` (live occupant ${occupantId ?? "none"}). A confirmed steal during ceremony must not overwrite the new owner.` +
+    (live !== null ? `\n${formatOccupancyRemediation(live, now, sessionId, options.env)}` : "");
+  context.lines.push(message);
+  emitSessionStartProcessCost(
+    {
+      ceremonyTier: context.ceremonyTier,
+      durationMs: elapsedMs(context.overallStarted),
+      exitCode: 1,
+      ready: false,
+      optionalNetwork: context.allowOptionalNetwork,
+      steps: asProcessCostSteps(context.stepTimings),
+    },
+    { projectRoot },
+  );
+  return returnAfterUnalignedAcquisition(projectRoot, options, acquired, {
+    code: 1,
+    payload: {
+      ready: false,
+      exit_code: 1,
+      ceremony_tier: context.ceremonyTier,
+      occupancy: {
+        action: "denied",
+        session_id: sessionId,
+        occupant_id: occupantId,
+      },
+      environment: environmentContextToDict(environment),
+      message,
+      steps: context.stepTimings,
+      duration_ms: elapsedMs(context.overallStarted),
+    },
+    lines: context.lines,
+  });
+}
+
 function runReadOnlySessionStart(
   projectRoot: string,
   options: SessionStartOptions,
@@ -1490,13 +1597,12 @@ function runRequirementsSessionStart(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     let recovery = message;
-    if (persisted.action === "claimed" || persisted.action === "stolen") {
+    if (isPersistTimeAcquisition(persisted.action)) {
       try {
-        const released = (options.releaseOccupancy ?? releaseOccupancy)(projectRoot, {
-          sessionId: persisted.sessionId,
-          env: options.env,
-          now: instant,
-        });
+        const released = (options.rollbackAcquiredOccupancy ?? rollbackAcquiredOccupancy)(
+          projectRoot,
+          persisted,
+        );
         if (released.code !== 0) {
           recovery = `${message}; occupancy rollback failed: ${released.message}`;
         }
@@ -1575,17 +1681,24 @@ function runSessionRearm(
   }
 
   const occupancyStarted = performance.now();
-  const plannedOccupancy = runOccupancy(projectRoot, options, sessionId, instant, false);
+  const persistedOccupancy = persistOccupancyOrDeny(
+    projectRoot,
+    options,
+    sessionId,
+    instant,
+    environment,
+  );
   pushExclusiveStep(stepTimings, "occupancy_plan", occupancyStarted);
-  if (plannedOccupancy.code !== 0) {
-    return occupancyDeniedResult(plannedOccupancy, environment);
+  if ("payload" in persistedOccupancy) {
+    return persistedOccupancy;
   }
+  const acquired = persistTimeAcquisition(persistedOccupancy);
 
   const linkedStarted = performance.now();
   const linkedDeposit = applyLinkedWorktreeDeposit(projectRoot, options, environment);
   pushExclusiveStep(stepTimings, "linked_deposit", linkedStarted);
   if ("deny" in linkedDeposit) {
-    return linkedDeposit.deny;
+    return returnAfterUnalignedAcquisition(projectRoot, options, acquired, linkedDeposit.deny);
   }
 
   const resolveUserMd =
@@ -1641,7 +1754,7 @@ function runSessionRearm(
       },
       { projectRoot },
     );
-    return {
+    return returnAfterUnalignedAcquisition(projectRoot, options, acquired, {
       code: 1,
       payload: {
         ready: false,
@@ -1654,7 +1767,7 @@ function runSessionRearm(
         duration_ms: elapsedMs(overallStarted),
       },
       lines,
-    };
+    });
   }
 
   // Light branch-policy disclosure (local only) so re-arm still surfaces policy state.
@@ -1752,20 +1865,27 @@ function runSessionRearm(
   const gatedSteps = restampSteps(eligibility.state.gatedSteps, instant);
 
   const writeStarted = performance.now();
-  const persistedOccupancy = persistOccupancyOrDeny(
-    projectRoot,
-    options,
-    sessionId,
-    instant,
-    environment,
-  );
-  if ("payload" in persistedOccupancy) {
-    return persistedOccupancy;
-  }
   // #3433: keep DEFT_SESSION_ID / occupant id. Do not mint a new UUID on re-arm.
   const rearmSessionId = persistedOccupancy.sessionId;
   lines.push(persistedOccupancy.message);
   pushWorkClaimScan(lines, projectRoot, options);
+  const lostRearm = refuseRitualWriteIfOccupancyLost(
+    projectRoot,
+    options,
+    rearmSessionId,
+    instant,
+    acquired,
+    persistedOccupancy,
+    environment,
+    {
+      ceremonyTier: REARM_CEREMONY_TIER,
+      overallStarted,
+      stepTimings,
+      allowOptionalNetwork: false,
+      lines,
+    },
+  );
+  if (lostRearm !== null) return lostRearm;
   // Fresh payload (no rearm_needed / compact_resume_at) clears compact markers (#2992).
   const writePayload: Record<string, unknown> = {
     ...newRitualStatePayload({
@@ -1914,35 +2034,46 @@ function runSessionRearm(
   };
 }
 
+function linkedDepositDeny(
+  environment: EnvironmentContext,
+  message: string,
+): { deny: SessionStartResult } {
+  return {
+    deny: {
+      code: 2,
+      payload: {
+        ready: false,
+        exit_code: 2,
+        posture: MUTATION_POSTURE,
+        environment: environmentContextToDict(environment),
+        message,
+      },
+      lines: [formatEnvironmentContext(environment), message],
+    },
+  };
+}
+
 function applyLinkedWorktreeDeposit(
   projectRoot: string,
   options: SessionStartOptions,
   environment: EnvironmentContext,
 ): { deny: SessionStartResult } | { reconstituted: string | null } {
-  const reconstitute =
-    options.reconstituteWorktreeDeposit ??
-    ((root) => reconstituteLinkedWorktreeDeposit(root, { runGit: options.runGit }));
-  const deposit = reconstitute(projectRoot);
-  if (deposit.status === "refused") {
-    const message = deposit.message;
-    return {
-      deny: {
-        code: 2,
-        payload: {
-          ready: false,
-          exit_code: 2,
-          posture: MUTATION_POSTURE,
-          environment: environmentContextToDict(environment),
-          message,
-        },
-        lines: [formatEnvironmentContext(environment), message],
-      },
-    };
+  try {
+    const reconstitute =
+      options.reconstituteWorktreeDeposit ??
+      ((root) => reconstituteLinkedWorktreeDeposit(root, { runGit: options.runGit }));
+    const deposit = reconstitute(projectRoot);
+    if (deposit.status === "refused") {
+      return linkedDepositDeny(environment, deposit.message);
+    }
+    if (deposit.status === "reconstituted") {
+      return { reconstituted: `[deft session] ${deposit.message}` };
+    }
+    return { reconstituted: null };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return linkedDepositDeny(environment, message);
   }
-  if (deposit.status === "reconstituted") {
-    return { reconstituted: `[deft session] ${deposit.message}` };
-  }
-  return { reconstituted: null };
 }
 
 export function runSessionStart(
@@ -2132,17 +2263,24 @@ export function runSessionStart(
   }
 
   const occupancyStarted = performance.now();
-  const plannedOccupancy = runOccupancy(projectRoot, options, sessionId, instant, false);
+  const persistedOccupancy = persistOccupancyOrDeny(
+    projectRoot,
+    options,
+    sessionId,
+    instant,
+    environment,
+  );
   pushExclusiveStep(stepTimings, "occupancy_plan", occupancyStarted);
-  if (plannedOccupancy.code !== 0) {
-    return occupancyDeniedResult(plannedOccupancy, environment);
+  if ("payload" in persistedOccupancy) {
+    return persistedOccupancy;
   }
+  const acquired = persistTimeAcquisition(persistedOccupancy);
 
   const linkedStarted = performance.now();
   const linkedDeposit = applyLinkedWorktreeDeposit(projectRoot, options, environment);
   pushExclusiveStep(stepTimings, "linked_deposit", linkedStarted);
   if ("deny" in linkedDeposit) {
-    return linkedDeposit.deny;
+    return returnAfterUnalignedAcquisition(projectRoot, options, acquired, linkedDeposit.deny);
   }
 
   const quickSteps: Record<string, Record<string, unknown>> = recordDeferredSteps(
@@ -2598,7 +2736,7 @@ export function runSessionStart(
       },
       { projectRoot },
     );
-    return {
+    return returnAfterUnalignedAcquisition(projectRoot, options, acquired, {
       code: 1,
       payload: {
         ready: false,
@@ -2612,23 +2750,30 @@ export function runSessionStart(
         duration_ms: elapsedMs(overallStarted),
       },
       lines,
-    };
+    });
   }
 
   const writeStarted = performance.now();
-  const persistedOccupancy = persistOccupancyOrDeny(
-    projectRoot,
-    options,
-    sessionId,
-    instant,
-    environment,
-  );
-  if ("payload" in persistedOccupancy) {
-    return persistedOccupancy;
-  }
   const coldSessionId = persistedOccupancy.sessionId;
   lines.push(persistedOccupancy.message);
   pushWorkClaimScan(lines, projectRoot, options);
+  const lostCold = refuseRitualWriteIfOccupancyLost(
+    projectRoot,
+    options,
+    coldSessionId,
+    instant,
+    acquired,
+    persistedOccupancy,
+    environment,
+    {
+      ceremonyTier: COLD_CEREMONY_TIER,
+      overallStarted,
+      stepTimings,
+      allowOptionalNetwork,
+      lines,
+    },
+  );
+  if (lostCold !== null) return lostCold;
   const dialDict = {
     ...ceremonyDialToDict(ceremonyDialSelection),
     start_tier: ceremonyDialSelection.depth,

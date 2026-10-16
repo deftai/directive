@@ -5,9 +5,16 @@ export {
   missingSequenceKindPayload,
 } from "./missing-kind.js";
 export {
+  type ClearPlanSequenceResult,
   clearPlanSequence,
+  type PlanSequenceMutationCode,
+  type PlanSequenceMutationFail,
+  type PlanSequenceMutationOptions,
+  planSequenceGenerationPath,
+  planSequenceLockPath,
   planSequencePath,
   readPlanSequence,
+  type WritePlanSequenceResult,
   writePlanSequence,
 } from "./store.js";
 export {

@@ -1,0 +1,259 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5042",
+    "updated": "2026-10-14T23:25:31.754Z"
+  },
+  "plan": {
+    "title": "spec:render collapses each phase's task list into the narrative paragraph",
+    "status": "completed",
+    "narratives": {
+      "Description": "spec:render collapses each phase's task list into the narrative paragraph",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5042",
+      "Overview": "Prefer-A Bound remedy for #5042 (cite 6177540462): ordinary narrative How/Why/What is newline pass-through with itemHandlerIndent; blank line before nested children via trailing-newline chunks; regression fixtures at item-depth 1/2/3 plus nested depth-3 and depth-4/cap-4 continuation indent; CHANGELOG Unreleased Fixed; keep #4511 taxonomy out of scope.",
+      "Labels": "bug, urgent, design-critique:ingest-ready, core-capabilities, promise:records"
+    },
+    "items": [
+      {
+        "id": "item.1",
+        "status": "completed",
+        "title": "Ordinary narrative prose is newline pass-through (no oneLine on How/Why/What); emit with itemHandlerIndent on every nonblank line.",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "65be10cd429b28eb4aee7c64772d1b97496a3522",
+          "recorded_at": "2026-10-14T23:25:31.754Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "item.2",
+        "status": "completed",
+        "title": "Serialized blank-line invariant before nested children; guard only where absent after limb 1; fixture asserts blank line before first child.",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "65be10cd429b28eb4aee7c64772d1b97496a3522",
+          "recorded_at": "2026-10-14T23:25:31.754Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "item.3",
+        "status": "completed",
+        "title": "Regression fixtures: phase overview multiline How at item-depth 1/2/3 plus nested depth-3 and depth-4/cap-4 continuation-indent asserts.",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "65be10cd429b28eb4aee7c64772d1b97496a3522",
+          "recorded_at": "2026-10-14T23:25:31.754Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "item.4",
+        "status": "completed",
+        "title": "Keep #4511 taxonomy out of scope; document Prefer-A restore of narrative-carried overview; CHANGELOG Unreleased Fixed note.",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "65be10cd429b28eb4aee7c64772d1b97496a3522",
+          "recorded_at": "2026-10-14T23:25:31.754Z",
+          "recorded_by": "scope:complete"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "urgent",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:records"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5042",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5042: spec:render collapses each phase's task list into the narrative paragraph"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "- **0.1** — AWS account and CDK bootstrap · `blocked` — not app deploy; SNS + NFR-11",
+          "reason": "shell metacharacter \"`\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L18"
+        },
+        {
+          "command": "- **0.2** — Entra app registration A — resource server · `blocked`",
+          "reason": "shell metacharacter \"`\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L18"
+        },
+        {
+          "command": "- **0.3** — Entra app registration B — interactive client · `blocked` _(after 0.2)_",
+          "reason": "shell metacharacter \"`\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L18"
+        },
+        {
+          "command": "deft spec:render xbrief/specification.xbrief.json SPECIFICATION.md",
+          "reason": "wrapper subcommand must be check|doctor|verify:*|help|--version (scope/policy/swarm/scm/merge and other ambient-authority verbs denied)",
+          "sourceSpan": "fence@L43:sh"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "spec-render-phase-overview-list-collapse-oneline",
+        "expected_outputs": [
+          "packages/core/src/render/spec-render.ts preserves narrative newlines",
+          "nested-plan-items / spec-render regression fixtures green",
+          "CHANGELOG Unreleased Fixed note for #5042"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/render/nested-plan-items.test.ts packages/core/src/render/spec-render.test.ts"
+        ],
+        "file_scope": [
+          "packages/core/src/render/spec-render.ts",
+          "packages/core/src/render/nested-plan-items.test.ts",
+          "packages/core/src/render/spec-render.test.ts",
+          "CHANGELOG.md"
+        ],
+        "size": "S",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "Prefer-A Bound 6177540462",
+          "issue #5042"
+        ],
+        "parallel_safe": true
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/render/spec-render.ts",
+          "packages/core/src/render/nested-plan-items.test.ts",
+          "packages/core/src/render/spec-render.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/render",
+        "cohesion_exemption": "CHANGELOG.md is already over the review-trigger line count; #5042 adds one Unreleased Fixed note."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5586184981,
+        "origin": "deftai/directive#5042",
+        "id": "github.issue.5586184981"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "cfc2888796334b4af8a22862f7155f80fbe0a3434e2a543594321b2871de9318"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "18bd54163fd5b06759dbb8d69b1d433fdda14e81",
+        "prNumber": 5625,
+        "prBase": "master",
+        "mergeCommit": "65be10cd429b28eb4aee7c64772d1b97496a3522",
+        "deliveryBranch": "master",
+        "deliveryCommit": "65be10cd429b28eb4aee7c64772d1b97496a3522",
+        "verifiedAt": "2026-10-14T23:25:43.889Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTNjNDItM2E5Zi03ZWUwLWFkZDYtN2RiYThjOTI4MGI5"
+      },
+      "productPullRequest": 5625,
+      "mergeCommit": "65be10cd429b28eb4aee7c64772d1b97496a3522",
+      "completedAt": "2026-10-14T23:25:43.889Z",
+      "completedSessionId": "host:grok:v1:MDFhMTNjNDItM2E5Zi03ZWUwLWFkZDYtN2RiYThjOTI4MGI5",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-14T23:25:43.889Z"
+      }
+    },
+    "acceptance": {
+      "none_stated": true,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Ordinary narrative prose is newline pass-through (no oneLine on How/Why/What); emit with itemHandlerIndent on every nonblank line.",
+          "artifact_path": "packages/core/src/render/spec-render.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "65be10cd429b28eb4aee7c64772d1b97496a3522",
+            "recorded_at": "2026-10-14T23:25:31.754Z",
+            "recorded_by": "scope:complete"
+          }
+        },
+        {
+          "id": 2,
+          "text": "Serialized blank-line invariant before nested children; guard only where absent after limb 1; fixture asserts blank line before first child.",
+          "artifact_path": "packages/core/src/render/spec-render.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "65be10cd429b28eb4aee7c64772d1b97496a3522",
+            "recorded_at": "2026-10-14T23:25:31.754Z",
+            "recorded_by": "scope:complete"
+          }
+        },
+        {
+          "id": 3,
+          "text": "Regression fixtures: phase overview multiline How at item-depth 1/2/3 plus nested depth-3 and depth-4/cap-4 continuation-indent asserts.",
+          "artifact_path": "packages/core/src/render/nested-plan-items.test.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "65be10cd429b28eb4aee7c64772d1b97496a3522",
+            "recorded_at": "2026-10-14T23:25:31.754Z",
+            "recorded_by": "scope:complete"
+          }
+        },
+        {
+          "id": 4,
+          "text": "Keep #4511 taxonomy out of scope; document Prefer-A restore of narrative-carried overview; CHANGELOG Unreleased Fixed note.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "65be10cd429b28eb4aee7c64772d1b97496a3522",
+            "recorded_at": "2026-10-14T23:25:31.754Z",
+            "recorded_by": "scope:complete"
+          }
+        }
+      ],
+      "commands": [],
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "ambiguity_attestation": "none_found",
+      "sentences": [
+        "Ordinary narrative prose is newline pass-through (no oneLine on How/Why/What); emit with itemHandlerIndent on every nonblank line.",
+        "Serialized blank-line invariant before nested children; guard only where absent after limb 1; fixture asserts blank line before first child.",
+        "Regression fixtures: phase overview multiline How at item-depth 1/2/3 plus nested depth-3 and depth-4/cap-4 continuation-indent asserts.",
+        "Keep #4511 taxonomy out of scope; document Prefer-A restore of narrative-carried overview; CHANGELOG Unreleased Fixed note."
+      ]
+    },
+    "id": "github.issue.5586184981",
+    "updated": "2026-10-14T22:23:16Z"
+  }
+}

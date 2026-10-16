@@ -1,7 +1,12 @@
 import { existsSync, readFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { assertDepositContained } from "../deposit/contain.js";
-import { containedRemove, containedRename, containedWrite } from "../fs/contained-write.js";
+import {
+  containedChmod,
+  containedRemove,
+  containedRename,
+  containedWrite,
+} from "../fs/contained-write.js";
 import type { HookEvent, HookHost } from "../hooks/dispatcher.js";
 import {
   DIRECT_WRITE_HOOK_MATCHER,
@@ -56,6 +61,152 @@ export const AGENT_HOOK_PATHS = [
   ".cursor/hooks.json",
   ".codex/hooks.json",
 ] as const;
+
+
+/**
+ * Grok PreToolUse outer-deny wrapper (#5656 Prefer-A Bound, OVPR / AC9.1).
+ * Host schema has no attested failClosed; the wrapper emits Grok's deny
+ * envelope when the package-relative hook-bin cannot run (missing module /
+ * missing node), crashes, or returns malformed non-empty stdout. Empty
+ * stdout + exit 0 remains Grok allow wire. Wrapper-never-starts (missing
+ * interpreter / host timeout with no decision) is an explicit host-contract
+ * residual — not closed by this deposit.
+ *
+ * The wrapper invokes PACKAGE_RELATIVE_HOOK_BIN only — never `deft-hook` on PATH.
+ */
+export const GROK_PRETOOLUSE_WRAPPER_REL_PATH = ".grok/hooks/deft-pretooluse-wrapper.sh";
+export const GROK_PRETOOLUSE_WRAPPER_MARKER = "deft-pretooluse-wrapper.sh";
+
+/** Relative JS path the wrapper checks before invoking node (AC9.1). */
+export const PACKAGE_RELATIVE_HOOK_BIN_JS =
+  "node_modules/@deftai/directive-runtime/dist/hook-bin.js";
+
+export const GROK_WRAPPER_DENY_MISSING =
+  "Directive denied this tool: package-relative hook-bin is missing " +
+  `(${PACKAGE_RELATIVE_HOOK_BIN_JS}) or node cannot run it ` +
+  "(#5656 / #3785 / AC9.1). Install @deftai/directive-runtime in this project " +
+  "(`npm install` / `directive install --repair`), or disable Grok host hooks " +
+  "out of band (`directive policy:disable-host-hooks --host grok --confirm`).";
+
+export const GROK_WRAPPER_DENY_NONDECISION =
+  "Directive denied this tool: package-relative hook-bin produced no usable " +
+  "decision (#5656 / AC9.1). Crash, non-zero exit, and malformed non-empty " +
+  "stdout are non-decisions.";
+
+/** Pure outcome for the Grok outer-deny wrapper (shell script mirrors this). */
+export type GrokWrapperOutcome =
+  | { readonly kind: "deny"; readonly reason: string }
+  | { readonly kind: "passthrough"; readonly stdout: string };
+
+/**
+ * Evaluate Grok wrapper outcome.
+ * `deftHookResolvable` / `deftHookExecutable` mean the package-relative
+ * hook-bin.js is present / runnable via node (names kept for call-site
+ * compatibility; there is no PATH `deft-hook` resolve).
+ */
+export function evaluateGrokPretooluseWrapperOutcome(input: {
+  readonly deftHookResolvable: boolean;
+  readonly deftHookExecutable?: boolean;
+  readonly childExitCode: number | null;
+  readonly childStdout: string;
+}): GrokWrapperOutcome {
+  if (!input.deftHookResolvable || input.deftHookExecutable === false) {
+    return { kind: "deny", reason: GROK_WRAPPER_DENY_MISSING };
+  }
+  if (input.childExitCode === null || input.childExitCode !== 0) {
+    return { kind: "deny", reason: GROK_WRAPPER_DENY_NONDECISION };
+  }
+  const stdout = input.childStdout;
+  const trimmed = stdout.trim();
+  // Grok tool.before allow without advisory is empty stdout (#2864 / renderHostDecision).
+  if (trimmed.length === 0) return { kind: "passthrough", stdout: "" };
+  try {
+    const parsed: unknown = JSON.parse(trimmed);
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      return { kind: "deny", reason: GROK_WRAPPER_DENY_NONDECISION };
+    }
+    const decision = (parsed as Record<string, unknown>).decision;
+    if (decision !== "allow" && decision !== "deny") {
+      return { kind: "deny", reason: GROK_WRAPPER_DENY_NONDECISION };
+    }
+  } catch {
+    return { kind: "deny", reason: GROK_WRAPPER_DENY_NONDECISION };
+  }
+  return { kind: "passthrough", stdout };
+}
+
+/** POSIX shell deposited beside `.grok/hooks/deft.json` (#5656, OVPR AC9.1). */
+export function grokPretooluseWrapperScriptSource(): string {
+  const missingJson = JSON.stringify({ decision: "deny", reason: GROK_WRAPPER_DENY_MISSING });
+  const nondecisionJson = JSON.stringify({
+    decision: "deny",
+    reason: GROK_WRAPPER_DENY_NONDECISION,
+  });
+  const q = (s: string) => s.replace(/'/g, "'\\''");
+  const hookJs = PACKAGE_RELATIVE_HOOK_BIN_JS;
+  const lines = [
+    "#!/usr/bin/env sh",
+    "# Grok PreToolUse outer deny when package-relative hook-bin cannot decide",
+    "# (#5656 Prefer-A Bound / OVPR AC9.1). Invokes ONLY:",
+    `#   node ${hookJs} --host grok --event tool.before`,
+    "# Never resolves deft-hook on PATH.",
+    "# Residual: if this wrapper never starts (missing sh / host timeout with no",
+    "# decision), the host contract still applies — Directive cannot observe that case.",
+    "set -eu",
+    `DENY_MISSING='${q(missingJson)}'`,
+    `DENY_NONDECISION='${q(nondecisionJson)}'`,
+    `HOOK_JS="${hookJs}"`,
+    "",
+    'if [ ! -f "$HOOK_JS" ]; then',
+    "  printf '%s\\n' \"$DENY_MISSING\"",
+    "  exit 0",
+    "fi",
+    "if ! command -v node >/dev/null 2>&1; then",
+    "  printf '%s\\n' \"$DENY_MISSING\"",
+    "  exit 0",
+    "fi",
+    "",
+    // mktemp failure under set -e would exit with no deny envelope (#5656 Greptile P1).
+    "TMP=$(mktemp) || { printf '%s\\n' \"$DENY_NONDECISION\"; exit 0; }",
+    "trap 'rm -f \"$TMP\"' EXIT INT HUP TERM",
+    "set +e",
+    'node "$HOOK_JS" --host grok --event tool.before >"$TMP"',
+    "CODE=$?",
+    "set -e",
+    'OUT=$(cat "$TMP" || true)',
+    "",
+    'if [ "$CODE" -ne 0 ]; then',
+    "  printf '%s\\n' \"$DENY_NONDECISION\"",
+    "  exit 0",
+    "fi",
+    "",
+    `TRIMMED=$(printf '%s' "$OUT" | tr -d '\\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')`,
+    'if [ -z "$TRIMMED" ]; then',
+    "  # Empty allow wire for Grok tool.before without advisory.",
+    "  exit 0",
+    "fi",
+    "",
+    // Mirror evaluateGrokPretooluseWrapperOutcome: require parseable top-level
+    // decision allow|deny. Substring match alone left truncated JSON fail-open.
+    "if command -v node >/dev/null 2>&1; then",
+    "  if printf '%s' \"$TRIMMED\" | node -e " +
+      '\'let s="";process.stdin.on("data",d=>s+=d);process.stdin.on("end",()=>{' +
+      'try{const j=JSON.parse(s);if(!j||typeof j!=="object"||Array.isArray(j))' +
+      'process.exit(1);const d=j.decision;if(d!=="allow"&&d!=="deny")process.exit(1);' +
+      "process.exit(0)}catch{process.exit(1)}});'; then",
+    "    printf '%s\\n' \"$OUT\"",
+    "    exit 0",
+    "  fi",
+    "  printf '%s\\n' \"$DENY_NONDECISION\"",
+    "  exit 0",
+    "fi",
+    "# No node parser available: non-empty stdout without JSON validation → deny.",
+    "printf '%s\\n' \"$DENY_NONDECISION\"",
+    "exit 0",
+    "",
+  ];
+  return lines.join("\n");
+}
 
 /**
  * Cursor session.start / session.compact deposit timeout (seconds).
@@ -208,13 +359,16 @@ function nestedCommands(value: unknown): string[] {
 }
 
 function isManagedNestedGroup(value: unknown): boolean {
-  return nestedCommands(value).some((commandText) => isManagedHookCommand(commandText));
+  return nestedCommands(value).some(
+    (commandText) => isManagedHookCommand(commandText) || isGrokWrapperCommand(commandText),
+  );
 }
 
 function isManagedNestedGroupForHost(value: unknown, host: NestedHookHost): boolean {
-  return nestedCommands(value).some(
-    (commandText) => isManagedHookCommand(commandText) && commandText.includes(`--host ${host}`),
-  );
+  return nestedCommands(value).some((commandText) => {
+    if (host === "grok" && isGrokWrapperCommand(commandText)) return true;
+    return isManagedHookCommand(commandText) && commandText.includes(`--host ${host}`);
+  });
 }
 
 function isManagedCursorEntry(value: unknown): boolean {
@@ -231,13 +385,23 @@ function isManagedCursorEntryForHost(value: unknown): boolean {
 
 type NestedHookHost = "claude" | "grok" | "codex";
 
+/** Grok tool.before deposits the outer-deny wrapper; other nested events use bin (AC9.1). */
+function nestedToolCommand(bin: string, host: NestedHookHost, event: HookEvent): string {
+  if (host === "grok" && event === "tool.before") return GROK_PRETOOLUSE_WRAPPER_REL_PATH;
+  return command(bin, host, event);
+}
+
+function isGrokWrapperCommand(value: string): boolean {
+  return value.includes(GROK_PRETOOLUSE_WRAPPER_MARKER);
+}
+
 function nestedGroup(bin: string, host: NestedHookHost, event: HookEvent, matcher?: string) {
   return {
     ...(event === "tool.before" && matcher !== undefined ? { matcher } : {}),
     hooks: [
       {
         type: "command",
-        command: command(bin, host, event),
+        command: nestedToolCommand(bin, host, event),
         timeout:
           event === "tool.before"
             ? NESTED_TOOL_BEFORE_TIMEOUT_SECONDS
@@ -519,6 +683,53 @@ export function writeAgentHookDeposit(
     }
   }
 
+  // #5656: deposit or strip the Grok PreToolUse outer-deny wrapper beside deft.json.
+  const grokWrapperAbs = join(projectRoot, GROK_PRETOOLUSE_WRAPPER_REL_PATH);
+  assertDepositContained(projectRoot, grokWrapperAbs);
+  if (isHostHookDepositEnabled("grok", hostHooksPolicy)) {
+    const wrapperBody = grokPretooluseWrapperScriptSource();
+    const previous = existsSync(grokWrapperAbs) ? readFileSync(grokWrapperAbs, "utf8") : null;
+    if (previous !== wrapperBody) {
+      containedWrite({
+        root: resolve(projectRoot),
+        target: grokWrapperAbs,
+        data: wrapperBody,
+        mode: "replace",
+        mutation: { kind: "wrote", path: GROK_PRETOOLUSE_WRAPPER_REL_PATH },
+      });
+      // containedWrite opens 0o644; nestedToolCommand invokes the script directly.
+      containedChmod({
+        root: resolve(projectRoot),
+        target: grokWrapperAbs,
+        mode: 0o755,
+        mutation: { path: GROK_PRETOOLUSE_WRAPPER_REL_PATH },
+      });
+      if (!changedPaths.includes(AGENT_HOOK_PATHS[1])) {
+        changedPaths.push(AGENT_HOOK_PATHS[1]);
+      }
+    } else if (existsSync(grokWrapperAbs)) {
+      // Refresh execute bit on already-current body (fresh POSIX clones / 0o644).
+      containedChmod({
+        root: resolve(projectRoot),
+        target: grokWrapperAbs,
+        mode: 0o755,
+        mutation: { path: GROK_PRETOOLUSE_WRAPPER_REL_PATH },
+      });
+    }
+  } else if (existsSync(grokWrapperAbs)) {
+    if (
+      containedRemove({
+        root: projectRoot,
+        target: grokWrapperAbs,
+        mutation: { path: GROK_PRETOOLUSE_WRAPPER_REL_PATH },
+      }).removed
+    ) {
+      if (!strippedPaths.includes(AGENT_HOOK_PATHS[1])) {
+        strippedPaths.push(AGENT_HOOK_PATHS[1]);
+      }
+    }
+  }
+
   const legacyAdapterPaths = [
     ".cursor/hooks/deft-cursor-hook-adapter.mjs",
     ".cursor/hooks/deft-cursor-hook-adapter.test.mjs",
@@ -653,7 +864,7 @@ function hasNestedRegistration(
   const hooks = object(config.hooks);
   if (hooks === null) return false;
   const preTool = Array.isArray(hooks.PreToolUse) ? hooks.PreToolUse : [];
-  const toolCommand = command(bin, host, "tool.before");
+  const toolCommand = nestedToolCommand(bin, host, "tool.before");
   const compactCommand = command(bin, host, "session.compact");
   const preToolOk =
     host === "grok"
@@ -828,6 +1039,22 @@ export function inspectAgentHookDeposit(
     }
     try {
       const config = readConfig(absolute);
+      // #5656: Grok PreToolUse points at the wrapper script; missing wrapper is not healthy.
+      if (definition.host === "grok") {
+        const wrapperAbs = join(projectRoot, GROK_PRETOOLUSE_WRAPPER_REL_PATH);
+        if (!existsSync(wrapperAbs)) {
+          return {
+            host: definition.host,
+            path: definition.path,
+            status: "drifted",
+            compactSupport: definition.compactSupport,
+            detail:
+              `${GROK_PRETOOLUSE_WRAPPER_REL_PATH} is missing while ${definition.path} is registered. ` +
+              "Recovery: run `directive install --repair` / `writeAgentHookDeposit` so the outer-deny wrapper is redeposited." +
+              compactNote,
+          };
+        }
+      }
       if (definition.valid(config)) {
         return {
           host: definition.host,

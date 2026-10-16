@@ -1,0 +1,808 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3908",
+    "updated": "2026-10-16T04:09:54Z"
+  },
+  "plan": {
+    "title": "[framework-gap] Fence scope lifecycle moves across processes",
+    "status": "completed",
+    "narratives": {
+      "Description": "[framework-gap] Fence scope lifecycle moves across processes",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3908",
+      "Overview": "\n\n1. Recut P1 one closed composition: widen the existing `withPlanIdIdentityLock` hold to every `targetFolder !== null` action, keep dest rollback inside that hold, and leave plan-id admission on promote/activate. A nested `withAppendLock` while the identity lock is held is out of the harvest. If a new sidecar lock is required, first make `withAppendLock` reentrant per `lockPath`.\n2. Recut P1 dest exclusive-create: publish dest with exclusive create (`containedWrite` `mode: \"create\"` / `O_EXCL`, or `link` from tmp). POSIX tmp+rename overwrite is not dest publish. Two processes must not both rename onto the same dest.\n3. Recut P1 ownership-conditioned dest unlink: unlink dest only when this process's exclusive create succeeded or dest bytes match this write. Carry the existing `HeldLock` token; do not discard it. Do not unlink dest after spec-drift lock-refuse that must spare a concurrent writer's coverage.\n4. Recut P1 dest identity: lock key is `vbriefRoot` + basename, distinct from plan-id admission. Include restore in the folder-move set. complete and fail share `targetFolder: \"completed\"` and are the same dest path.\n5. Recut P1 idempotence: map identical retry onto existing sibling-hint / restamp paths (`ok: true` only when dest already holds the intended status and generation). Keep dest-exists with different content as refuse-before-write. The #2578 test stays the pre-existing dest case. Barrier tests reuse the child-process pattern in `ritual-state-lock.concurrency.test.ts`.\n6. Preserve: PROJECT-DEFINITION mutation lock after the move; spec-drift ledger lock during complete.\n7. Exclude: repository-wide multi-artifact transactions (#3910); integrated repair (#3913); occupancy as this fence; a new lock family that nests `withAppendLock` under the identity hold.\n\nTarget-digest: sha256:7428fe4893516b713eb868ced2bacb066c2bb7d112e6812016319aea8e87588f\n\n",
+      "Labels": "design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Recut P1 one closed composition: widen the existing `withPlanIdIdentityLock` hold to every `targetFolder !== null` action, keep dest rollback inside that hold, and leave plan-id admission on promote/activate. A nested `withAppendLock` while the identity lock is held is out of the harvest. If a new sidecar lock is required, first make `withAppendLock` reentrant per `lockPath`.",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "Recut P1 dest exclusive-create: publish dest with exclusive create (`containedWrite` `mode: \"create\"` / `O_EXCL`, or `link` from tmp). POSIX tmp+rename overwrite is not dest publish. Two processes must not both rename onto the same dest.",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "Recut P1 ownership-conditioned dest unlink: unlink dest only when this process's exclusive create succeeded or dest bytes match this write. Carry the existing `HeldLock` token; do not discard it. Do not unlink dest after spec-drift lock-refuse that must spare a concurrent writer's coverage.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "Recut P1 dest identity: lock key is `vbriefRoot` + basename, distinct from plan-id admission. Include restore in the folder-move set. complete and fail share `targetFolder: \"completed\"` and are the same dest path.",
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "Recut P1 idempotence: map identical retry onto existing sibling-hint / restamp paths (`ok: true` only when dest already holds the intended status and generation). Keep dest-exists with different content as refuse-before-write. The #2578 test stays the pre-existing dest case. Barrier tests reuse the child-process pattern in `ritual-state-lock.concurrency.test.ts`.",
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "Preserve: PROJECT-DEFINITION mutation lock after the move; spec-drift ledger lock during complete.",
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "Exclude: repository-wide multi-artifact transactions (#3910); integrated repair (#3913); occupancy as this fence; a new lock family that nests `withAppendLock` under the identity hold.",
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "clause.13",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "clause.14",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.15",
+        "title": "clause.15",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.16",
+        "title": "clause.16",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.17",
+        "title": "clause.17",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.18",
+        "title": "clause.18",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.19",
+        "title": "clause.19",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.20",
+        "title": "clause.20",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.21",
+        "title": "clause.21",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.22",
+        "title": "clause.22",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.23",
+        "title": "clause.23",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.24",
+        "title": "clause.24",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3908",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3908: [framework-gap] Fence scope lifecycle moves across processes"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 7 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "[framework-gap] Fence scope lifecycle moves across processes",
+        "Recut P1 one closed composition: widen the existing `withPlanIdIdentityLock` hold to every `targetFolder !== null` action, keep dest rollback inside that hold, and leave plan-id admission on promote/activate.",
+        "A nested `withAppendLock` while the identity lock is held is out of the harvest.",
+        "If a new sidecar lock is required, first make `withAppendLock` reentrant per `lockPath`.",
+        "Recut P1 dest exclusive-create: publish dest with exclusive create (`containedWrite` `mode: \"create\"` / `O_EXCL`, or `link` from tmp).",
+        "POSIX tmp+rename overwrite is not dest publish.",
+        "Two processes must not both rename onto the same dest.",
+        "Recut P1 ownership-conditioned dest unlink: unlink dest only when this process's exclusive create succeeded or dest bytes match this write.",
+        "Carry the existing `HeldLock` token; do not discard it.",
+        "Do not unlink dest after spec-drift lock-refuse that must spare a concurrent writer's coverage.",
+        "Recut P1 dest identity: lock key is `vbriefRoot` + basename, distinct from plan-id admission.",
+        "Include restore in the folder-move set.",
+        "complete and fail share `targetFolder: \"completed\"` and are the same dest path.",
+        "Recut P1 idempotence: map identical retry onto existing sibling-hint / restamp paths (`ok: true` only when dest already holds the intended status and generation).",
+        "Keep dest-exists with different content as refuse-before-write.",
+        "The #2578 test stays the pre-existing dest case.",
+        "Barrier tests reuse the child-process pattern in `ritual-state-lock.concurrency.test.ts`.",
+        "Preserve: PROJECT-DEFINITION mutation lock after the move; spec-drift ledger lock during complete.",
+        "Exclude: repository-wide multi-artifact transactions (#3910); integrated repair (#3913); occupancy as this fence; a new lock family that nests `withAppendLock` under the identity hold.",
+        "Target-digest: sha256:7428fe4893516b713eb868ced2bacb066c2bb7d112e6812016319aea8e87588f"
+      ],
+      "admitted_source_sentences": [
+        "Recut P1 one closed composition: widen the existing `withPlanIdIdentityLock` hold to every `targetFolder !== null` action, keep dest rollback inside that hold, and leave plan-id admission on promote/activate.",
+        "A nested `withAppendLock` while the identity lock is held is out of the harvest.",
+        "If a new sidecar lock is required, first make `withAppendLock` reentrant per `lockPath`.",
+        "Recut P1 dest exclusive-create: publish dest with exclusive create (`containedWrite` `mode: \"create\"` / `O_EXCL`, or `link` from tmp).",
+        "POSIX tmp+rename overwrite is not dest publish.",
+        "Two processes must not both rename onto the same dest.",
+        "Recut P1 ownership-conditioned dest unlink: unlink dest only when this process's exclusive create succeeded or dest bytes match this write.",
+        "Carry the existing `HeldLock` token; do not discard it.",
+        "Do not unlink dest after spec-drift lock-refuse that must spare a concurrent writer's coverage.",
+        "Recut P1 dest identity: lock key is `vbriefRoot` + basename, distinct from plan-id admission.",
+        "Include restore in the folder-move set.",
+        "complete and fail share `targetFolder: \"completed\"` and are the same dest path.",
+        "Recut P1 idempotence: map identical retry onto existing sibling-hint / restamp paths (`ok: true` only when dest already holds the intended status and generation).",
+        "Keep dest-exists with different content as refuse-before-write.",
+        "The #2578 test stays the pre-existing dest case.",
+        "Barrier tests reuse the child-process pattern in `ritual-state-lock.concurrency.test.ts`.",
+        "Preserve: PROJECT-DEFINITION mutation lock after the move; spec-drift ledger lock during complete.",
+        "Exclude: repository-wide multi-artifact transactions (#3910); integrated repair (#3913); occupancy as this fence; a new lock family that nests `withAppendLock` under the identity hold.",
+        "Target-digest: sha256:7428fe4893516b713eb868ced2bacb066c2bb7d112e6812016319aea8e87588f"
+      ],
+      "admitted_source_digest": "596938b065a81130732c42c5767c2c4050ee9e1c869f7a22c4238aac6fe9bb11",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Recut P1 one closed composition: widen the existing `withPlanIdIdentityLock` hold to every `targetFolder !== null` action, keep dest rollback inside that hold, and leave plan-id admission on promote/activate. A nested `withAppendLock` while the identity lock is held is out of the harvest. If a new sidecar lock is required, first make `withAppendLock` reentrant per `lockPath`.",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Recut P1 dest exclusive-create: publish dest with exclusive create (`containedWrite` `mode: \"create\"` / `O_EXCL`, or `link` from tmp). POSIX tmp+rename overwrite is not dest publish. Two processes must not both rename onto the same dest.",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Recut P1 ownership-conditioned dest unlink: unlink dest only when this process's exclusive create succeeded or dest bytes match this write. Carry the existing `HeldLock` token; do not discard it. Do not unlink dest after spec-drift lock-refuse that must spare a concurrent writer's coverage.",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Recut P1 dest identity: lock key is `vbriefRoot` + basename, distinct from plan-id admission. Include restore in the folder-move set. complete and fail share `targetFolder: \"completed\"` and are the same dest path.",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Recut P1 idempotence: map identical retry onto existing sibling-hint / restamp paths (`ok: true` only when dest already holds the intended status and generation). Keep dest-exists with different content as refuse-before-write. The #2578 test stays the pre-existing dest case. Barrier tests reuse the child-process pattern in `ritual-state-lock.concurrency.test.ts`.",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Preserve: PROJECT-DEFINITION mutation lock after the move; spec-drift ledger lock during complete.",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Exclude: repository-wide multi-artifact transactions (#3910); integrated repair (#3913); occupancy as this fence; a new lock family that nests `withAppendLock` under the identity hold.",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Recut P1 one closed composition: widen the existing `withPlanIdIdentityLock` hold to every `targetFolder !== null` action, keep dest rollback inside that hold, and leave plan-id admission on promote/activate.",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "A nested `withAppendLock` while the identity lock is held is out of the harvest.",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "If a new sidecar lock is required, first make `withAppendLock` reentrant per `lockPath`.",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Recut P1 dest exclusive-create: publish dest with exclusive create (`containedWrite` `mode: \"create\"` / `O_EXCL`, or `link` from tmp).",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "POSIX tmp+rename overwrite is not dest publish.",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Two processes must not both rename onto the same dest.",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Recut P1 ownership-conditioned dest unlink: unlink dest only when this process's exclusive create succeeded or dest bytes match this write.",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Carry the existing `HeldLock` token; do not discard it.",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Do not unlink dest after spec-drift lock-refuse that must spare a concurrent writer's coverage.",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Recut P1 dest identity: lock key is `vbriefRoot` + basename, distinct from plan-id admission.",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "Include restore in the folder-move set.",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "complete and fail share `targetFolder: \"completed\"` and are the same dest path.",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "Recut P1 idempotence: map identical retry onto existing sibling-hint / restamp paths (`ok: true` only when dest already holds the intended status and generation).",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "Keep dest-exists with different content as refuse-before-write.",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 22,
+          "text": "The #2578 test stays the pre-existing dest case.",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 23,
+          "text": "Barrier tests reuse the child-process pattern in `ritual-state-lock.concurrency.test.ts`.",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 24,
+          "text": "Target-digest: sha256:7428fe4893516b713eb868ced2bacb066c2bb7d112e6812016319aea8e87588f",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "[framework-gap] Fence scope lifecycle moves across processes"
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "### v0.108.0 release audit\n\n**Result: partially addressed in one downstream update; the reported lifecycle race remains.**\n\n[PR #3832](https://github.com/deftai/directive/pull/3832) serializes the downstream PROJECT-DEFINITION update through a mutation capability bound to the locked artifact ([source](https://github.com/deftai/directive/blob/v0.108.0/packages/core/src/scope/project-definition-sync.ts#L13-L39)). That hardens one related artifact, but it does not serialize the lifecycle transition itself.\n\nThe tagged transition still checks that the destination is absent and then writes it without an entity-scoped lock or ownership token ([source](https://github.com/deftai/directive/blob/v0.108.0/packages/core/src/scope/transition.ts#L381-L395)). If source removal fails, it deletes the destination without proving that the current process still owns that destination ([source](https://github.com/deftai/directive/blob/v0.108.0/packages/core/src/scope/transition.ts#L416-L424)). Backlinks, PROJECT-DEFINITION, and specification synchronization occur only after the destination write and source deletion, including an explicit failure state where the brief moved but synchronization did not complete ([source](https://github.com/deftai/directive/blob/v0.108.0/packages/core/src/scope/transition.ts#L427-L452)).\n\nThe single-file temporary-write-and-rename helper provides write durability, not exclusive ownership across the earlier existence check and later rollback. Released tests cover a destination already present before the transition begins, not two processes crossing the check/write barrier ([source](https://github.com/deftai/directive/blob/v0.108.0/packages/core/src/scope/transition.test.ts#L716-L724)). Entity-scoped fencing, ownership-conditioned rollback, recoverable multi-artifact sequencing, idempotent duplicate handling, and deterministic concurrent-transition tests remain open.\n\n",
+          "id": 5459525025,
+          "html_url": "https://github.com/deftai/directive/issues/3908#issuecomment-5459525025",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-08-29T01:33:32Z",
+          "updated_at": "2026-08-29T01:33:32Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because scope transition still checks destination absence then writes without an entity-scoped lock or ownership token, and rollback can unlink a destination the process cannot prove it owns.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\nmateriality-bar: open\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-3908-dc\norigin-ref: origin/HEAD\ndispatch-sha: 805209c849cac0481f780108c8e78a4c5b7cb3bc\ndest-wo: leftover-complete\nverification-path: pin-read git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:; dest cwd-without-occupy\n\ncharter: refutation\ncharter-why: the issue names a defensible presumption with a refutation target\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: operator \"use appropriate n\" is missing-token; spend-resolve --recommend N=1. Body already names entity lock, ownership-conditioned rollback, and idempotence; repo-wide authority stays on #3910.\nDual-stop cap: 6 posts\n\npain: P1\n\ntarget: #3908\ntarget-shape: single-issue (default)\naudit-targets: none\nrefutation-target: a transition checks destination absence then writes without an entity-scoped lock or token\n\n",
+          "id": 6181717016,
+          "html_url": "https://github.com/deftai/directive/issues/3908#issuecomment-6181717016",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-15T00:43:16Z",
+          "updated_at": "2026-10-15T00:43:16Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRound-1 refutation, critic role fresh, id ceiling 6181717016 inclusive, pin `805209c849cac0481f780108c8e78a4c5b7cb3bc`.\nverification-path: pin-read `git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:<path>`; dest cwd-without-occupy.\nRe-verified by running those git-show reads. Line numbers below are from that pin, blob `ed2f2433e55c231ddc79be109e84908d3057582b` for `packages/core/src/scope/transition.ts`.\n\n## 1. blocks-the-design — a second withAppendLock around commitTransition throws on promote/activate\n\nEvidence: `git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:packages/core/src/scope/transition.ts` lines 1056-1069 wrap `commitTransition` in `withPlanIdIdentityLock` for promote and activate only; complete, fail, cancel, and restore call `commitTransition()` with no lock. `git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:packages/core/src/intake/issue-ingest.ts` lines 804-805 implement that wrapper as `withAppendLock(planIdIdentityLockPath(lifecycleRoot), fn)` and drop `HeldLock`. `git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:packages/core/src/slice/lock.ts` lines 16 and 183-186: module-level `threadLocked.held` throws `append lock is not reentrant` before `openSync(..., \"wx\")`, for every lock path in the process.\n\nFailure mode: harvesting AC1 as `withAppendLock(entityPath, () => commitTransition())` inside or around the existing identity wrapper throws on `scope:promote` / `scope:activate`. The throw is the in-process reentrancy guard, so the new fence never reaches the dest check. Two `scope:complete` processes on the same basename still share the unguarded dest path (lines 782-791, 928, 947).\n\nDisposition: the successor map names one closed composition before bind.\n\n- Widen the existing `withPlanIdIdentityLock` hold to every `targetFolder !== null` action, keep dest rollback inside that hold, and leave plan-id admission on promote/activate.\n- Publish dest with exclusive create (`containedWrite` `mode: \"create\"` / `O_EXCL`, or `link` from tmp) and unlink dest only when this process's create succeeded or dest bytes match this write.\n- If a new sidecar lock is required, first make `withAppendLock` reentrant per `lockPath` (the current flag is process-wide).\n\nA nested `withAppendLock` while the identity lock is held is out of the harvest. PROJECT-DEFINITION mutation lock stays a separate primitive and already runs after the move.\n\n## 2. sharpens-framing — dest publish is tmp+rename overwrite; exclusive create already exists; dest unlink carries no token\n\nEvidence: `git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:packages/core/src/scope/brief-io.ts` `atomicWriteBrief` validates then calls `atomicWriteText`. `git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:packages/core/src/cache/io.ts` lines 40-46: `containedWrite({ target: tmp, mode: \"create\" })` then `renameSync(tmp, targetAbs)`. POSIX rename replaces an existing dest. `git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:packages/core/src/fs/contained-write.ts` lines 505-510 and 527-535 already exclusive-create the target with `O_CREAT|O_EXCL` and map `EEXIST`. Dest rollback is `unlinkSync(destPath)` at transition.ts 813, 843, 861, 890, 947, and 1004 with no `assertAppendLockOwned`, no generation compare, and no dest-create success flag. Lines 856-861 comment that spec-drift lock-refuse must spare a concurrent writer's coverage, then unlink dest anyway. `withPlanIdIdentityLock` already receives a UUID token from `withAppendLock` (lock.ts 193-198, 78-83, 219-224) and discards it.\n\nFailure mode: two completes pass `existsSync(destPath) === false`, both `renameSync` onto the same dest, one `unlinkSync` of source succeeds, the loser unlinks dest. Source and dest are both gone. A later worker in that worktree treats the story as still active or re-runs complete. complete and fail share `targetFolder: \"completed\"` (`git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:packages/core/src/scope/constants.ts` lines 32-33), so that pair is the same dest path.\n\nDisposition: bind the AC token to dest exclusive-create plus ownership-conditioned unlink. Lock key is `vbriefRoot` + basename (the dest identity), distinct from plan-id admission. Include restore in the folder-move set. Occupancy is unused in `transition.ts`; dest-wo leftover-complete is a same-worktree caller of this path.\n\nRoad-not-taken: exclusive dest publish (containedWrite create / link-from-tmp) versus a new entity sidecar. Exclusive dest create already exists in-tree and avoids the reentrancy throw. What would flip that preference: a requirement to reject conflicting actions before dest create, with concurrent different-entity moves remaining unqueued. Widening the existing identity hold also closes the gone-brief race inside one worktree; entity scope is extra concurrency, not the minimum close.\n\n## 3. sharpens-framing — identical retry is already-completed / dest-exists, not ok:true\n\nEvidence: dest present before the call returns `Target already exists` (transition.ts 782-783). `git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:packages/core/src/scope/transition.test.ts` blob `2f0abf9bf02e5a4f857f301d487ff64464f3f6b2` at the test `rejects move when destination already exists (#2578)` (line 1502) plants dest first, then complete; source remains. After a successful move, a second complete on the old source path hits `hintMissingCompleteSibling` (transition.ts 1079-1100) and returns `Already completed` / `Already cancelled` with `ok: false`. complete on a brief already in `completed/` restamps in place (`restampCompletedBrief`).\n\nFailure mode: an implementer adds a third success shape for \"duplicate identical transition\" that disagrees with dest-exists conflict and with the already-completed hint. Identical dest bytes plus absent source is restamp/hint territory; different dest status (complete vs fail onto `completed/`) stays a conflict that must fail before dest overwrite.\n\nDisposition: map idempotence onto the existing sibling-hint / restamp paths (ok:true only when dest already holds the intended status and generation). Keep dest-exists with different content as refuse-before-write. Barrier tests for two processes reuse the child-process pattern in `ritual-state-lock.concurrency.test.ts` and the `LockDeps` seams on `withAppendLock`; the #2578 test stays the pre-existing dest case.\n\n## 4. footnote — refutation target survives on the unguarded dest path\n\nThe recorded target is: a transition checks destination absence then writes without an entity-scoped lock or token. On this pin that holds for complete, fail, cancel, and restore: `existsSync(destPath)` at 782-784 then `atomicWriteBrief` at 791, with rollback unlinks listed above. promote/activate serialize dest check/write through a lifecycle-root identity lock that is not entity-scoped and does not condition dest unlink on the held token. That coarse lock is not a refutation of the target. Issue-body line cites at v0.108.0 381-395 have moved; the pin location is 782-791.\n\nInjection / swarm: this path changes shared worktree lifecycle identity. dest-wo leftover-complete and a second CLI process on the same checkout both call `runTransition` with occupancy absent from this file. Isolated swarm worktrees have separate `xbrief/` trees; the issue's same-worktree fence is the blast radius that still lets a losing complete delete dest bytes a later worker will read as owned local state.\n\nInventory at pin (existing mechanisms, not new families): `withAppendLock` / `HeldLock.token` / `assertAppendLockOwned`; `withPlanIdIdentityLock` (promote/activate only); `containedWrite` `mode: \"create\"` `O_EXCL`; `atomicWriteText` tmp+rename; `projectDefinitionMutationLock` after the move; spec-drift ledger lock during complete; occupancy unused here. Repository-wide multi-artifact transactions stay on the related epic named in the issue body.\n\n",
+          "id": 6181939453,
+          "html_url": "https://github.com/deftai/directive/issues/3908#issuecomment-6181939453",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-15T01:01:03Z",
+          "updated_at": "2026-10-15T01:01:03Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nA scope lifecycle move still checks that the destination path is free, then writes it, then can unlink that destination if source removal fails. Promote and activate already hold a plan-id lock around the commit; complete, fail, cancel, and restore do not. Nesting a second append lock around that commit would throw on promote and activate.\n\nIf this map is confirmed, dest publish uses exclusive create, dest unlink happens only for bytes this process published, and the existing plan-id lock widens to every folder move. Identical retry maps onto today's already-completed / restamp paths. Repository-wide multi-artifact transactions stay on #3910.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. grok-4.6 was the round-1 critic. Takes accept that critic's classified headings.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: pain-P1 asserted until a pain-audit critic targets the cites.\nSpec-path: next-build contract is not this body.\n\n**Lean:** round-1 successor after one critic. Cites critic 6181939453. Supersedes Stop 1 write-back 6181717016. Round 1 sibling count 1.\n\narc-mode: no-ingest\nyolo-standing: yes\nmateriality-bar: open\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-3908-dc\norigin-ref: origin/HEAD\ndispatch-sha: 805209c849cac0481f780108c8e78a4c5b7cb3bc\ndest-wo: leftover-complete\nverification-path: pin-read git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:; dest cwd-without-occupy\ntarget shape: single-issue\nround: 1\nsiblings: 1\nDual-stop cap: 6 posts\n\nTakes:\n\n- 6181939453 1 a second withAppendLock around commitTransition throws on promote/activate — accept-into-contract\n- 6181939453 2 dest publish is tmp+rename overwrite; exclusive create already exists; dest unlink carries no token — accept-into-contract\n- 6181939453 3 identical retry is already-completed / dest-exists, not ok:true — accept-into-contract\n\nFootnotes stay footnotes.\n\nrelieves: P1\n\n## Bound remedy\n\n1. Recut P1 one closed composition: widen the existing `withPlanIdIdentityLock` hold to every `targetFolder !== null` action, keep dest rollback inside that hold, and leave plan-id admission on promote/activate. A nested `withAppendLock` while the identity lock is held is out of the harvest. If a new sidecar lock is required, first make `withAppendLock` reentrant per `lockPath`.\n2. Recut P1 dest exclusive-create: publish dest with exclusive create (`containedWrite` `mode: \"create\"` / `O_EXCL`, or `link` from tmp). POSIX tmp+rename overwrite is not dest publish. Two processes must not both rename onto the same dest.\n3. Recut P1 ownership-conditioned dest unlink: unlink dest only when this process's exclusive create succeeded or dest bytes match this write. Carry the existing `HeldLock` token; do not discard it. Do not unlink dest after spec-drift lock-refuse that must spare a concurrent writer's coverage.\n4. Recut P1 dest identity: lock key is `vbriefRoot` + basename, distinct from plan-id admission. Include restore in the folder-move set. complete and fail share `targetFolder: \"completed\"` and are the same dest path.\n5. Recut P1 idempotence: map identical retry onto existing sibling-hint / restamp paths (`ok: true` only when dest already holds the intended status and generation). Keep dest-exists with different content as refuse-before-write. The #2578 test stays the pre-existing dest case. Barrier tests reuse the child-process pattern in `ritual-state-lock.concurrency.test.ts`.\n6. Preserve: PROJECT-DEFINITION mutation lock after the move; spec-drift ledger lock during complete.\n7. Exclude: repository-wide multi-artifact transactions (#3910); integrated repair (#3913); occupancy as this fence; a new lock family that nests `withAppendLock` under the identity hold.\n\nTarget-digest: sha256:7428fe4893516b713eb868ced2bacb066c2bb7d112e6812016319aea8e87588f\n\n",
+          "id": 6181978159,
+          "html_url": "https://github.com/deftai/directive/issues/3908#issuecomment-6181978159",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-15T01:04:18Z",
+          "updated_at": "2026-10-15T01:04:18Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\nfinding-classes: footnote\nharvest-changed: false\n\nPain-audit of bind lean 6181978159 operative `relieves: P1`. Critic role fresh. Id ceiling 6181978159 inclusive. Pin `805209c849cac0481f780108c8e78a4c5b7cb3bc`.\nverification-path: pin-read `git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:<path>`; dest cwd-without-occupy.\nRe-verified by running those git-show reads. Line numbers are from that pin, blob `ed2f2433e55c231ddc79be109e84908d3057582b` for `packages/core/src/scope/transition.ts`.\n\nP1: a transition checks destination absence then writes without an entity-scoped lock or token; rollback can unlink dest this process cannot prove it owns.\n\n## 1. footnote — Bound-remedy covers P1 as written\n\nThe pin still has the pain. The harvest names a closed composition that covers it.\n\nEvidence the pain is live on this pin:\n- `git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:packages/core/src/scope/transition.ts` 782-784 `existsSync(destPath)` then 791 `atomicWriteBrief`. complete, fail, cancel, and restore call `commitTransition()` at 1069 with no identity lock. promote and activate wrap 1056-1067.\n- Dest publish is tmp+rename overwrite: `git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:packages/core/src/cache/io.ts` 40-46 `containedWrite({ target: tmp, mode: \"create\" })` then `renameSync(tmp, targetAbs)`. Exclusive create is on the tmp leaf, not dest.\n- Dest rollback is unconditioned `unlinkSync(destPath)` at 813, 843, 861, 890, 947, and 1004. No `assertAppendLockOwned`, no dest-create flag, no dest-bytes compare.\n- `git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:packages/core/src/intake/issue-ingest.ts` 800-805: lock path is `lifecycleRoot/.plan-id-identity`; wrapper is `fn: () => T` and drops `HeldLock`.\n- `git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:packages/core/src/slice/lock.ts` 16 and 183-186: process-wide `threadLocked.held` throws `append lock is not reentrant` before `openSync(..., \"wx\")`.\n\nCoverage from Bound-remedy 6181978159:\n- Item 1 acquires the existing identity hold before dest check, dest write, and dest rollback for every `targetFolder !== null` action, including restore. Nested `withAppendLock` while that hold is live is out of harvest.\n- Item 2 publishes dest with exclusive create (`containedWrite` `mode: \"create\"` / `O_EXCL`, or `link` from tmp). POSIX tmp+rename overwrite is not dest publish.\n- Item 3 unlinks dest only when this process's exclusive create succeeded or dest bytes match this write, and carries `HeldLock` instead of dropping it.\n- Item 4 dest identity is `vbriefRoot` + basename, distinct from plan-id admission left on promote/activate.\n- Exclusive-create is the dest-path token. The identity hold is coarser than entity scope and still serializes the same-worktree dest check. P1 is lock or token; the harvest has both.\n\nFailure mode the harvest removes: two `scope:complete` processes pass 782, both `renameSync` onto `completed/<basename>`, one source unlink succeeds, the loser unlinks dest at 947. complete and fail share `targetFolder: \"completed\"` (`git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:packages/core/src/scope/constants.ts` 32-33).\n\nDisposition: footnote-only. Bind map 6181978159 stays.\n\n## 2. footnote — closed readings of items 3-5; harvest bytes stay\n\nThese readings do not recut Bound-remedy.\n\n- Item 4 \"lock key is vbriefRoot + basename\" is dest-path identity for exclusive-create and ownership compare. It is not a second `withAppendLock` sidecar (item 7) and it does not recut `planIdIdentityLockPath` away from `lifecycleRoot/.plan-id-identity` (item 1).\n- Item 3 \"or dest bytes match this write\" is an ownership proof after this process published dest. Dest already present with intended status and generation is item 5 sibling-hint / restamp early-return (`hintMissingCompleteSibling` 1079-1100, `restampCompletedBrief` 455 / 1120), not a non-writer unlink of matching dest.\n- Lines 856-861 comment that spec-drift lock-refuse must spare concurrent ledger coverage, then unlink dest. Under items 1-2 that dest is this process's exclusive create. Skipping dest unlink after lock-refuse is extra-conservative versus owned rollback. It does not re-open unowned dest unlink.\n- `restampCompletedBrief` and `targetFolder === null` (block / unblock) are in-place writes. They are not the dest-absent P1 path.\n- Occupancy is unused in `transition.ts`. dest-wo leftover-complete is a same-worktree `runTransition` caller.\n\nInjection / swarm: this path changes shared worktree lifecycle identity. dest-wo leftover-complete and a second CLI process on the same checkout share dest paths. Exclusive dest create plus identity hold plus ownership-conditioned unlink is the fence. Isolated swarm worktrees have separate `xbrief/` trees; the identity lock is per lifecycle root in that tree.\n\nInventory at pin (existing mechanisms, not new families): `withAppendLock` / `HeldLock.token` / `assertAppendLockOwned`; `withPlanIdIdentityLock` (promote/activate only, token dropped); `containedWrite` `mode: \"create\"` `O_EXCL`; `atomicWriteText` tmp+rename; `projectDefinitionMutationLock` after the move (`git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:packages/core/src/scope/project-definition-sync.ts` 15); spec-drift `withLedgerLock` via `containedWrite` create during complete; child-process barrier pattern in `packages/core/src/session/ritual-state-lock.concurrency.test.ts`. Repository-wide multi-artifact transactions stay on #3910; integrated repair stays on #3913.\n\nRoad-not-taken: classify item 3 bytes-match as a non-writer unlink predicate. That would recut harvest. What would make P1 uncovered: dest publish remaining tmp+rename, or dest unlink remaining unconditioned. Items 2 and 3 already recut both.\n\n",
+          "id": 6182119873,
+          "html_url": "https://github.com/deftai/directive/issues/3908#issuecomment-6182119873",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-15T01:15:58Z",
+          "updated_at": "2026-10-15T01:15:58Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Status | Method |\n|---|---|---|\n| At dispatch SHA `805209c849cac0481f780108c8e78a4c5b7cb3bc`, `commitTransition` dest path is `existsSync(destPath)` then `atomicWriteBrief`; complete/fail/cancel/restore call it with no identity lock | verified | pain-audit 6182119873 pin-read `git show 805209c849cac0481f780108c8e78a4c5b7cb3bc:packages/core/src/scope/transition.ts` blob `ed2f2433e55c231ddc79be109e84908d3057582b` lines 782-791 and 1069 |\n| Dest publish is tmp+rename overwrite; exclusive create is on the tmp leaf | verified | same 6182119873 pin-read of `packages/core/src/cache/io.ts` 40-46 |\n| Dest rollback is unconditioned `unlinkSync(destPath)` at 813/843/861/890/947/1004 | verified | same 6182119873 pin-read |\n| `withPlanIdIdentityLock` wraps promote/activate only and drops `HeldLock`; `withAppendLock` is not reentrant | verified | 6182119873 pin-read `issue-ingest.ts` 800-805 and `slice/lock.ts` 16, 183-186 |\n| Bind lean 6181978159 Bound-remedy covers P1 as written: widen identity hold, dest exclusive-create, ownership-conditioned unlink, dest identity `vbriefRoot`+basename, sibling-hint/restamp idempotence | verified | live harvest of 6181978159; pain-audit 6182119873 `finding-classes: footnote` `harvest-changed: false` |\n\nNon-self-arbitration: grok-4.6 parent authored Stop 1 and lean 6181978159. Rows rest on pin-read at dispatch SHA `805209c849cac0481f780108c8e78a4c5b7cb3bc` and grok-4.6 pain-audit 6182119873.\n\n",
+          "id": 6182166566,
+          "html_url": "https://github.com/deftai/directive/issues/3908#issuecomment-6182166566",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-15T01:19:41Z",
+          "updated_at": "2026-10-15T01:19:41Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nA scope lifecycle move still checks that the destination is free, writes it with tmp-plus-rename, and can unlink that destination if source removal fails. Promote and activate already hold a plan-id lock; complete, fail, cancel, and restore do not. Nesting a second append lock would throw on promote and activate.\n\nThe accepted next-build recut widens the existing identity hold to every folder move, publishes dest with exclusive create, and unlinks dest only for bytes this process published. Identical retry maps onto today's already-completed and restamp paths. Repository-wide transactions stay on #3910.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCites successor lean 6181978159 and verified-claims table 6182166566.\npain-audit 6182119873 is footnote-only; leftover-pain of relieves: P1 is satisfied.\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-3908-dc\norigin-ref: origin/HEAD\ndispatch-sha: 805209c849cac0481f780108c8e78a4c5b7cb3bc\nDual-stop cap: 6 posts\ndest-wo: leftover-complete\n\n",
+          "id": 6182166951,
+          "html_url": "https://github.com/deftai/directive/issues/3908#issuecomment-6182166951",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-15T01:19:43Z",
+          "updated_at": "2026-10-15T01:19:43Z",
+          "author_association": "COLLABORATOR"
+        }
+      ],
+      "issueBody": "## Status and scope\n\nConfirmed against v0.108.0 and current `master`.\n\nThis issue owns the thin same-worktree concurrency fix: entity-scoped fencing, ownership-conditioned rollback, idempotence, and deterministic process-race tests. Repository-wide multi-artifact transactions belong to #3910; integrated repair belongs to #3913.\n\n## Summary\n\nFence each scope lifecycle move so two processes cannot both write the destination or delete a destination committed by the other process.\n\n## Confirmed implementation evidence\n\n- A transition checks destination absence and then writes it without an entity-scoped lock or token: [`transition.ts:381-395`](https://github.com/deftai/directive/blob/v0.108.0/packages/core/src/scope/transition.ts#L381-L395).\n- If source removal fails, rollback unconditionally deletes the destination: [`transition.ts:416-424`](https://github.com/deftai/directive/blob/v0.108.0/packages/core/src/scope/transition.ts#L416-L424).\n- Backlinks, PROJECT-DEFINITION, and specification synchronization occur after the move: [`transition.ts:427-452`](https://github.com/deftai/directive/blob/v0.108.0/packages/core/src/scope/transition.ts#L427-L452).\n- Existing tests cover a destination that already exists before the transition, not two processes crossing the check/write barrier: [`transition.test.ts:716-724`](https://github.com/deftai/directive/blob/v0.108.0/packages/core/src/scope/transition.test.ts#L716-L724).\n\n[PR #3832](https://github.com/deftai/directive/pull/3832) serializes the downstream PROJECT-DEFINITION update. It does not serialize the lifecycle move itself.\n\n## Reproduction\n\n1. Run the same promote, activate, complete, cancel, or fail transition in two processes.\n2. Barrier both after the destination-existence check.\n3. Let both write the destination.\n4. Let one unlink the source successfully and the other fail.\n5. Observe the losing process remove a destination it cannot prove it owns.\n\n## Expected behavior\n\nOnly one process may transition a specific lifecycle entity at a time. An identical completed transition is idempotent. A conflicting transition fails before writing. Rollback removes only bytes published under the current process's ownership token or expected content generation.\n\n## Acceptance criteria\n\n- [ ] Acquire a cross-process entity lock or transaction token before checking source and destination.\n- [ ] Bind the token to stable entity identity, source state, and intended destination state.\n- [ ] Make duplicate identical transitions idempotent.\n- [ ] Reject conflicting transitions before any lifecycle write.\n- [ ] Condition destination rollback on the writer token or expected content hash/generation.\n- [ ] Preserve actionable diagnostics when the move succeeds but a downstream projection update fails.\n- [ ] Add deterministic separate-process barrier tests for promote, activate, complete, cancel/fail, conflict, and rollback.\n- [ ] Prove that a losing process cannot remove the winning process's destination.\n\n## Out of scope\n\n- A repository-wide transaction spanning plan, approval, registry, implementation, and closeout branches (#3910).\n- A general journaled reconciliation/apply engine (#3913).\n\n## Related\n\n- #3766 — reject unpaired deletion of an active lifecycle brief\n- #3909 — PROJECT-DEFINITION artifact locking (resolved)\n- #3910 — merge-order-safe lifecycle authority epic\n\n---\n_Filed via `task feedback:file` from a Directive consumer project (Refs #1709 value-feedback gap escalation)._\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5283616449,
+        "origin": "deftai/directive#3908",
+        "id": "github.issue.5283616449"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "7428fe4893516b713eb868ced2bacb066c2bb7d112e6812016319aea8e87588f"
+      },
+      "kind": "story",
+      "swarm": {
+        "kind": "story",
+        "file_scope": [
+          "packages/core/src/scope/transition.ts",
+          "packages/core/src/scope/transition.test.ts",
+          "packages/core/src/scope/transition.concurrency.test.ts"
+        ],
+        "file_scope_confidence": "high"
+      },
+      "productPullRequest": 5653,
+      "githubIssueNumber": 3908,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "a62c9ba637848e0e6499af19c94762e0b67ab856",
+        "prNumber": 5653,
+        "prBase": "master",
+        "mergeCommit": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+        "deliveryBranch": "master",
+        "deliveryCommit": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+        "verifiedAt": "2026-10-16T04:09:54Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-16T04:09:54Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-16T04:09:54Z"
+      }
+    },
+    "id": "github.issue.5283616449",
+    "updated": "2026-10-16T04:09:54Z"
+  }
+}

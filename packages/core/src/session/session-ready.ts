@@ -27,8 +27,10 @@ import {
   type ApplyOccupancyInput,
   applyWorktreeOccupancy,
   formatOccupancyClaimProvenance,
+  isPersistTimeAcquisition,
   type OccupancyDecision,
   resolveOccupancySessionClaim,
+  rollbackAcquiredOccupancy,
 } from "./occupancy.js";
 import {
   runSessionStart,
@@ -57,7 +59,7 @@ export type SessionReadyPath =
 
 export interface SessionReadyResult {
   readonly code: number;
-  /** One resolved owner carried through preview, verification, and claim (#3611). */
+  /** One resolved owner carried through persist, verification, and heartbeat (#3611 / #3906). */
   readonly sessionId: string;
   readonly message: string;
   readonly path: SessionReadyPath;
@@ -101,6 +103,8 @@ export interface SessionReadyOptions {
   ) => VerifyResult;
   readonly runStart?: (projectRoot: string, options: SessionStartOptions) => SessionStartResult;
   readonly applyOccupancy?: (projectRoot: string, input: ApplyOccupancyInput) => OccupancyDecision;
+  /** #3906 / #4444: compare-and-delete persist-time claimed|stolen only. */
+  readonly rollbackAcquiredOccupancy?: typeof rollbackAcquiredOccupancy;
   readonly fetchAll?: CacheFetchAllSeam;
   readonly refreshClosed?: CacheRefreshClosedSeam;
   readonly inferRepo?: (projectRoot: string) => string | null;
@@ -197,7 +201,7 @@ export function runSessionReady(
   const env = options.env ?? process.env;
   const lines: string[] = [];
   const steps: string[] = [];
-  // #3611: resolve once before any occupancy preview or nested lifecycle call.
+  // #3611 / #3906: resolve once before occupancy persist or nested lifecycle.
   // A nested start must report the same persisted owner; adopting a different
   // result would silently split the invocation's identity.
   const claim = resolveOccupancySessionClaim({
@@ -218,7 +222,6 @@ export function runSessionReady(
     };
   }
   const sessionId = claim.sessionId;
-  let nestedStartClaimedOccupancy = false;
 
   const inspect = options.inspectRitual ?? inspectSessionRitual;
   const verify = options.verifyRitual ?? verifySessionRitual;
@@ -227,6 +230,7 @@ export function runSessionReady(
   const refreshClosed = options.refreshClosed ?? cacheRefreshClosed;
   const inferRepo = options.inferRepo ?? ((root) => inferSessionReadyRepo(root, env));
   const applyOccupancy = options.applyOccupancy ?? applyWorktreeOccupancy;
+  const rollback = options.rollbackAcquiredOccupancy ?? rollbackAcquiredOccupancy;
   const occupancyInput = (write: boolean, steal: boolean): ApplyOccupancyInput => ({
     sessionId,
     env,
@@ -240,12 +244,12 @@ export function runSessionReady(
     primaryClaimException: options.sessionStartOptions?.primaryClaimException,
   });
   const requestedSteal = options.sessionStartOptions?.steal === true;
-  const previewOccupancy = applyOccupancy(projectRoot, occupancyInput(false, requestedSteal));
-  if (previewOccupancy.code !== 0) {
-    const message = previewOccupancy.message;
+  const persistedOccupancy = applyOccupancy(projectRoot, occupancyInput(true, requestedSteal));
+  if (persistedOccupancy.code !== 0) {
+    const message = persistedOccupancy.message;
     lines.push(message);
     return {
-      code: previewOccupancy.code,
+      code: persistedOccupancy.code,
       sessionId,
       message,
       path: SESSION_READY_FAILED,
@@ -254,13 +258,41 @@ export function runSessionReady(
       duration_ms: elapsedMs(started),
     };
   }
+  const acquired = isPersistTimeAcquisition(persistedOccupancy.action) ? persistedOccupancy : null;
+  let occupancyAlignedWithRitual = false;
+  const rollbackIfUnaligned = (): void => {
+    if (acquired !== null && !occupancyAlignedWithRitual) {
+      try {
+        rollback(projectRoot, acquired);
+      } catch {
+        // Keep the original readiness failure; occupancy may remain held.
+      }
+    }
+  };
   const reconstitute =
     options.reconstituteWorktreeDeposit ??
     ((root) => reconstituteLinkedWorktreeDeposit(root, { runGit: options.runGit }));
-  const deposit = reconstitute(projectRoot);
+  let deposit: WorktreeDepositReconstituteResult;
+  try {
+    deposit = reconstitute(projectRoot);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    lines.push(message);
+    rollbackIfUnaligned();
+    return {
+      code: 2,
+      sessionId,
+      message,
+      path: SESSION_READY_FAILED,
+      lines,
+      steps,
+      duration_ms: elapsedMs(started),
+    };
+  }
   if (deposit.status === "refused") {
     const message = deposit.message;
     lines.push(message);
+    rollbackIfUnaligned();
     return {
       code: 2,
       sessionId,
@@ -275,13 +307,8 @@ export function runSessionReady(
     steps.push("worktree-deposit");
     lines.push(`[deft session] ${deposit.message}`);
   }
-  const claimOnSuccess = (): OccupancyDecision =>
-    applyOccupancy(
-      projectRoot,
-      occupancyInput(true, nestedStartClaimedOccupancy ? false : requestedSteal),
-    );
   const finishReady = (path: SessionReadyPath, message: string): SessionReadyResult => {
-    const claimed = claimOnSuccess();
+    const claimed = applyOccupancy(projectRoot, occupancyInput(true, false));
     if (claimed.code !== 0) {
       lines.push(claimed.message);
       return {
@@ -294,7 +321,7 @@ export function runSessionReady(
         duration_ms: elapsedMs(started),
       };
     }
-    // The verified ritual can change while the final occupancy claim is being
+    // The verified ritual can change while the occupancy heartbeat is being
     // persisted. Re-read only the exact bound ritual owner after the claim;
     // never return success with a lease/ritual split (#3611). Files remain a
     // cooperative gate, so this narrows rather than eliminates TOCTOU.
@@ -341,6 +368,7 @@ export function runSessionReady(
   const ownerAlignmentFailure = (
     actualOwner: string | undefined,
     context = "verified ritual",
+    shouldRollback = false,
   ): SessionReadyResult => {
     const actual = actualOwner ?? "<unbound>";
     const message =
@@ -348,6 +376,7 @@ export function runSessionReady(
       `${sessionId}. Refusing to claim a mismatched lease. Re-run session:start with the ` +
       "same explicit --session-id to align ritual and occupancy state.";
     lines.push(message);
+    if (shouldRollback) rollbackIfUnaligned();
     return {
       code: 1,
       sessionId,
@@ -383,6 +412,7 @@ export function runSessionReady(
   // final occupancy claim would leave lease and ritual owners mismatched.
   let verifyResult: VerifyResult | undefined;
   if (gatedInspect.code === 0 && gatedInspect.boundSessionId === sessionId && !requestedSteal) {
+    occupancyAlignedWithRitual = true;
     steps.push("verify:session-ritual:gated");
     const refreshed = verify(projectRoot, verifyOpts);
     if (isGatedVerifyActuallyReady(refreshed)) {
@@ -431,6 +461,9 @@ export function runSessionReady(
       now,
       runGit: options.runGit,
     });
+    if (quickInspect.code === 0 && quickInspect.boundSessionId === sessionId) {
+      occupancyAlignedWithRitual = true;
+    }
     if (quickInspect.code !== 0 || quickInspect.boundSessionId !== sessionId || requestedSteal) {
       steps.push("session:start");
       const startResult = start(projectRoot, {
@@ -439,12 +472,24 @@ export function runSessionReady(
         runGit: options.runGit,
         env,
         sessionId,
+        steal: false,
         writeHistory: options.sessionStartOptions?.writeHistory ?? false,
       });
       for (const line of startResult.lines) {
         lines.push(line);
       }
       if (startResult.code !== 0) {
+        const postStartRitual = inspect(projectRoot, {
+          tier: "gated",
+          posture: "mutation",
+          now,
+          runGit: options.runGit,
+        });
+        if (postStartRitual.code === 0 && postStartRitual.boundSessionId === sessionId) {
+          occupancyAlignedWithRitual = true;
+        } else {
+          rollbackIfUnaligned();
+        }
         const message =
           startResult.lines.join("\n").trim() ||
           `session:start failed (exit ${startResult.code}). Recovery: run \`${readyCommand()}\` again after fixing the blocker.`;
@@ -468,9 +513,9 @@ export function runSessionReady(
         const persistedSessionId = (startedOccupancy as Record<string, unknown>).session_id;
         if (typeof persistedSessionId === "string" && persistedSessionId.trim().length > 0) {
           if (persistedSessionId.trim() !== sessionId) {
-            return ownerAlignmentFailure(persistedSessionId.trim(), "nested session:start");
+            return ownerAlignmentFailure(persistedSessionId.trim(), "nested session:start", true);
           }
-          nestedStartClaimedOccupancy = true;
+          occupancyAlignedWithRitual = true;
         }
       }
     }
@@ -480,13 +525,15 @@ export function runSessionReady(
     verifyResult = verify(projectRoot, verifyOpts);
     if (isGatedVerifyActuallyReady(verifyResult)) {
       if (verifyResult.boundSessionId !== sessionId) {
-        return ownerAlignmentFailure(verifyResult.boundSessionId);
+        return ownerAlignmentFailure(verifyResult.boundSessionId, "verified ritual", true);
       }
+      occupancyAlignedWithRitual = true;
       return finishReady(SESSION_READY_VERIFIED, "OK session ready (gated ritual verified).");
     }
     if (verifyResult.code === 0 && verifyResult.bypassed) {
       const message = bypassedReadyFailure(verifyResult);
       lines.push(message);
+      rollbackIfUnaligned();
       return {
         code: 1,
         sessionId,
@@ -507,6 +554,7 @@ export function runSessionReady(
         `${verifyResult.message}\n` +
         `  Recovery: set DEFT_TRIAGE_REPO=OWNER/NAME or run \`deft cache fetch-all --source github-issue --repo OWNER/NAME --force\`, then \`${readyCommand()}\`.`;
       lines.push(message);
+      rollbackIfUnaligned();
       return {
         code: 1,
         sessionId,
@@ -541,6 +589,7 @@ export function runSessionReady(
         `session:ready cache recovery failed: ${detail}\n` +
         `  Recovery: run \`deft cache fetch-all --source github-issue --repo ${repo} --force\`, then \`${readyCommand()}\`.`;
       lines.push(message);
+      rollbackIfUnaligned();
       return {
         code: 1,
         sessionId,
@@ -583,6 +632,7 @@ export function runSessionReady(
     `${verifyResult.message}\n` +
     `  Remaining blocker after session:ready. Fix the step above, then re-run \`${readyCommand()}\`.`;
   lines.push(message);
+  rollbackIfUnaligned();
   return {
     code: verifyResult.code,
     sessionId,

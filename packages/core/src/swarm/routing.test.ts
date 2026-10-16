@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ProjectionContainmentError } from "../fs/projection-containment.js";
 import {
@@ -14,6 +14,7 @@ import {
   type RoutingFile,
   resolveDispatchProvider,
   resolveModelRoute,
+  resolveRoutingFileRoot,
   resolveRoutingPath,
   SWARM_WORKER_ROLES,
   writeModelDecision,
@@ -278,7 +279,25 @@ describe("resolveRoutingPath", () => {
     mkdirSync(nested, { recursive: true });
     const resolvedFromNested = resolveRoutingPath(nested, {});
     expect(resolvedFromNested).toBe(join(repo, ".deft", "routing.local.json"));
+    expect(resolveRoutingFileRoot(nested, {})).toBe(repo);
     rmSync(repo, { recursive: true, force: true });
+  });
+
+  it("uses the main checkout as write root from a linked worktree (#3827)", () => {
+    const base = tmp();
+    const primary = join(base, "primary");
+    const linked = join(base, "linked");
+    mkdirSync(primary);
+    execFileSync("git", ["init", "-q", "-b", "master", primary]);
+    execFileSync("git", ["config", "user.email", "t@t.local"], { cwd: primary });
+    execFileSync("git", ["config", "user.name", "t"], { cwd: primary });
+    execFileSync("git", ["commit", "--allow-empty", "-q", "-m", "init"], { cwd: primary });
+    execFileSync("git", ["worktree", "add", "--detach", "-q", linked], { cwd: primary });
+    expect(resolve(resolveRoutingFileRoot(linked, {}))).toBe(resolve(primary));
+    expect(resolveRoutingPath(linked, {})).toBe(
+      join(resolve(primary), ".deft", "routing.local.json"),
+    );
+    rmSync(base, { recursive: true, force: true });
   });
 
   it("falls back to startDir when not a git work tree", () => {

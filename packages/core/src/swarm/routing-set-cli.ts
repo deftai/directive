@@ -11,6 +11,7 @@ import {
   ROUTING_MODE_HARNESS_DEFAULT,
   ROUTING_MODE_PINNED,
   resolveDispatchProvider,
+  resolveRoutingFileRoot,
   resolveRoutingPath,
   SWARM_WORKER_ROLES,
   writeModelDecision,
@@ -99,8 +100,9 @@ export function routingSetMain(
 
   const root = resolve(projectRoot);
   const path = resolveRoutingPath(root, environ);
+  const writeRoot = resolveRoutingFileRoot(root, environ);
   try {
-    writeModelDecision(root, path, resolvedProvider, role, {
+    writeModelDecision(writeRoot, path, resolvedProvider, role, {
       model,
       mode: harnessDefault ? ROUTING_MODE_HARNESS_DEFAULT : ROUTING_MODE_PINNED,
     });

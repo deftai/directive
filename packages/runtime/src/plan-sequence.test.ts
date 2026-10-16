@@ -36,7 +36,17 @@ describe("plan-sequence CLI (#2402)", () => {
         ],
       }),
     );
-    expect(planSequenceMain(["set", "--project-root", root, "--file", file])).toBe(0);
+    expect(
+      planSequenceMain([
+        "set",
+        "--project-root",
+        root,
+        "--file",
+        file,
+        "--expected-generation",
+        "0",
+      ]),
+    ).toBe(0);
     expect(planSequenceMain(["current", "--project-root", root])).toBe(0);
     expect(
       verifyPlanSequenceMain(["--project-root", root, "--target-kind", "pr", "--target", "pr-1"]),
@@ -44,15 +54,21 @@ describe("plan-sequence CLI (#2402)", () => {
     expect(
       verifyPlanSequenceMain(["--project-root", root, "--target-kind", "pr", "--target", "pr-2"]),
     ).toBe(1);
-    expect(planSequenceMain(["advance", "--project-root", root])).toBe(0);
+    expect(
+      planSequenceMain(["advance", "--project-root", root, "--expected-generation", "1"]),
+    ).toBe(0);
     expect(
       verifyPlanSequenceMain(["--project-root", root, "--target-kind", "pr", "--target", "pr-2"]),
     ).toBe(0);
-    expect(planSequenceMain(["advance", "--project-root", root])).toBe(0);
+    expect(
+      planSequenceMain(["advance", "--project-root", root, "--expected-generation", "2"]),
+    ).toBe(0);
     expect(
       verifyPlanSequenceMain(["--project-root", root, "--target-kind", "pr", "--target", "pr-2"]),
     ).toBe(1);
-    expect(planSequenceMain(["clear", "--project-root", root])).toBe(0);
+    expect(planSequenceMain(["clear", "--project-root", root, "--expected-generation", "3"])).toBe(
+      0,
+    );
   });
 
   it("verify skips when no sequence", () => {
@@ -68,10 +84,30 @@ describe("plan-sequence CLI (#2402)", () => {
     roots.push(root);
     const nullFile = join(root, "null.json");
     writeFileSync(nullFile, "null");
-    expect(planSequenceMain(["set", "--project-root", root, "--file", nullFile])).toBe(1);
+    expect(
+      planSequenceMain([
+        "set",
+        "--project-root",
+        root,
+        "--file",
+        nullFile,
+        "--expected-generation",
+        "0",
+      ]),
+    ).toBe(1);
     const arrayFile = join(root, "array.json");
     writeFileSync(arrayFile, "[1,2,3]");
-    expect(planSequenceMain(["set", "--project-root", root, "--file", arrayFile])).toBe(1);
+    expect(
+      planSequenceMain([
+        "set",
+        "--project-root",
+        root,
+        "--file",
+        arrayFile,
+        "--expected-generation",
+        "0",
+      ]),
+    ).toBe(1);
   });
 
   it("covers argv/flag and JSON emit branches (#3027)", () => {
@@ -85,8 +121,14 @@ describe("plan-sequence CLI (#2402)", () => {
     expect(planSequenceMain(["set", "--file"])).toBe(2);
     expect(planSequenceMain(["set", "--from-json"])).toBe(2);
     expect(planSequenceMain(["current", "--project-root", root])).toBe(1);
-    expect(planSequenceMain(["advance", "--project-root", root])).toBe(1);
-    expect(planSequenceMain(["clear", "--project-root", root])).toBe(0);
+    expect(planSequenceMain(["advance", "--project-root", root])).toBe(2);
+    expect(
+      planSequenceMain(["advance", "--project-root", root, "--expected-generation", "0"]),
+    ).toBe(1);
+    expect(planSequenceMain(["clear", "--project-root", root])).toBe(2);
+    expect(planSequenceMain(["clear", "--project-root", root, "--expected-generation", "0"])).toBe(
+      0,
+    );
 
     const inline = JSON.stringify({
       sequence_id: "inline",
@@ -95,15 +137,32 @@ describe("plan-sequence CLI (#2402)", () => {
       entries: [{ id: "a", kind: "task" }],
     });
     expect(
-      planSequenceMain(["set", `--project-root=${root}`, "--from-json", inline, "--json"]),
+      planSequenceMain([
+        "set",
+        `--project-root=${root}`,
+        "--from-json",
+        inline,
+        "--json",
+        "--expected-generation",
+        "0",
+      ]),
     ).toBe(0);
     expect(planSequenceMain(["current", "--project-root", root, "--json"])).toBe(0);
-    expect(planSequenceMain(["advance", "--project-root", root, "--json"])).toBe(0);
+    expect(
+      planSequenceMain(["advance", "--project-root", root, "--json", "--expected-generation", "1"]),
+    ).toBe(0);
     // exhausted after advance past single entry
     expect(planSequenceMain(["current", "--project-root", root])).toBe(0);
-    expect(planSequenceMain(["clear", "--project-root", root])).toBe(0);
-    // already absent
-    expect(planSequenceMain(["clear", "--project-root", root])).toBe(0);
+    expect(planSequenceMain(["clear", "--project-root", root, "--expected-generation", "2"])).toBe(
+      0,
+    );
+    // already absent — compare token survives clear
+    expect(planSequenceMain(["clear", "--project-root", root, "--expected-generation", "3"])).toBe(
+      0,
+    );
+    expect(planSequenceMain(["clear", "--project-root", root, "--expected-generation", "0"])).toBe(
+      1,
+    );
 
     // Full sequence object with current_index uses parsePlanSequence path
     const fullFile = join(root, "full.json");
@@ -125,9 +184,19 @@ describe("plan-sequence CLI (#2402)", () => {
         updated_at: "2026-08-01T00:00:00Z",
       }),
     );
-    expect(planSequenceMain(["set", `--file=${fullFile}`, "--project-root", root])).toBe(0);
+    expect(
+      planSequenceMain([
+        "set",
+        `--file=${fullFile}`,
+        "--project-root",
+        root,
+        "--expected-generation",
+        "3",
+      ]),
+    ).toBe(0);
     expect(planSequenceMain(["current", "--project-root", root])).toBe(0);
-    expect(planSequenceMain(["set", "--project-root", root])).toBe(1);
+    expect(planSequenceMain(["set", "--project-root", root])).toBe(2);
+    expect(planSequenceMain(["set", "--project-root", root, "--expected-generation", "1"])).toBe(1);
   });
 
   it("current fail-closes when the current issue origin is already in completed/ (#4129)", () => {
@@ -146,7 +215,17 @@ describe("plan-sequence CLI (#2402)", () => {
         ],
       }),
     );
-    expect(planSequenceMain(["set", "--project-root", root, "--file", file])).toBe(0);
+    expect(
+      planSequenceMain([
+        "set",
+        "--project-root",
+        root,
+        "--file",
+        file,
+        "--expected-generation",
+        "0",
+      ]),
+    ).toBe(0);
     mkdirSync(join(root, "xbrief/completed"), { recursive: true });
     writeFileSync(
       join(root, "xbrief/completed/2026-09-01-287.xbrief.json"),
@@ -328,7 +407,17 @@ describe("plan-sequence CLI (#2402)", () => {
         entries: [{ id: "285", kind: "story", issue: 285 }],
       }),
     );
-    expect(planSequenceMain(["set", "--project-root", root, "--file", file])).toBe(0);
+    expect(
+      planSequenceMain([
+        "set",
+        "--project-root",
+        root,
+        "--file",
+        file,
+        "--expected-generation",
+        "0",
+      ]),
+    ).toBe(0);
     const written = JSON.parse(readFileSync(join(root, ".deft/plan-sequence.json"), "utf8")) as {
       sequence_kind?: string;
     };
@@ -339,12 +428,74 @@ describe("plan-sequence CLI (#2402)", () => {
       return true;
     });
     try {
-      expect(planSequenceMain(["advance", "--project-root", root])).toBe(1);
+      expect(
+        planSequenceMain(["advance", "--project-root", root, "--expected-generation", "1"]),
+      ).toBe(1);
       const text = err.join("");
       expect(text).toContain("plan-sequence: sequence_kind required");
       expect(text).not.toContain("not an authorized sequence");
     } finally {
       errSpy.mockRestore();
     }
+  });
+
+  it("set/advance/clear require --expected-generation (#3907)", () => {
+    const parsed = parseArgs(["set", "--expected-generation", "3", "--from-json", "{}"]);
+    expect(parsed.expectedGeneration).toBe(3);
+    expect(parseArgs(["clear", "--expected-generation=0"]).expectedGeneration).toBe(0);
+    expect(parseArgs(["set", "--expected-generation"]).error).toMatch(/non-negative integer/);
+    expect(parseArgs(["set", "--expected-generation", "1.5"]).error).toMatch(
+      /non-negative integer/,
+    );
+    expect(parseArgs(["set", "--expected-generation", "-1"]).error).toMatch(/non-negative integer/);
+
+    const root = mkdtempSync(join(tmpdir(), "ps-cli-cas-"));
+    roots.push(root);
+    const file = join(root, "plan.json");
+    writeFileSync(
+      file,
+      JSON.stringify({
+        sequence_id: "cas",
+        sequence_kind: "checklist",
+        authorized_by: "t",
+        entries: [{ id: "a", kind: "task" }],
+      }),
+    );
+    expect(planSequenceMain(["set", "--project-root", root, "--file", file])).toBe(2);
+    expect(planSequenceMain(["advance", "--project-root", root])).toBe(2);
+    expect(planSequenceMain(["clear", "--project-root", root])).toBe(2);
+    expect(
+      planSequenceMain([
+        "set",
+        "--project-root",
+        root,
+        "--file",
+        file,
+        "--expected-generation",
+        "0",
+      ]),
+    ).toBe(0);
+    const first = JSON.parse(readFileSync(join(root, ".deft/plan-sequence.json"), "utf8")) as {
+      generation: number;
+      sequence_id: string;
+    };
+    expect(first.generation).toBe(1);
+    expect(
+      planSequenceMain([
+        "set",
+        "--project-root",
+        root,
+        "--file",
+        file,
+        "--expected-generation",
+        "0",
+      ]),
+    ).toBe(1);
+    const unchanged = JSON.parse(readFileSync(join(root, ".deft/plan-sequence.json"), "utf8")) as {
+      generation: number;
+      sequence_id: string;
+    };
+    expect(unchanged.generation).toBe(1);
+    expect(unchanged.sequence_id).toBe("cas");
   });
 });

@@ -6,9 +6,13 @@ import { loadStoryWriteFenceFromPath } from "../policy/write-fence.js";
 import { fenceUntrustedAcceptanceText } from "../scope/acceptance-evidence.js";
 import {
   ACTIVE_SCOPE_PIN_ENV,
+  governingAllowCoversRelPath,
+  hasPositiveGoverningStoryAllow,
   inspectActiveScope,
   matchPinnedActiveScope,
+  POSITIVE_GOVERNING_ALLOW_REQUIRED,
   resolveSoftMissingAcTargets,
+  selectedBriefHasPositiveGoverningAllow,
 } from "./index.js";
 
 /** Fixture tempdirs are not git merge-base trees; use working-tree fence SoT. */
@@ -392,6 +396,20 @@ describe("non-fencing partition for unpinned multi-eligible (#4880 Prefer-A C')"
 
     const result = inspectActiveScope(project, { env: {}, ...pathFenceSeam });
     expect(result).toMatchObject({ ready: true, path: pathless });
+    // #5656: inspect ready ≠ Write/spawn admission without positive governing allow.
+    expect(
+      selectedBriefHasPositiveGoverningAllow(project, pathless, loadStoryWriteFenceFromPath),
+    ).toBe(false);
+    expect(hasPositiveGoverningStoryAllow({ fileScope: [], denyPaths: [] })).toBe(false);
+    expect(hasPositiveGoverningStoryAllow({ fileScope: [], denyPaths: ["docs/**"] })).toBe(false);
+    expect(hasPositiveGoverningStoryAllow({ fileScope: ["src/**"], denyPaths: [] })).toBe(true);
+    expect(governingAllowCoversRelPath({ fileScope: ["src/**"], denyPaths: [] }, "src/a.ts")).toBe(
+      true,
+    );
+    expect(governingAllowCoversRelPath({ fileScope: ["src/**"], denyPaths: [] }, "docs/a.md")).toBe(
+      false,
+    );
+    expect(POSITIVE_GOVERNING_ALLOW_REQUIRED).toMatch(/positive governing/);
   });
 
   it("explicit pin to no-file_scope with another fencing eligible → pin binds", () => {

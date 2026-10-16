@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-10-15-3908-framework-gap-fence-scope-lifecycle-moves-across-processes.xbrief.json",
+  "planId": "github.issue.5283616449",
+  "approvedAt": "2026-10-16T02:16:05Z",
+  "fileScope": [
+    "packages/core/src/scope/transition.concurrency.test.ts",
+    "packages/core/src/scope/transition.test.ts",
+    "packages/core/src/scope/transition.ts"
+  ],
+  "fileScopeDigest": "22250ffbade4e902e2db15d9e642a2557ce05ede8afbfd66cd563f8eb564c5b6",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-10-16T02:16:05Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "f08abe244c2951bffb88444fe714e17385ea7507a0b0db5dc16cba7185bbfaa1",
+  "digestAlgo": "intent-extract-v1"
+}

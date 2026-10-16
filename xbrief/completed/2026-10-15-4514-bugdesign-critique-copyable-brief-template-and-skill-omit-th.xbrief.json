@@ -1,0 +1,227 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4514"
+  },
+  "plan": {
+    "title": "bug(design-critique): copyable brief template and skill omit the pain field so Stop 1 inherits missing-pain",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(design-critique): copyable brief template and skill omit the pain field so Stop 1 inherits missing-pain",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4514",
+      "Overview": "\n\n- Recut P1 to one hole: the copyable envelope fields list has no Stop 1 `pain:` closed form, and `REQUIRED_TEMPLATE_POINTERS` does not lock it. Pointer-to-heading work on the template and skill is already landed. Recut \"every arc inherits missing-pain\" to \"a template-faithful Stop 1 omits the bind conjunct.\"\n- Add an envelope field parallel to Audit targets, inverted: copy onto the Stop 1 write-back (`role: triage`) as an operative line-start in the published closed forms (`pain: P1` / `pain: P1, P2` / `pain:` then `- P1`). Do not copy onto critic comments. One sentence that this is not `audit-targets` / `pain-P1`.\n- Strike AC 2 as a skill markdown table. Add a closed-form Stop 1 `pain:` token to `REQUIRED_TEMPLATE_POINTERS`. If the skill needs a heading token, add `Pain coverage` to `REQUIRED_SKILL_POINTERS` via `content/packs/skills/skills-pack-0.1.json`, not the rendered SKILL.md.\n- Do not change `applyPainCoverage`. Do not auto-invent ids from the because-clause.\n\nFootnotes stay footnotes: #3007 critic 5666010600 finding 2 is not template evidence.\n\n",
+      "Labels": "bug, agent-experience, area:skills, critic, design-critique:ingest-ready, core-capabilities, promise:planning"
+    },
+    "items": [
+      {
+        "title": "Recut P1 to one hole: the copyable envelope fields list has no Stop 1 `pain:` closed form, and `REQUIRED_TEMPLATE_POINTERS` does not lock it. Pointer-to-heading work on the template and skill is already landed. Recut \"every arc inherits missing-pain\" to \"a template-faithful Stop 1 omits the bind conjunct.\"",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "81ee5e21d2b6a10d6da3a09ea9e9bdfad8e37fba",
+          "recorded_at": "2026-10-15T01:02:09.033Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "Add an envelope field parallel to Audit targets, inverted: copy onto the Stop 1 write-back (`role: triage`) as an operative line-start in the published closed forms (`pain: P1` / `pain: P1, P2` / `pain:` then `- P1`). Do not copy onto critic comments. One sentence that this is not `audit-targets` / `pain-P1`.",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "81ee5e21d2b6a10d6da3a09ea9e9bdfad8e37fba",
+          "recorded_at": "2026-10-15T01:02:09.033Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "Strike AC 2 as a skill markdown table. Add a closed-form Stop 1 `pain:` token to `REQUIRED_TEMPLATE_POINTERS`. If the skill needs a heading token, add `Pain coverage` to `REQUIRED_SKILL_POINTERS` via `content/packs/skills/skills-pack-0.1.json`, not the rendered SKILL.md.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "81ee5e21d2b6a10d6da3a09ea9e9bdfad8e37fba",
+          "recorded_at": "2026-10-15T01:02:09.033Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "Do not change `applyPainCoverage`. Do not auto-invent ids from the because-clause.",
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "81ee5e21d2b6a10d6da3a09ea9e9bdfad8e37fba",
+          "recorded_at": "2026-10-15T01:02:09.033Z",
+          "recorded_by": "scope:complete"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "area:skills",
+      "critic",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:planning"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4514",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4514: bug(design-critique): copyable brief template and skill omit the pain field so Stop 1 inherits missing-pain"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "bug(design-critique): copyable brief template and skill omit the pain field so Stop 1 inherits missing-pain",
+        "Recut P1 to one hole: the copyable envelope fields list has no Stop 1 `pain:` closed form, and `REQUIRED_TEMPLATE_POINTERS` does not lock it.",
+        "Pointer-to-heading work on the template and skill is already landed.",
+        "Recut \"every arc inherits missing-pain\" to \"a template-faithful Stop 1 omits the bind conjunct.\" - Add an envelope field parallel to Audit targets, inverted: copy onto the Stop 1 write-back (`role: triage`) as an operative line-start in the published closed forms (`pain: P1` / `pain: P1, P2` / `pain:` then `- P1`).",
+        "Do not copy onto critic comments.",
+        "One sentence that this is not `audit-targets` / `pain-P1`.",
+        "Strike AC 2 as a skill markdown table.",
+        "Add a closed-form Stop 1 `pain:` token to `REQUIRED_TEMPLATE_POINTERS`.",
+        "If the skill needs a heading token, add `Pain coverage` to `REQUIRED_SKILL_POINTERS` via `content/packs/skills/skills-pack-0.1.json`, not the rendered SKILL.md.",
+        "Do not change `applyPainCoverage`.",
+        "Do not auto-invent ids from the because-clause.",
+        "Footnotes stay footnotes: #3007 critic 5666010600 finding 2 is not template evidence.",
+        "Recut \"every arc inherits missing-pain\" to \"a template-faithful Stop 1 omits the bind conjunct.\"",
+        "Add an envelope field parallel to Audit targets, inverted: copy onto the Stop 1 write-back (`role: triage`) as an operative line-start in the published closed forms (`pain: P1` / `pain: P1, P2` / `pain:` then `- P1`)."
+      ],
+      "admitted_source_sentences": [
+        "Recut P1 to one hole: the copyable envelope fields list has no Stop 1 `pain:` closed form, and `REQUIRED_TEMPLATE_POINTERS` does not lock it.",
+        "Pointer-to-heading work on the template and skill is already landed.",
+        "Recut \"every arc inherits missing-pain\" to \"a template-faithful Stop 1 omits the bind conjunct.\" - Add an envelope field parallel to Audit targets, inverted: copy onto the Stop 1 write-back (`role: triage`) as an operative line-start in the published closed forms (`pain: P1` / `pain: P1, P2` / `pain:` then `- P1`).",
+        "Do not copy onto critic comments.",
+        "One sentence that this is not `audit-targets` / `pain-P1`.",
+        "Strike AC 2 as a skill markdown table.",
+        "Add a closed-form Stop 1 `pain:` token to `REQUIRED_TEMPLATE_POINTERS`.",
+        "If the skill needs a heading token, add `Pain coverage` to `REQUIRED_SKILL_POINTERS` via `content/packs/skills/skills-pack-0.1.json`, not the rendered SKILL.md.",
+        "Do not change `applyPainCoverage`.",
+        "Do not auto-invent ids from the because-clause.",
+        "Footnotes stay footnotes: #3007 critic 5666010600 finding 2 is not template evidence."
+      ],
+      "admitted_source_digest": "06bb01090bd1c750ee3463e73b4e0da6713f23eb25084816a44274e50c8323ae",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Recut P1 to one hole: the copyable envelope fields list has no Stop 1 `pain:` closed form, and `REQUIRED_TEMPLATE_POINTERS` does not lock it. Pointer-to-heading work on the template and skill is already landed. Recut \"every arc inherits missing-pain\" to \"a template-faithful Stop 1 omits the bind conjunct.\"",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "81ee5e21d2b6a10d6da3a09ea9e9bdfad8e37fba",
+            "recorded_at": "2026-10-15T01:02:09.033Z",
+            "recorded_by": "scope:complete"
+          }
+        },
+        {
+          "id": 2,
+          "text": "Add an envelope field parallel to Audit targets, inverted: copy onto the Stop 1 write-back (`role: triage`) as an operative line-start in the published closed forms (`pain: P1` / `pain: P1, P2` / `pain:` then `- P1`). Do not copy onto critic comments. One sentence that this is not `audit-targets` / `pain-P1`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "81ee5e21d2b6a10d6da3a09ea9e9bdfad8e37fba",
+            "recorded_at": "2026-10-15T01:02:09.033Z",
+            "recorded_by": "scope:complete"
+          }
+        },
+        {
+          "id": 3,
+          "text": "Strike AC 2 as a skill markdown table. Add a closed-form Stop 1 `pain:` token to `REQUIRED_TEMPLATE_POINTERS`. If the skill needs a heading token, add `Pain coverage` to `REQUIRED_SKILL_POINTERS` via `content/packs/skills/skills-pack-0.1.json`, not the rendered SKILL.md.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "81ee5e21d2b6a10d6da3a09ea9e9bdfad8e37fba",
+            "recorded_at": "2026-10-15T01:02:09.033Z",
+            "recorded_by": "scope:complete"
+          }
+        },
+        {
+          "id": 4,
+          "text": "Do not change `applyPainCoverage`. Do not auto-invent ids from the because-clause.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "81ee5e21d2b6a10d6da3a09ea9e9bdfad8e37fba",
+            "recorded_at": "2026-10-15T01:02:09.033Z",
+            "recorded_by": "scope:complete"
+          }
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5451045936,
+        "origin": "deftai/directive#4514",
+        "id": "github.issue.5451045936"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "0914c7d0f6b77c083f78ccb4412369526467cb2fff2308e38361e6849429a3d9"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "productPullRequest": 5630,
+      "mergeCommit": "81ee5e21d2b6a10d6da3a09ea9e9bdfad8e37fba",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "46746cd109c5e4fc37ac2431bb101c46a3dcd7e5",
+        "prNumber": 5630,
+        "prBase": "master",
+        "mergeCommit": "81ee5e21d2b6a10d6da3a09ea9e9bdfad8e37fba",
+        "deliveryBranch": "master",
+        "deliveryCommit": "81ee5e21d2b6a10d6da3a09ea9e9bdfad8e37fba",
+        "verifiedAt": "2026-10-15T01:02:09.033Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTNjNDItM2E5Zi03ZWUwLWFkZDYtN2RiYThjOTI4MGI5"
+      },
+      "completedAt": "2026-10-15T01:02:09.033Z",
+      "completedSessionId": "host:grok:v1:MDFhMTNjNDItM2E5Zi03ZWUwLWFkZDYtN2RiYThjOTI4MGI5",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-15T01:02:09.033Z"
+      }
+    },
+    "id": "github.issue.5451045936"
+  }
+}

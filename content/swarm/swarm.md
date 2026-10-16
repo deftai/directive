@@ -45,7 +45,7 @@ This is a security and chaos bound for Directive swarm and any local A2A surface
 - ⊗ Treat retained / re-addressable children (#3158) as license to mesh outside the nuclear family
 - ⊗ Implement remote open-mesh A2A product mode as default swarm topology; outbound A2A client posture and wire protocol remain #2705 / #2706 / #2707
 
-**Security rationale:** each extra A2A edge multiplies confused-deputy and compositional-fragment surface (untrusted peer content entering another agent context). Bounding the graph to parent/sibling/child caps that multiplier. Detail: [`../meta/security.md`](../meta/security.md) `## Unbounded A2A graphs (#3155)`, ADR [`../../../docs/decisions/ADR-003-a2a-nuclear-family-topology.md`](../../../docs/decisions/ADR-003-a2a-nuclear-family-topology.md).
+**Security rationale:** each extra A2A edge multiplies confused-deputy and compositional-fragment surface (untrusted peer content entering another agent context). Bounding the graph to parent/sibling/child caps that multiplier. Detail: [`../meta/security.md`](../meta/security.md) `## Unbounded A2A graphs (#3155)`, ADR [`../docs/decisions/ADR-003-a2a-nuclear-family-topology.md`](../docs/decisions/ADR-003-a2a-nuclear-family-topology.md).
 
 **Cross-links:** parent epic [#3179](https://github.com/deftai/directive/issues/3179) (bounded multi-agent graphs); pair [#3158](https://github.com/deftai/directive/issues/3158) (retained children); A2A client posture [#2705](https://github.com/deftai/directive/issues/2705) (this topology is a decision input; full client ADR remaining work stays on #2705).
 
@@ -351,4 +351,4 @@ task check
 - [taskfile.md](../tools/taskfile.md) - Build and test automation
 - [testing.md](../coding/testing.md) - Testing requirements
 - [meta/security.md](../meta/security.md) - Agent trap taxonomy; unbounded A2A graph surface (#3155)
-- [ADR-003 nuclear-family topology](../../../docs/decisions/ADR-003-a2a-nuclear-family-topology.md) - Accepted bounded-graph posture; #2705 client ADR remainder deferred
+- [ADR-003 nuclear-family topology](../docs/decisions/ADR-003-a2a-nuclear-family-topology.md) - Accepted bounded-graph posture; #2705 client ADR remainder deferred

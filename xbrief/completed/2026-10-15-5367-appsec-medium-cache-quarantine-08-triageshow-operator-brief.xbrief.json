@@ -1,0 +1,265 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5367",
+    "updated": "2026-10-15T00:59:20Z"
+  },
+  "plan": {
+    "title": "Gate triage:show load/render via readCacheScanPassed plus scanned content presence before printable CachedIssueDetail fields materialize.",
+    "status": "completed",
+    "narratives": {
+      "Description": "Gate triage:show load/render via readCacheScanPassed plus scanned content presence before printable CachedIssueDetail fields materialize.",
+      "Origin": "Prefer-A Bound cite 6181190124",
+      "Overview": "Gate triage:show load/render via readCacheScanPassed plus scanned content presence before printable CachedIssueDetail fields materialize. Typed quarantine refusal distinct from cache miss; CLI prints quarantine notice on stderr and returns exit 1 for default and operator formats. Refuse when scan passed is false, scanned content missing, or scan status unknown; never copy hard-fail raw body after refuse. Passed path: read scanned content, strip render header, omit quarantined fence regions from summary/AC extraction; sanitizeQueueTitle on printable path. Document the fix in CHANGELOG Unreleased Fixed for Tracking 5367; keep-outs sibling scanner tickets.",
+      "Labels": "bug, security, agent-experience, source-of-truth, scm, area:cli, dogfood, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "id": "item.1",
+        "status": "completed",
+        "title": "Gate triage:show load/render via readCacheScanPassed plus scanned content presence before printable CachedIssueDetail fields materialize.",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "685dd49255019f5e0a2742db0ca9e403e89a8630",
+          "recorded_at": "2026-10-15T02:27:30.331Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "item.2",
+        "status": "completed",
+        "title": "Typed quarantine refusal distinct from cache miss; CLI prints quarantine notice on stderr and returns exit 1 for default and operator formats.",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "685dd49255019f5e0a2742db0ca9e403e89a8630",
+          "recorded_at": "2026-10-15T02:27:30.331Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "item.3",
+        "status": "completed",
+        "title": "Refuse when scan passed is false, scanned content missing, or scan status unknown; never copy hard-fail raw body after refuse.",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "685dd49255019f5e0a2742db0ca9e403e89a8630",
+          "recorded_at": "2026-10-15T02:27:30.331Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "item.4",
+        "status": "completed",
+        "title": "Passed path: read scanned content, strip render header, omit quarantined fence regions from summary/AC extraction; sanitizeQueueTitle on printable path.",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "685dd49255019f5e0a2742db0ca9e403e89a8630",
+          "recorded_at": "2026-10-15T02:27:30.331Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "item.5",
+        "status": "completed",
+        "title": "Document the fix in CHANGELOG Unreleased Fixed for Tracking 5367; keep-outs sibling scanner tickets.",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "685dd49255019f5e0a2742db0ca9e403e89a8630",
+          "recorded_at": "2026-10-15T02:27:30.331Z",
+          "recorded_by": "scope:complete"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "security",
+      "agent-experience",
+      "source-of-truth",
+      "scm",
+      "area:cli",
+      "dogfood",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5367",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5367: [AppSec] MEDIUM cache-quarantine-08: triage:show operator brief prints raw.json after quarantine hard-fail"
+      }
+    ],
+    "acceptance": {
+      "none_stated": true,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Gate triage:show load/render via readCacheScanPassed plus scanned content presence before printable CachedIssueDetail fields materialize.",
+          "artifact_path": "packages/core/src/triage/queue/show.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "685dd49255019f5e0a2742db0ca9e403e89a8630",
+            "recorded_at": "2026-10-15T02:27:30.331Z",
+            "recorded_by": "scope:complete"
+          }
+        },
+        {
+          "id": 2,
+          "text": "Typed quarantine refusal distinct from cache miss; CLI prints quarantine notice on stderr and returns exit 1 for default and operator formats.",
+          "artifact_path": "packages/cli/src/triage-queue.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "685dd49255019f5e0a2742db0ca9e403e89a8630",
+            "recorded_at": "2026-10-15T02:27:30.331Z",
+            "recorded_by": "scope:complete"
+          }
+        },
+        {
+          "id": 3,
+          "text": "Refuse when scan passed is false, scanned content missing, or scan status unknown; never copy hard-fail raw body after refuse.",
+          "artifact_path": "packages/core/src/triage/queue/show.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "685dd49255019f5e0a2742db0ca9e403e89a8630",
+            "recorded_at": "2026-10-15T02:27:30.331Z",
+            "recorded_by": "scope:complete"
+          }
+        },
+        {
+          "id": 4,
+          "text": "Passed path: read scanned content, strip render header, omit quarantined fence regions from summary/AC extraction; sanitizeQueueTitle on printable path.",
+          "artifact_path": "packages/core/src/triage/queue/show.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "685dd49255019f5e0a2742db0ca9e403e89a8630",
+            "recorded_at": "2026-10-15T02:27:30.331Z",
+            "recorded_by": "scope:complete"
+          }
+        },
+        {
+          "id": 5,
+          "text": "Document the fix in CHANGELOG Unreleased Fixed for Tracking 5367; keep-outs sibling scanner tickets.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "685dd49255019f5e0a2742db0ca9e403e89a8630",
+            "recorded_at": "2026-10-15T02:27:30.331Z",
+            "recorded_by": "scope:complete"
+          }
+        }
+      ],
+      "commands": [],
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "Issue title and tracking labels are metadata, not independently verified clauses (#3550).",
+        "Keep-outs #5369 #5370 #5371 #5623 remain sibling scanner tickets."
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/triage/queue/show.ts",
+          "packages/cli/src/triage-queue.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/triage/queue",
+        "cohesion_exemption": "CHANGELOG companion; CLI triage-queue wires exit/stderr."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5712452298,
+        "origin": "deftai/directive#5367",
+        "id": "github.issue.5712452298"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "f8bb5d90a17e701d268b79eb865dd53f79c9c021b3be187b76067c864e6b183c"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "cache-quarantine-08-triage-show-raw-after-hard-fail",
+        "expected_outputs": [
+          "quarantine refuse exit 1",
+          "no raw.json after hard-fail",
+          "CHANGELOG Fixed #5367"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/triage/queue/show.test.ts packages/cli/src/triage-queue.test.ts"
+        ],
+        "file_scope": [
+          "packages/core/src/triage/queue/show.ts",
+          "packages/cli/src/triage-queue.ts",
+          "CHANGELOG.md"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "Prefer-A Bound 6181190124",
+          "issue #5367"
+        ],
+        "parallel_safe": true
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "productPullRequest": 5636,
+      "mergeCommit": "685dd49255019f5e0a2742db0ca9e403e89a8630",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "8e276eaaa5f84fa26bd2550b6c52447f3db46684",
+        "prNumber": 5636,
+        "prBase": "master",
+        "mergeCommit": "685dd49255019f5e0a2742db0ca9e403e89a8630",
+        "deliveryBranch": "master",
+        "deliveryCommit": "685dd49255019f5e0a2742db0ca9e403e89a8630",
+        "verifiedAt": "2026-10-15T02:27:30.331Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTNjNDItM2E5Zi03ZWUwLWFkZDYtN2RiYThjOTI4MGI5"
+      },
+      "completedAt": "2026-10-15T02:27:30.331Z",
+      "completedSessionId": "host:grok:v1:MDFhMTNjNDItM2E5Zi03ZWUwLWFkZDYtN2RiYThjOTI4MGI5",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-15T02:27:30.331Z"
+      }
+    },
+    "id": "github.issue.5712452298",
+    "updated": "2026-10-15T00:59:20Z"
+  }
+}

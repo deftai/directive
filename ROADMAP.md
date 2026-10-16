@@ -33,11 +33,25 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 - **#4888** -- Semantic policy conflicts stay invisible until task check -- `[proposed]`
 - **#4892** -- Managed card cites ADR-003 but docs/decisions never ships -- `[proposed]`
 - **#4961** -- feat(setup): seed PROJECT-DEFINITION from a design document (--from / --answers) instead of interview-only -- `[proposed]`
+- **#3906** -- [framework-gap] Acquire occupancy before session-start mutations -- `[proposed]`
+- **#3908** -- [framework-gap] Fence scope lifecycle moves across processes -- `[proposed]`
 
 ## Completed
 
-_Showing 25 of 1800 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1812 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#5366** -- [AppSec] MEDIUM hooks-authz-05: PreToolUse dest harvest miss fail-opens write-shaped MCP and the path fence -- `[completed]`
+- **#5367** -- Gate triage:show load/render via readCacheScanPassed plus scanned content presence before printable CachedIssueDetail fields materialize. -- `[completed]`
+- **#5627** -- [AppSec] HIGH install-deposit-03: Unpinned GitHub framework tarball is extracted and planted as git hooks -- `[completed]`
+- **#4514** -- bug(design-critique): copyable brief template and skill omit the pain field so Stop 1 inherits missing-pain -- `[completed]`
+- **#3911** -- [framework-gap] Keep orientation state local and separate freshness domains -- `[completed]`
+- **#5042** -- spec:render collapses each phase's task list into the narrative paragraph -- `[completed]`
+- **#3827** -- bug(routing): swarm:routing-set fails containment in linked worktrees -- `[completed]`
+- **#5159** -- fix(class-checks): exclude lifecycle xBRIEF records from pipeline path classification -- `[completed]`
+- **#4878** -- Acceptance-evidence refusal names items[N] and ignores acceptance.clauses -- `[completed]`
+- **#3583** -- bug(scope): scope:complete does not auto-discover the merged PR for delivery evidence -- `[completed]`
+- **#5602** -- framework-gap: Prefer-A leftover-complete must use scope:complete / stampDeliveryProvenance (no hand productMerge stamps) -- `[completed]`
+- **#4881** -- scope:complete on an already-completed path reports File not found -- `[completed]`
 - **#5477** -- Path B activate #5477 Prefer-A Bound file_scope -- `[completed]`
 - **#5574** -- Path B activate #5574 Prefer-A Bound -- `[completed]`
 - **#5551** -- Path B activate #5551 Prefer-A Bound file_scope -- `[completed]`
@@ -51,16 +65,4 @@ _Showing 25 of 1800 completed scopes (newest first). Full history: lifecycle `co
 - **#5521** -- Pinned AGENTS rule names deft scm:body:* but the verbs are Taskfile-only; unknown-verb hint recommends the failing form; no rule-to-verb parity check -- `[completed]`
 - **#5526** -- bug(release): v0.124.0 Windows Step 5 hang under 60m at ts:check-lane (cursor deft_run_resolver.test.ts) -- `[completed]`
 - **#5479** -- BLOCKER: generated project registry refresh requires coverage in a design-only consumer -- `[completed]`
-- **#5520** -- Lifecycle gates fall back to hardcoded master/main instead of plan.policy.deliveryBranch -- `[completed]`
-- **#5519** -- fix(triage): worktrees-probe case-fold sibling unregister flake recurred on 0.124.0 tip (post-#5460) -- `[completed]`
-- **#5492** -- docs(design-critique,windows): name CreateProcess argv ceiling for Claude critic pointer spawn -- `[completed]`
-- **#5478** -- bug(design-critique,windows): Claude critic seat hangs 0-byte after launch-probe pong-ok (pointer envelope) -- `[completed]`
-- **#5489** -- design-critique: later arcs on the same ticket re-litigate closed findings -- `[completed]`
-- **#5488** -- design-critique: allow a finished arc to mean “looks good to me” -- `[completed]`
-- **#5364** -- [AppSec] HIGH subprocess-scm-01: Unvalidated deliveryBranch is passed to git fetch as a raw refspec/option -- `[completed]`
-- **#5365** -- [AppSec] HIGH ci-secrets-supply-02: npm trusted publish has no environment gate and fires on any v* tag -- `[completed]`
-- **#5466** -- bug(design-critique): bare-arc spend recommend-first still asks (need spend-resolve verb + ask-deny) -- `[completed]`
-- **#5467** -- BLOCKER 0.123.0 still fail-closes Visage vbrief:validate on proposed/active history after #5427; consumer remains on 0.119.2 -- `[completed]`
-- **#5463** -- docs(installer): 0.122.0 consumer text has a non-runnable task command, missing required flags, and a .gitattributes comment/attribute mismatch -- `[completed]`
-- **#5465** -- docs(agents): 0.123.0 agents-entry #5278 drops required --scope-id/--target-id on pre-dispatch cancel -- `[completed]`
 

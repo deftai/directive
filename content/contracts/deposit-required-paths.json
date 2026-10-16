@@ -11,6 +11,7 @@
     ".deft/core/docs/decision-log.md",
     ".deft/core/docs/gate-integrity.md",
     ".deft/core/docs/subagent-heartbeat.md",
+    ".deft/core/docs/decisions/ADR-003-a2a-nuclear-family-topology.md",
     ".deft/core/contracts/deterministic-questions.md",
     ".deft/core/contracts/intent-ceiling.md",
     ".deft/core/contracts/deposit-required-paths.json",

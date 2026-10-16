@@ -96,8 +96,20 @@ describe("verify-plan-sequence CLI (#2402)", () => {
         entries: [{ id: "pr-1", kind: "pr", issue: 1 }],
       }),
     );
-    expect(planSequenceMain(["set", "--project-root", root, "--file", file])).toBe(0);
-    expect(planSequenceMain(["advance", "--project-root", root])).toBe(0);
+    expect(
+      planSequenceMain([
+        "set",
+        "--project-root",
+        root,
+        "--file",
+        file,
+        "--expected-generation",
+        "0",
+      ]),
+    ).toBe(0);
+    expect(
+      planSequenceMain(["advance", "--project-root", root, "--expected-generation", "1"]),
+    ).toBe(0);
     const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
     try {
       expect(main(["--project-root", root, "--target-kind", "pr", "--target", "pr-9999"])).toBe(1);
@@ -122,7 +134,17 @@ describe("verify-plan-sequence CLI (#2402)", () => {
         entries: [{ id: "287", kind: "issue", issue: 287 }],
       }),
     );
-    expect(planSequenceMain(["set", "--project-root", root, "--file", file])).toBe(0);
+    expect(
+      planSequenceMain([
+        "set",
+        "--project-root",
+        root,
+        "--file",
+        file,
+        "--expected-generation",
+        "0",
+      ]),
+    ).toBe(0);
     mkdirSync(join(root, "xbrief/completed"), { recursive: true });
     writeFileSync(
       join(root, "xbrief/completed/287.xbrief.json"),

@@ -1,18 +1,62 @@
- Changelog
-
-
+# Changelog
 
 All notable changes to the Deft framework will be documented in this file.
 
-
-
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-
-
 ## [Unreleased]
+- **Fixed**: Land tracked completion record for setup seed PROJECT-DEFINITION from design doc/answers after product #5662. Refs #4961.
+- **Fixed**: Land tracked completion record for SPECIFICATION export Requirements/AcceptanceCriteria fidelity after product #5661. Refs #4871.
+- **Fixed**: Land tracked completion record for three-axis semantic-green candidate validation. Refs #4888.
+- **Fixed**: Land tracked completion record for Grok missing deft-hook fail-open after product #5658. Refs #5656.
+- **Fixed**: Land tracked completion record for ADR-003 deposit Continuity flatten. Refs #4892.
+- **Fixed**: Land tracked completion record for exclusive-create dest on lifecycle folder-moves. Refs #3908.
+- **Fixed**: Prepare approved file permissions for the scope lifecycle exclusive-create dest work. This records approval only; it does not change product behavior. Refs #3908.
+### Added
+- **Seed PROJECT-DEFINITION narratives from a design doc or answers file (#4961).** `deft setup:seed` writes a draft-only six-key Phase 2 preview; confirm via the Post-Interview gate, then `deft project:write-narratives`. Refuses `--out` onto PROJECT-DEFINITION or the input path. Tracking #4961.
+- **Consumer deposit now includes ADR-003 for Continuity (#4892).** MUST cites resolve to `.deft/core/docs/decisions/ADR-003-a2a-nuclear-family-topology.md` via the content/docs flatten. Maintainer `docs/decisions/ADR-003` stays heavyweight SoT (dual-path; no root-docs prepack carve-out). Leaves #3940 as tracker; cross-links only #3847 / #4890. Closes #4892.
+### Changed
+- Widen Prefer-A Bound keep-active #5656 file_scope for companion hooks/tests/RULE-MAP (productPullRequest unset). Tracking #5656.
+- Activate Prefer-A Bound keep-active brief for #5656 (productPullRequest unset; concrete file_scope). Tracking #5656.
+- Activate Prefer-A Bound keep-active brief for #3907 (productPullRequest unset; swarm-ready story fields). Tracking #3907.
+- Restore Prefer-A Bound keep-active brief for #3906 (productPullRequest unset; concrete file_scope). Tracking #3906.
+- Restore Prefer-A Bound keep-active brief for #3908 (productPullRequest unset; concrete file_scope). Tracking #3908.
+### Fixed
+- **Pre-push three-axis guidance no longer requires remote PR head match (#4888).** Local merge-chokepoint `deft check`/`task check` validates before push; `evaluateNonCascadeCandidateGreen` SHA-pair attestation applies after push when local HEAD matches the live remote PR head (and on conflict-resolve/behind-rebase). Tracking #4888.
+- **Combined cascade + candidate-validation limbs no longer skip attestation (#4888).** When both `cascadeMode` and `requireCandidateValidation` are set, cascade absolute refusal still runs first, then candidate validation must pass. Cascade-only callers stay cascade-only. Tracking #4888.
+- **Issue #3906 now has a tracked completion record.** The record links to the fix delivered in #5649, so the issue can close without losing its scope history. Tracking #3906.
+- **Issue #3907 now has a tracked completion record.** The record links to the fix delivered in #5651, so the issue can close without losing its scope history. Tracking #3907.
+- **Issue #3908 now has a tracked completion record.** The record links to the fix delivered in #5653, so the issue can close without losing its scope history. Tracking #3908.
+- **Grok missing `deft-hook` no longer fails open (#5656).** Deposit a PreToolUse shell wrapper that denies when `deft-hook` is missing or non-decision; require positive governing story allow for Write/implement spawn; add prospective staged scope-cover evaluation; name silent gate loss for non-fail-closed hosts. Staged-path listing returns Result (no throw) so intent-constraint stays free of operational hard facts. Prospective cover also includes typechanges and rename sources, and does not treat letters inside attached `-m`/`-F` values as index-mutating flags. Tracking #5656.
+- **Export-spec keeps string Requirements and AcceptanceCriteria with stable order (#4871).** Full-spec export falls back to PROJECT-DEFINITION only when those keys are missing (spec wins on conflict). Plan-item `AcceptanceCriteria` renders as bullets (`Acceptance` stays an alias). TechStack remains on the Wave 0 §5 exclude list. Tracking #4871.
+- **Prevent stale ordered-plan changes (#3907).** Competing commands in the same worktree can no longer overwrite or clear a plan using an outdated generation. Clearing and recreating a plan keeps older commands from changing its replacement. Persist failures are retryable. CLI `set`, `advance`, and `clear` require `--expected-generation`. Tracking #3907.
+- **Competing sessions cannot change worktree files before claiming occupancy (#3906).** Cold, re-arm, and `session:ready` persist the worktree lease before any linked-deposit copy. Failed setup rolls back only this invocation's claim. Tracking #3906.
+- **A session re-checks occupancy before writing ritual (#3906).** A steal during ceremony no longer lets the first session overwrite the new owner's ritual. Tracking #3906.
+- **Competing scope moves preserve the winning brief (#3908).** When two processes move the same scope, the losing attempt no longer overwrites or removes the winner's destination. Spec-drift lock-refuse unlinks dest this process created so a retry is not blocked. Dest symlink/containment refusals stay returned-failure (no throw). Tracking #3908.
+### Removed
+
+## [0.125.2] - 2026-10-15
+
+> Fail-closed PreToolUse dest harvest (#5366), Codex critic workdir (#4998), installer tarball SHA pin (#5627), completed-write-guard (#5602), auto-discover delivery evidence (#3583).
+
+### Fixed
+
+- **Recognize Codex critic launch directories (#4998).** Hooks can allow a Claude critic to launch in a prepared linked worktree when Codex supplies its working directory, even if the session stays in the parent checkout. Invalid or conflicting directory fields remain blocked. Live Codex 0.162 still omits that directory from hook input, so those launches remain blocked. Grok critic launches that name a prepared dest with `--cwd` still succeed when nested workdir is the parent checkout. Tracking #4998.
+- **`verify:scope-provenance` no longer tells operators to pass `--enforce` to fail closed (#5057).** Soft findings are advisory intent-pin drift on a brief with no intent pin. `--enforce` stays parsed for compatibility, prints that it has no effect after #4956 / #5002, and does not change the exit code. Tracking #5057.
+- **PreToolUse dest harvest miss no longer fail-opens write-shaped MCP (#5366).** Harvest `uri`/`file`; empty-harvest fail-closes write-shaped effective names (ApplyPatch class); unwrap `use_tool`/`CallMcpTool` shell inners with an effective argument view into Shell/UAT; decode local `file:` URIs and refuse unsupported schemes; active write fence denies empty/unclassified targets. Tracking #5366.
+- **Issue #5366 now has a tracked completion record.** The record links to the fix delivered in #5639, so the issue can close without losing its scope history. Tracking #5366.
+- **`triage:show` fails closed on quarantine hard-fail (#5367).** Refuse with exit 1 + stderr notice when scan meta hard-fails, scanned `content.md` is missing, or scan status is unknown — never re-emit `raw.json` into default/operator briefs. Passed path reads scanned content, strips the render header, and omits quarantined fence regions from summary/AC. Keep-outs: #5369, #5370, #5371, #5623. Tracking #5367.
+- **Issue #5367 now has a tracked completion record.** The record links to the fix delivered in #5636, so the issue can close without losing its scope history. Tracking #5367.
+- **Pin + verify the Go installer framework tarball before extract (#5627 / install-deposit-03).** `downloadAndExtractCore` checks SHA-256 of `GET .../tarball/<pinnedTag>` against a hard-coded pin (reuse `verifyFileSHA256`) and fails closed before extract/deposit/swap so `WriteConsumerGitHooks` never wires hooks from an unverified payload. Non-pinned refs refuse; omitting `--branch` defaults to the pin and does not inherit release ldflags `defaultBranch`/`github.ref_name`. Trust-artifact class is the GitHub source-tarball digest (pin-bump when GitHub regenerates under the same tag). Frozen already-shipped installer binaries are not retroactively fixed — `npx @deftai/directive init` remains the upgrade path for those hosts. Tracking #5627.
+- **Issue #5627 now has a tracked completion record.** The record links to the fix delivered in #5634, so the issue can close without losing its scope history. Tracking #5627.
+- **Design-critique brief Stop 1 `pain:` envelope field (#4514).** Copyable brief lists closed forms (`pain: P1` / `pain: P1, P2` / `pain:` then `- P1`) for the triage write-back only, not critic comments; content-contract locks `` `pain:` `` and skill `Pain coverage`. Tracking #4514.
+- **Issue #4514 now has a tracked completion record.** The record links to the fix delivered in #5630, so the issue can close without losing its scope history. Tracking #4514.
+- **`spec:render` keeps multiline phase How/Why/What newlines (#5042).** Object narrative prose is pass-through with `itemHandlerIndent` on nonblank lines (not `oneLine`), so narrative-carried overview bullets stay a Markdown list. #4511 heading taxonomy unchanged. Tracking #5042.
+- **Issue #5042 now has a tracked completion record.** The record links to the fix delivered in #5625, so the issue can close without losing its scope history. Tracking #5042.
+- **Keep orientation and session-bind state local (#3911).** Canonical TS/Go ignore baselines cover .deft/orientation-state.json, .deft/session-bind.json, and .deft/session-binds/; init/update heals those lines and exact-path index-only untracks already-indexed copies without deleting local files (staged-conflict refuse). Shared `git rm --cached` port honors ADR-004 port-record mode so `directive update --dry-run` / dest planning never stages those deletions. Freshness docs state deposit/toolchain-only, not lifecycle authority. Tracking #3911.
+- **Issue #3911 now has a tracked completion record.** The record links to the fix delivered in #5624, so the issue can close without losing its scope history. Tracking #3911.
+- Leftover-complete closer trail for #4878 (after Tracking product #5604).
 
 ### Added
 
@@ -20,14 +64,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Prepare scope checks for #3906.** Records the reviewed brief so the follow-up product PR can pass scope checks after this activation merges. Tracking #3906. Refs #5192, #4774.
+- **Keep active #3908 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #3908.
+
 - Activate Prefer-A leftover-complete write-guard Path B brief for #5602 (productPullRequest unset; swarm-ready story fields). Tracking #5602.
 - **Track the completed #4881 scope record after #5607.** The shipped already-completed scope:complete message now has its completed brief on the delivery branch. Tracking #4881.
 
 ### Fixed
 
+- **`swarm:routing-set` records a model decision from a linked worktree (#3827).** Containment uses the same main-checkout root as the resolved `.deft/routing.local.json`, so the command no longer refuses its own target. Tracking #3827.
+- **Issue #3827 now has a tracked completion record.** The record links to the fix delivered in #5619, so the issue can close without losing its scope history. Tracking #3827.
 - **Class-checks exclude lifecycle xBRIEF records from pipeline-path classification (#5159).** `pathLooksLikePipeline` returns false when `isLifecycleArtifactPath` is true. Real pipeline configs still fail class 2/3.
+- **Issue #5159 now has a tracked completion record.** The record links to the fix delivered in #5618, so the issue can close without losing its scope history. Tracking #5159.
 - **`scope:complete` now finds delivery evidence automatically (#3583).** You can omit `--pr` and `--merge-commit` when the recorded product PR or a single matching closing PR proves delivery. Explicit flags still override automatic discovery, and completion refuses missing, ambiguous, or incomplete evidence. Tracking #3583.
 - **Finish #5602 leftover-complete after product #5610.** Lands the completed Prefer-A leftover-complete write-guard brief with delivery provenance so the issue can close and scope records stay tracked. Tracking #5602.
+- **Finish #4878 leftover-complete after product #5604.** Lands the completed acceptance-evidence brief with delivery provenance so operators can close the issue and keep scope records tracked. Tracking #4878.
+- **Finish #3583 leftover-complete after product #5613.** Lands the completed auto-discover delivery-evidence brief with delivery provenance so the issue can close and scope records stay tracked. Tracking #3583.
 - **Land the #4878 active scope brief after product #5604.** Carrier lands the dest-local active xBRIEF onto delivery so leftover-complete / swarm:finalize-cohort can run. Tracking #4878.
 - **scope:complete on a stale active path names the completed/cancelled sibling (#4881).** When the target file is missing, complete probes sibling lifecycle folders for the same basename and returns already-completed (with #3679 restamp path) or already-cancelled instead of File not found; wrong basenames stay File not found; a real completed/ path still restamps. Tracking #4881.
 - **Acceptance-evidence refusals name `plan.items[N]` and ignore `acceptance.clauses` (#4878).** Gate walk paths and completion listings use the qualified object path `plan.items[N]` (and nested `plan.items[N].subItems[M]` / `plan.items[N].items[M]`). Refusal trailer tells operators to stamp evidence/disposition on that plan item; the gate does not read evidence from `plan.acceptance.clauses[]`. `verify:pr-closeout-attestable` indexes the same `plan.items` prefix so closing-PR refusal guidance keeps axis/merge instructions. Tracking #4878.
@@ -7185,7 +7237,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.125.1...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.125.2...HEAD
+[0.125.2]: https://github.com/deftai/directive/compare/v0.125.1...v0.125.2
 [0.125.1]: https://github.com/deftai/directive/compare/v0.125.0...v0.125.1
 [0.125.0]: https://github.com/deftai/directive/compare/v0.124.0...v0.125.0
 [0.124.0]: https://github.com/deftai/directive/compare/v0.123.0...v0.124.0

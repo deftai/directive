@@ -27,6 +27,7 @@ interface Parsed {
   file: string | null;
   jsonInline: string | null;
   emitJson: boolean;
+  expectedGeneration: number | undefined;
   error?: string;
 }
 
@@ -37,6 +38,7 @@ export function parseArgs(argv: string[]): Parsed {
     file: null,
     jsonInline: null,
     emitJson: false,
+    expectedGeneration: undefined,
   };
   const positionals: string[] = [];
   for (let i = 0; i < argv.length; i += 1) {
@@ -67,6 +69,22 @@ export function parseArgs(argv: string[]): Parsed {
         return { ...parsed, error: "--from-json requires a JSON string" };
       }
       parsed.jsonInline = value;
+    } else if (arg === "--expected-generation") {
+      const value = argv[++i];
+      if (value === undefined) {
+        return { ...parsed, error: "--expected-generation requires a non-negative integer" };
+      }
+      const parsedGen = parseExpectedGeneration(value);
+      if (parsedGen === undefined) {
+        return { ...parsed, error: "--expected-generation requires a non-negative integer" };
+      }
+      parsed.expectedGeneration = parsedGen;
+    } else if (arg.startsWith("--expected-generation=")) {
+      const parsedGen = parseExpectedGeneration(arg.slice("--expected-generation=".length));
+      if (parsedGen === undefined) {
+        return { ...parsed, error: "--expected-generation requires a non-negative integer" };
+      }
+      parsed.expectedGeneration = parsedGen;
     } else if (arg.startsWith("-")) {
       return { ...parsed, error: `unknown flag: ${arg}` };
     } else {
@@ -80,9 +98,25 @@ export function parseArgs(argv: string[]): Parsed {
     return { ...parsed, error: `unknown action: ${action} (set|current|clear|advance)` };
   } else {
     parsed.error =
-      "usage: plan-sequence <set|current|clear|advance> [--file path] [--project-root path]";
+      "usage: plan-sequence <set|current|clear|advance> [--file path] [--project-root path] [--expected-generation n]";
   }
   return parsed;
+}
+
+function parseExpectedGeneration(raw: string): number | undefined {
+  if (!/^(0|[1-9]\d*)$/.test(raw)) return undefined;
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value < 0) return undefined;
+  return value;
+}
+
+function requireExpectedGeneration(parsed: Parsed): number | { error: string } {
+  if (parsed.expectedGeneration === undefined) {
+    return {
+      error: `${parsed.action ?? "plan-sequence"} requires --expected-generation <n>`,
+    };
+  }
+  return parsed.expectedGeneration;
 }
 
 function loadSetPayload(parsed: Parsed, root: string): PlanSequence {
@@ -117,13 +151,24 @@ export function main(argv: string[] = process.argv.slice(2)): number {
   const root = resolve(parsed.projectRoot);
   try {
     if (parsed.action === "set") {
+      const expected = requireExpectedGeneration(parsed);
+      if (typeof expected !== "number") {
+        process.stderr.write(`${expected.error}\n`);
+        return 2;
+      }
       const seq = loadSetPayload(parsed, root);
-      const path = writePlanSequence(root, seq);
+      const result = writePlanSequence(root, seq, expected);
+      if (!result.ok) {
+        process.stderr.write(`${result.message}\n`);
+        return 1;
+      }
       if (parsed.emitJson) {
-        process.stdout.write(`${JSON.stringify({ ok: true, path, sequence: seq }, null, 2)}\n`);
+        process.stdout.write(
+          `${JSON.stringify({ ok: true, path: result.path, sequence: result.sequence }, null, 2)}\n`,
+        );
       } else {
         process.stdout.write(
-          `OK plan-sequence set ${seq.sequence_id} (${seq.entries.length} entries, index=${seq.current_index})\n`,
+          `OK plan-sequence set ${result.sequence.sequence_id} (${result.sequence.entries.length} entries, index=${String(result.sequence.current_index)} generation=${String(result.sequence.generation)})\n`,
         );
       }
       return 0;
@@ -173,7 +218,7 @@ export function main(argv: string[] = process.argv.slice(2)): number {
       } else {
         const cur = seq.exhausted ? null : seq.entries[seq.current_index];
         process.stdout.write(
-          `sequence_id=${seq.sequence_id} kind=${seq.sequence_kind} index=${seq.current_index} exhausted=${String(seq.exhausted)}\n`,
+          `sequence_id=${seq.sequence_id} kind=${seq.sequence_kind} index=${seq.current_index} exhausted=${String(seq.exhausted)} generation=${String(seq.generation)} source_revision=${seq.source_revision}\n`,
         );
         if (cur) {
           const issue = cur.issue !== undefined ? ` (#${cur.issue})` : "";
@@ -185,11 +230,25 @@ export function main(argv: string[] = process.argv.slice(2)): number {
       return drift.drifted ? 1 : 0;
     }
     if (parsed.action === "clear") {
-      const cleared = clearPlanSequence(root);
+      const expected = requireExpectedGeneration(parsed);
+      if (typeof expected !== "number") {
+        process.stderr.write(`${expected.error}\n`);
+        return 2;
+      }
+      const result = clearPlanSequence(root, expected);
+      if (!result.ok) {
+        process.stderr.write(`${result.message}\n`);
+        return 1;
+      }
       process.stdout.write(
-        cleared ? "OK plan-sequence cleared\n" : "OK plan-sequence already absent\n",
+        result.removed ? "OK plan-sequence cleared\n" : "OK plan-sequence already absent\n",
       );
       return 0;
+    }
+    const expected = requireExpectedGeneration(parsed);
+    if (typeof expected !== "number") {
+      process.stderr.write(`${expected.error}\n`);
+      return 2;
     }
     const seq = readPlanSequence(root);
     if (seq === null) {
@@ -197,17 +256,21 @@ export function main(argv: string[] = process.argv.slice(2)): number {
       return 1;
     }
     const next = advancePlanSequence(seq);
-    writePlanSequence(root, next);
+    const result = writePlanSequence(root, next, expected);
+    if (!result.ok) {
+      process.stderr.write(`${result.message}\n`);
+      return 1;
+    }
     if (parsed.emitJson) {
-      process.stdout.write(`${JSON.stringify(next, null, 2)}\n`);
-    } else if (next.exhausted) {
+      process.stdout.write(`${JSON.stringify(result.sequence, null, 2)}\n`);
+    } else if (result.sequence.exhausted) {
       process.stdout.write(
-        "OK advanced; sequence exhausted. Fresh operator approval required before another unit.\n",
+        `OK advanced; sequence exhausted. Fresh operator approval required before another unit. generation=${String(result.sequence.generation)}\n`,
       );
     } else {
-      const cur = next.entries[next.current_index];
+      const cur = result.sequence.entries[result.sequence.current_index];
       process.stdout.write(
-        `OK advanced to index=${next.current_index} (${cur?.kind}:${cur?.id})\n`,
+        `OK advanced to index=${result.sequence.current_index} (${cur?.kind}:${cur?.id}) generation=${String(result.sequence.generation)}\n`,
       );
     }
     return 0;

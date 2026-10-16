@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, unlinkSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readFileSync, unlinkSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import {
   enforceConsumerHeaderPlaceholderAtCompletionChokepoint,
@@ -10,6 +10,13 @@ import {
 } from "../check/session-completed-ac.js";
 import { InstrumentedVbriefCrud, persistCrudMetrics } from "../eval/crud-telemetry.js";
 import {
+  ContainedWriteError,
+  ContainedWriteErrorCode,
+  containedRemove,
+  containedWrite,
+} from "../fs/contained-write.js";
+import {
+  assertDestinationNotSymlink,
   assertProjectionContained,
   ProjectionContainmentError,
 } from "../fs/projection-containment.js";
@@ -17,7 +24,7 @@ import {
   applyClauseDerivationToPlan,
   maybeEmitAcceptanceStampFromChange,
 } from "../intake/clause-derivation.js";
-import { evaluateIssuePlanIdAdmission, withPlanIdIdentityLock } from "../intake/issue-ingest.js";
+import { evaluateIssuePlanIdAdmission, planIdIdentityLockPath } from "../intake/issue-ingest.js";
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import { stampExistingEnvelopes } from "../lifecycle/brief-envelope.js";
 import { evaluateCompletedPlanConsistency } from "../lifecycle/completed-consistency.js";
@@ -37,6 +44,7 @@ import { resolveSpecGuard } from "../policy/spec-guard.js";
 import { defaultRunGh, fetchClosingIssuesReferences } from "../pr-protected-issues/gh.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
 import type { GitRunner } from "../session/git.js";
+import { assertAppendLockOwned, type HeldLock, withAppendLock } from "../slice/lock.js";
 import { ITEM_STATUS_ALIASES } from "../vbrief-validate/constants.js";
 import { validateFilename } from "../vbrief-validate/filename.js";
 import { readAcceptanceClauses } from "../verify-ac/clauses.js";
@@ -62,7 +70,12 @@ import {
   stampMergeFromCompletionProvenance,
 } from "./acceptance-evidence.js";
 import { append, canonicalLogPath, newDecisionId } from "./audit-log.js";
-import { atomicWriteBrief, formatBriefJson, readBriefForMutation } from "./brief-io.js";
+import {
+  atomicWriteBrief,
+  formatBriefJson,
+  readBriefForMutation,
+  validateBriefForPersist,
+} from "./brief-io.js";
 import { stampCompletionMetadata } from "./capacity-stamp.js";
 import {
   applyPromoteClauseFileScopeBind,
@@ -338,6 +351,116 @@ function zeroClauseDerivationRefusal(
     "Supply list items, test: lines, or acceptance: lines (#4374), then retry. " +
     "The intake floor (empty commands, none_stated: true) stays legal before this step and is not committed.";
   return derivation.notice.length > 0 ? `${derivation.notice}\n${recovery}` : recovery;
+}
+
+export interface ScopeDestPublishResult {
+  readonly ok: boolean;
+  readonly message: string;
+}
+
+/** destPath leaf/parent symlink refuse before matching-bytes accept (#3908 / #3953). */
+function scopeDestPathUnsafeMessage(projectRoot: string, destPath: string): string | null {
+  try {
+    assertDestinationNotSymlink(projectRoot, destPath);
+    return null;
+  } catch (err) {
+    // Operational dest-unsafe (symlink / containment / unexpected walk error):
+    // returned-failure, never throw (#3908 intent-constraint free).
+    return err instanceof Error ? err.message : String(err);
+  }
+}
+
+function destExistedBeforeExclusiveCreate(destPath: string): boolean {
+  try {
+    lstatSync(destPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Unlink dest this process O_EXCL-created when exclusive publish fails mid-write (#3908). */
+function unlinkDestCreatedByFailedExclusivePublish(args: {
+  readonly destPath: string;
+  readonly projectRoot: string;
+}): void {
+  try {
+    const info = lstatSync(args.destPath);
+    if (info.isSymbolicLink() || info.isDirectory()) {
+      return;
+    }
+  } catch {
+    return;
+  }
+  try {
+    containedRemove({ root: args.projectRoot, target: args.destPath });
+  } catch {
+    /* best-effort dest rollback */
+  }
+}
+
+/** Exclusive dest publish: O_EXCL create, never POSIX tmp+rename overwrite (#3908). */
+export function publishScopeDestExclusive(args: {
+  readonly destPath: string;
+  readonly formatted: string;
+  readonly projectRoot: string;
+}): ScopeDestPublishResult {
+  const existedBefore = destExistedBeforeExclusiveCreate(args.destPath);
+  try {
+    containedWrite({
+      root: args.projectRoot,
+      target: args.destPath,
+      data: args.formatted,
+      mode: "create",
+    });
+    return { ok: true, message: "" };
+  } catch (err: unknown) {
+    if (err instanceof ContainedWriteError && err.code === ContainedWriteErrorCode.EXISTS) {
+      return { ok: false, message: `Target already exists: ${args.destPath}` };
+    }
+    if (!existedBefore) {
+      unlinkDestCreatedByFailedExclusivePublish({
+        destPath: args.destPath,
+        projectRoot: args.projectRoot,
+      });
+    }
+    const msg = err instanceof Error ? err.message : String(err);
+    return { ok: false, message: `Failed to write ${args.destPath}: ${msg}` };
+  }
+}
+
+export interface UnlinkOwnedScopeDestArgs {
+  readonly destPath: string;
+  readonly projectRoot: string;
+  readonly destCreatedThisAttempt: boolean;
+  readonly formatted: string;
+  readonly held: HeldLock;
+  readonly allowUnlink: boolean;
+}
+
+/** Unlink dest only for this process's exclusive create while dest bytes still match (#3908). */
+export function unlinkOwnedScopeDest(args: UnlinkOwnedScopeDestArgs): void {
+  if (!args.allowUnlink || !args.destCreatedThisAttempt) {
+    return;
+  }
+  try {
+    assertAppendLockOwned(args.held);
+  } catch {
+    return;
+  }
+  try {
+    const destBytes = readFileSync(args.destPath, "utf8");
+    if (destBytes !== args.formatted) {
+      return;
+    }
+  } catch {
+    /* dest missing or unreadable — still attempt owned remove */
+  }
+  try {
+    containedRemove({ root: args.projectRoot, target: args.destPath });
+  } catch {
+    /* best-effort dest rollback */
+  }
 }
 
 export function runTransition(
@@ -729,7 +852,7 @@ export function runTransition(
     }
   }
 
-  const commitTransition = (): TransitionResult => {
+  const commitTransition = (held: HeldLock | undefined): TransitionResult => {
     planObj.status = targetStatus;
     planObj.updated = nowIso;
     // Keep the envelope clock aligned with plan.updated on every mutating transition (#2862).
@@ -776,25 +899,78 @@ export function runTransition(
     const crud = new InstrumentedVbriefCrud({ now: () => now });
 
     if (targetFolder !== null) {
+      if (held === undefined) {
+        return { ok: false, message: "scope dest move requires plan-id identity lock" };
+      }
       const destDir = join(vbriefRoot, targetFolder);
       mkdirSync(destDir, { recursive: true });
       const destPath = join(destDir, basename);
-      if (existsSync(destPath)) {
-        return { ok: false, message: `Target already exists: ${destPath}` };
-      }
 
-      // #2578: stamp terminal status at the destination path in the same write as
-      // folder placement — never leave a non-terminal status under completed/.
-      // Validate against destPath (not the still-on-disk source folder). On refuse
-      // before unlink, surface dual source → intended dest so proposed/ is not
-      // reported as already under pending/ (#5391).
-      const writeResult = atomicWriteBrief(destPath, data, vbriefRoot, { projectRoot });
-      if (!writeResult.ok) {
+      // Dest identity is vbriefRoot + targetFolder + basename (#3908). complete and
+      // fail share targetFolder completed and therefore the same dest path.
+      const destUnsafe = scopeDestPathUnsafeMessage(projectRoot, destPath);
+      if (destUnsafe !== null) {
+        return { ok: false, message: destUnsafe };
+      }
+      // Validate dest data before matching-bytes accept and exclusive-create (#3908).
+      const validationError = validateBriefForPersist(destPath, data, vbriefRoot);
+      if (validationError !== null) {
         return {
           ok: false,
-          message: `${writeResult.message} (source still at ${resolvedPath} → intended dest ${destPath})`,
+          message: `${validationError} (source still at ${resolvedPath} → intended dest ${destPath})`,
         };
       }
+      let destCreatedThisAttempt = false;
+      if (existsSync(destPath)) {
+        let destBytes: string | undefined;
+        try {
+          destBytes = readFileSync(destPath, "utf8");
+        } catch {
+          destBytes = undefined;
+        }
+        if (destBytes !== formatted) {
+          return { ok: false, message: `Target already exists: ${destPath}` };
+        }
+      } else {
+        // #2578 / #5391: exclusive-create (O_EXCL). POSIX tmp+rename overwrite is not dest publish.
+        const published = publishScopeDestExclusive({ destPath, formatted, projectRoot });
+        if (!published.ok) {
+          if (published.message.startsWith("Target already exists:")) {
+            const racedUnsafe = scopeDestPathUnsafeMessage(projectRoot, destPath);
+            if (racedUnsafe !== null) {
+              return { ok: false, message: racedUnsafe };
+            }
+            let racedBytes: string | undefined;
+            try {
+              racedBytes = readFileSync(destPath, "utf8");
+            } catch {
+              racedBytes = undefined;
+            }
+            if (racedBytes !== formatted) {
+              return { ok: false, message: `Target already exists: ${destPath}` };
+            }
+          } else {
+            return {
+              ok: false,
+              message: `${published.message} (source still at ${resolvedPath} → intended dest ${destPath})`,
+            };
+          }
+        } else {
+          destCreatedThisAttempt = true;
+        }
+      }
+
+      const rollbackDest = (allowUnlink: boolean): void => {
+        unlinkOwnedScopeDest({
+          destPath,
+          projectRoot,
+          destCreatedThisAttempt,
+          formatted,
+          held,
+          allowUnlink,
+        });
+      };
+
       crud.recordTrustedUpdate(destPath, formatted);
       let enforceDriftRecorded = false;
       let priorDriftLedger: SpecDriftLedger | null = null;
@@ -809,11 +985,7 @@ export function runTransition(
               completedAt: nowIso,
             });
           } catch {
-            try {
-              unlinkSync(destPath);
-            } catch {
-              /* dest rollback after marker failure */
-            }
+            rollbackDest(true);
             return { ok: false, message: SESSION_COMPLETED_AC_REMEDIATION };
           }
         }
@@ -821,7 +993,7 @@ export function runTransition(
         // write failure cannot leave a completed brief without its required record.
         // Sync skips a second enforce record (double-record / spent-override P1).
         // Honor non-null return (lock refuse / residual finding) and unexpected
-        // throws — both roll back dest (Greptile P1 / intent-constraint free-pattern).
+        // throws. Lock-refuse (completedAt=null) must not dest-unlink (#3908).
         const enforceGuard = resolveSpecGuard(projectRoot, { hasSpecification: true });
         if (enforceGuard.enabled && enforceGuard.driftGuard.enforcement === "enforce") {
           const scopeIdForEnforce =
@@ -839,11 +1011,7 @@ export function runTransition(
                 /* best-effort ledger rollback */
               }
             }
-            try {
-              unlinkSync(destPath);
-            } catch {
-              /* dest rollback after enforce ledger failure */
-            }
+            rollbackDest(true);
           };
           try {
             priorDriftLedger = snapshotSpecDriftLedger(projectRoot);
@@ -853,15 +1021,13 @@ export function runTransition(
               relative(projectRoot, destPath).replace(/\\/g, "/"),
             );
             if (driftRecord !== null) {
-              // Lock refuse returns completedAt=null with no ledger write — never
-              // roll back (a concurrent same-scope writer may have landed coverage).
+              // Lock refuse returns completedAt=null with no ledger write.
+              // Unlink dest this process exclusive-created so retry is not
+              // blocked. Skip unlink when destCreatedThisAttempt is false
+              // (concurrent writer or matching-bytes dest).
               const lockRefuseNoWrite = driftRecord.completedAt === null;
               if (lockRefuseNoWrite) {
-                try {
-                  unlinkSync(destPath);
-                } catch {
-                  /* dest rollback after lock-refuse finding */
-                }
+                rollbackDest(destCreatedThisAttempt);
               } else {
                 // Finding may already be on the ledger — restore prior rows for THIS
                 // scope only when this attempt mutated them.
@@ -886,11 +1052,7 @@ export function runTransition(
                   );
                   rollbackEnforceAttempt(spentIds);
                 } else {
-                  try {
-                    unlinkSync(destPath);
-                  } catch {
-                    /* dest rollback after untouched finding */
-                  }
+                  rollbackDest(true);
                 }
               }
               return {
@@ -943,11 +1105,7 @@ export function runTransition(
             /* best-effort ledger rollback */
           }
         }
-        try {
-          unlinkSync(destPath);
-        } catch {
-          /* best-effort rollback */
-        }
+        rollbackDest(true);
         return { ok: false, message: `Failed to remove source after move: ${String(err)}` };
       }
 
@@ -1000,11 +1158,7 @@ export function runTransition(
             /* best-effort ledger rollback */
           }
         }
-        try {
-          unlinkSync(destPath);
-        } catch {
-          /* best-effort dest rollback */
-        }
+        rollbackDest(true);
         return {
           ok: false,
           message:
@@ -1053,20 +1207,22 @@ export function runTransition(
     };
   };
 
-  if (act === "promote" || act === "activate") {
-    return withPlanIdIdentityLock(vbriefRoot, () => {
-      const admission = evaluateIssuePlanIdAdmission({
-        lifecycleRoot: vbriefRoot,
-        artifactPath: resolvedPath,
-        data,
-      });
-      if (!admission.ok) {
-        return { ok: false, message: admission.message };
+  if (targetFolder !== null) {
+    return withAppendLock(planIdIdentityLockPath(vbriefRoot), (held) => {
+      if (act === "promote" || act === "activate") {
+        const admission = evaluateIssuePlanIdAdmission({
+          lifecycleRoot: vbriefRoot,
+          artifactPath: resolvedPath,
+          data,
+        });
+        if (!admission.ok) {
+          return { ok: false, message: admission.message };
+        }
       }
-      return commitTransition();
+      return commitTransition(held);
     });
   }
-  return commitTransition();
+  return commitTransition(undefined);
 }
 
 /**

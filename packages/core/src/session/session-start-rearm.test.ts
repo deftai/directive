@@ -10,6 +10,7 @@ import {
   applyWorktreeOccupancy,
   type OccupancyDecision,
   readOccupancy,
+  stealOccupancy,
 } from "./occupancy.js";
 import { persistTrustedSessionPosture, sessionPosturePath } from "./posture.js";
 import {
@@ -348,14 +349,14 @@ describe("session re-arm vs cold ceremony tiers (#2992)", () => {
 
     expect(result.code).toBe(0);
     expect(minted).not.toHaveBeenCalled();
-    expect(occupancyInputs).toHaveLength(2);
-    expect(occupancyInputs.map((input) => input.sessionId)).toEqual([sessionId, sessionId]);
-    expect(occupancyInputs.map((input) => input.write)).toEqual([false, true]);
+    expect(occupancyInputs).toHaveLength(1);
+    expect(occupancyInputs.map((input) => input.sessionId)).toEqual([sessionId]);
+    expect(occupancyInputs.map((input) => input.write)).toEqual([true]);
     expect((result.payload.occupancy as { session_id: string }).session_id).toBe(sessionId);
     expect(readRitualState(root)[0]?.sessionId).toBe(sessionId);
   });
 
-  it("previews a confirmed steal without mutation, then steals once with the resolved ID (#3611)", () => {
+  it("steals once with the resolved ID before dest mutation (#3611 / #3906)", () => {
     const root = tempRoot();
     const head = "bcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbc";
     const started = new Date("2026-07-20T12:00:00Z");
@@ -400,11 +401,56 @@ describe("session re-arm vs cold ceremony tiers (#2992)", () => {
     });
 
     expect(result.code).toBe(0);
-    expect(applyOccupancy).toHaveBeenCalledTimes(2);
-    expect(applyOccupancy.mock.calls.map(([, input]) => input.write)).toEqual([false, true]);
-    expect(ownersAfterApply).toEqual([legacySessionId, sessionId]);
+    expect(applyOccupancy).toHaveBeenCalledTimes(1);
+    expect(applyOccupancy.mock.calls.map(([, input]) => input.write)).toEqual([true]);
+    expect(ownersAfterApply).toEqual([sessionId]);
     expect(readOccupancy(root)?.sessionId).toBe(sessionId);
     expect(readRitualState(root)[0]?.sessionId).toBe(sessionId);
+  });
+
+  it("refuses ritual overwrite after a confirmed steal by a different owner (#3906)", () => {
+    const root = tempRoot();
+    const head = "dededededededededededededededededededede";
+    const started = new Date("2026-07-20T12:00:00Z");
+    const rearmAt = new Date("2026-07-20T12:30:00Z");
+    const ownerA = "host:test:v1:cmVhcm0tYQ";
+    const ownerB = "host:test:v1:cmVhcm0tYg";
+    seedRitual(root, { head, startedAt: started });
+
+    const result = runSessionStart(root, {
+      ceremonyTier: REARM_CEREMONY_TIER,
+      now: rearmAt,
+      writeHistory: false,
+      runGit: fakeGit(root, { head }),
+      resolveUserMd: () => ({
+        path: join(root, "USER.md"),
+        rung: "workspace-local",
+        found: true,
+        diagnostic: "ok",
+        searched: [],
+      }),
+      probeEnvironment: () => environment,
+      sessionId: ownerA,
+      probeFinalizeOwed: () => {
+        expect(readOccupancy(root)?.sessionId).toBe(ownerA);
+        const stolen = stealOccupancy(root, {
+          sessionId: ownerB,
+          confirm: true,
+          occupant: ownerA,
+          now: rearmAt,
+          env: {},
+        });
+        expect(stolen.code).toBe(0);
+        expect(readOccupancy(root)?.sessionId).toBe(ownerB);
+        return { lines: [], blocks: false, unknown: false };
+      },
+    });
+
+    expect(result.code).toBe(1);
+    expect(result.payload.ready).toBe(false);
+    expect(String(result.payload.message)).toMatch(/overwrite the new owner/i);
+    expect(readOccupancy(root)?.sessionId).toBe(ownerB);
+    expect(readRitualState(root)[0]?.sessionId).toBe("seed-session");
   });
 
   it("reports deterministic same-owner recovery when ritual persistence fails after steal (#3611)", () => {

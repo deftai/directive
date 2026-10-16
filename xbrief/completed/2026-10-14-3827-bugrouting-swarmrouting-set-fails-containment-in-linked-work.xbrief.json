@@ -1,0 +1,212 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3827",
+    "updated": "2026-10-14T21:28:53Z"
+  },
+  "plan": {
+    "title": "bug(routing): swarm:routing-set fails containment in linked worktrees",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(routing): swarm:routing-set fails containment in linked worktrees",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3827",
+      "Overview": "## Summary\n\nInside a Git linked worktree, `task swarm:routing-set` resolves `.deft/routing.local.json` in the primary worktree but validates containment against the linked worktree root. The command therefore refuses its own resolved target.\n\n## Reproduction\n\n1. Create a linked worktree beneath or beside the primary checkout.\n2. Start a mutation session in that worktree.\n3. Run `task swarm:routing-set -- --provider codex --role review-monitor --model gpt-5.6-sol`.\n\n## Actual behavior\n\nThe command exits 2:\n\n```text\nERROR: projection write refused: target <primary>/.deft/routing.local.json is not nested under the project tree <linked-worktree>\n```\n\n## Expected behavior\n\nThe routing path and containment root should agree so a linked-worktree session can record the required pre-dispatch model decision without writing outside its authorized project boundary.\n\n## Environment and evidence\n\n- Reproduced on current `upstream/master` at `c99f6159`.\n- Discovered while implementing #3612 in a dedicated linked worktree.\n- #3807 covers linked-worktree hook target classification; this failure is in the routing-set write path.\n\n## Acceptance Criteria\n\n- [ ] Inside a Git linked worktree, `task swarm:routing-set` resolves `.deft/routing.local.json` and validates containment against the same project root so the command can record the pre-dispatch model decision.\n- [ ] The command does not refuse a target it resolved because the containment root and resolved path disagree across the primary checkout and the linked worktree.\n- [ ] Regression tests cover a linked-worktree session that previously exited 2 with `projection write refused: target <primary>/.deft/routing.local.json is not nested under the project tree <linked-worktree>`.\n- [ ] Pass the full framework check and document the fix in CHANGELOG.md.\n\n",
+      "Labels": "bug, urgent, core-capabilities, promise:swarm"
+    },
+    "items": [
+      {
+        "title": "Inside a Git linked worktree, `task swarm:routing-set` resolves `.deft/routing.local.json` and validates containment against the same project root so the command can record the pre-dispatch model decision.",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fb96b8bacccd95d426b6d1c9309496b32e6ccc08",
+          "recorded_at": "2026-10-14T21:28:02Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "The command does not refuse a target it resolved because the containment root and resolved path disagree across the primary checkout and the linked worktree.",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fb96b8bacccd95d426b6d1c9309496b32e6ccc08",
+          "recorded_at": "2026-10-14T21:28:02Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "Regression tests cover a linked-worktree session that previously exited 2 with `projection write refused: target <primary>/.deft/routing.local.json is not nested under the project tree <linked-worktree>`.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fb96b8bacccd95d426b6d1c9309496b32e6ccc08",
+          "recorded_at": "2026-10-14T21:28:02Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "Pass the full framework check and document the fix in CHANGELOG.md.",
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fb96b8bacccd95d426b6d1c9309496b32e6ccc08",
+          "recorded_at": "2026-10-14T21:28:02Z",
+          "recorded_by": "scope:complete"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "urgent",
+      "core-capabilities",
+      "promise:swarm"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3827",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3827: bug(routing): swarm:routing-set fails containment in linked worktrees"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "task swarm:routing-set -- --provider codex --role review-monitor --model gpt-5.6-sol",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L11"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/swarm/routing.ts",
+          "packages/core/src/swarm/routing-set-cli.ts",
+          "packages/core/src/swarm/routing.test.ts",
+          "packages/core/src/swarm/routing-cli.test.ts",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "high",
+        "size": "S"
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/swarm/routing.ts",
+          "packages/core/src/swarm/routing-set-cli.ts",
+          "packages/core/src/swarm/routing.test.ts",
+          "packages/core/src/swarm/routing-cli.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/swarm",
+        "cohesion_exemption": "CHANGELOG.md is already over the review-trigger line count; #3827 adds one Unreleased Fixed note."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5273185234,
+        "origin": "deftai/directive#3827",
+        "id": "github.issue.5273185234"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "81ab6cf76202e17ea639456c016b124ae698eea8",
+        "prNumber": 5619,
+        "prBase": "master",
+        "mergeCommit": "fb96b8bacccd95d426b6d1c9309496b32e6ccc08",
+        "deliveryBranch": "master",
+        "deliveryCommit": "fb96b8bacccd95d426b6d1c9309496b32e6ccc08",
+        "verifiedAt": "2026-10-14T21:28:53Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTNiYjctYTAwOC03ZWIyLWJiN2UtMGYzMWFjYjlhOTVi"
+      },
+      "completedAt": "2026-10-14T21:28:53Z",
+      "completedSessionId": "host:grok:v1:MDFhMTNiYjctYTAwOC03ZWIyLWJiN2UtMGYzMWFjYjlhOTVi",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-14T21:28:53Z"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "Inside a Git linked worktree, `task swarm:routing-set` resolves `.deft/routing.local.json` and validates containment against the same project root so the command can record the pre-dispatch model decision.",
+        "The command does not refuse a target it resolved because the containment root and resolved path disagree across the primary checkout and the linked worktree.",
+        "Regression tests cover a linked-worktree session that previously exited 2 with `projection write refused: target <primary>/.deft/routing.local.json is not nested under the project tree <linked-worktree>`.",
+        "Pass the full framework check and document the fix in CHANGELOG.md.",
+        "Summary Inside a Git linked worktree, `task swarm:routing-set` resolves `.deft/routing.local.json` in the primary worktree but validates containment against the linked worktree root.",
+        "The command therefore refuses its own resolved target.",
+        "Reproduction 1.",
+        "Create a linked worktree beneath or beside the primary checkout.",
+        "Start a mutation session in that worktree.",
+        "Run `task swarm:routing-set -- --provider codex --role review-monitor --model gpt-5.6-sol`.",
+        "Actual behavior The command exits 2: ## Expected behavior The routing path and containment root should agree so a linked-worktree session can record the required pre-dispatch model decision without writing outside its authorized project boundary.",
+        "Environment and evidence - Reproduced on current `upstream/master` at `c99f6159`.",
+        "Discovered while implementing #3612 in a dedicated linked worktree.",
+        "#3807 covers linked-worktree hook target classification; this failure is in the routing-set write path.",
+        "Acceptance Criteria - [ ] Inside a Git linked worktree, `task swarm:routing-set` resolves `.deft/routing.local.json` and validates containment against the same project root so the command can record the pre-dispatch model decision.",
+        "[ ] The command does not refuse a target it resolved because the containment root and resolved path disagree across the primary checkout and the linked worktree.",
+        "[ ] Regression tests cover a linked-worktree session that previously exited 2 with `projection write refused: target <primary>/.deft/routing.local.json is not nested under the project tree <linked-worktree>`.",
+        "[ ] Pass the full framework check and document the fix in CHANGELOG.md."
+      ],
+      "admitted_source_sentences": [
+        "Summary Inside a Git linked worktree, `task swarm:routing-set` resolves `.deft/routing.local.json` in the primary worktree but validates containment against the linked worktree root.",
+        "The command therefore refuses its own resolved target.",
+        "Reproduction 1.",
+        "Create a linked worktree beneath or beside the primary checkout.",
+        "Start a mutation session in that worktree.",
+        "Run `task swarm:routing-set -- --provider codex --role review-monitor --model gpt-5.6-sol`.",
+        "Actual behavior The command exits 2: ## Expected behavior The routing path and containment root should agree so a linked-worktree session can record the required pre-dispatch model decision without writing outside its authorized project boundary.",
+        "Environment and evidence - Reproduced on current `upstream/master` at `c99f6159`.",
+        "Discovered while implementing #3612 in a dedicated linked worktree.",
+        "#3807 covers linked-worktree hook target classification; this failure is in the routing-set write path.",
+        "Acceptance Criteria - [ ] Inside a Git linked worktree, `task swarm:routing-set` resolves `.deft/routing.local.json` and validates containment against the same project root so the command can record the pre-dispatch model decision.",
+        "[ ] The command does not refuse a target it resolved because the containment root and resolved path disagree across the primary checkout and the linked worktree.",
+        "[ ] Regression tests cover a linked-worktree session that previously exited 2 with `projection write refused: target <primary>/.deft/routing.local.json is not nested under the project tree <linked-worktree>`.",
+        "[ ] Pass the full framework check and document the fix in CHANGELOG.md."
+      ],
+      "admitted_source_digest": "cc127b9d06d8c6bd3bb36aa23a7a6c618d8b8cab5c2473f3f84fda045a730894",
+      "clauses": [],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "Inside a Git linked worktree, `task swarm:routing-set` resolves `.deft/routing.local.json` and validates containment against the same project root so the command can record the pre-dispatch model decision.",
+        "The command does not refuse a target it resolved because the containment root and resolved path disagree across the primary checkout and the linked worktree.",
+        "Regression tests cover a linked-worktree session that previously exited 2 with `projection write refused: target <primary>/.deft/routing.local.json is not nested under the project tree <linked-worktree>`.",
+        "Pass the full framework check and document the fix in CHANGELOG.md.",
+        "Summary Inside a Git linked worktree, `task swarm:routing-set` resolves `.deft/routing.local.json` in the primary worktree but validates containment against the linked worktree root.",
+        "The command therefore refuses its own resolved target.",
+        "Reproduction 1.",
+        "Create a linked worktree beneath or beside the primary checkout.",
+        "Start a mutation session in that worktree.",
+        "Run `task swarm:routing-set -- --provider codex --role review-monitor --model gpt-5.6-sol`.",
+        "Actual behavior The command exits 2: ## Expected behavior The routing path and containment root should agree so a linked-worktree session can record the required pre-dispatch model decision without writing outside its authorized project boundary.",
+        "Environment and evidence - Reproduced on current `upstream/master` at `c99f6159`.",
+        "Discovered while implementing #3612 in a dedicated linked worktree.",
+        "#3807 covers linked-worktree hook target classification; this failure is in the routing-set write path.",
+        "Acceptance Criteria - [ ] Inside a Git linked worktree, `task swarm:routing-set` resolves `.deft/routing.local.json` and validates containment against the same project root so the command can record the pre-dispatch model decision.",
+        "[ ] The command does not refuse a target it resolved because the containment root and resolved path disagree across the primary checkout and the linked worktree.",
+        "[ ] Regression tests cover a linked-worktree session that previously exited 2 with `projection write refused: target <primary>/.deft/routing.local.json is not nested under the project tree <linked-worktree>`.",
+        "[ ] Pass the full framework check and document the fix in CHANGELOG.md."
+      ]
+    },
+    "id": "github.issue.5273185234",
+    "updated": "2026-10-14T21:28:53Z"
+  }
+}

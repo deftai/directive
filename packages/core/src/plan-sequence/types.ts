@@ -57,6 +57,8 @@ const PLAN_SEQUENCE_CLOSED_TOP_KEYS = new Set([
   "created_at",
   "updated_at",
   "contract",
+  "generation",
+  "source_revision",
 ]);
 
 const PLAN_SEQUENCE_ENTRY_CLOSED_KEYS = new Set(["id", "kind", "title", "issue", "status"]);
@@ -83,6 +85,10 @@ export interface PlanSequence {
   readonly updated_at: string;
   /** Optional stamp; when present must equal PLAN_SEQUENCE_CONTRACT (#5551). */
   readonly contract?: typeof PLAN_SEQUENCE_CONTRACT;
+  /** Monotonic mutation generation. Missing on disk compares as 0 (#3907). */
+  readonly generation: number;
+  /** Source Git revision recorded at publish. Not the compare key (#3910). */
+  readonly source_revision: string;
 }
 
 export function isPlanSequenceKind(value: unknown): value is PlanSequenceKind {
@@ -116,6 +122,18 @@ export function isClosedPlanSequenceShape(raw: unknown): boolean {
   if (typeof obj.created_at !== "string" || obj.created_at.length === 0) return false;
   if (typeof obj.updated_at !== "string" || obj.updated_at.length === 0) return false;
   if (Object.hasOwn(obj, "contract") && obj.contract !== PLAN_SEQUENCE_CONTRACT) return false;
+  if (Object.hasOwn(obj, "generation")) {
+    if (
+      typeof obj.generation !== "number" ||
+      !Number.isInteger(obj.generation) ||
+      obj.generation < 0
+    ) {
+      return false;
+    }
+  }
+  if (Object.hasOwn(obj, "source_revision") && typeof obj.source_revision !== "string") {
+    return false;
+  }
 
   for (let i = 0; i < obj.entries.length; i++) {
     const item = obj.entries[i];
@@ -331,6 +349,7 @@ export function createPlanSequence(input: {
   batching_allowed?: boolean;
   continuation_past_final?: boolean;
   now?: string;
+  source_revision?: string;
 }): PlanSequence {
   if (input.entries.length === 0) {
     throw new Error("plan-sequence: entries must be non-empty");
@@ -347,6 +366,8 @@ export function createPlanSequence(input: {
     authorized_by: input.authorized_by,
     created_at: now,
     updated_at: now,
+    generation: 0,
+    source_revision: input.source_revision ?? "",
   };
 }
 
@@ -356,7 +377,12 @@ export function advancePlanSequence(
   now = new Date().toISOString(),
 ): PlanSequence {
   if (sequence.exhausted || sequence.current_index >= sequence.entries.length) {
-    return { ...sequence, exhausted: true, updated_at: now };
+    return {
+      ...sequence,
+      exhausted: true,
+      updated_at: now,
+      generation: sequence.generation + 1,
+    };
   }
   const entries = sequence.entries.map((e, i) =>
     i === sequence.current_index ? { ...e, status: "completed" as const } : e,
@@ -369,6 +395,7 @@ export function advancePlanSequence(
     current_index: exhausted ? sequence.current_index : nextIndex,
     exhausted,
     updated_at: now,
+    generation: sequence.generation + 1,
   };
 }
 
@@ -407,6 +434,15 @@ export function parsePlanSequence(raw: unknown): PlanSequence {
   });
   const current_index = typeof obj.current_index === "number" ? obj.current_index : 0;
   const exhausted = obj.exhausted === true || current_index >= entries.length;
+  let generation = 0;
+  if (
+    typeof obj.generation === "number" &&
+    Number.isInteger(obj.generation) &&
+    obj.generation >= 0
+  ) {
+    generation = obj.generation;
+  }
+  const source_revision = typeof obj.source_revision === "string" ? obj.source_revision : "";
   return {
     sequence_id: obj.sequence_id,
     sequence_kind: obj.sequence_kind as PlanSequenceKind,
@@ -418,5 +454,7 @@ export function parsePlanSequence(raw: unknown): PlanSequence {
     authorized_by: typeof obj.authorized_by === "string" ? obj.authorized_by : "",
     created_at: typeof obj.created_at === "string" ? obj.created_at : new Date().toISOString(),
     updated_at: typeof obj.updated_at === "string" ? obj.updated_at : new Date().toISOString(),
+    generation,
+    source_revision,
   };
 }

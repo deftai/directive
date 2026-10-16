@@ -102,8 +102,8 @@ export interface ScopeProvenanceResult {
 
 export interface ScopeProvenanceOptions {
   /**
-   * When true, missing digests on modified active xBRIEFs fail closed.
-   * Default false = migration warn path.
+   * @deprecated No-op after #4956 / #5002. Kept for CLI/API compatibility.
+   * Passing this flag does not change findings or exit codes (#5057).
    */
   readonly enforce?: boolean;
   /** Base ref for diff (default HEAD). */
@@ -673,7 +673,7 @@ export function evaluateScopeProvenance(
   options: ScopeProvenanceOptions = {},
 ): ScopeProvenanceResult {
   const root = resolve(projectRoot);
-  // `enforce` retained for CLI/API compat; path fence is always hard (#4956).
+  // `enforce` retained for CLI/API compat; it is a no-op after #4956 / #5002 (#5057).
   void (options.enforce ?? false);
   recoverApprovedScopePairs(root);
 
@@ -1612,8 +1612,8 @@ export function evaluateScopeProvenance(
       exitCode: 0,
       findings: softFindings,
       message:
-        `verify_scope_provenance: WARN ${softFindings.length} migration finding(s) ` +
-        `(not failing; pass --enforce to fail closed) (#3145).\n${body}`,
+        `verify_scope_provenance: WARN ${softFindings.length} intent-pin finding(s) ` +
+        `(intent edit on a brief with no intent pin (advisory; not failing)) (#3385).\n${body}`,
     };
   }
 

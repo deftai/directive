@@ -397,6 +397,71 @@ describe("verify intent authority (#3385 R2–R6 / F4)", () => {
     expect(result.exitCode).toBe(0);
     expect(result.findings.some((f) => f.kind === "legacy-intent-edit")).toBe(true);
     expect(result.message).toMatch(/WARN/i);
+    expect(result.message).toMatch(/advisory; not failing/);
+    expect(result.message).not.toMatch(/--enforce/);
+  });
+
+  function legacyTitleEdit(opts: {
+    readonly fileScope: readonly string[];
+    readonly enforce?: boolean;
+    readonly baseVisible: boolean;
+  }) {
+    const live = {
+      plan: {
+        id: "story-1",
+        title: "changed",
+        metadata: { swarm: { file_scope: [...opts.fileScope] } },
+      },
+    };
+    const base = {
+      plan: {
+        id: "story-1",
+        title: "old",
+        metadata: { swarm: { file_scope: [...opts.fileScope] } },
+      },
+    };
+    return evaluateScopeProvenance("/tmp/legacy-5057", {
+      changedFiles: ["xbrief/active/story.xbrief.json"],
+      activeXbriefs: new Map([["xbrief/active/story.xbrief.json", JSON.stringify(live)]]),
+      approvedRecords: [],
+      ...(opts.enforce !== undefined ? { enforce: opts.enforce } : {}),
+      readAtBase: (rel) =>
+        opts.baseVisible && rel === "xbrief/active/story.xbrief.json" ? JSON.stringify(base) : null,
+    });
+  }
+
+  it("legacy-intent-edit WARNs for a base-visible title edit with nonempty file_scope, with or without --enforce (#5057)", () => {
+    for (const enforce of [true, false] as const) {
+      const result = legacyTitleEdit({
+        fileScope: ["packages/core/src/scope-provenance/evaluate.ts"],
+        enforce,
+        baseVisible: true,
+      });
+      expect(result.exitCode).toBe(0);
+      expect(result.findings.some((f) => f.kind === "legacy-intent-edit")).toBe(true);
+      expect(result.message).toMatch(/WARN/i);
+      expect(result.message).toMatch(/intent edit on a brief with no intent pin/);
+      expect(result.message).not.toMatch(/--enforce/);
+    }
+  });
+
+  it("legacy-intent-edit WARNs for a base-visible title edit with empty file_scope (#5057)", () => {
+    const result = legacyTitleEdit({ fileScope: [], enforce: true, baseVisible: true });
+    expect(result.exitCode).toBe(0);
+    expect(result.findings.some((f) => f.kind === "legacy-intent-edit")).toBe(true);
+    expect(result.message).toMatch(/WARN/i);
+    expect(result.message).not.toMatch(/--enforce/);
+  });
+
+  it("an isolated head-only brief with no other findings returns clean (#5057)", () => {
+    const off = legacyTitleEdit({ fileScope: ["src/a.ts"], enforce: false, baseVisible: false });
+    const on = legacyTitleEdit({ fileScope: ["src/a.ts"], enforce: true, baseVisible: false });
+    expect(off.exitCode).toBe(0);
+    expect(on.exitCode).toBe(0);
+    expect(off.findings).toEqual([]);
+    expect(on.findings).toEqual([]);
+    expect(off.message).toMatch(/clean/i);
+    expect(on.message).toMatch(/clean/i);
   });
 
   it("rejects duplicate keys at verify via tokenizer", () => {

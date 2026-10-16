@@ -1,0 +1,535 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5159",
+    "updated": "2026-10-14T20:39:53Z"
+  },
+  "plan": {
+    "title": "fix(class-checks): exclude lifecycle xBRIEF records from pipeline path classification",
+    "status": "completed",
+    "narratives": {
+      "Description": "fix(class-checks): exclude lifecycle xBRIEF records from pipeline path classification",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5159",
+      "Overview": "\n\n1. Recut P1 pipeline predicate: at dispatch SHA `91f01172b063de617b51b86e158e0496a91755e3`, `pathLooksLikePipeline` (`packages/core/src/class-checks/evaluate.ts` 589-595) lowercases the posix path, requires a deploy-ish extension, then returns true when any segment includes `pipeline`. Class 2 `scanProductionReferences` and class 3 `looksLikeInfraPath` both call it. `isExempt` is CHANGELOG.md plus test roots. `isStoryProductPath` already returns false for `xbrief/` (class 4 only). Make `pathLooksLikePipeline` return false when `isLifecycleArtifactPath` is true (`packages/core/src/layout/resolve.ts`: `xbrief/` or `vbrief/` prefix plus `.xbrief.json` / `.vbrief.json`). Reuse that matcher. Do not mint a third glob list. Do not skip on `xbrief/completed/` only.\n2. Recut P1 keep real pipeline configs: keep class 2/3 on `ci/pipelines/prod.json`, top-level `pipeline.json`, and root-level `azure-pipelines.yml` / `bitbucket-pipelines.yml`. Reject the infra-parent extra conjunct (`ci/` / `infra/` / `deploy/`), which drops those root-level names. A non-artifact pipeline file under `xbrief/` stays eligible. Preserve class 2 on ordinary `.github/workflows/release.yml`; do not add class 3 to every workflow as part of this P1. `.github/workflows/**` already has a separate `looksLikeDeploy` arm.\n3. Recut P1 independent class 2 and class 3 fixtures: a lifecycle artifact whose slug contains `pipeline` and whose body contains a `tests/` needle (class 2) or a class-3 identity needle must be clean in every lifecycle folder (`proposed`, `pending`, `active`, `completed`, `cancelled`), including a leftover-complete rename (old path absent, new path present). Same bytes at a non-pipeline xBRIEF path stay clean. `ci/pipelines/prod.json` and `pipeline.json` with the same needles still fail both classes. Cover a legacy `vbrief/completed/*pipeline*.vbrief.json` outside `tests/**`. Do not ship a content-clean pipeline-named JSON as the only proof.\n4. Recut P1 leftover-complete shared record: class-checks still runs on leftover-complete. After bind, a change set that only adds a 720-shaped completed xBRIEF must be class-checks clean. Do not skip `verify:class-checks` on leftover-complete prose. Do not add `xbrief/**` to `DEFAULT_PROTECTED_GLOBS` (class 4 mix) or to test roots.\n5. Preserve: existing `ci/pipelines/prod.json` class 2/3 fixture; class 2 on GitHub workflows; `verify:class-checks` on leftover-complete and consumer implement PRs.\n6. Exclude: class 4 protected-glob mix; blanket `xbrief/**` skip of non-artifact JSON; requiring an infra parent; widening this P1 to `xbrief/decisions/*.decision.json` or to docs/content-pack `pipeline` substring over-match (named residual, not this Bound-remedy).\n\nTarget-digest: sha256:b181117a5a4a3354f9a32703197de778ea10edf0f52133b4a56ac68fedd20c99\n\n",
+      "Labels": "bug, urgent, design-critique:ingest-ready, core-capabilities, promise:records"
+    },
+    "items": [
+      {
+        "title": "Recut P1 pipeline predicate: at dispatch SHA `91f01172b063de617b51b86e158e0496a91755e3`, `pathLooksLikePipeline` (`packages/core/src/class-checks/evaluate.ts` 589-595) lowercases the posix path, requires a deploy-ish extension, then returns true when any segment includes `pipeline`. Class 2 `scanProductionReferences` and class 3 `looksLikeInfraPath` both call it. `isExempt` is CHANGELOG.md plus test roots. `isStoryProductPath` already returns false for `xbrief/` (class 4 only). Make `pathLooksLikePipeline` return false when `isLifecycleArtifactPath` is true (`packages/core/src/layout/resolve.ts`: `xbrief/` or `vbrief/` prefix plus `.xbrief.json` / `.vbrief.json`). Reuse that matcher. Do not mint a third glob list. Do not skip on `xbrief/completed/` only.",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b2cb7e384d6502876255c462cd868c44e7ed40dd",
+          "recorded_at": "2026-10-14T20:38:49Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "Recut P1 keep real pipeline configs: keep class 2/3 on `ci/pipelines/prod.json`, top-level `pipeline.json`, and root-level `azure-pipelines.yml` / `bitbucket-pipelines.yml`. Reject the infra-parent extra conjunct (`ci/` / `infra/` / `deploy/`), which drops those root-level names. A non-artifact pipeline file under `xbrief/` stays eligible. Preserve class 2 on ordinary `.github/workflows/release.yml`; do not add class 3 to every workflow as part of this P1. `.github/workflows/**` already has a separate `looksLikeDeploy` arm.",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b2cb7e384d6502876255c462cd868c44e7ed40dd",
+          "recorded_at": "2026-10-14T20:38:49Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "Recut P1 independent class 2 and class 3 fixtures: a lifecycle artifact whose slug contains `pipeline` and whose body contains a `tests/` needle (class 2) or a class-3 identity needle must be clean in every lifecycle folder (`proposed`, `pending`, `active`, `completed`, `cancelled`), including a leftover-complete rename (old path absent, new path present). Same bytes at a non-pipeline xBRIEF path stay clean. `ci/pipelines/prod.json` and `pipeline.json` with the same needles still fail both classes. Cover a legacy `vbrief/completed/*pipeline*.vbrief.json` outside `tests/**`. Do not ship a content-clean pipeline-named JSON as the only proof.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b2cb7e384d6502876255c462cd868c44e7ed40dd",
+          "recorded_at": "2026-10-14T20:37:42Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "Recut P1 leftover-complete shared record: class-checks still runs on leftover-complete. After bind, a change set that only adds a 720-shaped completed xBRIEF must be class-checks clean. Do not skip `verify:class-checks` on leftover-complete prose. Do not add `xbrief/**` to `DEFAULT_PROTECTED_GLOBS` (class 4 mix) or to test roots.",
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b2cb7e384d6502876255c462cd868c44e7ed40dd",
+          "recorded_at": "2026-10-14T20:37:42Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "Preserve: existing `ci/pipelines/prod.json` class 2/3 fixture; class 2 on GitHub workflows; `verify:class-checks` on leftover-complete and consumer implement PRs.",
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b2cb7e384d6502876255c462cd868c44e7ed40dd",
+          "recorded_at": "2026-10-14T20:37:42Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "Exclude: class 4 protected-glob mix; blanket `xbrief/**` skip of non-artifact JSON; requiring an infra parent; widening this P1 to `xbrief/decisions/*.decision.json` or to docs/content-pack `pipeline` substring over-match (named residual, not this Bound-remedy).",
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b2cb7e384d6502876255c462cd868c44e7ed40dd",
+          "recorded_at": "2026-10-14T20:37:42Z",
+          "recorded_by": "scope:complete"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "urgent",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:records"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5159",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5159: fix(class-checks): exclude lifecycle xBRIEF records from pipeline path classification"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "Recut P1 pipeline predicate: at dispatch SHA `91f01172b063de617b51b86e158e0496a91755e3`, `pathLooksLikePipeline` (`packages/core/src/class-checks/evaluate.ts` 589-595) lowercases the posix path, requires a deploy-ish extension, then returns true when any segment includes `pipeline`.",
+        "Class 2 `scanProductionReferences` and class 3 `looksLikeInfraPath` both call it.",
+        "`isExempt` is CHANGELOG.md plus test roots.",
+        "`isStoryProductPath` already returns false for `xbrief/` (class 4 only).",
+        "Make `pathLooksLikePipeline` return false when `isLifecycleArtifactPath` is true (`packages/core/src/layout/resolve.ts`: `xbrief/` or `vbrief/` prefix plus `.xbrief.json` / `.vbrief.json`).",
+        "Reuse that matcher.",
+        "Do not mint a third glob list.",
+        "Do not skip on `xbrief/completed/` only.",
+        "Recut P1 keep real pipeline configs: keep class 2/3 on `ci/pipelines/prod.json`, top-level `pipeline.json`, and root-level `azure-pipelines.yml` / `bitbucket-pipelines.yml`.",
+        "Reject the infra-parent extra conjunct (`ci/` / `infra/` / `deploy/`), which drops those root-level names.",
+        "A non-artifact pipeline file under `xbrief/` stays eligible.",
+        "Preserve class 2 on ordinary `.github/workflows/release.yml`; do not add class 3 to every workflow as part of this P1.",
+        "`.github/workflows/` already has a separate `looksLikeDeploy` arm.",
+        "Recut P1 independent class 2 and class 3 fixtures: a lifecycle artifact whose slug contains `pipeline` and whose body contains a `tests/` needle (class 2) or a class-3 identity needle must be clean in every lifecycle folder (`proposed`, `pending`, `active`, `completed`, `cancelled`), including a leftover-complete rename (old path absent, new path present).",
+        "Same bytes at a non-pipeline xBRIEF path stay clean.",
+        "`ci/pipelines/prod.json` and `pipeline.json` with the same needles still fail both classes.",
+        "Cover a legacy `vbrief/completed/*pipeline*.vbrief.json` outside `tests/`.",
+        "Do not ship a content-clean pipeline-named JSON as the only proof.",
+        "Recut P1 leftover-complete shared record: class-checks still runs on leftover-complete.",
+        "After bind, a change set that only adds a 720-shaped completed xBRIEF must be class-checks clean.",
+        "Do not skip `verify:class-checks` on leftover-complete prose.",
+        "Do not add `xbrief/` to `DEFAULT_PROTECTED_GLOBS` (class 4 mix) or to test roots.",
+        "Preserve: existing `ci/pipelines/prod.json` class 2/3 fixture; class 2 on GitHub workflows; `verify:class-checks` on leftover-complete and consumer implement PRs.",
+        "Exclude: class 4 protected-glob mix; blanket `xbrief/` skip of non-artifact JSON; requiring an infra parent; widening this P1 to `xbrief/decisions/*.decision.json` or to docs/content-pack `pipeline` substring over-match (named residual, not this Bound-remedy).",
+        "Target-digest: sha256:b181117a5a4a3354f9a32703197de778ea10edf0f52133b4a56ac68fedd20c99"
+      ],
+      "admitted_source_sentences": [
+        "Recut P1 pipeline predicate: at dispatch SHA `91f01172b063de617b51b86e158e0496a91755e3`, `pathLooksLikePipeline` (`packages/core/src/class-checks/evaluate.ts` 589-595) lowercases the posix path, requires a deploy-ish extension, then returns true when any segment includes `pipeline`.",
+        "Class 2 `scanProductionReferences` and class 3 `looksLikeInfraPath` both call it.",
+        "`isExempt` is CHANGELOG.md plus test roots.",
+        "`isStoryProductPath` already returns false for `xbrief/` (class 4 only).",
+        "Make `pathLooksLikePipeline` return false when `isLifecycleArtifactPath` is true (`packages/core/src/layout/resolve.ts`: `xbrief/` or `vbrief/` prefix plus `.xbrief.json` / `.vbrief.json`).",
+        "Reuse that matcher.",
+        "Do not mint a third glob list.",
+        "Do not skip on `xbrief/completed/` only.",
+        "Recut P1 keep real pipeline configs: keep class 2/3 on `ci/pipelines/prod.json`, top-level `pipeline.json`, and root-level `azure-pipelines.yml` / `bitbucket-pipelines.yml`.",
+        "Reject the infra-parent extra conjunct (`ci/` / `infra/` / `deploy/`), which drops those root-level names.",
+        "A non-artifact pipeline file under `xbrief/` stays eligible.",
+        "Preserve class 2 on ordinary `.github/workflows/release.yml`; do not add class 3 to every workflow as part of this P1.",
+        "`.github/workflows/` already has a separate `looksLikeDeploy` arm.",
+        "Recut P1 independent class 2 and class 3 fixtures: a lifecycle artifact whose slug contains `pipeline` and whose body contains a `tests/` needle (class 2) or a class-3 identity needle must be clean in every lifecycle folder (`proposed`, `pending`, `active`, `completed`, `cancelled`), including a leftover-complete rename (old path absent, new path present).",
+        "Same bytes at a non-pipeline xBRIEF path stay clean.",
+        "`ci/pipelines/prod.json` and `pipeline.json` with the same needles still fail both classes.",
+        "Cover a legacy `vbrief/completed/*pipeline*.vbrief.json` outside `tests/`.",
+        "Do not ship a content-clean pipeline-named JSON as the only proof.",
+        "Recut P1 leftover-complete shared record: class-checks still runs on leftover-complete.",
+        "After bind, a change set that only adds a 720-shaped completed xBRIEF must be class-checks clean.",
+        "Do not skip `verify:class-checks` on leftover-complete prose.",
+        "Do not add `xbrief/` to `DEFAULT_PROTECTED_GLOBS` (class 4 mix) or to test roots.",
+        "Preserve: existing `ci/pipelines/prod.json` class 2/3 fixture; class 2 on GitHub workflows; `verify:class-checks` on leftover-complete and consumer implement PRs.",
+        "Exclude: class 4 protected-glob mix; blanket `xbrief/` skip of non-artifact JSON; requiring an infra parent; widening this P1 to `xbrief/decisions/*.decision.json` or to docs/content-pack `pipeline` substring over-match (named residual, not this Bound-remedy).",
+        "Target-digest: sha256:b181117a5a4a3354f9a32703197de778ea10edf0f52133b4a56ac68fedd20c99"
+      ],
+      "admitted_source_digest": "c08a4b90c86c4d52d8727d67012c6dd7cc59a234fac45a6cbe8a52bac46a2afd",
+      "clauses": [],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "Recut P1 pipeline predicate: at dispatch SHA `91f01172b063de617b51b86e158e0496a91755e3`, `pathLooksLikePipeline` (`packages/core/src/class-checks/evaluate.ts` 589-595) lowercases the posix path, requires a deploy-ish extension, then returns true when any segment includes `pipeline`.",
+        "Class 2 `scanProductionReferences` and class 3 `looksLikeInfraPath` both call it.",
+        "`isExempt` is CHANGELOG.md plus test roots.",
+        "`isStoryProductPath` already returns false for `xbrief/` (class 4 only).",
+        "Make `pathLooksLikePipeline` return false when `isLifecycleArtifactPath` is true (`packages/core/src/layout/resolve.ts`: `xbrief/` or `vbrief/` prefix plus `.xbrief.json` / `.vbrief.json`).",
+        "Reuse that matcher.",
+        "Do not mint a third glob list.",
+        "Do not skip on `xbrief/completed/` only.",
+        "Recut P1 keep real pipeline configs: keep class 2/3 on `ci/pipelines/prod.json`, top-level `pipeline.json`, and root-level `azure-pipelines.yml` / `bitbucket-pipelines.yml`.",
+        "Reject the infra-parent extra conjunct (`ci/` / `infra/` / `deploy/`), which drops those root-level names.",
+        "A non-artifact pipeline file under `xbrief/` stays eligible.",
+        "Preserve class 2 on ordinary `.github/workflows/release.yml`; do not add class 3 to every workflow as part of this P1.",
+        "`.github/workflows/` already has a separate `looksLikeDeploy` arm.",
+        "Recut P1 independent class 2 and class 3 fixtures: a lifecycle artifact whose slug contains `pipeline` and whose body contains a `tests/` needle (class 2) or a class-3 identity needle must be clean in every lifecycle folder (`proposed`, `pending`, `active`, `completed`, `cancelled`), including a leftover-complete rename (old path absent, new path present).",
+        "Same bytes at a non-pipeline xBRIEF path stay clean.",
+        "`ci/pipelines/prod.json` and `pipeline.json` with the same needles still fail both classes.",
+        "Cover a legacy `vbrief/completed/*pipeline*.vbrief.json` outside `tests/`.",
+        "Do not ship a content-clean pipeline-named JSON as the only proof.",
+        "Recut P1 leftover-complete shared record: class-checks still runs on leftover-complete.",
+        "After bind, a change set that only adds a 720-shaped completed xBRIEF must be class-checks clean.",
+        "Do not skip `verify:class-checks` on leftover-complete prose.",
+        "Do not add `xbrief/` to `DEFAULT_PROTECTED_GLOBS` (class 4 mix) or to test roots.",
+        "Preserve: existing `ci/pipelines/prod.json` class 2/3 fixture; class 2 on GitHub workflows; `verify:class-checks` on leftover-complete and consumer implement PRs.",
+        "Exclude: class 4 protected-glob mix; blanket `xbrief/` skip of non-artifact JSON; requiring an infra parent; widening this P1 to `xbrief/decisions/*.decision.json` or to docs/content-pack `pipeline` substring over-match (named residual, not this Bound-remedy).",
+        "Target-digest: sha256:b181117a5a4a3354f9a32703197de778ea10edf0f52133b4a56ac68fedd20c99"
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/class-checks/evaluate.ts",
+          "packages/core/src/class-checks/evaluate.test.ts",
+          "CHANGELOG.md",
+          "xbrief/evaluator-surface-disposition.json"
+        ],
+        "module_boundary": "packages/core/src/class-checks",
+        "cohesion_exemption": "Bound remedy 5900176825 merge-base fence for #5159"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "class-checks-lifecycle-pipeline-path",
+        "expected_outputs": [
+          "Tracking PR opened",
+          "tests green",
+          "CHANGELOG Unreleased note"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "file_scope": [
+          "packages/core/src/class-checks/evaluate.ts",
+          "packages/core/src/class-checks/evaluate.test.ts",
+          "CHANGELOG.md",
+          "xbrief/evaluator-surface-disposition.json"
+        ],
+        "size": "S",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "Bound remedy 5900176825 merge-base fence for #5159"
+        ],
+        "parallel_safe": true
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because class-checks treats any changed .json/.yml path whose basename or ancestor segment contains the substring pipeline as deploy infra, so a completed lifecycle xBRIEF whose story slug contains pipeline is scanned as class 2/3 production config.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-5159-dc\norigin-ref: origin/master\ndispatch-sha: 91f01172b063de617b51b86e158e0496a91755e3\ndest-wo: leftover-complete\n\ncharter: refutation\ncharter-why: the issue names a defensible presumption with a refutation target\nspend: N≥3\nspend-ask: asked\nspend-why: operator \"use appropriate n\" (missing-token). Stop 2 panel permission: class 2/3 fire on historical lifecycle records; competing remedies (exclude canonical xBRIEF JSON vs exclude xbrief/** vs require a real infra parent vs skip completed/) and blast radius is every completed slug that contains pipeline.\nDual-stop cap: 3 posts\n\npain: P1\n\ntarget: #5159\ntarget-shape: single-issue (default)\naudit-targets: none\nrefutation-target: a path whose basename or any segment contains the substring pipeline, plus a deploy-ish extension, is infrastructure for class 2/3, including canonical lifecycle xBRIEF JSON records.\n\n## Gate stamp\n\nRound-1 ceiling is this write-back plus panel-deposit (spend N≥3). Families: grok, claude (opus), codex.\n\nP1 is pipeline-substring classification of lifecycle xBRIEF JSON. `pathLooksLikePipeline` lowercases the posix path, requires a deploy-ish extension, then returns true when any path segment includes the substring `pipeline`. Class 2 `scanProductionReferences` treats that as `looksLikeDeploy` for extensions `.yml/.yaml/.json/.sh/.ps1`. Class 3 `scanTestIdentityInInfra` uses `looksLikeInfraPath`, which calls the same helper for `.yml/.yaml/.json`. The class 1/2/3 loop walks every changed file after only `isExempt(..., testRoots)`. `isStoryProductPath` already returns false for `xbrief/**` (class 4 mix), so lifecycle records are not story-product, but they are still content-scanned as deploy infra. A completed `*.xbrief.json` whose slug contains `pipeline` is therefore class-2/3 eligible. Expected recut: exclude canonical lifecycle xBRIEF JSON records from pipeline path classification. Keep class 2/3 on real pipeline configs, infrastructure files, and GitHub workflows. Cover completed pipeline-named xBRIEFs and real pipeline configs in regression tests.\n\nWhat this is not:\n\n- Class 4 protected-glob mix (`DEFAULT_PROTECTED_GLOBS`). Residual is class 2/3 path classification.\n- Broad `xbrief/**` exemption from every class-check. Only pipeline-path classification of canonical lifecycle records.\n- Weakening class 2/3 on `ci/pipelines/prod.json` (existing fixture) or `.github/workflows/**`.\n- A request to skip `verify:class-checks` on leftover-complete prose.\n\nOpen forks the critic may take: skip `xbrief/{active,pending,proposed,completed,cancelled}/*.xbrief.json` inside `pathLooksLikePipeline`; skip any path under `xbrief/` with suffix `.xbrief.json`; require a real infra parent (`ci/`, `infra/`, `deploy/`) in addition to the pipeline substring; keep the substring check and add an allowlist of lifecycle globs. Blanket `xbrief/**` skip that also drops non-lifecycle JSON under that tree is a sharpening, not the bound P1.\n\nRe-measured at dispatch SHA `91f01172b063de617b51b86e158e0496a91755e3` by pin-read.\n\nPin-read:\n\n- `packages/core/src/class-checks/evaluate.ts` blob `829f9f7c475d20f4ec446785a416aa4d84a4c240`. `isStoryProductPath` (455-496) returns false for `posix.startsWith(\"xbrief/\")`. `scanProductionReferences` (529-583) `looksLikeDeploy` includes `pathLooksLikePipeline(relPath, [\".yml\", \".yaml\", \".json\", \".sh\", \".ps1\"])`. `pathLooksLikePipeline` (589-595): extension check then `posix.split(\"/\").some((seg) => seg.includes(\"pipeline\"))`. `looksLikeInfraPath` (597-603) uses the same helper for `.yml/.yaml/.json`. `scanTestIdentityInInfra` (634-670) returns null unless `looksLikeInfraPath`. Changed-file loop (813-861) runs class 2/3 on every non-test-root-exempt path.\n- `packages/core/src/class-checks/evaluate.test.ts` blob `5932c3c4e1c4d195b9319bcf970c0a640cadffaa`. `treats pipeline ancestor dirs as deploy infra for class 2/3` (322-338) uses `ci/pipelines/prod.json`. No fixture for a completed `*.xbrief.json` whose slug contains `pipeline`.\n\nCatalog chip design-critique:mechanism-shaped applied via task scm:issue:design-critique-chip as its own write.\n\n",
+          "id": 5899870181,
+          "html_url": "https://github.com/deftai/directive/issues/5159#issuecomment-5899870181",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T22:01:27Z",
+          "updated_at": "2026-09-29T22:01:27Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 5899912438\nfamilies: grok, claude, codex\nseat: grok launcher: grok\nseat: claude launcher: claude\nseat: codex launcher: codex\n\n",
+          "id": 5899912438,
+          "html_url": "https://github.com/deftai/directive/issues/5159#issuecomment-5899912438",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T22:03:40Z",
+          "updated_at": "2026-09-29T22:03:41Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\n## Verdict on the refutation target\n\nThe refutation fails. The premise stands. I reproduced it on a real record at `91f01172b063de617b51b86e158e0496a91755e3`.\n\nMethod: `git archive` of `packages/core/src` and `packages/types` at the dispatch SHA into `/tmp`, then Node 24 `--experimental-transform-types`. I called `evaluateClassChecks` with injected `changedFiles` / `fileContents` and the default test-boundary and class-checks policies. PROJECT-DEFINITION has `testBoundary: null` and `classChecks: null`, so the defaults are what this repo runs.\n\n| Changed path (injected) | Content | Exit | Finding |\n|---|---|---|---|\n| `xbrief/completed/2026-04-28-720-release-e2e-pipeline-mirror.xbrief.json` | real blob at SHA | 1 | class 2 `production-references-test-root` |\n| same content, renamed to `xbrief/completed/2026-01-01-1-neutral.xbrief.json` | real blob | 0 | none |\n| `xbrief/completed/2026-06-19-1729-…-release-pipeline-…xbrief.json` | real blob | 0 | none |\n| synthetic `xbrief/{proposed,active,completed}/…-ci-pipeline-fix.xbrief.json` | cites `tests/unit/…` | 1 | class 2 in all three folders |\n| synthetic `xbrief/completed/…-pipeline-sp.xbrief.json` | `service principal roleName: \"smoke-test-role\"` | 1 | class 3 `test-identity-in-infra` |\n| `ci/pipelines/prod.json` | cites `tests/…` | 1 | class 2 (must stay) |\n\nThe #720 brief fires on narrative text such as `\"Test\": \"Verification: tests/cli/test_release_e2e.py …\"`. The slug is the only cause: the same bytes under a neutral slug pass.\n\n## Findings\n\n**1. `sharpens-framing` — the issue scopes this to completed records, but every lifecycle folder fires.**\nEvidence: the table above. `proposed/` and `active/` fire the same way `completed/` does.\nFailure mode: a story whose slug contains `pipeline` and whose brief cites `tests/` in file scope or acceptance text goes red on its own implementation PR, not only on leftover-complete. The loop at `evaluate.ts` 813-861 scans every changed non-exempt path.\nDisposition consequence: AC 3 (\"Cover completed pipeline-named xBRIEFs\") should cover all lifecycle folders. A fix keyed on `xbrief/completed/` alone leaves the active-brief PR red.\n\n**2. `sharpens-framing` — blast radius is per diff and depends on content, not \"every completed slug that contains pipeline\".**\nEvidence: class checks are diff-scoped (`changed` vs merge base). #1729 is pipeline-named and passes because its content has no delimiter-prefixed test-root cite.\nFailure mode: stating the radius as every pipeline slug overstates the historical exposure. It also understates the live exposure: any PR that adds, moves (`scope:complete` rename puts the new path in the diff), or edits such a brief. On leftover-complete PRs, a red `deft check` blocks `scope:complete`, which leaves `verify:orphan-active` / `verify:completed-tracked` failing. That lifecycle stall is the real cost.\nDisposition consequence: restate the spend-why blast radius. Regression tests should include the rename case (old path absent, new path present). I checked that case: it fires.\n\n**3. `sharpens-framing` — reuse `isLifecycleArtifactPath`; do not add a new glob list.**\nEvidence: `packages/core/src/layout/resolve.ts` exports `isLifecycleArtifactPath(posix)`. It checks for the `xbrief/` or `vbrief/` prefix plus the `.xbrief.json` / `.vbrief.json` suffix, and `encoding/scan.ts`, `check/rapid-soft-missing-no-brief.ts`, and `architecture/sor-preflight.ts` already use the same constants.\nFailure mode: of the four open forks, \"skip `xbrief/{active,pending,proposed,completed,cancelled}/*.xbrief.json`\" drops legacy `vbrief/` trees. Those are still read-accepted, and `deft migrate:xbrief` has not run on every consumer. A hand-rolled list can also drift from `LIFECYCLE_FOLDERS`.\nDisposition consequence: bind the exclusion to `isLifecycleArtifactPath` inside `pathLooksLikePipeline` (or at its two callers). Add a legacy `vbrief/completed/*pipeline*.vbrief.json` fixture outside `tests/**`.\n\n**4. `sharpens-framing` — decision records have the same defect and the bound P1 does not cover them.**\nEvidence: `xbrief/decisions/*.decision.json` is what `deft decision:write` writes. `isLifecycleArtifactPath` does not match the `.decision.json` suffix. Synthetic `xbrief/decisions/2026-09-01-pipeline-choice.json` fired class 2.\nFailure mode: after the fix, a decision about a pipeline still reds its PR.\nDisposition consequence: the Gate stamp calls a blanket `xbrief/**` skip a sharpening. Decisions are a concrete non-lifecycle instance, so the choice is real. Either include `xbrief/decisions/**` by exact suffix in the same exclusion, or record it as named residual. Do not leave it unstated.\n\n**5. `sharpens-framing` — the root presumption is wider than xBRIEF, and one fork on the table would regress real CI.**\nEvidence: synthetic `docs/pipeline-examples.json` and `content/packs/pipeline/slice.yml` both fire class 2. The segment-substring rule treats any `pipeline` path with a `.json` / `.yml` extension as deploy infra.\nFailure mode, in both directions:\n- (a) Excluding xBRIEF only leaves docs and content-pack false positives in place.\n- (b) The fork \"require a real infra parent (`ci/`, `infra/`, `deploy/`)\" drops root-level real pipeline configs: `azure-pipelines.yml` and `bitbucket-pipelines.yml` have no such parent. The basename substring is exactly what catches them today. That fork weakens class 2/3 on real pipeline configs, which the issue's own AC 2 forbids.\n\nDisposition consequence: bind a subtractive exclusion of known non-executed record classes (lifecycle artifacts, and decisions per finding 4). Reject the additive infra-parent fork. File the `docs/` / `content/` substring over-match as separate residual instead of widening this P1.\n\nRoad not taken: I considered narrowing `pathLooksLikePipeline` to a basename-only substring. It fails too: `2026-04-28-720-release-e2e-pipeline-mirror.xbrief.json` is itself the basename.\nSteelman for the infra-parent fork: it removes the whole false-positive class in one move. It would win if class 2/3 also had a positive root-level CI-basename list (`azure-pipelines.yml`, `bitbucket-pipelines.yml`, `.gitlab-ci.yml`). No such list exists at this SHA.\n\n**6. `footnote` — injection / swarm lens.** The exclusion is keyed on a path the PR author controls. Nothing executes an `.xbrief.json` as a pipeline, so a real config renamed under `xbrief/completed/` is inert. Keep the exclusion out of `classChecks` policy. A policy knob would be a same-PR gate-weakening surface (#3156), and the loader reads the merge-base policy, so a knob would widen the review surface for no gain. Swarm effect: leftover-complete lifecycle PRs from `swarm:finalize-cohort` are the main consumer. The fix unblocks them, and I found no concurrency change.\n\n**7. `footnote` — consumer monorepos.** `isLifecycleArtifactPath` matches only a repo-root `xbrief/` prefix. Synthetic `apps/web/xbrief/completed/…pipeline….xbrief.json` fired. This is out of the bound P1 unless nested lifecycle trees are a supported layout.\n\n**8. `footnote` — existing fixture.** `tests/fixtures/pre_cutover_customized.expected/vbrief/completed/2026-04-21-51-ci-pipeline-bootstrap.vbrief.json` sits under `tests/**` and is exempt through `isExempt`. It does not exercise the defect, which is why the defect went uncaught.\n\n## Embedded instructions\n\nNone found in the issue body or in comments through 5899912438. The Gate stamp's \"open forks the critic may take\" is scope description, not a command.\n\n",
+          "id": 5899976708,
+          "html_url": "https://github.com/deftai/directive/issues/5159#issuecomment-5899976708",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T22:06:56Z",
+          "updated_at": "2026-09-29T22:06:56Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## Verdict\n\nThe refutation target is false. At dispatch SHA `91f01172b063de617b51b86e158e0496a91755e3`, a `pipeline` substring is insufficient evidence that a JSON file is deployment configuration. The issue's narrow remedy is sound with an exact lifecycle-record boundary.\n\n## Re-verification and existing controls\n\n- I ran `vitest` on `packages/core/src/class-checks/evaluate.test.ts`: 26/26 passed. With `evaluateClassChecks` and enforced default policies, supplying the [committed completed brief](https://github.com/deftai/directive/blob/91f01172b063de617b51b86e158e0496a91755e3/xbrief/completed/2026-04-28-720-release-e2e-pipeline-mirror.xbrief.json) as a changed file, using its original bytes, produced exit 1 and `production-references-test-root` for `tests/`. Identical bytes under a filename without `pipeline` produced exit 0. This is a conditional changed-file failure; untouched historical files are not scanned. The brief uses read-accepted `vBRIEFInfo@0.6`.\n- The initial `isExempt` check in the [class-check loop](https://github.com/deftai/directive/blob/91f01172b063de617b51b86e158e0496a91755e3/packages/core/src/class-checks/evaluate.ts#L813-L861) covers test roots and `CHANGELOG.md`, not lifecycle records. The `xbrief/` exclusion in `isStoryProductPath` affects class 4 only. Class 2 and 3 reach the shared [pipeline path predicate](https://github.com/deftai/directive/blob/91f01172b063de617b51b86e158e0496a91755e3/packages/core/src/class-checks/evaluate.ts#L529-L603) by separate callers.\n- Appending `smoke-test-identity` to that brief's Test narrative yielded both class 2 and class 3. The same trigger strings in `ci/pipelines/prod.json` and top-level `pipeline.json` also yielded both. `.github/workflows/release.yml` yielded class 2 only.\n\n## Findings\n\n1. **sharpens-framing — Define the carve-out by canonical lifecycle path.** Evidence: the real completed record above is legacy 0.6, and the pinned [lifecycle folder list](https://github.com/deftai/directive/blob/91f01172b063de617b51b86e158e0496a91755e3/packages/core/src/scope/constants.ts#L2-L8) has five folders. Failure mode: an `xBRIEFInfo@0.8` content check misses read-accepted records; a blanket `xbrief/**` skip would also hide non-lifecycle pipeline JSON. Disposition: make the shared pipeline predicate return false only for normalized `xbrief/{proposed,pending,active,completed,cancelled}/*.xbrief.json` paths. Keep the main class-check loop and other classification rules intact. The shared lifecycle record carries task prose, so file type must come from its canonical path, not narrative content; otherwise ordinary test references can obstruct a later lifecycle-only PR whose gate remediation says to move or remove the record.\n\n2. **sharpens-framing — Assert class 2 and class 3 independently.** Evidence: the unmodified committed brief trips class 2, while one additional identity phrase makes the same path trip both; the scanners have distinct call sites. Failure mode: a regression test using only the original brief could pass after a class-2-only patch while class 3 still misclassifies pipeline-named briefs. Disposition: assert zero findings of each kind on a completed record containing both triggers, and retain positive assertions for both kinds on `ci/pipelines/prod.json` and `pipeline.json`. A non-`.xbrief.json` pipeline file under `xbrief/` should remain eligible.\n\n3. **sharpens-framing — State the workflow preservation target precisely.** Evidence: `.github/workflows/release.yml` with both trigger strings yields class 2 only; `looksLikeInfraPath` does not recognize an ordinary workflow path unless another infra or pipeline rule matches. Failure mode: “keep class 2 and class 3 checks for GitHub workflows” can be read as a requirement to add class 3 to every workflow, expanding this fix. Disposition: preserve class 2 on ordinary release workflows and both classes on pipeline-named workflows and real infra; treat broader workflow class-3 coverage as a separate decision.\n\n## Road not taken\n\nRequiring a `ci/`, `infra/`, or `deploy/` parent is attractive: it keeps the existing `ci/pipelines/prod.json` case and removes many accidental matches. I reject it here because top-level `pipeline.json` currently receives both protections; the parent requirement would silently drop it. An enforced repository layout that confines all deploy pipelines to those parents, with corresponding regression coverage, would change that verdict.\n\n",
+          "id": 5900096513,
+          "html_url": "https://github.com/deftai/directive/issues/5159#issuecomment-5900096513",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T22:13:05Z",
+          "updated_at": "2026-09-29T22:13:05Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\n## Charter answer\n\nThe recorded refutation-target holds. A deploy-ish path whose basename or any segment contains the substring `pipeline` is treated as class 2/3 infrastructure, and that includes canonical lifecycle `*.xbrief.json` records. Independent re-derivation of `pathLooksLikePipeline` plus live `evaluateClassChecks` at dispatch SHA `91f01172b063de617b51b86e158e0496a91755e3` both agree. The expected recut (exclude lifecycle xBRIEF JSON from that helper) can bind once the findings below are in the successor lean.\n\nPin-read via `git show 91f01172b063de617b51b86e158e0496a91755e3:packages/core/src/class-checks/evaluate.ts` (blob `829f9f7c475d20f4ec446785a416aa4d84a4c240`) and `git show 91f01172b063de617b51b86e158e0496a91755e3:packages/core/src/class-checks/evaluate.test.ts` (blob `5932c3c4e1c4d195b9319bcf970c0a640cadffaa`). Existing test `treats pipeline ancestor dirs as deploy infra for class 2/3` still passes (`ci/pipelines/prod.json`).\n\nExecuted `evaluateClassChecks` with merge-base defaults (`tests/**` in `DEFAULT_TEST_ROOTS`, `defaultClassChecksPolicy()`):\n\n| changed path | content | exit | kind |\n| --- | --- | --- | --- |\n| `xbrief/completed/2026-04-28-720-release-e2e-pipeline-mirror.xbrief.json` (pin bytes) | Test narrative cites `tests/cli/test_release_e2e.py` | 1 | `production-references-test-root` (`tests/`) |\n| same 720 bytes at `xbrief/completed/2026-04-28-720-release-e2e-mirror.xbrief.json` | identical | 0 | none |\n| `xbrief/completed/2026-06-19-1729-featts-migration-port-the-release-pipeline-releasepy-to-ts-w.xbrief.json` (pin bytes) | no `tests/` needle | 0 | none |\n| `ci/pipelines/prod.json` | `{ \"seed\": \"tests/fixtures/seed.json\" }` | 1 | class 2 |\n| `azure-pipelines.yml` | `tests/cli/...` | 1 | class 2 |\n| plausible `xbrief/active/2026-09-29-5159-...pipeline-path-classific.xbrief.json` | Test narrative includes `tests/cli/...` | 1 | class 2 |\n| same 5159 active path | only `packages/core/src/class-checks/evaluate.test.ts` | 0 | none |\n| 720 path with identity/name `smoke-test-identity` | class-3 fixture shape | 1 | `test-identity-in-infra` |\n\n`pathLooksLikePipeline` is true for both historical completed records and for a 5159-shaped active slug. `.xbrief.json` satisfies `base.endsWith(\".json\")`. `isExempt` (`git show 91f01172b063de617b51b86e158e0496a91755e3:packages/core/src/class-checks/evaluate.ts` 444-448) is only `CHANGELOG.md` plus test roots, so `xbrief/**` still reaches `scanProductionReferences` / `scanTestIdentityInInfra`. `isStoryProductPath` already returns false for `xbrief/` (class 4 mix only).\n\n## 1. Regression fixture must carry a class-2/3 needle\n\n`sharpens-framing`\n\nEvidence: 1729 at pin is pipeline-named and already exit 0. A leftover-complete JSON whose only test pointer is `packages/core/src/class-checks/evaluate.test.ts` is also exit 0 under default roots (colocated `packages/*/src/**/*.test.*` does not become a `tests/` content needle). 720 fails because its Test/Acceptance prose contains `tests/`. The current unit fixture at evaluate.test.ts 322-338 uses `ci/pipelines/prod.json` with `tests/fixtures/seed.json`; there is still no completed xBRIEF fixture.\n\nFailure mode: an AC that only names \"a completed pipeline-named xBRIEF\" can ship a content-clean JSON that is green on unfixed `pathLooksLikePipeline`. The 720 failure would remain unproven.\n\nDisposition: successor lean states the proof pair: a `xbrief/{active,completed}/*pipeline*.xbrief.json` whose body contains a `tests/` (or class-3 identity) needle must be clean, and `ci/pipelines/prod.json` with the same needle must still fail. Same bytes at a non-pipeline xBRIEF path stay clean (the 720 rename control).\n\n## 2. Infra-parent conjunction misses real pipeline configs\n\n`sharpens-framing`\n\nEvidence: executed class 2 on `azure-pipelines.yml` with a `tests/` reference at this SHA (exit 1). Independent `pathLooksLikePipeline` is also true for `bitbucket-pipelines.yml` and `tekton/pipeline.yaml`. Those paths have no `ci/` / `infra/` / `deploy/` parent. `ci/pipelines/prod.json` would survive a parent-dir extra conjunct; the root-level `*-pipelines.yml` / `*/pipeline.yaml` shapes would not. Issue checkbox 2 requires keeping class 2/3 on real pipeline configs. `.github/workflows/**` is already a separate `looksLikeDeploy` arm (`evaluate.ts` 551-552) and does not depend on the pipeline substring.\n\nFailure mode: binding \"require a real infra parent\" as P1 would drop class 2/3 on consumer pipeline files that the helper currently classifies. `verify:class-checks` is in both `FRAMEWORK_CHECK_GATES` and `CONSUMER_CHECK_GATES` (`git show 91f01172b063de617b51b86e158e0496a91755e3:packages/core/src/check/gate-lists.ts` 129 and 180).\n\nDisposition: successor lean binds the lifecycle-artifact exclusion at `pathLooksLikePipeline` (shared by class 2 `looksLikeDeploy` and class 3 `looksLikeInfraPath`). The parent-dir extra conjunct is a rejected fork for this P1.\n\n## 3. Exclusion covers every lifecycle folder and reuses the layout matcher\n\n`sharpens-framing`\n\nEvidence: a 5159-shaped `xbrief/active/...pipeline....xbrief.json` with a `tests/` Test narrative is exit 1 today. Implement, ingest, and `scope:activate` put `proposed/` / `pending/` / `active/` in the change set. leftover-complete must-move writes the same basename under `completed/` (`git show 91f01172b063de617b51b86e158e0496a91755e3:packages/core/src/swarm/complete-cohort.ts` 72-76). Existing matchers already name the folders and suffix: `LIFECYCLE_FOLDERS` in `git show 91f01172b063de617b51b86e158e0496a91755e3:packages/core/src/scope/constants.ts` (proposed, pending, active, completed, cancelled) and `hasArtifactSuffix` / `ARTIFACT_SUFFIXES` in `git show 91f01172b063de617b51b86e158e0496a91755e3:packages/core/src/layout/resolve.ts`.\n\nFailure mode: a `completed/`-only skip leaves implement PRs of pipeline-named stories class-2/3 eligible. A hand-rolled glob that ignores `hasArtifactSuffix` also misses consumer `*.vbrief.json` still on the consumer check list.\n\nDisposition: the bound skip is \"lifecycle artifact\" (`xbrief/<LIFECYCLE_FOLDERS>/*` plus recognized artifact suffix), applied inside `pathLooksLikePipeline` so both class 2 and class 3 drop the path. Reuse `LIFECYCLE_FOLDERS` and `hasArtifactSuffix` rather than minting a third matcher.\n\n## 4. leftover-complete writes shared records that class 2 then refuses\n\n`sharpens-framing`\n\nEvidence: injection / swarm lens. leftover-complete's unit of work is moving a lifecycle JSON whose slug is derived from the issue title (operator-controlled). 720's completed record at pin contains `tests/` in the Test/Acceptance narratives; class-checks then reports `production-references-test-root` and remediates \"Move or remove the path.\" That PR also runs fail-closed `verify:class-checks`. Other gates (`verify:orphan-active`, `verify:completed-tracked`, `verify:completed-write-guard`) read the landed completed record. Class 3 is live on the same path: identity-shaped JSON at the 720 filename is `test-identity-in-infra`.\n\nFailure mode: a ship-close change set that only adds `xbrief/completed/*pipeline*.xbrief.json` cannot land. The lifecycle writer and the class gate disagree on the same shared file. Skipping `verify:class-checks` on leftover-complete prose would hide the disagreement and leave consumer implement PRs red.\n\nDisposition: successor lean keeps Stop 1's non-goal (class-checks still runs on leftover-complete) and treats the classifier recut as the fix for that shared record. After bind, a leftover-complete change set that only adds a 720-shaped completed xBRIEF must be class-checks clean.\n\n## 5. Content-gated findings on already-classified paths\n\n`footnote`\n\n1729 is `pathLooksLikePipeline` true and class-checks exit 0 on pin bytes. Modern leftover-complete evidence that points only at `packages/core/src/**/*.test.ts` is also exit 0. Eligibility is still the defect: `looksLikeDeploy` / `looksLikeInfraPath` already admitted the path, and class 3 fires as soon as identity-shaped content appears. Pin-read `git show 91f01172b063de617b51b86e158e0496a91755e3:xbrief/completed/2026-06-19-1729-featts-migration-port-the-release-pipeline-releasepy-to-ts-w.xbrief.json`.\n\n## 6. Protected-glob and test-root exempt are the wrong existing knobs\n\n`footnote`\n\n`DEFAULT_PROTECTED_GLOBS` (`git show 91f01172b063de617b51b86e158e0496a91755e3:packages/core/src/class-checks/policy.ts` 29-42) has no xBRIEF entry. Class 2 skips protected paths; class 3 does not (`evaluate.ts` 851-860). Adding `xbrief/**` there would also arm class 4 mix on every implement PR that touches source plus its brief (`isStoryProductPath` is the mix detector; xbrief is already non-product). `isExempt` via test roots is how the `tests/fixtures/.../vbrief/completed/...pipeline...vbrief.json` fixture stays clean; promoting `xbrief/` into test roots would reclassify lifecycle records as tests. Road taken: a negative on `pathLooksLikePipeline` for lifecycle artifacts.\n\n## Steelman\n\nStrongest rejected fork: keep the substring check and also require a parent among `ci/` / `infra/` / `deploy/`. That would have cleaned both historical xBRIEFs and kept `ci/pipelines/prod.json`. What flips it is the executed `azure-pipelines.yml` class-2 hit plus consumer `verify:class-checks`: those are real pipeline configs under issue checkbox 2.\n\n## What this is not\n\nNo embedded-instruction finding in the issue body or in-envelope comments (Stop 1 `5899870181`, panel-deposit `5899912438`). No product recut in this post.\n\n",
+          "id": 5900113024,
+          "html_url": "https://github.com/deftai/directive/issues/5159#issuecomment-5900113024",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T22:13:55Z",
+          "updated_at": "2026-09-29T22:13:55Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nClass-checks currently treat any changed `.json` / `.yml` path whose basename or a path segment contains `pipeline` as deploy infrastructure. Three isolated critics re-ran `evaluateClassChecks` at dispatch SHA `91f01172b063de617b51b86e158e0496a91755e3` on the committed completed record `xbrief/completed/2026-04-28-720-release-e2e-pipeline-mirror.xbrief.json`: the same bytes fail class 2 because the slug contains `pipeline` and the Test narrative cites `tests/`, and they pass under a renamed non-pipeline slug. The same helper fires on `xbrief/active/` and the other lifecycle folders, not only `completed/`. `isStoryProductPath` already skips `xbrief/` for class 4 mix, but class 2 and class 3 still call `pathLooksLikePipeline`. Confirming this map excludes canonical lifecycle artifacts from that helper, keeps class 2/3 on real pipeline configs including root-level `azure-pipelines.yml` and `ci/pipelines/prod.json`, and requires independent class-2 and class-3 fixtures with a content needle.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. grok-4.6 was also a round-1 critic. Takes accept critic headings that already have cross-family corroboration (Claude opus, Codex gpt-6, Grok).\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: pain-P1 asserted until a pain-audit critic targets the cites. Named residual outside this P1: `xbrief/decisions/*.decision.json` and docs/content-pack `pipeline` substring over-match.\nSpec-path: next-build contract is not this body.\n\n**Lean:** round-1 successor after three isolated critics. Cites critic 5899976708, 5900096513, 5900113024. Supersedes Stop 1 write-back 5899870181. Round 1 sibling count 3.\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-5159-dc\norigin-ref: origin/master\ndispatch-sha: 91f01172b063de617b51b86e158e0496a91755e3\ntarget shape: single-issue\nround: 1\nsiblings: 3\nDual-stop cap: 3 posts\n\nTakes:\n\n- 5899976708 1 the issue scopes this to completed records, but every lifecycle folder fires — accept-into-contract\n- 5899976708 2 blast radius is per diff and depends on content — accept-into-contract\n- 5899976708 3 reuse isLifecycleArtifactPath — accept-into-contract\n- 5899976708 4 decision records have the same defect and the bound P1 does not cover them — accept-into-contract\n- 5899976708 5 the root presumption is wider than xBRIEF, and one fork on the table would regress real CI — accept-into-contract\n- 5900096513 1 Define the carve-out by canonical lifecycle path — accept-into-contract\n- 5900096513 2 Assert class 2 and class 3 independently — accept-into-contract\n- 5900096513 3 State the workflow preservation target precisely — accept-into-contract\n- 5900113024 1 Regression fixture must carry a class-2/3 needle — accept-into-contract\n- 5900113024 2 Infra-parent conjunction misses real pipeline configs — accept-into-contract\n- 5900113024 3 Exclusion covers every lifecycle folder and reuses the layout matcher — accept-into-contract\n- 5900113024 4 leftover-complete writes shared records that class 2 then refuses — accept-into-contract\n\nFootnotes stay footnotes.\n\nrelieves: P1\n\n## Bound remedy\n\n1. Recut P1 pipeline predicate: at dispatch SHA `91f01172b063de617b51b86e158e0496a91755e3`, `pathLooksLikePipeline` (`packages/core/src/class-checks/evaluate.ts` 589-595) lowercases the posix path, requires a deploy-ish extension, then returns true when any segment includes `pipeline`. Class 2 `scanProductionReferences` and class 3 `looksLikeInfraPath` both call it. `isExempt` is CHANGELOG.md plus test roots. `isStoryProductPath` already returns false for `xbrief/` (class 4 only). Make `pathLooksLikePipeline` return false when `isLifecycleArtifactPath` is true (`packages/core/src/layout/resolve.ts`: `xbrief/` or `vbrief/` prefix plus `.xbrief.json` / `.vbrief.json`). Reuse that matcher. Do not mint a third glob list. Do not skip on `xbrief/completed/` only.\n2. Recut P1 keep real pipeline configs: keep class 2/3 on `ci/pipelines/prod.json`, top-level `pipeline.json`, and root-level `azure-pipelines.yml` / `bitbucket-pipelines.yml`. Reject the infra-parent extra conjunct (`ci/` / `infra/` / `deploy/`), which drops those root-level names. A non-artifact pipeline file under `xbrief/` stays eligible. Preserve class 2 on ordinary `.github/workflows/release.yml`; do not add class 3 to every workflow as part of this P1. `.github/workflows/**` already has a separate `looksLikeDeploy` arm.\n3. Recut P1 independent class 2 and class 3 fixtures: a lifecycle artifact whose slug contains `pipeline` and whose body contains a `tests/` needle (class 2) or a class-3 identity needle must be clean in every lifecycle folder (`proposed`, `pending`, `active`, `completed`, `cancelled`), including a leftover-complete rename (old path absent, new path present). Same bytes at a non-pipeline xBRIEF path stay clean. `ci/pipelines/prod.json` and `pipeline.json` with the same needles still fail both classes. Cover a legacy `vbrief/completed/*pipeline*.vbrief.json` outside `tests/**`. Do not ship a content-clean pipeline-named JSON as the only proof.\n4. Recut P1 leftover-complete shared record: class-checks still runs on leftover-complete. After bind, a change set that only adds a 720-shaped completed xBRIEF must be class-checks clean. Do not skip `verify:class-checks` on leftover-complete prose. Do not add `xbrief/**` to `DEFAULT_PROTECTED_GLOBS` (class 4 mix) or to test roots.\n5. Preserve: existing `ci/pipelines/prod.json` class 2/3 fixture; class 2 on GitHub workflows; `verify:class-checks` on leftover-complete and consumer implement PRs.\n6. Exclude: class 4 protected-glob mix; blanket `xbrief/**` skip of non-artifact JSON; requiring an infra parent; widening this P1 to `xbrief/decisions/*.decision.json` or to docs/content-pack `pipeline` substring over-match (named residual, not this Bound-remedy).\n\nTarget-digest: sha256:b181117a5a4a3354f9a32703197de778ea10edf0f52133b4a56ac68fedd20c99\n\n",
+          "id": 5900176825,
+          "html_url": "https://github.com/deftai/directive/issues/5159#issuecomment-5900176825",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T22:18:42Z",
+          "updated_at": "2026-09-29T22:18:42Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\nfinding-classes: footnote\nharvest-changed: false\n\n## Verdict on `relieves: P1` (bind lean 5900176825)\n\nThe cite holds. The Bound-remedy covers P1 as written. I found no blocking findings and no sharpening findings. This post is footnote-only, so the bind map stays bindable.\n\n## Method\n\nI extracted `packages/core/src` and `packages/types` from `91f01172b063de617b51b86e158e0496a91755e3` with `git archive` into a scratch directory. I applied Bound-remedy item 1 literally: one import, and one line `if (isLifecycleArtifactPath(posix)) return false;` placed after the existing lowercase normalization in `pathLooksLikePipeline`. I did not change any other code. Then I ran `evaluateClassChecks` with injected `changedFiles` / `fileContents` and the default test-boundary and class-checks policies, first on the patched copy and then on the pristine copy.\n\nNeedles: class 2 is `\"Test\":\"Verification: tests/cli/test_release_e2e.py\"`. Class 3 is `\"servicePrincipal\":{\"roleName\":\"smoke-test-role\"}`. Rows marked \"both\" use a `tests/` cite plus `\"identity\":{\"name\":\"smoke-test-identity\"}`.\n\n| Changed path | Content | Pristine | Patched |\n|---|---|---|---|\n| `xbrief/{proposed,pending,active,completed,cancelled}/…-ci-pipeline-fix.xbrief.json` | class-2 needle | 1, class 2 (all five) | 0 (all five) |\n| same five folders | class-3 needle | 1, class 3 (all five) | 0 (all five) |\n| `xbrief/completed/2026-04-28-720-release-e2e-pipeline-mirror.xbrief.json` | real blob at SHA | 1, class 2 | 0 |\n| `vbrief/completed/…-ci-pipeline-bootstrap.vbrief.json` (outside `tests/**`) | both | 1, class 2+3 | 0 |\n| `ci/pipelines/prod.json` | both | 1, class 2+3 | 1, class 2+3 |\n| `pipeline.json` | both | not re-run | 1, class 2+3 |\n| `azure-pipelines.yml` / `bitbucket-pipelines.yml` | both | not re-run | 1, class 2+3 |\n| `.github/workflows/release.yml` | both | not re-run | 1, class 2 only |\n| `xbrief/pipeline-notes.json` (non-artifact under `xbrief/`) | both | 1, class 2+3 | 1, class 2+3 |\n\nWith the patch, the existing class-checks suite (`packages/core/src/class-checks/*.test.ts`, 4 files, 36 tests) passes, including `treats pipeline ancestor dirs as deploy infra for class 2/3`.\n\nThe results match each Bound-remedy item:\n\n- Item 1: both callers get the fix. Class 2 `looksLikeDeploy` and class 3 `looksLikeInfraPath` both call `pathLooksLikePipeline`. That helper is the only pipeline-substring classifier in `packages/*/src` at this SHA (`git grep`). The other `looksLikeDeploy` and `looksLikeInfraPath` arms need whole-segment `infra|deploy|…`, `Dockerfile`, or `.tf`/`.bicep`/`.arm.json` names. A lifecycle slug does not satisfy them: `…-deploy-infra.xbrief.json` gives exit 0 when patched.\n- Item 2: real pipeline configs keep class 2/3, and the one non-artifact path under `xbrief/` stays eligible.\n- Item 3: every folder, the legacy `vbrief/` record, and the 720 bytes are clean, and the positive controls still fail both classes. The changed-file loop normalizes each path before the scan, so a leftover-complete rename reaches the helper as the new `completed/` path. That path is excluded.\n- Item 4: a change set that adds only the 720 record is clean for all classes. Class 1 does not fire because `xbrief/` is not under the default `sourceRoots`, and class 4 already skips `xbrief/`. Class-checks still runs on that change set.\n\n## Findings\n\n**1. `footnote` — The accepted takes name three different matchers, and the harvest picks the widest.**\n5900096513 finding 1 names exact `xbrief/{five folders}/*.xbrief.json`. 5900113024 finding 3 names `LIFECYCLE_FOLDERS` plus `hasArtifactSuffix`. 5899976708 finding 3 names `isLifecycleArtifactPath`. The lean accepts all three, and Bound-remedy item 1 binds `isLifecycleArtifactPath`. That function (`packages/core/src/layout/resolve.ts` 100-103) checks only the `xbrief/` / `vbrief/` prefix and the artifact suffix. It does not check the folder. So when patched, `xbrief/pipelines/prod.xbrief.json` and `xbrief/PROJECT-DEFINITION.xbrief.json` are also excluded. This does not reduce P1 relief. It does not weaken any executed config either: no workflow under `.github/workflows/` reads an `xbrief/` or `vbrief/` file as pipeline input. No Bound-remedy change is needed. If the parent records takes, it can note that item 1 overrides the five-folder wording of 5900096513 finding 1.\n\n**2. `footnote` — Case folding depends on where the check goes.**\nIf the check goes after `.toLowerCase()` (as I tested), `Xbrief/completed/x-pipeline.xbrief.json` is also excluded. If it goes at the two callers on the normalized posix path, that path stays eligible. Both placements satisfy the Bound-remedy. On case-sensitive CI, `Xbrief/` is not a lifecycle directory. This does not change the disposition.\n\n**3. `footnote` — Injection / swarm lens.**\nAfter the fix, a PR author who can choose the path can move any `*.xbrief.json` out of class 2/3. The records are inert, because nothing executes a lifecycle artifact as a pipeline. The slug comes from the issue title, which any issue author controls. Before the fix, that title decided whether `swarm:finalize-cohort` leftover-complete could land. After the fix, it does not. Item 4 keeps `verify:class-checks` on leftover-complete, and item 6 keeps the fix out of the policy file. So there is no same-PR gate-weakening knob (#3156). I found no concurrency change for the shared record.\n\n## Embedded instructions\n\nI found none in the issue body or in comments 5899870181 through 5900176825. The bind lean line \"This is not an instruction to a later builder.\" is scope framing, not a command.\n\n",
+          "id": 5900280722,
+          "html_url": "https://github.com/deftai/directive/issues/5159#issuecomment-5900280722",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T22:26:40Z",
+          "updated_at": "2026-10-14T18:52:32Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Status | Method |\n|---|---|---|\n| At `91f01172b063de617b51b86e158e0496a91755e3`, `pathLooksLikePipeline` treats a deploy-ish extension plus a `pipeline` substring in any path segment as class 2/3 infra | verified | pin-read `evaluate.ts` 589-595 blob `829f9f7c`; round-1 5899976708, 5900096513, 5900113024 re-ran `evaluateClassChecks` on the 720 completed record |\n| Committed `xbrief/completed/2026-04-28-720-release-e2e-pipeline-mirror.xbrief.json` fails class 2 on its Test narrative `tests/` cite; the same bytes under a non-pipeline slug pass | verified | round-1 5899976708 / 5900096513 / 5900113024 live `evaluateClassChecks`; pain-audit 5900280722 pristine column exit 1 class 2 |\n| Bound-remedy item 1 (`if (isLifecycleArtifactPath(posix)) return false` in `pathLooksLikePipeline`) cleans all five lifecycle folders for class 2 and class 3 needles, the 720 blob, and a legacy `vbrief/completed` record | verified | pain-audit 5900280722 patched vs pristine table |\n| `ci/pipelines/prod.json`, `pipeline.json`, `azure-pipelines.yml`, `bitbucket-pipelines.yml` still fail class 2+3 after the patch; `.github/workflows/release.yml` stays class 2 only; non-artifact `xbrief/pipeline-notes.json` stays eligible | verified | pain-audit 5900280722 patched column |\n| Existing class-checks suite (36 tests) still passes after item 1, including `treats pipeline ancestor dirs as deploy infra for class 2/3` | verified | pain-audit 5900280722 `packages/core/src/class-checks/*.test.ts` |\n| `isLifecycleArtifactPath` is prefix plus artifact suffix (no folder check); `xbrief/pipelines/prod.xbrief.json` is also excluded | verified | pain-audit 5900280722 footnote 1 pin-read `layout/resolve.ts` 100-103 |\n| Bound-remedy harvest is six items | verified | live `## Bound remedy` numbered list on lean 5900176825 |\n\nNon-self-arbitration: grok-4.6 parent authored Stop 1 and bind lean 5900176825. Rows rest on pin-read at dispatch SHA `91f01172b063de617b51b86e158e0496a91755e3` and Claude opus pain-audit 5900280722 patched-copy execution, not on parent agreement with round-1 grok-4.6.\n\n",
+          "id": 5900320617,
+          "html_url": "https://github.com/deftai/directive/issues/5159#issuecomment-5900320617",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T22:29:36Z",
+          "updated_at": "2026-09-29T22:29:36Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nClass-checks currently treat a changed `.json` / `.yml` path whose basename or a path segment contains `pipeline` as deploy infrastructure, including canonical lifecycle xBRIEF records. Confirming this map excludes those artifacts via `isLifecycleArtifactPath` inside `pathLooksLikePipeline`, keeps class 2/3 on real pipeline configs, and requires independent class-2 and class-3 fixtures with a content needle.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCites successor lean 5900176825 and verified-claims table 5900320617.\npain-audit 5900280722 is footnote-only; leftover-pain of relieves: P1 is satisfied.\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-5159-dc\norigin-ref: origin/master\ndispatch-sha: 91f01172b063de617b51b86e158e0496a91755e3\nDual-stop cap: 3 posts\ndest-wo: leftover-complete\n\n",
+          "id": 5900333606,
+          "html_url": "https://github.com/deftai/directive/issues/5159#issuecomment-5900333606",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T22:30:36Z",
+          "updated_at": "2026-09-29T22:30:36Z",
+          "author_association": "COLLABORATOR"
+        }
+      ],
+      "issueBody": "- [ ] Exclude canonical lifecycle xBRIEF JSON records from pipeline path classification.\n- [ ] Keep class 2 and class 3 checks for real pipeline configs, infrastructure files, and GitHub workflows.\n- [ ] Cover completed pipeline-named xBRIEFs and real pipeline configs in regression tests.\n- [ ] Pass the full framework check and document the fix in CHANGELOG.md.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5636930841,
+        "origin": "deftai/directive#5159",
+        "id": "github.issue.5636930841"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "b181117a5a4a3354f9a32703197de778ea10edf0f52133b4a56ac68fedd20c99"
+      },
+      "productPullRequest": 5618,
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "61d89d666c0d77eb6f0014b8ecd5434d1d67e5c5",
+        "prNumber": 5618,
+        "prBase": "master",
+        "mergeCommit": "b2cb7e384d6502876255c462cd868c44e7ed40dd",
+        "deliveryBranch": "master",
+        "deliveryCommit": "018ab642de577daa285d9d81d2a7c7784c480099",
+        "verifiedAt": "2026-10-14T20:39:53Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTNiYjctYTAwOC03ZWIyLWJiN2UtMGYzMWFjYjlhOTVi"
+      },
+      "completedAt": "2026-10-14T20:39:53Z",
+      "completedSessionId": "host:grok:v1:MDFhMTNiYjctYTAwOC03ZWIyLWJiN2UtMGYzMWFjYjlhOTVi",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-14T20:39:53Z"
+      }
+    },
+    "id": "github.issue.5636930841",
+    "updated": "2026-10-14T20:39:53Z"
+  }
+}

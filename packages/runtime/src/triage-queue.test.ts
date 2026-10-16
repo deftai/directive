@@ -36,6 +36,46 @@ function silentRun(argv: string[]): number {
   }
 }
 
+/** Seed passed scan meta + content.md so triage:show can print (#5367). */
+function seedPassedShowEntry(
+  root: string,
+  repo: string,
+  number: number,
+  fields: {
+    title: string;
+    body?: string;
+    labels?: readonly string[];
+    updatedAt?: string;
+    cacheRoot?: string;
+  },
+): void {
+  const [owner, name] = repo.split("/", 2) as [string, string];
+  const cacheBase = fields.cacheRoot ?? join(root, ".deft-cache");
+  const dir = join(cacheBase, "github-issue", owner, name, String(number));
+  mkdirSync(dir, { recursive: true });
+  const body = fields.body ?? "";
+  const title = fields.title;
+  writeFileSync(
+    join(dir, "raw.json"),
+    `${JSON.stringify({
+      number,
+      title,
+      state: "open",
+      labels: (fields.labels ?? []).map((label) => ({ name: label })),
+      updated_at: fields.updatedAt ?? "2026-07-28T10:00:00Z",
+      html_url: `https://github.com/${repo}/issues/${number}`,
+      body,
+    })}\n`,
+    "utf8",
+  );
+  writeFileSync(
+    join(dir, "meta.json"),
+    `${JSON.stringify({ scan_result: { passed: true, flags: [] } })}\n`,
+    "utf8",
+  );
+  writeFileSync(join(dir, "content.md"), `# #${number}: ${title}\n\n${body}`, "utf8");
+}
+
 describe("triage-queue CLI", () => {
   it("parseArgs defaults limit to 25", () => {
     const args = parseArgs(["queue", "--repo", "owner/repo"]);
@@ -448,27 +488,18 @@ describe("triage:show CLI (#2890)", () => {
       activeIssueNumbers: [51],
     });
     temps.push(root);
-    // Enrich raw.json body for operator summary/AC extraction.
-    const rawPath = join(root, ".deft-cache", "github-issue", "owner", "repo", "51", "raw.json");
-    writeFileSync(
-      rawPath,
-      `${JSON.stringify({
-        number: 51,
-        title: "Operator brief dogfood",
-        state: "open",
-        labels: [{ name: "bug" }],
-        updated_at: "2026-07-28T10:00:00Z",
-        html_url: "https://github.com/owner/repo/issues/51",
-        body: [
-          "Chip-only Phase 3 turns hide problem context from the operator.",
-          "",
-          "## Acceptance criteria",
-          "- [ ] brief before menu",
-          "- [ ] same-turn coupling",
-        ].join("\n"),
-      })}\n`,
-      "utf8",
-    );
+    seedPassedShowEntry(root, "owner/repo", 51, {
+      title: "Operator brief dogfood",
+      labels: ["bug"],
+      updatedAt: "2026-07-28T10:00:00Z",
+      body: [
+        "Chip-only Phase 3 turns hide problem context from the operator.",
+        "",
+        "## Acceptance criteria",
+        "- [ ] brief before menu",
+        "- [ ] same-turn coupling",
+      ].join("\n"),
+    });
 
     const stdout = vi.spyOn(process.stdout, "write").mockReturnValue(true);
     try {
@@ -496,6 +527,11 @@ describe("triage:show CLI (#2890)", () => {
       auditEntries: [{ issueNumber: 3, decision: "defer", timestamp: "2026-07-20T00:00:00Z" }],
     });
     temps.push(root);
+    seedPassedShowEntry(root, "owner/repo", 3, {
+      title: "Default show",
+      labels: ["enhancement"],
+      body: "default body",
+    });
     const stdout = vi.spyOn(process.stdout, "write").mockReturnValue(true);
     try {
       expect(run(["show", "3", "--project-root", root, "--repo", "owner/repo"])).toBe(0);
@@ -512,22 +548,12 @@ describe("triage:show CLI (#2890)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-triage-show-cache-root-"));
     temps.push(root);
     mkdirSync(join(root, "xbrief"), { recursive: true });
-    // Seed ONLY under an alternate cache root, not projectRoot/.deft-cache.
     const altCache = join(root, "alt-cache");
-    const dir = join(altCache, "github-issue", "owner", "repo", "9");
-    mkdirSync(dir, { recursive: true });
-    writeFileSync(
-      join(dir, "raw.json"),
-      `${JSON.stringify({
-        number: 9,
-        title: "From alt cache",
-        state: "open",
-        labels: [],
-        updated_at: "2026-07-28T00:00:00Z",
-        body: "alt",
-      })}\n`,
-      "utf8",
-    );
+    seedPassedShowEntry(root, "owner/repo", 9, {
+      title: "From alt cache",
+      body: "alt",
+      cacheRoot: altCache,
+    });
     const stdout = vi.spyOn(process.stdout, "write").mockReturnValue(true);
     try {
       expect(
@@ -546,6 +572,48 @@ describe("triage:show CLI (#2890)", () => {
       expect(output).toContain("From alt cache");
     } finally {
       stdout.mockRestore();
+    }
+  });
+
+  it("run show refuses quarantine hard-fail with exit 1 and no raw body on stdout (#5367)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-triage-show-hard-fail-"));
+    temps.push(root);
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    const dir = join(root, ".deft-cache", "github-issue", "owner", "repo", "77");
+    mkdirSync(dir, { recursive: true });
+    const secret = "ghp_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
+    writeFileSync(
+      join(dir, "raw.json"),
+      `${JSON.stringify({
+        number: 77,
+        title: "Hard fail",
+        state: "open",
+        labels: [],
+        body: secret,
+        updated_at: "2026-10-05T00:00:00Z",
+      })}\n`,
+      "utf8",
+    );
+    writeFileSync(
+      join(dir, "meta.json"),
+      `${JSON.stringify({ scan_result: { passed: false, flags: [] } })}\n`,
+      "utf8",
+    );
+    const stdout = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const stderr = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    try {
+      expect(run(["show", "77", "--project-root", root, "--repo", "owner/repo"])).toBe(1);
+      expect(
+        run(["show", "77", "--format=operator", "--project-root", root, "--repo", "owner/repo"]),
+      ).toBe(1);
+      const out = stdout.mock.calls.map((c) => String(c[0])).join("");
+      const err = stderr.mock.calls.map((c) => String(c[0])).join("");
+      expect(out).not.toContain(secret);
+      expect(err).toContain("hard-fail");
+      expect(err).toContain("nothing written");
+    } finally {
+      stdout.mockRestore();
+      stderr.mockRestore();
     }
   });
 });

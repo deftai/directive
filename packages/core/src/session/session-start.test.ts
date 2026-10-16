@@ -15,6 +15,7 @@ import {
   applyWorktreeOccupancy,
   type OccupancyDecision,
   readOccupancy,
+  stealOccupancy,
 } from "./occupancy.js";
 import {
   COLD_EXCLUSIVE_PHASE_NAMES,
@@ -1114,7 +1115,7 @@ describe("runSessionStart primary-claim exception (#4266)", () => {
     });
 
     expect(result.code).toBe(0);
-    expect(occupancyInputs.map((input) => input.write)).toEqual([false, true]);
+    expect(occupancyInputs.map((input) => input.write)).toEqual([true]);
     const persist = occupancyInputs.find((input) => input.write === true);
     expect(persist?.primaryClaimException).toBe("release-cut");
     expect(persist?.steal).not.toBe(true);
@@ -1215,5 +1216,216 @@ describe("runSessionStart worktree deposit reconstitution (#4443)", () => {
     expect(result.code).toBe(2);
     expect(result.payload.ready).toBe(false);
     expect(String(result.payload.message)).toContain("symlink escaping");
+  });
+
+  it("persists occupancy before reconstituting dest files (#3906)", () => {
+    const root = tempRoot();
+    const order: string[] = [];
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult({})),
+      sessionId: "host:test:v1:claim-first",
+      applyOccupancy: (_projectRoot, input) => {
+        if (input.write === true) order.push("occupancy");
+        return occupancyOk(root, input);
+      },
+      reconstituteWorktreeDeposit: () => {
+        order.push("deposit");
+        return {
+          status: "reconstituted",
+          source: "/payload",
+          dest: join(root, ".deft", "core"),
+          message: "reconstituted .deft/core from local payload",
+        };
+      },
+      orientation: null,
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+    });
+    expect(result.code).toBe(0);
+    expect(order.slice(0, 2)).toEqual(["occupancy", "deposit"]);
+  });
+
+  it("does not reconstitute when occupancy persist is denied (#3906)", () => {
+    const root = tempRoot();
+    const reconstituteWorktreeDeposit = vi.fn(() => ({
+      status: "reconstituted",
+      source: "/payload",
+      dest: join(root, ".deft", "core"),
+      message: "must not write",
+    }));
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult({})),
+      sessionId: "host:test:v1:denied",
+      applyOccupancy: (_projectRoot, input) => ({
+        action: "denied",
+        sessionId: input.sessionId ?? "host:test:v1:denied",
+        record: null,
+        path: join(root, ".deft", "occupancy.json"),
+        message: "occupancy denied",
+        code: 2,
+      }),
+      reconstituteWorktreeDeposit,
+      orientation: null,
+    });
+    expect(result.code).toBe(2);
+    expect(reconstituteWorktreeDeposit).not.toHaveBeenCalled();
+  });
+
+  it("rolls back a persist-time claim when reconstitution is refused (#3906)", () => {
+    const root = tempRoot();
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult({})),
+      sessionId: "host:test:v1:refuse-rollback",
+      reconstituteWorktreeDeposit: () => ({
+        status: "refused",
+        source: "/payload",
+        dest: join(root, ".deft", "core"),
+        message: "deposit refused: symlink escaping the project tree",
+      }),
+      orientation: null,
+    });
+    expect(result.code).toBe(2);
+    expect(readOccupancy(root)).toBeNull();
+  });
+
+  it("rolls back a persist-time claim when reconstitution throws (#3906)", () => {
+    const root = tempRoot();
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult({})),
+      sessionId: "host:test:v1:copy-throw",
+      reconstituteWorktreeDeposit: () => {
+        throw new Error("ENOSPC: no space left on device");
+      },
+      orientation: null,
+    });
+    expect(result.code).toBe(2);
+    expect(String(result.payload.message)).toContain("ENOSPC");
+    expect(readOccupancy(root)).toBeNull();
+  });
+
+  it("surfaces occupancy rollback failure after a thrown deposit copy (#3906)", () => {
+    const root = tempRoot();
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult({})),
+      sessionId: "host:test:v1:rollback-throw",
+      reconstituteWorktreeDeposit: () => {
+        throw new Error("ENOSPC: no space left on device");
+      },
+      rollbackAcquiredOccupancy: () => {
+        throw new Error("EACCES: occupancy lock");
+      },
+      orientation: null,
+    });
+    expect(result.code).toBe(2);
+    expect(String(result.payload.message)).toContain("ENOSPC");
+    expect(String(result.payload.message)).toContain("occupancy rollback failed");
+    expect(String(result.payload.message)).toContain("EACCES");
+  });
+
+  it("rolls back a persist-time claim when finalize-owed blocks (#3906)", () => {
+    const root = tempRoot();
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult({})),
+      sessionId: "host:test:v1:owed-rollback",
+      orientation: null,
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+      probeFinalizeOwed: () => ({
+        lines: ["finalize owed inventory:", "  #3906 owed [blocks]"],
+        blocks: true,
+        unknown: false,
+      }),
+    });
+    expect(result.code).toBe(1);
+    expect(readOccupancy(root)).toBeNull();
+  });
+
+  it("keeps a heartbeat lease when finalize-owed blocks (#3906)", () => {
+    const root = tempRoot();
+    const sessionId = "host:test:v1:keep-hb";
+    const rolled: OccupancyDecision[] = [];
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult({})),
+      sessionId,
+      orientation: null,
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+      applyOccupancy: (_projectRoot, input) => ({
+        action: "heartbeat",
+        sessionId: input.sessionId ?? sessionId,
+        record: null,
+        path: join(root, ".deft", "occupancy.json"),
+        message: "occupancy heartbeat",
+        code: 0,
+      }),
+      rollbackAcquiredOccupancy: (_projectRoot, acquired) => {
+        rolled.push(acquired);
+        return {
+          action: "released",
+          sessionId: acquired.sessionId,
+          record: null,
+          path: join(root, ".deft", "occupancy.json"),
+          message: "occupancy released",
+          code: 0,
+        };
+      },
+      probeFinalizeOwed: () => ({
+        lines: ["finalize owed inventory:", "  #3906 owed [blocks]"],
+        blocks: true,
+        unknown: false,
+      }),
+    });
+    expect(result.code).toBe(1);
+    expect(rolled).toHaveLength(0);
+  });
+});
+
+describe("runSessionStart mid-ceremony occupancy steal (#3906)", () => {
+  it("refuses ritual write after a confirmed steal by a different owner", () => {
+    const root = tempRoot();
+    const ownerA = "host:test:v1:b3duZXItYQ";
+    const ownerB = "host:test:v1:b3duZXItYg";
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult({})),
+      sessionId: ownerA,
+      orientation: null,
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+      probeFinalizeOwed: () => {
+        expect(readOccupancy(root)?.sessionId).toBe(ownerA);
+        const stolen = stealOccupancy(root, {
+          sessionId: ownerB,
+          confirm: true,
+          occupant: ownerA,
+          env: {},
+        });
+        expect(stolen.code).toBe(0);
+        expect(readOccupancy(root)?.sessionId).toBe(ownerB);
+        return { lines: [], blocks: false, unknown: false };
+      },
+    });
+    expect(result.code).toBe(1);
+    expect(result.payload.ready).toBe(false);
+    expect(String(result.payload.message)).toMatch(/overwrite the new owner/i);
+    expect(readOccupancy(root)?.sessionId).toBe(ownerB);
+    expect(readRitualState(root)[0]).toBeNull();
+  });
+
+  it("refuses ritual write when occupancy vanishes mid-ceremony", () => {
+    const root = tempRoot();
+    const ownerA = "host:test:v1:dmFuaXNoLWE";
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult({})),
+      sessionId: ownerA,
+      orientation: null,
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+      probeFinalizeOwed: () => {
+        expect(readOccupancy(root)?.sessionId).toBe(ownerA);
+        rmSync(join(root, ".deft", "occupancy.json"));
+        expect(readOccupancy(root)).toBeNull();
+        return { lines: [], blocks: false, unknown: false };
+      },
+    });
+    expect(result.code).toBe(1);
+    expect(result.payload.ready).toBe(false);
+    expect(String(result.payload.message)).toMatch(/live occupant none/i);
+    expect(readOccupancy(root)).toBeNull();
+    expect(readRitualState(root)[0]).toBeNull();
   });
 });

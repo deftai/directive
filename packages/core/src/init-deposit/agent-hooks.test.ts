@@ -4,6 +4,7 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
+  statSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
@@ -27,6 +28,11 @@ import {
   CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
   CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS,
   DIRECT_WRITE_HOOK_MATCHER,
+  evaluateGrokPretooluseWrapperOutcome,
+  GROK_PRETOOLUSE_WRAPPER_REL_PATH,
+  GROK_WRAPPER_DENY_MISSING,
+  GROK_WRAPPER_DENY_NONDECISION,
+  grokPretooluseWrapperScriptSource,
   inspectAgentHookDeposit,
   inspectSessionStartNotice,
   MCP_HOOK_MATCHER,
@@ -82,8 +88,22 @@ describe("writeAgentHookDeposit", () => {
       "--host claude --event tool.before",
     );
     expect(readFileSync(join(root, ".grok/hooks/deft.json"), "utf8")).toContain(
-      "--host grok --event tool.before",
+      "--host grok --event session.start",
     );
+    expect(readFileSync(join(root, ".grok/hooks/deft.json"), "utf8")).toContain(
+      GROK_PRETOOLUSE_WRAPPER_REL_PATH,
+    );
+    expect(existsSync(join(root, GROK_PRETOOLUSE_WRAPPER_REL_PATH))).toBe(true);
+    expect(readFileSync(join(root, GROK_PRETOOLUSE_WRAPPER_REL_PATH), "utf8")).toContain(
+      "node_modules/@deftai/directive-runtime/dist/hook-bin.js",
+    );
+    expect(readFileSync(join(root, GROK_PRETOOLUSE_WRAPPER_REL_PATH), "utf8")).not.toContain(
+      "command -v deft-hook",
+    );
+    expect(readFileSync(join(root, GROK_PRETOOLUSE_WRAPPER_REL_PATH), "utf8")).toContain("#5656");
+    if (process.platform !== "win32") {
+      expect(statSync(join(root, GROK_PRETOOLUSE_WRAPPER_REL_PATH)).mode & 0o111).not.toBe(0);
+    }
     expect(readFileSync(join(root, ".cursor/hooks.json"), "utf8")).toContain(
       "--host cursor --event tool.before",
     );
@@ -897,6 +917,20 @@ describe("inspectAgentHookDeposit", () => {
     });
   });
 
+  it("marks grok drifted when the PreToolUse wrapper script is missing (#5656)", () => {
+    const root = project();
+    writeAgentHookDeposit(root);
+    const wrapper = join(root, ".grok/hooks/deft-pretooluse-wrapper.sh");
+    expect(existsSync(wrapper)).toBe(true);
+    rmSync(wrapper);
+    expect(inspectAgentHookDeposit(root).find((entry) => entry.host === "grok")).toMatchObject({
+      status: "drifted",
+    });
+    expect(inspectAgentHookDeposit(root).find((entry) => entry.host === "grok")?.detail).toMatch(
+      /deft-pretooluse-wrapper\.sh/,
+    );
+  });
+
   it("does not use write|search_replace exact-equality as the grok registration bar (#4574)", () => {
     const root = project();
     writeAgentHookDeposit(root);
@@ -969,6 +1003,18 @@ describe("inspectAgentHookDeposit", () => {
     expect(grok).toContain(`"matcher": "${DIRECT_WRITE_HOOK_MATCHER}"`);
   });
 
+  it("strips the Grok outer-deny wrapper when hostHooks.grok is false (#5656)", () => {
+    const root = project();
+    writeAgentHookDeposit(root, { printf: () => undefined });
+    expect(existsSync(join(root, GROK_PRETOOLUSE_WRAPPER_REL_PATH))).toBe(true);
+    writeAgentHookDeposit(
+      root,
+      { printf: () => undefined },
+      { ...DEFAULT_HOST_HOOKS_POLICY, grok: false },
+    );
+    expect(existsSync(join(root, GROK_PRETOOLUSE_WRAPPER_REL_PATH))).toBe(false);
+  });
+
   it("treats non-array event collections as registration drift", () => {
     const root = project();
     writeAgentHookDeposit(root);
@@ -1005,5 +1051,87 @@ describe("inspectAgentHookDeposit", () => {
         "drifted",
       );
     }
+  });
+});
+
+describe("evaluateGrokPretooluseWrapperOutcome (#5656)", () => {
+  it("denies when package-relative hook-bin is missing", () => {
+    expect(
+      evaluateGrokPretooluseWrapperOutcome({
+        deftHookResolvable: false,
+        childExitCode: null,
+        childStdout: "",
+      }),
+    ).toEqual({ kind: "deny", reason: GROK_WRAPPER_DENY_MISSING });
+  });
+
+  it("denies when package-relative hook-bin is not runnable", () => {
+    expect(
+      evaluateGrokPretooluseWrapperOutcome({
+        deftHookResolvable: true,
+        deftHookExecutable: false,
+        childExitCode: 0,
+        childStdout: "",
+      }),
+    ).toEqual({ kind: "deny", reason: GROK_WRAPPER_DENY_MISSING });
+  });
+
+  it("denies on non-zero child exit", () => {
+    expect(
+      evaluateGrokPretooluseWrapperOutcome({
+        deftHookResolvable: true,
+        childExitCode: 127,
+        childStdout: "",
+      }),
+    ).toEqual({ kind: "deny", reason: GROK_WRAPPER_DENY_NONDECISION });
+  });
+
+  it("passthrough empty stdout on exit 0 (Grok allow wire)", () => {
+    expect(
+      evaluateGrokPretooluseWrapperOutcome({
+        deftHookResolvable: true,
+        childExitCode: 0,
+        childStdout: "",
+      }),
+    ).toEqual({ kind: "passthrough", stdout: "" });
+  });
+
+  it("denies malformed non-empty stdout", () => {
+    expect(
+      evaluateGrokPretooluseWrapperOutcome({
+        deftHookResolvable: true,
+        childExitCode: 0,
+        childStdout: "not-json",
+      }),
+    ).toEqual({ kind: "deny", reason: GROK_WRAPPER_DENY_NONDECISION });
+  });
+
+  it("denies truncated decision JSON that is not parseable (#5656)", () => {
+    expect(
+      evaluateGrokPretooluseWrapperOutcome({
+        deftHookResolvable: true,
+        childExitCode: 0,
+        childStdout: '{"decision":"deny"',
+      }),
+    ).toEqual({ kind: "deny", reason: GROK_WRAPPER_DENY_NONDECISION });
+  });
+
+  it("wrapper script catches mktemp failure and uses node JSON parse (#5656)", () => {
+    const src = grokPretooluseWrapperScriptSource();
+    expect(src).toContain("TMP=$(mktemp) || { printf");
+    expect(src).toContain("command -v node");
+    expect(src).toContain("JSON.parse");
+    expect(src).not.toMatch(/\*'"decision":"allow"'/);
+  });
+
+  it("passthrough valid deny envelopes", () => {
+    const denyBody = JSON.stringify({ decision: "deny", reason: "scope" });
+    expect(
+      evaluateGrokPretooluseWrapperOutcome({
+        deftHookResolvable: true,
+        childExitCode: 0,
+        childStdout: denyBody,
+      }),
+    ).toEqual({ kind: "passthrough", stdout: denyBody });
   });
 });

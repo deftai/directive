@@ -621,6 +621,7 @@ describe("verify session ritual", () => {
         authorized_by: "op",
         entries: [{ id: "3507", kind: "issue", issue: 3507 }],
       }),
+      0,
     );
     expect(detectWorkSelection(root)).toEqual({ inPlay: true, kind: "triage-queue" });
     expect(resolveGatedEntrypointCommand("cache_fresh", root)).toEqual([
@@ -640,6 +641,7 @@ describe("verify session ritual", () => {
         authorized_by: "op",
         entries: [{ id: "pr-1", kind: "pr" }],
       }),
+      0,
     );
     expect(detectWorkSelection(root)).toEqual({ inPlay: true, kind: "ordered-plan" });
     rmSync(root, { recursive: true, force: true });

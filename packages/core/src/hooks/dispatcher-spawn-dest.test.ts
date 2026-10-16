@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { loadStoryWriteFenceFromPath } from "../policy/write-fence.js";
 import { SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE } from "../scope/transition-hint.js";
 import { applyWorktreeOccupancy } from "../session/occupancy.js";
 import {
@@ -26,6 +27,7 @@ import {
   spawnToolArgUpdatedInput,
 } from "./index.js";
 import { isExploreSpawn, SPAWN_CLASS_RECOVERY } from "./readonly.js";
+import { HOST_TOOL_SURFACE_AUDIT, isShellTool } from "./tools.js";
 
 const ephemeralTemps: string[] = [];
 const sharedTemps: string[] = [];
@@ -125,6 +127,8 @@ function readySeams(overrides: Partial<HookPolicySeams> = {}): HookPolicySeams {
     sessionStart: () => ({ code: 0, stdout: "", stderr: "" }),
     runningInsideDeftRepo: () => true,
     realpathLifecycleExecutionRoot: (path) => path,
+    // #5656: fixture stubs lack merge-base fence bytes; default positive allow.
+    loadStoryWriteFence: () => ({ fileScope: ["**"], denyPaths: [] }),
     ...overrides,
   };
 }
@@ -659,6 +663,36 @@ describe("dest-proven implement spawn (#4215)", () => {
     expect(decision.message).toMatch(/codex/);
   });
 
+  it("allows dest-present claude argv when argv dest wins over a different outer cwd (#4998)", () => {
+    const { root, dest } = destFixture();
+    const prepareArcDest = vi.fn(() => ({
+      dest: {
+        destPath: dest,
+        dispatchSha: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        originRef: "origin/main",
+        pinKind: "origin-default" as const,
+        reused: true,
+      },
+      record: "arc-mode: no-ingest",
+    }));
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          cwd: root,
+          toolName: "run_terminal_command",
+          tool_input: {
+            command: `claude --cwd "${dest}" -p "Read and follow /e.md" --permission-mode bypassPermissions --output-format text`,
+          },
+        },
+      },
+      readySeams({ prepareArcDest }),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-process-only-ready" });
+  });
+
   it("denies dest-present launcher argv when dest prepare fails (#4219)", () => {
     const { root, dest } = destFixture();
     const prepareArcDest = vi.fn(() => {
@@ -806,6 +840,364 @@ describe("dest-proven implement spawn (#4215)", () => {
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "read-only-deny" });
     expect(readSpawnReservationIncarnation(root, dest)).toBeNull();
+  });
+});
+
+const CLAUDE_WORKER =
+  'claude -p "Read and follow /e.md" --permission-mode bypassPermissions --output-format text';
+
+function preparedDestSeam(dest: string) {
+  return vi.fn(() => ({
+    dest: {
+      destPath: dest,
+      dispatchSha: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      originRef: "origin/main",
+      pinKind: "origin-default" as const,
+      reused: true,
+    },
+    record: "arc-mode: no-ingest",
+  }));
+}
+
+describe("Codex workdir dest-proof (#4998)", () => {
+  it("records live Codex 0.162 PreToolUse Bash stdin omits nested workdir", () => {
+    const { root } = destFixture();
+    // Live capture 2026-10-15: internal tools.exec_command({cmd, workdir: dest})
+    // became PreToolUse tool_name Bash with tool_input.command only; outer cwd
+    // stayed the session parent. First-ship cannot stamp relieves.
+    const captured = {
+      cwd: root,
+      hook_event_name: "PreToolUse",
+      tool_name: "Bash",
+      tool_input: { command: CLAUDE_WORKER },
+      tool_use_id: "exec-captured-4998",
+    };
+    expect("workdir" in captured.tool_input).toBe(false);
+    expect("workdir" in captured).toBe(false);
+    const decision = decideHook(
+      {
+        host: "codex",
+        event: "tool.before",
+        projectRoot: root,
+        payload: captured,
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.message).toMatch(/Dest-absent fails closed/);
+    expect(HOST_TOOL_SURFACE_AUDIT.codex.mutation.shell).toEqual(["shell", "Bash"]);
+  });
+
+  it("admits nested workdir dest with outer parent cwd on a Codex shell spelling", () => {
+    const { root, dest } = destFixture();
+    const prepareArcDest = preparedDestSeam(dest);
+    const decision = decideHook(
+      {
+        host: "codex",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          cwd: root,
+          session_id: "codex-4998",
+          tool_name: "Bash",
+          tool_input: { command: CLAUDE_WORKER, workdir: dest },
+        },
+      },
+      readySeams({ prepareArcDest }),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-process-only-ready" });
+    expect(decision.message).toMatch(/claude/);
+    expect(HOST_TOOL_SURFACE_AUDIT.codex.mutation.shell.length).toBeGreaterThan(0);
+  });
+
+  it("admits outer workdir dest when nested dest fields are omitted", () => {
+    const { root, dest } = destFixture();
+    const prepareArcDest = preparedDestSeam(dest);
+    const decision = decideHook(
+      {
+        host: "codex",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          workdir: dest,
+          session_id: "codex-4998",
+          tool_name: "Bash",
+          tool_input: { command: CLAUDE_WORKER },
+        },
+      },
+      readySeams({ prepareArcDest }),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-process-only-ready" });
+  });
+
+  it("leaves exec_command tool_name off the launcher dest-proof path", () => {
+    const { root, dest } = destFixture();
+    const prepareArcDest = preparedDestSeam(dest);
+    expect(isShellTool("exec_command")).toBe(false);
+    const decision = decideHook(
+      {
+        host: "codex",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          cwd: root,
+          session_id: "codex-4998",
+          tool_name: "exec_command",
+          tool_input: { command: CLAUDE_WORKER, workdir: dest },
+        },
+      },
+      readySeams({ prepareArcDest }),
+    );
+    expect(decision.code).not.toBe("spawn-process-only-ready");
+  });
+
+  it("denies dest-absent Codex Claude launch", () => {
+    const { root } = destFixture();
+    const decision = decideHook(
+      {
+        host: "codex",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          cwd: root,
+          session_id: "codex-4998",
+          tool_name: "Bash",
+          tool_input: { command: CLAUDE_WORKER },
+        },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.message).toMatch(/Dest-absent fails closed/);
+  });
+
+  it("denies conflicting nested execution-directory fields after realpath", () => {
+    const { root, dest } = destFixture();
+    const decision = decideHook(
+      {
+        host: "codex",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          cwd: root,
+          session_id: "codex-4998",
+          tool_name: "Bash",
+          tool_input: { command: CLAUDE_WORKER, workdir: dest, cwd: root },
+        },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.message).toMatch(
+      /nested execution-directory fields are not the same directory/,
+    );
+  });
+
+  it("denies present empty nested workdir instead of falling back to outer cwd", () => {
+    const { root, dest } = destFixture();
+    const prepareArcDest = preparedDestSeam(dest);
+    const decision = decideHook(
+      {
+        host: "codex",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          cwd: dest,
+          session_id: "codex-4998",
+          tool_name: "Bash",
+          tool_input: { command: CLAUDE_WORKER, workdir: "" },
+        },
+      },
+      readySeams({ prepareArcDest }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.message).toMatch(
+      /nested execution-directory field workdir is missing or invalid/,
+    );
+    expect(prepareArcDest).not.toHaveBeenCalled();
+  });
+
+  it("denies unprepared nested workdir dest", () => {
+    const { root } = destFixture();
+    const missing = join(root, "not-a-linked-dest");
+    const decision = decideHook(
+      {
+        host: "codex",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          cwd: root,
+          session_id: "codex-4998",
+          tool_name: "Bash",
+          tool_input: { command: CLAUDE_WORKER, workdir: missing },
+        },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.message).toMatch(/Dest-absent fails closed/);
+  });
+
+  it("refuses compound Claude launch even when nested workdir is dest", () => {
+    const { root, dest } = destFixture();
+    const prepareArcDest = preparedDestSeam(dest);
+    const decision = decideHook(
+      {
+        host: "codex",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          cwd: root,
+          session_id: "codex-4998",
+          tool_name: "Bash",
+          tool_input: { command: `cd "${dest}" && ${CLAUDE_WORKER}`, workdir: dest },
+        },
+      },
+      readySeams({ prepareArcDest }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.message).toMatch(/Compound commands and shell substitution fail closed/);
+    expect(prepareArcDest).not.toHaveBeenCalled();
+  });
+
+  it("refuses substitution in a Claude launch even when nested workdir is dest", () => {
+    const { root, dest } = destFixture();
+    const prepareArcDest = preparedDestSeam(dest);
+    const decision = decideHook(
+      {
+        host: "codex",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          cwd: root,
+          session_id: "codex-4998",
+          tool_name: "Bash",
+          tool_input: {
+            command: `claude -p "$(cat /e.md)" --permission-mode bypassPermissions --output-format text`,
+            workdir: dest,
+          },
+        },
+      },
+      readySeams({ prepareArcDest }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.message).toMatch(/shell substitution fail closed/);
+    expect(prepareArcDest).not.toHaveBeenCalled();
+  });
+
+  it("denies Claude argv --cwd when nested workdir is a different directory", () => {
+    const { root, dest } = destFixture();
+    const prepareArcDest = preparedDestSeam(dest);
+    const decision = decideHook(
+      {
+        host: "codex",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          cwd: root,
+          session_id: "codex-4998",
+          tool_name: "Bash",
+          tool_input: {
+            command: `claude --cwd "${dest}" -p "Read and follow /e.md" --permission-mode bypassPermissions --output-format text`,
+            workdir: root,
+          },
+        },
+      },
+      readySeams({ prepareArcDest }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.message).toMatch(/argv --cwd and nested execution-directory fields/);
+    expect(prepareArcDest).not.toHaveBeenCalled();
+  });
+
+  it("allows Claude argv --cwd dest matching nested workdir while outer cwd is parent", () => {
+    const { root, dest } = destFixture();
+    const prepareArcDest = preparedDestSeam(dest);
+    const decision = decideHook(
+      {
+        host: "codex",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          cwd: root,
+          session_id: "codex-4998",
+          tool_name: "Bash",
+          tool_input: {
+            command: `claude --cwd "${dest}" -p "Read and follow /e.md" --permission-mode bypassPermissions --output-format text`,
+            workdir: dest,
+          },
+        },
+      },
+      readySeams({ prepareArcDest }),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-process-only-ready" });
+  });
+
+  it("ignores nested workdir for dest-absent grok argv", () => {
+    const { root, dest } = destFixture();
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          toolName: "run_terminal_command",
+          tool_input: {
+            command: "grok --always-approve --permission-mode bypassPermissions",
+            workdir: dest,
+          },
+        },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.message).toMatch(/Dest-absent fails closed/);
+  });
+
+  it("keeps Codex -C dest when nested workdir is the parent tree", () => {
+    const { root, dest } = destFixture();
+    const prepareArcDest = preparedDestSeam(dest);
+    const decision = decideHook(
+      {
+        host: "codex",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          cwd: root,
+          session_id: "codex-4998",
+          tool_name: "Bash",
+          tool_input: {
+            command: `codex exec --ephemeral --skip-git-repo-check --dangerously-bypass-approvals-and-sandbox -C "${dest}" "Read and follow /e.md"`,
+            workdir: root,
+          },
+        },
+      },
+      readySeams({ prepareArcDest }),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-process-only-ready" });
+    expect(decision.message).toMatch(/codex/);
+  });
+
+  // CI retrigger after unrelated evaluator-worktree flake on 29af4e1e0 (#4998).
+  it("keeps grok --cwd dest when nested workdir is the parent tree", () => {
+    const { root, dest } = destFixture();
+    const prepareArcDest = preparedDestSeam(dest);
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          toolName: "run_terminal_command",
+          tool_input: {
+            command: `grok --cwd "${dest}" --prompt-file /e.md --always-approve`,
+            workdir: root,
+          },
+        },
+      },
+      readySeams({ prepareArcDest }),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-process-only-ready" });
   });
 });
 
@@ -1178,6 +1570,12 @@ function liveScopeSeams(overrides: Partial<HookPolicySeams> = {}): HookPolicySea
     sessionStart: () => ({ code: 0, stdout: "", stderr: "" }),
     runningInsideDeftRepo: () => true,
     realpathLifecycleExecutionRoot: (path) => path,
+    // #5656: live fixtures write fence bytes to WT; merge-base default is empty.
+    loadStoryWriteFence: (_root, scopePath) => {
+      const fromPath = loadStoryWriteFenceFromPath(scopePath);
+      if (fromPath.fileScope.length > 0 || fromPath.denyPaths.length > 0) return fromPath;
+      return { fileScope: ["**"], denyPaths: [] };
+    },
     ...overrides,
   };
 }

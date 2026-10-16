@@ -89,6 +89,8 @@ describe("write-gate dispatch surface (#3738)", () => {
         path: join(root, "xbrief", "active", "story.xbrief.json"),
         message: "OK active scope",
       }),
+      // #5656: fixture stubs lack merge-base fence bytes; default positive allow.
+      loadStoryWriteFence: () => ({ fileScope: ["**"], denyPaths: [] }),
       ritualRunGit: fakeGit(root, HEAD, gitCalls),
       detectWorkSelection: () => ({ inPlay: true, kind: "active-story" }),
       ritualRunner: (command) => {
@@ -132,6 +134,8 @@ describe("write-gate dispatch surface (#3738)", () => {
         path: join(root, "xbrief", "active", "story.xbrief.json"),
         message: "OK active scope",
       }),
+      // #5656: fixture stubs lack merge-base fence bytes; default positive allow.
+      loadStoryWriteFence: () => ({ fileScope: ["**"], denyPaths: [] }),
       ritualRunGit: runGit,
       detectWorkSelection: () => ({ inPlay: true, kind: "active-story" }),
       ritualRunner: () => ({ code: 0, stdout: "hooks ready", stderr: "" }),

@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "Acceptance-evidence refusal names items[N] and ignores acceptance.clauses",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Acceptance-evidence refusal names items[N] and ignores acceptance.clauses",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4878",
@@ -17,32 +17,92 @@
       {
         "id": "1",
         "title": "Change walkItems path prefix from items to plan.items (including nested subItems/items forms)",
-        "status": "pending",
-        "x-directive/artifact_path": "packages/core/src/scope/acceptance-evidence.ts"
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/scope/acceptance-evidence.ts",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5604 squash-merge (Tracking #4878). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set until Closes closer; attesting limbs for closeout-attestable (#3781).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5604",
+            "mintedAt": "2026-10-14T18:14:31.462Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-14T18:14:31.462Z"
+        }
       },
       {
         "id": "2",
         "title": "Refusal/remediation trailer: write evidence on plan item path; gate does not read plan.acceptance.clauses[]",
-        "status": "pending",
-        "x-directive/artifact_path": "packages/core/src/scope/acceptance-evidence.ts"
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/scope/acceptance-evidence.ts",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5604 squash-merge (Tracking #4878). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set until Closes closer; attesting limbs for closeout-attestable (#3781).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5604",
+            "mintedAt": "2026-10-14T18:14:31.462Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-14T18:14:31.462Z"
+        }
       },
       {
         "id": "3",
         "title": "Update unit expectations hard-coding items[…] to plan.items[…]; add both-arrays clause-only refuse regression",
-        "status": "pending",
-        "x-directive/artifact_path": "packages/core/src/scope/acceptance-evidence.test.ts"
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/scope/acceptance-evidence.test.ts",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5604 squash-merge (Tracking #4878). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set until Closes closer; attesting limbs for closeout-attestable (#3781).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5604",
+            "mintedAt": "2026-10-14T18:14:31.462Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-14T18:14:31.462Z"
+        }
       },
       {
         "id": "4",
         "title": "Do not dual-read/dual-write evidence onto plan.acceptance.clauses[]",
-        "status": "pending",
-        "x-directive/artifact_path": "packages/core/src/scope/acceptance-evidence.ts"
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/scope/acceptance-evidence.ts",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5604 squash-merge (Tracking #4878). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set until Closes closer; attesting limbs for closeout-attestable (#3781).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5604",
+            "mintedAt": "2026-10-14T18:14:31.462Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-14T18:14:31.462Z"
+        }
       },
       {
         "id": "5",
         "title": "Name printed path as qualified object path plan.items[N], not JSON Pointer; CHANGELOG note",
-        "status": "pending",
-        "x-directive/artifact_path": "CHANGELOG.md"
+        "status": "completed",
+        "x-directive/artifact_path": "CHANGELOG.md",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5604 squash-merge (Tracking #4878). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set until Closes closer; attesting limbs for closeout-attestable (#3781).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5604",
+            "mintedAt": "2026-10-14T18:14:31.462Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-14T18:14:31.462Z"
+        }
       }
     ],
     "tags": [
@@ -153,6 +213,24 @@
           "Prefer-A Bound harvest hand-stamped for through-merge cohort"
         ],
         "parallel_safe": true
+      },
+      "productPullRequest": 5604,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-14T20:14:13.318Z"
+      },
+      "completedAt": "2026-10-14T20:14:13.318Z",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 5604,
+        "prBase": "master",
+        "mergeCommit": "12fdaa46930a3dea88ecc1596dbfee8db5e31189",
+        "deliveryBranch": "master",
+        "deliveryCommit": "12fdaa46930a3dea88ecc1596dbfee8db5e31189",
+        "verifiedAt": "2026-10-14T20:14:13.318Z",
+        "verifier": "parent-closer-pulse/5611",
+        "disposition": "delivered"
       }
     },
     "id": "github.issue.5540571010",

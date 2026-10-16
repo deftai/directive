@@ -195,6 +195,7 @@ const REQUIRED_TEMPLATE_POINTERS = [
   "second line",
   "Audit targets",
   "ids only",
+  "`pain:`",
   "`refutation-target:`",
   "Run posture (`arc-mode: no-ingest`",
   "Seat families (N≥3",
@@ -227,6 +228,7 @@ const REQUIRED_SKILL_POINTERS = [
   "Auto-stamp after operator confirm; not while same-round siblings outstanding",
   "Yolo standing confirm of a posted all-accept map",
   "Yolo leftover-pain",
+  "Pain coverage",
   "completed-arc record",
   "Chip apply miss is non-blocking",
   "ensure-or-doctor",
@@ -1678,6 +1680,11 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     const template = readText(TEMPLATE);
     expect(template).toContain("Audit targets (marker ids, comma-separated, or `none`");
     expect(template).toContain("parent rationale on the audit-targets field (ids only)");
+    expect(template).toContain(
+      "Copy onto the Stop 1 write-back (`role: triage`) as an operative line-start `pain:`",
+    );
+    expect(template).toContain("Do not copy onto critic comments");
+    expect(template).toContain("This is not `audit-targets` / `pain-P1`");
   });
 
   it("locks completed-arc ingest vs chip-is-not-consent (#3806)", () => {

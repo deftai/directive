@@ -8,9 +8,9 @@ Maintainer-facing map of how Directive's rules are layered and grouped. This is 
 
 ## Overview
 
-- **Rules:** 25 groupings, 286 documents
+- **Rules:** 25 groupings, 287 documents
 - **Tasks:** 65 namespaces, 287 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
-- **Packs:** 6 source-of-truth packs (718 entries from rules|lessons|patterns|skills|strategies|entries)
+- **Packs:** 6 source-of-truth packs (719 entries from rules|lessons|patterns|skills|strategies|entries)
 
 Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the Taskfile gates that enforce them), and the **Lifecycle** that ties them together.
 
@@ -24,7 +24,7 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | contracts | Interface/behavioral contracts the framework enforces. | 16 | 225 | 16 | 146 | 0 | 5 |
 | conventions | Cross-cutting naming, formatting, and repo conventions. | 4 | 16 | 2 | 16 | 0 | 3 |
 | deployments | Provider-specific deployment playbooks (AWS, Azure, GCP, Cloudflare, Vercel, fly.io…). | 52 | 107 | 74 | 24 | 13 | 6 |
-| docs | Explanatory docs and the framework glossary. | 43 | 21 | 12 | 62 | 1 | 3 |
+| docs | Explanatory docs and the framework glossary. | 44 | 21 | 12 | 62 | 1 | 3 |
 | events | Event and signal definitions used across the framework. | 1 | 0 | 0 | 0 | 0 | 0 |
 | incidents | Incident handling and postmortem guidance. | 2 | 0 | 0 | 0 | 0 | 0 |
 | interfaces | Interface definitions and boundaries. | 4 | 119 | 66 | 37 | 2 | 9 |
@@ -34,8 +34,8 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | platforms | Platform-specific guidance. | 2 | 94 | 63 | 19 | 16 | 12 |
 | references | External references and citations backing the guidance. | 4 | 19 | 1 | 19 | 0 | 0 |
 | resilience | Failure handling, recovery, and robustness rules. | 2 | 16 | 14 | 15 | 1 | 2 |
-| scm | Source-control conventions and Git/GitHub workflow rules. | 3 | 108 | 34 | 34 | 1 | 3 |
-| skills | Packaged multi-step agent workflows (build, release, interview, triage, review…). | 42 | 597 | 120 | 707 | 0 | 18 |
+| scm | Source-control conventions and Git/GitHub workflow rules. | 3 | 110 | 34 | 37 | 1 | 3 |
+| skills | Packaged multi-step agent workflows (build, release, interview, triage, review…). | 42 | 600 | 120 | 715 | 0 | 18 |
 | strategies | Higher-order approaches: interviewing, decomposition, planning, research, refactoring. | 16 | 318 | 88 | 138 | 0 | 11 |
 | swarm | Multi-agent (swarm) coordination guidance. | 1 | 75 | 15 | 22 | 0 | 0 |
 | templates | Reusable document/scaffold templates. | 11 | 104 | 10 | 55 | 1 | 5 |
@@ -137,6 +137,7 @@ _Explanatory docs and the framework glossary._
 - `consumer-issue-label-kit.md` — **Audience:** consumer projects that use Directive (not the `deftai/directive` maintainer repo). **Status:** recommended starter set -- not a mandate. **Related:** [#2611](https://github.com/deftai/directive/issues/2611) (this kit) ·…
 - `cursor-plan-choice.md` — A Cursor conversation records whether to use Directive planning or host-only planning **before the first submitted Plan request**. Literal mode-picker entry is outside this promise.
 - `decision-log.md` — Durable **intent-debt** records for significant agent and operator choices.
+- **decisions/** (1 files)
 - `deft-directive-disable.md` — Use a **root file flag** to turn Directive **enforcement** off for local testing (A/B, DevHammer, ceremony vs loop) **without** permanent project opt-out and **without** deleting the deposit.
 - `delivery-attempt.md` — Deterministic pre-dispatch gate and durable attempt ledger for autonomous **delivery** and **operational-acceptance** loops.
 - `directive-lifecycle.md` — A single-picture mental model of how Deft Directive turns an idea into shipped, auditable work — and keeps doing so as the project grows. It is **not** a one-and-done pipeline; it is two connected phases that loop.
@@ -148,7 +149,7 @@ _Explanatory docs and the framework glossary._
 - `good-agents-md.md` — **Source**: https://x.com/augmentcode/status/2047164534310494709 **Author**: Slava Zhenylenko (Member of Technical Staff, Augment Code) **Published**: 2026-04-23
 - `grok-build-subscription-setup.md` — Agent-facing playbook for a new maintainer. Paste this file (or issue [#4035](https://github.com/deftai/directive/issues/4035)) and say: follow this playbook. The human completes browser logins when the agent stops.
 - `hook-root-admission.md` — Every PreToolUse mutation carries **two** roots, and they are not interchangeable:
-- `hook-runtime-unavailable.md` — On a host that cannot execute `deft-hook`, the Cursor `preToolUse` registration is `failClosed: true`, so **every mutation is denied** — and because the binary never runs, no Directive code is left to say why. The visible symptom is an…
+- `hook-runtime-unavailable.md` — Host behavior when `deft-hook` cannot run is **not universal**. Cursor and Grok deny; Claude and Codex silently lose the gate.
 - `host-surface-assumptions.md` — Directive control surfaces assume two host behaviors that **some** modern agent hosts break by design.
 - `host-tool-surface-audit.md` — The PreToolUse write gate only runs on tool names the host's deposited matcher selects. A name nobody listed is not a permissive policy — it is a gate that never executes. #3987 was exactly that: Grok Build's shell tool…
 - `intent-constraint.md` — Refs: #4541 · Related: [scope-provenance.md](../content/docs/scope-provenance.md) (#3145), [gate-integrity.md](../content/docs/gate-integrity.md) (#3156), [observable-scope.md](../content/docs/observable-scope.md) (#4495)
@@ -482,7 +483,7 @@ Directive turns a coding agent into an auditable process: load only the guidance
 
 | Pack | Version | Rules | MUST | SHOULD | MUST_NOT |
 |---|--:|--:|--:|--:|--:|
-| `content/packs/lessons/lessons-pack-0.1.json` | 0.1 | 50 | 0 | 0 | 0 |
+| `content/packs/lessons/lessons-pack-0.1.json` | 0.1 | 51 | 0 | 0 | 0 |
 | `content/packs/patterns/patterns-pack-0.1.json` | 0.1 | 12 | 0 | 0 | 0 |
 | `content/packs/rules/rules-pack-0.1.json` | 0.1 | 612 | 303 | 105 | 187 |
 | `content/packs/skills/skills-pack-0.1.json` | 0.1 | 27 | 0 | 0 | 0 |

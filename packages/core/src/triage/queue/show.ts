@@ -1,13 +1,17 @@
 /**
- * triage:show default + operator brief renderers (#1128 / #2890).
+ * triage:show default + operator brief renderers (#1128 / #2890 / #5367).
  *
  * Default format mirrors the pre-Python-removal `render_show` surface.
  * `--format=operator` emits a pasteable Phase 3 candidate brief backbone;
  * the agent still owns lean (not invented here).
+ *
+ * Fail-closed on quarantine hard-fail / missing scanned content / unknown scan
+ * meta so raw.json secrets cannot re-enter stdout (cache-quarantine-08).
  */
 
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { QUARANTINED_TITLE_PLACEHOLDER, readCacheScanPassed, sanitizeQueueTitle } from "./cache.js";
 import { CACHE_DIR_NAME, CACHE_SOURCE_GITHUB_ISSUE } from "./constants.js";
 
 /** Loose audit row for show renderers (actions + queue shapes both work). */
@@ -29,6 +33,48 @@ export interface CachedIssueDetail {
   readonly updatedAt: string;
   readonly body: string;
   readonly htmlUrl: string | null;
+}
+
+/** Why triage:show refused to materialize printable fields (#5367). */
+export type ShowQuarantineRefuseReason =
+  | "hard-fail"
+  | "missing-content"
+  | "unknown-scan"
+  | "nonprintable-title";
+
+/**
+ * Typed quarantine refusal — distinct from cache miss (`null`).
+ * Returned (not thrown) by `loadCachedIssueDetail` as operational deny
+ * (#5367 / intent-constraint returned-failure). CLI `runShow` prints stderr + exit 1.
+ */
+export class ShowQuarantineRefuseError extends Error {
+  readonly repo: string;
+  readonly number: number;
+  readonly reason: ShowQuarantineRefuseReason;
+
+  constructor(repo: string, number: number, reason: ShowQuarantineRefuseReason) {
+    const detail =
+      reason === "hard-fail"
+        ? "quarantine scanner hard-fail"
+        : reason === "missing-content"
+          ? "scanned content.md missing or unreadable"
+          : reason === "unknown-scan"
+            ? "scan status unknown (missing or malformed meta.json)"
+            : "title failed quarantine sanitize";
+    super(
+      `triage:show: refused ${repo}#${number}: ${detail} -- nothing written. Re-sync with \`task triage:bootstrap\` / \`cache:fetch\`.`,
+    );
+    this.name = "ShowQuarantineRefuseError";
+    this.repo = repo;
+    this.number = number;
+    this.reason = reason;
+  }
+}
+
+export function isShowQuarantineRefuse(
+  value: CachedIssueDetail | ShowQuarantineRefuseError | null,
+): value is ShowQuarantineRefuseError {
+  return value instanceof ShowQuarantineRefuseError;
 }
 
 function parseLabels(raw: unknown): readonly string[] {
@@ -63,7 +109,46 @@ export function resolveIssueHtmlUrl(repo: string, number: number): string {
   return `https://github.com/${repo}/issues/${number}`;
 }
 
-/** Load a single cached issue (include closed) or null on miss. */
+/**
+ * Strip the `# #<number>: <title>` header that `renderContent` prepends on
+ * content.md (#2314). Show-local twin of intake `stripRenderedIssueHeader`.
+ */
+export function stripRenderedIssueHeader(content: string, number: number): string {
+  if (!Number.isFinite(number)) {
+    return content;
+  }
+  const header = new RegExp(`^# #${number}:[^\\n]*\\n\\n`);
+  return content.replace(header, "");
+}
+
+/**
+ * Drop ```quarantined … ``` regions so summary/AC extractors cannot promote
+ * fenced attacker text into authoritative operator-brief fields (#5367 C1).
+ */
+export function omitQuarantinedFenceRegions(text: string): string {
+  const lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+  const out: string[] = [];
+  let inFence = false;
+  for (const line of lines) {
+    if (!inFence && /^ {0,3}```quarantined\s*$/u.test(line)) {
+      inFence = true;
+      continue;
+    }
+    if (inFence && /^ {0,3}```\s*$/u.test(line)) {
+      inFence = false;
+      continue;
+    }
+    if (!inFence) {
+      out.push(line);
+    }
+  }
+  return out.join("\n");
+}
+
+/**
+ * Load a single cached issue (include closed), null on miss, or a returned
+ * quarantine refuse (operational deny — not thrown) (#5367).
+ */
 export function loadCachedIssueDetail(
   repo: string,
   number: number,
@@ -75,7 +160,7 @@ export function loadCachedIssueDetail(
   } = {
     projectRoot: process.cwd(),
   },
-): CachedIssueDetail | null {
+): CachedIssueDetail | ShowQuarantineRefuseError | null {
   if (!repo.includes("/")) {
     throw new Error(`repo must be 'owner/name'; got '${repo}'`);
   }
@@ -95,6 +180,28 @@ export function loadCachedIssueDetail(
   if (!existsSync(rawPath)) {
     return null;
   }
+
+  // Gate printable fields on scan meta + scanned content before reading raw
+  // body/title into CachedIssueDetail (#5367 Prefer-A Bound). Operational deny
+  // uses returned-failure (no throw) so intent-constraint stays mint-free.
+  const scanPassed = readCacheScanPassed(entryDir);
+  if (scanPassed === false) {
+    return new ShowQuarantineRefuseError(repo, number, "hard-fail");
+  }
+  if (scanPassed === null) {
+    return new ShowQuarantineRefuseError(repo, number, "unknown-scan");
+  }
+  const contentPath = join(entryDir, "content.md");
+  if (!existsSync(contentPath)) {
+    return new ShowQuarantineRefuseError(repo, number, "missing-content");
+  }
+  let scannedContent: string;
+  try {
+    scannedContent = readFileSync(contentPath, { encoding: "utf8" });
+  } catch {
+    return new ShowQuarantineRefuseError(repo, number, "missing-content");
+  }
+
   let payload: Record<string, unknown>;
   try {
     const parsed: unknown = JSON.parse(readFileSync(rawPath, { encoding: "utf8" }));
@@ -108,8 +215,13 @@ export function loadCachedIssueDetail(
   const n = typeof payload.number === "number" ? payload.number : number;
   const stateRaw = payload.state ?? "open";
   const state = typeof stateRaw === "string" ? stateRaw.toLowerCase() : "open";
-  const title = typeof payload.title === "string" ? payload.title : "";
-  const body = typeof payload.body === "string" ? payload.body : "";
+  const rawTitle = typeof payload.title === "string" ? payload.title : "";
+  const safeTitle = sanitizeQueueTitle(rawTitle);
+  if (safeTitle === null) {
+    return new ShowQuarantineRefuseError(repo, number, "nonprintable-title");
+  }
+  const title = safeTitle.length > 0 ? safeTitle : QUARANTINED_TITLE_PLACEHOLDER;
+  const body = stripRenderedIssueHeader(scannedContent, n);
   const updatedAt =
     typeof payload.updated_at === "string"
       ? payload.updated_at
@@ -183,9 +295,10 @@ function normalizeBody(body: string): string {
 /**
  * Extract a short problem/context summary (2–5 lines) from issue body.
  * Prefers text before the first `##` section; falls back to leading paragraphs.
+ * Quarantined fence regions are omitted before extraction (#5367).
  */
 export function extractBodySummary(body: string, maxLines = 5): string {
-  const text = normalizeBody(body);
+  const text = normalizeBody(omitQuarantinedFenceRegions(body));
   if (text.length === 0) {
     return "(thin body / no summary)";
   }
@@ -245,9 +358,10 @@ export function extractBodySummary(body: string, maxLines = 5): string {
 /**
  * Extract acceptance-criteria bullets from body, or a thin-body note.
  * Looks for AC / Acceptance headings and checkbox / bullet lists under them.
+ * Quarantined fence regions are omitted before extraction (#5367).
  */
 export function extractAcceptanceCriteria(body: string): readonly string[] {
-  const text = normalizeBody(body);
+  const text = normalizeBody(omitQuarantinedFenceRegions(body));
   if (text.length === 0) {
     return [];
   }

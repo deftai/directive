@@ -3,7 +3,7 @@
  *
  * Directive keeps the agent-hook registration files trackable by design and
  * born-ignores the deposit that implements them. When a registration travels
- * with the tree and nothing in that tree lets a clone obtain `deft-hook`, the
+ * with the tree and nothing in that tree lets a clone obtain package-relative hook-bin, the
  * registration arrives and the runtime does not. A fresh clone, CI runner, or
  * container without a global install then fail-closes every mutation on an
  * opaque exit 127, and no Directive code runs to explain it.
@@ -29,6 +29,8 @@
  */
 
 import { execFileSync } from "node:child_process";
+import { join, resolve } from "node:path";
+import { containedMkdir, containedWrite } from "../fs/contained-write.js";
 import {
   disableHostHooksInvocation,
   type HookHost,
@@ -38,10 +40,18 @@ import {
 import { PIN_DEPENDENCY_NAME, type PinReadResult, readPin } from "../resolution/pin.js";
 
 /**
- * Hosts whose registration is deposited `failClosed: true`. Only these turn a
- * missing runtime into a denial; the rest fail open and merely lose the gate.
+ * Hosts that deny mutations when package-relative hook-bin cannot decide (#5656 / #3785 / AC9.1).
+ * Cursor deposits schema `failClosed: true`. Grok deposits a PreToolUse shell
+ * wrapper that emits the host deny envelope for missing/non-decision
+ * package-relative hook-bin (#5656 Prefer-A Bound / AC9.1). Extending this list
+ * alone is not a deny — the deposit writer must land the matching authority
+ * (schema field or wrapper).
+ * Claude/Codex remain fail-open with silent gate-loss naming below.
  */
-export const FAIL_CLOSED_HOOK_HOSTS: readonly HookHost[] = ["cursor"];
+export const FAIL_CLOSED_HOOK_HOSTS: readonly HookHost[] = ["cursor", "grok"];
+
+/** Durable operator-visible gate-off record for silent gate loss (#5656). */
+export const HOOK_GATE_OFF_REL_PATH = ".deft/hook-gate-off.json";
 
 /** Manifest carrying the committed runtime anchor. */
 export const RUNTIME_ANCHOR_MANIFEST = "package.json";
@@ -74,7 +84,7 @@ const REMOTE_SPEC_PREFIXES = [
 ] as const;
 
 /**
- * Whether a clone could install `deft-hook` from this spec.
+ * Whether a clone could install package-relative `@deftai/directive-runtime` (hook-bin) from this spec.
  *
  * Allowlist, not denylist. Location forms are open-ended -- `file:`,
  * `git+file:`, `../directive`, `/opt/directive`, `C:\src\directive`, `~/dev` --
@@ -120,6 +130,11 @@ export interface HookRuntimeTravelResult {
   readonly travelingRegistrations: readonly string[];
   /** Subset of {@link travelingRegistrations} deposited fail-closed. */
   readonly failClosedRegistrations: readonly string[];
+  /**
+   * Traveling registrations on hosts that fail open when the runtime is absent
+   * (silent gate loss; #5656). Empty when every traveler is fail-closed.
+   */
+  readonly silentGateLossRegistrations: readonly string[];
   /** A committed manifest declares `@deftai/directive`, so a clone can install it. */
   readonly runtimeTravels: boolean;
   /** Null when the pairing is safe or git could not answer. */
@@ -263,6 +278,7 @@ function resolveAnchorState(committedSpec: string | null, workingSpec: string | 
 function buildWarning(
   traveling: readonly HookRegistrationRef[],
   failClosed: readonly HookRegistrationRef[],
+  silentGateLoss: readonly HookRegistrationRef[],
   anchor: AnchorState,
 ): string {
   const listed = traveling
@@ -272,12 +288,23 @@ function buildWarning(
   const lines = [
     `\u26a0 Hook registration travels without its runtime (#3785): ${listed}`,
     cause,
-    "  clone, CI runner, or container cannot obtain the `deft-hook` command these files name.",
+    "  clone, CI runner, or container cannot obtain package-relative `node_modules/@deftai/directive-runtime/dist/hook-bin.js` (AC9.1) these files invoke.",
   ];
   if (failClosed.length > 0) {
     lines.push(
       "  Fail-closed hosts then deny every mutation on an opaque exit 127, and no Directive",
       "  code runs to say why. There is no in-session recovery on a host without Node.",
+      "  Cursor uses schema failClosed; Grok uses a wrapper-mediated deny over",
+      "  package-relative hook-bin (#5656 / AC9.1). Grok wrapper-never-starts remains a",
+      "  host-contract residual.",
+    );
+  }
+  if (silentGateLoss.length > 0) {
+    const hosts = [...new Set(silentGateLoss.map((entry) => entry.host))].join(", ");
+    lines.push(
+      `  Silent gate loss (#5656): non-fail-closed host(s) [${hosts}] keep the registration but`,
+      "  fail open when package-relative hook-bin is absent — mutations proceed with no Directive gate. A durable",
+      `  record is written to ${HOOK_GATE_OFF_REL_PATH}.`,
     );
   }
   lines.push(fixLine(anchor));
@@ -289,6 +316,33 @@ function buildWarning(
     "  Detail: .deft/core/docs/hook-runtime-unavailable.md",
   );
   return lines.join("\n");
+}
+
+export interface HookGateOffRecord {
+  readonly schema: "deft.hook-gate-off.v1";
+  readonly recordedAt: string;
+  readonly reason: "registration-travels-without-runtime";
+  readonly silentGateLossHosts: readonly HookHost[];
+  readonly travelingRegistrations: readonly string[];
+  readonly detail: string;
+}
+
+/**
+ * Write durable operator-visible gate-off record when non-fail-closed hosts
+ * would silently lose the gate (#5656 Prefer-A Bound limb 1).
+ */
+export function writeHookGateOffRecord(projectRoot: string, record: HookGateOffRecord): string {
+  const root = resolve(projectRoot);
+  const abs = join(root, HOOK_GATE_OFF_REL_PATH);
+  containedMkdir({ root, target: join(root, ".deft") });
+  containedWrite({
+    root,
+    target: abs,
+    data: `${JSON.stringify(record, null, 2)}\n`,
+    mode: "replace",
+    mutation: { kind: "wrote", path: HOOK_GATE_OFF_REL_PATH },
+  });
+  return abs;
 }
 
 /**
@@ -315,6 +369,7 @@ export function inspectHookRuntimeTravel(
     return {
       travelingRegistrations: [],
       failClosedRegistrations: [],
+      silentGateLossRegistrations: [],
       runtimeTravels: false,
       warning: null,
     };
@@ -336,11 +391,60 @@ export function inspectHookRuntimeTravel(
   const failClosedRegistrations = travelingRegistrations.filter((entry) =>
     isFailClosed(entry.host),
   );
+  const silentGateLoss = travelingRegistrations.filter((entry) => !isFailClosed(entry.host));
   const unsafe = travelingRegistrations.length > 0 && !runtimeTravels;
+  // Persist the gate-off record only when an index/cached registration travels
+  // without runtime. Untracked deposit-time paths still warn via printf; writing
+  // the record then pollutes Pass 2 porcelain in fixtures without a .deft
+  // gitignore (#5656 / #4507). containedWrite already no-ops under port-record.
+  if (unsafe && silentGateLoss.length > 0) {
+    let cachedTraveling: ReadonlySet<string> | null = null;
+    try {
+      const cachedOut =
+        seams.gitLsFiles !== undefined
+          ? null
+          : execFileSync(
+              "git",
+              ["ls-files", "--cached", "--", ...silentGateLoss.map((entry) => entry.path)],
+              {
+                cwd: projectRoot,
+                encoding: "utf8",
+                stdio: ["ignore", "pipe", "ignore"],
+                windowsHide: true,
+              },
+            );
+      if (cachedOut !== null) {
+        cachedTraveling = travelingPaths(cachedOut);
+      }
+    } catch {
+      cachedTraveling = null;
+    }
+    const shouldPersist =
+      cachedTraveling !== null && silentGateLoss.some((entry) => cachedTraveling.has(entry.path));
+    if (shouldPersist) {
+      try {
+        writeHookGateOffRecord(projectRoot, {
+          schema: "deft.hook-gate-off.v1",
+          recordedAt: new Date().toISOString(),
+          reason: "registration-travels-without-runtime",
+          silentGateLossHosts: silentGateLoss.map((entry) => entry.host),
+          travelingRegistrations: travelingRegistrations.map((entry) => entry.path),
+          detail:
+            "Non-fail-closed host hook registration travels without package-relative hook-bin; " +
+            "mutations fail open until @deftai/directive-runtime is installed or host hooks are disabled (#5656 / AC9.1).",
+        });
+      } catch {
+        // Record write is best-effort; warning copy still names the path.
+      }
+    }
+  }
   return {
     travelingRegistrations: travelingRegistrations.map((entry) => entry.path),
     failClosedRegistrations: failClosedRegistrations.map((entry) => entry.path),
+    silentGateLossRegistrations: silentGateLoss.map((entry) => entry.path),
     runtimeTravels,
-    warning: unsafe ? buildWarning(travelingRegistrations, failClosedRegistrations, anchor) : null,
+    warning: unsafe
+      ? buildWarning(travelingRegistrations, failClosedRegistrations, silentGateLoss, anchor)
+      : null,
   };
 }

@@ -218,19 +218,21 @@ describe("inspectHookRuntimeTravel", () => {
     expect(result.warning).toBeNull();
   });
 
-  it("warns without the lockout copy when only fail-open hosts travel", () => {
+  it("warns with silent gate loss when only fail-open hosts travel (#5656)", () => {
     const result = inspect([CLAUDE_REGISTRATION], NO_PIN);
 
     expect(result.travelingRegistrations).toEqual([CLAUDE_REGISTRATION]);
     expect(result.failClosedRegistrations).toEqual([]);
+    expect(result.silentGateLossRegistrations).toEqual([CLAUDE_REGISTRATION]);
     expect(result.warning).toContain(CLAUDE_REGISTRATION);
+    expect(result.warning).toContain("Silent gate loss");
+    expect(result.warning).toContain("hook-gate-off.json");
     expect(result.warning).not.toContain("(fail-closed)");
-    expect(result.warning).not.toContain("exit 127");
     expect(result.warning).not.toContain("policy:disable-host-hooks");
   });
 
-  it("classifies cursor as the fail-closed host", () => {
-    expect([...FAIL_CLOSED_HOOK_HOSTS]).toEqual(["cursor"]);
+  it("classifies cursor and grok as fail-closed / wrapper-mediated hosts (#5656)", () => {
+    expect([...FAIL_CLOSED_HOOK_HOSTS]).toEqual(["cursor", "grok"]);
   });
 });
 

@@ -20,10 +20,13 @@ import {
   ensureUntrackCoreGitignoreLines,
   GITIGNORE_DEFT_CORE_LINE,
   isDepositTrackedInGit,
+  ORIENTATION_SESSION_BIND_IGNORE_LINES,
+  pathHasStagedConflictDistinctFromHeadAndWorktree,
   reconstituteDepositFromContent,
   reconstituteLinkedWorktreeDeposit,
   resolveInitGitignoreLines,
   UNTRACK_CORE_GITIGNORE_LINES,
+  untrackOrientationSessionBindRuntime,
 } from "./gitignore.js";
 
 describe("ensureInitGitignoreLines", () => {
@@ -435,6 +438,232 @@ describe("init-deposit gitignore projection containment (#2839)", () => {
   it("ignores the swarm scratch root the same way as .claude/worktrees/", () => {
     expect(CANONICAL_GITIGNORE_BASELINE).toContain(".deft-scratch/");
     expect(CANONICAL_GITIGNORE_BASELINE).not.toContain("temp/");
+  });
+
+  it("covers orientation + session-bind local-runtime paths (#3911)", () => {
+    for (const line of ORIENTATION_SESSION_BIND_IGNORE_LINES) {
+      expect(CANONICAL_GITIGNORE_BASELINE).toContain(line);
+    }
+    expect(CANONICAL_GITIGNORE_BASELINE).not.toContain(".deft/");
+    expect(CANONICAL_GITIGNORE_BASELINE).not.toContain(".deft/GENERATION.json");
+    const root = freshRoot("gitignore-3911-lines-");
+    ensureInitGitignoreLines(root, { printf: () => {} }, { skipLocalRuntimeUntrack: true });
+    const text = readFileSync(join(root, ".gitignore"), "utf8");
+    for (const line of ORIENTATION_SESSION_BIND_IGNORE_LINES) {
+      expect(text).toContain(line);
+    }
+  });
+
+  it("heals missing orientation/session-bind lines idempotently (#3911)", () => {
+    const root = freshRoot("gitignore-3911-heal-");
+    writeFileSync(join(root, ".gitignore"), "node_modules/\n", "utf8");
+    const first = ensureInitGitignoreLines(
+      root,
+      { printf: () => {} },
+      { skipLocalRuntimeUntrack: true },
+    );
+    expect(first.changed).toBe(true);
+    const text = readFileSync(join(root, ".gitignore"), "utf8");
+    for (const line of ORIENTATION_SESSION_BIND_IGNORE_LINES) {
+      expect(text).toContain(line);
+    }
+    const second = ensureInitGitignoreLines(
+      root,
+      { printf: () => {} },
+      { skipLocalRuntimeUntrack: true },
+    );
+    expect(second.changed).toBe(false);
+    expect(readFileSync(join(root, ".gitignore"), "utf8")).toBe(text);
+  });
+});
+
+describe("orientation/session-bind index-only untrack (#3911)", () => {
+  const created: string[] = [];
+
+  afterEach(() => {
+    for (const dir of created.splice(0)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  function gitConsumer(prefix: string): string {
+    const root = mkdtempSync(join(tmpdir(), prefix));
+    created.push(root);
+    execFileSync("git", ["init"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["config", "user.email", "t@t.dev"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["config", "user.name", "t"], { cwd: root, stdio: "ignore" });
+    return root;
+  }
+
+  it("untracks already-indexed orientation/session-bind files without deleting them", () => {
+    const root = gitConsumer("gi-3911-untrack-");
+    writeFileSync(join(root, ".gitignore"), "node_modules/\n", "utf8");
+    mkdirSync(join(root, ".deft", "session-binds"), { recursive: true });
+    writeFileSync(join(root, ".deft", "orientation-state.json"), '{"schema_version":1}\n', "utf8");
+    writeFileSync(join(root, ".deft", "session-bind.json"), '{"schemaVersion":1}\n', "utf8");
+    writeFileSync(join(root, ".deft", "session-binds", "abcd.json"), "{}\n", "utf8");
+    writeFileSync(join(root, ".deft", "GENERATION.json"), '{"generation":1}\n', "utf8");
+    writeFileSync(join(root, ".deft", "keep-tracked.json"), "keep\n", "utf8");
+    execFileSync(
+      "git",
+      [
+        "add",
+        "-f",
+        ".gitignore",
+        ".deft/orientation-state.json",
+        ".deft/session-bind.json",
+        ".deft/session-binds/abcd.json",
+        ".deft/GENERATION.json",
+        ".deft/keep-tracked.json",
+      ],
+      { cwd: root, stdio: "ignore" },
+    );
+    execFileSync("git", ["-c", "commit.gpgsign=false", "commit", "-qm", "seed"], {
+      cwd: root,
+      stdio: "ignore",
+    });
+
+    const orientBefore = readFileSync(join(root, ".deft", "orientation-state.json"), "utf8");
+    const result = ensureInitGitignoreLines(root, { printf: () => {} });
+    expect(result.localRuntimeUntrack?.outcome).toBe("untracked");
+    expect(readFileSync(join(root, ".deft", "orientation-state.json"), "utf8")).toBe(orientBefore);
+    expect(existsSync(join(root, ".deft", "session-bind.json"))).toBe(true);
+    expect(existsSync(join(root, ".deft", "session-binds", "abcd.json"))).toBe(true);
+
+    const tracked = execFileSync("git", ["ls-files", "--", ".deft"], {
+      cwd: root,
+      encoding: "utf8",
+    });
+    expect(tracked).not.toContain("orientation-state.json");
+    expect(tracked).not.toContain("session-bind.json");
+    expect(tracked).not.toContain("session-binds/");
+    expect(tracked).toContain("GENERATION.json");
+    expect(tracked).toContain("keep-tracked.json");
+
+    const again = untrackOrientationSessionBindRuntime(root);
+    expect(again.outcome).toBe("already-clean");
+  });
+
+  it("probes only migration targets — never whole-tree ls-files (Greptile P1)", () => {
+    const root = gitConsumer("gi-3911-probe-");
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(join(root, ".deft", "orientation-state.json"), '{"schema_version":1}\n', "utf8");
+    const probed: string[][] = [];
+    const gitLsFiles = (_dir: string, paths: readonly string[]): string | null => {
+      probed.push([...paths]);
+      // Simulate maxBuffer overflow on whole-tree listing.
+      if (paths.length === 1 && paths[0] === ".") return null;
+      if (paths.every((p) => ORIENTATION_SESSION_BIND_IGNORE_LINES.includes(p))) {
+        return ".deft/orientation-state.json\n";
+      }
+      if (
+        paths.some(
+          (p) => p === ".deft/orientation-state.json" || p === ".deft/orientation-state.json/",
+        )
+      ) {
+        return ".deft/orientation-state.json\n";
+      }
+      return "";
+    };
+    const result = untrackOrientationSessionBindRuntime(root, {
+      gitLsFiles,
+      gitRmCached: () => ({ ok: true, detail: "" }),
+    });
+    expect(probed.some((p) => p.length === 1 && p[0] === ".")).toBe(false);
+    expect(probed[0]).toEqual([...ORIENTATION_SESSION_BIND_IGNORE_LINES]);
+    expect(result.outcome).toBe("untracked");
+    expect(result.untrackedPaths).toContain(".deft/orientation-state.json");
+  });
+
+  it("refuses staged-conflict targets and preserves working-file bytes", () => {
+    const root = gitConsumer("gi-3911-conflict-");
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(join(root, ".deft", "orientation-state.json"), "HEAD\n", "utf8");
+    writeFileSync(join(root, ".gitignore"), "node_modules/\n", "utf8");
+    execFileSync("git", ["add", "-f", ".gitignore", ".deft/orientation-state.json"], {
+      cwd: root,
+      stdio: "ignore",
+    });
+    execFileSync("git", ["-c", "commit.gpgsign=false", "commit", "-qm", "seed"], {
+      cwd: root,
+      stdio: "ignore",
+    });
+    writeFileSync(join(root, ".deft", "orientation-state.json"), "INDEX\n", "utf8");
+    execFileSync("git", ["add", "-f", ".deft/orientation-state.json"], {
+      cwd: root,
+      stdio: "ignore",
+    });
+    writeFileSync(join(root, ".deft", "orientation-state.json"), "WORKTREE\n", "utf8");
+    expect(
+      pathHasStagedConflictDistinctFromHeadAndWorktree(root, ".deft/orientation-state.json"),
+    ).toBe(true);
+
+    const result = untrackOrientationSessionBindRuntime(root);
+    expect(result.outcome).toBe("refused-staged-conflict");
+    expect(result.refusedPaths).toContain(".deft/orientation-state.json");
+    expect(readFileSync(join(root, ".deft", "orientation-state.json"), "utf8")).toBe("WORKTREE\n");
+    const tracked = execFileSync("git", ["ls-files", "--", ".deft/orientation-state.json"], {
+      cwd: root,
+      encoding: "utf8",
+    }).trim();
+    expect(tracked).toBe(".deft/orientation-state.json");
+  });
+
+  it("leaves a clean tree after migration when orientation writers run", () => {
+    const root = gitConsumer("gi-3911-clean-");
+    writeFileSync(
+      join(root, ".gitignore"),
+      `${CANONICAL_GITIGNORE_BASELINE.filter((l) => !ORIENTATION_SESSION_BIND_IGNORE_LINES.includes(l)).join("\n")}\n`,
+      "utf8",
+    );
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(join(root, ".deft", "orientation-state.json"), "{}\n", "utf8");
+    execFileSync("git", ["add", "-f", ".gitignore", ".deft/orientation-state.json"], {
+      cwd: root,
+      stdio: "ignore",
+    });
+    execFileSync("git", ["-c", "commit.gpgsign=false", "commit", "-qm", "pre"], {
+      cwd: root,
+      stdio: "ignore",
+    });
+
+    ensureInitGitignoreLines(root, { printf: () => {} });
+    // git rm --cached already staged index deletions; commit with .gitignore heal.
+    execFileSync("git", ["add", "--", ".gitignore"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["-c", "commit.gpgsign=false", "commit", "-qm", "migrate-3911"], {
+      cwd: root,
+      stdio: "ignore",
+    });
+
+    writeFileSync(
+      join(root, ".deft", "orientation-state.json"),
+      JSON.stringify(
+        {
+          schema_version: 1,
+          deposit_sha: "abc",
+          updated_at: "2026-10-14T00:00:00Z",
+        },
+        null,
+        2,
+      ) + "\n",
+      "utf8",
+    );
+    writeFileSync(join(root, ".deft", "session-bind.json"), "{}\n", "utf8");
+    mkdirSync(join(root, ".deft", "session-binds"), { recursive: true });
+    writeFileSync(join(root, ".deft", "session-binds", "sess.json"), "{}\n", "utf8");
+
+    const status = execFileSync("git", ["status", "--short"], {
+      cwd: root,
+      encoding: "utf8",
+    }).trim();
+    expect(status).toBe("");
+
+    const again = ensureInitGitignoreLines(root, { printf: () => {} });
+    expect(again.changed).toBe(false);
+    expect(again.localRuntimeUntrack?.outcome).toBe("already-clean");
+    expect(execFileSync("git", ["status", "--short"], { cwd: root, encoding: "utf8" }).trim()).toBe(
+      "",
+    );
   });
 });
 

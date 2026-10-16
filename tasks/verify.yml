@@ -338,7 +338,7 @@ tasks:
           ENGINE_CMD: 'verify:class-checks --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   scope-provenance:
-    desc: "Approved-scope provenance gate (#3145): same-PR active xBRIEF file_scope expansion cannot self-authorize new paths. Compares against .deft/approved-scope/<plan-id>.json digests; requires renewed human approval for expansion. Missing digests warn by default; pass --enforce to fail closed. Flags: --base-ref / --enforce / --quiet. Three-state exit (0 clean or warn / 1 self-auth / 2 config)."
+    desc: "Scope provenance gate (#3145 / #4956 / #4774 / #5057): merge-base file_scope is the production fence; membership fail-closes undeclared product paths. Soft findings are advisory intent-pin drift on a brief with no intent pin (#3385). --enforce is parsed for compatibility and does not change the exit code. Flags: --base-ref / --enforce / --quiet. Three-state exit (0 clean or advisory WARN / 1 fence or membership / 2 config)."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
       - task: :engine:_ts-build

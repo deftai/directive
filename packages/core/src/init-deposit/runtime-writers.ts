@@ -30,6 +30,10 @@ export const RUNTIME_WRITER_PATHS_LOCAL_CACHE: readonly string[] = Object.freeze
   PROJECT_LOCAL_METRICS_DIR,
   ESCALATION_DIR,
   DEFAULT_TASK_CACHE_ROOT,
+  // #3911: orientation + session-bind (posix paths; lockstep JSON manifest).
+  ".deft/orientation-state.json",
+  ".deft/session-bind.json",
+  ".deft/session-binds",
 ]);
 
 /**

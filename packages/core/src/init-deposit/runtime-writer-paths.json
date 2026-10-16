@@ -7,7 +7,10 @@
     ".deft/delivery-attempts",
     ".deft/metrics",
     ".deft/escalations",
-    ".deft/cache/task"
+    ".deft/cache/task",
+    ".deft/orientation-state.json",
+    ".deft/session-bind.json",
+    ".deft/session-binds"
   ],
   "trackedProvenance": [
     ".deft/approved-scope"

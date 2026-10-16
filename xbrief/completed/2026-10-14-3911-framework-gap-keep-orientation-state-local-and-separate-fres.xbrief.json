@@ -1,0 +1,340 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3911",
+    "updated": "2026-10-15T00:10:38.333Z"
+  },
+  "plan": {
+    "title": "[framework-gap] Keep orientation state local and separate freshness domains",
+    "status": "completed",
+    "narratives": {
+      "Description": "[framework-gap] Keep orientation state local and separate freshness domains",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3911",
+      "Overview": "## Status and scope\n\nConfirmed against v0.108.0 and current `master`.\n\nThis issue owns orientation-state tracking hygiene and explicit freshness-domain wording. It does not redesign the full occupancy/ritual/session-bind protocol.\n\n## Summary\n\nKeep `.deft/orientation-state.json` local so routine session orientation cannot dirty a clean consumer checkout, and state explicitly that orientation/session-bind freshness is not lifecycle authority.\n\n## Confirmed implementation evidence\n\n- Orientation state is a deposit/tooling fast-path record containing timestamps and command outcomes: [`orientation-state.ts:12-30`](https://github.com/deftai/directive/blob/v0.108.0/packages/core/src/session/orientation-state.ts#L12-L30).\n- Orientation persists that record by default: [`orientation-compression.ts:532-561`](https://github.com/deftai/directive/blob/v0.108.0/packages/core/src/session/orientation-compression.ts#L532-L561).\n- The canonical consumer ignore baseline omits `.deft/orientation-state.json`: [`gitignore.ts:34-53`](https://github.com/deftai/directive/blob/v0.108.0/packages/core/src/init-deposit/gitignore.ts#L34-L53).\n- Existing tests assert persistence but do not assert clean-tree behavior.\n\nThe filing audit found the artifact tracked or dirty in multiple existing worktrees. Those counts are environment-specific context; the deterministic defect is the writer plus the missing canonical ignore/migration rule.\n\n## Freshness boundary already established\n\nThe v0.108.0 freshness contract defines session-bind generation over loaded deposit surfaces such as payload, version, templates, skills, and docs. It does not establish branch, ordered-plan, scope, or lifecycle authority: [`freshness-contract.md:8-30`](https://github.com/deftai/directive/blob/v0.108.0/content/docs/freshness-contract.md#L8-L30).\n\nThis issue should make that non-authority boundary explicit, not add lifecycle generations to session-bind as an incidental fix.\n\n## Reproduction\n\n1. Start from a clean consumer checkout where `.deft/orientation-state.json` is trackable or already tracked.\n2. Run an orientation path that refreshes timestamps or surface results.\n3. Run `git status --short`.\n4. Observe a product-unrelated change to orientation state.\n\n## Expected behavior\n\nOrientation fast-path state is local runtime/cache state. Init and update should ignore it selectively and migrate existing consumers without deleting the user's local data. Cold start, re-arm, doctor, agents refresh, and cache-fresh orientation paths should leave a clean checkout clean.\n\n## Acceptance criteria\n\n- [ ] Classify every orientation-state field as local cache/runtime state.\n- [ ] Add `.deft/orientation-state.json` to every canonical consumer ignore generator/source.\n- [ ] Heal existing consumer `.gitignore` files idempotently during the supported update/migration path.\n- [ ] Stop tracking an existing orientation artifact without deleting the local file unexpectedly.\n- [ ] Document orientation state and session-bind as deposit/toolchain freshness only, not branch/plan/scope/lifecycle authority.\n- [ ] Add clean-tree regression coverage for cold start, re-arm, doctor, agents refresh, and cache-fresh orientation paths.\n- [ ] Verify repeated orientation remains a functional fast path after the tracking migration.\n\n## Out of scope\n\n- Acquire-before-mutate session ordering (#3906).\n- Repository-wide lifecycle authority (#3910).\n- A full redesign of ritual, bind, occupancy, release, expiry, and crash postconditions (track under #3613 or a bounded child).\n\n## Related\n\n- #3612 — other unignored `.deft` runtime artifacts\n- #3613 — occupancy-model tracker\n- #3906 — acquire occupancy before startup mutations\n- #1618 — source-of-truth versus materialized views\n\n---\n_Filed via `task feedback:file` from a Directive consumer project (Refs #1709 value-feedback gap escalation)._\n\n\n\n## Derived reason\nPrefer-A Bound limbs hand-stamped after Prefer-A Bound harvest (#4374). Bound cite 6176522471. Operator take-through-merge overrides arc-mode: no-ingest.",
+      "Labels": "bug, urgent, design-critique:ingest-ready, core-capabilities, promise:records"
+    },
+    "items": [
+      {
+        "id": "item.1",
+        "status": "completed",
+        "title": "Classify orientation-state fields as local cache/runtime state.",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "be9bc6ba4838453803ba3ca9bd4d5b6980f0d3bf",
+          "recorded_at": "2026-10-15T00:10:38.333Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "item.2",
+        "status": "completed",
+        "title": "Add the three orientation and session-bind runtime paths to TS and Go canonical ignore baselines with parity.",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "be9bc6ba4838453803ba3ca9bd4d5b6980f0d3bf",
+          "recorded_at": "2026-10-15T00:10:38.333Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "item.3",
+        "status": "completed",
+        "title": "Idempotent heal via EnsureGitignoreLines / init-update so consumer gitignore gains those three lines without wiping local files.",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "be9bc6ba4838453803ba3ca9bd4d5b6980f0d3bf",
+          "recorded_at": "2026-10-15T00:10:38.333Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "item.4",
+        "status": "completed",
+        "title": "Ship exact-path index-only untrack rail for already-tracked copies; preserve working-file bytes; refuse staged conflicts with remediation.",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "be9bc6ba4838453803ba3ca9bd4d5b6980f0d3bf",
+          "recorded_at": "2026-10-15T00:10:38.333Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "item.5",
+        "status": "completed",
+        "title": "Document orientation and session-bind freshness as deposit/toolchain only, not branch/plan/scope/lifecycle authority.",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "be9bc6ba4838453803ba3ca9bd4d5b6980f0d3bf",
+          "recorded_at": "2026-10-15T00:10:38.333Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "item.6",
+        "status": "completed",
+        "title": "Clean-tree and functional regressions on temp Git fixtures for init/heal/migration and orientation persistence/fast-path.",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "be9bc6ba4838453803ba3ca9bd4d5b6980f0d3bf",
+          "recorded_at": "2026-10-15T00:10:38.333Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "item.7",
+        "status": "completed",
+        "title": "Verify repeated orientation remains a functional fast path after the tracking migration.",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "be9bc6ba4838453803ba3ca9bd4d5b6980f0d3bf",
+          "recorded_at": "2026-10-15T00:10:38.333Z",
+          "recorded_by": "scope:complete"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "urgent",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:records"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3911",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3911: [framework-gap] Keep orientation state local and separate freshness domains"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "git status --short",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L32"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "orientation-state-local-ignore-and-freshness-non-authority",
+        "expected_outputs": [
+          "TS+Go canonical ignore baselines include the three orientation/session-bind paths",
+          "untrack/heal migration leaves clean tree without deleting local files",
+          "freshness-contract.md non-authority sentence",
+          "CHANGELOG Unreleased Fixed note for #3911"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/init-deposit/gitignore.test.ts packages/core/src/init-deposit/untrack-core.test.ts packages/core/src/init-deposit/runtime-writers.test.ts",
+          "task check"
+        ],
+        "file_scope": [
+          "packages/core/src/init-deposit/gitignore.ts",
+          "packages/core/src/init-deposit/gitignore.test.ts",
+          "packages/core/src/init-deposit/untrack-core.test.ts",
+          "packages/core/src/init-deposit/runtime-writers.test.ts",
+          "cmd/deft-install/setup.go",
+          "cmd/deft-install/gitignore_runtime_writers_test.go",
+          "packages/core/src/session/orientation-state.ts",
+          "packages/core/src/session/orientation-compression.ts",
+          "packages/core/src/freshness/bind.ts",
+          "content/docs/freshness-contract.md",
+          "CHANGELOG.md"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "Prefer-A Bound 6176522471",
+          "issue #3911"
+        ],
+        "parallel_safe": true
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/init-deposit/gitignore.ts",
+          "packages/core/src/init-deposit/gitignore.test.ts",
+          "packages/core/src/init-deposit/untrack-core.test.ts",
+          "packages/core/src/init-deposit/runtime-writers.test.ts",
+          "cmd/deft-install/setup.go",
+          "cmd/deft-install/gitignore_runtime_writers_test.go",
+          "packages/core/src/session/orientation-state.ts",
+          "packages/core/src/session/orientation-compression.ts",
+          "packages/core/src/freshness/bind.ts",
+          "content/docs/freshness-contract.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/init-deposit",
+        "cohesion_exemption": "CHANGELOG.md and content/docs/freshness-contract.md are docs companions; Go setup.go keeps TS/Go ignore parity for the same three paths."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5283616786,
+        "origin": "deftai/directive#3911",
+        "id": "github.issue.5283616786"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "03e287b73a271ab3882f491fc8aa381d065e586bda19c0b18760de80fc6fdad3"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "productPullRequest": 5624,
+      "mergeCommit": "be9bc6ba4838453803ba3ca9bd4d5b6980f0d3bf",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "320d944695ef90a19c3b7d4ce3f60e71dc7c8a6f",
+        "prNumber": 5624,
+        "prBase": "master",
+        "mergeCommit": "be9bc6ba4838453803ba3ca9bd4d5b6980f0d3bf",
+        "deliveryBranch": "master",
+        "deliveryCommit": "be9bc6ba4838453803ba3ca9bd4d5b6980f0d3bf",
+        "verifiedAt": "2026-10-15T00:10:38.333Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTNjNDItM2E5Zi03ZWUwLWFkZDYtN2RiYThjOTI4MGI5"
+      },
+      "completedAt": "2026-10-15T00:10:38.333Z",
+      "completedSessionId": "host:grok:v1:MDFhMTNjNDItM2E5Zi03ZWUwLWFkZDYtN2RiYThjOTI4MGI5",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-15T00:10:38.333Z"
+      }
+    },
+    "acceptance": {
+      "none_stated": true,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Classify orientation-state fields as local cache/runtime state.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "be9bc6ba4838453803ba3ca9bd4d5b6980f0d3bf",
+            "recorded_at": "2026-10-15T00:10:38.333Z",
+            "recorded_by": "scope:complete"
+          }
+        },
+        {
+          "id": 2,
+          "text": "Add the three orientation and session-bind runtime paths to TS and Go canonical ignore baselines with parity.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "be9bc6ba4838453803ba3ca9bd4d5b6980f0d3bf",
+            "recorded_at": "2026-10-15T00:10:38.333Z",
+            "recorded_by": "scope:complete"
+          }
+        },
+        {
+          "id": 3,
+          "text": "Idempotent heal via EnsureGitignoreLines / init-update so consumer gitignore gains those three lines without wiping local files.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "be9bc6ba4838453803ba3ca9bd4d5b6980f0d3bf",
+            "recorded_at": "2026-10-15T00:10:38.333Z",
+            "recorded_by": "scope:complete"
+          }
+        },
+        {
+          "id": 4,
+          "text": "Ship exact-path index-only untrack rail for already-tracked copies; preserve working-file bytes; refuse staged conflicts with remediation.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "be9bc6ba4838453803ba3ca9bd4d5b6980f0d3bf",
+            "recorded_at": "2026-10-15T00:10:38.333Z",
+            "recorded_by": "scope:complete"
+          }
+        },
+        {
+          "id": 5,
+          "text": "Document orientation and session-bind freshness as deposit/toolchain only, not branch/plan/scope/lifecycle authority.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "be9bc6ba4838453803ba3ca9bd4d5b6980f0d3bf",
+            "recorded_at": "2026-10-15T00:10:38.333Z",
+            "recorded_by": "scope:complete"
+          }
+        },
+        {
+          "id": 6,
+          "text": "Clean-tree and functional regressions on temp Git fixtures for init/heal/migration and orientation persistence/fast-path.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "be9bc6ba4838453803ba3ca9bd4d5b6980f0d3bf",
+            "recorded_at": "2026-10-15T00:10:38.333Z",
+            "recorded_by": "scope:complete"
+          }
+        },
+        {
+          "id": 7,
+          "text": "Verify repeated orientation remains a functional fast path after the tracking migration.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "be9bc6ba4838453803ba3ca9bd4d5b6980f0d3bf",
+            "recorded_at": "2026-10-15T00:10:38.333Z",
+            "recorded_by": "scope:complete"
+          }
+        }
+      ],
+      "commands": [],
+      "source_rung": "derived",
+      "derived_reason": "derived 7 independently testable clauses from the task statement before product edit (#3323)",
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5283616786",
+    "updated": "2026-10-14T22:23:18Z"
+  }
+}

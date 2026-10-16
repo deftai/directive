@@ -9,6 +9,11 @@ function loadJson(path: string): JsonObject {
   return JSON.parse(readFileSync(path, "utf8")) as JsonObject;
 }
 
+function narrativeKeyNorm(key: string): string {
+  return key.toLowerCase().replace(/\s+/g, "");
+}
+
+/** Keep string-valued Plan.narratives only; no silent array coerce (#4871 Prefer-A P1). */
 function planNarratives(doc: JsonObject): Record<string, string> {
   const plan = doc.plan;
   if (typeof plan !== "object" || plan === null || Array.isArray(plan)) return {};
@@ -22,7 +27,20 @@ function planNarratives(doc: JsonObject): Record<string, string> {
 }
 
 function isExcludedNarrativeKey(key: string): boolean {
-  return STAKEHOLDER_EXCLUDED_NARRATIVE_KEYS.has(key.toLowerCase().replace(/\s+/g, ""));
+  return STAKEHOLDER_EXCLUDED_NARRATIVE_KEYS.has(narrativeKeyNorm(key));
+}
+
+/** PD missing-key fallback for product Requirements/AC (#4871 Prefer-A); TechStack stays excluded. */
+const PRODUCT_MISSING_KEY_FALLBACK = new Set(["requirements", "acceptancecriteria"]);
+
+const IDENTITY_HINTS = ["overview", "architecture", "risksandunknowns", "risks", "unknowns"];
+
+function isIdentityNarrativeKey(norm: string): boolean {
+  return IDENTITY_HINTS.some((h) => norm.includes(h)) || norm === "overview";
+}
+
+function mergedHasKey(merged: Record<string, string>, norm: string): boolean {
+  return Object.keys(merged).some((k) => narrativeKeyNorm(k) === norm);
 }
 
 /** Merge product narratives per Wave 0 locked precedence. */
@@ -43,21 +61,22 @@ export function resolveExportNarratives(authority: ResolvedSpecAuthority): Recor
 
   const spec = loadJson(specPath);
   const specNarratives = planNarratives(spec);
+  // Presence (incl. blank) blocks PD fallback so explicit clears stay cleared (#4871 Greptile P1).
+  const specKeyNorms = new Set(Object.keys(specNarratives).map((k) => narrativeKeyNorm(k)));
   const merged: Record<string, string> = {};
 
+  // Spec precedence for all retained keys (including Requirements/AcceptanceCriteria).
   for (const [key, val] of Object.entries(specNarratives)) {
     if (!isExcludedNarrativeKey(key) && val.trim()) merged[key] = val;
   }
 
-  // PD identity additive when missing from spec.
-  const identityHints = ["overview", "architecture", "risksandunknowns", "risks", "unknowns"];
+  // PD additive only when missing from spec: identity hints + Requirements/AC (#4871).
   for (const [key, val] of Object.entries(pdNarratives)) {
     if (!val.trim() || isExcludedNarrativeKey(key)) continue;
-    const lower = key.toLowerCase().replace(/\s+/g, "");
-    const isIdentity = identityHints.some((h) => lower.includes(h)) || lower === "overview";
-    if (!isIdentity) continue;
-    const specHasKey = Object.keys(merged).some((k) => k.toLowerCase() === lower);
-    if (!specHasKey) merged[key] = val;
+    const norm = narrativeKeyNorm(key);
+    if (!isIdentityNarrativeKey(norm) && !PRODUCT_MISSING_KEY_FALLBACK.has(norm)) continue;
+    if (specKeyNorms.has(norm) || mergedHasKey(merged, norm)) continue;
+    merged[key] = val;
   }
 
   return merged;

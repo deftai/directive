@@ -103,11 +103,13 @@ describe("plan-sequence (#2402)", () => {
   it("persists under .deft/plan-sequence.json (not triage continuation fields)", () => {
     const root = seed();
     const seq = twoPrPlan();
-    writePlanSequence(root, seq);
+    const written = writePlanSequence(root, seq, 0);
+    expect(written.ok).toBe(true);
     const loaded = readPlanSequence(root);
     expect(loaded?.sequence_id).toBe("incident-2402");
     expect(loaded && "continuationNumbers" in loaded).toBe(false);
-    expect(clearPlanSequence(root)).toBe(true);
+    const cleared = clearPlanSequence(root, 1);
+    expect(cleared.ok).toBe(true);
     expect(readPlanSequence(root)).toBeNull();
   });
 

@@ -1,19 +1,26 @@
 #!/usr/bin/env node
 /**
- * CLI for verify:scope-provenance (#3145 / #4956 / #4774).
+ * CLI for verify:scope-provenance (#3145 / #4956 / #4774 / #5057).
  *
  * Membership against the declared allowlist (mint / brief file_scope) is
- * evaluated inside evaluateScopeProvenance; this CLI only forwards
- * --base-ref / --enforce.
+ * evaluated inside evaluateScopeProvenance. This CLI forwards --base-ref.
+ * `--enforce` / `--warn` stay parsed for compatibility; `--enforce` is a
+ * no-op after #4956 / #5002 and prints a stderr notice when present.
  */
 import { resolve } from "node:path";
 import { scopeProvenance } from "@deftai/directive-core";
 import { isDirectEntrypoint } from "./entrypoint.js";
 
+/** Stderr line when argv includes `--enforce`. Exit code is unchanged. */
+export const ENFORCE_NOOP_NOTICE =
+  "verify_scope_provenance: --enforce has no effect after #4956 / #5002";
+
 interface ParsedArgs {
   projectRoot: string;
   baseRef: string;
   enforce: boolean;
+  /** Raw `--enforce` token present, even when a later `--warn` wins `enforce`. */
+  enforcePresent: boolean;
   quiet: boolean;
   error?: string;
 }
@@ -24,6 +31,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
     // Empty means use PR-aware default (origin/master...), not bare HEAD.
     baseRef: "",
     enforce: false,
+    enforcePresent: false,
     quiet: false,
   };
   for (let i = 0; i < argv.length; i += 1) {
@@ -32,6 +40,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
       parsed.quiet = true;
     } else if (arg === "--enforce") {
       parsed.enforce = true;
+      parsed.enforcePresent = true;
     } else if (arg === "--warn") {
       parsed.enforce = false;
     } else if (arg === "--project-root") {
@@ -70,6 +79,9 @@ export function run(argv: string[]): number {
     ...(args.baseRef.length > 0 ? { baseRef: args.baseRef } : {}),
     enforce: args.enforce,
   });
+  if (args.enforcePresent) {
+    process.stderr.write(`${ENFORCE_NOOP_NOTICE}\n`);
+  }
   if (result.exitCode === 0) {
     if (!args.quiet) {
       process.stdout.write(`${result.message}\n`);

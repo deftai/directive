@@ -260,10 +260,183 @@ describe("item-depth cap (#4511)", () => {
     const md = lines.join("\n");
     expect(md).toContain("- Leaf");
     expect(md).toContain("- one");
+    // Direct-helper scalar narrative retains oneLine; schema path is object (#5042).
     expect(md).toContain("plain break");
     expect(md).not.toMatch(/plain\nbreak/);
     expect(md).toContain("keep");
     expect(md).toContain("**Depends on**: p");
+  });
+});
+
+describe("phase overview narrative newlines (#5042 Prefer-A)", () => {
+  const OVERVIEW_HOW = [
+    "Access and credentials only. Nothing here is agent-buildable — every item needs a tenant admin, an AWS account owner, or the Kantata account admin.",
+    "",
+    "- **0.1** — AWS account and CDK bootstrap · `blocked` — not app deploy; SNS + NFR-11",
+    "- **0.2** — Entra app registration A — resource server · `blocked`",
+    "- **0.3** — Entra app registration B — interactive client · `blocked` _(after 0.2)_",
+  ].join("\n");
+
+  function overviewCollapseSpec(): JsonObject {
+    return {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "Overview collapse fixture",
+        status: "approved",
+        narratives: { Overview: "top" },
+        items: [
+          {
+            id: "0",
+            title: "External prerequisites",
+            status: "blocked",
+            narrative: { How: OVERVIEW_HOW },
+            items: [
+              {
+                id: "0.sub",
+                title: "Access work",
+                status: "pending",
+                items: [
+                  {
+                    id: "0.1",
+                    title: "AWS account and CDK bootstrap",
+                    status: "blocked",
+                    narrative: {
+                      Traces: "NFR-11",
+                      Acceptance: "- bootstrap done",
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    };
+  }
+
+  function assertOverviewSequence(md: string): void {
+    expect(md).toContain(
+      "Access and credentials only. Nothing here is agent-buildable — every item needs a tenant admin, an AWS account owner, or the Kantata account admin.",
+    );
+    expect(md).toMatch(
+      /account admin\.\n\n- \*\*0\.1\*\* — AWS account and CDK bootstrap · `blocked` — not app deploy; SNS \+ NFR-11\n- \*\*0\.2\*\* — Entra app registration A — resource server · `blocked`\n- \*\*0\.3\*\* — Entra app registration B — interactive client · `blocked` _\(after 0\.2\)_/,
+    );
+    expect(md).not.toMatch(/account admin\. {2}- \*\*0\.1\*\*/);
+  }
+
+  it.each([1, 2, 3] as const)("preserves multiline How overview at item-depth %i", (cap) => {
+    const { specPath } = writeTempSpec(overviewCollapseSpec());
+    const result = renderSpecMarkdown(specPath, { itemDepthCap: cap });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    assertOverviewSequence(result.markdown);
+    expect(result.markdown).toMatch(/^### External prerequisites/m);
+    if (cap === 1) {
+      expect(result.markdown).toMatch(/truncated at depth 1/);
+      expect(result.markdown).not.toContain("#### Access work");
+      expect(result.markdown).not.toContain("0.1: AWS account");
+    } else if (cap === 2) {
+      expect(result.markdown).toContain("#### Access work");
+      expect(result.markdown).toMatch(/truncated at depth 2/);
+      expect(result.markdown).not.toContain("0.1: AWS account");
+      // Limb 2: blank line before first child when phase How is non-empty.
+      expect(result.markdown).toMatch(/_\(after 0\.2\)_\n\n#### Access work/);
+    } else {
+      expect(result.markdown).toContain("#### Access work");
+      expect(result.markdown).toContain("0.1: AWS account and CDK bootstrap");
+      expect(result.markdown).toContain("**Traces**: NFR-11");
+      expect(result.markdown).toMatch(/^\s*- bootstrap done/m);
+      expect(result.markdown).toMatch(/_\(after 0\.2\)_\n\n#### Access work/);
+    }
+  });
+
+  it("still oneLines id/title/status in headings (negative)", () => {
+    const lines = renderImplementationPlanLines(
+      [
+        {
+          id: "p\nraw",
+          title: "Phase\nTitle",
+          status: "pend\ning",
+          narrative: { How: "keep\nlines" },
+        },
+      ],
+      1,
+    );
+    const md = lines.join("\n");
+    expect(md).toMatch(/^### Phase Title {2}`\[pend ing\]`/m);
+    expect(md).not.toMatch(/^### Phase$/m);
+    expect(md).toMatch(/keep\nlines/);
+  });
+
+  it("indents nested depth-3 and depth-4/cap-4 continuation lines", () => {
+    const depth3How = [
+      "Intro at depth 3",
+      "",
+      "- overview bullet",
+      "  relative indent",
+      "",
+      "outro",
+    ].join("\n");
+    const depth4How = ["Depth4 intro", "", "- nested bullet", "  more indent"].join("\n");
+    const lines = renderImplementationPlanLines(
+      [
+        {
+          id: "p",
+          title: "Phase",
+          status: "pending",
+          items: [
+            {
+              id: "s",
+              title: "Subphase",
+              status: "pending",
+              items: [
+                {
+                  id: "t",
+                  title: "Task",
+                  status: "pending",
+                  narrative: { How: depth3How },
+                  items: [
+                    {
+                      id: "t.1",
+                      title: "Deeper",
+                      status: "pending",
+                      narrative: { How: depth4How },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      4,
+    );
+    const md = lines.join("\n");
+    expect(md).toMatch(/^ {2}Intro at depth 3$/m);
+    expect(md).toMatch(
+      /^ {2}Intro at depth 3\n\n {2}- overview bullet\n {4}relative indent\n\n {2}outro/m,
+    );
+    expect(md).not.toMatch(/^- overview bullet/m);
+    expect(md).toMatch(/^ {4}Depth4 intro$/m);
+    expect(md).toMatch(/^ {4}Depth4 intro\n\n {4}- nested bullet\n {6}more indent/m);
+    expect(md).not.toMatch(/^- nested bullet/m);
+  });
+
+  it("keeps a blank line before children when Acceptance is the last handler", () => {
+    const lines = renderImplementationPlanLines(
+      [
+        {
+          id: "p",
+          title: "Phase",
+          status: "pending",
+          narrative: { Acceptance: "- done" },
+          items: [{ id: "c", title: "Child", status: "pending" }],
+        },
+      ],
+      2,
+    );
+    const md = lines.join("\n");
+    expect(md).toMatch(/- done\n\n#### Child/);
   });
 });
 

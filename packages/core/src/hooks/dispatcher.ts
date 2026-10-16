@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, realpathSync } from "node:fs";
 import { basename, isAbsolute, join, relative, resolve, sep } from "node:path";
 import {
@@ -19,6 +20,7 @@ import { prepareGithubOnlyDest } from "../design-critique/run-posture.js";
 import { runningInsideDeftRepo } from "../doctor/paths.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { hasArtifactSuffix } from "../layout/resolve.js";
+import { matchAny } from "../orchestration/pathspec.js";
 import {
   defaultKillAttestationDir,
   evaluateKillAttestation,
@@ -47,6 +49,7 @@ import {
   type RuntimeAuthorityShellOp,
 } from "../policy/runtime-authority.js";
 import {
+  hasPositiveGoverningStoryAllow,
   isStoryWriteFenceUnreadable,
   loadStoryWriteFenceFromMergeBase,
   resolveWriteFence,
@@ -130,6 +133,7 @@ import {
   inspectHintedLifecycleSessionId,
   landProcessOnlyFlagOnToolInput,
   missingToolNameMessage,
+  normalizeMutationTargetPaths,
   record,
   resolveHookHostIdentity,
   rewriteExactLifecycleCommand,
@@ -176,13 +180,18 @@ import {
   type ActiveScopeInspection,
   type InspectActiveScopeOptions,
   inspectActiveScope,
+  POSITIVE_GOVERNING_ALLOW_REQUIRED,
+  selectedBriefHasPositiveGoverningAllow,
 } from "./scope.js";
 import { classifyShellWriteTargets, isInRepoShellWritePath } from "./shell-write-targets.js";
 import {
+  effectiveHookArgumentView,
   effectiveHookToolName,
+  expectsLocalMutationDest,
   isApplyPatchTool,
   isDirectWriteTool,
   isKillTool,
+  isMcpProxyWrapper,
   isMcpTool,
   isMcpWriteShaped,
   isShellTool,
@@ -207,7 +216,9 @@ export {
 export {
   DIRECT_WRITE_HOOK_MATCHER,
   DIRECT_WRITE_TOOL_NAMES,
+  effectiveHookArgumentView,
   effectiveHookToolName,
+  expectsLocalMutationDest,
   GROK_MUTATION_TOOL_CATALOG,
   GROK_NON_MUTATION_TOOLS,
   HOST_TOOL_SURFACE_AUDIT,
@@ -321,6 +332,8 @@ export type HookDecisionCode =
   | "git-destructive-deny"
   /** Tree-wide destructive git aimed at an absolute out-of-root fixture. Tracking #3917. */
   | "git-destructive-fixture"
+  /** Shell git commit staged paths outside governing file_scope (#5656 limb 3). */
+  | "prospective-scope-cover-deny"
   | "plan-choice-allow-non-plan"
   | "plan-choice-question"
   | "plan-choice-selected-receipt"
@@ -417,7 +430,7 @@ function isLauncherFamilySpawnNotReady(input: HookDispatchInput, toolName: strin
   const command = hookShellCommand(input.payload);
   if (command === null) return false;
   const launcher = classifyLauncherFamilyArgv(command, {
-    payloadCwd: hookExecutionCwd(input.payload),
+    payloadCwd: hookExecutionCwd(input.payload, input.projectRoot, realpathSync, process.platform),
   });
   return launcher.kind === "launcher" || launcher.kind === "compound";
 }
@@ -577,6 +590,11 @@ export interface HookPolicySeams {
     payload: unknown;
     environ: NodeJS.ProcessEnv;
   }) => string;
+  /**
+   * Test seam for #5656 prospective git-commit scope-cover staged paths.
+   * Defaults to `git diff --cached --name-only`.
+   */
+  readonly listStagedRelPaths?: (projectRoot: string) => readonly string[];
 }
 
 /** POSIX-ish project-relative path for lifecycle matching. */
@@ -630,6 +648,16 @@ function applyPatchBodyUnclassified(payload: unknown): boolean {
 const APPLY_PATCH_UNCLASSIFIED_BODY_MESSAGE =
   "Directive denied this direct write: apply_patch body named no classifiable mutation target, so the write fence cannot authorize it.";
 
+/** Write-shaped empty dest harvest — parallel ApplyPatch unclassified-body deny (#5366). */
+const WRITE_SHAPED_EMPTY_HARVEST_MESSAGE =
+  "Directive denied this direct write: write-shaped tool named no classifiable mutation target, so the write fence cannot authorize it.";
+
+const ACTIVE_FENCE_UNCLASSIFIED_TARGET_MESSAGE =
+  "Directive denied this direct write: write fence is active but no classifiable write target was harvested.";
+
+const UNSUPPORTED_MUTATION_URI_MESSAGE =
+  "Directive denied this direct write: mutation target URI is not a local file path.";
+
 /**
  * Lifecycle exemption is universally quantified over every mutated path, not
  * the declared write target alone (#3614 / #4422).
@@ -640,9 +668,10 @@ function allMutationTargetsMatch(
   match: (root: string, target: string) => boolean,
 ): boolean {
   if (applyPatchBodyUnclassified(payload)) return false;
-  const targets = hookMutationTargetPaths(payload);
-  if (targets.length === 0) return false;
-  return targets.every((target) => match(projectRoot, target));
+  const harvested = hookMutationTargetPaths(payload);
+  const normalized = normalizeMutationTargetPaths(harvested);
+  if (!normalized.ok || normalized.paths.length === 0) return false;
+  return normalized.paths.every((target) => match(projectRoot, target));
 }
 
 function allMutationTargetsAreProposedLifecycleWrites(
@@ -668,9 +697,30 @@ function authzForMutationTargets(
     scopePath: string | null;
     runGit?: GitRunner;
     projectRoot: string;
+    /**
+     * When true, permission checks run but single-use grants are not spent yet.
+     * Caller must {@link consumePendingSingleUseGrants} after later write gates pass
+     * (#5656 Greptile: denied writes must not spend approvals).
+     */
+    deferGrantConsume?: boolean;
+    /** Out-bag for deferred grant refs when `deferGrantConsume` is set. */
+    pendingConsumeOut?: string[];
   },
 ): HookDecision | null {
-  const targets = hookMutationTargetPaths(input.payload);
+  // Decode file: URIs before approval / protected-store checks (#5366 Greptile P1).
+  // Admission already normalized; authz must not re-check raw percent-encoded text.
+  const harvested = hookMutationTargetPaths(input.payload);
+  const normalized = normalizeMutationTargetPaths(harvested);
+  if (!normalized.ok) {
+    return deny(
+      input,
+      "runtime-policy-deny-path",
+      toolName,
+      `${UNSUPPORTED_MUTATION_URI_MESSAGE} (${normalized.detail}).`,
+      options.scopePath,
+    );
+  }
+  const targets = normalized.paths;
   const paths: readonly (string | null)[] = targets.length > 0 ? targets : [null];
   const pendingConsume: string[] = [];
   for (const target of paths) {
@@ -685,17 +735,28 @@ function authzForMutationTargets(
     });
     if (denied !== null) return denied;
   }
+  if (options.deferGrantConsume) {
+    if (options.pendingConsumeOut !== undefined) {
+      for (const ref of pendingConsume) options.pendingConsumeOut.push(ref);
+    }
+    return null;
+  }
+  consumePendingSingleUseGrants(options.projectRoot, pendingConsume);
+  return null;
+}
+
+/** Persist single-use grant spend after remaining write gates have passed. */
+function consumePendingSingleUseGrants(projectRoot: string, refs: readonly string[]): void {
   const seen = new Set<string>();
-  for (const ref of pendingConsume) {
+  for (const ref of refs) {
     if (seen.has(ref)) continue;
     seen.add(ref);
     try {
-      markGrantUsed(options.projectRoot, ref);
+      markGrantUsed(projectRoot, ref);
     } catch {
       // Persistence failure must not flip allow after a successful check.
     }
   }
-  return null;
 }
 
 function requirementsFencePolicy(): RuntimeAuthorityPolicy {
@@ -737,12 +798,17 @@ function requirementsPathAllowed(projectRoot: string, target: string): boolean {
 
 function allMutationTargetsAreRequirementsClass(projectRoot: string, payload: unknown): boolean {
   if (applyPatchBodyUnclassified(payload)) return false;
-  const targets = hookMutationTargetPaths(payload);
-  if (targets.length === 0) {
+  const harvested = hookMutationTargetPaths(payload);
+  const normalized = normalizeMutationTargetPaths(harvested);
+  if (!normalized.ok) return false;
+  if (normalized.paths.length === 0) {
     const one = hookWriteTargetPath(payload);
-    return one !== null && requirementsPathAllowed(projectRoot, one);
+    if (one === null) return false;
+    const decoded = normalizeMutationTargetPaths([one]);
+    const only = decoded.ok ? decoded.paths[0] : undefined;
+    return only !== undefined && requirementsPathAllowed(projectRoot, only);
   }
-  return targets.every((target) => requirementsPathAllowed(projectRoot, target));
+  return normalized.paths.every((target) => requirementsPathAllowed(projectRoot, target));
 }
 
 function allMutationTargetsAreAssistScratch(
@@ -751,11 +817,19 @@ function allMutationTargetsAreAssistScratch(
   environ: NodeJS.ProcessEnv,
 ): boolean {
   if (applyPatchBodyUnclassified(payload)) return false;
-  const targets = hookMutationTargetPaths(payload);
-  if (targets.length === 0) {
-    return isAssistScratchWrite(projectRoot, hookWriteTargetPath(payload), payload, environ);
+  const harvested = hookMutationTargetPaths(payload);
+  const normalized = normalizeMutationTargetPaths(harvested);
+  if (!normalized.ok) return false;
+  if (normalized.paths.length === 0) {
+    const one = hookWriteTargetPath(payload);
+    if (one === null) return false;
+    const decoded = normalizeMutationTargetPaths([one]);
+    const only = decoded.ok ? decoded.paths[0] : undefined;
+    return only !== undefined && isAssistScratchWrite(projectRoot, only, payload, environ);
   }
-  return targets.every((target) => isAssistScratchWrite(projectRoot, target, payload, environ));
+  return normalized.paths.every((target) =>
+    isAssistScratchWrite(projectRoot, target, payload, environ),
+  );
 }
 
 /**
@@ -1217,10 +1291,30 @@ function runtimeAuthorityForDirectWrite(
       scopePath,
     );
   }
-  const targets = hookMutationTargetPaths(input.payload);
-  const toCheck: readonly (string | null)[] = targets.length > 0 ? targets : [null];
-  for (const target of toCheck) {
-    const relPath = target !== null ? toProjectRelativePosix(fenceRoot, target) : null;
+  const harvested = hookMutationTargetPaths(input.payload);
+  const normalized = normalizeMutationTargetPaths(harvested);
+  if (!normalized.ok) {
+    return deny(
+      input,
+      "runtime-policy-deny-path",
+      toolName,
+      `${UNSUPPORTED_MUTATION_URI_MESSAGE} (${normalized.detail}).${fenceRootNote}`,
+      scopePath,
+    );
+  }
+  // Active fence: empty or unclassified null must not pass (#5366 Prefer-A P4).
+  // Library evaluateRuntimeAuthorityDirectWrite still null-allows; deny here.
+  if (normalized.paths.length === 0) {
+    return deny(
+      input,
+      "runtime-policy-deny-path",
+      toolName,
+      ACTIVE_FENCE_UNCLASSIFIED_TARGET_MESSAGE + fenceRootNote,
+      scopePath,
+    );
+  }
+  for (const target of normalized.paths) {
+    const relPath = toProjectRelativePosix(fenceRoot, target);
     const verdict = evaluateRuntimeAuthorityDirectWrite({
       policy: fence.policy,
       relPathPosix: relPath,
@@ -1562,7 +1656,20 @@ function inspectMutationGates(
   const projectRoot = payloadRoot;
   const environ = input.environ ?? process.env;
   const dispatchGit = memoizeGitRunner(seams.ritualRunGit ?? defaultGitRunner);
-  const mutationTargets = isSpawnTool(toolName) ? [] : hookMutationTargetPaths(input.payload);
+  let mutationTargets: string[] = [];
+  if (!isSpawnTool(toolName)) {
+    const harvested = hookMutationTargetPaths(input.payload);
+    const normalized = normalizeMutationTargetPaths(harvested);
+    if (!normalized.ok) {
+      return deny(
+        input,
+        "runtime-policy-deny-path",
+        toolName,
+        `${UNSUPPORTED_MUTATION_URI_MESSAGE} (${normalized.detail}).`,
+      );
+    }
+    mutationTargets = normalized.paths;
+  }
   if (
     isApplyPatchTool(toolName) &&
     (mutationTargets.length === 0 || applyPatchHarvestedInputUnclassified(input.payload))
@@ -2195,15 +2302,42 @@ function inspectMutationGates(
       return deny(input, "intent-ceiling-deny", toolName, intent.reason);
     }
   }
+  // #5656 Prefer-A Bound limb 2: positive governing story allow is mandatory for
+  // Write and implement-class spawn once a brief is selected. Deny-only /
+  // pathless / active-fence-alone do not admit. Outside-root #2885 fallthrough
+  // (scope not ready) must not hit this gate.
+  // Write: authz permission check first (UAT visible codes), but defer single-use
+  // grant spend until positive-allow + runtimeAuthority also pass (#5656 Greptile).
+  // Spawn: positive-allow before allow.
+  const requirePositiveGoverningAllow = (): HookDecision | null => {
+    if (!(scope.ready && scope.path !== null)) return null;
+    const loadFence = seams.loadStoryWriteFence ?? loadStoryWriteFenceFromMergeBase;
+    if (selectedBriefHasPositiveGoverningAllow(effectiveRoot, scope.path, loadFence)) {
+      return null;
+    }
+    const denyCode = isSpawnTool(toolName) ? "spawn-not-ready" : "scope-not-ready";
+    return deny(
+      input,
+      denyCode,
+      toolName,
+      `${POSITIVE_GOVERNING_ALLOW_REQUIRED}${rootsNote}`,
+      scope.path,
+    );
+  };
   if (!isSpawnTool(toolName)) {
     // Wave 1 authz (UAT lease + human-origin grant) before runtimeAuthority (#2944 / #2948 L1–L2).
+    const pendingGrantConsume: string[] = [];
     const authzDeny = authzForMutationTargets(input, toolName, seams, {
       isDirectWrite: true,
       scopePath: scope.path,
       runGit: dispatchGit,
       projectRoot,
+      deferGrantConsume: true,
+      pendingConsumeOut: pendingGrantConsume,
     });
     if (authzDeny !== null) return authzDeny;
+    const positiveDeny = requirePositiveGoverningAllow();
+    if (positiveDeny !== null) return positiveDeny;
     const runtimeDeny = runtimeAuthorityForDirectWrite(
       input,
       toolName,
@@ -2212,9 +2346,13 @@ function inspectMutationGates(
       effectiveRoot,
     );
     if (runtimeDeny !== null) return runtimeDeny;
+    consumePendingSingleUseGrants(projectRoot, pendingGrantConsume);
     // Intentional product-write allow: Prefer-A durable marker (#5176 / #4544).
     const occupancyDeny = recheckOccupancyBeforeWriteAllow(true);
     if (occupancyDeny !== null) return occupancyDeny;
+  } else {
+    const positiveDeny = requirePositiveGoverningAllow();
+    if (positiveDeny !== null) return positiveDeny;
   }
   // #5386 limb 4: scope.warning is independent of occupancyWarning so spawn
   // allows (which skip recheckOccupancyBeforeWriteAllow) still surface it.
@@ -2750,6 +2888,169 @@ function sameExecutionDirectory(left: string, right: string): boolean {
   return left === right;
 }
 
+type HookExecutionDirectoryResolution =
+  | {
+      readonly ok: true;
+      readonly cwd: string | null;
+      readonly nestedCwd: string | null;
+    }
+  | { readonly ok: false; readonly message: string };
+
+function bindExecutionDirectoryValue(
+  raw: string,
+  projectRoot: string,
+  realpath: (path: string) => string,
+  platform: NodeJS.Platform,
+  field: string,
+):
+  | { readonly ok: true; readonly actual: string }
+  | { readonly ok: false; readonly message: string } {
+  const expected = normalizeHookProjectRoot(projectRoot);
+  const trimmed = raw.trim();
+  if (isWindowsDriveOnlyRoot(trimmed, platform)) {
+    return {
+      ok: false,
+      message: `Directive denied launcher dest-proof: execution-directory field ${field} is missing or invalid`,
+    };
+  }
+  if (trimmed.replace(/\\/g, "/").split("/").includes("..")) {
+    return {
+      ok: false,
+      message: `Directive denied launcher dest-proof: execution-directory field ${field} contains parent traversal`,
+    };
+  }
+  const candidate = isAbsolute(trimmed) ? trimmed : `${expected}${sep}${trimmed}`;
+  try {
+    return { ok: true, actual: normalizeHookProjectRoot(realpath(candidate)) };
+  } catch (cause) {
+    return {
+      ok: false,
+      message:
+        `Directive denied launcher dest-proof: execution-directory field ${field} could not be ` +
+        `realpath-bound: ${String(cause)}`,
+    };
+  }
+}
+
+function collectPresentExecutionDirectories(source: Record<string, unknown>):
+  | { readonly kind: "invalid"; readonly field: string }
+  | {
+      readonly kind: "values";
+      readonly values: ReadonlyArray<{ readonly field: string; readonly value: string }>;
+    } {
+  const values: { field: string; value: string }[] = [];
+  for (const field of LIFECYCLE_EXECUTION_DIRECTORY_FIELDS) {
+    if (!(field in source)) continue;
+    const raw = source[field];
+    if (typeof raw !== "string" || raw.trim().length === 0) {
+      return { kind: "invalid", field };
+    }
+    values.push({ field, value: raw.trim() });
+  }
+  return { kind: "values", values };
+}
+
+function bindSameNestedExecutionDirectory(
+  values: ReadonlyArray<{ readonly field: string; readonly value: string }>,
+  projectRoot: string,
+  realpath: (path: string) => string,
+  platform: NodeJS.Platform,
+): HookExecutionDirectoryResolution {
+  let expectedActual: string | null = null;
+  let firstRaw: string | null = null;
+  for (const { field, value } of values) {
+    const bound = bindExecutionDirectoryValue(value, projectRoot, realpath, platform, field);
+    if (!bound.ok) return bound;
+    if (expectedActual === null) {
+      expectedActual = bound.actual;
+      firstRaw = value;
+      continue;
+    }
+    if (!sameExecutionDirectory(bound.actual, expectedActual)) {
+      return {
+        ok: false,
+        message:
+          `Directive denied launcher dest-proof: nested execution-directory fields are not the ` +
+          `same directory after realpath (${firstRaw} vs ${value}).`,
+      };
+    }
+  }
+  return { ok: true, cwd: firstRaw, nestedCwd: firstRaw };
+}
+
+/**
+ * Nested-first dest-proof cwd (#4998). Present empty or non-string nested
+ * execution-directory fields deny. Outer payload cwd/workdir is fallback only
+ * when nested dest fields are absent.
+ */
+function resolveHookExecutionDirectory(
+  payload: unknown,
+  projectRoot: string,
+  realpath: (path: string) => string,
+  platform: NodeJS.Platform,
+): HookExecutionDirectoryResolution {
+  const input = record(payload);
+  if (input === null) return { ok: true, cwd: null, nestedCwd: null };
+  const nested = toolInputRecord(input);
+  const nestedSource = nested !== null && nested !== input ? nested : null;
+  if (nestedSource !== null) {
+    const collected = collectPresentExecutionDirectories(nestedSource);
+    if (collected.kind === "invalid") {
+      return {
+        ok: false,
+        message:
+          `Directive denied launcher dest-proof: nested execution-directory field ` +
+          `${collected.field} is missing or invalid`,
+      };
+    }
+    if (collected.values.length > 0) {
+      return bindSameNestedExecutionDirectory(collected.values, projectRoot, realpath, platform);
+    }
+  }
+  const outerCwd =
+    fieldString(input, "cwd") ??
+    fieldString(input, "workdir") ??
+    fieldString(input, "working_directory") ??
+    fieldString(input, "workingDirectory");
+  return { ok: true, cwd: outerCwd, nestedCwd: null };
+}
+
+function launcherArgvNestedDestConflict(
+  command: string,
+  classified: Extract<LauncherArgvClass, { kind: "launcher" }>,
+  nestedCwd: string,
+  projectRoot: string,
+  realpath: (path: string) => string,
+  platform: NodeJS.Platform,
+): string | null {
+  if (classified.family === "codex" || classified.family === "grok") return null;
+  const argvOnly = classifyLauncherFamilyArgv(command, { payloadCwd: null });
+  if (argvOnly.kind !== "launcher" || argvOnly.dest === null) return null;
+  const argvBound = bindExecutionDirectoryValue(
+    argvOnly.dest,
+    projectRoot,
+    realpath,
+    platform,
+    "argv --cwd",
+  );
+  const nestedBound = bindExecutionDirectoryValue(
+    nestedCwd,
+    projectRoot,
+    realpath,
+    platform,
+    "nested dest",
+  );
+  if (!argvBound.ok) return argvBound.message;
+  if (!nestedBound.ok) return nestedBound.message;
+  if (!sameExecutionDirectory(argvBound.actual, nestedBound.actual)) {
+    return (
+      `Directive denied launcher dest-proof: argv --cwd and nested execution-directory fields ` +
+      `resolve to different directories after realpath (${argvBound.actual} vs ${nestedBound.actual}).`
+    );
+  }
+  return null;
+}
+
 function lifecycleExecutionRootCheck(
   payload: unknown,
   projectRoot: string,
@@ -2836,6 +3137,62 @@ const UPDATED_INPUT_WIRE_HOSTS = ["codex", "claude", "cursor"] as const;
 
 function hostAcceptsUpdatedInput(host: HookHost): boolean {
   return (UPDATED_INPUT_WIRE_HOSTS as readonly string[]).includes(host);
+}
+
+/** Stamp tool_name/toolName so exact-lifecycle inspection sees a shell spelling. */
+function stampHookToolName(payload: unknown, toolName: string): unknown {
+  const input = record(payload);
+  if (input === null) return payload;
+  return { ...input, tool_name: toolName, toolName };
+}
+
+/**
+ * After proxy-shell inspection, restore the outer CallMcpTool/use_tool name on
+ * any rewritten updatedInput while keeping the unwrapped command rewrite.
+ */
+function remapProxyShellUpdatedInput(
+  outerPayload: unknown,
+  outerToolName: string,
+  shellProxyUnwrap: boolean,
+  decision: HookDecision,
+): HookDecision {
+  if (!shellProxyUnwrap || decision.updatedInput === undefined) return decision;
+  const outer = record(outerPayload);
+  const rewritten = record(decision.updatedInput);
+  if (outer === null || rewritten === null) return decision;
+  const outerToolInput = toolInputRecord(outer);
+  const rewrittenToolInput = toolInputRecord(rewritten);
+  const command =
+    rewrittenToolInput !== null && typeof rewrittenToolInput.command === "string"
+      ? rewrittenToolInput.command
+      : typeof rewritten.command === "string"
+        ? rewritten.command
+        : null;
+  if (command === null || outerToolInput === null) {
+    const stamped = record(stampHookToolName(decision.updatedInput, outerToolName));
+    return stamped === null ? decision : { ...decision, updatedInput: stamped };
+  }
+  const nestedKey =
+    record(outerToolInput.arguments) !== null
+      ? "arguments"
+      : record(outerToolInput.tool_input) !== null
+        ? "tool_input"
+        : record(outerToolInput.params) !== null
+          ? "params"
+          : null;
+  const nextToolInput =
+    nestedKey === null
+      ? { ...outerToolInput, command }
+      : {
+          ...outerToolInput,
+          [nestedKey]: {
+            ...(record(outerToolInput[nestedKey]) ?? {}),
+            command,
+          },
+        };
+  // Hosts replace the proxy tool_input/arguments object, not the whole payload
+  // (#5366 Greptile P1). nextToolInput keeps the inner tool name + rewritten command.
+  return { ...decision, updatedInput: nextToolInput };
 }
 
 /**
@@ -3073,16 +3430,15 @@ function restampOwnerLiveness(
   }
 }
 
-function hookExecutionCwd(payload: unknown): string | null {
-  const input = record(payload);
-  if (input === null) return null;
-  const toolInput = toolInputRecord(input) ?? input;
-  return (
-    fieldString(toolInput, "cwd") ??
-    fieldString(toolInput, "working_directory") ??
-    fieldString(toolInput, "workingDirectory") ??
-    fieldString(input, "cwd")
-  );
+function hookExecutionCwd(
+  payload: unknown,
+  projectRoot: string,
+  realpath: (path: string) => string,
+  platform: NodeJS.Platform,
+): string | null {
+  const resolved = resolveHookExecutionDirectory(payload, projectRoot, realpath, platform);
+  if (!resolved.ok) return null;
+  return resolved.cwd;
 }
 
 function prepareProcessOnlyDestPath(
@@ -3633,30 +3989,133 @@ function routeHookDecision(
     );
   }
 
+  // #5366 Prefer-A: unwrap proxy shell inners (use_tool → run_terminal_command)
+  // with an effective argument view before the Shell/UAT slice. Payload-root
+  // identity (projectRoot, grants) stays on the outer input. Inspection sees the
+  // effective shell name so exact lifecycle rewrite can bind; host updatedInput
+  // is remapped onto the original wrapper (#5366 Greptile P1).
+  const effectiveName = effectiveHookToolName(toolName, input.payload);
+  const shellProxyUnwrap =
+    isMcpProxyWrapper(toolName) && isShellTool(effectiveName) && !isShellTool(toolName);
+  const shellToolName = shellProxyUnwrap ? effectiveName : toolName;
+  const shellInput: HookDispatchInput = shellProxyUnwrap
+    ? {
+        ...input,
+        payload: stampHookToolName(
+          effectiveHookArgumentView(toolName, input.payload),
+          effectiveName,
+        ),
+      }
+    : input;
+
   // Tree-wide destructive git (#3917): always-on, independent of shellDestForms.
   // Dest-forms (#3438): recognized product mutations share inspectMutationGates
   // with Edit/Write (assist/scratch, proposed lifecycle, file_scope). Push/merge stay
   // on runtimeAuthority (#2711). Non-dest unclassifiable shell (git status) fail-open.
-  if (isShellTool(toolName)) {
-    const command = hookShellCommand(input.payload);
+  if (isShellTool(shellToolName)) {
+    const command = hookShellCommand(shellInput.payload);
     if (command !== null) {
+      const realpath = seams.realpathLifecycleExecutionRoot ?? realpathSync;
+      const platform = seams.lifecycleExecutionPlatform ?? process.platform;
+      const execDir = resolveHookExecutionDirectory(
+        shellInput.payload,
+        projectRoot,
+        realpath,
+        platform,
+      );
       const launcher = classifyLauncherFamilyArgv(command, {
-        payloadCwd: hookExecutionCwd(input.payload),
+        payloadCwd: hookExecutionCwd(shellInput.payload, projectRoot, realpath, platform),
       });
       if (launcher.kind === "launcher" || launcher.kind === "compound") {
-        return decideLauncherFamilyArgv(input, toolName, launcher, seams);
+        if (launcher.kind === "compound") {
+          return remapProxyShellUpdatedInput(
+            input.payload,
+            toolName,
+            shellProxyUnwrap,
+            decideLauncherFamilyArgv(shellInput, shellToolName, launcher, seams),
+          );
+        }
+        if (!execDir.ok) {
+          return remapProxyShellUpdatedInput(
+            input.payload,
+            toolName,
+            shellProxyUnwrap,
+            overlayGrokCriticSpawnNotReadyRecovery(
+              shellInput,
+              shellToolName,
+              deny(shellInput, "spawn-not-ready", shellToolName, execDir.message),
+            ),
+          );
+        }
+        if (execDir.nestedCwd !== null) {
+          const destConflict = launcherArgvNestedDestConflict(
+            command,
+            launcher,
+            execDir.nestedCwd,
+            projectRoot,
+            realpath,
+            platform,
+          );
+          if (destConflict !== null) {
+            return remapProxyShellUpdatedInput(
+              input.payload,
+              toolName,
+              shellProxyUnwrap,
+              overlayGrokCriticSpawnNotReadyRecovery(
+                shellInput,
+                shellToolName,
+                deny(shellInput, "spawn-not-ready", shellToolName, destConflict),
+              ),
+            );
+          }
+        }
+        return remapProxyShellUpdatedInput(
+          input.payload,
+          toolName,
+          shellProxyUnwrap,
+          decideLauncherFamilyArgv(shellInput, shellToolName, launcher, seams),
+        );
       }
     }
-    const destructive = decideGitDestructive(input, toolName);
+    const destructive = decideGitDestructive(shellInput, shellToolName);
     if (destructive !== null) {
-      return attachLifecycleIdentityRewrite(input, toolName, destructive, seams);
+      return remapProxyShellUpdatedInput(
+        input.payload,
+        toolName,
+        shellProxyUnwrap,
+        attachLifecycleIdentityRewrite(shellInput, shellToolName, destructive, seams),
+      );
     }
-    const writeReissue = decideShellWriteReissue(input, toolName, seams, observation);
+    const prospective = decideProspectiveGitCommitScopeCover(shellInput, shellToolName, seams);
+    if (prospective !== null) {
+      return remapProxyShellUpdatedInput(
+        input.payload,
+        toolName,
+        shellProxyUnwrap,
+        attachLifecycleIdentityRewrite(shellInput, shellToolName, prospective, seams),
+      );
+    }
+    const writeReissue = decideShellWriteReissue(shellInput, shellToolName, seams, observation);
     if (writeReissue !== null) {
-      return attachLifecycleIdentityRewrite(input, toolName, writeReissue, seams);
+      return remapProxyShellUpdatedInput(
+        input.payload,
+        toolName,
+        shellProxyUnwrap,
+        attachLifecycleIdentityRewrite(shellInput, shellToolName, writeReissue, seams),
+      );
     }
-    const decision = decideShellDestFormsThenRuntimeAuthority(input, toolName, seams, observation);
-    return attachLifecycleIdentityRewrite(input, toolName, decision, seams);
+    const decision = decideShellDestFormsThenRuntimeAuthority(
+      shellInput,
+      shellToolName,
+      seams,
+      observation,
+    );
+    return remapProxyShellUpdatedInput(
+      input.payload,
+      toolName,
+      shellProxyUnwrap,
+      attachLifecycleIdentityRewrite(shellInput, shellToolName, decision, seams),
+    );
   }
 
   // Host kill deny-class / attestation gate (#5281 Prefer-A Bound).
@@ -3665,16 +4124,28 @@ function routeHookDecision(
     return decideKillAttestationGate(input, toolName, seams, environ);
   }
 
-  // #3593: dest-bearing write-shaped MCP / proxy wrappers share inspectMutationGates
-  // with Write/Edit. Unwrap CallMcpTool / use_tool inner names. Reads (list_issues)
-  // stay on the runtime-authority fail-open path.
-  const effectiveName = effectiveHookToolName(toolName, input.payload);
+  // #3593 / #5366: write-shaped MCP / proxy wrappers share inspectMutationGates
+  // with Write/Edit. Empty dest harvest fail-closes for local-filesystem writers
+  // only (ApplyPatch class). Remote forge/API create/edit/delete keep the MCP
+  // route — empty harvest must not blanket-deny create_issue (#5366 Greptile P1).
+  // Shell-shaped inners already routed above. Reads (list_issues) stay fail-open.
   if (
     isMcpWriteShaped(effectiveName) &&
     !isShellTool(toolName) &&
     !isSpawnTool(toolName) &&
-    hookMutationTargetPaths(input.payload).length > 0
+    !isDirectWriteTool(toolName)
   ) {
+    if (hookMutationTargetPaths(input.payload).length === 0) {
+      if (expectsLocalMutationDest(effectiveName)) {
+        return deny(
+          input,
+          "runtime-policy-deny-path",
+          effectiveName,
+          WRITE_SHAPED_EMPTY_HARVEST_MESSAGE,
+        );
+      }
+      return decideShellOrMcpRuntimeAuthority(input, toolName, seams);
+    }
     return inspectMutationGates(input, effectiveName, seams, {
       proposedLifecycleExempt: true,
       observation,
@@ -3774,6 +4245,478 @@ function composeCursorSessionStartAdditionalContext(
     return undefined;
   }
   return parts.join("\n\n");
+}
+
+/**
+ * Detect `git commit` as the git subcommand in a Shell command string (#5656).
+ * Handles common agent forms (env prefixes, -C/-c globals, &&/; compounds).
+ * Obscured forms remain a hooks-installed / `--no-verify` residual.
+ */
+export function commandHasGitCommitSubcommand(command: string): boolean {
+  const normalized = command.replace(/\r\n/g, "\n");
+  for (const part of normalized.split(/(?:&&|\|\||;|\n)/)) {
+    const words = part
+      .trim()
+      .split(/\s+/)
+      .filter((w) => w.length > 0);
+    let i = 0;
+    while (i < words.length) {
+      const envTok = words[i];
+      if (envTok === undefined || !/^[A-Za-z_][\w.]*=.*/.test(envTok)) break;
+      i++;
+    }
+    if (i >= words.length) continue;
+    const binTok = words[i];
+    if (binTok === undefined) continue;
+    const bin = binTok.replace(/^.*[/\\]/, "").toLowerCase();
+    if (bin !== "git" && bin !== "git.exe") continue;
+    i++;
+    while (i < words.length) {
+      const w = words[i];
+      if (w === undefined) break;
+      if (w === "-C" || w === "-c" || w === "--git-dir" || w === "--work-tree") {
+        i += 2;
+        continue;
+      }
+      if (
+        w.startsWith("--git-dir=") ||
+        w.startsWith("--work-tree=") ||
+        (w.startsWith("-c") && w.includes("="))
+      ) {
+        i += 1;
+        continue;
+      }
+      if (w.startsWith("-") && w !== "--") {
+        i += 1;
+        continue;
+      }
+      // Non-commit git subcommands must not stop compound scanning (#5656):
+      // `git status && git commit` still needs the later commit part.
+      if (w.toLowerCase() === "commit") return true;
+      break;
+    }
+  }
+  return false;
+}
+
+/**
+ * True when a Shell git commit retargets checkout via -C / --git-dir / --work-tree.
+ * Prospective scope-cover reads the index at projectRoot; refuse retargets (#5656).
+ */
+export function commandHasGitCommitCheckoutRetarget(command: string): boolean {
+  if (!commandHasGitCommitSubcommand(command)) return false;
+  const normalized = command.replace(/\r\n/g, "\n");
+  for (const part of normalized.split(/(?:&&|\|\||;|\n)/)) {
+    const words = part
+      .trim()
+      .split(/\s+/)
+      .filter((w) => w.length > 0);
+    let i = 0;
+    while (i < words.length) {
+      const envTok = words[i];
+      if (envTok === undefined || !/^[A-Za-z_][\w.]*=.*/.test(envTok)) break;
+      i++;
+    }
+    if (i >= words.length) continue;
+    const binTok = words[i];
+    if (binTok === undefined) continue;
+    const bin = binTok.replace(/^.*[/\\]/, "").toLowerCase();
+    if (bin !== "git" && bin !== "git.exe") continue;
+    i++;
+    let sawRetarget = false;
+    let sub: string | undefined;
+    while (i < words.length) {
+      const w = words[i];
+      if (w === undefined) break;
+      if (w === "-C" || w === "--git-dir" || w === "--work-tree") {
+        sawRetarget = true;
+        i += 2;
+        continue;
+      }
+      if (w.startsWith("--git-dir=") || w.startsWith("--work-tree=")) {
+        sawRetarget = true;
+        i += 1;
+        continue;
+      }
+      if (w === "-c" || (w.startsWith("-c") && w.includes("="))) {
+        i += w === "-c" ? 2 : 1;
+        continue;
+      }
+      if (w.startsWith("-") && w !== "--") {
+        i += 1;
+        continue;
+      }
+      sub = w.toLowerCase();
+      break;
+    }
+    if (sub === "commit" && sawRetarget) return true;
+  }
+  return false;
+}
+
+/** Staged index list result — no throw; caller maps `ok:false` to deny (#5656). */
+export type ListStagedRelPathsResult =
+  | { ok: true; paths: string[] }
+  | { ok: false; message: string };
+
+/** Staged index paths including deletions/typechanges (ACMRDT), project-relative POSIX. */
+export function listStagedRelPathsIncludingDeletes(projectRoot: string): ListStagedRelPathsResult {
+  try {
+    // -z: NUL-delimited so quoted non-ASCII names are not treated as literal paths (#5656).
+    // --no-renames: emit delete+add so rename sources stay in the cover set (#5656 Greptile).
+    // T: typechange (e.g. file→symlink) must not skip story checks (#5656 Greptile).
+    const stdout = execFileSync(
+      "git",
+      ["diff", "--cached", "--name-only", "-z", "--diff-filter=ACMRDT", "--no-renames"],
+      {
+        cwd: projectRoot,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
+    const paths = stdout
+      .split("\0")
+      .map((line) => line.replace(/\r/g, "").trim())
+      .filter((line) => line.length > 0);
+    return { ok: true, paths };
+  } catch (err: unknown) {
+    const e = err as NodeJS.ErrnoException & { stderr?: string };
+    if (e.code === "ENOENT") {
+      return { ok: false, message: "'git' executable not found on PATH" };
+    }
+    const stderr = typeof e.stderr === "string" ? e.stderr.trim() : String(e.message ?? err);
+    return { ok: false, message: `git diff --cached --name-only failed: ${stderr}` };
+  }
+}
+
+/** Quote-aware argv split so `-m "fix the bug"` stays one message token (#5656). */
+export function splitShellArgvPreservingQuotes(part: string): string[] {
+  const out: string[] = [];
+  let cur = "";
+  let quote: '"' | "'" | null = null;
+  let tokenHadQuote = false;
+  const flush = (): void => {
+    if (cur.length > 0 || tokenHadQuote) {
+      out.push(cur);
+      cur = "";
+      tokenHadQuote = false;
+    }
+  };
+  for (let i = 0; i < part.length; i++) {
+    const ch = part[i];
+    if (ch === undefined) continue;
+    if (quote !== null) {
+      if (ch === quote) {
+        quote = null;
+        continue;
+      }
+      if (ch === "\\" && quote === '"' && i + 1 < part.length) {
+        cur += part[i + 1] ?? "";
+        i += 1;
+        continue;
+      }
+      cur += ch;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+      tokenHadQuote = true;
+      continue;
+    }
+    if (/\s/.test(ch)) {
+      flush();
+      continue;
+    }
+    cur += ch;
+  }
+  flush();
+  return out;
+}
+
+/**
+ * True when a Shell git commit uses -a/--all/-am/--include or trailing pathspecs
+ * that can change the checked file set after the pre-tool index snapshot (#5656).
+ */
+export function commandHasGitCommitIndexMutatingForm(command: string): boolean {
+  if (!commandHasGitCommitSubcommand(command)) return false;
+  const normalized = command.replace(/\r\n/g, "\n");
+  for (const part of normalized.split(/(?:&&|\|\||;|\n)/)) {
+    const words = splitShellArgvPreservingQuotes(part.trim());
+    let i = 0;
+    while (i < words.length) {
+      const envTok = words[i];
+      if (envTok === undefined || !/^[A-Za-z_][\w.]*=.*/.test(envTok)) break;
+      i++;
+    }
+    if (i >= words.length) continue;
+    const binTok = words[i];
+    if (binTok === undefined) continue;
+    const bin = binTok.replace(/^.*[/\\]/, "").toLowerCase();
+    if (bin !== "git" && bin !== "git.exe") continue;
+    i++;
+    let sub: string | undefined;
+    while (i < words.length) {
+      const w = words[i];
+      if (w === undefined) break;
+      if (w === "-C" || w === "--git-dir" || w === "--work-tree") {
+        i += 2;
+        continue;
+      }
+      if (w.startsWith("--git-dir=") || w.startsWith("--work-tree=")) {
+        i += 1;
+        continue;
+      }
+      if (w === "-c" || (w.startsWith("-c") && w.includes("="))) {
+        i += w === "-c" ? 2 : 1;
+        continue;
+      }
+      if (w.startsWith("-") && w !== "--") {
+        i += 1;
+        continue;
+      }
+      sub = w.toLowerCase();
+      i += 1;
+      break;
+    }
+    if (sub !== "commit") continue;
+    while (i < words.length) {
+      const w = words[i];
+      if (w === undefined) break;
+      if (w === "--") {
+        return i + 1 < words.length;
+      }
+      if (w === "-a" || w === "--all" || w === "-i" || w === "--include" || w === "-am") {
+        return true;
+      }
+      if (w.startsWith("--message=") || w.startsWith("--file=") || w.startsWith("--author=")) {
+        i += 1;
+        continue;
+      }
+      if (
+        w === "-m" ||
+        w === "-F" ||
+        w === "--message" ||
+        w === "--file" ||
+        w === "--author" ||
+        w === "--date" ||
+        w === "-c" ||
+        w === "-C" ||
+        w === "--reuse-message" ||
+        w === "--reedit-message" ||
+        w === "--fix" ||
+        w === "--cleanup" ||
+        w === "--untracked-files"
+      ) {
+        i += 2;
+        continue;
+      }
+      // Attached value-taking shorts (-mMSG / -Ffile / -cSHA / -CSHA) before
+      // combined-flag scan so letters inside the value are not treated as -a/-i
+      // (#5656 Greptile: `git commit -m"fix parser"` / `-Fmessage.txt`).
+      if (w.startsWith("-") && !w.startsWith("--") && /^[mFcC].+/.test(w.slice(1))) {
+        i += 1;
+        continue;
+      }
+      if (w.startsWith("-") && !w.startsWith("--") && /[ai]/.test(w.slice(1))) {
+        return true;
+      }
+      if (w.startsWith("-") && w !== "--") {
+        i += 1;
+        continue;
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Shell `git commit` → prospective staged/index scope-cover (#5656 limb 3).
+ * Returns deny when cover fails; null when the command is not a git commit.
+ */
+function decideProspectiveGitCommitScopeCover(
+  input: HookDispatchInput,
+  toolName: string,
+  seams: HookPolicySeams,
+): HookDecision | null {
+  const command = hookShellCommand(input.payload);
+  if (command === null || !commandHasGitCommitSubcommand(command)) return null;
+  if (commandHasGitCommitCheckoutRetarget(command)) {
+    return deny(
+      input,
+      "prospective-scope-cover-deny",
+      toolName,
+      `Directive denied ${toolName}: git commit with -C/--git-dir/--work-tree retargets the checkout; ` +
+        "prospective scope-cover reads the index at the hook project root and refuses retargets (#5656). " +
+        "Run the commit in the scoped checkout without checkout-changing globals.",
+    );
+  }
+  if (commandHasGitCommitIndexMutatingForm(command)) {
+    return deny(
+      input,
+      "prospective-scope-cover-deny",
+      toolName,
+      `Directive denied ${toolName}: git commit -a/--all/-am/--include or pathspecs change the ` +
+        "file set after the pre-tool index snapshot (#5656). Stage the intended paths first " +
+        "(git add …) then commit with -m/-F only — no -a/--all and no trailing pathspecs.",
+    );
+  }
+  const projectRoot = resolve(input.projectRoot);
+  let staged: readonly string[];
+  if (seams.listStagedRelPaths) {
+    staged = seams.listStagedRelPaths(projectRoot);
+  } else {
+    const listed = listStagedRelPathsIncludingDeletes(projectRoot);
+    if (!listed.ok) {
+      return deny(
+        input,
+        "prospective-scope-cover-deny",
+        toolName,
+        `Directive denied ${toolName}: prospective scope-cover could not list staged paths (#5656). ${listed.message}`,
+      );
+    }
+    staged = listed.paths;
+  }
+  const cover = evaluateProspectiveScopeCover({
+    projectRoot,
+    stagedRelPaths: staged,
+    inspectScope: seams.inspectScope,
+    loadStoryWriteFence: seams.loadStoryWriteFence,
+    env: input.environ ?? process.env,
+  });
+  if (cover.ok) return null;
+  return deny(input, "prospective-scope-cover-deny", toolName, cover.message);
+}
+
+/**
+ * Prospective staged/index scope-cover gate (#5656 Prefer-A Bound limb 3).
+ * Refuses when any staged product path lacks covering running-scope governing
+ * allow `file_scope`. Does not rewrite or bless historical uncovered commits.
+ * Lifecycle/installer-only staged sets skip product coverage (setup deposits +
+ * xBRIEF lifecycle commits before the first activate) (#5656 Greptile).
+ * Reachability residuals: `verify:hooks-installed` and `--no-verify`.
+ */
+export interface ProspectiveScopeCoverInput {
+  readonly projectRoot: string;
+  /** Staged/index paths as project-relative POSIX (deletions/renames included). */
+  readonly stagedRelPaths: readonly string[];
+  readonly inspectScope?: typeof inspectActiveScope;
+  readonly loadStoryWriteFence?: (
+    projectRoot: string,
+    scopePath: string | null,
+  ) => StoryWriteFenceView;
+  readonly env?: NodeJS.ProcessEnv;
+}
+
+export interface ProspectiveScopeCoverResult {
+  readonly ok: boolean;
+  readonly message: string;
+  readonly uncovered: readonly string[];
+  readonly scopePath: string | null;
+}
+
+/**
+ * Lifecycle xBRIEF trees and exact Directive-managed host-hook deposit paths
+ * are not product coverage targets for prospective git-commit scope-cover
+ * (#5656). Consumer-owned files under `.cursor/hooks/` (etc.) stay product.
+ */
+const MANAGED_HOOK_DEPOSIT_REL_PATHS: ReadonlySet<string> = new Set([
+  ".claude/settings.json",
+  ".grok/hooks/deft.json",
+  ".grok/hooks/deft-pretooluse-wrapper.sh",
+  ".cursor/hooks.json",
+  ".codex/hooks.json",
+  ".deft/hook-gate-off.json",
+]);
+
+export function isLifecycleOrInstallerRelPath(relPathPosix: string): boolean {
+  const p = relPathPosix.replace(/\\/g, "/").replace(/^\.\//, "");
+  if (p.length === 0) return false;
+  if (MANAGED_HOOK_DEPOSIT_REL_PATHS.has(p)) return true;
+  // Lifecycle trees only — do not use isInstallerManagedPath here: that set
+  // includes package.json / lockfiles used for ordinary product edits (#5656).
+  if (p.startsWith("xbrief/") || p.startsWith("vbrief/")) return true;
+  return false;
+}
+
+export function evaluateProspectiveScopeCover(
+  input: ProspectiveScopeCoverInput,
+): ProspectiveScopeCoverResult {
+  const projectRoot = resolve(input.projectRoot);
+  const staged = input.stagedRelPaths
+    .map((p) => p.replace(/\\/g, "/").replace(/^\.\//, ""))
+    .filter((p) => p.length > 0);
+  if (staged.length === 0) {
+    return {
+      ok: true,
+      message: "No staged paths to cover.",
+      uncovered: [],
+      scopePath: null,
+    };
+  }
+  const productStaged = staged.filter((rel) => !isLifecycleOrInstallerRelPath(rel));
+  if (productStaged.length === 0) {
+    return {
+      ok: true,
+      message:
+        "Lifecycle/installer-only staged set; product prospective scope-cover not required (#5656).",
+      uncovered: [],
+      scopePath: null,
+    };
+  }
+  const scope = (input.inspectScope ?? inspectActiveScope)(projectRoot, {
+    env: input.env ?? {},
+  });
+  if (!scope.ready || scope.path === null) {
+    return {
+      ok: false,
+      message:
+        `Prospective scope-cover denied: no ready running scope for staged paths (#5656). ` +
+        `${scope.message} Recovery: ${SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE}.`,
+      uncovered: productStaged,
+      scopePath: null,
+    };
+  }
+  const loadFence = input.loadStoryWriteFence ?? loadStoryWriteFenceFromMergeBase;
+  const fence = loadFence(projectRoot, scope.path);
+  if (isStoryWriteFenceUnreadable(fence)) {
+    return {
+      ok: false,
+      message:
+        `Prospective scope-cover denied: story write fence unreadable (#5656). ` +
+        `${fence.unreadableDetail}`,
+      uncovered: productStaged,
+      scopePath: scope.path,
+    };
+  }
+  if (!hasPositiveGoverningStoryAllow(fence)) {
+    return {
+      ok: false,
+      message:
+        `Prospective scope-cover denied: selected scope lacks positive governing ` +
+        `allow file_scope (#5656). ${POSITIVE_GOVERNING_ALLOW_REQUIRED}`,
+      uncovered: productStaged,
+      scopePath: scope.path,
+    };
+  }
+  const uncovered = productStaged.filter((rel) => !matchAny(fence.fileScope, rel));
+  if (uncovered.length > 0) {
+    return {
+      ok: false,
+      message:
+        `Prospective scope-cover denied: staged path(s) outside governing file_scope ` +
+        `(#5656): ${uncovered.join(", ")}. This gate is prospective only — it does not ` +
+        "rewrite or bless earlier uncovered commits. Residuals: verify:hooks-installed; --no-verify.",
+      uncovered,
+      scopePath: scope.path,
+    };
+  }
+  return {
+    ok: true,
+    message: `Prospective scope-cover passed for ${String(productStaged.length)} product staged path(s).`,
+    uncovered: [],
+    scopePath: scope.path,
+  };
 }
 
 /**

@@ -160,6 +160,11 @@ valid on the same worktree — re-arm also rebinds generation.
 - Restarting the whole shared runtime as the freshness mechanism.
 - Auto-resetting sessions on any file mtime change.
 - Bound proof for remote PR claims (see #3120).
+- Treating orientation state or session-bind freshness as branch, ordered-plan,
+  scope, occupancy, or lifecycle authority (#3911). Those records are
+  deposit/toolchain freshness only; local-only does not mean dispensable —
+  identity and `payloadLoaded` attestation still matter for readiness.
+  `.deft/GENERATION.json` remains the trackable live generation token.
 
 ## Related
 

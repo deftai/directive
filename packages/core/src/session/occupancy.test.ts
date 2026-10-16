@@ -41,6 +41,7 @@ import {
   heartbeatAgeSeconds,
   heartbeatOccupancy,
   isOccupancyExpired,
+  isPersistTimeAcquisition,
   liveOccupancyGrants,
   liveOccupancyOnTree,
   liveOccupant,
@@ -49,6 +50,7 @@ import {
   OCCUPANCY_MAX_LEASE_MS,
   OCCUPANCY_REFRESH_AFTER_MS,
   OCCUPANCY_STALE_WARN_MS,
+  OCCUPANCY_STEAL_CLAIM_FIRST_ROLLBACK,
   OCCUPANCY_STEAL_REFUSES_MINT_MESSAGE,
   OCCUPANCY_TTL_MS,
   type OccupancyRecord,
@@ -64,6 +66,7 @@ import {
   resolveOccupancySessionClaim,
   resolveOccupancySessionId,
   revokeOccupancyMembership,
+  rollbackAcquiredOccupancy,
   stealOccupancy,
 } from "./occupancy.js";
 import {
@@ -1565,6 +1568,138 @@ describe("worktree occupancy lease (#3433)", () => {
       expect(readOccupancy(root)).toBeNull();
     });
 
+    it("rolls back a persist-time claim and leaves occupancy empty (#3906)", () => {
+      const root = tempRoot();
+      const now = new Date("2026-08-17T12:00:00Z");
+      const claimed = applyWorktreeOccupancy(root, {
+        sessionId: "host:test:v1:claim-rollback",
+        now,
+      });
+      expect(claimed.action).toBe("claimed");
+      expect(isPersistTimeAcquisition(claimed.action)).toBe(true);
+      const rolled = rollbackAcquiredOccupancy(root, claimed);
+      expect(rolled.action).toBe("released");
+      expect(readOccupancy(root)).toBeNull();
+    });
+
+    it("does not release a heartbeat lease on rollback (#3906 / #4444)", () => {
+      const root = tempRoot();
+      const now = new Date("2026-08-17T12:00:00Z");
+      applyWorktreeOccupancy(root, { sessionId: "host:test:v1:keep-hb", now });
+      const heartbeat = applyWorktreeOccupancy(root, {
+        sessionId: "host:test:v1:keep-hb",
+        now: new Date("2026-08-17T12:01:00Z"),
+      });
+      expect(heartbeat.action).toBe("heartbeat");
+      expect(isPersistTimeAcquisition(heartbeat.action)).toBe(false);
+      const rolled = rollbackAcquiredOccupancy(root, heartbeat);
+      expect(rolled.code).toBe(0);
+      expect(rolled.message).toContain("heartbeat");
+      expect(readOccupancy(root)?.sessionId).toBe("host:test:v1:keep-hb");
+    });
+
+    it("steal claim-first rollback is release-to-empty (#3906)", () => {
+      const root = tempRoot();
+      const claimedAt = new Date("2026-08-17T12:00:00Z");
+      applyWorktreeOccupancy(root, { sessionId: "legacy-owner", now: claimedAt });
+      const stolen = applyWorktreeOccupancy(root, {
+        sessionId: "host:test:v1:steal-rollback",
+        steal: true,
+        confirm: true,
+        occupant: "legacy-owner",
+        now: new Date("2026-08-17T12:01:00Z"),
+      });
+      expect(stolen.action).toBe("stolen");
+      const rolled = rollbackAcquiredOccupancy(root, stolen);
+      expect(rolled.action).toBe("released");
+      expect(rolled.message).toContain(OCCUPANCY_STEAL_CLAIM_FIRST_ROLLBACK);
+      expect(readOccupancy(root)).toBeNull();
+    });
+
+    it("skips compare-and-delete when the acquired record is no longer current (#3906)", () => {
+      const root = tempRoot();
+      const claimed = applyWorktreeOccupancy(root, {
+        sessionId: "host:test:v1:old-claim",
+        now: new Date("2026-08-17T12:00:00Z"),
+      });
+      applyWorktreeOccupancy(root, {
+        sessionId: "host:test:v1:new-owner",
+        steal: true,
+        confirm: true,
+        occupant: "host:test:v1:old-claim",
+        now: new Date("2026-08-17T12:01:00Z"),
+      });
+      const rolled = rollbackAcquiredOccupancy(root, claimed);
+      expect(rolled.message).toContain("no longer current");
+      expect(readOccupancy(root)?.sessionId).toBe("host:test:v1:new-owner");
+    });
+
+    it("falls back to sessionId compare when acquired.record is null (#3906)", () => {
+      const root = tempRoot();
+      const claimed = applyWorktreeOccupancy(root, {
+        sessionId: "host:test:v1:null-record",
+        now: new Date("2026-08-17T12:00:00Z"),
+      });
+      const rolled = rollbackAcquiredOccupancy(root, { ...claimed, record: null });
+      expect(rolled.action).toBe("released");
+      expect(readOccupancy(root)).toBeNull();
+    });
+
+    it("does not delete a lease after a later same-id heartbeat (#3906)", () => {
+      const root = tempRoot();
+      const claimed = applyWorktreeOccupancy(root, {
+        sessionId: "host:test:v1:later-hb",
+        now: new Date("2026-08-17T12:00:00Z"),
+      });
+      applyWorktreeOccupancy(root, {
+        sessionId: "host:test:v1:later-hb",
+        now: new Date("2026-08-17T12:01:00Z"),
+      });
+      const rolled = rollbackAcquiredOccupancy(root, claimed);
+      expect(rolled.message).toContain("no longer current");
+      expect(readOccupancy(root)?.sessionId).toBe("host:test:v1:later-hb");
+    });
+
+    it("does not delete a lease after ritual aligned for this session (#3906)", () => {
+      const root = tempRoot();
+      const claimed = applyWorktreeOccupancy(root, {
+        sessionId: "host:test:v1:ritual-keep",
+        now: new Date("2026-08-17T12:00:00Z"),
+      });
+      writeRitualState(
+        root,
+        ritualPayloadFor(
+          root,
+          "host:test:v1:ritual-keep",
+          "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+          new Date("2026-08-17T12:02:00Z"),
+        ),
+      );
+      const rolled = rollbackAcquiredOccupancy(root, claimed);
+      expect(rolled.message).toContain("ritual has aligned");
+      expect(readOccupancy(root)?.sessionId).toBe("host:test:v1:ritual-keep");
+    });
+
+    it("still rolls back when leftover ritual is older than this claim (#3906)", () => {
+      const root = tempRoot();
+      writeRitualState(
+        root,
+        ritualPayloadFor(
+          root,
+          "host:test:v1:old-ritual",
+          "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+          new Date("2026-08-17T11:00:00Z"),
+        ),
+      );
+      const claimed = applyWorktreeOccupancy(root, {
+        sessionId: "host:test:v1:old-ritual",
+        now: new Date("2026-08-17T12:00:00Z"),
+      });
+      const rolled = rollbackAcquiredOccupancy(root, claimed);
+      expect(rolled.action).toBe("released");
+      expect(readOccupancy(root)).toBeNull();
+    });
+
     it("--session-id still binds when this process is the later presenter", () => {
       const root = tempRoot();
       const decision = applyWorktreeOccupancy(root, {
@@ -2977,6 +3112,8 @@ describe("explicit lease membership (#3755)", () => {
         path: "xbrief/active/story.xbrief.json",
         message: "OK active scope",
       }),
+      // #5656: fixture stubs lack merge-base fence bytes; default positive allow.
+      loadStoryWriteFence: () => ({ fileScope: ["**"], denyPaths: [] }),
     };
     const write = {
       host: "grok" as const,

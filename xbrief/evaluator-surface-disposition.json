@@ -1,11 +1,10 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 5159,
+  "issue": 5057,
   "surfaces": [
-    "packages/core/src/class-checks/evaluate.ts",
-    "packages/core/src/class-checks/evaluate.test.ts",
+    "tasks/verify.yml",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renewed disclosure for #5159 class-checks lifecycle-artifact pipeline-path skip. Disclosure only; not #3164 authorization."
+  "note": "Renewed disclosure for #5057 scope-provenance task-desc rewrite. Soft findings are advisory intent-pin drift; --enforce is a no-op. Disclosure only; not #3164 authorization."
 }

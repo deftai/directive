@@ -123,8 +123,10 @@ describe("collectWipCensus", () => {
       authorized_by: "test",
       created_at: "2026-08-23T00:00:00Z",
       updated_at: "2026-08-23T00:00:00Z",
+      generation: 0,
+      source_revision: "",
     };
-    writePlanSequence(root, sequence);
+    writePlanSequence(root, sequence, 0);
     const census = collectWipCensus(root, [10, 11, 12]);
     expect(census.active.map((h) => h.issue)).toEqual([10]);
     expect(census.pending.map((h) => h.issue)).toEqual([11]);

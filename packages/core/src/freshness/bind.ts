@@ -7,6 +7,11 @@
  *
  * Multi-agent hosts MUST pass a stable host session identity when binding and
  * reporting so one session cannot certify another as current.
+ *
+ * Local-only deposit/toolchain freshness (#3911): identity + payloadLoaded
+ * attestation still matter for readiness, but session-bind is not branch,
+ * ordered-plan, scope, occupancy, or lifecycle authority. Keep binds gitignored;
+ * `.deft/GENERATION.json` stays trackable.
  */
 
 import { createHash } from "node:crypto";

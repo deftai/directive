@@ -6,6 +6,7 @@ import {
   type ApplyOccupancyInput,
   applyWorktreeOccupancy,
   type OccupancyDecision,
+  readOccupancy,
   resolveOccupancySessionId,
 } from "./occupancy.js";
 import {
@@ -36,6 +37,14 @@ function stubOccupancy(): OccupancyDecision {
 function ready(projectRoot: string, options: SessionReadyOptions = {}) {
   return runSessionReady(projectRoot, {
     applyOccupancy: stubOccupancy,
+    rollbackAcquiredOccupancy: (root, acquired) => ({
+      action: "released",
+      sessionId: acquired.sessionId,
+      record: null,
+      path: `${root}/.deft/occupancy.json`,
+      message: "occupancy already free",
+      code: 0,
+    }),
     env: {},
     ...options,
     sessionStartOptions: {
@@ -251,7 +260,7 @@ describe("runSessionReady (#2993)", () => {
       "resolved-ready-session",
       "resolved-ready-session",
     ]);
-    expect(occupancyInputs.map((input) => input.write)).toEqual([false, true]);
+    expect(occupancyInputs.map((input) => input.write)).toEqual([true, true]);
     expect(runStart).toHaveBeenCalledWith(
       "/proj",
       expect.objectContaining({ sessionId: "resolved-ready-session" }),
@@ -281,7 +290,7 @@ describe("runSessionReady (#2993)", () => {
     expect(result.code).toBe(1);
     expect(result.message).toContain("nested session:start owner");
     expect(result.message).toContain("Refusing to claim a mismatched lease");
-    expect(occupancyInputs.map((input) => input.write)).toEqual([false]);
+    expect(occupancyInputs.map((input) => input.write)).toEqual([true]);
   });
 
   it("uses an explicit ready identity instead of environment or minting (#3611)", () => {
@@ -362,7 +371,7 @@ describe("runSessionReady (#2993)", () => {
     expect(result.code).toBe(1);
     expect(result.path).toBe(SESSION_READY_FAILED);
     expect(result.message).toContain("Refusing to claim a mismatched lease");
-    expect(occupancyInputs.map((input) => input.write)).toEqual([false]);
+    expect(occupancyInputs.map((input) => input.write)).toEqual([true]);
   });
 
   it("fails closed when ritual ownership changes during the final occupancy claim (#3611)", () => {
@@ -376,7 +385,9 @@ describe("runSessionReady (#2993)", () => {
       verifyRitual: () => okVerify({ boundSessionId: ownerA }),
       applyOccupancy: (_projectRoot, input) => {
         occupancyInputs.push(input);
-        if (input.write === true) ritualOwner = ownerB;
+        if (input.write === true && occupancyInputs.filter((row) => row.write).length >= 2) {
+          ritualOwner = ownerB;
+        }
         return { ...stubOccupancy(), sessionId: ownerA };
       },
     });
@@ -384,7 +395,7 @@ describe("runSessionReady (#2993)", () => {
     expect(result).toMatchObject({ code: 1, path: SESSION_READY_FAILED, sessionId: ownerA });
     expect(result.message).toContain(`post-claim ritual owner ${ownerB}`);
     expect(result.message).toContain("Readiness remains fail-closed");
-    expect(occupancyInputs.map((input) => input.write)).toEqual([false, true]);
+    expect(occupancyInputs.map((input) => input.write)).toEqual([true, true]);
   });
 
   it("does not repeat a confirmed steal after nested session:start claimed occupancy (#3611)", () => {
@@ -431,13 +442,13 @@ describe("runSessionReady (#2993)", () => {
       "/proj",
       expect.objectContaining({
         sessionId: "host:codex:v1:c3RlYWw",
-        steal: true,
+        steal: false,
         confirm: true,
         occupant: "legacy-session",
       }),
     );
     expect(occupancyInputs.map(({ write, steal }) => ({ write, steal }))).toEqual([
-      { write: false, steal: true },
+      { write: true, steal: true },
       { write: true, steal: false },
     ]);
   });
@@ -484,7 +495,7 @@ describe("runSessionReady (#2993)", () => {
     expect(result.path).toBe(SESSION_READY_VERIFIED);
     expect(runStart).toHaveBeenCalledTimes(1);
     expect(occupancyInputs.map(({ write, steal }) => ({ write, steal }))).toEqual([
-      { write: false, steal: true },
+      { write: true, steal: true },
       { write: true, steal: false },
     ]);
   });
@@ -753,7 +764,8 @@ describe("runSessionReady (#2993)", () => {
     const inspectRitual = vi
       .fn()
       .mockReturnValueOnce(failVerify("missing"))
-      .mockReturnValueOnce(failVerify("missing", { tier: "quick" }));
+      .mockReturnValueOnce(failVerify("missing", { tier: "quick" }))
+      .mockReturnValue(failVerify("missing"));
     const runStart = vi.fn(
       (): SessionStartResult => ({
         code: 2,
@@ -778,7 +790,8 @@ describe("runSessionReady (#2993)", () => {
     const inspectRitual = vi
       .fn()
       .mockReturnValueOnce(failVerify("missing"))
-      .mockReturnValueOnce(failVerify("missing", { tier: "quick" }));
+      .mockReturnValueOnce(failVerify("missing", { tier: "quick" }))
+      .mockReturnValue(failVerify("missing"));
     const result = ready("/proj", {
       inspectRitual,
       runStart: () => ({ code: 2, payload: {}, lines: [] }),
@@ -977,25 +990,37 @@ describe("session:ready presented identity (#4409)", () => {
 
 describe("runSessionReady worktree deposit (#4443)", () => {
   it("reconstitutes payload before gated inspect", () => {
-    const reconstituteWorktreeDeposit = vi.fn(() => ({
-      status: "reconstituted",
-      source: "/payload",
-      dest: "/proj/.deft/core",
-      message: "reconstituted .deft/core from local payload",
-    }));
-    const inspectRitual = vi.fn(() => okVerify());
+    const order: string[] = [];
+    const reconstituteWorktreeDeposit = vi.fn(() => {
+      order.push("deposit");
+      return {
+        status: "reconstituted",
+        source: "/payload",
+        dest: "/proj/.deft/core",
+        message: "reconstituted .deft/core from local payload",
+      };
+    });
+    const inspectRitual = vi.fn(() => {
+      order.push("inspect");
+      return okVerify();
+    });
     const verifyRitual = vi.fn(() => okVerify());
     const result = ready("/proj", {
       inspectRitual,
       verifyRitual,
       runStart: vi.fn(),
       fetchAll: vi.fn(),
+      applyOccupancy: (_projectRoot, input) => {
+        if (input.write === true) order.push("occupancy");
+        return stubOccupancy();
+      },
       reconstituteWorktreeDeposit,
     });
     expect(reconstituteWorktreeDeposit).toHaveBeenCalled();
     expect(result.code).toBe(0);
     expect(result.steps[0]).toBe("worktree-deposit");
     expect(result.lines.join("\n")).toContain("reconstituted .deft/core");
+    expect(order.slice(0, 3)).toEqual(["occupancy", "deposit", "inspect"]);
   });
 
   it("fails closed on a refused deposit without claiming success", () => {
@@ -1014,5 +1039,43 @@ describe("runSessionReady worktree deposit (#4443)", () => {
     expect(result.code).toBe(2);
     expect(result.path).toBe(SESSION_READY_FAILED);
     expect(result.message).toContain("symlink escaping");
+  });
+
+  it("rolls back a persist-time claim when reconstitution is refused (#3906)", () => {
+    const root = mkdtempSync(join(tmpdir(), "session-ready-rollback-"));
+    const result = runSessionReady(root, {
+      env: {},
+      sessionId: "host:test:v1:ready-refuse",
+      applyOccupancy: (projectRoot, input) => applyWorktreeOccupancy(projectRoot, input),
+      inspectRitual: vi.fn(() => okVerify()),
+      verifyRitual: vi.fn(() => okVerify()),
+      reconstituteWorktreeDeposit: () => ({
+        status: "refused",
+        source: "/payload",
+        dest: join(root, ".deft", "core"),
+        message: "deposit refused: symlink escaping the project tree",
+      }),
+    });
+    expect(result.code).toBe(2);
+    expect(readOccupancy(root)).toBeNull();
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("rolls back a persist-time claim when reconstitution throws (#3906)", () => {
+    const root = mkdtempSync(join(tmpdir(), "session-ready-copy-throw-"));
+    const result = runSessionReady(root, {
+      env: {},
+      sessionId: "host:test:v1:ready-copy-throw",
+      applyOccupancy: (projectRoot, input) => applyWorktreeOccupancy(projectRoot, input),
+      inspectRitual: vi.fn(() => okVerify()),
+      verifyRitual: vi.fn(() => okVerify()),
+      reconstituteWorktreeDeposit: () => {
+        throw new Error("ENOSPC: no space left on device");
+      },
+    });
+    expect(result.code).toBe(2);
+    expect(result.message).toContain("ENOSPC");
+    expect(readOccupancy(root)).toBeNull();
+    rmSync(root, { recursive: true, force: true });
   });
 });

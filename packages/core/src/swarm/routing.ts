@@ -111,12 +111,48 @@ export interface RouteResolution {
 }
 
 /**
+ * Tree that owns `.deft/routing.local.json` for writes and containment.
+ *
+ * Same main-worktree root `resolveRoutingPath` uses (`git-common-dir` parent).
+ * Linked-worktree sessions must contain against this root, not the linked
+ * checkout, or `swarm:routing-set` refuses the path it just resolved (#3827).
+ * `DEFT_ROUTING_PATH` keeps containment on `startDir` (existing override tests).
+ */
+export function resolveRoutingFileRoot(
+  startDir: string,
+  environ: NodeJS.ProcessEnv = process.env,
+): string {
+  const start = resolve(startDir);
+  const override = environ.DEFT_ROUTING_PATH;
+  if (override !== undefined && override.trim().length > 0) {
+    return start;
+  }
+  try {
+    const out = execFileSync("git", ["rev-parse", "--git-common-dir"], {
+      cwd: startDir,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+    if (out.length > 0) {
+      const commonDir = isAbsolute(out) ? out : resolve(startDir, out);
+      return dirname(commonDir);
+    }
+  } catch {
+    // Not a git work tree -- fall back to startDir.
+  }
+  return start;
+}
+
+/**
  * Resolve the route-file path. Honors the `DEFT_ROUTING_PATH` override first
  * (keeps both maintainer and consumer testable), then reads from the MAIN
  * worktree root via `git rev-parse --git-common-dir` -> parent. The main-root
  * read is deliberate: gitignored/untracked files are NOT copied into
  * `git worktree add` directories, and swarm dispatches leaf coders from
  * worktrees, so every worktree in a cohort must share the one local file.
+ *
+ * Write containment MUST use {@link resolveRoutingFileRoot} for the same
+ * `startDir` so the target and the containment root agree (#3827).
  */
 export function resolveRoutingPath(
   startDir: string,
@@ -126,21 +162,7 @@ export function resolveRoutingPath(
   if (override !== undefined && override.trim().length > 0) {
     return resolve(override.trim());
   }
-  let root = resolve(startDir);
-  try {
-    const out = execFileSync("git", ["rev-parse", "--git-common-dir"], {
-      cwd: startDir,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-    }).trim();
-    if (out.length > 0) {
-      const commonDir = isAbsolute(out) ? out : resolve(startDir, out);
-      root = dirname(commonDir);
-    }
-  } catch {
-    // Not a git work tree -- fall back to startDir.
-  }
-  return join(root, ".deft", ROUTING_FILENAME);
+  return join(resolveRoutingFileRoot(startDir, environ), ".deft", ROUTING_FILENAME);
 }
 
 export function loadRoutingFile(path: string): { data: RoutingFile | null; error: string | null } {

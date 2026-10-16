@@ -377,11 +377,11 @@ describe("runSessionStart requirements persist-fail occupancy rollback (#4444)",
       persistSessionPosture: () => {
         throw new Error("disk full");
       },
-      releaseOccupancy: (_projectRoot, input) => {
-        released.push(input);
+      rollbackAcquiredOccupancy: (_projectRoot, acquired) => {
+        released.push(acquired);
         return {
           action: "released",
-          sessionId: String(input.sessionId),
+          sessionId: acquired.sessionId,
           record: null,
           path: join(root, ".deft", "occupancy.json"),
           message: "occupancy released",
@@ -414,11 +414,11 @@ describe("runSessionStart requirements persist-fail occupancy rollback (#4444)",
       persistSessionPosture: () => {
         throw new Error("disk full");
       },
-      releaseOccupancy: (_projectRoot, input) => {
-        released.push(input);
+      rollbackAcquiredOccupancy: (_projectRoot, acquired) => {
+        released.push(acquired);
         return {
           action: "released",
-          sessionId: String(input.sessionId),
+          sessionId: acquired.sessionId,
           record: null,
           path: join(root, ".deft", "occupancy.json"),
           message: "occupancy released",
