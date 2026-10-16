@@ -503,7 +503,10 @@ function evaluateCandidateValidationLimb(
 
   // Tree-identity / dirty checks reuse pr-head-assert patterns (#4888 / #3875).
   // Non-cascade Prefer-A: require a checked-out PR head so attestation is not for a foreign tree.
-  if (options.requireCandidateValidation === true && (typeof options.localHeadSha !== "string" || options.localHeadSha.length === 0)) {
+  if (
+    options.requireCandidateValidation === true &&
+    (typeof options.localHeadSha !== "string" || options.localHeadSha.length === 0)
+  ) {
     return {
       ok: false,
       outcome: "candidate-validation-local-head-required",
