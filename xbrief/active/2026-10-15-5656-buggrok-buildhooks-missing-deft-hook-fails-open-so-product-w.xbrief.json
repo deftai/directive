@@ -120,7 +120,18 @@
           "packages/core/src/policy/write-fence.ts",
           "content/docs/full-stop.md",
           "content/docs/hook-runtime-unavailable.md",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "docs/RULE-MAP.md",
+          "packages/cli/src/hook-host-identity-lifetime.test.ts",
+          "packages/core/src/hooks/dispatcher-effective-root.test.ts",
+          "packages/core/src/hooks/dispatcher-grok-identity.test.ts",
+          "packages/core/src/hooks/dispatcher-owner-liveness.test.ts",
+          "packages/core/src/hooks/dispatcher-spawn-dest.test.ts",
+          "packages/core/src/hooks/dispatcher-write-gate.test.ts",
+          "packages/core/src/init-deposit/hygiene.ts",
+          "packages/core/src/init-deposit/hygiene.test.ts",
+          "packages/core/src/session/occupancy-stale-ritual-recovery.test.ts",
+          "packages/core/src/session/occupancy.test.ts"
         ],
         "intended_placement": {
           "schema": "deft.scope.intended_placement.v1",
