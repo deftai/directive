@@ -22,6 +22,9 @@ export const ALLOWED_CANDIDATE_VALIDATION_COMMANDS = [
 export type AllowedCandidateValidationCommand =
   (typeof ALLOWED_CANDIDATE_VALIDATION_COMMANDS)[number];
 
+export const CANDIDATE_VALIDATION_PRODUCER =
+  "deft.buildCandidateValidationAttestationFromProbe" as const;
+
 export function normalizeCandidateCommand(command: string): string {
   return command.trim().replace(/\s+/g, " ");
 }
@@ -37,6 +40,8 @@ export function buildCandidateValidationAttestationFromProbe(input: {
   readonly exit_code: number;
   readonly attested_at?: string;
   readonly merge_result_sha?: string | null;
+  /** Blessed producer id — only buildCandidateValidationAttestationFromProbe may set this. */
+  readonly producer: typeof CANDIDATE_VALIDATION_PRODUCER;
 }): CandidateValidationAttestation {
   const command = normalizeCandidateCommand(input.command);
   if (input.exit_code !== 0) {
@@ -67,6 +72,7 @@ export function buildCandidateValidationAttestationFromProbe(input: {
     exit_code: 0,
     attested_at: input.attested_at ?? new Date().toISOString(),
     merge_result_sha: input.merge_result_sha ?? null,
+    producer: CANDIDATE_VALIDATION_PRODUCER,
   };
 }
 
@@ -311,6 +317,13 @@ export function validateCandidateAttestation(
       ", target_head_sha=" +
       targetHeadSha +
       ")."
+    );
+  }
+  if (attestation.producer !== CANDIDATE_VALIDATION_PRODUCER) {
+    return (
+      "Candidate-validation attestation missing blessed producer for evaluateSemanticGreen (#4888). " +
+      "Create attestations only via buildCandidateValidationAttestationFromProbe after a controlled probe; " +
+      "hand-written stamps are not success."
     );
   }
   if (attestation.schema !== CANDIDATE_VALIDATION_SCHEMA) {

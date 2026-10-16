@@ -10,7 +10,7 @@ Maintainer-facing map of how Directive's rules are layered and grouped. This is 
 
 - **Rules:** 25 groupings, 286 documents
 - **Tasks:** 65 namespaces, 287 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
-- **Packs:** 6 source-of-truth packs (718 entries from rules|lessons|patterns|skills|strategies|entries)
+- **Packs:** 6 source-of-truth packs (719 entries from rules|lessons|patterns|skills|strategies|entries)
 
 Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the Taskfile gates that enforce them), and the **Lifecycle** that ties them together.
 
@@ -34,8 +34,8 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | platforms | Platform-specific guidance. | 2 | 94 | 63 | 19 | 16 | 12 |
 | references | External references and citations backing the guidance. | 4 | 19 | 1 | 19 | 0 | 0 |
 | resilience | Failure handling, recovery, and robustness rules. | 2 | 16 | 14 | 15 | 1 | 2 |
-| scm | Source-control conventions and Git/GitHub workflow rules. | 3 | 108 | 34 | 34 | 1 | 3 |
-| skills | Packaged multi-step agent workflows (build, release, interview, triage, review…). | 42 | 597 | 120 | 707 | 0 | 18 |
+| scm | Source-control conventions and Git/GitHub workflow rules. | 3 | 109 | 34 | 36 | 1 | 3 |
+| skills | Packaged multi-step agent workflows (build, release, interview, triage, review…). | 42 | 600 | 120 | 709 | 0 | 18 |
 | strategies | Higher-order approaches: interviewing, decomposition, planning, research, refactoring. | 16 | 318 | 88 | 138 | 0 | 11 |
 | swarm | Multi-agent (swarm) coordination guidance. | 1 | 75 | 15 | 22 | 0 | 0 |
 | templates | Reusable document/scaffold templates. | 11 | 104 | 10 | 55 | 1 | 5 |
@@ -482,7 +482,7 @@ Directive turns a coding agent into an auditable process: load only the guidance
 
 | Pack | Version | Rules | MUST | SHOULD | MUST_NOT |
 |---|--:|--:|--:|--:|--:|
-| `content/packs/lessons/lessons-pack-0.1.json` | 0.1 | 50 | 0 | 0 | 0 |
+| `content/packs/lessons/lessons-pack-0.1.json` | 0.1 | 51 | 0 | 0 | 0 |
 | `content/packs/patterns/patterns-pack-0.1.json` | 0.1 | 12 | 0 | 0 | 0 |
 | `content/packs/rules/rules-pack-0.1.json` | 0.1 | 612 | 303 | 105 | 187 |
 | `content/packs/skills/skills-pack-0.1.json` | 0.1 | 27 | 0 | 0 | 0 |

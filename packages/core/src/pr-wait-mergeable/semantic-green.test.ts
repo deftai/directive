@@ -6,6 +6,7 @@ import { EXIT_CONFIG_ERROR, EXIT_TIMEOUT_OR_ESCALATION } from "./constants.js";
 import {
   ALLOWED_CANDIDATE_VALIDATION_COMMANDS,
   buildCandidateValidationAttestationFromProbe,
+  CANDIDATE_VALIDATION_PRODUCER,
   CANDIDATE_VALIDATION_SCHEMA,
   type CandidateValidationAttestation,
   evaluateNonCascadeCandidateGreen,
@@ -72,6 +73,7 @@ function validAttestation(
     command: "task check",
     exit_code: 0,
     attested_at: "2026-10-08T12:00:00Z",
+    producer: CANDIDATE_VALIDATION_PRODUCER,
   };
 }
 
