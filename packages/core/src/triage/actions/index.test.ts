@@ -319,6 +319,29 @@ describe("formatAcceptOutput", () => {
         ingestMessage: "#1 refuse: multiple owning briefs",
       }),
     ).toContain("#1 refuse: multiple owning briefs");
+    expect(
+      formatAcceptOutput(1, "o/r", null, { disposition: "refused" }),
+    ).toContain("refused (no new proposed artifact)");
+    expect(
+      formatAcceptOutput(2, "o/r", "dec-2", {
+        disposition: "idempotent",
+        ingestMessage: "#2 already accepted (nothing new written)",
+      }),
+    ).toContain("#2 already accepted (nothing new written)");
+    expect(
+      formatAcceptOutput(3, "o/r", "dec-3", {
+        disposition: "created",
+        relativePath: "CREATED proposed/3.xbrief.json",
+      }),
+    ).toContain("CREATED proposed/3.xbrief.json");
+    expect(
+      formatAcceptOutput(4, "o/r", "dec-4", {
+        disposition: "created",
+        ingestMessage: "CREATED proposed/4.xbrief.json\nquality notice",
+      }),
+    ).toBe(
+      "accept #4 (o/r) -> dec-4\nCREATED proposed/4.xbrief.json\noptional: deft-directive-design-critique (declining writes nothing)",
+    );
   });
 });
 
