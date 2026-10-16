@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Fixed**: Land tracked completion record for Grok missing deft-hook fail-open after product #5658. Refs #5656.
 - **Fixed**: Land tracked completion record for ADR-003 deposit Continuity flatten. Refs #4892.
 - **Fixed**: Land tracked completion record for exclusive-create dest on lifecycle folder-moves. Refs #3908.
 - **Fixed**: Prepare approved file permissions for the scope lifecycle exclusive-create dest work. This records approval only; it does not change product behavior. Refs #3908.
