@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Fixed**: Land tracked completion record for setup seed PROJECT-DEFINITION from design doc/answers after product #5662. Refs #4961.
 - **Fixed**: Land tracked completion record for SPECIFICATION export Requirements/AcceptanceCriteria fidelity after product #5661. Refs #4871.
 - **Fixed**: Land tracked completion record for three-axis semantic-green candidate validation. Refs #4888.
 - **Fixed**: Land tracked completion record for Grok missing deft-hook fail-open after product #5658. Refs #5656.
