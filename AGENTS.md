@@ -166,7 +166,7 @@ Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after 
 
 <!-- placeholder -->
 
-<!-- deft:managed-section v3 sha=0.125.2 refreshed=2026-10-16T03:27:03Z session=ebf1bac3121e -->
+<!-- deft:managed-section v3 sha=0.125.2 refreshed=2026-10-16T05:33:48Z session=83f110246161 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md

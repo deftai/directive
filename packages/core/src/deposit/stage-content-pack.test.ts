@@ -88,9 +88,7 @@ describe("stageContentPack (#3937 / #4890)", () => {
       const securityBroken = broken.filter(
         (item) => item.file.replace(/\\/g, "/") === "meta/security.md",
       );
-      expect(securityBroken.map((item) => splitLinkHash(item.target).path)).toEqual([
-        "../../docs/decisions/ADR-003-a2a-nuclear-family-topology.md",
-      ]);
+      expect(securityBroken.map((item) => splitLinkHash(item.target).path)).toEqual([]);
 
       const mainBroken = broken.filter((item) => item.file.replace(/\\/g, "/") === "main.md");
       const mainUnexpected = mainBroken.filter((item) => {
@@ -122,7 +120,6 @@ const NAMED_PACK_RESIDUALS = [
   "../../../CONTRIBUTING.md",
   "../../../docs/RELEASING.md",
   "../../../docs/analysis/2026-08-07-portfolio-priority-brief-patterns-pilot.md",
-  "../../../docs/decisions/ADR-003-a2a-nuclear-family-topology.md",
   "../../../docs/decisions/ADR-005-design-critique-judgment-gate.md",
   "../../../docs/decisions/ADR-006-parent-side-substantiation.md",
   "../../../meta/lessons.md",
@@ -137,7 +134,6 @@ const NAMED_PACK_RESIDUALS = [
   "../../docs/ARCHITECTURE.md",
   "../../docs/CONCEPTS.md",
   "../../docs/analysis/2026-07-31-inter-run-learning-surface.md",
-  "../../docs/decisions/ADR-003-a2a-nuclear-family-topology.md",
   "../../docs/decisions/ADR-005-design-critique-judgment-gate.md",
   "../../docs/decisions/ADR-006-parent-side-substantiation.md",
   "../../docs/openclaw-agent-host.md",

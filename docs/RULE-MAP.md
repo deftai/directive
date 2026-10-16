@@ -8,7 +8,7 @@ Maintainer-facing map of how Directive's rules are layered and grouped. This is 
 
 ## Overview
 
-- **Rules:** 25 groupings, 286 documents
+- **Rules:** 25 groupings, 287 documents
 - **Tasks:** 65 namespaces, 287 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
 - **Packs:** 6 source-of-truth packs (719 entries from rules|lessons|patterns|skills|strategies|entries)
 
@@ -24,7 +24,7 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | contracts | Interface/behavioral contracts the framework enforces. | 16 | 225 | 16 | 146 | 0 | 5 |
 | conventions | Cross-cutting naming, formatting, and repo conventions. | 4 | 16 | 2 | 16 | 0 | 3 |
 | deployments | Provider-specific deployment playbooks (AWS, Azure, GCP, Cloudflare, Vercel, fly.io…). | 52 | 107 | 74 | 24 | 13 | 6 |
-| docs | Explanatory docs and the framework glossary. | 43 | 21 | 12 | 62 | 1 | 3 |
+| docs | Explanatory docs and the framework glossary. | 44 | 21 | 12 | 62 | 1 | 3 |
 | events | Event and signal definitions used across the framework. | 1 | 0 | 0 | 0 | 0 | 0 |
 | incidents | Incident handling and postmortem guidance. | 2 | 0 | 0 | 0 | 0 | 0 |
 | interfaces | Interface definitions and boundaries. | 4 | 119 | 66 | 37 | 2 | 9 |
@@ -137,6 +137,7 @@ _Explanatory docs and the framework glossary._
 - `consumer-issue-label-kit.md` — **Audience:** consumer projects that use Directive (not the `deftai/directive` maintainer repo). **Status:** recommended starter set -- not a mandate. **Related:** [#2611](https://github.com/deftai/directive/issues/2611) (this kit) ·…
 - `cursor-plan-choice.md` — A Cursor conversation records whether to use Directive planning or host-only planning **before the first submitted Plan request**. Literal mode-picker entry is outside this promise.
 - `decision-log.md` — Durable **intent-debt** records for significant agent and operator choices.
+- **decisions/** (1 files)
 - `deft-directive-disable.md` — Use a **root file flag** to turn Directive **enforcement** off for local testing (A/B, DevHammer, ceremony vs loop) **without** permanent project opt-out and **without** deleting the deposit.
 - `delivery-attempt.md` — Deterministic pre-dispatch gate and durable attempt ledger for autonomous **delivery** and **operational-acceptance** loops.
 - `directive-lifecycle.md` — A single-picture mental model of how Deft Directive turns an idea into shipped, auditable work — and keeps doing so as the project grows. It is **not** a one-and-done pipeline; it is two connected phases that loop.
