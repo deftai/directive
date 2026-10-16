@@ -2277,27 +2277,32 @@ export function ingestOne(
     if (!residualMode) {
       // Merge typed refs + Origin owners before classify so competing owners
       // across the two channels refuse instead of early-returning on refs alone.
+      // Refresh refs under the lock (ignore caller-supplied snapshots that may
+      // retain a promoted-away proposed/ path alongside the pending/ Origin hit).
       const ownershipPaths: string[] = [];
+      const refsMap = scanProvenanceRefs(options.vbriefDir);
+      const liveRaw = (refsMap.get(number) ?? []).map((p) => p.replace(/\\/g, "/"));
+      ownershipPaths.push(
+        ...filterExactOwningRelPaths(options.vbriefDir, liveRaw, number, options.repoUrl),
+      );
       if (options.existingRefs?.has(number)) {
         const raw = (options.existingRefs.get(number) ?? []).map((p) => p.replace(/\\/g, "/"));
-        const exact = filterExactOwningRelPaths(options.vbriefDir, raw, number, options.repoUrl);
-        let refPaths = exact;
-        if (refPaths.length === 0 && raw.length > 0) {
-          // Synthetic existingRefs (tests / precomputed) when no on-disk brief exists
-          // at the listed path — still honor the injection. On-disk briefs that fail
-          // exact issue+repo identity are ignored (fall through).
-          const anyOnDisk = raw.some((rel) => {
-            try {
-              return existsSync(join(options.vbriefDir, rel));
-            } catch {
-              return false;
-            }
-          });
-          if (!anyOnDisk) {
-            refPaths = raw;
+        const onDisk = raw.filter((rel) => {
+          try {
+            return existsSync(join(options.vbriefDir, rel));
+          } catch {
+            return false;
           }
+        });
+        if (onDisk.length > 0) {
+          ownershipPaths.push(
+            ...filterExactOwningRelPaths(options.vbriefDir, onDisk, number, options.repoUrl),
+          );
+        } else if (raw.length > 0 && ownershipPaths.length === 0) {
+          // Synthetic existingRefs (tests / precomputed) only when no live
+          // owners were already discovered — never restore a promoted-away path.
+          ownershipPaths.push(...raw);
         }
-        ownershipPaths.push(...refPaths);
       }
       for (const key of originKeys) {
         const hits = origins.get(key) ?? [];
@@ -2823,7 +2828,9 @@ export function ingestSingleForAccept(
       `failed to fetch GitHub issue #${n} from ${repo} (unified cache miss + live gh api fetch failed; see stderr)`,
     );
   }
-  // Wire existingRefs into the in-lock ownership recheck (#4962 Prefer-A Bound).
+  // Do not pre-scan refs here — ingestOne refreshes refs under the plan-id
+  // lock so a concurrent promote cannot leave a stale proposed/ path that
+  // double-counts with the pending/ Origin hit (#4962).
   // Forward ingestOne's notice-bearing third return so triage:accept can
   // print a refused-stamp remediation instead of only the decision id (#3398).
   return ingestOne(issue, {
@@ -2831,6 +2838,5 @@ export function ingestSingleForAccept(
     status: options.status ?? "proposed",
     repoUrl,
     cwd: root,
-    existingRefs: scanProvenanceRefs(vbriefDir),
   });
 }
