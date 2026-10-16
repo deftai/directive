@@ -839,4 +839,29 @@ describe("applying-host SessionStart + multi-host soft-pass (#5676)", () => {
     expect(decision.message).toContain(CURSOR_OWNER);
     expect(decision.message).toContain("--session-id=");
   });
+
+  it("soft-pass still denies when tool cwd is a different worktree", () => {
+    const hookRoot = mkdtempSync(join(tmpdir(), "hook-5676-soft-cwd-a-"));
+    const otherRoot = mkdtempSync(join(tmpdir(), "hook-5676-soft-cwd-b-"));
+    temps.push(hookRoot, otherRoot);
+    publishApplyingHost(hookRoot, { provider: "cursor", rawSessionId: RAW, transport: "native" });
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: hookRoot,
+        payload: {
+          tool_name: "Bash",
+          session_id: RAW,
+          tool_input: {
+            command: `deft session:start --session-id=${CURSOR_OWNER}`,
+            cwd: otherRoot,
+          },
+        },
+      },
+      seams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-identity-conflict" });
+    expect(decision.message ?? "").toMatch(/worktree|same worktree|execution/i);
+  });
 });

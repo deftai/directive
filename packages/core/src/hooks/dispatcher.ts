@@ -123,6 +123,7 @@ import {
   type RoutingHonorSurface,
   type RoutingSpawnClass,
 } from "../swarm/routing-honor.js";
+import { uninspectableLifecycleDenyMessage } from "./classify/host-session-identity.js";
 import {
   applyPatchHarvestedInputUnclassified,
   fieldString,
@@ -147,7 +148,6 @@ import {
   rewriteExactLifecycleCommand,
   toolInputRecord,
 } from "./classify/index.js";
-import { uninspectableLifecycleDenyMessage } from "./classify/host-session-identity.js";
 import {
   type CursorPlanChoiceDeps,
   defaultCursorPlanChoiceDeps,
@@ -3223,7 +3223,7 @@ function tryPublishApplyingHostFromSessionStart(
     const identity = resolveHookHostIdentity(input.host, input.payload, environ);
     if (identity.status !== "ok" || identity.sessionId === null) return;
     const transport: ApplyingHostTransport =
-      identity.provider === "grok" && Boolean(environ.GROK_HOOK_EVENT?.trim())
+      identity.provider === "grok" && environ.GROK_HOOK_EVENT?.trim()
         ? "grok-hook-event"
         : "native";
     // Native Cursor SessionStart must stay cursor even when GROK_SESSION_ID lingers.
@@ -3423,12 +3423,8 @@ function attachLifecycleIdentityRewrite(
     // Resolved provider (e.g. Claude+GROK_HOOK_EVENT → grok), not wire host.
     depositHost: identity.provider,
     depositSessionId: identity.sessionId,
-    namedSessionId:
-      lifecycle.sessionIdStatus === "present" ? (lifecycle.sessionId ?? null) : null,
+    namedSessionId: lifecycle.sessionIdStatus === "present" ? (lifecycle.sessionId ?? null) : null,
   });
-  if (applyingAdmission.kind === "soft-pass") {
-    return decision;
-  }
   if (applyingAdmission.kind === "repair") {
     return denyIdentity("occupancy-identity-conflict", applyingAdmission.message);
   }
@@ -3436,15 +3432,11 @@ function attachLifecycleIdentityRewrite(
     return denyIdentity("occupancy-identity-conflict", applyingAdmission.message);
   }
   const effectiveOwner =
-    applyingAdmission.kind === "enforce"
+    applyingAdmission.kind === "soft-pass" || applyingAdmission.kind === "enforce"
       ? applyingAdmission.record.applyingHostSessionId
       : identity.sessionId;
   const environmentId = (input.environ ?? process.env).DEFT_SESSION_ID?.trim();
-  if (
-    environmentId !== undefined &&
-    environmentId.length > 0 &&
-    environmentId !== effectiveOwner
-  ) {
+  if (environmentId !== undefined && environmentId.length > 0 && environmentId !== effectiveOwner) {
     return denyIdentity(
       "occupancy-identity-conflict",
       `Directive denied ${toolName}: host owner ${effectiveOwner} conflicts with ` +
@@ -3476,6 +3468,10 @@ function attachLifecycleIdentityRewrite(
         `Run the lifecycle command from ${normalizeHookProjectRoot(resolve(input.projectRoot))} ` +
         "so policy, lease, and ritual state target the same worktree.",
     );
+  }
+  // Soft-pass still requires same-worktree execution before skipping rewrite (#5676).
+  if (applyingAdmission.kind === "soft-pass") {
+    return decision;
   }
   const rewriteAllowed = lifecycle.rewriteSafe && sourceTask;
   if (lifecycle.sessionIdStatus === "absent" && !rewriteAllowed) {
