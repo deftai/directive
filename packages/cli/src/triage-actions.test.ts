@@ -105,6 +105,18 @@ describe("run", () => {
     expect(run(["accept", "--repo", "deftai/directive"])).toBe(2);
   });
 
+  it("parses --auto-promote for accept (#4962)", () => {
+    const parsed = parseArgs([
+      "accept",
+      "--issue=1",
+      "--repo=o/r",
+      "--auto-promote",
+      "--force",
+    ]);
+    expect(parsed.autoPromote).toBe(true);
+    expect(parsed.force).toBe(true);
+  });
+
   it("returns 2 for mark-duplicate with invalid --of", () => {
     expect(
       run(["mark-duplicate", "--issue", "7", "--repo", "deftai/directive", "--of", "abc"]),
