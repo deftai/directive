@@ -525,6 +525,47 @@ describe("accept", () => {
     expect(existsSync(join(root, "xbrief", "proposed", "b.xbrief.json"))).toBe(true);
   });
 
+  it("refuses re-accept when the owning brief is completed (#4962)", () => {
+    const root = makeRepo();
+    mkdirSync(join(root, "xbrief", "completed"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "completed", "done.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8", description: "#57", updated: "2026-08-01T00:00:00Z" },
+        plan: {
+          title: "done",
+          status: "completed",
+          narratives: {
+            Origin: "Ingested from https://github.com/deftai/directive/issues/57",
+          },
+          items: [],
+          references: [
+            {
+              type: "x-xbrief/github-issue",
+              uri: "https://github.com/deftai/directive/issues/57",
+            },
+          ],
+          updated: "2026-08-01T00:00:00Z",
+        },
+      }),
+    );
+    const prior: AuditEntry = {
+      decision_id: "prior-completed",
+      timestamp: "2026-06-18T12:00:00Z",
+      repo: "deftai/directive",
+      issue_number: 57,
+      decision: "accept",
+      actor: "agent:test",
+    };
+    const deps = fakeDeps(root, { latest: prior });
+    const outcome = accept(57, "deftai/directive", deps, { projectRoot: root });
+    expect(outcome.disposition).toBe("refused");
+    expect(outcome.decisionId).toBeNull();
+    expect(outcome.relativePath).toBe("completed/done.xbrief.json");
+    expect(outcome.ingestMessage).toContain("already ingested at completed/done.xbrief.json");
+    expect(outcome.ingestMessage).toMatch(/issue:ingest --residual/);
+  });
+
   it("refuses re-accept when typed-ref and Origin-only owners compete (#4962)", () => {
     const root = makeRepo();
     mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });

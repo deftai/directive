@@ -10,6 +10,10 @@ import {
   scanProvenanceRefs,
 } from "../../intake/issue-ingest.js";
 import { issueOriginKey } from "../../intake/reconcile-issues.js";
+import {
+  formatCompletedDuplicateWithResidualRecovery,
+  isTerminalRelPath,
+} from "../../intake/residual-identity.js";
 import { resolveLifecycleRoot } from "../../layout/resolve.js";
 import { call } from "../../scm/call.js";
 import { ScmStubError } from "../../scm/errors.js";
@@ -155,7 +159,8 @@ function toRelativeLifecyclePath(projectRoot: string, absPath: string | null): s
 type OwningBriefResolution =
   | { kind: "none" }
   | { kind: "single"; relPath: string }
-  | { kind: "ambiguous"; relPaths: string[] };
+  | { kind: "ambiguous"; relPaths: string[] }
+  | { kind: "terminal"; relPath: string; message: string };
 
 function formatMultipleOwningBriefsMessage(
   issueNumber: number,
@@ -180,7 +185,13 @@ function resolveOwningBriefs(
     const live: string[] = [];
     const consider = (rel: string): void => {
       const folder = rel.split(/[/\\]/)[0] ?? "";
-      if (folder !== "proposed" && folder !== "pending" && folder !== "active") {
+      if (
+        folder !== "proposed" &&
+        folder !== "pending" &&
+        folder !== "active" &&
+        folder !== "completed" &&
+        folder !== "cancelled"
+      ) {
         return;
       }
       try {
@@ -217,11 +228,24 @@ function resolveOwningBriefs(
       }
     }
     const unique = [...new Set(live)].sort();
-    if (unique.length === 1) {
-      return { kind: "single", relPath: unique[0] as string };
+    const terminals = unique.filter((p) => isTerminalRelPath(p));
+    const nonTerminals = unique.filter((p) => !isTerminalRelPath(p));
+    if (terminals.length > 0 && nonTerminals.length === 0) {
+      if (terminals.length === 1) {
+        const relPath = terminals[0] as string;
+        return {
+          kind: "terminal",
+          relPath,
+          message: formatCompletedDuplicateWithResidualRecovery(issueNumber, relPath),
+        };
+      }
+      return { kind: "ambiguous", relPaths: terminals };
     }
-    if (unique.length > 1) {
+    if (nonTerminals.length > 1 || (nonTerminals.length >= 1 && terminals.length >= 1)) {
       return { kind: "ambiguous", relPaths: unique };
+    }
+    if (nonTerminals.length === 1) {
+      return { kind: "single", relPath: nonTerminals[0] as string };
     }
   } catch {
     /* ignore */
@@ -520,6 +544,14 @@ export function accept(
         disposition: "refused",
         relativePath: null,
         ingestMessage: formatMultipleOwningBriefsMessage(issueNumber, owning.relPaths),
+      };
+    }
+    if (owning.kind === "terminal") {
+      return {
+        decisionId: null,
+        disposition: "refused",
+        relativePath: owning.relPath,
+        ingestMessage: owning.message,
       };
     }
     const owningRel = owning.kind === "single" ? owning.relPath : null;
