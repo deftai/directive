@@ -73,4 +73,4 @@ opkg uninstall @deftai/deft-directive-skills
 
 ## AGENTS.md contract
 
-Consumer AGENTS.md stays **pointer-thin** — run `npx deft packs:slice skills list` before improvising; do not enumerate skills in the managed section (#2371 / Q1).
+Consumer AGENTS.md stays **pointer-thin** — run `directive packs:slice skills list` before improvising; do not enumerate skills in the managed section (#2371 / Q1). ⊗ Teach npx / pnpm-exec shortcuts as discovery (AC9.11 / AC13.8).

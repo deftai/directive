@@ -9,10 +9,9 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 The following tools must be installed before working on Deft:
 
 - **Node.js 24** (`.nvmrc` and root `engines.node`) and **pnpm** — required for the TypeScript CLI (`packages/cli`), test suite, and publish jobs in this repository. Consumer installs of `@deftai/directive` stay on a separate Node 20+ floor.
-- **Go 1.22+** — required for building the installer (`cmd/deft-install/`)
 - **task** — Taskfile runner ([taskfile.dev](https://taskfile.dev))
 
-Python is not required for the CLI or the default test suite. The retired root `run` launcher and `uv run python` CLI are gone.
+Python is not required for the CLI or the default test suite. The retired root `run` launcher and `uv run python` CLI are gone. The Go installer (`cmd/deft-install/`) is **deleted** (AC10.10) — do not install Go to build or run it.
 
 ## Grok Build as parent (#4035)
 
@@ -23,13 +22,12 @@ Verify your toolchain:
 ```bash
 node --version    # v24 or later
 pnpm --version    # any recent version
-go version        # go1.22 or later
 task --version    # any recent version
 ```
 
 ## Windows quickstart (#902)
 
-A fresh Windows maintainer can bootstrap the entire toolchain with a single command. This wraps the canonical `winget` package ids for Go, Python 3.12, uv, Task, and the GitHub CLI, then refreshes the running shell's `PATH` so the new binaries are visible without launching a new session.
+A fresh Windows maintainer can bootstrap the entire toolchain with a single command. This wraps the canonical `winget` package ids for Node-adjacent tools (Python 3.12, uv, Task, and the GitHub CLI where still used), then refreshes the running shell's `PATH` so the new binaries are visible without launching a new session. Go is **not** required — the Go installer is deleted (AC10.10).
 
 One-line bootstrap (preferred):
 
@@ -51,13 +49,12 @@ If you launched your shell **before** running the bootstrap (or before any `wing
 . scripts\refresh-path.ps1
 ```
 
-The helper merges the system PATH (`HKLM:\System\CurrentControlSet\Control\Session Manager\Environment\Path`) and user PATH (`HKCU:\Environment\Path`), de-duplicates while preserving order, and assigns `$env:PATH` in the current session. This is the same registry-key contract the Go installer's `refreshPathFromRegistry()` helper uses (#899) -- both surfaces read from the exact same two keys.
+The helper merges the system PATH (`HKLM:\System\CurrentControlSet\Control\Session Manager\Environment\Path`) and user PATH (`HKCU:\Environment\Path`), de-duplicates while preserving order, and assigns `$env:PATH` in the current session. (Historical note: the deleted Go installer used the same two registry keys in `refreshPathFromRegistry()` — #899.)
 
 ### Manual fallback (no winget)
 
 If `winget` is unavailable on your host, install each tool from its official source:
 
-- **Go** -- https://go.dev/dl/
 - **Python 3.12+** -- https://www.python.org/downloads/windows/
 - **uv** -- https://docs.astral.sh/uv/getting-started/installation/
 - **Task** -- https://taskfile.dev/installation/
@@ -137,18 +134,16 @@ task check
 
 ### Linux / WSL Maintainer Bootstrap
 
-If you are bootstrapping a framework checkout with a published `deft-install`
-binary, use maintainer mode:
+Framework-source checkout bootstrap is **Node/pnpm only** (OVPR / AC10.10):
 
 ```bash
-deft-install --yes --upgrade --maintainer --repo-root /path/to/directive --json
+pnpm install
+task check
 ```
 
-Maintainer mode validates that `--repo-root` is a `deftai/directive` checkout,
-reports core setup status, and skips consumer projections such as `AGENTS.md`,
-`.gitignore`, `.gitattributes`, guard workflows, consumer `vbrief/` scaffolding,
-and root Taskfile wiring. That keeps the maintainer-owned repository files from
-being rewritten by the consumer installer path.
+Consumer install/repair (separate from contributing to this repo) uses the global
+launcher: `npm i -g @deftai/directive`, then `directive install` / `directive install --repair`.
+Do **not** run deleted `deft-install` binaries.
 
 `ghx` is maintainer and swarm tooling: it speeds up repeated read-only GitHub API
 calls and helps protect shared rate limits. Consumer projects require `gh` for
@@ -236,27 +231,14 @@ task check                     # merge chokepoint -- full gate
 task project:render            # Refresh project definition exports
 ```
 
-## Building the Go Installer
+## Go installer — deleted (AC10.10)
 
-The Go installer lives in `cmd/deft-install/`. Build it with:
-
-```bash
-go build ./cmd/deft-install/
-```
-
-This produces a `deft-install` binary (or `deft-install.exe` on Windows) in the current directory.
-
-To run the installer directly without building first:
-
-```bash
-go run ./cmd/deft-install/
-```
-
-To run the installer's tests:
-
-```bash
-go test ./cmd/deft-install/
-```
+> **Historical / archaeology only.** `cmd/deft-install/` and the Go installer
+> binaries are **deleted**. Do not `go build` / `go run` / `go test` that path,
+> and do not teach `deft-install` as a current bootstrap. Current consumer path:
+> `npm i -g @deftai/directive` then `directive install` / `upgrade` /
+> `install --repair` / `doctor`. Maintainer work on this checkout uses Node/pnpm
+> above.
 
 ## CHANGELOG entry style (#1242)
 

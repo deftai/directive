@@ -758,7 +758,9 @@ describe("test_swarm_skill", () => {
     expect(host).toContain("launch");
     expect(host).toContain("status");
     expect(host).toContain("#4202");
-    expect(host).toContain("npx @deftai/directive doctor");
+    expect(host).toContain("directive doctor");
+    expect(host).toContain("directive install --repair");
+    expect(host).not.toMatch(/\bnpx\s+(-y\s+)?@deftai\/directive\b/);
     expect(host).not.toMatch(/design-critique thin skill/);
   });
 

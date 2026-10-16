@@ -9,9 +9,13 @@ vars:
 tasks:
 
   install:
-    desc: Install deft (dev convenience -- end users should use the compiled binary from GitHub Releases)
+    desc: "OVPR install via global launcher (Go installer deleted AC10.10). Prefer: npm i -g @deftai/directive && directive install"
     cmds:
-      - go run ./cmd/deft-install/
+      - |
+        echo "error: task install no longer runs cmd/deft-install (deleted AC10.10)." >&2
+        echo "Use: npm i -g @deftai/directive && directive install" >&2
+        echo "Wiring-only recovery: npm i -g @deftai/directive && directive install --repair" >&2
+        exit 1
 
   uninstall:
     desc: Remove deft entry from AGENTS.md
