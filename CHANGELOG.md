@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 - **Fixed**: Land tracked completion record for Harbor UUID lease / Write-hook split-brain after product #5679. Refs #5544.
+- **Fixed**: Record intent-constraint mint for #5676 publishApplyingHost invariant throw-site. This records approval only; it does not change product behavior. Refs #5676.
 - **Fixed**: Land tracked completion record for coverage waived-exit-4 / residual deposit wiring after product #5681. Refs #5674.
 - **Fixed**: Harbor/bootstrap no longer UUID-mints a mutation lease when a declared agent host will attach. Claim, release, and the Write hook share one lease-root view (occupancyFile= / hook ffectiveRoot), and minted+host-shaped presenters get a closed occupancy:steal then ceremony recovery path that names --project-root. Tracking #5544. Refs #4624.
 - **fix(coverage): wire gate-override waived exit-4 into hotspots/pre-PR and inert residual deposit markers (#5674).** Eligible refuse + grant-bound attemptId admits via `admitGateOverrideForAttempt` and emits exit 4 with a distinct waived token (never exit 0); measured Istanbul floor/headroom failure still dominates when a report exists. Pre-PR `coverage_headroom` accepts exit 4 only after reloading admission and matching refuse/base/head/tree/attemptId. Exact `.deft/core/VERSION` + ten lifecycle `.gitkeep` paths classify inert; `.deft/core/run`, hooks, codeql, and approved-scope stay unknown (#5677). Tracking #5674. Refs #5665 #5542 #5675 #5677.
