@@ -1,0 +1,252 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5656",
+    "updated": "2026-10-16T00:12:51Z"
+  },
+  "plan": {
+    "title": "bug(grok-build,hooks): missing deft-hook fails open, so product writes and implement spawns proceed with no scope xBRIEF",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(grok-build,hooks): missing deft-hook fails open, so product writes and implement spawns proceed with no scope xBRIEF",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5656",
+      "Overview": "## Summary\n\nOn Grok Build, a registered Directive `PreToolUse` hook did not run, and the host did not deny the tools. An implement worker wrote product code and opened a pull request with no scope xBRIEF for that work.\n\nThe story-start gate (`scope:promote`, `scope:activate`, `xbrief:preflight`) exists as prose and as a CLI. It is not a fail-closed gate on this host when `deft-hook` is absent.\n\n## What happened\n\nConsumer: `deftai/deftvisage`. Host: Grok Build on macOS. Deposit pin: `@deftai/dire\n\n## Prefer-A Bound\nImplement Prefer-A Bound Recut3 https://github.com/deftai/directive/issues/5656#issuecomment-6201860683 (closes P1–P4). Tracking/Refs only on product PR.",
+      "Labels": "bug, agent-experience, process, source-of-truth, urgent, area:cli, dogfood, design-critique:ingest-ready, framework-gap, core-capabilities, promise:lifecycle, promise:gates, promise:swarm"
+    },
+    "items": [
+      {
+        "id": "item.1",
+        "status": "pending",
+        "title": "Outer deny for missing or non-decision deft-hook on Grok via attested host fail-closed or observable wrapper plus durable gate-off record (closes P1 and P3).",
+        "x-directive/artifact_path": "packages/core/src/init-deposit/agent-hooks.ts"
+      },
+      {
+        "id": "item.2",
+        "status": "pending",
+        "title": "Update FAIL_CLOSED travel class and recovery docs so Grok is not described as universally fail-open once authority lands.",
+        "x-directive/artifact_path": "packages/core/src/init-deposit/hook-runtime-travel.ts"
+      },
+      {
+        "id": "item.3",
+        "status": "pending",
+        "title": "Rewrite full-stop recovery prose for Grok fail-closed authority and silent gate-loss naming.",
+        "x-directive/artifact_path": "content/docs/full-stop.md"
+      },
+      {
+        "id": "item.4",
+        "status": "pending",
+        "title": "Rewrite hook-runtime-unavailable recovery prose for Grok fail-closed authority.",
+        "x-directive/artifact_path": "content/docs/hook-runtime-unavailable.md"
+      },
+      {
+        "id": "item.5",
+        "status": "pending",
+        "title": "Require positive governing allow coverage for writes and implement spawn; refuse deny-only and active-fence-alone admission (closes P4).",
+        "x-directive/artifact_path": "packages/core/src/hooks/scope.ts"
+      },
+      {
+        "id": "item.6",
+        "status": "pending",
+        "title": "Add pathless and deny-only sole-brief fixtures that deny Write and implement spawn.",
+        "x-directive/artifact_path": "packages/core/src/hooks/dispatcher.test.ts"
+      },
+      {
+        "id": "item.7",
+        "status": "pending",
+        "title": "Add prospective commit scope-cover gate for staged index paths without historical rewrite (closes P2).",
+        "x-directive/artifact_path": "packages/core/src/hooks/dispatcher.ts"
+      },
+      {
+        "id": "item.8",
+        "status": "pending",
+        "title": "Record Unreleased Fixed note for Tracking issue 5656.",
+        "x-directive/artifact_path": "CHANGELOG.md"
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "urgent",
+      "area:cli",
+      "dogfood",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:lifecycle",
+      "promise:gates",
+      "promise:swarm"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5656",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5656: bug(grok-build,hooks): missing deft-hook fails open, so product writes and implement spawns proceed with no scope xBRIEF"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "deft-hook",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L28"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "grok-hooks-missing-deft-hook-fail-open",
+        "expected_outputs": [
+          "Grok outer deny when deft-hook missing/non-decision",
+          "positive allow coverage for writes/implement spawn",
+          "prospective git scope-cover gate",
+          "CHANGELOG Fixed #5656"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/init-deposit/agent-hooks.test.ts packages/core/src/init-deposit/hook-runtime-travel.test.ts packages/core/src/hooks/scope.test.ts packages/core/src/hooks/dispatcher.test.ts"
+        ],
+        "file_scope": [
+          "packages/core/src/init-deposit/agent-hooks.ts",
+          "packages/core/src/init-deposit/agent-hooks.test.ts",
+          "packages/core/src/init-deposit/hook-runtime-travel.ts",
+          "packages/core/src/init-deposit/hook-runtime-travel.test.ts",
+          "packages/core/src/hooks/scope.ts",
+          "packages/core/src/hooks/scope.test.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "packages/core/src/policy/write-fence.ts",
+          "content/docs/full-stop.md",
+          "content/docs/hook-runtime-unavailable.md",
+          "CHANGELOG.md"
+        ],
+        "intended_placement": {
+          "schema": "deft.scope.intended_placement.v1",
+          "files": [
+            "packages/core/src/init-deposit/agent-hooks.ts",
+            "packages/core/src/init-deposit/agent-hooks.test.ts",
+            "packages/core/src/init-deposit/hook-runtime-travel.ts",
+            "packages/core/src/init-deposit/hook-runtime-travel.test.ts",
+            "packages/core/src/hooks/scope.ts",
+            "packages/core/src/hooks/scope.test.ts",
+            "packages/core/src/hooks/dispatcher.ts",
+            "packages/core/src/hooks/dispatcher.test.ts",
+            "packages/core/src/policy/write-fence.ts",
+            "content/docs/full-stop.md",
+            "content/docs/hook-runtime-unavailable.md",
+            "CHANGELOG.md"
+          ],
+          "module_boundary": "packages/core/src/init-deposit + packages/core/src/hooks",
+          "cohesion_exemption": "dispatcher.ts, dispatcher.test.ts, and CHANGELOG.md already exceed FILE_SIZE_REVIEW_TRIGGER_LINES. This Prefer-A Bound slice lands outer deny / positive-allow / prospective scope-cover beside those existing modules; splitting them is out of this story (#1488 / #3424)."
+        }
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/init-deposit/agent-hooks.ts",
+          "packages/core/src/init-deposit/agent-hooks.test.ts",
+          "packages/core/src/init-deposit/hook-runtime-travel.ts",
+          "packages/core/src/init-deposit/hook-runtime-travel.test.ts",
+          "packages/core/src/hooks/scope.ts",
+          "packages/core/src/hooks/scope.test.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "packages/core/src/policy/write-fence.ts",
+          "content/docs/full-stop.md",
+          "content/docs/hook-runtime-unavailable.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/init-deposit + packages/core/src/hooks",
+        "cohesion_exemption": "dispatcher.ts, dispatcher.test.ts, and CHANGELOG.md already exceed FILE_SIZE_REVIEW_TRIGGER_LINES. This Prefer-A Bound slice lands outer deny / positive-allow / prospective scope-cover beside those existing modules; splitting them is out of this story (#1488 / #3424)."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5873050134,
+        "origin": "deftai/directive#5656",
+        "id": "github.issue.5873050134"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "045fec0bbd81e122ac2b4e2275f938d378f509b2d0ebb10e828bb660cdb18389"
+      },
+      "preferABoundCite": 6201860683,
+      "githubIssueNumber": 5656
+    },
+    "acceptance": {
+      "none_stated": true,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Outer deny for missing or non-decision deft-hook on Grok via attested host fail-closed or observable wrapper plus durable gate-off record (closes P1 and P3).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Update FAIL_CLOSED travel class and recovery docs so Grok is not described as universally fail-open once authority lands.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Rewrite full-stop recovery prose for Grok fail-closed authority and silent gate-loss naming.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Rewrite hook-runtime-unavailable recovery prose for Grok fail-closed authority.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Require positive governing allow coverage for writes and implement spawn; refuse deny-only and active-fence-alone admission (closes P4).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Add pathless and deny-only sole-brief fixtures that deny Write and implement spawn.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Add prospective commit scope-cover gate for staged index paths without historical rewrite (closes P2).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Record Unreleased Fixed note for Tracking issue 5656.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "commands": [],
+      "source_rung": "derived",
+      "derived_reason": "derived 8 independently testable clauses from the task statement before product edit (#3323)",
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "Prefer-A Bound Recut3 6201860683 (later-arc rebind of Recut2 6201774757).",
+        "Pain-audit 6201882690 finding-classes: none harvest-changed: false.",
+        "design-critique:ingest-ready stamped before ingest; operator through-merge if ingest-ready."
+      ]
+    },
+    "id": "github.issue.5873050134",
+    "updated": "2026-10-16T00:12:51Z"
+  }
+}
