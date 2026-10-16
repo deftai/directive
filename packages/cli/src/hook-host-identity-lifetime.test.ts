@@ -157,6 +157,9 @@ function fixtureProject(): { root: string; head: string } {
       plan: {
         status: "running",
         metadata: {
+          swarm: {
+            file_scope: ["src/**"],
+          },
           intended_placement: {
             schema: "deft.scope.intended_placement.v1",
             files: ["src/app.ts"],
@@ -182,7 +185,12 @@ function runHookPayload(root: string, payload: Record<string, unknown>): Record<
     {
       input: JSON.stringify(payload),
       encoding: "utf8",
-      env: directiveFreeChildEnv(),
+      env: {
+        ...directiveFreeChildEnv(),
+        // Fixture repos have no origin; bind merge-base fence to HEAD so the
+        // committed swarm.file_scope admits Write under #5656 positive allow.
+        DEFT_BASE_REF: "HEAD",
+      },
     },
   );
   expect(child.status, child.stderr).toBe(0);

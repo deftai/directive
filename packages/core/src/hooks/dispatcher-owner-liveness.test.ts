@@ -64,6 +64,8 @@ function readySeams(): HookPolicySeams {
     sessionStart: () => ({ code: 0, stdout: "", stderr: "" }),
     runningInsideDeftRepo: () => true,
     realpathLifecycleExecutionRoot: (path: string) => resolve(path),
+    // #5656: fixture stubs lack merge-base fence bytes; default positive allow.
+    loadStoryWriteFence: () => ({ fileScope: ["**"], denyPaths: [] }),
   };
 }
 

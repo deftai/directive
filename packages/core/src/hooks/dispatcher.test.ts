@@ -3683,6 +3683,32 @@ describe("runtime authority policy (#1394)", () => {
     expect(denyOnly.ok).toBe(false);
   });
 
+  it("evaluateProspectiveScopeCover skips lifecycle/installer-only staged sets (#5656)", () => {
+    const lifecycleOnly = evaluateProspectiveScopeCover({
+      projectRoot: "/project",
+      stagedRelPaths: [
+        "xbrief/proposed/story.xbrief.json",
+        ".grok/hooks/deft.json",
+        ".cursor/hooks.json",
+      ],
+      inspectScope: () => ({ ready: false, path: null, message: "no running scope" }),
+      loadStoryWriteFence: () => ({ fileScope: [], denyPaths: [] }),
+      env: {},
+    });
+    expect(lifecycleOnly.ok).toBe(true);
+    expect(lifecycleOnly.message).toMatch(/Lifecycle\/installer-only/);
+
+    const mixed = evaluateProspectiveScopeCover({
+      projectRoot: "/project",
+      stagedRelPaths: ["src/a.ts", "xbrief/active/story.xbrief.json"],
+      inspectScope: () => READY_SCOPE,
+      loadStoryWriteFence: () => ({ fileScope: ["src/**"], denyPaths: [] }),
+      env: {},
+    });
+    expect(mixed.ok).toBe(true);
+    expect(mixed.uncovered).toEqual([]);
+  });
+
   it("Shell git commit denies when staged paths fail prospective scope-cover (#5656)", () => {
     const decision = decideHook(
       {

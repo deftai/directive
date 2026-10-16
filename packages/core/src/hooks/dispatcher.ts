@@ -692,6 +692,14 @@ function authzForMutationTargets(
     scopePath: string | null;
     runGit?: GitRunner;
     projectRoot: string;
+    /**
+     * When true, permission checks run but single-use grants are not spent yet.
+     * Caller must {@link consumePendingSingleUseGrants} after later write gates pass
+     * (#5656 Greptile: denied writes must not spend approvals).
+     */
+    deferGrantConsume?: boolean;
+    /** Out-bag for deferred grant refs when `deferGrantConsume` is set. */
+    pendingConsumeOut?: string[];
   },
 ): HookDecision | null {
   // Decode file: URIs before approval / protected-store checks (#5366 Greptile P1).
@@ -722,17 +730,28 @@ function authzForMutationTargets(
     });
     if (denied !== null) return denied;
   }
+  if (options.deferGrantConsume) {
+    if (options.pendingConsumeOut !== undefined) {
+      for (const ref of pendingConsume) options.pendingConsumeOut.push(ref);
+    }
+    return null;
+  }
+  consumePendingSingleUseGrants(options.projectRoot, pendingConsume);
+  return null;
+}
+
+/** Persist single-use grant spend after remaining write gates have passed. */
+function consumePendingSingleUseGrants(projectRoot: string, refs: readonly string[]): void {
   const seen = new Set<string>();
-  for (const ref of pendingConsume) {
+  for (const ref of refs) {
     if (seen.has(ref)) continue;
     seen.add(ref);
     try {
-      markGrantUsed(options.projectRoot, ref);
+      markGrantUsed(projectRoot, ref);
     } catch {
       // Persistence failure must not flip allow after a successful check.
     }
   }
-  return null;
 }
 
 function requirementsFencePolicy(): RuntimeAuthorityPolicy {
@@ -2282,9 +2301,9 @@ function inspectMutationGates(
   // Write and implement-class spawn once a brief is selected. Deny-only /
   // pathless / active-fence-alone do not admit. Outside-root #2885 fallthrough
   // (scope not ready) must not hit this gate.
-  // Write: authz (UAT) runs first so authz-* remains the visible code under an
-  // active UAT lease; positive-allow still denies pathless briefs when authz
-  // does not. Spawn: positive-allow before allow.
+  // Write: authz permission check first (UAT visible codes), but defer single-use
+  // grant spend until positive-allow + runtimeAuthority also pass (#5656 Greptile).
+  // Spawn: positive-allow before allow.
   const requirePositiveGoverningAllow = (): HookDecision | null => {
     if (!(scope.ready && scope.path !== null)) return null;
     const loadFence = seams.loadStoryWriteFence ?? loadStoryWriteFenceFromMergeBase;
@@ -2302,11 +2321,14 @@ function inspectMutationGates(
   };
   if (!isSpawnTool(toolName)) {
     // Wave 1 authz (UAT lease + human-origin grant) before runtimeAuthority (#2944 / #2948 L1–L2).
+    const pendingGrantConsume: string[] = [];
     const authzDeny = authzForMutationTargets(input, toolName, seams, {
       isDirectWrite: true,
       scopePath: scope.path,
       runGit: dispatchGit,
       projectRoot,
+      deferGrantConsume: true,
+      pendingConsumeOut: pendingGrantConsume,
     });
     if (authzDeny !== null) return authzDeny;
     const positiveDeny = requirePositiveGoverningAllow();
@@ -2319,6 +2341,7 @@ function inspectMutationGates(
       effectiveRoot,
     );
     if (runtimeDeny !== null) return runtimeDeny;
+    consumePendingSingleUseGrants(projectRoot, pendingGrantConsume);
     // Intentional product-write allow: Prefer-A durable marker (#5176 / #4544).
     const occupancyDeny = recheckOccupancyBeforeWriteAllow(true);
     if (occupancyDeny !== null) return occupancyDeny;
@@ -4397,6 +4420,8 @@ function decideProspectiveGitCommitScopeCover(
  * Prospective staged/index scope-cover gate (#5656 Prefer-A Bound limb 3).
  * Refuses when any staged product path lacks covering running-scope governing
  * allow `file_scope`. Does not rewrite or bless historical uncovered commits.
+ * Lifecycle/installer-only staged sets skip product coverage (setup deposits +
+ * xBRIEF lifecycle commits before the first activate) (#5656 Greptile).
  * Reachability residuals: `verify:hooks-installed` and `--no-verify`.
  */
 export interface ProspectiveScopeCoverInput {
@@ -4418,6 +4443,27 @@ export interface ProspectiveScopeCoverResult {
   readonly scopePath: string | null;
 }
 
+/**
+ * Lifecycle xBRIEF trees and Directive host-hook deposit paths are not product
+ * coverage targets for prospective git-commit scope-cover (#5656).
+ */
+export function isLifecycleOrInstallerRelPath(relPathPosix: string): boolean {
+  const p = relPathPosix.replace(/\\/g, "/").replace(/^\.\//, "");
+  if (p.length === 0) return false;
+  if (p === ".cursor/hooks.json" || p === ".codex/hooks.json") return true;
+  if (p === ".deft/hook-gate-off.json") return true;
+  if (
+    p.startsWith("xbrief/") ||
+    p.startsWith("vbrief/") ||
+    p.startsWith(".claude/") ||
+    p.startsWith(".grok/hooks/") ||
+    p.startsWith(".cursor/hooks/")
+  ) {
+    return true;
+  }
+  return false;
+}
+
 export function evaluateProspectiveScopeCover(
   input: ProspectiveScopeCoverInput,
 ): ProspectiveScopeCoverResult {
@@ -4433,6 +4479,16 @@ export function evaluateProspectiveScopeCover(
       scopePath: null,
     };
   }
+  const productStaged = staged.filter((rel) => !isLifecycleOrInstallerRelPath(rel));
+  if (productStaged.length === 0) {
+    return {
+      ok: true,
+      message:
+        "Lifecycle/installer-only staged set; product prospective scope-cover not required (#5656).",
+      uncovered: [],
+      scopePath: null,
+    };
+  }
   const scope = (input.inspectScope ?? inspectActiveScope)(projectRoot, {
     env: input.env ?? {},
   });
@@ -4442,7 +4498,7 @@ export function evaluateProspectiveScopeCover(
       message:
         `Prospective scope-cover denied: no ready running scope for staged paths (#5656). ` +
         `${scope.message} Recovery: ${SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE}.`,
-      uncovered: staged,
+      uncovered: productStaged,
       scopePath: null,
     };
   }
@@ -4454,7 +4510,7 @@ export function evaluateProspectiveScopeCover(
       message:
         `Prospective scope-cover denied: story write fence unreadable (#5656). ` +
         `${fence.unreadableDetail}`,
-      uncovered: staged,
+      uncovered: productStaged,
       scopePath: scope.path,
     };
   }
@@ -4464,11 +4520,11 @@ export function evaluateProspectiveScopeCover(
       message:
         `Prospective scope-cover denied: selected scope lacks positive governing ` +
         `allow file_scope (#5656). ${POSITIVE_GOVERNING_ALLOW_REQUIRED}`,
-      uncovered: staged,
+      uncovered: productStaged,
       scopePath: scope.path,
     };
   }
-  const uncovered = staged.filter((rel) => !matchAny(fence.fileScope, rel));
+  const uncovered = productStaged.filter((rel) => !matchAny(fence.fileScope, rel));
   if (uncovered.length > 0) {
     return {
       ok: false,
@@ -4482,7 +4538,7 @@ export function evaluateProspectiveScopeCover(
   }
   return {
     ok: true,
-    message: `Prospective scope-cover passed for ${String(staged.length)} staged path(s).`,
+    message: `Prospective scope-cover passed for ${String(productStaged.length)} product staged path(s).`,
     uncovered: [],
     scopePath: scope.path,
   };
