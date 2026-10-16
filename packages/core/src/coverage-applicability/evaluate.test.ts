@@ -686,15 +686,15 @@ describe("evaluateCoverageApplicability", () => {
       expect(mixedResult.coverablePaths).toEqual(
         expect.arrayContaining(["src/app.ts", "bun.lock"]),
       );
-      expect(mixedResult.changes.find((c) => c.path === ".deft/GENERATION.json")?.classification).toBe(
-        "inert",
-      );
+      expect(
+        mixedResult.changes.find((c) => c.path === ".deft/GENERATION.json")?.classification,
+      ).toBe("inert");
       expect(
         mixedResult.changes.find((c) => c.path === "meta/policy-changes.log")?.classification,
       ).toBe("inert");
-      expect(mixedResult.changes.find((c) => c.path === "xbrief/.deft-version")?.classification).toBe(
-        "inert",
-      );
+      expect(
+        mixedResult.changes.find((c) => c.path === "xbrief/.deft-version")?.classification,
+      ).toBe("inert");
     }
 
     const refuseRoot = gitRepo({ "README.md": "# base\n" });
