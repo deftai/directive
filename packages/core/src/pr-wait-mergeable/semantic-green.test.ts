@@ -557,7 +557,6 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
     });
     const missing = evaluateNonCascadeCandidateGreen(PR, REPO, {
       checkLifecycleDirty: false,
-      runControlledProbe: false,
       runGh,
     });
     expect(missing.ok).toBe(false);
@@ -572,22 +571,22 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
   });
 
   it("buildCandidateValidationAttestationFromProbe rejects forged commands and non-zero exits", () => {
-    expect(() =>
+    expect(
       buildCandidateValidationAttestationFromProbe({
         pr_head_sha: PR_HEAD,
         target_head_sha: CURRENT_HEAD,
         command: "true",
         exit_code: 0,
-      }),
-    ).toThrow(/refuses command/);
-    expect(() =>
+      }).ok,
+    ).toBe(false);
+    expect(
       buildCandidateValidationAttestationFromProbe({
         pr_head_sha: PR_HEAD,
         target_head_sha: CURRENT_HEAD,
         command: "task check",
         exit_code: 1,
-      }),
-    ).toThrow(/non-zero exit_code/);
+      }).ok,
+    ).toBe(false);
     const built = buildCandidateValidationAttestationFromProbe({
       pr_head_sha: PR_HEAD,
       target_head_sha: CURRENT_HEAD,
@@ -595,32 +594,11 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
       exit_code: 0,
       attested_at: "2026-10-08T12:00:00Z",
     });
-    expect(built.command).toBe("deft check");
-    expect(ALLOWED_CANDIDATE_VALIDATION_COMMANDS).toContain(built.command);
-    expect(validateCandidateAttestation(built, PR_HEAD, CURRENT_HEAD)).toBeNull();
-  });
-
-  it("controlled probe builds attestation on evaluateNonCascadeCandidateGreen", () => {
-    const runGh = makeRunGh({
-      "/pulls/": pullsHandler(CURRENT_HEAD),
-      "/git/ref/heads/": branchRefHandler(CURRENT_HEAD),
-    });
-    const result = evaluateNonCascadeCandidateGreen(PR, REPO, {
-      checkLifecycleDirty: false,
-      runControlledProbe: true,
-      runControlledCandidateProbeFn: () => ({
-        command: "deft check",
-        exit_code: 0,
-        stdout: "ok",
-        stderr: "",
-      }),
-      runGh,
-    });
-    expect(result.ok).toBe(true);
-    expect(result.payload.candidate_validation).toMatchObject({
-      command: "deft check",
-      producer: CANDIDATE_VALIDATION_PRODUCER,
-    });
+    expect(built.ok).toBe(true);
+    if (!built.ok) throw new Error("unreachable");
+    expect(built.attestation.command).toBe("deft check");
+    expect(ALLOWED_CANDIDATE_VALIDATION_COMMANDS).toContain(built.attestation.command);
+    expect(validateCandidateAttestation(built.attestation, PR_HEAD, CURRENT_HEAD)).toBeNull();
   });
 
   it("validateCandidateAttestation rejects non-allowlisted commands like true", () => {
