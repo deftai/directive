@@ -4258,6 +4258,30 @@ describe("applying-host record (#5676 Prefer-A)", () => {
     ).toMatchObject({ kind: "absent" });
   });
 
+  it("soft-passes live occupancy owner when applying-host was replaced (#5676 P1)", () => {
+    const root = mkdtempSync(join(tmpdir(), "applying-host-live-owner-"));
+    ephemeralTemps.push(root);
+    applyWorktreeOccupancy(root, {
+      sessionId: CURSOR_OWNER,
+      now: new Date("2026-10-16T12:00:00Z"),
+      intent: "mutation",
+    });
+    publishApplyingHost(root, {
+      provider: "claude",
+      rawSessionId: "second-host",
+      claimedAt: new Date("2026-10-16T12:01:00Z"),
+    });
+    expect(
+      evaluateApplyingHostLifecycleAdmission({
+        projectRoot: root,
+        depositHost: "cursor",
+        depositSessionId: CURSOR_OWNER,
+        namedSessionId: CURSOR_OWNER,
+        now: new Date("2026-10-16T12:02:00Z"),
+      }),
+    ).toMatchObject({ kind: "soft-pass", reason: "live-lease-owner-cleanup" });
+  });
+
   it("isolates concurrent worktrees and replaces same-worktree claims", () => {
     const a = mkdtempSync(join(tmpdir(), "applying-host-a-"));
     const b = mkdtempSync(join(tmpdir(), "applying-host-b-"));
