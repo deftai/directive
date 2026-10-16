@@ -16,6 +16,7 @@ import {
   type PrimaryClaimException,
   parseDeferrals,
   parseSessionPostureToken,
+  publishApplyingHostFromCanonicalSessionId,
   READ_ONLY_POSTURE,
   REARM_CEREMONY_TIER,
   REQUIREMENTS_POSTURE,
@@ -580,6 +581,30 @@ export function run(argv: readonly string[]): number {
   const stray = capturedStdout.join("").trim();
   if (stray) {
     lines.push(stray);
+  }
+
+  // #5676: read-only may bootstrap the applying-host record; mutation/rearm
+  // republishes as reinforcement after a successful ceremony.
+  if (result.code === 0) {
+    const owner =
+      args.sessionId?.trim() ||
+      (typeof result.payload.occupancy === "object" &&
+      result.payload.occupancy !== null &&
+      typeof (result.payload.occupancy as { session_id?: unknown }).session_id === "string"
+        ? String((result.payload.occupancy as { session_id: string }).session_id)
+        : "") ||
+      process.env.DEFT_SESSION_ID?.trim() ||
+      "";
+    if (owner.length > 0) {
+      try {
+        const transport = process.env.GROK_HOOK_EVENT?.trim() ? "grok-hook-event" : "native";
+        publishApplyingHostFromCanonicalSessionId(projectRoot, owner, {
+          transport: owner.startsWith("host:cursor:") ? "native" : transport,
+        });
+      } catch {
+        /* ceremony success stays authoritative; applying-host is best-effort */
+      }
+    }
   }
 
   if (args.emitJson) {
