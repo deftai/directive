@@ -370,9 +370,10 @@ describe("accept", () => {
   it("does not append audit when ingest fails (#4962 refuse-before-write)", () => {
     const root = makeRepo();
     const deps = fakeDeps(root, { ingestFail: true });
-    expect(() =>
-      accept(42, "deftai/directive", deps, { actor: "agent:test", projectRoot: root }),
-    ).toThrow(TriageError);
+    const outcome = accept(42, "deftai/directive", deps, { actor: "agent:test", projectRoot: root });
+    expect(outcome.disposition).toBe("refused");
+    expect(outcome.decisionId).toBeNull();
+    expect(outcome.ingestMessage).toMatch(/issue:ingest delegation failed/);
     const path = resolveAuditLogPath(root);
     expect(existsSync(path) ? readFileSync(path, "utf8").trim() : "").toBe("");
   });
