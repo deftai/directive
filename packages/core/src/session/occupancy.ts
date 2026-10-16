@@ -2022,7 +2022,9 @@ export function releaseOccupancy(
       // never stamp Prefer-A marker / rewrite AGENTS.md for a denied caller (#4544 P1).
       // Session exit with this-session untracked product evidence must still reach
       // enforce when markWrite persist never ran (Shell-bypass / hookless).
-      const evidenceGate = enforceConsumerHeaderPlaceholderWhenProductEvidence(root);
+      // Prefer-A #5544 residual / babysit P1: header check uses the supplied project
+// root (consumer AGENTS.md), not the git lease root (which may be a parent repo).
+      const evidenceGate = enforceConsumerHeaderPlaceholderWhenProductEvidence(projectRoot);
       if (!evidenceGate.ok) {
         return {
           action: "denied" as const,
