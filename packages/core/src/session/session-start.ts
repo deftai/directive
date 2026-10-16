@@ -118,7 +118,6 @@ import {
   type OccupancyDecision,
   type OccupancyIdentityProvenance,
   type PrimaryClaimException,
-  resolveOccupancyLeaseRoot,
   resolveOccupancySessionClaim,
   rollbackAcquiredOccupancy,
 } from "./occupancy.js";
@@ -2083,8 +2082,9 @@ export function runSessionStart(
   projectRoot: string,
   options: SessionStartOptions = {},
 ): SessionStartResult {
-  // #5544: ritual ownership / rollback share the claim lease-root view.
-  projectRoot = resolveOccupancyLeaseRoot(projectRoot);
+  // Keep ritual/session directory at the supplied projectRoot. Occupancy
+  // claim/read/rollback resolve the lease root internally (#5544) so
+  // verify:session-ritual still finds ritual-state beside this path.
   const posture = options.posture ?? MUTATION_POSTURE;
   const instant = options.now ?? new Date();
   const deferrals = options.deferrals ?? {};
