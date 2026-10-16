@@ -3223,6 +3223,13 @@ function tryPublishApplyingHostFromSessionStart(
     const environ = input.environ ?? process.env;
     const identity = resolveHookHostIdentity(input.host, input.payload, environ);
     if (identity.status !== "ok" || identity.sessionId === null) return;
+    // Do not replace applying-host while another session holds the live occupancy
+    // lease — keeps the incumbent owner's heartbeat/release/session:end usable
+    // (#5676 Greptile P1). Matching owner may republish as reinforcement.
+    const live = liveOccupant(projectRoot);
+    if (live !== null && live.sessionId !== identity.sessionId) {
+      return;
+    }
     const transport: ApplyingHostTransport =
       identity.provider === "grok" && environ.GROK_HOOK_EVENT?.trim()
         ? "grok-hook-event"
