@@ -502,6 +502,18 @@ function evaluateCandidateValidationLimb(
   };
 
   // Tree-identity / dirty checks reuse pr-head-assert patterns (#4888 / #3875).
+  // Non-cascade Prefer-A: require a checked-out PR head so attestation is not for a foreign tree.
+  if (options.requireCandidateValidation === true && (typeof options.localHeadSha !== "string" || options.localHeadSha.length === 0)) {
+    return {
+      ok: false,
+      outcome: "candidate-validation-local-head-required",
+      exitCode: EXIT_TIMEOUT_OR_ESCALATION,
+      error:
+        "localHeadSha is required for evaluateSemanticGreen candidate validation (#4888). " +
+        "Check out the PR head (or linked worktree) and pass localHeadSha matching pr_head before attesting.",
+      payload: payloadBase,
+    };
+  }
   if (typeof options.localHeadSha === "string" && options.localHeadSha.length > 0) {
     if (!shasMatch(options.localHeadSha, prHeadSha)) {
       return {

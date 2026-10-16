@@ -342,6 +342,7 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
     const result = evaluateSemanticGreen(PR, REPO, {
       requireCandidateValidation: true,
       checkLifecycleDirty: false,
+      localHeadSha: PR_HEAD,
       runGh,
     });
     expect(result.ok).toBe(false);
@@ -361,6 +362,7 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
     const result = evaluateSemanticGreen(PR, REPO, {
       requireCandidateValidation: true,
       checkLifecycleDirty: false,
+      localHeadSha: PR_HEAD,
       candidateValidationAttestation: validAttestation(PR_HEAD, SPINE_HEAD),
       runGh,
     });
@@ -379,6 +381,7 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
     const result = evaluateSemanticGreen(PR, REPO, {
       requireCandidateValidation: true,
       checkLifecycleDirty: false,
+      localHeadSha: PR_HEAD,
       candidateValidationAttestation: attestation,
       runGh,
     });
@@ -432,6 +435,7 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
     });
     const result = evaluateSemanticGreen(PR, REPO, {
       requireCandidateValidation: true,
+      localHeadSha: PR_HEAD,
       candidateValidationAttestation: validAttestation(),
       resolveLifecycleDirty: () => "xbrief/active/foo.xbrief.json",
       runGh,
@@ -557,6 +561,7 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
     });
     const missing = evaluateNonCascadeCandidateGreen(PR, REPO, {
       checkLifecycleDirty: false,
+      localHeadSha: PR_HEAD,
       runGh,
     });
     expect(missing.ok).toBe(false);
@@ -564,6 +569,7 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
 
     const ok = evaluateNonCascadeCandidateGreen(PR, REPO, {
       checkLifecycleDirty: false,
+      localHeadSha: PR_HEAD,
       candidateValidationAttestation: validAttestation(),
       runGh,
     });
