@@ -1,0 +1,50 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "YOLO validated-issues V3 wave 3q — TICKLER-GLOBAL + A68-LEGACY-UPDATE",
+    "updated": "2026-10-15T23:00:00.000Z"
+  },
+  "plan": {
+    "title": "Wave 3q — Security + dual-path foundation (TICKLER-GLOBAL, A68-LEGACY-UPDATE)",
+    "status": "completed",
+    "id": "yolo-5490-wave3q",
+    "narratives": {
+      "Description": "Close P0 TICKLER-GLOBAL and P1 A68-LEGACY-UPDATE from wave3p UNIFIED reassessment. Tickler consent yes becomes advice-only (no npm i -g, no out-of-band migrate). Runtime init/update refuse with redirect to launcher install/upgrade so the runtime bin cannot reconstitute/align the pin.",
+      "Overview": "Branch yolo/wip-wave3q from yolo/cp-wave3p @ 41c3d4f18. Owner tests first (red→green). No Verdaccio freeze in this worker — orchestrator freezes after SLizard/Greptile.",
+      "Acceptance": "Injected tickler consent yes never calls upgrade/migrate seams; advice names directive upgrade (+ AC9.7 text only). Runtime routeAndDispatch init/update exit 2 with redirect; launcher aliases remain."
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "TICKLER-GLOBAL: advice-only consent yes (AC3.6 / D4.8 / D4.6)",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/staleness-tickler/run.ts",
+        "narrative": {
+          "Acceptance": "Given injected consent yes with both dimensions stale, when maybeRunStalenessTickler runs, then runUpgrade/runMigrate seams are not called and lines advise directive upgrade without Running npm i -g."
+        }
+      },
+      {
+        "id": "2",
+        "title": "A68-LEGACY-UPDATE: runtime init/update refuse-or-redirect (A6.8 / AC1.5)",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/runtime/src/cli-router/index.ts",
+        "narrative": {
+          "Acceptance": "Given runtime routeAndDispatch(['init'| 'update']), when invoked, then exit 2 with message directing to directive install/upgrade and never call runInit/runUpdate."
+        }
+      }
+    ],
+    "tags": ["yolo", "5490", "wave3q", "TICKLER-GLOBAL", "A68-LEGACY-UPDATE"],
+    "acceptance": [
+      "Tickler never executes global install or migrate on consent yes",
+      "Runtime init/update cannot change pin via product entry",
+      "Launcher init→install / update→upgrade aliases still work",
+      "Focused vitest green for staleness-tickler + cli-router + init-cli"
+    ],
+    "metadata": {
+      "wave": "3q",
+      "inbox": ["TICKLER-GLOBAL", "A68-LEGACY-UPDATE"],
+      "base": "yolo/cp-wave3p@41c3d4f1820f40a9e5606443aefb09ba87ea5f9c",
+      "productCommit": "db73928baee2acf2c89ed83c71e9ed3f4b316a0c"
+    }
+  }
+}
