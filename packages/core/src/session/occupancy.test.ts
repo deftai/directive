@@ -3894,6 +3894,22 @@ describe("Harbor UUID lease vs declared host Prefer-A (#5544)", () => {
     expect(readOccupancy(tempRoot())).toBeNull();
   });
 
+  it("refuses opaque/inherited ids when expected-host attach is signaled (P1)", () => {
+    const opaque = resolveOccupancySessionClaim({
+      sessionId: "harbor-leftover-uuid",
+      expectedDeclaredHostAttach: true,
+      env: { [DEFT_EXPECTED_DECLARED_HOST_ATTACH]: "1" },
+    });
+    expect(opaque.status).toBe("refuse-mint");
+    const inherited = resolveOccupancySessionClaim({
+      env: {
+        [DEFT_EXPECTED_DECLARED_HOST_ATTACH]: "1",
+        DEFT_SESSION_ID: "inherited-non-host",
+      },
+    });
+    expect(inherited.status).toBe("refuse-mint");
+  });
+
   it("still allows exact host session-id pre-attach bind when expected-host is signaled (P1)", () => {
     const root = tempRoot();
     const hostId = canonicalHostSessionId("claude", "pre-attach-exact");
@@ -4001,6 +4017,37 @@ describe("Harbor UUID lease vs declared host Prefer-A (#5544)", () => {
     expect(stolen.message).toContain("Required ceremony:");
     expect(stolen.message).toContain("occupancyFile=");
     expect(readOccupancy(root)?.sessionId).toBe(hostId);
+  });
+
+  it("heartbeat/grant/revoke resolve subdirectory project-root to the claimed lease (#5544 P1)", () => {
+    const root = mkdtempSync(join(tmpdir(), "occ-member-subdir-"));
+    sharedTemps.push(root);
+    gitInitIfNeeded(root);
+    const nested = join(root, "packages", "app");
+    mkdirSync(nested, { recursive: true });
+    const now = new Date("2026-10-16T12:00:00Z");
+    expect(
+      applyWorktreeOccupancy(nested, { sessionId: "owner-member", now, intent: "mutation" }).action,
+    ).toBe("claimed");
+    const beat = heartbeatOccupancy(nested, {
+      sessionId: "owner-member",
+      now: new Date("2026-10-16T12:01:00Z"),
+    });
+    expect(beat.action).toBe("heartbeat");
+    const granted = grantOccupancyMembership(nested, {
+      sessionId: "owner-member",
+      childSessionId: "child-member",
+      role: "leaf-implementation",
+      now: new Date("2026-10-16T12:02:00Z"),
+    });
+    expect(granted.action).toBe("granted");
+    const revoked = revokeOccupancyMembership(nested, {
+      sessionId: "owner-member",
+      childSessionId: "child-member",
+      now: new Date("2026-10-16T12:03:00Z"),
+    });
+    expect(revoked.code).toBe(0);
+    expect(readOccupancy(resolveOccupancyLeaseRoot(nested))?.grants ?? []).toEqual([]);
   });
 
   it("write-gate denies stranger when leaseRoot is a subdirectory of a claimed tree (#5544 P1)", () => {

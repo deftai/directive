@@ -1148,6 +1148,22 @@ export function resolveOccupancySessionClaim(
   if (identity.sessionId.length > 0) {
     const provenance: OccupancyIdentityProvenance =
       identity.source === "none" ? "minted" : identity.source;
+    // #5544: expected-host attach closes opaque / inherited non-host ids too —
+    // only an exact host-shaped --session-id bind is the pre-attach exception.
+    if (
+      expectedDeclaredHostAttachSignaled(input) &&
+      parseCanonicalHostSessionId(identity.sessionId) === null
+    ) {
+      return {
+        status: "refuse-mint",
+        sessionId: "",
+        provenance: null,
+        source: "mint",
+        hosts: [],
+        suggestedSessionId: null,
+        message: formatOccupancyExpectedHostMintRefusal(),
+      };
+    }
     return {
       status: "ok",
       sessionId: identity.sessionId,
@@ -2240,6 +2256,8 @@ export function grantOccupancyMembership(
   projectRoot: string,
   input: OccupancyMembershipInput = {},
 ): OccupancyDecision {
+  // #5544: membership verbs share claim/release lease-root view.
+  projectRoot = resolveOccupancyLeaseRoot(projectRoot);
   const now = input.now ?? new Date();
   const path = occupancyPath(projectRoot);
   const identity = resolvePresentedIdentity(input);
@@ -2476,6 +2494,8 @@ export function revokeOccupancyMembership(
   projectRoot: string,
   input: OccupancyMembershipInput = {},
 ): OccupancyDecision {
+  // #5544: membership verbs share claim/release lease-root view.
+  projectRoot = resolveOccupancyLeaseRoot(projectRoot);
   const now = input.now ?? new Date();
   const path = occupancyPath(projectRoot);
   const identity = resolvePresentedIdentity(input);
@@ -2932,6 +2952,8 @@ export function heartbeatOccupancy(
   projectRoot: string,
   input: ApplyOccupancyInput = {},
 ): OccupancyDecision {
+  // #5544: heartbeat shares claim/release lease-root view.
+  projectRoot = resolveOccupancyLeaseRoot(projectRoot);
   const now = input.now ?? new Date();
   const path = occupancyPath(projectRoot);
   const identity = resolvePresentedIdentity(input);
