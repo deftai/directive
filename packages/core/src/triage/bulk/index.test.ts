@@ -464,7 +464,13 @@ describe("bulk edge paths", () => {
       })}\n`,
     );
     const mod = createNativeActionsModule(root);
-    expect(() => mod.accept(55, "deftai/directive")).toThrow(/multiple owning briefs/);
+    const result = mod.accept(55, "deftai/directive");
+    expect(result).toEqual(
+      expect.objectContaining({
+        ok: false,
+        message: expect.stringMatching(/multiple owning briefs/),
+      }),
+    );
   });
 
   it("bulkAction reject with null reason calls reject without kwargs", () => {
