@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5665",
-    "updated": "2026-10-16T15:48:02Z"
+    "updated": "2026-10-16T17:56:24.381Z"
   },
   "plan": {
     "title": "[framework-gap] BLOCKER Pre-PR coverage classifier rejects Directive-managed artifacts after upgrading to 0.125.2",
@@ -23,8 +23,8 @@
           "Acceptance": "Demote Prefer-A limb-1 exact stamp and ledger tokens to inert inside classifyChangedPath after coverable-first."
         },
         "x-directive/disposition": {
-          "disposition": "delivered",
-          "reason": "Prefer-A leftover-complete after product PR #5680 squash-merge (Tracking #5665).",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5680 squash-merge (Tracking #5665). Bound limbs shipped; Greptile CLEAN then MERGED.",
           "provenance": {
             "kind": "operator-session",
             "actor": "Scott",
@@ -44,8 +44,8 @@
           "Acceptance": "Affirm discriminator for framework stamps/markers and the append-only policy audit trail; keep unknown for authority records and non-listed peers under managed prefixes."
         },
         "x-directive/disposition": {
-          "disposition": "delivered",
-          "reason": "Prefer-A leftover-complete after product PR #5680 squash-merge (Tracking #5665).",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5680 squash-merge (Tracking #5665). Bound limbs shipped; Greptile CLEAN then MERGED.",
           "provenance": {
             "kind": "operator-session",
             "actor": "Scott",
@@ -65,8 +65,8 @@
           "Acceptance": "Link minted tracker 5674 on the human-origin-authz contract surfaces; keep classification as the standing unblock for limb-1 tokens."
         },
         "x-directive/disposition": {
-          "disposition": "delivered",
-          "reason": "Prefer-A leftover-complete after product PR #5680 squash-merge (Tracking #5665).",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5680 squash-merge (Tracking #5665). Bound limbs shipped; Greptile CLEAN then MERGED.",
           "provenance": {
             "kind": "operator-session",
             "actor": "Scott",
@@ -86,8 +86,8 @@
           "Acceptance": "Correct over-readable released note for 5542 and point Unreleased readers at tracker 5674 for residual wiring."
         },
         "x-directive/disposition": {
-          "disposition": "delivered",
-          "reason": "Prefer-A leftover-complete after product PR #5680 squash-merge (Tracking #5665).",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5680 squash-merge (Tracking #5665). Bound limbs shipped; Greptile CLEAN then MERGED.",
           "provenance": {
             "kind": "operator-session",
             "actor": "Scott",
@@ -107,8 +107,8 @@
           "Acceptance": "Ship classifyChangedPath and aggregate regression fixtures for limb-1 inert, keep-unknown negatives, and limb-1-token subset not-applicable versus applicable mixes."
         },
         "x-directive/disposition": {
-          "disposition": "delivered",
-          "reason": "Prefer-A leftover-complete after product PR #5680 squash-merge (Tracking #5665).",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5680 squash-merge (Tracking #5665). Bound limbs shipped; Greptile CLEAN then MERGED.",
           "provenance": {
             "kind": "operator-session",
             "actor": "Scott",
@@ -251,9 +251,30 @@
         "productPullRequest": 5680,
         "mergeCommit": "6be9f99339e42b04922fd40079ff56028d63f918",
         "deliveryBranch": "master"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-16T17:56:24.381Z"
+      },
+      "completionProvenance": {
+        "schema": "deft.completionProvenance.v1",
+        "repository": "deftai/directive",
+        "implementationCommit": "6be9f99339e42b04922fd40079ff56028d63f918",
+        "prNumber": 5680,
+        "prBase": "master",
+        "mergeCommit": "6be9f99339e42b04922fd40079ff56028d63f918",
+        "deliveryBranch": "master",
+        "deliveryCommit": "6be9f99339e42b04922fd40079ff56028d63f918",
+        "verifiedAt": "2026-10-16T17:56:24.381Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedAt": "2026-10-16T17:56:24.381Z"
       }
     },
     "id": "github.issue.5878220136",
-    "updated": "2026-10-16T15:48:02Z"
+    "updated": "2026-10-16T17:56:24.381Z"
   }
 }
