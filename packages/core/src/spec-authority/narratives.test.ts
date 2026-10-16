@@ -114,6 +114,33 @@ describe("resolveExportNarratives Requirements/AcceptanceCriteria (#4871)", () =
     expect(merged.AcceptanceCriteria).toBe("Authoritative spec AC");
   });
 
+  it("does not restore PD Requirements/AC when spec explicitly clears them to blank", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-4871-blank-clear-"));
+    roots.push(root);
+    const vbrief = join(root, "xbrief");
+    mkdirSync(vbrief, { recursive: true });
+    writeProjectDef(vbrief, {
+      Overview: "PD overview",
+      Requirements: "PD requirements must not return",
+      AcceptanceCriteria: "PD AC must not return",
+    });
+    writeJson(join(vbrief, "specification.xbrief.json"), {
+      plan: {
+        narratives: {
+          Overview: "Spec overview",
+          Requirements: "",
+          AcceptanceCriteria: "   ",
+        },
+      },
+    });
+    const authority = resolveSpecAuthority(root);
+    expect(authority?.kind).toBe("full-spec");
+    const merged = resolveExportNarratives(authority!);
+    expect(merged.Overview).toBe("Spec overview");
+    expect(merged.Requirements).toBeUndefined();
+    expect(merged.AcceptanceCriteria).toBeUndefined();
+  });
+
   it("does not silently coerce array-shaped Requirements into export narratives", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-4871-array-"));
     roots.push(root);

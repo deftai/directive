@@ -61,6 +61,8 @@ export function resolveExportNarratives(authority: ResolvedSpecAuthority): Recor
 
   const spec = loadJson(specPath);
   const specNarratives = planNarratives(spec);
+  // Presence (incl. blank) blocks PD fallback so explicit clears stay cleared (#4871 Greptile P1).
+  const specKeyNorms = new Set(Object.keys(specNarratives).map((k) => narrativeKeyNorm(k)));
   const merged: Record<string, string> = {};
 
   // Spec precedence for all retained keys (including Requirements/AcceptanceCriteria).
@@ -73,7 +75,8 @@ export function resolveExportNarratives(authority: ResolvedSpecAuthority): Recor
     if (!val.trim() || isExcludedNarrativeKey(key)) continue;
     const norm = narrativeKeyNorm(key);
     if (!isIdentityNarrativeKey(norm) && !PRODUCT_MISSING_KEY_FALLBACK.has(norm)) continue;
-    if (!mergedHasKey(merged, norm)) merged[key] = val;
+    if (specKeyNorms.has(norm) || mergedHasKey(merged, norm)) continue;
+    merged[key] = val;
   }
 
   return merged;
