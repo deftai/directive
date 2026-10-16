@@ -3358,31 +3358,33 @@ function attachLifecycleIdentityRewrite(
       lifecycle.sessionId !== null
     ) {
       try {
-        const environ = input.environ ?? process.env;
-        const transport: ApplyingHostTransport = environ.GROK_HOOK_EVENT?.trim()
-          ? "grok-hook-event"
-          : "native";
-        // Prefer deposit identity when it matches the named canonical owner.
-        const identity = resolveHookHostIdentity(input.host, input.payload, environ);
-        if (
-          identity.status === "ok" &&
-          identity.sessionId === lifecycle.sessionId &&
-          // Leftover GROK_SESSION_ID alone must not publish Cursor as Claude/grok.
-          !(input.host === "cursor" && transport === "grok-hook-event")
-        ) {
-          publishApplyingHost(resolve(input.projectRoot), {
-            provider: identity.provider,
-            rawSessionId: identity.rawSessionId,
-            transport: input.host === "cursor" ? "native" : transport,
-          });
-        } else {
-          publishApplyingHostFromCanonicalSessionId(
-            resolve(input.projectRoot),
-            lifecycle.sessionId,
-            {
+        const root = resolve(input.projectRoot);
+        // Same live-lease guard as SessionStart (#5676 Greptile P1): read-only
+        // session:start must not replace applying-host for a foreign live owner.
+        const live = liveOccupant(root);
+        if (live === null || live.sessionId === lifecycle.sessionId) {
+          const environ = input.environ ?? process.env;
+          const transport: ApplyingHostTransport = environ.GROK_HOOK_EVENT?.trim()
+            ? "grok-hook-event"
+            : "native";
+          // Prefer deposit identity when it matches the named canonical owner.
+          const identity = resolveHookHostIdentity(input.host, input.payload, environ);
+          if (
+            identity.status === "ok" &&
+            identity.sessionId === lifecycle.sessionId &&
+            // Leftover GROK_SESSION_ID alone must not publish Cursor as Claude/grok.
+            !(input.host === "cursor" && transport === "grok-hook-event")
+          ) {
+            publishApplyingHost(root, {
+              provider: identity.provider,
+              rawSessionId: identity.rawSessionId,
               transport: input.host === "cursor" ? "native" : transport,
-            },
-          );
+            });
+          } else {
+            publishApplyingHostFromCanonicalSessionId(root, lifecycle.sessionId, {
+              transport: input.host === "cursor" ? "native" : transport,
+            });
+          }
         }
       } catch {
         /* read-only path stays non-blocking */
