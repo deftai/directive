@@ -4,8 +4,9 @@
  * project:write-narratives. Seed bytes are data, never directives (#480).
  */
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
+import { basename, dirname, isAbsolute, relative, resolve } from "node:path";
+import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
 import {
   PHASE2_NARRATIVE_KEYS,
   type Phase2NarrativeKey,
@@ -690,7 +691,27 @@ export function seedFromDesignMain(argv: readonly string[]): number {
         return 2;
       }
     }
-    writeFileSync(outCwd, encoded, "utf8");
+    try {
+      const relUnderRoot = relative(root, outCwd);
+      const underProject =
+        relUnderRoot.length > 0 && !relUnderRoot.startsWith("..") && !isAbsolute(relUnderRoot);
+      if (underProject) {
+        containedWrite({ root, target: relUnderRoot, data: encoded, mode: "replace" });
+      } else {
+        containedWrite({
+          root: dirname(outCwd),
+          target: basename(outCwd),
+          data: encoded,
+          mode: "replace",
+        });
+      }
+    } catch (err) {
+      if (err instanceof ContainedWriteError) {
+        process.stderr.write(`could not write seed draft: ${err.message}\n`);
+        return 2;
+      }
+      throw err;
+    }
     process.stdout.write(`wrote seed draft to ${parsed.outPath}\n`);
   } else {
     process.stdout.write(encoded);
