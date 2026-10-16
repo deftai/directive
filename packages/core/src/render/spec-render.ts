@@ -139,7 +139,8 @@ function renderItemHandlers(item: JsonObject, lines: string[], depth: number): v
   if (typeof narrative === "object" && narrative !== null && !Array.isArray(narrative)) {
     for (const [key, val] of Object.entries(narrative as JsonObject)) {
       if (key === "Traces") lines.push(`${prefix}**Traces**: ${oneLine(val)}\n`);
-      else if (key === "Acceptance") {
+      else if (key === "AcceptanceCriteria" || key === "Acceptance") {
+        // AcceptanceCriteria canonical; Acceptance remains alias (#4871 Prefer-A P3).
         for (const line of splitAcceptance(val)) lines.push(`${prefix}- ${oneLine(line)}`);
         lines.push("");
       } else emitNarrativeProse(val, prefix, lines);

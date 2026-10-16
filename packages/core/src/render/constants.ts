@@ -22,6 +22,7 @@ export const SPECIFICATION_NARRATIVE_KEY_ORDER = [
   "Goals",
   "UserStories",
   "Requirements",
+  "AcceptanceCriteria",
   "SuccessMetrics",
   "EdgeCases",
   "Architecture",
