@@ -112,4 +112,45 @@ describe("ensureGitHooks legacy _deft-run / run_deft (wave4e)", () => {
       FOREIGN_PRETTIER_PRE_COMMIT,
     );
   });
+
+  it("refuses to overwrite a hook that only mentions .deft/core in an ignore path", () => {
+    const root = tempRoot();
+    initGit(root);
+    mkdirSync(join(root, ".githooks"), { recursive: true });
+    const custom = `#!/usr/bin/env sh
+# ignore path mention alone is not Directive ownership
+rg --files -g '!.deft/core/**' | xargs eslint
+`;
+    writeFileSync(join(root, ".githooks", "pre-commit"), custom, "utf8");
+
+    const result = ensureGitHooks(root);
+
+    expect(result.conflicts.some((c) => c.includes(".githooks/pre-commit"))).toBe(true);
+    expect(readFileSync(join(root, ".githooks", "pre-commit"), "utf8")).toBe(custom);
+  });
+
+  it("keeps _deft-run.sh when an unmanaged hook still sources it", () => {
+    const root = tempRoot();
+    initGit(root);
+    seedLegacyDeftHooks(root);
+    writeFileSync(
+      join(root, ".githooks", "commit-msg"),
+      `#!/usr/bin/env sh
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 1
+. "$REPO_ROOT/.githooks/_deft-run.sh"
+run_deft verify:commit-msg --project-root "$REPO_ROOT" || exit $?
+`,
+      "utf8",
+    );
+
+    const result = ensureGitHooks(root);
+
+    expect(result.conflicts).toEqual([]);
+    expect(existsSync(join(root, ".githooks", "_directive-run.sh"))).toBe(true);
+    expect(existsSync(join(root, ".githooks", "_deft-run.sh"))).toBe(true);
+    expect(readFileSync(join(root, ".githooks", "pre-commit"), "utf8")).toContain(
+      "_directive-run.sh",
+    );
+    expect(readFileSync(join(root, ".githooks", "commit-msg"), "utf8")).toContain("_deft-run.sh");
+  });
 });

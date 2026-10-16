@@ -854,6 +854,7 @@ run_directive verify:branch --project-root "$REPO_ROOT" || exit $?
  * Current OVPR helpers plus supported latest-legacy Directive git hooks
  * (`_deft-run.sh` / `run_deft` / copied-core era). True third-party hooks
  * (e.g. prettier-only) must stay unrecognized so we refuse overwrite (AC10.3).
+ * Greptile wave4e: do not treat a bare `.deft/core` mention as whole-hook ownership.
  */
 function isOurGitHookBody(rel: string, body: string): boolean {
   const base = rel.split("/").pop() ?? rel;
@@ -866,12 +867,13 @@ function isOurGitHookBody(rel: string, body: string): boolean {
       body.includes("packages/cli/dist/bin.js")
     );
   }
+  // Managed hook shape: shared helper source, package-relative bin, or known
+  // legacy `run_deft verify|preflight` verbs — not a lone `.deft/core` path.
   return (
     body.includes("_directive-run.sh") ||
     body.includes("_deft-run.sh") ||
-    body.includes("run_deft") ||
     body.includes(RUNTIME_BIN_REL) ||
-    body.includes(".deft/core")
+    /\brun_deft\s+(verify:|preflight)/.test(body)
   );
 }
 
@@ -920,16 +922,33 @@ export function ensureGitHooks(projectRoot: string): {
   }
 
   // Drop obsolete latest-legacy helper once OVPR hooks are in place (wave4e).
+  // Greptile: keep helper if any other .githooks file still sources it.
   const legacyHelperRel = ".githooks/_deft-run.sh";
   const legacyHelperAbs = join(projectRoot, legacyHelperRel);
   if (existsSync(legacyHelperAbs)) {
     const legacyBody = readText(legacyHelperAbs);
     if (legacyBody !== null && isOurGitHookBody(legacyHelperRel, legacyBody)) {
+      let stillReferenced = false;
+      const hooksDir = join(projectRoot, ".githooks");
       try {
-        const rem = containedRemove({ root: projectRoot, target: legacyHelperRel });
-        if (rem.removed) modified.push(legacyHelperRel);
+        for (const name of readdirSync(hooksDir)) {
+          if (name === "_deft-run.sh") continue;
+          const other = readText(join(hooksDir, name));
+          if (other !== null && other.includes("_deft-run.sh")) {
+            stillReferenced = true;
+            break;
+          }
+        }
       } catch {
-        /* best-effort; conflicts already captured for other files */
+        stillReferenced = true;
+      }
+      if (!stillReferenced) {
+        try {
+          const rem = containedRemove({ root: projectRoot, target: legacyHelperRel });
+          if (rem.removed) modified.push(legacyHelperRel);
+        } catch {
+          /* best-effort; conflicts already captured for other files */
+        }
       }
     }
   }

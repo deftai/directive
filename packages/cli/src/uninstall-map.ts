@@ -267,12 +267,12 @@ function isOurGitHook(rel: string, body: string): boolean {
       body.includes("packages/cli/dist/bin.js")
     );
   }
+  // Match setup-wiring: managed shape only (not bare `.deft/core`).
   return (
     body.includes("_directive-run.sh") ||
     body.includes("_deft-run.sh") ||
-    body.includes("run_deft") ||
     body.includes(RUNTIME_PREFIX) ||
-    body.includes(".deft/core")
+    /\brun_deft\s+(verify:|preflight)/.test(body)
   );
 }
 
