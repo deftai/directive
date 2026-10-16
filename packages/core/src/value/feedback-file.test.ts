@@ -6,6 +6,7 @@ import {
   ADOPTION_BLOCKER_TITLE_TOKEN,
   buildFrameworkGapBody,
   buildFrameworkGapTitle,
+  fenceFreeTextSection,
   FRAMEWORK_GAP_TITLE_PREFIX,
   feedbackFileMain,
   findDuplicateIssue,
@@ -62,6 +63,24 @@ describe("feedback-file helpers", () => {
     expect(body).toContain("Gate false positive");
     expect(body).toContain("During pre-PR");
     expect(body).toContain("Refs #1709");
+    expect(body).toContain("`deft feedback:file`");
+    expect(body).not.toContain("`task feedback:file`");
+  });
+
+  it("fences line-leading # and --- in free-text sections (#4375)", () => {
+    expect(fenceFreeTextSection("# Heading\n---\nplain")).toBe("    # Heading\n    ---\nplain");
+    const body = buildFrameworkGapBody({
+      summary: "Fence check",
+      context: "# Injected heading\n---\nmore",
+      expected: "## Expected leak",
+      actual: "---\nactual",
+      sessionNotes: "# note",
+    });
+    expect(body).toContain("    # Injected heading");
+    expect(body).toContain("    ---");
+    expect(body).toContain("    ## Expected leak");
+    expect(body).toContain("    # note");
+    expect(body).not.toMatch(/\n# Injected heading/);
   });
 
   it("normalizes titles for dedup", () => {
@@ -207,6 +226,48 @@ describe("runFeedbackFile gates", () => {
       });
       expect(result.outcome).toBe("blocked-policy");
       expect(result.exitCode).toBe(1);
+      expect(result.title).toContain("Policy blocked");
+      expect(result.body).toContain("## Summary");
+      expect(result.message).toContain("--upstream-prompt");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("gate-OFF dry-run and --json still return title+body template (#4375)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-feedback-off-readout-"));
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        plan: { policy: { valueFeedback: { enabled: true, upstreamPrompt: false } } },
+      }),
+      "utf8",
+    );
+    try {
+      const dry = runFeedbackFile({
+        summary: "OFF-policy draft",
+        context: "mid-session",
+        projectRoot: root,
+        dryRun: true,
+      });
+      expect(dry.outcome).toBe("blocked-policy");
+      expect(dry.title).toBe(`${FRAMEWORK_GAP_TITLE_PREFIX} OFF-policy draft`);
+      expect(dry.body).toContain("## Summary");
+      expect(dry.body).toContain("OFF-policy draft");
+      expect(dry.body).toContain("mid-session");
+      expect(dry.message).toContain("Draft framework-gap issue");
+      expect(dry.message).toContain("--upstream-prompt");
+
+      const json = runFeedbackFile({
+        summary: "OFF-policy json",
+        projectRoot: root,
+        json: true,
+      });
+      expect(json.outcome).toBe("blocked-policy");
+      expect(json.title).toBe(`${FRAMEWORK_GAP_TITLE_PREFIX} OFF-policy json`);
+      expect(json.body.length).toBeGreaterThan(0);
+      expect(json.message).toContain("Draft framework-gap issue");
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
