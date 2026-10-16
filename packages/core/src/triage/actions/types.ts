@@ -18,15 +18,31 @@ export interface CandidatesLog {
   newDecisionId(): string;
 }
 
+/** Structured accept-ingest outcome (#4962 Prefer-A Bound). */
+export interface AcceptIngestResult {
+  result: "created" | "duplicate" | "refused" | "dryrun";
+  path: string | null;
+  message: string;
+}
+
 export interface IssueIngest {
   /**
-   * Ingest issue into proposed/; return absolute path when known (#1136 auto-promote).
+   * Ingest issue into proposed/; return structured created|duplicate|refused (#4962).
+   * Legacy absolute-path / null returns remain accepted for tests.
    */
   ingestSingleForAccept(
     issueNumber: number,
     repo: string,
     options?: { projectRoot?: string },
-  ): string | null | undefined;
+  ): AcceptIngestResult | string | null | undefined;
+}
+
+/** Accept command outcome threaded into formatAcceptOutput (#4962). */
+export interface AcceptOutcome {
+  decisionId: string | null;
+  disposition: "created" | "duplicate" | "refused" | "idempotent";
+  relativePath: string | null;
+  ingestMessage: string | null;
 }
 
 export interface ScmRunner {

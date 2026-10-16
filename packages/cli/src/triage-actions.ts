@@ -168,15 +168,23 @@ export function run(argv: string[]): number {
 
   try {
     if (args.cmd === "accept") {
-      const decisionId = accept(n, repo, deps, {
+      const outcome = accept(n, repo, deps, {
         actor: args.actor,
         projectRoot,
         autoPromote: args.autoPromote === true,
         force: args.force === true,
       });
       process.stdout.write(
-        `${formatAcceptOutput(n, repo, decisionId, { autoPromote: args.autoPromote === true })}\n`,
+        `${formatAcceptOutput(n, repo, outcome.decisionId, {
+          autoPromote: args.autoPromote === true,
+          disposition: outcome.disposition,
+          relativePath: outcome.relativePath,
+          ingestMessage: outcome.ingestMessage,
+        })}\n`,
       );
+      if (outcome.disposition === "refused") {
+        return 1;
+      }
     } else if (args.cmd === "reject") {
       const decisionId = reject(n, repo, args.reason ?? "", deps, {
         actor: args.actor,

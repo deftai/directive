@@ -8,7 +8,11 @@
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
-import { provenanceIssueNumber, scanProvenanceRefs } from "../intake/issue-ingest.js";
+import {
+  briefOwnsExactIssueAndRepo,
+  briefOwnsExactIssueNumber,
+  scanProvenanceRefs,
+} from "../intake/issue-ingest.js";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import { createCandidatesLog, resolveAuditLogPath } from "../triage/actions/candidates-log.js";
 import type { AuditEntry } from "../triage/actions/types.js";
@@ -49,67 +53,17 @@ function sanitizeMsg(value: string): string {
   return value.replace(/\r?\n/g, " ");
 }
 
-/** True when brief references or Origin point at owner/name issue N. */
+/** True when brief Origin/typed github-issue refs own owner/name#N exactly (#4962). */
 function briefMatchesIssueAndRepo(
   data: Record<string, unknown>,
   issueNumber: number,
   repo: string | null,
 ): boolean {
-  if (provenanceIssueNumber(data) !== issueNumber) {
-    // Also accept plan.references github-issue URIs without Origin text.
-    const plan = data.plan;
-    if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
-      return false;
-    }
-    const refs = (plan as Record<string, unknown>).references;
-    if (!Array.isArray(refs)) {
-      return false;
-    }
-    let hit = false;
-    for (const ref of refs) {
-      if (typeof ref !== "object" || ref === null || Array.isArray(ref)) continue;
-      const uri = String((ref as Record<string, unknown>).uri ?? "");
-      if (uri.includes(`/issues/${issueNumber}`)) {
-        hit = true;
-        if (
-          repo === null ||
-          uri.includes(`github.com/${repo}/`) ||
-          uri.includes(`${repo}/issues/`)
-        ) {
-          return true;
-        }
-      }
-    }
-    return hit && repo === null;
+  if (repo !== null && repo.length > 0) {
+    return briefOwnsExactIssueAndRepo(data, issueNumber, repo);
   }
-  if (repo === null) {
-    return true;
-  }
-  const plan = data.plan;
-  if (typeof plan === "object" && plan !== null && !Array.isArray(plan)) {
-    const refs = (plan as Record<string, unknown>).references;
-    if (Array.isArray(refs)) {
-      for (const ref of refs) {
-        if (typeof ref !== "object" || ref === null || Array.isArray(ref)) continue;
-        const uri = String((ref as Record<string, unknown>).uri ?? "");
-        if (
-          uri.includes(`/issues/${issueNumber}`) &&
-          (uri.includes(`github.com/${repo}/`) || uri.includes(`${repo}/issues/`))
-        ) {
-          return true;
-        }
-      }
-    }
-    const narratives = (plan as Record<string, unknown>).narratives;
-    if (typeof narratives === "object" && narratives !== null && !Array.isArray(narratives)) {
-      const origin = String((narratives as Record<string, unknown>).Origin ?? "");
-      if (origin.includes(`github.com/${repo}/issues/${issueNumber}`)) {
-        return true;
-      }
-    }
-  }
-  // Provenance matched issue number but no repo-scoped URI — refuse when repo known.
-  return false;
+  // Repo unknown: Origin/description or typed github-issue refs by exact number.
+  return briefOwnsExactIssueNumber(data, issueNumber);
 }
 
 /**
@@ -118,9 +72,15 @@ function briefMatchesIssueAndRepo(
 export function findLifecycleArtifactsForIssue(
   projectRoot: string,
   issueNumber: number,
-  options: { folder?: "proposed" | "pending"; repo?: string | null } = {},
+  options: {
+    folder?: "proposed" | "pending" | "active";
+    folders?: readonly ("proposed" | "pending" | "active")[];
+    repo?: string | null;
+  } = {},
 ): string[] {
-  const folder = options.folder ?? "proposed";
+  const folders =
+    options.folders ??
+    ([options.folder ?? "proposed"] as readonly ("proposed" | "pending" | "active")[]);
   const repo = options.repo ?? null;
   const root = resolve(projectRoot);
   let lifecycleRoot: string;
@@ -130,19 +90,22 @@ export function findLifecycleArtifactsForIssue(
     return [];
   }
 
+  const folderSet = new Set(folders);
   const byIssue = scanProvenanceRefs(lifecycleRoot);
   const rels = (byIssue.get(issueNumber) ?? []).filter((rel) => {
     const f = rel.split(/[/\\]/)[0];
-    return f === folder;
+    return f !== undefined && folderSet.has(f as "proposed" | "pending" | "active");
   });
 
   const candidates = rels.map((rel) => join(lifecycleRoot, rel));
 
-  // Always also scan the folder for Origin-only scaffolds.
-  const folderDir = join(lifecycleRoot, folder);
-  if (existsSync(folderDir)) {
-    for (const name of readdirSync(folderDir).filter((f) => hasArtifactSuffix(f))) {
-      candidates.push(join(folderDir, name));
+  // Always also scan the folder(s) for Origin-only scaffolds.
+  for (const folder of folders) {
+    const folderDir = join(lifecycleRoot, folder);
+    if (existsSync(folderDir)) {
+      for (const name of readdirSync(folderDir).filter((f) => hasArtifactSuffix(f))) {
+        candidates.push(join(folderDir, name));
+      }
     }
   }
 
