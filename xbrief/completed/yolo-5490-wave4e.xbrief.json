@@ -1,17 +1,17 @@
 {
   "xBRIEFInfo": {
     "version": "0.8",
-    "description": "YOLO Wave 4e — legacy _deft-run hooks + triad strip (AC10.3)",
-    "updated": "2026-10-16T20:41:00.000Z"
+    "description": "YOLO Wave 4e — legacy _deft-run hooks + triad strip + lockfile prune (AC10.3)",
+    "updated": "2026-10-16T21:02:00.000Z"
   },
   "plan": {
-    "title": "Wave 4e — legacy hooks rewrite + triad strip (AC10.3)",
+    "title": "Wave 4e — legacy hooks rewrite + triad strip + lockfile prune (AC10.3)",
     "status": "completed",
     "id": "yolo-5490-wave4e",
     "narratives": {
-      "Description": "Close convert gaps from GAP-ANALYSIS-hooks-triad-node: recognize Autonomicon-like _deft-run.sh / run_deft git hooks as Directive-owned and rewrite to OVPR; remove obsolete helper; strip retired triad (@deftai/directive-core|content|types) before PM add so convert does not need old tarballs. Foreign hooks still refuse overwrite.",
-      "Overview": "Cut yolo/wip-wave4e from yolo/cp-wave4b2 @ 53ab5d633. RED→GREEN setup-wiring-legacy-hooks + pm-legacy-strip. Freeze yolo/cp-wave4e + Verdaccio yolo-cp-wave4e / 0.0.0-yolo.cp-wave4e.1.",
-      "Acceptance": "ensureGitHooks rewrites Autonomicon-like _deft-run hooks to _directive-run with zero conflicts and removes _deft-run.sh; foreign prettier hooks still conflict; removeLegacyDirectivePackages strips triad; owner tests green; packed tip installs and doctor path works."
+      "Description": "Close convert gaps from GAP-ANALYSIS-hooks-triad-node: recognize Autonomicon-like _deft-run.sh / run_deft git hooks as Directive-owned and rewrite to OVPR; remove obsolete helper; strip retired triad (@deftai/directive-core|content|types) before PM add so convert does not need old tarballs. Follow-on: PM-remove triad from lockfile before package.json strip+add (ledgerd residual under hybrid Verdaccio). Foreign hooks still refuse overwrite.",
+      "Overview": "Cut yolo/wip-wave4e from yolo/cp-wave4b2 @ 53ab5d633. RED→GREEN setup-wiring-legacy-hooks + pm-legacy-strip. Greptile P1s. Lockfile prune follow-on 16074debe. Freeze yolo/cp-wave4e + Verdaccio yolo-cp-wave4e / 0.0.0-yolo.cp-wave4e.3.",
+      "Acceptance": "ensureGitHooks rewrites Autonomicon-like _deft-run hooks to _directive-run with zero conflicts and removes _deft-run.sh; foreign prettier hooks still conflict; removeLegacyDirectivePackages strips triad; convert PM-removes RETIRED_DIRECTIVE_PACKAGE_NAMES before add so lockfile drops triad; owner tests green; packed tip installs and doctor path works; ledgerd convert_landed under hybrid Verdaccio."
     },
     "items": [
       {
@@ -36,7 +36,12 @@
       },
       {
         "id": "5",
-        "title": "Freeze yolo/cp-wave4e + Verdaccio publish",
+        "title": "Freeze yolo/cp-wave4e + Verdaccio publish (.1/.2)",
+        "status": "completed"
+      },
+      {
+        "id": "6",
+        "title": "Lockfile follow-on: PM-remove triad before add (ledgerd); publish .3; re-run ledgerd",
         "status": "completed"
       }
     ]
