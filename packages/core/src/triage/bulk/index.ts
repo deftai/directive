@@ -7,7 +7,6 @@ import {
   deferAction as nativeDefer,
   needsAc as nativeNeedsAc,
   reject as nativeReject,
-  TriageError,
 } from "../actions/index.js";
 import { resolveCandidatesLogPath } from "../cache-path.js";
 
@@ -51,8 +50,14 @@ export interface CacheModule {
   CacheError: new (message?: string) => Error;
 }
 
+/** Returned-failure shape for bulk accept refusals (no throw; intent-constraint free). */
+export type BulkAcceptResult =
+  | undefined
+  | { readonly ok: true }
+  | { readonly ok: false; readonly message: string };
+
 export interface TriageActionsModule {
-  accept(issueNumber: number, repo: string, ...args: unknown[]): void;
+  accept(issueNumber: number, repo: string, ...args: unknown[]): BulkAcceptResult;
   reject(issueNumber: number, repo: string, ...args: unknown[]): void;
   defer(issueNumber: number, repo: string, ...args: unknown[]): void;
   needs_ac(issueNumber: number, repo: string, ...args: unknown[]): void;
@@ -344,38 +349,36 @@ function isSignatureMismatch(exc: unknown): boolean {
 }
 
 function invokeAction(
-  fn: (...args: unknown[]) => void,
+  fn: (...args: unknown[]) => unknown,
   issueNumber: number,
   repo: string,
   actionKey: string,
   reason: string | null | undefined,
-): void {
+): unknown {
   const kwargs: Record<string, unknown> = {};
   if (actionKey === "reject" && reason !== null && reason !== undefined) {
     kwargs.reason = reason;
   }
   try {
     if (Object.keys(kwargs).length > 0) {
-      fn(issueNumber, repo, kwargs);
-    } else {
-      fn(issueNumber, repo);
+      return fn(issueNumber, repo, kwargs);
     }
+    return fn(issueNumber, repo);
   } catch (exc: unknown) {
     if (!isSignatureMismatch(exc)) {
       throw exc;
     }
     if (actionKey === "reject" && reason !== null && reason !== undefined) {
-      fn(issueNumber, repo, reason);
-    } else {
-      fn(issueNumber, repo);
+      return fn(issueNumber, repo, reason);
     }
+    return fn(issueNumber, repo);
   }
 }
 
 function resolveAction(
   actionsModule: TriageActionsModule,
   actionKey: string,
-): (...args: unknown[]) => void {
+): (...args: unknown[]) => unknown {
   const fnName = ACTION_FN_NAMES[actionKey];
   if (fnName === undefined) {
     throw new Error(`Unknown bulk action: ${JSON.stringify(actionKey)}`);
@@ -384,7 +387,7 @@ function resolveAction(
   if (typeof fn !== "function") {
     throw new Error(`triage_actions.${fnName} not found (Story 3 contract violated)`);
   }
-  return fn as (...args: unknown[]) => void;
+  return fn as (...args: unknown[]) => unknown;
 }
 
 /** Execute bulk action over the filtered candidate set. */
@@ -445,6 +448,7 @@ export function bulkAction(
   const fn = resolveAction(options.actionsModule, actionKey);
 
   let actioned = 0;
+  let refused = 0;
   for (const issue of matched) {
     let issueNumber: number;
     try {
@@ -458,12 +462,31 @@ export function bulkAction(
       );
       continue;
     }
-    invokeAction(fn, issueNumber, repo, actionKey, options.reason);
+    const result = invokeAction(fn, issueNumber, repo, actionKey, options.reason);
+    if (
+      actionKey === "accept" &&
+      result !== null &&
+      typeof result === "object" &&
+      "ok" in result &&
+      (result as { ok: unknown }).ok === false
+    ) {
+      refused += 1;
+      const message =
+        "message" in result && typeof (result as { message: unknown }).message === "string"
+          ? (result as { message: string }).message
+          : `accept #${issueNumber} refused`;
+      sink.write(`[triage:bulk-${actionKey}] #${issueNumber} refused: ${message}\n`);
+      continue;
+    }
     actioned += 1;
     sink.write(`[triage:bulk-${actionKey}] #${issueNumber} actioned\n`);
   }
 
-  sink.write(`[triage:bulk-${actionKey}] total: ${actioned}\n`);
+  sink.write(
+    `[triage:bulk-${actionKey}] total: ${actioned}` +
+      (refused > 0 ? ` refused: ${refused}` : "") +
+      `\n`,
+  );
   return actioned;
 }
 
@@ -558,10 +581,13 @@ export function createNativeActionsModule(projectRoot: string): TriageActionsMod
     accept(n, repo) {
       const outcome = nativeAccept(n, repo, deps, { projectRoot });
       if (outcome.disposition === "refused") {
-        throw new TriageError(
-          outcome.ingestMessage ?? `accept #${n} (${repo}): refused (no new proposed artifact)`,
-        );
+        return {
+          ok: false as const,
+          message:
+            outcome.ingestMessage ?? `accept #${n} (${repo}): refused (no new proposed artifact)`,
+        };
       }
+      return { ok: true as const };
     },
     reject(n, repo, ...args: unknown[]) {
       let reason = "";
