@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4888",
-    "updated": "2026-10-08T12:18:11Z"
+    "updated": "2026-10-16T07:35:00.000Z"
   },
   "plan": {
     "title": "Semantic policy conflicts stay invisible until task check",
@@ -17,46 +17,106 @@
       {
         "id": "clause.1",
         "title": "Widen scm cascade stale-base guidance to three-axis model",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/scm/github.md",
         "narrative": {
           "Acceptance": "Generalize content/scm/github.md #1369/#2385 cascade stale-base caveat beyond --cascade with three-axis model (textual/behavioral/policy). Operative MUST for conflict-resolve/behind-rebase/pre-push in scm + deft-directive-pre-pr. AGENTS/agents-entry pointer + agents:refresh. Frame #4883 CLEAN as axis-1 necessity."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5660 squash-merge (Tracking #4888). Bound limbs shipped; restamp lifecycleWrite + terminal item dispositions for verify:completed-write-guard.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5660",
+            "mintedAt": "2026-10-16T07:35:00.000Z",
+            "mintedVia": "approach1-babysit-5670"
+          },
+          "recorded_at": "2026-10-16T07:35:00.000Z"
         }
       },
       {
         "id": "clause.2",
         "title": "Extend evaluateSemanticGreen for non-cascade candidate validation",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/pr-wait-mergeable/semantic-green.ts",
         "narrative": {
           "Acceptance": "Extend evaluateSemanticGreen stale-base limb so non-cascade routes can require candidate validation keyed to (pr_head_sha, target_head_sha). Additive; do not weaken --cascade absolute refusal. Machine-checkable attestation; fail closed names probe. Primary vehicle TypeScript."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5660 squash-merge (Tracking #4888). Bound limbs shipped; restamp lifecycleWrite + terminal item dispositions for verify:completed-write-guard.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5660",
+            "mintedAt": "2026-10-16T07:35:00.000Z",
+            "mintedVia": "approach1-babysit-5670"
+          },
+          "recorded_at": "2026-10-16T07:35:00.000Z"
         }
       },
       {
         "id": "clause.3",
         "title": "Land lessons pack entry for three-axis semantic policy",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/packs/lessons/lessons-pack-0.1.json",
         "narrative": {
           "Acceptance": "Land lessons entry via lessons pack source with ## Title (YYYY-MM) convention + Canonical-encoding line pointing at probe and scm rule, plus content-contract test."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5660 squash-merge (Tracking #4888). Bound limbs shipped; restamp lifecycleWrite + terminal item dispositions for verify:completed-write-guard.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5660",
+            "mintedAt": "2026-10-16T07:35:00.000Z",
+            "mintedVia": "approach1-babysit-5670"
+          },
+          "recorded_at": "2026-10-16T07:35:00.000Z"
         }
       },
       {
         "id": "clause.4",
         "title": "Keep #4889 out; withdraw Python SoT shape",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "CHANGELOG.md",
         "narrative": {
           "Acceptance": "Keep #4889 strictly out. Withdraw #964 optional scripts/check_pr_semantic_drift.py shape; implementers must not satisfy with rejected Python SoT."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5660 squash-merge (Tracking #4888). Bound limbs shipped; restamp lifecycleWrite + terminal item dispositions for verify:completed-write-guard.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5660",
+            "mintedAt": "2026-10-16T07:35:00.000Z",
+            "mintedVia": "approach1-babysit-5670"
+          },
+          "recorded_at": "2026-10-16T07:35:00.000Z"
         }
       },
       {
         "id": "clause.5",
         "title": "Disclose #633 forge supersession for local probe",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/scm/github.md",
         "narrative": {
           "Acceptance": "Name #633/#1517 up-to-date-required + Merge gate aggregator as superseding forge-layer control. Scope local probe as interim; state retirement condition. Reject mutating GitHub mergeable_state."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5660 squash-merge (Tracking #4888). Bound limbs shipped; restamp lifecycleWrite + terminal item dispositions for verify:completed-write-guard.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5660",
+            "mintedAt": "2026-10-16T07:35:00.000Z",
+            "mintedVia": "approach1-babysit-5670"
+          },
+          "recorded_at": "2026-10-16T07:35:00.000Z"
         }
       }
     ],
@@ -199,13 +259,28 @@
       "productPullRequest": 5660,
       "completionProvenance": {
         "schema": "deft.completionProvenance.v1",
+        "repository": "deftai/directive",
+        "implementationCommit": "da3d8eac61293d49444e3fc0c5d781f3916b69ac",
+        "prNumber": 5660,
+        "prBase": "master",
         "mergeCommit": "da3d8eac61293d49444e3fc0c5d781f3916b69ac",
-        "productPullRequest": 5660,
-        "completedAt": "2026-10-16T07:26:07.346Z",
-        "deliveryBranch": "master"
-      }
+        "deliveryBranch": "master",
+        "deliveryCommit": "da3d8eac61293d49444e3fc0c5d781f3916b69ac",
+        "verifiedAt": "2026-10-16T07:35:00.000Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedAt": "2026-10-16T07:35:00.000Z"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-16T07:35:00.000Z"
+      },
+      "completedAt": "2026-10-16T07:35:00.000Z"
     },
     "id": "github.issue.5540579955",
-    "updated": "2026-10-08T12:18:11Z"
+    "updated": "2026-10-16T07:35:00.000Z"
   }
 }
