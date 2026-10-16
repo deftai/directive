@@ -223,18 +223,27 @@
         "algorithm": "sha256",
         "sha256": "d7b76dfcf384d711ad23c3a846bc773313798204f1699bcba9bc479bd1f5bc3a"
       },
-      "deliveryProvenance": {
-        "productPullRequest": 5679,
-        "mergeCommit": "1a599f3c6a8d9c195d557a035ddbf5e067d81f0d",
-        "deliveryBranch": "master"
-      },
       "completionProvenance": {
-        "schema": "deft.scope.completion-provenance.v1",
-        "productPullRequest": 5679,
+        "repository": "deftai/directive",
+        "implementationCommit": "1a599f3c6a8d9c195d557a035ddbf5e067d81f0d",
+        "prNumber": 5679,
+        "prBase": "master",
         "mergeCommit": "1a599f3c6a8d9c195d557a035ddbf5e067d81f0d",
         "deliveryBranch": "master",
-        "lifecycleWrite": "leftover-complete"
-      }
+        "deliveryCommit": "1a599f3c6a8d9c195d557a035ddbf5e067d81f0d",
+        "verifiedAt": "2026-10-16T20:17:54.855Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-16T20:17:54.855Z"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered"
     },
     "acceptance": {
       "commands": [],
