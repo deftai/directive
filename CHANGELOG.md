@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **docs(authz): cite #5674 for #5542 pre-PR/hotspots waived-exit follow-up.** Gate-override hatch and released 0.125.1 CHANGELOG wording now name #5674 so closed #5542 is not over-read as consumer-wired. Refs #5674 / #5665 / #5542.
+- Activate Prefer-A Bound keep-active brief for #4962 (productPullRequest unset; concrete file_scope covering product + tests + bulk). Tracking #4962.
 - Widen Prefer-A Bound keep-active #5656 file_scope for companion hooks/tests/RULE-MAP (productPullRequest unset). Tracking #5656.
 - Activate Prefer-A Bound keep-active brief for #5656 (productPullRequest unset; concrete file_scope). Tracking #5656.
 - Activate Prefer-A Bound keep-active brief for #3907 (productPullRequest unset; swarm-ready story fields). Tracking #3907.
