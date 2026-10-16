@@ -306,13 +306,28 @@
         "deliveryBranch": "master"
       },
       "completionProvenance": {
-        "schema": "deft.scope.completion-provenance.v1",
-        "productPullRequest": 5678,
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 5678,
+        "prBase": "master",
         "mergeCommit": "b0ec56e7f9ddfba2634261805317095ec252b21b",
         "deliveryBranch": "master",
-        "lifecycleWrite": "leftover-complete"
+        "deliveryCommit": "b0ec56e7f9ddfba2634261805317095ec252b21b",
+        "verifiedAt": "2026-10-16T21:44:59.040Z",
+        "verifier": "approach1-review-monitor/5695",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
       },
-      "lifecycleWrite": "leftover-complete"
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-16T21:44:59.040Z"
+      },
+      "completedAt": "2026-10-16T21:44:59.040Z",
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "productPullRequest": 5678
     },
     "id": "github.issue.5555957757",
     "updated": "2026-10-16T16:30:19Z"
