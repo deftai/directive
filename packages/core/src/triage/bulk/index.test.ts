@@ -450,7 +450,7 @@ describe("bulk edge paths", () => {
       });
     writeFileSync(join(root, "xbrief", "proposed", "a.xbrief.json"), brief("a"));
     writeFileSync(join(root, "xbrief", "proposed", "b.xbrief.json"), brief("b"));
-    const logPath = join(root, "xbrief", ".triage-cache", "decisions.jsonl");
+    const logPath = join(root, "xbrief", ".triage-cache", "candidates.jsonl");
     mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
     writeFileSync(
       logPath,
