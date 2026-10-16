@@ -463,9 +463,7 @@ export type ApplyingHostLifecycleAdmission =
   | {
       readonly kind: "soft-pass";
       readonly record: ApplyingHostRecord;
-      readonly reason:
-        | "non-matching-deposit-names-applying-host"
-        | "live-lease-owner-cleanup";
+      readonly reason: "non-matching-deposit-names-applying-host" | "live-lease-owner-cleanup";
     }
   | {
       readonly kind: "foreign-owner";
@@ -692,11 +690,7 @@ export function evaluateApplyingHostLifecycleAdmission(input: {
   const live = liveOccupant(input.projectRoot, input.now ?? new Date());
   const liveId = live?.sessionId ?? null;
   const named = input.namedSessionId?.trim() || null;
-  if (
-    liveId !== null &&
-    record.applyingHostSessionId !== liveId &&
-    named === liveId
-  ) {
+  if (liveId !== null && record.applyingHostSessionId !== liveId && named === liveId) {
     return {
       kind: "soft-pass",
       record,
