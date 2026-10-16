@@ -34,6 +34,7 @@ import {
   PARTIAL_CHANGES_MAY_REMAIN,
   planFingerprintChanged,
   readDeclaredPackageManagerVersion,
+  removeLegacyDirectivePackages,
   removeLegacyDirectivePin,
   runPmExactAdd,
   runPmRemove,
@@ -1203,8 +1204,10 @@ export function runUpgrade(
 
   if (versionChange) {
     // AC10.3: replace pre-split @deftai/directive pin before PM adds the runtime.
-    if (state.oldStyle) {
-      removeLegacyDirectivePin(projectRoot);
+    if (state.oldStyle || convertViaRemovals) {
+      // Strip launcher pin + retired triad before PM add (wave4e / AC10.3).
+      // Upgrade must not require old triad tarballs on the registry.
+      removeLegacyDirectivePackages(projectRoot);
     }
     // Convert shapes may lack a package.json (rare); ensure before PM add.
     if (convertViaRemovals && !existsSync(join(projectRoot, "package.json"))) {

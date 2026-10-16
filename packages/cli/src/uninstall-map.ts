@@ -72,6 +72,7 @@ const GITHOOK_RELS = [
   ".githooks/pre-commit",
   ".githooks/pre-push",
   ".githooks/_directive-run.sh",
+  ".githooks/_deft-run.sh",
 ] as const;
 
 const HOST_HOOK_RELS = [
@@ -256,14 +257,23 @@ function isOurSkillPointer(body: string): boolean {
 }
 
 function isOurGitHook(rel: string, body: string): boolean {
-  if (rel.endsWith("_directive-run.sh")) {
+  const base = rel.split("/").pop() ?? rel;
+  if (base === "_directive-run.sh" || base === "_deft-run.sh") {
     return (
       body.includes(RUNTIME_PREFIX) ||
       body.includes("run_directive") ||
-      body.includes(".deft/core/")
+      body.includes("run_deft") ||
+      body.includes(".deft/core") ||
+      body.includes("packages/cli/dist/bin.js")
     );
   }
-  return body.includes("_directive-run.sh") || body.includes(RUNTIME_PREFIX);
+  return (
+    body.includes("_directive-run.sh") ||
+    body.includes("_deft-run.sh") ||
+    body.includes("run_deft") ||
+    body.includes(RUNTIME_PREFIX) ||
+    body.includes(".deft/core")
+  );
 }
 
 function listWiringReady(projectRoot: string): string[] {

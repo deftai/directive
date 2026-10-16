@@ -8,6 +8,7 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import {
   containedChmod,
+  containedRemove,
   containedWrite,
 } from "@deftai/directive-core/dist/fs/contained-write.js";
 import {
@@ -849,11 +850,29 @@ REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 1
 run_directive verify:branch --project-root "$REPO_ROOT" || exit $?
 `;
 
+/**
+ * Current OVPR helpers plus supported latest-legacy Directive git hooks
+ * (`_deft-run.sh` / `run_deft` / copied-core era). True third-party hooks
+ * (e.g. prettier-only) must stay unrecognized so we refuse overwrite (AC10.3).
+ */
 function isOurGitHookBody(rel: string, body: string): boolean {
-  if (rel.endsWith("_directive-run.sh")) {
-    return body.includes(RUNTIME_BIN_REL) || body.includes("run_directive");
+  const base = rel.split("/").pop() ?? rel;
+  if (base === "_directive-run.sh" || base === "_deft-run.sh") {
+    return (
+      body.includes(RUNTIME_BIN_REL) ||
+      body.includes("run_directive") ||
+      body.includes("run_deft") ||
+      body.includes(".deft/core") ||
+      body.includes("packages/cli/dist/bin.js")
+    );
   }
-  return body.includes("_directive-run.sh");
+  return (
+    body.includes("_directive-run.sh") ||
+    body.includes("_deft-run.sh") ||
+    body.includes("run_deft") ||
+    body.includes(RUNTIME_BIN_REL) ||
+    body.includes(".deft/core")
+  );
 }
 
 const EXECUTABLE_GITHOOKS = new Set([".githooks/pre-commit", ".githooks/pre-push"]);
@@ -896,6 +915,21 @@ export function ensureGitHooks(projectRoot: string): {
         containedChmod({ root: projectRoot, target: file.rel, mode: 0o755 });
       } catch {
         /* best-effort on platforms without chmod */
+      }
+    }
+  }
+
+  // Drop obsolete latest-legacy helper once OVPR hooks are in place (wave4e).
+  const legacyHelperRel = ".githooks/_deft-run.sh";
+  const legacyHelperAbs = join(projectRoot, legacyHelperRel);
+  if (existsSync(legacyHelperAbs)) {
+    const legacyBody = readText(legacyHelperAbs);
+    if (legacyBody !== null && isOurGitHookBody(legacyHelperRel, legacyBody)) {
+      try {
+        const rem = containedRemove({ root: projectRoot, target: legacyHelperRel });
+        if (rem.removed) modified.push(legacyHelperRel);
+      } catch {
+        /* best-effort; conflicts already captured for other files */
       }
     }
   }

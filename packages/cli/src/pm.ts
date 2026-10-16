@@ -618,10 +618,23 @@ export function formatPmExactAddCommand(
 }
 
 /**
- * Remove a supported pre-split `@deftai/directive` project pin from package.json
- * (AC10.3). Does not touch the lockfile or node_modules — caller runs PM add next.
+ * Retired pre-split published packages collapsed into `@deftai/directive-runtime`
+ * (UNIFIED package collapse / AC10.3). Strip before PM add so convert does not
+ * need old triad tarballs on the registry (wave4e).
  */
-export function removeLegacyDirectivePin(projectRoot: string): boolean {
+export const RETIRED_DIRECTIVE_PACKAGE_NAMES = [
+  LAUNCHER_PACKAGE_NAME,
+  "@deftai/directive-core",
+  "@deftai/directive-content",
+  "@deftai/directive-types",
+] as const;
+
+/**
+ * Remove pre-split `@deftai/directive` and retired triad packages from
+ * package.json (AC10.3). Does not touch the lockfile or node_modules — caller
+ * runs PM add next.
+ */
+export function removeLegacyDirectivePackages(projectRoot: string): boolean {
   const path = join(projectRoot, "package.json");
   const pkg = readJsonObject(path);
   if (pkg === null) return false;
@@ -630,9 +643,11 @@ export function removeLegacyDirectivePin(projectRoot: string): boolean {
     const block = pkg[key];
     if (block === null || typeof block !== "object" || Array.isArray(block)) continue;
     const deps = block as Record<string, unknown>;
-    if (!(LAUNCHER_PACKAGE_NAME in deps)) continue;
-    delete deps[LAUNCHER_PACKAGE_NAME];
-    removed = true;
+    for (const name of RETIRED_DIRECTIVE_PACKAGE_NAMES) {
+      if (!(name in deps)) continue;
+      delete deps[name];
+      removed = true;
+    }
     if (Object.keys(deps).length === 0) {
       delete pkg[key];
     }
@@ -640,6 +655,14 @@ export function removeLegacyDirectivePin(projectRoot: string): boolean {
   if (!removed) return false;
   writeFileSync(path, `${JSON.stringify(pkg, null, 2)}\n`);
   return true;
+}
+
+/**
+ * @deprecated Prefer {@link removeLegacyDirectivePackages} (also strips triad).
+ * Kept as an alias for call sites that only named the launcher pin historically.
+ */
+export function removeLegacyDirectivePin(projectRoot: string): boolean {
+  return removeLegacyDirectivePackages(projectRoot);
 }
 
 /**
