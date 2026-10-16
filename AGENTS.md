@@ -166,7 +166,7 @@ Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after 
 
 <!-- placeholder -->
 
-<!-- deft:managed-section v3 sha=3f59a28cdeab refreshed=2026-10-07T22:33:45Z session=71144684fe46 -->
+<!-- deft:managed-section v3 sha=121ec0220c77 refreshed=2026-10-16T02:45:58Z session=77c59550ad58 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -288,7 +288,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## Nuclear-family A2A topology (#3155)
 
-! Agent-to-agent messaging is **nuclear-family** only: parent / sibling (same cohort) / child. Cross-cohort or cross-session coordination goes through a shared parent or durable parent-owned artifacts — not peer mesh. Depth: swarm.md / security.md / ADR-003 (#2705). Pair: #3158; #3179.
+! Agent-to-agent messaging is **nuclear-family** only: parent / sibling (same cohort) / child. Cross-cohort or cross-session coordination goes through a shared parent or durable parent-owned artifacts — not peer mesh. Depth: swarm.md / security.md / content/docs/decisions/ADR-003-a2a-nuclear-family-topology.md (.deft/core/docs) (#2705). Pair: #3158; #3179.
 ⊗ Open-mesh agent-to-agent messaging across cohorts or sessions ("agents everywhere").
 ⊗ Treat retained / re-addressable children as license to mesh outside the nuclear family.
 
