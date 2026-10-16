@@ -89,20 +89,21 @@ deft authz:uat-suspend
 deft authz:revoke -- grant-…
 ```
 
-## Gate-override hatch (#5542)
+## Gate-override hatch (#5542 / #5674)
 
 Mint + admission APIs for an audited interactive override bound to a coverage-
-applicability refuse. **This release ships grant minting and admission only.**
-Wiring that turns a live admission into a `waived` / exit-4 result on the pre-PR
-`coverage_headroom` / `deft coverage:hotspots` path is tracked as **#5674**
-(leftover from #5665 Prefer-A Bound / #5542); operators minting a grant here will
-still see the refuse until that consumer lands.
-Classifier exact-path relief for ordinary managed stamps/ledgers is #5665 — not
-this hatch, and not a co-equal standing unblock via override wiring.
+applicability refuse (#5542). Consumer wiring on pre-PR `coverage_headroom` /
+`deft coverage:hotspots` lands as **exit 4** + distinct waived skip token with
+admission-receipt re-verify (#5674). Measured Istanbul floor/headroom failure
+still dominates when a coverage report exists. Exit 4 never maps to pass /
+exit 0. Residual deposit keep-unknowns (run / hooks / codeql / approved-scope)
+stay open on #5677. Classifier exact-path relief for ordinary managed
+stamps/ledgers is #5665 — not this hatch.
 
 ```bash
 deft authz:grant -- --template gate-override --target <refuseCode> \
   --plan-ref <attemptId> --base-sha <sha> --head-sha <sha> --tree-hash <hash> [--confirm]
+deft coverage:hotspots --attempt-id <attemptId>
 ```
 
 | Rule | Detail |
@@ -110,7 +111,7 @@ deft authz:grant -- --template gate-override --target <refuseCode> \
 | Mint provenance | `origin.kind=operator-cli` only via live `authz:grant` human-presence; `operator-session` non-admitting; refuse chat/parent/fixture consent |
 | Binding | gate id + refuse code + `baseSha+headSha+treeHash` + attempt id (+ optional worktree/evaluator) |
 | Admission | Atomic one-use via claim lock; inspection does **not** consume; same attempt reuses receipt; renew after revoke/expiry replaces under an attempt-id lock |
-| Result arms (#5674) | Planned `waived` / `overridden` on coverage-applicability + pre-PR evidence — **never** map to pass / exit 0; not wired until #5674 |
+| Result arms (#5674) | Live `waived` on coverage-hotspots + pre-PR evidence via exit 4 + waived skip token — **never** map to pass / exit 0; measured floor dominates when a report exists |
 | Eligible refuse codes | Closed set (`unknown-path`, `dirty-tree`, …); non-overridable authenticity codes (`tree-mismatch`, `invalid-*`) dominate |
 | Deferred peers | Empty list in v1 |
 | Push/merge | Grant is `settings` only — no independent push/merge permission |
@@ -130,7 +131,8 @@ Complementary hatches stay separate: `--allow-coverage-debt`, `policy:allow-*`,
 | HMAC / hardware-keyed grants | non-goal for MVP |
 | Classifier false-refuse correctness | #5541 / #5665 (not absorbed by gate-override) |
 | Interactive gate waiver audit | #5542 (this hatch) |
-| Pre-PR/hotspots waived-exit consumer + residual deposit unknowns | #5674 (leftover #5665/#5542) |
+| Pre-PR/hotspots waived-exit consumer + VERSION/lifecycle gitkeep inert | #5674 (leftover #5665/#5542) |
+| Residual deposit keep-unknowns (run / hooks / codeql / approved-scope) | #5677 |
 
 ## Wave 4 consumers
 

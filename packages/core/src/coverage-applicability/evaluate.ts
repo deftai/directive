@@ -4,7 +4,11 @@
  */
 
 import * as childProcess from "node:child_process";
-import { bareVersionMarkerRelativePaths } from "../init-deposit/hygiene.js";
+import { CANONICAL_INSTALL_ROOT } from "../init-deposit/constants.js";
+import {
+  bareVersionMarkerRelativePaths,
+  installerManagedMatchers,
+} from "../init-deposit/hygiene.js";
 import { isClosedPlanSequenceShape, PLAN_SEQUENCE_REL_PATH } from "../plan-sequence/types.js";
 import { COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP } from "../pre-pr-controller/phases.js";
 
@@ -785,6 +789,31 @@ function isManagedStampOrPolicyLedgerPath(path: string): boolean {
 }
 
 /**
+ * Prefer-A #5674 residual deposit markers: exact VERSION + lifecycle `.gitkeep`
+ * paths from installerManagedMatchers / VBRIEF_LIFECYCLE_DIRS. Do not inert
+ * `.deft/core/run`, hooks, codeql, or approved-scope (keep-unknown / #5677).
+ */
+const PAYLOAD_VERSION_PATH = `${CANONICAL_INSTALL_ROOT}/VERSION`;
+
+function residualDepositInertPaths(): ReadonlySet<string> {
+  const gitkeeps = installerManagedMatchers()
+    .map((m) => m.exact)
+    .filter(
+      (exact): exact is string =>
+        typeof exact === "string" &&
+        (exact.startsWith("xbrief/") || exact.startsWith("vbrief/")) &&
+        exact.endsWith("/.gitkeep"),
+    );
+  return new Set<string>([PAYLOAD_VERSION_PATH, ...gitkeeps]);
+}
+
+const RESIDUAL_DEPOSIT_INERT_PATHS: ReadonlySet<string> = residualDepositInertPaths();
+
+function isResidualDepositInertPath(path: string): boolean {
+  return RESIDUAL_DEPOSIT_INERT_PATHS.has(posixPath(path));
+}
+
+/**
  * Closed classifier rules. Markdown/JSON/xbrief are inert only when these rules
  * positively match — never by blanket extension alone outside planning/docs paths.
  */
@@ -808,6 +837,9 @@ export function classifyChangedPath(
 
   // #5665: Directive-managed stamps/markers + append-only policy ledger (exact posix).
   if (isManagedStampOrPolicyLedgerPath(p)) return "inert";
+
+  // #5674: exact VERSION + ten lifecycle .gitkeep markers (after coverable-first).
+  if (isResidualDepositInertPath(p)) return "inert";
 
   if (INERT_BASENAMES.has(base)) return "inert";
 

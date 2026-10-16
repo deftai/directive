@@ -10,6 +10,9 @@ interface ParsedArgs {
   baseRef: string | null;
   pathFilter: string[];
   useDiffPaths: boolean;
+  attemptId: string | null;
+  worktree: string | null;
+  evaluatorId: string | null;
   json: boolean;
   quiet: boolean;
   error?: string;
@@ -32,6 +35,9 @@ export function parseArgs(argv: string[]): ParsedArgs {
     baseRef: null,
     pathFilter: [],
     useDiffPaths: true,
+    attemptId: null,
+    worktree: null,
+    evaluatorId: null,
     json: false,
     quiet: false,
   };
@@ -44,6 +50,33 @@ export function parseArgs(argv: string[]): ParsedArgs {
       parsed.quiet = true;
     } else if (arg === "--no-diff-filter") {
       parsed.useDiffPaths = false;
+    } else if (arg === "--attempt-id") {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return { ...parsed, error: "argument --attempt-id: expected one argument" };
+      }
+      parsed.attemptId = value;
+      i += 1;
+    } else if (arg?.startsWith("--attempt-id=")) {
+      parsed.attemptId = arg.slice("--attempt-id=".length);
+    } else if (arg === "--worktree") {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return { ...parsed, error: "argument --worktree: expected one argument" };
+      }
+      parsed.worktree = value;
+      i += 1;
+    } else if (arg?.startsWith("--worktree=")) {
+      parsed.worktree = arg.slice("--worktree=".length);
+    } else if (arg === "--evaluator-id") {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return { ...parsed, error: "argument --evaluator-id: expected one argument" };
+      }
+      parsed.evaluatorId = value;
+      i += 1;
+    } else if (arg?.startsWith("--evaluator-id=")) {
+      parsed.evaluatorId = arg.slice("--evaluator-id=".length);
     } else if (arg === "--project-root") {
       const value = argv[i + 1];
       if (value === undefined) {
@@ -135,10 +168,14 @@ export function run(argv: string[]): number {
     baseRef: args.baseRef,
     pathFilter: args.pathFilter.length > 0 ? args.pathFilter : null,
     useDiffPaths: args.useDiffPaths,
+    attemptId: args.attemptId,
+    worktree: args.worktree,
+    evaluatorId: args.evaluatorId,
   });
 
-  // Exit 3 = authorized coverage N/A (#5421); keep machine-readable artifact on stdout for --json.
-  if (result.exitCode === 3) {
+  // Exit 3 = authorized coverage N/A (#5421); exit 4 = gate-override waived (#5674).
+  // Keep machine-readable artifact on stdout for --json. Never map waived to exit 0.
+  if (result.exitCode === 3 || result.exitCode === 4) {
     if (args.json && result.applicability) {
       process.stdout.write(`${JSON.stringify(result.applicability, null, 2)}\n`);
     } else if (!args.quiet) {
