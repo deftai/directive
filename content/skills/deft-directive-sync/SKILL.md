@@ -130,7 +130,7 @@ A project is **pre-cutover** if ANY of the following are true. This prose mirror
    - ask the operator to stash / commit product work first, or
    - record `blocked:dirty-worktree` and skip mutation,
    - or, with explicit consent, isolate product changes (stash including index) so the upgrade cannot mix with them.
-3. ! After mutate, stage **only** framework-managed paths for the upgrade commit (e.g. `package.json` / lockfile pin, managed AGENTS section, hooks, GENERATION / wiring-ready markers). Reconstruct a clean index if needed rather than `git add -A`.
+3. ! After mutate, stage **only** framework-managed paths for the upgrade commit (e.g. `package.json` / lockfile pin, managed AGENTS section, hooks, tracked wiring / `.deft/GENERATION.json`). Do **not** `git add` checkout-local ignored `.deft/directive/wiring-ready.*`. Reconstruct a clean index if needed rather than `git add -A`.
 4. ⊗ Create a framework-only commit or PR from a mixed worktree/index that still carries product feature paths.
 
 ### 0c: Launcher + project verbs (when authorized)
@@ -295,7 +295,7 @@ After structure validation, sync framework-level assets.
 
 ### 6a: Check AGENTS.md freshness
 
-~ Compare the project's `AGENTS.md` against the deft template (if a template exists in the updated deposit / `.deft/core/` or legacy `deft/` submodule):
+~ Compare the project's `AGENTS.md` against the deft template under `node_modules/@deftai/directive-runtime/templates/` after `directive upgrade` / `directive install --repair` (legacy `deft/` submodule only when still on that layout):
 
 1. ~ Diff the structure (section headings, key rules) rather than expecting byte-identical content
 2. ~ Report any new sections or rules added upstream that are missing locally
@@ -311,7 +311,7 @@ After structure validation, sync framework-level assets.
 
 ### 6c: List new skills
 
-! Compare the `skills/` directory (or deposited `.deft/core/` skills) before and after the update:
+! Compare skills under `node_modules/@deftai/directive-runtime/.agents/skills/` (or project `.agents/skills/` pointers) before and after `directive upgrade` / `directive install --repair`:
 
 1. ! List any new skill directories added in the update
 2. ~ For each new skill, read its frontmatter `description` field and present a one-liner

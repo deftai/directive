@@ -69,21 +69,45 @@ function isProhibitionOrArchaeologyLine(line: string): boolean {
   );
 }
 
+/** Current-guidance hits after archaeology exemption (Not deleted is never exempt). */
+function currentGuidanceHits(text: string): string[] {
+  const found: string[] = [];
+  for (const { id, re } of DEFT_INSTALL_CURRENT_RES) {
+    for (const line of hits(text, re)) {
+      // "Not deleted" contains "deleted" and would falsely match the archaeology
+      // exemption — reject it before applying isProhibitionOrArchaeologyLine.
+      if (/\bNot deleted\b/.test(line)) {
+        found.push(`${id}: ${line}`);
+        continue;
+      }
+      if (isProhibitionOrArchaeologyLine(line)) continue;
+      found.push(`${id}: ${line}`);
+    }
+  }
+  return found;
+}
+
 describe("OVPR residual docs wave3t (AC10.10 DEFT-INSTALL-RESIDUAL)", () => {
   it.each(WAVE3T_SURFACES)(
     "%s does not prescribe deft-install / Go installer as current guidance",
     (rel) => {
       const text = readText(rel);
-      const found: string[] = [];
-      for (const { id, re } of DEFT_INSTALL_CURRENT_RES) {
-        for (const line of hits(text, re)) {
-          if (isProhibitionOrArchaeologyLine(line)) continue;
-          found.push(`${id}: ${line}`);
-        }
-      }
-      expect(found, `${rel} still teaches deft-install as current`).toEqual([]);
+      expect(
+        currentGuidanceHits(text),
+        `${rel} still teaches deft-install as current`,
+      ).toEqual([]);
     },
   );
+
+  it("rejects a line containing Not deleted even when archaeology words appear", () => {
+    const line =
+      "The Go installer path is Not deleted — historical archaeology note only.";
+    const found = currentGuidanceHits(`${line}\n`);
+    expect(found.some((h) => h.includes("Not deleted"))).toBe(true);
+    // Direct exemption must not cancel the Not deleted prohibition.
+    expect(isProhibitionOrArchaeologyLine(line)).toBe(true);
+    expect(/\bNot deleted\b/.test(line)).toBe(true);
+  });
 
   it("ARCHITECTURE teaches OVPR + deleted Go (not Not deleted / deft-install gate current)", () => {
     const text = readText("docs/ARCHITECTURE.md");
@@ -111,6 +135,21 @@ describe("OVPR residual docs wave3t (AC10.10 DEFT-INSTALL-RESIDUAL)", () => {
     expect(text).toMatch(/is \*\*deleted\*\*/);
     expect(text).not.toMatch(/no-Node bootstrap bridge/i);
     expect(text).not.toMatch(/directive update` \(or `deft update`\) to refresh `\.deft\/core\//);
+    // Phase 6a/6c: template/skills checks use runtime package paths (not .deft/core deposit).
+    expect(text).toContain(
+      "node_modules/@deftai/directive-runtime/templates/",
+    );
+    expect(text).toContain(
+      "node_modules/@deftai/directive-runtime/.agents/skills/",
+    );
+    expect(text).not.toMatch(
+      /template exists in the updated deposit \/ `\.deft\/core\/`/,
+    );
+    expect(text).not.toMatch(/deposited `\.deft\/core\/` skills/);
+    // Staging: pin/lock/GENERATION/tracked wiring — not ignored wiring-ready.*.
+    expect(text).toMatch(/tracked wiring \/ `\.deft\/GENERATION\.json`/);
+    expect(text).toMatch(/Do \*\*not\*\* `git add` checkout-local ignored/);
+    expect(text).not.toMatch(/GENERATION \/ wiring-ready markers/);
   });
 
   it("content-manifest does not inventory Go installer as canonical bootstrap", () => {
