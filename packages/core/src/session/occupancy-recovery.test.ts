@@ -8,10 +8,14 @@ import {
   evaluateOccupancyCeremonyEligibility,
   formatOccupancyRemediation,
   type OccupancyCeremonyEligibility,
+  occupancyPath,
   readOccupancy,
+  resolveOccupancyLeaseRoot,
+  stealOccupancy,
 } from "./occupancy.js";
 import {
   applyOccupancyEligibilityToDenial,
+  formatCeremonyRecoveryAfterOccupancySteal,
   formatOccupancyAwareRitualRecovery,
   occupancyAwareDenialMessage,
   SHELL_COVERAGE_HONESTY,
@@ -152,5 +156,53 @@ describe("occupancy-aware ritual recovery (#4290)", () => {
     );
     expect(text).toContain("session:ready");
     expect(text).toContain(SHELL_COVERAGE_HONESTY);
+  });
+
+  it("names target root, presenter, lease op, and ceremony after minted+host steal (#5544 P3)", () => {
+    const root = mkdtempSync(join(tmpdir(), "occ-rec-5544-"));
+    temps.push(root);
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    const now = new Date("2026-10-16T12:00:00Z");
+    applyWorktreeOccupancy(root, {
+      env: {},
+      newSessionId: () => "minted-uuid",
+      now,
+      intent: "mutation",
+    });
+    const hostId = canonicalHostSessionId("claude", "ceremony-after-steal");
+    const stolen = stealOccupancy(root, {
+      sessionId: hostId,
+      occupant: "minted-uuid",
+      confirm: true,
+      now: new Date("2026-10-16T12:01:00Z"),
+    });
+    expect(stolen.action).toBe("stolen");
+    expect(stolen.message).toContain("Required ceremony:");
+    expect(stolen.message).toContain("Target root:");
+    const ceremony = formatCeremonyRecoveryAfterOccupancySteal({
+      projectRoot: root,
+      presenterSessionId: hostId,
+      tier: "cold",
+    });
+    expect(ceremony).toContain(`target root=${resolveOccupancyLeaseRoot(root)}`);
+    expect(ceremony).toContain(`presenter=${hostId}`);
+    expect(ceremony).toContain("permitted lease operation=occupancy:steal");
+    expect(ceremony).toContain("required ceremony=");
+    expect(ceremony).toContain(`occupancyFile=${occupancyPath(resolveOccupancyLeaseRoot(root))}`);
+    expect(ceremony).toContain(SHELL_COVERAGE_HONESTY);
+    const rewritten = applyOccupancyEligibilityToDenial(
+      `Directive denied Write: ritual ownership mismatch. ${ceremony}`,
+      {
+        admitCeremony: false,
+        occupancyCase: "live-foreign-owner",
+        sessionId: hostId,
+        occupantId: hostId,
+        restrictedPrimary: false,
+        denialMessage: ceremony,
+      },
+      "cold",
+    );
+    expect(rewritten).toContain("Ceremony recovery after occupancy:steal");
+    expect(rewritten).not.toMatch(/session:ready/);
   });
 });

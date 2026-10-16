@@ -71,7 +71,12 @@ import {
   worktreePathOrNull,
 } from "../session/git.js";
 import { isLinkedWorktreePath } from "../session/main-worktree.js";
-import { evaluateOccupancyWriteGate } from "../session/occupancy.js";
+import {
+  evaluateOccupancyWriteGate,
+  formatOccupancyLeaseViewNote,
+  occupancyPath,
+  resolveOccupancyLeaseRoot,
+} from "../session/occupancy.js";
 import { occupancyAwareDenialMessage } from "../session/occupancy-recovery.js";
 import {
   ENV_SESSION_POSTURE,
@@ -1761,6 +1766,7 @@ function inspectMutationGates(
           sessionId: actor?.sessionId,
           // Hosts with a resolved owner must not fall back to a stale ambient one.
           env: actor?.hostAuthoritative === true ? {} : environ,
+          leaseRoot: effectiveRoot,
         }),
         actor?.sessionId ?? "",
         undefined,
@@ -1837,6 +1843,12 @@ function inspectMutationGates(
       inspected !== null && inspected.code !== 0
         ? ` Also ritual-not-ready: ${inspected.message}`
         : "";
+    // #5544 P2: denials from the Write gate always name occupancyFile + effectiveRoot.
+    const leaseRoot = resolveOccupancyLeaseRoot(effectiveRoot);
+    const leaseView = formatOccupancyLeaseViewNote(occupancyPath(leaseRoot), {
+      effectiveRoot,
+    });
+    const leaseNote = occupancyGate.message.includes("occupancyFile=") ? "" : ` ${leaseView}`;
     emitSessionRitualBlockedProcessCost(
       {
         toolName,
@@ -1851,7 +1863,7 @@ function inspectMutationGates(
       "occupancy-occupied",
       toolName,
       occupancyAwareText(
-        `Directive denied ${toolName}: ${occupancyGate.message}${ritualNote}${rootsNote}`,
+        `Directive denied ${toolName}: ${occupancyGate.message}${ritualNote}${leaseNote}${rootsNote}`,
         inspected?.recoveryTier === "rearm" ? "rearm" : "cold",
       ),
     );
@@ -2064,6 +2076,7 @@ function inspectMutationGates(
         env: actor.hostAuthoritative ? {} : environ,
         refresh: true,
         persistProductMutationMarker,
+        leaseRoot: effectiveRoot,
       }),
       actor.sessionId ?? "",
       undefined,

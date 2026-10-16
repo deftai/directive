@@ -1445,7 +1445,9 @@ function refuseRitualWriteIfOccupancyLost(
   const message =
     `session:start refused to write ritual: occupancy is no longer owned by session ${sessionId}` +
     ` (live occupant ${occupantId ?? "none"}). A confirmed steal during ceremony must not overwrite the new owner.` +
-    (live !== null ? `\n${formatOccupancyRemediation(live, now, sessionId, options.env)}` : "");
+    (live !== null
+      ? `\n${formatOccupancyRemediation(live, now, sessionId, options.env, projectRoot)}`
+      : "");
   context.lines.push(message);
   emitSessionStartProcessCost(
     {
@@ -2080,6 +2082,9 @@ export function runSessionStart(
   projectRoot: string,
   options: SessionStartOptions = {},
 ): SessionStartResult {
+  // Keep ritual/session directory at the supplied projectRoot. Occupancy
+  // claim/read/rollback resolve the lease root internally (#5544) so
+  // verify:session-ritual still finds ritual-state beside this path.
   const posture = options.posture ?? MUTATION_POSTURE;
   const instant = options.now ?? new Date();
   const deferrals = options.deferrals ?? {};

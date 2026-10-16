@@ -5,7 +5,8 @@ import { join, resolve } from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { loadStoryWriteFenceFromPath } from "../policy/write-fence.js";
 import { defaultGitRunner } from "../session/git.js";
-import { applyWorktreeOccupancy } from "../session/occupancy.js";
+import { canonicalHostSessionId } from "../session/host-session-owner.js";
+import { applyWorktreeOccupancy, occupancyPath } from "../session/occupancy.js";
 import {
   admitEffectiveHookRoot,
   decideHook,
@@ -1015,6 +1016,34 @@ describe("no-toplevel targets keep payloadRoot gating (#4013)", () => {
     );
     expect(inRepoWrite).toMatchObject({ verdict: "deny", code: "occupancy-occupied" });
     expect(ritualRoots).toEqual([resolve(primary)]);
+  });
+
+  it("occupancy deny names occupancyFile and effectiveRoot for the judged tree (#5544 P2)", () => {
+    const { primary, wtA } = linkedFixture();
+    applyWorktreeOccupancy(wtA, {
+      env: {},
+      newSessionId: () => "minted-uuid",
+      intent: "mutation",
+    });
+    const hostId = canonicalHostSessionId("claude", "hook-presenter");
+    const { seams } = recordingSeams(hostId);
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: primary,
+        payload: { toolName: "Write", file_path: join(wtA, "src", "app.ts") },
+        // Explicit DEFT_SESSION_ID presents the host-shaped id; avoid host-env
+        // rewrite that would change the actor before the occupancy gate.
+        environ: { DEFT_SESSION_ID: hostId },
+      },
+      seams,
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-occupied" });
+    expect(decision.message).toContain(`occupancyFile=${occupancyPath(resolve(wtA))}`);
+    expect(decision.message).toContain(`effectiveRoot=${resolve(wtA)}`);
+    expect(decision.message).toContain("payloadRoot=");
+    expect(decision.message).toContain("occupancy:steal");
   });
 
   it("keeps worktree-span when a no-toplevel member joins a linked-worktree member", () => {

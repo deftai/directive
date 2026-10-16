@@ -79,6 +79,7 @@ import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { assertAppendLockOwned, type LockDeps, withAppendLock } from "../slice/lock.js";
 import { SWARM_WORKER_ROLES, type SwarmWorkerRole } from "../swarm/routing.js";
 import { recordChildOccupancyLease } from "./child-occupancy.js";
+import { worktreePathOrNull } from "./git.js";
 import {
   ambientHostSessionOwner,
   claimsHostSessionIdShape,
@@ -100,6 +101,13 @@ import { parseTimestamp, timestampIso } from "./time.js";
 
 export const OCCUPANCY_SCHEMA_VERSION = 1;
 export const OCCUPANCY_RELPATH = [".deft", "occupancy.json"] as const;
+/**
+ * Harbor / cell bootstrap signal (#5544 Prefer-A): a declared agent host will
+ * attach to this tree. Claimer surface is Harbor ritual applying
+ * `applyWorktreeOccupancy`. When set, last-resort UUID mint is refused so the
+ * later host can self-claim.
+ */
+export const DEFT_EXPECTED_DECLARED_HOST_ATTACH = "DEFT_EXPECTED_DECLARED_HOST_ATTACH";
 /** Crash recovery TTL: 20 minutes without heartbeat (15–30 window). */
 export const OCCUPANCY_TTL_MS = 20 * 60 * 1000;
 /**
@@ -395,10 +403,152 @@ export interface ApplyOccupancyInput {
   readonly primaryClaimException?: PrimaryClaimException | string;
   /** Claim-time identity provenance to persist on a fresh lease (#4431). */
   readonly identityProvenance?: OccupancyIdentityProvenance | null;
+  /**
+   * #5544 Prefer-A: Harbor/bootstrap expects a declared agent host to attach.
+   * Forbids last-resort mint on this tree. Exact later host `--session-id` bind
+   * remains the only pre-attach mutation exception (not a host-family namespace).
+   */
+  readonly expectedDeclaredHostAttach?: boolean;
 }
 
 export function occupancyPath(projectRoot: string): string {
   return join(resolve(projectRoot), ...OCCUPANCY_RELPATH);
+}
+
+/**
+ * Resolve the lease root CLI and hooks share for the same worktree (#5544 P2).
+ *
+ * Uses the Git worktree toplevel when available (same tree hooks select when
+ * payload alone gates, or when writes stay inside that worktree). Linked
+ * worktrees keep their own toplevel — never collapsed into the main checkout.
+ */
+const occupancyLeaseRootCache = new Map<string, string>();
+
+/**
+ * Process-local cache so Write-hook double probes (preview + refresh) and
+ * nested readOccupancy calls do not re-shell `git rev-parse` for the same path.
+ */
+export function resolveOccupancyLeaseRoot(projectRoot: string): string {
+  const absolute = resolve(projectRoot);
+  const cached = occupancyLeaseRootCache.get(absolute);
+  if (cached !== undefined) return cached;
+  const toplevel = worktreePathOrNull(absolute);
+  const root = toplevel ?? absolute;
+  occupancyLeaseRootCache.set(absolute, root);
+  occupancyLeaseRootCache.set(root, root);
+  return root;
+}
+
+/** Print the occupancy file (and optional Write-gate effectiveRoot) (#5544 P2). */
+export function formatOccupancyLeaseViewNote(
+  occupancyFilePath: string,
+  options: { readonly effectiveRoot?: string } = {},
+): string {
+  const parts = [`occupancyFile=${occupancyFilePath}`];
+  if (options.effectiveRoot !== undefined && options.effectiveRoot.length > 0) {
+    parts.push(`effectiveRoot=${options.effectiveRoot}`);
+  }
+  return parts.join(" ");
+}
+
+export function formatOccupancyAlreadyFree(
+  occupancyFilePath: string,
+  options: { readonly effectiveRoot?: string } = {},
+): string {
+  return `occupancy already free (${formatOccupancyLeaseViewNote(occupancyFilePath, options)})`;
+}
+
+export function expectedDeclaredHostAttachSignaled(
+  input: Pick<ApplyOccupancyInput, "expectedDeclaredHostAttach" | "env"> = {},
+): boolean {
+  if (input.expectedDeclaredHostAttach === true) return true;
+  const raw = (input.env ?? process.env)[DEFT_EXPECTED_DECLARED_HOST_ATTACH]?.trim() ?? "";
+  if (raw.length === 0) return false;
+  return raw === "1" || raw.toLowerCase() === "true" || raw.toLowerCase() === "yes";
+}
+
+export function formatOccupancyExpectedHostMintRefusal(): string {
+  return (
+    "occupancy refuses last-resort mint: Harbor/bootstrap signaled a declared agent host will attach " +
+    `(${DEFT_EXPECTED_DECLARED_HOST_ATTACH}=1 or expectedDeclaredHostAttach). ` +
+    "Claimer surface: Harbor ritual applying applyWorktreeOccupancy. " +
+    "Default is host-self-claim after attach. Stay read-only (`session:start --read-only`) or skip mutation session:start. " +
+    "If a pre-attach mutation lease is required, bind the exact later host session id " +
+    "(`session:start --session-id=<host:provider:v1:...>`) and release successfully before agent launch — " +
+    "failed cleanup blocks launch (assertOccupancyFreeForHostLaunch)."
+  );
+}
+
+/**
+ * Harbor launch gate (#5544 Prefer-A): failed pre-attach occupancy cleanup
+ * blocks agent launch. Exit 0 only when this lease root is free.
+ */
+export function assertOccupancyFreeForHostLaunch(
+  projectRoot: string,
+  input: { readonly now?: Date } = {},
+): OccupancyDecision {
+  const root = resolveOccupancyLeaseRoot(projectRoot);
+  const path = occupancyPath(root);
+  const live = liveOccupant(root, input.now ?? new Date());
+  if (live === null) {
+    return {
+      action: "released",
+      sessionId: "",
+      record: null,
+      path,
+      message: formatOccupancyAlreadyFree(path),
+      code: 0,
+    };
+  }
+  const occupantArg = commandSessionId(live.sessionId, "<reported-session-id>");
+  return {
+    action: "denied",
+    sessionId: "",
+    record: live,
+    path,
+    message:
+      `Harbor launch blocked: live occupancy lease still holds (${formatOccupancyLeaseViewNote(path)}). ` +
+      `session=${live.sessionId}. Failed pre-attach cleanup blocks launch. ` +
+      `Release with \`occupancy:release --session-id=${occupantArg} --project-root=${root}\` before attaching the agent host.`,
+    code: 1,
+  };
+}
+
+/**
+ * Narrow #5544 Prefer-A P3 gate: live minted lease + canonical host-shaped
+ * presenter may steal under confirm. Does not broaden steal defaults.
+ */
+export function occupancyMintedDeclaredHostStealAdmitted(
+  record: OccupancyRecord,
+  presented: string | undefined,
+): boolean {
+  if (record.identityProvenance !== "minted") return false;
+  const actor = presented?.trim() ?? "";
+  if (actor.length === 0) return false;
+  return parseCanonicalHostSessionId(actor) !== null;
+}
+
+export function formatOccupancyMintedDeclaredHostStealRemediation(
+  record: OccupancyRecord,
+  presented: string,
+  projectRoot?: string,
+): string {
+  const root = projectRoot !== undefined ? resolveOccupancyLeaseRoot(projectRoot) : undefined;
+  const path = root !== undefined ? occupancyPath(root) : undefined;
+  const occupantArg = commandSessionId(record.sessionId, "<reported-session-id>");
+  const hostArg = commandSessionId(presented, "<host-published-id>");
+  const rootFlag = root !== undefined ? ` --project-root=${JSON.stringify(root)}` : "";
+  const view = path !== undefined ? ` Lease view: ${formatOccupancyLeaseViewNote(path)}.` : "";
+  const rootNote = root !== undefined ? ` Target root: ${root}.` : "";
+  return (
+    `Closed recovery for a minted lease while host-shaped presenter ${presented} is already on this tree:${view}${rootNote} ` +
+    `Run \`occupancy:steal --occupant=${occupantArg} --session-id=${hostArg} --confirm${rootFlag}\`` +
+    `. That is the permitted lease operation under the minted+declared-host gate (not a broad steal default). ` +
+    "Steal changes the lease only; then restore ceremony as the same presenter: " +
+    `\`session:start --rearm --session-id=${hostArg}${rootFlag}\` when re-arm is eligible, otherwise ` +
+    `\`session:start --session-id=${hostArg}${rootFlag}\` for a cold ceremony. ` +
+    "Owner-only UUID release then host re-claim remains available but is not the primary agent path."
+  );
 }
 
 /**
@@ -691,6 +841,7 @@ export function formatOccupancyRemediation(
   now: Date = new Date(),
   presented?: string,
   env?: NodeJS.ProcessEnv,
+  projectRoot?: string,
 ): string {
   const age = heartbeatAgeSeconds(record, now);
   const header =
@@ -701,6 +852,15 @@ export function formatOccupancyRemediation(
   const worktreeFirst = "Use another worktree.";
   const occupantArg = commandSessionId(record.sessionId, "<reported-session-id>");
   if (record.identityProvenance === "minted") {
+    // #5544 Prefer-A P3: when a canonical host-shaped id is already presenting,
+    // replace "Do not steal" with the closed steal-then-ceremony path.
+    const hostPresenter = presented?.trim() ?? "";
+    if (occupancyMintedDeclaredHostStealAdmitted(record, hostPresenter)) {
+      return (
+        `${header}This lease was claimed under a minted owner. No later hook process can present that id.\n` +
+        `${formatOccupancyMintedDeclaredHostStealRemediation(record, hostPresenter, projectRoot)}`
+      );
+    }
     const hosts = detectDeclaredIdentityHosts(env ?? process.env);
     const suggested = uniquePrintCompanion(hosts, env ?? process.env);
     const named =
@@ -710,7 +870,8 @@ export function formatOccupancyRemediation(
     return (
       `${header}This lease was claimed under a minted owner. No later hook process can present that id.\n` +
       `${formatOccupancySkipMutationClaimWhenMinted()}\n` +
-      `${worktreeFirst} Do not steal this lease. Stay read-only (\`session:start --read-only\`), or ` +
+      `${worktreeFirst} Do not steal this lease unless a declared host-shaped id is already presenting ` +
+      `(then use the minted+declared-host \`occupancy:steal\` gate). Stay read-only (\`session:start --read-only\`), or ` +
       `release it (\`occupancy:release --session-id=${occupantArg}\` / \`session:end\`) and re-claim ` +
       `with the host-published owner (\`session:start --session-id=${named}\`).${tail}`
     );
@@ -974,6 +1135,36 @@ export function resolveOccupancySessionClaim(
   input: ApplyOccupancyInput = {},
 ): OccupancySessionClaim {
   const identity = resolvePresentedIdentity(input);
+  // #5544 Prefer-A: when Harbor signals expected declared-host attach, the only
+  // pre-attach mutation exception is an explicit argv --session-id that is
+  // already host-shaped. Inherited DEFT_SESSION_ID (even host-shaped) and
+  // opaque ids are refused so the later host is not locked out.
+  if (expectedDeclaredHostAttachSignaled(input)) {
+    const explicitHostBind =
+      identity.source === "explicit" &&
+      identity.sessionId.length > 0 &&
+      parseCanonicalHostSessionId(identity.sessionId) !== null;
+    if (explicitHostBind) {
+      return {
+        status: "ok",
+        sessionId: identity.sessionId,
+        provenance: "explicit",
+        source: "explicit",
+      };
+    }
+    if (identity.sessionId.length > 0 || identity.disagreeingHostOwner !== null) {
+      return {
+        status: "refuse-mint",
+        sessionId: "",
+        provenance: null,
+        source: "mint",
+        hosts: [],
+        suggestedSessionId: null,
+        message: formatOccupancyExpectedHostMintRefusal(),
+      };
+    }
+    // No presented identity yet — fall through to declared-host / empty-mint refuse.
+  }
   // #4066: host-authoritative claim. Inherited DEFT_SESSION_ID must not beat the
   // host-published owner -- that split is the measured steal-from-self loop.
   if (identity.source === "environment" && identity.disagreeingHostOwner !== null) {
@@ -1007,6 +1198,20 @@ export function resolveOccupancySessionClaim(
       hosts,
       suggestedSessionId: suggested,
       message,
+    };
+  }
+  // #5544 Prefer-A P1: Harbor pre-attach empty-hosts mint window. Signal closes
+  // last-resort mint before the declared host attaches; exact --session-id bind
+  // is the only pre-attach mutation exception (already returned above when set).
+  if (expectedDeclaredHostAttachSignaled(input)) {
+    return {
+      status: "refuse-mint",
+      sessionId: "",
+      provenance: null,
+      source: "mint",
+      hosts: [],
+      suggestedSessionId: null,
+      message: formatOccupancyExpectedHostMintRefusal(),
     };
   }
   return {
@@ -1060,6 +1265,8 @@ function occupancyMintRefusalDecision(
 }
 
 export function readOccupancy(projectRoot: string): OccupancyRecord | null {
+  // #5544: reads share the claim/release lease-root view.
+  projectRoot = resolveOccupancyLeaseRoot(projectRoot);
   const path = occupancyPath(projectRoot);
   try {
     if (!existsSync(path)) return null;
@@ -1199,6 +1406,8 @@ export function evaluateOccupancyCeremonyEligibility(
   projectRoot: string,
   input: ApplyOccupancyInput = {},
 ): OccupancyCeremonyEligibility {
+  // #5544: same lease-root view as claim / release / Write-gate.
+  projectRoot = resolveOccupancyLeaseRoot(projectRoot);
   const now = input.now ?? new Date();
   const claim = resolveOccupancySessionClaim(input);
   if (claim.status === "refuse-mint") {
@@ -1233,7 +1442,7 @@ export function evaluateOccupancyCeremonyEligibility(
       sessionId: incoming,
       occupantId: live.sessionId,
       restrictedPrimary,
-      denialMessage: formatOccupancyRemediation(live, now, incoming, input.env),
+      denialMessage: formatOccupancyRemediation(live, now, incoming, input.env, projectRoot),
     };
   }
   if (live !== null) {
@@ -1242,7 +1451,7 @@ export function evaluateOccupancyCeremonyEligibility(
       const grant = occupancyGrantFor(live, incoming, now);
       const memberText =
         grant === null
-          ? formatOccupancyRemediation(live, now, incoming, input.env)
+          ? formatOccupancyRemediation(live, now, incoming, input.env, projectRoot)
           : formatOccupancyMemberAdministrationRefusal(live, grant, "session:start");
       return {
         admitCeremony: false,
@@ -1260,7 +1469,7 @@ export function evaluateOccupancyCeremonyEligibility(
         sessionId: incoming,
         occupantId: live.sessionId,
         restrictedPrimary,
-        denialMessage: formatOccupancyRemediation(live, now, incoming, input.env),
+        denialMessage: formatOccupancyRemediation(live, now, incoming, input.env, projectRoot),
       };
     }
     return {
@@ -1319,6 +1528,8 @@ export function applyWorktreeOccupancy(
   projectRoot: string,
   input: ApplyOccupancyInput = {},
 ): OccupancyDecision {
+  // #5544: claim/read/release share one lease-root view (git worktree toplevel).
+  projectRoot = resolveOccupancyLeaseRoot(projectRoot);
   const now = input.now ?? new Date();
   const path = occupancyPath(projectRoot);
   const claim = resolveOccupancySessionClaim(input);
@@ -1367,7 +1578,7 @@ export function applyWorktreeOccupancy(
       // A granted child reads the member refusal rather than an offer of the
       // write grant it already holds (#3954 item 5): membership admits writes,
       // and claiming the lease stays owner-only.
-      message: membershipOwnerDenial(live, incoming, now, "session:start"),
+      message: membershipOwnerDenial(live, incoming, now, "session:start", projectRoot),
       code: 1,
     };
   }
@@ -1416,7 +1627,7 @@ export function applyWorktreeOccupancy(
           sessionId: incoming,
           record: liveLocked,
           path,
-          message: membershipOwnerDenial(liveLocked, incoming, now, "session:start"),
+          message: membershipOwnerDenial(liveLocked, incoming, now, "session:start", projectRoot),
           code: 1,
         };
       }
@@ -1530,6 +1741,8 @@ export function stealOccupancy(
   projectRoot: string,
   input: ApplyOccupancyInput = {},
 ): OccupancyDecision {
+  // #5544: steal uses the same lease-root view as claim/release.
+  projectRoot = resolveOccupancyLeaseRoot(projectRoot);
   const now = input.now ?? new Date();
   const path = occupancyPath(projectRoot);
   const claim = resolveOccupancySessionClaim(input);
@@ -1571,7 +1784,9 @@ export function stealOccupancy(
     // (#3599): heartbeat age alone hides an occupant that is mid-edit.
     const liveCurrent = liveOccupancyOnTree(projectRoot, current, now);
     const occupantDetail =
-      liveCurrent !== null ? `\n${formatOccupancyRemediation(liveCurrent, now)}` : "";
+      liveCurrent !== null
+        ? `\n${formatOccupancyRemediation(liveCurrent, now, undefined, undefined, projectRoot)}`
+        : "";
     return {
       action: "denied",
       sessionId: incoming,
@@ -1618,7 +1833,7 @@ export function stealOccupancy(
       path,
       message:
         `occupancy:steal named occupant ${named} does not match live occupant ${live.sessionId}.\n` +
-        formatOccupancyRemediation(live, now),
+        formatOccupancyRemediation(live, now, undefined, undefined, projectRoot),
       code: 1,
     };
   }
@@ -1681,7 +1896,7 @@ export function stealOccupancy(
           path,
           message:
             `occupancy:steal named occupant ${named} does not match live occupant ${liveLocked.sessionId}.\n` +
-            formatOccupancyRemediation(liveLocked, now),
+            formatOccupancyRemediation(liveLocked, now, undefined, undefined, projectRoot),
           code: 1,
         };
       }
@@ -1721,6 +1936,7 @@ export function stealOccupancy(
         };
       }
       const record = written.record;
+      const root = resolve(projectRoot);
       return {
         action: "stolen" as const,
         sessionId: record.sessionId,
@@ -1728,10 +1944,12 @@ export function stealOccupancy(
         path,
         message:
           `occupancy stolen from ${named}${priorClock}; writer is now session ${record.sessionId}. ` +
+          `Lease view: ${formatOccupancyLeaseViewNote(path)}. Target root: ${root}. ` +
+          `Presenter/writer: ${record.sessionId}. Permitted lease operation completed: occupancy:steal. ` +
           "This command changes the lease only; direct writes remain denied unless ritual state already names the same owner. " +
-          "If the owners differ, run `deft session:start --rearm --session-id=<same-session-id>` " +
-          "when re-arm is eligible; otherwise run `deft session:start --session-id=<same-session-id>` " +
-          "for a cold ceremony, using the writer ID above.",
+          "Required ceremony: run " +
+          "`deft session:start --rearm --session-id=<same-session-id>` when re-arm is eligible; otherwise run " +
+          "`deft session:start --session-id=<same-session-id>` for a cold ceremony, using the writer ID above.",
         code: 0,
       };
     },
@@ -1764,25 +1982,28 @@ export function releaseOccupancy(
   } = {},
 ): OccupancyDecision {
   const now = input.now ?? new Date();
-  const path = occupancyPath(projectRoot);
+  // #5544 P2: share the lease-root view CLI and Write hooks use for this tree.
+  const root = resolveOccupancyLeaseRoot(projectRoot);
+  const path = occupancyPath(root);
   const identity = resolvePresentedIdentity(input);
   const caller = identity.sessionId;
   const split = formatPresentedIdentityDisagreement(identity);
+  const leaseNote = ` ${formatOccupancyLeaseViewNote(path)}`;
   return withOccupancyLock(
-    projectRoot,
+    root,
     (fence) => {
-      const existing = readOccupancy(projectRoot);
+      const existing = readOccupancy(root);
       if (existing === null) {
         return {
           action: "released" as const,
           sessionId: caller,
           record: null,
           path,
-          message: "occupancy already free",
+          message: formatOccupancyAlreadyFree(path),
           code: 0,
         };
       }
-      const expired = liveOccupancyOnTree(projectRoot, existing, now) === null;
+      const expired = liveOccupancyOnTree(root, existing, now) === null;
       const owns = caller.length > 0 && caller === existing.sessionId;
       if (!expired && !owns) {
         return {
@@ -1790,7 +2011,10 @@ export function releaseOccupancy(
           sessionId: caller,
           record: existing,
           path,
-          message: membershipOwnerDenial(existing, caller, now, "occupancy:release") + split,
+          message:
+            membershipOwnerDenial(existing, caller, now, "occupancy:release", root) +
+            split +
+            leaseNote,
           code: 1,
         };
       }
@@ -1798,6 +2022,8 @@ export function releaseOccupancy(
       // never stamp Prefer-A marker / rewrite AGENTS.md for a denied caller (#4544 P1).
       // Session exit with this-session untracked product evidence must still reach
       // enforce when markWrite persist never ran (Shell-bypass / hookless).
+      // Prefer-A #5544 residual / babysit P1: header check uses the supplied project
+      // root (consumer AGENTS.md), not the git lease root (which may be a parent repo).
       const evidenceGate = enforceConsumerHeaderPlaceholderWhenProductEvidence(projectRoot);
       if (!evidenceGate.ok) {
         return {
@@ -1805,19 +2031,19 @@ export function releaseOccupancy(
           sessionId: caller,
           record: existing,
           path,
-          message: evidenceGate.message,
+          message: evidenceGate.message + leaseNote,
           code: 1,
         };
       }
       fence();
-      const still = readOccupancy(projectRoot);
+      const still = readOccupancy(root);
       if (still === null) {
         return {
           action: "released" as const,
           sessionId: caller,
           record: null,
           path,
-          message: "occupancy already free",
+          message: formatOccupancyAlreadyFree(path),
           code: 0,
         };
       }
@@ -1830,17 +2056,20 @@ export function releaseOccupancy(
           sessionId: caller,
           record: still,
           path,
-          message: membershipOwnerDenial(still, caller, now, "occupancy:release") + split,
+          message:
+            membershipOwnerDenial(still, caller, now, "occupancy:release", root) +
+            split +
+            leaseNote,
           code: 1,
         };
       }
-      removeOccupancyFile(projectRoot, fence);
+      removeOccupancyFile(root, fence);
       return {
         action: "released" as const,
         sessionId: still.sessionId,
         record: null,
         path,
-        message: `occupancy released session ${still.sessionId}`,
+        message: `occupancy released session ${still.sessionId} (${formatOccupancyLeaseViewNote(path)})`,
         code: 0,
       };
     },
@@ -1894,6 +2123,8 @@ export function rollbackAcquiredOccupancy(
   acquired: OccupancyDecision,
   input: { readonly lockDeps?: LockDeps } = {},
 ): OccupancyDecision {
+  // #5544: rollback must target the same lease root claim wrote.
+  projectRoot = resolveOccupancyLeaseRoot(projectRoot);
   const path = occupancyPath(projectRoot);
   if (!isPersistTimeAcquisition(acquired.action)) {
     return {
@@ -1915,7 +2146,7 @@ export function rollbackAcquiredOccupancy(
           sessionId: acquired.sessionId,
           record: null,
           path,
-          message: "occupancy already free",
+          message: formatOccupancyAlreadyFree(path),
           code: 0,
         };
       }
@@ -1948,7 +2179,7 @@ export function rollbackAcquiredOccupancy(
           sessionId: acquired.sessionId,
           record: null,
           path,
-          message: "occupancy already free",
+          message: formatOccupancyAlreadyFree(path),
           code: 0,
         };
       }
@@ -2020,10 +2251,11 @@ function membershipOwnerDenial(
   caller: string,
   now: Date,
   verb: string,
+  projectRoot?: string,
 ): string {
   const grant = occupancyGrantFor(live, caller, now);
   return grant === null
-    ? formatOccupancyRemediation(live, now, caller)
+    ? formatOccupancyRemediation(live, now, caller, undefined, projectRoot)
     : formatOccupancyMemberAdministrationRefusal(live, grant, verb);
 }
 
@@ -2040,6 +2272,8 @@ export function grantOccupancyMembership(
   projectRoot: string,
   input: OccupancyMembershipInput = {},
 ): OccupancyDecision {
+  // #5544: membership verbs share claim/release lease-root view.
+  projectRoot = resolveOccupancyLeaseRoot(projectRoot);
   const now = input.now ?? new Date();
   const path = occupancyPath(projectRoot);
   const identity = resolvePresentedIdentity(input);
@@ -2170,7 +2404,7 @@ export function grantOccupancyMembership(
           sessionId: owner,
           record: live,
           path,
-          message: membershipOwnerDenial(live, owner, now, "occupancy:grant") + split,
+          message: membershipOwnerDenial(live, owner, now, "occupancy:grant", projectRoot) + split,
           code: 1,
         };
       }
@@ -2276,6 +2510,8 @@ export function revokeOccupancyMembership(
   projectRoot: string,
   input: OccupancyMembershipInput = {},
 ): OccupancyDecision {
+  // #5544: membership verbs share claim/release lease-root view.
+  projectRoot = resolveOccupancyLeaseRoot(projectRoot);
   const now = input.now ?? new Date();
   const path = occupancyPath(projectRoot);
   const identity = resolvePresentedIdentity(input);
@@ -2319,7 +2555,9 @@ export function revokeOccupancyMembership(
           sessionId: owner,
           record: live,
           path,
-          message: membershipOwnerDenial(live, owner, now, "occupancy:grant --revoke") + split,
+          message:
+            membershipOwnerDenial(live, owner, now, "occupancy:grant --revoke", projectRoot) +
+            split,
           code: 1,
         };
       }
@@ -2409,6 +2647,12 @@ export interface OccupancyWriteGateInput {
    */
   readonly persistProductMutationMarker?: boolean;
   readonly lockDeps?: LockDeps;
+  /**
+   * Preferred base path for lease resolution (Write-hook `effectiveRoot`).
+   * Still passed through `resolveOccupancyLeaseRoot` so subdirectory hooks
+   * match the same lease file as claim/release (process cache avoids repeat git).
+   */
+  readonly leaseRoot?: string;
 }
 
 /**
@@ -2424,6 +2668,10 @@ export function evaluateOccupancyWriteGate(
   input: OccupancyWriteGateInput = {},
 ): OccupancyWriteGateResult {
   const now = input.now ?? new Date();
+  // #5544: lease identity is always the git worktree toplevel. leaseRoot is only
+  // a preferred base path (hook effectiveRoot may be a subdirectory when writes
+  // leave the git tree); never skip resolve, or read/match disagree (#5544 P1).
+  projectRoot = resolveOccupancyLeaseRoot(input.leaseRoot ?? projectRoot);
   const incoming =
     input.sessionId?.trim() || (input.env ?? process.env).DEFT_SESSION_ID?.trim() || "";
   const stored = readOccupancy(projectRoot);
@@ -2480,12 +2728,17 @@ export function evaluateOccupancyWriteGate(
     // Two-axis unknown-identity axis (#3729 Prefer-A): live lease + stranger →
     // fail closed (OCCUPANCY_UNKNOWN_IDENTITY_POLICY). Advisory coordination,
     // not authorization — prefer another worktree / grant over steal-as-primary.
+    // #5544 P2: name the occupancy file (and effectiveRoot when the Write gate
+    // supplies this projectRoot) so CLI/hook split-brain is diagnosable.
+    const path = occupancyPath(projectRoot);
     return {
       allow: false,
       // The refused caller is told what identity it actually presented (#3873).
       // A hook process cannot otherwise know, and the grant this message offers
       // is only runnable when the occupant can name a non-empty child.
-      message: formatOccupancyRemediation(live, now, incoming, input.env),
+      message:
+        `${formatOccupancyRemediation(live, now, incoming, input.env, projectRoot)} ` +
+        formatOccupancyLeaseViewNote(path, { effectiveRoot: projectRoot }),
       occupant: live,
       refreshed: false,
       warning: null,
@@ -2715,6 +2968,8 @@ export function heartbeatOccupancy(
   projectRoot: string,
   input: ApplyOccupancyInput = {},
 ): OccupancyDecision {
+  // #5544: heartbeat shares claim/release lease-root view.
+  projectRoot = resolveOccupancyLeaseRoot(projectRoot);
   const now = input.now ?? new Date();
   const path = occupancyPath(projectRoot);
   const identity = resolvePresentedIdentity(input);
@@ -2759,7 +3014,7 @@ export function heartbeatOccupancy(
       sessionId: caller,
       record: live,
       path,
-      message: membershipOwnerDenial(live, caller, now, "occupancy:heartbeat") + split,
+      message: membershipOwnerDenial(live, caller, now, "occupancy:heartbeat", projectRoot) + split,
       code: 1,
     };
   }
