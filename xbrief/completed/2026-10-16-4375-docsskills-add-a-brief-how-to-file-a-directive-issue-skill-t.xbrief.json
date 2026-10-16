@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "docs(skills): add a brief \"how to file a directive issue\" skill — the filing path is gated off by default and the house style is undocumented",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "docs(skills): add a brief \"how to file a directive issue\" skill — the filing path is gated off by default and the house style is undocumented",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4375",
@@ -17,64 +17,148 @@
       {
         "id": "clause.1",
         "title": "Wire enable-value-feedback confirm with upstream-prompt subflag in policy CLI; bare confirm does not silently enable upstreamPrompt.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/cli/src/policy.ts",
         "narrative": {
           "Acceptance": "Wire enable-value-feedback confirm with upstream-prompt subflag in policy CLI; bare confirm does not silently enable upstreamPrompt."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5685 squash-merge (Tracking #4375).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5685",
+            "mintedAt": "2026-10-16T23:15:52.325Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-16T23:15:52.326Z"
         }
       },
       {
         "id": "clause.2",
         "title": "Keep engine isValueFeedbackPathAllowed upstreamPrompt gate; do not drop it.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/value/feedback-file.ts",
         "narrative": {
           "Acceptance": "Keep engine isValueFeedbackPathAllowed upstreamPrompt gate; do not drop it."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5685 squash-merge (Tracking #4375).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5685",
+            "mintedAt": "2026-10-16T23:15:52.326Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-16T23:15:52.326Z"
         }
       },
       {
         "id": "clause.3",
         "title": "Pack-edit deft-directive-feedback for mid-session eligibility; strike Gated-on selection sentence; recovery names audited setter.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
         "narrative": {
           "Acceptance": "Pack-edit deft-directive-feedback for mid-session eligibility; strike Gated-on selection sentence; recovery names audited setter."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5685 squash-merge (Tracking #4375).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5685",
+            "mintedAt": "2026-10-16T23:15:52.326Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-16T23:15:52.326Z"
         }
       },
       {
         "id": "clause.4",
         "title": "CONSUMER_SKILL_DISCOVERY_INVENTORY includes a thin \"deft-directive-feedback\" pointer whose description mentions \"file a directive issue\".",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/init-deposit/skill-discovery-deposit.ts",
         "narrative": {
           "Acceptance": "CONSUMER_SKILL_DISCOVERY_INVENTORY includes a thin \"deft-directive-feedback\" pointer whose description mentions \"file a directive issue\"."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5685 squash-merge (Tracking #4375).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5685",
+            "mintedAt": "2026-10-16T23:15:52.326Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-16T23:15:52.326Z"
         }
       },
       {
         "id": "clause.5",
         "title": "content/docs/framework-gap-filing.md exists at its stated path and documents \"buildFrameworkGapTitle\" and \"buildFrameworkGapBody\".",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/docs/framework-gap-filing.md",
         "narrative": {
           "Acceptance": "content/docs/framework-gap-filing.md exists at its stated path and documents \"buildFrameworkGapTitle\" and \"buildFrameworkGapBody\"."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5685 squash-merge (Tracking #4375).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5685",
+            "mintedAt": "2026-10-16T23:15:52.326Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-16T23:15:52.326Z"
         }
       },
       {
         "id": "clause.6",
         "title": "Gate-OFF dry-run or json returns title plus body; preserve draft inputs across phases; fence free-text sections; primary command deft feedback:file.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/value/feedback-file.ts",
         "narrative": {
           "Acceptance": "Gate-OFF dry-run or json returns title plus body; preserve draft inputs across phases; fence free-text sections; primary command deft feedback:file."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5685 squash-merge (Tracking #4375).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5685",
+            "mintedAt": "2026-10-16T23:15:52.326Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-16T23:15:52.326Z"
         }
       },
       {
         "id": "clause.7",
         "title": "Verify matrix and product-signal filing surfaces use deft feedback:file not task-only wording; CHANGELOG Unreleased.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "CHANGELOG.md",
         "narrative": {
           "Acceptance": "Verify matrix and product-signal filing surfaces use deft feedback:file not task-only wording; CHANGELOG Unreleased."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5685 squash-merge (Tracking #4375).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5685",
+            "mintedAt": "2026-10-16T23:15:52.326Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-16T23:15:52.326Z"
         }
       }
     ],
@@ -171,7 +255,20 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "fa54a7bcc025777bb9d36a11528394dc3200799066f1d33ebacce8e2b0c4b344"
-      }
+      },
+      "deliveryProvenance": {
+        "productPullRequest": 5685,
+        "mergeCommit": "8bb40c58064d1d4e508430b8031157bc5e4c397b",
+        "deliveryBranch": "master"
+      },
+      "completionProvenance": {
+        "schema": "deft.scope.completion-provenance.v1",
+        "productPullRequest": 5685,
+        "mergeCommit": "8bb40c58064d1d4e508430b8031157bc5e4c397b",
+        "deliveryBranch": "master",
+        "lifecycleWrite": "leftover-complete"
+      },
+      "lifecycleWrite": "leftover-complete"
     },
     "acceptance": {
       "commands": [],
