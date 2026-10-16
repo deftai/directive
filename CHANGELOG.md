@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Consumer deposit now includes ADR-003 for Continuity (#4892).** MUST cites resolve to `.deft/core/docs/decisions/ADR-003-a2a-nuclear-family-topology.md` via the content/docs flatten. Maintainer `docs/decisions/ADR-003` stays heavyweight SoT (dual-path; no root-docs prepack carve-out). Leaves #3940 as tracker; cross-links only #3847 / #4890. Closes #4892.
 - **Three-axis semantic policy visibility (#4888).** `evaluateSemanticGreen` accepts non-cascade `requireCandidateValidation` keyed to `(pr_head_sha, target_head_sha)` with machine-checkable attestation; scm documents textual/behavioral/policy axes; pre-pr owns the `task check` attach; lessons pack entry + forge `#633`/`#1517` supersession disclosure. Withdraws the optional withdrawn Python semantic-drift script SoT from parent #964 AC. Keeps #4889 out. Prefer-A Bound 6050812821. Tracking #4888.
 ### Changed
+- Widen Prefer-A Bound keep-active #5656 file_scope for companion hooks/tests/RULE-MAP (productPullRequest unset). Tracking #5656.
 - Activate Prefer-A Bound keep-active brief for #5656 (productPullRequest unset; concrete file_scope). Tracking #5656.
 - Activate Prefer-A Bound keep-active brief for #3907 (productPullRequest unset; swarm-ready story fields). Tracking #3907.
 - Restore Prefer-A Bound keep-active brief for #3906 (productPullRequest unset; concrete file_scope). Tracking #3906.
