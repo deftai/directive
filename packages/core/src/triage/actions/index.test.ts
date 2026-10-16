@@ -524,6 +524,64 @@ describe("accept", () => {
     expect(existsSync(join(root, "xbrief", "proposed", "a.xbrief.json"))).toBe(true);
     expect(existsSync(join(root, "xbrief", "proposed", "b.xbrief.json"))).toBe(true);
   });
+
+  it("refuses re-accept when typed-ref and Origin-only owners compete (#4962)", () => {
+    const root = makeRepo();
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "proposed", "ref-owner.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8", description: "#56", updated: "2026-08-01T00:00:00Z" },
+        plan: {
+          title: "ref-owner",
+          status: "proposed",
+          narratives: {},
+          items: [],
+          references: [
+            {
+              type: "x-xbrief/github-issue",
+              uri: "https://github.com/deftai/directive/issues/56",
+            },
+          ],
+          updated: "2026-08-01T00:00:00Z",
+        },
+      }),
+    );
+    writeFileSync(
+      join(root, "xbrief", "proposed", "origin-owner.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8", description: "origin only", updated: "2026-08-01T00:00:00Z" },
+        plan: {
+          title: "origin-owner",
+          status: "proposed",
+          narratives: {
+            Origin: "Ingested from https://github.com/deftai/directive/issues/56",
+          },
+          items: [],
+          references: [],
+          updated: "2026-08-01T00:00:00Z",
+        },
+      }),
+    );
+    const prior: AuditEntry = {
+      decision_id: "prior-compete",
+      timestamp: "2026-06-18T12:00:00Z",
+      repo: "deftai/directive",
+      issue_number: 56,
+      decision: "accept",
+      actor: "agent:test",
+    };
+    const deps = fakeDeps(root, { latest: prior });
+    const outcome = accept(56, "deftai/directive", deps, {
+      projectRoot: root,
+      autoPromote: true,
+    });
+    expect(outcome.disposition).toBe("refused");
+    expect(outcome.decisionId).toBeNull();
+    expect(outcome.ingestMessage).toContain("multiple owning briefs");
+    expect(outcome.ingestMessage).toContain("proposed/ref-owner.xbrief.json");
+    expect(outcome.ingestMessage).toContain("proposed/origin-owner.xbrief.json");
+  });
 });
 
 describe("reject", () => {

@@ -5,8 +5,11 @@ import { cacheGet } from "../../cache/operations.js";
 import {
   briefOwnsExactIssueAndRepo,
   ingestSingleForAccept as ingestSingleForAcceptTs,
+  numberOnlyOriginKey,
+  scanProvenanceOrigins,
   scanProvenanceRefs,
 } from "../../intake/issue-ingest.js";
+import { issueOriginKey } from "../../intake/reconcile-issues.js";
 import { resolveLifecycleRoot } from "../../layout/resolve.js";
 import { call } from "../../scm/call.js";
 import { ScmStubError } from "../../scm/errors.js";
@@ -175,10 +178,10 @@ function resolveOwningBriefs(
     const byIssue = scanProvenanceRefs(lifecycleRoot);
     const raw = byIssue.get(issueNumber) ?? [];
     const live: string[] = [];
-    for (const rel of raw) {
+    const consider = (rel: string): void => {
       const folder = rel.split(/[/\\]/)[0] ?? "";
       if (folder !== "proposed" && folder !== "pending" && folder !== "active") {
-        continue;
+        return;
       }
       try {
         const data = JSON.parse(readFileSync(join(lifecycleRoot, rel), "utf8")) as Record<
@@ -190,6 +193,27 @@ function resolveOwningBriefs(
         }
       } catch {
         /* skip */
+      }
+    };
+    for (const rel of raw) {
+      consider(rel);
+    }
+    // Merge Origin owners so a typed-ref brief + Origin-only peer refuse on re-accept.
+    const origins = scanProvenanceOrigins(lifecycleRoot);
+    const slash = repo.indexOf("/");
+    const originKeys = [numberOnlyOriginKey(issueNumber)];
+    if (slash > 0 && slash < repo.length - 1) {
+      originKeys.unshift(
+        issueOriginKey({
+          owner: repo.slice(0, slash),
+          repo: repo.slice(slash + 1),
+          number: issueNumber,
+        }),
+      );
+    }
+    for (const key of originKeys) {
+      for (const hit of origins.get(key) ?? []) {
+        consider(hit);
       }
     }
     const unique = [...new Set(live)].sort();
