@@ -584,8 +584,13 @@ export function run(argv: readonly string[]): number {
   }
 
   // #5676: read-only may bootstrap the applying-host record; mutation/rearm
-  // republishes as reinforcement after a successful ceremony.
-  if (result.code === 0) {
+  // republishes as reinforcement after a successful ceremony. Skip opt-out /
+  // kill-switch disabled results so .no-deft-directive stays write-free.
+  const disabled =
+    typeof result.payload === "object" &&
+    result.payload !== null &&
+    (result.payload as { disabled?: unknown }).disabled === true;
+  if (result.code === 0 && !disabled) {
     const owner =
       args.sessionId?.trim() ||
       (typeof result.payload.occupancy === "object" &&

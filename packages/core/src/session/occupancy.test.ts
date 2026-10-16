@@ -32,8 +32,8 @@ import { canonicalHostSessionId } from "./host-session-owner.js";
 import {
   APPLYING_HOST_SCHEMA,
   APPLYING_HOST_STALE_MS,
-  applyWorktreeOccupancy,
   applyingHostPath,
+  applyWorktreeOccupancy,
   assertOccupancyFreeForHostLaunch,
   DEFT_EXPECTED_DECLARED_HOST_ATTACH,
   evaluateApplyingHostLifecycleAdmission,
