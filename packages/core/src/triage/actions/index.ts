@@ -1,7 +1,13 @@
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { CacheNotFoundError } from "../../cache/errors.js";
 import { cacheGet } from "../../cache/operations.js";
-import { ingestSingleForAccept as ingestSingleForAcceptTs } from "../../intake/issue-ingest.js";
+import {
+  briefOwnsExactIssueAndRepo,
+  ingestSingleForAccept as ingestSingleForAcceptTs,
+  scanProvenanceRefs,
+} from "../../intake/issue-ingest.js";
+import { resolveLifecycleRoot } from "../../layout/resolve.js";
 import { call } from "../../scm/call.js";
 import { ScmStubError } from "../../scm/errors.js";
 import {
@@ -19,7 +25,9 @@ import {
 import { TriageError, UpstreamCloseError } from "./errors.js";
 import { parseResumeOn } from "./resume-on.js";
 import type {
+  AcceptIngestResult,
   AcceptOptions,
+  AcceptOutcome,
   AuditEntry,
   DeferOptions,
   IssueIngest,
@@ -46,7 +54,9 @@ export {
 } from "./errors.js";
 export { parseResumeOn } from "./resume-on.js";
 export type {
+  AcceptIngestResult,
   AcceptOptions,
+  AcceptOutcome,
   AuditEntry,
   CandidatesLog,
   DeferOptions,
@@ -104,6 +114,80 @@ function defaultScmRunner(): ScmRunner {
   };
 }
 
+function normalizeAcceptIngest(
+  value: AcceptIngestResult | string | null | undefined,
+): AcceptIngestResult {
+  if (value !== null && typeof value === "object" && "result" in value) {
+    return value;
+  }
+  if (typeof value === "string" && value.length > 0) {
+    return { result: "created", path: value, message: `CREATED ${value}` };
+  }
+  return { result: "created", path: null, message: "CREATED (path unknown)" };
+}
+
+function toRelativeLifecyclePath(projectRoot: string, absPath: string | null): string | null {
+  if (absPath === null || absPath.length === 0) {
+    return null;
+  }
+  const normalized = absPath.replace(/\\/g, "/");
+  const markers = ["/xbrief/", "/vbrief/"];
+  for (const marker of markers) {
+    const idx = normalized.toLowerCase().lastIndexOf(marker);
+    if (idx >= 0) {
+      return normalized.slice(idx + marker.length);
+    }
+  }
+  try {
+    const root = resolveLifecycleRoot(projectRoot).replace(/\\/g, "/");
+    if (normalized.startsWith(`${root}/`)) {
+      return normalized.slice(root.length + 1);
+    }
+  } catch {
+    /* ignore */
+  }
+  return normalized;
+}
+
+function resolveOwningBriefRelPath(projectRoot: string, issueNumber: number, repo: string): string | null {
+  try {
+    const lifecycleRoot = resolveLifecycleRoot(projectRoot);
+    const byIssue = scanProvenanceRefs(lifecycleRoot);
+    const raw = byIssue.get(issueNumber) ?? [];
+    const live: string[] = [];
+    for (const rel of raw) {
+      const folder = rel.split(/[/\\]/)[0] ?? "";
+      if (folder !== "proposed" && folder !== "pending" && folder !== "active") {
+        continue;
+      }
+      try {
+        const data = JSON.parse(readFileSync(join(lifecycleRoot, rel), "utf8")) as Record<
+          string,
+          unknown
+        >;
+        if (briefOwnsExactIssueAndRepo(data, issueNumber, repo)) {
+          live.push(rel.replace(/\\/g, "/"));
+        }
+      } catch {
+        /* skip */
+      }
+    }
+    if (live.length === 1) {
+      return live[0] ?? null;
+    }
+    if (live.length > 1) {
+      return live.sort()[0] ?? null;
+    }
+  } catch {
+    /* ignore */
+  }
+  const proposed = findProposedArtifactsForIssue(projectRoot, issueNumber, repo);
+  if (proposed.length === 1) {
+    return toRelativeLifecyclePath(projectRoot, proposed[0] ?? null);
+  }
+  return null;
+}
+
 function defaultIssueIngest(): IssueIngest {
   return {
     ingestSingleForAccept(issueNumber, repo, options = {}) {
@@ -111,11 +195,11 @@ function defaultIssueIngest(): IssueIngest {
       // Delegate to the native TS intake path (#2350). The legacy Python
       // `scripts/issue_ingest.py` shell-out was orphaned when #1933 removed the
       // Python surface, leaving `triage:accept` raising ModuleNotFoundError.
-      const [, path, msg] = ingestSingleForAcceptTs(issueNumber, repo, { projectRoot });
+      const [result, path, msg] = ingestSingleForAcceptTs(issueNumber, repo, { projectRoot });
       if (typeof msg === "string" && msg.includes("\n")) {
         process.stderr.write(`${msg}\n`);
       }
-      return path;
+      return { result, path, message: msg };
     },
   };
 }
@@ -363,40 +447,89 @@ export function accept(
   repo: string,
   deps: TriageActionsDeps,
   options: AcceptOptions = {},
-): string {
+): AcceptOutcome {
   const projectRoot = options.projectRoot ?? process.cwd();
   const actor = resolveActor(options.actor);
   const prior = isIdempotentRepeat(deps, issueNumber, repo, "accept", projectRoot);
   if (prior !== null) {
+    const owningRel = resolveOwningBriefRelPath(projectRoot, issueNumber, repo);
     if (options.autoPromote === true) {
-      runAutoPromote(issueNumber, repo, projectRoot, prior.decision_id, null, options.force);
+      let owningAbs: string | null = null;
+      if (owningRel !== null) {
+        try {
+          owningAbs = join(resolveLifecycleRoot(projectRoot), owningRel);
+        } catch {
+          owningAbs = null;
+        }
+      }
+      runAutoPromote(
+        issueNumber,
+        repo,
+        projectRoot,
+        prior.decision_id,
+        owningAbs,
+        options.force,
+      );
     }
-    return prior.decision_id;
+    return {
+      decisionId: prior.decision_id,
+      disposition: "idempotent",
+      relativePath: owningRel,
+      ingestMessage:
+        owningRel !== null
+          ? `#${issueNumber} already ingested at ${owningRel}`
+          : `#${issueNumber} already accepted (nothing new written)`,
+    };
+  }
+
+  // Ingest before audit append so refuse-before-write never leaves a success audit (#4962).
+  let ingest: AcceptIngestResult;
+  try {
+    ingest = normalizeAcceptIngest(
+      deps.issueIngest.ingestSingleForAccept(issueNumber, repo, { projectRoot }),
+    );
+  } catch (exc) {
+    throw new TriageError(
+      `accept #${issueNumber} (${repo}): issue:ingest delegation failed. Cause: ${exc instanceof Error ? exc.message : String(exc)}`,
+    );
+  }
+
+  const relativePath =
+    toRelativeLifecyclePath(projectRoot, ingest.path) ??
+    (ingest.message.match(/\b((?:proposed|pending|active|completed|cancelled)\/\S+)/)?.[1] ??
+      null);
+
+  if (ingest.result === "refused") {
+    return {
+      decisionId: null,
+      disposition: "refused",
+      relativePath,
+      ingestMessage: ingest.message,
+    };
   }
 
   const entry = buildEntry(deps, "accept", issueNumber, repo, actor);
   const logPath = logPathFor(projectRoot);
   const decisionId = deps.candidatesLog.append(entry, { path: logPath });
-  let ingestedPath: string | null | undefined = null;
-  try {
-    ingestedPath = deps.issueIngest.ingestSingleForAccept(issueNumber, repo, { projectRoot });
-  } catch (exc) {
-    rollbackAuditEntry(decisionId, projectRoot, logPath);
-    throw new TriageError(
-      `accept #${issueNumber} (${repo}): issue:ingest delegation failed; audit entry rolled back. Cause: ${exc instanceof Error ? exc.message : String(exc)}`,
-    );
-  }
+  const disposition: AcceptOutcome["disposition"] =
+    ingest.result === "duplicate" ? "duplicate" : "created";
+
   if (options.autoPromote === true) {
     runAutoPromote(
       issueNumber,
       repo,
       projectRoot,
       decisionId,
-      typeof ingestedPath === "string" ? ingestedPath : null,
+      typeof ingest.path === "string" ? ingest.path : null,
       options.force,
     );
   }
-  return decisionId;
+  return {
+    decisionId,
+    disposition,
+    relativePath,
+    ingestMessage: ingest.message,
+  };
 }
 
 /** Close upstream, best-effort label, record reject audit entry. */
@@ -559,17 +692,54 @@ export function reset(
   return deps.candidatesLog.append(entry, { path: logPath });
 }
 
-/** Success line for ``triage:accept``, plus the optional design-critique affordance (#3708). */
+/** Success line for ``triage:accept``, plus the optional design-critique affordance (#3708 / #4962). */
 export function formatAcceptOutput(
   issueNumber: number,
   repo: string,
-  decisionId: string,
-  options: { autoPromote?: boolean } = {},
+  decisionId: string | null,
+  options: {
+    autoPromote?: boolean;
+    disposition?: AcceptOutcome["disposition"];
+    relativePath?: string | null;
+    ingestMessage?: string | null;
+  } = {},
 ): string {
+  const disposition = options.disposition ?? "created";
   const promoteNote = options.autoPromote === true ? " + auto-promote" : "";
+  const idPart = decisionId !== null && decisionId.length > 0 ? ` -> ${decisionId}` : "";
+  const head = `accept #${issueNumber} (${repo})${idPart}${promoteNote}`;
+
+  let outcomeLine: string;
+  if (disposition === "refused") {
+    outcomeLine =
+      options.ingestMessage !== null &&
+      options.ingestMessage !== undefined &&
+      options.ingestMessage.length > 0
+        ? options.ingestMessage
+        : `refused (no new proposed artifact)`;
+  } else if (disposition === "duplicate" || disposition === "idempotent") {
+    const rel = options.relativePath;
+    outcomeLine =
+      rel !== null && rel !== undefined && rel.length > 0
+        ? `already-ingested/reuse ${rel}`
+        : (options.ingestMessage ?? `#${issueNumber} already ingested (nothing new written)`);
+  } else {
+    const rel = options.relativePath;
+    if (rel !== null && rel !== undefined && rel.length > 0) {
+      outcomeLine = rel.startsWith("CREATED ") ? rel : `CREATED ${rel}`;
+    } else if (
+      options.ingestMessage !== null &&
+      options.ingestMessage !== undefined &&
+      options.ingestMessage.startsWith("CREATED ")
+    ) {
+      outcomeLine = options.ingestMessage.split("\n")[0] ?? options.ingestMessage;
+    } else {
+      outcomeLine = "CREATED (path unknown)";
+    }
+  }
+
   return (
-    `accept #${issueNumber} (${repo}) -> ${decisionId}${promoteNote}\n` +
-    "optional: deft-directive-design-critique (declining writes nothing)"
+    `${head}\n${outcomeLine}\n` + "optional: deft-directive-design-critique (declining writes nothing)"
   );
 }
 

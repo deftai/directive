@@ -244,6 +244,20 @@ describe("intake coverage boost", () => {
 
     it("ingestOne handles duplicate and dry-run", () => {
       const dir = mkdtempSync(join(tmpdir(), "ingest-"));
+      mkdirSync(join(dir, "proposed"), { recursive: true });
+      writeFileSync(
+        join(dir, "proposed", "existing.xbrief.json"),
+        JSON.stringify({
+          xBRIEFInfo: { version: "0.8", description: "Scope", updated: "2026-01-01T00:00:00Z" },
+          plan: {
+            title: "existing",
+            status: "proposed",
+            narratives: { Origin: "Ingested from https://github.com/o/r/issues/5" },
+            references: [{ type: "x-xbrief/github-issue", uri: "https://github.com/o/r/issues/5" }],
+            items: [],
+          },
+        }),
+      );
       const refs = new Map<number, string[]>([[5, ["proposed/existing.xbrief.json"]]]);
       const [dup] = ingestOne(
         { number: 5, title: "Dup", url: "https://github.com/o/r/issues/5" },
