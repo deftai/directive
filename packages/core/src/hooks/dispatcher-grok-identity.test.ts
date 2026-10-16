@@ -750,4 +750,93 @@ describe("applying-host SessionStart + multi-host soft-pass (#5676)", () => {
       record: { applyingHostSessionId: CURSOR_OWNER, transport: "native" },
     });
   });
+
+  it("read-only with --project-root does not publish into the hook worktree", () => {
+    const hookRoot = mkdtempSync(join(tmpdir(), "hook-5676-readonly-hook-"));
+    const targetRoot = mkdtempSync(join(tmpdir(), "hook-5676-readonly-target-"));
+    temps.push(hookRoot, targetRoot);
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: hookRoot,
+        payload: {
+          tool_name: "Shell",
+          conversation_id: RAW,
+          session_id: RAW,
+          tool_input: {
+            command: `deft session:start --read-only --project-root=${targetRoot} --session-id=${CURSOR_OWNER}`,
+            cwd: hookRoot,
+          },
+        },
+      },
+      seams(),
+    );
+    expect(decision).toMatchObject({ verdict: "allow" });
+    expect(readApplyingHost(hookRoot).status).toBe("missing");
+  });
+
+  it("GROK_HOOK_EVENT SessionStart then lifecycle rewrite uses resolved grok provider", () => {
+    const root = mkdtempSync(join(tmpdir(), "hook-5676-grok-rewrite-"));
+    temps.push(root);
+    decideHook(
+      {
+        host: "claude",
+        event: "session.start",
+        projectRoot: root,
+        payload: { session_id: PAYLOAD_RAW },
+        environ: { GROK_HOOK_EVENT: "SessionStart" },
+      },
+      seams(),
+    );
+    expect(readApplyingHost(root)).toMatchObject({
+      status: "ok",
+      record: { applyingHostSessionId: GROK_FROM_PAYLOAD, provider: "grok" },
+    });
+    const lifecycle = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Bash",
+          session_id: PAYLOAD_RAW,
+          tool_input: {
+            command: "deft session:start",
+            cwd: root,
+          },
+        },
+        environ: { GROK_HOOK_EVENT: "PreToolUse" },
+      },
+      seams(),
+    );
+    expect(lifecycle).toMatchObject({ verdict: "allow" });
+    expect(JSON.stringify(lifecycle.updatedInput ?? {})).toContain(GROK_FROM_PAYLOAD);
+    expect(lifecycle.message ?? "").not.toContain("soft-pass");
+  });
+
+  it("denies bare Claude lifecycle when Cursor applying-host is present", () => {
+    const root = mkdtempSync(join(tmpdir(), "hook-5676-bare-deny-"));
+    temps.push(root);
+    publishApplyingHost(root, { provider: "cursor", rawSessionId: RAW, transport: "native" });
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Bash",
+          session_id: RAW,
+          tool_input: {
+            command: "deft session:start",
+            cwd: root,
+          },
+        },
+      },
+      seams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-identity-conflict" });
+    expect(decision.message).toContain(CURSOR_OWNER);
+    expect(decision.message).toContain("--session-id=");
+  });
 });

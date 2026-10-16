@@ -4210,6 +4210,21 @@ describe("applying-host record (#5676 Prefer-A)", () => {
     ).toMatchObject({ kind: "enforce", matchingDeposit: true });
   });
 
+  it("refuses bare non-matching deposits so owner rewrite is not skipped", () => {
+    const root = mkdtempSync(join(tmpdir(), "applying-host-bare-"));
+    ephemeralTemps.push(root);
+    publishApplyingHost(root, { provider: "cursor", rawSessionId: RAW });
+    const bare = evaluateApplyingHostLifecycleAdmission({
+      projectRoot: root,
+      depositHost: "claude",
+      depositSessionId: CLAUDE_OWNER,
+      namedSessionId: null,
+    });
+    expect(bare).toMatchObject({ kind: "foreign-owner", namedSessionId: null });
+    expect(bare.kind === "foreign-owner" ? bare.message : "").toContain(CURSOR_OWNER);
+    expect(bare.kind === "foreign-owner" ? bare.message : "").toContain("--session-id=");
+  });
+
   it("refuses foreign owners and diagnoses same-raw flip-flop when record is missing", () => {
     const root = mkdtempSync(join(tmpdir(), "applying-host-foreign-"));
     ephemeralTemps.push(root);
