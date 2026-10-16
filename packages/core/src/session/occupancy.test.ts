@@ -3908,6 +3908,13 @@ describe("Harbor UUID lease vs declared host Prefer-A (#5544)", () => {
       },
     });
     expect(inherited.status).toBe("refuse-mint");
+    const inheritedHostShaped = resolveOccupancySessionClaim({
+      env: {
+        [DEFT_EXPECTED_DECLARED_HOST_ATTACH]: "1",
+        DEFT_SESSION_ID: canonicalHostSessionId("claude", "stale-pre-attach"),
+      },
+    });
+    expect(inheritedHostShaped.status).toBe("refuse-mint");
   });
 
   it("still allows exact host session-id pre-attach bind when expected-host is signaled (P1)", () => {

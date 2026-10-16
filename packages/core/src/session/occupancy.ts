@@ -1135,6 +1135,36 @@ export function resolveOccupancySessionClaim(
   input: ApplyOccupancyInput = {},
 ): OccupancySessionClaim {
   const identity = resolvePresentedIdentity(input);
+  // #5544 Prefer-A: when Harbor signals expected declared-host attach, the only
+  // pre-attach mutation exception is an explicit argv --session-id that is
+  // already host-shaped. Inherited DEFT_SESSION_ID (even host-shaped) and
+  // opaque ids are refused so the later host is not locked out.
+  if (expectedDeclaredHostAttachSignaled(input)) {
+    const explicitHostBind =
+      identity.source === "explicit" &&
+      identity.sessionId.length > 0 &&
+      parseCanonicalHostSessionId(identity.sessionId) !== null;
+    if (explicitHostBind) {
+      return {
+        status: "ok",
+        sessionId: identity.sessionId,
+        provenance: "explicit",
+        source: "explicit",
+      };
+    }
+    if (identity.sessionId.length > 0 || identity.disagreeingHostOwner !== null) {
+      return {
+        status: "refuse-mint",
+        sessionId: "",
+        provenance: null,
+        source: "mint",
+        hosts: [],
+        suggestedSessionId: null,
+        message: formatOccupancyExpectedHostMintRefusal(),
+      };
+    }
+    // No presented identity yet — fall through to declared-host / empty-mint refuse.
+  }
   // #4066: host-authoritative claim. Inherited DEFT_SESSION_ID must not beat the
   // host-published owner -- that split is the measured steal-from-self loop.
   if (identity.source === "environment" && identity.disagreeingHostOwner !== null) {
@@ -1148,22 +1178,6 @@ export function resolveOccupancySessionClaim(
   if (identity.sessionId.length > 0) {
     const provenance: OccupancyIdentityProvenance =
       identity.source === "none" ? "minted" : identity.source;
-    // #5544: expected-host attach closes opaque / inherited non-host ids too —
-    // only an exact host-shaped --session-id bind is the pre-attach exception.
-    if (
-      expectedDeclaredHostAttachSignaled(input) &&
-      parseCanonicalHostSessionId(identity.sessionId) === null
-    ) {
-      return {
-        status: "refuse-mint",
-        sessionId: "",
-        provenance: null,
-        source: "mint",
-        hosts: [],
-        suggestedSessionId: null,
-        message: formatOccupancyExpectedHostMintRefusal(),
-      };
-    }
     return {
       status: "ok",
       sessionId: identity.sessionId,
