@@ -17,6 +17,8 @@ import { canonicalHostSessionId } from "../session/host-session-owner.js";
 import {
   applyWorktreeOccupancy,
   grantOccupancyMembership,
+  publishApplyingHost,
+  readApplyingHost,
   releaseOccupancy,
   resolveOccupancySessionId,
 } from "../session/occupancy.js";
@@ -583,5 +585,169 @@ describe("Grok vendor-compat occupancy owner (#4708)", () => {
     expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-identity-conflict" });
     expect(decision.message).toContain("hook --host claude");
     expect(decision.message).toContain(GROK_FROM_PAYLOAD);
+  });
+});
+
+describe("applying-host SessionStart + multi-host soft-pass (#5676)", () => {
+  const RAW = "dcd6d34c-5e07-4e3c-89dd-83471ee80fdf";
+  const CURSOR_OWNER = canonicalHostSessionId("cursor", RAW);
+  const CLAUDE_OWNER = canonicalHostSessionId("claude", RAW);
+  const PAYLOAD_RAW = "01a0b008-c21f-79e1-b6fd-9ade8fd67bef";
+  const GROK_FROM_PAYLOAD = canonicalHostSessionId("grok", PAYLOAD_RAW);
+
+  function seams(overrides: HookPolicySeams = {}): HookPolicySeams {
+    return {
+      sessionStart: () => ({ code: 0, stdout: "", stderr: "" }),
+      runningInsideDeftRepo: () => true,
+      ...overrides,
+    };
+  }
+
+  it("publishes native Cursor applying-host on SessionStart despite leftover GROK_SESSION_ID", () => {
+    const root = mkdtempSync(join(tmpdir(), "hook-5676-session-start-"));
+    temps.push(root);
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "session.start",
+        projectRoot: root,
+        payload: { conversation_id: RAW, session_id: RAW },
+        environ: { GROK_SESSION_ID: "leftover-env" },
+      },
+      seams(),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "session-start" });
+    expect(readApplyingHost(root)).toMatchObject({
+      status: "ok",
+      record: {
+        provider: "cursor",
+        rawSessionId: RAW,
+        applyingHostSessionId: CURSOR_OWNER,
+        transport: "native",
+      },
+    });
+  });
+
+  it("preserves GROK_HOOK_EVENT Claude→grok transport on SessionStart", () => {
+    const root = mkdtempSync(join(tmpdir(), "hook-5676-grok-event-"));
+    temps.push(root);
+    decideHook(
+      {
+        host: "claude",
+        event: "session.start",
+        projectRoot: root,
+        payload: { session_id: PAYLOAD_RAW },
+        environ: { GROK_HOOK_EVENT: "SessionStart" },
+      },
+      seams(),
+    );
+    expect(readApplyingHost(root)).toMatchObject({
+      status: "ok",
+      record: {
+        provider: "grok",
+        rawSessionId: PAYLOAD_RAW,
+        applyingHostSessionId: GROK_FROM_PAYLOAD,
+        transport: "grok-hook-event",
+      },
+    });
+  });
+
+  it("soft-passes Claude deposit when Cursor applying-host is named; Cursor deposit enforces", () => {
+    const root = mkdtempSync(join(tmpdir(), "hook-5676-soft-pass-"));
+    temps.push(root);
+    publishApplyingHost(root, { provider: "cursor", rawSessionId: RAW, transport: "native" });
+    const cursor = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Shell",
+          conversation_id: RAW,
+          session_id: RAW,
+          tool_input: {
+            command: `deft session:start --session-id=${CURSOR_OWNER}`,
+            cwd: root,
+          },
+        },
+        environ: { GROK_SESSION_ID: "leftover-env" },
+      },
+      seams(),
+    );
+    expect(cursor).toMatchObject({ verdict: "allow" });
+    expect(cursor.message ?? "").not.toContain("host:claude:");
+
+    const claude = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Bash",
+          session_id: RAW,
+          tool_input: {
+            command: `deft session:start --session-id=${CURSOR_OWNER}`,
+            cwd: root,
+          },
+        },
+        environ: { GROK_SESSION_ID: "leftover-env" },
+      },
+      seams(),
+    );
+    expect(claude).toMatchObject({ verdict: "allow" });
+    expect(claude.message ?? "").not.toContain(`host owner is ${CLAUDE_OWNER}`);
+    expect(claude.updatedInput).toBeUndefined();
+  });
+
+  it("names SessionStart / read-only repair on missing-record same-raw flip-flop", () => {
+    const root = mkdtempSync(join(tmpdir(), "hook-5676-missing-"));
+    temps.push(root);
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Bash",
+          session_id: RAW,
+          tool_input: {
+            command: `deft session:start --session-id=${CURSOR_OWNER}`,
+            cwd: root,
+          },
+        },
+      },
+      seams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-identity-conflict" });
+    expect(decision.message).toContain("SessionStart");
+    expect(decision.message).toContain("--read-only");
+  });
+
+  it("read-only session:start may publish applying-host without a prior record", () => {
+    const root = mkdtempSync(join(tmpdir(), "hook-5676-readonly-"));
+    temps.push(root);
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Shell",
+          conversation_id: RAW,
+          session_id: RAW,
+          tool_input: {
+            command: `deft session:start --read-only --session-id=${CURSOR_OWNER}`,
+            cwd: root,
+          },
+        },
+        environ: { GROK_SESSION_ID: "leftover-env" },
+      },
+      seams(),
+    );
+    expect(decision).toMatchObject({ verdict: "allow" });
+    expect(readApplyingHost(root)).toMatchObject({
+      status: "ok",
+      record: { applyingHostSessionId: CURSOR_OWNER, transport: "native" },
+    });
   });
 });
