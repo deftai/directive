@@ -4349,8 +4349,15 @@ export function commandHasGitCommitCheckoutRetarget(command: string): boolean {
   return false;
 }
 
+/** Staged index list result — no throw; caller maps `ok:false` to deny (#5656). */
+export type ListStagedRelPathsResult =
+  | { ok: true; paths: string[] }
+  | { ok: false; message: string };
+
 /** Staged index paths including deletions (ACMRD), project-relative POSIX. */
-export function listStagedRelPathsIncludingDeletes(projectRoot: string): string[] {
+export function listStagedRelPathsIncludingDeletes(
+  projectRoot: string,
+): ListStagedRelPathsResult {
   try {
     // -z: NUL-delimited so quoted non-ASCII names are not treated as literal paths (#5656).
     const stdout = execFileSync(
@@ -4362,17 +4369,18 @@ export function listStagedRelPathsIncludingDeletes(projectRoot: string): string[
         stdio: ["ignore", "pipe", "pipe"],
       },
     );
-    return stdout
+    const paths = stdout
       .split("\0")
       .map((line) => line.replace(/\r/g, "").trim())
       .filter((line) => line.length > 0);
+    return { ok: true, paths };
   } catch (err: unknown) {
     const e = err as NodeJS.ErrnoException & { stderr?: string };
     if (e.code === "ENOENT") {
-      throw new Error("'git' executable not found on PATH");
+      return { ok: false, message: "'git' executable not found on PATH" };
     }
     const stderr = typeof e.stderr === "string" ? e.stderr.trim() : String(e.message ?? err);
-    throw new Error(`git diff --cached --name-only failed: ${stderr}`);
+    return { ok: false, message: `git diff --cached --name-only failed: ${stderr}` };
   }
 }
 
@@ -4543,16 +4551,19 @@ function decideProspectiveGitCommitScopeCover(
   }
   const projectRoot = resolve(input.projectRoot);
   let staged: readonly string[];
-  try {
-    staged = (seams.listStagedRelPaths ?? listStagedRelPathsIncludingDeletes)(projectRoot);
-  } catch (err) {
-    const detail = err instanceof Error ? err.message : String(err);
-    return deny(
-      input,
-      "prospective-scope-cover-deny",
-      toolName,
-      `Directive denied ${toolName}: prospective scope-cover could not list staged paths (#5656). ${detail}`,
-    );
+  if (seams.listStagedRelPaths) {
+    staged = seams.listStagedRelPaths(projectRoot);
+  } else {
+    const listed = listStagedRelPathsIncludingDeletes(projectRoot);
+    if (!listed.ok) {
+      return deny(
+        input,
+        "prospective-scope-cover-deny",
+        toolName,
+        `Directive denied ${toolName}: prospective scope-cover could not list staged paths (#5656). ${listed.message}`,
+      );
+    }
+    staged = listed.paths;
   }
   const cover = evaluateProspectiveScopeCover({
     projectRoot,

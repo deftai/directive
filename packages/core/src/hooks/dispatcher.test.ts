@@ -3875,6 +3875,35 @@ describe("runtime authority policy (#1394)", () => {
     expect(decision.message).toMatch(/docs\/out\.md/);
   });
 
+  it("prospective scope-cover denies on listStaged RelPaths Result failure without throw (#5656)", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/nonexistent-git-root-5656",
+        payload: {
+          tool_name: "Bash",
+          tool_input: { command: "git commit -m msg" },
+        },
+      },
+      readySeams({
+        inspectScope: () => READY_SCOPE,
+        loadStoryWriteFence: () => ({ fileScope: ["src/**"], denyPaths: [] }),
+      }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "prospective-scope-cover-deny" });
+    expect(decision.message).toMatch(/could not list staged paths/i);
+  });
+
+  it("listStagedRelPathsIncludingDeletes returns Result not throw (#5656)", async () => {
+    const { listStagedRelPathsIncludingDeletes } = await import("./dispatcher.js");
+    const result = listStagedRelPathsIncludingDeletes("/nonexistent-git-root-5656-list");
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.message.length).toBeGreaterThan(0);
+    }
+  });
+
   it("allows path inside project+story intersection", () => {
     const decision = decideHook(
       {
