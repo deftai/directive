@@ -42,6 +42,7 @@ import {
   CURSOR_SESSION_START_PLANNING_LINE,
   CURSOR_TASK_SPAWN_CLASS_RECOVERY,
   CURSOR_TASK_SPAWN_READ_ONLY_RECOVERY,
+  commandHasGitCommitIndexMutatingForm,
   commandHasGitCommitSubcommand,
   DIRECT_WRITE_TOOL_NAMES,
   decideHook,
@@ -72,6 +73,7 @@ import {
   READ_ONLY_HOOK_ENV,
   renderHostDecision,
   SPAWN_TOOL_NAMES,
+  splitShellArgvPreservingQuotes,
 } from "./index.js";
 import { SPAWN_CLASS_RECOVERY } from "./readonly.js";
 
@@ -3717,6 +3719,29 @@ describe("runtime authority policy (#1394)", () => {
     });
     expect(customHook.ok).toBe(false);
     expect(customHook.uncovered).toEqual([".cursor/hooks/consumer-custom.mjs"]);
+
+    const packageJsonOnly = evaluateProspectiveScopeCover({
+      projectRoot: "/project",
+      stagedRelPaths: ["package.json"],
+      inspectScope: () => ({ ready: false, path: null, message: "no running scope" }),
+      loadStoryWriteFence: () => ({ fileScope: [], denyPaths: [] }),
+      env: {},
+    });
+    expect(packageJsonOnly.ok).toBe(false);
+    expect(packageJsonOnly.uncovered).toEqual(["package.json"]);
+  });
+
+  it("splitShellArgvPreservingQuotes keeps empty quoted tokens (#5656)", () => {
+    expect(splitShellArgvPreservingQuotes('git commit -m "" -a')).toEqual([
+      "git",
+      "commit",
+      "-m",
+      "",
+      "-a",
+    ]);
+    expect(commandHasGitCommitIndexMutatingForm('git commit -m "" -a --allow-empty-message')).toBe(
+      true,
+    );
   });
 
   it("Shell git commit denies when staged paths fail prospective scope-cover (#5656)", () => {

@@ -19,7 +19,6 @@ import { shellCommandHasPayloadRootProtectedDestAfterRealpath } from "../authz/p
 import { prepareGithubOnlyDest } from "../design-critique/run-posture.js";
 import { runningInsideDeftRepo } from "../doctor/paths.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
-import { isInstallerManagedPath } from "../init-deposit/hygiene.js";
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import { matchAny } from "../orchestration/pathspec.js";
 import {
@@ -4382,6 +4381,14 @@ export function splitShellArgvPreservingQuotes(part: string): string[] {
   const out: string[] = [];
   let cur = "";
   let quote: '"' | "'" | null = null;
+  let tokenHadQuote = false;
+  const flush = (): void => {
+    if (cur.length > 0 || tokenHadQuote) {
+      out.push(cur);
+      cur = "";
+      tokenHadQuote = false;
+    }
+  };
   for (let i = 0; i < part.length; i++) {
     const ch = part[i];
     if (ch === undefined) continue;
@@ -4400,18 +4407,16 @@ export function splitShellArgvPreservingQuotes(part: string): string[] {
     }
     if (ch === '"' || ch === "'") {
       quote = ch;
+      tokenHadQuote = true;
       continue;
     }
     if (/\s/.test(ch)) {
-      if (cur.length > 0) {
-        out.push(cur);
-        cur = "";
-      }
+      flush();
       continue;
     }
     cur += ch;
   }
-  if (cur.length > 0) out.push(cur);
+  flush();
   return out;
 }
 
@@ -4605,9 +4610,10 @@ export function isLifecycleOrInstallerRelPath(relPathPosix: string): boolean {
   const p = relPathPosix.replace(/\\/g, "/").replace(/^\.\//, "");
   if (p.length === 0) return false;
   if (MANAGED_HOOK_DEPOSIT_REL_PATHS.has(p)) return true;
+  // Lifecycle trees only — do not use isInstallerManagedPath here: that set
+  // includes package.json / lockfiles used for ordinary product edits (#5656).
   if (p.startsWith("xbrief/") || p.startsWith("vbrief/")) return true;
-  // Full installer-managed deposit set (AGENTS.md, .githooks/, Taskfile.yml, …).
-  return isInstallerManagedPath(p);
+  return false;
 }
 
 export function evaluateProspectiveScopeCover(
