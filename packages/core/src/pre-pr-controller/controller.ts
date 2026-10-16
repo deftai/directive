@@ -9,6 +9,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
 import {
+  inspectGateOverrideGrant,
   isGateOverrideEligibleRefuseCode,
   loadGateOverrideAdmission,
 } from "../authz/gate-override.js";
@@ -16,6 +17,7 @@ import {
   type CoverageApplicabilityDeps,
   evaluateCoverageApplicability,
 } from "../coverage-applicability/index.js";
+import { evaluateCoverageHotspots } from "../coverage-hotspots/evaluate.js";
 import {
   COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP,
   COVERAGE_HEADROOM_WAIVED_SKIP,
@@ -325,19 +327,23 @@ function isSafeCoverageHotspotsFlag(token: string): boolean {
 }
 
 function parseAttemptIdFromHotspotsCommand(command: string): string | null {
+  // Last-wins — matches CLI argv parsing for duplicate --attempt-id (#5674 P2).
   const tokens = command.trim().replace(/\s+/g, " ").split(" ");
+  let last: string | null = null;
   for (let i = 0; i < tokens.length; i += 1) {
     const token = tokens[i] ?? "";
     if (token.startsWith("--attempt-id=")) {
       const value = token.slice("--attempt-id=".length).trim();
-      return value.length > 0 ? value : null;
+      if (value.length > 0) last = value;
+      continue;
     }
     if (token === "--attempt-id") {
       const value = (tokens[i + 1] ?? "").trim();
-      return value.length > 0 ? value : null;
+      if (value.length > 0) last = value;
+      i += 1;
     }
   }
-  return null;
+  return last;
 }
 
 /**
@@ -405,7 +411,8 @@ function commandSatisfied(
     }
     const projectRoot = options?.projectRoot ?? process.cwd();
 
-    // #5674 waived arm: exit 4 + distinct waived token + admission receipt re-verify.
+    // #5674 waived arm: exit 4 + distinct waived token + live grant inspect +
+    // measured-report recheck (revoke/expiry and Istanbul floor dominate).
     if (row.exitCode === 4) {
       if (row.skipReason !== COVERAGE_HEADROOM_WAIVED_SKIP) return false;
       if (spec.command === null || !coverageHotspotsCommandMatches(row.command, spec.command)) {
@@ -422,6 +429,26 @@ function commandSatisfied(
       if (admission.headSha !== record.headSha) return false;
       if (admission.treeHash !== record.treeHash) return false;
       if (!isGateOverrideEligibleRefuseCode(admission.refuseCode)) return false;
+      const inspected = inspectGateOverrideGrant(projectRoot, {
+        refuseCode: admission.refuseCode,
+        baseSha: record.baseSha,
+        headSha: record.headSha,
+        treeHash: record.treeHash,
+        attemptId,
+        worktree: admission.worktree,
+        evaluatorId: admission.evaluatorId,
+      });
+      if (!inspected.ok) return false;
+      // Saved exit-4 must not hide a later failing coverage report (#5674 Greptile P1).
+      const reportPath = join(projectRoot, "coverage", "coverage-final.json");
+      if (existsSync(reportPath)) {
+        const measured = evaluateCoverageHotspots({
+          projectRoot,
+          checkApplicability: false,
+          useDiffPaths: false,
+        });
+        if (measured.exitCode !== 0) return false;
+      }
       return true;
     }
 
