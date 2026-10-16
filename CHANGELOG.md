@@ -12,9 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Fixed**: Land tracked completion record for exclusive-create dest on lifecycle folder-moves. Refs #3908.
 - **Fixed**: Prepare approved file permissions for the scope lifecycle exclusive-create dest work. This records approval only; it does not change product behavior. Refs #3908.
 ### Added
+- **Seed PROJECT-DEFINITION narratives from a design doc or answers file (#4961).** `deft setup:seed` writes a draft-only six-key Phase 2 preview; confirm via the Post-Interview gate, then `deft project:write-narratives`. Refuses `--out` onto PROJECT-DEFINITION or the input path. Tracking #4961.
 - **Consumer deposit now includes ADR-003 for Continuity (#4892).** MUST cites resolve to `.deft/core/docs/decisions/ADR-003-a2a-nuclear-family-topology.md` via the content/docs flatten. Maintainer `docs/decisions/ADR-003` stays heavyweight SoT (dual-path; no root-docs prepack carve-out). Leaves #3940 as tracker; cross-links only #3847 / #4890. Closes #4892.
-
-
 ### Changed
 - Widen Prefer-A Bound keep-active #5656 file_scope for companion hooks/tests/RULE-MAP (productPullRequest unset). Tracking #5656.
 - Activate Prefer-A Bound keep-active brief for #5656 (productPullRequest unset; concrete file_scope). Tracking #5656.
