@@ -2,10 +2,18 @@ import * as childProcess from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import {
+  admitGateOverrideForAttempt,
+  type GateOverrideAdmissionReceipt,
+  isGateOverrideEligibleRefuseCode,
+} from "../authz/gate-override.js";
+import {
   type CoverageApplicabilityResult,
   evaluateCoverageApplicability,
 } from "../coverage-applicability/index.js";
-import { COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP } from "../pre-pr-controller/phases.js";
+import {
+  COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP,
+  COVERAGE_HEADROOM_WAIVED_SKIP,
+} from "../pre-pr-controller/phases.js";
 import {
   type CoverageMetric,
   type CoverageTotals,
@@ -64,19 +72,34 @@ export interface CoverageHotspotsReport {
 
 export interface CoverageApplicabilityArtifact {
   readonly schema: "deft.coverage-applicability.v1";
-  readonly outcome: CoverageApplicabilityResult["outcome"];
-  readonly skipReason: typeof COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP | null;
+  readonly outcome: CoverageApplicabilityResult["outcome"] | "waived";
+  readonly skipReason:
+    | typeof COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP
+    | typeof COVERAGE_HEADROOM_WAIVED_SKIP
+    | null;
   readonly reason: string;
   readonly binding: {
     readonly baseSha: string;
     readonly headSha: string;
     readonly treeHash: string;
   };
+  /** Present when outcome is waived (#5674); cites the gate-override admission receipt. */
+  readonly admission?: {
+    readonly grantId: string;
+    readonly attemptId: string;
+    readonly refuseCode: string;
+    readonly reviewObligation: string;
+    readonly admittedAt: string;
+    readonly reused: boolean;
+  } | null;
 }
 
 export interface CoverageHotspotsResult {
-  /** 0 = measured pass; 1 = floor/headroom fail; 2 = config; 3 = authorized N/A. */
-  readonly exitCode: 0 | 1 | 2 | 3;
+  /**
+   * 0 = measured pass; 1 = floor/headroom fail; 2 = config/refuse;
+   * 3 = authorized N/A; 4 = gate-override waived refuse (never pass).
+   */
+  readonly exitCode: 0 | 1 | 2 | 3 | 4;
   readonly report: CoverageHotspotsReport | null;
   readonly message: string;
   readonly applicability?: CoverageApplicabilityArtifact | null;
@@ -102,6 +125,13 @@ export interface CoverageHotspotsOptions {
   } | null;
   /** Default true when inputBinding is set; false skips classifier pre-check. */
   readonly checkApplicability?: boolean;
+  /**
+   * Grant-bound attempt id for #5674 waived/exit-4. Solo hotspots without this
+   * keep refuse as exit 2. Inspect-only paths omit this so admission is not consumed.
+   */
+  readonly attemptId?: string | null;
+  readonly worktree?: string | null;
+  readonly evaluatorId?: string | null;
 }
 
 class GitCommandError extends Error {}
@@ -287,6 +317,48 @@ function buildApplicabilityArtifact(
       headSha: binding.headSha,
       treeHash: binding.treeHash,
     },
+    admission: null,
+  };
+}
+
+function buildWaivedArtifact(
+  refuse: Extract<CoverageApplicabilityResult, { outcome: "refuse" }>,
+  binding: { readonly baseSha: string; readonly headSha: string; readonly treeHash: string },
+  receipt: GateOverrideAdmissionReceipt,
+  reused: boolean,
+): CoverageApplicabilityArtifact {
+  return {
+    schema: "deft.coverage-applicability.v1",
+    outcome: "waived",
+    skipReason: COVERAGE_HEADROOM_WAIVED_SKIP,
+    reason: `coverage-hotspots: waived (${COVERAGE_HEADROOM_WAIVED_SKIP}); refuse=${refuse.code}`,
+    binding: {
+      baseSha: binding.baseSha,
+      headSha: binding.headSha,
+      treeHash: binding.treeHash,
+    },
+    admission: {
+      grantId: receipt.grantId,
+      attemptId: receipt.attemptId,
+      refuseCode: receipt.refuseCode,
+      reviewObligation: receipt.reviewObligation,
+      admittedAt: receipt.admittedAt,
+      reused,
+    },
+  };
+}
+
+function waivedResult(artifact: CoverageApplicabilityArtifact): CoverageHotspotsResult {
+  const payload = `${JSON.stringify(artifact, null, 2)}\n`;
+  return {
+    exitCode: 4,
+    report: null,
+    message:
+      `coverage-hotspots: waived (${COVERAGE_HEADROOM_WAIVED_SKIP})\n` +
+      `  Record coverage_headroom via exit 4 + skip reason "${COVERAGE_HEADROOM_WAIVED_SKIP}".\n` +
+      `  Never treat waived as measured pass / exit 0.\n` +
+      payload,
+    applicability: artifact,
   };
 }
 
@@ -324,6 +396,7 @@ export function evaluateCoverageHotspots(options: CoverageHotspotsOptions): Cove
 
   const reportPath = join(coverageDir, "coverage-final.json");
   const reportExists = existsSync(reportPath);
+  let pendingWaived: CoverageApplicabilityArtifact | null = null;
 
   // Prefer-A Bound limb 4: classify before requiring Istanbul when applicability is in scope.
   // Caller pathFilter never authorizes N/A. Diff-level inert alone does not delete the
@@ -352,17 +425,58 @@ export function evaluateCoverageHotspots(options: CoverageHotspotsOptions): Cove
     }
 
     if (applicability.outcome === "refuse") {
-      // Fail closed on refuse even when a prior report exists — unknown/mismatched
-      // diffs must not inherit a measured pass from stale Istanbul dogfood.
-      // Exceptions that continue to the measured floor when a report exists:
-      // - empty-selection: not proof of N/A (Bound limb 4 dogfood)
-      // - dirty-tree: blocks N/A only; before-commit measured hotspots must still run
-      if (
-        !(
-          (applicability.code === "empty-selection" || applicability.code === "dirty-tree") &&
-          reportExists
-        )
-      ) {
+      const attemptId = (options.attemptId ?? "").trim();
+      const measuredException =
+        (applicability.code === "empty-selection" || applicability.code === "dirty-tree") &&
+        reportExists;
+
+      // #5674: grant-bound attemptId → admit + exit 4 waived (never exit 0).
+      // Measured Istanbul floor/headroom failure still dominates when a report exists.
+      if (attemptId.length > 0) {
+        if (!isGateOverrideEligibleRefuseCode(applicability.code)) {
+          return {
+            exitCode: 2,
+            report: null,
+            message: `${applicability.reason}\n`,
+            applicability: artifact,
+          };
+        }
+        const admitted = admitGateOverrideForAttempt(projectRoot, {
+          refuseCode: applicability.code,
+          baseSha: binding.baseSha,
+          headSha: binding.headSha,
+          treeHash: binding.treeHash,
+          attemptId,
+          observedRefuseReason: applicability.reason,
+          worktree: options.worktree,
+          evaluatorId: options.evaluatorId,
+        });
+        if (!admitted.ok) {
+          return {
+            exitCode: 2,
+            report: null,
+            message: `${admitted.reason}\n`,
+            applicability: artifact,
+          };
+        }
+        const waived = buildWaivedArtifact(
+          applicability,
+          binding,
+          admitted.receipt,
+          admitted.reused,
+        );
+        if (!reportExists) {
+          return waivedResult(waived);
+        }
+        // Report present: continue measured; remap exit 0 → 4 after floor check.
+        pendingWaived = waived;
+      } else if (!measuredException) {
+        // Fail closed on refuse even when a prior report exists — unknown/mismatched
+        // diffs must not inherit a measured pass from stale Istanbul dogfood.
+        // Solo hotspots without an explicit grant-bound attempt id keep exit 2.
+        // Exceptions that continue to the measured floor when a report exists:
+        // - empty-selection: not proof of N/A (Bound limb 4 dogfood)
+        // - dirty-tree: blocks N/A only; before-commit measured hotspots must still run
         return {
           exitCode: 2,
           report: null,
@@ -446,11 +560,18 @@ export function evaluateCoverageHotspots(options: CoverageHotspotsOptions): Cove
   };
 
   if (failReasons.length > 0) {
+    // Measured floor/headroom failure dominates a coverage-applicability grant (#5674).
     return {
       exitCode: 1,
       report,
       message: formatTextReport(report, true),
+      applicability: pendingWaived,
     };
+  }
+
+  if (pendingWaived !== null) {
+    // Never map waived/override to measured pass / exit 0.
+    return waivedResult(pendingWaived);
   }
 
   return {

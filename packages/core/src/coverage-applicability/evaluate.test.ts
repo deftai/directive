@@ -185,6 +185,23 @@ describe("classifyChangedPath", () => {
     expect(classifyChangedPath("meta/other.log", "M", null)).toBe("unknown");
     expect(classifyChangedPath(".githooks/pre-commit", "M", null)).toBe("unknown");
   });
+
+  it("classifies exact VERSION + lifecycle gitkeep inert; keeps run/hooks/codeql unknown (#5674)", () => {
+    expect(classifyChangedPath(".deft/core/VERSION", "A", null)).toBe("inert");
+    expect(classifyChangedPath(".deft/core/VERSION", "M", null)).toBe("inert");
+    for (const root of ["xbrief", "vbrief"] as const) {
+      for (const sub of ["proposed", "pending", "active", "completed", "cancelled"] as const) {
+        expect(classifyChangedPath(`${root}/${sub}/.gitkeep`, "A", null)).toBe("inert");
+      }
+    }
+    // Keep-unknown residuals owned until #5677 — do not widen.
+    expect(classifyChangedPath(".deft/core/run", "A", null)).toBe("unknown");
+    expect(classifyChangedPath(".deft/core/run/hooks.json", "M", null)).toBe("unknown");
+    expect(classifyChangedPath(".deft/approved-scope/x.json", "A", null)).toBe("unknown");
+    expect(classifyChangedPath(".githooks/pre-commit", "M", null)).toBe("unknown");
+    expect(classifyChangedPath(".github/codeql/codeql-config.yml", "M", null)).toBe("unknown");
+    expect(classifyChangedPath(".deft/core/payload.bin", "A", null)).toBe("unknown");
+  });
 });
 
 describe("parseNameStatus", () => {
@@ -713,6 +730,40 @@ describe("evaluateCoverageApplicability", () => {
     const refuseResult = evaluateCoverageApplicability(bindingFor(refuseRoot, refuseBase));
     expect(refuseResult.outcome).toBe("refuse");
     if (refuseResult.outcome === "refuse") expect(refuseResult.code).toBe("unknown-path");
+  });
+
+  it("aggregates VERSION + lifecycle gitkeep as N/A; run peer refuses (#5674)", () => {
+    const residualRoot = gitRepo({ "README.md": "# base\n" });
+    const residualBase = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: residualRoot, encoding: "utf8" })
+      .trim();
+    mkdirSync(join(residualRoot, ".deft/core"), { recursive: true });
+    writeFileSync(join(residualRoot, ".deft/core/VERSION"), "0.0.0-test\n");
+    for (const root of ["xbrief", "vbrief"] as const) {
+      for (const sub of ["proposed", "pending", "active", "completed", "cancelled"] as const) {
+        mkdirSync(join(residualRoot, root, sub), { recursive: true });
+        writeFileSync(join(residualRoot, root, sub, ".gitkeep"), "");
+      }
+    }
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: residualRoot });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "residual-inert"], {
+      cwd: residualRoot,
+    });
+    const residual = evaluateCoverageApplicability(bindingFor(residualRoot, residualBase));
+    expect(residual.outcome).toBe("not-applicable");
+
+    const refuseRoot = gitRepo({ "README.md": "# base\n" });
+    const refuseBase = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: refuseRoot, encoding: "utf8" })
+      .trim();
+    mkdirSync(join(refuseRoot, ".deft/core"), { recursive: true });
+    writeFileSync(join(refuseRoot, ".deft/core/VERSION"), "0.0.0-test\n");
+    writeFileSync(join(refuseRoot, ".deft/core/run"), "keep-unknown\n");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: refuseRoot });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "run-unknown"], { cwd: refuseRoot });
+    const refused = evaluateCoverageApplicability(bindingFor(refuseRoot, refuseBase));
+    expect(refused.outcome).toBe("refuse");
+    if (refused.outcome === "refuse") expect(refused.code).toBe("unknown-path");
   });
 });
 
