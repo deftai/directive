@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Fixed**: Land tracked completion record for coverage waived-exit-4 / residual deposit wiring after product #5681. Refs #5674.
 - **fix(coverage): wire gate-override waived exit-4 into hotspots/pre-PR and inert residual deposit markers (#5674).** Eligible refuse + grant-bound attemptId admits via `admitGateOverrideForAttempt` and emits exit 4 with a distinct waived token (never exit 0); measured Istanbul floor/headroom failure still dominates when a report exists. Pre-PR `coverage_headroom` accepts exit 4 only after reloading admission and matching refuse/base/head/tree/attemptId. Exact `.deft/core/VERSION` + ten lifecycle `.gitkeep` paths classify inert; `.deft/core/run`, hooks, codeql, and approved-scope stay unknown (#5677). Tracking #5674. Refs #5665 #5542 #5675 #5677.
 - **Fixed**: Land tracked completion record for managed stamp/ledger coverage classifier after product #5680. Refs #5665.
 - **fix(coverage): classify Directive-managed stamps and policy ledger as inert for pre-PR applicability (#5665).** Exact-path inert for `.deft/GENERATION.json`, `meta/policy-changes.log`, and `bareVersionMarkerRelativePaths()` siblings; authority/membership peers under `.deft/` and `meta/` stay unknown. Tracking #5665. Refs #5674 #5541 #5542.
