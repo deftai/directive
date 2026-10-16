@@ -30,7 +30,7 @@ deft/
 ├── SECURITY.md            # Security policy
 ├── COST-ESTIMATE.md       # Pre-build cost transparency
 ├── Taskfile.yml           # Root deterministic command graph
-├── go.mod                 # Frozen Go installer module
+├── go.mod                 # Archaeology husk only (Go installer deleted; AC10.10)
 ├── package.json           # TypeScript workspace scripts and package metadata
 ├── pnpm-lock.yaml         # TypeScript dependency lock
 ├── pnpm-workspace.yaml    # TypeScript workspace layout
@@ -99,8 +99,8 @@ incidents/     # Repo incident records
 ## Automation And Runtime
 
 ```text
-cmd/deft-install/  # Frozen Go installer source and embedded payload logic
-packages/          # TypeScript engine packages (types, core, content, cli)
+packages/          # TypeScript engine packages (cli launcher, runtime, private types/core/content)
+# Historical only (deleted AC10.10): cmd/deft-install/ — do not teach as current
 scripts/           # Remaining JS helpers (not a Python validator layer)
 tasks/             # Taskfile include fragments for command namespaces
 .github/           # GitHub Actions workflows and PR template

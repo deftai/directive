@@ -10,7 +10,7 @@
     {
       "id": "engine",
       "label": "Engine",
-      "description": "Executable framework runtime -- the code that enforces and runs deft. In the #1669 model this ships as the CLI package (npm/pip), not as editable deposited content: the TS packages, the Go installer, the Python scripts, the Taskfile + task fragments, the `run` CLI launchers, and the deposited git hooks."
+      "description": "Executable framework runtime -- the code that enforces and runs deft. In the OVPR / #5490 model this ships as the published launcher + runtime packages (private types/core/content bundled into runtime), not as editable deposited content: the TS packages, the Taskfile + task fragments, and the deposited git hooks. The Go installer (`cmd/deft-install/`) is deleted (AC10.10); Python `run` launchers are historical only."
     },
     {
       "id": "harness",
@@ -223,7 +223,7 @@
     {
       "path": "cmd",
       "bucket": "engine",
-      "note": "Go installer (cmd/deft-install) -- the canonical bootstrap/upgrade binary."
+      "note": "Historical only (AC10.10): path formerly held cmd/deft-install (Go installer). Source tree deleted — do not teach as current bootstrap. Current path: npm i -g @deftai/directive then directive install / directive upgrade / directive install --repair / directive uninstall / directive doctor."
     },
     {
       "path": "packages",

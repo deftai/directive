@@ -98,7 +98,7 @@ flowchart LR
 | Framework content | `AGENTS.md`, `main.md`, `content/`, `docs/` | Agent guidance, skills, standards, and documentation. Shipped guidance lives under `content/`; `docs/` is repo-dev orientation. |
 | Task runner | `Taskfile.yml`, `tasks/*.yml` | Repository command facade: deterministic command contract and composable namespaces. |
 | TypeScript packages | `packages/`, `package.json`, `pnpm-workspace.yaml`, `tsconfig*.json`, `vitest.config.ts` | Implementation and runtime owner for gates, the `deft` / `directive` CLI, and `deft-hook`. |
-| Go installer (frozen bridge) | `cmd/deft-install/`, `go.mod` | Frozen GitHub-release binary: `deft-install gate`, legacy-layout reshape for inputs TypeScript init/update refuse, and networked tarball deposit. Not the happy-path consumer path. Not bundled in the npm package. Not deleted. [#1979](https://github.com/deftai/directive/issues/1979) is open. |
+| Go installer (deleted) | `cmd/deft-install/` (absent), `go.mod` (husk) | **Deleted / archaeology only (AC10.10).** Do not run `deft-install` or teach it as a current path. Current install is OVPR: global `@deftai/directive` + `directive install` / `upgrade` / `uninstall` / `doctor`. Standard recovery: `npm i -g @deftai/directive` then `directive install --repair` (AC9.7). |
 | xBRIEF metadata | `xbrief/**/*.json`, `xbrief/**/*.md` | Project identity, scope lifecycle, schemas, policy, specification source, and authored `codeStructure`. |
 | Content packs | `content/packs/` | Curated agent memory packs rendered and checked through `task packs:*`. |
 | CI/release automation | `.github/`, `.githooks/`, `tasks/pr.yml` | Branch policy, PR readiness, release, publish, rollback, and local hook enforcement. |
@@ -108,76 +108,57 @@ flowchart LR
 
 ## npm-Native Distribution (current)
 
-This section is the canonical package and installation topology. Two labeled facts stay separate: **workspace dependency edges** come from `packages/*/package.json`; **publish sequence** comes from `.github/workflows/npm-publish.yml` and is an ordered list, not those edges. The sequence is not a topological sort of the workspace graph (core publishes before content, which it depends on). This document records the observed sequence; it does not change the workflow. Install commands live in [README.md](../README.md) (#1912). This topology does not prejudge [#1979](https://github.com/deftai/directive/issues/1979). Node run requirements for consumers versus maintainers are not this topology.
+This section is the canonical package and installation topology (OVPR / #5490). Two labeled facts stay separate: **published package membership** comes from non-private `packages/*/package.json`; **publish sequence** comes from `.github/workflows/npm-publish.yml` and is an ordered list, not a topological sort of the workspace graph. This document records the observed sequence; it does not change the workflow. Install commands live in [README.md](../README.md). Node run requirements for consumers versus maintainers are not this topology.
 
-The repository publishes four npm packages. `@deftai/directive-types` is the supported public contract. `@deftai/directive-core` is published for npm dependency resolution but is not a supported library. `@deftai/directive-content` is the deposit payload. `@deftai/directive` is the consumer CLI (`directive`, `deft`).
+The repository **publishes two npm packages**. `@deftai/directive` is the global launcher (`directive` / `deft`). `@deftai/directive-runtime` is the exact project pin. Private workspace packages `types` / `core` / `content` are bundled into the runtime at publish time and are not separately published consumer packages.
 
-### Published workspace (manifest edges)
+### Published workspace
 
-| Package | Role | Support | Workspace dependencies |
+| Package | Role | Support | Workspace dependencies (published) |
 | --- | --- | --- | --- |
-| `@deftai/directive-types` | public contract | supported | (none) |
-| `@deftai/directive-content` | deposit payload | supported install material | (none) |
-| `@deftai/directive-core` | engine library | published, not a supported library | `@deftai/directive-types`, `@deftai/directive-content` |
-| `@deftai/directive` | consumer CLI | supported | `@deftai/directive-core`, `@deftai/directive-content` |
+| `@deftai/directive-runtime` | project-pinned runtime (engine + content) | supported | (none among published packages; private workspace packages are bundled) |
+| `@deftai/directive` | global launcher | supported | (none — empty deps) |
 
-Workspace dependency edges (from `packages/*/package.json`):
-
-- `@deftai/directive-types` -> `@deftai/directive-core`
-- `@deftai/directive-content` -> `@deftai/directive-core`
-- `@deftai/directive-content` -> `@deftai/directive`
-- `@deftai/directive-core` -> `@deftai/directive`
+Workspace dependency edges among **published** packages (from non-private `packages/*/package.json`): none. The launcher does not depend on the runtime at install time; it resolves the project's exact pin on each run.
 
 ```mermaid
 flowchart LR
-    Types["@deftai/directive-types"]
-    Content["@deftai/directive-content"]
-    Core["@deftai/directive-core"]
-    Cli["@deftai/directive"]
-    Types --> Core
-    Content --> Core
-    Content --> Cli
-    Core --> Cli
+    Launcher["@deftai/directive<br/>global launcher"]
+    Runtime["@deftai/directive-runtime<br/>project pin"]
+    Launcher -.->|"resolves pin at runtime"| Runtime
 ```
 
 ### Observed publish sequence
 
 Observed publish sequence from `.github/workflows/npm-publish.yml` (ordered list, not dependency order, not a topological sort of the workspace graph):
 
-1. `@deftai/directive-types`
-2. `@deftai/directive-core`
-3. `@deftai/directive-content`
-4. `@deftai/directive`
+1. `@deftai/directive-runtime`
+2. `@deftai/directive`
 
-### Consumer install and deposit path
+### Consumer install path (OVPR)
 
-TypeScript `directive init` / `directive update` is the happy-path consumer materialization. After `@deftai/directive` is installed (global or project-local; commands in README), those verbs resolve the locally installed `@deftai/directive-content` package and copy it into gitignored `./.deft/core/`. Types and core are transitive. Core is not a supported library. This is resolve-and-copy, not a re-download.
+Happy-path consumer materialization is the global launcher plus project install verbs — not a copied `.deft/core/` deposit and not the deleted Go installer.
 
 ```mermaid
 flowchart LR
-    Install["Install @deftai/directive<br/>global or project-local"] --> Tree["npm tree<br/>CLI + content; types and core transitive"]
-    Tree -->|"directive init / update<br/>resolve-and-copy"| Deposit["Project ./.deft/core/"]
+    Global["npm i -g @deftai/directive"] --> Install["directive install<br/>exact runtime pin + setup"]
+    Install --> Ready["package-relative wiring<br/>node_modules/@deftai/directive-runtime/"]
+    Ready --> Upgrade["directive upgrade<br/>move pin / migrate data"]
+    Ready --> Repair["directive install --repair<br/>AC9.7 wiring recovery"]
 ```
 
 Key properties:
 
-- **Global install ≠ project deposit.** Installing the CLI only places versioned files in the npm tree. `directive init` materializes `./.deft/core/`, then renders `AGENTS.md`, scaffolds `xbrief/`, wires `.githooks/` when present, deposits #1430 neutralization, and stamps provenance. `directive update` refreshes the same way.
-- **`.deft/core/` is gitignored** on greenfield installs and is reconstituted by `directive init` on fresh checkouts (like `node_modules`). Existing tracked deposits are migrated to hybrid by [#1941](https://github.com/deftai/directive/issues/1941).
-- **Per-project version pinning** via `devDependencies` + `npx` gives teams/CI a reproducible engine↔content pair.
-- **Sideload** of the npm package tarballs still works: `directive init` copies locally with no extra network in that happy path.
-- **No surface bakes an install/upgrade command.** The engine, the frozen Go bridge, and `deft doctor` point at README rather than emitting a command that can go stale (#1912).
+- **Global launcher ≠ project pin.** `npm i -g @deftai/directive` only places the launcher on PATH. `directive install` writes the exact `@deftai/directive-runtime` pin and runs setup (alias `init`).
+- **No copied `.deft/core/`.** Agent pointers and hooks are package-relative under `node_modules/@deftai/directive-runtime/`.
+- **Ordinary upgrade:** `npm i -g @deftai/directive@latest`, then `directive upgrade` (alias `update`) to move the pin and migrate project data when needed.
+- **Wiring broken; keep the pin (AC9.7):** `npm i -g @deftai/directive`, then `directive install --repair`.
+- **Remove / diagnose:** `directive uninstall` (alias `remove`); `directive doctor` (read-only).
+- **Do not teach** `npx` / `pnpm exec` as day-to-day identity, and do not teach the deleted Go installer (`deft-install`) as a current path (AC10.10).
 
-### Frozen Go bridge
+### Go installer — deleted (AC10.10)
 
-The frozen Go binary is a **separate GitHub release asset**, not a file inside the `@deftai/directive` npm tarball. It is a bounded networked-deposit bridge, not the happy path, and not deleted. It is not an offline capability: deposit still fetches a release tarball. [#1979](https://github.com/deftai/directive/issues/1979) (whether to delete the Go source and build matrix) stays open.
-
-Current Go jobs:
-
-1. `deft-install gate` — node-independent health probe.
-2. Legacy-layout stage-1 reshape for on-disk layouts that TypeScript `directive init` / `directive update` refuse.
-3. Networked tarball deposit/migration — retained on the binary, not the happy-path consumer update.
-
-Shipped in Wave 5 ([#1669](https://github.com/deftai/directive/issues/1669), [#1942](https://github.com/deftai/directive/issues/1942)); freeze constraints: [#1933](https://github.com/deftai/directive/issues/1933), [#1912](https://github.com/deftai/directive/issues/1912).
+> **Historical / archaeology only.** `cmd/deft-install/` and the Go installer binaries (`deft-install`, platform `install-*`) are **deleted**. Do not download, run, or teach `deft-install gate` (or any Go installer command) as a current path. Repo-root `go.mod` may remain as a husk for legacy CI pins; it is not a current installer module. Current recovery is OVPR only: `npm i -g @deftai/directive` then `directive install --repair` (AC9.7).
 
 ## Command Surface
 

@@ -188,19 +188,14 @@ describe("architecture package topology (#4093)", () => {
     expect(mermaid).toEqual([["@deftai/directive-types", "@deftai/directive-core"]]);
   });
 
-  it("workspace manifests are the four public @deftai packages", () => {
+  it("workspace manifests are the two published @deftai packages (OVPR)", () => {
     const pkgs = readWorkspacePackages(repoRoot());
     expect(pkgs.map((p) => p.name).sort()).toEqual(
-      [
-        "@deftai/directive",
-        "@deftai/directive-content",
-        "@deftai/directive-core",
-        "@deftai/directive-types",
-      ].sort(),
+      ["@deftai/directive", "@deftai/directive-runtime"].sort(),
     );
   });
 
-  it("ARCHITECTURE names every published package and is not a two-package current graph", () => {
+  it("ARCHITECTURE names every published package as the two-package OVPR graph", () => {
     const arch = architecture();
     const pkgs = readWorkspacePackages(repoRoot());
     expect(
@@ -209,29 +204,25 @@ describe("architecture package topology (#4093)", () => {
         pkgs.map((p) => p.name),
       ),
     ).toEqual([]);
-    expect(arch).not.toMatch(/two npm packages/i);
-    expect(arch).toMatch(/four published/i);
+    expect(arch).toMatch(/publishes two npm packages/i);
+    expect(arch).not.toMatch(/publishes four npm packages/i);
   });
 
-  it("ARCHITECTURE workspace edges match packages/*/package.json (edge ≠ publish order)", () => {
+  it("ARCHITECTURE workspace edges match published packages/*/package.json (edge ≠ publish order)", () => {
     const pkgs = readWorkspacePackages(repoRoot());
     const expected = workspaceEdges(pkgs);
     const documented = parseDocumentedEdges(architecture());
     expect(documented).toEqual(expected);
     expect(parseMermaidWorkspaceEdges(architecture())).toEqual(expected);
-    expect(expected).toEqual([
-      ["@deftai/directive-content", "@deftai/directive"],
-      ["@deftai/directive-content", "@deftai/directive-core"],
-      ["@deftai/directive-core", "@deftai/directive"],
-      ["@deftai/directive-types", "@deftai/directive-core"],
-    ]);
+    // Launcher has empty deps; runtime's workspace deps are private (bundled) — no published↔published edges.
+    expect(expected).toEqual([]);
   });
 
   it("ARCHITECTURE publish sequence matches npm-publish.yml order, labeled as observed not topological", () => {
     const pkgs = readWorkspacePackages(repoRoot());
     const byDir = new Map(pkgs.map((p) => [p.dir, p.name]));
     const steps = parsePublishSteps(workflowYml());
-    expect(steps.map((s) => s.dir)).toEqual(["types", "core", "content", "cli"]);
+    expect(steps.map((s) => s.dir)).toEqual(["runtime", "cli"]);
     const fromWorkflow = steps.map((s) => {
       const name = byDir.get(s.dir);
       if (!name) throw new Error(`publish step packages/${s.dir} is not a workspace package`);
@@ -245,26 +236,33 @@ describe("architecture package topology (#4093)", () => {
     expect(architecture()).toMatch(/not dependency order/i);
   });
 
-  it("TypeScript init/update is the happy-path materialization; core is not a supported library", () => {
+  it("OVPR install verbs are the happy-path materialization (AC9.7 repair)", () => {
     const arch = architecture();
-    expect(arch).toMatch(/directive init/);
-    expect(arch).toMatch(/directive update/);
+    expect(arch).toMatch(/directive install/);
+    expect(arch).toMatch(/directive upgrade/);
+    expect(arch).toMatch(/directive install --repair/);
+    expect(arch).toMatch(/npm i -g @deftai\/directive/);
     expect(arch).toMatch(/happy-path consumer materialization/i);
-    expect(arch).toMatch(/not a supported library/i);
-    expect(arch).toMatch(/supported public contract/i);
+    expect(arch).not.toMatch(/copy it into gitignored/);
   });
 
-  it("frozen Go is a networked GitHub-release bridge, not bundled, not deleted, not #1979", () => {
+  it("Go installer is deleted / archaeology-only (AC10.10) — not current teaching", () => {
     const arch = architecture();
-    expect(arch).toMatch(/frozen Go/i);
-    expect(arch).toMatch(/networked/i);
-    expect(arch).toMatch(/GitHub release asset/i);
-    expect(arch).toMatch(/deft-install gate/);
-    expect(arch).toMatch(/legacy-layout/i);
-    expect(arch).toMatch(/#1979/);
-    expect(arch).not.toMatch(/no longer fetches payloads/i);
-    expect(arch).not.toMatch(/bundled per-platform inside the npm package/i);
-    expect(arch).not.toMatch(/offline\/air-gapped/i);
+    expect(arch).toMatch(/Deleted \/ archaeology only \(AC10\.10\)/);
+    expect(arch).toMatch(/Go installer — deleted \(AC10\.10\)/);
+    expect(arch).toMatch(/are \*\*deleted\*\*/);
+    expect(arch).toMatch(/Do not download, run, or teach `deft-install gate`/);
+    expect(arch).not.toMatch(/Not deleted/);
+    expect(arch).not.toMatch(/not deleted/);
+    expect(arch).not.toMatch(/no-Node bootstrap bridge/i);
+    // Current-path teaching of the gate command must not appear outside archaeology/prohibition.
+    const gateLines = arch
+      .split("\n")
+      .filter((l) => /deft-install gate/i.test(l));
+    expect(gateLines.length).toBeGreaterThan(0);
+    for (const line of gateLines) {
+      expect(line).toMatch(/do not|deleted|archaeology|historical|not teach/i);
+    }
   });
 
   it("ARCHITECTURE Node run-line does not cite .nvmrc as the consumer floor", () => {

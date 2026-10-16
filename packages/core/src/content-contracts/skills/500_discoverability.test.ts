@@ -10,7 +10,6 @@ const MAIN_MD = "main.md";
 const QUICKSTART_MD = "QUICK-START.md";
 const AGENTS_ENTRY_TEMPLATE = "templates/agents-entry.md";
 const SETUP_SKILL = "skills/deft-directive-setup/SKILL.md";
-const SETUP_GO = "cmd/deft-install/setup.go";
 
 const LIFECYCLE_FOLDERS = ["proposed/", "pending/", "active/", "completed/", "cancelled/"] as const;
 
@@ -20,7 +19,7 @@ const BANNED_SUBSTRINGS = [
   "install step writes migrate:vbrief",
 ];
 
-const SURFACES = [MAIN_MD, QUICKSTART_MD, AGENTS_ENTRY_TEMPLATE, SETUP_SKILL, SETUP_GO];
+const SURFACES = [MAIN_MD, QUICKSTART_MD, AGENTS_ENTRY_TEMPLATE, SETUP_SKILL];
 
 describe("test_500_discoverability", () => {
   it("main_md_documents_taskfile_include_pattern", () => {
@@ -108,11 +107,9 @@ describe("test_500_discoverability", () => {
     expect(text).toContain("commands.md");
   });
 
-  it("setup_go_mirrors_pre_cutover_branch", () => {
-    const setupGoContent = readRepoFile(SETUP_GO);
-    expect(setupGoContent).toContain("templates.AgentsEntry");
-    expect(setupGoContent).not.toContain("agentsMDEntry = `");
-    const entry = readRepoFile(AGENTS_ENTRY_TEMPLATE);
+  it("setup_skill_and_agents_entry_cover_pre_cutover_without_Go_installer", () => {
+    // AC10.10: Go installer source tree is deleted; pre-cutover teaching lives in TS/content.
+    const entry = readRepoFile(AGENTS_ENTRY_TEMPLATE)
     expect(entry).toContain("## Session routing (#2176)");
     expect(entry).toContain("Pre-Cutover (#2068)");
     expect(entry).toContain("commands.md");
@@ -121,7 +118,6 @@ describe("test_500_discoverability", () => {
     for (const folder of LIFECYCLE_FOLDERS) {
       expect(setup).toContain(folder);
     }
-    expect(entry.split(".deft/core/main.md").length - 1).toBe(1);
     expect(readRepoFile(MAIN_MD)).toContain("Migrating from pre-v0.20");
   });
 
