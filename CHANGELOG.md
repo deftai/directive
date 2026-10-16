@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Fixed**: Prepare approved file permissions for the scope lifecycle exclusive-create dest work. This records approval only; it does not change product behavior. Refs #3908.
 ### Added
 ### Changed
 - Activate Prefer-A Bound keep-active brief for #3907 (productPullRequest unset; swarm-ready story fields). Tracking #3907.
