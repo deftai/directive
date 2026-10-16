@@ -864,4 +864,59 @@ describe("applying-host SessionStart + multi-host soft-pass (#5676)", () => {
     expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-identity-conflict" });
     expect(decision.message ?? "").toMatch(/worktree|same worktree|execution/i);
   });
+
+  it("allows confirmed occupancy:steal under thief identity while incumbent applying-host is live (#5676 P1)", () => {
+    const root = mkdtempSync(join(tmpdir(), "hook-5676-steal-confirm-"));
+    temps.push(root);
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    applyWorktreeOccupancy(root, {
+      sessionId: CURSOR_OWNER,
+      now: new Date("2026-10-16T12:00:00Z"),
+      intent: "mutation",
+    });
+    publishApplyingHost(root, {
+      provider: "cursor",
+      rawSessionId: RAW,
+      transport: "native",
+      claimedAt: new Date("2026-10-16T12:00:00Z"),
+    });
+    const thiefRaw = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
+    const thief = canonicalHostSessionId("claude", thiefRaw);
+    const denied = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Bash",
+          session_id: thiefRaw,
+          tool_input: {
+            command: `deft occupancy:steal --occupant=${CURSOR_OWNER} --session-id=${thief}`,
+            cwd: root,
+          },
+        },
+        environ: {},
+      },
+      seams(),
+    );
+    expect(denied).toMatchObject({ verdict: "deny", code: "occupancy-identity-conflict" });
+    const allowed = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Bash",
+          session_id: thiefRaw,
+          tool_input: {
+            command: `deft occupancy:steal --occupant=${CURSOR_OWNER} --session-id=${thief} --confirm`,
+            cwd: root,
+          },
+        },
+        environ: {},
+      },
+      seams(),
+    );
+    expect(allowed.verdict).toBe("allow");
+  });
 });
