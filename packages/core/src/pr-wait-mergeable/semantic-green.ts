@@ -1,7 +1,27 @@
 import { buildCiSummaryLine, evaluateCiGate } from "../pr-merge-readiness/ci-gate.js";
 import { defaultRunGh, fetchCheckRunsRest } from "../pr-merge-readiness/gh.js";
 import type { RunGhFn } from "../pr-merge-readiness/types.js";
+import {
+  shasMatch,
+  type ResolveLifecycleDirtyFn,
+} from "../pr-closeout-attestable/pr-head-assert.js";
 import { EXIT_CONFIG_ERROR, EXIT_TIMEOUT_OR_ESCALATION } from "./constants.js";
+
+/** Machine-checkable candidate validation attestation (#4888 Prefer-A Bound). */
+export const CANDIDATE_VALIDATION_SCHEMA =
+  "deft.semantic-green.candidate-validation.v1" as const;
+
+export interface CandidateValidationAttestation {
+  readonly schema: typeof CANDIDATE_VALIDATION_SCHEMA;
+  readonly pr_head_sha: string;
+  readonly target_head_sha: string;
+  /** Named command that exited 0 against merge-with-current-base (e.g. `task check`). */
+  readonly command: string;
+  readonly exit_code: 0;
+  readonly attested_at: string;
+  /** Optional merge-result identity when produced. */
+  readonly merge_result_sha?: string | null;
+}
 
 export interface SemanticGreenOptions {
   /** Enable merge-cascade semantic-green checks (#2385). */
@@ -11,6 +31,27 @@ export interface SemanticGreenOptions {
   /** Target branch for stale-base comparison (defaults to PR base.ref). */
   readonly baseBranch?: string | null;
   readonly runGh?: RunGhFn;
+  /**
+   * Non-cascade routes (conflict-resolve / behind-rebase / pre-push): require
+   * machine-checkable candidate validation keyed to (pr_head_sha, target_head_sha) (#4888).
+   * Additive; cascadeMode absolute stale-base refusal is unchanged.
+   */
+  readonly requireCandidateValidation?: boolean;
+  /**
+   * Attestation for the candidate SHA pair. Missing/stale/mismatched → fail closed.
+   * Prose or agent-forged stamps without exit_code 0 + matching SHAs are not success.
+   */
+  readonly candidateValidationAttestation?: CandidateValidationAttestation | null;
+  /** Injected PR head SHA (tests / callers that already fetched). */
+  readonly prHeadSha?: string | null;
+  /** Injected local HEAD for tree-identity check (pr-head-assert pattern). */
+  readonly localHeadSha?: string | null;
+  /** Injected dirty-lifecycle probe; when set, skips git status. */
+  readonly resolveLifecycleDirty?: ResolveLifecycleDirtyFn;
+  /** When false, skip dirty-lifecycle refuse (tests only). Default enabled when requireCandidateValidation. */
+  readonly checkLifecycleDirty?: boolean;
+  /** Project root for dirty-lifecycle probe (default cwd). */
+  readonly projectRoot?: string;
 }
 
 export interface SemanticGreenPayload {
@@ -18,6 +59,10 @@ export interface SemanticGreenPayload {
   readonly target_branch: string | null;
   readonly target_head_sha: string | null;
   readonly master_ci: Record<string, unknown>;
+  /** Present on #4888 candidate-validation path; optional for cascade-only callers. */
+  readonly pr_head_sha?: string | null;
+  /** Present when requireCandidateValidation ran; optional for cascade-only callers. */
+  readonly candidate_validation?: Record<string, unknown> | null;
 }
 
 export interface SemanticGreenResult {
@@ -31,51 +76,88 @@ export interface SemanticGreenResult {
 function emptyPayload(): SemanticGreenPayload {
   return {
     pr_base_sha: null,
+    pr_head_sha: null,
     target_branch: null,
     target_head_sha: null,
     master_ci: {},
+    candidate_validation: null,
   };
 }
 
-function fetchPrBase(
+function fetchPrShas(
   prNumber: number,
   repo: string,
   runGh: RunGhFn,
-): { baseRef: string | null; baseSha: string | null; error: string | null } {
+): {
+  baseRef: string | null;
+  baseSha: string | null;
+  headSha: string | null;
+  error: string | null;
+} {
   const rc = runGh(["gh", "api", `repos/${repo}/pulls/${prNumber}`]);
   if (rc.returncode !== 0) {
     return {
       baseRef: null,
       baseSha: null,
+      headSha: null,
       error: `gh api /pulls/${prNumber} failed: ${rc.stderr.trim()}`,
     };
   }
   if (!rc.stdout.trim()) {
-    return { baseRef: null, baseSha: null, error: "empty body from gh api /pulls/<N>" };
+    return {
+      baseRef: null,
+      baseSha: null,
+      headSha: null,
+      error: "empty body from gh api /pulls/<N>",
+    };
   }
   let payload: unknown;
   try {
     payload = JSON.parse(rc.stdout) as unknown;
   } catch (exc: unknown) {
     const message = exc instanceof Error ? exc.message : String(exc);
-    return { baseRef: null, baseSha: null, error: `could not parse PR JSON: ${message}` };
+    return {
+      baseRef: null,
+      baseSha: null,
+      headSha: null,
+      error: `could not parse PR JSON: ${message}`,
+    };
   }
   if (payload === null || typeof payload !== "object" || Array.isArray(payload)) {
-    return { baseRef: null, baseSha: null, error: "unexpected PR JSON shape (not a dict)" };
+    return {
+      baseRef: null,
+      baseSha: null,
+      headSha: null,
+      error: "unexpected PR JSON shape (not a dict)",
+    };
   }
-  const base = (payload as Record<string, unknown>).base;
+  const record = payload as Record<string, unknown>;
+  const base = record.base;
   if (base === null || typeof base !== "object" || Array.isArray(base)) {
-    return { baseRef: null, baseSha: null, error: "PR JSON missing base object" };
+    return {
+      baseRef: null,
+      baseSha: null,
+      headSha: null,
+      error: "PR JSON missing base object",
+    };
   }
   const baseRecord = base as Record<string, unknown>;
   const baseRef =
     typeof baseRecord.ref === "string" && baseRecord.ref.length > 0 ? baseRecord.ref : null;
   const baseSha =
     typeof baseRecord.sha === "string" && baseRecord.sha.length > 0 ? baseRecord.sha : null;
-  if (baseRef === null || baseSha === null) {
-    return { baseRef, baseSha, error: "PR JSON missing base.ref or base.sha" };
+  const head = record.head;
+  let headSha: string | null = null;
+  if (head !== null && typeof head === "object" && !Array.isArray(head)) {
+    const headRecord = head as Record<string, unknown>;
+    if (typeof headRecord.sha === "string" && headRecord.sha.length > 0) {
+      headSha = headRecord.sha;
+    }
   }
-  return { baseRef, baseSha, error: null };
+  if (baseRef === null || baseSha === null) {
+    return { baseRef, baseSha, headSha, error: "PR JSON missing base.ref or base.sha" };
+  }
+  return { baseRef, baseSha, headSha, error: null };
 }
 
 function fetchBranchHeadSha(
@@ -151,18 +233,254 @@ function evaluateTargetBranchCi(
   return { ok: true, error: null, masterCi };
 }
 
-/** Pre-merge semantic-green gate for merge cascades (#2385). */
+/**
+ * Validate a candidate-validation attestation against the live SHA pair (#4888).
+ * Returns null when valid; otherwise a fail-closed reason naming the probe.
+ */
+export function validateCandidateAttestation(
+  attestation: CandidateValidationAttestation | null | undefined,
+  prHeadSha: string,
+  targetHeadSha: string,
+): string | null {
+  if (attestation == null) {
+    return (
+      "Missing candidate-validation attestation for evaluateSemanticGreen (#4888). " +
+      "Run a named merge-with-current-base probe (e.g. task check) and pass " +
+      "deft.semantic-green.candidate-validation.v1 keyed to " +
+      "(pr_head_sha=" +
+      prHeadSha +
+      ", target_head_sha=" +
+      targetHeadSha +
+      ")."
+    );
+  }
+  if (attestation.schema !== CANDIDATE_VALIDATION_SCHEMA) {
+    return (
+      "Candidate-validation attestation schema mismatch for evaluateSemanticGreen (#4888): " +
+      "expected " +
+      CANDIDATE_VALIDATION_SCHEMA +
+      "."
+    );
+  }
+  if (attestation.exit_code !== 0) {
+    return (
+      "Candidate-validation attestation exit_code must be 0 for evaluateSemanticGreen (#4888); " +
+      "prose or agent-forged stamps are not success."
+    );
+  }
+  if (typeof attestation.command !== "string" || attestation.command.trim().length === 0) {
+    return (
+      "Candidate-validation attestation missing named command for evaluateSemanticGreen (#4888)."
+    );
+  }
+  if (!shasMatch(attestation.pr_head_sha, prHeadSha)) {
+    return (
+      "Stale candidate-validation attestation for evaluateSemanticGreen (#4888): " +
+      "attested pr_head_sha=" +
+      attestation.pr_head_sha +
+      " does not match live pr_head=" +
+      prHeadSha +
+      ". Re-run the named probe against the current candidate SHA pair."
+    );
+  }
+  if (!shasMatch(attestation.target_head_sha, targetHeadSha)) {
+    return (
+      "Stale candidate-validation attestation for evaluateSemanticGreen (#4888): " +
+      "attested target_head_sha=" +
+      attestation.target_head_sha +
+      " does not match live target_head=" +
+      targetHeadSha +
+      ". Re-run the named probe against the current candidate SHA pair."
+    );
+  }
+  return null;
+}
+
+function evaluateCandidateValidationLimb(
+  prNumber: number,
+  repo: string,
+  options: SemanticGreenOptions,
+  runGh: RunGhFn,
+): SemanticGreenResult {
+  const pr = fetchPrShas(prNumber, repo, runGh);
+  if (pr.error !== null) {
+    return {
+      ok: false,
+      outcome: "config-error",
+      exitCode: EXIT_CONFIG_ERROR,
+      error: pr.error,
+      payload: {
+        ...emptyPayload(),
+        pr_base_sha: pr.baseSha,
+        pr_head_sha: pr.headSha,
+        target_branch: pr.baseRef,
+      },
+    };
+  }
+
+  const targetBranch = options.baseBranch ?? pr.baseRef;
+  if (targetBranch === null || targetBranch.length === 0) {
+    return {
+      ok: false,
+      outcome: "config-error",
+      exitCode: EXIT_CONFIG_ERROR,
+      error:
+        "Could not resolve target branch for semantic-green candidate validation " +
+        "(--base-branch or PR base.ref).",
+      payload: {
+        ...emptyPayload(),
+        pr_base_sha: pr.baseSha,
+        pr_head_sha: pr.headSha,
+      },
+    };
+  }
+
+  const branchHead = fetchBranchHeadSha(repo, targetBranch, runGh);
+  if (branchHead.error !== null) {
+    return {
+      ok: false,
+      outcome: "config-error",
+      exitCode: EXIT_CONFIG_ERROR,
+      error: branchHead.error,
+      payload: {
+        ...emptyPayload(),
+        pr_base_sha: pr.baseSha,
+        pr_head_sha: pr.headSha,
+        target_branch: targetBranch,
+      },
+    };
+  }
+
+  const prHeadSha =
+    typeof options.prHeadSha === "string" && options.prHeadSha.length > 0
+      ? options.prHeadSha
+      : pr.headSha;
+  if (prHeadSha === null || prHeadSha.length === 0) {
+    return {
+      ok: false,
+      outcome: "config-error",
+      exitCode: EXIT_CONFIG_ERROR,
+      error:
+        "Could not resolve PR head SHA for candidate validation (#4888); " +
+        "pass prHeadSha or ensure PR JSON includes head.sha.",
+      payload: {
+        ...emptyPayload(),
+        pr_base_sha: pr.baseSha,
+        target_branch: targetBranch,
+        target_head_sha: branchHead.sha,
+      },
+    };
+  }
+
+  const targetHeadSha = branchHead.sha as string;
+  const payloadBase: SemanticGreenPayload = {
+    pr_base_sha: pr.baseSha,
+    pr_head_sha: prHeadSha,
+    target_branch: targetBranch,
+    target_head_sha: targetHeadSha,
+    master_ci: {},
+    candidate_validation: null,
+  };
+
+  // Tree-identity / dirty checks reuse pr-head-assert patterns (#4888 / #3875).
+  if (typeof options.localHeadSha === "string" && options.localHeadSha.length > 0) {
+    if (!shasMatch(options.localHeadSha, prHeadSha)) {
+      return {
+        ok: false,
+        outcome: "candidate-validation-tree-mismatch",
+        exitCode: EXIT_TIMEOUT_OR_ESCALATION,
+        error:
+          "Local HEAD does not match PR head SHA for evaluateSemanticGreen candidate validation (#4888). " +
+          `local=${options.localHeadSha} pr_head=${prHeadSha}. ` +
+          "Check out the PR head (or linked worktree) before attesting.",
+        payload: payloadBase,
+      };
+    }
+  }
+
+  const checkDirty = options.checkLifecycleDirty !== false;
+  if (checkDirty) {
+    const projectRoot = options.projectRoot ?? process.cwd();
+    const dirtyFn = options.resolveLifecycleDirty;
+    if (typeof dirtyFn === "function") {
+      const dirty = dirtyFn(projectRoot);
+      if (dirty !== null && dirty.length > 0) {
+        return {
+          ok: false,
+          outcome: "candidate-validation-dirty-tree",
+          exitCode: EXIT_TIMEOUT_OR_ESCALATION,
+          error:
+            "Lifecycle paths are dirty for evaluateSemanticGreen candidate validation (#4888). " +
+            `${dirty}. Commit or stash before attesting.`,
+          payload: payloadBase,
+        };
+      }
+    }
+  }
+
+  const attestationError = validateCandidateAttestation(
+    options.candidateValidationAttestation,
+    prHeadSha,
+    targetHeadSha,
+  );
+  if (attestationError !== null) {
+    return {
+      ok: false,
+      outcome: "candidate-validation-missing-or-stale",
+      exitCode: EXIT_TIMEOUT_OR_ESCALATION,
+      error: attestationError,
+      payload: {
+        ...payloadBase,
+        candidate_validation: {
+          required: true,
+          pr_head_sha: prHeadSha,
+          target_head_sha: targetHeadSha,
+          attestation_present: options.candidateValidationAttestation != null,
+        },
+      },
+    };
+  }
+
+  const attestation = options.candidateValidationAttestation as CandidateValidationAttestation;
+  return {
+    ok: true,
+    outcome: null,
+    exitCode: null,
+    error: null,
+    payload: {
+      ...payloadBase,
+      candidate_validation: {
+        required: true,
+        schema: attestation.schema,
+        command: attestation.command,
+        exit_code: attestation.exit_code,
+        pr_head_sha: attestation.pr_head_sha,
+        target_head_sha: attestation.target_head_sha,
+        attested_at: attestation.attested_at,
+        merge_result_sha: attestation.merge_result_sha ?? null,
+      },
+    },
+  };
+}
+
+/** Pre-merge semantic-green gate for merge cascades (#2385) and non-cascade candidate validation (#4888). */
 export function evaluateSemanticGreen(
   prNumber: number,
   repo: string,
   options: SemanticGreenOptions = {},
 ): SemanticGreenResult {
+  // Non-cascade candidate-validation limb (#4888). Does not replace cascade absolute refusal.
+  if (options.cascadeMode !== true && options.requireCandidateValidation === true) {
+    const runGh = options.runGh ?? defaultRunGh;
+    return evaluateCandidateValidationLimb(prNumber, repo, options, runGh);
+  }
+
   if (options.cascadeMode !== true) {
     return { ok: true, outcome: null, exitCode: null, error: null, payload: emptyPayload() };
   }
 
   const runGh = options.runGh ?? defaultRunGh;
-  const prBase = fetchPrBase(prNumber, repo, runGh);
+  const prBase = fetchPrShas(prNumber, repo, runGh);
   if (prBase.error !== null) {
     return {
       ok: false,
@@ -172,6 +490,7 @@ export function evaluateSemanticGreen(
       payload: {
         ...emptyPayload(),
         pr_base_sha: prBase.baseSha,
+        pr_head_sha: prBase.headSha,
         target_branch: prBase.baseRef,
       },
     };
@@ -187,9 +506,11 @@ export function evaluateSemanticGreen(
         "Could not resolve target branch for semantic-green gate (--base-branch or PR base.ref).",
       payload: {
         pr_base_sha: prBase.baseSha,
+        pr_head_sha: prBase.headSha,
         target_branch: null,
         target_head_sha: null,
         master_ci: {},
+        candidate_validation: null,
       },
     };
   }
@@ -203,20 +524,25 @@ export function evaluateSemanticGreen(
       error: branchHead.error,
       payload: {
         pr_base_sha: prBase.baseSha,
+        pr_head_sha: prBase.headSha,
         target_branch: targetBranch,
         target_head_sha: null,
         master_ci: {},
+        candidate_validation: null,
       },
     };
   }
 
   const payload: SemanticGreenPayload = {
     pr_base_sha: prBase.baseSha,
+    pr_head_sha: prBase.headSha,
     target_branch: targetBranch,
     target_head_sha: branchHead.sha,
     master_ci: {},
+    candidate_validation: null,
   };
 
+  // Cascade absolute refusal (#2385): unchanged by #4888 candidate-validation limb.
   if (prBase.baseSha !== branchHead.sha) {
     return {
       ok: false,

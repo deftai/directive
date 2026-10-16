@@ -304,12 +304,24 @@ Rationale + recurrence record: `docs/analysis/2026-07-02-agents-md-incident-rule
 
 Rationale + recurrence record + cross-references: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Cascade automation surface (#1369). Canonical surface: `task pr:wait-mergeable-and-merge`.
 
-- ! Cascade automation on the Grok Build hybrid path MUST go through `task pr:wait-mergeable-and-merge -- <N> --repo <owner>/<repo>`. Do NOT hand-roll a `while ...; do task pr:merge-ready ...; done` shell loop or a per-cascade ad-hoc Python monitor. The helper composes the resilient wait-until-ready loop (#1368) with the Layer-3 protected-issue check (#701) and the `gh pr merge --squash --delete-branch --admin` invocation behind a single three-state exit (0 merged / 1 timeout-or-escalation / 2 config error).
+### Three-axis merge readiness (#4888 / #2385)
+
+GitHub `mergeable_state` / `mergeable` answer **axis 1 (textual)** only — whether git can merge the files. They do **not** report:
+
+- **Axis 2 (behavioral):** target-branch CI / test gates that moved after the PR opened.
+- **Axis 3 (policy):** local or forge policy gates (`task check`, required status contexts) that landed on the base after open.
+
+Treat dirty/clean as axis-1 necessity, never three-axis sufficiency. Greptile/SLizard `#4883` CLEAN is likewise axis-1 review necessity — not proof the candidate is green against current base policy.
+
 - ! Multi-PR merge cascades MUST pass `--cascade` on each `task pr:wait-mergeable-and-merge` invocation so merge-tree-clean PRs whose base SHA is behind the current target branch HEAD are refused (semantically stale pre-spine CI, #2385). After the first merge in a cascade, also pass `--require-master-ci-green` before merging the next PR. Rebase/update-branch onto the post-spine target and wait for fresh green CI before re-invoking.
+- ! On **conflict-resolve**, **behind-rebase**, and **pre-push** (non-cascade routes), MUST obtain machine-checkable candidate validation keyed to the exact `(pr_head_sha, target_head_sha)` pair via `evaluateSemanticGreen({ requireCandidateValidation: true, candidateValidationAttestation })` in `packages/core/src/pr-wait-mergeable/semantic-green.ts` (#4888). Attestation is a named command exit 0 against merge-with-current-base (typically the pre-pr merge chokepoint `task check` / `deft check`); prose or agent-forged stamps are not success. Fail closed names the probe and remediation. This limb is additive and MUST NOT weaken `--cascade` absolute stale-base refusal.
+- ! Cascade automation on the Grok Build hybrid path MUST go through `task pr:wait-mergeable-and-merge -- <N> --repo <owner>/<repo>`. Do NOT hand-roll a `while ...; do task pr:merge-ready ...; done` shell loop or a per-cascade ad-hoc Python monitor. The helper composes the resilient wait-until-ready loop (#1368) with the Layer-3 protected-issue check (#701) and the `gh pr merge --squash --delete-branch --admin` invocation behind a single three-state exit (0 merged / 1 timeout-or-escalation / 2 config error).
 - ! The per-PR atomic gate for a hand merge from the PR head worktree is `task pr:merge-ready -- <N> && gh pr merge <N> --squash --delete-branch` (#3875). `pr:merge-ready` invokes `verify:pr-closeout-attestable` after a Greptile-clean verdict; the ungated pre-#3875 `pr:merge-ready && gh pr merge` sequence is withdrawn. Prefer `task pr:wait-mergeable-and-merge` for automation (closeout already last before merge). Cascade `--admin` is accident-closed by that in-process invoker, not by a required check.
 - ! When `--protected <issue-numbers>` is supplied, the helper runs the protected-issue check (#701) BEFORE the wait loop. A persistent `closingIssuesReferences` link short-circuits the cascade with exit 1 (escalation) AHEAD of any `gh pr merge` call. New cascade scripts MUST preserve this ordering -- the protected-issue check is structurally a pre-condition that cannot be resolved by waiting.
 - ⊗ Hand-roll a cascade `while ... task pr:merge-ready` shell loop (or equivalent ad-hoc Python monitor) when `task pr:wait-mergeable-and-merge` is available. The Wave-1+2 hardening is in the helpers the new task composes; hand-rolled loops re-introduce the `head: None` / babysit-each-PR failure mode #1369 closes.
 - ⊗ Run `gh pr merge <N>` from inside a cascade automation script without first chaining the Layer-3 protected-issue check (#701) when the PR is known to reference any umbrella / staying-OPEN issue. The cascade surface (`task pr:wait-mergeable-and-merge` with `--protected`) is the canonical compose-point; hand-rolled merges that skip the chain re-surface the PR #700 / PR #401 persistent-link recurrence.
+- ⊗ Treat GitHub `mergeable_state` dirty/clean as a readiness or gap-size signal for post-open base movement that includes semantic policy or test gates (#4888).
+- ⊗ Satisfy parent #964 AC with a Python `scripts/check_pr_semantic_drift.py` SoT — that shape is withdrawn; TypeScript `evaluateSemanticGreen` owns the probe (#4888 Prefer-A Bound Reject C). Keep #4889 (finisher-agent CI wait) strictly out of this surface.
 
 ## Closeout route table (#3875)
 
@@ -697,6 +709,14 @@ Forge **required-status-check** / platform merge-gate readiness is a **distinct 
 `Merge gate (task check)` is the CI aggregator for `task check`. Live branch protection requires only `TypeScript (build + lint + test)` (`Required?` YES). The merge-gate aggregator is `Required?` no and skips when the artifact-only predicate is true (`if: always() && needs.changes.outputs.artifact_only != 'true'`).
 
 Making `Merge gate (task check)` a required context is an **operator-owned repo-scoped ruleset** step. Directive does not empty-PUT GitHub rulesets and does not auto-promote observed check names (#1517). This remainder records the enrollment step; it does not flip live protection and does not claim live skip detection (#4912 / #4976).
+
+### Forge supersession for semantic policy visibility (#4888 / #633 / #1517)
+
+Up-to-date-required branch protection plus a required `Merge gate (task check)` aggregator are the **superseding forge-layer control** for human UI merges and full forge coverage of post-open policy gates. The local `evaluateSemanticGreen` candidate-validation probe (#4888) is an **interim** control while this aggregator's leftover-complete skip/pending blocker remains (artifact-only PRs would leave a required check pending).
+
+**Retirement condition:** when `Merge gate (task check)` is required without blocking artifact-only leftover-complete lands, the local probe's enforcement role MAY retire to advisory/docs. Until then, keep the local SHA-pair attestation on conflict-resolve / behind-rebase / pre-push.
+
+⊗ Mutate GitHub `mergeable_state` to encode semantic/policy readiness — forge enrollment + local probe are the dispositioned alternatives (#4888 Prefer-A Bound Reject E).
 
 ### Before flipping (operator)
 

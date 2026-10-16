@@ -60,6 +60,17 @@ task verify:plan-sequence -- --target-kind <entry-kind> --target <entry-id>
 - ! After the PR's review cycle completes successfully, run `task plan-sequence:advance` so "next" resolves to the following entry (or exhausted).
 - ⊗ Treat skill-chaining or "what's next?" as permission to open a PR outside the current sequence entry.
 
+## Three-axis candidate validation (#4888)
+
+GitHub `mergeable_state` is **textual only**. Post-open behavioral/policy gates stay invisible until the merge-chokepoint `task check` / `deft check` runs against the current base (#4888).
+
+- ! On **conflict-resolve**, **behind-rebase**, and **pre-push**, MUST treat the merge-chokepoint full gate as candidate validation against current base — not optional polish. Prefer `deft check`; else tree-correct `task check` / `task deft:check`.
+- ! When calling `evaluateSemanticGreen` for those non-cascade routes, pass `requireCandidateValidation: true` with a machine-checkable attestation keyed to `(pr_head_sha, target_head_sha)` (`deft.semantic-green.candidate-validation.v1`). Fail closed names the probe.
+- ! Frame `#4883` CLEAN / forge `mergeable_state=clean` as axis-1 necessity only — never three-axis sufficiency.
+- ⊗ Skip the merge-chokepoint `task check` after conflict-resolve or behind-rebase because GitHub shows mergeable/clean (#4888).
+- ⊗ Satisfy semantic-drift visibility with a Python `scripts/check_pr_semantic_drift.py` SoT (withdrawn; TS owns the probe).
+- Depth: `scm/github.md` § Cascade / Three-axis (#4888); forge supersession `#633`/`#1517`.
+
 ## Gate throughput — iteration fast lane vs merge chokepoint (#1704)
 
 > **Invariant:** every change MUST pass the full gate at least once before merge. Pre-PR is the merge chokepoint — NOT every iteration commit.

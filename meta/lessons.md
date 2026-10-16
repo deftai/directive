@@ -732,3 +732,15 @@ The 2026-05-07 session surfaced the `graphql` bucket exhaustion failure mode for
 
 **Cross-references:** #3044, #2874, #2876, #2814, #2943, FC04 / growth friction R1 + R10, enterprize PR #43.
 
+
+## Three-axis semantic policy vs mergeable_state (2026-10)
+
+**Source:** Issue #4888 Prefer-A Bound 6050812821 (split from parent #964).
+
+**Failure mode:** GitHub `mergeable_state` / `mergeable` report only textual (axis-1) conflicts. After a PR opens, behavioral (CI/test) and policy (`task check` / required contexts) gates can land on the base without a textual conflict. Agents read dirty/clean as readiness or gap-size and miss the invisible policy miss until `task check` runs on the merge result.
+
+**Rule:** Use the three-axis model (textual / behavioral / policy). On conflict-resolve, behind-rebase, and pre-push, require machine-checkable candidate validation keyed to `(pr_head_sha, target_head_sha)` via `evaluateSemanticGreen({ requireCandidateValidation: true })`. Attestation is a named command exit 0 (typically pre-pr `task check`); prose stamps are not success. Do not weaken `--cascade` absolute stale-base refusal. Keep #4889 out; do not satisfy with a Python `check_pr_semantic_drift.py` SoT. Forge supersession is #633/#1517 required Merge gate aggregator + up-to-date-required; local probe is interim.
+
+**Canonical encoding (strongest-applicable layer):** probe in `packages/core/src/pr-wait-mergeable/semantic-green.ts` (`requireCandidateValidation` / `validateCandidateAttestation`); operative MUST in `content/scm/github.md` § Cascade / Three-axis (#4888) and `skills/deft-directive-pre-pr/SKILL.md` merge-chokepoint attach; forge supersession in `content/scm/github.md` § Merge-gate aggregator (#633). AGENTS/agents-entry pointer only.
+
+**Cross-references:** #4888, #964, #2385, #1369, #633, #1517, #4883 (CLEAN = axis-1 necessity), #4889 (kept out).
