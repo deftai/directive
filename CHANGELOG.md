@@ -6,8 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+<<<<<<< HEAD
 - **Fixed**: Land tracked completion record for mid-session framework-gap filing path after product #5685. Refs #4375.
 - **Added**: Mid-session consumer framework-gap filing path (#4375). Wire `deft policy:enable-value-feedback -- --confirm --upstream-prompt` (bare `--confirm` leaves `upstreamPrompt` false); keep engine gate; pack + discovery inventory mid-session selection; gate-free `content/docs/framework-gap-filing.md`; gate-OFF dry-run/`--json` title+body readout; primary spelling `deft feedback:file`. Tracking #4375. Refs #1709.
+=======
+- **Fixed**: Soft-pass named live occupancy owner after applying-host replace; Path B #4962 briefly cleared from active so #5676 is sole running planId for intent-constraint (re-activate #4962 after merge). Tracking #5676. Refs #5686 #5544.
+>>>>>>> 635e5f805 (rebase continue iter 0)
 - **Path B activate #4375 sole running brief** (widened file_scope incl. co-located tests) so product PR #5685 can bind merge-base approved-scope. productPullRequest unset.
 - **Remint approved-scope for #4375 with co-located test paths in file_scope.** Widens mint twins file_scope to include three co-located .test.ts paths. Mint-only - no product code. Refs #4375.
 - **Fixed**: Land tracked completion record for triage:accept disclose-and-reuse after product #5678. Refs #4962.
