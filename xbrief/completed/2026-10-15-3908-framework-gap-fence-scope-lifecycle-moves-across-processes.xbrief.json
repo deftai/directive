@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3908",
-    "updated": "2026-10-15T18:35:29Z"
+    "updated": "2026-10-16T04:09:54Z"
   },
   "plan": {
     "title": "[framework-gap] Fence scope lifecycle moves across processes",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "[framework-gap] Fence scope lifecycle moves across processes",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3908",
@@ -16,38 +16,291 @@
     "items": [
       {
         "title": "Recut P1 one closed composition: widen the existing `withPlanIdIdentityLock` hold to every `targetFolder !== null` action, keep dest rollback inside that hold, and leave plan-id admission on promote/activate. A nested `withAppendLock` while the identity lock is held is out of the harvest. If a new sidecar lock is required, first make `withAppendLock` reentrant per `lockPath`.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Recut P1 dest exclusive-create: publish dest with exclusive create (`containedWrite` `mode: \"create\"` / `O_EXCL`, or `link` from tmp). POSIX tmp+rename overwrite is not dest publish. Two processes must not both rename onto the same dest.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Recut P1 ownership-conditioned dest unlink: unlink dest only when this process's exclusive create succeeded or dest bytes match this write. Carry the existing `HeldLock` token; do not discard it. Do not unlink dest after spec-drift lock-refuse that must spare a concurrent writer's coverage.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Recut P1 dest identity: lock key is `vbriefRoot` + basename, distinct from plan-id admission. Include restore in the folder-move set. complete and fail share `targetFolder: \"completed\"` and are the same dest path.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Recut P1 idempotence: map identical retry onto existing sibling-hint / restamp paths (`ok: true` only when dest already holds the intended status and generation). Keep dest-exists with different content as refuse-before-write. The #2578 test stays the pre-existing dest case. Barrier tests reuse the child-process pattern in `ritual-state-lock.concurrency.test.ts`.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Preserve: PROJECT-DEFINITION mutation lock after the move; spec-drift ledger lock during complete.",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Exclude: repository-wide multi-artifact transactions (#3910); integrated repair (#3913); occupancy as this fence; a new lock family that nests `withAppendLock` under the identity hold.",
-        "status": "proposed",
-        "id": "clause.7"
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "clause.13",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "clause.14",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.15",
+        "title": "clause.15",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.16",
+        "title": "clause.16",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.17",
+        "title": "clause.17",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.18",
+        "title": "clause.18",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.19",
+        "title": "clause.19",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.20",
+        "title": "clause.20",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.21",
+        "title": "clause.21",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.22",
+        "title": "clause.22",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.23",
+        "title": "clause.23",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.24",
+        "title": "clause.24",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+          "recorded_at": "2026-10-16T04:09:54Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -522,9 +775,34 @@
           "packages/core/src/scope/transition.concurrency.test.ts"
         ],
         "file_scope_confidence": "high"
+      },
+      "productPullRequest": 5653,
+      "githubIssueNumber": 3908,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "a62c9ba637848e0e6499af19c94762e0b67ab856",
+        "prNumber": 5653,
+        "prBase": "master",
+        "mergeCommit": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+        "deliveryBranch": "master",
+        "deliveryCommit": "a5029c8c58c133567d3bff4aba2ca2d622637a5f",
+        "verifiedAt": "2026-10-16T04:09:54Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-16T04:09:54Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-16T04:09:54Z"
       }
     },
     "id": "github.issue.5283616449",
-    "updated": "2026-10-15T18:35:29Z"
+    "updated": "2026-10-16T04:09:54Z"
   }
 }
