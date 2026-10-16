@@ -3,8 +3,6 @@
  */
 
 import { type DispatchIo, dispatch } from "../dispatch.js";
-import { runInit } from "../init-cli/init.js";
-import { runUpdate } from "../init-cli/update.js";
 import { routeArgv } from "./route-argv.js";
 
 function defaultIo(): DispatchIo {
@@ -17,6 +15,12 @@ function defaultIo(): DispatchIo {
     },
   };
 }
+
+/** A6.8 / AC1.5: runtime init/update must not rewrite the pin — redirect to launcher verbs. */
+export const INIT_REFUSE_MESSAGE =
+  "directive init is not available on the runtime bin. Use `directive install` (launcher).";
+export const UPDATE_REFUSE_MESSAGE =
+  "directive update is not available on the runtime bin. Use `directive upgrade` (launcher).";
 
 export {
   DEFERRED_TOP_LEVEL_VERBS,
@@ -43,12 +47,17 @@ export async function routeAndDispatch(argv: readonly string[], io?: DispatchIo)
     return 2;
   }
 
-  const [first, ...rest] = routed.argv;
+  const [first] = routed.argv;
+  // A68-LEGACY-UPDATE: never call legacy runInit/runUpdate (pin reconstitution / align-pin).
   if (first === "init") {
-    return runInit(rest, io ?? defaultIo());
+    const sink = io ?? defaultIo();
+    sink.writeErr(`${INIT_REFUSE_MESSAGE}\n`);
+    return 2;
   }
   if (first === "update") {
-    return runUpdate(rest, io ?? defaultIo());
+    const sink = io ?? defaultIo();
+    sink.writeErr(`${UPDATE_REFUSE_MESSAGE}\n`);
+    return 2;
   }
 
   return dispatch(routed.argv, io);

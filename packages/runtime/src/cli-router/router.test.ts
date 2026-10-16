@@ -218,7 +218,7 @@ describe("routeArgv", () => {
     expect(routeArgv(["-h"]).argv).toEqual(["-h"]);
   });
 
-  it("routes init and update to dispatch handlers", () => {
+  it("routes init and update tokens through routeArgv (product refuse is in routeAndDispatch)", () => {
     expect(routeArgv(["init"]).kind).toBe("dispatch");
     expect(routeArgv(["init"]).argv).toEqual(["init"]);
     expect(routeArgv(["update"]).kind).toBe("dispatch");
@@ -280,12 +280,7 @@ describe("routeAndDispatch", () => {
     expect(out.join("")).toContain("@deftai/directive");
   });
 
-  it("routes init through the TS-native adoption dispatcher (no Go spawn)", async () => {
-    // #2265: `init` is now a classify-then-dispatch adoption dispatcher. Pin it
-    // at an empty greenfield dir (deterministic `scaffold` decision) and assert
-    // it routed to the TS-native dispatcher — it prints the `[directive init]`
-    // state summary rather than spawning the Go installer. Exit code depends on
-    // the environment's content-package resolution, so only routing is asserted.
+  it("A68-LEGACY-UPDATE: runtime init refuses with redirect to directive install", async () => {
     const dir = mkdtempSync(join(tmpdir(), "router-init-"));
     const err: string[] = [];
     try {
@@ -295,13 +290,28 @@ describe("routeAndDispatch", () => {
           err.push(text);
         },
       });
-      // --json routes the human summary to stderr; the greenfield state label
-      // proves the dispatcher classified the temp dir and chose the scaffold
-      // path (the TS-native deposit), not a Go spawn. The exit code depends on
-      // the environment's content-package resolution, so only routing + the
-      // classified decision are asserted.
-      expect(err.join("")).toContain("State: empty directory (greenfield)");
-      expect(typeof code).toBe("number");
+      expect(code).toBe(2);
+      expect(err.join("")).toMatch(/directive install/i);
+      expect(err.join("")).not.toContain("State: empty directory (greenfield)");
+      expect(err.join("")).not.toMatch(/reconstitute|align-pin/i);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("A68-LEGACY-UPDATE: runtime update refuses with redirect to directive upgrade", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "router-update-"));
+    const err: string[] = [];
+    try {
+      const code = await routeAndDispatch(["update", "--repo-root", dir], {
+        writeOut: () => {},
+        writeErr: (text) => {
+          err.push(text);
+        },
+      });
+      expect(code).toBe(2);
+      expect(err.join("")).toMatch(/directive upgrade/i);
+      expect(err.join("")).not.toMatch(/reconstitute|align-pin|Running refresh/i);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

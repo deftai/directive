@@ -4,6 +4,7 @@ export * from "./probe-directive.js";
 export * from "./probe-xbrief.js";
 export {
   DIRECTIVE_UPGRADE_COMMAND,
+  LAUNCHER_BOOTSTRAP_ADVICE,
   maybeRunStalenessTickler,
   probeStalenessDimensions,
   XBRIEF_MIGRATE_COMMAND,

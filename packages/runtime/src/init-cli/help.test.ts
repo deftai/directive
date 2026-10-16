@@ -100,15 +100,15 @@ describe("init-cli --help is non-mutating (#2828)", () => {
     expect(out.join("")).toContain("--untrack-core");
   });
 
-  it("routeAndDispatch update --help exits 0 without refresh", async () => {
+  it("routeAndDispatch update --help refuses with redirect (A68) without refresh", async () => {
     const refresh = vi.spyOn(initDeposit, "runRefreshDepositCli");
-    const { io, out } = captureIo();
+    const { io, err } = captureIo();
 
     const code = await routeAndDispatch(["update", "--help"], io);
 
-    expect(code).toBe(0);
+    expect(code).toBe(2);
     expect(refresh).not.toHaveBeenCalled();
-    expect(out.join("")).toContain("directive update");
+    expect(err.join("")).toMatch(/directive upgrade/i);
   });
 });
 
