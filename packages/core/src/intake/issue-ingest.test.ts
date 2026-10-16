@@ -2169,9 +2169,7 @@ describe("ingest ownership exact identity (#4962 Prefer-A Bound)", () => {
         title: "refs-only",
         status: "proposed",
         narratives: { Origin: "manual scaffold" },
-        references: [
-          { type: "x-xbrief/github-issue", uri: "https://github.com/o/r/issues/42" },
-        ],
+        references: [{ type: "x-xbrief/github-issue", uri: "https://github.com/o/r/issues/42" }],
         items: [],
       },
     };
