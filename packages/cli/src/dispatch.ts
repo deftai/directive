@@ -579,6 +579,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "eval:report": "eval-report",
   build: "framework-commands",
   "setup:ghx": "setup-ghx",
+  "setup:seed": "setup-seed",
   "scm:status": "scm-readiness",
   "scm:readiness": "scm-readiness",
   "scm:sync-default": "scm-sync-default",
@@ -2989,6 +2990,12 @@ async function loadCoreModuleHandler(verb: string, io: DispatchIo): Promise<Comm
       );
       return (argv) => writePhase2NarrativesMain(argv);
     }
+    case "setup-seed": {
+      const { seedFromDesignMain } = await import(
+        "@deftai/directive-core/dist/setup/seed-from-design.js"
+      );
+      return (argv) => seedFromDesignMain(argv);
+    }
     case "rule-map": {
       const { runRuleMapCli } = await import("./render-cli/rule-map-cli.js");
       return (argv) => runRuleMapCli(argv);
@@ -3323,6 +3330,10 @@ const CURATED_HELP_GROUPS: readonly HelpGroup[] = [
       {
         name: "project:write-narratives",
         summary: "Store Phase 2 narratives in PROJECT-DEFINITION without policy keys",
+      },
+      {
+        name: "setup:seed",
+        summary: "Draft Phase 2 narratives from --from design.md or --answers file (confirm before write)",
       },
       { name: "spec:render", summary: "Render specification projection" },
     ],

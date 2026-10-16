@@ -23,6 +23,32 @@ export type Phase2NarrativeKey = (typeof PHASE2_NARRATIVE_KEYS)[number];
 
 export type Phase2Narratives = Record<Phase2NarrativeKey, string>;
 
+/** Partial Phase 2 input: omitted keys are absent (keep existing on merge). */
+export type Phase2NarrativePartial = Partial<Phase2Narratives>;
+
+/**
+ * Merge partial seed/answers into a full six-key payload for the writer.
+ * Absent keys keep existing values (or ""). Present keys apply, including
+ * explicit empty clears. Branching narrative text never authorizes
+ * allowDirectCommitsToMaster (#4961 Prefer-A limb 5).
+ */
+export function mergePhase2NarrativePartial(
+  existing: Phase2NarrativePartial,
+  partial: Phase2NarrativePartial,
+  presentKeys: ReadonlySet<Phase2NarrativeKey>,
+): Phase2Narratives {
+  const out = {} as Phase2Narratives;
+  for (const key of PHASE2_NARRATIVE_KEYS) {
+    if (presentKeys.has(key) && Object.prototype.hasOwnProperty.call(partial, key)) {
+      out[key] = partial[key] ?? "";
+    } else {
+      out[key] = existing[key] ?? "";
+    }
+  }
+  return out;
+}
+
+
 /** Narrative payload for the Phase 2 writer. Title is not a policy key. */
 export interface Phase2NarrativeWrite {
   readonly narratives: Phase2Narratives;
