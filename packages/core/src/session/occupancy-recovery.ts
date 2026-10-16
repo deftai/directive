@@ -96,11 +96,25 @@ function stripUnauthorizedCeremonyCommands(text: string): string {
   for (const pattern of patterns) {
     next = next.replace(pattern, "");
   }
-  return next
-    .replace(/[ \t]{2,}/g, " ")
-    .replace(/ +\n/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+  // Avoid quantified whitespace regex on denial text (CodeQL js/polynomial-redos).
+  next = next.replaceAll("\t", " ");
+  let collapsed = next;
+  let previous = "";
+  while (collapsed !== previous) {
+    previous = collapsed;
+    collapsed = collapsed.replaceAll("  ", " ");
+  }
+  previous = "";
+  while (collapsed !== previous) {
+    previous = collapsed;
+    collapsed = collapsed.replaceAll(" \n", "\n");
+  }
+  previous = "";
+  while (collapsed !== previous) {
+    previous = collapsed;
+    collapsed = collapsed.replaceAll("\n\n\n", "\n\n");
+  }
+  return collapsed.trim();
 }
 
 function alreadyNamesOccupancyRecovery(text: string): boolean {
