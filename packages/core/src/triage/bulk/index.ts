@@ -633,6 +633,7 @@ export function createPythonActionsModule(scriptsDir: string): TriageActionsModu
   return {
     accept(n, repo) {
       runAction("accept", n, repo);
+      return undefined;
     },
     reject(n, repo, ...args: unknown[]) {
       let reason: string | undefined;
