@@ -52,7 +52,8 @@
     "metadata": {
       "wave": "3r",
       "inbox": ["PLAN-PM-CMD", "PM-DEVENGINES", "DOC-GEN-PM-DRIFT"],
-      "base": "yolo/cp-wave3q@1a044992a2bfa9e38e9cf7ad0f26ea8c135396df"
+      "base": "yolo/cp-wave3q@1a044992a2bfa9e38e9cf7ad0f26ea8c135396df",
+      "productCommit": "2f5128fee09eba35b72c000371777799da2218a6"
     }
   }
 }
