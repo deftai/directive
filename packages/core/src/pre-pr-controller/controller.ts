@@ -200,8 +200,7 @@ export function observeCommandPhase(
       observation.phaseId === "coverage_headroom"
         ? (observation.exitCode === 3 &&
             observation.skipReason === COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP) ||
-          (observation.exitCode === 4 &&
-            observation.skipReason === COVERAGE_HEADROOM_WAIVED_SKIP)
+          (observation.exitCode === 4 && observation.skipReason === COVERAGE_HEADROOM_WAIVED_SKIP)
         : isAllowedSkip(observation.phaseId, observation.skipReason);
     // Exit 4 waived must not mark the run failed (#5674); exit 0 alone is measured pass.
     const failed = observation.exitCode !== 0 && !skipOk;
