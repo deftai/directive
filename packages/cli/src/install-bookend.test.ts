@@ -13,11 +13,13 @@ import { classifyPinVersion, readProjectInstallState, type ProjectInstallState }
 import {
   buildPmExactAddArgs,
   detectPackageManager,
+  formatMissingPmGuidance,
   formatPmExactAddCommand,
   isExactSemver,
   isPrereleaseVersion,
   isPnpmWorkspaceRoot,
   lockfileRecordsExactPin,
+  readDeclaredPackageManagerVersion,
 } from "./pm.js";
 import { validateTargetVersionSpec } from "./registry.js";
 
@@ -177,6 +179,20 @@ describe("PM selection (AC5.7)", () => {
       expect(pm.pm).toBe("pnpm");
       expect(pm.evidence).toMatch(/devEngines/i);
     }
+  });
+
+  it("missing-PM guidance uses version from only-devEngines declaration (AC5.8)", () => {
+    const root = tempProject();
+    const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as Record<
+      string,
+      unknown
+    >;
+    pkg.devEngines = { packageManager: "pnpm@9.15.0" };
+    writeFileSync(join(root, "package.json"), `${JSON.stringify(pkg, null, 2)}\n`);
+    expect(readDeclaredPackageManagerVersion(root)).toBe("9.15.0");
+    const guidance = formatMissingPmGuidance("pnpm", readDeclaredPackageManagerVersion(root));
+    expect(guidance).toMatch(/corepack prepare pnpm@9\.15\.0/);
+    expect(guidance).not.toMatch(/pnpm@latest/);
   });
 
   it("stops when packageManager and devEngines.packageManager disagree (PM-DEVENGINES)", () => {

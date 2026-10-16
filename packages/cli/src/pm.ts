@@ -368,16 +368,42 @@ export type PmAddResult =
       readonly stderr: string;
     };
 
-/** Declared `packageManager` version (e.g. pnpm@9.15.0 → "9.15.0"), if present. */
-export function readDeclaredPackageManagerVersion(projectRoot: string): string | null {
-  const pkg = readJsonObject(join(projectRoot, "package.json"));
-  if (pkg === null) return null;
-  const raw = pkg.packageManager;
-  if (typeof raw !== "string" || raw.trim() === "") return null;
+/** Extract trailing `@version` from a Corepack-style `name@version` token. */
+function versionFromPmToken(raw: string): string | null {
   const at = raw.indexOf("@");
   if (at < 0) return null;
   const ver = raw.slice(at + 1).trim();
   return ver.length > 0 ? ver : null;
+}
+
+/**
+ * Declared PM version from `packageManager` or `devEngines.packageManager`
+ * (AC5.6 / AC5.8 — e.g. pnpm@9.15.0 → "9.15.0"). Prefer `packageManager` when both set.
+ */
+export function readDeclaredPackageManagerVersion(projectRoot: string): string | null {
+  const pkg = readJsonObject(join(projectRoot, "package.json"));
+  if (pkg === null) return null;
+  if (typeof pkg.packageManager === "string" && pkg.packageManager.trim() !== "") {
+    const fromField = versionFromPmToken(pkg.packageManager.trim());
+    if (fromField !== null) return fromField;
+  }
+  const devEngines = pkg.devEngines;
+  if (devEngines !== null && typeof devEngines === "object" && !Array.isArray(devEngines)) {
+    const raw = (devEngines as Record<string, unknown>).packageManager;
+    if (typeof raw === "string") {
+      const fromDev = versionFromPmToken(raw.trim());
+      if (fromDev !== null) return fromDev;
+    } else if (raw !== null && typeof raw === "object" && !Array.isArray(raw)) {
+      const ver = (raw as Record<string, unknown>).version;
+      if (typeof ver === "string" && ver.trim() !== "") return ver.trim();
+      const name = (raw as Record<string, unknown>).name;
+      if (typeof name === "string") {
+        const fromName = versionFromPmToken(name.trim());
+        if (fromName !== null) return fromName;
+      }
+    }
+  }
+  return null;
 }
 
 /** AC5.8 / AC14.45 — how-to when the declared PM binary is missing. */
