@@ -1,0 +1,322 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5674",
+    "updated": "2026-10-16T17:06:58Z"
+  },
+  "plan": {
+    "title": "[framework-gap] leftover(#5665/#5542): wire coverage-applicability waived-exit into pre-PR/hotspots; residual deposit unknowns",
+    "status": "completed",
+    "narratives": {
+      "Description": "[framework-gap] leftover(#5665/#5542): wire coverage-applicability waived-exit into pre-PR/hotspots; residual deposit unknowns",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5674",
+      "Overview": "Prefer-A Bound Recut 6219834876: hotspots waived exit-4 with admission receipt; measured floor precedence; pre-PR coverage_headroom honors exit-4 waived token; exact VERSION + ten lifecycle gitkeep inert; P3 keep-unknowns deferred #5677; docs cite absorbed via #5675. Tracking/Refs only.",
+      "Labels": "bug, enhancement, adoption-blocker, agent-experience, process, source-of-truth, area:cli, dogfood, status:child, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "On coverage-applicability refuse with eligible refuse code and grant-bound attemptId, admitGateOverrideForAttempt and emit exit 4 waived artifact; never map to exit 0.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/coverage-hotspots/evaluate.ts",
+        "narrative": {
+          "Acceptance": "On coverage-applicability refuse with eligible refuse code and grant-bound attemptId, admitGateOverrideForAttempt and emit exit 4 waived artifact; never map to exit 0."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5681 squash-merge (Tracking #5674).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5681",
+            "mintedAt": "2026-10-16T18:39:46.828Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-16T18:39:46.828Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Measured Istanbul floor and headroom failure dominates a coverage-applicability grant when a report exists and measurement would return exit 1.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/coverage-hotspots/evaluate.ts",
+        "narrative": {
+          "Acceptance": "Measured Istanbul floor and headroom failure dominates a coverage-applicability grant when a report exists and measurement would return exit 1."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5681 squash-merge (Tracking #5674).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5681",
+            "mintedAt": "2026-10-16T18:39:46.828Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-16T18:39:46.828Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Pre-PR coverage_headroom observe skipOk and commandSatisfied accept exit 4 with distinct waived token after reloading attempt admission and matching binding fields.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/pre-pr-controller/controller.ts",
+        "narrative": {
+          "Acceptance": "Pre-PR coverage_headroom observe skipOk and commandSatisfied accept exit 4 with distinct waived token after reloading attempt admission and matching binding fields."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5681 squash-merge (Tracking #5674).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5681",
+            "mintedAt": "2026-10-16T18:39:46.828Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-16T18:39:46.828Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Demote exact VERSION and ten lifecycle gitkeep paths to inert in classifyChangedPath after coverable-first; keep run hooks codeql and approved-scope unknown.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts",
+        "narrative": {
+          "Acceptance": "Demote exact VERSION and ten lifecycle gitkeep paths to inert in classifyChangedPath after coverable-first; keep run hooks codeql and approved-scope unknown."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5681 squash-merge (Tracking #5674).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5681",
+            "mintedAt": "2026-10-16T18:39:46.828Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-16T18:39:46.828Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Ship classifier and waived-exit regression fixtures including forged mismatched admission and measured-floor precedence cases.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.test.ts",
+        "narrative": {
+          "Acceptance": "Ship classifier and waived-exit regression fixtures including forged mismatched admission and measured-floor precedence cases."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5681 squash-merge (Tracking #5674).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5681",
+            "mintedAt": "2026-10-16T18:39:46.828Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-16T18:39:46.828Z"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "Ship CHANGELOG Unreleased note for waived-exit and residual deposit Prefer-A Bound; absorb docs cite from merged 5675.",
+        "status": "completed",
+        "x-directive/artifact_path": "CHANGELOG.md",
+        "narrative": {
+          "Acceptance": "Ship CHANGELOG Unreleased note for waived-exit and residual deposit Prefer-A Bound; absorb docs cite from merged 5675."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5681 squash-merge (Tracking #5674).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5681",
+            "mintedAt": "2026-10-16T18:39:46.828Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-16T18:39:46.828Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "enhancement",
+      "adoption-blocker",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "area:cli",
+      "dogfood",
+      "status:child",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5674",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5674: [framework-gap] leftover(#5665/#5542): wire coverage-applicability waived-exit into pre-PR/hotspots; residual deposit unknowns"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "deft update",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L11"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "pre-pr-coverage-waived-exit-deposit-residual",
+        "expected_outputs": [
+          "Tracking PR for #5674 Prefer-A Bound waived-exit + residual deposit classification"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/coverage-hotspots packages/core/src/coverage-applicability packages/core/src/pre-pr-controller"
+        ],
+        "file_scope": [
+          "packages/core/src/coverage-hotspots/evaluate.ts",
+          "packages/core/src/coverage-hotspots/evaluate.test.ts",
+          "packages/core/src/coverage-applicability/evaluate.ts",
+          "packages/core/src/coverage-applicability/evaluate.test.ts",
+          "packages/core/src/pre-pr-controller/controller.ts",
+          "packages/cli/src/coverage-hotspots.ts",
+          "content/contracts/human-origin-authz.md",
+          "CHANGELOG.md"
+        ],
+        "size": "L",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5674",
+          "#5665",
+          "#5542",
+          "#5675",
+          "#5677"
+        ],
+        "parallel_safe": true
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/coverage-hotspots/evaluate.ts",
+          "packages/core/src/coverage-hotspots/evaluate.test.ts",
+          "packages/core/src/coverage-applicability/evaluate.ts",
+          "packages/core/src/coverage-applicability/evaluate.test.ts",
+          "packages/core/src/pre-pr-controller/controller.ts",
+          "packages/cli/src/coverage-hotspots.ts",
+          "content/contracts/human-origin-authz.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "coverage hotspots waived-exit + classifyChangedPath residual deposit markers",
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #5674 Prefer-A Bound; human-origin-authz cite absorbed via merged #5675."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5886930831,
+        "origin": "deftai/directive#5674",
+        "id": "github.issue.5886930831"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "a831ce313144e039f1f4770df646a000ae236b3d9a13f2f9c261a8aa9fa086b6"
+      },
+      "deliveryProvenance": {
+        "productPullRequest": 5681,
+        "mergeCommit": "d55cbc6e03e4e49fe3621db77089a2594225434e",
+        "deliveryBranch": "master"
+      },
+      "completionProvenance": {
+        "schema": "deft.completionProvenance.v1",
+        "repository": "deftai/directive",
+        "implementationCommit": "d55cbc6e03e4e49fe3621db77089a2594225434e",
+        "prNumber": 5681,
+        "prBase": "master",
+        "mergeCommit": "d55cbc6e03e4e49fe3621db77089a2594225434e",
+        "deliveryBranch": "master",
+        "deliveryCommit": "d55cbc6e03e4e49fe3621db77089a2594225434e",
+        "verifiedAt": "2026-10-16T18:39:46.828Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedAt": "2026-10-16T18:39:46.828Z"
+      },
+      "productPullRequest": 5681,
+      "mergeCommit": "d55cbc6e03e4e49fe3621db77089a2594225434e",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-16T18:39:46.828Z"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "On coverage-applicability refuse with eligible refuse code and grant-bound attemptId, admitGateOverrideForAttempt and emit exit 4 waived artifact; never map to exit 0.",
+          "artifact_path": "packages/core/src/coverage-hotspots/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Measured Istanbul floor and headroom failure dominates a coverage-applicability grant when a report exists and measurement would return exit 1.",
+          "artifact_path": "packages/core/src/coverage-hotspots/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Pre-PR coverage_headroom observe skipOk and commandSatisfied accept exit 4 with distinct waived token after reloading attempt admission and matching binding fields.",
+          "artifact_path": "packages/core/src/pre-pr-controller/controller.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Demote exact VERSION and ten lifecycle gitkeep paths to inert in classifyChangedPath after coverable-first; keep run hooks codeql and approved-scope unknown.",
+          "artifact_path": "packages/core/src/coverage-applicability/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Ship classifier and waived-exit regression fixtures including forged mismatched admission and measured-floor precedence cases.",
+          "artifact_path": "packages/core/src/coverage-applicability/evaluate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Ship CHANGELOG Unreleased note for waived-exit and residual deposit Prefer-A Bound; absorb docs cite from merged 5675.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "source_rung": "derived",
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "[framework-gap] leftover(#5665/#5542): wire coverage-applicability waived-exit into pre-PR/hotspots; residual deposit unknowns",
+        "Prefer-A Bound Recut 6219834876: hotspots waived exit-4 with admission receipt; measured floor precedence; pre-PR coverage_headroom honors exit-4 waived token; exact VERSION + ten lifecycle gitkeep inert; P3 keep-unknowns deferred #5677; docs cite absorbed via #5675.",
+        "Tracking/Refs only."
+      ]
+    },
+    "id": "github.issue.5886930831",
+    "updated": "2026-10-16T17:06:58Z"
+  }
+}
