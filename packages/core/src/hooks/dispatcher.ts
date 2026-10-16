@@ -4444,23 +4444,24 @@ export interface ProspectiveScopeCoverResult {
 }
 
 /**
- * Lifecycle xBRIEF trees and Directive host-hook deposit paths are not product
- * coverage targets for prospective git-commit scope-cover (#5656).
+ * Lifecycle xBRIEF trees and exact Directive-managed host-hook deposit paths
+ * are not product coverage targets for prospective git-commit scope-cover
+ * (#5656). Consumer-owned files under `.cursor/hooks/` (etc.) stay product.
  */
+const MANAGED_HOOK_DEPOSIT_REL_PATHS: ReadonlySet<string> = new Set([
+  ".claude/settings.json",
+  ".grok/hooks/deft.json",
+  ".grok/hooks/deft-pretooluse-wrapper.sh",
+  ".cursor/hooks.json",
+  ".codex/hooks.json",
+  ".deft/hook-gate-off.json",
+]);
+
 export function isLifecycleOrInstallerRelPath(relPathPosix: string): boolean {
   const p = relPathPosix.replace(/\\/g, "/").replace(/^\.\//, "");
   if (p.length === 0) return false;
-  if (p === ".cursor/hooks.json" || p === ".codex/hooks.json") return true;
-  if (p === ".deft/hook-gate-off.json") return true;
-  if (
-    p.startsWith("xbrief/") ||
-    p.startsWith("vbrief/") ||
-    p.startsWith(".claude/") ||
-    p.startsWith(".grok/hooks/") ||
-    p.startsWith(".cursor/hooks/")
-  ) {
-    return true;
-  }
+  if (MANAGED_HOOK_DEPOSIT_REL_PATHS.has(p)) return true;
+  if (p.startsWith("xbrief/") || p.startsWith("vbrief/")) return true;
   return false;
 }
 

@@ -3707,6 +3707,16 @@ describe("runtime authority policy (#1394)", () => {
     });
     expect(mixed.ok).toBe(true);
     expect(mixed.uncovered).toEqual([]);
+
+    const customHook = evaluateProspectiveScopeCover({
+      projectRoot: "/project",
+      stagedRelPaths: [".cursor/hooks/consumer-custom.mjs"],
+      inspectScope: () => READY_SCOPE,
+      loadStoryWriteFence: () => ({ fileScope: ["src/**"], denyPaths: [] }),
+      env: {},
+    });
+    expect(customHook.ok).toBe(false);
+    expect(customHook.uncovered).toEqual([".cursor/hooks/consumer-custom.mjs"]);
   });
 
   it("Shell git commit denies when staged paths fail prospective scope-cover (#5656)", () => {
