@@ -82,8 +82,10 @@ import { recordChildOccupancyLease } from "./child-occupancy.js";
 import { worktreePathOrNull } from "./git.js";
 import {
   ambientHostSessionOwner,
+  canonicalHostSessionId,
   claimsHostSessionIdShape,
   detectDeclaredIdentityHosts,
+  HOST_IDENTITY_PROVIDERS,
   type HookHostIdentityProvider,
   isUsableHostSessionId,
   parseCanonicalHostSessionId,
@@ -108,6 +110,15 @@ export const OCCUPANCY_RELPATH = [".deft", "occupancy.json"] as const;
  * later host can self-claim.
  */
 export const DEFT_EXPECTED_DECLARED_HOST_ATTACH = "DEFT_EXPECTED_DECLARED_HOST_ATTACH";
+/** Worktree applying-host record for multi-host PreToolUse deposits (#5676). */
+export const APPLYING_HOST_RELPATH = [".deft", "applying-host.json"] as const;
+export const APPLYING_HOST_SCHEMA = "deft.applying-host.v1" as const;
+/**
+ * Applying-host staleness floor (#5676). Mirrors tip ritual staleness (8h) so a
+ * reconnect SessionStart / read-only session:start republish stays in the same
+ * recovery window as ceremony re-arm; UUID residual stays under #5544.
+ */
+export const APPLYING_HOST_STALE_MS = Number("8") * 60 * 60 * 1000;
 /** Crash recovery TTL: 20 minutes without heartbeat (15–30 window). */
 export const OCCUPANCY_TTL_MS = 20 * 60 * 1000;
 /**
@@ -413,6 +424,322 @@ export interface ApplyOccupancyInput {
 
 export function occupancyPath(projectRoot: string): string {
   return join(resolve(projectRoot), ...OCCUPANCY_RELPATH);
+}
+
+export function applyingHostPath(projectRoot: string): string {
+  return join(resolve(projectRoot), ...APPLYING_HOST_RELPATH);
+}
+
+/**
+ * How the applying host published its id (#5676 Prefer-A / #4708).
+ *
+ * `native` is a payload or host-env owner without GROK_HOOK_EVENT.
+ * `grok-hook-event` is Claude→grok vendor-compat when GROK_HOOK_EVENT is set.
+ * Leftover GROK_SESSION_ID alone must not flip a native Cursor record to Claude.
+ */
+export type ApplyingHostTransport = "native" | "grok-hook-event";
+
+export interface ApplyingHostRecord {
+  readonly schema: typeof APPLYING_HOST_SCHEMA;
+  readonly provider: HookHostIdentityProvider;
+  readonly rawSessionId: string;
+  readonly applyingHostSessionId: string;
+  readonly claimed_at: string;
+  readonly transport: ApplyingHostTransport;
+}
+
+export type ApplyingHostRead =
+  | { readonly status: "missing"; readonly record: null }
+  | { readonly status: "invalid"; readonly record: null; readonly message: string }
+  | { readonly status: "ok"; readonly record: ApplyingHostRecord }
+  | { readonly status: "stale"; readonly record: ApplyingHostRecord; readonly message: string };
+
+export type ApplyingHostLifecycleAdmission =
+  | {
+      readonly kind: "enforce";
+      readonly record: ApplyingHostRecord;
+      readonly matchingDeposit: boolean;
+    }
+  | {
+      readonly kind: "soft-pass";
+      readonly record: ApplyingHostRecord;
+      readonly reason: "non-matching-deposit-names-applying-host";
+    }
+  | {
+      readonly kind: "foreign-owner";
+      readonly record: ApplyingHostRecord;
+      readonly namedSessionId: string;
+      readonly message: string;
+    }
+  | {
+      readonly kind: "repair";
+      readonly record: ApplyingHostRecord | null;
+      readonly message: string;
+    }
+  | { readonly kind: "absent"; readonly record: null };
+
+function isHookHostIdentityProvider(value: string): value is HookHostIdentityProvider {
+  return (HOST_IDENTITY_PROVIDERS as readonly string[]).includes(value);
+}
+
+function parseApplyingHostPayload(payload: unknown): ApplyingHostRecord | null {
+  if (payload === null || typeof payload !== "object" || Array.isArray(payload)) return null;
+  const row = payload as Record<string, unknown>;
+  if (row.schema !== APPLYING_HOST_SCHEMA) return null;
+  if (typeof row.provider !== "string" || !isHookHostIdentityProvider(row.provider)) return null;
+  if (typeof row.rawSessionId !== "string" || !isUsableHostSessionId(row.rawSessionId)) return null;
+  if (typeof row.applyingHostSessionId !== "string") return null;
+  if (typeof row.claimed_at !== "string" || parseTimestamp(row.claimed_at) === null) return null;
+  const transport: ApplyingHostTransport =
+    row.transport === "grok-hook-event" ? "grok-hook-event" : "native";
+  const expected = canonicalHostSessionId(row.provider, row.rawSessionId);
+  if (row.applyingHostSessionId !== expected) return null;
+  return {
+    schema: APPLYING_HOST_SCHEMA,
+    provider: row.provider,
+    rawSessionId: row.rawSessionId,
+    applyingHostSessionId: expected,
+    claimed_at: row.claimed_at,
+    transport,
+  };
+}
+
+/** Read the worktree applying-host record (#5676). */
+export function readApplyingHost(
+  projectRoot: string,
+  now: Date = new Date(),
+): ApplyingHostRead {
+  const path = applyingHostPath(projectRoot);
+  try {
+    if (!existsSync(path)) return { status: "missing", record: null };
+  } catch {
+    return { status: "missing", record: null };
+  }
+  let payload: unknown;
+  try {
+    payload = JSON.parse(readFileSync(path, { encoding: "utf8" }));
+  } catch {
+    return {
+      status: "invalid",
+      record: null,
+      message: "applying-host record is unreadable; republish via SessionStart or read-only session:start",
+    };
+  }
+  const record = parseApplyingHostPayload(payload);
+  if (record === null) {
+    return {
+      status: "invalid",
+      record: null,
+      message:
+        "applying-host record is malformed; republish via SessionStart or read-only session:start",
+    };
+  }
+  const claimedAt = parseTimestamp(record.claimed_at);
+  if (claimedAt === null) {
+    return {
+      status: "invalid",
+      record: null,
+      message:
+        "applying-host record has invalid claimed_at; republish via SessionStart or read-only session:start",
+    };
+  }
+  if (now.getTime() - claimedAt.getTime() > APPLYING_HOST_STALE_MS) {
+    return {
+      status: "stale",
+      record,
+      message: formatApplyingHostRepairDiagnostic("stale"),
+    };
+  }
+  return { status: "ok", record };
+}
+
+/**
+ * Supported repair when the applying-host record is missing, stale, or
+ * conflicting (#5676 Prefer-A Recut-5). Mutation session:start is reinforcement
+ * only — first publication is SessionStart or read-only session:start.
+ */
+export function formatApplyingHostRepairDiagnostic(
+  reason: "missing" | "stale" | "conflicting" | "invalid" = "missing",
+): string {
+  const subject =
+    reason === "missing"
+      ? "Applying-host record is missing"
+      : reason === "stale"
+        ? "Applying-host record is stale"
+        : reason === "conflicting"
+          ? "Applying-host record conflicts with this host session"
+          : "Applying-host record is invalid";
+  return (
+    `${subject}. Republish via host SessionStart reconnect and/or ` +
+    "`deft session:start --read-only --session-id=<applyingHostSessionId>` " +
+    "before retrying mutation lifecycle. UUID / Harbor residuals stay under #5544."
+  );
+}
+
+export interface PublishApplyingHostInput {
+  readonly provider: HookHostIdentityProvider;
+  readonly rawSessionId: string;
+  readonly claimedAt?: Date;
+  readonly transport?: ApplyingHostTransport;
+}
+
+/** Write/replace the worktree applying-host record (#5676). */
+export function publishApplyingHost(
+  projectRoot: string,
+  input: PublishApplyingHostInput,
+): ApplyingHostRecord {
+  if (!isUsableHostSessionId(input.rawSessionId)) {
+    throw new Error("publishApplyingHost: rawSessionId is not a usable host session id");
+  }
+  const root = resolve(projectRoot);
+  const claimedAt = input.claimedAt ?? new Date();
+  const record: ApplyingHostRecord = {
+    schema: APPLYING_HOST_SCHEMA,
+    provider: input.provider,
+    rawSessionId: input.rawSessionId,
+    applyingHostSessionId: canonicalHostSessionId(input.provider, input.rawSessionId),
+    claimed_at: timestampIso(claimedAt),
+    transport: input.transport ?? "native",
+  };
+  const target = applyingHostPath(root);
+  assertWriteTargetSafe(root, target);
+  const dir = dirname(target);
+  const tmpName = join(dir, `.applying-host.${process.pid}.json.tmp`);
+  const text = `${stableJson(record, 2)}\n`;
+  try {
+    containedWrite({ root, target: tmpName, data: text, mode: "create" });
+    renameSync(tmpName, target);
+  } catch (err) {
+    try {
+      rmSync(tmpName, { force: true });
+    } catch {
+      /* best-effort cleanup */
+    }
+    throw err;
+  }
+  return record;
+}
+
+/**
+ * Publish from a canonical `host:<provider>:v1:<base64url>` owner (#5676).
+ * Returns null when the id is not canonical (opaque UUID leftovers stay #5544).
+ */
+export function publishApplyingHostFromCanonicalSessionId(
+  projectRoot: string,
+  sessionId: string,
+  opts: { readonly claimedAt?: Date; readonly transport?: ApplyingHostTransport } = {},
+): ApplyingHostRecord | null {
+  const parsed = parseCanonicalHostSessionId(sessionId.trim());
+  if (parsed === null) return null;
+  return publishApplyingHost(projectRoot, {
+    provider: parsed.provider,
+    rawSessionId: parsed.rawSessionId,
+    claimedAt: opts.claimedAt,
+    transport: opts.transport,
+  });
+}
+
+/**
+ * Lifecycle admission against the applying-host record (#5676).
+ *
+ * Matching deposits enforce `applyingHostSessionId`. Non-matching deposits
+ * soft-pass only when the command already names that id. Missing/stale/
+ * conflicting records name SessionStart / read-only repair. Absent record with
+ * no flip-flop shape returns `absent` so single-host flows keep prior behavior.
+ */
+export function evaluateApplyingHostLifecycleAdmission(input: {
+  readonly projectRoot: string;
+  readonly depositHost: string;
+  readonly depositSessionId: string | null;
+  readonly namedSessionId: string | null;
+  readonly now?: Date;
+}): ApplyingHostLifecycleAdmission {
+  const read = readApplyingHost(input.projectRoot, input.now ?? new Date());
+  if (read.status === "invalid") {
+    return {
+      kind: "repair",
+      record: null,
+      message: read.message,
+    };
+  }
+  if (read.status === "stale") {
+    return { kind: "repair", record: read.record, message: read.message };
+  }
+  if (read.status === "missing" || read.record === null) {
+    const named = input.namedSessionId?.trim() || null;
+    const deposit = input.depositSessionId?.trim() || null;
+    if (named !== null && deposit !== null && named !== deposit) {
+      const namedParts = parseCanonicalHostSessionId(named);
+      const depositParts = parseCanonicalHostSessionId(deposit);
+      if (
+        namedParts !== null &&
+        depositParts !== null &&
+        namedParts.rawSessionId === depositParts.rawSessionId &&
+        namedParts.provider !== depositParts.provider
+      ) {
+        return {
+          kind: "repair",
+          record: null,
+          message: formatApplyingHostRepairDiagnostic("missing"),
+        };
+      }
+    }
+    return { kind: "absent", record: null };
+  }
+  const record = read.record;
+  if (
+    isHookHostIdentityProvider(input.depositHost) &&
+    input.depositHost === record.provider &&
+    input.depositSessionId !== null &&
+    input.depositSessionId !== record.applyingHostSessionId
+  ) {
+    const depositParts = parseCanonicalHostSessionId(input.depositSessionId);
+    if (depositParts === null || depositParts.rawSessionId !== record.rawSessionId) {
+      return {
+        kind: "repair",
+        record,
+        message: formatApplyingHostRepairDiagnostic("conflicting"),
+      };
+    }
+  }
+  const named = input.namedSessionId?.trim() || null;
+  const matchingDeposit = input.depositHost === record.provider;
+  if (!matchingDeposit) {
+    // Non-matching deposits soft-pass when argv already names the applying host,
+    // or when argv is absent so only the matching deposit should rewrite (#5676).
+    if (named === null || named === record.applyingHostSessionId) {
+      return {
+        kind: "soft-pass",
+        record,
+        reason: "non-matching-deposit-names-applying-host",
+      };
+    }
+    return {
+      kind: "foreign-owner",
+      record,
+      namedSessionId: named,
+      message:
+        `Directive refused foreign owner ${named}; applying-host is ` +
+        `${record.applyingHostSessionId}. Re-run with ` +
+        `--session-id=${record.applyingHostSessionId}.`,
+    };
+  }
+  if (named !== null && named !== record.applyingHostSessionId) {
+    return {
+      kind: "foreign-owner",
+      record,
+      namedSessionId: named,
+      message:
+        `Directive refused foreign owner ${named}; applying-host is ` +
+        `${record.applyingHostSessionId}. Re-run with ` +
+        `--session-id=${record.applyingHostSessionId}.`,
+    };
+  }
+  return {
+    kind: "enforce",
+    record,
+    matchingDeposit: true,
+  };
 }
 
 /**

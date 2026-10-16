@@ -30,12 +30,17 @@ import {
 } from "./child-occupancy.js";
 import { canonicalHostSessionId } from "./host-session-owner.js";
 import {
+  APPLYING_HOST_SCHEMA,
+  APPLYING_HOST_STALE_MS,
   applyWorktreeOccupancy,
+  applyingHostPath,
   assertOccupancyFreeForHostLaunch,
   DEFT_EXPECTED_DECLARED_HOST_ATTACH,
+  evaluateApplyingHostLifecycleAdmission,
   evaluateOccupancyCeremonyEligibility,
   evaluateOccupancyWriteGate,
   expectedDeclaredHostAttachSignaled,
+  formatApplyingHostRepairDiagnostic,
   formatOccupancyAgeCapRemediation,
   formatOccupancyAlreadyFree,
   formatOccupancyClaimProvenance,
@@ -66,6 +71,9 @@ import {
   occupancyMintedMutationClaimDeadlocksLaterHook,
   occupancyPath,
   occupancyWorktreeMatches,
+  publishApplyingHost,
+  publishApplyingHostFromCanonicalSessionId,
+  readApplyingHost,
   readOccupancy,
   releaseOccupancy,
   releaseSwarmOccupancy,
@@ -4127,5 +4135,140 @@ describe("Harbor UUID lease vs declared host Prefer-A (#5544)", () => {
     );
     expect(remediation).toContain("Do not steal this lease unless");
     expect(remediation).toContain("must not mutation-claim");
+  });
+});
+
+describe("applying-host record (#5676 Prefer-A)", () => {
+  const RAW = "dcd6d34c-5e07-4e3c-89dd-83471ee80fdf";
+  const CURSOR_OWNER = canonicalHostSessionId("cursor", RAW);
+  const CLAUDE_OWNER = canonicalHostSessionId("claude", RAW);
+
+  it("publishes provider, raw id, applyingHostSessionId, and claimed_at", () => {
+    const root = mkdtempSync(join(tmpdir(), "applying-host-pub-"));
+    ephemeralTemps.push(root);
+    const claimedAt = new Date("2026-10-16T12:00:00Z");
+    const record = publishApplyingHost(root, {
+      provider: "cursor",
+      rawSessionId: RAW,
+      claimedAt,
+      transport: "native",
+    });
+    expect(record).toMatchObject({
+      schema: APPLYING_HOST_SCHEMA,
+      provider: "cursor",
+      rawSessionId: RAW,
+      applyingHostSessionId: CURSOR_OWNER,
+      claimed_at: "2026-10-16T12:00:00Z",
+      transport: "native",
+    });
+    expect(readFileSync(applyingHostPath(root), "utf8")).toContain(CURSOR_OWNER);
+    expect(readApplyingHost(root, claimedAt)).toEqual({ status: "ok", record });
+  });
+
+  it("publishes from a canonical session id and refuses opaque UUID leftovers", () => {
+    const root = mkdtempSync(join(tmpdir(), "applying-host-canon-"));
+    ephemeralTemps.push(root);
+    expect(publishApplyingHostFromCanonicalSessionId(root, CURSOR_OWNER)?.provider).toBe("cursor");
+    expect(publishApplyingHostFromCanonicalSessionId(root, RAW)).toBeNull();
+  });
+
+  it("marks stale records and names SessionStart / read-only repair", () => {
+    const root = mkdtempSync(join(tmpdir(), "applying-host-stale-"));
+    ephemeralTemps.push(root);
+    const claimedAt = new Date("2026-10-01T00:00:00Z");
+    publishApplyingHost(root, {
+      provider: "cursor",
+      rawSessionId: RAW,
+      claimedAt,
+    });
+    const later = new Date(claimedAt.getTime() + APPLYING_HOST_STALE_MS + 1);
+    const read = readApplyingHost(root, later);
+    expect(read.status).toBe("stale");
+    expect(formatApplyingHostRepairDiagnostic("stale")).toContain("SessionStart");
+    expect(formatApplyingHostRepairDiagnostic("stale")).toContain("--read-only");
+  });
+
+  it("soft-passes non-matching deposits that name applyingHostSessionId", () => {
+    const root = mkdtempSync(join(tmpdir(), "applying-host-soft-"));
+    ephemeralTemps.push(root);
+    publishApplyingHost(root, { provider: "cursor", rawSessionId: RAW });
+    expect(
+      evaluateApplyingHostLifecycleAdmission({
+        projectRoot: root,
+        depositHost: "claude",
+        depositSessionId: CLAUDE_OWNER,
+        namedSessionId: CURSOR_OWNER,
+      }),
+    ).toMatchObject({ kind: "soft-pass" });
+    expect(
+      evaluateApplyingHostLifecycleAdmission({
+        projectRoot: root,
+        depositHost: "cursor",
+        depositSessionId: CURSOR_OWNER,
+        namedSessionId: CURSOR_OWNER,
+      }),
+    ).toMatchObject({ kind: "enforce", matchingDeposit: true });
+  });
+
+  it("refuses foreign owners and diagnoses same-raw flip-flop when record is missing", () => {
+    const root = mkdtempSync(join(tmpdir(), "applying-host-foreign-"));
+    ephemeralTemps.push(root);
+    publishApplyingHost(root, { provider: "cursor", rawSessionId: RAW });
+    expect(
+      evaluateApplyingHostLifecycleAdmission({
+        projectRoot: root,
+        depositHost: "cursor",
+        depositSessionId: CURSOR_OWNER,
+        namedSessionId: CLAUDE_OWNER,
+      }),
+    ).toMatchObject({ kind: "foreign-owner" });
+
+    const empty = mkdtempSync(join(tmpdir(), "applying-host-missing-"));
+    ephemeralTemps.push(empty);
+    expect(
+      evaluateApplyingHostLifecycleAdmission({
+        projectRoot: empty,
+        depositHost: "claude",
+        depositSessionId: CLAUDE_OWNER,
+        namedSessionId: CURSOR_OWNER,
+      }),
+    ).toMatchObject({ kind: "repair" });
+    expect(
+      evaluateApplyingHostLifecycleAdmission({
+        projectRoot: empty,
+        depositHost: "cursor",
+        depositSessionId: CURSOR_OWNER,
+        namedSessionId: CURSOR_OWNER,
+      }),
+    ).toMatchObject({ kind: "absent" });
+  });
+
+  it("isolates concurrent worktrees and replaces same-worktree claims", () => {
+    const a = mkdtempSync(join(tmpdir(), "applying-host-a-"));
+    const b = mkdtempSync(join(tmpdir(), "applying-host-b-"));
+    ephemeralTemps.push(a, b);
+    publishApplyingHost(a, { provider: "cursor", rawSessionId: RAW });
+    publishApplyingHost(b, {
+      provider: "claude",
+      rawSessionId: "other-session",
+      transport: "native",
+    });
+    expect(readApplyingHost(a)).toMatchObject({
+      status: "ok",
+      record: { applyingHostSessionId: CURSOR_OWNER },
+    });
+    expect(readApplyingHost(b)).toMatchObject({
+      status: "ok",
+      record: { provider: "claude" },
+    });
+    const replaced = publishApplyingHost(a, {
+      provider: "cursor",
+      rawSessionId: "replaced-raw",
+    });
+    expect(replaced.rawSessionId).toBe("replaced-raw");
+    expect(readApplyingHost(a)).toMatchObject({
+      status: "ok",
+      record: { rawSessionId: "replaced-raw" },
+    });
   });
 });
