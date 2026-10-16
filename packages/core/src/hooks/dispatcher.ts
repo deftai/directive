@@ -4355,9 +4355,7 @@ export type ListStagedRelPathsResult =
   | { ok: false; message: string };
 
 /** Staged index paths including deletions (ACMRD), project-relative POSIX. */
-export function listStagedRelPathsIncludingDeletes(
-  projectRoot: string,
-): ListStagedRelPathsResult {
+export function listStagedRelPathsIncludingDeletes(projectRoot: string): ListStagedRelPathsResult {
   try {
     // -z: NUL-delimited so quoted non-ASCII names are not treated as literal paths (#5656).
     const stdout = execFileSync(
