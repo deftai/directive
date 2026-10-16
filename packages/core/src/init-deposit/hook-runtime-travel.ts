@@ -403,12 +403,7 @@ export function inspectHookRuntimeTravel(
           ? null
           : execFileSync(
               "git",
-              [
-                "ls-files",
-                "--cached",
-                "--",
-                ...silentGateLoss.map((entry) => entry.path),
-              ],
+              ["ls-files", "--cached", "--", ...silentGateLoss.map((entry) => entry.path)],
               {
                 cwd: projectRoot,
                 encoding: "utf8",
@@ -423,8 +418,7 @@ export function inspectHookRuntimeTravel(
       cachedTraveling = null;
     }
     const shouldPersist =
-      cachedTraveling !== null &&
-      silentGateLoss.some((entry) => cachedTraveling.has(entry.path));
+      cachedTraveling !== null && silentGateLoss.some((entry) => cachedTraveling.has(entry.path));
     if (shouldPersist) {
       try {
         writeHookGateOffRecord(projectRoot, {

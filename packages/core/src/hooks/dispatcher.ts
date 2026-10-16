@@ -4329,15 +4329,11 @@ export function commandHasGitCommitCheckoutRetarget(command: string): boolean {
 /** Staged index paths including deletions (ACMRD), project-relative POSIX. */
 export function listStagedRelPathsIncludingDeletes(projectRoot: string): string[] {
   try {
-    const stdout = execFileSync(
-      "git",
-      ["diff", "--cached", "--name-only", "--diff-filter=ACMRD"],
-      {
-        cwd: projectRoot,
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "pipe"],
-      },
-    );
+    const stdout = execFileSync("git", ["diff", "--cached", "--name-only", "--diff-filter=ACMRD"], {
+      cwd: projectRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
     return stdout
       .split("\n")
       .map((line) => line.trim())
