@@ -75,6 +75,7 @@ import {
   evaluateOccupancyWriteGate,
   formatOccupancyLeaseViewNote,
   occupancyPath,
+  resolveOccupancyLeaseRoot,
 } from "../session/occupancy.js";
 import { occupancyAwareDenialMessage } from "../session/occupancy-recovery.js";
 import {
@@ -1843,7 +1844,8 @@ function inspectMutationGates(
         ? ` Also ritual-not-ready: ${inspected.message}`
         : "";
     // #5544 P2: denials from the Write gate always name occupancyFile + effectiveRoot.
-    const leaseView = formatOccupancyLeaseViewNote(occupancyPath(effectiveRoot), {
+    const leaseRoot = resolveOccupancyLeaseRoot(effectiveRoot);
+    const leaseView = formatOccupancyLeaseViewNote(occupancyPath(leaseRoot), {
       effectiveRoot,
     });
     const leaseNote = occupancyGate.message.includes("occupancyFile=") ? "" : ` ${leaseView}`;

@@ -4003,6 +4003,32 @@ describe("Harbor UUID lease vs declared host Prefer-A (#5544)", () => {
     expect(readOccupancy(root)?.sessionId).toBe(hostId);
   });
 
+  it("write-gate denies stranger when leaseRoot is a subdirectory of a claimed tree (#5544 P1)", () => {
+    const root = mkdtempSync(join(tmpdir(), "occ-hook-subdir-"));
+    sharedTemps.push(root);
+    gitInitIfNeeded(root);
+    const nested = join(root, "packages", "app");
+    mkdirSync(nested, { recursive: true });
+    const now = new Date("2026-10-16T12:00:00Z");
+    expect(applyWorktreeOccupancy(root, { sessionId: "owner-hook", now, intent: "mutation" }).action).toBe(
+      "claimed",
+    );
+    const denied = evaluateOccupancyWriteGate(nested, {
+      sessionId: "stranger-hook",
+      now: new Date("2026-10-16T12:01:00Z"),
+      leaseRoot: nested,
+    });
+    expect(denied.allow).toBe(false);
+    expect(denied.message).toContain("occupancyFile=");
+    expect(denied.occupant?.sessionId).toBe("owner-hook");
+    const owner = evaluateOccupancyWriteGate(nested, {
+      sessionId: "owner-hook",
+      now: new Date("2026-10-16T12:01:00Z"),
+      leaseRoot: nested,
+    });
+    expect(owner.allow).toBe(true);
+  });
+
   it("claim and release share lease root when projectRoot is a subdirectory (#5544 P1)", () => {
     // Dedicated git tree — tempRoot() is shared across cases and would leave nested residue.
     const root = mkdtempSync(join(tmpdir(), "occ-subdir-"));

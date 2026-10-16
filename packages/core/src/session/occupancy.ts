@@ -422,10 +422,21 @@ export function occupancyPath(projectRoot: string): string {
  * payload alone gates, or when writes stay inside that worktree). Linked
  * worktrees keep their own toplevel — never collapsed into the main checkout.
  */
+const occupancyLeaseRootCache = new Map<string, string>();
+
+/**
+ * Process-local cache so Write-hook double probes (preview + refresh) and
+ * nested readOccupancy calls do not re-shell `git rev-parse` for the same path.
+ */
 export function resolveOccupancyLeaseRoot(projectRoot: string): string {
   const absolute = resolve(projectRoot);
+  const cached = occupancyLeaseRootCache.get(absolute);
+  if (cached !== undefined) return cached;
   const toplevel = worktreePathOrNull(absolute);
-  return toplevel ?? absolute;
+  const root = toplevel ?? absolute;
+  occupancyLeaseRootCache.set(absolute, root);
+  occupancyLeaseRootCache.set(root, root);
+  return root;
 }
 
 /** Print the occupancy file (and optional Write-gate effectiveRoot) (#5544 P2). */
@@ -2601,8 +2612,9 @@ export interface OccupancyWriteGateInput {
   readonly persistProductMutationMarker?: boolean;
   readonly lockDeps?: LockDeps;
   /**
-   * Already-resolved lease root (Write-hook `effectiveRoot`). When set, skip
-   * a second `git rev-parse --show-toplevel` (#5544 P2 hook-timeout class).
+   * Preferred base path for lease resolution (Write-hook `effectiveRoot`).
+   * Still passed through `resolveOccupancyLeaseRoot` so subdirectory hooks
+   * match the same lease file as claim/release (process cache avoids repeat git).
    */
   readonly leaseRoot?: string;
 }
@@ -2620,8 +2632,10 @@ export function evaluateOccupancyWriteGate(
   input: OccupancyWriteGateInput = {},
 ): OccupancyWriteGateResult {
   const now = input.now ?? new Date();
-  // #5544: share one lease-root view; reuse caller-resolved effectiveRoot when present.
-  projectRoot = input.leaseRoot ?? resolveOccupancyLeaseRoot(projectRoot);
+  // #5544: lease identity is always the git worktree toplevel. leaseRoot is only
+  // a preferred base path (hook effectiveRoot may be a subdirectory when writes
+  // leave the git tree); never skip resolve, or read/match disagree (#5544 P1).
+  projectRoot = resolveOccupancyLeaseRoot(input.leaseRoot ?? projectRoot);
   const incoming =
     input.sessionId?.trim() || (input.env ?? process.env).DEFT_SESSION_ID?.trim() || "";
   const stored = readOccupancy(projectRoot);
