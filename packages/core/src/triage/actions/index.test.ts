@@ -299,10 +299,10 @@ describe("formatAcceptOutput", () => {
     const text = formatAcceptOutput(12, "owner/repo", "dec-1", {
       autoPromote: true,
       disposition: "created",
-      relativePath: "proposed/12.xbrief.json",
+      relativePath: "pending/12.xbrief.json",
     });
     expect(text).toContain("accept #12 (owner/repo) -> dec-1 + auto-promote");
-    expect(text).toContain("CREATED proposed/12.xbrief.json");
+    expect(text).toContain("CREATED pending/12.xbrief.json");
     expect(text).toContain("optional: deft-directive-design-critique (declining writes nothing)");
   });
 
@@ -319,9 +319,9 @@ describe("formatAcceptOutput", () => {
         ingestMessage: "#1 refuse: multiple owning briefs",
       }),
     ).toContain("#1 refuse: multiple owning briefs");
-    expect(
-      formatAcceptOutput(1, "o/r", null, { disposition: "refused" }),
-    ).toContain("refused (no new proposed artifact)");
+    expect(formatAcceptOutput(1, "o/r", null, { disposition: "refused" })).toContain(
+      "refused (no new proposed artifact)",
+    );
     expect(
       formatAcceptOutput(2, "o/r", "dec-2", {
         disposition: "idempotent",
@@ -434,7 +434,7 @@ describe("accept", () => {
       autoPromote: true,
     });
     expect(outcome.decisionId).toBe("11111111-1111-1111-1111-111111111111");
-    expect(outcome.relativePath).toBe("proposed/2026-01-01-auto.xbrief.json");
+    expect(outcome.relativePath).toBe("pending/2026-01-01-auto.xbrief.json");
     expect(existsSync(join(root, "xbrief", "pending", "2026-01-01-auto.xbrief.json"))).toBe(true);
     expect(existsSync(proposedPath)).toBe(false);
   });
@@ -479,6 +479,50 @@ describe("accept", () => {
     expect(outcome.ingestMessage).toContain("multiple owning briefs");
     const path = resolveAuditLogPath(root);
     expect(existsSync(path) ? readFileSync(path, "utf8").trim() : "").toBe("");
+  });
+
+  it("refuses idempotent re-accept when ownership is ambiguous (#4962)", () => {
+    const root = makeRepo();
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
+    const brief = (n: string) =>
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8", description: "#55", updated: "2026-08-01T00:00:00Z" },
+        plan: {
+          title: n,
+          status: "proposed",
+          narratives: {
+            Origin: "Ingested from https://github.com/deftai/directive/issues/55",
+          },
+          items: [],
+          references: [
+            {
+              type: "x-xbrief/github-issue",
+              uri: "https://github.com/deftai/directive/issues/55",
+            },
+          ],
+          updated: "2026-08-01T00:00:00Z",
+        },
+      });
+    writeFileSync(join(root, "xbrief", "proposed", "a.xbrief.json"), brief("a"));
+    writeFileSync(join(root, "xbrief", "proposed", "b.xbrief.json"), brief("b"));
+    const prior: AuditEntry = {
+      decision_id: "prior-ambiguous",
+      timestamp: "2026-06-18T12:00:00Z",
+      repo: "deftai/directive",
+      issue_number: 55,
+      decision: "accept",
+      actor: "agent:test",
+    };
+    const deps = fakeDeps(root, { latest: prior });
+    const outcome = accept(55, "deftai/directive", deps, {
+      projectRoot: root,
+      autoPromote: true,
+    });
+    expect(outcome.disposition).toBe("refused");
+    expect(outcome.decisionId).toBeNull();
+    expect(outcome.ingestMessage).toContain("multiple owning briefs");
+    expect(existsSync(join(root, "xbrief", "proposed", "a.xbrief.json"))).toBe(true);
+    expect(existsSync(join(root, "xbrief", "proposed", "b.xbrief.json"))).toBe(true);
   });
 });
 

@@ -2268,30 +2268,6 @@ export function ingestOne(
   const number = Number(issue.number);
   const residualMode = options.residual === true;
   return withPlanIdIdentityLock(options.vbriefDir, () => {
-    if (!residualMode && options.existingRefs?.has(number)) {
-      const raw = (options.existingRefs.get(number) ?? []).map((p) => p.replace(/\\/g, "/"));
-      const exact = filterExactOwningRelPaths(options.vbriefDir, raw, number, options.repoUrl);
-      let ownershipPaths = exact;
-      if (ownershipPaths.length === 0 && raw.length > 0) {
-        // Synthetic existingRefs (tests / precomputed) when no on-disk brief exists
-        // at the listed path — still honor the injection. On-disk briefs that fail
-        // exact issue+repo identity are ignored (fall through).
-        const anyOnDisk = raw.some((rel) => {
-          try {
-            return existsSync(join(options.vbriefDir, rel));
-          } catch {
-            return false;
-          }
-        });
-        if (!anyOnDisk) {
-          ownershipPaths = raw;
-        }
-      }
-      const classified = classifyOwningBriefPaths(number, options.vbriefDir, ownershipPaths);
-      if (classified !== null) {
-        return classified;
-      }
-    }
     const origins = options.existingOrigins ?? scanProvenanceOrigins(options.vbriefDir);
     const origin = originFromIssue(issue, options.repoUrl);
     const originKeys: string[] = [numberOnlyOriginKey(number)];
@@ -2299,14 +2275,37 @@ export function ingestOne(
       originKeys.unshift(issueOriginKey(origin));
     }
     if (!residualMode) {
-      const originHits: string[] = [];
+      // Merge typed refs + Origin owners before classify so competing owners
+      // across the two channels refuse instead of early-returning on refs alone.
+      const ownershipPaths: string[] = [];
+      if (options.existingRefs?.has(number)) {
+        const raw = (options.existingRefs.get(number) ?? []).map((p) => p.replace(/\\/g, "/"));
+        const exact = filterExactOwningRelPaths(options.vbriefDir, raw, number, options.repoUrl);
+        let refPaths = exact;
+        if (refPaths.length === 0 && raw.length > 0) {
+          // Synthetic existingRefs (tests / precomputed) when no on-disk brief exists
+          // at the listed path — still honor the injection. On-disk briefs that fail
+          // exact issue+repo identity are ignored (fall through).
+          const anyOnDisk = raw.some((rel) => {
+            try {
+              return existsSync(join(options.vbriefDir, rel));
+            } catch {
+              return false;
+            }
+          });
+          if (!anyOnDisk) {
+            refPaths = raw;
+          }
+        }
+        ownershipPaths.push(...refPaths);
+      }
       for (const key of originKeys) {
         const hits = origins.get(key) ?? [];
         for (const hit of hits) {
-          originHits.push(hit.replace(/\\/g, "/"));
+          ownershipPaths.push(hit.replace(/\\/g, "/"));
         }
       }
-      const classified = classifyOwningBriefPaths(number, options.vbriefDir, originHits);
+      const classified = classifyOwningBriefPaths(number, options.vbriefDir, ownershipPaths);
       if (classified !== null) {
         return classified;
       }
