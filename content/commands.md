@@ -206,6 +206,8 @@ Directive exposes the logical field as `plan.policy.allowDirectCommitsToMaster`,
 - Allow confirmed #1019 preflight-gh opt-out: `deft policy:allow-destructive-gh-verbs -- --confirm`
 - Re-enforce #1019: `deft policy:enforce-destructive-gh-verbs`
 - Store Phase 2 narratives without policy keys: `deft project:write-narratives --project-root <root> --narratives-file <path>`
+- Draft Phase 2 narratives from a design document or answers file (thin wrapper; draft-only): `deft setup:seed --from <design.md>` or `deft setup:seed --answers <file>` (#4961). Confirm via setup Post-Interview Confirmation Gate, then durable-write with `project:write-narratives`. Optional `--merge-existing` / `--expected-revision` on `project:write-narratives` preserve absent fields and refuse stale approvals. v1 is narratives-only (no proposed-scope seed). Interview remains the fallback when no seed flags are used.
+
 
 Every policy writer fails with config exit 2 when bare `plan.policy` and namespaced `plan["x-directive/policy"]` coexist, including when their branch values match. Recovery is lossless and manual: inventory both blocks, fold every bare-only key into the namespaced block, explicitly resolve each collision, delete bare `plan.policy`, then rerun the command. The failure writes neither PROJECT-DEFINITION nor `meta/policy-changes.log`.
 

@@ -92,3 +92,35 @@ describe("setup bound remedy (#4660)", () => {
     });
   }
 });
+
+describe("setup document seed reject inventory (#4961 Prefer-A)", () => {
+  const rendered = readRepoFile(SETUP_SKILL);
+  const packed = packedSetupBody();
+
+  for (const [surface, text] of [
+    ["packed", packed],
+    ["rendered", rendered],
+  ] as const) {
+    it(`${surface} pins skill-first seed into project:write-narratives with confirm gate`, () => {
+      expect(text).toContain("Document / answers seed (#4961 Prefer-A)");
+      expect(text).toContain("Post-Interview Confirmation Gate");
+      expect(text).toContain("deft project:write-narratives");
+      expect(text).toContain("deft setup:seed");
+      expect(text.toLowerCase()).toContain("never directives");
+      expect(text).toContain("allowDirectCommitsToMaster");
+      expect(text).toContain("narratives-only");
+      expect(text).toContain("Interview remains the fallback");
+    });
+
+    it(`${surface} pins reject B-F inventory for document seed`, () => {
+      expect(text).toMatch(/Reject:[\s\S]*remove interview/i);
+      expect(text).toMatch(/auto-promote seeded scope/i);
+      expect(text).toMatch(/silent overwrite/i);
+      expect(text).toMatch(/field erasure/i);
+      expect(text).toMatch(/stale-preview/i);
+      expect(text).toMatch(/bypass[\s\S]*project:write-narratives/i);
+      expect(text).toMatch(/#4377/);
+      expect(text).toMatch(/#4378/);
+    });
+  }
+});
