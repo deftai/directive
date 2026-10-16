@@ -85,17 +85,20 @@
       ],
       "swarm": {
         "file_scope": [
-          "packages/cli/src/policy.ts",
-          "packages/core/src/value/feedback-file.ts",
-          "content/packs/skills/skills-pack-0.1.json",
-          "packages/core/src/init-deposit/skill-discovery-deposit.ts",
-          "content/docs/framework-gap-filing.md",
-          "content/skills/deft-directive-feedback/SKILL.md",
-          "content/docs/product-signal.md",
-          "content/skills/deft-directive-product-signal/SKILL.md",
-          "content/scm/github.md",
           "CHANGELOG.md",
-          "docs/RULE-MAP.md"
+          "content/docs/framework-gap-filing.md",
+          "content/docs/product-signal.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/scm/github.md",
+          "content/skills/deft-directive-feedback/SKILL.md",
+          "content/skills/deft-directive-product-signal/SKILL.md",
+          "docs/RULE-MAP.md",
+          "packages/cli/src/policy.ts",
+          "packages/cli/src/policy.test.ts",
+          "packages/core/src/init-deposit/skill-discovery-deposit.ts",
+          "packages/core/src/init-deposit/skill-discovery-deposit.test.ts",
+          "packages/core/src/value/feedback-file.ts",
+          "packages/core/src/value/feedback-file.test.ts"
         ],
         "Traces": [
           "#4375",
@@ -114,8 +117,7 @@
           "content/docs/product-signal.md",
           "content/skills/deft-directive-product-signal/SKILL.md",
           "content/scm/github.md",
-          "CHANGELOG.md",
-          "docs/RULE-MAP.md"
+          "CHANGELOG.md"
         ],
         "module_boundary": "mid-session framework-gap filing via feedback:file + discovery inventory",
         "cohesion_exemption": "CHANGELOG.md shared Unreleased for #4375 Prefer-A Bound; new content/docs/framework-gap-filing.md is Bound-required durable venue."
