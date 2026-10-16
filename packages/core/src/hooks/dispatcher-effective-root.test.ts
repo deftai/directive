@@ -140,7 +140,12 @@ function scopeSeams(readyRoot: string | null): {
         if (readyRoot !== null && resolve(root) === resolve(readyRoot)) return READY_SCOPE;
         return { ready: false, path: null, message: "no active scope xBRIEF" };
       },
-      loadStoryWriteFence: (_root, scopePath) => loadStoryWriteFenceFromPath(scopePath),
+      loadStoryWriteFence: (_root, scopePath) => {
+        const fromPath = loadStoryWriteFenceFromPath(scopePath);
+        if (fromPath.fileScope.length > 0 || fromPath.denyPaths.length > 0) return fromPath;
+        // #5656: fixture stubs lack fence bytes; default positive allow.
+        return { fileScope: ["**"], denyPaths: [] };
+      },
     },
   };
 }
@@ -166,7 +171,12 @@ function recordingSeams(sessionId?: string): {
         scopeRoots.push(resolve(root));
         return READY_SCOPE;
       },
-      loadStoryWriteFence: (_root, scopePath) => loadStoryWriteFenceFromPath(scopePath),
+      loadStoryWriteFence: (_root, scopePath) => {
+        const fromPath = loadStoryWriteFenceFromPath(scopePath);
+        if (fromPath.fileScope.length > 0 || fromPath.denyPaths.length > 0) return fromPath;
+        // #5656: fixture stubs lack fence bytes; default positive allow.
+        return { fileScope: ["**"], denyPaths: [] };
+      },
     },
   };
 }
@@ -803,7 +813,9 @@ describe("story file_scope relativises against the write target worktree (#3794 
       seams,
     );
     expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
-    expect(fenceRoots).toEqual([resolve(nested)]);
+    // #5656 positive-allow + runtime fence both load the story fence for the
+    // same effective root; assert unique root, not single-call count.
+    expect([...new Set(fenceRoots.map((root) => resolve(root)))]).toEqual([resolve(nested)]);
   });
 
   it("still denies an out-of-fence worktree path, naming the tree it relativised against", () => {

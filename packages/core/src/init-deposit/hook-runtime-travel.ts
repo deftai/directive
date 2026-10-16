@@ -391,20 +391,55 @@ export function inspectHookRuntimeTravel(
   );
   const silentGateLoss = travelingRegistrations.filter((entry) => !isFailClosed(entry.host));
   const unsafe = travelingRegistrations.length > 0 && !runtimeTravels;
+  // Persist the gate-off record only when an index/cached registration travels
+  // without runtime. Untracked deposit-time paths still warn via printf; writing
+  // the record then pollutes Pass 2 porcelain in fixtures without a .deft
+  // gitignore (#5656 / #4507). containedWrite already no-ops under port-record.
   if (unsafe && silentGateLoss.length > 0) {
+    let cachedTraveling: ReadonlySet<string> | null = null;
     try {
-      writeHookGateOffRecord(projectRoot, {
-        schema: "deft.hook-gate-off.v1",
-        recordedAt: new Date().toISOString(),
-        reason: "registration-travels-without-runtime",
-        silentGateLossHosts: silentGateLoss.map((entry) => entry.host),
-        travelingRegistrations: travelingRegistrations.map((entry) => entry.path),
-        detail:
-          "Non-fail-closed host hook registration travels without deft-hook; " +
-          "mutations fail open until the runtime is installed or host hooks are disabled (#5656).",
-      });
+      const cachedOut =
+        seams.gitLsFiles !== undefined
+          ? null
+          : execFileSync(
+              "git",
+              [
+                "ls-files",
+                "--cached",
+                "--",
+                ...silentGateLoss.map((entry) => entry.path),
+              ],
+              {
+                cwd: projectRoot,
+                encoding: "utf8",
+                stdio: ["ignore", "pipe", "ignore"],
+                windowsHide: true,
+              },
+            );
+      if (cachedOut !== null) {
+        cachedTraveling = travelingPaths(cachedOut);
+      }
     } catch {
-      // Record write is best-effort; warning copy still names the path.
+      cachedTraveling = null;
+    }
+    const shouldPersist =
+      cachedTraveling !== null &&
+      silentGateLoss.some((entry) => cachedTraveling.has(entry.path));
+    if (shouldPersist) {
+      try {
+        writeHookGateOffRecord(projectRoot, {
+          schema: "deft.hook-gate-off.v1",
+          recordedAt: new Date().toISOString(),
+          reason: "registration-travels-without-runtime",
+          silentGateLossHosts: silentGateLoss.map((entry) => entry.host),
+          travelingRegistrations: travelingRegistrations.map((entry) => entry.path),
+          detail:
+            "Non-fail-closed host hook registration travels without deft-hook; " +
+            "mutations fail open until the runtime is installed or host hooks are disabled (#5656).",
+        });
+      } catch {
+        // Record write is best-effort; warning copy still names the path.
+      }
     }
   }
   return {

@@ -973,6 +973,22 @@ export function inspectAgentHookDeposit(
     }
     try {
       const config = readConfig(absolute);
+      // #5656: Grok PreToolUse points at the wrapper script; missing wrapper is not healthy.
+      if (definition.host === "grok") {
+        const wrapperAbs = join(projectRoot, GROK_PRETOOLUSE_WRAPPER_REL_PATH);
+        if (!existsSync(wrapperAbs)) {
+          return {
+            host: definition.host,
+            path: definition.path,
+            status: "drifted",
+            compactSupport: definition.compactSupport,
+            detail:
+              `${GROK_PRETOOLUSE_WRAPPER_REL_PATH} is missing while ${definition.path} is registered. ` +
+              "Recovery: run `deft update` / `writeAgentHookDeposit` so the outer-deny wrapper is redeposited." +
+              compactNote,
+          };
+        }
+      }
       if (definition.valid(config)) {
         return {
           host: definition.host,

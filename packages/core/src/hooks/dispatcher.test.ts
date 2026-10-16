@@ -3709,8 +3709,52 @@ describe("runtime authority policy (#1394)", () => {
   it("commandHasGitCommitSubcommand recognizes common agent forms (#5656)", () => {
     expect(commandHasGitCommitSubcommand("git commit -m x")).toBe(true);
     expect(commandHasGitCommitSubcommand("GIT_EDITOR=true git -C /tmp/r commit -F msg")).toBe(true);
+    expect(commandHasGitCommitSubcommand("git status && git commit -m msg")).toBe(true);
+    expect(commandHasGitCommitSubcommand("git status; git commit -m msg")).toBe(true);
     expect(commandHasGitCommitSubcommand("git status")).toBe(false);
     expect(commandHasGitCommitSubcommand("echo commit")).toBe(false);
+  });
+
+  it("refuses git commit checkout retargets for prospective scope-cover (#5656)", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          tool_input: { command: "git -C /other/worktree commit -m msg" },
+        },
+      },
+      readySeams({
+        inspectScope: () => READY_SCOPE,
+        loadStoryWriteFence: () => ({ fileScope: ["src/**"], denyPaths: [] }),
+        listStagedRelPaths: () => [],
+      }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "prospective-scope-cover-deny" });
+    expect(decision.message).toMatch(/-C|--git-dir|--work-tree/);
+  });
+
+  it("prospective scope-cover includes staged deletions (#5656)", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          tool_input: { command: "git commit -m delete-out-of-scope" },
+        },
+      },
+      readySeams({
+        inspectScope: () => READY_SCOPE,
+        loadStoryWriteFence: () => ({ fileScope: ["src/**"], denyPaths: [] }),
+        listStagedRelPaths: () => ["docs/out.md"],
+      }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "prospective-scope-cover-deny" });
+    expect(decision.message).toMatch(/docs\/out\.md/);
   });
 
   it("allows path inside project+story intersection", () => {

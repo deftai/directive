@@ -892,6 +892,20 @@ describe("inspectAgentHookDeposit", () => {
     });
   });
 
+  it("marks grok drifted when the PreToolUse wrapper script is missing (#5656)", () => {
+    const root = project();
+    writeAgentHookDeposit(root);
+    const wrapper = join(root, ".grok/hooks/deft-pretooluse-wrapper.sh");
+    expect(existsSync(wrapper)).toBe(true);
+    rmSync(wrapper);
+    expect(inspectAgentHookDeposit(root).find((entry) => entry.host === "grok")).toMatchObject({
+      status: "drifted",
+    });
+    expect(inspectAgentHookDeposit(root).find((entry) => entry.host === "grok")?.detail).toMatch(
+      /deft-pretooluse-wrapper\.sh/,
+    );
+  });
+
   it("does not use write|search_replace exact-equality as the grok registration bar (#4574)", () => {
     const root = project();
     writeAgentHookDeposit(root);

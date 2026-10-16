@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, realpathSync } from "node:fs";
 import { basename, isAbsolute, join, relative, resolve, sep } from "node:path";
 import {
@@ -17,7 +18,6 @@ import {
 import { shellCommandHasPayloadRootProtectedDestAfterRealpath } from "../authz/protected-dest-realpath.js";
 import { prepareGithubOnlyDest } from "../design-critique/run-posture.js";
 import { runningInsideDeftRepo } from "../doctor/paths.js";
-import { gitStagedFiles } from "../encoding/git.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import { matchAny } from "../orchestration/pathspec.js";
@@ -2270,24 +2270,6 @@ function inspectMutationGates(
     }
   }
 
-  // #5656 Prefer-A Bound limb 2: positive governing story allow is mandatory for
-  // Write and implement-class spawn once a brief is selected. Deny-only /
-  // pathless / active-fence-alone do not admit. Outside-root #2885 fallthrough
-  // (scope not ready) must not hit this gate.
-  if (scope.ready && scope.path !== null) {
-    const loadFence = seams.loadStoryWriteFence ?? loadStoryWriteFenceFromMergeBase;
-    if (!selectedBriefHasPositiveGoverningAllow(effectiveRoot, scope.path, loadFence)) {
-      const denyCode = isSpawnTool(toolName) ? "spawn-not-ready" : "scope-not-ready";
-      return deny(
-        input,
-        denyCode,
-        toolName,
-        `${POSITIVE_GOVERNING_ALLOW_REQUIRED}${rootsNote}`,
-        scope.path,
-      );
-    }
-  }
-
   const allowCode = isSpawnTool(toolName) ? "spawn-ready" : "write-ready";
   // #1193: non-implement slash verbs must not authorize implement/spawn tooling.
   {
@@ -2296,6 +2278,28 @@ function inspectMutationGates(
       return deny(input, "intent-ceiling-deny", toolName, intent.reason);
     }
   }
+  // #5656 Prefer-A Bound limb 2: positive governing story allow is mandatory for
+  // Write and implement-class spawn once a brief is selected. Deny-only /
+  // pathless / active-fence-alone do not admit. Outside-root #2885 fallthrough
+  // (scope not ready) must not hit this gate.
+  // Write: authz (UAT) runs first so authz-* remains the visible code under an
+  // active UAT lease; positive-allow still denies pathless briefs when authz
+  // does not. Spawn: positive-allow before allow.
+  const requirePositiveGoverningAllow = (): HookDecision | null => {
+    if (!(scope.ready && scope.path !== null)) return null;
+    const loadFence = seams.loadStoryWriteFence ?? loadStoryWriteFenceFromMergeBase;
+    if (selectedBriefHasPositiveGoverningAllow(effectiveRoot, scope.path, loadFence)) {
+      return null;
+    }
+    const denyCode = isSpawnTool(toolName) ? "spawn-not-ready" : "scope-not-ready";
+    return deny(
+      input,
+      denyCode,
+      toolName,
+      `${POSITIVE_GOVERNING_ALLOW_REQUIRED}${rootsNote}`,
+      scope.path,
+    );
+  };
   if (!isSpawnTool(toolName)) {
     // Wave 1 authz (UAT lease + human-origin grant) before runtimeAuthority (#2944 / #2948 L1–L2).
     const authzDeny = authzForMutationTargets(input, toolName, seams, {
@@ -2305,6 +2309,8 @@ function inspectMutationGates(
       projectRoot,
     });
     if (authzDeny !== null) return authzDeny;
+    const positiveDeny = requirePositiveGoverningAllow();
+    if (positiveDeny !== null) return positiveDeny;
     const runtimeDeny = runtimeAuthorityForDirectWrite(
       input,
       toolName,
@@ -2316,6 +2322,9 @@ function inspectMutationGates(
     // Intentional product-write allow: Prefer-A durable marker (#5176 / #4544).
     const occupancyDeny = recheckOccupancyBeforeWriteAllow(true);
     if (occupancyDeny !== null) return occupancyDeny;
+  } else {
+    const positiveDeny = requirePositiveGoverningAllow();
+    if (positiveDeny !== null) return positiveDeny;
   }
   // #5386 limb 4: scope.warning is independent of occupancyWarning so spawn
   // allows (which skip recheckOccupancyBeforeWriteAllow) still surface it.
@@ -4253,10 +4262,94 @@ export function commandHasGitCommitSubcommand(command: string): boolean {
         i += 1;
         continue;
       }
-      return w.toLowerCase() === "commit";
+      // Non-commit git subcommands must not stop compound scanning (#5656):
+      // `git status && git commit` still needs the later commit part.
+      if (w.toLowerCase() === "commit") return true;
+      break;
     }
   }
   return false;
+}
+
+/**
+ * True when a Shell git commit retargets checkout via -C / --git-dir / --work-tree.
+ * Prospective scope-cover reads the index at projectRoot; refuse retargets (#5656).
+ */
+export function commandHasGitCommitCheckoutRetarget(command: string): boolean {
+  if (!commandHasGitCommitSubcommand(command)) return false;
+  const normalized = command.replace(/\r\n/g, "\n");
+  for (const part of normalized.split(/(?:&&|\|\||;|\n)/)) {
+    const words = part
+      .trim()
+      .split(/\s+/)
+      .filter((w) => w.length > 0);
+    let i = 0;
+    while (i < words.length) {
+      const envTok = words[i];
+      if (envTok === undefined || !/^[A-Za-z_][\w.]*=.*/.test(envTok)) break;
+      i++;
+    }
+    if (i >= words.length) continue;
+    const binTok = words[i];
+    if (binTok === undefined) continue;
+    const bin = binTok.replace(/^.*[/\\]/, "").toLowerCase();
+    if (bin !== "git" && bin !== "git.exe") continue;
+    i++;
+    let sawRetarget = false;
+    let sub: string | undefined;
+    while (i < words.length) {
+      const w = words[i];
+      if (w === undefined) break;
+      if (w === "-C" || w === "--git-dir" || w === "--work-tree") {
+        sawRetarget = true;
+        i += 2;
+        continue;
+      }
+      if (w.startsWith("--git-dir=") || w.startsWith("--work-tree=")) {
+        sawRetarget = true;
+        i += 1;
+        continue;
+      }
+      if (w === "-c" || (w.startsWith("-c") && w.includes("="))) {
+        i += w === "-c" ? 2 : 1;
+        continue;
+      }
+      if (w.startsWith("-") && w !== "--") {
+        i += 1;
+        continue;
+      }
+      sub = w.toLowerCase();
+      break;
+    }
+    if (sub === "commit" && sawRetarget) return true;
+  }
+  return false;
+}
+
+/** Staged index paths including deletions (ACMRD), project-relative POSIX. */
+export function listStagedRelPathsIncludingDeletes(projectRoot: string): string[] {
+  try {
+    const stdout = execFileSync(
+      "git",
+      ["diff", "--cached", "--name-only", "--diff-filter=ACMRD"],
+      {
+        cwd: projectRoot,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
+    return stdout
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+  } catch (err: unknown) {
+    const e = err as NodeJS.ErrnoException & { stderr?: string };
+    if (e.code === "ENOENT") {
+      throw new Error("'git' executable not found on PATH");
+    }
+    const stderr = typeof e.stderr === "string" ? e.stderr.trim() : String(e.message ?? err);
+    throw new Error(`git diff --cached --name-only failed: ${stderr}`);
+  }
 }
 
 /**
@@ -4270,10 +4363,20 @@ function decideProspectiveGitCommitScopeCover(
 ): HookDecision | null {
   const command = hookShellCommand(input.payload);
   if (command === null || !commandHasGitCommitSubcommand(command)) return null;
+  if (commandHasGitCommitCheckoutRetarget(command)) {
+    return deny(
+      input,
+      "prospective-scope-cover-deny",
+      toolName,
+      `Directive denied ${toolName}: git commit with -C/--git-dir/--work-tree retargets the checkout; ` +
+        "prospective scope-cover reads the index at the hook project root and refuses retargets (#5656). " +
+        "Run the commit in the scoped checkout without checkout-changing globals.",
+    );
+  }
   const projectRoot = resolve(input.projectRoot);
   let staged: readonly string[];
   try {
-    staged = (seams.listStagedRelPaths ?? gitStagedFiles)(projectRoot);
+    staged = (seams.listStagedRelPaths ?? listStagedRelPathsIncludingDeletes)(projectRoot);
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err);
     return deny(
