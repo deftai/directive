@@ -3435,7 +3435,13 @@ function attachLifecycleIdentityRewrite(
     depositSessionId: identity.sessionId,
     namedSessionId: lifecycle.sessionIdStatus === "present" ? (lifecycle.sessionId ?? null) : null,
   });
-  if (applyingAdmission.kind === "repair") {
+  // Confirmed occupancy:steal must reach stealOccupancy under the thief's
+  // verified identity; applying-host still naming the incumbent must not block
+  // that supported takeover (#5676 Greptile P1).
+  const stealConfirmBypass =
+    lifecycle.verb === "occupancy:steal" &&
+    (hookShellCommand(input.payload) ?? "").split(/\s+/).includes("--confirm");
+  if (applyingAdmission.kind === "repair" && !stealConfirmBypass) {
     return denyIdentity("occupancy-identity-conflict", applyingAdmission.message);
   }
   let liveOwnerBypass = false;
@@ -3445,11 +3451,11 @@ function attachLifecycleIdentityRewrite(
       // Applying-host was replaced by another SessionStart; keep live lease owner
       // on the rewrite path for heartbeat/release/session:end (#5676).
       liveOwnerBypass = true;
-    } else {
+    } else if (!stealConfirmBypass) {
       return denyIdentity("occupancy-identity-conflict", applyingAdmission.message);
     }
   }
-  const effectiveOwner = liveOwnerBypass
+  const effectiveOwner = liveOwnerBypass || stealConfirmBypass
     ? identity.sessionId
     : applyingAdmission.kind === "soft-pass" || applyingAdmission.kind === "enforce"
       ? applyingAdmission.record.applyingHostSessionId
