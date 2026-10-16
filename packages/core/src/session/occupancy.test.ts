@@ -4010,9 +4010,9 @@ describe("Harbor UUID lease vs declared host Prefer-A (#5544)", () => {
     const nested = join(root, "packages", "app");
     mkdirSync(nested, { recursive: true });
     const now = new Date("2026-10-16T12:00:00Z");
-    expect(applyWorktreeOccupancy(root, { sessionId: "owner-hook", now, intent: "mutation" }).action).toBe(
-      "claimed",
-    );
+    expect(
+      applyWorktreeOccupancy(root, { sessionId: "owner-hook", now, intent: "mutation" }).action,
+    ).toBe("claimed");
     const denied = evaluateOccupancyWriteGate(nested, {
       sessionId: "stranger-hook",
       now: new Date("2026-10-16T12:01:00Z"),
