@@ -231,7 +231,14 @@
       "preferABoundCite": 6050318913,
       "githubIssueNumber": 4892,
       "issueBody": "Parent: #3940\n\n## Finding\n\nThe always-on managed card cites ADR-003, and docs/decisions/ is absent from the packed deposit, so the consumer is sent to a decision record the install does not contain.\n\nSplit out of #3940 so the parent stays a tracker and this failure can be triaged on its own. A fix for the other findings on that report would not close this one.\n\n## Normalization\n\n- Promise: CONTINUITY\n- Priority: High (audit scale S2)\n- Source: #3940\n\n",
-      "productPullRequest": 5666
+      "productPullRequest": 5666,
+      "completionProvenance": {
+        "schema": "deft.completionProvenance.v1",
+        "mergeCommit": "1d9126a26daa5823d452bf80f6ac347a2e706590",
+        "productPullRequest": 5666,
+        "completedAt": "2026-10-16T05:32:52.619Z",
+        "deliveryBranch": "master"
+      }
     },
     "id": "github.issue.5540583613",
     "updated": "2026-10-08T12:18:05Z"
