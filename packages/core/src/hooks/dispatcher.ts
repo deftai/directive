@@ -78,6 +78,7 @@ import {
   formatOccupancyLeaseViewNote,
   occupancyPath,
   publishApplyingHost,
+  liveOccupant,
   publishApplyingHostFromCanonicalSessionId,
   resolveOccupancyLeaseRoot,
 } from "../session/occupancy.js";
@@ -3428,11 +3429,20 @@ function attachLifecycleIdentityRewrite(
   if (applyingAdmission.kind === "repair") {
     return denyIdentity("occupancy-identity-conflict", applyingAdmission.message);
   }
+  let liveOwnerBypass = false;
   if (applyingAdmission.kind === "foreign-owner") {
-    return denyIdentity("occupancy-identity-conflict", applyingAdmission.message);
+    const live = liveOccupant(resolve(input.projectRoot));
+    if (live !== null && live.sessionId === identity.sessionId) {
+      // Applying-host was replaced by another SessionStart; keep live lease owner
+      // on the rewrite path for heartbeat/release/session:end (#5676).
+      liveOwnerBypass = true;
+    } else {
+      return denyIdentity("occupancy-identity-conflict", applyingAdmission.message);
+    }
   }
-  const effectiveOwner =
-    applyingAdmission.kind === "soft-pass" || applyingAdmission.kind === "enforce"
+  const effectiveOwner = liveOwnerBypass
+    ? identity.sessionId
+    : applyingAdmission.kind === "soft-pass" || applyingAdmission.kind === "enforce"
       ? applyingAdmission.record.applyingHostSessionId
       : identity.sessionId;
   const environmentId = (input.environ ?? process.env).DEFT_SESSION_ID?.trim();

@@ -4258,7 +4258,7 @@ describe("applying-host record (#5676 Prefer-A)", () => {
     ).toMatchObject({ kind: "absent" });
   });
 
-  it("soft-passes live occupancy owner when applying-host was replaced (#5676 P1)", () => {
+  it("soft-passes named live occupancy owner when applying-host was replaced (#5676 P1)", () => {
     const root = mkdtempSync(join(tmpdir(), "applying-host-live-owner-"));
     ephemeralTemps.push(root);
     applyWorktreeOccupancy(root, {
@@ -4280,6 +4280,16 @@ describe("applying-host record (#5676 Prefer-A)", () => {
         now: new Date("2026-10-16T12:02:00Z"),
       }),
     ).toMatchObject({ kind: "soft-pass", reason: "live-lease-owner-cleanup" });
+    // Bare (unnamed) must not soft-pass — rewrite path should still inject --session-id.
+    expect(
+      evaluateApplyingHostLifecycleAdmission({
+        projectRoot: root,
+        depositHost: "cursor",
+        depositSessionId: CURSOR_OWNER,
+        namedSessionId: null,
+        now: new Date("2026-10-16T12:02:00Z"),
+      }).kind,
+    ).not.toBe("soft-pass");
   });
 
   it("isolates concurrent worktrees and replaces same-worktree claims", () => {

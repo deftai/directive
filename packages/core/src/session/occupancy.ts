@@ -686,13 +686,16 @@ export function evaluateApplyingHostLifecycleAdmission(input: {
     return { kind: "absent", record: null };
   }
   const record = read.record;
-  // Live occupancy owner must still heartbeat/release/session:end when a later
-  // SessionStart replaced applying-host (#5676 Greptile P1).
+  // Live occupancy owner cleanup when a later SessionStart replaced applying-host
+  // (#5676 Greptile P1). Only soft-pass when argv already names that live owner so
+  // bare commands still take the rewrite path (do not skip --session-id injection).
   const live = liveOccupant(input.projectRoot, input.now ?? new Date());
   const liveId = live?.sessionId ?? null;
+  const named = input.namedSessionId?.trim() || null;
   if (
     liveId !== null &&
-    (input.namedSessionId?.trim() === liveId || input.depositSessionId?.trim() === liveId)
+    record.applyingHostSessionId !== liveId &&
+    named === liveId
   ) {
     return {
       kind: "soft-pass",
@@ -715,7 +718,6 @@ export function evaluateApplyingHostLifecycleAdmission(input: {
       };
     }
   }
-  const named = input.namedSessionId?.trim() || null;
   const matchingDeposit = input.depositHost === record.provider;
   if (!matchingDeposit) {
     // Soft-pass only when argv already names applyingHostSessionId (#5676).
