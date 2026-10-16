@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { releaseOccupancy, resolveOccupancyLeaseRoot } from "@deftai/directive-core/session";
+import { releaseOccupancy } from "@deftai/directive-core/session";
 import { occupancyUnrecognizedArgument } from "./occupancy-unrecognized.js";
 
 /**
@@ -9,9 +9,10 @@ import { occupancyUnrecognizedArgument } from "./occupancy-unrecognized.js";
  * are unset metadata, not the lock cause. Does not reopen anonymous live
  * auto-release (#3954).
  *
- * #5544 Prefer-A P2: project-root resolves through resolveOccupancyLeaseRoot so
- * CLI release and the Write-hook effectiveRoot share one lease view for the
- * same worktree; denials / already-free print occupancyFile=.
+ * #5544 Prefer-A: pass the supplied --project-root through to releaseOccupancy
+ * so the consumer AGENTS.md header check stays at the project directory.
+ * Lease file / lock resolution stays inside releaseOccupancy (shared with the
+ * Write-hook lease view); denials / already-free print occupancyFile=.
  */
 export const ABANDONED_OCCUPANCY_LEASE_RECOVERY =
   "Abandoned live occupancy lease: bare session:end / occupancy:release without a presented " +
@@ -26,7 +27,7 @@ export function formatOccupancyReleaseHelp(): string {
     "Usage: deft occupancy:release [--project-root <path>] [--session-id <id>]",
     "",
     "Release this worktree occupancy lease (owner live, or expired residue).",
-    "project-root resolves to the Git worktree toplevel when available (same lease view as the Write hook).",
+    "Pass the consumer project directory as --project-root (header check uses it; lease file resolves to the Git toplevel when available).",
     "",
     ABANDONED_OCCUPANCY_LEASE_RECOVERY,
     "",
@@ -93,8 +94,9 @@ export function run(argv: readonly string[]): number {
     process.stdout.write(formatOccupancyReleaseHelp());
     return 0;
   }
-  const leaseRoot = resolveOccupancyLeaseRoot(args.projectRoot);
-  const result = releaseOccupancy(leaseRoot, {
+  // Keep the supplied project directory for the consumer header check; lease
+  // root resolution happens inside releaseOccupancy (#5544 Greptile P1).
+  const result = releaseOccupancy(args.projectRoot, {
     sessionId: args.sessionId,
     env: process.env,
   });
