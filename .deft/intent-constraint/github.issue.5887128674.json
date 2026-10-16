@@ -1,0 +1,20 @@
+{
+  "schema": "deft.intent-constraint.v1",
+  "planId": "github.issue.5887128674",
+  "xbriefRelPath": "xbrief/active/2026-10-16-5676-bugoccupancyhookscursor-foreign-uuid-lease-contradictory-hos.xbrief.json",
+  "approvedAt": "2026-10-16T19:19:28Z",
+  "constraints": [
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "operation"
+    }
+  ],
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-10-16T19:19:28Z",
+    "mintedVia": "in-harness-ask"
+  },
+  "contractDigest": "243adb912c99b551c8c75651a5bb349a1e8d99c886ec611c8aa56d6da09cc373"
+}
