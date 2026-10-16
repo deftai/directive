@@ -2202,6 +2202,35 @@ describe("ingest ownership exact identity (#4962 Prefer-A Bound)", () => {
     expect(classified?.[2]).toContain("already ingested at active/only.xbrief.json");
   });
 
+  it("does not double-count a promoted brief via stale proposed refs (#4962)", () => {
+    const root = mkdtempSync(join(tmpdir(), "4962-stale-ref-"));
+    const xbriefDir = join(root, "xbrief");
+    mkdirSync(join(xbriefDir, "pending"), { recursive: true });
+    writeFileSync(
+      join(xbriefDir, "pending", "moved.xbrief.json"),
+      `${JSON.stringify(ownedBrief(1))}\n`,
+    );
+    try {
+      const [result, path, msg] = ingestOne(
+        { number: 1, title: "moved", url: "https://github.com/o/r/issues/1" },
+        {
+          vbriefDir: xbriefDir,
+          status: "proposed",
+          repoUrl: "https://github.com/o/r",
+          cwd: root,
+          scmCall: () => completed("[]", "", 0),
+          // Stale pre-lock snapshot still naming the old proposed path.
+          existingRefs: new Map([[1, ["proposed/moved.xbrief.json"]]]),
+        },
+      );
+      expect(result).toBe("duplicate");
+      expect(path?.replace(/\\/g, "/")).toContain("pending/moved.xbrief.json");
+      expect(msg).toContain("already ingested at pending/moved.xbrief.json");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("refuses when refs and Origin owners compete (#4962)", () => {
     const root = mkdtempSync(join(tmpdir(), "4962-compete-"));
     const xbriefDir = join(root, "xbrief");
