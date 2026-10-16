@@ -171,7 +171,8 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "fa54a7bcc025777bb9d36a11528394dc3200799066f1d33ebacce8e2b0c4b344"
-      }
+      },
+      "productPullRequest": 5685
     },
     "acceptance": {
       "commands": [],
