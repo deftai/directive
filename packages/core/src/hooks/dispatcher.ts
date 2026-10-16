@@ -76,9 +76,9 @@ import {
   evaluateApplyingHostLifecycleAdmission,
   evaluateOccupancyWriteGate,
   formatOccupancyLeaseViewNote,
+  liveOccupant,
   occupancyPath,
   publishApplyingHost,
-  liveOccupant,
   publishApplyingHostFromCanonicalSessionId,
   resolveOccupancyLeaseRoot,
 } from "../session/occupancy.js";
