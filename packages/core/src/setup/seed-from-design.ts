@@ -664,23 +664,33 @@ export function seedFromDesignMain(argv: readonly string[]): number {
   };
   const encoded = `${JSON.stringify(payload, null, 2)}\n`;
   if (parsed.outPath !== undefined) {
-    // Resolve --out against project root so relative paths cannot bypass the
-    // artifact/input identity check when cwd differs from --project-root.
-    const outAbs = resolve(root, parsed.outPath);
-    if (sameResolvedPath(outAbs, artifactPath)) {
+    // --out / --from are cwd-relative (same as readFileSync). Also compare the
+    // project-rooted form so `xbrief/PROJECT-DEFINITION...` under --project-root
+    // cannot bypass the refuse when cwd differs from the project root.
+    const outCwd = resolve(parsed.outPath);
+    const outUnderRoot = resolve(root, parsed.outPath);
+    if (sameResolvedPath(outCwd, artifactPath) || sameResolvedPath(outUnderRoot, artifactPath)) {
       process.stderr.write(
         `refusing --out ${parsed.outPath}: resolves to PROJECT-DEFINITION; draft must not overwrite the authoritative artifact\n`,
       );
       return 2;
     }
     const inputPath = parsed.fromPath ?? parsed.answersPath;
-    if (inputPath !== undefined && sameResolvedPath(outAbs, resolve(root, inputPath))) {
-      process.stderr.write(
-        `refusing --out ${parsed.outPath}: resolves to the input file (${inputPath})\n`,
-      );
-      return 2;
+    if (inputPath !== undefined) {
+      const inputCwd = resolve(inputPath);
+      if (
+        sameResolvedPath(outCwd, inputCwd) ||
+        sameResolvedPath(outUnderRoot, inputCwd) ||
+        sameResolvedPath(outCwd, resolve(root, inputPath)) ||
+        sameResolvedPath(outUnderRoot, resolve(root, inputPath))
+      ) {
+        process.stderr.write(
+          `refusing --out ${parsed.outPath}: resolves to the input file (${inputPath})\n`,
+        );
+        return 2;
+      }
     }
-    writeFileSync(outAbs, encoded, "utf8");
+    writeFileSync(outCwd, encoded, "utf8");
     process.stdout.write(`wrote seed draft to ${parsed.outPath}\n`);
   } else {
     process.stdout.write(encoded);

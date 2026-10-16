@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -268,5 +268,25 @@ describe("setup:seed CLI draft-only (#4961)", () => {
 
     expect(seedFromDesignMain(["--project-root", root, "--from", design, "--out", design])).toBe(2);
     expect(readFileSync(design, "utf8")).toBe(SAMPLE_DOC);
+  });
+
+  it("refuses relative --out that matches cwd-relative --from when cwd differs from project-root", () => {
+    const root = tempDir();
+    const cwd = tempDir();
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    const designName = "design.md";
+    const designInCwd = join(cwd, designName);
+    writeFileSync(designInCwd, SAMPLE_DOC, "utf8");
+    const previous = process.cwd();
+    try {
+      process.chdir(cwd);
+      expect(
+        seedFromDesignMain(["--project-root", root, "--from", designName, "--out", designName]),
+      ).toBe(2);
+      expect(readFileSync(designInCwd, "utf8")).toBe(SAMPLE_DOC);
+      expect(existsSync(join(root, designName))).toBe(false);
+    } finally {
+      process.chdir(previous);
+    }
   });
 });
