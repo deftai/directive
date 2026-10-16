@@ -28,7 +28,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 ## Preconditions
 
 - ! Run only from a **consumer project** -- the filing path no-ops inside the directive maintainer repo
-- ! Filing requires `plan.policy.valueFeedback.upstreamPrompt` ON. If OFF, draft with `deft feedback:file -- --dry-run` / `--json` (title+body still print), then ask the operator to enable via `deft policy:enable-value-feedback -- --confirm --upstream-prompt`. If declined, STOP safely -- do not hand-edit PROJECT-DEFINITION.
+- ! Filing requires `plan.policy.valueFeedback.upstreamPrompt` ON. If OFF, draft with `deft feedback:file --dry-run` / `--json` (title+body still print), then ask the operator to enable via `deft policy:enable-value-feedback --confirm --upstream-prompt`. If declined, STOP safely -- do not hand-edit PROJECT-DEFINITION.
 - ! Inspect current state with `deft policy:show --field=valueFeedback`
 - ⊗ File upstream issues without explicit operator confirmation
 - ⊗ Treat handwritten typed-block / PROJECT-DEFINITION edits as the primary audited setter
@@ -49,10 +49,10 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## Phase 2 -- Draft + dedup
 
-- ! For each candidate report, run a dry draft (same argv values will be reused in Phase 3; confirmation adds only `--confirm`):
+- ! For each candidate report, run a dry draft (reuse the same report fields and target repo in Phase 3; confirmation adds `--confirm` and drops `--dry-run`/`--json`):
 
 ```bash
-deft feedback:file -- --summary "<one-line summary>" --context "<session context>" --expected "<expected>" --actual "<actual>" --notes "<optional>" [--blocker --flow "<flow and version>" --alternatives "<alts>" --recovery-cost "<cost>"] [--dry-run|--json]
+deft feedback:file --summary "<one-line summary>" --context "<session context>" --expected "<expected>" --actual "<actual>" --notes "<optional>" [--blocker --flow "<flow and version>" --alternatives "<alts>" --recovery-cost "<cost>"] [--dry-run|--json]
 ```
 
 - ! Read the printed draft title/body with the operator before proceeding
@@ -63,10 +63,10 @@ deft feedback:file -- --summary "<one-line summary>" --context "<session context
 ## Phase 3 -- Confirm + file
 
 - ! Present the final draft and ask for explicit yes/no confirmation
-- ! Only after approval, re-run the **exact same draft inputs and target repo** with `--confirm` added (no other argv changes):
+- ! Only after approval, re-run the **same report fields and target repo** with `--confirm` added and without `--dry-run` or `--json`:
 
 ```bash
-deft feedback:file -- --summary "<one-line summary>" --context "<session context>" --expected "<expected>" --actual "<actual>" --confirm [--blocker]
+deft feedback:file --summary "<one-line summary>" --context "<session context>" --expected "<expected>" --actual "<actual>" --confirm [--blocker]
 ```
 
 - ! Print the filed issue URL to the operator

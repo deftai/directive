@@ -361,8 +361,7 @@ describe("run show + set integration", async () => {
         policy?: { valueFeedback?: { upstreamPrompt: boolean } };
       };
     };
-    const block =
-      raw.plan["x-directive/policy"]?.valueFeedback ?? raw.plan.policy?.valueFeedback;
+    const block = raw.plan["x-directive/policy"]?.valueFeedback ?? raw.plan.policy?.valueFeedback;
     expect(block?.upstreamPrompt).toBe(false);
   });
 
@@ -398,8 +397,7 @@ describe("run show + set integration", async () => {
         policy?: { valueFeedback?: { upstreamPrompt: boolean } };
       };
     };
-    const block =
-      raw.plan["x-directive/policy"]?.valueFeedback ?? raw.plan.policy?.valueFeedback;
+    const block = raw.plan["x-directive/policy"]?.valueFeedback ?? raw.plan.policy?.valueFeedback;
     expect(block?.upstreamPrompt).toBe(true);
   });
 

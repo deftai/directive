@@ -68,15 +68,15 @@ cannot break the markdown skeleton.
 
 ## Draft → confirm
 
-1. Draft / readout: `deft feedback:file -- --summary "…" …` (optional
+1. Draft / readout: `deft feedback:file --summary "…" …` (optional
    `--dry-run` / `--json`). Gate-OFF still returns title+body for template
    readout; filing stays blocked until consent.
 2. Enable upstream path when needed:
-   `deft policy:enable-value-feedback -- --confirm --upstream-prompt`
+   `deft policy:enable-value-feedback --confirm --upstream-prompt`
    (audited setter; bare `--confirm` does not silently enable
    `upstreamPrompt`). ⊗ Hand-edit PROJECT-DEFINITION as the primary setter.
-3. Confirm: re-run the **exact same draft inputs and target repo** with only
-   `--confirm` added.
+3. Confirm: re-run the **same report fields and target repo** with `--confirm`
+   added and without `--dry-run` or `--json`.
 
 ## Related
 
