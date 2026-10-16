@@ -401,9 +401,7 @@ describe("non-fencing partition for unpinned multi-eligible (#4880 Prefer-A C')"
       selectedBriefHasPositiveGoverningAllow(project, pathless, loadStoryWriteFenceFromPath),
     ).toBe(false);
     expect(hasPositiveGoverningStoryAllow({ fileScope: [], denyPaths: [] })).toBe(false);
-    expect(
-      hasPositiveGoverningStoryAllow({ fileScope: [], denyPaths: ["docs/**"] }),
-    ).toBe(false);
+    expect(hasPositiveGoverningStoryAllow({ fileScope: [], denyPaths: ["docs/**"] })).toBe(false);
     expect(hasPositiveGoverningStoryAllow({ fileScope: ["src/**"], denyPaths: [] })).toBe(true);
     expect(governingAllowCoversRelPath({ fileScope: ["src/**"], denyPaths: [] }, "src/a.ts")).toBe(
       true,

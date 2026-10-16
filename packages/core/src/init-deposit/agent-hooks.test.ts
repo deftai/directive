@@ -4,6 +4,7 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
+  statSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
@@ -31,6 +32,7 @@ import {
   GROK_PRETOOLUSE_WRAPPER_REL_PATH,
   GROK_WRAPPER_DENY_MISSING,
   GROK_WRAPPER_DENY_NONDECISION,
+  grokPretooluseWrapperScriptSource,
   inspectAgentHookDeposit,
   inspectSessionStartNotice,
   MCP_HOOK_MATCHER,
@@ -83,6 +85,9 @@ describe("writeAgentHookDeposit", () => {
       "deft-hook",
     );
     expect(readFileSync(join(root, GROK_PRETOOLUSE_WRAPPER_REL_PATH), "utf8")).toContain("#5656");
+    if (process.platform !== "win32") {
+      expect(statSync(join(root, GROK_PRETOOLUSE_WRAPPER_REL_PATH)).mode & 0o111).not.toBe(0);
+    }
     expect(readFileSync(join(root, ".cursor/hooks.json"), "utf8")).toContain(
       "--host cursor --event tool.before",
     );
@@ -1060,6 +1065,24 @@ describe("evaluateGrokPretooluseWrapperOutcome (#5656)", () => {
         childStdout: "not-json",
       }),
     ).toEqual({ kind: "deny", reason: GROK_WRAPPER_DENY_NONDECISION });
+  });
+
+  it("denies truncated decision JSON that is not parseable (#5656)", () => {
+    expect(
+      evaluateGrokPretooluseWrapperOutcome({
+        deftHookResolvable: true,
+        childExitCode: 0,
+        childStdout: '{"decision":"deny"',
+      }),
+    ).toEqual({ kind: "deny", reason: GROK_WRAPPER_DENY_NONDECISION });
+  });
+
+  it("wrapper script catches mktemp failure and uses node JSON parse (#5656)", () => {
+    const src = grokPretooluseWrapperScriptSource();
+    expect(src).toContain("TMP=$(mktemp) || { printf");
+    expect(src).toContain("command -v node");
+    expect(src).toContain("JSON.parse");
+    expect(src).not.toMatch(/\*'"decision":"allow"'/);
   });
 
   it("passthrough valid deny envelopes", () => {

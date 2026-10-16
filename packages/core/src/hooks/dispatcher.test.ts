@@ -42,8 +42,10 @@ import {
   CURSOR_SESSION_START_PLANNING_LINE,
   CURSOR_TASK_SPAWN_CLASS_RECOVERY,
   CURSOR_TASK_SPAWN_READ_ONLY_RECOVERY,
+  commandHasGitCommitSubcommand,
   DIRECT_WRITE_TOOL_NAMES,
   decideHook,
+  evaluateProspectiveScopeCover,
   HOOK_HOSTS,
   type HookDecision,
   type HookHost,
@@ -65,10 +67,9 @@ import {
   isShellTool,
   isSpawnTool,
   normalizeHookProjectRoot,
+  POSITIVE_GOVERNING_ALLOW_REQUIRED,
   projectRootFromHookPayload,
   READ_ONLY_HOOK_ENV,
-  evaluateProspectiveScopeCover,
-  POSITIVE_GOVERNING_ALLOW_REQUIRED,
   renderHostDecision,
   SPAWN_TOOL_NAMES,
 } from "./index.js";
@@ -3680,6 +3681,36 @@ describe("runtime authority policy (#1394)", () => {
       env: {},
     });
     expect(denyOnly.ok).toBe(false);
+  });
+
+  it("Shell git commit denies when staged paths fail prospective scope-cover (#5656)", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          tool_input: { command: "git commit -m msg" },
+        },
+      },
+      {
+        ...readySeams({
+          inspectScope: () => READY_SCOPE,
+          loadStoryWriteFence: () => ({ fileScope: ["src/**"], denyPaths: [] }),
+          listStagedRelPaths: () => ["src/a.ts", "docs/out.md"],
+        }),
+      },
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "prospective-scope-cover-deny" });
+    expect(decision.message).toMatch(/docs\/out\.md/);
+  });
+
+  it("commandHasGitCommitSubcommand recognizes common agent forms (#5656)", () => {
+    expect(commandHasGitCommitSubcommand("git commit -m x")).toBe(true);
+    expect(commandHasGitCommitSubcommand("GIT_EDITOR=true git -C /tmp/r commit -F msg")).toBe(true);
+    expect(commandHasGitCommitSubcommand("git status")).toBe(false);
+    expect(commandHasGitCommitSubcommand("echo commit")).toBe(false);
   });
 
   it("allows path inside project+story intersection", () => {

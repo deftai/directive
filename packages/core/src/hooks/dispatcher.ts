@@ -17,6 +17,7 @@ import {
 import { shellCommandHasPayloadRootProtectedDestAfterRealpath } from "../authz/protected-dest-realpath.js";
 import { prepareGithubOnlyDest } from "../design-critique/run-posture.js";
 import { runningInsideDeftRepo } from "../doctor/paths.js";
+import { gitStagedFiles } from "../encoding/git.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import { matchAny } from "../orchestration/pathspec.js";
@@ -326,6 +327,8 @@ export type HookDecisionCode =
   | "git-destructive-deny"
   /** Tree-wide destructive git aimed at an absolute out-of-root fixture. Tracking #3917. */
   | "git-destructive-fixture"
+  /** Shell git commit staged paths outside governing file_scope (#5656 limb 3). */
+  | "prospective-scope-cover-deny"
   | "plan-choice-allow-non-plan"
   | "plan-choice-question"
   | "plan-choice-selected-receipt"
@@ -582,6 +585,11 @@ export interface HookPolicySeams {
     payload: unknown;
     environ: NodeJS.ProcessEnv;
   }) => string;
+  /**
+   * Test seam for #5656 prospective git-commit scope-cover staged paths.
+   * Defaults to `git diff --cached --name-only`.
+   */
+  readonly listStagedRelPaths?: (projectRoot: string) => readonly string[];
 }
 
 /** POSIX-ish project-relative path for lifecycle matching. */
@@ -4041,6 +4049,15 @@ function routeHookDecision(
         attachLifecycleIdentityRewrite(shellInput, shellToolName, destructive, seams),
       );
     }
+    const prospective = decideProspectiveGitCommitScopeCover(shellInput, shellToolName, seams);
+    if (prospective !== null) {
+      return remapProxyShellUpdatedInput(
+        input.payload,
+        toolName,
+        shellProxyUnwrap,
+        attachLifecycleIdentityRewrite(shellInput, shellToolName, prospective, seams),
+      );
+    }
     const writeReissue = decideShellWriteReissue(shellInput, shellToolName, seams, observation);
     if (writeReissue !== null) {
       return remapProxyShellUpdatedInput(
@@ -4191,6 +4208,90 @@ function composeCursorSessionStartAdditionalContext(
     return undefined;
   }
   return parts.join("\n\n");
+}
+
+/**
+ * Detect `git commit` as the git subcommand in a Shell command string (#5656).
+ * Handles common agent forms (env prefixes, -C/-c globals, &&/; compounds).
+ * Obscured forms remain a hooks-installed / `--no-verify` residual.
+ */
+export function commandHasGitCommitSubcommand(command: string): boolean {
+  const normalized = command.replace(/\r\n/g, "\n");
+  for (const part of normalized.split(/(?:&&|\|\||;|\n)/)) {
+    const words = part
+      .trim()
+      .split(/\s+/)
+      .filter((w) => w.length > 0);
+    let i = 0;
+    while (i < words.length) {
+      const envTok = words[i];
+      if (envTok === undefined || !/^[A-Za-z_][\w.]*=.*/.test(envTok)) break;
+      i++;
+    }
+    if (i >= words.length) continue;
+    const binTok = words[i];
+    if (binTok === undefined) continue;
+    const bin = binTok.replace(/^.*[/\\]/, "").toLowerCase();
+    if (bin !== "git" && bin !== "git.exe") continue;
+    i++;
+    while (i < words.length) {
+      const w = words[i];
+      if (w === undefined) break;
+      if (w === "-C" || w === "-c" || w === "--git-dir" || w === "--work-tree") {
+        i += 2;
+        continue;
+      }
+      if (
+        w.startsWith("--git-dir=") ||
+        w.startsWith("--work-tree=") ||
+        (w.startsWith("-c") && w.includes("="))
+      ) {
+        i += 1;
+        continue;
+      }
+      if (w.startsWith("-") && w !== "--") {
+        i += 1;
+        continue;
+      }
+      return w.toLowerCase() === "commit";
+    }
+  }
+  return false;
+}
+
+/**
+ * Shell `git commit` → prospective staged/index scope-cover (#5656 limb 3).
+ * Returns deny when cover fails; null when the command is not a git commit.
+ */
+function decideProspectiveGitCommitScopeCover(
+  input: HookDispatchInput,
+  toolName: string,
+  seams: HookPolicySeams,
+): HookDecision | null {
+  const command = hookShellCommand(input.payload);
+  if (command === null || !commandHasGitCommitSubcommand(command)) return null;
+  const projectRoot = resolve(input.projectRoot);
+  let staged: readonly string[];
+  try {
+    staged = (seams.listStagedRelPaths ?? gitStagedFiles)(projectRoot);
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    return deny(
+      input,
+      "prospective-scope-cover-deny",
+      toolName,
+      `Directive denied ${toolName}: prospective scope-cover could not list staged paths (#5656). ${detail}`,
+    );
+  }
+  const cover = evaluateProspectiveScopeCover({
+    projectRoot,
+    stagedRelPaths: staged,
+    inspectScope: seams.inspectScope,
+    loadStoryWriteFence: seams.loadStoryWriteFence,
+    env: input.environ ?? process.env,
+  });
+  if (cover.ok) return null;
+  return deny(input, "prospective-scope-cover-deny", toolName, cover.message);
 }
 
 /**

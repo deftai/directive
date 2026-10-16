@@ -29,8 +29,8 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { containedMkdir, containedWrite } from "../fs/contained-write.js";
 import {
   disableHostHooksInvocation,
   type HookHost,
@@ -329,14 +329,17 @@ export interface HookGateOffRecord {
  * Write durable operator-visible gate-off record when non-fail-closed hosts
  * would silently lose the gate (#5656 Prefer-A Bound limb 1).
  */
-export function writeHookGateOffRecord(
-  projectRoot: string,
-  record: HookGateOffRecord,
-): string {
+export function writeHookGateOffRecord(projectRoot: string, record: HookGateOffRecord): string {
   const root = resolve(projectRoot);
   const abs = join(root, HOOK_GATE_OFF_REL_PATH);
-  mkdirSync(join(root, ".deft"), { recursive: true });
-  writeFileSync(abs, `${JSON.stringify(record, null, 2)}\n`, "utf8");
+  containedMkdir({ root, target: join(root, ".deft") });
+  containedWrite({
+    root,
+    target: abs,
+    data: `${JSON.stringify(record, null, 2)}\n`,
+    mode: "replace",
+    mutation: { kind: "wrote", path: HOOK_GATE_OFF_REL_PATH },
+  });
   return abs;
 }
 

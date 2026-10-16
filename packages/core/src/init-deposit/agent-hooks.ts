@@ -1,7 +1,12 @@
 import { existsSync, readFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { assertDepositContained } from "../deposit/contain.js";
-import { containedRemove, containedRename, containedWrite } from "../fs/contained-write.js";
+import {
+  containedChmod,
+  containedRemove,
+  containedRename,
+  containedWrite,
+} from "../fs/contained-write.js";
 import type { HookEvent, HookHost } from "../hooks/dispatcher.js";
 import {
   DIRECT_WRITE_HOOK_MATCHER,
@@ -120,12 +125,13 @@ export function grokPretooluseWrapperScriptSource(): string {
     "",
     "HOOK_BIN=$(resolve_deft_hook || true)",
     'if [ -z "${HOOK_BIN}" ] || [ ! -x "${HOOK_BIN}" ]; then',
-    '  printf \'%s\\n\' "$DENY_MISSING"',
+    "  printf '%s\\n' \"$DENY_MISSING\"",
     "  exit 0",
     "fi",
     "",
-    "TMP=$(mktemp)",
-    'trap \'rm -f "$TMP"\' EXIT INT HUP TERM',
+    // mktemp failure under set -e would exit with no deny envelope (#5656 Greptile P1).
+    "TMP=$(mktemp) || { printf '%s\\n' \"$DENY_NONDECISION\"; exit 0; }",
+    "trap 'rm -f \"$TMP\"' EXIT INT HUP TERM",
     "set +e",
     '"$HOOK_BIN" --host grok --event tool.before >"$TMP"',
     "CODE=$?",
@@ -133,7 +139,7 @@ export function grokPretooluseWrapperScriptSource(): string {
     'OUT=$(cat "$TMP" || true)',
     "",
     'if [ "$CODE" -ne 0 ]; then',
-    '  printf \'%s\\n\' "$DENY_NONDECISION"',
+    "  printf '%s\\n' \"$DENY_NONDECISION\"",
     "  exit 0",
     "fi",
     "",
@@ -143,14 +149,22 @@ export function grokPretooluseWrapperScriptSource(): string {
     "  exit 0",
     "fi",
     "",
-    'case "$TRIMMED" in',
-    `  *'"decision":"allow"'*|*'\"decision\": \"allow\"'*|*'\"decision\":\"deny\"'*|*'\"decision\": \"deny\"'*)`,
-    '    printf \'%s\\n\' "$OUT"',
+    // Mirror evaluateGrokPretooluseWrapperOutcome: require parseable top-level
+    // decision allow|deny. Substring match alone left truncated JSON fail-open.
+    "if command -v node >/dev/null 2>&1; then",
+    "  if printf '%s' \"$TRIMMED\" | node -e " +
+      '\'let s="";process.stdin.on("data",d=>s+=d);process.stdin.on("end",()=>{' +
+      'try{const j=JSON.parse(s);if(!j||typeof j!=="object"||Array.isArray(j))' +
+      'process.exit(1);const d=j.decision;if(d!=="allow"&&d!=="deny")process.exit(1);' +
+      "process.exit(0)}catch{process.exit(1)}});'; then",
+    "    printf '%s\\n' \"$OUT\"",
     "    exit 0",
-    "    ;;",
-    "esac",
-    "# Malformed non-empty stdout → deny (non-decision).",
-    'printf \'%s\\n\' "$DENY_NONDECISION"',
+    "  fi",
+    "  printf '%s\\n' \"$DENY_NONDECISION\"",
+    "  exit 0",
+    "fi",
+    "# No node parser available: non-empty stdout without JSON validation → deny.",
+    "printf '%s\\n' \"$DENY_NONDECISION\"",
     "exit 0",
     "",
   ];
@@ -634,9 +648,24 @@ export function writeAgentHookDeposit(
         mode: "replace",
         mutation: { kind: "wrote", path: GROK_PRETOOLUSE_WRAPPER_REL_PATH },
       });
+      // containedWrite opens 0o644; nestedToolCommand invokes the script directly.
+      containedChmod({
+        root: resolve(projectRoot),
+        target: grokWrapperAbs,
+        mode: 0o755,
+        mutation: { path: GROK_PRETOOLUSE_WRAPPER_REL_PATH },
+      });
       if (!changedPaths.includes(AGENT_HOOK_PATHS[1])) {
         changedPaths.push(AGENT_HOOK_PATHS[1]);
       }
+    } else if (existsSync(grokWrapperAbs)) {
+      // Refresh execute bit on already-current body (fresh POSIX clones / 0o644).
+      containedChmod({
+        root: resolve(projectRoot),
+        target: grokWrapperAbs,
+        mode: 0o755,
+        mutation: { path: GROK_PRETOOLUSE_WRAPPER_REL_PATH },
+      });
     }
   } else if (existsSync(grokWrapperAbs)) {
     if (

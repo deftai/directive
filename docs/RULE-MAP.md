@@ -149,7 +149,7 @@ _Explanatory docs and the framework glossary._
 - `good-agents-md.md` — **Source**: https://x.com/augmentcode/status/2047164534310494709 **Author**: Slava Zhenylenko (Member of Technical Staff, Augment Code) **Published**: 2026-04-23
 - `grok-build-subscription-setup.md` — Agent-facing playbook for a new maintainer. Paste this file (or issue [#4035](https://github.com/deftai/directive/issues/4035)) and say: follow this playbook. The human completes browser logins when the agent stops.
 - `hook-root-admission.md` — Every PreToolUse mutation carries **two** roots, and they are not interchangeable:
-- `hook-runtime-unavailable.md` — On a host that cannot execute `deft-hook`, the Cursor `preToolUse` registration is `failClosed: true`, so **every mutation is denied** — and because the binary never runs, no Directive code is left to say why. The visible symptom is an…
+- `hook-runtime-unavailable.md` — Host behavior when `deft-hook` cannot run is **not universal**. Cursor and Grok deny; Claude and Codex silently lose the gate.
 - `host-surface-assumptions.md` — Directive control surfaces assume two host behaviors that **some** modern agent hosts break by design.
 - `host-tool-surface-audit.md` — The PreToolUse write gate only runs on tool names the host's deposited matcher selects. A name nobody listed is not a permissive policy — it is a gate that never executes. #3987 was exactly that: Grok Build's shell tool…
 - `intent-constraint.md` — Refs: #4541 · Related: [scope-provenance.md](../content/docs/scope-provenance.md) (#3145), [gate-integrity.md](../content/docs/gate-integrity.md) (#3156), [observable-scope.md](../content/docs/observable-scope.md) (#4495)

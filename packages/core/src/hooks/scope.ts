@@ -10,6 +10,7 @@ import {
 } from "../policy/write-fence.js";
 import { evaluate } from "../preflight/evaluate.js";
 import { fenceUntrustedAcceptanceText } from "../scope/acceptance-evidence.js";
+
 export { hasPositiveGoverningStoryAllow } from "../policy/write-fence.js";
 
 /**

@@ -68,6 +68,8 @@ describe("installer-managed allowlist (#1576)", () => {
   it("treats Taskfile.yml as installer-managed", () => {
     expect(isInstallerManagedPath("Taskfile.yml")).toBe(true);
     expect(installerManagedGuardEre()).toContain("Taskfile\\.yml");
+    expect(isInstallerManagedPath(".grok/hooks/deft-pretooluse-wrapper.sh")).toBe(true);
+    expect(installerManagedGuardEre()).toContain("deft-pretooluse-wrapper\\.sh");
   });
 
   it("allowlists and stages the project-scoped Codex hook deposit", () => {
