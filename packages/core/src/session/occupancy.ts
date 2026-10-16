@@ -505,10 +505,7 @@ function parseApplyingHostPayload(payload: unknown): ApplyingHostRecord | null {
 }
 
 /** Read the worktree applying-host record (#5676). */
-export function readApplyingHost(
-  projectRoot: string,
-  now: Date = new Date(),
-): ApplyingHostRead {
+export function readApplyingHost(projectRoot: string, now: Date = new Date()): ApplyingHostRead {
   const path = applyingHostPath(projectRoot);
   try {
     if (!existsSync(path)) return { status: "missing", record: null };
@@ -522,7 +519,8 @@ export function readApplyingHost(
     return {
       status: "invalid",
       record: null,
-      message: "applying-host record is unreadable; republish via SessionStart or read-only session:start",
+      message:
+        "applying-host record is unreadable; republish via SessionStart or read-only session:start",
     };
   }
   const record = parseApplyingHostPayload(payload);
