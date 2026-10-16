@@ -1,0 +1,216 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5676",
+    "updated": "2026-10-16T17:00:36Z"
+  },
+  "plan": {
+    "title": "bug(occupancy,hooks,cursor): foreign UUID lease + contradictory host owner on session:start (ProjectMON 0.125.2 dogfood)",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(occupancy,hooks,cursor): foreign UUID lease + contradictory host owner on session:start (ProjectMON 0.125.2 dogfood)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5676",
+      "Overview": "Prefer-A Recut-5 6220170211: SessionStart publishes applying-host record before Shell PreToolUse; idempotent printed applyingHostSessionId remediation; leftover GROK_SESSION_ID must not remap Cursor to host:claude; UUID leftovers deferred to #5544. Tracking/Refs only.",
+      "Labels": "bug, agent-experience, process, source-of-truth, urgent, area:cli, dogfood, status:child, design-critique:ingest-ready, framework-gap, core-capabilities, promise:lifecycle, promise:gates"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Publish worktree-scoped applying-host record on SessionStart before Shell PreToolUse with provider raw id applyingHostSessionId and claimed_at.",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/hooks/dispatcher.ts",
+        "narrative": {
+          "Acceptance": "Publish worktree-scoped applying-host record on SessionStart before Shell PreToolUse with provider raw id applyingHostSessionId and claimed_at."
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Bootstrap and repair: reconnect SessionStart and/or read-only session start may write the applying-host record without a prior record; mutation rearm republishes as reinforcement.",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/cli/src/session-start.ts",
+        "narrative": {
+          "Acceptance": "Bootstrap and repair: reconnect SessionStart and/or read-only session start may write the applying-host record without a prior record; mutation rearm republishes as reinforcement."
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Idempotent printed applyingHostSessionId remediation clears identity contradiction across participating adapters on immediate re-run without opposite host prefix.",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/session/occupancy.ts",
+        "narrative": {
+          "Acceptance": "Idempotent printed applyingHostSessionId remediation clears identity contradiction across participating adapters on immediate re-run without opposite host prefix."
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Leftover GROK_SESSION_ID alone must not remap Cursor lifecycle to host claude; preserve genuine GROK_HOOK_EVENT Claude-grok; applying-host record distinguishes native Cursor from compat transport.",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/hooks/dispatcher.ts",
+        "narrative": {
+          "Acceptance": "Leftover GROK_SESSION_ID alone must not remap Cursor lifecycle to host claude; preserve genuine GROK_HOOK_EVENT Claude-grok; applying-host record distinguishes native Cursor from compat transport."
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Composed re-arm walk: missing or stale record then SessionStart publication then mutation retry then gated ritual then later applying-host admission; UUID residual deferred to 5544.",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/session/occupancy.ts",
+        "narrative": {
+          "Acceptance": "Composed re-arm walk: missing or stale record then SessionStart publication then mutation retry then gated ritual then later applying-host admission; UUID residual deferred to 5544."
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "Ship CHANGELOG Unreleased note for applying-host SessionStart Prefer-A Bound.",
+        "status": "pending",
+        "x-directive/artifact_path": "CHANGELOG.md",
+        "narrative": {
+          "Acceptance": "Ship CHANGELOG Unreleased note for applying-host SessionStart Prefer-A Bound."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "urgent",
+      "area:cli",
+      "dogfood",
+      "status:child",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:lifecycle",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5676",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5676: bug(occupancy,hooks,cursor): foreign UUID lease + contradictory host owner on session:start (ProjectMON 0.125.2 dogfood)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Publish worktree-scoped applying-host record on SessionStart before Shell PreToolUse with provider raw id applyingHostSessionId and claimed_at.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Bootstrap and repair: reconnect SessionStart and/or read-only session start may write the applying-host record without a prior record; mutation rearm republishes as reinforcement.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Idempotent printed applyingHostSessionId remediation clears identity contradiction across participating adapters on immediate re-run without opposite host prefix.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Leftover GROK_SESSION_ID alone must not remap Cursor lifecycle to host claude; preserve genuine GROK_HOOK_EVENT Claude-grok; applying-host record distinguishes native Cursor from compat transport.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Composed re-arm walk: missing or stale record then SessionStart publication then mutation retry then gated ritual then later applying-host admission; UUID residual deferred to 5544.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Ship CHANGELOG Unreleased note for applying-host SessionStart Prefer-A Bound.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "source_rung": "derived",
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/session/occupancy.ts",
+          "packages/core/src/session/occupancy.test.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "packages/cli/src/session-start.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "applying-host SessionStart record before Shell PreToolUse",
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #5676 Prefer-A Bound."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5887128674,
+        "origin": "deftai/directive#5676",
+        "id": "github.issue.5887128674"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "251ec6b1abdf2a8616bf218abb4962656a7c63a0ad728754bbfe98a14034bfba"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "cursor-claude-session-start-host-owner-flipflop",
+        "expected_outputs": [
+          "Tracking PR for #5676 Prefer-A Bound applying-host SessionStart record"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/session packages/core/src/hooks/dispatcher"
+        ],
+        "file_scope": [
+          "packages/core/src/session/occupancy.ts",
+          "packages/core/src/session/occupancy.test.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "packages/cli/src/session-start.ts",
+          "CHANGELOG.md"
+        ],
+        "size": "L",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5676",
+          "#5544",
+          "#4708",
+          "#4660"
+        ],
+        "parallel_safe": true
+      }
+    },
+    "id": "github.issue.5887128674",
+    "updated": "2026-10-16T17:00:36Z",
+    "x-directive/intentConstraint": {
+      "schema": "deft.intent-constraint.v1",
+      "constraints": [
+        {
+          "value": "invariant",
+          "unit": "throw-site",
+          "rejectionScope": "operation",
+          "path": "packages/core/src/session/occupancy.ts",
+          "note": "publishApplyingHost: rawSessionId is not a usable host session id after isUsableHostSessionId validation"
+        }
+      ]
+    }
+  }
+}
