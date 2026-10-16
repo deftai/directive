@@ -104,7 +104,7 @@ Same as managed below; `task verify:story-ready`, `task scope:promote -- <path>`
 
 ## Contextual guardrails (runtime-detect lazy-load)
 
-Same as managed below; `task verify:encoding`, `task verify:scm-boundary`, `task pr:wait-mergeable-and-merge`; `content/scm/github.md` (#2157 / #2369).
+Same as managed below; `task verify:encoding`, `task verify:scm-boundary`, `task pr:wait-mergeable-and-merge`; three-axis `#4888` (`evaluateSemanticGreen` + pre-pr `task check`); `content/scm/github.md` (#2157 / #2369).
 
 ## Headless swarm launch gate-stack (#1387)
 
@@ -166,7 +166,7 @@ Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after 
 
 <!-- placeholder -->
 
-<!-- deft:managed-section v3 sha=6c6eaa9390b5 refreshed=2026-10-16T03:46:15Z session=0321cff7fc33 -->
+<!-- deft:managed-section v3 sha=dfc629283021 refreshed=2026-10-16T06:54:44Z session=af94abbb8aa1 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
