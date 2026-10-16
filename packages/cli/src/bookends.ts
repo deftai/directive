@@ -48,6 +48,7 @@ import {
   presentAmbiguousYes,
   presentFirstInstallPlan,
   presentInstallSuccess,
+  presentMigrateFailedAfterUpgrade,
   presentPathSummary,
   presentRepairPlan,
   presentRepairSuccess,
@@ -906,13 +907,14 @@ function handOffMigrate(opts: {
       argv,
       stdio: "pipe",
     });
-  // Caller presents combined upgrade success; suppress default dump on success.
-  let summary: SetupSummary | null = null;
-  if (result.exitCode === 0) {
-    reportInvokeStderr(opts.io, result);
-    summary = tryParseSetupSummary(result.stdout);
-  } else {
-    summary = reportJsonSummary(opts.io, "migrate", result, opts.verbosity);
+  // Success: caller presents combined upgrade report. Failure: caller presents
+  // AC14.18 shape at default verbosity (do not dump message-only here).
+  reportInvokeStderr(opts.io, result);
+  const summary = tryParseSetupSummary(result.stdout);
+  if (result.exitCode !== 0 && opts.verbosity >= 1 && summary) {
+    presentPathSummary(opts.io, "migrate", summary, opts.verbosity);
+  } else if (result.exitCode !== 0 && !summary && result.stdout) {
+    opts.io.writeOut(result.stdout.endsWith("\n") ? result.stdout : `${result.stdout}\n`);
   }
   return { exitCode: result.exitCode, summary };
 }
@@ -1284,10 +1286,11 @@ export function runUpgrade(
       verbosity: flags.verbosity,
     });
     if (migrateResult.exitCode !== 0) {
-      io.writeErr(
-        `Pin and lockfile now reference ${RUNTIME_PACKAGE_NAME}@${targetVersion}, but migrate failed. ` +
-          `Fix the cause, then run: directive upgrade --yes.\n`,
-      );
+      presentMigrateFailedAfterUpgrade(io, {
+        version: targetVersion,
+        versionChange: true,
+        summary: migrateResult.summary,
+      });
       return migrateResult.exitCode;
     }
 
@@ -1334,9 +1337,11 @@ export function runUpgrade(
       verbosity: flags.verbosity,
     });
     if (migrateResult.exitCode !== 0) {
-      io.writeErr(
-        `Equal-version migrate failed. Fix the cause, then run: directive upgrade --yes.\n`,
-      );
+      presentMigrateFailedAfterUpgrade(io, {
+        version: currentPin,
+        versionChange: false,
+        summary: migrateResult.summary,
+      });
       return migrateResult.exitCode;
     }
     migrateSummary = migrateResult.summary;

@@ -994,6 +994,64 @@ export function presentSetupFailedAfterInstall(
   io.writeErr("Review the existing changes before committing.\n");
 }
 
+/**
+ * AC14.18 / AC7.9 migrate half — pin may already be on the new version; default
+ * verbosity must name the failed file, list migrated files, and `directive upgrade`.
+ */
+export function presentMigrateFailedAfterUpgrade(
+  io: PresentIo,
+  opts: {
+    version: string;
+    versionChange: boolean;
+    summary: SetupSummary | null;
+    reason?: string | null;
+  },
+): void {
+  if (opts.versionChange) {
+    io.writeErr(
+      `Directive ${opts.version} is installed, but project data migration did not finish.\n`,
+    );
+  } else {
+    io.writeErr(
+      `Directive ${opts.version} data migration did not finish.\n`,
+    );
+  }
+  writeBlankErr(io);
+
+  const failed = opts.summary?.conflicts ?? [];
+  const migrated = opts.summary?.migrated ?? [];
+  if (failed.length > 0) {
+    io.writeErr("Migration could not update:\n");
+    for (const p of failed) {
+      io.writeErr(`  ${p}\n`);
+    }
+    writeBlankErr(io);
+  }
+  if (migrated.length > 0) {
+    io.writeErr("Migrated:\n");
+    for (const p of migrated) {
+      io.writeErr(`  ${p}\n`);
+    }
+    writeBlankErr(io);
+  }
+  const reason = opts.reason ?? opts.summary?.message ?? null;
+  if (reason) {
+    io.writeErr("Reason:\n");
+    io.writeErr(`  ${reason}\n`);
+    writeBlankErr(io);
+  }
+  if (opts.versionChange) {
+    io.writeErr(
+      `The project pin and lockfile now reference Directive ${opts.version}.\n`,
+    );
+    writeBlankErr(io);
+  }
+  io.writeErr("Correct the cause, then run:\n");
+  io.writeErr("  directive upgrade\n");
+  writeBlankErr(io);
+  io.writeErr("Review the existing changes before committing.\n");
+}
+
 function writeBlankErr(io: PresentIo): void {
   io.writeErr("\n");
 }

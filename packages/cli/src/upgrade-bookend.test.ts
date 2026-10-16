@@ -616,25 +616,7 @@ describe("version-change upgrade (AC7.2 / AC7.4 / AC7.5 / AC7.9)", () => {
       {
         resolvePublishedContract: () => ({ ok: true as const, contract: 1 }),
         runPmAdd: ({ projectRoot, version }) => {
-          const pkgPath = join(projectRoot, "package.json");
-          const pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as Record<string, unknown>;
-          pkg.devDependencies = {
-            ...(pkg.devDependencies as object),
-            "@deftai/directive-runtime": version,
-          };
-          writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
-          const nm = join(projectRoot, "node_modules", "@deftai", "directive-runtime");
-          mkdirSync(nm, { recursive: true });
-          writeFileSync(
-            join(nm, "package.json"),
-            `${JSON.stringify(
-              { name: "@deftai/directive-runtime", version, directive: { contract: 1 } },
-              null,
-              2,
-            )}\n`,
-          );
-          mkdirSync(join(nm, "dist"), { recursive: true });
-          writeFileSync(join(nm, "dist", "bin.js"), "#!/usr/bin/env node\nprocess.exit(0);\n");
+          pinExact(projectRoot, version);
           return { ok: true as const };
         },
         invokeSetup: () => ({
@@ -651,6 +633,139 @@ describe("version-change upgrade (AC7.2 / AC7.4 / AC7.5 / AC7.9)", () => {
     const text = c.err() + c.out();
     expect(text).toMatch(/pin|lockfile|new version|2\.0\.0/i);
     expect(text).toMatch(/install --repair|upgrade/i);
+  });
+
+  it("AC7.6: V→W setup handoff writes W-only marker (not V)", () => {
+    const root = tempProject("ac76");
+    const v = "1.2.3";
+    const w = "2.0.0";
+    const markerRel = join(".deft", "directive", "ac76-w-marker");
+    const markerAbs = join(root, markerRel);
+    pinExact(root, v);
+    markWiringCurrent(root, v);
+    expect(existsSync(markerAbs)).toBe(false);
+
+    const c = capture();
+    let setupVersionSeen: string | null = null;
+    const code = runUpgrade(
+      root,
+      stateFor(root),
+      ["--yes", "--target-version", w],
+      "0.0.0-test",
+      c.io,
+      {
+        resolvePublishedContract: () => ({ ok: true as const, contract: 1 }),
+        runPmAdd: ({ projectRoot, version }) => {
+          pinExact(projectRoot, version);
+          return { ok: true as const };
+        },
+        invokeSetup: () => {
+          // Differential: only W's setup knows this marker; V's would not write it.
+          const installed = readProjectInstallState(root).installed;
+          setupVersionSeen = installed?.version ?? null;
+          if (installed?.version === w) {
+            mkdirSync(join(root, ".deft", "directive"), { recursive: true });
+            writeFileSync(markerAbs, "written-by-w-setup\n");
+          }
+          return {
+            exitCode: 0,
+            stdout: JSON.stringify({
+              contract: 1,
+              entry: "setup",
+              operation: "upgrade",
+              created: [markerRel],
+              modified: [],
+              removed: [],
+              conflicts: [],
+            }),
+            stderr: "",
+            spawned: true,
+            message: null,
+          };
+        },
+        invokeMigrate: () => ({
+          exitCode: 0,
+          stdout: JSON.stringify({
+            contract: 1,
+            entry: "migrate",
+            migrated: [],
+            created: [],
+            modified: [],
+            removed: [],
+          }),
+          stderr: "",
+          spawned: true,
+          message: null,
+        }),
+      },
+    );
+    expect(code).toBe(0);
+    expect(setupVersionSeen).toBe(w);
+    expect(existsSync(markerAbs)).toBe(true);
+    expect(readFileSync(markerAbs, "utf8")).toMatch(/written-by-w-setup/);
+    expect(readProjectInstallState(root).pin.version).toBe(w);
+  });
+
+  it("AC14.18: one-file migrate failure names file, migrated set, directive upgrade (verbosity 0)", () => {
+    const root = tempProject("ac1418");
+    pinExact(root, "1.2.3");
+    const failedFile = "xbrief/pending/broken.xbrief.json";
+    const migratedOk = "xbrief/active/ok.xbrief.json";
+    const c = capture();
+    const code = runUpgrade(
+      root,
+      stateFor(root),
+      ["--yes", "--target-version", "2.0.0"],
+      "0.0.0-test",
+      c.io,
+      {
+        resolvePublishedContract: () => ({ ok: true as const, contract: 1 }),
+        runPmAdd: ({ projectRoot, version }) => {
+          pinExact(projectRoot, version);
+          return { ok: true as const };
+        },
+        invokeSetup: () => ({
+          exitCode: 0,
+          stdout: JSON.stringify({
+            contract: 1,
+            entry: "setup",
+            operation: "upgrade",
+            created: [],
+            modified: [".deft/GENERATION.json"],
+            removed: [],
+            conflicts: [],
+          }),
+          stderr: "",
+          spawned: true,
+          message: null,
+        }),
+        invokeMigrate: () => ({
+          exitCode: 1,
+          stdout: JSON.stringify({
+            contract: 1,
+            entry: "migrate",
+            migrated: [migratedOk, ".deft/directive/data-schema.json"],
+            created: [],
+            modified: [],
+            removed: [],
+            conflicts: [failedFile],
+            message: `migrate failed: could not transform ${failedFile}`,
+          }),
+          stderr: "",
+          spawned: true,
+          message: null,
+        }),
+      },
+    );
+    expect(code).toBe(1);
+    expect(readProjectInstallState(root).pin.version).toBe("2.0.0");
+    const text = c.err() + c.out();
+    expect(text).toContain(failedFile);
+    expect(text).toContain(migratedOk);
+    expect(text).toMatch(/directive upgrade/);
+    expect(text).toMatch(/pin|lockfile|2\.0\.0/i);
+    // Default verbosity must carry the report (not only behind -v).
+    expect(text).toMatch(/[Mm]igrat/);
   });
 
   it("mutating without --yes in non-interactive exits 2 (AC5.5)", () => {
