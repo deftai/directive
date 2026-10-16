@@ -3231,8 +3231,9 @@ describe("child occupancy terminal release (#3999)", () => {
 
   it("launcher swarm close-out does not yank a dest child occupant (#4782)", () => {
     const root = tempRoot();
-    const dest = join(root, "dest");
-    mkdirSync(dest, { recursive: true });
+    // Dest must be its own git toplevel (linked worktree / other checkout). A plain
+    // subdirectory shares the parent lease root after #5544 resolveOccupancyLeaseRoot.
+    const dest = otherRoot();
     const now = new Date("2026-09-18T20:00:00Z");
     applyWorktreeOccupancy(root, { sessionId: "swarm-parent", intent: "swarm", now, env: {} });
     applyWorktreeOccupancy(dest, { sessionId: "host:claude:v1:child-id", now, env: {} });
@@ -3970,10 +3971,13 @@ describe("Harbor UUID lease vs declared host Prefer-A (#5544)", () => {
       new Date("2026-10-16T12:01:00Z"),
       hostId,
       { CLAUDECODE: "1" },
+      root,
     );
     expect(remediation).toContain("occupancy:steal");
     expect(remediation).toContain(`--session-id=${hostId}`);
     expect(remediation).toContain("--occupant=minted-uuid");
+    expect(remediation).toContain(`--project-root=${resolveOccupancyLeaseRoot(root)}`);
+    expect(remediation).toContain(`session:start --rearm --session-id=${hostId} --project-root=`);
     expect(remediation).not.toMatch(/Do not steal this lease(?! unless)/);
     const gate = evaluateOccupancyWriteGate(root, {
       sessionId: hostId,
@@ -3994,6 +3998,33 @@ describe("Harbor UUID lease vs declared host Prefer-A (#5544)", () => {
     expect(stolen.message).toContain("Required ceremony:");
     expect(stolen.message).toContain("occupancyFile=");
     expect(readOccupancy(root)?.sessionId).toBe(hostId);
+  });
+
+  it("claim and release share lease root when projectRoot is a subdirectory (#5544 P1)", () => {
+    // Dedicated git tree — tempRoot() is shared across cases and would leave nested residue.
+    const root = mkdtempSync(join(tmpdir(), "occ-subdir-"));
+    sharedTemps.push(root);
+    gitInitIfNeeded(root);
+    const nested = join(root, "packages", "app");
+    mkdirSync(nested, { recursive: true });
+    const now = new Date("2026-10-16T12:00:00Z");
+    const leaseRoot = resolveOccupancyLeaseRoot(nested);
+    expect(leaseRoot).toBe(resolve(root));
+    const claimed = applyWorktreeOccupancy(nested, {
+      sessionId: "owner-subdir",
+      now,
+      intent: "mutation",
+    });
+    expect(claimed.action).toBe("claimed");
+    expect(claimed.path).toBe(occupancyPath(leaseRoot));
+    expect(readOccupancy(leaseRoot)?.sessionId).toBe("owner-subdir");
+    const released = releaseOccupancy(nested, {
+      sessionId: "owner-subdir",
+      now: new Date("2026-10-16T12:01:00Z"),
+    });
+    expect(released.code).toBe(0);
+    expect(released.action).toBe("released");
+    expect(readOccupancy(leaseRoot)).toBeNull();
   });
 
   it("does not broaden steal defaults for non-host presenters on minted leases (P3 keep-out)", () => {

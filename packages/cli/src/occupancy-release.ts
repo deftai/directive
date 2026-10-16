@@ -1,8 +1,5 @@
 #!/usr/bin/env node
-import {
-  releaseOccupancy,
-  resolveOccupancyLeaseRoot,
-} from "@deftai/directive-core/session";
+import { releaseOccupancy, resolveOccupancyLeaseRoot } from "@deftai/directive-core/session";
 import { occupancyUnrecognizedArgument } from "./occupancy-unrecognized.js";
 
 /**

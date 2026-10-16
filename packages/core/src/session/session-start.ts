@@ -1445,7 +1445,9 @@ function refuseRitualWriteIfOccupancyLost(
   const message =
     `session:start refused to write ritual: occupancy is no longer owned by session ${sessionId}` +
     ` (live occupant ${occupantId ?? "none"}). A confirmed steal during ceremony must not overwrite the new owner.` +
-    (live !== null ? `\n${formatOccupancyRemediation(live, now, sessionId, options.env)}` : "");
+    (live !== null
+      ? `\n${formatOccupancyRemediation(live, now, sessionId, options.env, projectRoot)}`
+      : "");
   context.lines.push(message);
   emitSessionStartProcessCost(
     {

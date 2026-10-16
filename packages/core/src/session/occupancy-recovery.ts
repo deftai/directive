@@ -13,8 +13,8 @@ import {
   type ApplyOccupancyInput,
   evaluateOccupancyCeremonyEligibility,
   formatOccupancyLeaseViewNote,
-  occupancyPath,
   type OccupancyCeremonyEligibility,
+  occupancyPath,
   resolveOccupancyLeaseRoot,
 } from "./occupancy.js";
 import { formatSessionStartRecoveryCommand, type SessionCeremonyTier } from "./session-start.js";

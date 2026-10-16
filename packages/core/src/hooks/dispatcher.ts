@@ -1845,9 +1845,7 @@ function inspectMutationGates(
     const leaseView = formatOccupancyLeaseViewNote(occupancyPath(effectiveRoot), {
       effectiveRoot,
     });
-    const leaseNote = occupancyGate.message.includes("occupancyFile=")
-      ? ""
-      : ` ${leaseView}`;
+    const leaseNote = occupancyGate.message.includes("occupancyFile=") ? "" : ` ${leaseView}`;
     emitSessionRitualBlockedProcessCost(
       {
         toolName,
