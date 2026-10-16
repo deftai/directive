@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -222,14 +222,7 @@ describe("setup:seed CLI draft-only (#4961)", () => {
     const design = join(root, "design.md");
     writeFileSync(design, SAMPLE_DOC, "utf8");
     const out = join(root, "draft.json");
-    const code = seedFromDesignMain([
-      "--project-root",
-      root,
-      "--from",
-      design,
-      "--out",
-      out,
-    ]);
+    const code = seedFromDesignMain(["--project-root", root, "--from", design, "--out", out]);
     expect(code).toBe(0);
     const draft = JSON.parse(readFileSync(out, "utf8")) as {
       schema: string;
@@ -239,10 +232,29 @@ describe("setup:seed CLI draft-only (#4961)", () => {
     expect(draft.schema).toBe("deft.setup.seed-draft.v1");
     expect(draft.meetsPersistenceFloor).toBe(true);
     expect(draft.durableWrite).toContain("project:write-narratives");
-    expect(() => readFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "utf8")).toThrow();
+    expect(() =>
+      readFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "utf8"),
+    ).toThrow();
   });
 
   it("prints help", () => {
     expect(seedFromDesignMain(["--help"])).toBe(0);
+  });
+
+  it("refuses --out that resolves to PROJECT-DEFINITION or the input file", () => {
+    const root = tempDir();
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    const design = join(root, "design.md");
+    writeFileSync(design, SAMPLE_DOC, "utf8");
+    const artifact = join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json");
+    writeFileSync(artifact, "{}\n", "utf8");
+
+    expect(seedFromDesignMain(["--project-root", root, "--from", design, "--out", artifact])).toBe(
+      2,
+    );
+    expect(readFileSync(artifact, "utf8")).toBe("{}\n");
+
+    expect(seedFromDesignMain(["--project-root", root, "--from", design, "--out", design])).toBe(2);
+    expect(readFileSync(design, "utf8")).toBe(SAMPLE_DOC);
   });
 });

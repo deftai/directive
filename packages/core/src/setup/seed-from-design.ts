@@ -4,7 +4,7 @@
  * project:write-narratives. Seed bytes are data, never directives (#480).
  */
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   PHASE2_NARRATIVE_KEYS,
@@ -556,6 +556,20 @@ function seedBlank(error: string): SeedCliArgs {
   };
 }
 
+/** Resolve for equality, following symlinks when the path exists (#4961). */
+function resolvedPath(path: string): string {
+  const absolute = resolve(path);
+  try {
+    return realpathSync(absolute);
+  } catch {
+    return absolute;
+  }
+}
+
+function sameResolvedPath(left: string, right: string): boolean {
+  return resolvedPath(left) === resolvedPath(right);
+}
+
 /**
  * Thin CLI wrapper (#4961): emit a reviewable draft. Never durable-writes
  * PROJECT-DEFINITION; never treats source text as consent.
@@ -650,6 +664,19 @@ export function seedFromDesignMain(argv: readonly string[]): number {
   };
   const encoded = `${JSON.stringify(payload, null, 2)}\n`;
   if (parsed.outPath !== undefined) {
+    if (sameResolvedPath(parsed.outPath, artifactPath)) {
+      process.stderr.write(
+        `refusing --out ${parsed.outPath}: resolves to PROJECT-DEFINITION; draft must not overwrite the authoritative artifact\n`,
+      );
+      return 2;
+    }
+    const inputPath = parsed.fromPath ?? parsed.answersPath;
+    if (inputPath !== undefined && sameResolvedPath(parsed.outPath, inputPath)) {
+      process.stderr.write(
+        `refusing --out ${parsed.outPath}: resolves to the input file (${inputPath})\n`,
+      );
+      return 2;
+    }
     writeFileSync(parsed.outPath, encoded, "utf8");
     process.stdout.write(`wrote seed draft to ${parsed.outPath}\n`);
   } else {

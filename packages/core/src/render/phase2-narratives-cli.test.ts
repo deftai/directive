@@ -95,4 +95,53 @@ describe("project-write-narratives CLI (#4663 / #4961)", () => {
       ]),
     ).toBe(1);
   });
+
+  it("refuses when an intervening writer changes the artifact before locked merge", () => {
+    const root = mkdtempSync(join(tmpdir(), "phase2-race-"));
+    temps.push(root);
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    const artifact = join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json");
+    const initial = {
+      xBRIEFInfo: { version: "0.8", description: "seed" },
+      plan: {
+        title: "Keep",
+        status: "running",
+        narratives: {
+          Overview: "Old O",
+          TechStack: "Old T",
+          Strategy: "Old S",
+          Quality: "Old Q",
+          ProjectRules: "Old R",
+          Branching: "Old B",
+        },
+        items: [],
+      },
+    };
+    writeFileSync(artifact, `${JSON.stringify(initial, null, 2)}\n`, "utf8");
+    const approvedRevision = createHash("sha256").update(readFileSync(artifact)).digest("hex");
+
+    // Intervening writer updates Strategy after the operator approved the prior revision.
+    const raced = structuredClone(initial);
+    raced.plan.narratives.Strategy = "Raced S";
+    writeFileSync(artifact, `${JSON.stringify(raced, null, 2)}\n`, "utf8");
+
+    const partial = join(root, "partial.json");
+    writeFileSync(partial, JSON.stringify({ Overview: "New O" }), "utf8");
+    expect(
+      writePhase2NarrativesMain([
+        "--project-root",
+        root,
+        "--narratives-file",
+        partial,
+        "--merge-existing",
+        "--expected-revision",
+        approvedRevision,
+      ]),
+    ).toBe(1);
+    const after = JSON.parse(readFileSync(artifact, "utf8")) as {
+      plan: { narratives: Record<string, string> };
+    };
+    expect(after.plan.narratives.Overview).toBe("Old O");
+    expect(after.plan.narratives.Strategy).toBe("Raced S");
+  });
 });

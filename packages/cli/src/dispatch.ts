@@ -3333,7 +3333,8 @@ const CURATED_HELP_GROUPS: readonly HelpGroup[] = [
       },
       {
         name: "setup:seed",
-        summary: "Draft Phase 2 narratives from --from design.md or --answers file (confirm before write)",
+        summary:
+          "Draft Phase 2 narratives from --from design.md or --answers file (confirm before write)",
       },
       { name: "spec:render", summary: "Render specification projection" },
     ],

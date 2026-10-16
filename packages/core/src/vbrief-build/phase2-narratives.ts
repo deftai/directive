@@ -1,4 +1,5 @@
-import { existsSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, readFileSync } from "node:fs";
 import {
   LEGACY_ARTIFACT_SUFFIX,
   LEGACY_INFO_ROOT_KEY,
@@ -39,7 +40,7 @@ export function mergePhase2NarrativePartial(
 ): Phase2Narratives {
   const out = {} as Phase2Narratives;
   for (const key of PHASE2_NARRATIVE_KEYS) {
-    if (presentKeys.has(key) && Object.prototype.hasOwnProperty.call(partial, key)) {
+    if (presentKeys.has(key) && Object.hasOwn(partial, key)) {
       out[key] = partial[key] ?? "";
     } else {
       out[key] = existing[key] ?? "";
@@ -48,11 +49,23 @@ export function mergePhase2NarrativePartial(
   return out;
 }
 
-
 /** Narrative payload for the Phase 2 writer. Title is not a policy key. */
 export interface Phase2NarrativeWrite {
   readonly narratives: Phase2Narratives;
   readonly title?: string;
+  /**
+   * SHA-256 of the artifact bytes that were approved. Re-checked under the
+   * shared mutation lock so an intervening writer cannot race the CLI (#4961).
+   */
+  readonly expectedRevision?: string;
+  /**
+   * When set, re-merge from the live artifact under the lock. Pre-merged
+   * `narratives` are ignored so omitted fields cannot restore stale values.
+   */
+  readonly mergePartial?: {
+    readonly narratives: Phase2NarrativePartial;
+    readonly presentKeys: ReadonlySet<Phase2NarrativeKey>;
+  };
 }
 
 export type Phase2ApplyResult =
@@ -118,16 +131,58 @@ function createIdentity(artifactPath: string, write: Phase2NarrativeWrite): Json
   };
 }
 
+function artifactRevision(artifactPath: string): string | null {
+  if (!existsSync(artifactPath)) return null;
+  return createHash("sha256").update(readFileSync(artifactPath)).digest("hex");
+}
+
+function narrativesFromPlan(plan: JsonObject): Phase2NarrativePartial {
+  const nested = asRecord(plan.narratives);
+  const out: Phase2NarrativePartial = {};
+  if (nested === null) return out;
+  for (const key of PHASE2_NARRATIVE_KEYS) {
+    const field = nested[key];
+    if (typeof field === "string") out[key] = field;
+  }
+  return out;
+}
+
 /**
  * Build the next PROJECT-DEFINITION object with the six Phase 2 strings.
  * Does not persist, and does not assign policy keys.
+ * Revision check + partial merge run here under the caller's mutation lock (#4961).
  */
 export function applyPhase2Narratives(
   mutation: ProjectDefinitionMutation,
   write: Phase2NarrativeWrite,
 ): Phase2ApplyResult {
   const label = projectDefinitionArtifactLabel(mutation.artifactPath);
+  if (write.expectedRevision !== undefined) {
+    const current = artifactRevision(mutation.artifactPath) ?? "";
+    if (current !== write.expectedRevision) {
+      return {
+        ok: false,
+        message: `stale approval: expected revision ${write.expectedRevision} but artifact is ${current || "(missing)"}; stop for a fresh diff`,
+      };
+    }
+  }
+
   if (!existsSync(mutation.artifactPath)) {
+    if (write.mergePartial !== undefined) {
+      const merged = mergePhase2NarrativePartial(
+        {},
+        write.mergePartial.narratives,
+        write.mergePartial.presentKeys,
+      );
+      return {
+        ok: true,
+        data: createIdentity(mutation.artifactPath, {
+          narratives: merged,
+          ...(write.title !== undefined ? { title: write.title } : {}),
+        }),
+        message: `stored Phase 2 narratives (created) at ${label}`,
+      };
+    }
     return {
       ok: true,
       data: createIdentity(mutation.artifactPath, write),
@@ -161,8 +216,17 @@ export function applyPhase2Narratives(
     plan.narratives = narratives;
   }
 
+  const nextNarratives =
+    write.mergePartial !== undefined
+      ? mergePhase2NarrativePartial(
+          narrativesFromPlan(plan),
+          write.mergePartial.narratives,
+          write.mergePartial.presentKeys,
+        )
+      : write.narratives;
+
   for (const key of PHASE2_NARRATIVE_KEYS) {
-    narratives[key] = write.narratives[key];
+    narratives[key] = nextNarratives[key];
   }
   if (write.title !== undefined) {
     plan.title = write.title;

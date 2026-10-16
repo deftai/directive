@@ -2,11 +2,11 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import {
-  PHASE2_NARRATIVE_KEYS,
   mergePhase2NarrativePartial,
-  parsePhase2NarrativeDocument,
+  PHASE2_NARRATIVE_KEYS,
   type Phase2NarrativeKey,
   type Phase2Narratives,
+  parsePhase2NarrativeDocument,
 } from "../vbrief-build/phase2-narratives.js";
 import { projectDefinitionPath } from "../vbrief-build/project-definition-io.js";
 import { storePhase2Narratives } from "./project-render.js";
@@ -147,7 +147,7 @@ export function parsePartialPhase2NarrativeDocument(
   const narratives: Partial<Phase2Narratives> = {};
   const presentKeys = new Set<Phase2NarrativeKey>();
   for (const key of PHASE2_NARRATIVE_KEYS) {
-    if (!Object.prototype.hasOwnProperty.call(source, key)) continue;
+    if (!Object.hasOwn(source, key)) continue;
     const field = source[key];
     if (typeof field !== "string") {
       return { error: `Phase 2 narrative ${key} must be a string` };
@@ -214,20 +214,19 @@ export function writePhase2NarrativesMain(argv: readonly string[]): number {
     return 2;
   }
 
+  // Preview-only read (outside lock). Authoritative revision check + merge happen
+  // inside storePhase2Narratives → applyPhase2Narratives under the shared lock.
   const existing = readExistingNarratives(parsed.projectRoot);
-  if (parsed.expectedRevision !== undefined) {
-    const current = existing.revision ?? "";
-    if (current !== parsed.expectedRevision) {
-      process.stderr.write(
-        `stale approval: expected revision ${parsed.expectedRevision} but artifact is ${current || "(missing)"}; stop for a fresh diff\n`,
-      );
-      return 1;
-    }
-  }
 
   let narratives: Phase2Narratives;
   let title: string | undefined;
-  let presentKeys: Set<Phase2NarrativeKey> = new Set(PHASE2_NARRATIVE_KEYS);
+  let presentKeys: Set<Phase2NarrativeKey>;
+  let mergePartial:
+    | {
+        readonly narratives: Partial<Phase2Narratives>;
+        readonly presentKeys: ReadonlySet<Phase2NarrativeKey>;
+      }
+    | undefined;
 
   if (parsed.mergeExisting) {
     const partial = parsePartialPhase2NarrativeDocument(json);
@@ -235,12 +234,17 @@ export function writePhase2NarrativesMain(argv: readonly string[]): number {
       process.stderr.write(`${partial.error}\n`);
       return 2;
     }
+    presentKeys = partial.presentKeys;
+    mergePartial = {
+      narratives: partial.narratives,
+      presentKeys: partial.presentKeys,
+    };
+    // Preview merge for operator diff only; lock path re-merges from live bytes.
     narratives = mergePhase2NarrativePartial(
       existing.narratives,
       partial.narratives,
       partial.presentKeys,
     );
-    presentKeys = partial.presentKeys;
     title = parsed.title !== undefined ? parsed.title : partial.title;
     process.stdout.write("Field changes:\n");
     for (const line of describeChanges(existing.narratives, narratives, presentKeys)) {
@@ -253,12 +257,15 @@ export function writePhase2NarrativesMain(argv: readonly string[]): number {
       return 2;
     }
     narratives = document.narratives;
+    presentKeys = new Set(PHASE2_NARRATIVE_KEYS);
     title = parsed.title !== undefined ? parsed.title : document.title;
   }
 
   const [ok, message] = storePhase2Narratives(resolve(parsed.projectRoot), {
     narratives,
     ...(title !== undefined ? { title } : {}),
+    ...(parsed.expectedRevision !== undefined ? { expectedRevision: parsed.expectedRevision } : {}),
+    ...(mergePartial !== undefined ? { mergePartial } : {}),
   });
   if (!ok) {
     process.stderr.write(`${message}\n`);
