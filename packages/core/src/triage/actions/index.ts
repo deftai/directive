@@ -840,11 +840,7 @@ export function formatAcceptOutput(
     const rel = options.relativePath;
     if (rel !== null && rel !== undefined && rel.length > 0) {
       outcomeLine = rel.startsWith("CREATED ") ? rel : `CREATED ${rel}`;
-    } else if (
-      options.ingestMessage !== null &&
-      options.ingestMessage !== undefined &&
-      options.ingestMessage.startsWith("CREATED ")
-    ) {
+    } else if (options.ingestMessage?.startsWith("CREATED ")) {
       outcomeLine = options.ingestMessage.split("\n")[0] ?? options.ingestMessage;
     } else {
       outcomeLine = "CREATED (path unknown)";

@@ -170,13 +170,20 @@
         "files": [
           "packages/core/src/triage/actions/index.ts",
           "packages/core/src/triage/actions/types.ts",
+          "packages/core/src/triage/actions/index.test.ts",
+          "packages/core/src/triage/actions/index-branches.test.ts",
           "packages/cli/src/triage-actions.ts",
+          "packages/cli/src/triage-actions.test.ts",
           "packages/core/src/intake/issue-ingest.ts",
+          "packages/core/src/intake/issue-ingest.test.ts",
+          "packages/core/src/intake/intake-coverage-boost.test.ts",
           "packages/core/src/scope/promote-from-issue.ts",
+          "packages/core/src/triage/bulk/index.ts",
+          "packages/core/src/triage/bulk/index.test.ts",
           "CHANGELOG.md"
         ],
         "module_boundary": "triage accept disclose-and-reuse ownership via ingest existingRefs",
-        "cohesion_exemption": "CHANGELOG.md shared Unreleased bullet for #4962 Prefer-A Bound."
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased bullet for #4962 Prefer-A Bound; tests + bulk refusal path are membership-required companions for Prefer-A Bound #4962."
       },
       "x-directive/plan-id": {
         "version": 1,
@@ -204,9 +211,16 @@
         "file_scope": [
           "packages/core/src/triage/actions/index.ts",
           "packages/core/src/triage/actions/types.ts",
+          "packages/core/src/triage/actions/index.test.ts",
+          "packages/core/src/triage/actions/index-branches.test.ts",
           "packages/cli/src/triage-actions.ts",
+          "packages/cli/src/triage-actions.test.ts",
           "packages/core/src/intake/issue-ingest.ts",
+          "packages/core/src/intake/issue-ingest.test.ts",
+          "packages/core/src/intake/intake-coverage-boost.test.ts",
           "packages/core/src/scope/promote-from-issue.ts",
+          "packages/core/src/triage/bulk/index.ts",
+          "packages/core/src/triage/bulk/index.test.ts",
           "CHANGELOG.md"
         ],
         "size": "M",
