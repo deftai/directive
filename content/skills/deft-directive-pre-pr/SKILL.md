@@ -64,10 +64,11 @@ task verify:plan-sequence -- --target-kind <entry-kind> --target <entry-id>
 
 GitHub `mergeable_state` is **textual only**. Post-open behavioral/policy gates stay invisible until the merge-chokepoint `task check` / `deft check` runs against the current base (#4888).
 
-- ! On **conflict-resolve**, **behind-rebase**, and **pre-push**, MUST treat the merge-chokepoint full gate as candidate validation against current base — not optional polish. Prefer `deft check`; else tree-correct `task check` / `task deft:check`.
-- ! For those non-cascade routes MUST call `evaluateNonCascadeCandidateGreen` with an attestation from `buildCandidateValidationAttestationFromProbe` (allowlisted probe exit 0; blessed producer) keyed to `(pr_head_sha, target_head_sha)`. Fail closed names the probe.
+- ! On **conflict-resolve** and **behind-rebase** (PR open; local HEAD matches live remote PR head), MUST treat the merge-chokepoint full gate as candidate validation against current base — not optional polish. Prefer `deft check`; else tree-correct `task check` / `task deft:check`. Then MUST call `evaluateNonCascadeCandidateGreen` with an attestation from `buildCandidateValidationAttestationFromProbe` (allowlisted probe exit 0; blessed producer) keyed to `(pr_head_sha, target_head_sha)`. Fail closed names the probe.
+- ! On **pre-push**, MUST run that same merge-chokepoint full gate locally against current base before pushing. Do **not** require `evaluateNonCascadeCandidateGreen` until after push when a PR exists and local HEAD matches the live remote PR head — then obtain the SHA-pair attestation. First push (no PR yet) and tip-ahead-of-remote pushes use the local gate only (#4888).
 - ! Frame `#4883` CLEAN / forge `mergeable_state=clean` as axis-1 necessity only — never three-axis sufficiency.
 - ⊗ Skip the merge-chokepoint `task check` after conflict-resolve or behind-rebase because GitHub shows mergeable/clean (#4888).
+- ⊗ Call `evaluateNonCascadeCandidateGreen` as a pre-push blocker when no PR exists or local HEAD does not yet match the remote PR head (#4888).
 - ⊗ Satisfy semantic-drift visibility with a withdrawn Python semantic-drift script SoT (TS evaluateSemanticGreen owns the probe).
 - Depth: `scm/github.md` § Cascade / Three-axis (#4888); forge supersession `#633`/`#1517`.
 

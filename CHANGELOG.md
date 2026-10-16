@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Restore Prefer-A Bound keep-active brief for #3906 (productPullRequest unset; concrete file_scope). Tracking #3906.
 - Restore Prefer-A Bound keep-active brief for #3908 (productPullRequest unset; concrete file_scope). Tracking #3908.
 ### Fixed
+- **Pre-push three-axis guidance no longer requires remote PR head match (#4888).** Local merge-chokepoint `deft check`/`task check` validates before push; `evaluateNonCascadeCandidateGreen` SHA-pair attestation applies after push when local HEAD matches the live remote PR head (and on conflict-resolve/behind-rebase). Tracking #4888.
 - **Combined cascade + candidate-validation limbs no longer skip attestation (#4888).** When both `cascadeMode` and `requireCandidateValidation` are set, cascade absolute refusal still runs first, then candidate validation must pass. Cascade-only callers stay cascade-only. Tracking #4888.
 - **Issue #3906 now has a tracked completion record.** The record links to the fix delivered in #5649, so the issue can close without losing its scope history. Tracking #3906.
 - **Issue #3907 now has a tracked completion record.** The record links to the fix delivered in #5651, so the issue can close without losing its scope history. Tracking #3907.
