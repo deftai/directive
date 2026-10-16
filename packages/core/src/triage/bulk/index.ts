@@ -7,6 +7,7 @@ import {
   deferAction as nativeDefer,
   needsAc as nativeNeedsAc,
   reject as nativeReject,
+  TriageError,
 } from "../actions/index.js";
 import { resolveCandidatesLogPath } from "../cache-path.js";
 
@@ -555,7 +556,12 @@ export function createNativeActionsModule(projectRoot: string): TriageActionsMod
   const deps = createDefaultDeps(projectRoot);
   return {
     accept(n, repo) {
-      nativeAccept(n, repo, deps, { projectRoot });
+      const outcome = nativeAccept(n, repo, deps, { projectRoot });
+      if (outcome.disposition === "refused") {
+        throw new TriageError(
+          outcome.ingestMessage ?? `accept #${n} (${repo}): refused (no new proposed artifact)`,
+        );
+      }
     },
     reject(n, repo, ...args: unknown[]) {
       let reason = "";
