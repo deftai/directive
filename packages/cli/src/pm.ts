@@ -49,23 +49,100 @@ type PackageManagerFieldResult =
   | { readonly kind: "supported"; readonly pm: PackageManager }
   | { readonly kind: "unsupported"; readonly name: string };
 
+/** Parse Corepack-style `name` / `name@version` (packageManager field). */
+function parsePmNameToken(raw: string): PackageManagerFieldResult {
+  const token = raw.trim();
+  if (token === "") return { kind: "absent" };
+  if (token.startsWith("npm@") || token === "npm") return { kind: "supported", pm: "npm" };
+  if (token.startsWith("pnpm@") || token === "pnpm") return { kind: "supported", pm: "pnpm" };
+  if (token.startsWith("yarn@") || token === "yarn") return { kind: "unsupported", name: "Yarn" };
+  if (token.startsWith("bun@") || token === "bun") return { kind: "unsupported", name: "Bun" };
+  const name = token.split("@")[0]?.trim() || token;
+  return { kind: "unsupported", name };
+}
+
 function readPackageManagerField(projectRoot: string): PackageManagerFieldResult {
   const pkg = readJsonObject(join(projectRoot, "package.json"));
   if (pkg === null) return { kind: "absent" };
   const raw = pkg.packageManager;
   if (typeof raw !== "string" || raw.trim() === "") return { kind: "absent" };
-  if (raw.startsWith("npm@") || raw === "npm") return { kind: "supported", pm: "npm" };
-  if (raw.startsWith("pnpm@") || raw === "pnpm") return { kind: "supported", pm: "pnpm" };
-  if (raw.startsWith("yarn@") || raw === "yarn") return { kind: "unsupported", name: "Yarn" };
-  if (raw.startsWith("bun@") || raw === "bun") return { kind: "unsupported", name: "Bun" };
-  const name = raw.split("@")[0]?.trim() || raw;
-  return { kind: "unsupported", name };
+  return parsePmNameToken(raw);
 }
 
 /**
- * Select npm or pnpm from lockfile / packageManager / explicit flag.
- * Refuses yarn and bun (AC5.7), including an explicit packageManager field
- * with no lockfile (do not fall through to npm).
+ * AC5.6 / INIT-08 — `devEngines.packageManager` (string or { name, version? }).
+ * Same supported/unsupported rules as the Corepack `packageManager` field.
+ */
+function readDevEnginesPackageManager(projectRoot: string): PackageManagerFieldResult {
+  const pkg = readJsonObject(join(projectRoot, "package.json"));
+  if (pkg === null) return { kind: "absent" };
+  const devEngines = pkg.devEngines;
+  if (devEngines === null || typeof devEngines !== "object" || Array.isArray(devEngines)) {
+    return { kind: "absent" };
+  }
+  const raw = (devEngines as Record<string, unknown>).packageManager;
+  if (typeof raw === "string") return parsePmNameToken(raw);
+  if (raw !== null && typeof raw === "object" && !Array.isArray(raw)) {
+    const name = (raw as Record<string, unknown>).name;
+    if (typeof name !== "string" || name.trim() === "") return { kind: "absent" };
+    return parsePmNameToken(name.trim());
+  }
+  return { kind: "absent" };
+}
+
+type DeclaredPmSlot =
+  | { readonly kind: "absent" }
+  | { readonly kind: "supported"; readonly pm: PackageManager; readonly evidence: string }
+  | { readonly kind: "unsupported"; readonly name: string }
+  | { readonly kind: "conflict"; readonly message: string };
+
+/**
+ * Merge packageManager + devEngines.packageManager (same AC5.6 slot).
+ * Disagree → conflict; only one / both agree → supported with evidence.
+ */
+function readDeclaredPackageManagerSlot(projectRoot: string): DeclaredPmSlot {
+  const field = readPackageManagerField(projectRoot);
+  const dev = readDevEnginesPackageManager(projectRoot);
+
+  if (field.kind === "unsupported") return field;
+  if (dev.kind === "unsupported") return { kind: "unsupported", name: dev.name };
+
+  if (field.kind === "supported" && dev.kind === "supported") {
+    if (field.pm !== dev.pm) {
+      return {
+        kind: "conflict",
+        message:
+          `packageManager (${field.pm}) and devEngines.packageManager (${dev.pm}) disagree. ` +
+          "Pass --package-manager npm|pnpm after aligning the declarations, or remove one.",
+      };
+    }
+    return {
+      kind: "supported",
+      pm: field.pm,
+      evidence: `packageManager/devEngines (${field.pm})`,
+    };
+  }
+  if (field.kind === "supported") {
+    return {
+      kind: "supported",
+      pm: field.pm,
+      evidence: `packageManager field (${field.pm})`,
+    };
+  }
+  if (dev.kind === "supported") {
+    return {
+      kind: "supported",
+      pm: dev.pm,
+      evidence: `devEngines.packageManager (${dev.pm})`,
+    };
+  }
+  return { kind: "absent" };
+}
+
+/**
+ * Select npm or pnpm from lockfile / packageManager / devEngines / explicit flag.
+ * Refuses yarn and bun (AC5.7), including an explicit packageManager /
+ * devEngines.packageManager field with no lockfile (do not fall through to npm).
  */
 export function detectPackageManager(
   projectRoot: string,
@@ -89,12 +166,15 @@ export function detectPackageManager(
     };
   }
 
-  const field = readPackageManagerField(projectRoot);
-  if (field.kind === "unsupported") {
+  const declared = readDeclaredPackageManagerSlot(projectRoot);
+  if (declared.kind === "unsupported") {
     return {
       ok: false,
-      message: `${field.name} projects are not supported (AC5.7). Use npm or pnpm.`,
+      message: `${declared.name} projects are not supported (AC5.7). Use npm or pnpm.`,
     };
+  }
+  if (declared.kind === "conflict") {
+    return { ok: false, message: declared.message };
   }
 
   if (flag !== null) {
@@ -108,17 +188,18 @@ export function detectPackageManager(
 
   const hasPnpmLock = existsSync(join(projectRoot, "pnpm-lock.yaml"));
   const hasNpmLock = existsSync(join(projectRoot, "package-lock.json"));
-  const fieldPm = field.kind === "supported" ? field.pm : null;
+  const fieldPm = declared.kind === "supported" ? declared.pm : null;
+  const fieldEvidence = declared.kind === "supported" ? declared.evidence : null;
 
   if (hasPnpmLock && hasNpmLock) {
     if (flag === "npm" || flag === "pnpm") {
       return { ok: true, pm: flag, evidence: `--package-manager ${flag} (both lockfiles present)` };
     }
-    if (fieldPm !== null) {
+    if (fieldPm !== null && fieldEvidence !== null) {
       return {
         ok: true,
         pm: fieldPm,
-        evidence: `packageManager field (${fieldPm}) with both lockfiles`,
+        evidence: `${fieldEvidence} with both lockfiles`,
       };
     }
     return {
@@ -150,8 +231,8 @@ export function detectPackageManager(
   if (flag === "npm" || flag === "pnpm") {
     return { ok: true, pm: flag, evidence: `--package-manager ${flag}` };
   }
-  if (fieldPm !== null) {
-    return { ok: true, pm: fieldPm, evidence: `packageManager field (${fieldPm})` };
+  if (fieldPm !== null && fieldEvidence !== null) {
+    return { ok: true, pm: fieldPm, evidence: fieldEvidence };
   }
 
   // Fresh project: default npm (evidence disclosed in plan).

@@ -67,7 +67,7 @@ describe("F-009 first-install plain English", () => {
     verbosity: 0 as const,
   };
 
-  it("default plan: Directive-will bullets; no Install command hero; no script jargon", () => {
+  it("default plan: Directive-will bullets + §C9 Install command; no insider script jargon", () => {
     const c = capture();
     presentFirstInstallPlan(c.io, base);
     const text = c.out();
@@ -75,11 +75,16 @@ describe("F-009 first-install plain English", () => {
     expect(text).toMatch(/If you approve, Directive will:/i);
     expect(text).toMatch(/create a minimal package\.json/i);
     expect(text).toMatch(/add Directive/i);
-    expect(text).not.toMatch(/Install command:/i);
-    expect(text).not.toContain(base.pmCommand);
+    // UNIFIED §C9 Example A / AC5.1 — required on default (prefer over F-009 hide-behind -v)
+    expect(text).toMatch(/Install command:/i);
+    expect(text).toContain(base.pmCommand);
+    expect(text).toMatch(
+      /Installation may run scripts allowed by your project's settings\./,
+    );
     expect(text).not.toMatch(/lifecycle scripts/i);
     expect(text).not.toMatch(/Directive pin add/i);
     expect(text).not.toMatch(/eligible runtime command/i);
+    expect(text).not.toMatch(/install-script policy:/i);
     expect(text).toMatch(/not a git repository/i);
     expect(text).toMatch(/git hooks will not be installed/i);
     expect(text).toMatch(/git init/i);
@@ -87,10 +92,11 @@ describe("F-009 first-install plain English", () => {
     expect(text).toContain(HUMAN_GIT_HOOKS_INACTIVE_LINE.split(".")[0]!);
   });
 
-  it("-v keeps PM command + script policy detail", () => {
+  it("-v keeps Install command + keyed script policy detail", () => {
     const c = capture();
     presentFirstInstallPlan(c.io, { ...base, verbosity: 1 });
     const text = c.out();
+    expect(text).toMatch(/Install command:/i);
     expect(text).toContain(base.pmCommand);
     expect(text).toMatch(/install-script policy:/i);
     expect(text).toMatch(/Plan \(verbose\)/);

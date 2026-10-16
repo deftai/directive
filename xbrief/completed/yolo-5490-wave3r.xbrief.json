@@ -1,0 +1,58 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "YOLO validated-issues V3 wave 3r — PLAN-PM-CMD + PM-DEVENGINES + DOC-GEN-PM-DRIFT",
+    "updated": "2026-10-15T23:20:00.000Z"
+  },
+  "plan": {
+    "title": "Wave 3r — Plan PM command, devEngines PM, doctor GENERATION drift",
+    "status": "completed",
+    "id": "yolo-5490-wave3r",
+    "narratives": {
+      "Description": "Close P1 PLAN-PM-CMD and P2 PM-DEVENGINES + DOC-GEN-PM-DRIFT from wave3p UNIFIED reassessment. Default install/upgrade plans surface Install command + §C9 script disclosure at verbosity 0. detectPackageManager reads devEngines.packageManager with conflict rules. Doctor notes GENERATION vs lockfile PM drift as information only.",
+      "Overview": "Branch yolo/wip-wave3r from yolo/cp-wave3q @ 1a044992a. Owner tests first (red→green). Prefer UNIFIED §C9 over prior F-009 hide-behind -v. No Verdaccio freeze in this worker — orchestrator freezes after SLizard/Greptile.",
+      "Acceptance": "directive install/upgrade --dry-run print Install command + script note without -v. Fixture with only devEngines.packageManager selects pnpm; packageManager vs devEngines conflict stops. GENERATION=pnpm + package-lock → doctor info drift; exit/sync unchanged."
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "PLAN-PM-CMD: Install command + script disclosure on default plan (AC5.1 / AC7.4 / §C9 A/C)",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/cli/src/plan-present.ts",
+        "narrative": {
+          "Acceptance": "Given install or version-change upgrade dry-run at verbosity 0, when the plan is presented, then stdout includes Install command: <pm argv> and Installation may run scripts allowed by your project's settings."
+        }
+      },
+      {
+        "id": "2",
+        "title": "PM-DEVENGINES: read devEngines.packageManager (AC5.6 / INIT-08)",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/cli/src/pm.ts",
+        "narrative": {
+          "Acceptance": "Given only devEngines.packageManager pnpm@9.15.0 and no lockfile/packageManager, when detectPackageManager runs, then pm=pnpm with evidence mentioning devEngines. Given packageManager and devEngines disagree, then ok=false with explanation."
+        }
+      },
+      {
+        "id": "3",
+        "title": "DOC-GEN-PM-DRIFT: doctor informational GENERATION/lockfile PM note (AC14.47)",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/runtime/src/doctor-diagnose.ts",
+        "narrative": {
+          "Acceptance": "Given GENERATION.packageManager=pnpm and package-lock.json present with otherwise healthy install, when doctor runs, then report mentions drift as (information) and exitCode/inSync stay healthy."
+        }
+      }
+    ],
+    "tags": ["yolo", "5490", "wave3r", "PLAN-PM-CMD", "PM-DEVENGINES", "DOC-GEN-PM-DRIFT"],
+    "acceptance": [
+      "Default install/upgrade plans show Install command + §C9 script line",
+      "devEngines.packageManager alone selects pnpm; conflict with packageManager stops",
+      "Doctor notes GENERATION/PM lockfile drift as information only",
+      "Focused vitest green for cli presenters/pm + runtime doctor"
+    ],
+    "metadata": {
+      "wave": "3r",
+      "inbox": ["PLAN-PM-CMD", "PM-DEVENGINES", "DOC-GEN-PM-DRIFT"],
+      "base": "yolo/cp-wave3q@1a044992a2bfa9e38e9cf7ad0f26ea8c135396df"
+    }
+  }
+}

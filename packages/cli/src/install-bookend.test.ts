@@ -162,6 +162,40 @@ describe("PM selection (AC5.7)", () => {
       expect(pm.evidence).toMatch(/default/i);
     }
   });
+
+  it("selects pnpm from only devEngines.packageManager (PM-DEVENGINES / AC5.6)", () => {
+    const root = tempProject();
+    const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as Record<
+      string,
+      unknown
+    >;
+    pkg.devEngines = { packageManager: "pnpm@9.15.0" };
+    writeFileSync(join(root, "package.json"), `${JSON.stringify(pkg, null, 2)}\n`);
+    const pm = detectPackageManager(root, null);
+    expect(pm.ok).toBe(true);
+    if (pm.ok) {
+      expect(pm.pm).toBe("pnpm");
+      expect(pm.evidence).toMatch(/devEngines/i);
+    }
+  });
+
+  it("stops when packageManager and devEngines.packageManager disagree (PM-DEVENGINES)", () => {
+    const root = tempProject();
+    const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as Record<
+      string,
+      unknown
+    >;
+    pkg.packageManager = "npm@10.0.0";
+    pkg.devEngines = { packageManager: { name: "pnpm", version: "9.15.0" } };
+    writeFileSync(join(root, "package.json"), `${JSON.stringify(pkg, null, 2)}\n`);
+    const pm = detectPackageManager(root, null);
+    expect(pm.ok).toBe(false);
+    if (!pm.ok) {
+      expect(pm.message).toMatch(/packageManager/i);
+      expect(pm.message).toMatch(/devEngines/i);
+      expect(pm.message).toMatch(/conflict|disagree|differ/i);
+    }
+  });
 });
 
 describe("lockfile pin consistency (AC6.10)", () => {
@@ -530,7 +564,25 @@ describe("install bookend flag matrix (AC5 / AC6)", () => {
     expect(c.out()).not.toContain(HUMAN_GIT_HOOKS_INACTIVE_LINE);
   });
 
-  it("pnpm plan discloses --save-exact at -v (F-009: PM argv not default hero)", () => {
+  it("default dry-run plan includes Install command + script disclosure (PLAN-PM-CMD / §C9)", () => {
+    const root = tempProject();
+    const c = capture();
+    const code = runInstall(
+      root,
+      stateFor(root),
+      ["--dry-run", "--package-manager", "pnpm", "--target-version", "1.2.3"],
+      "0.0.0-test",
+      c.io,
+    );
+    expect(code).toBe(0);
+    expect(c.out()).toMatch(/Install command:/i);
+    expect(c.out()).toMatch(/pnpm add -D --save-exact/);
+    expect(c.out()).toMatch(
+      /Installation may run scripts allowed by your project's settings\./,
+    );
+  });
+
+  it("pnpm plan discloses --save-exact on default and at -v (PLAN-PM-CMD)", () => {
     const root = tempProject();
     const c = capture();
     const code = runInstall(
@@ -541,8 +593,8 @@ describe("install bookend flag matrix (AC5 / AC6)", () => {
       c.io,
     );
     expect(code).toBe(0);
+    expect(c.out()).toMatch(/Install command:/i);
     expect(c.out()).toMatch(/pnpm add -D --save-exact/);
-    expect(c.out()).not.toMatch(/Install command:/i);
   });
 
   it("npm exact-add argv includes --include=dev (AC5.11 / AC14.48 / INIT-13)", () => {

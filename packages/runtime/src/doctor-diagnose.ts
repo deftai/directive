@@ -59,6 +59,11 @@ export interface DoctorDiagnosisInfo {
   readonly launcherPresent: boolean | null;
   readonly newerReleaseAvailable: boolean | null;
   readonly nodeBestEffortNote: string | null;
+  /**
+   * AC14.47 — GENERATION recorded PM vs project lockfile evidence disagree.
+   * Information only; does not flip inSync / exitCode or select PM.
+   */
+  readonly generationPmDrift: string | null;
 }
 
 export interface DoctorDiagnosis {
@@ -225,6 +230,48 @@ function projectHasGitDir(projectRoot: string): boolean {
   return existsSync(join(projectRoot, ".git"));
 }
 
+type ProjectPmEvidence = "npm" | "pnpm";
+
+/** Lockfile-based project PM evidence (mirrors setup detectPmFact; AC5.6 / AC14.47). */
+function readProjectLockfilePm(projectRoot: string): ProjectPmEvidence | null {
+  const hasPnpm = existsSync(join(projectRoot, "pnpm-lock.yaml"));
+  const hasNpm = existsSync(join(projectRoot, "package-lock.json"));
+  if (hasPnpm && !hasNpm) return "pnpm";
+  if (hasNpm && !hasPnpm) return "npm";
+  return null;
+}
+
+function readGenerationPackageManager(projectRoot: string): string | null {
+  try {
+    const raw = readFileSync(join(projectRoot, ".deft", "GENERATION.json"), "utf8");
+    const parsed: unknown = JSON.parse(raw);
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    const pm = (parsed as Record<string, unknown>).packageManager;
+    return typeof pm === "string" && pm.trim() !== "" ? pm.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * AC14.47 — informational note when GENERATION.json PM ≠ project lockfile evidence.
+ * GENERATION is never used to select PM (INIT-08 / AC5.6).
+ */
+export function detectGenerationPmDrift(projectRoot: string): string | null {
+  const recorded = readGenerationPackageManager(projectRoot);
+  if (recorded === null) return null;
+  const recordedBase = recorded.split("@")[0]?.trim().toLowerCase() ?? "";
+  if (recordedBase !== "npm" && recordedBase !== "pnpm") return null;
+  const evidence = readProjectLockfilePm(projectRoot);
+  if (evidence === null) return null;
+  if (recordedBase === evidence) return null;
+  const lockName = evidence === "pnpm" ? "pnpm-lock.yaml" : "package-lock.json";
+  return (
+    `GENERATION.json recorded setup with ${recordedBase}; ${lockName} is present ` +
+    `(PM still chosen from project evidence)`
+  );
+}
+
 /**
  * F-010 / C7: otherwise-healthy install with readiness withheld solely because
  * there is no `.git` (hooksPath cannot activate → wiring-ready not written).
@@ -316,6 +363,7 @@ export function runDoctorDiagnosis(
       launcherPresent: options.launcherPresent ?? null,
       newerReleaseAvailable: options.newerReleaseAvailable ?? null,
       nodeBestEffortNote: options.nodeBestEffortNote ?? null,
+      generationPmDrift: detectGenerationPmDrift(projectRoot),
     },
     exitCode: healthy ? 0 : 1,
   };
@@ -370,6 +418,9 @@ export function formatDoctorReport(diag: DoctorDiagnosis): string {
   }
   if (diag.info.nodeBestEffortNote) {
     lines.push(`  node: ${diag.info.nodeBestEffortNote} (information)`);
+  }
+  if (diag.info.generationPmDrift) {
+    lines.push(`  PM drift: ${diag.info.generationPmDrift} (information)`);
   }
   if (diag.schemaRemedy) {
     lines.push(`Next: ${diag.schemaRemedy}`);

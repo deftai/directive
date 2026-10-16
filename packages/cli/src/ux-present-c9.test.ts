@@ -109,7 +109,12 @@ describe("§C9 UX-PRESENT (F-002)", () => {
     expect(text).toMatch(/Package manager:/);
     expect(text).toMatch(/Directive version:/);
     expect(text).toMatch(/If you approve, Directive will:/i);
-    expect(text).not.toMatch(/Install command:/);
+    // §C9 Example A / AC5.1: Install command + script disclosure on default (not only -v)
+    expect(text).toMatch(/Install command:/);
+    expect(text).toMatch(/@deftai\/directive-runtime@1\.2\.3/);
+    expect(text).toMatch(
+      /Installation may run scripts allowed by your project's settings\./,
+    );
     expect(text).not.toMatch(/Installation skips package lifecycle scripts/);
     expect(text).not.toMatch(/^\s*operation:/m);
     expect(text).not.toMatch(/created=\[/);

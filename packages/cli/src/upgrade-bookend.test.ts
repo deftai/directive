@@ -491,6 +491,12 @@ describe("version-change upgrade (AC7.2 / AC7.4 / AC7.5 / AC7.9)", () => {
     expect(c.out()).toMatch(/Upgrade Directive/i);
     expect(c.out()).toMatch(/2\.0\.0/);
     expect(c.out()).toMatch(/setup|migrate/i);
+    // §C9 Example C / PLAN-PM-CMD: Install command + script disclosure on default
+    expect(c.out()).toMatch(/Install command:/);
+    expect(c.out()).toMatch(/@deftai\/directive-runtime@2\.0\.0/);
+    expect(c.out()).toMatch(
+      /Installation may run scripts allowed by your project's settings\./,
+    );
     expect(readFileSync(join(root, "package.json"), "utf8")).toBe(before);
   });
 

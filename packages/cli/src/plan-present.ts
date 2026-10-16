@@ -22,10 +22,17 @@ export const WRAP_FALLBACK = 80;
 
 /**
  * Insider script-policy sentence — kept for tests / -v dumps only.
- * Default plan uses bullets; AC5.1 detail lives at verbosity ≥1.
+ * Default plan uses §C9 HUMAN_INSTALL_SCRIPT_SETTINGS_LINE instead.
  */
 export const HUMAN_INSTALL_SCRIPT_LINE =
   "Installation skips package lifecycle scripts for the Directive pin add; other project registry, authentication, proxy, and lockfile settings still apply.";
+
+/** §C9 Examples A/C — default-plan install-script disclosure (AC5.1). */
+export const HUMAN_INSTALL_SCRIPT_SETTINGS_LINE =
+  "Installation may run scripts allowed by your project's settings.";
+
+/** §C9 Examples A/C — label for the actual PM command on the default plan. */
+export const INSTALL_COMMAND_LABEL = "Install command:";
 
 /** Plain no-git disclosure (F-009 / F-010 voice) — incomplete install / precondition. */
 export const HUMAN_GIT_HOOKS_INACTIVE_LINE =
@@ -209,20 +216,13 @@ function writeNodeWarning(io: PresentIo, warning: string | null): void {
   writeHumanParagraph(io, warning);
 }
 
-function writeVerboseScriptPolicy(io: PresentIo, verbosity: Verbosity): void {
-  if (verbosity < 1) return;
-  writeBlank(io);
-  io.writeOut(`  ${INSTALL_SCRIPT_POLICY_PLAN_LINE}\n`);
-}
-
 function writeDisclosures(
   io: PresentIo,
   fields: Pick<CommonPlanFields, "gitHooksInactive" | "nodeWarning" | "verbosity">,
 ): void {
-  // Default: plain git/node only. Script/PM insider detail at -v (F-009).
+  // Default: plain git/node only. Insider install-script policy stays in -v keyed dump.
   writeGitHooksDisclosure(io, fields.gitHooksInactive);
   writeNodeWarning(io, fields.nodeWarning);
-  writeVerboseScriptPolicy(io, fields.verbosity);
 }
 
 function writeKeyedBlock(io: PresentIo, lines: readonly string[]): void {
@@ -232,6 +232,23 @@ function writeKeyedBlock(io: PresentIo, lines: readonly string[]): void {
   }
 }
 
+/**
+ * §C9 Examples A/C / AC5.1 — Install command + script disclosure on the default plan.
+ * Uninstall keeps the verbosity-gated helper below (F-014).
+ */
+function writeInstallCommandAndScriptDisclosure(
+  io: PresentIo,
+  command: string | null,
+): void {
+  if (!command) return;
+  writeBlank(io);
+  io.writeOut(`${INSTALL_COMMAND_LABEL}\n`);
+  io.writeOut(`  ${command}\n`);
+  writeBlank(io);
+  io.writeOut(`${HUMAN_INSTALL_SCRIPT_SETTINGS_LINE}\n`);
+}
+
+/** Uninstall / optional -v-only PM command (F-014 hides Remove command on default). */
 function writePmCommandVerbose(
   io: PresentIo,
   label: string,
@@ -265,8 +282,7 @@ export function presentFirstInstallPlan(io: PresentIo, fields: FirstInstallPlanF
   writeBullet(io, "set up Directive's project files");
   writeBlank(io);
   writeDisclosures(io, fields);
-  writeBlank(io);
-  writePmCommandVerbose(io, "Package manager command (Directive runs this):", fields.pmCommand, fields.verbosity);
+  writeInstallCommandAndScriptDisclosure(io, fields.pmCommand);
 
   if (fields.verbosity >= 1) {
     writeBlank(io);
@@ -324,13 +340,7 @@ export function presentRepairPlan(io: PresentIo, fields: RepairPlanFields): void
   }
   writeBlank(io);
   writeDisclosures(io, fields);
-  writeBlank(io);
-  writePmCommandVerbose(
-    io,
-    "Package manager command (Directive runs this):",
-    fields.pmCommand,
-    fields.verbosity,
-  );
+  writeInstallCommandAndScriptDisclosure(io, fields.pmCommand);
 
   if (fields.verbosity >= 1) {
     writeBlank(io);
@@ -409,14 +419,8 @@ export function presentUpgradePlan(io: PresentIo, fields: UpgradePlanFields): vo
   writeHumanParagraph(io, "Your existing project settings will be preserved.");
   writeBlank(io);
   writeDisclosures(io, fields);
-  writeBlank(io);
   if (fields.versionChange) {
-    writePmCommandVerbose(
-      io,
-      "Package manager command (Directive runs this):",
-      fields.pmCommand,
-      fields.verbosity,
-    );
+    writeInstallCommandAndScriptDisclosure(io, fields.pmCommand);
   }
 
   if (fields.verbosity >= 1) {

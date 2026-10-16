@@ -198,6 +198,42 @@ describe("runDoctorDiagnosis (AC12.3 surfaces)", () => {
     expect(text).not.toMatch(/directive upgrade/);
   });
 
+  it("notes GENERATION/PM lockfile drift as information (DOC-GEN-PM-DRIFT / AC14.47)", () => {
+    const root = tempRoot();
+    const installed = runSetup({ operation: "install", from: "none", root });
+    pinRuntime(root, installed.runtimeVersion);
+    // Project evidence is npm (package-lock), but GENERATION recorded pnpm
+    writeLockfileNpm(root, installed.runtimeVersion);
+    writeFileSync(
+      join(root, ".deft", "GENERATION.json"),
+      `${JSON.stringify(
+        { runtimeVersion: installed.runtimeVersion, packageManager: "pnpm" },
+        null,
+        2,
+      )}\n`,
+    );
+    writeDataSchema(root, CURRENT_DATA_SCHEMA_VERSION);
+
+    const diag = runDoctorDiagnosis(root, {
+      launcherPresent: true,
+      probeHooks: false,
+    });
+    // Info-only: sync/exit semantics unchanged (still healthy for install surfaces)
+    expect(diag.inSync).toBe(true);
+    expect(diag.exitCode).toBe(0);
+    expect(diag.remedy).toBeNull();
+    expect(diag.info.generationPmDrift).toMatch(/pnpm/i);
+    expect(diag.info.generationPmDrift).toMatch(/package-lock|npm/i);
+    const text = formatDoctorReport(diag);
+    expect(text).toMatch(/in sync/i);
+    expect(text).toMatch(/drift/i);
+    expect(text).toMatch(/\(information\)/);
+    expect(text).toMatch(/pnpm/);
+    expect(text).toMatch(/package-lock|npm/);
+    // Must not prescribe a PM switch / repair solely for this drift
+    expect(text).not.toMatch(/install --repair/);
+  });
+
   it("names directive upgrade when data schema is behind (AC12.2 / AC8.9)", () => {
     const root = tempRoot();
     const installed = runSetup({ operation: "install", from: "none", root });
@@ -302,7 +338,12 @@ describe("POST-CONV-DOC / AC12.3 header vs skill pointers (AC10.3)", () => {
         schemaCurrency: { ok: true, detail: null },
       },
       hookProbe: null,
-      info: { launcherPresent: null, newerReleaseAvailable: null, nodeBestEffortNote: null },
+      info: {
+        launcherPresent: null,
+        newerReleaseAvailable: null,
+        nodeBestEffortNote: null,
+        generationPmDrift: null,
+      },
       exitCode: 1,
     };
     const text = formatDoctorReport(diag);
