@@ -429,6 +429,8 @@ function commandSatisfied(
       if (admission.headSha !== record.headSha) return false;
       if (admission.treeHash !== record.treeHash) return false;
       if (!isGateOverrideEligibleRefuseCode(admission.refuseCode)) return false;
+      // Referenced grant must still be live under inspect (revoke/expiry); do not
+      // accept a different matching grant in place of the saved admission's grantId.
       const inspected = inspectGateOverrideGrant(projectRoot, {
         refuseCode: admission.refuseCode,
         baseSha: record.baseSha,
@@ -439,6 +441,8 @@ function commandSatisfied(
         evaluatorId: admission.evaluatorId,
       });
       if (!inspected.ok) return false;
+      if (inspected.admission === null) return false;
+      if (inspected.grant.id !== admission.grantId) return false;
       // Saved exit-4 must not hide a later failing coverage report (#5674 Greptile P1).
       const reportPath = join(projectRoot, "coverage", "coverage-final.json");
       if (existsSync(reportPath)) {
