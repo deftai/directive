@@ -660,6 +660,23 @@ export function evaluateApplyingHostLifecycleAdmission(input: {
     };
   }
   if (read.status === "stale") {
+    // Live occupancy owner cleanup when applying-host TTL elapsed but the lease
+    // is still heartbeat-fresh (#5676 Greptile P1). Soft-pass only when argv
+    // already names that live owner so bare commands keep the rewrite path.
+    const staleLive = liveOccupant(input.projectRoot, input.now ?? new Date());
+    const staleLiveId = staleLive?.sessionId ?? null;
+    const staleNamed = input.namedSessionId?.trim() || null;
+    if (
+      staleLiveId !== null &&
+      read.record.applyingHostSessionId === staleLiveId &&
+      staleNamed === staleLiveId
+    ) {
+      return {
+        kind: "soft-pass",
+        record: read.record,
+        reason: "live-lease-owner-cleanup",
+      };
+    }
     return { kind: "repair", record: read.record, message: read.message };
   }
   if (read.status === "missing" || read.record === null) {
