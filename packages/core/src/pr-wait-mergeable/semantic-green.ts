@@ -688,6 +688,7 @@ export function evaluateSemanticGreen(
     };
   }
 
+  let cascadePayload = payload;
   if (options.requireMasterCiGreen === true) {
     const ci = evaluateTargetBranchCi(repo, branchHead.sha as string, runGh);
     if (!ci.ok) {
@@ -702,19 +703,29 @@ export function evaluateSemanticGreen(
         },
       };
     }
+    cascadePayload = {
+      ...payload,
+      master_ci: ci.masterCi,
+    };
+  }
+
+  // Combined limbs: cascade absolute refusal first, then candidate validation (#4888).
+  // Cascade-only callers (requireCandidateValidation unset) stay cascade-only.
+  if (options.requireCandidateValidation === true) {
+    const candidate = evaluateCandidateValidationLimb(prNumber, repo, options, runGh);
+    if (Object.keys(cascadePayload.master_ci).length === 0) {
+      return candidate;
+    }
     return {
-      ok: true,
-      outcome: null,
-      exitCode: null,
-      error: null,
+      ...candidate,
       payload: {
-        ...payload,
-        master_ci: ci.masterCi,
+        ...candidate.payload,
+        master_ci: cascadePayload.master_ci,
       },
     };
   }
 
-  return { ok: true, outcome: null, exitCode: null, error: null, payload };
+  return { ok: true, outcome: null, exitCode: null, error: null, payload: cascadePayload };
 }
 
 /**

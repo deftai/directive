@@ -411,6 +411,39 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
     expect(result.outcome).toBe("semantic-stale-base");
   });
 
+  it("runs candidate validation after cascade passes when both limbs are requested", () => {
+    const runGh = makeRunGh({
+      "/pulls/": pullsHandler(CURRENT_HEAD),
+      "/git/ref/heads/": branchRefHandler(CURRENT_HEAD),
+    });
+    const missing = evaluateSemanticGreen(PR, REPO, {
+      cascadeMode: true,
+      requireCandidateValidation: true,
+      checkLifecycleDirty: false,
+      localHeadSha: PR_HEAD,
+      runGh,
+    });
+    expect(missing.ok).toBe(false);
+    expect(missing.outcome).toBe("candidate-validation-missing-or-stale");
+
+    const attestation = validAttestation();
+    const ok = evaluateSemanticGreen(PR, REPO, {
+      cascadeMode: true,
+      requireCandidateValidation: true,
+      checkLifecycleDirty: false,
+      localHeadSha: PR_HEAD,
+      candidateValidationAttestation: attestation,
+      runGh,
+    });
+    expect(ok.ok).toBe(true);
+    expect(ok.payload.candidate_validation).toMatchObject({
+      required: true,
+      schema: CANDIDATE_VALIDATION_SCHEMA,
+      pr_head_sha: PR_HEAD,
+      target_head_sha: CURRENT_HEAD,
+    });
+  });
+
   it("refuses tree-identity mismatch via pr-head-assert pattern", () => {
     const runGh = makeRunGh({
       "/pulls/": pullsHandler(CURRENT_HEAD),
