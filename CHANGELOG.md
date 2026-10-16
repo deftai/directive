@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **fix(coverage): classify Directive-managed stamps and policy ledger as inert for pre-PR applicability (#5665).** Exact-path inert for `.deft/GENERATION.json`, `meta/policy-changes.log`, and `bareVersionMarkerRelativePaths()` siblings; authority/membership peers under `.deft/` and `meta/` stay unknown. Tracking #5665. Refs #5674 #5541 #5542.
+- **docs(authz): point #5542 waived-exit-4 / residual deposit wiring at tracker #5674.** Mint+admission-only landing is unchanged; pre-PR/`coverage:hotspots` honor of grants and residual installer-managed unknowns outside #5665 limb-1 remain on #5674. Corrects over-readable [0.125.1] grant wording. Tracking #5674. Refs #5542 #5665.
 - **Fixed**: Land tracked completion record for setup seed PROJECT-DEFINITION from design doc/answers after product #5662. Refs #4961.
 - **Fixed**: Land tracked completion record for SPECIFICATION export Requirements/AcceptanceCriteria fidelity after product #5661. Refs #4871.
 - **Fixed**: Land tracked completion record for three-axis semantic-green candidate validation. Refs #4888.
