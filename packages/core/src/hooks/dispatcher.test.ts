@@ -3751,6 +3751,42 @@ describe("runtime authority policy (#1394)", () => {
     expect(commandHasGitCommitSubcommand("echo commit")).toBe(false);
   });
 
+  it("refuses git commit -am / pathspecs that change the checked file set (#5656)", () => {
+    const am = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { tool_name: "Bash", tool_input: { command: "git commit -am msg" } },
+      },
+      readySeams({
+        inspectScope: () => READY_SCOPE,
+        loadStoryWriteFence: () => ({ fileScope: ["src/**"], denyPaths: [] }),
+        listStagedRelPaths: () => [],
+      }),
+    );
+    expect(am).toMatchObject({ verdict: "deny", code: "prospective-scope-cover-deny" });
+    expect(am.message).toMatch(/-a|--all|-am/);
+
+    const paths = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          tool_input: { command: "git commit -m msg -- src/a.ts" },
+        },
+      },
+      readySeams({
+        inspectScope: () => READY_SCOPE,
+        loadStoryWriteFence: () => ({ fileScope: ["src/**"], denyPaths: [] }),
+        listStagedRelPaths: () => [],
+      }),
+    );
+    expect(paths).toMatchObject({ verdict: "deny", code: "prospective-scope-cover-deny" });
+  });
+
   it("refuses git commit checkout retargets for prospective scope-cover (#5656)", () => {
     const decision = decideHook(
       {

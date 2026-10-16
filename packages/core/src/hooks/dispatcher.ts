@@ -4352,14 +4352,19 @@ export function commandHasGitCommitCheckoutRetarget(command: string): boolean {
 /** Staged index paths including deletions (ACMRD), project-relative POSIX. */
 export function listStagedRelPathsIncludingDeletes(projectRoot: string): string[] {
   try {
-    const stdout = execFileSync("git", ["diff", "--cached", "--name-only", "--diff-filter=ACMRD"], {
-      cwd: projectRoot,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    // -z: NUL-delimited so quoted non-ASCII names are not treated as literal paths (#5656).
+    const stdout = execFileSync(
+      "git",
+      ["diff", "--cached", "--name-only", "-z", "--diff-filter=ACMRD"],
+      {
+        cwd: projectRoot,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
     return stdout
-      .split("\n")
-      .map((line) => line.trim())
+      .split("\0")
+      .map((line) => line.replace(/\r/g, "").trim())
       .filter((line) => line.length > 0);
   } catch (err: unknown) {
     const e = err as NodeJS.ErrnoException & { stderr?: string };
@@ -4369,6 +4374,99 @@ export function listStagedRelPathsIncludingDeletes(projectRoot: string): string[
     const stderr = typeof e.stderr === "string" ? e.stderr.trim() : String(e.message ?? err);
     throw new Error(`git diff --cached --name-only failed: ${stderr}`);
   }
+}
+
+/**
+ * True when a Shell git commit uses -a/--all/-am/--include or trailing pathspecs
+ * that can change the checked file set after the pre-tool index snapshot (#5656).
+ */
+export function commandHasGitCommitIndexMutatingForm(command: string): boolean {
+  if (!commandHasGitCommitSubcommand(command)) return false;
+  const normalized = command.replace(/\r\n/g, "\n");
+  for (const part of normalized.split(/(?:&&|\|\||;|\n)/)) {
+    const words = part
+      .trim()
+      .split(/\s+/)
+      .filter((w) => w.length > 0);
+    let i = 0;
+    while (i < words.length) {
+      const envTok = words[i];
+      if (envTok === undefined || !/^[A-Za-z_][\w.]*=.*/.test(envTok)) break;
+      i++;
+    }
+    if (i >= words.length) continue;
+    const binTok = words[i];
+    if (binTok === undefined) continue;
+    const bin = binTok.replace(/^.*[/\\]/, "").toLowerCase();
+    if (bin !== "git" && bin !== "git.exe") continue;
+    i++;
+    let sub: string | undefined;
+    while (i < words.length) {
+      const w = words[i];
+      if (w === undefined) break;
+      if (w === "-C" || w === "--git-dir" || w === "--work-tree") {
+        i += 2;
+        continue;
+      }
+      if (w.startsWith("--git-dir=") || w.startsWith("--work-tree=")) {
+        i += 1;
+        continue;
+      }
+      if (w === "-c" || (w.startsWith("-c") && w.includes("="))) {
+        i += w === "-c" ? 2 : 1;
+        continue;
+      }
+      if (w.startsWith("-") && w !== "--") {
+        i += 1;
+        continue;
+      }
+      sub = w.toLowerCase();
+      i += 1;
+      break;
+    }
+    if (sub !== "commit") continue;
+    while (i < words.length) {
+      const w = words[i];
+      if (w === undefined) break;
+      if (w === "--") {
+        return i + 1 < words.length;
+      }
+      if (w === "-a" || w === "--all" || w === "-i" || w === "--include" || w === "-am") {
+        return true;
+      }
+      if (w.startsWith("--message=") || w.startsWith("--file=") || w.startsWith("--author=")) {
+        i += 1;
+        continue;
+      }
+      if (
+        w === "-m" ||
+        w === "-F" ||
+        w === "--message" ||
+        w === "--file" ||
+        w === "--author" ||
+        w === "--date" ||
+        w === "-c" ||
+        w === "-C" ||
+        w === "--reuse-message" ||
+        w === "--reedit-message" ||
+        w === "--fix" ||
+        w === "--cleanup" ||
+        w === "--untracked-files"
+      ) {
+        i += 2;
+        continue;
+      }
+      if (w.startsWith("-") && !w.startsWith("--") && /[ai]/.test(w.slice(1))) {
+        return true;
+      }
+      if (w.startsWith("-") && w !== "--") {
+        i += 1;
+        continue;
+      }
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -4390,6 +4488,16 @@ function decideProspectiveGitCommitScopeCover(
       `Directive denied ${toolName}: git commit with -C/--git-dir/--work-tree retargets the checkout; ` +
         "prospective scope-cover reads the index at the hook project root and refuses retargets (#5656). " +
         "Run the commit in the scoped checkout without checkout-changing globals.",
+    );
+  }
+  if (commandHasGitCommitIndexMutatingForm(command)) {
+    return deny(
+      input,
+      "prospective-scope-cover-deny",
+      toolName,
+      `Directive denied ${toolName}: git commit -a/--all/-am/--include or pathspecs change the ` +
+        "file set after the pre-tool index snapshot (#5656). Stage the intended paths first " +
+        "(git add …) then commit with -m/-F only — no -a/--all and no trailing pathspecs.",
     );
   }
   const projectRoot = resolve(input.projectRoot);
