@@ -1,0 +1,22 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "YOLO validated-issues V3 wave 3z — acceptance re-proof of V3 finding keys",
+    "updated": "2026-10-16T00:30:00.000Z"
+  },
+  "plan": {
+    "title": "Wave 3z — Validated-issues V3 acceptance",
+    "status": "completed",
+    "id": "yolo-5490-wave3z",
+    "narratives": {
+      "Description": "Re-prove TICKLER-GLOBAL, A68-LEGACY-UPDATE, PLAN-PM-CMD, PM-DEVENGINES, DOC-GEN-PM-DRIFT, AC76-MARKER-TEST, MIGRATE-PARTIAL-REPORT, DEFT-INSTALL-RESIDUAL on tip packages without weakening UNIFIED. Regression spot-check AC1.3, D4.3, no-git honesty, and closed tip claims.",
+      "Overview": "Branch yolo/wip-wave3z from yolo/cp-wave3t. Acceptance smoke wave3z-validated-acceptance.sh. Write VALIDATED-ISSUES-V3-COMPLETION.md. Optional retarget yolo/cp-wave3-tip / yolo/5490.",
+      "Acceptance": "All V3 keys PASS on tip Verdaccio tag yolo-cp-wave3z; completion log written; sterile field held."
+    },
+    "items": [
+      { "id": "1", "title": "Acceptance smoke", "status": "completed" },
+      { "id": "2", "title": "VALIDATED-ISSUES-V3-COMPLETION.md", "status": "completed" },
+      { "id": "3", "title": "Freeze yolo/cp-wave3z + Verdaccio", "status": "completed" }
+    ]
+  }
+}
