@@ -26,6 +26,7 @@ import { runTransition } from "../scope/transition.js";
 import {
   ADMITTED_TARGET_DIGEST_META_KEY,
   briefOwnsExactIssueAndRepo,
+  briefOwnsExactIssueNumber,
   buildIssueVbrief,
   classifyOwningBriefPaths,
   composeOverviewWithComments,
@@ -2159,6 +2160,25 @@ describe("ingest ownership exact identity (#4962 Prefer-A Bound)", () => {
     expect(briefOwnsExactIssueAndRepo(ten, 1, "o/r")).toBe(false);
     expect(briefOwnsExactIssueAndRepo(ten, 10, "o/r")).toBe(true);
     expect(briefOwnsExactIssueAndRepo(ten, 10, "other/r")).toBe(false);
+  });
+
+  it("number-only match keeps typed github-issue refs without Origin", () => {
+    const refsOnly: Record<string, unknown> = {
+      xBRIEFInfo: { version: "0.8", description: "scaffold", updated: "2026-01-01T00:00:00Z" },
+      plan: {
+        title: "refs-only",
+        status: "proposed",
+        narratives: { Origin: "manual scaffold" },
+        references: [
+          { type: "x-xbrief/github-issue", uri: "https://github.com/o/r/issues/42" },
+        ],
+        items: [],
+      },
+    };
+    expect(provenanceIssueNumber(refsOnly)).toBeNull();
+    expect(briefOwnsExactIssueNumber(refsOnly, 42)).toBe(true);
+    expect(briefOwnsExactIssueNumber(refsOnly, 4)).toBe(false);
+    expect(briefOwnsExactIssueNumber(refsOnly, 420)).toBe(false);
   });
 
   it("refuses when multiple live owning briefs match", () => {

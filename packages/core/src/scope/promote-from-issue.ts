@@ -10,7 +10,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
 import {
   briefOwnsExactIssueAndRepo,
-  provenanceIssueNumber,
+  briefOwnsExactIssueNumber,
   scanProvenanceRefs,
 } from "../intake/issue-ingest.js";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
@@ -62,8 +62,8 @@ function briefMatchesIssueAndRepo(
   if (repo !== null && repo.length > 0) {
     return briefOwnsExactIssueAndRepo(data, issueNumber, repo);
   }
-  // Repo unknown: number-only provenance / exact path-segment match via helper scan.
-  return provenanceIssueNumber(data) === issueNumber;
+  // Repo unknown: Origin/description or typed github-issue refs by exact number.
+  return briefOwnsExactIssueNumber(data, issueNumber);
 }
 
 /**

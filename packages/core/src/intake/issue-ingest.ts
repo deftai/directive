@@ -2191,6 +2191,29 @@ export function briefOwnsExactIssueAndRepo(
   return false;
 }
 
+/**
+ * Exact issue-number ownership when repo is unknown (#4962 / Greptile P1).
+ * Origin/description via provenanceIssueNumber, else typed github-issue refs
+ * matched by exact number (no URI substring #1 vs #10).
+ */
+export function briefOwnsExactIssueNumber(
+  data: Record<string, unknown>,
+  issueNumber: number,
+): boolean {
+  if (provenanceIssueNumber(data) === issueNumber) {
+    return true;
+  }
+  for (const ref of extractReferencesFromVbrief(data)) {
+    if (!GITHUB_ISSUE_REF_TYPES.has(String(ref.type ?? ""))) {
+      continue;
+    }
+    if (parseIssueNumber(ref) === issueNumber) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function filterExactOwningRelPaths(
   vbriefDir: string,
   relPaths: readonly string[],
