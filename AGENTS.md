@@ -104,7 +104,7 @@ Same as managed below; `task verify:story-ready`, `task scope:promote -- <path>`
 
 ## Contextual guardrails (runtime-detect lazy-load)
 
-Same as managed below; `task verify:encoding`, `task verify:scm-boundary`, `task pr:wait-mergeable-and-merge`; three-axis `#4888` (`evaluateNonCascadeCandidateGreen` + pre-pr `task check`); `content/scm/github.md` (#2157 / #2369).
+Same as managed below; `task verify:encoding`, `task verify:scm-boundary`, `task pr:wait-mergeable-and-merge`; three-axis `#4888` (`evaluateSemanticGreen` + pre-pr `task check`); `content/scm/github.md` (#2157 / #2369).
 
 ## Headless swarm launch gate-stack (#1387)
 
@@ -166,7 +166,7 @@ Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after 
 
 <!-- placeholder -->
 
-<!-- deft:managed-section v3 sha=0.125.2 refreshed=2026-10-16T05:33:48Z session=83f110246161 -->
+<!-- deft:managed-section v3 sha=6c6eaa9390b5 refreshed=2026-10-16T03:46:15Z session=0321cff7fc33 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -288,7 +288,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## Nuclear-family A2A topology (#3155)
 
-! Agent-to-agent messaging is **nuclear-family** only: parent / sibling (same cohort) / child. Cross-cohort or cross-session coordination goes through a shared parent or durable parent-owned artifacts — not peer mesh. Depth: swarm.md / security.md / ADR-003 (#2705). Pair: #3158; #3179.
+! Agent-to-agent messaging is **nuclear-family** only: parent / sibling (same cohort) / child. Cross-cohort or cross-session coordination goes through a shared parent or durable parent-owned artifacts — not peer mesh. Depth: swarm.md / security.md / docs/decisions/ADR-003 (.deft/core/docs) (#2705). Pair: #3158; #3179.
 ⊗ Open-mesh agent-to-agent messaging across cohorts or sessions ("agents everywhere").
 ⊗ Treat retained / re-addressable children as license to mesh outside the nuclear family.
 
