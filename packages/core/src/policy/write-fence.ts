@@ -120,6 +120,16 @@ export function isStoryWriteFenceUnreadable(
   return typeof fence.unreadableDetail === "string" && fence.unreadableDetail.length > 0;
 }
 
+/**
+ * Positive governing story allow coverage (#5656 Prefer-A Bound limb 2 / PA1).
+ * Non-empty `file_scope` / allow list only. Deny-only and pathless fences do
+ * not qualify — an active fence alone is not admission.
+ */
+export function hasPositiveGoverningStoryAllow(fence: StoryWriteFenceView): boolean {
+  if (isStoryWriteFenceUnreadable(fence)) return false;
+  return fence.fileScope.length > 0;
+}
+
 function unreadableFence(scopePath: string, detail: string): StoryWriteFenceView {
   return {
     fileScope: [],

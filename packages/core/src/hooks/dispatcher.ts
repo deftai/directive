@@ -19,6 +19,7 @@ import { prepareGithubOnlyDest } from "../design-critique/run-posture.js";
 import { runningInsideDeftRepo } from "../doctor/paths.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { hasArtifactSuffix } from "../layout/resolve.js";
+import { matchAny } from "../orchestration/pathspec.js";
 import {
   defaultKillAttestationDir,
   evaluateKillAttestation,
@@ -47,6 +48,7 @@ import {
   type RuntimeAuthorityShellOp,
 } from "../policy/runtime-authority.js";
 import {
+  hasPositiveGoverningStoryAllow,
   isStoryWriteFenceUnreadable,
   loadStoryWriteFenceFromMergeBase,
   resolveWriteFence,
@@ -177,6 +179,8 @@ import {
   type ActiveScopeInspection,
   type InspectActiveScopeOptions,
   inspectActiveScope,
+  POSITIVE_GOVERNING_ALLOW_REQUIRED,
+  selectedBriefHasPositiveGoverningAllow,
 } from "./scope.js";
 import { classifyShellWriteTargets, isInRepoShellWritePath } from "./shell-write-targets.js";
 import {
@@ -2258,6 +2262,24 @@ function inspectMutationGates(
     }
   }
 
+  // #5656 Prefer-A Bound limb 2: positive governing story allow is mandatory for
+  // Write and implement-class spawn once a brief is selected. Deny-only /
+  // pathless / active-fence-alone do not admit. Outside-root #2885 fallthrough
+  // (scope not ready) must not hit this gate.
+  if (scope.ready && scope.path !== null) {
+    const loadFence = seams.loadStoryWriteFence ?? loadStoryWriteFenceFromMergeBase;
+    if (!selectedBriefHasPositiveGoverningAllow(effectiveRoot, scope.path, loadFence)) {
+      const denyCode = isSpawnTool(toolName) ? "spawn-not-ready" : "scope-not-ready";
+      return deny(
+        input,
+        denyCode,
+        toolName,
+        `${POSITIVE_GOVERNING_ALLOW_REQUIRED}${rootsNote}`,
+        scope.path,
+      );
+    }
+  }
+
   const allowCode = isSpawnTool(toolName) ? "spawn-ready" : "write-ready";
   // #1193: non-implement slash verbs must not authorize implement/spawn tooling.
   {
@@ -4169,6 +4191,101 @@ function composeCursorSessionStartAdditionalContext(
     return undefined;
   }
   return parts.join("\n\n");
+}
+
+/**
+ * Prospective staged/index scope-cover gate (#5656 Prefer-A Bound limb 3).
+ * Refuses when any staged product path lacks covering running-scope governing
+ * allow `file_scope`. Does not rewrite or bless historical uncovered commits.
+ * Reachability residuals: `verify:hooks-installed` and `--no-verify`.
+ */
+export interface ProspectiveScopeCoverInput {
+  readonly projectRoot: string;
+  /** Staged/index paths as project-relative POSIX (deletions/renames included). */
+  readonly stagedRelPaths: readonly string[];
+  readonly inspectScope?: typeof inspectActiveScope;
+  readonly loadStoryWriteFence?: (
+    projectRoot: string,
+    scopePath: string | null,
+  ) => StoryWriteFenceView;
+  readonly env?: NodeJS.ProcessEnv;
+}
+
+export interface ProspectiveScopeCoverResult {
+  readonly ok: boolean;
+  readonly message: string;
+  readonly uncovered: readonly string[];
+  readonly scopePath: string | null;
+}
+
+export function evaluateProspectiveScopeCover(
+  input: ProspectiveScopeCoverInput,
+): ProspectiveScopeCoverResult {
+  const projectRoot = resolve(input.projectRoot);
+  const staged = input.stagedRelPaths
+    .map((p) => p.replace(/\\/g, "/").replace(/^\.\//, ""))
+    .filter((p) => p.length > 0);
+  if (staged.length === 0) {
+    return {
+      ok: true,
+      message: "No staged paths to cover.",
+      uncovered: [],
+      scopePath: null,
+    };
+  }
+  const scope = (input.inspectScope ?? inspectActiveScope)(projectRoot, {
+    env: input.env ?? {},
+  });
+  if (!scope.ready || scope.path === null) {
+    return {
+      ok: false,
+      message:
+        `Prospective scope-cover denied: no ready running scope for staged paths (#5656). ` +
+        `${scope.message} Recovery: ${SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE}.`,
+      uncovered: staged,
+      scopePath: null,
+    };
+  }
+  const loadFence = input.loadStoryWriteFence ?? loadStoryWriteFenceFromMergeBase;
+  const fence = loadFence(projectRoot, scope.path);
+  if (isStoryWriteFenceUnreadable(fence)) {
+    return {
+      ok: false,
+      message:
+        `Prospective scope-cover denied: story write fence unreadable (#5656). ` +
+        `${fence.unreadableDetail}`,
+      uncovered: staged,
+      scopePath: scope.path,
+    };
+  }
+  if (!hasPositiveGoverningStoryAllow(fence)) {
+    return {
+      ok: false,
+      message:
+        `Prospective scope-cover denied: selected scope lacks positive governing ` +
+        `allow file_scope (#5656). ${POSITIVE_GOVERNING_ALLOW_REQUIRED}`,
+      uncovered: staged,
+      scopePath: scope.path,
+    };
+  }
+  const uncovered = staged.filter((rel) => !matchAny(fence.fileScope, rel));
+  if (uncovered.length > 0) {
+    return {
+      ok: false,
+      message:
+        `Prospective scope-cover denied: staged path(s) outside governing file_scope ` +
+        `(#5656): ${uncovered.join(", ")}. This gate is prospective only — it does not ` +
+        "rewrite or bless earlier uncovered commits. Residuals: verify:hooks-installed; --no-verify.",
+      uncovered,
+      scopePath: scope.path,
+    };
+  }
+  return {
+    ok: true,
+    message: `Prospective scope-cover passed for ${String(staged.length)} staged path(s).`,
+    uncovered: [],
+    scopePath: scope.path,
+  };
 }
 
 /**

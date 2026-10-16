@@ -67,6 +67,8 @@ import {
   normalizeHookProjectRoot,
   projectRootFromHookPayload,
   READ_ONLY_HOOK_ENV,
+  evaluateProspectiveScopeCover,
+  POSITIVE_GOVERNING_ALLOW_REQUIRED,
   renderHostDecision,
   SPAWN_TOOL_NAMES,
 } from "./index.js";
@@ -118,9 +120,14 @@ function readySeams(overrides: Partial<HookPolicySeams> = {}): HookPolicySeams {
     sessionStart: () => ({ code: 0, stdout: "", stderr: "" }),
     runningInsideDeftRepo: () => true,
     realpathLifecycleExecutionRoot: (path) => resolve(path),
-    // Fixtures are not authoritative git merge-base trees; path seam keeps allow
-    // paths while write-fence / scope-provenance tests cover merge-base authority.
-    loadStoryWriteFence: (_root, scopePath) => loadStoryWriteFenceFromPath(scopePath),
+    // Fixtures are not authoritative git merge-base trees. Default positive
+    // governing allow (#5656) so write-ready tests stay admitted; pathless /
+    // deny-only / coverage tests override this seam explicitly.
+    loadStoryWriteFence: (_root, scopePath) => {
+      const fromPath = loadStoryWriteFenceFromPath(scopePath);
+      if (fromPath.fileScope.length > 0 || fromPath.denyPaths.length > 0) return fromPath;
+      return { fileScope: ["**"], denyPaths: [] };
+    },
     ...overrides,
   };
 }
@@ -593,7 +600,13 @@ describe("direct-write hook policy", () => {
       host: "grok" as const,
       event: "tool.before" as const,
       projectRoot: "/project",
-      payload: { toolName: "Edit", workspaceRoot: "/project" },
+      // Path required: readySeams positive allow (#5656) activates story fence,
+      // and active fence denies unclassified/empty targets (#5366).
+      payload: {
+        toolName: "Edit",
+        workspaceRoot: "/project",
+        tool_input: { file_path: "/project/src/app.ts" },
+      },
     };
 
     expect(decideHook(input, seams)).toMatchObject({ verdict: "allow", code: "write-ready" });
@@ -1787,7 +1800,12 @@ describe("direct-write hook policy", () => {
         host: "claude",
         event: "tool.before",
         projectRoot: "/project",
-        payload: { tool_name: "Write", cwd: "/project" },
+        // Concrete path: readySeams positive allow (#5656) activates story fence.
+        payload: {
+          tool_name: "Write",
+          cwd: "/project",
+          tool_input: { file_path: "/project/src/app.ts", contents: "x" },
+        },
       },
       readySeams(),
     );
@@ -3551,6 +3569,117 @@ describe("runtime authority policy (#1394)", () => {
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "runtime-policy-deny-path" });
     expect(decision.message).toMatch(/story file_scope/);
+  });
+
+  it("denies Write when sole brief is pathless / empty-allow (#5656)", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          tool_input: { file_path: "/project/src/product.ts", contents: "x" },
+        },
+      },
+      readySeams({
+        loadStoryWriteFence: () => ({ fileScope: [], denyPaths: [] }),
+      }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    expect(decision.message).toContain("positive governing");
+    expect(decision.message).toMatch(/scope:promote|preflight/);
+  });
+
+  it("denies Write when sole brief is deny-only (#5656 PA1)", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          tool_input: { file_path: "/project/src/product.ts", contents: "x" },
+        },
+      },
+      readySeams({
+        loadStoryWriteFence: () => ({ fileScope: [], denyPaths: ["docs/**"] }),
+      }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    expect(decision.message).toContain("positive governing");
+  });
+
+  it("denies implement spawn when sole brief lacks positive governing allow (#5656)", () => {
+    // Claude Task + isolation:worktree reaches the positive-allow gate; Grok
+    // spawn_subagent without cwd stops earlier on the dest require (#4066).
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Task",
+          tool_input: {
+            subagent_type: "generalPurpose",
+            isolation: "worktree",
+            prompt: "implement the fix",
+          },
+        },
+        environ: {},
+      },
+      readySeams({
+        loadStoryWriteFence: () => ({ fileScope: [], denyPaths: [] }),
+      }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.message).toContain("positive governing");
+    expect(POSITIVE_GOVERNING_ALLOW_REQUIRED).toMatch(/file_scope/);
+  });
+
+  it("evaluateProspectiveScopeCover refuses uncovered staged paths (#5656)", () => {
+    const denied = evaluateProspectiveScopeCover({
+      projectRoot: "/project",
+      stagedRelPaths: ["src/a.ts", "docs/b.md"],
+      inspectScope: () => READY_SCOPE,
+      loadStoryWriteFence: () => ({ fileScope: ["src/**"], denyPaths: [] }),
+      env: {},
+    });
+    expect(denied.ok).toBe(false);
+    expect(denied.uncovered).toEqual(["docs/b.md"]);
+    expect(denied.message).toMatch(/Prospective scope-cover/);
+    expect(denied.message).toMatch(/does not rewrite/);
+
+    const covered = evaluateProspectiveScopeCover({
+      projectRoot: "/project",
+      stagedRelPaths: ["src/a.ts"],
+      inspectScope: () => READY_SCOPE,
+      loadStoryWriteFence: () => ({ fileScope: ["src/**"], denyPaths: [] }),
+      env: {},
+    });
+    expect(covered.ok).toBe(true);
+    expect(covered.uncovered).toEqual([]);
+  });
+
+  it("evaluateProspectiveScopeCover refuses pathless / deny-only governing allow (#5656)", () => {
+    const pathless = evaluateProspectiveScopeCover({
+      projectRoot: "/project",
+      stagedRelPaths: ["src/a.ts"],
+      inspectScope: () => READY_SCOPE,
+      loadStoryWriteFence: () => ({ fileScope: [], denyPaths: [] }),
+      env: {},
+    });
+    expect(pathless.ok).toBe(false);
+    expect(pathless.message).toMatch(/positive governing/);
+
+    const denyOnly = evaluateProspectiveScopeCover({
+      projectRoot: "/project",
+      stagedRelPaths: ["src/a.ts"],
+      inspectScope: () => READY_SCOPE,
+      loadStoryWriteFence: () => ({ fileScope: [], denyPaths: ["docs/**"] }),
+      env: {},
+    });
+    expect(denyOnly.ok).toBe(false);
   });
 
   it("allows path inside project+story intersection", () => {
@@ -6040,7 +6169,9 @@ describe("MCP dest-bearing writes share inspectMutationGates (#3593)", () => {
     expect(decision.message).toMatch(/write fence is active/i);
   });
 
-  it("inactive fence still allows when no path under ready seams (#5366 control)", () => {
+  it("inactive fence pathless Write is refused by positive governing allow (#5656 / #5366)", () => {
+    // Empty story allow keeps the write fence inactive (#5366), but #5656
+    // positive governing allow refuses Write before that inactive-fence allow.
     const decision = decideHook(
       {
         host: "claude",
@@ -6055,9 +6186,11 @@ describe("MCP dest-bearing writes share inspectMutationGates (#3593)", () => {
           denyPaths: [],
           scopes: { edits: true, push: true, merge: true },
         }),
+        loadStoryWriteFence: () => ({ fileScope: [], denyPaths: [] }),
       }),
     );
-    expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
+    expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    expect(decision.message).toContain("positive governing");
   });
 });
 
