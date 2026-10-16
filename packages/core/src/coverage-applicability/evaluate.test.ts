@@ -169,6 +169,22 @@ describe("classifyChangedPath", () => {
     expect(classifyChangedPath("fixtures/data.yaml", "A", null)).toBe("unknown");
     expect(classifyChangedPath("mystery.bin", "A", null)).toBe("unknown");
   });
+
+  it("classifies Prefer-A limb-1 managed stamps/ledger inert and keeps peers unknown (#5665)", () => {
+    expect(classifyChangedPath(".deft/GENERATION.json", "A", null)).toBe("inert");
+    expect(classifyChangedPath(".deft/GENERATION.json", "M", null)).toBe("inert");
+    expect(classifyChangedPath("meta/policy-changes.log", "A", null)).toBe("inert");
+    expect(classifyChangedPath("meta/policy-changes.log", "M", null)).toBe("inert");
+    expect(classifyChangedPath("xbrief/.deft-version", "A", null)).toBe("inert");
+    expect(classifyChangedPath(".deft-version", "M", null)).toBe("inert");
+    expect(classifyChangedPath("vbrief/.deft-version", "A", null)).toBe("inert");
+    // Keep-unknown: authority/membership and non-listed peers (no blanket .deft/ or meta/).
+    expect(classifyChangedPath(".deft/approved-scope/x.json", "A", null)).toBe("unknown");
+    expect(classifyChangedPath(".deft/other.json", "A", null)).toBe("unknown");
+    expect(classifyChangedPath(".deft/plan-sequence.json", "A", null)).toBe("unknown");
+    expect(classifyChangedPath("meta/other.log", "M", null)).toBe("unknown");
+    expect(classifyChangedPath(".githooks/pre-commit", "M", null)).toBe("unknown");
+  });
 });
 
 describe("parseNameStatus", () => {
@@ -584,6 +600,119 @@ describe("evaluateCoverageApplicability", () => {
     const unknownResult = evaluateCoverageApplicability(bindingFor(unknownRoot, unknownBase));
     expect(unknownResult.outcome).toBe("refuse");
     if (unknownResult.outcome === "refuse") expect(unknownResult.code).toBe("unknown-path");
+  });
+
+  it("aggregates limb-1 stamp/ledger subsets N/A, coverable mix applicable, unknown peer refuse (#5665)", () => {
+    const limb1Paths = [
+      ".deft/GENERATION.json",
+      "meta/policy-changes.log",
+      "xbrief/.deft-version",
+      ".deft-version",
+      "vbrief/.deft-version",
+    ] as const;
+
+    const freshRoot = gitRepo({ "README.md": "# base\n" });
+    const freshBase = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: freshRoot, encoding: "utf8" })
+      .trim();
+    mkdirSync(join(freshRoot, ".deft"), { recursive: true });
+    mkdirSync(join(freshRoot, "meta"), { recursive: true });
+    mkdirSync(join(freshRoot, "xbrief"), { recursive: true });
+    mkdirSync(join(freshRoot, "vbrief"), { recursive: true });
+    mkdirSync(join(freshRoot, "docs"), { recursive: true });
+    mkdirSync(join(freshRoot, "fixtures"), { recursive: true });
+    writeFileSync(join(freshRoot, ".deft/GENERATION.json"), '{"generation":1}\n');
+    writeFileSync(join(freshRoot, "meta/policy-changes.log"), "policy\n");
+    writeFileSync(join(freshRoot, "xbrief/.deft-version"), "0.125.2\n");
+    writeFileSync(join(freshRoot, ".deft-version"), "0.125.2\n");
+    writeFileSync(join(freshRoot, "vbrief/.deft-version"), "0.125.2\n");
+    writeFileSync(join(freshRoot, "docs/note.md"), "note\n");
+    writeFileSync(join(freshRoot, "fixtures/catalog.json"), "{}\n");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: freshRoot });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "limb1-fresh"], { cwd: freshRoot });
+    const freshResult = evaluateCoverageApplicability(bindingFor(freshRoot, freshBase));
+    expect(freshResult.outcome).toBe("not-applicable");
+    if (freshResult.outcome === "not-applicable") {
+      expect(freshResult.reason).toBe(COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP);
+      for (const path of limb1Paths) {
+        expect(freshResult.changes.find((c) => c.path === path)?.classification).toBe("inert");
+      }
+    }
+
+    const upgradeRoot = gitRepo({
+      "README.md": "# base\n",
+      ".deft/GENERATION.json": '{"generation":1}\n',
+      "meta/policy-changes.log": "old\n",
+      "xbrief/.deft-version": "0.125.0\n",
+      ".deft-version": "0.125.0\n",
+      "vbrief/.deft-version": "0.125.0\n",
+    });
+    const upgradeBase = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: upgradeRoot, encoding: "utf8" })
+      .trim();
+    writeFileSync(join(upgradeRoot, ".deft/GENERATION.json"), '{"generation":2}\n');
+    writeFileSync(join(upgradeRoot, "meta/policy-changes.log"), "old\nnew\n");
+    writeFileSync(join(upgradeRoot, "xbrief/.deft-version"), "0.125.2\n");
+    writeFileSync(join(upgradeRoot, ".deft-version"), "0.125.2\n");
+    writeFileSync(join(upgradeRoot, "vbrief/.deft-version"), "0.125.2\n");
+    mkdirSync(join(upgradeRoot, "docs"), { recursive: true });
+    writeFileSync(join(upgradeRoot, "docs/upgrade.md"), "upgrade\n");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: upgradeRoot });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "limb1-upgrade"], { cwd: upgradeRoot });
+    const upgradeResult = evaluateCoverageApplicability(bindingFor(upgradeRoot, upgradeBase));
+    expect(upgradeResult.outcome).toBe("not-applicable");
+    if (upgradeResult.outcome === "not-applicable") {
+      expect(upgradeResult.reason).toBe(COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP);
+    }
+
+    const mixedRoot = gitRepo({ "README.md": "# base\n" });
+    const mixedBase = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: mixedRoot, encoding: "utf8" })
+      .trim();
+    mkdirSync(join(mixedRoot, ".deft"), { recursive: true });
+    mkdirSync(join(mixedRoot, "meta"), { recursive: true });
+    mkdirSync(join(mixedRoot, "xbrief"), { recursive: true });
+    mkdirSync(join(mixedRoot, "src"), { recursive: true });
+    writeFileSync(join(mixedRoot, ".deft/GENERATION.json"), '{"generation":1}\n');
+    writeFileSync(join(mixedRoot, "meta/policy-changes.log"), "policy\n");
+    writeFileSync(join(mixedRoot, "xbrief/.deft-version"), "0.125.2\n");
+    writeFileSync(join(mixedRoot, "bun.lock"), "lock\n");
+    writeFileSync(join(mixedRoot, "src/app.ts"), "export const n = 1;\n");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: mixedRoot });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "limb1-mixed"], { cwd: mixedRoot });
+    const mixedResult = evaluateCoverageApplicability(bindingFor(mixedRoot, mixedBase));
+    expect(mixedResult.outcome).toBe("applicable");
+    if (mixedResult.outcome === "applicable") {
+      expect(mixedResult.coverablePaths).toEqual(
+        expect.arrayContaining(["src/app.ts", "bun.lock"]),
+      );
+      expect(mixedResult.changes.find((c) => c.path === ".deft/GENERATION.json")?.classification).toBe(
+        "inert",
+      );
+      expect(
+        mixedResult.changes.find((c) => c.path === "meta/policy-changes.log")?.classification,
+      ).toBe("inert");
+      expect(mixedResult.changes.find((c) => c.path === "xbrief/.deft-version")?.classification).toBe(
+        "inert",
+      );
+    }
+
+    const refuseRoot = gitRepo({ "README.md": "# base\n" });
+    const refuseBase = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: refuseRoot, encoding: "utf8" })
+      .trim();
+    mkdirSync(join(refuseRoot, ".deft"), { recursive: true });
+    mkdirSync(join(refuseRoot, "meta"), { recursive: true });
+    writeFileSync(join(refuseRoot, ".deft/GENERATION.json"), '{"generation":1}\n');
+    writeFileSync(join(refuseRoot, "meta/policy-changes.log"), "policy\n");
+    writeFileSync(join(refuseRoot, "meta/other.log"), "peer\n");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: refuseRoot });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "limb1-unknown-peer"], {
+      cwd: refuseRoot,
+    });
+    const refuseResult = evaluateCoverageApplicability(bindingFor(refuseRoot, refuseBase));
+    expect(refuseResult.outcome).toBe("refuse");
+    if (refuseResult.outcome === "refuse") expect(refuseResult.code).toBe("unknown-path");
   });
 });
 

@@ -4,6 +4,7 @@
  */
 
 import * as childProcess from "node:child_process";
+import { bareVersionMarkerRelativePaths } from "../init-deposit/hygiene.js";
 import { isClosedPlanSequenceShape, PLAN_SEQUENCE_REL_PATH } from "../plan-sequence/types.js";
 import { COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP } from "../pre-pr-controller/phases.js";
 
@@ -769,6 +770,21 @@ function isRepoRootFixturesJson(path: string): boolean {
 }
 
 /**
+ * Prefer-A #5665 limb-1: exact-path framework stamps/markers + policy audit trail.
+ * Version siblings from bareVersionMarkerRelativePaths(); not the frozen Go deposit list.
+ * Authority/membership under .deft/ and meta/ stay unknown unless another closed rule matches.
+ */
+const MANAGED_STAMP_LEDGER_INERT_PATHS: ReadonlySet<string> = new Set([
+  ".deft/GENERATION.json",
+  "meta/policy-changes.log",
+  ...bareVersionMarkerRelativePaths(),
+]);
+
+function isManagedStampOrPolicyLedgerPath(path: string): boolean {
+  return MANAGED_STAMP_LEDGER_INERT_PATHS.has(posixPath(path));
+}
+
+/**
  * Closed classifier rules. Markdown/JSON/xbrief are inert only when these rules
  * positively match — never by blanket extension alone outside planning/docs paths.
  */
@@ -789,6 +805,9 @@ export function classifyChangedPath(
 
   // #5541: ordinary Bun consumer fixtures JSON is inert after coverable-first.
   if (isRepoRootFixturesJson(p)) return "inert";
+
+  // #5665: Directive-managed stamps/markers + append-only policy ledger (exact posix).
+  if (isManagedStampOrPolicyLedgerPath(p)) return "inert";
 
   if (INERT_BASENAMES.has(base)) return "inert";
 
