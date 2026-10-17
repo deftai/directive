@@ -3455,24 +3455,14 @@ function attachLifecycleIdentityRewrite(
       return denyIdentity("occupancy-identity-conflict", applyingAdmission.message);
     }
   }
-  // Confirmed steal: keep a named owner only when soft-pass already verified it
-  // against applying-host. Otherwise use the host identity so an unrelated
-  // --session-id cannot be written into the lease (#5676 Greptile P1).
-  const softPassNamedOwner =
-    stealConfirmBypass &&
-    applyingAdmission.kind === "soft-pass" &&
-    lifecycle.sessionIdStatus === "present" &&
-    lifecycle.sessionId !== null &&
-    lifecycle.sessionId === applyingAdmission.record.applyingHostSessionId
-      ? lifecycle.sessionId
-      : null;
-  const effectiveOwner = stealConfirmBypass
-    ? (softPassNamedOwner ?? identity.sessionId)
-    : liveOwnerBypass
-      ? identity.sessionId
-      : applyingAdmission.kind === "soft-pass" || applyingAdmission.kind === "enforce"
-        ? applyingAdmission.record.applyingHostSessionId
-        : identity.sessionId;
+  // Confirmed steal: thief is always the verified host identity. Never promote
+  // applying-host (incumbent) or an unrelated --session-id into the lease
+  // (#5676 Greptile P1 "Takeovers trust the wrong owner").
+  const effectiveOwner = stealConfirmBypass || liveOwnerBypass
+    ? identity.sessionId
+    : applyingAdmission.kind === "soft-pass" || applyingAdmission.kind === "enforce"
+      ? applyingAdmission.record.applyingHostSessionId
+      : identity.sessionId;
   const environmentId = (input.environ ?? process.env).DEFT_SESSION_ID?.trim();
   if (environmentId !== undefined && environmentId.length > 0 && environmentId !== effectiveOwner) {
     return denyIdentity(
