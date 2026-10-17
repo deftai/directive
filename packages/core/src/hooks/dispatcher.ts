@@ -3458,11 +3458,12 @@ function attachLifecycleIdentityRewrite(
   // Confirmed steal: thief is always the verified host identity. Never promote
   // applying-host (incumbent) or an unrelated --session-id into the lease
   // (#5676 Greptile P1 "Takeovers trust the wrong owner").
-  const effectiveOwner = stealConfirmBypass || liveOwnerBypass
-    ? identity.sessionId
-    : applyingAdmission.kind === "soft-pass" || applyingAdmission.kind === "enforce"
-      ? applyingAdmission.record.applyingHostSessionId
-      : identity.sessionId;
+  const effectiveOwner =
+    stealConfirmBypass || liveOwnerBypass
+      ? identity.sessionId
+      : applyingAdmission.kind === "soft-pass" || applyingAdmission.kind === "enforce"
+        ? applyingAdmission.record.applyingHostSessionId
+        : identity.sessionId;
   const environmentId = (input.environ ?? process.env).DEFT_SESSION_ID?.trim();
   if (environmentId !== undefined && environmentId.length > 0 && environmentId !== effectiveOwner) {
     return denyIdentity(
