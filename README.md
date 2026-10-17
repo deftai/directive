@@ -10,7 +10,8 @@
 > 5. **Move version / migrate data:** `directive upgrade` (alias `update`).
 > 6. **Not sure:** `directive doctor` (read-only). CI / swarm: `directive install --repair --yes` with a valid pin.
 > 7. **Corporate mirror / offline:** see [UPGRADING.md](./content/UPGRADING.md#corporate-or-mirrored-npm-registry).
-> 8. **Codex ritual git / occupancy:** approve outside-sandbox ritual `git` once per session when prompted; abandoned occupancy leases use `occupancy:release` only when stale (not a live peer).
+> 8. **Codex ritual git:** approve outside-sandbox ritual `git` once per session when prompted.
+> 9. **Abandoned occupancy lease.** Only when the lease is abandoned (stale/expired owner, not a live peer session): `occupancy:release --session-id=<id from .deft/occupancy.json>` or wait for TTL claim-over. Do not release another session's live lease. Do not invent a new unlock verb (#3954 / #4667).
 >
 > Never use `npx` / `pnpm exec` as day-to-day identity. There is no copied `.deft/core/` content — pointers resolve under `node_modules/@deftai/directive-runtime/`. Once `directive` runs, continue with the guidance below and in `AGENTS.md`.
 <!-- /deft:cold-start-bootstrap v2 -->
