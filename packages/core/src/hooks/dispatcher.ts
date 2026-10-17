@@ -3455,8 +3455,14 @@ function attachLifecycleIdentityRewrite(
       return denyIdentity("occupancy-identity-conflict", applyingAdmission.message);
     }
   }
-  const effectiveOwner =
-    liveOwnerBypass || stealConfirmBypass
+  // Confirmed steal: prefer an already-named --session-id (often the applying-host
+  // after read-only repair) so a soft-pass non-matching deposit cannot rewrite
+  // effectiveOwner onto a different host identity (#5676 Greptile P1).
+  const effectiveOwner = stealConfirmBypass
+    ? lifecycle.sessionIdStatus === "present" && lifecycle.sessionId !== null
+      ? lifecycle.sessionId
+      : identity.sessionId
+    : liveOwnerBypass
       ? identity.sessionId
       : applyingAdmission.kind === "soft-pass" || applyingAdmission.kind === "enforce"
         ? applyingAdmission.record.applyingHostSessionId
