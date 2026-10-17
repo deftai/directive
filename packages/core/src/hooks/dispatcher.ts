@@ -3455,11 +3455,12 @@ function attachLifecycleIdentityRewrite(
       return denyIdentity("occupancy-identity-conflict", applyingAdmission.message);
     }
   }
-  const effectiveOwner = liveOwnerBypass || stealConfirmBypass
-    ? identity.sessionId
-    : applyingAdmission.kind === "soft-pass" || applyingAdmission.kind === "enforce"
-      ? applyingAdmission.record.applyingHostSessionId
-      : identity.sessionId;
+  const effectiveOwner =
+    liveOwnerBypass || stealConfirmBypass
+      ? identity.sessionId
+      : applyingAdmission.kind === "soft-pass" || applyingAdmission.kind === "enforce"
+        ? applyingAdmission.record.applyingHostSessionId
+        : identity.sessionId;
   const environmentId = (input.environ ?? process.env).DEFT_SESSION_ID?.trim();
   if (environmentId !== undefined && environmentId.length > 0 && environmentId !== effectiveOwner) {
     return denyIdentity(
