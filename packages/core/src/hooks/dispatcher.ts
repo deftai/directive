@@ -3455,13 +3455,19 @@ function attachLifecycleIdentityRewrite(
       return denyIdentity("occupancy-identity-conflict", applyingAdmission.message);
     }
   }
-  // Confirmed steal: prefer an already-named --session-id (often the applying-host
-  // after read-only repair) so a soft-pass non-matching deposit cannot rewrite
-  // effectiveOwner onto a different host identity (#5676 Greptile P1).
-  const effectiveOwner = stealConfirmBypass
-    ? lifecycle.sessionIdStatus === "present" && lifecycle.sessionId !== null
+  // Confirmed steal: keep a named owner only when soft-pass already verified it
+  // against applying-host. Otherwise use the host identity so an unrelated
+  // --session-id cannot be written into the lease (#5676 Greptile P1).
+  const softPassNamedOwner =
+    stealConfirmBypass &&
+    applyingAdmission.kind === "soft-pass" &&
+    lifecycle.sessionIdStatus === "present" &&
+    lifecycle.sessionId !== null &&
+    lifecycle.sessionId === applyingAdmission.record.applyingHostSessionId
       ? lifecycle.sessionId
-      : identity.sessionId
+      : null;
+  const effectiveOwner = stealConfirmBypass
+    ? (softPassNamedOwner ?? identity.sessionId)
     : liveOwnerBypass
       ? identity.sessionId
       : applyingAdmission.kind === "soft-pass" || applyingAdmission.kind === "enforce"
