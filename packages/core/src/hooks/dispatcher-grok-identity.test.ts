@@ -919,4 +919,42 @@ describe("applying-host SessionStart + multi-host soft-pass (#5676)", () => {
     );
     expect(allowed.verdict).toBe("allow");
   });
+
+  it("confirmed steal keeps named applying-host owner under soft-pass non-matching deposit (#5676 P1)", () => {
+    const root = mkdtempSync(join(tmpdir(), "hook-5676-steal-softpass-"));
+    temps.push(root);
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    applyWorktreeOccupancy(root, {
+      sessionId: CURSOR_OWNER,
+      now: new Date("2026-10-16T12:00:00Z"),
+      intent: "mutation",
+    });
+    // Applying-host already names the thief (e.g. after read-only repair).
+    const thiefRaw = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
+    const thief = canonicalHostSessionId("claude", thiefRaw);
+    publishApplyingHost(root, {
+      provider: "claude",
+      rawSessionId: thiefRaw,
+      transport: "native",
+      claimedAt: new Date("2026-10-16T12:01:00Z"),
+    });
+    const allowed = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Shell",
+          conversation_id: RAW,
+          tool_input: {
+            command: `deft occupancy:steal --occupant=${CURSOR_OWNER} --session-id=${thief} --confirm`,
+            working_directory: root,
+          },
+        },
+        environ: {},
+      },
+      seams(),
+    );
+    expect(allowed.verdict).toBe("allow");
+  });
 });
