@@ -921,5 +921,25 @@ describe("applying-host SessionStart + multi-host soft-pass (#5676)", () => {
       allowed,
       JSON.stringify({ v: allowed.verdict, c: allowed.code, m: allowed.message }),
     ).toMatchObject({ verdict: "allow" });
+
+    const stranger = "host:cursor:v1:cccccccccccccccccccccccccccccccccccc";
+    const wrongNamed = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Bash",
+          session_id: thiefRaw,
+          tool_input: {
+            command: `deft occupancy:steal --occupant=${CURSOR_OWNER} --session-id=${stranger} --confirm`,
+            cwd: root,
+          },
+        },
+        environ: {},
+      },
+      seams(),
+    );
+    expect(wrongNamed).toMatchObject({ verdict: "deny", code: "occupancy-identity-conflict" });
   });
 });
