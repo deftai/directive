@@ -1,8 +1,9 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { agentsRefreshPlan, payloadIsOwnGitRoot } from "@deftai/directive-core/platform";
+import { applyingHostPath, readApplyingHost } from "@deftai/directive-core/session";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { parseArgs, run } from "./session-start.js";
 
@@ -301,6 +302,55 @@ describe("session-start run", () => {
       expect(out).toContain("read-only session posture");
       expect(out).toContain("[deft environment] os=");
       expect(out).not.toContain("session ritual recorded");
+    } finally {
+      process.stdout.write = prevStdout;
+      process.stderr.write = prevStderr;
+    }
+  });
+
+  it("read-only with canonical --session-id publishes applying-host (#5676)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-session-start-ah-"));
+    temps.push(root);
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      `${JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { title: "T", status: "running", items: [] } })}\n`,
+      "utf8",
+    );
+    const owner = "host:cursor:v1:ZGNkNmQzNGMtNWUwNy00ZTNjLTg5ZGQtODM0NzFlZTgwZmRm";
+    const prevStdout = process.stdout.write.bind(process.stdout);
+    const prevStderr = process.stderr.write.bind(process.stderr);
+    process.stdout.write = (() => true) as typeof process.stdout.write;
+    process.stderr.write = (() => true) as typeof process.stderr.write;
+    try {
+      expect(
+        run(["--project-root", root, "--read-only", "--no-history", `--session-id=${owner}`]),
+      ).toBe(0);
+      expect(existsSync(applyingHostPath(root))).toBe(true);
+      expect(readApplyingHost(root)).toMatchObject({
+        status: "ok",
+        record: { applyingHostSessionId: owner, provider: "cursor", transport: "native" },
+      });
+    } finally {
+      process.stdout.write = prevStdout;
+      process.stderr.write = prevStderr;
+    }
+  });
+
+  it("does not publish applying-host when .no-deft-directive disables session:start", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-session-start-ah-disabled-"));
+    temps.push(root);
+    writeFileSync(join(root, ".no-deft-directive"), "", "utf8");
+    const owner = "host:cursor:v1:ZGNkNmQzNGMtNWUwNy00ZTNjLTg5ZGQtODM0NzFlZTgwZmRm";
+    const prevStdout = process.stdout.write.bind(process.stdout);
+    const prevStderr = process.stderr.write.bind(process.stderr);
+    process.stdout.write = (() => true) as typeof process.stdout.write;
+    process.stderr.write = (() => true) as typeof process.stderr.write;
+    try {
+      expect(
+        run(["--project-root", root, "--read-only", "--no-history", `--session-id=${owner}`]),
+      ).toBe(0);
+      expect(existsSync(applyingHostPath(root))).toBe(false);
     } finally {
       process.stdout.write = prevStdout;
       process.stderr.write = prevStderr;

@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Fixed**: Soft-pass named live occupancy owner after applying-host replace; Path B #4962 briefly cleared from active so #5676 is sole running planId for intent-constraint (re-activate #4962 after merge). Tracking #5676. Refs #5686 #5544.
 - **Path B activate #5676 sole running brief** (widened file_scope incl. co-located tests) so product PR #5682 can bind merge-base approved-scope. productPullRequest unset.
 - **Fixed**: Land tracked completion record for mid-session framework-gap filing path after product #5685. Refs #4375.
 - **Added**: Mid-session consumer framework-gap filing path (#4375). Wire `deft policy:enable-value-feedback -- --confirm --upstream-prompt` (bare `--confirm` leaves `upstreamPrompt` false); keep engine gate; pack + discovery inventory mid-session selection; gate-free `content/docs/framework-gap-filing.md`; gate-OFF dry-run/`--json` title+body readout; primary spelling `deft feedback:file`. Tracking #4375. Refs #1709.
@@ -42,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Restore Prefer-A Bound keep-active brief for #3908 (productPullRequest unset; concrete file_scope). Tracking #3908.
 ### Fixed
 - **`triage:accept` now shows whether a brief was created, reused, or refused (#4962).** It reuses a single owning brief for the same issue and repository. When several briefs own the issue, or the owning brief is completed or cancelled, it refuses without creating another brief. Tracking #4962.
+- **SessionStart publishes applying-host before Shell PreToolUse (#5676).** Worktree `.deft/applying-host.json` records provider, raw id, `applyingHostSessionId`, and `claimed_at`. Non-matching multi-host deposits soft-pass when the command names that id; leftover `GROK_SESSION_ID` alone does not remap native Cursor to `host:claude` (genuine `GROK_HOOK_EVENT` Claude→grok preserved). Read-only `session:start` may bootstrap the record; mutation/rearm republishes as reinforcement. UUID residuals stay under #5544. Tracking #5676 / Refs #5544 #4708 #4660.
 - **Pre-push three-axis guidance no longer requires remote PR head match (#4888).** Local merge-chokepoint `deft check`/`task check` validates before push; `evaluateNonCascadeCandidateGreen` SHA-pair attestation applies after push when local HEAD matches the live remote PR head (and on conflict-resolve/behind-rebase). Tracking #4888.
 - **Combined cascade + candidate-validation limbs no longer skip attestation (#4888).** When both `cascadeMode` and `requireCandidateValidation` are set, cascade absolute refusal still runs first, then candidate validation must pass. Cascade-only callers stay cascade-only. Tracking #4888.
 - **Issue #3906 now has a tracked completion record.** The record links to the fix delivered in #5649, so the issue can close without losing its scope history. Tracking #3906.
