@@ -2,6 +2,11 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { revokeGrant } from "../authz/actions.js";
+import {
+  admitGateOverrideForAttempt,
+  mintGateOverrideTemplateGrant,
+} from "../authz/gate-override.js";
 import {
   completeRun,
   computeControllerObservedHash,
@@ -13,7 +18,7 @@ import {
 } from "./controller.js";
 import { digestApprovedCriteria } from "./criteria.js";
 import { evaluatePrePrEvidence } from "./evaluate.js";
-import { ALLOWED_SKIP_REASONS, PRE_PR_PHASES } from "./phases.js";
+import { ALLOWED_SKIP_REASONS, COVERAGE_HEADROOM_WAIVED_SKIP, PRE_PR_PHASES } from "./phases.js";
 import { InProcessPrePrStore, mintPublisher, type PrePrExecutionStore } from "./store.js";
 import { deny, type PrePrExecutionRecord } from "./types.js";
 
@@ -39,6 +44,43 @@ function start(store: InProcessPrePrStore, runId: string): PrePrExecutionRecord 
     runId,
   });
   return store.getById(runId) as PrePrExecutionRecord;
+}
+
+function fillPhasesExceptCoverage(
+  store: InProcessPrePrStore,
+  rec: PrePrExecutionRecord,
+  coverage: { command: string; exitCode: number; skipReason: string | null },
+): void {
+  for (const spec of PRE_PR_PHASES) {
+    if (spec.kind !== "command-observable") continue;
+    if (spec.id === "coverage_headroom") {
+      observeCommandPhase(store, rec.id, {
+        phaseId: spec.id,
+        command: coverage.command,
+        exitCode: coverage.exitCode,
+        inputHash: rec.inputHash,
+        skipReason: coverage.skipReason,
+      });
+    } else {
+      observeCommandPhase(store, rec.id, {
+        phaseId: spec.id,
+        command: spec.command ?? "",
+        exitCode: 0,
+        inputHash: rec.inputHash,
+        skipReason: null,
+      });
+    }
+  }
+  for (const phase of ["read", "write", "diff", "loop"] as const) {
+    submitReviewerReport(store, rec.id, {
+      phaseId: phase,
+      reviewedFileManifest: ["docs/design.md"],
+      suppliedContentsHash: "h",
+      criteriaDigest: approved.digest,
+      reviewerReportRef: "r",
+      controllerObservedHash: "h",
+    });
+  }
 }
 
 describe("computeControllerObservedHash", () => {
@@ -607,6 +649,239 @@ describe("controller observations", () => {
         });
       }
       expect(runObservablesComplete(store.getById(rec.id) as PrePrExecutionRecord).ok).toBe(false);
+    }
+  });
+
+  it("coverage_headroom accepts exit 4 waived after admission re-verify (#5674)", () => {
+    const projectRoot = mkdtempSync(join(tmpdir(), "pre-pr-cov-waive-"));
+    try {
+      const store = new InProcessPrePrStore();
+      const rec = start(store, "ppr_cov_waive");
+      const attemptId = rec.id;
+      const minted = mintGateOverrideTemplateGrant({
+        projectRoot,
+        target: "unknown-path",
+        planRef: attemptId,
+        baseSha: rec.baseSha,
+        headSha: rec.headSha,
+        treeHash: rec.treeHash,
+      });
+      expect(minted.ok).toBe(true);
+      const admitted = admitGateOverrideForAttempt(projectRoot, {
+        refuseCode: "unknown-path",
+        baseSha: rec.baseSha,
+        headSha: rec.headSha,
+        treeHash: rec.treeHash,
+        attemptId,
+        observedRefuseReason: "coverage-applicability: unknown path",
+      });
+      expect(admitted.ok).toBe(true);
+
+      const observed = observeCommandPhase(store, rec.id, {
+        phaseId: "coverage_headroom",
+        command: `deft coverage:hotspots --attempt-id ${attemptId}`,
+        exitCode: 4,
+        inputHash: rec.inputHash,
+        skipReason: COVERAGE_HEADROOM_WAIVED_SKIP,
+      });
+      expect(observed.ok).toBe(true);
+      expect(store.getById(rec.id)?.state).toBe("running");
+
+      fillPhasesExceptCoverage(store, rec, {
+        command: `deft coverage:hotspots --attempt-id ${attemptId}`,
+        exitCode: 4,
+        skipReason: COVERAGE_HEADROOM_WAIVED_SKIP,
+      });
+      const decided = runObservablesComplete(store.getById(rec.id) as PrePrExecutionRecord, {
+        projectRoot,
+      });
+      expect(decided.ok).toBe(true);
+    } finally {
+      rmSync(projectRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("coverage_headroom rejects exit 4 with N/A token or mismatched admission (#5674)", () => {
+    const projectRoot = mkdtempSync(join(tmpdir(), "pre-pr-cov-waive-forge-"));
+    try {
+      const store = new InProcessPrePrStore();
+      const rec = start(store, "ppr_cov_waive_forge");
+      fillPhasesExceptCoverage(store, rec, {
+        command: "deft coverage:hotspots --attempt-id missing",
+        exitCode: 4,
+        skipReason: ALLOWED_SKIP_REASONS.coverage_headroom ?? "",
+      });
+      expect(
+        runObservablesComplete(store.getById(rec.id) as PrePrExecutionRecord, { projectRoot }).ok,
+      ).toBe(false);
+
+      const store2 = new InProcessPrePrStore();
+      const rec2 = start(store2, "ppr_cov_waive_mismatch");
+      const minted = mintGateOverrideTemplateGrant({
+        projectRoot,
+        target: "unknown-path",
+        planRef: rec2.id,
+        baseSha: "other-base",
+        headSha: rec2.headSha,
+        treeHash: rec2.treeHash,
+      });
+      expect(minted.ok).toBe(true);
+      const admitted = admitGateOverrideForAttempt(projectRoot, {
+        refuseCode: "unknown-path",
+        baseSha: "other-base",
+        headSha: rec2.headSha,
+        treeHash: rec2.treeHash,
+        attemptId: rec2.id,
+        observedRefuseReason: "coverage-applicability: unknown path",
+      });
+      expect(admitted.ok).toBe(true);
+      fillPhasesExceptCoverage(store2, rec2, {
+        command: `deft coverage:hotspots --attempt-id ${rec2.id}`,
+        exitCode: 4,
+        skipReason: COVERAGE_HEADROOM_WAIVED_SKIP,
+      });
+      expect(
+        runObservablesComplete(store2.getById(rec2.id) as PrePrExecutionRecord, {
+          projectRoot,
+        }).ok,
+      ).toBe(false);
+    } finally {
+      rmSync(projectRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("coverage_headroom rejects exit 4 after grant revoke despite saved admission (#5674)", () => {
+    const projectRoot = mkdtempSync(join(tmpdir(), "pre-pr-cov-waive-revoked-"));
+    try {
+      const store = new InProcessPrePrStore();
+      const rec = start(store, "ppr_cov_waive_revoked");
+      const attemptId = rec.id;
+      const minted = mintGateOverrideTemplateGrant({
+        projectRoot,
+        target: "unknown-path",
+        planRef: attemptId,
+        baseSha: rec.baseSha,
+        headSha: rec.headSha,
+        treeHash: rec.treeHash,
+      });
+      expect(minted.ok).toBe(true);
+      if (!minted.ok) return;
+      const admitted = admitGateOverrideForAttempt(projectRoot, {
+        refuseCode: "unknown-path",
+        baseSha: rec.baseSha,
+        headSha: rec.headSha,
+        treeHash: rec.treeHash,
+        attemptId,
+        observedRefuseReason: "coverage-applicability: unknown path",
+      });
+      expect(admitted.ok).toBe(true);
+      const revoked = revokeGrant({ projectRoot, grantId: minted.grant.id });
+      expect(revoked.ok).toBe(true);
+
+      fillPhasesExceptCoverage(store, rec, {
+        command: `deft coverage:hotspots --attempt-id ${attemptId}`,
+        exitCode: 4,
+        skipReason: COVERAGE_HEADROOM_WAIVED_SKIP,
+      });
+      expect(
+        runObservablesComplete(store.getById(rec.id) as PrePrExecutionRecord, {
+          projectRoot,
+        }).ok,
+      ).toBe(false);
+    } finally {
+      rmSync(projectRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("coverage_headroom rejects exit 4 when a failing coverage report appears later (#5674)", () => {
+    const projectRoot = mkdtempSync(join(tmpdir(), "pre-pr-cov-waive-report-"));
+    try {
+      const store = new InProcessPrePrStore();
+      const rec = start(store, "ppr_cov_waive_report");
+      const attemptId = rec.id;
+      const minted = mintGateOverrideTemplateGrant({
+        projectRoot,
+        target: "unknown-path",
+        planRef: attemptId,
+        baseSha: rec.baseSha,
+        headSha: rec.headSha,
+        treeHash: rec.treeHash,
+      });
+      expect(minted.ok).toBe(true);
+      const admitted = admitGateOverrideForAttempt(projectRoot, {
+        refuseCode: "unknown-path",
+        baseSha: rec.baseSha,
+        headSha: rec.headSha,
+        treeHash: rec.treeHash,
+        attemptId,
+        observedRefuseReason: "coverage-applicability: unknown path",
+      });
+      expect(admitted.ok).toBe(true);
+
+      mkdirSync(join(projectRoot, "coverage"), { recursive: true });
+      writeFileSync(
+        join(projectRoot, "coverage", "coverage-final.json"),
+        JSON.stringify({
+          "packages/core/src/a.ts": {
+            s: { "0": 1, "1": 1, "2": 1, "3": 1, "4": 1, "5": 1, "6": 1, "7": 1, "8": 1, "9": 1 },
+            f: { "0": 1 },
+            b: { "0": [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+          },
+        }),
+      );
+
+      fillPhasesExceptCoverage(store, rec, {
+        command: `deft coverage:hotspots --attempt-id ${attemptId}`,
+        exitCode: 4,
+        skipReason: COVERAGE_HEADROOM_WAIVED_SKIP,
+      });
+      expect(
+        runObservablesComplete(store.getById(rec.id) as PrePrExecutionRecord, {
+          projectRoot,
+        }).ok,
+      ).toBe(false);
+    } finally {
+      rmSync(projectRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("coverage_headroom uses last --attempt-id when duplicates are present (#5674)", () => {
+    const projectRoot = mkdtempSync(join(tmpdir(), "pre-pr-cov-waive-last-"));
+    try {
+      const store = new InProcessPrePrStore();
+      const rec = start(store, "ppr_cov_waive_last");
+      const attemptId = "retry-attempt";
+      const minted = mintGateOverrideTemplateGrant({
+        projectRoot,
+        target: "unknown-path",
+        planRef: attemptId,
+        baseSha: rec.baseSha,
+        headSha: rec.headSha,
+        treeHash: rec.treeHash,
+      });
+      expect(minted.ok).toBe(true);
+      const admitted = admitGateOverrideForAttempt(projectRoot, {
+        refuseCode: "unknown-path",
+        baseSha: rec.baseSha,
+        headSha: rec.headSha,
+        treeHash: rec.treeHash,
+        attemptId,
+        observedRefuseReason: "coverage-applicability: unknown path",
+      });
+      expect(admitted.ok).toBe(true);
+
+      fillPhasesExceptCoverage(store, rec, {
+        command: `deft coverage:hotspots --attempt-id default --attempt-id ${attemptId}`,
+        exitCode: 4,
+        skipReason: COVERAGE_HEADROOM_WAIVED_SKIP,
+      });
+      expect(
+        runObservablesComplete(store.getById(rec.id) as PrePrExecutionRecord, {
+          projectRoot,
+        }).ok,
+      ).toBe(true);
+    } finally {
+      rmSync(projectRoot, { recursive: true, force: true });
     }
   });
 });

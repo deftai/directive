@@ -2135,6 +2135,144 @@ function attachAdmittedTargetDigest(plan: unknown, digest: string): void {
   rec.metadata = meta;
 }
 
+/**
+ * Exact issue+repo ownership via Origin URL or typed github-issue refs.
+ * Number and repository must match exactly — no URI substring (#1 vs #10).
+ */
+export function briefOwnsExactIssueAndRepo(
+  data: Record<string, unknown>,
+  issueNumber: number,
+  repoSlug: string,
+): boolean {
+  const slash = repoSlug.indexOf("/");
+  if (slash <= 0 || slash === repoSlug.length - 1) {
+    return false;
+  }
+  const wantOwner = repoSlug.slice(0, slash).toLowerCase();
+  const wantRepo = repoSlug.slice(slash + 1).toLowerCase();
+  const matches = (origin: IssueOrigin): boolean =>
+    origin.number === issueNumber &&
+    origin.owner.toLowerCase() === wantOwner &&
+    origin.repo.toLowerCase() === wantRepo;
+
+  const plan =
+    data.plan !== null && typeof data.plan === "object" && !Array.isArray(data.plan)
+      ? (data.plan as Record<string, unknown>)
+      : {};
+  const narratives =
+    plan.narratives !== null &&
+    typeof plan.narratives === "object" &&
+    !Array.isArray(plan.narratives)
+      ? (plan.narratives as Record<string, unknown>)
+      : {};
+  const infoRaw = data.xBRIEFInfo ?? data.vBRIEFInfo;
+  const info =
+    infoRaw !== null && typeof infoRaw === "object" && !Array.isArray(infoRaw)
+      ? (infoRaw as Record<string, unknown>)
+      : {};
+  for (const text of [narratives.Origin, info.description]) {
+    if (typeof text === "string" && text.length > 0) {
+      for (const origin of originsFromText(text)) {
+        if (matches(origin)) {
+          return true;
+        }
+      }
+    }
+  }
+  for (const ref of extractReferencesFromVbrief(data)) {
+    if (!GITHUB_ISSUE_REF_TYPES.has(String(ref.type ?? ""))) {
+      continue;
+    }
+    const origin = parseIssueOrigin(ref);
+    if (origin !== null && matches(origin)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Exact issue-number ownership when repo is unknown (#4962 / Greptile P1).
+ * Origin/description via provenanceIssueNumber, else typed github-issue refs
+ * matched by exact number (no URI substring #1 vs #10).
+ */
+export function briefOwnsExactIssueNumber(
+  data: Record<string, unknown>,
+  issueNumber: number,
+): boolean {
+  if (provenanceIssueNumber(data) === issueNumber) {
+    return true;
+  }
+  for (const ref of extractReferencesFromVbrief(data)) {
+    if (!GITHUB_ISSUE_REF_TYPES.has(String(ref.type ?? ""))) {
+      continue;
+    }
+    if (parseIssueNumber(ref) === issueNumber) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function filterExactOwningRelPaths(
+  vbriefDir: string,
+  relPaths: readonly string[],
+  issueNumber: number,
+  repoUrl: string,
+): string[] {
+  const parsed = parseRepoOwnerName(repoUrl);
+  const slug =
+    repoSlugFromUrl(repoUrl) ?? (parsed !== null ? `${parsed.owner}/${parsed.repo}` : null);
+  if (slug === null) {
+    return [];
+  }
+  const out: string[] = [];
+  for (const rel of relPaths) {
+    try {
+      const data = JSON.parse(readFileSync(join(vbriefDir, rel), "utf8")) as Record<
+        string,
+        unknown
+      >;
+      if (briefOwnsExactIssueAndRepo(data, issueNumber, slug)) {
+        out.push(rel.replace(/\\/g, "/"));
+      }
+    } catch {
+      /* skip unreadable or non-matching */
+    }
+  }
+  return out;
+}
+
+/** Classify extant owning paths: single live → reuse; multi → refuse; terminal → refuse. */
+export function classifyOwningBriefPaths(
+  issueNumber: number,
+  vbriefDir: string,
+  relPaths: readonly string[],
+): [IngestResult, string | null, string] | null {
+  const unique = [...new Set(relPaths.map((p) => p.replace(/\\/g, "/")))].sort();
+  if (unique.length === 0) {
+    return null;
+  }
+  if (unique.length > 1) {
+    return [
+      "refused",
+      null,
+      `#${issueNumber} refuse: multiple owning briefs for the same issue+repo:\n` +
+        unique.map((p) => `  - ${p}`).join("\n") +
+        "\nNo new proposed artifact written.",
+    ];
+  }
+  const existing = unique[0] as string;
+  if (isTerminalRelPath(existing)) {
+    return ["refused", null, formatCompletedDuplicateWithResidualRecovery(issueNumber, existing)];
+  }
+  return [
+    "duplicate",
+    join(vbriefDir, existing),
+    `#${issueNumber} already ingested at ${existing}`,
+  ];
+}
+
 export function ingestOne(
   issue: Record<string, unknown>,
   options: {
@@ -2153,13 +2291,6 @@ export function ingestOne(
   const number = Number(issue.number);
   const residualMode = options.residual === true;
   return withPlanIdIdentityLock(options.vbriefDir, () => {
-    if (!residualMode && options.existingRefs?.has(number)) {
-      const existing = options.existingRefs.get(number)?.[0] ?? "";
-      const msg = isTerminalRelPath(existing)
-        ? formatCompletedDuplicateWithResidualRecovery(number, existing)
-        : `#${number} already ingested at ${existing}`;
-      return ["duplicate", join(options.vbriefDir, existing), msg];
-    }
     const origins = options.existingOrigins ?? scanProvenanceOrigins(options.vbriefDir);
     const origin = originFromIssue(issue, options.repoUrl);
     const originKeys: string[] = [numberOnlyOriginKey(number)];
@@ -2167,14 +2298,44 @@ export function ingestOne(
       originKeys.unshift(issueOriginKey(origin));
     }
     if (!residualMode) {
-      for (const key of originKeys) {
-        if (origins.has(key)) {
-          const existing = origins.get(key)?.[0] ?? "";
-          const msg = isTerminalRelPath(existing)
-            ? formatCompletedDuplicateWithResidualRecovery(number, existing)
-            : `#${number} already ingested at ${existing}`;
-          return ["duplicate", join(options.vbriefDir, existing), msg];
+      // Merge typed refs + Origin owners before classify so competing owners
+      // across the two channels refuse instead of early-returning on refs alone.
+      // Refresh refs under the lock (ignore caller-supplied snapshots that may
+      // retain a promoted-away proposed/ path alongside the pending/ Origin hit).
+      const ownershipPaths: string[] = [];
+      const refsMap = scanProvenanceRefs(options.vbriefDir);
+      const liveRaw = (refsMap.get(number) ?? []).map((p) => p.replace(/\\/g, "/"));
+      ownershipPaths.push(
+        ...filterExactOwningRelPaths(options.vbriefDir, liveRaw, number, options.repoUrl),
+      );
+      if (options.existingRefs?.has(number)) {
+        const raw = (options.existingRefs.get(number) ?? []).map((p) => p.replace(/\\/g, "/"));
+        const onDisk = raw.filter((rel) => {
+          try {
+            return existsSync(join(options.vbriefDir, rel));
+          } catch {
+            return false;
+          }
+        });
+        if (onDisk.length > 0) {
+          ownershipPaths.push(
+            ...filterExactOwningRelPaths(options.vbriefDir, onDisk, number, options.repoUrl),
+          );
+        } else if (raw.length > 0 && ownershipPaths.length === 0) {
+          // Synthetic existingRefs (tests / precomputed) only when no live
+          // owners were already discovered — never restore a promoted-away path.
+          ownershipPaths.push(...raw);
         }
+      }
+      for (const key of originKeys) {
+        const hits = origins.get(key) ?? [];
+        for (const hit of hits) {
+          ownershipPaths.push(hit.replace(/\\/g, "/"));
+        }
+      }
+      const classified = classifyOwningBriefPaths(number, options.vbriefDir, ownershipPaths);
+      if (classified !== null) {
+        return classified;
       }
     } else {
       const ownershipTarget = origin ?? number;
@@ -2489,14 +2650,22 @@ export function ingestBulk(
     }
     const [result, path, msg] = ingested;
     const rel = path !== null ? path.replace(`${options.vbriefDir}/`, "").replace(/\\/g, "/") : "";
-    (summary[result] as string[]).push(rel);
-    // Bulk already prints CREATED/DRY-RUN from the path list; keep notice body with
-    // a path/issue label so operators can tell which brief needs remediation (#4671).
-    if (msg.includes("\n")) {
-      const noticeBody = msg.slice(msg.indexOf("\n") + 1).trimEnd();
-      if (noticeBody.length > 0) {
-        const label = rel.length > 0 ? rel : `#${String(issue.number)}`;
-        (summary.notices as string[]).push(`${label}\n${noticeBody}`);
+    const label = rel.length > 0 ? rel : `#${String(issue.number)}`;
+    if (result === "refused") {
+      (summary.failed as string[]).push(label);
+      // Keep the full refusal reason (often a single line with residual recovery).
+      if (msg.trim().length > 0) {
+        (summary.notices as string[]).push(msg.trimEnd());
+      }
+    } else {
+      (summary[result] as string[]).push(rel);
+      // Bulk already prints CREATED/DRY-RUN from the path list; keep notice body with
+      // a path/issue label so operators can tell which brief needs remediation (#4671).
+      if (msg.includes("\n")) {
+        const noticeBody = msg.slice(msg.indexOf("\n") + 1).trimEnd();
+        if (noticeBody.length > 0) {
+          (summary.notices as string[]).push(`${label}\n${noticeBody}`);
+        }
       }
     }
     if (result === "created" && path !== null) {
@@ -2682,6 +2851,9 @@ export function ingestSingleForAccept(
       `failed to fetch GitHub issue #${n} from ${repo} (unified cache miss + live gh api fetch failed; see stderr)`,
     );
   }
+  // Do not pre-scan refs here — ingestOne refreshes refs under the plan-id
+  // lock so a concurrent promote cannot leave a stale proposed/ path that
+  // double-counts with the pending/ Origin hit (#4962).
   // Forward ingestOne's notice-bearing third return so triage:accept can
   // print a refused-stamp remediation instead of only the decision id (#3398).
   return ingestOne(issue, {

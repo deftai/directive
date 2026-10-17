@@ -9,10 +9,18 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
 import {
+  inspectGateOverrideGrant,
+  isGateOverrideEligibleRefuseCode,
+  loadGateOverrideAdmission,
+} from "../authz/gate-override.js";
+import {
   type CoverageApplicabilityDeps,
   evaluateCoverageApplicability,
 } from "../coverage-applicability/index.js";
+import { evaluateCoverageHotspots } from "../coverage-hotspots/evaluate.js";
 import {
+  COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP,
+  COVERAGE_HEADROOM_WAIVED_SKIP,
   isAllowedSkip,
   PRE_PR_CONTROLLER_VERSION,
   PRE_PR_PHASES,
@@ -192,8 +200,11 @@ export function observeCommandPhase(
     }
     const skipOk =
       observation.phaseId === "coverage_headroom"
-        ? observation.exitCode === 3 && isAllowedSkip(observation.phaseId, observation.skipReason)
+        ? (observation.exitCode === 3 &&
+            observation.skipReason === COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP) ||
+          (observation.exitCode === 4 && observation.skipReason === COVERAGE_HEADROOM_WAIVED_SKIP)
         : isAllowedSkip(observation.phaseId, observation.skipReason);
+    // Exit 4 waived must not mark the run failed (#5674); exit 0 alone is measured pass.
     const failed = observation.exitCode !== 0 && !skipOk;
     const row: CommandObservation = {
       phaseId: observation.phaseId,
@@ -305,15 +316,55 @@ export function noteSkillFileOpen(): PrePrDecision {
  * Safe observation-only flags for measured coverage_headroom commands.
  * Reject `--project-root` / `--base-ref` redirects — they can measure another tree
  * while the observation stays labeled with this run's inputHash (#5421).
+ * `--attempt-id` / worktree / evaluator bind the #5674 waived arm without redirecting the tree.
  */
 function isSafeCoverageHotspotsFlag(token: string): boolean {
-  return token === "--json" || token === "--quiet" || token === "-q";
+  if (token === "--json" || token === "--quiet" || token === "-q") return true;
+  if (token.startsWith("--attempt-id=")) return token.length > "--attempt-id=".length;
+  if (token.startsWith("--worktree=")) return token.length > "--worktree=".length;
+  if (token.startsWith("--evaluator-id=")) return token.length > "--evaluator-id=".length;
+  return false;
+}
+
+function parseAttemptIdFromHotspotsCommand(command: string): string | null {
+  // Last-wins — matches CLI argv parsing for duplicate --attempt-id (#5674 P2).
+  const tokens = command.trim().replace(/\s+/g, " ").split(" ");
+  let last: string | null = null;
+  for (let i = 0; i < tokens.length; i += 1) {
+    const token = tokens[i] ?? "";
+    if (token.startsWith("--attempt-id=")) {
+      const value = token.slice("--attempt-id=".length).trim();
+      if (value.length > 0) last = value;
+      continue;
+    }
+    if (token === "--attempt-id") {
+      const value = (tokens[i + 1] ?? "").trim();
+      if (value.length > 0) last = value;
+      i += 1;
+    }
+  }
+  return last;
 }
 
 /**
  * Accept the phase-spec hotspots command, plus documented wrappers / safe flags
- * (`--json`, `task coverage:hotspots`, `directive coverage:hotspots`).
+ * (`--json`, `task coverage:hotspots`, `directive coverage:hotspots`, `--attempt-id`).
  */
+function coverageHotspotsFlagsSafe(flags: readonly string[]): boolean {
+  for (let i = 0; i < flags.length; i += 1) {
+    const token = flags[i] ?? "";
+    if (isSafeCoverageHotspotsFlag(token)) continue;
+    if (token === "--attempt-id" || token === "--worktree" || token === "--evaluator-id") {
+      const value = flags[i + 1];
+      if (value === undefined || value.startsWith("--")) return false;
+      i += 1;
+      continue;
+    }
+    return false;
+  }
+  return true;
+}
+
 function coverageHotspotsCommandMatches(observed: string, specCommand: string): boolean {
   const normalized = observed.trim().replace(/\s+/g, " ");
   if (normalized.length === 0) return false;
@@ -322,21 +373,22 @@ function coverageHotspotsCommandMatches(observed: string, specCommand: string): 
   const head = tokens[0]?.toLowerCase() ?? "";
   const verb = tokens[1] ?? "";
   if ((head === "deft" || head === "directive") && verb === "coverage:hotspots") {
-    return tokens.slice(2).every(isSafeCoverageHotspotsFlag);
+    return coverageHotspotsFlagsSafe(tokens.slice(2));
   }
   if (head === "task" && (verb === "coverage:hotspots" || verb === "deft:coverage:hotspots")) {
     const rest = tokens.slice(2);
-    if (rest[0] === "--") return rest.slice(1).every(isSafeCoverageHotspotsFlag);
-    return rest.every(isSafeCoverageHotspotsFlag);
+    if (rest[0] === "--") return coverageHotspotsFlagsSafe(rest.slice(1));
+    return coverageHotspotsFlagsSafe(rest);
   }
   return false;
 }
 
 /**
- * Coverage-scoped satisfaction (#5421 Prefer-A Bound):
+ * Coverage-scoped satisfaction (#5421 / #5674 Prefer-A Bound):
  * - measured pass: exit 0 only when command matches the phase spec (hotspots)
- * - authorized N/A: non-zero + closed skip reason + controller re-derives inert
- * Arbitrary exit-0 audits and forged skip tokens without re-derivation fail.
+ * - authorized N/A: exit 3 + N/A skip + controller re-derives inert
+ * - waived refuse: exit 4 + waived skip + reload admission matching binding/attemptId
+ * Exit 4 never satisfies as pass/exit 0. Arbitrary exit-0 audits fail.
  */
 function commandSatisfied(
   record: PrePrExecutionRecord,
@@ -344,6 +396,8 @@ function commandSatisfied(
   options?: {
     readonly projectRoot?: string;
     readonly applicabilityDeps?: CoverageApplicabilityDeps;
+    /** Defaults to attempt id parsed from the hotspots command, else the run id. */
+    readonly gateOverrideAttemptId?: string;
   },
 ): boolean {
   const row = record.phaseEvidence.commands.find((c) => c.phaseId === phaseId);
@@ -355,12 +409,58 @@ function commandSatisfied(
     if (row.exitCode === 0) {
       return spec.command !== null && coverageHotspotsCommandMatches(row.command, spec.command);
     }
+    const projectRoot = options?.projectRoot ?? process.cwd();
+
+    // #5674 waived arm: exit 4 + distinct waived token + live grant inspect +
+    // measured-report recheck (revoke/expiry and Istanbul floor dominate).
+    if (row.exitCode === 4) {
+      if (row.skipReason !== COVERAGE_HEADROOM_WAIVED_SKIP) return false;
+      if (spec.command === null || !coverageHotspotsCommandMatches(row.command, spec.command)) {
+        return false;
+      }
+      const attemptId =
+        (options?.gateOverrideAttemptId ?? "").trim() ||
+        parseAttemptIdFromHotspotsCommand(row.command) ||
+        record.id;
+      const admission = loadGateOverrideAdmission(projectRoot, attemptId);
+      if (admission === null) return false;
+      if (admission.attemptId !== attemptId) return false;
+      if (admission.baseSha !== record.baseSha) return false;
+      if (admission.headSha !== record.headSha) return false;
+      if (admission.treeHash !== record.treeHash) return false;
+      if (!isGateOverrideEligibleRefuseCode(admission.refuseCode)) return false;
+      // Referenced grant must still be live under inspect (revoke/expiry); do not
+      // accept a different matching grant in place of the saved admission's grantId.
+      const inspected = inspectGateOverrideGrant(projectRoot, {
+        refuseCode: admission.refuseCode,
+        baseSha: record.baseSha,
+        headSha: record.headSha,
+        treeHash: record.treeHash,
+        attemptId,
+        worktree: admission.worktree,
+        evaluatorId: admission.evaluatorId,
+      });
+      if (!inspected.ok) return false;
+      if (inspected.admission === null) return false;
+      if (inspected.grant.id !== admission.grantId) return false;
+      // Saved exit-4 must not hide a later failing coverage report (#5674 Greptile P1).
+      const reportPath = join(projectRoot, "coverage", "coverage-final.json");
+      if (existsSync(reportPath)) {
+        const measured = evaluateCoverageHotspots({
+          projectRoot,
+          checkApplicability: false,
+          useDiffPaths: false,
+        });
+        if (measured.exitCode !== 0) return false;
+      }
+      return true;
+    }
+
     // Authorized N/A is exit 3 only (hotspots emits 3 when inert + no report).
     // Exit 1 measured floor fails must not launder into skip via inert re-derivation.
     // When coverage-final.json exists, Prefer-A keeps the Istanbul floor — refuse skip.
     if (row.exitCode !== 3) return false;
-    if (!isAllowedSkip(phaseId, row.skipReason)) return false;
-    const projectRoot = options?.projectRoot ?? process.cwd();
+    if (row.skipReason !== COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP) return false;
     if (existsSync(join(projectRoot, "coverage", "coverage-final.json"))) return false;
     const derived = evaluateCoverageApplicability(
       {

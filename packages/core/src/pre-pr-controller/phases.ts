@@ -98,6 +98,13 @@ export function requiredPhases(): readonly PrePrPhaseSpec[] {
 export const COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP =
   "reviewed diff has no coverable paths" as const;
 
+/**
+ * Distinct closed skip token for gate-override waived refuse (#5674 Prefer-A Bound).
+ * Never reuse the N/A string; never treat as measured pass / exit 0.
+ */
+export const COVERAGE_HEADROOM_WAIVED_SKIP =
+  "coverage-applicability refuse waived by gate-override admission" as const;
+
 export const ALLOWED_SKIP_REASONS: Partial<Record<PrePrPhaseId, string>> = {
   plan_sequence: "no active ordered-plan sequence",
   render_export: "no existing export files to refresh",
@@ -107,6 +114,13 @@ export const ALLOWED_SKIP_REASONS: Partial<Record<PrePrPhaseId, string>> = {
 /** Command-observable skip is legal only for the closed skip reason of that phase. */
 export function isAllowedSkip(phaseId: PrePrPhaseId, skipReason: string | null): boolean {
   if (skipReason === null || skipReason.length === 0) return false;
+  if (
+    phaseId === "coverage_headroom" &&
+    (skipReason === COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP ||
+      skipReason === COVERAGE_HEADROOM_WAIVED_SKIP)
+  ) {
+    return true;
+  }
   const allowed = ALLOWED_SKIP_REASONS[phaseId];
   return allowed !== undefined && skipReason === allowed;
 }

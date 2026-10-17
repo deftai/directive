@@ -75,7 +75,7 @@ task product-signal:submit -- --surface pulse --nps 9
 ## Private gaps (D19)
 
 - ! Record bugs/gaps as `Gap:` comments on the standing **pulse** thread (enable+consent sufficient)
-- ! Public promote to `deftai/directive` remains hard-confirm via `deft-directive-feedback` / `task feedback:file`
+- ! Public promote to `deftai/directive` remains hard-confirm via `deft-directive-feedback` / `deft feedback:file`
 
 ## Revoke
 

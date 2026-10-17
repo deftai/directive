@@ -1,0 +1,280 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5665",
+    "updated": "2026-10-16T17:56:24.381Z"
+  },
+  "plan": {
+    "title": "[framework-gap] BLOCKER Pre-PR coverage classifier rejects Directive-managed artifacts after upgrading to 0.125.2",
+    "status": "completed",
+    "narratives": {
+      "Description": "[framework-gap] BLOCKER Pre-PR coverage classifier rejects Directive-managed artifacts after upgrading to 0.125.2",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5665",
+      "Overview": "Prefer-A Bound (Recut-2 comment 6218770792): classify five Directive-managed stamp/ledger paths as exact-path inert in classifyChangedPath; keep arbitrary .deft/meta unknowns fail-closed; link #5674 for override-wiring residual and installer-managed unknowns; ship regression fixtures. Tracking/Refs only on product PR.",
+      "Labels": "bug, adoption-blocker, agent-experience, process, source-of-truth, area:cli, dogfood, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Demote Prefer-A limb-1 exact stamp and ledger tokens to inert inside classifyChangedPath after coverable-first.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts",
+        "narrative": {
+          "Acceptance": "Demote Prefer-A limb-1 exact stamp and ledger tokens to inert inside classifyChangedPath after coverable-first."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5680 squash-merge (Tracking #5665). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5680",
+            "mintedAt": "2026-10-16T17:48:40.054Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-16T17:48:40.055Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Affirm discriminator for framework stamps/markers and the append-only policy audit trail; keep unknown for authority records and non-listed peers under managed prefixes.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts",
+        "narrative": {
+          "Acceptance": "Affirm discriminator for framework stamps/markers and the append-only policy audit trail; keep unknown for authority records and non-listed peers under managed prefixes."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5680 squash-merge (Tracking #5665). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5680",
+            "mintedAt": "2026-10-16T17:48:40.055Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-16T17:48:40.055Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Link minted tracker 5674 on the human-origin-authz contract surfaces; keep classification as the standing unblock for limb-1 tokens.",
+        "status": "completed",
+        "x-directive/artifact_path": "content/contracts/human-origin-authz.md",
+        "narrative": {
+          "Acceptance": "Link minted tracker 5674 on the human-origin-authz contract surfaces; keep classification as the standing unblock for limb-1 tokens."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5680 squash-merge (Tracking #5665). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5680",
+            "mintedAt": "2026-10-16T17:48:40.055Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-16T17:48:40.055Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Correct over-readable released note for 5542 and point Unreleased readers at tracker 5674 for residual wiring.",
+        "status": "completed",
+        "x-directive/artifact_path": "CHANGELOG.md",
+        "narrative": {
+          "Acceptance": "Correct over-readable released note for 5542 and point Unreleased readers at tracker 5674 for residual wiring."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5680 squash-merge (Tracking #5665). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5680",
+            "mintedAt": "2026-10-16T17:48:40.055Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-16T17:48:40.055Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Ship classifyChangedPath and aggregate regression fixtures for limb-1 inert, keep-unknown negatives, and limb-1-token subset not-applicable versus applicable mixes.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.test.ts",
+        "narrative": {
+          "Acceptance": "Ship classifyChangedPath and aggregate regression fixtures for limb-1 inert, keep-unknown negatives, and limb-1-token subset not-applicable versus applicable mixes."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5680 squash-merge (Tracking #5665). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5680",
+            "mintedAt": "2026-10-16T17:48:40.055Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-16T17:48:40.055Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "area:cli",
+      "dogfood",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5665",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5665: [framework-gap] BLOCKER Pre-PR coverage classifier rejects Directive-managed artifacts after upgrading to 0.125.2"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5541",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5541"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Demote Prefer-A limb-1 exact stamp and ledger tokens to inert inside classifyChangedPath after coverable-first.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Affirm discriminator for framework stamps/markers and the append-only policy audit trail; keep unknown for authority records and non-listed peers under managed prefixes.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Link minted tracker 5674 on the human-origin-authz contract surfaces; keep classification as the standing unblock for limb-1 tokens.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Correct over-readable released note for 5542 and point Unreleased readers at tracker 5674 for residual wiring.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Ship classifyChangedPath and aggregate regression fixtures for limb-1 inert, keep-unknown negatives, and limb-1-token subset not-applicable versus applicable mixes.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "source_rung": "derived",
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/coverage-applicability/evaluate.ts",
+          "packages/core/src/coverage-applicability/evaluate.test.ts",
+          "content/contracts/human-origin-authz.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "coverage-applicability classifyChangedPath managed stamp/ledger inert",
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased / released-note correction for #5665 Prefer-A Bound; content/contracts/human-origin-authz.md tracker-link surface for #5674."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5878220136,
+        "origin": "deftai/directive#5665",
+        "id": "github.issue.5878220136"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "37c721fac1214a664f86af5ed530fca009cb86918dacd560b082ca441b1c0646"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "pre-pr-coverage-managed-artifact-unknown",
+        "expected_outputs": [
+          "Tracking PR for #5665 Prefer-A Bound managed-artifact classification + #5674 tracker links"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/coverage-applicability"
+        ],
+        "file_scope": [
+          "packages/core/src/coverage-applicability/evaluate.ts",
+          "packages/core/src/coverage-applicability/evaluate.test.ts",
+          "content/contracts/human-origin-authz.md",
+          "CHANGELOG.md"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5665",
+          "#5674",
+          "#5541",
+          "#5542"
+        ],
+        "parallel_safe": true
+      },
+      "productPullRequest": 5680,
+      "mergeCommit": "6be9f99339e42b04922fd40079ff56028d63f918",
+      "deliveryProvenance": {
+        "productPullRequest": 5680,
+        "mergeCommit": "6be9f99339e42b04922fd40079ff56028d63f918",
+        "deliveryBranch": "master"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-16T17:56:24.381Z"
+      },
+      "completionProvenance": {
+        "schema": "deft.completionProvenance.v1",
+        "repository": "deftai/directive",
+        "implementationCommit": "6be9f99339e42b04922fd40079ff56028d63f918",
+        "prNumber": 5680,
+        "prBase": "master",
+        "mergeCommit": "6be9f99339e42b04922fd40079ff56028d63f918",
+        "deliveryBranch": "master",
+        "deliveryCommit": "6be9f99339e42b04922fd40079ff56028d63f918",
+        "verifiedAt": "2026-10-16T17:56:24.381Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedAt": "2026-10-16T17:56:24.381Z"
+      }
+    },
+    "id": "github.issue.5878220136",
+    "updated": "2026-10-16T17:56:24.381Z"
+  }
+}

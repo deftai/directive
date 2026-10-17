@@ -341,6 +341,66 @@ describe("run show + set integration", async () => {
     expect(out).toContain("value-feedback ON");
   });
 
+  it("bare enable-value-feedback --confirm leaves upstreamPrompt false (#4375)", async () => {
+    const r = project();
+    const { code, out } = captureRun([
+      "enable-value-feedback",
+      "--confirm",
+      "--project-root",
+      r,
+      "--actor",
+      "test",
+    ]);
+    expect(code).toBe(0);
+    expect(out).toMatch(/upstreamPrompt=false/i);
+    const raw = JSON.parse(
+      readFileSync(join(r, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "utf8"),
+    ) as {
+      plan: {
+        "x-directive/policy"?: { valueFeedback?: { upstreamPrompt: boolean } };
+        policy?: { valueFeedback?: { upstreamPrompt: boolean } };
+      };
+    };
+    const block = raw.plan["x-directive/policy"]?.valueFeedback ?? raw.plan.policy?.valueFeedback;
+    expect(block?.upstreamPrompt).toBe(false);
+  });
+
+  it("enable-value-feedback --confirm --upstream-prompt sets upstreamPrompt (#4375)", async () => {
+    const r = project();
+    const parsed = parseArgs([
+      "enable-value-feedback",
+      "--confirm",
+      "--upstream-prompt",
+      "--project-root",
+      r,
+      "--actor",
+      "test",
+    ]);
+    expect(parsed.error).toBeUndefined();
+    expect(parsed.upstreamPrompt).toBe(true);
+    const { code, out } = captureRun([
+      "enable-value-feedback",
+      "--confirm",
+      "--upstream-prompt",
+      "--project-root",
+      r,
+      "--actor",
+      "test",
+    ]);
+    expect(code).toBe(0);
+    expect(out).toMatch(/upstreamPrompt=true/i);
+    const raw = JSON.parse(
+      readFileSync(join(r, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "utf8"),
+    ) as {
+      plan: {
+        "x-directive/policy"?: { valueFeedback?: { upstreamPrompt: boolean } };
+        policy?: { valueFeedback?: { upstreamPrompt: boolean } };
+      };
+    };
+    const block = raw.plan["x-directive/policy"]?.valueFeedback ?? raw.plan.policy?.valueFeedback;
+    expect(block?.upstreamPrompt).toBe(true);
+  });
+
   it("disable-host-hooks refuses without --confirm", async () => {
     const r = project();
     const { code, out } = captureRun([

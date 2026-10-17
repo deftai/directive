@@ -31,10 +31,15 @@ import {
 import { canonicalHostSessionId } from "./host-session-owner.js";
 import {
   applyWorktreeOccupancy,
+  assertOccupancyFreeForHostLaunch,
+  DEFT_EXPECTED_DECLARED_HOST_ATTACH,
   evaluateOccupancyCeremonyEligibility,
   evaluateOccupancyWriteGate,
+  expectedDeclaredHostAttachSignaled,
   formatOccupancyAgeCapRemediation,
+  formatOccupancyAlreadyFree,
   formatOccupancyClaimProvenance,
+  formatOccupancyLeaseViewNote,
   formatOccupancyRemediation,
   formatOccupancySkipMutationClaimWhenMinted,
   grantOccupancyMembership,
@@ -57,12 +62,14 @@ import {
   occupancyAdmission,
   occupancyGrantFor,
   occupancyLiveness,
+  occupancyMintedDeclaredHostStealAdmitted,
   occupancyMintedMutationClaimDeadlocksLaterHook,
   occupancyPath,
   occupancyWorktreeMatches,
   readOccupancy,
   releaseOccupancy,
   releaseSwarmOccupancy,
+  resolveOccupancyLeaseRoot,
   resolveOccupancySessionClaim,
   resolveOccupancySessionId,
   revokeOccupancyMembership,
@@ -3224,8 +3231,9 @@ describe("child occupancy terminal release (#3999)", () => {
 
   it("launcher swarm close-out does not yank a dest child occupant (#4782)", () => {
     const root = tempRoot();
-    const dest = join(root, "dest");
-    mkdirSync(dest, { recursive: true });
+    // Dest must be its own git toplevel (linked worktree / other checkout). A plain
+    // subdirectory shares the parent lease root after #5544 resolveOccupancyLeaseRoot.
+    const dest = otherRoot();
     const now = new Date("2026-09-18T20:00:00Z");
     applyWorktreeOccupancy(root, { sessionId: "swarm-parent", intent: "swarm", now, env: {} });
     applyWorktreeOccupancy(dest, { sessionId: "host:claude:v1:child-id", now, env: {} });
@@ -3859,4 +3867,265 @@ describe("overnight max-lease + same-session primary residue reclaim (#5413)", (
       expect(ownerGate.message).not.toContain("primary-claim-exception");
     },
   );
+});
+
+describe("Harbor UUID lease vs declared host Prefer-A (#5544)", () => {
+  it("refuses last-resort mint when Harbor signals expected declared host attach (P1)", () => {
+    expect(expectedDeclaredHostAttachSignaled({ expectedDeclaredHostAttach: true })).toBe(true);
+    expect(
+      expectedDeclaredHostAttachSignaled({
+        env: { [DEFT_EXPECTED_DECLARED_HOST_ATTACH]: "1" },
+      }),
+    ).toBe(true);
+    const claim = resolveOccupancySessionClaim({
+      env: { [DEFT_EXPECTED_DECLARED_HOST_ATTACH]: "1" },
+      newSessionId: () => "must-not-mint",
+    });
+    expect(claim.status).toBe("refuse-mint");
+    if (claim.status !== "refuse-mint") return;
+    expect(claim.message).toContain("Harbor/bootstrap");
+    expect(claim.message).toContain("applyWorktreeOccupancy");
+    expect(claim.message).toContain("assertOccupancyFreeForHostLaunch");
+    const denied = applyWorktreeOccupancy(tempRoot(), {
+      env: { [DEFT_EXPECTED_DECLARED_HOST_ATTACH]: "1" },
+      newSessionId: () => "must-not-mint",
+    });
+    expect(denied.action).toBe("denied");
+    expect(readOccupancy(tempRoot())).toBeNull();
+  });
+
+  it("refuses opaque/inherited ids when expected-host attach is signaled (P1)", () => {
+    const opaque = resolveOccupancySessionClaim({
+      sessionId: "harbor-leftover-uuid",
+      expectedDeclaredHostAttach: true,
+      env: { [DEFT_EXPECTED_DECLARED_HOST_ATTACH]: "1" },
+    });
+    expect(opaque.status).toBe("refuse-mint");
+    const inherited = resolveOccupancySessionClaim({
+      env: {
+        [DEFT_EXPECTED_DECLARED_HOST_ATTACH]: "1",
+        DEFT_SESSION_ID: "inherited-non-host",
+      },
+    });
+    expect(inherited.status).toBe("refuse-mint");
+    const inheritedHostShaped = resolveOccupancySessionClaim({
+      env: {
+        [DEFT_EXPECTED_DECLARED_HOST_ATTACH]: "1",
+        DEFT_SESSION_ID: canonicalHostSessionId("claude", "stale-pre-attach"),
+      },
+    });
+    expect(inheritedHostShaped.status).toBe("refuse-mint");
+  });
+
+  it("still allows exact host session-id pre-attach bind when expected-host is signaled (P1)", () => {
+    const root = tempRoot();
+    const hostId = canonicalHostSessionId("claude", "pre-attach-exact");
+    const claimed = applyWorktreeOccupancy(root, {
+      sessionId: hostId,
+      expectedDeclaredHostAttach: true,
+      env: { [DEFT_EXPECTED_DECLARED_HOST_ATTACH]: "1" },
+      now: new Date("2026-10-16T12:00:00Z"),
+    });
+    expect(claimed.action).toBe("claimed");
+    expect(readOccupancy(root)?.sessionId).toBe(hostId);
+    expect(readOccupancy(root)?.identityProvenance).toBe("explicit");
+  });
+
+  it("blocks Harbor launch while a live lease remains after failed cleanup (P1)", () => {
+    const root = tempRoot();
+    applyWorktreeOccupancy(root, {
+      env: {},
+      newSessionId: () => "minted-uuid",
+      now: new Date("2026-10-16T12:00:00Z"),
+    });
+    const blocked = assertOccupancyFreeForHostLaunch(root, {
+      now: new Date("2026-10-16T12:01:00Z"),
+    });
+    expect(blocked.code).toBe(1);
+    expect(blocked.message).toContain("Harbor launch blocked");
+    expect(blocked.message).toContain("occupancyFile=");
+    expect(releaseOccupancy(root, { sessionId: "minted-uuid" }).code).toBe(0);
+    const free = assertOccupancyFreeForHostLaunch(root);
+    expect(free.code).toBe(0);
+    expect(free.message).toContain("occupancy already free");
+    expect(free.message).toContain("occupancyFile=");
+  });
+
+  it("prints occupancyFile on already-free and release denials (P2)", () => {
+    const root = tempRoot();
+    const now = new Date("2026-10-16T12:00:00Z");
+    const free = releaseOccupancy(root, { sessionId: "anyone", now });
+    expect(free.code).toBe(0);
+    expect(free.message).toBe(
+      formatOccupancyAlreadyFree(occupancyPath(resolveOccupancyLeaseRoot(root))),
+    );
+    expect(free.path).toBe(occupancyPath(resolveOccupancyLeaseRoot(root)));
+    const claimed = applyWorktreeOccupancy(root, {
+      sessionId: "owner-5544-p2",
+      now,
+      intent: "mutation",
+    });
+    expect(claimed.action).toBe("claimed");
+    expect(readOccupancy(root)?.sessionId).toBe("owner-5544-p2");
+    const denied = releaseOccupancy(root, {
+      sessionId: "stranger-5544-p2",
+      now: new Date("2026-10-16T12:01:00Z"),
+    });
+    expect(denied.code).toBe(1);
+    expect(denied.message).toContain("occupancyFile=");
+    expect(denied.path).toBe(occupancyPath(resolveOccupancyLeaseRoot(root)));
+    expect(formatOccupancyLeaseViewNote(denied.path)).toContain("occupancyFile=");
+  });
+
+  it("names closed steal recovery when a host-shaped id presents against a minted lease (P3)", () => {
+    const root = tempRoot();
+    const now = new Date("2026-10-16T12:00:00Z");
+    applyWorktreeOccupancy(root, {
+      env: {},
+      newSessionId: () => "minted-uuid",
+      now,
+    });
+    const record = readOccupancy(root);
+    expect(record?.identityProvenance).toBe("minted");
+    const hostId = canonicalHostSessionId("claude", "already-presenting");
+    expect(occupancyMintedDeclaredHostStealAdmitted(record as OccupancyRecord, hostId)).toBe(true);
+    const remediation = formatOccupancyRemediation(
+      record as OccupancyRecord,
+      new Date("2026-10-16T12:01:00Z"),
+      hostId,
+      { CLAUDECODE: "1" },
+      root,
+    );
+    expect(remediation).toContain("occupancy:steal");
+    expect(remediation).toContain(`--session-id=${hostId}`);
+    expect(remediation).toContain("--occupant=minted-uuid");
+    const leaseRoot = resolveOccupancyLeaseRoot(root);
+    expect(remediation).toContain(`--project-root=${JSON.stringify(leaseRoot)}`);
+    expect(remediation).toContain(
+      `session:start --rearm --session-id=${hostId} --project-root=${JSON.stringify(leaseRoot)}`,
+    );
+    expect(remediation).not.toMatch(/Do not steal this lease(?! unless)/);
+    const gate = evaluateOccupancyWriteGate(root, {
+      sessionId: hostId,
+      now: new Date("2026-10-16T12:01:00Z"),
+    });
+    expect(gate.allow).toBe(false);
+    expect(gate.message).toContain("occupancy:steal");
+    expect(gate.message).toContain("occupancyFile=");
+    expect(gate.message).toContain("effectiveRoot=");
+    const stolen = stealOccupancy(root, {
+      sessionId: hostId,
+      occupant: "minted-uuid",
+      confirm: true,
+      now: new Date("2026-10-16T12:02:00Z"),
+    });
+    expect(stolen.action).toBe("stolen");
+    expect(stolen.message).toContain("Target root:");
+    expect(stolen.message).toContain("Required ceremony:");
+    expect(stolen.message).toContain("occupancyFile=");
+    expect(readOccupancy(root)?.sessionId).toBe(hostId);
+  });
+
+  it("heartbeat/grant/revoke resolve subdirectory project-root to the claimed lease (#5544 P1)", () => {
+    const root = mkdtempSync(join(tmpdir(), "occ-member-subdir-"));
+    sharedTemps.push(root);
+    gitInitIfNeeded(root);
+    const nested = join(root, "packages", "app");
+    mkdirSync(nested, { recursive: true });
+    const now = new Date("2026-10-16T12:00:00Z");
+    expect(
+      applyWorktreeOccupancy(nested, { sessionId: "owner-member", now, intent: "mutation" }).action,
+    ).toBe("claimed");
+    const beat = heartbeatOccupancy(nested, {
+      sessionId: "owner-member",
+      now: new Date("2026-10-16T12:01:00Z"),
+    });
+    expect(beat.action).toBe("heartbeat");
+    const granted = grantOccupancyMembership(nested, {
+      sessionId: "owner-member",
+      childSessionId: "child-member",
+      role: "leaf-implementation",
+      now: new Date("2026-10-16T12:02:00Z"),
+    });
+    expect(granted.action).toBe("granted");
+    const revoked = revokeOccupancyMembership(nested, {
+      sessionId: "owner-member",
+      childSessionId: "child-member",
+      now: new Date("2026-10-16T12:03:00Z"),
+    });
+    expect(revoked.code).toBe(0);
+    expect(readOccupancy(resolveOccupancyLeaseRoot(nested))?.grants ?? []).toEqual([]);
+  });
+
+  it("write-gate denies stranger when leaseRoot is a subdirectory of a claimed tree (#5544 P1)", () => {
+    const root = mkdtempSync(join(tmpdir(), "occ-hook-subdir-"));
+    sharedTemps.push(root);
+    gitInitIfNeeded(root);
+    const nested = join(root, "packages", "app");
+    mkdirSync(nested, { recursive: true });
+    const now = new Date("2026-10-16T12:00:00Z");
+    expect(
+      applyWorktreeOccupancy(root, { sessionId: "owner-hook", now, intent: "mutation" }).action,
+    ).toBe("claimed");
+    const denied = evaluateOccupancyWriteGate(nested, {
+      sessionId: "stranger-hook",
+      now: new Date("2026-10-16T12:01:00Z"),
+      leaseRoot: nested,
+    });
+    expect(denied.allow).toBe(false);
+    expect(denied.message).toContain("occupancyFile=");
+    expect(denied.occupant?.sessionId).toBe("owner-hook");
+    const owner = evaluateOccupancyWriteGate(nested, {
+      sessionId: "owner-hook",
+      now: new Date("2026-10-16T12:01:00Z"),
+      leaseRoot: nested,
+    });
+    expect(owner.allow).toBe(true);
+  });
+
+  it("claim and release share lease root when projectRoot is a subdirectory (#5544 P1)", () => {
+    // Dedicated git tree — tempRoot() is shared across cases and would leave nested residue.
+    const root = mkdtempSync(join(tmpdir(), "occ-subdir-"));
+    sharedTemps.push(root);
+    gitInitIfNeeded(root);
+    const nested = join(root, "packages", "app");
+    mkdirSync(nested, { recursive: true });
+    const now = new Date("2026-10-16T12:00:00Z");
+    const leaseRoot = resolveOccupancyLeaseRoot(nested);
+    expect(leaseRoot).toBe(resolve(root));
+    const claimed = applyWorktreeOccupancy(nested, {
+      sessionId: "owner-subdir",
+      now,
+      intent: "mutation",
+    });
+    expect(claimed.action).toBe("claimed");
+    expect(claimed.path).toBe(occupancyPath(leaseRoot));
+    expect(readOccupancy(leaseRoot)?.sessionId).toBe("owner-subdir");
+    const released = releaseOccupancy(nested, {
+      sessionId: "owner-subdir",
+      now: new Date("2026-10-16T12:01:00Z"),
+    });
+    expect(released.code).toBe(0);
+    expect(released.action).toBe("released");
+    expect(readOccupancy(leaseRoot)).toBeNull();
+  });
+
+  it("does not broaden steal defaults for non-host presenters on minted leases (P3 keep-out)", () => {
+    const root = tempRoot();
+    applyWorktreeOccupancy(root, {
+      env: {},
+      newSessionId: () => "minted-uuid",
+      now: new Date("2026-10-16T12:00:00Z"),
+    });
+    const record = readOccupancy(root) as OccupancyRecord;
+    expect(occupancyMintedDeclaredHostStealAdmitted(record, "opaque-stranger")).toBe(false);
+    const remediation = formatOccupancyRemediation(
+      record,
+      new Date("2026-10-16T12:01:00Z"),
+      "opaque-stranger",
+      {},
+    );
+    expect(remediation).toContain("Do not steal this lease unless");
+    expect(remediation).toContain("must not mutation-claim");
+  });
 });

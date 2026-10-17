@@ -3,6 +3,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
+import { mintGateOverrideTemplateGrant } from "../authz/gate-override.js";
+import { COVERAGE_HEADROOM_WAIVED_SKIP } from "../pre-pr-controller/phases.js";
 import {
   DEFAULT_MIN_HEADROOM_PP,
   evaluateCoverageHotspots,
@@ -819,6 +821,179 @@ describe("evaluateCoverageHotspots", () => {
     });
     expect(result.exitCode).toBe(3);
     expect(result.applicability?.outcome).toBe("not-applicable");
+  });
+
+  it("emits exit 4 waived for eligible refuse with grant-bound attemptId (#5674)", () => {
+    const root = gitRepo({ "README.md": "# base\n" });
+    const baseSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    writeFileSync(join(root, "mystery.bin"), "x");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: root });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "unknown"], { cwd: root });
+    const headSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    const treeHash = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD^{tree}"], { cwd: root, encoding: "utf8" })
+      .trim();
+    const attemptId = "attempt-waive-ok";
+    const minted = mintGateOverrideTemplateGrant({
+      projectRoot: root,
+      target: "unknown-path",
+      planRef: attemptId,
+      baseSha,
+      headSha,
+      treeHash,
+    });
+    expect(minted.ok).toBe(true);
+    const result = evaluateCoverageHotspots({
+      projectRoot: root,
+      inputBinding: { baseSha, headSha, treeHash },
+      attemptId,
+    });
+    expect(result.exitCode).toBe(4);
+    expect(result.applicability?.outcome).toBe("waived");
+    expect(result.applicability?.skipReason).toBe(COVERAGE_HEADROOM_WAIVED_SKIP);
+    expect(result.applicability?.admission?.attemptId).toBe(attemptId);
+    expect(result.applicability?.admission?.refuseCode).toBe("unknown-path");
+  });
+
+  it("keeps exit 2 for eligible refuse without attemptId even when a grant exists (#5674)", () => {
+    const root = gitRepo({ "README.md": "# base\n" });
+    const baseSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    writeFileSync(join(root, "mystery.bin"), "x");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: root });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "unknown"], { cwd: root });
+    const headSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    const treeHash = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD^{tree}"], { cwd: root, encoding: "utf8" })
+      .trim();
+    const minted = mintGateOverrideTemplateGrant({
+      projectRoot: root,
+      target: "unknown-path",
+      planRef: "attempt-unused",
+      baseSha,
+      headSha,
+      treeHash,
+    });
+    expect(minted.ok).toBe(true);
+    const result = evaluateCoverageHotspots({
+      projectRoot: root,
+      inputBinding: { baseSha, headSha, treeHash },
+    });
+    expect(result.exitCode).toBe(2);
+    expect(result.applicability?.outcome).toBe("refuse");
+  });
+
+  it("lets measured floor failure dominate a live grant when a report exists (#5674)", () => {
+    const root = gitRepo({
+      "README.md": "# base\n",
+      "coverage/coverage-final.json": JSON.stringify({
+        "src/a.ts": { s: { "0": 1 }, f: { "0": 1 }, b: { "0": [1, 0] } },
+      }),
+      "vitest.config.ts":
+        "export default { test: { coverage: { thresholds: { branches: 85 } } } };",
+    });
+    const baseSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    writeFileSync(join(root, "mystery.bin"), "x");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: root });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "unknown"], { cwd: root });
+    const headSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    const treeHash = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD^{tree}"], { cwd: root, encoding: "utf8" })
+      .trim();
+    const attemptId = "attempt-floor-dominates";
+    const minted = mintGateOverrideTemplateGrant({
+      projectRoot: root,
+      target: "unknown-path",
+      planRef: attemptId,
+      baseSha,
+      headSha,
+      treeHash,
+    });
+    expect(minted.ok).toBe(true);
+    const result = evaluateCoverageHotspots({
+      projectRoot: root,
+      inputBinding: { baseSha, headSha, treeHash },
+      attemptId,
+      useDiffPaths: false,
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.report).not.toBeNull();
+  });
+
+  it("waives dirty-tree with grant when report is missing; floor still wins when present (#5674)", () => {
+    const root = gitRepo({ "README.md": "# base\n" });
+    const baseSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    mkdirSync(join(root, "docs"), { recursive: true });
+    writeFileSync(join(root, "docs/more.md"), "more\n");
+    childProcess.execFileSync("git", ["add", "docs/more.md"], { cwd: root });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "docs-only"], { cwd: root });
+    const headSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    const treeHash = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD^{tree}"], { cwd: root, encoding: "utf8" })
+      .trim();
+    mkdirSync(join(root, "src"), { recursive: true });
+    writeFileSync(join(root, "src/app.ts"), "export const n = 1;\n");
+    const attemptId = "attempt-dirty-waive";
+    const minted = mintGateOverrideTemplateGrant({
+      projectRoot: root,
+      target: "dirty-tree",
+      planRef: attemptId,
+      baseSha,
+      headSha,
+      treeHash,
+    });
+    expect(minted.ok).toBe(true);
+    const waived = evaluateCoverageHotspots({
+      projectRoot: root,
+      inputBinding: { baseSha, headSha, treeHash },
+      attemptId,
+    });
+    expect(waived.exitCode).toBe(4);
+    expect(waived.applicability?.outcome).toBe("waived");
+
+    mkdirSync(join(root, "coverage"), { recursive: true });
+    writeFileSync(
+      join(root, "coverage/coverage-final.json"),
+      JSON.stringify({
+        "src/a.ts": { s: { "0": 1 }, f: { "0": 1 }, b: { "0": [1, 0] } },
+      }),
+    );
+    writeFileSync(
+      join(root, "vitest.config.ts"),
+      "export default { test: { coverage: { thresholds: { branches: 85 } } } };",
+    );
+    const attemptId2 = "attempt-dirty-floor";
+    const minted2 = mintGateOverrideTemplateGrant({
+      projectRoot: root,
+      target: "dirty-tree",
+      planRef: attemptId2,
+      baseSha,
+      headSha,
+      treeHash,
+    });
+    expect(minted2.ok).toBe(true);
+    const floor = evaluateCoverageHotspots({
+      projectRoot: root,
+      inputBinding: { baseSha, headSha, treeHash },
+      attemptId: attemptId2,
+      useDiffPaths: false,
+    });
+    expect(floor.exitCode).toBe(1);
   });
 });
 

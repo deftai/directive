@@ -54,6 +54,6 @@ Agents: `deft-directive-product-signal` — triggers `product check-in`, `produc
 
 ## Related
 
-- Public gap escalation: `deft-directive-feedback` / `task feedback:file` (hard confirm)
+- Public gap escalation: `deft-directive-feedback` / `deft feedback:file` (hard confirm)
 - Skill telemetry emit: #829 (optional `skillsSummary` hook only; not required for pulse)
 - HTTP transport: #2697 (Phase 2)

@@ -426,6 +426,53 @@ describe("bulk edge paths", () => {
     expect(typeof mod.needs_ac).toBe("function");
   });
 
+  it("createNativeActionsModule surfaces accept refusals (#4962)", () => {
+    const root = makeRepo();
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
+    const brief = (name: string) =>
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8", description: "#55", updated: "2026-08-01T00:00:00Z" },
+        plan: {
+          title: name,
+          status: "proposed",
+          narratives: {
+            Origin: "Ingested from https://github.com/deftai/directive/issues/55",
+          },
+          items: [],
+          references: [
+            {
+              type: "x-xbrief/github-issue",
+              uri: "https://github.com/deftai/directive/issues/55",
+            },
+          ],
+          updated: "2026-08-01T00:00:00Z",
+        },
+      });
+    writeFileSync(join(root, "xbrief", "proposed", "a.xbrief.json"), brief("a"));
+    writeFileSync(join(root, "xbrief", "proposed", "b.xbrief.json"), brief("b"));
+    const logPath = join(root, "xbrief", ".triage-cache", "candidates.jsonl");
+    mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
+    writeFileSync(
+      logPath,
+      `${JSON.stringify({
+        decision_id: "prior-ambiguous",
+        timestamp: "2026-06-18T12:00:00Z",
+        repo: "deftai/directive",
+        issue_number: 55,
+        decision: "accept",
+        actor: "agent:test",
+      })}\n`,
+    );
+    const mod = createNativeActionsModule(root);
+    const result = mod.accept(55, "deftai/directive");
+    expect(result).toEqual(
+      expect.objectContaining({
+        ok: false,
+        message: expect.stringMatching(/multiple owning briefs/),
+      }),
+    );
+  });
+
   it("bulkAction reject with null reason calls reject without kwargs", () => {
     const calls: unknown[] = [];
     const rejectFn = (n: number, repo: string, ...args: unknown[]) => {

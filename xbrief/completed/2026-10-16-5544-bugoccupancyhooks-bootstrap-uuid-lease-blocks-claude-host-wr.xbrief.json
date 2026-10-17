@@ -1,0 +1,302 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5544",
+    "updated": "2026-10-16T15:58:57Z"
+  },
+  "plan": {
+    "title": "bug(occupancy,hooks): bootstrap UUID lease blocks Claude host writes (Write hook vs CLI split-brain; DCR 0.125.0 Sonnet)",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(occupancy,hooks): bootstrap UUID lease blocks Claude host writes (Write hook vs CLI split-brain; DCR 0.125.0 Sonnet)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5544",
+      "Overview": "Prefer-A Bound 6150162827: stop Harbor/bootstrap UUID mint lockout of Claude host writes; unify CLI and Write-hook lease view; ceremony-aware recovery for minted+declared-host; keep-outs stand. Tracking/Refs only on product PR.",
+      "Labels": "bug, adoption-blocker, agent-experience, urgent, area:cli, design-critique:ingest-ready, core-capabilities, promise:lifecycle"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Bootstrap and Harbor cell ritual use read-only or skip-claim before host attach; attached host mutation-claims under its own resolved host session id.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/session/occupancy.ts",
+        "narrative": {
+          "Acceptance": "Bootstrap and Harbor cell ritual use read-only or skip-claim before host attach; attached host mutation-claims under its own resolved host session id."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5679 squash-merge (Tracking #5544).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5679",
+            "mintedAt": "2026-10-16T20:06:41.254Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-16T20:06:41.255Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Forbid raw-UUID last-resort mint mutation-claim on the tree a declared agent host will write; exact later host session id bind only when pre-attach mutation lease is required, with successful release before launch.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/session/occupancy.ts",
+        "narrative": {
+          "Acceptance": "Forbid raw-UUID last-resort mint mutation-claim on the tree a declared agent host will write; exact later host session id bind only when pre-attach mutation lease is required, with successful release before launch."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5679 squash-merge (Tracking #5544).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5679",
+            "mintedAt": "2026-10-16T20:06:41.255Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-16T20:06:41.255Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Unify CLI occupancy release and Write-hook lease view for the same target worktree; denials and already-free print occupancy file path and hook effectiveRoot when from the Write gate.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/hooks/dispatcher.ts",
+        "narrative": {
+          "Acceptance": "Unify CLI occupancy release and Write-hook lease view for the same target worktree; denials and already-free print occupancy file path and hook effectiveRoot when from the Write gate."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5679 squash-merge (Tracking #5544).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5679",
+            "mintedAt": "2026-10-16T20:06:41.255Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-16T20:06:41.255Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Recovery restores ceremony as well as occupancy: name target root, presenter, permitted lease operation, and required rearm or cold ceremony after steal.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/session/occupancy-recovery.ts",
+        "narrative": {
+          "Acceptance": "Recovery restores ceremony as well as occupancy: name target root, presenter, permitted lease operation, and required rearm or cold ceremony after steal."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5679 squash-merge (Tracking #5544).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5679",
+            "mintedAt": "2026-10-16T20:06:41.255Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-16T20:06:41.255Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "For a live minted lease when a declared host-shaped id is already presenting, replace Do-not-steal guidance with a closed runnable steal-or-owner-release then host re-claim path verified through the Write gate.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/session/occupancy.ts",
+        "narrative": {
+          "Acceptance": "For a live minted lease when a declared host-shaped id is already presenting, replace Do-not-steal guidance with a closed runnable steal-or-owner-release then host re-claim path verified through the Write gate."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5679 squash-merge (Tracking #5544).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5679",
+            "mintedAt": "2026-10-16T20:06:41.255Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-16T20:06:41.255Z"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "Validation and pack reporting distinguish occupancy or ritual prevented-entry from independent failures after an admitted first write; keep-outs stand.",
+        "status": "completed",
+        "x-directive/artifact_path": "CHANGELOG.md",
+        "narrative": {
+          "Acceptance": "Validation and pack reporting distinguish occupancy or ritual prevented-entry from independent failures after an admitted first write; keep-outs stand."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5679 squash-merge (Tracking #5544).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5679",
+            "mintedAt": "2026-10-16T20:06:41.255Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-16T20:06:41.255Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "agent-experience",
+      "urgent",
+      "area:cli",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:lifecycle"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5544",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5544: bug(occupancy,hooks): bootstrap UUID lease blocks Claude host writes (Write hook vs CLI split-brain; DCR 0.125.0 Sonnet)"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "deft session:start",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L11"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "harbor-uuid-lease-claude-host-write-lockout",
+        "expected_outputs": [
+          "Tracking PR for #5544 Prefer-A Bound Harbor UUID lease / Write-hook split-brain"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/session/occupancy.test.ts packages/core/src/session/occupancy-recovery.test.ts packages/core/src/hooks/dispatcher-effective-root.test.ts"
+        ],
+        "file_scope": [
+          "packages/core/src/session/occupancy.ts",
+          "packages/core/src/session/occupancy.test.ts",
+          "packages/core/src/session/occupancy-recovery.ts",
+          "packages/core/src/session/occupancy-recovery.test.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher-effective-root.test.ts",
+          "packages/cli/src/occupancy-release.ts",
+          "CHANGELOG.md"
+        ],
+        "size": "L",
+        "file_scope_confidence": "medium",
+        "Traces": [
+          "#5544",
+          "#4624"
+        ],
+        "parallel_safe": true
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/session/occupancy.ts",
+          "packages/core/src/session/occupancy.test.ts",
+          "packages/core/src/session/occupancy-recovery.ts",
+          "packages/core/src/session/occupancy-recovery.test.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher-effective-root.test.ts",
+          "packages/cli/src/occupancy-release.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "session occupancy claim/release + Write-hook effectiveRoot lease view",
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased bullet for #5544 Prefer-A Bound; CLI release messaging may share occupancy path print with core."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5802744273,
+        "origin": "deftai/directive#5544",
+        "id": "github.issue.5802744273"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "d7b76dfcf384d711ad23c3a846bc773313798204f1699bcba9bc479bd1f5bc3a"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "1a599f3c6a8d9c195d557a035ddbf5e067d81f0d",
+        "prNumber": 5679,
+        "prBase": "master",
+        "mergeCommit": "1a599f3c6a8d9c195d557a035ddbf5e067d81f0d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "1a599f3c6a8d9c195d557a035ddbf5e067d81f0d",
+        "verifiedAt": "2026-10-16T20:17:54.855Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-16T20:17:54.855Z"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Bootstrap and Harbor cell ritual use read-only or skip-claim before host attach; attached host mutation-claims under its own resolved host session id.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Forbid raw-UUID last-resort mint mutation-claim on the tree a declared agent host will write; exact later host session id bind only when pre-attach mutation lease is required, with successful release before launch.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Unify CLI occupancy release and Write-hook lease view for the same target worktree; denials and already-free print occupancy file path and hook effectiveRoot when from the Write gate.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Recovery restores ceremony as well as occupancy: name target root, presenter, permitted lease operation, and required rearm or cold ceremony after steal.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "For a live minted lease when a declared host-shaped id is already presenting, replace Do-not-steal guidance with a closed runnable steal-or-owner-release then host re-claim path verified through the Write gate.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Validation and pack reporting distinguish occupancy or ritual prevented-entry from independent failures after an admitted first write; keep-outs stand.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "source_rung": "derived",
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5802744273",
+    "updated": "2026-10-16T15:58:57Z"
+  }
+}

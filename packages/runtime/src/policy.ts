@@ -104,6 +104,8 @@ interface SetArgs {
   ceremonyEnabled?: boolean;
   /** #5350 driftGuard.enforcement target for set-spec-guard-enforcement. */
   specGuardEnforcement?: SpecGuardEnforcement;
+  /** #4375 audited setter for valueFeedback.upstreamPrompt. */
+  upstreamPrompt?: boolean;
   error?: string;
 }
 
@@ -341,10 +343,13 @@ export function parseArgs(argv: string[]): SetArgs {
     let host: HookHost | undefined;
     let ceremonyOverride: CeremonyDepth | null | undefined;
     let ceremonyEnabled: boolean | undefined;
+    let upstreamPrompt: boolean | undefined;
     for (let i = 1; i < argv.length; i += 1) {
       const arg = argv[i];
       if (arg === "--confirm") {
         confirm = true;
+      } else if (cmd === "enable-value-feedback" && arg === "--upstream-prompt") {
+        upstreamPrompt = true;
       } else if (arg === "--actor") {
         const v = argv[i + 1];
         if (v === undefined) return makeSetError("argument --actor: expected one argument");
@@ -444,6 +449,7 @@ export function parseArgs(argv: string[]): SetArgs {
       host,
       ceremonyOverride,
       ceremonyEnabled,
+      upstreamPrompt,
     };
   }
 
@@ -535,6 +541,7 @@ function runEnableValueFeedback(args: SetArgs): number {
     confirm: args.confirm,
     actor: args.actor,
     note: args.note,
+    subFlags: args.upstreamPrompt === true ? { upstreamPrompt: true } : undefined,
   });
   process.stdout.write(result.stdout);
   return result.exitCode;

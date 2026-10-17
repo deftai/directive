@@ -60,6 +60,20 @@ describe("multi-host skill discovery deposit (#75 residual)", () => {
     }
   });
 
+  it("includes deft-directive-feedback thin pointer without Gated-on (#4375)", () => {
+    const feedback = CONSUMER_SKILL_DISCOVERY_INVENTORY.find(
+      (s) => s.dir === "deft-directive-feedback",
+    );
+    expect(feedback).toBeDefined();
+    expect(isThinSkillPointer(feedback!.content)).toBe(true);
+    expect(feedback!.content).toContain(
+      "Read and follow: .deft/core/skills/deft-directive-feedback/SKILL.md",
+    );
+    expect(feedback!.content).toMatch(/file a directive issue/i);
+    expect(feedback!.content).not.toMatch(/Gated on/i);
+    expect(feedback!.content).not.toMatch(/upstreamPrompt/i);
+  });
+
   it("rejects fat full skill bodies as thin pointers", () => {
     const fat = `---
 name: fat

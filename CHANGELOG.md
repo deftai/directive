@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Path B activate #5676 sole running brief** (widened file_scope incl. co-located tests) so product PR #5682 can bind merge-base approved-scope. productPullRequest unset.
+- **Fixed**: Land tracked completion record for mid-session framework-gap filing path after product #5685. Refs #4375.
+- **Added**: Mid-session consumer framework-gap filing path (#4375). Wire `deft policy:enable-value-feedback -- --confirm --upstream-prompt` (bare `--confirm` leaves `upstreamPrompt` false); keep engine gate; pack + discovery inventory mid-session selection; gate-free `content/docs/framework-gap-filing.md`; gate-OFF dry-run/`--json` title+body readout; primary spelling `deft feedback:file`. Tracking #4375. Refs #1709.
+- **Path B activate #4375 sole running brief** (widened file_scope incl. co-located tests) so product PR #5685 can bind merge-base approved-scope. productPullRequest unset.
+- **Remint approved-scope for #4375 with co-located test paths in file_scope.** Widens mint twins file_scope to include three co-located .test.ts paths. Mint-only - no product code. Refs #4375.
+- **Fixed**: Land tracked completion record for triage:accept disclose-and-reuse after product #5678. Refs #4962.
+- **Mint approved-scope for #4375 mid-session filing path.** Lands merge-base `.deft/approved-scope/github.issue.5420717734{,.intent}.json` first; product PR #5685 already carries the bound active brief and rebases onto this tip after squash-merge. Mint-only twins - no product code. Refs #4375.
+- **Fixed**: Land tracked completion record for Harbor UUID lease / Write-hook split-brain after product #5679. Refs #5544.
+- **Fixed**: Record intent-constraint mint for #5676 publishApplyingHost invariant throw-site. This records approval only; it does not change product behavior. Refs #5676.
+- **Fixed**: Land tracked completion record for coverage waived-exit-4 / residual deposit wiring after product #5681. Refs #5674.
+- **Fixed**: Harbor/bootstrap no longer UUID-mints a mutation lease when a declared agent host will attach. Claim, release, and the Write hook share one lease-root view (occupancyFile= / hook ffectiveRoot), and minted+host-shaped presenters get a closed occupancy:steal then ceremony recovery path that names --project-root. Tracking #5544. Refs #4624.
+- **fix(coverage): wire gate-override waived exit-4 into hotspots/pre-PR and inert residual deposit markers (#5674).** Eligible refuse + grant-bound attemptId admits via `admitGateOverrideForAttempt` and emits exit 4 with a distinct waived token (never exit 0); measured Istanbul floor/headroom failure still dominates when a report exists. Pre-PR `coverage_headroom` accepts exit 4 only after reloading admission and matching refuse/base/head/tree/attemptId. Exact `.deft/core/VERSION` + ten lifecycle `.gitkeep` paths classify inert; `.deft/core/run`, hooks, codeql, and approved-scope stay unknown (#5677). Tracking #5674. Refs #5665 #5542 #5675 #5677.
+- **Fixed**: Land tracked completion record for managed stamp/ledger coverage classifier after product #5680. Refs #5665.
+- **fix(coverage): classify Directive-managed stamps and policy ledger as inert for pre-PR applicability (#5665).** Exact-path inert for `.deft/GENERATION.json`, `meta/policy-changes.log`, and `bareVersionMarkerRelativePaths()` siblings; authority/membership peers under `.deft/` and `meta/` stay unknown. Tracking #5665. Refs #5674 #5541 #5542.
+- **docs(authz): point #5542 waived-exit-4 / residual deposit wiring at tracker #5674.** Mint+admission-only landing is unchanged; pre-PR/`coverage:hotspots` honor of grants and residual installer-managed unknowns outside #5665 limb-1 remain on #5674. Corrects over-readable [0.125.1] grant wording. Tracking #5674. Refs #5542 #5665.
 - **Fixed**: Land tracked completion record for setup seed PROJECT-DEFINITION from design doc/answers after product #5662. Refs #4961.
 - **Fixed**: Land tracked completion record for SPECIFICATION export Requirements/AcceptanceCriteria fidelity after product #5661. Refs #4871.
 - **Fixed**: Land tracked completion record for three-axis semantic-green candidate validation. Refs #4888.
@@ -17,12 +32,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Seed PROJECT-DEFINITION narratives from a design doc or answers file (#4961).** `deft setup:seed` writes a draft-only six-key Phase 2 preview; confirm via the Post-Interview gate, then `deft project:write-narratives`. Refuses `--out` onto PROJECT-DEFINITION or the input path. Tracking #4961.
 - **Consumer deposit now includes ADR-003 for Continuity (#4892).** MUST cites resolve to `.deft/core/docs/decisions/ADR-003-a2a-nuclear-family-topology.md` via the content/docs flatten. Maintainer `docs/decisions/ADR-003` stays heavyweight SoT (dual-path; no root-docs prepack carve-out). Leaves #3940 as tracker; cross-links only #3847 / #4890. Closes #4892.
 ### Changed
+
+- **docs(authz): cite #5674 for #5542 pre-PR/hotspots waived-exit follow-up.** Gate-override hatch and released 0.125.1 CHANGELOG wording now name #5674 so closed #5542 is not over-read as consumer-wired. Refs #5674 / #5665 / #5542.
+- Activate Prefer-A Bound keep-active brief for #4962 (productPullRequest unset; concrete file_scope covering product + tests + bulk). Tracking #4962.
 - Widen Prefer-A Bound keep-active #5656 file_scope for companion hooks/tests/RULE-MAP (productPullRequest unset). Tracking #5656.
 - Activate Prefer-A Bound keep-active brief for #5656 (productPullRequest unset; concrete file_scope). Tracking #5656.
 - Activate Prefer-A Bound keep-active brief for #3907 (productPullRequest unset; swarm-ready story fields). Tracking #3907.
 - Restore Prefer-A Bound keep-active brief for #3906 (productPullRequest unset; concrete file_scope). Tracking #3906.
 - Restore Prefer-A Bound keep-active brief for #3908 (productPullRequest unset; concrete file_scope). Tracking #3908.
 ### Fixed
+- **`triage:accept` now shows whether a brief was created, reused, or refused (#4962).** It reuses a single owning brief for the same issue and repository. When several briefs own the issue, or the owning brief is completed or cancelled, it refuses without creating another brief. Tracking #4962.
 - **Pre-push three-axis guidance no longer requires remote PR head match (#4888).** Local merge-chokepoint `deft check`/`task check` validates before push; `evaluateNonCascadeCandidateGreen` SHA-pair attestation applies after push when local HEAD matches the live remote PR head (and on conflict-resolve/behind-rebase). Tracking #4888.
 - **Combined cascade + candidate-validation limbs no longer skip attestation (#4888).** When both `cascadeMode` and `requireCandidateValidation` are set, cascade absolute refusal still runs first, then candidate validation must pass. Cascade-only callers stay cascade-only. Tracking #4888.
 - **Issue #3906 now has a tracked completion record.** The record links to the fix delivered in #5649, so the issue can close without losing its scope history. Tracking #3906.
@@ -88,7 +107,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.125.1] - 2026-10-14
 
-> Prefer-A cohort: gate-override (#5542), deft-core-guard paths (#5552), coverage skips (#5551), safe fetch argv (#5545), acceptance-activate (#4768), tutorial (#4981); Path B leftover completes; intent-constraint throw+mint docs (#5574).
+> Prefer-A cohort: gate-override mint/admission (#5542; pre-PR waived-exit consumer #5674), deft-core-guard paths (#5552), coverage skips (#5551), safe fetch argv (#5545), acceptance-activate (#4768), tutorial (#4981); Path B leftover completes; intent-constraint throw+mint docs (#5574).
 
 ### Added
 
@@ -126,7 +145,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Complete the #4768 scope brief after product #5571.** Move the acceptance-activate brief into xbrief/completed/ so orphan tracking clears. Tracking #4768.
 - Activating a brief that contains commands now requires usable acceptance text. Activation derives that text when possible and otherwise refuses, including when the brief is already active. Already-active restamp uses temp+rename, and settled active briefs skip D7 re-block on ingress no-op. Tracking #4768.
 - **Harden gate-override admission for audited coverage refusals (#5542).** Operators can renew a matching grant after expiry without colliding on attempt receipts. Tracking #5542.
-- **Operators can grant a one-use audited override for eligible coverage-applicability refuse codes (#5542).** The grant records a review obligation and is single-use. Tracking #5542.
+- **Operators can grant a one-use audited override for eligible coverage-applicability refuse codes (#5542).** The grant records a review obligation and is single-use. Pre-PR / `coverage:hotspots` waived-exit wiring was not included in that landing — tracked as #5674. Tracking #5542 / #5674.
 - **fix(coverage): classify Bun locks, .gitignore, and fixtures JSON for pre-PR applicability (#5541).** Bun lock diffs stay coverable; `.gitignore` and repo-root `fixtures/*.json` are inert N/A; unknown paths stay fail-closed. Tracking #5541.
 - **Keep-active #5541 Path B activation.** Lands Prefer-A Bound active xBRIEF with reminted file_scope; productPullRequest unset. Tracking #5541.
 - **Complete the #5541 scope brief after product #5568.** Move the Bun coverage applicability brief into `xbrief/completed/` so orphan tracking clears. Tracking #5541.

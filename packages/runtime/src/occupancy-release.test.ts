@@ -1,12 +1,16 @@
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { recordProductMutationCompletion } from "@deftai/directive-core/check";
+import { CONSUMER_HEADER_PLACEHOLDER_ONELINER } from "@deftai/directive-core/platform";
 import {
   applyWorktreeOccupancy,
   canonicalHostSessionId,
   HOST_ENV_IDENTITY_VARIABLES,
   readOccupancy,
+  resolveOccupancyLeaseRoot,
 } from "@deftai/directive-core/session";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
@@ -179,5 +183,29 @@ describe("occupancy-release CLI (#3604)", () => {
     expect(readme).toContain("Abandoned occupancy lease");
     expect(readme).toContain("occupancy:release --session-id=<id from .deft/occupancy.json>");
     expect(readme).toContain("TTL claim-over");
+  });
+
+  it("preserves supplied project-root for consumer header check (#5544 P1)", () => {
+    // Dedicated git tree: nested consumer has placeholder + Prefer-A marker;
+    // git toplevel has neither. Remapping --project-root to the lease root
+    // before releaseOccupancy would skip the header gate.
+    const root = mkdtempSync(join(tmpdir(), "occ-release-subdir-"));
+    sharedTemps.push(root);
+    execFileSync("git", ["init"], { cwd: root, stdio: "ignore" });
+    const nested = join(root, "packages", "app");
+    mkdirSync(nested, { recursive: true });
+    const leaseRoot = resolveOccupancyLeaseRoot(nested);
+    expect(leaseRoot).toBe(resolve(root));
+    expect(leaseRoot).not.toBe(resolve(nested));
+    applyWorktreeOccupancy(nested, { sessionId: "owner-subdir" });
+    process.env.DEFT_SESSION_ID = "owner-subdir";
+    writeFileSync(
+      join(nested, "AGENTS.md"),
+      `# App\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n`,
+      "utf8",
+    );
+    expect(recordProductMutationCompletion(nested).ok).toBe(true);
+    expect(run(["--project-root", nested])).toBe(1);
+    expect(readOccupancy(leaseRoot)?.sessionId).toBe("owner-subdir");
   });
 });

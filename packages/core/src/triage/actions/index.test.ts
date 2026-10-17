@@ -16,7 +16,6 @@ import {
   reject,
   reset,
   status,
-  TriageError,
   UpstreamCloseError,
 } from "./index.js";
 import { parseResumeOn } from "./resume-on.js";
@@ -127,10 +126,11 @@ describe("createDefaultDeps", () => {
     mockIngest.mockClear();
     const root = makeRepo();
     const deps = createDefaultDeps(root);
-    const decisionId = accept(2350, "deftai/directive", deps, { projectRoot: root });
-    expect(decisionId).toMatch(
+    const outcome = accept(2350, "deftai/directive", deps, { projectRoot: root });
+    expect(outcome.decisionId).toMatch(
       /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/,
     );
+    expect(outcome.disposition).toBe("created");
     // The production wiring authored the brief via the in-process TS intake
     // path; the removed Python `issue_ingest` shell-out (pre-#2350) would have
     // raised ModuleNotFoundError and rolled the audit entry back.
@@ -284,15 +284,63 @@ describe("rollbackAuditEntry", () => {
 
 describe("formatAcceptOutput", () => {
   it("names the design-critique command after the accept line (#3708)", () => {
-    expect(formatAcceptOutput(12, "owner/repo", "dec-1")).toBe(
-      "accept #12 (owner/repo) -> dec-1\noptional: deft-directive-design-critique (declining writes nothing)",
+    expect(
+      formatAcceptOutput(12, "owner/repo", "dec-1", {
+        disposition: "created",
+        relativePath: "proposed/12.xbrief.json",
+      }),
+    ).toBe(
+      "accept #12 (owner/repo) -> dec-1\nCREATED proposed/12.xbrief.json\noptional: deft-directive-design-critique (declining writes nothing)",
     );
   });
 
   it("keeps the same offer after --auto-promote (#3708)", () => {
-    const text = formatAcceptOutput(12, "owner/repo", "dec-1", { autoPromote: true });
+    const text = formatAcceptOutput(12, "owner/repo", "dec-1", {
+      autoPromote: true,
+      disposition: "created",
+      relativePath: "pending/12.xbrief.json",
+    });
     expect(text).toContain("accept #12 (owner/repo) -> dec-1 + auto-promote");
+    expect(text).toContain("CREATED pending/12.xbrief.json");
     expect(text).toContain("optional: deft-directive-design-critique (declining writes nothing)");
+  });
+
+  it("discloses reuse and refuse outcomes (#4962)", () => {
+    expect(
+      formatAcceptOutput(1, "o/r", "dec-1", {
+        disposition: "duplicate",
+        relativePath: "pending/1.xbrief.json",
+      }),
+    ).toContain("already-ingested/reuse pending/1.xbrief.json");
+    expect(
+      formatAcceptOutput(1, "o/r", null, {
+        disposition: "refused",
+        ingestMessage: "#1 refuse: multiple owning briefs",
+      }),
+    ).toContain("#1 refuse: multiple owning briefs");
+    expect(formatAcceptOutput(1, "o/r", null, { disposition: "refused" })).toContain(
+      "refused (no new proposed artifact)",
+    );
+    expect(
+      formatAcceptOutput(2, "o/r", "dec-2", {
+        disposition: "idempotent",
+        ingestMessage: "#2 already accepted (nothing new written)",
+      }),
+    ).toContain("#2 already accepted (nothing new written)");
+    expect(
+      formatAcceptOutput(3, "o/r", "dec-3", {
+        disposition: "created",
+        relativePath: "CREATED proposed/3.xbrief.json",
+      }),
+    ).toContain("CREATED proposed/3.xbrief.json");
+    expect(
+      formatAcceptOutput(4, "o/r", "dec-4", {
+        disposition: "created",
+        ingestMessage: "CREATED proposed/4.xbrief.json\nquality notice",
+      }),
+    ).toBe(
+      "accept #4 (o/r) -> dec-4\nCREATED proposed/4.xbrief.json\noptional: deft-directive-design-critique (declining writes nothing)",
+    );
   });
 });
 
@@ -300,11 +348,12 @@ describe("accept", () => {
   it("appends audit entry and delegates ingest", () => {
     const root = makeRepo();
     const deps = fakeDeps(root);
-    const decisionId = accept(123, "deftai/directive", deps, {
+    const outcome = accept(123, "deftai/directive", deps, {
       actor: "agent:test",
       projectRoot: root,
     });
-    expect(decisionId).toBe("11111111-1111-1111-1111-111111111111");
+    expect(outcome.decisionId).toBe("11111111-1111-1111-1111-111111111111");
+    expect(outcome.disposition).toBe("created");
     const path = resolveAuditLogPath(root);
     const text = readFileSync(path, "utf8");
     expect(text).toContain('"decision":"accept"');
@@ -317,13 +366,18 @@ describe("accept", () => {
     expect(readFileSync(resolveAuditLogPath(root), "utf8")).toContain('"actor":"human:me"');
   });
 
-  it("rolls back audit entry on ingest failure", () => {
+  it("does not append audit when ingest fails (#4962 refuse-before-write)", () => {
     const root = makeRepo();
     const deps = fakeDeps(root, { ingestFail: true });
-    expect(() =>
-      accept(42, "deftai/directive", deps, { actor: "agent:test", projectRoot: root }),
-    ).toThrow(TriageError);
-    expect(readFileSync(resolveAuditLogPath(root), "utf8").trim()).toBe("");
+    const outcome = accept(42, "deftai/directive", deps, {
+      actor: "agent:test",
+      projectRoot: root,
+    });
+    expect(outcome.disposition).toBe("refused");
+    expect(outcome.decisionId).toBeNull();
+    expect(outcome.ingestMessage).toMatch(/issue:ingest delegation failed/);
+    const path = resolveAuditLogPath(root);
+    expect(existsSync(path) ? readFileSync(path, "utf8").trim() : "").toBe("");
   });
 
   it("is idempotent when already accepted", () => {
@@ -337,7 +391,9 @@ describe("accept", () => {
       actor: "agent:test",
     };
     const deps = fakeDeps(root, { latest: prior });
-    expect(accept(9, "deftai/directive", deps, { projectRoot: root })).toBe("prior-id");
+    const outcome = accept(9, "deftai/directive", deps, { projectRoot: root });
+    expect(outcome.decisionId).toBe("prior-id");
+    expect(outcome.disposition).toBe("idempotent");
     const path = resolveAuditLogPath(root);
     expect(existsSync(path)).toBe(false);
   });
@@ -375,12 +431,13 @@ describe("accept", () => {
         return proposedPath;
       },
     };
-    const decisionId = accept(77, "deftai/directive", deps, {
+    const outcome = accept(77, "deftai/directive", deps, {
       actor: "agent:test",
       projectRoot: root,
       autoPromote: true,
     });
-    expect(decisionId).toBe("11111111-1111-1111-1111-111111111111");
+    expect(outcome.decisionId).toBe("11111111-1111-1111-1111-111111111111");
+    expect(outcome.relativePath).toBe("pending/2026-01-01-auto.xbrief.json");
     expect(existsSync(join(root, "xbrief", "pending", "2026-01-01-auto.xbrief.json"))).toBe(true);
     expect(existsSync(proposedPath)).toBe(false);
   });
@@ -405,6 +462,169 @@ describe("accept", () => {
     ).toThrow(/auto-promote failed/);
     // Accept audit remains
     expect(readFileSync(resolveAuditLogPath(root), "utf8")).toContain('"decision":"accept"');
+  });
+
+  it("refuses without audit when ingest reports refused (#4962)", () => {
+    const root = makeRepo();
+    const deps = fakeDeps(root);
+    deps.issueIngest = {
+      ingestSingleForAccept() {
+        return {
+          result: "refused",
+          path: null,
+          message: "#1 refuse: multiple owning briefs for the same issue+repo",
+        };
+      },
+    };
+    const outcome = accept(1, "deftai/directive", deps, { projectRoot: root });
+    expect(outcome.disposition).toBe("refused");
+    expect(outcome.decisionId).toBeNull();
+    expect(outcome.ingestMessage).toContain("multiple owning briefs");
+    const path = resolveAuditLogPath(root);
+    expect(existsSync(path) ? readFileSync(path, "utf8").trim() : "").toBe("");
+  });
+
+  it("refuses idempotent re-accept when ownership is ambiguous (#4962)", () => {
+    const root = makeRepo();
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
+    const brief = (n: string) =>
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8", description: "#55", updated: "2026-08-01T00:00:00Z" },
+        plan: {
+          title: n,
+          status: "proposed",
+          narratives: {
+            Origin: "Ingested from https://github.com/deftai/directive/issues/55",
+          },
+          items: [],
+          references: [
+            {
+              type: "x-xbrief/github-issue",
+              uri: "https://github.com/deftai/directive/issues/55",
+            },
+          ],
+          updated: "2026-08-01T00:00:00Z",
+        },
+      });
+    writeFileSync(join(root, "xbrief", "proposed", "a.xbrief.json"), brief("a"));
+    writeFileSync(join(root, "xbrief", "proposed", "b.xbrief.json"), brief("b"));
+    const prior: AuditEntry = {
+      decision_id: "prior-ambiguous",
+      timestamp: "2026-06-18T12:00:00Z",
+      repo: "deftai/directive",
+      issue_number: 55,
+      decision: "accept",
+      actor: "agent:test",
+    };
+    const deps = fakeDeps(root, { latest: prior });
+    const outcome = accept(55, "deftai/directive", deps, {
+      projectRoot: root,
+      autoPromote: true,
+    });
+    expect(outcome.disposition).toBe("refused");
+    expect(outcome.decisionId).toBeNull();
+    expect(outcome.ingestMessage).toContain("multiple owning briefs");
+    expect(existsSync(join(root, "xbrief", "proposed", "a.xbrief.json"))).toBe(true);
+    expect(existsSync(join(root, "xbrief", "proposed", "b.xbrief.json"))).toBe(true);
+  });
+
+  it("refuses re-accept when the owning brief is completed (#4962)", () => {
+    const root = makeRepo();
+    mkdirSync(join(root, "xbrief", "completed"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "completed", "done.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8", description: "#57", updated: "2026-08-01T00:00:00Z" },
+        plan: {
+          title: "done",
+          status: "completed",
+          narratives: {
+            Origin: "Ingested from https://github.com/deftai/directive/issues/57",
+          },
+          items: [],
+          references: [
+            {
+              type: "x-xbrief/github-issue",
+              uri: "https://github.com/deftai/directive/issues/57",
+            },
+          ],
+          updated: "2026-08-01T00:00:00Z",
+        },
+      }),
+    );
+    const prior: AuditEntry = {
+      decision_id: "prior-completed",
+      timestamp: "2026-06-18T12:00:00Z",
+      repo: "deftai/directive",
+      issue_number: 57,
+      decision: "accept",
+      actor: "agent:test",
+    };
+    const deps = fakeDeps(root, { latest: prior });
+    const outcome = accept(57, "deftai/directive", deps, { projectRoot: root });
+    expect(outcome.disposition).toBe("refused");
+    expect(outcome.decisionId).toBeNull();
+    expect(outcome.relativePath).toBe("completed/done.xbrief.json");
+    expect(outcome.ingestMessage).toContain("already ingested at completed/done.xbrief.json");
+    expect(outcome.ingestMessage).toMatch(/issue:ingest --residual/);
+  });
+
+  it("refuses re-accept when typed-ref and Origin-only owners compete (#4962)", () => {
+    const root = makeRepo();
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "proposed", "ref-owner.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8", description: "#56", updated: "2026-08-01T00:00:00Z" },
+        plan: {
+          title: "ref-owner",
+          status: "proposed",
+          narratives: {},
+          items: [],
+          references: [
+            {
+              type: "x-xbrief/github-issue",
+              uri: "https://github.com/deftai/directive/issues/56",
+            },
+          ],
+          updated: "2026-08-01T00:00:00Z",
+        },
+      }),
+    );
+    writeFileSync(
+      join(root, "xbrief", "proposed", "origin-owner.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8", description: "origin only", updated: "2026-08-01T00:00:00Z" },
+        plan: {
+          title: "origin-owner",
+          status: "proposed",
+          narratives: {
+            Origin: "Ingested from https://github.com/deftai/directive/issues/56",
+          },
+          items: [],
+          references: [],
+          updated: "2026-08-01T00:00:00Z",
+        },
+      }),
+    );
+    const prior: AuditEntry = {
+      decision_id: "prior-compete",
+      timestamp: "2026-06-18T12:00:00Z",
+      repo: "deftai/directive",
+      issue_number: 56,
+      decision: "accept",
+      actor: "agent:test",
+    };
+    const deps = fakeDeps(root, { latest: prior });
+    const outcome = accept(56, "deftai/directive", deps, {
+      projectRoot: root,
+      autoPromote: true,
+    });
+    expect(outcome.disposition).toBe("refused");
+    expect(outcome.decisionId).toBeNull();
+    expect(outcome.ingestMessage).toContain("multiple owning briefs");
+    expect(outcome.ingestMessage).toContain("proposed/ref-owner.xbrief.json");
+    expect(outcome.ingestMessage).toContain("proposed/origin-owner.xbrief.json");
   });
 });
 

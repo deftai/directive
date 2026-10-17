@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-10-16-4375-docsskills-add-a-brief-how-to-file-a-directive-issue-skill-t.xbrief.json",
+  "planId": "github.issue.5420717734",
+  "approvedAt": "2026-10-16T21:40:14Z",
+  "fileScope": [
+    "CHANGELOG.md",
+    "content/docs/framework-gap-filing.md",
+    "content/docs/product-signal.md",
+    "content/packs/skills/skills-pack-0.1.json",
+    "content/scm/github.md",
+    "content/skills/deft-directive-feedback/SKILL.md",
+    "content/skills/deft-directive-product-signal/SKILL.md",
+    "docs/RULE-MAP.md",
+    "packages/cli/src/policy.test.ts",
+    "packages/cli/src/policy.ts",
+    "packages/core/src/init-deposit/skill-discovery-deposit.test.ts",
+    "packages/core/src/init-deposit/skill-discovery-deposit.ts",
+    "packages/core/src/value/feedback-file.test.ts",
+    "packages/core/src/value/feedback-file.ts"
+  ],
+  "fileScopeDigest": "69eb21efa689156d489322ddb4645e248ca9124968c6e260b121d7aa8fc4d3dc",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-10-16T21:40:14Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "2d5267c1c3ccf8828a6814d2a301b964ea120d892990fc85e64c4a3e20f1b975",
+  "digestAlgo": "intent-extract-v1"
+}
