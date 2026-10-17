@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- **Path B activate #5676 sole running brief** (widened file_scope incl. co-located tests) so product PR #5682 can bind merge-base approved-scope. productPullRequest unset.
 - **Fixed**: Land tracked completion record for mid-session framework-gap filing path after product #5685. Refs #4375.
 - **Added**: Mid-session consumer framework-gap filing path (#4375). Wire `deft policy:enable-value-feedback -- --confirm --upstream-prompt` (bare `--confirm` leaves `upstreamPrompt` false); keep engine gate; pack + discovery inventory mid-session selection; gate-free `content/docs/framework-gap-filing.md`; gate-OFF dry-run/`--json` title+body readout; primary spelling `deft feedback:file`. Tracking #4375. Refs #1709.
 - **Path B activate #4375 sole running brief** (widened file_scope incl. co-located tests) so product PR #5685 can bind merge-base approved-scope. productPullRequest unset.
