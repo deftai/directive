@@ -30,16 +30,25 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 - **#1299** -- When to use CRUD tool vs direct vBRIEF authoring (contributor doc) -- `[proposed]`
 - **#2651** -- ADR-002: Forge-provider Azure DevOps adoption gate (proposed) -- `[proposed]`
 - **#3014** -- research(deposit): opt-in minimal consumer AGENTS profile for app-bank / greenfield -- `[proposed]`
-- **#4888** -- Semantic policy conflicts stay invisible until task check -- `[proposed]`
-- **#4892** -- Managed card cites ADR-003 but docs/decisions never ships -- `[proposed]`
-- **#4961** -- feat(setup): seed PROJECT-DEFINITION from a design document (--from / --answers) instead of interview-only -- `[proposed]`
-- **#3906** -- [framework-gap] Acquire occupancy before session-start mutations -- `[proposed]`
-- **#3908** -- [framework-gap] Fence scope lifecycle moves across processes -- `[proposed]`
 
 ## Completed
 
-_Showing 25 of 1812 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1826 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#4962** -- bug(triage): triage:accept silently drafts a proposed xBRIEF and can duplicate an existing scope for the same issue -- `[completed]`
+- **#4375** -- docs(skills): add a brief "how to file a directive issue" skill — the filing path is gated off by default and the house style is undocumented -- `[completed]`
+- **#5665** -- [framework-gap] BLOCKER Pre-PR coverage classifier rejects Directive-managed artifacts after upgrading to 0.125.2 -- `[completed]`
+- **#5674** -- [framework-gap] leftover(#5665/#5542): wire coverage-applicability waived-exit into pre-PR/hotspots; residual deposit unknowns -- `[completed]`
+- **#5676** -- bug(occupancy,hooks,cursor): foreign UUID lease + contradictory host owner on session:start (ProjectMON 0.125.2 dogfood) -- `[completed]`
+- **#5544** -- bug(occupancy,hooks): bootstrap UUID lease blocks Claude host writes (Write hook vs CLI split-brain; DCR 0.125.0 Sonnet) -- `[completed]`
+- **#4961** -- feat(setup): seed PROJECT-DEFINITION from a design document (--from / --answers) instead of interview-only -- `[completed]`
+- **#4871** -- project:export-spec drops Requirements, AcceptanceCriteria, and TechStack -- `[completed]`
+- **#5656** -- bug(grok-build,hooks): missing deft-hook fails open, so product writes and implement spawns proceed with no scope xBRIEF -- `[completed]`
+- **#4888** -- Semantic policy conflicts stay invisible until task check -- `[completed]`
+- **#4892** -- Managed card cites ADR-003 but docs/decisions never ships -- `[completed]`
+- **#3908** -- [framework-gap] Fence scope lifecycle moves across processes -- `[completed]`
+- **#3906** -- [framework-gap] Acquire occupancy before session-start mutations -- `[completed]`
+- **#3907** -- [framework-gap] Add same-worktree CAS to ordered-plan mutations -- `[completed]`
 - **#5366** -- [AppSec] MEDIUM hooks-authz-05: PreToolUse dest harvest miss fail-opens write-shaped MCP and the path fence -- `[completed]`
 - **#5367** -- Gate triage:show load/render via readCacheScanPassed plus scanned content presence before printable CachedIssueDetail fields materialize. -- `[completed]`
 - **#5627** -- [AppSec] HIGH install-deposit-03: Unpinned GitHub framework tarball is extracted and planted as git hooks -- `[completed]`
@@ -51,18 +60,4 @@ _Showing 25 of 1812 completed scopes (newest first). Full history: lifecycle `co
 - **#4878** -- Acceptance-evidence refusal names items[N] and ignores acceptance.clauses -- `[completed]`
 - **#3583** -- bug(scope): scope:complete does not auto-discover the merged PR for delivery evidence -- `[completed]`
 - **#5602** -- framework-gap: Prefer-A leftover-complete must use scope:complete / stampDeliveryProvenance (no hand productMerge stamps) -- `[completed]`
-- **#4881** -- scope:complete on an already-completed path reports File not found -- `[completed]`
-- **#5477** -- Path B activate #5477 Prefer-A Bound file_scope -- `[completed]`
-- **#5574** -- Path B activate #5574 Prefer-A Bound -- `[completed]`
-- **#5551** -- Path B activate #5551 Prefer-A Bound file_scope -- `[completed]`
-- **#5545** -- Path B activate #5545 Prefer-A Bound -- `[completed]`
-- **#5552** -- Path B activate #5552 Prefer-A Bound file_scope -- `[completed]`
-- **#5542** -- [framework-gap] BLOCKER Add audited interactive human overrides for framework gate blockers -- `[completed]`
-- **#4768** -- [UAT Tester 4] Active xBRIEFs can be created without acceptance commands -- `[completed]`
-- **#5541** -- [framework-gap] BLOCKER Latest Directive blocks fresh Bun consumer pre-PR on ordinary artifact classification -- `[completed]`
-- **#5539** -- Package runner exact-argv test spy fabricates an absent Windows option on POSIX -- `[completed]`
-- **#4981** -- Directive Tutorial — first-run menu, preferences progress, shared beats -- `[completed]`
-- **#5521** -- Pinned AGENTS rule names deft scm:body:* but the verbs are Taskfile-only; unknown-verb hint recommends the failing form; no rule-to-verb parity check -- `[completed]`
-- **#5526** -- bug(release): v0.124.0 Windows Step 5 hang under 60m at ts:check-lane (cursor deft_run_resolver.test.ts) -- `[completed]`
-- **#5479** -- BLOCKER: generated project registry refresh requires coverage in a design-only consumer -- `[completed]`
 

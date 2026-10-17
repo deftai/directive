@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [0.126.0] - 2026-10-17
+
+> Through-merge cohort: mid-session deft feedback:file path, applying-host SessionStart before Shell PreToolUse, coverage waived-exit-4 and managed stamp inertness, triage:accept disclose/reuse, Harbor UUID lease and Write-hook unification.
+
 - **Fixed**: Land tracked completion record for applying-host SessionStart before Shell PreToolUse after product #5682. Refs #5676.
 - **Fixed**: Soft-pass named live occupancy owner after applying-host replace; Path B #4962 briefly cleared from active so #5676 is sole running planId for intent-constraint (re-activate #4962 after merge). Tracking #5676. Refs #5686 #5544.
 - **Path B activate #5676 sole running brief** (widened file_scope incl. co-located tests) so product PR #5682 can bind merge-base approved-scope. productPullRequest unset.
@@ -7259,7 +7272,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.125.2...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.126.0...HEAD
+[0.126.0]: https://github.com/deftai/directive/compare/v0.125.2...v0.126.0
 [0.125.2]: https://github.com/deftai/directive/compare/v0.125.1...v0.125.2
 [0.125.1]: https://github.com/deftai/directive/compare/v0.125.0...v0.125.1
 [0.125.0]: https://github.com/deftai/directive/compare/v0.124.0...v0.125.0
