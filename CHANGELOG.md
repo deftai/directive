@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Changed - Activate Prefer-A Bound running brief for #5715 on master (proceed cohort add; productPullRequest unset). Refs #5715.
+- Changed - Widen #5691 merge-base file_scope for docs/RULE-MAP.md so product PR #5734 can land regenerated Rule Map (#5192). Refs #5691 #5734.
 - Changed - Widen #4229 merge-base file_scope for docs/RULE-MAP.md so product PR #5729 can land regenerated Rule Map (#5192). Refs #4229 #5729.
 - Changed — Activate Prefer-A Recut-3 running brief for #5716 on master (proceed cohort add; productPullRequest unset). Refs #5716.
 - Changed — Activate Prefer-A Recut-1 running brief for #4229 on master (proceed cohort add; productPullRequest unset). Refs #4229.

@@ -112,7 +112,8 @@
           "content/strategies/README.md",
           "content/strategies/interview.md",
           "content/strategies/artifact-guards.md",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "docs/RULE-MAP.md"
         ],
         "size": "L",
         "file_scope_confidence": "high",
@@ -133,7 +134,8 @@
           "content/strategies/README.md",
           "content/strategies/interview.md",
           "content/strategies/artifact-guards.md",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "docs/RULE-MAP.md"
         ],
         "module_boundary": "design-thinking preparatory strategy with UAT-planning requires:uat items",
         "cohesion_exemption": "CHANGELOG.md shared Unreleased for #5691; packs:render outputs under content/strategies/."
