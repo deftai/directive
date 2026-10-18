@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- Changed — Activate Prefer-A Bound running brief for #5694 on master (proceed cohort add; productPullRequest unset). Refs #5694.
 - Changed — Activate Prefer-A Bound running briefs for #5690 and #5486 on master (proceed cohort; productPullRequest unset). Refs #5690 #5486.
 
 ### Fixed
