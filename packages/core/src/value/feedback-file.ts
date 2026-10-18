@@ -577,7 +577,11 @@ function extractCommentUrl(
   return null;
 }
 
-function mutationsAllowed(options: FeedbackFileOptions, offline: boolean, dryRun: boolean): boolean {
+function mutationsAllowed(
+  options: FeedbackFileOptions,
+  offline: boolean,
+  dryRun: boolean,
+): boolean {
   return options.confirm === true && !dryRun && !offline;
 }
 
