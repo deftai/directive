@@ -370,12 +370,18 @@ export function acceptFilePathDispatchPostcondition(input: {
       toolCalls,
     );
   }
-  const seatEscaped = input.obligation.seatId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  if (!new RegExp(`(?:^|\\n)\\s*seat:\\s*${seatEscaped}\\b`, "i").test(body)) {
+  // Exact seat token match — `\b` after "grok" also matches "grok-backup".
+  const seatLine = body.match(/(?:^|\n)\s*seat:\s*(\S+)/i);
+  const seatValue = seatLine?.[1] ?? null;
+  if (seatValue === null || seatValue !== input.obligation.seatId) {
     return filePathFail(
       "dispatch-failure",
       "mismatch",
-      [`outbox artifact missing seat: ${input.obligation.seatId}`],
+      [
+        seatValue === null
+          ? `outbox artifact missing seat: ${input.obligation.seatId}`
+          : `outbox artifact seat: ${seatValue} does not exactly match obligation seat ${input.obligation.seatId}`,
+      ],
       toolCalls,
     );
   }

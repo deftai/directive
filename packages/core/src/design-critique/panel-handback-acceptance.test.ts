@@ -339,6 +339,35 @@ describe("file-path stage-(0) (#5486)", () => {
     expect(verdict.reasons.some((r) => r.includes("bare file existence"))).toBe(true);
   });
 
+  it("refuses hyphenated seat prefixes that would match via word-boundary", () => {
+    const body = "model: grok\nrole: critic\n\nround: 1\nseat: grok-backup\n## Findings\nok\n";
+    const verdict = acceptFilePathDispatchPostcondition({
+      obligation: {
+        targetId: manifest.targetId,
+        targetPath: manifest.targetPath,
+        round: 1,
+        seatId: "grok",
+        dispatchSha,
+        outboxManifest: manifest,
+      },
+      verification: {
+        kind: "outbox",
+        status: "ok",
+        dispatchSha,
+        manifest,
+        seatArtifacts: { grok: body },
+      },
+      handback: {
+        seatId: "grok",
+        claimedArtifactId: boundArtifactIdForSeat("grok", dispatchSha),
+        toolCallCount: 1,
+      },
+    });
+    expect(verdict.accepted).toBe(false);
+    expect(verdict.failClass).toBe("mismatch");
+    expect(verdict.reasons.some((r) => r.includes("does not exactly match"))).toBe(true);
+  });
+
   it("refuses parent-read manifests that diverge from the recorded obligation manifest", () => {
     const body = "model: grok\nrole: critic\n\nround: 1\nseat: grok\n## Findings\nok\n";
     const altered = {
