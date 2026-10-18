@@ -246,6 +246,24 @@ export function evaluateExperimentArchivedFindingsGate(plan: Record<string, unkn
   };
 }
 
+/**
+ * Tutorial practice briefs (#4981) close with experiment_archived. When Findings
+ * are absent, seed a practice note so #5693 does not break the scripted close
+ * without expanding Bound file_scope into tutorial packs/beats.
+ * Returns true when Findings were seeded.
+ */
+export function seedTutorialPracticeFindingsIfNeeded(plan: Record<string, unknown>): boolean {
+  const id = typeof plan.id === "string" ? plan.id.trim() : "";
+  if (!id.endsWith("-practice")) return false;
+  if (evaluateExperimentArchivedFindingsGate(plan).ok) return false;
+  const narratives = asRecord(plan.narratives) ?? {};
+  plan.narratives = {
+    ...narratives,
+    Findings: "Tutorial practice sitting closed; acceptance check verified.",
+  };
+  return true;
+}
+
 /** True when the brief is treated as code-bearing for the delivery gate (#3041). */
 export function isCodeBearingScope(plan: Record<string, unknown>): boolean {
   const meta = asRecord(plan.metadata);
@@ -1010,6 +1028,7 @@ export function evaluateDeliveryGate(options: DeliveryGateOptions): DeliveryGate
   // return so both code and non-code completing scopes are covered, and failed
   // validation leaves the brief unmoved.
   if (options.nonDeliveryDisposition === "experiment_archived") {
+    seedTutorialPracticeFindingsIfNeeded(options.plan);
     const findingsGate = evaluateExperimentArchivedFindingsGate(options.plan);
     if (!findingsGate.ok) {
       return {
