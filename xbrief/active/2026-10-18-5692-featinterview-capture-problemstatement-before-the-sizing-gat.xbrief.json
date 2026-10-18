@@ -1,0 +1,191 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5692",
+    "updated": "2026-10-18T15:19:34Z"
+  },
+  "plan": {
+    "title": "feat(interview): capture ProblemStatement before the Sizing Gate as a SHOULD (Light and Full)",
+    "status": "running",
+    "narratives": {
+      "Description": "feat(interview): capture ProblemStatement before the Sizing Gate as a SHOULD (Light and Full)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5692",
+      "Overview": "## Summary\n\nCapture `ProblemStatement` on the Light path, before the Sizing Gate, as a SHOULD. Today the spec path opens with \"what do you want to build?\" (`interview.md` Chaining Gate default: Proceed to specification), which is the solution-first framing both source articles warn against, and ProblemStatement is written only on the Full path after sizing.\n\n## Proposed change\n\n- One question, under whichever menu contract #4535 settles on, asked before sizing on both Light and Full: who has the problem and what need the ask serves. Record the answer on the existing `ProblemStatement` key. No new key, no new gate.\n- SHOULD, not MUST. The recorded skip proposed in #4536 (operator pastes a complete spec and says implement) covers this question.\n- Extend the discuss strategy's \"Challenge Vagueness\" with one line: challenge solution-first framing (\"build a dashboard\" -> \"what does the user need to see, and why now?\").\n- Trigger is a prose judgment, not a detector (ADR-005: no fuzzy detector in a deterministic costume).\n\n## Why not a presence check\n\nA ProblemStatement presence check buys hollow fields. The fail-closed validation surface is the `uat` acceptance axis, filed separately as the design-thinking strategy issue.\n\n## Affects\n\n- `content/packs/strategies/strategies-pack-0.1.json` (interview + discuss; rendered files are generated)\n- `content/skills/deft-directive-setup/SKILL.md` Phase 3 Sizing Gate wording (via the skills pack)\n\n## Critic verdict (process-only, pre-issue)\n\n`sharpens-framing`: the original proposal was a MUST with a semantic trigger; it would have hit the #4536 scenario and added a turn to an onboarding that #4377 measured at about 25 turns. Recut to SHOULD on the existing key. Not an arc stamp.\n\n## Related\n\n- #4535 (two incompatible question contracts in Phase 3): the new question must land on the surviving contract.\n- #4536 (no product-first path for pasted spec): its recorded skip covers this question.\n- #4377 (onboarding turn count): this adds at most one turn and is skippable.\n- #5486 (pre-issue critic provenance).\n\nSource articles (untrusted data): https://cis-docs.bmad-method.org/how-to/design-thinking/ , https://online.hbs.edu/blog/post/what-is-design-thinking\r\n\n## Siblings (same article review, same critic pass, same strategies pack)\n\n- #5691 feat(strategies): design-thinking preparatory strategy with a uat Test phase (the fail-closed validation surface this issue defers to)\n- #5693 feat(strategies): rapid names a hypothesis and audience; findings before experiment_archived\n\n",
+      "Labels": "enhancement, area:skills, area:guidance, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Pre-sizing who/need ask is lawful exemption; sizing confirmation still blocks subsequent interview questions",
+        "status": "pending",
+        "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "Pre-sizing who/need ask is lawful exemption; sizing confirmation still blocks subsequent interview questions"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Reframe not dual-ask: who/need replaces solution-first what-to-build lead frame",
+        "status": "pending",
+        "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "Reframe not dual-ask: who/need replaces solution-first what-to-build lead frame"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Add ProblemStatement to Light slim narrative merge list; Full reuses supplied ProblemStatement",
+        "status": "pending",
+        "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "Add ProblemStatement to Light slim narrative merge list; Full reuses supplied ProblemStatement"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Capture early before sizing; persist only at Post-Interview Confirmation Gate write boundary",
+        "status": "pending",
+        "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "Capture early before sizing; persist only at Post-Interview Confirmation Gate write boundary"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Local SHOULD skip/decline path with recorded reason without waiting on #4536",
+        "status": "pending",
+        "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "Local SHOULD skip/decline path with recorded reason without waiting on #4536"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "Discuss Challenge Vagueness one SHOULD example for solution-first framing",
+        "status": "pending",
+        "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "Discuss Challenge Vagueness one SHOULD example for solution-first framing"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "area:skills",
+      "area:guidance",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5692",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5692: feat(interview): capture ProblemStatement before the Sizing Gate as a SHOULD (Light and Full)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Pre-sizing who/need ask is lawful exemption; sizing confirmation still blocks subsequent interview questions",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Reframe not dual-ask: who/need replaces solution-first what-to-build lead frame",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Add ProblemStatement to Light slim narrative merge list; Full reuses supplied ProblemStatement",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Capture early before sizing; persist only at Post-Interview Confirmation Gate write boundary",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Local SHOULD skip/decline path with recorded reason without waiting on #4536",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Discuss Challenge Vagueness one SHOULD example for solution-first framing",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "source_rung": "derived",
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/packs/strategies/strategies-pack-0.1.json",
+          "content/strategies/interview.md",
+          "content/strategies/discuss.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-setup/SKILL.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "optional who/need ProblemStatement ask before sizing on Light and Full",
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #5692."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5891399990,
+        "origin": "deftai/directive#5692",
+        "id": "github.issue.5891399990"
+      },
+      "x-directive/admitted-target-digest": "sha256:6760fa37165c6039a02fe68cd9ad03983ec27ac96f4fa52a05ee97bb02bf7650",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "interview-problemstatement-before-sizing-should",
+        "expected_outputs": [
+          "Tracking PR for #5692 Prefer-A Bound ProblemStatement before sizing SHOULD"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts/standards/strategy_chaining.test.ts"
+        ],
+        "file_scope": [
+          "content/packs/strategies/strategies-pack-0.1.json",
+          "content/strategies/interview.md",
+          "content/strategies/discuss.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-setup/SKILL.md",
+          "CHANGELOG.md"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5692",
+          "#4536",
+          "#4535",
+          "#5691"
+        ],
+        "parallel_safe": false
+      }
+    },
+    "id": "github.issue.5891399990",
+    "updated": "2026-10-18T15:19:34Z"
+  }
+}
