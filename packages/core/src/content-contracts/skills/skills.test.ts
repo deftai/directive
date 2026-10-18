@@ -1221,3 +1221,56 @@ describe("article-review critic pass (#5694 Prefer-A Bound)", () => {
     expect(rendered).toContain("packs/skills/skills-pack-0.1.json");
   });
 });
+
+/** Prefer-A Recut-1 behavioral pins for pre-filing closed-issue/PR search (#1178). */
+describe("article-review pre-filing closed-issue/PR search (#1178 Prefer-A Recut-1)", () => {
+  for (const [surface, text] of [
+    ["packed", packedArticleReviewBody()],
+    ["rendered", readRepoFile(_ARTICLE_REVIEW_PATH)],
+  ] as const) {
+    it(`${surface} Step 5 runs closed-issue and closed-PR passes before Step 6/7`, () => {
+      const step5 = text.slice(
+        articleReviewHeadingIndex(text, "### Step 5:"),
+        articleReviewHeadingIndex(text, "### Step 6:"),
+      );
+      const step6 = articleReviewHeadingIndex(text, "### Step 6:");
+      const step7 = articleReviewHeadingIndex(text, "### Step 7:");
+      expect(step5).toContain("Closed-issue and closed-PR pre-filing (#1178)");
+      expect(step5).toContain("PREFILING_CLOSED_ISSUE_WINDOW");
+      expect(step5).toContain("PREFILING_CLOSED_PR_WINDOW");
+      expect(step5).toContain("window-exhausted");
+      expect(step5).toContain("list-exhausted");
+      expect(step5).toContain("pull_request");
+      expect(step5.indexOf("Closed-issue and closed-PR pre-filing")).toBeLessThan(
+        step5.indexOf("Mechanism inventory"),
+      );
+      expect(articleReviewHeadingIndex(text, "### Step 5:")).toBeLessThan(step6);
+      expect(step6).toBeLessThan(step7);
+    });
+
+    it(`${surface} Step 5 locks evidence disposition and PR-only proposal suppression`, () => {
+      const step5 = text.slice(
+        articleReviewHeadingIndex(text, "### Step 5:"),
+        articleReviewHeadingIndex(text, "### Step 6:"),
+      );
+      for (const token of ["implemented", "partial", "declined", "unresolved", "state_reason", "not_planned"]) {
+        expect(step5).toContain(token);
+      }
+      expect(step5).toContain("PR-only proposal suppression");
+      expect(step5).toContain("no** linked closed issue");
+      expect(step5).toContain("before Step 6/7");
+      expect(step5).toContain("merely callable");
+    });
+
+    it(`${surface} incomplete retrieval must not become verified no-match`, () => {
+      const step5 = text.slice(
+        articleReviewHeadingIndex(text, "### Step 5:"),
+        articleReviewHeadingIndex(text, "### Step 6:"),
+      );
+      expect(step5).toContain("truncated PR-file");
+      expect(step5).toMatch(/verified no-match/);
+      expect(text).toContain("incomplete closed retrieval");
+      expect(text).toContain("closed-PR search remains merely callable");
+    });
+  }
+});

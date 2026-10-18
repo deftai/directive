@@ -251,6 +251,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ! Process-critical skills with false-negative risk MUST be named in AGENTS.md (always-pin tier) — tier definitions: `.deft/core/docs/skill-pin-policy.md` (#2508).
 ! **Default always-pins:** `deft-directive-build`, `deft-directive-pre-pr`, `deft-directive-review-cycle`, `deft-directive-swarm` — read each `SKILL.md` when that work type starts. Controller invocation (#4912): `deft pre-pr:run` starts prescribed pre-PR.
+! **Pre-filing closed-issue/PR search (#1178):** Filing new issues or opening product PRs requires the closed-issue/PR pre-filing contract owned by `deft-directive-article-review` (Step 5) / `deft-directive-pre-pr` (first-PR-open path-intersection). Pointer only — windows and disposition live in those skills.
 ! Policy-anchored review-response (#3452): HEAD policy before out-of-model. Depth: review-cycle SKILL.
 ⊗ Pin entire language packs, deployment docs, or framework bulk into AGENTS.md — pins are for false-negative-sensitive process gates only (#2508).
 ! **Dual stop (#2442):** multi-iteration work MUST have success + failure/budget stop (max iters / no-progress / budget); single-turn exempt; halt with operator-visible report; ⊗ thrash. Defaults: build, swarm, review-cycle skills. See main.md Dual Stop Rule. Ledger #3143.
