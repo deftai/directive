@@ -300,7 +300,9 @@ export function countScopeHistoryFolders(
   projectRoot: string,
   seams?: { readdir?: (dir: string) => string[] },
 ): { counts: ScopeFolderCounts; unreadable: boolean } {
-  const counts: { [K in keyof ScopeFolderCounts]: number } = { ...EMPTY_SCOPE_COUNTS };
+  const counts: { -readonly [K in keyof ScopeFolderCounts]: number } = {
+    ...EMPTY_SCOPE_COUNTS,
+  };
   let unreadable = false;
   const list =
     seams?.readdir ??
