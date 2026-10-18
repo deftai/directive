@@ -1234,8 +1234,6 @@ describe("delivery evidence (#3041)", () => {
   });
 });
 
-
-
 describe("experiment_archived Findings gate (#5693)", () => {
   let root = "";
 
@@ -1378,7 +1376,6 @@ describe("experiment_archived Findings gate (#5693)", () => {
     expect(acceptedResult.ok).toBe(true);
   });
 });
-
 
 describe("delivery-evidence AppSec fetch gate (#5545)", () => {
   it("refreshRemoteDeliveryRef refuses hostile names before spawn and uses tracking argv", () => {

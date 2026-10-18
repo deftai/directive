@@ -228,9 +228,10 @@ export function isNonDeliveryDisposition(value: unknown): value is NonDeliveryDi
  * Covers code and non-code completing scopes. One remediation string.
  * Does not harden cancelled / superseded / accepted_not_delivered.
  */
-export function evaluateExperimentArchivedFindingsGate(
-  plan: Record<string, unknown>,
-): { ok: boolean; message: string } {
+export function evaluateExperimentArchivedFindingsGate(plan: Record<string, unknown>): {
+  ok: boolean;
+  message: string;
+} {
   const narratives = asRecord(plan.narratives);
   const findings = narratives?.Findings;
   if (typeof findings === "string" && findings.trim().length > 0) {
