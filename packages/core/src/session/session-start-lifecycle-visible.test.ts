@@ -2,14 +2,14 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import type { LifecycleVisibleResult } from "../lifecycle-visible/evaluate.js";
-import type { EnvironmentContext } from "../platform/shell-context.js";
-import type { ResolveUserMdResult } from "../user-config/resolve-user-md.js";
 import {
   classifyLifecycleOccupancy,
   formatLifecycleOccupancySoftWarnLines,
   NEVER_INCEPTED_SOFT_WARN,
 } from "../doctor/main.js";
+import type { LifecycleVisibleResult } from "../lifecycle-visible/evaluate.js";
+import type { EnvironmentContext } from "../platform/shell-context.js";
+import type { ResolveUserMdResult } from "../user-config/resolve-user-md.js";
 import { READ_ONLY_POSTURE, runSessionStart } from "./session-start.js";
 
 const temps: string[] = [];
@@ -134,7 +134,10 @@ describe("lifecycle occupancy soft-warn helper (#4229)", () => {
     mkdirSync(join(root, "xbrief", "cancelled"), { recursive: true });
     writeFileSync(
       join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
-      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { title: "id", status: "active", items: [] } }),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { title: "id", status: "active", items: [] },
+      }),
       "utf8",
     );
     const occ = classifyLifecycleOccupancy(root);
@@ -149,7 +152,10 @@ describe("lifecycle occupancy soft-warn helper (#4229)", () => {
     mkdirSync(join(root, "xbrief", "cancelled"), { recursive: true });
     writeFileSync(
       join(root, "xbrief", "cancelled", "old.xbrief.json"),
-      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { title: "c", status: "cancelled", items: [] } }),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { title: "c", status: "cancelled", items: [] },
+      }),
       "utf8",
     );
     const occ = classifyLifecycleOccupancy(root);
