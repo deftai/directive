@@ -17,6 +17,7 @@
  */
 
 import { createHash } from "node:crypto";
+import path from "node:path";
 import type { LabelClient } from "../vbrief-reconcile/types.js";
 import {
   ACCEPTED_CITATION_FORMS,
@@ -33,7 +34,7 @@ import {
   DESIGN_CRITIQUE_CATALOG_CHIPS,
   writeDesignCritiqueCatalogRemainingSet,
 } from "./exclusive-chip.js";
-import { evaluateAccumulatedPainAuditFollowThrough } from "./pain-audit-follow-through-gate.js";
+import { evaluateAccumulatedPainAuditFollowThrough, hashBoundRemedyBytes } from "./pain-audit-follow-through-gate.js";
 import {
   type AuditEnvelope,
   buildPainCoverageDeposit,
@@ -740,14 +741,36 @@ export type TargetDigestAdmission =
       readonly detail: string;
     };
 
+/** #5486 Target-kind orthogonal to Target shape (issue | xbrief | envelope-file). */
+export const DESIGN_CRITIQUE_TARGET_KINDS = ["issue", "xbrief", "envelope-file"] as const;
+export type DesignCritiqueTargetKind = (typeof DESIGN_CRITIQUE_TARGET_KINDS)[number];
+
+export function isDesignCritiqueTargetKind(value: string): value is DesignCritiqueTargetKind {
+  return (DESIGN_CRITIQUE_TARGET_KINDS as readonly string[]).includes(value);
+}
+
+/** Hash canonical target bytes (issue body, xBRIEF file, or envelope file). */
+export function hashTargetBytes(bytes: string): string {
+  return createHash("sha256").update(bytes, "utf8").digest("hex");
+}
+
 /**
- * Ingest admission against the cited successor lean's Target-digest (#4243).
+ * Ingest admission against the cited successor lean's Target-digest (#4243 / #5486).
  * Legacy leans with no digest stay unpinned (admitted). Recut-without-digest
- * stays on #4237.
+ * stays on #4237. Widens names for path + blob/bytes + optional dispatch-sha
+ * without forking the matcher. Target-kind is orthogonal to Target shape.
+ * Protocol / gate / chip state stays outside digested bytes.
  */
 export function evaluateTargetDigestAdmission(input: {
   readonly citedLeanBody: string;
-  readonly liveIssueBody: string;
+  /** GitHub-issue path: live REST issue body bytes. */
+  readonly liveIssueBody?: string;
+  /** No-issue path: canonical xBRIEF / envelope bytes. */
+  readonly liveTargetBytes?: string;
+  readonly targetKind?: DesignCritiqueTargetKind;
+  readonly targetPath?: string;
+  /** Optional Stop-1 / dispatch locator companion; not mixed into digest bytes. */
+  readonly dispatchSha?: string;
 }): TargetDigestAdmission {
   const pinned = extractOperativeTargetDigest(input.citedLeanBody);
   if (pinned === null) {
@@ -761,13 +784,38 @@ export function evaluateTargetDigestAdmission(input: {
     }
     return { status: "unpinned" };
   }
-  const live = hashIssueBodyBytes(input.liveIssueBody);
-  if (live !== pinned) {
+
+  const liveBytes =
+    input.liveTargetBytes !== undefined
+      ? input.liveTargetBytes
+      : input.liveIssueBody !== undefined
+        ? input.liveIssueBody
+        : null;
+  if (liveBytes === null) {
     return {
       status: "blocked",
       reason: "stale-target",
       detail:
-        `live REST issue body sha256:${live} does not match Target-digest sha256:${pinned}; ` +
+        "Target-digest admission requires liveIssueBody or liveTargetBytes; storage fields alone are insufficient",
+    };
+  }
+
+  const live = hashTargetBytes(liveBytes);
+  if (live !== pinned) {
+    const kind = input.targetKind ?? (input.liveTargetBytes !== undefined ? "xbrief" : "issue");
+    const pathNote =
+      input.targetPath !== undefined && input.targetPath.length > 0
+        ? ` path=${input.targetPath}`
+        : "";
+    const shaNote =
+      input.dispatchSha !== undefined && input.dispatchSha.length > 0
+        ? ` dispatch-sha=${input.dispatchSha}`
+        : "";
+    return {
+      status: "blocked",
+      reason: "stale-target",
+      detail:
+        `live ${kind} bytes sha256:${live} do not match Target-digest sha256:${pinned};${pathNote}${shaNote} ` +
         "cache is not admission",
     };
   }
@@ -1739,3 +1787,158 @@ export function applyIngestReadyRemainingSet(
   );
   return { ok: true, ...written };
 }
+
+
+// ---------------------------------------------------------------------------
+// #5486 Remint-3 P1 archive + P4 harvest + promotion (analysis substrate)
+// ---------------------------------------------------------------------------
+
+export const COMPLETED_ARC_ARCHIVE_SCHEMA = "deft.design-critique.completed-arc-archive.v1" as const;
+export const COMPLETED_ARC_ARCHIVE_REL = ".deft/design-critique/archive" as const;
+
+/** Main-checkout-resolved archive root; dest-relative .deft-scratch is not archive root. */
+export function resolveCompletedArcArchiveRoot(mainCheckoutRoot: string): string {
+  return path.posix.join(mainCheckoutRoot.replace(/\\/g, "/"), COMPLETED_ARC_ARCHIVE_REL);
+}
+
+export function completedArcArchiveKey(targetId: string, arcId: string): string {
+  const safe = (value: string) => value.replace(/[^A-Za-z0-9._-]+/g, "_");
+  return `${safe(targetId)}/${safe(arcId)}`;
+}
+
+export type CompletedArcArchiveRecord = {
+  readonly schema: typeof COMPLETED_ARC_ARCHIVE_SCHEMA;
+  readonly targetId: string;
+  readonly arcId: string;
+  readonly targetKind: DesignCritiqueTargetKind;
+  readonly targetPath: string | null;
+  readonly comments: readonly ThreadComment[];
+  readonly synthesisCommentId: number | null;
+  readonly citedLeanId: number | null;
+  readonly retainedAt: string;
+  /** Sidecar mirror path only; archive remains SoT. */
+  readonly sidecarMirrorPath: string | null;
+};
+
+/**
+ * Parent-owned ordered archive record keyed by target-id + arc-id. Scratch
+ * staging feeds this via parent-collected exclusive-create outboxes; never two
+ * live SoTs. Machine-local / single-operator supported; cross-machine deferred.
+ */
+export function buildCompletedArcArchiveRecord(input: {
+  readonly targetId: string;
+  readonly arcId: string;
+  readonly targetKind: DesignCritiqueTargetKind;
+  readonly targetPath?: string | null;
+  readonly comments: readonly ThreadComment[];
+  readonly synthesisCommentId?: number | null;
+  readonly citedLeanId?: number | null;
+  readonly retainedAt?: string;
+  readonly sidecarMirrorPath?: string | null;
+}): CompletedArcArchiveRecord {
+  return {
+    schema: COMPLETED_ARC_ARCHIVE_SCHEMA,
+    targetId: input.targetId,
+    arcId: input.arcId,
+    targetKind: input.targetKind,
+    targetPath: input.targetPath ?? null,
+    comments: input.comments,
+    synthesisCommentId: input.synthesisCommentId ?? null,
+    citedLeanId: input.citedLeanId ?? null,
+    retainedAt: input.retainedAt ?? new Date().toISOString(),
+    sidecarMirrorPath: input.sidecarMirrorPath ?? null,
+  };
+}
+
+/** Post-cleanup reader: evaluate completed-arc from a retained archive record. */
+export function evaluateCompletedArcRecordFromArchive(
+  record: CompletedArcArchiveRecord,
+  issueNumber?: number,
+): CompletedArcVerdict {
+  return evaluateCompletedArcRecord({
+    comments: record.comments,
+    issueNumber,
+  });
+}
+
+export type SameBriefHarvestInput = {
+  readonly planId: string;
+  readonly expectedRevision: string;
+  readonly currentRevision: string;
+  readonly boundRemedyBody: string;
+  readonly overviewReplacement: string;
+  readonly planItemsReplacement: readonly { id: string; title: string }[];
+  readonly planMetadataPatch: Record<string, unknown>;
+  readonly sourceProvenance: string;
+  readonly resultProvenance: string;
+  readonly envelopeOnly?: boolean;
+};
+
+export type SameBriefHarvestResult =
+  | {
+      readonly ok: true;
+      readonly idempotenceKey: string;
+      readonly overview: string;
+      readonly planItems: readonly { id: string; title: string }[];
+      readonly planMetadata: Record<string, unknown>;
+    }
+  | { readonly ok: false; readonly reason: "revision-mismatch" | "empty-remedy" };
+
+/**
+ * P4 same-brief harvest: plan-id-keyed idempotent update. Idempotence key is
+ * hashBoundRemedyBytes / Bound-remedy slice-sha. Replaces Overview, plan.items,
+ * and plan.metadata when no GitHub body. Preserves plan identity. issue:ingest
+ * unchanged.
+ */
+export function harvestBoundRemedyIntoSameBrief(
+  input: SameBriefHarvestInput,
+): SameBriefHarvestResult {
+  if (input.expectedRevision !== input.currentRevision) {
+    return { ok: false, reason: "revision-mismatch" };
+  }
+  const idempotenceKey = hashBoundRemedyBytes(input.boundRemedyBody);
+  const emptyKey = hashBoundRemedyBytes("");
+  if (idempotenceKey === emptyKey) {
+    return { ok: false, reason: "empty-remedy" };
+  }
+  return {
+    ok: true,
+    idempotenceKey,
+    overview: input.overviewReplacement,
+    planItems: input.planItemsReplacement,
+    planMetadata: {
+      ...input.planMetadataPatch,
+      "x-directive/bound-remedy-harvest": {
+        planId: input.planId,
+        idempotenceKey,
+        sourceProvenance: input.sourceProvenance,
+        resultProvenance: input.resultProvenance,
+        envelopeOnly: input.envelopeOnly === true,
+      },
+    },
+  };
+}
+
+export type ArcPromotionVerdict =
+  | { readonly ok: true; readonly archiveIsSoT: true; readonly mirrorLinked: boolean }
+  | { readonly ok: false; readonly reason: "two-live-arcs" | "missing-archive" };
+
+/** Promotion keeps archive SoT with optional link/mirror; refuse two live arcs. */
+export function evaluateArcPromotion(input: {
+  readonly archiveRecord: CompletedArcArchiveRecord | null;
+  readonly liveArcCountForTarget: number;
+  readonly linkMirror?: boolean;
+}): ArcPromotionVerdict {
+  if (input.archiveRecord === null) {
+    return { ok: false, reason: "missing-archive" };
+  }
+  if (input.liveArcCountForTarget > 1) {
+    return { ok: false, reason: "two-live-arcs" };
+  }
+  return {
+    ok: true,
+    archiveIsSoT: true,
+    mirrorLinked: input.linkMirror === true,
+  };
+}
+

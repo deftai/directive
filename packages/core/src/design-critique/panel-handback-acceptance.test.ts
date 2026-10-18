@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { ThreadComment } from "./completed-arc-record.js";
 import {
+  acceptFilePathDispatchPostcondition,
+  boundArtifactIdForSeat,
+  constructOutboxManifest,
   evaluatePanelSeatDelivery,
   evaluatePanelSeatDeliveryFromThread,
   latestPanelDeposit,
@@ -262,5 +265,110 @@ describe("evaluatePanelSeatDelivery (#3979 panel consumption)", () => {
     expect(grok?.countsAsPostedSibling).toBe(false);
     expect(grok?.verdict.accepted).toBe(false);
     expect(grok?.verdict.failClass).toBe("mismatch");
+  });
+});
+
+describe("file-path stage-(0) (#5486)", () => {
+  const dispatchSha = "b0ec56e7f9ddfba2634261805317095ec252b21b";
+  const manifest = constructOutboxManifest({
+    dispatchSha,
+    targetId: "xbrief/proposed/demo.xbrief.json",
+    targetPath: "xbrief/proposed/demo.xbrief.json",
+    round: 1,
+    seatIds: ["grok", "codex", "claude"],
+    createdAt: "2026-10-17T00:00:00.000Z",
+  });
+
+  it("constructs exclusive-create outbox manifest as stage-(0) ceiling", () => {
+    expect(manifest.schema).toBe("deft.design-critique.outbox-manifest.v1");
+    expect(manifest.seats).toHaveLength(3);
+    expect(manifest.seats.every((s) => s.exclusiveCreate)).toBe(true);
+  });
+
+  it("binds file-path via parent-read obligation fields, not bare existence", () => {
+    const body =
+      "model: grok\nrole: critic\n\nround: 1\nseat: grok\n## Findings\nok\n";
+    const verdict = acceptFilePathDispatchPostcondition({
+      obligation: {
+        targetId: manifest.targetId,
+        targetPath: manifest.targetPath,
+        round: 1,
+        seatId: "grok",
+        dispatchSha,
+        outboxManifest: manifest,
+      },
+      verification: {
+        kind: "outbox",
+        status: "ok",
+        dispatchSha,
+        manifest,
+        seatArtifacts: { grok: body },
+      },
+      handback: {
+        seatId: "grok",
+        hostSuccess: true,
+        claimedArtifactId: boundArtifactIdForSeat("grok", dispatchSha),
+        toolCallCount: 3,
+      },
+    });
+    expect(verdict.accepted).toBe(true);
+    expect(verdict.boundCommentId).toBeNull();
+    expect(verdict.boundArtifactId).toBe(boundArtifactIdForSeat("grok", dispatchSha));
+    expect(verdict.ceilingKind).toBe("dispatch-sha-outbox-manifest");
+  });
+
+  it("refuses bare hostSuccess without parent-read artifact bytes", () => {
+    const verdict = acceptFilePathDispatchPostcondition({
+      obligation: {
+        targetId: manifest.targetId,
+        round: 1,
+        seatId: "grok",
+        dispatchSha,
+        outboxManifest: manifest,
+      },
+      verification: {
+        kind: "outbox",
+        status: "ok",
+        dispatchSha,
+        manifest,
+        seatArtifacts: {},
+      },
+      handback: { seatId: "grok", hostSuccess: true, toolCallCount: 0 },
+    });
+    expect(verdict.accepted).toBe(false);
+    expect(verdict.failClass).toBe("missing");
+    expect(verdict.reasons.some((r) => r.includes("bare file existence"))).toBe(true);
+  });
+
+  it("routes evaluatePanelSeatDelivery file-path class through stage-(0) caller", () => {
+    const body =
+      "model: grok\nrole: critic\n\nround: 1\nseat: grok\n## Findings\nok\n";
+    const verdict = evaluatePanelSeatDelivery({
+      round: 1,
+      expectedSeats: [{ seatId: "grok" }],
+      artifactClass: "file-path",
+      filePathObligation: {
+        targetId: manifest.targetId,
+        targetPath: manifest.targetPath,
+        dispatchSha,
+        outboxManifest: manifest,
+      },
+      filePathVerification: {
+        kind: "outbox",
+        status: "ok",
+        dispatchSha,
+        manifest,
+        seatArtifacts: { grok: body },
+      },
+      handbacks: [
+        {
+          seatId: "grok",
+          claimedArtifactId: boundArtifactIdForSeat("grok", dispatchSha),
+          toolCallCount: 2,
+        },
+      ],
+    });
+    expect(verdict.verifiedPostedSeatIds).toEqual(["grok"]);
+    expect(verdict.rows[0]?.verdict.boundArtifactId).toContain("outbox:grok@");
   });
 });

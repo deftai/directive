@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   ACCEPTED_CITATION_FORMS,
+  ACCEPTED_LEFTOVER_BRIEF_CITE_FORMS,
+  ACCEPTED_LOCAL_CITATION_FORMS,
   ACCEPTED_PAIN_CITE_FORMS,
   ACCEPTED_PAIN_LIST_FORMS,
+  LOCAL_ARC_ID_MODEL,
+  LOCAL_ARC_ID_SCHEME,
+  PAIN_CITE_MIGRATION_INVENTORY,
   scanCitations,
   scanPainCites,
   scanPainList,
@@ -404,18 +409,77 @@ describe("scanPainList / scanPainCites (#4496)", () => {
 
   it("reads published cite forms and keeps does-not-relieve distinct", () => {
     expect(scanPainCites("relieves: P1").cites).toEqual([
-      { painId: "P1", disposition: "relieves", deferredIssueNumber: null },
+      {
+        painId: "P1",
+        disposition: "relieves",
+        deferredIssueNumber: null,
+        deferredBriefPlanId: null,
+        deferredBriefPath: null,
+      },
     ]);
     expect(scanPainCites("does-not-relieve: P1").cites).toEqual([
-      { painId: "P1", disposition: "does-not-relieve", deferredIssueNumber: null },
+      {
+        painId: "P1",
+        disposition: "does-not-relieve",
+        deferredIssueNumber: null,
+        deferredBriefPlanId: null,
+        deferredBriefPath: null,
+      },
     ]);
     expect(scanPainCites("operator-deferred: P1 #4377").cites).toEqual([
-      { painId: "P1", disposition: "operator-deferred", deferredIssueNumber: 4377 },
+      {
+        painId: "P1",
+        disposition: "operator-deferred",
+        deferredIssueNumber: 4377,
+        deferredBriefPlanId: null,
+        deferredBriefPath: null,
+      },
     ]);
     expect(scanPainCites("operator-deferred: P1 issue 4377").cites).toEqual([
-      { painId: "P1", disposition: "operator-deferred", deferredIssueNumber: 4377 },
+      {
+        painId: "P1",
+        disposition: "operator-deferred",
+        deferredIssueNumber: 4377,
+        deferredBriefPlanId: null,
+        deferredBriefPath: null,
+      },
+    ]);
+    expect(scanPainCites("operator-deferred: P1 plan-id github.issue.123").cites).toEqual([
+      {
+        painId: "P1",
+        disposition: "operator-deferred",
+        deferredIssueNumber: null,
+        deferredBriefPlanId: "github.issue.123",
+        deferredBriefPath: null,
+      },
+    ]);
+    expect(
+      scanPainCites("operator-deferred: P1 path xbrief/proposed/example.xbrief.json").cites,
+    ).toEqual([
+      {
+        painId: "P1",
+        disposition: "operator-deferred",
+        deferredIssueNumber: null,
+        deferredBriefPlanId: null,
+        deferredBriefPath: "xbrief/proposed/example.xbrief.json",
+      },
     ]);
     expect(ACCEPTED_PAIN_CITE_FORMS).toContain("relieves: P1");
+    expect(ACCEPTED_PAIN_CITE_FORMS).toContain("operator-deferred: P1 plan-id github.issue.123");
+  });
+
+  it("publishes composite local id model and PainCite migration inventory (#5486)", () => {
+    expect(LOCAL_ARC_ID_MODEL).toBe("composite-scheme-plus-number");
+    expect(LOCAL_ARC_ID_SCHEME).toBe("arc-post");
+    expect(ACCEPTED_LOCAL_CITATION_FORMS[0]).toContain("arc-post:");
+    expect(ACCEPTED_LEFTOVER_BRIEF_CITE_FORMS.some((f) => f.includes("plan-id"))).toBe(true);
+    expect(PAIN_CITE_MIGRATION_INVENTORY.map((row) => row.site)).toEqual(
+      expect.arrayContaining([
+        "PainCite.deferredIssueNumber",
+        "assertedPainIdsFromCites operator-deferred null refuse",
+        "evaluateBoundRemedyCites deferredIssueNumber null refuse",
+      ]),
+    );
   });
 
   it("does not let a quoted cite discharge the denominator", () => {

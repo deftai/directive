@@ -250,3 +250,118 @@ export function evaluateAutoStampPath1Write(
   }
   return refuse(unpublished, candidate, panelDelivery);
 }
+
+
+// ---------------------------------------------------------------------------
+// #5486 Remint-3 P1 write-posture + P3 gate consumer
+// ---------------------------------------------------------------------------
+
+/**
+ * P1 write-posture pick-one (tracked-vs-working-directory reading of in-tree):
+ * (i) critics zero in-tree writes + parent collects (chosen), or
+ * (ii) Run posture third action + allowlist under working-directory in-tree.
+ * Branch (ii) deleted as unused; parent-collect matches exclusive-create outboxes.
+ */
+export const CRITIC_WRITE_POSTURES = ["parent-collect", "run-posture-allowlist"] as const;
+export type CriticWritePosture = (typeof CRITIC_WRITE_POSTURES)[number];
+export const CHOSEN_CRITIC_WRITE_POSTURE: CriticWritePosture = "parent-collect";
+
+export type NoIssueGateAdmissionInput = {
+  readonly targetId: string;
+  readonly targetKind: "issue" | "xbrief" | "envelope-file";
+  /** Authoritative marker (brief/sidecar field), not a fake GitHub label. */
+  readonly authoritativeMarker: string;
+  readonly completedArc: CompletedArcVerdict;
+  readonly liveRevisionDigest: string;
+  readonly pinnedTargetDigest: string | null;
+  /**
+   * Adapter over GATE_MATCH_PREDICATES: for no-issue targets, `paths` matches
+   * target path identity and `body-text` matches the authoritative marker.
+   * Labels/state/age-days stay GitHub-issue path.
+   */
+  readonly match: Readonly<Record<string, unknown>>;
+};
+
+export type NoIssueGateAdmission =
+  | { readonly ok: true; readonly entryPoint: "evaluateNoIssueGateAdmission" }
+  | {
+      readonly ok: false;
+      readonly reason:
+        | "missing-marker"
+        | "incomplete-arc"
+        | "stale-revision"
+        | "unrecognised-predicate"
+        | "storage-only";
+      readonly detail: string;
+      readonly recovery: "discovery" | "manual-diagnosis";
+    };
+
+const NO_ISSUE_GATE_PREDICATES = new Set(["labels", "body-text", "paths", "state", "age-days"]);
+
+/**
+ * P3 gate consumer: named admission entry point consuming target identity,
+ * authoritative marker, completed-arc proof, and live revision via adapter
+ * over GATE_MATCH_PREDICATES. Storage fields alone are insufficient. No fake
+ * GitHub labels.
+ */
+export function evaluateNoIssueGateAdmission(
+  input: NoIssueGateAdmissionInput,
+): NoIssueGateAdmission {
+  if (input.authoritativeMarker.trim().length === 0) {
+    return {
+      ok: false,
+      reason: "missing-marker",
+      detail: "authoritative marker required; do not invent non-catalog GitHub labels",
+      recovery: "manual-diagnosis",
+    };
+  }
+  if (input.completedArc.status !== "complete") {
+    return {
+      ok: false,
+      reason: "incomplete-arc",
+      detail: `completed-arc proof required; status=${input.completedArc.status}`,
+      recovery: "discovery",
+    };
+  }
+  if (
+    input.pinnedTargetDigest !== null &&
+    input.liveRevisionDigest !== input.pinnedTargetDigest
+  ) {
+    return {
+      ok: false,
+      reason: "stale-revision",
+      detail: `live revision sha256:${input.liveRevisionDigest} != pinned sha256:${input.pinnedTargetDigest}`,
+      recovery: "discovery",
+    };
+  }
+
+  const keys = Object.keys(input.match);
+  if (keys.length === 0) {
+    return {
+      ok: false,
+      reason: "storage-only",
+      detail: "storage fields alone insufficient; require GATE_MATCH_PREDICATES adapter keys",
+      recovery: "manual-diagnosis",
+    };
+  }
+  const extra = keys.filter((k) => !NO_ISSUE_GATE_PREDICATES.has(k));
+  if (extra.length > 0) {
+    return {
+      ok: false,
+      reason: "unrecognised-predicate",
+      detail: `unrecognised predicate(s) ${JSON.stringify(extra)}; expected ${[...NO_ISSUE_GATE_PREDICATES].sort().join(", ")}`,
+      recovery: "manual-diagnosis",
+    };
+  }
+  // No-issue adapter: paths / body-text carry identity; labels must not be faked.
+  if ("labels" in input.match) {
+    return {
+      ok: false,
+      reason: "unrecognised-predicate",
+      detail: "no-issue gate must not fake GitHub labels; use paths/body-text adapter",
+      recovery: "manual-diagnosis",
+    };
+  }
+  return { ok: true, entryPoint: "evaluateNoIssueGateAdmission" };
+}
+

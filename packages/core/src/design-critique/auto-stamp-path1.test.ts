@@ -5,6 +5,8 @@ import {
   isPainCoverageBlockReason,
   leanCiteOnlyPath1Body,
   PAIN_COVERAGE_BLOCK_REASONS,
+  CHOSEN_CRITIC_WRITE_POSTURE,
+  evaluateNoIssueGateAdmission,
 } from "./auto-stamp-path1.js";
 import {
   COMPLETED_ARC_BLOCK_REASONS,
@@ -444,5 +446,42 @@ describe("path-1 plain-English summary (#5415)", () => {
       ok: false,
       reason: "empty-plain-english-summary",
     });
+  });
+});
+
+describe("no-issue gate consumer / write-posture (#5486)", () => {
+  it("chooses parent-collect write posture", () => {
+    expect(CHOSEN_CRITIC_WRITE_POSTURE).toBe("parent-collect");
+  });
+
+  it("admits no-issue gate over paths/body-text without fake labels", () => {
+    const complete = {
+      status: "complete" as const,
+      synthesisCommentId: 1,
+      citedLeanId: 2,
+      citedTableId: null,
+    };
+    expect(
+      evaluateNoIssueGateAdmission({
+        targetId: "xbrief/proposed/demo.xbrief.json",
+        targetKind: "xbrief",
+        authoritativeMarker: "mechanism-shaped: true",
+        completedArc: complete,
+        liveRevisionDigest: "abc",
+        pinnedTargetDigest: "abc",
+        match: { paths: { "any-of": ["xbrief/proposed/demo.xbrief.json"] }, "body-text": { "any-of": ["mechanism-shaped: true"] } },
+      }),
+    ).toEqual({ ok: true, entryPoint: "evaluateNoIssueGateAdmission" });
+    expect(
+      evaluateNoIssueGateAdmission({
+        targetId: "xbrief/proposed/demo.xbrief.json",
+        targetKind: "xbrief",
+        authoritativeMarker: "mechanism-shaped: true",
+        completedArc: complete,
+        liveRevisionDigest: "abc",
+        pinnedTargetDigest: "abc",
+        match: { labels: { "any-of": ["design-critique:mechanism-shaped"] } },
+      }).ok,
+    ).toBe(false);
   });
 });
