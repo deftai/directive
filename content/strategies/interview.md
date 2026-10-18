@@ -143,6 +143,8 @@ on the brownfield detector:
 - Discuss — lock key decisions using Feynman technique
 - Probe — adversarially stress-test the plan; surface assumptions, edge cases, and risks
 - Map — analyze existing codebase conventions
+- BDD — acceptance-test-first scenarios and locked decisions
+- Design-thinking — empathize / define / ideate; UAT-planning emits `x-directive/requires: uat` items with handoff into story `plan.items`
 
 ~ Some preparatory strategies (currently map) also support standalone invocation
 via `/deft:run:<name>` without entering the interview flow. When invoked standalone,
@@ -169,6 +171,8 @@ See `strategies/map.md` for standalone behavior.
   listed in `plan.xbrief.json`
 - ! On brownfield **Add scope** or **Update project definition**, load existing
   PROJECT-DEFINITION identity and preparatory artifacts before asking questions
+- ! When loading a `completedStrategies` **design-thinking** artifact at interview / Light / Full / Add-scope / switched-strategy scope-write, copy its `x-directive/requires`-bearing `plan.items` into the emitted story `plan.items` with stable source identity/trace (preserve requires + any human disposition). Run the thin omission check (missing-item / changed-scope-rerun / preserved-disposition) and remediate by copy before proceeding; reuse `evaluateAcceptanceEvidenceGate` after transfer. ⊗ Summarize design-thinking narratives while dropping requires:uat items; ⊗ LockedDecisions-style prose flow-through alone.
+
 
 ### Write Guards (interview)
 
@@ -199,13 +203,15 @@ Ready to generate the specification. Before we proceed, would you like to:
 3. Run a discuss phase — lock key decisions using Feynman technique
 4. Run a probe phase — adversarially stress-test the plan; surface assumptions, edge cases, and risks
 5. Run a map phase — analyze existing codebase conventions
+6. Run a bdd phase — acceptance-test-first scenarios and locked decisions
+7. Run a design-thinking phase — empathize / define / ideate; plan UAT with `requires: uat` items
 
 --- Switch strategy ---
-6. Switch to yolo — auto-pilot picks all answers
-7. Switch to speckit — formal spec process with story readiness before implementation
-8. Other (specify)
-9. Discuss
-10. Back
+8. Switch to yolo — auto-pilot picks all answers
+9. Switch to speckit — formal spec process with story readiness before implementation
+10. Other (specify)
+11. Discuss
+12. Back
 ```
 
 **Identity-only** (PROJECT-DEFINITION exists; empty `plan.items`; no convention-valid scopes) — same options as setup Phase 3; Proceed is the default:
@@ -224,13 +230,15 @@ This repo has project identity but no scopes yet. Before we proceed:
 7. Run a discuss phase — lock key decisions using Feynman technique
 8. Run a probe phase — adversarially stress-test the plan; surface assumptions, edge cases, and risks
 9. Run a map phase — analyze existing codebase conventions
+10. Run a bdd phase — acceptance-test-first scenarios and locked decisions
+11. Run a design-thinking phase — empathize / define / ideate; plan UAT with `requires: uat` items
 
 --- Switch strategy ---
-10. Switch to yolo — auto-pilot picks all answers
-11. Switch to speckit — formal spec process with story readiness before implementation
-12. Other (specify)
-13. Discuss
-14. Back
+12. Switch to yolo — auto-pilot picks all answers
+13. Switch to speckit — formal spec process with story readiness before implementation
+14. Other (specify)
+15. Discuss
+16. Back
 ```
 
 **Brownfield** (scoped):
@@ -248,13 +256,15 @@ This repo already has a project definition and/or scopes. Before we proceed:
 6. Run a discuss phase — lock key decisions using Feynman technique
 7. Run a probe phase — adversarially stress-test the plan; surface assumptions, edge cases, and risks
 8. Run a map phase — analyze existing codebase conventions
+9. Run a bdd phase — acceptance-test-first scenarios and locked decisions
+10. Run a design-thinking phase — empathize / define / ideate; plan UAT with `requires: uat` items
 
 --- Switch strategy ---
-9. Switch to yolo — auto-pilot picks all answers
-10. Switch to speckit — formal spec process with story readiness before implementation
-11. Other (specify)
-12. Discuss
-13. Back
+11. Switch to yolo — auto-pilot picks all answers
+12. Switch to speckit — formal spec process with story readiness before implementation
+13. Other (specify)
+14. Discuss
+15. Back
 ```
 
 ---

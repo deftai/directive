@@ -188,7 +188,7 @@ describe("test_strategy_chaining.py", () => {
       for (const row of rows) {
         const m = (row.strategy ?? "").match(/\[([^\]]+)\]/);
         const name = m?.[1] ?? row.strategy ?? "";
-        if (["map.md", "discuss.md", "research.md"].includes(name)) {
+        if (["map.md", "discuss.md", "research.md", "design-thinking.md", "bdd.md"].includes(name)) {
           expect(row.type).toBe("preparatory");
         }
       }
@@ -204,7 +204,7 @@ describe("test_strategy_chaining.py", () => {
     });
   });
 
-  for (const filename of ["map.md", "research.md", "discuss.md", "probe.md"]) {
+  for (const filename of ["map.md", "research.md", "discuss.md", "probe.md", "design-thinking.md"]) {
     it(`test_preparatory_strategy_references_chaining_gate ${filename}`, () => {
       const text = readText(`strategies/${filename}`);
       expect(
@@ -245,6 +245,85 @@ describe("test_strategy_chaining.py", () => {
       expect(text).toContain("Never emit `vbrief/specification.vbrief.json`");
       expect(text).toContain("artifact-guards.md");
       expect(text).toContain("Pre-Cutover Detection Guard");
+    });
+  });
+
+
+  /** #5691 — design-thinking preparatory UAT-planning Prefer-A Bound. */
+  describe("TestDesignThinkingUatPlanning", () => {
+    const text = readText("strategies/design-thinking.md");
+    const interview = readText("strategies/interview.md");
+    const guards = readText("strategies/artifact-guards.md");
+    const chaining = interview.includes("## Chaining Gate")
+      ? (interview.split("## Chaining Gate")[1]?.split("## Sizing Gate")[0] ?? "")
+      : "";
+
+    it("test_design_thinking_uat_planning_emits_requires_uat_and_handoff", () => {
+      expect(text).toContain("UAT-planning");
+      expect(text).toContain("x-directive/requires: uat");
+      expect(text).toContain("Handoff carrier");
+      expect(text).toContain("omission check");
+      expect(text).toContain("missing-item");
+      expect(text).toContain("changed-scope");
+      expect(text).toContain("preserved-disposition");
+      expect(text).toContain("evaluateAcceptanceEvidenceGate");
+      expect(text).toContain("stable source identity");
+      expect(text).toContain('Name this phase **UAT-planning** (not "Test completed")');
+      expect(text).toMatch(/UAT-planning[\s\S]*not "Test completed"/);
+      expect(text).toContain("\u2297 Close UAT planning with LockedDecisions-style");
+    });
+
+    it("test_design_thinking_item_fields_and_nonterminal", () => {
+      expect(text.toLowerCase()).toContain("audience");
+      expect(text.toLowerCase()).toContain("hypothesis");
+      expect(text).toContain("pass/fail");
+      expect(text).toContain("uat-evidence/**");
+      expect(text).toContain("stampNamespacedDisposition");
+      expect(text).toContain("parseDisposition");
+      expect(text.toLowerCase()).toContain("non-terminal");
+      expect(text).toContain("not_applicable");
+      expect(text).toContain("waived");
+      expect(text).toContain("deferred");
+      expect(text).toContain("ceremonyDial");
+      expect(text).toContain("\u2297 Omit the uat item on skip");
+    });
+
+    it("test_design_thinking_narratives_keepouts", () => {
+      expect(text).toContain("ProblemStatement");
+      expect(text).toContain("UserStories");
+      expect(text).toContain("UserInsights");
+      expect(text).toContain("HowMightWe");
+      expect(text).toContain("SolutionConcepts");
+      expect(text).toContain("SPECIFICATION_NARRATIVE_KEY_ORDER");
+      expect(text).toContain("NARRATIVE_KEYS");
+      expect(text).toContain("\u2297 Use narrative key `Test`");
+      expect(text).toContain("HBS Develop / Implement");
+    });
+
+    it("test_design_thinking_data_trustlevel_security", () => {
+      expect(text).toContain("Scope Confirmation");
+      expect(text).toContain("TrustLevel: external");
+      expect(text).toContain("## Security context (#480)");
+      expect(text).toContain("Discuss");
+      expect(text).toContain("Back");
+      expect(text).toContain("\u2297 Copy raw PII");
+    });
+
+    it("test_design_thinking_registration_surfaces", () => {
+      expect(text).toContain("## Then: Chaining Gate");
+      expect(chaining).toContain("Design-thinking");
+      expect(chaining).toContain("Run a design-thinking phase");
+      expect(chaining).toContain("Run a bdd phase");
+      expect(chaining).toContain("omission check");
+      expect(chaining).toContain("evaluateAcceptanceEvidenceGate");
+      expect(guards).toContain("design-thinking");
+      const rows = parseReadmeTable();
+      const dt = rows.find((row) => (row.strategy ?? "").includes("design-thinking.md"));
+      expect(dt?.type).toBe("preparatory");
+      const pack = JSON.parse(readText("packs/strategies/strategies-pack-0.1.json")) as {
+        strategies: Array<{ id: string; body: string }>;
+      };
+      expect(pack.strategies.some((s) => s.id === "design-thinking")).toBe(true);
     });
   });
 

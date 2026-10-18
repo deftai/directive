@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added — design-thinking preparatory strategy: Empathize → Define → Ideate → UAT-planning emits `x-directive/requires: uat` items with interview handoff carrier + omission check; BMAD skip via `stampNamespacedDisposition`; `--data` TrustLevel:external + Security context (#480); pack-only registration. Refs #5691.
 - Added — interview pre-sizing who/need `ProblemStatement` SHOULD (Light+Full): lawful sizing exemption, reframe not dual-ask, Light slim merge + Full reuse, persist at confirm gate, local recorded skip, discuss Challenge Vagueness solution-first example. Refs #5692.
 - Added — Prefer-A Recut-1 deposit-only vs lifecycle soft-visibility: never-incepted occupancy SoT (cancelled counts as history), doctor soft-warn + first-scope Next, Taskfile-unavailable status token (#3335 impact=none), CLI-native getting-started/commands lead, process-use checklist on agents-entry; ARC-before-ingest dominated to #5716. Refs #4229.
 - Added — rapid Step 1 records Hypothesis/Audience/PrototypeKind with separate Dual Stop fields; Step 5 pins Findings before experiment_archived; archive requires trim-non-empty Findings on the completing brief. Refs #5693.
