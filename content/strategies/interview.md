@@ -171,7 +171,7 @@ See `strategies/map.md` for standalone behavior.
   listed in `plan.xbrief.json`
 - ! On brownfield **Add scope** or **Update project definition**, load existing
   PROJECT-DEFINITION identity and preparatory artifacts before asking questions
-- ! When loading a `completedStrategies` **design-thinking** artifact at interview / Light / Full / Add-scope / switched-strategy scope-write, copy its `x-directive/requires`-bearing `plan.items` into the emitted story `plan.items` with stable source identity/trace (preserve requires + any human disposition). Run the thin omission check (missing-item / changed-scope-rerun / preserved-disposition) and remediate by copy before proceeding; reuse `evaluateAcceptanceEvidenceGate` after transfer. ⊗ Summarize design-thinking narratives while dropping requires:uat items; ⊗ LockedDecisions-style prose flow-through alone.
+- ! When loading a `completedStrategies` **design-thinking** artifact at interview / Light / Full / Add-scope / switched-strategy scope-write, copy its `x-directive/requires`-bearing `plan.items` into the emitted story `plan.items` with stable source identity/trace (preserve requires + any human disposition). Run the thin omission check (missing-item / changed-scope-rerun / preserved-disposition; source→destination compare) and remediate by copy before proceeding. The omission check is transfer-presence only — do **not** run `evaluateAcceptanceEvidenceGate` at handoff (pending UAT items are expected); keep that gate at `scope:complete`. ⊗ Summarize design-thinking narratives while dropping requires:uat items; ⊗ LockedDecisions-style prose flow-through alone; ⊗ completion-gate at handoff.
 
 
 ### Write Guards (interview)

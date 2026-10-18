@@ -188,7 +188,9 @@ describe("test_strategy_chaining.py", () => {
       for (const row of rows) {
         const m = (row.strategy ?? "").match(/\[([^\]]+)\]/);
         const name = m?.[1] ?? row.strategy ?? "";
-        if (["map.md", "discuss.md", "research.md", "design-thinking.md", "bdd.md"].includes(name)) {
+        if (
+          ["map.md", "discuss.md", "research.md", "design-thinking.md", "bdd.md"].includes(name)
+        ) {
           expect(row.type).toBe("preparatory");
         }
       }
@@ -204,7 +206,13 @@ describe("test_strategy_chaining.py", () => {
     });
   });
 
-  for (const filename of ["map.md", "research.md", "discuss.md", "probe.md", "design-thinking.md"]) {
+  for (const filename of [
+    "map.md",
+    "research.md",
+    "discuss.md",
+    "probe.md",
+    "design-thinking.md",
+  ]) {
     it(`test_preparatory_strategy_references_chaining_gate ${filename}`, () => {
       const text = readText(`strategies/${filename}`);
       expect(
@@ -248,7 +256,6 @@ describe("test_strategy_chaining.py", () => {
     });
   });
 
-
   /** #5691 — design-thinking preparatory UAT-planning Prefer-A Bound. */
   describe("TestDesignThinkingUatPlanning", () => {
     const text = readText("strategies/design-thinking.md");
@@ -263,14 +270,24 @@ describe("test_strategy_chaining.py", () => {
       expect(text).toContain("x-directive/requires: uat");
       expect(text).toContain("Handoff carrier");
       expect(text).toContain("omission check");
+      expect(text).toContain("source→destination compare");
       expect(text).toContain("missing-item");
       expect(text).toContain("changed-scope");
       expect(text).toContain("preserved-disposition");
+      expect(text).toContain("**recovery:** copy the source item");
       expect(text).toContain("evaluateAcceptanceEvidenceGate");
+      expect(text).toContain(
+        "Do **not** run `evaluateAcceptanceEvidenceGate` at the handoff boundary",
+      );
+      expect(text).toContain("Keep `evaluateAcceptanceEvidenceGate` at **`scope:complete`**");
+      expect(text).toContain(
+        "\u2297 Run `evaluateAcceptanceEvidenceGate` immediately after handoff transfer",
+      );
       expect(text).toContain("stable source identity");
       expect(text).toContain('Name this phase **UAT-planning** (not "Test completed")');
       expect(text).toMatch(/UAT-planning[\s\S]*not "Test completed"/);
       expect(text).toContain("\u2297 Close UAT planning with LockedDecisions-style");
+      expect(text).toContain("fall back to the [interview.md Chaining Gate]");
     });
 
     it("test_design_thinking_item_fields_and_nonterminal", () => {
@@ -315,7 +332,10 @@ describe("test_strategy_chaining.py", () => {
       expect(chaining).toContain("Run a design-thinking phase");
       expect(chaining).toContain("Run a bdd phase");
       expect(chaining).toContain("omission check");
+      expect(chaining).toContain("source→destination compare");
       expect(chaining).toContain("evaluateAcceptanceEvidenceGate");
+      expect(chaining).toContain("do **not** run `evaluateAcceptanceEvidenceGate` at handoff");
+      expect(chaining).toContain("keep that gate at `scope:complete`");
       expect(guards).toContain("design-thinking");
       const rows = parseReadmeTable();
       const dt = rows.find((row) => (row.strategy ?? "").includes("design-thinking.md"));

@@ -126,16 +126,19 @@ Each UAT-planning item MUST carry, in its acceptance description (title and/or `
 
 ! When a later interview / Light / Full / Add-scope / switched-strategy path loads a `completedStrategies` design-thinking artifact and emits a story scope, it MUST copy those `x-directive/requires`-bearing items into the emitted story `plan.items` with **stable source identity/trace** (preserve requires + any human disposition; keep a source id/path/trace so re-runs do not silently duplicate or drop axes).
 
-! At that boundary, run one thin **omission check** covering:
+! At that boundary, run one thin **omission check** (source→destination compare of `x-directive/requires`-bearing items) covering:
 
-1. **missing-item** — design-thinking artifact declares requires:uat but the emitted story `plan.items` lack a matching transferred entry → remediate by copying the item before proceeding
+1. **missing-item** — design-thinking artifact declares requires:uat but the emitted story `plan.items` lack a matching transferred entry → **recovery:** copy the source item into the emitted story `plan.items` (preserve requires + source id/path/trace) before proceeding; do not invent a substitute axis
 2. **changed-scope / repeated-run** — a newer registered design-thinking revision supersedes an older one → transfer from the selected revision; do not silently inherit an obsolete skip into a changed who/need scope (fresh applicability decision when scope changed)
 3. **preserved-disposition** — if the source item already carries a valid human-origin disposition, preserve it on transfer; do not strip or re-forge provenance
 
-! After transfer, reuse `evaluateAcceptanceEvidenceGate` on the destination `plan.items` (the acceptance walker only sees the completing brief — preparatory orphans do not arm STRICT_ACCEPTANCE_AXES).
+! The handoff omission check verifies **transfer presence / identity / disposition preservation only**. Do **not** run `evaluateAcceptanceEvidenceGate` at the handoff boundary — newly transferred UAT items are deliberately non-terminal (`pending` / `running`) and must not be rejected for lacking `kind:uat` evidence yet.
+
+! Keep `evaluateAcceptanceEvidenceGate` at **`scope:complete`** on the completing brief's destination `plan.items` (the acceptance walker only sees the completing brief — preparatory orphans do not arm STRICT_ACCEPTANCE_AXES).
 
 ⊗ Close UAT planning with LockedDecisions-style narrative flow-through alone and no item-transfer / omission check.
 ⊗ Summarize the design-thinking artifact into narratives while dropping its requires:uat items.
+⊗ Run `evaluateAcceptanceEvidenceGate` immediately after handoff transfer (that gate is completion-time only).
 
 ---
 
@@ -152,7 +155,7 @@ After UAT-planning is recorded, return to the [chaining gate](./interview.md#cha
 - ⊗ Generate implementation scope vBRIEFs directly from design-thinking findings or proceed to spec generation before the user chooses from the chaining gate.
 - ⊗ End the session after design-thinking without returning to the chaining gate or the invoking strategy's next-step menu
 
-! **Standalone context:** If invoked outside the interview chaining gate, return to the invoking strategy's menu instead.
+! **Standalone context:** If invoked outside the interview chaining gate, return to the invoking strategy's next-step menu when one exists; otherwise fall back to the [interview.md Chaining Gate](./interview.md#chaining-gate) rather than inventing a post-planning exit.
 
 ---
 
