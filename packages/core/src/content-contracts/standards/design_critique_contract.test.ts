@@ -2252,5 +2252,4 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(template).toContain("envelope-file");
     expect(template).toContain("dispatch-sha-outbox-manifest");
   });
-
 });
