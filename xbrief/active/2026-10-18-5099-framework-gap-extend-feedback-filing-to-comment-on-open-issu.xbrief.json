@@ -1,0 +1,299 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5099",
+    "updated": "2026-10-18T00:49:14Z"
+  },
+  "plan": {
+    "title": "[framework-gap] Extend feedback filing to comment on open issues and account for closed issues",
+    "status": "running",
+    "narratives": {
+      "Description": "[framework-gap] Extend feedback filing to comment on open issues and account for closed issues",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5099",
+      "Overview": "\n\nThis Recut is self-contained. Predecessor Bound-remedy limbs do not carry unless restated below.\n\n1. **Match shape (number-required).** `DuplicateMatch` is `{ number, state, url, title }` from the REST list row. Do not parse `number` from `html_url`. A row lacking a usable numeric `number` is not a usable match: fail closed with a search-incomplete / malformed-match note and never fall through to `restCreateIssue`.\n\n2. **Open inventory pass.** Use existing `restIssueListOpenInventory` (#3752) for the open pass — complete inventory via `gh api --paginate --slurp`, pulls excluded, fail-closed on non-zero / non-JSON / non-array / `OPEN_INVENTORY_MAX_ISSUES` cap. No newest-100 open window. Fail-closed on open-inventory failure: do not create.\n\n3. **Closed walk window + tokens (Recut-2).** Add a closed-issue sibling of `restWalkClosedPullsUpdatedDesc` return shape with outcome tokens `window-exhausted` | `list-exhausted` | `cap` | `error` (complete vs incomplete named), `sort=updated&direction=desc`, shared raw-row budget defaulting to `REST_SHARED_ROW_BUDGET`. Primary closed search window is a **retained closed-issue count** with named default `FEEDBACK_CLOSED_DEDUP_WINDOW = 500` (builder may expose override later; Bound pins the default). Stop when retained closed issues reach that count, or when the list ends, or when the raw-row budget hits `cap`, or on `error`. **Exclude pull rows** from title matching and from the retained-issue count (PR rows may still consume raw budget). Title-equality decision rule unchanged. Prefer an open match over a closed match when both exist (open precedence makes `--on-closed` inert).\n\n4. **Closed no-hit disposition table (Recut-2).** Map every no-hit outcome explicitly:\n   - `window-exhausted` (retained-count hit, no title match) → allow `filed` create with incomplete-search note.\n   - `list-exhausted` (full closed list walked, no match) → allow `filed` create; complete-search (no incomplete warning required).\n   - `cap` (raw-row budget exhausted before window/list end, no match) → allow `filed` create with incomplete-search note that names `cap` as the stop reason (same availability posture as window-exhausted; do not conflate with time/count window exhaustion; do not fail-closed — that bricks large upstreams).\n   - `error` (network / non-JSON / malformed) → fail closed; do not create.\n   Every incomplete note MUST report `inspectedIssueCount` (retained closed issues actually examined), `stopReason` (`window-exhausted` | `cap`), and the boundary (default window size or budget). Fail-closed remains for open-inventory failure and for `error` / malformed-match. Do not use truncation-always-fail-closed on the closed pass.\n\n5. **Open-match comment path (P1).** Without `--confirm`: surface open-match URL + proposed evidence-comment body; non-write outcome (`draft` or named preview); never create. With `--confirm` and open match: `restPostComment` with structured evidence body; print issue URL + comment URL; never `restCreateIssue`. New outcome `commented-open-duplicate` with `exitCode: 0` and additive `commentUrl` / `comment_url`. **Retire `blocked-duplicate`** from `FeedbackFileOutcome` (no surviving producer under this Bound); rewrite the live test that asserts confirm+open-match → `blocked-duplicate` exit 1.\n\n6. **Comment body provenance.** Do not reuse `buildFrameworkGapBody` unchanged for comments — its footer says the issue was filed. Use a comment-body variant (or parameterized footer) that cites evidence-append via `feedback:file`, not a filing.\n\n7. **Mutation gate shared by every write.** Before any `restPostComment` / `restCreateIssue`: refuse when `!confirm`, `dryRun`, `offline` (`DEFT_NO_NETWORK=1`), maintainer-repo skip, or upstreamPrompt denial. `--dry-run --confirm` + open match → zero mutation seam calls (pin a test).\n\n8. **Closed-match disposition via argv (P3) — no interactive prompt; no consumer reopen.** Closed title match with no disposition → `blocked-closed-duplicate` exit 1 printing closed match URL + re-run forms. Normative flag: `--on-closed=comment|create-anyway`, also accept space form `--on-closed comment|create-anyway` (parity with existing argv). `--on-closed=bogus` → `error-bad-args` exit 2. `comment`: `restPostComment` on the closed issue; do not reopen. `create-anyway`: `restCreateIssue` body carries `Related: closed #<n>` (still requires `--confirm`). Drop consumer reopen+comment (privileged triage write; conflicts with `#3713` consumer-evidence posture).\n\n9. **Preserve.** Maintainer-repo skip; `valueFeedback.upstreamPrompt`; `--confirm`; `DEFT_NO_NETWORK` dedup-skip note; `#3713` BLOCKER title token without consumer `adoption-blocker` label writes.\n\n10. **Skill co-edit via pack source.** Edit `content/packs/skills/skills-pack-0.1.json` then `task packs:render`. Update Phase 2/3 + Anti-Patterns for open-match confirm→comment (exit 0 path; not \"STOP on blocked-duplicate\") and closed `--on-closed` before any write. Phase 3 confirm template must retain `--notes` / blocker evidence flags so the posted comment carries the reviewed payload.\n\n11. **Tests (Recut-2).** Open-inventory finds open match regardless of closed-heavy neighbors; open-inventory fail → no create; closed `window-exhausted` without match → create with incomplete note naming inspected count + stopReason; closed `list-exhausted` without match → create without incomplete warning; closed `cap` before window end with PR-heavy pages → create with incomplete note naming `cap` (not conflated with window-exhausted); `--dry-run --confirm` open-match → zero mutations; confirm+open → `commented-open-duplicate` exit 0 + commentUrl (rewrites old blocked-duplicate pin); closed missing disposition → `blocked-closed-duplicate` no write; `--on-closed=comment` posts no reopen; `--on-closed=create-anyway` creates with Related; malformed row without number → no create; `--on-closed=bogus` → error-bad-args; pull rows excluded from title match and retained count.\n\n12. **P2 coverage bound (Recut-2).** Acceptance for P2 is: detect and disposition closed title matches inside the declared search window; disclose incomplete historical coverage via the note before/when creating on `window-exhausted` or `cap`. Do not claim global elimination of all closed-title duplicates outside the window.\n\n13. **Out of Bound.** `#5424` cite-only. Windows multi-word argv leftover optional. Search-API / body-similarity ranking rejected. Auto-comment without `--confirm` rejected. Silent create on closed match rejected. Hand-edit rendered SKILL.md rejected. Exhaustive closed-history search rejected. Truncation-always-fail-closed on closed pass rejected.\n\n\n",
+      "Labels": "bug, agent-experience, process, urgent, area:cli, area:skills, dogfood, design-critique:ingest-ready, framework-gap, core-capabilities, promise:tickets"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "DuplicateMatch requires usable numeric number from REST list row; malformed match fails closed",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/value/feedback-file.ts",
+        "narrative": {
+          "Acceptance": "DuplicateMatch requires usable numeric number from REST list row; malformed match fails closed"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Open inventory uses complete paginated restIssueListOpenInventory; fail-closed on inventory failure",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/value/feedback-file.ts",
+        "narrative": {
+          "Acceptance": "Open inventory uses complete paginated restIssueListOpenInventory; fail-closed on inventory failure"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Closed walk uses retained closed-issue window default 500 with outcome tokens window-exhausted list-exhausted cap error; exclude pull rows from match and count",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/value/feedback-file.ts",
+        "narrative": {
+          "Acceptance": "Closed walk uses retained closed-issue window default 500 with outcome tokens window-exhausted list-exhausted cap error; exclude pull rows from match and count"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Closed no-hit disposition table maps window-exhausted list-exhausted cap to create-with-note and error to fail-closed",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/value/feedback-file.ts",
+        "narrative": {
+          "Acceptance": "Closed no-hit disposition table maps window-exhausted list-exhausted cap to create-with-note and error to fail-closed"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Open-match with confirm posts evidence comment outcome commented-open-duplicate exit 0; retire blocked-duplicate",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/value/feedback-file.ts",
+        "narrative": {
+          "Acceptance": "Open-match with confirm posts evidence comment outcome commented-open-duplicate exit 0; retire blocked-duplicate"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "Comment body provenance uses comment footer not filing footer from buildFrameworkGapBody",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/value/feedback-file.ts",
+        "narrative": {
+          "Acceptance": "Comment body provenance uses comment footer not filing footer from buildFrameworkGapBody"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "Mutation gate shared by every write: confirm dryRun offline maintainer-skip upstreamPrompt",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/value/feedback-file.ts",
+        "narrative": {
+          "Acceptance": "Mutation gate shared by every write: confirm dryRun offline maintainer-skip upstreamPrompt"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "Closed-match disposition via --on-closed comment|create-anyway argv without reopen",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/value/feedback-file.ts",
+        "narrative": {
+          "Acceptance": "Closed-match disposition via --on-closed comment|create-anyway argv without reopen"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "Skill pack co-edit then packs:render for open-match confirm-comment and closed --on-closed Anti-Patterns",
+        "status": "pending",
+        "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "Skill pack co-edit then packs:render for open-match confirm-comment and closed --on-closed Anti-Patterns"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "Focused tests cover Recut-2 open-inventory closed-walk and confirm comment paths",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/value/feedback-file.test.ts",
+        "narrative": {
+          "Acceptance": "Focused tests cover Recut-2 open-inventory closed-walk and confirm comment paths"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "P2 coverage bound: disposition inside declared window with incomplete-search disclosure; no global closed elimination claim",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/value/feedback-file.ts",
+        "narrative": {
+          "Acceptance": "P2 coverage bound: disposition inside declared window with incomplete-search disclosure; no global closed elimination claim"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "urgent",
+      "area:cli",
+      "area:skills",
+      "dogfood",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:tickets"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5099",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5099: [framework-gap] Extend feedback filing to comment on open issues and account for closed issues"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "--dry-run --confirm",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L24"
+        },
+        {
+          "command": "--on-closed comment|create-anyway",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L26"
+        },
+        {
+          "command": "Related: closed #<n>",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L26"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "feedback-file-open-comment-closed-account",
+        "expected_outputs": [
+          "Tracking PR for #5099 Prefer-A Recut-2 feedback:file open-comment closed-account"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/value/feedback-file.test.ts"
+        ],
+        "file_scope": [
+          "packages/core/src/value/feedback-file.ts",
+          "packages/core/src/value/feedback-file.test.ts",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-feedback/SKILL.md",
+          "CHANGELOG.md"
+        ],
+        "size": "L",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5099",
+          "#3752",
+          "#3713",
+          "#1178"
+        ],
+        "parallel_safe": true
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/value/feedback-file.ts",
+          "packages/core/src/value/feedback-file.test.ts",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-feedback/SKILL.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "feedback:file open-match comment and closed-walk disposition",
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #5099 Prefer-A Bound."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5615668895,
+        "origin": "deftai/directive#5099",
+        "id": "github.issue.5615668895"
+      },
+      "x-directive/admitted-target-digest": "sha256:326cd130588da25d97814bbe1968c2458905b3efdce09609cefbeb797be54930"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "DuplicateMatch requires usable numeric number from REST list row; malformed match fails closed",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Open inventory uses complete paginated restIssueListOpenInventory; fail-closed on inventory failure",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Closed walk uses retained closed-issue window default 500 with outcome tokens window-exhausted list-exhausted cap error; exclude pull rows from match and count",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Closed no-hit disposition table maps window-exhausted list-exhausted cap to create-with-note and error to fail-closed",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Open-match with confirm posts evidence comment outcome commented-open-duplicate exit 0; retire blocked-duplicate",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Comment body provenance uses comment footer not filing footer from buildFrameworkGapBody",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Mutation gate shared by every write: confirm dryRun offline maintainer-skip upstreamPrompt",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Closed-match disposition via --on-closed comment|create-anyway argv without reopen",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Skill pack co-edit then packs:render for open-match confirm-comment and closed --on-closed Anti-Patterns",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Focused tests cover Recut-2 open-inventory closed-walk and confirm comment paths",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "P2 coverage bound: disposition inside declared window with incomplete-search disclosure; no global closed elimination claim",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "source_rung": "derived",
+      "derived_reason": "derived 11 independently testable clauses from the task statement before product edit (#3323)",
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5615668895",
+    "updated": "2026-10-18T00:49:14Z"
+  }
+}

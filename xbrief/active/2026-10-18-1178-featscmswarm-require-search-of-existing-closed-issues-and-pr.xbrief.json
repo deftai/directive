@@ -1,0 +1,220 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #1178",
+    "updated": "2026-10-18T00:49:18Z"
+  },
+  "plan": {
+    "title": "feat(scm,swarm): require search of existing closed issues and PRs before filing — pre-filing duplicate check",
+    "status": "running",
+    "narratives": {
+      "Description": "feat(scm,swarm): require search of existing closed issues and PRs before filing — pre-filing duplicate check",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1178",
+      "Overview": "\n\nThis Recut is self-contained. Predecessor Bound-remedy limbs do not carry unless restated below.\n\n1. **Shared bounded retrieval with explicit coverage and PR-file completeness.** One thin retrieval contract (or twin helpers) for closed issues and closed PRs. Closed-issue walk: `sort=updated&direction=desc`, exclude `pull_request` rows from match set and retained-issue count, named default `PREFILING_CLOSED_ISSUE_WINDOW`. Closed-PR walk: named default `PREFILING_CLOSED_PR_WINDOW`, bind PR ordering/pagination including file-list pagination so path-intersection cannot silently use truncated files. Outcome tokens: `window-exhausted` | `list-exhausted` | `cap` | `error`. Distinguish successful configured-window coverage and successful list exhaustion (bounded no-match within declared coverage) from failure/cap/truncated PR-file enumeration. Never treat incomplete retrieval as verified no-match or as exhaustive historical clearance. Do not import #5099 feedback:file constants unless separately exported for this purpose.\n\n2. **Evidence-based disposition: implemented, partial, declined, unresolved.** Prefer `state_reason` (`completed` vs `not_planned`) plus body/decision evidence and merged closing-PR signals. Full implementation → drop covered proposal portions and cite; partial → cite and keep uncovered delta; explicit decline → surface prior decision before re-file offer; unresolved → disclose, do not claim verified no-match. Same-path PR overlap discovers candidates; it does not prove duplicate scope alone.\n\n3. **Article-review requires both closed-issue and closed-PR passes before presentation and filing (pack-source → packs:render).** Before Step 6 present / Step 7 file-offer, Step 5 MUST run closed-issue retrieval+disposition AND closed-PR shortlist+body/scope disposition from limbs 1–2 — even when no linked issue exists. Proposal-time PR candidates use the bounded PR list and semantic body review; do not require a concrete changed-file set at propose time, and do not introduce Search API ranking. Inherit existing Step 5 body-level ownership for closed hits. Keep open-issue shortlist. Anti-pattern: propose/file after only an open-state issue scan, or after closed-issue-only with closed-PR search left merely callable.\n\n4. **First-PR-open closed-PR pass; swarm points to its owner.** Own path-intersection closed-PR pass on `deft-directive-pre-pr` (and any implement-leaf `gh pr create` bypass must call the same contract). Mechanical trigger: any closed/merged PR inside `PREFILING_CLOSED_PR_WINDOW` whose files intersect the candidate changed-path set → MUST cite that PR and state what differs. Swarm Phase 6 stays merge/protected-issue/finalize and MUST point at the pre-pr owner. Anti-pattern: open a product PR with no closed-PR path-intersection pass.\n\n5. **Thin AGENTS / agents-entry pointer.** Short MUST in agents-entry (then `task agents:refresh`) that filing new issues or opening PRs requires the closed-issue/PR pre-filing contract owned by article-review / pre-pr. Pointer only — no window or disposition table paste into AGENTS.md.\n\n6. **Behavioral fixtures prove caller timing and PR-only proposal suppression.** Lock MUST / anti-pattern tokens in article-review and pre-pr content tests. Fixtures MUST include: (a) merged in-window PR implements entire Step-4 suggestion with no linked closed issue → Step 5 suppresses/disposes before Step 6/7 (not helper-only); (b) partial completion; (c) closed-unmerged ambiguity; (d) mixed pagination / PR-row exclusion; (e) incomplete retrieval must not become verified no-match. Token presence alone is not proof the search ran at the right gate.\n\n7. **Keep-outs.** #5099 Prefer-A Bound conflict_group `feedback-file-open-comment-closed-account` — cite-only. #1102 shipped master-diff — do not rewrite. Exhaustive closed-history search rejected. Search API / body-similarity ranking rejected. Auto-reopen declined rejected. AGENTS disposition-table paste rejected. Phase-6-as-first-open-owner rejected.\n\nReject: B (CLI-only without skill MUST); C (AGENTS-only prose); D (absorb into #5099).\n\nconflict_group: prefiling-closed-issue-pr-search\nStop-1: 6243509004\nprior Prefer-A Bound: 6243609346\npain-audit: Codex 6243624648 (blocking harvest-changed); Grok 6243640303 (footnote)\nRound-1: Codex 6243566517; Grok 6243570592; Claude #5478 → N=2\ndispatch-sha: c032603da7e7f2659b1888a1e9d6bd50c54259da\narc-mode: no-ingest\nyolo-standing: on\ndest: .deft-scratch/worktrees/arc-1178",
+      "Labels": "documentation, enhancement, swarm, agent-experience, process, urgent, area:skills, dogfood, design-critique:ingest-ready, framework-gap, core-capabilities, promise:tickets, promise:swarm"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Shared bounded retrieval for closed issues and closed PRs with explicit coverage tokens and PR-file completeness",
+        "status": "pending",
+        "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "Shared bounded retrieval for closed issues and closed PRs with explicit coverage tokens and PR-file completeness"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Evidence-based disposition classes implemented partial declined unresolved",
+        "status": "pending",
+        "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "Evidence-based disposition classes implemented partial declined unresolved"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Article-review Step 5 requires both closed-issue and closed-PR passes before presentation and filing",
+        "status": "pending",
+        "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "Article-review Step 5 requires both closed-issue and closed-PR passes before presentation and filing"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "First-PR-open closed-PR path-intersection pass owned by pre-pr skill",
+        "status": "pending",
+        "x-directive/artifact_path": "content/skills/deft-directive-pre-pr/SKILL.md",
+        "narrative": {
+          "Acceptance": "First-PR-open closed-PR path-intersection pass owned by pre-pr skill"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Thin agents-entry pointer then agents:refresh for closed-issue/PR pre-filing contract",
+        "status": "pending",
+        "x-directive/artifact_path": "content/templates/agents-entry.md",
+        "narrative": {
+          "Acceptance": "Thin agents-entry pointer then agents:refresh for closed-issue/PR pre-filing contract"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "Behavioral fixtures prove Step 5 timing and PR-only proposal suppression before Step 6/7",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/content-contracts/skills/skills.test.ts",
+        "narrative": {
+          "Acceptance": "Behavioral fixtures prove Step 5 timing and PR-only proposal suppression before Step 6/7"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "Keep-outs: cite-only #5099 Bound; do not rewrite shipped #1102 master-diff",
+        "status": "pending",
+        "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "Keep-outs: cite-only #5099 Bound; do not rewrite shipped #1102 master-diff"
+        }
+      }
+    ],
+    "tags": [
+      "documentation",
+      "enhancement",
+      "swarm",
+      "agent-experience",
+      "process",
+      "urgent",
+      "area:skills",
+      "dogfood",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:tickets",
+      "promise:swarm"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1178",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1178: feat(scm,swarm): require search of existing closed issues and PRs before filing — pre-filing duplicate check"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Shared bounded retrieval for closed issues and closed PRs with explicit coverage tokens and PR-file completeness",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Evidence-based disposition classes implemented partial declined unresolved",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Article-review Step 5 requires both closed-issue and closed-PR passes before presentation and filing",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "First-PR-open closed-PR path-intersection pass owned by pre-pr skill",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Thin agents-entry pointer then agents:refresh for closed-issue/PR pre-filing contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Behavioral fixtures prove Step 5 timing and PR-only proposal suppression before Step 6/7",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Keep-outs: cite-only #5099 Bound; do not rewrite shipped #1102 master-diff",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "source_rung": "derived",
+      "derived_reason": "derived 7 independently testable clauses from the task statement before product edit (#3323)",
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-article-review/SKILL.md",
+          "content/skills/deft-directive-pre-pr/SKILL.md",
+          "content/templates/agents-entry.md",
+          "packages/core/src/content-contracts/skills/skills.test.ts",
+          "packages/core/src/content-contracts/skills/pre_pr_skill_closing_keyword_rule.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "pre-filing closed issue and closed PR search contract",
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #1178 Prefer-A Bound."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 4461334416,
+        "origin": "deftai/directive#1178",
+        "id": "github.issue.4461334416"
+      },
+      "x-directive/admitted-target-digest": "sha256:ee7d782d12f77a81b8d93fd081b273917ff4b6ab2a3f5183b4423c96997e8400",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "prefiling-closed-issue-pr-search",
+        "expected_outputs": [
+          "Tracking PR for #1178 Prefer-A Recut-1 prefiling closed-issue/PR search"
+        ],
+        "depends_on": [
+          "github.issue.5891402696"
+        ],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts/skills/skills.test.ts packages/core/src/content-contracts/skills/pre_pr_skill_closing_keyword_rule.test.ts"
+        ],
+        "file_scope": [
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-article-review/SKILL.md",
+          "content/skills/deft-directive-pre-pr/SKILL.md",
+          "content/templates/agents-entry.md",
+          "packages/core/src/content-contracts/skills/skills.test.ts",
+          "packages/core/src/content-contracts/skills/pre_pr_skill_closing_keyword_rule.test.ts",
+          "CHANGELOG.md"
+        ],
+        "size": "L",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#1178",
+          "#5099",
+          "#5694",
+          "#1102"
+        ],
+        "parallel_safe": false
+      }
+    },
+    "id": "github.issue.4461334416",
+    "updated": "2026-10-18T00:49:18Z"
+  }
+}
