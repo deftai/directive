@@ -95,7 +95,9 @@ describe("writeAgentHookDeposit", () => {
     expect(preToolCommands.length).toBeGreaterThan(0);
     for (const cmd of preToolCommands) {
       expect(cmd).toBe(GROK_PRETOOLUSE_WRAPPER_COMMAND);
-      expect(resolve(dirname(grokHooksPath), cmd)).toBe(join(root, GROK_PRETOOLUSE_WRAPPER_REL_PATH));
+      expect(resolve(dirname(grokHooksPath), cmd)).toBe(
+        join(root, GROK_PRETOOLUSE_WRAPPER_REL_PATH),
+      );
     }
     const sessionCommands = (grokDeposit.hooks.SessionStart ?? []).flatMap((group) =>
       (group.hooks ?? []).flatMap((hook) =>
