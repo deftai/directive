@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed — Activate Prefer-A Bound running briefs for #5690 and #5486 on master (proceed cohort; productPullRequest unset). Refs #5690 #5486.
 
 ### Fixed
+- Fixed — Land tracked completion records for #5690 (PR #5704) and #5694 (PR #5706). Refs #5690 #5694.
 - **CLI `verify:review-monitor --explicit-finish` honors mint-gate refusal (#5690).** Pass `--mint-gate-blocked` / mint-marker `--reason` into `writeMergePathExplicitFinishAttestation` so cohort `halted-explicit` cannot mask an unarmed product PR. Raise `agentsMdBudget.absoluteMaxBytes` 28100→28400 for the #5318/#5690 agents-entry pointer; sync review-cycle skills pack projection. Tracking #5690.
 - **Approach 1 mint-gate exit no longer leaves the product PR merge-path unarmed (#5690).** Keep or same-turn re-arm product `--merge-path-arm --live-wait` across attended mint; mint-gate BLOCKED is non-option-C; CLEAN-before-mint keeps the post-CLEAN closer; #5318 inventory adds mint-PR-open / mint-PR-merge triggers. Tracking #5690. Refs #4882 #5219 #5318.
 
