@@ -1,0 +1,205 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5691",
+    "updated": "2026-10-18T15:19:30Z"
+  },
+  "plan": {
+    "title": "feat(strategies): design-thinking preparatory strategy with a uat Test phase",
+    "status": "running",
+    "narratives": {
+      "Description": "feat(strategies): design-thinking preparatory strategy with a uat Test phase",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5691",
+      "Overview": "## Summary\n\nAdd a `design-thinking` preparatory strategy: Empathize -> Define -> Ideate -> Test -> Chaining Gate. The Test phase emits at least one plan item with `x-directive/requires: uat`, so the validation half of design thinking lands on the existing fail-closed acceptance axis instead of staying an unchecked \"Test Plan\" narrative.\n\n## Why\n\nDirective's preparatory strategies (discuss, probe, research, map, bdd) point at the operator or the codebase. End-user discovery exists only as one interview Question Area bullet and as Full-path narratives (ProblemStatement, UserStories, SuccessMetrics) written after sizing. Validation already has a deterministic home (`STRICT_ACCEPTANCE_AXES` includes `uat`, kind:uat evidence pointer, human-origin dispositions at `scope:complete`) but nothing plans it at scope-write time.\n\nSource articles (untrusted data, analysis only):\n- https://cis-docs.bmad-method.org/how-to/design-thinking/ (five phases, per-phase methods, output sections, \"when to skip\", solution-first framing warning, `--data` grounding)\n- https://online.hbs.edu/blog/post/what-is-design-thinking (Clarify / Ideate / Develop / Implement, divergent before convergent, cognitive fixedness)\n\n## Proposed shape\n\n- Type: `preparatory`; returns to the Chaining Gate like research/discuss/probe.\n- Output: dated `xbrief/proposed/YYYY-MM-DD-<slug>-design-thinking.xbrief.json`.\n- Narratives: map Design Challenge and Point of View onto the existing `ProblemStatement` key; enrich `UserStories`. Add only `UserInsights`, `HowMightWe`, `SolutionConcepts` as optional preparatory output, never as a second required-field list.\n- Test phase: emit >= 1 plan item with `x-directive/requires: uat`. BMAD \"when to skip\" cases (backend-only, no user interaction, timeframe too short) become a human-origin `not_applicable` disposition on that item, so the skip has a recorded reason. No ceremony-dial skip (the dial is size x model tier x shape, not product-shaped; preparatory strategies are already opt-in at the Chaining Gate).\n- `--data` analog: reuse the research strategy scope-confirmation option 3 (artifacts). Every supplied source goes in `references[]` with `TrustLevel: external`. Carry a `## Security context (#480)` block. MUST NOT copy raw PII or interview transcripts verbatim into committed narratives; summarize.\n\n## Affects\n\n- `content/packs/strategies/strategies-pack-0.1.json` (source of truth) + `task packs:render`. `content/strategies/README.md` and `content/strategies/interview.md` are rendered; do not hand-edit.\n- Optional prose line in `content/commands.md`. Native slash wrapper is out of scope (product set frozen at 13, `packages/core/src/slash/product-set.test.ts`).\n\n## Critic verdict (process-only, pre-issue)\n\nA fresh N=1 open-critique critic ran on the filing plan before this issue existed (pin-read at `2a49183cf`). Findings applied here: `blocks-the-design` (the original proposal omitted the Test phase, the only phase with a fail-closed surface); `sharpens-framing` (duplicate narrative keys; ceremony-dial skip is a category error; registration surfaces are rendered from the pack; injection lens fires on `--data`). This is a critic verdict, not a design-critique arc stamp; no completed-arc record exists.\n\n## Related\n\n- #5486 (arc on a non-issue target). The critic pass on this proposal is a pre-issue instance of that target class.\n- Folds in the \"UserStories narrative is thin\" observation from the same review.\r\n\n## Siblings (same article review, same critic pass, same strategies pack)\n\n- #5692 feat(interview): capture ProblemStatement before the Sizing Gate as a SHOULD\n- #5693 feat(strategies): rapid names a hypothesis and audience; findings before experiment_archived\n\n",
+      "Labels": "enhancement, research-strategy, area:guidance, design-critique:ingest-ready",
+      "UserStory": "As a Directive operator, I want a design-thinking preparatory strategy that plans UAT at scope-write time, so validation is fail-closed instead of an unchecked Test Plan narrative.",
+      "ImplementationPlan": "1) Extend strategies-pack with design-thinking preparatory phases including UAT-planning that emits requires:uat items. 2) packs:render updates content/strategies/{design-thinking,README,interview,artifact-guards}.md. 3) Cover chaining/handoff with strategy_chaining tests. 4) CHANGELOG Unreleased note."
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "UAT-planning phase emits plan.items with requires:uat plus handoff carrier into consuming story plan.items with stable source identity",
+        "status": "pending",
+        "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "UAT-planning phase emits plan.items with requires:uat plus handoff carrier into consuming story plan.items with stable source identity"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Name phase UAT-planning; carry audience task hypothesis pass/fail and uat-evidence probe intent; item non-terminal until kind:uat evidence or valid human disposition",
+        "status": "pending",
+        "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "Name phase UAT-planning; carry audience task hypothesis pass/fail and uat-evidence probe intent; item non-terminal until kind:uat evidence or valid human disposition"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Map Design Challenge/POV onto ProblemStatement; optional UserInsights/HowMightWe/SolutionConcepts never join Full required lists or Test narrative key",
+        "status": "pending",
+        "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "Map Design Challenge/POV onto ProblemStatement; optional UserInsights/HowMightWe/SolutionConcepts never join Full required lists or Test narrative key"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "BMAD skip keeps uat item; disposition only via stampNamespacedDisposition after operator confirm with correct disposition kind",
+        "status": "pending",
+        "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "BMAD skip keeps uat item; disposition only via stampNamespacedDisposition after operator confirm with correct disposition kind"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Register via strategies-pack + packs:render; interview chaining gate bullets; artifact-guards Preparatory Guard; README Type table",
+        "status": "pending",
+        "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "Register via strategies-pack + packs:render; interview chaining gate bullets; artifact-guards Preparatory Guard; README Type table"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "--data capture reuses research Scope Confirmation option-3 then mandates TrustLevel:external references and Security context minimization",
+        "status": "pending",
+        "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "--data capture reuses research Scope Confirmation option-3 then mandates TrustLevel:external references and Security context minimization"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "research-strategy",
+      "area:guidance",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5691",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5691: feat(strategies): design-thinking preparatory strategy with a uat Test phase"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "x-directive/requires: uat",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L5"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "design-thinking-preparatory-uat-test-phase",
+        "expected_outputs": [
+          "Tracking PR for #5691 Prefer-A Bound design-thinking preparatory UAT-planning"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts/standards/strategy_chaining.test.ts"
+        ],
+        "file_scope": [
+          "content/packs/strategies/strategies-pack-0.1.json",
+          "content/packs/skills/skills-pack-0.1.json",
+          "packages/core/src/content-contracts/standards/strategy_chaining.test.ts",
+          "content/strategies/design-thinking.md",
+          "content/strategies/README.md",
+          "content/strategies/interview.md",
+          "content/strategies/artifact-guards.md",
+          "CHANGELOG.md"
+        ],
+        "size": "L",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5691",
+          "#5692",
+          "#5693"
+        ],
+        "parallel_safe": false
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/packs/strategies/strategies-pack-0.1.json",
+          "content/packs/skills/skills-pack-0.1.json",
+          "packages/core/src/content-contracts/standards/strategy_chaining.test.ts",
+          "content/strategies/design-thinking.md",
+          "content/strategies/README.md",
+          "content/strategies/interview.md",
+          "content/strategies/artifact-guards.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "design-thinking preparatory strategy with UAT-planning requires:uat items",
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #5691; packs:render outputs under content/strategies/."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5891399632,
+        "origin": "deftai/directive#5691",
+        "id": "github.issue.5891399632"
+      },
+      "x-directive/admitted-target-digest": "sha256:e5c6221d4d6bde1ea575ac5341d3940150e01df949cd724c839a54dc82ccb159",
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "UAT-planning phase emits plan.items with requires:uat plus handoff carrier into consuming story plan.items with stable source identity",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Name phase UAT-planning; carry audience task hypothesis pass/fail and uat-evidence probe intent; item non-terminal until kind:uat evidence or valid human disposition",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Map Design Challenge/POV onto ProblemStatement; optional UserInsights/HowMightWe/SolutionConcepts never join Full required lists or Test narrative key",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "BMAD skip keeps uat item; disposition only via stampNamespacedDisposition after operator confirm with correct disposition kind",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Register via strategies-pack + packs:render; interview chaining gate bullets; artifact-guards Preparatory Guard; README Type table",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "--data capture reuses research Scope Confirmation option-3 then mandates TrustLevel:external references and Security context minimization",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "source_rung": "derived",
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5891399632",
+    "updated": "2026-10-18T15:19:30Z"
+  }
+}
