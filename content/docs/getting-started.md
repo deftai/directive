@@ -1,6 +1,6 @@
 # Getting Started with Deft Directive
 
-Deft Directive is a Taskfile-first framework for AI-assisted software work. It combines agent guidance, deterministic gates, xBRIEF lifecycle metadata, installer/doctor handoff, and cache-backed backlog workflows. This guide is the **first-project long form**: one path from install through a green Directive check.
+Deft Directive is a CLI-native framework for AI-assisted software work (`directive` / `deft` primary; Taskfile optional parallel). It combines agent guidance, deterministic gates, xBRIEF lifecycle metadata, installer/doctor handoff, and cache-backed backlog workflows. This guide is the **first-project long form**: one path from install through a green Directive check.
 
 > **Note**: For a single-picture mental model of how Directive turns an idea into shipped work, see [the Directive lifecycle](./directive-lifecycle.md). For command behavior, see [commands.md](../commands.md). Agent detect-state and recovery live in [QUICK-START.md](../QUICK-START.md). This page is that path's long form, not a second install sequence.
 

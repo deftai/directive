@@ -1,10 +1,15 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { LifecycleVisibleResult } from "../lifecycle-visible/evaluate.js";
 import type { EnvironmentContext } from "../platform/shell-context.js";
 import type { ResolveUserMdResult } from "../user-config/resolve-user-md.js";
+import {
+  classifyLifecycleOccupancy,
+  formatLifecycleOccupancySoftWarnLines,
+  NEVER_INCEPTED_SOFT_WARN,
+} from "../doctor/main.js";
 import { READ_ONLY_POSTURE, runSessionStart } from "./session-start.js";
 
 const temps: string[] = [];
@@ -116,5 +121,39 @@ describe("session:start lifecycle-visible advisory (#3505)", () => {
     });
     expect(result.code).toBe(0);
     expect(result.lines.join("\n")).not.toContain("[deft lifecycle-visible]");
+  });
+});
+
+describe("lifecycle occupancy soft-warn helper (#4229)", () => {
+  it("formats mutation-session soft-warn lines only for never-incepted", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "completed"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "cancelled"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { title: "id", status: "active", items: [] } }),
+      "utf8",
+    );
+    const occ = classifyLifecycleOccupancy(root);
+    expect(occ.kind).toBe("never_incepted");
+    const lines = formatLifecycleOccupancySoftWarnLines(occ);
+    expect(lines[0]).toBe(NEVER_INCEPTED_SOFT_WARN);
+    expect(lines.join("\n")).toContain("Phase 3");
+  });
+
+  it("stays silent for cancelled-only history (lawful idle)", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, "xbrief", "cancelled"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "cancelled", "old.xbrief.json"),
+      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { title: "c", status: "cancelled", items: [] } }),
+      "utf8",
+    );
+    const occ = classifyLifecycleOccupancy(root);
+    expect(occ.kind).toBe("has_history_no_current_scope");
+    expect(formatLifecycleOccupancySoftWarnLines(occ)).toEqual([]);
   });
 });

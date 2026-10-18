@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added — interview pre-sizing who/need `ProblemStatement` SHOULD (Light+Full): lawful sizing exemption, reframe not dual-ask, Light slim merge + Full reuse, persist at confirm gate, local recorded skip, discuss Challenge Vagueness solution-first example. Refs #5692.
+- Added — Prefer-A Recut-1 deposit-only vs lifecycle soft-visibility: never-incepted occupancy SoT (cancelled counts as history), doctor soft-warn + first-scope Next, Taskfile-unavailable status token (#3335 impact=none), CLI-native getting-started/commands lead, process-use checklist on agents-entry; ARC-before-ingest dominated to #5716. Refs #4229.
 - Added — rapid Step 1 records Hypothesis/Audience/PrototypeKind with separate Dual Stop fields; Step 5 pins Findings before experiment_archived; archive requires trim-non-empty Findings on the completing brief. Refs #5693.
 - Added — pre-filing closed-issue/PR search: article-review Step 5 requires both closed passes with coverage tokens and disposition; pre-pr owns first-PR-open path-intersection; thin AGENTS pointer. Refs #1178.
 - Added — article-review Step 6.5 process-only critic pass before filing, with Step 5 mechanism inventory and Critic verdict section on filed issues. Refs #5694.
