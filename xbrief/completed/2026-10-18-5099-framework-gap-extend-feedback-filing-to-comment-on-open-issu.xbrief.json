@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5099",
-    "updated": "2026-10-18T00:49:14Z"
+    "updated": "2026-10-18T15:12:45Z"
   },
   "plan": {
     "title": "[framework-gap] Extend feedback filing to comment on open issues and account for closed issues",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "[framework-gap] Extend feedback filing to comment on open issues and account for closed issues",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5099",
@@ -17,100 +17,166 @@
       {
         "id": "clause.1",
         "title": "DuplicateMatch requires usable numeric number from REST list row; malformed match fails closed",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/value/feedback-file.ts",
         "narrative": {
           "Acceptance": "DuplicateMatch requires usable numeric number from REST list row; malformed match fails closed"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5707; feedback-file vitest",
+          "recorded_at": "2026-10-18T15:12:44.508Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.2",
         "title": "Open inventory uses complete paginated restIssueListOpenInventory; fail-closed on inventory failure",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/value/feedback-file.ts",
         "narrative": {
           "Acceptance": "Open inventory uses complete paginated restIssueListOpenInventory; fail-closed on inventory failure"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5707; feedback-file vitest",
+          "recorded_at": "2026-10-18T15:12:44.508Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.3",
         "title": "Closed walk uses retained closed-issue window default 500 with outcome tokens window-exhausted list-exhausted cap error; exclude pull rows from match and count",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/value/feedback-file.ts",
         "narrative": {
           "Acceptance": "Closed walk uses retained closed-issue window default 500 with outcome tokens window-exhausted list-exhausted cap error; exclude pull rows from match and count"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5707; feedback-file vitest",
+          "recorded_at": "2026-10-18T15:12:44.508Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.4",
         "title": "Closed no-hit disposition table maps window-exhausted list-exhausted cap to create-with-note and error to fail-closed",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/value/feedback-file.ts",
         "narrative": {
           "Acceptance": "Closed no-hit disposition table maps window-exhausted list-exhausted cap to create-with-note and error to fail-closed"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5707; feedback-file vitest",
+          "recorded_at": "2026-10-18T15:12:44.508Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.5",
         "title": "Open-match with confirm posts evidence comment outcome commented-open-duplicate exit 0; retire blocked-duplicate",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/value/feedback-file.ts",
         "narrative": {
           "Acceptance": "Open-match with confirm posts evidence comment outcome commented-open-duplicate exit 0; retire blocked-duplicate"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5707; feedback-file vitest",
+          "recorded_at": "2026-10-18T15:12:44.508Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.6",
         "title": "Comment body provenance uses comment footer not filing footer from buildFrameworkGapBody",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/value/feedback-file.ts",
         "narrative": {
           "Acceptance": "Comment body provenance uses comment footer not filing footer from buildFrameworkGapBody"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5707; feedback-file vitest",
+          "recorded_at": "2026-10-18T15:12:44.508Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.7",
         "title": "Mutation gate shared by every write: confirm dryRun offline maintainer-skip upstreamPrompt",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/value/feedback-file.ts",
         "narrative": {
           "Acceptance": "Mutation gate shared by every write: confirm dryRun offline maintainer-skip upstreamPrompt"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5707; feedback-file vitest",
+          "recorded_at": "2026-10-18T15:12:44.508Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.8",
         "title": "Closed-match disposition via --on-closed comment|create-anyway argv without reopen",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/value/feedback-file.ts",
         "narrative": {
           "Acceptance": "Closed-match disposition via --on-closed comment|create-anyway argv without reopen"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5707; feedback-file vitest",
+          "recorded_at": "2026-10-18T15:12:44.508Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.9",
         "title": "Skill pack co-edit then packs:render for open-match confirm-comment and closed --on-closed Anti-Patterns",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
         "narrative": {
           "Acceptance": "Skill pack co-edit then packs:render for open-match confirm-comment and closed --on-closed Anti-Patterns"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5707; feedback-file vitest",
+          "recorded_at": "2026-10-18T15:12:44.508Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.10",
         "title": "Focused tests cover Recut-2 open-inventory closed-walk and confirm comment paths",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/value/feedback-file.test.ts",
         "narrative": {
           "Acceptance": "Focused tests cover Recut-2 open-inventory closed-walk and confirm comment paths"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5707; feedback-file vitest",
+          "recorded_at": "2026-10-18T15:12:44.508Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.11",
         "title": "P2 coverage bound: disposition inside declared window with incomplete-search disclosure; no global closed elimination claim",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/value/feedback-file.ts",
         "narrative": {
           "Acceptance": "P2 coverage bound: disposition inside declared window with incomplete-search disclosure; no global closed elimination claim"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5707; feedback-file vitest",
+          "recorded_at": "2026-10-18T15:12:44.508Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       }
     ],
@@ -205,95 +271,182 @@
         "origin": "deftai/directive#5099",
         "id": "github.issue.5615668895"
       },
-      "x-directive/admitted-target-digest": "sha256:326cd130588da25d97814bbe1968c2458905b3efdce09609cefbeb797be54930"
+      "x-directive/admitted-target-digest": "sha256:326cd130588da25d97814bbe1968c2458905b3efdce09609cefbeb797be54930",
+      "productPullRequest": 5707,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "7814f1154e3cf728638dc404c2b39d2acd51164c",
+        "prNumber": 5707,
+        "prBase": "master",
+        "mergeCommit": "83de55b393b2f03b6bd7445edaa3aa8bb4a31f4c",
+        "deliveryBranch": "master",
+        "deliveryCommit": "106aa3edeb30d090058d7dab96ea8ec42531721b",
+        "verifiedAt": "2026-10-18T15:12:45Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTRjM2QtZDBmZS03ODYzLWJkMTUtZmVlZjI1NDVlN2Nj"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-18T15:12:45Z",
+      "completedSessionId": "host:grok:v1:MDFhMTRjM2QtZDBmZS03ODYzLWJkMTUtZmVlZjI1NDVlN2Nj",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-18T15:12:45Z"
+      }
     },
     "acceptance": {
-      "commands": [],
-      "none_stated": true,
+      "commands": [
+        "pnpm exec vitest run packages/core/src/value/feedback-file.test.ts"
+      ],
+      "none_stated": false,
+      "sentences": [],
+      "confessions": [
+        "issue-body prose harvested into plan.items; free sentences cleared for leftover-complete #3550"
+      ],
+      "ambiguity_attestation": "none_found",
       "clauses": [
         {
-          "id": 1,
+          "id": "clause.1",
           "text": "DuplicateMatch requires usable numeric number from REST list row; malformed match fails closed",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "DuplicateMatch requires usable numeric number from REST list row; malformed match fails closed",
+          "x-directive/artifact_path": "packages/core/src/value/feedback-file.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5707; feedback-file vitest",
+            "recorded_at": "2026-10-18T15:12:44.508Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 2,
+          "id": "clause.2",
           "text": "Open inventory uses complete paginated restIssueListOpenInventory; fail-closed on inventory failure",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Open inventory uses complete paginated restIssueListOpenInventory; fail-closed on inventory failure",
+          "x-directive/artifact_path": "packages/core/src/value/feedback-file.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5707; feedback-file vitest",
+            "recorded_at": "2026-10-18T15:12:44.508Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 3,
+          "id": "clause.3",
           "text": "Closed walk uses retained closed-issue window default 500 with outcome tokens window-exhausted list-exhausted cap error; exclude pull rows from match and count",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Closed walk uses retained closed-issue window default 500 with outcome tokens window-exhausted list-exhausted cap error; exclude pull rows from match and count",
+          "x-directive/artifact_path": "packages/core/src/value/feedback-file.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5707; feedback-file vitest",
+            "recorded_at": "2026-10-18T15:12:44.508Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 4,
+          "id": "clause.4",
           "text": "Closed no-hit disposition table maps window-exhausted list-exhausted cap to create-with-note and error to fail-closed",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Closed no-hit disposition table maps window-exhausted list-exhausted cap to create-with-note and error to fail-closed",
+          "x-directive/artifact_path": "packages/core/src/value/feedback-file.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5707; feedback-file vitest",
+            "recorded_at": "2026-10-18T15:12:44.508Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 5,
+          "id": "clause.5",
           "text": "Open-match with confirm posts evidence comment outcome commented-open-duplicate exit 0; retire blocked-duplicate",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Open-match with confirm posts evidence comment outcome commented-open-duplicate exit 0; retire blocked-duplicate",
+          "x-directive/artifact_path": "packages/core/src/value/feedback-file.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5707; feedback-file vitest",
+            "recorded_at": "2026-10-18T15:12:44.508Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 6,
+          "id": "clause.6",
           "text": "Comment body provenance uses comment footer not filing footer from buildFrameworkGapBody",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Comment body provenance uses comment footer not filing footer from buildFrameworkGapBody",
+          "x-directive/artifact_path": "packages/core/src/value/feedback-file.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5707; feedback-file vitest",
+            "recorded_at": "2026-10-18T15:12:44.508Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 7,
+          "id": "clause.7",
           "text": "Mutation gate shared by every write: confirm dryRun offline maintainer-skip upstreamPrompt",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Mutation gate shared by every write: confirm dryRun offline maintainer-skip upstreamPrompt",
+          "x-directive/artifact_path": "packages/core/src/value/feedback-file.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5707; feedback-file vitest",
+            "recorded_at": "2026-10-18T15:12:44.508Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 8,
+          "id": "clause.8",
           "text": "Closed-match disposition via --on-closed comment|create-anyway argv without reopen",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Closed-match disposition via --on-closed comment|create-anyway argv without reopen",
+          "x-directive/artifact_path": "packages/core/src/value/feedback-file.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5707; feedback-file vitest",
+            "recorded_at": "2026-10-18T15:12:44.508Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 9,
+          "id": "clause.9",
           "text": "Skill pack co-edit then packs:render for open-match confirm-comment and closed --on-closed Anti-Patterns",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Skill pack co-edit then packs:render for open-match confirm-comment and closed --on-closed Anti-Patterns",
+          "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5707; feedback-file vitest",
+            "recorded_at": "2026-10-18T15:12:44.508Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 10,
+          "id": "clause.10",
           "text": "Focused tests cover Recut-2 open-inventory closed-walk and confirm comment paths",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Focused tests cover Recut-2 open-inventory closed-walk and confirm comment paths",
+          "x-directive/artifact_path": "packages/core/src/value/feedback-file.test.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5707; feedback-file vitest",
+            "recorded_at": "2026-10-18T15:12:44.508Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 11,
+          "id": "clause.11",
           "text": "P2 coverage bound: disposition inside declared window with incomplete-search disclosure; no global closed elimination claim",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "P2 coverage bound: disposition inside declared window with incomplete-search disclosure; no global closed elimination claim",
+          "x-directive/artifact_path": "packages/core/src/value/feedback-file.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5707; feedback-file vitest",
+            "recorded_at": "2026-10-18T15:12:44.508Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         }
       ],
       "source_rung": "derived",
-      "derived_reason": "derived 11 independently testable clauses from the task statement before product edit (#3323)",
-      "ambiguity_attestation": "none_found"
+      "derived_reason": "Prefer-A Bound limbs with completion evidence"
     },
     "id": "github.issue.5615668895",
-    "updated": "2026-10-18T00:49:14Z"
+    "updated": "2026-10-18T15:12:45Z"
   }
 }

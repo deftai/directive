@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5486",
-    "updated": "2026-10-17T23:56:05Z"
+    "updated": "2026-10-18T15:12:32Z"
   },
   "plan": {
     "title": "feat(design-critique): run an arc on an xBRIEF when no GitHub issue exists (analysis first)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "feat(design-critique): run an arc on an xBRIEF when no GitHub issue exists (analysis first)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5486",
@@ -17,136 +17,226 @@
       {
         "id": "clause.1",
         "title": "Remint-3 harvest-digest succession after blocking pain-audit requires retract+Handoff then new Prefer-A Bound digest before bind",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/design-critique/pain-audit-follow-through-gate.ts",
         "narrative": {
           "Acceptance": "Remint-3 harvest-digest succession after blocking pain-audit requires retract+Handoff then new Prefer-A Bound digest before bind"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5705; design-critique vitest suite",
+          "recorded_at": "2026-10-18T15:12:31.535Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.2",
         "title": "Remint-3 P1 durable archive under main-checkout-resolved archive root keyed by target-id + arc-id",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/design-critique/completed-arc-record.ts",
         "narrative": {
           "Acceptance": "Remint-3 P1 durable archive under main-checkout-resolved archive root keyed by target-id + arc-id"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5705; design-critique vitest suite",
+          "recorded_at": "2026-10-18T15:12:31.535Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.3",
         "title": "Remint-3 P1 single archive authority via parent-collected exclusive-create per-seat outboxes",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/design-critique/completed-arc-record.ts",
         "narrative": {
           "Acceptance": "Remint-3 P1 single archive authority via parent-collected exclusive-create per-seat outboxes"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5705; design-critique vitest suite",
+          "recorded_at": "2026-10-18T15:12:31.535Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.4",
         "title": "Remint-3 P1 durability honesty for machine-local single-operator; cross-machine deferred",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/design-critique/completed-arc-record.ts",
         "narrative": {
           "Acceptance": "Remint-3 P1 durability honesty for machine-local single-operator; cross-machine deferred"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5705; design-critique vitest suite",
+          "recorded_at": "2026-10-18T15:12:31.535Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.5",
         "title": "Remint-3 P1 write-posture pick-one between parent-collect and Run-posture allowlist",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/design-critique/auto-stamp-path1.ts",
         "narrative": {
           "Acceptance": "Remint-3 P1 write-posture pick-one between parent-collect and Run-posture allowlist"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5705; design-critique vitest suite",
+          "recorded_at": "2026-10-18T15:12:31.535Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.6",
         "title": "Remint-3 P2 id-model publish before parser accept with PainCite migration inventory",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/design-critique/citation-grammar.ts",
         "narrative": {
           "Acceptance": "Remint-3 P2 id-model publish before parser accept with PainCite migration inventory"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5705; design-critique vitest suite",
+          "recorded_at": "2026-10-18T15:12:31.535Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.7",
         "title": "Remint-3 P2 stage-0 file-path complete including outbox-manifest construction and non-numeric bound-artifact id",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/design-critique/panel-handback-acceptance.ts",
         "narrative": {
           "Acceptance": "Remint-3 P2 stage-0 file-path complete including outbox-manifest construction and non-numeric bound-artifact id"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5705; design-critique vitest suite",
+          "recorded_at": "2026-10-18T15:12:31.535Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.8",
         "title": "Remint-3 P3 locator digest from path + blob/bytes + dispatch-sha without forking admission",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/design-critique/completed-arc-record.ts",
         "narrative": {
           "Acceptance": "Remint-3 P3 locator digest from path + blob/bytes + dispatch-sha without forking admission"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5705; design-critique vitest suite",
+          "recorded_at": "2026-10-18T15:12:31.535Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.9",
         "title": "Remint-3 P3 gate consumer over GATE_MATCH_PREDICATES with discovery or manual-diagnosis path",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/design-critique/auto-stamp-path1.ts",
         "narrative": {
           "Acceptance": "Remint-3 P3 gate consumer over GATE_MATCH_PREDICATES with discovery or manual-diagnosis path"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5705; design-critique vitest suite",
+          "recorded_at": "2026-10-18T15:12:31.535Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.10",
         "title": "Remint-3 P3 leftover brief cite publishes operator-deferred plan-id/path form before accept",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/design-critique/citation-grammar.ts",
         "narrative": {
           "Acceptance": "Remint-3 P3 leftover brief cite publishes operator-deferred plan-id/path form before accept"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5705; design-critique vitest suite",
+          "recorded_at": "2026-10-18T15:12:31.535Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.11",
         "title": "Remint-3 P4 same-brief harvest is plan-id-keyed idempotent update with Bound-remedy slice key",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/design-critique/completed-arc-record.ts",
         "narrative": {
           "Acceptance": "Remint-3 P4 same-brief harvest is plan-id-keyed idempotent update with Bound-remedy slice key"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5705; design-critique vitest suite",
+          "recorded_at": "2026-10-18T15:12:31.535Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.12",
         "title": "Remint-3 promotion keeps archive SoT with optional link/mirror and refuses two live arcs",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/design-critique/completed-arc-record.ts",
         "narrative": {
           "Acceptance": "Remint-3 promotion keeps archive SoT with optional link/mirror and refuses two live arcs"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5705; design-critique vitest suite",
+          "recorded_at": "2026-10-18T15:12:31.535Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.13",
         "title": "Remint-3 isolation uses chosen id-model ceiling and N>=3 exclusive-create outboxes",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/design-critique/panel-handback-acceptance.ts",
         "narrative": {
           "Acceptance": "Remint-3 isolation uses chosen id-model ceiling and N>=3 exclusive-create outboxes"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5705; design-critique vitest suite",
+          "recorded_at": "2026-10-18T15:12:31.535Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.14",
         "title": "Remint-3 stage order 0-a-b-c with Acceptance scenarios unchanged",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/contracts/design-critique.md",
         "narrative": {
           "Acceptance": "Remint-3 stage order 0-a-b-c with Acceptance scenarios unchanged"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5705; design-critique vitest suite",
+          "recorded_at": "2026-10-18T15:12:31.535Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.15",
         "title": "Remint-3 keep-outs preserve GitHub-issue path and amend brief contract locking tests for target kinds",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/contracts/design-critique.md",
         "narrative": {
           "Acceptance": "Remint-3 keep-outs preserve GitHub-issue path and amend brief contract locking tests for target kinds"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5705; design-critique vitest suite",
+          "recorded_at": "2026-10-18T15:12:31.535Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       }
     ],
@@ -178,118 +268,199 @@
       }
     ],
     "acceptance": {
-      "commands": [],
-      "none_stated": true,
+      "commands": [
+        "pnpm exec vitest run packages/core/src/design-critique/completed-arc-record.test.ts packages/core/src/design-critique/citation-grammar.test.ts packages/core/src/design-critique/panel-handback-acceptance.test.ts packages/core/src/design-critique/pain-audit-follow-through-gate.test.ts"
+      ],
+      "none_stated": false,
+      "sentences": [],
+      "confessions": [
+        "issue-body prose harvested into plan.items; free sentences cleared for leftover-complete #3550"
+      ],
+      "ambiguity_attestation": "none_found",
       "clauses": [
         {
-          "id": 1,
+          "id": "clause.1",
           "text": "Remint-3 harvest-digest succession after blocking pain-audit requires retract+Handoff then new Prefer-A Bound digest before bind",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Remint-3 harvest-digest succession after blocking pain-audit requires retract+Handoff then new Prefer-A Bound digest before bind",
+          "x-directive/artifact_path": "packages/core/src/design-critique/pain-audit-follow-through-gate.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5705; design-critique vitest suite",
+            "recorded_at": "2026-10-18T15:12:31.535Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 2,
+          "id": "clause.2",
           "text": "Remint-3 P1 durable archive under main-checkout-resolved archive root keyed by target-id + arc-id",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Remint-3 P1 durable archive under main-checkout-resolved archive root keyed by target-id + arc-id",
+          "x-directive/artifact_path": "packages/core/src/design-critique/completed-arc-record.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5705; design-critique vitest suite",
+            "recorded_at": "2026-10-18T15:12:31.535Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 3,
+          "id": "clause.3",
           "text": "Remint-3 P1 single archive authority via parent-collected exclusive-create per-seat outboxes",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Remint-3 P1 single archive authority via parent-collected exclusive-create per-seat outboxes",
+          "x-directive/artifact_path": "packages/core/src/design-critique/completed-arc-record.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5705; design-critique vitest suite",
+            "recorded_at": "2026-10-18T15:12:31.535Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 4,
+          "id": "clause.4",
           "text": "Remint-3 P1 durability honesty for machine-local single-operator; cross-machine deferred",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Remint-3 P1 durability honesty for machine-local single-operator; cross-machine deferred",
+          "x-directive/artifact_path": "packages/core/src/design-critique/completed-arc-record.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5705; design-critique vitest suite",
+            "recorded_at": "2026-10-18T15:12:31.535Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 5,
+          "id": "clause.5",
           "text": "Remint-3 P1 write-posture pick-one between parent-collect and Run-posture allowlist",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Remint-3 P1 write-posture pick-one between parent-collect and Run-posture allowlist",
+          "x-directive/artifact_path": "packages/core/src/design-critique/auto-stamp-path1.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5705; design-critique vitest suite",
+            "recorded_at": "2026-10-18T15:12:31.535Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 6,
+          "id": "clause.6",
           "text": "Remint-3 P2 id-model publish before parser accept with PainCite migration inventory",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Remint-3 P2 id-model publish before parser accept with PainCite migration inventory",
+          "x-directive/artifact_path": "packages/core/src/design-critique/citation-grammar.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5705; design-critique vitest suite",
+            "recorded_at": "2026-10-18T15:12:31.535Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 7,
+          "id": "clause.7",
           "text": "Remint-3 P2 stage-0 file-path complete including outbox-manifest construction and non-numeric bound-artifact id",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Remint-3 P2 stage-0 file-path complete including outbox-manifest construction and non-numeric bound-artifact id",
+          "x-directive/artifact_path": "packages/core/src/design-critique/panel-handback-acceptance.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5705; design-critique vitest suite",
+            "recorded_at": "2026-10-18T15:12:31.535Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 8,
+          "id": "clause.8",
           "text": "Remint-3 P3 locator digest from path + blob/bytes + dispatch-sha without forking admission",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Remint-3 P3 locator digest from path + blob/bytes + dispatch-sha without forking admission",
+          "x-directive/artifact_path": "packages/core/src/design-critique/completed-arc-record.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5705; design-critique vitest suite",
+            "recorded_at": "2026-10-18T15:12:31.535Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 9,
+          "id": "clause.9",
           "text": "Remint-3 P3 gate consumer over GATE_MATCH_PREDICATES with discovery or manual-diagnosis path",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Remint-3 P3 gate consumer over GATE_MATCH_PREDICATES with discovery or manual-diagnosis path",
+          "x-directive/artifact_path": "packages/core/src/design-critique/auto-stamp-path1.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5705; design-critique vitest suite",
+            "recorded_at": "2026-10-18T15:12:31.535Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 10,
+          "id": "clause.10",
           "text": "Remint-3 P3 leftover brief cite publishes operator-deferred plan-id/path form before accept",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Remint-3 P3 leftover brief cite publishes operator-deferred plan-id/path form before accept",
+          "x-directive/artifact_path": "packages/core/src/design-critique/citation-grammar.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5705; design-critique vitest suite",
+            "recorded_at": "2026-10-18T15:12:31.535Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 11,
+          "id": "clause.11",
           "text": "Remint-3 P4 same-brief harvest is plan-id-keyed idempotent update with Bound-remedy slice key",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Remint-3 P4 same-brief harvest is plan-id-keyed idempotent update with Bound-remedy slice key",
+          "x-directive/artifact_path": "packages/core/src/design-critique/completed-arc-record.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5705; design-critique vitest suite",
+            "recorded_at": "2026-10-18T15:12:31.535Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 12,
+          "id": "clause.12",
           "text": "Remint-3 promotion keeps archive SoT with optional link/mirror and refuses two live arcs",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Remint-3 promotion keeps archive SoT with optional link/mirror and refuses two live arcs",
+          "x-directive/artifact_path": "packages/core/src/design-critique/completed-arc-record.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5705; design-critique vitest suite",
+            "recorded_at": "2026-10-18T15:12:31.535Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 13,
+          "id": "clause.13",
           "text": "Remint-3 isolation uses chosen id-model ceiling and N>=3 exclusive-create outboxes",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Remint-3 isolation uses chosen id-model ceiling and N>=3 exclusive-create outboxes",
+          "x-directive/artifact_path": "packages/core/src/design-critique/panel-handback-acceptance.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5705; design-critique vitest suite",
+            "recorded_at": "2026-10-18T15:12:31.535Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 14,
+          "id": "clause.14",
           "text": "Remint-3 stage order 0-a-b-c with Acceptance scenarios unchanged",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Remint-3 stage order 0-a-b-c with Acceptance scenarios unchanged",
+          "x-directive/artifact_path": "content/contracts/design-critique.md",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5705; design-critique vitest suite",
+            "recorded_at": "2026-10-18T15:12:31.535Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 15,
+          "id": "clause.15",
           "text": "Remint-3 keep-outs preserve GitHub-issue path and amend brief contract locking tests for target kinds",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Remint-3 keep-outs preserve GitHub-issue path and amend brief contract locking tests for target kinds",
+          "x-directive/artifact_path": "content/contracts/design-critique.md",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5705; design-critique vitest suite",
+            "recorded_at": "2026-10-18T15:12:31.535Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         }
       ],
       "source_rung": "derived",
-      "derived_reason": "derived 15 independently testable clauses from the task statement before product edit (#3323)",
-      "ambiguity_attestation": "none_found"
+      "derived_reason": "Prefer-A Bound limbs with completion evidence"
     },
     "metadata": {
       "intended_placement": {
@@ -356,9 +527,35 @@
           "#5694"
         ],
         "parallel_safe": true
+      },
+      "productPullRequest": 5705,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "589518948d7e48dd91a37a6c4903015c09178662",
+        "prNumber": 5705,
+        "prBase": "master",
+        "mergeCommit": "1e8c9b8811e6a09b19805597b88722dff27b29fb",
+        "deliveryBranch": "master",
+        "deliveryCommit": "106aa3edeb30d090058d7dab96ea8ec42531721b",
+        "verifiedAt": "2026-10-18T15:12:32Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTRjM2QtZDBmZS03ODYzLWJkMTUtZmVlZjI1NDVlN2Nj"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-18T15:12:32Z",
+      "completedSessionId": "host:grok:v1:MDFhMTRjM2QtZDBmZS03ODYzLWJkMTUtZmVlZjI1NDVlN2Nj",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-18T15:12:32Z"
       }
     },
     "id": "github.issue.5764427724",
-    "updated": "2026-10-17T23:56:05Z"
+    "updated": "2026-10-18T15:12:32Z"
   }
 }
