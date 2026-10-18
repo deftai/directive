@@ -164,7 +164,8 @@
           "packages/core/src/content-contracts/skills/skill-external-fetch-gate.test.ts",
           "packages/core/src/content-contracts/skills/skills.test.ts",
           "packages/core/src/content-contracts/skills/change_and_skills.test.ts",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "content/skills/deft-directive-article-review/SKILL.md"
         ],
         "size": "M",
         "file_scope_confidence": "high",
@@ -182,7 +183,8 @@
           "packages/core/src/content-contracts/skills/skill-external-fetch-gate.test.ts",
           "packages/core/src/content-contracts/skills/skills.test.ts",
           "packages/core/src/content-contracts/skills/change_and_skills.test.ts",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "content/skills/deft-directive-article-review/SKILL.md"
         ],
         "module_boundary": "article-review skill-local critic pass before issue filing",
         "cohesion_exemption": "CHANGELOG.md shared Unreleased for #5694 Prefer-A Bound."
