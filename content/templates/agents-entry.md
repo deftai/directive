@@ -40,13 +40,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## Unmanaged project header (#2065)
 
-! Do NOT treat the unmanaged AGENTS.md header as the work queue; ⊗ Do NOT add `Status`, `Next:`, or `Known Issues` blocks — they rot silently. See UPGRADING.md § AGENTS.md: managed vs unmanaged header for the Session orientation pointer and rationale.
-
-
-## Process-use reporting (#4229)
-
-! Claiming "used Directive" for product work MUST name the relevant scope path, lifecycle progress (proposed→…→completed), and delivery evidence — not deposit/init alone. Short **you have not used Directive if**: (1) only PROJECT-DEFINITION / empty lifecycle folders; (2) specs only under `docs/` outside xBRIEF lifecycle; (3) no promote/activate/session/implement against an active scope for the claimed work. Lawful idle / empty-active after real history is not failure. ARC-before-ingest posture (resolution 5) is owned by open #5716 — do not treat ARC always-on / auto-stamp as shipped here.
-⊗ Equate init/deposit green with full process use. ⊗ Treat cancelled or completed history as never-incepted.
+! Do NOT treat the unmanaged AGENTS.md header as the work queue; ⊗ Do NOT add `Status`, `Next:`, or `Known Issues` blocks — they rot silently. See UPGRADING.md § AGENTS.md: managed vs unmanaged header. Process-use (#4229): see content/docs/getting-started.md. ⊗ Init-alone claims.
 
 ## Cache-as-authoritative work selection (#1149)
 
