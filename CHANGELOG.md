@@ -16,7 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added — Helpers for reviewing a brief without creating a GitHub issue. These support file-based critic results, retained review records, and returning the accepted remedy to the same brief. Refs #5486.
 
 ### Changed
-- Changed — Activate Prefer-A Bound running brief for #5715 on master (proceed cohort add; productPullRequest unset). Refs #5715.
+- Changed - Activate Prefer-A Bound running brief for #5715 on master (proceed cohort add; productPullRequest unset). Refs #5715.
+- Changed - Widen #4229 merge-base file_scope for docs/RULE-MAP.md so product PR #5729 can land regenerated Rule Map (#5192). Refs #4229 #5729.
 - Changed — Activate Prefer-A Recut-3 running brief for #5716 on master (proceed cohort add; productPullRequest unset). Refs #5716.
 - Changed — Activate Prefer-A Recut-1 running brief for #4229 on master (proceed cohort add; productPullRequest unset). Refs #4229.
 - Changed — Widen #5693 proceed file_scope for tutorial Findings close surfaces (beats/proof/skills-pack/SKILL) plus RULE-MAP. Refs #5693.
