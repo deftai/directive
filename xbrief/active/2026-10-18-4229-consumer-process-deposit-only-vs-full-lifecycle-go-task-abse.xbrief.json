@@ -1,0 +1,281 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4229",
+    "updated": "2026-10-18T20:26:18.633Z"
+  },
+  "plan": {
+    "title": "Consumer process: deposit-only vs full lifecycle; go-task absent treated as impact=none (#3335)",
+    "status": "running",
+    "narratives": {
+      "Description": "Consumer process: deposit-only vs full lifecycle; go-task absent treated as impact=none (#3335)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4229",
+      "Overview": "## Context\n\nField report from a consumer / multi-agent setup (Grok Bot **Shepherd** orchestrating **Herdr** + **Grok Build**) running **Directive 0.111.0** (`@deftai/directive-core@0.111.0`).\n\nTwo related projects:\n\n1. **omadoto** (overnight Origin greenfield) — product shipped under a mandate to \"use Directive,\" but lifecycle folders stayed empty.\n2. **wordle-web** (intentional Directive process test) — inception → proposed scope → Viz promote/activate → session → implement. Exposed a silent go-task gap.\n\nThis issue asks: how should Directive make \"full process\" harder to fake, and how should missing go-task be handled when docs are still Taskfile-first?\n\n---\n\n## How this setup works\n\n```text\nViz (human gates)\n  → Shepherd (Grok Bot): orchestrates, lifecycle gate, does NOT implement product code\n    → Herdr: terminal workspace / panes\n      → Grok Build: runs directive/deft CLI + implements against active xBRIEF\n```\n\n**Shepherd default (locked after the miss):** coding/build always via Herdr → Grok Build; never direct box implementation.\n\n**Done-bar we adopted for \"used Directive\"** (not deposit-only):\n\n1. Inception: `PROJECT-DEFINITION.xbrief.json` + real dated scopes in `xbrief/proposed/`\n2. Human: promote then activate → `xbrief/active/` with `plan.status=running`\n3. Session: session start → triage/refine → (design-critique **ARC** if mechanism-shaped / voluntary) → slice → implement against **active** xBRIEF → review → ship with delivery provenance\n4. Specs outside `xbrief/` (e.g. `/workspace/.../spec`) are not a substitute for scope xbriefs\n5. Claiming \"Directive used\" must name active xBRIEF path + ARC status + loop position — never \"init done\"\n\nWordle test path that *did* pass the bar:\n\n- Deposit + proposed: `xbrief/proposed/2026-09-06-v1-playable-wordle.xbrief.json`\n- After Viz gate: `xbrief/active/2026-09-06-v1-playable-wordle.xbrief.json`\n- Then session/implement on `feat/v1-playable-wordle`\n\n---\n\n## What went wrong\n\n### A. omadoto overnight: deposit without lifecycle\n\n**Mandate:** use Deft Directive for the build.\n\n**What happened:**\n\n- First cloud cut shipped Rust core/CLI/OpenAPI with **no** Directive.\n- Quality follow-up ran `directive init` â^F^R pin, `AGENTS.md`, schemas, empty lifecycle dirs (`.gitkeep` only), edited `PROJECT-DEFINITION.xbrief.json`.\n- Product SoT lived in `/workspace/omadoto-spec` and `docs/spec/`, **outside** xBRIEF lifecycle.\n- Later cuts used `DEFT_ALLOW_DEFAULT_BRANCH_*` and treated xbrief updates as optional.\n- **No** real files under `xbrief/proposed/` or `xbrief/active/` for the shipped work as process control.\n\n**Root cause (operator/agent):** \"use Directive\" was satisfied as **install + gate env**, not inception + session loop. Empty `proposed|active` looked unused because no scopes were written.\n\n**Not:** Directive install failure. Deposit was real; process was skipped.\n\n### B. go-task missing, treated as harmless\n\nOn the Wordle machine, `task` (go-task) was **not** installed while docs/deposit remain Taskfile-first (`Taskfile.yml` includes `.deft/core/Taskfile.yml`).\n\n`directive toolchain:check --consumer` does **not** require go-task (Node/git/gh/npm only). CLI verbs (`scope:promote`, `scope:activate`, `doctor`, …) worked.\n\nDuring Wordle `session:start` ritual, preflight recorded:\n\n```text\ntool=task present=false impact=none\ncause=go-task absent; CLI-native gates dispatch via global deft/directive (#3335)\n```\n\nSo Doctor/session stayed green and **nobody escalated**. Shepherd only noticed when Viz asked. go-task was later installed (`task` 3.53.1) so both CLI and Taskfile paths work.\n\n### C. Incomplete command audit trail\n\nNo durable consumer-facing log of every `directive`/`deft`/`task` invocation. Reconstruction relied on truncated Herdr scrollback + `.deft/ritual-state.json` / `orientation-state.json` + git commits.\n\n---\n\n## Command / ritual summary (Wordle)\n\n### Shepherd (orchestrator box)\n\n| When | Command | Notes |\n|---|---|---|\n| Upgrade eval | `directive --version` | 0.107 → 0.111 |\n| Upgrade | `npm i -g @deftai/directive@latest` | engine 0.111.0 |\n| Upgrade eval | `directive doctor` / `toolchain:check --consumer` | no go-task required |\n| After report | install go-task | `task` 3.53.1 |\n\nShepherd did **not** run Wordle `scope:promote` / `activate` / `session:start` — Grok did via Herdr.\n\n### Grok (wordle pane) — from `.deft` + commits\n\n**Inception `477600b`:** `directive init`, PROJECT-DEFINITION, proposed xBRIEF, doctor.\n\n**Promote/activate `9774a4c` (Viz gate):**\n\n- `directive scope:promote -- xbrief/proposed/2026-09-06-v1-playable-wordle.xbrief.json`\n- `directive scope:activate --` (pending → active)\n\n**Session ritual `2026-09-06T22:54:04Z`–`22:55:08Z` (recorded):**\n\n| ts (UTC) | Step / command | ok |\n|---|---|---|\n| 22:54:04 | `doctor` | true |\n| 22:54:04 | `verify:tools` | true |\n| 22:54:04 | branch_policy | true |\n| 22:54:04 | `triage_welcome.run_default_mode --project-root …` | true (hinted `deft triage:bootstrap`) |\n| 22:54:04 | preflight / agents:refresh / cache-fresh | preflight ok; empty triage cache warn |\n| 22:55:08 | `verify:hooks-installed --scope=agent --live` | true |\n| 22:55:08 | `verify:cache-fresh --work-selection` | true |\n\nToolchain: **`task` present=false, impact=none** (#3335).\n\n**Implement `538e10b` / `d8383a0`:** product build (`npm test`, Next) — not additional scope lifecycle CLIs in state files.\n\n---\n\n## Design-critique ARC (related)\n\nIn 0.111, **ARC** is the design-critique unit (one recorded motion over one target revision), not a third bubble on the lifecycle diagram. Required when triage is mechanism-shaped or voluntary critique; Stop 1 records `arc-mode: direct|checkout`. Wordle v1 treated ARC as n/a (ordinary playable scope). Still worth documenting for consumers that \"full process\" includes ARC when judgment gates fire.\n\n---\n\n## Possible resolutions (future Directive)\n\n### 1. Make deposit ≠ process (fail closed)\n\n- `directive doctor` / `check` / `session:start` warn or fail when lifecycle dirs exist but `proposed`+`active` have **zero** real `*.xbrief.json` scopes and a consumer \"process required\" policy is on / mutation session is claimed\n- Distinct statuses: `deposit_ok` vs `lifecycle_empty` vs `scope_active`\n- Optional policy: `plan.policy.requireActiveScopeBeforeMutation=true`\n\n### 2. Clarify Taskfile-first vs CLI-native (#3335)\n\n- Docs: lead with `directive`/`deft` as primary; Taskfile as optional parallel surface\n- Or: `toolchain:check --consumer` **requires** go-task unless `--cli-only` / policy says CLI-native\n- If impact stays `none`, print a **visible** doctor line: \"go-task missing; `task deft:*` unavailable\"\n\n### 3. First-scope bootstrap pressure\n\n- After `init`, doctor's single Next command: \"write first proposed scope\" / setup Phase 3\n- Soft-block `session:start` mutation until ≥1 proposed or active scope (with explicit waive)\n\n### 4. Durable command ledger\n\n- Append-only `.deft/cmd-ledger.jsonl` (or `meta/directive-cmd.log`) for every `directive`/`deft`/`task deft:*` invocation (argv, cwd, exit, ts, session id)\n\n### 5. Host / agent checklist in AGENTS.md deposit\n\n- Short \"you have not used Directive if…\" list (empty active, only PROJECT-DEFINITION, specs only under `docs/`)\n- Point at design-critique ARC when `mechanism-shaped`\n\n### 6. Multi-agent orchestration note\n\n- Document orchestrator vs implementer; human for promote/activate; don't treat cloud \"always-approve\" as promote/activate\n\n---\n\n## Asks\n\n1. Confirm intended consumer story in 0.111+: is CLI-native without go-task a first-class supported mode, or a transitional degradation?\n2. Would you accept a doctor/`check` signal for **lifecycle_empty** after deposit?\n3. Interest in a cmd ledger + stronger first-scope Next command?\n\nHappy to turn any of the above into a concrete PR sketch if useful.\n\n---\n\n## References\n\n- Directive lifecycle: Concept → Strategy → Spec artifacts; Session start → Triage → (ARC) → promote/activate → Slice → Swarm → Review → Ship\n- Engine: `@deftai/directive-core@0.111.0` / release `v0.111.0`\n- Related: #3335 (CLI-native gates when go-task absent)\n\n",
+      "Labels": "bug, enhancement, agent-experience, process, source-of-truth, urgent, area:cli, area:vbrief, area:guidance, dogfood, legacy-arced, design-critique:ingest-ready, framework-gap, core-capabilities, promise:lifecycle, promise:gates, promise:continuity"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Remint never-incepted history to count cancelled with proposed|pending|active|completed; distinguish has-history/no-current-scope from never-incepted",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/doctor/main.ts",
+        "narrative": {
+          "Acceptance": "Remint never-incepted history to count cancelled with proposed|pending|active|completed; distinguish has-history/no-current-scope from never-incepted"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Map tip classifyProjectLifecycle into one occupancy SoT including unreadable/invalid distinct from proven zero history",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/doctor/main.ts",
+        "narrative": {
+          "Acceptance": "Map tip classifyProjectLifecycle into one occupancy SoT including unreadable/invalid distinct from proven zero history"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Doctor and mutation session:start soft-warn only on reminted never-incepted; signal-only v1",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/doctor/main.ts",
+        "narrative": {
+          "Acceptance": "Doctor and mutation session:start soft-warn only on reminted never-incepted; signal-only v1"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "First-scope Next via existing doctor single-Next / setup Phase 3; identity-only must not suppress Phase 3 when product mutation requested",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/doctor/main.ts",
+        "narrative": {
+          "Acceptance": "First-scope Next via existing doctor single-Next / setup Phase 3; identity-only must not suppress Phase 3 when product mutation requested"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "CLI-native visibility: keep #3335 impact=none; escalate Taskfile-unavailable as status token; retarget getting-started to directive/deft primary",
+        "status": "pending",
+        "x-directive/artifact_path": "content/commands.md",
+        "narrative": {
+          "Acceptance": "CLI-native visibility: keep #3335 impact=none; escalate Taskfile-unavailable as status token; retarget getting-started to directive/deft primary"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "Keep xbrief:preflight as when-invoked implement lock; not unconditional host mutation interceptor",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/doctor/main.ts",
+        "narrative": {
+          "Acceptance": "Keep xbrief:preflight as when-invoked implement lock; not unconditional host mutation interceptor"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "Ship short you-have-not-used-Directive-if reporting aid on deposit/AGENTS for process-use claims without equating lawful idle with failure",
+        "status": "pending",
+        "x-directive/artifact_path": "content/templates/agents-entry.md",
+        "narrative": {
+          "Acceptance": "Ship short you-have-not-used-Directive-if reporting aid on deposit/AGENTS for process-use claims without equating lawful idle with failure"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "Dominate only resolution 5 ARC-before-ingest pointer into open #5716; keep ARC always-on keep-outs",
+        "status": "pending",
+        "x-directive/artifact_path": "content/templates/agents-entry.md",
+        "narrative": {
+          "Acceptance": "Dominate only resolution 5 ARC-before-ingest pointer into open #5716; keep ARC always-on keep-outs"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "enhancement",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "urgent",
+      "area:cli",
+      "area:vbrief",
+      "area:guidance",
+      "dogfood",
+      "legacy-arced",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:lifecycle",
+      "promise:gates",
+      "promise:continuity"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4229",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4229: Consumer process: deposit-only vs full lifecycle; go-task absent treated as impact=none (#3335)"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "Viz (human gates)",
+          "reason": "shell metacharacter \"(\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L18:text"
+        },
+        {
+          "command": "→ Shepherd (Grok Bot): orchestrates, lifecycle gate, does NOT implement product code",
+          "reason": "shell metacharacter \"(\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L18:text"
+        },
+        {
+          "command": "→ Herdr: terminal workspace / panes",
+          "reason": "first token \"→\" is not in the literal-AC allowlist (accepted: bun, deft, directive, node, npm, npx, pnpm, py, python, python3, task, vitest, yarn)",
+          "sourceSpan": "fence@L18:text"
+        },
+        {
+          "command": "→ Grok Build: runs directive/deft CLI + implements against active xBRIEF",
+          "reason": "first token \"→\" is not in the literal-AC allowlist (accepted: bun, deft, directive, node, npm, npx, pnpm, py, python, python3, task, vitest, yarn)",
+          "sourceSpan": "fence@L18:text"
+        },
+        {
+          "command": "tool=task present=false impact=none",
+          "reason": "first token \"tool=task\" is not in the literal-AC allowlist (accepted: bun, deft, directive, node, npm, npx, pnpm, py, python, python3, task, vitest, yarn)",
+          "sourceSpan": "fence@L69:text"
+        },
+        {
+          "command": "cause=go-task absent; CLI-native gates dispatch via global deft/directive (#3335)",
+          "reason": "shell metacharacter \";\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L69:text"
+        },
+        {
+          "command": "verify:hooks-installed --scope=agent --live",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L113"
+        },
+        {
+          "command": "verify:cache-fresh --work-selection",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L114"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "deposit-only-vs-lifecycle-empty-occupancy-signal",
+        "expected_outputs": [
+          "Tracking PR for #4229 Prefer-A Recut-1 deposit-only vs lifecycle soft-visibility"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/doctor/main.test.ts packages/core/src/session/session-start-lifecycle-visible.test.ts"
+        ],
+        "file_scope": [
+          "packages/core/src/doctor/main.ts",
+          "packages/core/src/doctor/main.test.ts",
+          "packages/core/src/session/session-start-lifecycle-visible.test.ts",
+          "content/commands.md",
+          "content/docs/getting-started.md",
+          "content/templates/agents-entry.md",
+          "CHANGELOG.md"
+        ],
+        "size": "L",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#4229",
+          "#3335",
+          "#5716",
+          "#3995"
+        ],
+        "parallel_safe": true
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/doctor/main.ts",
+          "packages/core/src/doctor/main.test.ts",
+          "packages/core/src/session/session-start-lifecycle-visible.test.ts",
+          "content/commands.md",
+          "content/docs/getting-started.md",
+          "content/templates/agents-entry.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "deposit-only vs full lifecycle soft-visibility occupancy signal",
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #4229 Prefer-A Recut-1. content/docs/getting-started.md admitted for clause.5 CLI-native retarget (#4229 Greptile P1)."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5368447709,
+        "origin": "deftai/directive#4229",
+        "id": "github.issue.5368447709"
+      },
+      "x-directive/admitted-target-digest": "sha256:87e60d0e39325c12d722eacdc569e97d24ba5bca671baacd0cad19b3542fabeb"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Remint never-incepted history to count cancelled with proposed|pending|active|completed; distinguish has-history/no-current-scope from never-incepted",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Map tip classifyProjectLifecycle into one occupancy SoT including unreadable/invalid distinct from proven zero history",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Doctor and mutation session:start soft-warn only on reminted never-incepted; signal-only v1",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "First-scope Next via existing doctor single-Next / setup Phase 3; identity-only must not suppress Phase 3 when product mutation requested",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "CLI-native visibility: keep #3335 impact=none; escalate Taskfile-unavailable as status token; retarget getting-started to directive/deft primary",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Keep xbrief:preflight as when-invoked implement lock; not unconditional host mutation interceptor",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Ship short you-have-not-used-Directive-if reporting aid on deposit/AGENTS for process-use claims without equating lawful idle with failure",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Dominate only resolution 5 ARC-before-ingest pointer into open #5716; keep ARC always-on keep-outs",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "source_rung": "derived",
+      "derived_reason": "derived 8 independently testable clauses from the task statement before product edit (#3323)",
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5368447709",
+    "updated": "2026-10-18T20:12:36Z"
+  }
+}
