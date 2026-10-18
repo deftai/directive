@@ -977,6 +977,21 @@ describe("inspectAgentHookDeposit", () => {
     });
   });
 
+  it("treats non-array Grok PreToolUse as empty for beside-hooks command check (#5715)", () => {
+    const root = project();
+    writeAgentHookDeposit(root, { printf: () => undefined });
+    expect(existsSync(join(root, GROK_PRETOOLUSE_WRAPPER_REL_PATH))).toBe(true);
+    const grokPath = join(root, ".grok/hooks/deft.json");
+    const grok = JSON.parse(readFileSync(grokPath, "utf8")) as {
+      hooks: Record<string, unknown>;
+    };
+    grok.hooks.PreToolUse = { not: "an-array" };
+    writeFileSync(grokPath, `${JSON.stringify(grok, null, 2)}\n`, "utf8");
+    expect(inspectAgentHookDeposit(root).find((entry) => entry.host === "grok")).toMatchObject({
+      status: "drifted",
+    });
+  });
+
   it("marks grok drifted when PreToolUse still uses REL_PATH that doubles beside deft.json (#5715)", () => {
     const root = project();
     writeAgentHookDeposit(root, { printf: () => undefined });
