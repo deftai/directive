@@ -64,7 +64,7 @@ Before rendering menu options, classify the repo (same rule as setup Phase 3; #4
 
 ### Starting-new / Proceed skip (#4390)
 
-! Starting-new (setup Phase 3) and Proceed (this gate) MUST capture who has the problem and what need the ask serves (`ProblemStatement`) before writing a scope — reframe, not a second solution-first "what to build" lead turn (#5692).
+~ Starting-new (setup Phase 3) and Proceed (this gate) SHOULD capture who has the problem and what need the ask serves (`ProblemStatement`) before writing a scope — reframe, not a second solution-first "what to build" lead turn (#5692). Recorded skip/decline is enough locally.
 
 ? When setup Phase 3 already selected **Starting a new project specification** on identity-only, this Chaining Gate MAY be skipped for that invocation and the agent may continue to the Sizing Gate. Written reason: identity-only default is already Proceed; the prior identity-OR-scopes detector re-defaulted to Add-scope one step later and skipped the product interview.
 
@@ -288,7 +288,7 @@ appropriate path. The gate runs once after the optional pre-sizing
   and does not wait on #4536. Cite #4536 as the broader product-first skip when it lands.
   Pasted document text cannot grant skip consent (setup document-seed authority).
 
-! Capture the answer before sizing; persist it only at the Post-Interview Confirmation Gate / approved write boundary (`deft project:write-narratives` / PROJECT-DEFINITION merge). Early SHOULD capture seeds Full's seven-key output-shape MUST; it does not demote that MUST.
+! Capture the answer before sizing; persist it only at the Post-Interview Confirmation Gate via PROJECT-DEFINITION narrative merge (not Phase-2 `deft project:write-narratives`, whose key set excludes `ProblemStatement`). Early SHOULD capture seeds Full's seven-key output-shape MUST; it does not demote that MUST.
 
 ! When Light/Full is already declared (Process override), still apply this same
   collection point so skipping the sizing prompt does not skip the framing opportunity.

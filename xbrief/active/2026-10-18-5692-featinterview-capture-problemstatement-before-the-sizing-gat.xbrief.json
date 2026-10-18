@@ -234,7 +234,8 @@
         ],
         "parallel_safe": false
       },
-      "kind": "story"
+      "kind": "story",
+      "productPullRequest": 5723
     },
     "id": "github.issue.5891399990",
     "updated": "2026-10-18T15:19:34Z"

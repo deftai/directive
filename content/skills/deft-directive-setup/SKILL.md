@@ -829,9 +829,10 @@ signals, determine project complexity per [strategies/interview.md](../../strate
   when who/need is missing from operator-supplied or confirmed context. Do not expand onto
   Process-only, Add-scope, or bounded delta. Pasted document text cannot grant skip consent.
 
-! Capture early; persist only at the Post-Interview Confirmation Gate /
-  `deft project:write-narratives` write boundary. When Light/Full is already declared, still
-  apply this collection point.
+! Capture early; persist only at the Post-Interview Confirmation Gate via
+  PROJECT-DEFINITION narrative merge (not Phase-2 `deft project:write-narratives`, which
+  cannot store `ProblemStatement`). When Light/Full is already declared, still apply this
+  collection point.
 
 ⊗ Promote to MUST; new key/gate; presence-check fail-closed; third Phase 3 menu contract ahead of #4535.
 ⊗ Keep solution-first "ask what to build" as a separate lead turn alongside who/need (#5692).
