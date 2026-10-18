@@ -8,6 +8,7 @@
  * Parent must supply a non-empty plain-English summary for the unpublished body (#5415).
  */
 
+import { matchAny } from "../orchestration/pathspec.js";
 import {
   type CompletedArcBlockReason,
   type CompletedArcVerdict,
@@ -370,11 +371,12 @@ export function evaluateNoIssueGateAdmission(
         recovery: "manual-diagnosis",
       };
     }
-    if (!paths.includes(input.targetId)) {
+    // Reuse GATE_MATCH_PREDICATES path globs (exact path or ** glob).
+    if (!matchAny(paths, input.targetId)) {
       return {
         ok: false,
         reason: "predicate-mismatch",
-        detail: `paths.any-of does not include targetId ${input.targetId}`,
+        detail: `paths.any-of does not match targetId ${input.targetId}`,
         recovery: "manual-diagnosis",
       };
     }
@@ -390,11 +392,15 @@ export function evaluateNoIssueGateAdmission(
         recovery: "manual-diagnosis",
       };
     }
-    if (!markers.includes(input.authoritativeMarker)) {
+    // Reuse GATE_MATCH_PREDICATES body-text: case-insensitive substring.
+    const markerLower = input.authoritativeMarker.toLowerCase();
+    if (
+      !markers.some((needle) => needle.length > 0 && markerLower.includes(needle.toLowerCase()))
+    ) {
       return {
         ok: false,
         reason: "predicate-mismatch",
-        detail: "body-text.any-of does not include authoritativeMarker",
+        detail: "body-text.any-of does not case-insensitively match authoritativeMarker",
         recovery: "manual-diagnosis",
       };
     }

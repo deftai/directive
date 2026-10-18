@@ -522,4 +522,27 @@ describe("no-issue gate consumer / write-posture (#5486)", () => {
       }).reason,
     ).toBe("unrecognised-predicate");
   });
+
+  it("admits GATE_MATCH_PREDICATES path globs and case-insensitive body-text substrings", () => {
+    const complete = {
+      status: "complete" as const,
+      synthesisCommentId: 1,
+      citedLeanId: 2,
+      citedTableId: null,
+    };
+    expect(
+      evaluateNoIssueGateAdmission({
+        targetId: "xbrief/proposed/demo.xbrief.json",
+        targetKind: "xbrief",
+        authoritativeMarker: "Mechanism-Shaped: TRUE",
+        completedArc: complete,
+        liveRevisionDigest: "abc",
+        pinnedTargetDigest: "abc",
+        match: {
+          paths: { "any-of": ["xbrief/**/*.json"] },
+          "body-text": { "any-of": ["mechanism-shaped"] },
+        },
+      }),
+    ).toEqual({ ok: true, entryPoint: "evaluateNoIssueGateAdmission" });
+  });
 });
