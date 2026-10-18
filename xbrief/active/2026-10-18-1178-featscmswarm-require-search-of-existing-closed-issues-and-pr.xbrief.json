@@ -166,6 +166,7 @@
           "content/skills/deft-directive-article-review/SKILL.md",
           "content/skills/deft-directive-pre-pr/SKILL.md",
           "content/templates/agents-entry.md",
+          "AGENTS.md",
           "packages/core/src/content-contracts/skills/skills.test.ts",
           "packages/core/src/content-contracts/skills/pre_pr_skill_closing_keyword_rule.test.ts",
           "CHANGELOG.md"
@@ -199,6 +200,7 @@
           "content/skills/deft-directive-article-review/SKILL.md",
           "content/skills/deft-directive-pre-pr/SKILL.md",
           "content/templates/agents-entry.md",
+          "AGENTS.md",
           "packages/core/src/content-contracts/skills/skills.test.ts",
           "packages/core/src/content-contracts/skills/pre_pr_skill_closing_keyword_rule.test.ts",
           "CHANGELOG.md"
