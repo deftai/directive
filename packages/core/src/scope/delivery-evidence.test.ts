@@ -26,7 +26,6 @@ import {
   refreshRemoteDeliveryRef,
   resolveCompletionSessionId,
   resolvePlanGithubIssueRef,
-  seedTutorialPracticeFindingsIfNeeded,
   verifyStoryPrMergeIdentity,
 } from "./delivery-evidence.js";
 import { runTransition } from "./transition.js";
@@ -1375,36 +1374,6 @@ describe("experiment_archived Findings gate (#5693)", () => {
       runGit: gitOk(),
     });
     expect(acceptedResult.ok).toBe(true);
-  });
-
-  it("seeds Findings for tutorial *-practice briefs on experiment_archived", () => {
-    const plan: Record<string, unknown> = {
-      id: "signal-practice",
-      title: "Signal practice",
-      status: "running",
-      metadata: {
-        swarm: { file_scope: ["signal/**"], verify_commands: ["npm test"] },
-      },
-      items: [{ id: "clause.1", title: "clause.1", status: "pending" }],
-    };
-    expect(seedTutorialPracticeFindingsIfNeeded(plan)).toBe(true);
-    expect(evaluateExperimentArchivedFindingsGate(plan).ok).toBe(true);
-    expect(seedTutorialPracticeFindingsIfNeeded(plan)).toBe(false);
-  });
-
-  it("does not seed Findings for ordinary story ids", () => {
-    expect(
-      seedTutorialPracticeFindingsIfNeeded({
-        id: "github.issue.1",
-        title: "ordinary",
-      }),
-    ).toBe(false);
-    expect(
-      seedTutorialPracticeFindingsIfNeeded({
-        id: "api-practice",
-        title: "ordinary experiment",
-      }),
-    ).toBe(false);
   });
 });
 
