@@ -1,0 +1,364 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5486",
+    "updated": "2026-10-17T23:56:05Z"
+  },
+  "plan": {
+    "title": "feat(design-critique): run an arc on an xBRIEF when no GitHub issue exists (analysis first)",
+    "status": "running",
+    "narratives": {
+      "Description": "feat(design-critique): run an arc on an xBRIEF when no GitHub issue exists (analysis first)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5486",
+      "Overview": "\n\n- Remint-3 harvest-digest succession: after blocking pain-audit on a harvest, parent MUST retract+Handoff then mint a Prefer-A Bound whose Bound-remedy list-item titles yield a new hashBoundRemedyBytes; retraction/Handoff alone never clears a rejected harvest; byte-identical lean rotation does not discharge (#5233 evaluateAccumulatedPainAuditFollowThrough); seat a later targeting pain-audit on the new digest before bind/chip\n- Remint-3 P1 durable archive: parent-owned ordered record under main-checkout-resolved archive root keyed by target-id + arc-id, separate from disposable staging; retention/relocation + evaluateCompletedArcRecord post-cleanup reader; scratch staging only\n- Remint-3 P1 single archive authority: parent-collected exclusive-create per-seat outboxes feed the archive; sidecar mirror-only with published read precedence; never two live SoTs; dest-relative .deft-scratch is not archive root\n- Remint-3 P1 durability honesty: machine-local/single-operator supported; #5133/#5148 cross-machine deferred; single-machine no-Issues consumer may use the archive\n- Remint-3 P1 write-posture pick-one: (i) critics zero in-tree writes + parent collects, or (ii) Run posture third action + allowlist under tracked-vs-working-directory in-tree; delete unused branch\n- Remint-3 P2 id-model first: publish before parser accept (i) numeric reserved-range preferred or (ii) composite scheme-plus-number with stage-(a) migration; promotion ordering; disjoint from GitHub 8+ digit forms; include PainCite.deferredIssueNumber + leftover-pain refusal sites in typed migration inventory; keep-outs narrow to pain-disposition outcomes so field-type widening for brief plan-id cites is permitted\n- Remint-3 P2 stage-0 file-path complete: admit file-path PostconditionArtifactClass; generalize DispatchedObligation (target-id/path; issueNumber optional/N/A); stage-(0)-available ceiling is dispatch-sha + parent-written outbox manifest, and stage (0) explicitly constructs that outbox-manifest artifact (do not defer manifest construction to archive stage (b)); add non-numeric bound-artifact id on the verdict alongside boundCommentId; include panel-handback-acceptance.ts in stage-(0) named scope as caller; parent-read binds obligation fields; comment-id path unchanged; ship-alone for #5694 only when caller+verdict-id+stage-0 ceiling+manifest construction are defined\n- Remint-3 P3 locator digest: path + blob/bytes + dispatch-sha or Stop-1-embedded digest; Target-kind orthogonal to Target shape; envelope-file needs durable bytes before Stop 1; protocol state outside digested bytes; widen evaluateTargetDigestAdmission names/errors without forking\n- Remint-3 P3 gate consumer: name admission entry point consuming target identity, authoritative marker, completed-arc proof, live revision via adapter over GATE_MATCH_PREDICATES; storage fields alone insufficient; discovery/recovery or concrete manual-diagnosis path; no fake GitHub labels\n- Remint-3 P3 leftover brief cite: publish operator-deferred brief plan-id/path form before accept; leftover mints proposed brief or files issue when GitHub is the work system\n- Remint-3 P4 same-brief harvest: in-place plan-id-keyed idempotent update; name hashBoundRemedyBytes / Bound-remedy slice-sha as the idempotence key; say what replaces Overview, plan.items, and plan.metadata when no GitHub body (carry refused-body persist only if it is a fourth distinct write); verify expected revision; retain source+result provenance; preserve plan identity; envelope-only output choice; issue:ingest unchanged\n- Remint-3 promotion: archive SoT with optional link/mirror; refuse two live arcs; aliases/relocation on later filing\n- Remint-3 isolation: chosen id-model ceiling; #480 on brief/envelope text; N≥3 exclusive-create outboxes parent-collected into archive\n- Remint-3 stage order: (0) file-path class + obligation/ceiling/verdict-id + outbox-manifest construction + panel-handback caller; (a) id model + ThreadComment seams including PainCite migration inventory; (b) retained archive + citation grammar + ceiling-kind; (c) digest locator + gate consumer + harvest/promotion. Acceptance scenarios unchanged\n- Remint-3 keep-outs: do not weaken GitHub-issue path; do not change pain/auto-stamp/citation-position decision outcomes (typed accept-set widening allowed); no non-catalog labels; no embed protocol in xBRIEF JSON; amend design-critique-brief.md + locking test for target/target-kind/ceiling-kind; keep operative relieves cites outside Bound-remedy list titles (as on this lean)\n\n\n",
+      "Labels": "enhancement, design, agent-experience, process, source-of-truth, urgent, dogfood, design-critique:ingest-ready, framework-gap, core-capabilities, promise:planning, promise:tickets, promise:gates"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Remint-3 harvest-digest succession after blocking pain-audit requires retract+Handoff then new Prefer-A Bound digest before bind",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/design-critique/pain-audit-follow-through-gate.ts",
+        "narrative": {
+          "Acceptance": "Remint-3 harvest-digest succession after blocking pain-audit requires retract+Handoff then new Prefer-A Bound digest before bind"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Remint-3 P1 durable archive under main-checkout-resolved archive root keyed by target-id + arc-id",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/design-critique/completed-arc-record.ts",
+        "narrative": {
+          "Acceptance": "Remint-3 P1 durable archive under main-checkout-resolved archive root keyed by target-id + arc-id"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Remint-3 P1 single archive authority via parent-collected exclusive-create per-seat outboxes",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/design-critique/completed-arc-record.ts",
+        "narrative": {
+          "Acceptance": "Remint-3 P1 single archive authority via parent-collected exclusive-create per-seat outboxes"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Remint-3 P1 durability honesty for machine-local single-operator; cross-machine deferred",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/design-critique/completed-arc-record.ts",
+        "narrative": {
+          "Acceptance": "Remint-3 P1 durability honesty for machine-local single-operator; cross-machine deferred"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Remint-3 P1 write-posture pick-one between parent-collect and Run-posture allowlist",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/design-critique/auto-stamp-path1.ts",
+        "narrative": {
+          "Acceptance": "Remint-3 P1 write-posture pick-one between parent-collect and Run-posture allowlist"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "Remint-3 P2 id-model publish before parser accept with PainCite migration inventory",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/design-critique/citation-grammar.ts",
+        "narrative": {
+          "Acceptance": "Remint-3 P2 id-model publish before parser accept with PainCite migration inventory"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "Remint-3 P2 stage-0 file-path complete including outbox-manifest construction and non-numeric bound-artifact id",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/design-critique/panel-handback-acceptance.ts",
+        "narrative": {
+          "Acceptance": "Remint-3 P2 stage-0 file-path complete including outbox-manifest construction and non-numeric bound-artifact id"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "Remint-3 P3 locator digest from path + blob/bytes + dispatch-sha without forking admission",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/design-critique/completed-arc-record.ts",
+        "narrative": {
+          "Acceptance": "Remint-3 P3 locator digest from path + blob/bytes + dispatch-sha without forking admission"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "Remint-3 P3 gate consumer over GATE_MATCH_PREDICATES with discovery or manual-diagnosis path",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/design-critique/auto-stamp-path1.ts",
+        "narrative": {
+          "Acceptance": "Remint-3 P3 gate consumer over GATE_MATCH_PREDICATES with discovery or manual-diagnosis path"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "Remint-3 P3 leftover brief cite publishes operator-deferred plan-id/path form before accept",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/design-critique/citation-grammar.ts",
+        "narrative": {
+          "Acceptance": "Remint-3 P3 leftover brief cite publishes operator-deferred plan-id/path form before accept"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "Remint-3 P4 same-brief harvest is plan-id-keyed idempotent update with Bound-remedy slice key",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/design-critique/completed-arc-record.ts",
+        "narrative": {
+          "Acceptance": "Remint-3 P4 same-brief harvest is plan-id-keyed idempotent update with Bound-remedy slice key"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "Remint-3 promotion keeps archive SoT with optional link/mirror and refuses two live arcs",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/design-critique/completed-arc-record.ts",
+        "narrative": {
+          "Acceptance": "Remint-3 promotion keeps archive SoT with optional link/mirror and refuses two live arcs"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "Remint-3 isolation uses chosen id-model ceiling and N>=3 exclusive-create outboxes",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/design-critique/panel-handback-acceptance.ts",
+        "narrative": {
+          "Acceptance": "Remint-3 isolation uses chosen id-model ceiling and N>=3 exclusive-create outboxes"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "Remint-3 stage order 0-a-b-c with Acceptance scenarios unchanged",
+        "status": "pending",
+        "x-directive/artifact_path": "content/contracts/design-critique.md",
+        "narrative": {
+          "Acceptance": "Remint-3 stage order 0-a-b-c with Acceptance scenarios unchanged"
+        }
+      },
+      {
+        "id": "clause.15",
+        "title": "Remint-3 keep-outs preserve GitHub-issue path and amend brief contract locking tests for target kinds",
+        "status": "pending",
+        "x-directive/artifact_path": "content/contracts/design-critique.md",
+        "narrative": {
+          "Acceptance": "Remint-3 keep-outs preserve GitHub-issue path and amend brief contract locking tests for target kinds"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "design",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "urgent",
+      "dogfood",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:planning",
+      "promise:tickets",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5486",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5486: feat(design-critique): run an arc on an xBRIEF when no GitHub issue exists (analysis first)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3717",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3717"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Remint-3 harvest-digest succession after blocking pain-audit requires retract+Handoff then new Prefer-A Bound digest before bind",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Remint-3 P1 durable archive under main-checkout-resolved archive root keyed by target-id + arc-id",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Remint-3 P1 single archive authority via parent-collected exclusive-create per-seat outboxes",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Remint-3 P1 durability honesty for machine-local single-operator; cross-machine deferred",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Remint-3 P1 write-posture pick-one between parent-collect and Run-posture allowlist",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Remint-3 P2 id-model publish before parser accept with PainCite migration inventory",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Remint-3 P2 stage-0 file-path complete including outbox-manifest construction and non-numeric bound-artifact id",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Remint-3 P3 locator digest from path + blob/bytes + dispatch-sha without forking admission",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Remint-3 P3 gate consumer over GATE_MATCH_PREDICATES with discovery or manual-diagnosis path",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Remint-3 P3 leftover brief cite publishes operator-deferred plan-id/path form before accept",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Remint-3 P4 same-brief harvest is plan-id-keyed idempotent update with Bound-remedy slice key",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Remint-3 promotion keeps archive SoT with optional link/mirror and refuses two live arcs",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Remint-3 isolation uses chosen id-model ceiling and N>=3 exclusive-create outboxes",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Remint-3 stage order 0-a-b-c with Acceptance scenarios unchanged",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Remint-3 keep-outs preserve GitHub-issue path and amend brief contract locking tests for target kinds",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "source_rung": "derived",
+      "derived_reason": "derived 15 independently testable clauses from the task statement before product edit (#3323)",
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/design-critique/completed-arc-record.ts",
+          "packages/core/src/design-critique/completed-arc-record.test.ts",
+          "packages/core/src/design-critique/citation-grammar.ts",
+          "packages/core/src/design-critique/citation-grammar.test.ts",
+          "packages/core/src/design-critique/panel-handback-acceptance.ts",
+          "packages/core/src/design-critique/panel-handback-acceptance.test.ts",
+          "packages/core/src/design-critique/pain-audit-follow-through-gate.ts",
+          "packages/core/src/design-critique/pain-audit-follow-through-gate.test.ts",
+          "packages/core/src/design-critique/auto-stamp-path1.ts",
+          "packages/core/src/design-critique/auto-stamp-path1.test.ts",
+          "content/contracts/design-critique.md",
+          "CHANGELOG.md",
+          "content/templates/design-critique-brief.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts"
+        ],
+        "module_boundary": "design-critique arc on xBRIEF / no GitHub issue target",
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #5486 Prefer-A Bound."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5764427724,
+        "origin": "deftai/directive#5486",
+        "id": "github.issue.5764427724"
+      },
+      "x-directive/admitted-target-digest": "sha256:8886a3223ab4355c669ab679e70b55e336ee016109e0967b169bb444f4cf78f1",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "design-critique-no-issue-target-analysis",
+        "expected_outputs": [
+          "Tracking PR for #5486 Prefer-A Bound Remint-3 no-issue-target analysis substrate"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/design-critique/completed-arc-record.test.ts packages/core/src/design-critique/citation-grammar.test.ts packages/core/src/design-critique/panel-handback-acceptance.test.ts packages/core/src/design-critique/pain-audit-follow-through-gate.test.ts"
+        ],
+        "file_scope": [
+          "packages/core/src/design-critique/completed-arc-record.ts",
+          "packages/core/src/design-critique/completed-arc-record.test.ts",
+          "packages/core/src/design-critique/citation-grammar.ts",
+          "packages/core/src/design-critique/citation-grammar.test.ts",
+          "packages/core/src/design-critique/panel-handback-acceptance.ts",
+          "packages/core/src/design-critique/panel-handback-acceptance.test.ts",
+          "packages/core/src/design-critique/pain-audit-follow-through-gate.ts",
+          "packages/core/src/design-critique/pain-audit-follow-through-gate.test.ts",
+          "packages/core/src/design-critique/auto-stamp-path1.ts",
+          "packages/core/src/design-critique/auto-stamp-path1.test.ts",
+          "content/contracts/design-critique.md",
+          "CHANGELOG.md",
+          "content/templates/design-critique-brief.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts"
+        ],
+        "size": "L",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5486",
+          "#5233",
+          "#5694"
+        ],
+        "parallel_safe": true
+      }
+    },
+    "id": "github.issue.5764427724",
+    "updated": "2026-10-17T23:56:05Z"
+  }
+}
