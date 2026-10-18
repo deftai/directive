@@ -23,6 +23,12 @@
         "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
         "narrative": {
           "Acceptance": "Pre-sizing who/need ask is lawful exemption; sizing confirmation still blocks subsequent interview questions"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/packs/strategies/strategies-pack-0.1.json",
+          "recorded_at": "2026-10-18T19:29:30Z",
+          "recorded_by": "scope:stamp-evidence"
         }
       },
       {
@@ -32,6 +38,12 @@
         "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
         "narrative": {
           "Acceptance": "Reframe not dual-ask: who/need replaces solution-first what-to-build lead frame"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/packs/strategies/strategies-pack-0.1.json",
+          "recorded_at": "2026-10-18T19:29:30Z",
+          "recorded_by": "scope:stamp-evidence"
         }
       },
       {
@@ -41,6 +53,12 @@
         "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
         "narrative": {
           "Acceptance": "Add ProblemStatement to Light slim narrative merge list; Full reuses supplied ProblemStatement"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/packs/strategies/strategies-pack-0.1.json",
+          "recorded_at": "2026-10-18T19:29:30Z",
+          "recorded_by": "scope:stamp-evidence"
         }
       },
       {
@@ -50,6 +68,12 @@
         "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
         "narrative": {
           "Acceptance": "Capture early before sizing; persist only at Post-Interview Confirmation Gate write boundary"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/packs/strategies/strategies-pack-0.1.json",
+          "recorded_at": "2026-10-18T19:29:30Z",
+          "recorded_by": "scope:stamp-evidence"
         }
       },
       {
@@ -59,6 +83,12 @@
         "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
         "narrative": {
           "Acceptance": "Local SHOULD skip/decline path with recorded reason without waiting on #4536"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/packs/strategies/strategies-pack-0.1.json",
+          "recorded_at": "2026-10-18T19:29:30Z",
+          "recorded_by": "scope:stamp-evidence"
         }
       },
       {
@@ -68,6 +98,12 @@
         "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
         "narrative": {
           "Acceptance": "Discuss Challenge Vagueness one SHOULD example for solution-first framing"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/packs/strategies/strategies-pack-0.1.json",
+          "recorded_at": "2026-10-18T19:29:30Z",
+          "recorded_by": "scope:stamp-evidence"
         }
       }
     ],
@@ -91,49 +127,57 @@
         {
           "id": 1,
           "text": "Pre-sizing who/need ask is lawful exemption; sizing confirmation still blocks subsequent interview questions",
-          "artifact_path": null,
+          "artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 2,
           "text": "Reframe not dual-ask: who/need replaces solution-first what-to-build lead frame",
-          "artifact_path": null,
+          "artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 3,
           "text": "Add ProblemStatement to Light slim narrative merge list; Full reuses supplied ProblemStatement",
-          "artifact_path": null,
+          "artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 4,
           "text": "Capture early before sizing; persist only at Post-Interview Confirmation Gate write boundary",
-          "artifact_path": null,
+          "artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 5,
           "text": "Local SHOULD skip/decline path with recorded reason without waiting on #4536",
-          "artifact_path": null,
+          "artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 6,
           "text": "Discuss Challenge Vagueness one SHOULD example for solution-first framing",
-          "artifact_path": null,
+          "artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
           "ambiguous": false,
           "provenance": "statement"
         }
       ],
       "source_rung": "derived",
       "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "sentences": [
+        "Pre-sizing who/need ask is lawful exemption; sizing confirmation still blocks subsequent interview questions",
+        "Reframe not dual-ask: who/need replaces solution-first what-to-build lead frame",
+        "Add ProblemStatement to Light slim narrative merge list; Full reuses supplied ProblemStatement",
+        "Capture early before sizing; persist only at Post-Interview Confirmation Gate write boundary",
+        "Local SHOULD skip/decline path with recorded reason without waiting on #4536",
+        "Discuss Challenge Vagueness one SHOULD example for solution-first framing"
+      ]
     },
     "metadata": {
       "intended_placement": {
@@ -190,7 +234,8 @@
         ],
         "parallel_safe": false
       },
-      "kind": "story"
+      "kind": "story",
+      "productPullRequest": 5723
     },
     "id": "github.issue.5891399990",
     "updated": "2026-10-18T15:19:34Z"

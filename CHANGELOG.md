@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added — interview pre-sizing who/need `ProblemStatement` SHOULD (Light+Full): lawful sizing exemption, reframe not dual-ask, Light slim merge + Full reuse, persist at confirm gate, local recorded skip, discuss Challenge Vagueness solution-first example. Refs #5692.
 - Added — rapid Step 1 records Hypothesis/Audience/PrototypeKind with separate Dual Stop fields; Step 5 pins Findings before experiment_archived; archive requires trim-non-empty Findings on the completing brief. Refs #5693.
 - Added — pre-filing closed-issue/PR search: article-review Step 5 requires both closed passes with coverage tokens and disposition; pre-pr owns first-PR-open path-intersection; thin AGENTS pointer. Refs #1178.
 - Added — article-review Step 6.5 process-only critic pass before filing, with Step 5 mechanism inventory and Critic verdict section on filed issues. Refs #5694.
@@ -24,7 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Fixed — Widen #5692 membership so the regenerated Rule Map can land with the interview ProblemStatement change. Refs #5692.
+- Fixed - Widen #5692 membership so the regenerated Rule Map can land with the interview ProblemStatement change. Refs #5692.
+- Greptile P1 on #5692: ProblemStatement pre-scope ask is SHOULD (recorded skip ok); persist via PROJECT-DEFINITION merge not Phase-2 write-narratives; widen file_scope for docs/RULE-MAP.md regen.
 - Fixed — Tutorial close records Findings before experiment_archived (beats/proof/skills-pack); removes interim practice-id seed. Refs #5693.
 - Fixed — Land tracked completion records for #5486 (PR #5705), #5099 (PR #5707), and #1178 (PR #5708). Refs #5486 #5099 #1178.
 - Fixed — Land tracked completion records for #5690 (PR #5704) and #5694 (PR #5706). Refs #5690 #5694.

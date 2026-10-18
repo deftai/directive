@@ -87,7 +87,9 @@ describe("test_strategy_chaining.py", () => {
       expect(chaining).toContain(".gitkeep");
       expect(chaining).toContain("*.premigrate.*");
       expect(chaining.toLowerCase()).toContain("convention-valid");
-      expect(chaining.toLowerCase()).toContain("ask what to build");
+      // #5692 — who/need ProblemStatement reframes solution-first "ask what to build"
+      expect(chaining.toLowerCase()).toContain("who/need");
+      expect(chaining).toContain("ProblemStatement");
       expect(chaining).toContain("Starting-new / Proceed skip");
       expect(chaining.toLowerCase()).toContain("overview");
       expect(chaining.toLowerCase()).toContain("xbrief/proposed/");
@@ -105,6 +107,36 @@ describe("test_strategy_chaining.py", () => {
       expect(chaining.toLowerCase()).toContain("do not emit");
       expect(chaining.toLowerCase()).toContain("acceptance gate");
       expect(chaining).toContain("\u2297 Use Back or Other");
+    });
+
+    /** #5692 — ProblemStatement before sizing SHOULD (Light and Full). */
+    it("test_interview_presizing_problemstatement_should", () => {
+      const sizing = interview.includes("## Sizing Gate")
+        ? (interview.split("## Sizing Gate")[1]?.split("## Workflow Overview")[0] ?? "")
+        : "";
+      expect(sizing).toContain("Pre-sizing ProblemStatement");
+      expect(sizing.toLowerCase()).toContain("lawful exemption");
+      expect(sizing).toContain("recorded reason");
+      expect(sizing).toContain("#4536");
+      expect(sizing).toContain("Post-Interview Confirmation Gate");
+      expect(sizing).toContain("\u2297 Promote this ask to MUST");
+      expect(sizing).toContain("Sizing confirmation (blocking)");
+      const light = interview.split("## Light Path")[1]?.split("## Full Path")[0] ?? "";
+      expect(light).toContain("ProblemStatement");
+      const full =
+        interview.split("## Full Path")[1]?.split("## SPECIFICATION Guidelines")[0] ?? "";
+      expect(full.toLowerCase()).toContain("reuse");
+      expect(full).toContain("ProblemStatement");
+    });
+
+    it("test_discuss_challenge_vagueness_solution_first", () => {
+      const discuss = readText("strategies/discuss.md");
+      const challenge = discuss.includes("### Challenge Vagueness")
+        ? (discuss.split("### Challenge Vagueness")[1]?.split("### Scope Guardrails")[0] ?? "")
+        : "";
+      expect(challenge).toContain("build a dashboard");
+      expect(challenge.toLowerCase()).toContain("what does the user need to see");
+      expect(challenge).toContain("#5692");
     });
 
     it("test_spec_generating_roster_includes_interview_and_yolo", () => {

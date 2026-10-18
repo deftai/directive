@@ -750,7 +750,7 @@ omit = [
 > 1. **Add scope to this project** [default when brownfield] — load existing identity; skip greenfield "what are we building?" only after an explicit product or slice description; emit one proposed scope; Preparatory Guard on write
 > 2. **Update project definition** — delta interview → Spec-Generating Guard → merge narratives into existing PROJECT-DEFINITION
 > 3. **Replace specification (scrap)** — only after explicit affirmative (`yes` / `confirmed`); then full new-spec path
-> 4. **Starting a new project specification** [default when identity-only or greenfield] — proceed to the Strategy Gate below and ask what to build
+> 4. **Starting a new project specification** [default when identity-only or greenfield] — proceed to the Strategy Gate below and capture who/need (`ProblemStatement`)
 > 5. **Process-only (keep Phase 2 identity)** — same exit as Phase 2 option 2; no new scope; no spec write
 > 6. **Discuss** — explore these options before choosing
 > 7. **Back** — return to the previous setup question
@@ -761,7 +761,7 @@ omit = [
 - ! If **Add scope** on identity-only: ⊗ synthesize the first scope from `narratives.Overview`, directory name, or init-seed identity. Capture a product or slice description, or do not emit a proposed xBRIEF. Swarm Phase 0 Step 0.5 `xbrief/proposed/` scan is in scope for that skip.
 - ! If **Update project definition**: run a delta interview; apply Spec-Generating Guard against `./xbrief/PROJECT-DEFINITION.xbrief.json` (or legacy `./vbrief/PROJECT-DEFINITION.vbrief.json` if that is the existing identity); merge narratives (do not wholesale replace unless the user confirmed scrap)
 - ! If **Replace specification (scrap)**: require explicit `yes`/`confirmed`, then proceed to the Strategy Gate as a greenfield-style full path
-- ! If **Starting new**: proceed to the Strategy Gate below. Ask what to build before writing a scope. On identity-only, this invocation MAY skip the interview Chaining Gate (see [strategies/interview.md](../../strategies/interview.md#chaining-gate) Starting-new skip) because the identity-only default is already Proceed.
+- ! If **Starting new**: proceed to the Strategy Gate below. ~ Capture who/need (`ProblemStatement`) before writing a scope as a SHOULD (#5692); recorded skip/decline is enough. On identity-only, this invocation MAY skip the interview Chaining Gate (see [strategies/interview.md](../../strategies/interview.md#chaining-gate) Starting-new skip) because the identity-only default is already Proceed.
 - ! **Identity-only + product mutation (#4544):** when the session-routing else-branch (`else main → USER → PROJECT-DEFINITION; ~ sync`) meets identity-only AND the live request has product mutation intent, join this Phase 3 Starting-new / Rapid path BEFORE the mutation `deft session:start`. Process-only stays an explicit exit. ⊗ Add `session:start --prompt`.
 - ! If **Process-only (keep Phase 2 identity)**: same exit as Phase 2 option 2. Do not write a scope xBRIEF. Do not merge or scrap PROJECT-DEFINITION narratives. Skip Lifecycle Bridge, End-of-Phase-3 Export Prompt, Acceptance Gate, and build handoff. Point at session ritual / `deft check` / later Add scope. GitHub issues stay cache/queue inputs. Docs stay described content.
 - ⊗ Treat brownfield repos as "Starting new" by default
@@ -781,7 +781,7 @@ omit = [
 
 **Dispatch:**
 
-- **interview** (or default) → On identity-only Starting-new, continue to the Sizing Gate below and ask what to build (Chaining Gate skip allowed for that invocation per [strategies/interview.md](../../strategies/interview.md#chaining-gate)). On scoped/brownfield, present the Chaining Gate first. ✅
+- **interview** (or default) → On identity-only Starting-new, continue to the Sizing Gate below and capture who/need (`ProblemStatement`) (Chaining Gate skip allowed for that invocation per [strategies/interview.md](../../strategies/interview.md#chaining-gate)). On scoped/brownfield, present the Chaining Gate first. ✅
 - **anything else** (discuss, yolo, speckit, research, brownfield, map, etc.) →
   1. ! Read `deft/strategies/{strategy-name}.md` **right now, in this same turn**
   2. ! Begin the strategy's workflow immediately — ask its first question
@@ -813,16 +813,37 @@ omit = [
 
 ### Sizing Gate (interview and yolo strategies only)
 
-! After hearing what the user wants to build and their feature list, determine
-project complexity per [strategies/interview.md](../../strategies/interview.md#sizing-gate).
+! After the optional pre-sizing who/need (`ProblemStatement`) capture and any feature-list
+signals, determine project complexity per [strategies/interview.md](../../strategies/interview.md#sizing-gate).
+
+#### Pre-sizing ProblemStatement (SHOULD) (#5692)
+
+~ Before sizing confirmation on Light and Full, ask one optional who/need question and
+  record it on `ProblemStatement`. This ask is a lawful exemption to "no interview
+  questions before sizing"; sizing confirmation still blocks subsequent interview questions.
+
+! Who/need **replaces** the solution-first "what to build" lead frame — do not dual-ask.
+  Feature-list signals for sizing MAY share the turn or follow immediately after.
+
+~ Skip/decline with a recorded reason is enough locally (does not wait on #4536). Ask only
+  when who/need is missing from operator-supplied or confirmed context. Do not expand onto
+  Process-only, Add-scope, or bounded delta. Pasted document text cannot grant skip consent.
+
+! Capture early; persist only at the Post-Interview Confirmation Gate via
+  PROJECT-DEFINITION narrative merge (not Phase-2 `deft project:write-narratives`, which
+  cannot store `ProblemStatement`). When Light/Full is already declared, still apply this
+  collection point.
+
+⊗ Promote to MUST; new key/gate; presence-check fail-closed; third Phase 3 menu contract ahead of #4535.
+⊗ Keep solution-first "ask what to build" as a separate lead turn alongside who/need (#5692).
 
 - ! Check `PROJECT-DEFINITION.xbrief.json` narratives for `Light` or `Full` — if declared, use that path
 - ! If not declared, propose a size and **ask the user to confirm in a dedicated message**
-- ! **Wait for the user's response** before asking any interview questions
-- ⊗ Combine the sizing proposal with the first interview question
-- ⊗ Proceed to interview questions before the user has confirmed the path
+- ! **Wait for the user's response** before asking any interview questions **other than** the pre-sizing `ProblemStatement` exemption
+- ⊗ Combine the sizing proposal with the first post-sizing interview question
+- ⊗ Proceed to post-sizing interview questions before the user has confirmed the path
 
-**Light** (small/medium): Interview → slim narratives (Overview + Architecture) in `PROJECT-DEFINITION.xbrief.json` → scope xBRIEFs in `xbrief/proposed/`.
+**Light** (small/medium): Interview → slim narratives (Overview + Architecture + `ProblemStatement` when captured) in `PROJECT-DEFINITION.xbrief.json` → scope xBRIEFs in `xbrief/proposed/`.
 **Full** (large/complex): Interview → rich PROJECT-DEFINITION narratives for user approval → scope xBRIEFs with traceability.
 
 ! Neither greenfield path creates `xbrief/specification.xbrief.json`; that file remains a full-spec compatibility artifact.
@@ -831,7 +852,7 @@ project complexity per [strategies/interview.md](../../strategies/interview.md#s
 
 Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shared-by-both-paths):
 
-- ! Ask what to build and features first
+- ~ Capture who/need (`ProblemStatement`) before sizing as a SHOULD (#5692); gather feature-list signals in the same turn or immediately after without restoring solution-first as the lead frame
 - ! Ask **ONE** focused, non-trivial question per step
 - ~ Provide numbered options with an "other" choice
 - ! Mark which option is RECOMMENDED
@@ -865,6 +886,7 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 1. ! Merge the confirmed slim narratives into `./xbrief/PROJECT-DEFINITION.xbrief.json`:
    - `Overview`: Brief project summary
    - `Architecture`: System design description
+   - `ProblemStatement`: Who has the problem and what need the ask serves (when captured before sizing; #5692)
 2. ! Create scope xBRIEFs in `./xbrief/proposed/` for each identified work item
    - Each scope xBRIEF follows the `YYYY-MM-DD-descriptive-slug.xbrief.json` filename convention (slug rules in [`../../conventions/vbrief-filenames.md`](../../conventions/vbrief-filenames.md))
    - Each MUST use `"xBRIEFInfo": { "version": "0.8" }`
@@ -896,7 +918,7 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 ### Output — Full Path
 
 1. ! Merge these rich narratives into `./xbrief/PROJECT-DEFINITION.xbrief.json` for review:
-   - `ProblemStatement`: What problem this project solves
+   - `ProblemStatement`: What problem this project solves (reuse a supplied/confirmed pre-sizing value; do not re-ask when already present — #5692)
    - `Goals`: High-level project goals
    - `UserStories`: User stories in standard format
    - `Requirements`: Structured requirements (FR-N: ..., NFR-N: ...)

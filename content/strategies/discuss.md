@@ -49,7 +49,9 @@ Use the Feynman technique: if the user (or you) can't explain the feature in sim
 
 - ! Push back on fuzzy answers: "Make it simple" → "Simple how? For the user? To implement? To extend later?"
 - ! Push back on assumed agreement: "Standard auth" → "JWT with refresh? Server-side sessions? OAuth? Which standard?"
+- ~ Challenge solution-first framing: "build a dashboard" → "what does the user need to see, and why now?" (#5692)
 - ⊗ Accept fuzzy input — it produces divergent output
+- ⊗ Force settled decisions to reopen solely because the lead frame was solution-first
 
 ### Scope Guardrails
 
