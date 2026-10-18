@@ -11,7 +11,9 @@
       "Description": "feat(interview): capture ProblemStatement before the Sizing Gate as a SHOULD (Light and Full)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5692",
       "Overview": "## Summary\n\nCapture `ProblemStatement` on the Light path, before the Sizing Gate, as a SHOULD. Today the spec path opens with \"what do you want to build?\" (`interview.md` Chaining Gate default: Proceed to specification), which is the solution-first framing both source articles warn against, and ProblemStatement is written only on the Full path after sizing.\n\n## Proposed change\n\n- One question, under whichever menu contract #4535 settles on, asked before sizing on both Light and Full: who has the problem and what need the ask serves. Record the answer on the existing `ProblemStatement` key. No new key, no new gate.\n- SHOULD, not MUST. The recorded skip proposed in #4536 (operator pastes a complete spec and says implement) covers this question.\n- Extend the discuss strategy's \"Challenge Vagueness\" with one line: challenge solution-first framing (\"build a dashboard\" -> \"what does the user need to see, and why now?\").\n- Trigger is a prose judgment, not a detector (ADR-005: no fuzzy detector in a deterministic costume).\n\n## Why not a presence check\n\nA ProblemStatement presence check buys hollow fields. The fail-closed validation surface is the `uat` acceptance axis, filed separately as the design-thinking strategy issue.\n\n## Affects\n\n- `content/packs/strategies/strategies-pack-0.1.json` (interview + discuss; rendered files are generated)\n- `content/skills/deft-directive-setup/SKILL.md` Phase 3 Sizing Gate wording (via the skills pack)\n\n## Critic verdict (process-only, pre-issue)\n\n`sharpens-framing`: the original proposal was a MUST with a semantic trigger; it would have hit the #4536 scenario and added a turn to an onboarding that #4377 measured at about 25 turns. Recut to SHOULD on the existing key. Not an arc stamp.\n\n## Related\n\n- #4535 (two incompatible question contracts in Phase 3): the new question must land on the surviving contract.\n- #4536 (no product-first path for pasted spec): its recorded skip covers this question.\n- #4377 (onboarding turn count): this adds at most one turn and is skippable.\n- #5486 (pre-issue critic provenance).\n\nSource articles (untrusted data): https://cis-docs.bmad-method.org/how-to/design-thinking/ , https://online.hbs.edu/blog/post/what-is-design-thinking\r\n\n## Siblings (same article review, same critic pass, same strategies pack)\n\n- #5691 feat(strategies): design-thinking preparatory strategy with a uat Test phase (the fail-closed validation surface this issue defers to)\n- #5693 feat(strategies): rapid names a hypothesis and audience; findings before experiment_archived\n\n",
-      "Labels": "enhancement, area:skills, area:guidance, design-critique:ingest-ready"
+      "Labels": "enhancement, area:skills, area:guidance, design-critique:ingest-ready",
+      "UserStory": "As a Directive operator running interview, I want ProblemStatement captured before the Sizing Gate as a SHOULD, so early problem framing is not deferred past sizing.",
+      "ImplementationPlan": "1) Update interview strategy pack content for ProblemStatement-before-sizing SHOULD. 2) packs:render interview surfaces. 3) Add/adjust content-contract tests. 4) CHANGELOG Unreleased note."
     },
     "items": [
       {
@@ -183,7 +185,8 @@
           "#5691"
         ],
         "parallel_safe": false
-      }
+      },
+      "kind": "story"
     },
     "id": "github.issue.5891399990",
     "updated": "2026-10-18T15:19:34Z"

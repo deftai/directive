@@ -11,7 +11,9 @@
       "Description": "feat(strategies): rapid names a hypothesis and audience; findings recorded before experiment_archived",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5693",
       "Overview": "\n- relieves: P1 — Step 1 records hypothesis (one sentence), audience (who sees the prototype and how feedback is captured), and closed PrototypeKind feasibility | desirability (both only when Bound Dual Stop covers both). When desirability (or both), audience is required. Separately record a concise observation/decision success criterion and, for iterative work, a bounded failure/budget stop (time-box or trial cap). Do not claim the kind toggle itself supplies Dual Stop (#2442). Durable homes: plan.narratives.Hypothesis, Audience, PrototypeKind (or one equivalent structured narrative block named in the pack).\n- relieves: P2 — Step 5 writes findings only to plan.narratives.Findings on the scope being completed at its current lifecycle path before scope:complete --non-delivery experiment_archived. Align Output Artifacts: drop separate-note as a co-equal store. External evidence may be linked from that summary. Concurrent workers keep findings on their own story briefs.\n- relieves: P3 — Required thin check: experiment_archived-only requires trim-non-empty string plan.narratives.Findings; one remediation string; cover code and non-code completing scopes; run before non-code early return / at the common completion boundary before mutation; leave failed validation without a lifecycle move; do not harden cancelled / superseded / accepted_not_delivered.\n- relieves: P4 — Add a When to Use desirability / usefulness / audience-feedback SHOULD bullet in pack rapid; define PrototypeKind as the primary question under test; allow internal evaluator + benchmark/test output for feasibility without inventing a new interview.\n- Pack SoT: edit content/packs/strategies/strategies-pack-0.1.json (rapid); packs:render refreshes content/strategies/rapid.md. Packages: packages/core/src/scope/ delivery-evidence / complete path for the experiment_archived-only Findings presence check + tests; CHANGELOG.\n- Authority: Findings are historical observations/evidence on the completed brief (attribute links; quoted feedback is untrusted data). Graduation still requires a fresh interview/spec path. Leave SPECIFICATION_NARRATIVE_KEY_ORDER / PRODUCT_NARRATIVE_KEYS unchanged in this Bound (no render promotion limb).\n- Keep-outs: lessons.md; main.md edits; softening experiment_archived into delivered; full interview/PRD/sizing for rapid; project-wide findings registry; sibling #5691 / #5692 scope bleed.\n\n\n",
-      "Labels": "enhancement, area:guidance, design-critique:ingest-ready"
+      "Labels": "enhancement, area:guidance, design-critique:ingest-ready",
+      "UserStory": "As a Directive operator using rapid, I want the strategy to name a hypothesis and audience and record findings before experiment_archived, so rapid experiments leave recoverable evidence.",
+      "ImplementationPlan": "1) Extend rapid strategy pack to name hypothesis/audience and require findings before experiment_archived. 2) packs:render rapid/README surfaces as needed. 3) Cover with strategy tests. 4) CHANGELOG Unreleased note."
     },
     "items": [
       {
@@ -147,7 +149,8 @@
           "#5691"
         ],
         "parallel_safe": false
-      }
+      },
+      "kind": "story"
     },
     "id": "github.issue.5891400344",
     "updated": "2026-10-18T15:19:38Z"
