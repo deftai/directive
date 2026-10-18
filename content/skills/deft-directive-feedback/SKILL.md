@@ -56,21 +56,28 @@ deft feedback:file --summary "<one-line summary>" --context "<session context>" 
 ```
 
 - ! Read the printed draft title/body with the operator before proceeding
-- ! If the command reports a duplicate open issue, STOP and link the existing issue instead of filing again
-- ⊗ Proceed past a duplicate-detection block without operator override
+- ! If the command reports an **open** duplicate, surface the existing issue URL and the proposed evidence-comment body. Do **not** create a new issue. Proceed to Phase 3 only when the operator wants to append evidence with `--confirm` (exit 0 `commented-open-duplicate` path) — this is not a STOP-on-`blocked-duplicate` halt
+- ! If the command reports a **closed** duplicate without disposition, STOP and re-run only after the operator chooses `--on-closed=comment` or `--on-closed=create-anyway` (no consumer reopen)
+- ! Incomplete closed-search notes (`stopReason=window-exhausted|cap`) are disclosure, not a hard stop — keep them visible when filing
+- ⊗ Proceed past an open-duplicate preview by creating a new issue
+- ⊗ Silently create when a closed title match exists without `--on-closed`
 - ~ When go-task is installed, the Taskfile may wrap the same verb; prefer `deft feedback:file` as primary
 
-## Phase 3 -- Confirm + file
+## Phase 3 -- Confirm + file / comment
 
-- ! Present the final draft and ask for explicit yes/no confirmation
-- ! Only after approval, re-run the **same report fields and target repo** with `--confirm` added and without `--dry-run` or `--json`:
+- ! Present the final draft (or proposed evidence comment) and ask for explicit yes/no confirmation
+- ! Only after approval, re-run the **same report fields and target repo** with `--confirm` added and without `--dry-run` or `--json`. Retain `--notes` / blocker evidence flags so a posted comment carries the reviewed payload:
 
 ```bash
-deft feedback:file --summary "<one-line summary>" --context "<session context>" --expected "<expected>" --actual "<actual>" --confirm [--blocker]
+deft feedback:file --summary "<one-line summary>" --context "<session context>" --expected "<expected>" --actual "<actual>" --notes "<optional>" [--blocker --flow "<flow>" --alternatives "<alts>" --recovery-cost "<cost>"] --confirm [--on-closed=comment|--on-closed=create-anyway]
 ```
 
-- ! Print the filed issue URL to the operator
+- ! Open match + `--confirm` → evidence comment on the existing open issue (`commented-open-duplicate`, exit 0); print issue URL + comment URL; never `restCreateIssue`
+- ! Closed match + `--on-closed=comment` → evidence comment on the closed issue; do not reopen
+- ! Closed match + `--on-closed=create-anyway` → new issue body carries `Related: closed #<n>`
+- ! No match → file a new upstream issue; print the filed issue URL
 - ⊗ Use `Closes`/`Fixes`/`Resolves` in the upstream body -- use `Refs #1709` only
+- ⊗ Auto-comment without `--confirm`
 
 ## Phase 4 -- Handoff
 
@@ -80,8 +87,12 @@ deft feedback:file --summary "<one-line summary>" --context "<session context>" 
 ## Anti-Patterns
 
 - ⊗ Filing from the maintainer framework repo (consumer-only guard)
-- ⊗ Skipping dedup review when the command reports an existing open issue
-- ⊗ Treating `--confirm` as implicit from broad session approval -- require an explicit filing confirmation step
+- ⊗ Creating a new issue when an open title match exists — confirm then comment instead
+- ⊗ Treating open-match confirm as `blocked-duplicate` STOP — Prefer-A Recut-2 uses `commented-open-duplicate` exit 0
+- ⊗ Writing on a closed title match without `--on-closed=comment|create-anyway`
+- ⊗ Reopening a closed issue from the consumer feedback path
+- ⊗ Treating `--confirm` as implicit from broad session approval -- require an explicit filing/comment confirmation step
 - ⊗ Infer "not a blocker" from an unmarked report -- absence of `BLOCKER` means not classified
 - ⊗ Auto-apply `adoption-blocker` from a consumer-authored title
 - ⊗ Hand-editing PROJECT-DEFINITION to flip `upstreamPrompt` instead of the audited setter
+- ⊗ Hand-editing rendered `content/skills/deft-directive-feedback/SKILL.md` — edit the pack source and `task packs:render`
