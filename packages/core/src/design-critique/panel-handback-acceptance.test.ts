@@ -290,30 +290,38 @@ describe("file-path stage-(0) (#5486)", () => {
   });
 
   it("returns ok:false for operational caller-input denies (no throw)", () => {
-    expect(constructOutboxManifest({
-      dispatchSha: "not-a-sha",
-      targetId: "t",
-      round: 1,
-      seatIds: ["a"],
-    }).ok).toBe(false);
-    expect(constructOutboxManifest({
-      dispatchSha,
-      targetId: "  ",
-      round: 1,
-      seatIds: ["a"],
-    }).ok).toBe(false);
-    expect(constructOutboxManifest({
-      dispatchSha,
-      targetId: "t",
-      round: 1,
-      seatIds: [],
-    }).ok).toBe(false);
-    expect(constructOutboxManifest({
-      dispatchSha,
-      targetId: "t",
-      round: 1,
-      seatIds: ["a", "a"],
-    }).ok).toBe(false);
+    expect(
+      constructOutboxManifest({
+        dispatchSha: "not-a-sha",
+        targetId: "t",
+        round: 1,
+        seatIds: ["a"],
+      }).ok,
+    ).toBe(false);
+    expect(
+      constructOutboxManifest({
+        dispatchSha,
+        targetId: "  ",
+        round: 1,
+        seatIds: ["a"],
+      }).ok,
+    ).toBe(false);
+    expect(
+      constructOutboxManifest({
+        dispatchSha,
+        targetId: "t",
+        round: 1,
+        seatIds: [],
+      }).ok,
+    ).toBe(false);
+    expect(
+      constructOutboxManifest({
+        dispatchSha,
+        targetId: "t",
+        round: 1,
+        seatIds: ["a", "a"],
+      }).ok,
+    ).toBe(false);
   });
 
   it("binds file-path via parent-read obligation fields, not bare existence", () => {
