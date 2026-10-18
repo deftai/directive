@@ -175,7 +175,8 @@
           "content/commands.md",
           "content/docs/getting-started.md",
           "content/templates/agents-entry.md",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "docs/RULE-MAP.md"
         ],
         "size": "L",
         "file_scope_confidence": "high",
@@ -196,7 +197,8 @@
           "content/commands.md",
           "content/docs/getting-started.md",
           "content/templates/agents-entry.md",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "docs/RULE-MAP.md"
         ],
         "module_boundary": "deposit-only vs full lifecycle soft-visibility occupancy signal",
         "cohesion_exemption": "CHANGELOG.md shared Unreleased for #4229 Prefer-A Recut-1. content/docs/getting-started.md admitted for clause.5 CLI-native retarget (#4229 Greptile P1)."
