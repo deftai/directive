@@ -19,7 +19,7 @@ flowchart LR
     Active -->|"deft scope:complete"| Completed["completed scope"]
 ```
 
-`directive commands` / `deft commands` list the CLI verbs. After an include-only root Taskfile exists, `task --list` also shows `task deft:<verb>` aliases. This file explains the main command families, the agent slash-command surface, and the older `/deft:directive:change` folder workflow that remains as historical/compatibility guidance.
+The CLI commands listing prints every registered verb (see `directive --help`). After an include-only root Taskfile exists, `task --list` also shows `task deft:<verb>` aliases. This file explains the main command families, the agent slash-command surface, and the older `/deft:directive:change` folder workflow that remains as historical/compatibility guidance.
 
 `xbrief:preflight` stays a when-invoked implement lock (not an unconditional host mutation interceptor). Missing go-task stays `#3335` impact=none when gates are CLI-dispatchable; doctor/session may print `status=Taskfile-unavailable; CLI-supported`.
 
