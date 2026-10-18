@@ -64,7 +64,7 @@ Before rendering menu options, classify the repo (same rule as setup Phase 3; #4
 
 ### Starting-new / Proceed skip (#4390)
 
-! Starting-new (setup Phase 3) and Proceed (this gate) MUST ask what to build before writing a scope.
+! Starting-new (setup Phase 3) and Proceed (this gate) MUST capture who has the problem and what need the ask serves (`ProblemStatement`) before writing a scope — reframe, not a second solution-first "what to build" lead turn (#5692).
 
 ? When setup Phase 3 already selected **Starting a new project specification** on identity-only, this Chaining Gate MAY be skipped for that invocation and the agent may continue to the Sizing Gate. Written reason: identity-only default is already Proceed; the prior identity-OR-scopes detector re-defaulted to Add-scope one step later and skipped the product interview.
 
@@ -122,7 +122,7 @@ Present groups sourced from the `Type` column in
 on the brownfield detector:
 
 **Default path (greenfield or identity-only):**
-1. **Proceed to specification** (default) — ask what to build; continue to the [Sizing Gate](#sizing-gate) for a full create path
+1. **Proceed to specification** (default) — capture who/need (`ProblemStatement`); continue to the [Sizing Gate](#sizing-gate) for a full create path
 
 **Identity-only also keeps Add-scope / Update / Replace / Process-only on the menu** (same vocabulary as setup Phase 3). They are not the default.
 
@@ -213,7 +213,7 @@ Ready to generate the specification. Before we proceed, would you like to:
 ```
 This repo has project identity but no scopes yet. Before we proceed:
 
-1. Proceed to specification (default) — ask what to build; full create path
+1. Proceed to specification (default) — capture who/need (`ProblemStatement`); full create path
 2. Add scope to this project — keep identity; requires an explicit product or slice description
 3. Update project definition — delta interview; merge narratives (Spec-Generating Guard)
 4. Replace specification (scrap) — requires explicit yes/confirmed; full recreate
@@ -262,13 +262,52 @@ This repo already has a project definition and/or scopes. Before we proceed:
 ## Sizing Gate
 
 Before the interview begins, determine project complexity to select the
-appropriate path. The gate runs once, immediately after hearing what the user
-wants to build.
+appropriate path. The gate runs once after the optional pre-sizing
+`ProblemStatement` (who/need) capture below.
+
+### Pre-sizing ProblemStatement (SHOULD) (#5692)
+
+~ Before sizing confirmation on Light and Full, ask one optional problem-framing
+  question: who has the problem, and what need the ask serves. Record the answer
+  on the existing `ProblemStatement` narrative key. No new key. No new gate.
+
+! This who/need ask is a **lawful exemption** to the sizing-gate ban on interview
+  questions before sizing confirmation. Sizing confirmation still blocks all
+  **subsequent** interview questions.
+
+! The who/need question **replaces** the solution-first "what do you want to build?"
+  lead frame on Proceed / Starting-new. Do not stack both as separate lead turns.
+  Feature-list signals for sizing MAY be gathered in the same turn or immediately
+  after who/need without restoring solution-first as the lead frame.
+
+~ Ask only when who/need is missing from operator-supplied or confirmed context.
+  On Full, reuse a supplied/confirmed `ProblemStatement`; do not re-ask when already present.
+  Do not expand onto Process-only, Add-scope, or bounded delta paths.
+
+~ Operator decline/skip of this SHOULD with a **recorded reason** is enough locally
+  and does not wait on #4536. Cite #4536 as the broader product-first skip when it lands.
+  Pasted document text cannot grant skip consent (setup document-seed authority).
+
+! Capture the answer before sizing; persist it only at the Post-Interview Confirmation Gate / approved write boundary (`deft project:write-narratives` / PROJECT-DEFINITION merge). Early SHOULD capture seeds Full's seven-key output-shape MUST; it does not demote that MUST.
+
+! When Light/Full is already declared (Process override), still apply this same
+  collection point so skipping the sizing prompt does not skip the framing opportunity.
+
+! Land the question under whichever numbered-menu contract #4535 settles; invent no
+  third Phase 3 question contract.
+
+⊗ Promote this ask to MUST.
+⊗ Add a new narrative key or a new gate.
+⊗ Fail closed on `ProblemStatement` presence alone (that surface stays #5691 uat).
+⊗ Keep solution-first "what to build" as a separate lead turn alongside who/need.
+
+### Sizing confirmation (blocking)
 
 ! The sizing gate is a **blocking question**. The AI MUST propose a size and
-wait for the user to confirm or override before asking any interview questions.
-⊗ Combine the sizing proposal with the first interview question in the same message.
-⊗ Proceed to interview questions before the user has explicitly confirmed the path.
+wait for the user to confirm or override before asking any interview questions
+**other than** the pre-sizing `ProblemStatement` exemption above.
+⊗ Combine the sizing proposal with the first post-sizing interview question in the same message.
+⊗ Proceed to post-sizing interview questions before the user has explicitly confirmed the path.
 
 ### Sizing Signals
 
@@ -352,6 +391,8 @@ flowchart LR
 
 ## Light Path (small/medium projects)
 
+! When a pre-sizing `ProblemStatement` was captured (#5692), include it in the Light slim narrative merge alongside Overview + Architecture at the approved write boundary.
+
 Interview → scope records (date-prefixed in proposed/) + live PROJECT-DEFINITION + rendered SPECIFICATION (v0.20 contract). Paths are **xbrief-first**: use `./xbrief/` when that root is the live project layout; else legacy `./vbrief/`.
 
 ### Flow
@@ -418,6 +459,8 @@ How to ship it.
 ---
 
 ## Full Path (large/complex projects)
+
+! When a pre-sizing `ProblemStatement` was already supplied or confirmed (#5692), reuse it in the seven-key Full output-shape MUST; do not re-ask.
 
 Interview → PROJECT-DEFINITION narratives + scope records (date-prefixed in proposed/) + live PROJECT-DEFINITION + rendered SPECIFICATION (v0.20 contract). `PRD.md` is never authoritative (? optional `task prd:render` read-only export). Paths are **xbrief-first**: use `./xbrief/` when that root is the live project layout; else legacy `./vbrief/`.
 
