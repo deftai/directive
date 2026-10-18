@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Widen #5692 file_scope/intended_placement for docs/RULE-MAP.md (merge-base precommitment before product RULE-MAP land).
+- Fixed — Widen #5692 membership so the regenerated Rule Map can land with the interview ProblemStatement change. Refs #5692.
 - Fixed — Tutorial close records Findings before experiment_archived (beats/proof/skills-pack); removes interim practice-id seed. Refs #5693.
 - Fixed — Land tracked completion records for #5486 (PR #5705), #5099 (PR #5707), and #1178 (PR #5708). Refs #5486 #5099 #1178.
 - Fixed — Land tracked completion records for #5690 (PR #5704) and #5694 (PR #5706). Refs #5690 #5694.
