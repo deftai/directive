@@ -10,7 +10,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## Overview
 
-The active implementation is xBRIEF lifecycle first with `directive` / `deft` as the primary command surface (#4229; Taskfile / `task deft:<verb>` remains an optional parallel include after init):
+The active implementation is xBRIEF lifecycle first and Taskfile first, with `directive` / `deft` as the primary command surface (#4229; Taskfile / `task deft:<verb>` remains an optional parallel include after init):
 
 ```mermaid
 flowchart LR
