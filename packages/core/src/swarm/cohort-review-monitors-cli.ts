@@ -196,7 +196,7 @@ function resolveOpenTrackingContext(projectRoot: string): {
 }
 
 const HELP =
-  "deft verify:cohort-review-monitors — cohort babysit inventory (#5318)\n" +
+  "deft verify:cohort-review-monitors — cohort babysit inventory (#5318 / #5690)\n" +
   "\n" +
   "  --prs <csv>                 PR numbers (optional when launch-manifest / open Tracking is non-empty)\n" +
   "  --manifest <path>           Launch-manifest JSON (default .deft/swarm-launch-manifest.json)\n" +
@@ -210,6 +210,10 @@ const HELP =
   "\n" +
   "armed-live = verify:review-monitor --merge-path-arm --live-wait SoT (#4882/#5219).\n" +
   "halted-explicit = durable --explicit-finish / option-C attestation (prose dual-stop is not).\n" +
+  "Mint-gate BLOCKED is non-option-C for product PRs (#5690).\n" +
+  "Re-run / remediate unarmed at: PR-open/discover; before serial rebase/squash-merge; " +
+  "Approach 1 exit/lease release; tip-churn dirty; dual-stop/conf-hold/BLOCKED halt; " +
+  "mint-PR-open; mint-PR-merge (#5318 / #5690).\n" +
   "Anti-substitute: swarm:verify-review-clean CLEAN does not satisfy this inventory.\n";
 
 export function verifyCohortReviewMonitorsMain(argv: string[] = process.argv.slice(2)): number {

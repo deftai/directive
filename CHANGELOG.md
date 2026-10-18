@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed — Activate Prefer-A Bound running briefs for #5690 and #5486 on master (proceed cohort; productPullRequest unset). Refs #5690 #5486.
 
 ### Fixed
+- **Approach 1 mint-gate exit no longer leaves the product PR merge-path unarmed (#5690).** Keep or same-turn re-arm product `--merge-path-arm --live-wait` across attended mint; mint-gate BLOCKED is non-option-C; CLEAN-before-mint keeps the post-CLEAN closer; #5318 inventory adds mint-PR-open / mint-PR-merge triggers. Tracking #5690. Refs #4882 #5219 #5318.
 
 ### Removed
 
