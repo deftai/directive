@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #1178",
-    "updated": "2026-10-18T00:49:18Z"
+    "updated": "2026-10-18T15:12:58Z"
   },
   "plan": {
     "title": "feat(scm,swarm): require search of existing closed issues and PRs before filing — pre-filing duplicate check",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "feat(scm,swarm): require search of existing closed issues and PRs before filing — pre-filing duplicate check",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1178",
@@ -17,64 +17,106 @@
       {
         "id": "clause.1",
         "title": "Shared bounded retrieval for closed issues and closed PRs with explicit coverage tokens and PR-file completeness",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
         "narrative": {
           "Acceptance": "Shared bounded retrieval for closed issues and closed PRs with explicit coverage tokens and PR-file completeness"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5708; skills/pre-pr vitest",
+          "recorded_at": "2026-10-18T15:12:57.096Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.2",
         "title": "Evidence-based disposition classes implemented partial declined unresolved",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
         "narrative": {
           "Acceptance": "Evidence-based disposition classes implemented partial declined unresolved"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5708; skills/pre-pr vitest",
+          "recorded_at": "2026-10-18T15:12:57.096Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.3",
         "title": "Article-review Step 5 requires both closed-issue and closed-PR passes before presentation and filing",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
         "narrative": {
           "Acceptance": "Article-review Step 5 requires both closed-issue and closed-PR passes before presentation and filing"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5708; skills/pre-pr vitest",
+          "recorded_at": "2026-10-18T15:12:57.096Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.4",
         "title": "First-PR-open closed-PR path-intersection pass owned by pre-pr skill",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/skills/deft-directive-pre-pr/SKILL.md",
         "narrative": {
           "Acceptance": "First-PR-open closed-PR path-intersection pass owned by pre-pr skill"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5708; skills/pre-pr vitest",
+          "recorded_at": "2026-10-18T15:12:57.096Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.5",
         "title": "Thin agents-entry pointer then agents:refresh for closed-issue/PR pre-filing contract",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/templates/agents-entry.md",
         "narrative": {
           "Acceptance": "Thin agents-entry pointer then agents:refresh for closed-issue/PR pre-filing contract"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5708; skills/pre-pr vitest",
+          "recorded_at": "2026-10-18T15:12:57.096Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.6",
         "title": "Behavioral fixtures prove Step 5 timing and PR-only proposal suppression before Step 6/7",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/content-contracts/skills/skills.test.ts",
         "narrative": {
           "Acceptance": "Behavioral fixtures prove Step 5 timing and PR-only proposal suppression before Step 6/7"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5708; skills/pre-pr vitest",
+          "recorded_at": "2026-10-18T15:12:57.096Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.7",
         "title": "Keep-outs: cite-only #5099 Bound; do not rewrite shipped #1102 master-diff",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
         "narrative": {
           "Acceptance": "Keep-outs: cite-only #5099 Bound; do not rewrite shipped #1102 master-diff"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5708; skills/pre-pr vitest",
+          "recorded_at": "2026-10-18T15:12:57.096Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       }
     ],
@@ -101,62 +143,103 @@
       }
     ],
     "acceptance": {
-      "commands": [],
-      "none_stated": true,
+      "commands": [
+        "pnpm exec vitest run packages/core/src/content-contracts/skills/skills.test.ts packages/core/src/content-contracts/skills/pre_pr_skill_closing_keyword_rule.test.ts"
+      ],
+      "none_stated": false,
+      "sentences": [],
+      "confessions": [
+        "issue-body prose harvested into plan.items; free sentences cleared for leftover-complete #3550"
+      ],
+      "ambiguity_attestation": "none_found",
       "clauses": [
         {
-          "id": 1,
+          "id": "clause.1",
           "text": "Shared bounded retrieval for closed issues and closed PRs with explicit coverage tokens and PR-file completeness",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Shared bounded retrieval for closed issues and closed PRs with explicit coverage tokens and PR-file completeness",
+          "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5708; skills/pre-pr vitest",
+            "recorded_at": "2026-10-18T15:12:57.096Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 2,
+          "id": "clause.2",
           "text": "Evidence-based disposition classes implemented partial declined unresolved",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Evidence-based disposition classes implemented partial declined unresolved",
+          "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5708; skills/pre-pr vitest",
+            "recorded_at": "2026-10-18T15:12:57.096Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 3,
+          "id": "clause.3",
           "text": "Article-review Step 5 requires both closed-issue and closed-PR passes before presentation and filing",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Article-review Step 5 requires both closed-issue and closed-PR passes before presentation and filing",
+          "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5708; skills/pre-pr vitest",
+            "recorded_at": "2026-10-18T15:12:57.096Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 4,
+          "id": "clause.4",
           "text": "First-PR-open closed-PR path-intersection pass owned by pre-pr skill",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "First-PR-open closed-PR path-intersection pass owned by pre-pr skill",
+          "x-directive/artifact_path": "content/skills/deft-directive-pre-pr/SKILL.md",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5708; skills/pre-pr vitest",
+            "recorded_at": "2026-10-18T15:12:57.096Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 5,
+          "id": "clause.5",
           "text": "Thin agents-entry pointer then agents:refresh for closed-issue/PR pre-filing contract",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Thin agents-entry pointer then agents:refresh for closed-issue/PR pre-filing contract",
+          "x-directive/artifact_path": "content/templates/agents-entry.md",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5708; skills/pre-pr vitest",
+            "recorded_at": "2026-10-18T15:12:57.096Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 6,
+          "id": "clause.6",
           "text": "Behavioral fixtures prove Step 5 timing and PR-only proposal suppression before Step 6/7",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Behavioral fixtures prove Step 5 timing and PR-only proposal suppression before Step 6/7",
+          "x-directive/artifact_path": "packages/core/src/content-contracts/skills/skills.test.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5708; skills/pre-pr vitest",
+            "recorded_at": "2026-10-18T15:12:57.096Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 7,
+          "id": "clause.7",
           "text": "Keep-outs: cite-only #5099 Bound; do not rewrite shipped #1102 master-diff",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Keep-outs: cite-only #5099 Bound; do not rewrite shipped #1102 master-diff",
+          "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5708; skills/pre-pr vitest",
+            "recorded_at": "2026-10-18T15:12:57.096Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         }
       ],
       "source_rung": "derived",
-      "derived_reason": "derived 7 independently testable clauses from the task statement before product edit (#3323)",
-      "ambiguity_attestation": "none_found"
+      "derived_reason": "Prefer-A Bound limbs with completion evidence"
     },
     "metadata": {
       "intended_placement": {
@@ -214,9 +297,35 @@
           "#1102"
         ],
         "parallel_safe": false
+      },
+      "productPullRequest": 5708,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "3ebd2c10beb43832ca107da05f332394d8c2105b",
+        "prNumber": 5708,
+        "prBase": "master",
+        "mergeCommit": "106aa3edeb30d090058d7dab96ea8ec42531721b",
+        "deliveryBranch": "master",
+        "deliveryCommit": "106aa3edeb30d090058d7dab96ea8ec42531721b",
+        "verifiedAt": "2026-10-18T15:12:58Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTRjM2QtZDBmZS03ODYzLWJkMTUtZmVlZjI1NDVlN2Nj"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-18T15:12:58Z",
+      "completedSessionId": "host:grok:v1:MDFhMTRjM2QtZDBmZS03ODYzLWJkMTUtZmVlZjI1NDVlN2Nj",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-18T15:12:58Z"
       }
     },
     "id": "github.issue.4461334416",
-    "updated": "2026-10-18T00:49:18Z"
+    "updated": "2026-10-18T15:12:58Z"
   }
 }
