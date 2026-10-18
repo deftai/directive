@@ -146,14 +146,16 @@ describe("findDuplicateIssue", () => {
         stderr: "",
       })),
     };
-    const match = findDuplicateIssue(
+    const found = findDuplicateIssue(
       "deftai/directive",
       buildFrameworkGapTitle("Missing skill coverage"),
       seams,
     );
-    expect(match?.url).toBe("https://github.com/deftai/directive/issues/42");
-    expect(match?.number).toBe(42);
-    expect(match?.state).toBe("open");
+    expect(found.ok).toBe(true);
+    if (!found.ok) return;
+    expect(found.match?.url).toBe("https://github.com/deftai/directive/issues/42");
+    expect(found.match?.number).toBe(42);
+    expect(found.match?.state).toBe("open");
   });
 });
 
@@ -561,8 +563,12 @@ describe("feedback-file CLI", () => {
   });
 
   it("handles empty-title duplicate needle and missing issue html_url (#3144)", () => {
-    expect(findDuplicateIssue("deftai/directive", "   ", {})).toBeNull();
-    const match = findDuplicateIssue("deftai/directive", "Gap title", {
+    expect(findDuplicateIssue("deftai/directive", "   ", {}).ok).toBe(true);
+    expect(
+      findDuplicateIssue("deftai/directive", "   ", {}).ok &&
+        findDuplicateIssue("deftai/directive", "   ", {}).match,
+    ).toBeNull();
+    const found = findDuplicateIssue("deftai/directive", "Gap title", {
       runGhApiFn: vi.fn(() => ({
         returncode: 0,
         stdout: JSON.stringify([
@@ -577,16 +583,19 @@ describe("feedback-file CLI", () => {
         stderr: "",
       })),
     });
-    expect(match?.url).toContain("/issues/9");
-    expect(() =>
-      findDuplicateIssue("deftai/directive", "Gap title", {
-        runGhApiFn: vi.fn(() => ({
-          returncode: 0,
-          stdout: JSON.stringify([{ title: "Gap title", html_url: "", number: 1, state: "open" }]),
-          stderr: "",
-        })),
-      }),
-    ).toThrow(/usable numeric number/);
+    expect(found.ok).toBe(true);
+    if (!found.ok) return;
+    expect(found.match?.url).toContain("/issues/9");
+    const malformed = findDuplicateIssue("deftai/directive", "Gap title", {
+      runGhApiFn: vi.fn(() => ({
+        returncode: 0,
+        stdout: JSON.stringify([{ title: "Gap title", html_url: "", number: 1, state: "open" }]),
+        stderr: "",
+      })),
+    });
+    expect(malformed.ok).toBe(false);
+    if (malformed.ok) return;
+    expect(malformed.error).toMatch(/usable numeric number/);
   });
 });
 
@@ -1140,7 +1149,7 @@ describe("adoption-blocker title token (#3713)", () => {
       title: "[framework-gap] Missing skill coverage",
       html_url: "https://github.com/deftai/directive/issues/42",
     };
-    const markedMatch = findDuplicateIssue(
+    const markedFound = findDuplicateIssue(
       "deftai/directive",
       buildFrameworkGapTitle(summary, { adoptionBlocker: true }),
       {
@@ -1151,9 +1160,12 @@ describe("adoption-blocker title token (#3713)", () => {
         })),
       },
     );
+    expect(markedFound.ok).toBe(true);
+    if (!markedFound.ok) return;
+    const markedMatch = markedFound.match;
     expect(markedMatch?.url).toBe(unmarkedOpen.html_url);
 
-    const unmarkedMatch = findDuplicateIssue("deftai/directive", buildFrameworkGapTitle(summary), {
+    const unmarkedFound = findDuplicateIssue("deftai/directive", buildFrameworkGapTitle(summary), {
       runGhApiFn: vi.fn(() => ({
         returncode: 0,
         stdout: JSON.stringify([
@@ -1167,6 +1179,9 @@ describe("adoption-blocker title token (#3713)", () => {
         stderr: "",
       })),
     });
+    expect(unmarkedFound.ok).toBe(true);
+    if (!unmarkedFound.ok) return;
+    const unmarkedMatch = unmarkedFound.match;
     expect(unmarkedMatch?.url).toContain("/issues/43");
   });
 

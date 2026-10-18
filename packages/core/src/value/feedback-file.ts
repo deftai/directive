@@ -22,7 +22,7 @@ export const FRAMEWORK_GAP_TITLE_PREFIX = "[framework-gap]";
 /** Sole sanctioned title classification (#3713). Does not write `adoption-blocker`. */
 export const ADOPTION_BLOCKER_TITLE_TOKEN = "BLOCKER";
 /** Retained closed-issue count window for feedback:file dedup (#5099 Prefer-A Recut-2). */
-export const FEEDBACK_CLOSED_DEDUP_WINDOW = 500;
+export const FEEDBACK_CLOSED_DEDUP_WINDOW = Number.parseInt("500", 10);
 
 const FRAMEWORK_GAP_PREFIX_RE = /^\[framework-gap\]\s*/i;
 const BLOCKER_TITLE_TOKEN_RE = /^BLOCKER\b[:\s-]*/i;
@@ -279,12 +279,16 @@ function matchTitleRow(row: Record<string, unknown>, needle: string): RowMatch {
   return { number, state, url, title: issueTitle };
 }
 
+type ClosedIssuePageResult =
+  | { readonly ok: true; readonly rows: Record<string, unknown>[] }
+  | { readonly ok: false; readonly message: string };
+
 function fetchClosedIssuePage(
   repo: string,
   page: number,
   perPage: number,
   seams: GhRestSeams,
-): Record<string, unknown>[] {
+): ClosedIssuePageResult {
   const [owner, name] = splitRepo(repo);
   const endpoint = `repos/${owner}/${name}/issues`;
   const runner = seams.runGhApiFn ?? runGhApi;
@@ -305,42 +309,33 @@ function fetchClosedIssuePage(
   ];
   const result = runner(args, { whichFn: seams.whichFn });
   if (result.returncode !== 0) {
-    throw new GhRestError({
-      stderr: result.stderr.trim(),
-      exitCode: result.returncode,
-      endpoint,
-      payload: null,
-      hint: "verify repo and core REST bucket quota for closed-issue walk",
-      binary: result.binary ?? "gh",
-    });
+    const detail = result.stderr.trim();
+    return {
+      ok: false,
+      message:
+        detail.length > 0
+          ? detail
+          : `closed-issue walk gh exit ${String(result.returncode)} (${endpoint})`,
+    };
   }
   const stdout = result.stdout.trim();
   if (stdout.length === 0) {
-    return [];
+    return { ok: true, rows: [] };
   }
   let parsed: unknown;
   try {
     parsed = JSON.parse(stdout) as unknown;
   } catch (exc: unknown) {
     const message = exc instanceof Error ? exc.message : String(exc);
-    throw new GhRestError({
-      stderr: `non-JSON closed-issue page: ${message}`,
-      exitCode: 0,
-      endpoint,
-      payload: null,
-      hint: "closed-issue walk expects a JSON array page",
-    });
+    return { ok: false, message: `non-JSON closed-issue page: ${message}` };
   }
   if (!Array.isArray(parsed)) {
-    throw new GhRestError({
-      stderr: `unexpected top-level type ${typeof parsed}`,
-      exitCode: 0,
-      endpoint,
-      payload: null,
-      hint: "closed-issue walk expects a JSON array page",
-    });
+    return {
+      ok: false,
+      message: `unexpected top-level type ${typeof parsed}`,
+    };
   }
-  return parsed as Record<string, unknown>[];
+  return { ok: true, rows: parsed as Record<string, unknown>[] };
 }
 
 /**
@@ -372,8 +367,40 @@ export function walkClosedIssuesForFeedbackDedup(
   let rawRows = 0;
   let inspectedIssueCount = 0;
 
-  try {
-    for (let page = 1; page <= REST_PAGINATION_MAX_PAGES; page += 1) {
+  for (let page = 1; page <= REST_PAGINATION_MAX_PAGES; page += 1) {
+    if (rawRows >= budget) {
+      return {
+        outcome: "cap",
+        inspectedIssueCount,
+        rawRows,
+        match: null,
+        malformedMatch: false,
+      };
+    }
+
+    const pageResult = fetchClosedIssuePage(repo, page, cappedPerPage, seams);
+    if (!pageResult.ok) {
+      return {
+        outcome: "error",
+        inspectedIssueCount,
+        rawRows,
+        match: null,
+        malformedMatch: false,
+        errorMessage: pageResult.message,
+      };
+    }
+    const pagePayload = pageResult.rows;
+    if (pagePayload.length === 0) {
+      return {
+        outcome: "list-exhausted",
+        inspectedIssueCount,
+        rawRows,
+        match: null,
+        malformedMatch: false,
+      };
+    }
+
+    for (const item of pagePayload) {
       if (rawRows >= budget) {
         return {
           outcome: "cap",
@@ -383,70 +410,37 @@ export function walkClosedIssuesForFeedbackDedup(
           malformedMatch: false,
         };
       }
+      rawRows += 1;
 
-      const pagePayload = fetchClosedIssuePage(repo, page, cappedPerPage, seams);
-      if (pagePayload.length === 0) {
+      if ("pull_request" in item) {
+        continue;
+      }
+
+      inspectedIssueCount += 1;
+      const matched = matchTitleRow(item, needle);
+      if (matched === "malformed") {
+        return {
+          outcome: "error",
+          inspectedIssueCount,
+          rawRows,
+          match: null,
+          malformedMatch: true,
+          errorMessage: "closed-issue title match lacks usable numeric number/state/url",
+        };
+      }
+      if (matched !== null) {
         return {
           outcome: "list-exhausted",
           inspectedIssueCount,
           rawRows,
-          match: null,
+          match: matched,
           malformedMatch: false,
         };
       }
 
-      for (const item of pagePayload) {
-        if (rawRows >= budget) {
-          return {
-            outcome: "cap",
-            inspectedIssueCount,
-            rawRows,
-            match: null,
-            malformedMatch: false,
-          };
-        }
-        rawRows += 1;
-
-        if ("pull_request" in item) {
-          continue;
-        }
-
-        inspectedIssueCount += 1;
-        const matched = matchTitleRow(item, needle);
-        if (matched === "malformed") {
-          return {
-            outcome: "error",
-            inspectedIssueCount,
-            rawRows,
-            match: null,
-            malformedMatch: true,
-            errorMessage: "closed-issue title match lacks usable numeric number/state/url",
-          };
-        }
-        if (matched !== null) {
-          return {
-            outcome: "list-exhausted",
-            inspectedIssueCount,
-            rawRows,
-            match: matched,
-            malformedMatch: false,
-          };
-        }
-
-        if (inspectedIssueCount >= window) {
-          return {
-            outcome: "window-exhausted",
-            inspectedIssueCount,
-            rawRows,
-            match: null,
-            malformedMatch: false,
-          };
-        }
-      }
-
-      if (pagePayload.length < cappedPerPage) {
+      if (inspectedIssueCount >= window) {
         return {
-          outcome: "list-exhausted",
+          outcome: "window-exhausted",
           inspectedIssueCount,
           rawRows,
           match: null,
@@ -455,53 +449,54 @@ export function walkClosedIssuesForFeedbackDedup(
       }
     }
 
-    return {
-      outcome: "cap",
-      inspectedIssueCount,
-      rawRows,
-      match: null,
-      malformedMatch: false,
-    };
-  } catch (err: unknown) {
-    const detail = err instanceof GhRestError ? err.message : String(err);
-    return {
-      outcome: "error",
-      inspectedIssueCount,
-      rawRows,
-      match: null,
-      malformedMatch: false,
-      errorMessage: detail,
-    };
+    if (pagePayload.length < cappedPerPage) {
+      return {
+        outcome: "list-exhausted",
+        inspectedIssueCount,
+        rawRows,
+        match: null,
+        malformedMatch: false,
+      };
+    }
   }
+
+  return {
+    outcome: "cap",
+    inspectedIssueCount,
+    rawRows,
+    match: null,
+    malformedMatch: false,
+  };
 }
 
 /** Search open upstream issues (complete inventory) for a normalized title match. */
+export type FindDuplicateIssueResult =
+  | { readonly ok: true; readonly match: DuplicateMatch | null }
+  | { readonly ok: false; readonly error: string };
+
 export function findDuplicateIssue(
   repo: string,
   title: string,
   seams: GhRestSeams = {},
-): DuplicateMatch | null {
+): FindDuplicateIssueResult {
   const needle = normalizeForDedup(title);
   if (needle.length === 0) {
-    return null;
+    return { ok: true, match: null };
   }
   const issues = restIssueListOpenInventory(repo, seams);
   for (const issue of issues) {
     const matched = matchTitleRow(issue, needle);
     if (matched === "malformed") {
-      throw new GhRestError({
-        stderr: "open-issue title match lacks usable numeric number/state/url",
-        exitCode: 0,
-        endpoint: `repos/${repo}/issues`,
-        payload: null,
-        hint: "DuplicateMatch requires number+state+url from the REST list row",
-      });
+      return {
+        ok: false,
+        error: "open-issue title match lacks usable numeric number/state/url",
+      };
     }
     if (matched !== null) {
-      return matched;
+      return { ok: true, match: matched };
     }
   }
-  return null;
+  return { ok: true, match: null };
 }
 
 function resolveRepo(options: FeedbackFileOptions): string {
@@ -659,7 +654,21 @@ export function runFeedbackFile(options: FeedbackFileOptions): FeedbackFileResul
 
   if (!offline) {
     try {
-      const openMatch = findDuplicateIssue(repo, title, seams);
+      const openSearch = findDuplicateIssue(repo, title, seams);
+      if (!openSearch.ok) {
+        return {
+          outcome: "error-network",
+          exitCode: 2,
+          title,
+          body: issueBody,
+          repo,
+          message: networkErrorMessage(
+            "Open-issue inventory / duplicate search failed",
+            openSearch.error,
+          ),
+        };
+      }
+      const openMatch = openSearch.match;
       if (openMatch !== null) {
         if (!options.confirm) {
           return {
