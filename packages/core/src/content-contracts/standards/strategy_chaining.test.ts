@@ -111,10 +111,9 @@ describe("test_strategy_chaining.py", () => {
 
     /** #5692 — ProblemStatement before sizing SHOULD (Light and Full). */
     it("test_interview_presizing_problemstatement_should", () => {
-      const sizing =
-        interview.includes("## Sizing Gate")
-          ? (interview.split("## Sizing Gate")[1]?.split("## Workflow Overview")[0] ?? "")
-          : "";
+      const sizing = interview.includes("## Sizing Gate")
+        ? (interview.split("## Sizing Gate")[1]?.split("## Workflow Overview")[0] ?? "")
+        : "";
       expect(sizing).toContain("Pre-sizing ProblemStatement");
       expect(sizing.toLowerCase()).toContain("lawful exemption");
       expect(sizing).toContain("recorded reason");
@@ -132,10 +131,9 @@ describe("test_strategy_chaining.py", () => {
 
     it("test_discuss_challenge_vagueness_solution_first", () => {
       const discuss = readText("strategies/discuss.md");
-      const challenge =
-        discuss.includes("### Challenge Vagueness")
-          ? (discuss.split("### Challenge Vagueness")[1]?.split("### Scope Guardrails")[0] ?? "")
-          : "";
+      const challenge = discuss.includes("### Challenge Vagueness")
+        ? (discuss.split("### Challenge Vagueness")[1]?.split("### Scope Guardrails")[0] ?? "")
+        : "";
       expect(challenge).toContain("build a dashboard");
       expect(challenge.toLowerCase()).toContain("what does the user need to see");
       expect(challenge).toContain("#5692");
