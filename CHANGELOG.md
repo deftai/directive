@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added — rapid Step 1 records Hypothesis/Audience/PrototypeKind with separate Dual Stop fields; Step 5 pins Findings before experiment_archived; archive requires trim-non-empty Findings on the completing brief. Refs #5693.
 - Added — pre-filing closed-issue/PR search: article-review Step 5 requires both closed passes with coverage tokens and disposition; pre-pr owns first-PR-open path-intersection; thin AGENTS pointer. Refs #1178.
 - Added — article-review Step 6.5 process-only critic pass before filing, with Step 5 mechanism inventory and Critic verdict section on filed issues. Refs #5694.
 - Added — Prefer-A Recut-2 for `feedback:file`: complete open inventory dedup, closed retained-count window (500) with disposition tokens, open-match evidence comment (`commented-open-duplicate`), and `--on-closed=comment|create-anyway` without reopen. Refs #5099.
@@ -21,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed — Activate Prefer-A Bound running briefs for #5690 and #5486 on master (proceed cohort; productPullRequest unset). Refs #5690 #5486.
 
 ### Fixed
+- Fixed — Tutorial close records Findings before experiment_archived (beats/proof/skills-pack); removes interim practice-id seed. Refs #5693.
 - Fixed — Land tracked completion records for #5486 (PR #5705), #5099 (PR #5707), and #1178 (PR #5708). Refs #5486 #5099 #1178.
 - Fixed — Land tracked completion records for #5690 (PR #5704) and #5694 (PR #5706). Refs #5690 #5694.
 - **CLI `verify:review-monitor --explicit-finish` honors mint-gate refusal (#5690).** Pass `--mint-gate-blocked` / mint-marker `--reason` into `writeMergePathExplicitFinishAttestation` so cohort `halted-explicit` cannot mask an unarmed product PR. Raise `agentsMdBudget.absoluteMaxBytes` 28100→28400 for the #5318/#5690 agents-entry pointer; sync review-cycle skills pack projection. Tracking #5690.

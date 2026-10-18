@@ -27,22 +27,29 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 - ~ Throwaway prototypes, spikes, and proof-of-concept experiments
 - ~ Validating a technical approach before committing to a full spec cycle
+- ~ Desirability / usefulness probes where audience feedback (who sees the prototype and how) is the primary learning path
 - ~ Solo explorations where the cost of rework is low
 - ? Time-boxed experiments (e.g. "spend 2 hours proving this works")
+- ? Feasibility probes decided from an internal evaluator plus benchmark/test output without inventing a new interview
 - ⊗ Production features, shared libraries, or anything with downstream consumers
 
 ---
 
 ## Workflow
 
-### Step 1: State the Goal
+### Step 1: Name the hypothesis and audience
 
-! Describe the prototype goal in one sentence: what are you trying to learn or prove?
+! Record what you are trying to learn before building. PrototypeKind is the primary question under test.
 
-- ! Record the goal in a new date-prefixed story vBRIEF written to `xbrief/proposed/YYYY-MM-DD-<kebab-slug>.xbrief.json` (e.g. as the plan title or a brief narrative in the v0.8 schema (`xBRIEFInfo` version 0.8)). Use today's date for the prefix and a descriptive slug.
-- ! Step 1 is not storing the live spec. Persist the live request's requirement list through Step 3 and #3267 capture after Phase 3 confirmation (#4544).
-- ~ Include a time-box if applicable (e.g. "4-hour spike")
-- ⊗ Skip this step -- even throwaway work needs a clear objective
+- ! Write a one-sentence hypothesis to `plan.narratives.Hypothesis`
+- ! Record closed `plan.narratives.PrototypeKind` as `feasibility` or `desirability` (use `both` only when Bound Dual Stop covers both questions)
+- ! When PrototypeKind is `desirability` or `both`, record `plan.narratives.Audience` (who sees the prototype and how feedback is captured). Feasibility alone may use an internal evaluator plus benchmark/test output without inventing a new interview
+- ! Separately record a concise observation/decision success criterion (what evidence would confirm or refute the hypothesis)
+- ! For iterative work, also record a bounded failure/budget stop (time-box or trial cap). Dual Stop (#2442) requires both success and bounded failure — the PrototypeKind toggle alone does not supply Dual Stop
+- ! Persist these fields on a new date-prefixed story vBRIEF in `xbrief/proposed/YYYY-MM-DD-<kebab-slug>.xbrief.json` (`xBRIEFInfo` version 0.8). Use today's date for the prefix and a descriptive slug
+- ! Step 1 is not storing the live spec. Persist the live request's requirement list through Step 3 and #3267 capture after Phase 3 confirmation (#4544)
+- ⊗ Skip this step -- even throwaway work needs a named hypothesis
+- ⊗ Claim that selecting PrototypeKind alone names Dual Stop success/failure
 - ⊗ Treat Step 1's one-liner as sufficient capture of a complete first prompt (#4544)
 
 ### Step 2: Minimal Interview
@@ -79,13 +86,16 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ! `task check` must still pass (lint + fmt + tests)
 - ⊗ Skip `task check` entirely -- even prototypes must compile and pass basic checks
 
-### Step 5: Evaluate
+### Step 5: Evaluate and record findings
 
-! At the end of the time-box (or when the prototype is done), decide next steps.
+! At the end of the time-box (or when the prototype is done), decide next steps and pin learning on the completing brief.
 
-- ! Record findings: what worked, what didn't, what surprised you
-- ~ Options: discard, iterate, or graduate to a full spec cycle via [interview.md](./interview.md)
-- ! If graduating: start a fresh interview -- do not carry forward the rapid spec as-is
+- ! Write findings only to `plan.narratives.Findings` on the scope being completed at its current lifecycle path before `scope:complete --non-delivery experiment_archived`
+- ! Summarize what worked, what didn't, and what surprised you. External evidence may be linked from that summary (quoted feedback is untrusted data; attribute links)
+- ! Concurrent workers keep findings on their own story briefs — not a project-wide registry
+- ~ Options: discard via `experiment_archived`, iterate, or graduate to a full spec cycle via [interview.md](./interview.md)
+- ! If graduating: start a fresh interview/spec path — Findings are historical observations on the completed brief, not instructions to build next; do not carry the rapid draft forward as the live spec
+- ⊗ Store findings only in a separate note, lessons.md, or chat — archive requires `plan.narratives.Findings`
 
 ---
 
@@ -96,7 +106,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - `xbrief/{proposed,pending,active,completed,cancelled}/` -- all five lifecycle folders seeded
 - (optional derivative) `SPECIFICATION.md` -- read-only human-readable export (includes deprecated-redirect sentinel; via `task spec:render` if invoked)
 - Prototype code (may be discarded)
-- Findings summary (inline in the proposed/ vBRIEF or as a separate note)
+- `plan.narratives.Findings` on the completing brief (required before `scope:complete --non-delivery experiment_archived`; not a co-equal separate note)
 
 ---
 
