@@ -105,7 +105,7 @@ Look for lessons applicable to projects that directive-guided agents build:
 - ! Note which existing directive files or issues each suggestion would affect
 - ⊗ Present every idea uncritically — only surface ideas with real directive relevance
 
-### Step 5: Cross-reference open issues and inventory mechanisms
+### Step 5: Cross-reference open/closed issues, closed PRs, and inventory mechanisms
 
 Titles alone are insufficient for ownership verdicts (evidence: #3163). Body-level reads are mandatory. Issue-number anti-hallucination does **not** discharge mechanism inventory.
 
@@ -125,6 +125,32 @@ Titles alone are insufficient for ownership verdicts (evidence: #3163). Body-lev
 - ⊗ Accept a cache hit as body-read complete when the entry lacks body (or required stub comments), lacks readable age/TTL freshness metadata, or is expired/stale — re-fetch live when network is available; without affirmative freshness do not use the cache for ownership verdicts
 - ⊗ Propose a new issue for something already tracked — body-level deduplication is mandatory
 - ⊗ Cite issue numbers without verifying existence and state
+
+**Closed-issue and closed-PR pre-filing (#1178)**
+
+Before Step 6 present / Step 7 file-offer, Step 5 MUST run **both** closed-issue retrieval+disposition **and** closed-PR shortlist+body/scope disposition — even when no linked issue exists. Keep the open-issue shortlist above. Proposal-time PR candidates use the bounded closed-PR list and semantic body/scope review; do **not** require a concrete changed-file set at propose time, and do **not** introduce Search API / body-similarity ranking.
+
+**Shared bounded retrieval (coverage tokens)**
+
+One thin retrieval contract for closed issues and closed PRs. Outcome tokens: `window-exhausted` | `list-exhausted` | `cap` | `error`.
+
+- ! Closed-issue walk: REST `GET .../issues?state=closed&sort=updated&direction=desc` (paginate). **Exclude** `pull_request` rows from the match set **and** from the retained-issue count. Named default window: `PREFILING_CLOSED_ISSUE_WINDOW` = **200** retained closed issues (newest-updated first). Stop with `window-exhausted` when the configured window is filled; `list-exhausted` when the list ends earlier; `cap` when a hard page/row budget stops the walk early; `error` on non-zero / non-JSON failure.
+- ! Closed-PR walk: REST `GET .../pulls?state=closed&sort=updated&direction=desc` (paginate). Named default window: `PREFILING_CLOSED_PR_WINDOW` = **100** closed PRs (newest-updated first). Same outcome tokens. For any PR used in path-intersection (pre-pr first-open), bind file-list pagination (`GET .../pulls/<n>/files`) to completion — ⊗ treat a truncated file list as a complete path set.
+- ! Record the outcome token on every walk. Successful configured-window coverage (`window-exhausted`) and successful list exhaustion (`list-exhausted`) are **bounded no-match within declared coverage** only when no candidate matched.
+- ⊗ Treat `cap` / `error` / truncated PR-file enumeration as verified no-match or as exhaustive historical clearance.
+- ⊗ Import #5099 `feedback:file` closed-walk constants unless they are separately exported for this pre-filing purpose (cite-only Bound; conflict_group `feedback-file-open-comment-closed-account`).
+- ⊗ Run an exhaustive closed-history search or Search API ranking for this gate.
+
+**Evidence-based disposition**
+
+Classes: `implemented` | `partial` | `declined` | `unresolved`. Prefer `state_reason` (`completed` vs `not_planned`) plus body/decision evidence and merged closing-PR signals. Same-path PR overlap discovers candidates; it does **not** prove duplicate scope alone.
+
+- ! `implemented` (full): drop covered proposal portions and cite the closed issue and/or merged PR.
+- ! `partial`: cite the prior work and keep only the uncovered delta for presentation.
+- ! `declined` (explicit `not_planned` / recorded decline): surface the prior decision before any re-file offer; do not silently re-propose.
+- ! `unresolved` (closed-unmerged ambiguity, incomplete retrieval, or insufficient body evidence): disclose the candidate and uncertainty — ⊗ claim verified no-match.
+- ! A merged in-window PR that implements an entire Step-4 suggestion with **no** linked closed issue still suppresses/disposes that suggestion in Step 5 before Step 6/7 (PR-only proposal suppression).
+- ⊗ Propose or file after only an open-state issue scan, or after closed-issue-only with closed-PR search left merely callable.
 
 **Mechanism inventory (index-first, #5694)**
 
@@ -228,6 +254,9 @@ If yes, follow the thread. This may include fetching related URLs, evaluating re
 - ⊗ Filing a single giant issue for all suggestions — one issue per distinct suggestion or related group
 - ⊗ Proposing a new issue without first checking whether it duplicates an open one (body-level ownership, not titles alone)
 - ⊗ Claiming related/owning issues from titles only, or citing issue numbers without verifying existence and state (#3163)
+- ⊗ Propose or file after only an open-state issue scan, or after a closed-issue-only pass while closed-PR search remains merely callable (#1178)
+- ⊗ Treat incomplete closed retrieval (`cap` / `error` / truncated PR files) as verified no-match (#1178)
+- ⊗ Claim verified no-match without recording a closed-walk outcome token (`window-exhausted` | `list-exhausted` | `cap` | `error`) (#1178)
 - ⊗ Claiming a mechanism gap without the Step 5 index-first inventory (skills list → Rule Authority / Thin Fail-Closed → path grep)
 - ⊗ Evaluating novelty from a hand-maintained Directive Reference summary instead of live skills-list / Rule Authority pointers
 - ⊗ Citing AUTO-GENERATED rendered paths as production edit targets when pack source exists

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added — pre-filing closed-issue/PR search: article-review Step 5 requires both closed passes with coverage tokens and disposition; pre-pr owns first-PR-open path-intersection; thin AGENTS pointer. Refs #1178.
 - Added — article-review Step 6.5 process-only critic pass before filing, with Step 5 mechanism inventory and Critic verdict section on filed issues. Refs #5694.
 - Added — Prefer-A Recut-2 for `feedback:file`: complete open inventory dedup, closed retained-count window (500) with disposition tokens, open-match evidence comment (`commented-open-duplicate`), and `--on-closed=comment|create-anyway` without reopen. Refs #5099.
 - Added — Helpers for reviewing a brief without creating a GitHub issue. These support file-based critic results, retained review records, and returning the accepted remedy to the same brief. Refs #5486.

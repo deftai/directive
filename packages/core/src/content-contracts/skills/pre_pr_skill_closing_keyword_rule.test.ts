@@ -44,4 +44,20 @@ describe("test_pre_pr_skill_closing_keyword_rule", () => {
     expect(text).toContain("skills/deft-directive-pre-pr/SKILL.md");
     expect(text).toContain("pr:check-closing-keywords");
   });
+
+  it("pre_pr_owns_first_pr_open_closed_pr_path_intersection (#1178)", () => {
+    const text = readRepoFile("skills/deft-directive-pre-pr/SKILL.md");
+    expect(text).toContain("## First-PR-open closed-PR path-intersection (#1178)");
+    expect(text).toContain("PREFILING_CLOSED_PR_WINDOW");
+    expect(text).toContain("window-exhausted");
+    expect(text).toContain("list-exhausted");
+    expect(text).toContain("path-intersection");
+    expect(text).toContain("pulls/<n>/files");
+    expect(text).toContain("Phase 6");
+    expect(text).toContain("Open a product PR with no closed-PR path-intersection pass");
+    const sectionIdx = text.indexOf("## First-PR-open closed-PR path-intersection (#1178)");
+    const exitIdx = text.indexOf("## Exit Condition");
+    expect(sectionIdx).toBeGreaterThanOrEqual(0);
+    expect(exitIdx).toBeGreaterThan(sectionIdx);
+  });
 });
