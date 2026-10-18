@@ -145,10 +145,11 @@
           "content/packs/skills/skills-pack-0.1.json",
           "content/skills/deft-directive-setup/SKILL.md",
           "packages/core/src/content-contracts/standards/strategy_chaining.test.ts",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "docs/RULE-MAP.md"
         ],
         "module_boundary": "optional who/need ProblemStatement ask before sizing on Light and Full",
-        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #5692. content-contract strategy_chaining.test.ts for interview ProblemStatement gate."
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #5692. content-contract strategy_chaining.test.ts for interview ProblemStatement gate. docs/RULE-MAP.md regenerated after strategies pack edit."
       },
       "x-directive/plan-id": {
         "version": 1,
@@ -176,7 +177,8 @@
           "content/packs/skills/skills-pack-0.1.json",
           "content/skills/deft-directive-setup/SKILL.md",
           "packages/core/src/content-contracts/standards/strategy_chaining.test.ts",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "docs/RULE-MAP.md"
         ],
         "size": "M",
         "file_scope_confidence": "high",
