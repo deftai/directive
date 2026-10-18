@@ -301,27 +301,20 @@ export function countScopeHistoryFolders(
     ...EMPTY_SCOPE_COUNTS,
   };
   let unreadable = false;
-  const list =
-    seams?.readdir ??
-    ((dir: string) => {
-      try {
-        return readdirSync(dir);
-      } catch (err) {
-        const code =
-          err && typeof err === "object" && "code" in err
-            ? String((err as { code?: unknown }).code)
-            : "";
-        if (code === "ENOENT") return [];
-        throw err;
-      }
-    });
+  const list = seams?.readdir ?? ((dir: string) => readdirSync(dir));
   for (const folder of SCOPE_HISTORY_FOLDERS) {
     const dir = join(projectRoot, MIGRATED_ARTIFACT_DIR, folder);
     try {
       const names = list(dir);
       counts[folder] = names.filter(isScopeEnvelopeName).length;
-    } catch {
-      unreadable = true;
+    } catch (err) {
+      const code =
+        err && typeof err === "object" && "code" in err
+          ? String((err as { code?: unknown }).code)
+          : "";
+      if (code !== "ENOENT") {
+        unreadable = true;
+      }
     }
   }
   return { counts, unreadable };
