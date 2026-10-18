@@ -270,7 +270,7 @@ describe("evaluatePanelSeatDelivery (#3979 panel consumption)", () => {
 
 describe("file-path stage-(0) (#5486)", () => {
   const dispatchSha = "b0ec56e7f9ddfba2634261805317095ec252b21b";
-  const manifest = constructOutboxManifest({
+  const constructed = constructOutboxManifest({
     dispatchSha,
     targetId: "xbrief/proposed/demo.xbrief.json",
     targetPath: "xbrief/proposed/demo.xbrief.json",
@@ -278,11 +278,42 @@ describe("file-path stage-(0) (#5486)", () => {
     seatIds: ["grok", "codex", "claude"],
     createdAt: "2026-10-17T00:00:00.000Z",
   });
+  if (!constructed.ok) {
+    throw new Error(`expected valid fixture manifest: ${constructed.error}`);
+  }
+  const manifest = constructed.manifest;
 
   it("constructs exclusive-create outbox manifest as stage-(0) ceiling", () => {
     expect(manifest.schema).toBe("deft.design-critique.outbox-manifest.v1");
     expect(manifest.seats).toHaveLength(3);
     expect(manifest.seats.every((s) => s.exclusiveCreate)).toBe(true);
+  });
+
+  it("returns ok:false for operational caller-input denies (no throw)", () => {
+    expect(constructOutboxManifest({
+      dispatchSha: "not-a-sha",
+      targetId: "t",
+      round: 1,
+      seatIds: ["a"],
+    }).ok).toBe(false);
+    expect(constructOutboxManifest({
+      dispatchSha,
+      targetId: "  ",
+      round: 1,
+      seatIds: ["a"],
+    }).ok).toBe(false);
+    expect(constructOutboxManifest({
+      dispatchSha,
+      targetId: "t",
+      round: 1,
+      seatIds: [],
+    }).ok).toBe(false);
+    expect(constructOutboxManifest({
+      dispatchSha,
+      targetId: "t",
+      round: 1,
+      seatIds: ["a", "a"],
+    }).ok).toBe(false);
   });
 
   it("binds file-path via parent-read obligation fields, not bare existence", () => {

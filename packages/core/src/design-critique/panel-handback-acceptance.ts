@@ -178,9 +178,15 @@ export function boundArtifactIdForSeat(seatId: string, dispatchSha: string): str
   return `outbox:${seatId}@${short}`;
 }
 
+/** Caller-input validation for stage-(0) outbox construction (operational deny). */
+export type ConstructOutboxManifestResult =
+  | { readonly ok: true; readonly manifest: OutboxManifest }
+  | { readonly ok: false; readonly error: string };
+
 /**
  * Stage-(0) constructs the outbox-manifest artifact. Do not defer construction
  * to archive stage (b). Seats are exclusive-create; N>=3 when isolation asks.
+ * Bad caller input returns `{ ok:false }` (operational; no throw/mint).
  */
 export function constructOutboxManifest(input: {
   readonly dispatchSha: string;
@@ -189,22 +195,31 @@ export function constructOutboxManifest(input: {
   readonly round: number;
   readonly seatIds: readonly string[];
   readonly createdAt?: string;
-}): OutboxManifest {
+}): ConstructOutboxManifestResult {
   if (!DISPATCH_SHA_RE.test(input.dispatchSha)) {
-    throw new Error(`constructOutboxManifest: invalid dispatchSha ${input.dispatchSha}`);
+    return {
+      ok: false,
+      error: `constructOutboxManifest: invalid dispatchSha ${input.dispatchSha}`,
+    };
   }
   if (input.targetId.trim().length === 0) {
-    throw new Error("constructOutboxManifest: targetId required");
+    return { ok: false, error: "constructOutboxManifest: targetId required" };
   }
   if (input.seatIds.length === 0) {
-    throw new Error("constructOutboxManifest: at least one seat required");
+    return {
+      ok: false,
+      error: "constructOutboxManifest: at least one seat required",
+    };
   }
   const seen = new Set<string>();
   const seats: OutboxManifestSeatEntry[] = [];
   for (const seatId of input.seatIds) {
     const id = seatId.trim();
     if (id.length === 0 || seen.has(id)) {
-      throw new Error(`constructOutboxManifest: duplicate or empty seat ${seatId}`);
+      return {
+        ok: false,
+        error: `constructOutboxManifest: duplicate or empty seat ${seatId}`,
+      };
     }
     seen.add(id);
     seats.push({
@@ -214,13 +229,16 @@ export function constructOutboxManifest(input: {
     });
   }
   return {
-    schema: OUTBOX_MANIFEST_SCHEMA,
-    dispatchSha: input.dispatchSha.toLowerCase(),
-    targetId: input.targetId,
-    targetPath: input.targetPath ?? null,
-    round: input.round,
-    seats,
-    createdAt: input.createdAt ?? new Date().toISOString(),
+    ok: true,
+    manifest: {
+      schema: OUTBOX_MANIFEST_SCHEMA,
+      dispatchSha: input.dispatchSha.toLowerCase(),
+      targetId: input.targetId,
+      targetPath: input.targetPath ?? null,
+      round: input.round,
+      seats,
+      createdAt: input.createdAt ?? new Date().toISOString(),
+    },
   };
 }
 
