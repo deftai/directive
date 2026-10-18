@@ -6,6 +6,7 @@ import {
   ADOPTION_BLOCKER_TITLE_TOKEN,
   buildFrameworkGapBody,
   buildFrameworkGapTitle,
+  FEEDBACK_CLOSED_DEDUP_WINDOW,
   FRAMEWORK_GAP_TITLE_PREFIX,
   feedbackFileMain,
   fenceFreeTextSection,
@@ -14,6 +15,7 @@ import {
   normalizeForDedup,
   parseFeedbackFileArgs,
   runFeedbackFile,
+  walkClosedIssuesForFeedbackDedup,
 } from "./feedback-file.js";
 
 function makeConsumerProject(): string {
@@ -42,6 +44,38 @@ function makeConsumerProject(): string {
   return root;
 }
 
+function isOpenInventory(args: readonly string[]): boolean {
+  return args.includes("--paginate") && args.includes("--slurp");
+}
+
+function isClosedPage(args: readonly string[]): boolean {
+  const joined = args.join(" ");
+  return joined.includes("state=closed") && joined.includes("sort=updated");
+}
+
+function isCommentPost(args: readonly string[]): boolean {
+  return args.includes("POST") && args.some((a) => /\/issues\/\d+\/comments$/.test(a));
+}
+
+function isIssueCreatePost(args: readonly string[]): boolean {
+  return (
+    args.includes("POST") &&
+    !isCommentPost(args) &&
+    args.some((a) => typeof a === "string" && /\/issues$/.test(a))
+  );
+}
+
+function emptySeams(): { runGhApiFn: ReturnType<typeof vi.fn> } {
+  return {
+    runGhApiFn: vi.fn((args: readonly string[]) => {
+      if (isOpenInventory(args) || isClosedPage(args)) {
+        return { returncode: 0, stdout: "[]", stderr: "" };
+      }
+      return { returncode: 0, stdout: "{}", stderr: "" };
+    }),
+  };
+}
+
 describe("feedback-file helpers", () => {
   it("builds a prefixed framework-gap title", () => {
     expect(buildFrameworkGapTitle("Missing decompose hint")).toBe(
@@ -65,6 +99,13 @@ describe("feedback-file helpers", () => {
     expect(body).toContain("Refs #1709");
     expect(body).toContain("`deft feedback:file`");
     expect(body).not.toContain("`task feedback:file`");
+    expect(body).toContain("_Filed via");
+  });
+
+  it("uses evidence-append footer for comment mode (#5099)", () => {
+    const comment = buildFrameworkGapBody({ summary: "Evidence" }, { mode: "comment" });
+    expect(comment).toContain("_Evidence appended via `deft feedback:file`");
+    expect(comment).not.toContain("_Filed via");
   });
 
   it("fences line-leading # and --- in free-text sections (#4375)", () => {
@@ -96,6 +137,8 @@ describe("findDuplicateIssue", () => {
         returncode: 0,
         stdout: JSON.stringify([
           {
+            number: 42,
+            state: "open",
             title: "[framework-gap] Missing skill coverage",
             html_url: "https://github.com/deftai/directive/issues/42",
           },
@@ -109,26 +152,24 @@ describe("findDuplicateIssue", () => {
       seams,
     );
     expect(match?.url).toBe("https://github.com/deftai/directive/issues/42");
+    expect(match?.number).toBe(42);
+    expect(match?.state).toBe("open");
   });
 });
 
 describe("runFeedbackFile gates", () => {
   it("rejects filing without confirmation", () => {
     const root = makeConsumerProject();
-    const restCreateIssue = vi.fn();
     try {
       const result = runFeedbackFile({
         summary: "Needs clearer onboarding",
         projectRoot: root,
         confirm: false,
-        seams: {
-          runGhApiFn: vi.fn(() => ({ returncode: 0, stdout: "[]", stderr: "" })),
-        },
+        seams: emptySeams(),
       });
       expect(result.outcome).toBe("draft");
       expect(result.exitCode).toBe(1);
       expect(result.message).toContain("Re-run with --confirm");
-      expect(restCreateIssue).not.toHaveBeenCalled();
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -147,29 +188,62 @@ describe("runFeedbackFile gates", () => {
     expect(result.message).toContain("Skipped");
   });
 
-  it("blocks duplicate upstream issues", () => {
+  it("comments on open duplicate with --confirm (retires blocked-duplicate)", () => {
     const root = makeConsumerProject();
+    const posts: string[] = [];
     try {
       const result = runFeedbackFile({
         summary: "Duplicate gap",
         projectRoot: root,
         confirm: true,
         seams: {
-          runGhApiFn: vi.fn(() => ({
-            returncode: 0,
-            stdout: JSON.stringify([
-              {
-                title: "[framework-gap] Duplicate gap",
-                html_url: "https://github.com/deftai/directive/issues/99",
-              },
-            ]),
-            stderr: "",
-          })),
+          runGhApiFn: vi.fn((args: readonly string[]) => {
+            if (isOpenInventory(args)) {
+              return {
+                returncode: 0,
+                stdout: JSON.stringify([
+                  {
+                    number: 99,
+                    state: "open",
+                    title: "[framework-gap] Duplicate gap",
+                    html_url: "https://github.com/deftai/directive/issues/99",
+                  },
+                ]),
+                stderr: "",
+              };
+            }
+            if (isCommentPost(args)) {
+              posts.push("comment");
+              return {
+                returncode: 0,
+                stdout: JSON.stringify({
+                  id: 555,
+                  html_url: "https://github.com/deftai/directive/issues/99#issuecomment-555",
+                }),
+                stderr: "",
+              };
+            }
+            if (isIssueCreatePost(args)) {
+              posts.push("create");
+              return {
+                returncode: 0,
+                stdout: JSON.stringify({
+                  number: 1000,
+                  html_url: "https://github.com/deftai/directive/issues/1000",
+                }),
+                stderr: "",
+              };
+            }
+            return { returncode: 0, stdout: "[]", stderr: "" };
+          }),
         },
       });
-      expect(result.outcome).toBe("blocked-duplicate");
-      expect(result.exitCode).toBe(1);
+      expect(result.outcome).toBe("commented-open-duplicate");
+      expect(result.exitCode).toBe(0);
       expect(result.duplicateUrl).toContain("/issues/99");
+      expect(result.commentUrl).toContain("issuecomment-555");
+      expect(result.body).toContain("_Evidence appended via");
+      expect(posts).toEqual(["comment"]);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -192,7 +266,7 @@ describe("runFeedbackFile gates", () => {
         confirm: true,
         seams: {
           runGhApiFn: (args: readonly string[]) => {
-            if (args.includes("POST")) {
+            if (isIssueCreatePost(args)) {
               return createPayload();
             }
             return { returncode: 0, stdout: "[]", stderr: "" };
@@ -304,6 +378,13 @@ describe("feedback-file CLI", () => {
     expect(parsed.context).toBe("kept");
   });
 
+  it("parses --on-closed equals and space forms; rejects bogus", () => {
+    expect(parseFeedbackFileArgs(["--on-closed=comment"]).onClosed).toBe("comment");
+    expect(parseFeedbackFileArgs(["--on-closed", "create-anyway"]).onClosed).toBe("create-anyway");
+    expect(parseFeedbackFileArgs(["--on-closed=bogus"]).error).toMatch(/invalid --on-closed/);
+    expect(feedbackFileMain(["--summary", "x", "--on-closed=bogus"])).toBe(2);
+  });
+
   it("returns config error when summary missing", () => {
     expect(feedbackFileMain([])).toBe(2);
   });
@@ -339,7 +420,7 @@ describe("feedback-file CLI", () => {
         confirm: true,
         seams: {
           runGhApiFn: (args: readonly string[]) => {
-            if (args.includes("POST")) {
+            if (isIssueCreatePost(args)) {
               return { returncode: 1, stdout: "", stderr: "forbidden" };
             }
             return { returncode: 0, stdout: "[]", stderr: "" };
@@ -355,11 +436,12 @@ describe("feedback-file CLI", () => {
 
   it("runs duplicate detection during dry-run preview", () => {
     const root = makeConsumerProject();
-    const listCalls = vi.fn(() => ({
-      returncode: 0,
-      stdout: JSON.stringify([]),
-      stderr: "",
-    }));
+    const listCalls = vi.fn((args: readonly string[]) => {
+      if (isOpenInventory(args) || isClosedPage(args)) {
+        return { returncode: 0, stdout: "[]", stderr: "" };
+      }
+      return { returncode: 0, stdout: "{}", stderr: "" };
+    });
     try {
       runFeedbackFile({
         summary: "Dry preview",
@@ -434,12 +516,10 @@ describe("feedback-file CLI", () => {
     const root = makeConsumerProject();
     const prevNet = process.env.DEFT_NO_NETWORK;
     try {
-      // Offline so draft path does not flaky-fail on live gh dedup (exit 2 network).
       process.env.DEFT_NO_NETWORK = "1";
       const code = feedbackFileMain(["--summary", "Json path", "--project-root", root, "--json"]);
       expect(code).toBe(1);
 
-      // Filing path uses seams; clear offline so confirm+seams still exercises POST.
       delete process.env.DEFT_NO_NETWORK;
       const filed = runFeedbackFile({
         summary: "No url filed",
@@ -447,7 +527,7 @@ describe("feedback-file CLI", () => {
         confirm: true,
         seams: {
           runGhApiFn: (args: readonly string[]) => {
-            if (args.includes("POST")) {
+            if (isIssueCreatePost(args)) {
               return {
                 returncode: 0,
                 stdout: JSON.stringify({ number: 77 }),
@@ -486,9 +566,10 @@ describe("feedback-file CLI", () => {
       runGhApiFn: vi.fn(() => ({
         returncode: 0,
         stdout: JSON.stringify([
-          { title: "Gap title", html_url: "" },
           { title: 123 },
           {
+            number: 9,
+            state: "open",
             title: "[framework-gap] Gap title",
             html_url: "https://github.com/deftai/directive/issues/9",
           },
@@ -497,6 +578,527 @@ describe("feedback-file CLI", () => {
       })),
     });
     expect(match?.url).toContain("/issues/9");
+    expect(() =>
+      findDuplicateIssue("deftai/directive", "Gap title", {
+        runGhApiFn: vi.fn(() => ({
+          returncode: 0,
+          stdout: JSON.stringify([{ title: "Gap title", html_url: "", number: 1, state: "open" }]),
+          stderr: "",
+        })),
+      }),
+    ).toThrow(/usable numeric number/);
+  });
+});
+
+describe("Prefer-A Recut-2 open inventory + closed walk (#5099)", () => {
+  it("finds open match regardless of closed-heavy neighbors", () => {
+    const root = makeConsumerProject();
+    try {
+      const result = runFeedbackFile({
+        summary: "Open wins",
+        projectRoot: root,
+        confirm: false,
+        seams: {
+          runGhApiFn: vi.fn((args: readonly string[]) => {
+            if (isOpenInventory(args)) {
+              return {
+                returncode: 0,
+                stdout: JSON.stringify([
+                  {
+                    number: 11,
+                    state: "open",
+                    title: "[framework-gap] Open wins",
+                    html_url: "https://github.com/deftai/directive/issues/11",
+                  },
+                ]),
+                stderr: "",
+              };
+            }
+            // Closed walk should not be consulted once open match exists.
+            if (isClosedPage(args)) {
+              return {
+                returncode: 0,
+                stdout: JSON.stringify([
+                  {
+                    number: 12,
+                    state: "closed",
+                    title: "[framework-gap] Open wins",
+                    html_url: "https://github.com/deftai/directive/issues/12",
+                  },
+                ]),
+                stderr: "",
+              };
+            }
+            return { returncode: 0, stdout: "[]", stderr: "" };
+          }),
+        },
+      });
+      expect(result.outcome).toBe("draft");
+      expect(result.duplicateUrl).toContain("/issues/11");
+      expect(result.message).toContain("Open duplicate");
+      expect(result.message).toContain("_Evidence appended via");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed on open-inventory failure (no create)", () => {
+    const root = makeConsumerProject();
+    const posts: string[] = [];
+    try {
+      const result = runFeedbackFile({
+        summary: "Inventory fail",
+        projectRoot: root,
+        confirm: true,
+        seams: {
+          runGhApiFn: vi.fn((args: readonly string[]) => {
+            if (isOpenInventory(args)) {
+              return { returncode: 1, stdout: "", stderr: "boom" };
+            }
+            if (isIssueCreatePost(args) || isCommentPost(args)) {
+              posts.push("mutation");
+            }
+            return { returncode: 0, stdout: "[]", stderr: "" };
+          }),
+        },
+      });
+      expect(result.outcome).toBe("error-network");
+      expect(posts).toEqual([]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("--dry-run --confirm open-match performs zero mutations", () => {
+    const root = makeConsumerProject();
+    const posts: string[] = [];
+    try {
+      const result = runFeedbackFile({
+        summary: "Dry open",
+        projectRoot: root,
+        confirm: true,
+        dryRun: true,
+        seams: {
+          runGhApiFn: vi.fn((args: readonly string[]) => {
+            if (isOpenInventory(args)) {
+              return {
+                returncode: 0,
+                stdout: JSON.stringify([
+                  {
+                    number: 7,
+                    state: "open",
+                    title: "[framework-gap] Dry open",
+                    html_url: "https://github.com/deftai/directive/issues/7",
+                  },
+                ]),
+                stderr: "",
+              };
+            }
+            if (isIssueCreatePost(args) || isCommentPost(args)) {
+              posts.push("mutation");
+            }
+            return { returncode: 0, stdout: "[]", stderr: "" };
+          }),
+        },
+      });
+      expect(result.outcome).toBe("draft");
+      expect(result.exitCode).toBe(0);
+      expect(posts).toEqual([]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("closed window-exhausted without match creates with incomplete note", () => {
+    const root = makeConsumerProject();
+    try {
+      const result = runFeedbackFile({
+        summary: "Window note",
+        projectRoot: root,
+        confirm: true,
+        closedWindow: 2,
+        seams: {
+          runGhApiFn: vi.fn((args: readonly string[]) => {
+            if (isOpenInventory(args)) {
+              return { returncode: 0, stdout: "[]", stderr: "" };
+            }
+            if (isClosedPage(args)) {
+              return {
+                returncode: 0,
+                stdout: JSON.stringify([
+                  {
+                    number: 1,
+                    state: "closed",
+                    title: "other one",
+                    html_url: "https://github.com/deftai/directive/issues/1",
+                  },
+                  {
+                    number: 2,
+                    state: "closed",
+                    title: "other two",
+                    html_url: "https://github.com/deftai/directive/issues/2",
+                  },
+                ]),
+                stderr: "",
+              };
+            }
+            if (isIssueCreatePost(args)) {
+              return {
+                returncode: 0,
+                stdout: JSON.stringify({
+                  number: 300,
+                  html_url: "https://github.com/deftai/directive/issues/300",
+                }),
+                stderr: "",
+              };
+            }
+            return { returncode: 0, stdout: "[]", stderr: "" };
+          }),
+        },
+      });
+      expect(result.outcome).toBe("filed");
+      expect(result.message).toContain("stopReason=window-exhausted");
+      expect(result.message).toContain("inspectedIssueCount=2");
+      expect(result.message).toContain("window=2");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("closed list-exhausted without match creates without incomplete warning", () => {
+    const root = makeConsumerProject();
+    try {
+      const result = runFeedbackFile({
+        summary: "List exhausted",
+        projectRoot: root,
+        confirm: true,
+        seams: {
+          runGhApiFn: vi.fn((args: readonly string[]) => {
+            if (isOpenInventory(args) || isClosedPage(args)) {
+              return { returncode: 0, stdout: "[]", stderr: "" };
+            }
+            if (isIssueCreatePost(args)) {
+              return {
+                returncode: 0,
+                stdout: JSON.stringify({
+                  number: 301,
+                  html_url: "https://github.com/deftai/directive/issues/301",
+                }),
+                stderr: "",
+              };
+            }
+            return { returncode: 0, stdout: "{}", stderr: "" };
+          }),
+        },
+      });
+      expect(result.outcome).toBe("filed");
+      expect(result.message).not.toContain("closed-issue search incomplete");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("closed cap before window end with PR-heavy pages notes stopReason=cap", () => {
+    const root = makeConsumerProject();
+    try {
+      const result = runFeedbackFile({
+        summary: "Cap note",
+        projectRoot: root,
+        confirm: true,
+        closedWindow: 50,
+        closedRowBudget: 3,
+        seams: {
+          runGhApiFn: vi.fn((args: readonly string[]) => {
+            if (isOpenInventory(args)) {
+              return { returncode: 0, stdout: "[]", stderr: "" };
+            }
+            if (isClosedPage(args)) {
+              return {
+                returncode: 0,
+                stdout: JSON.stringify([
+                  {
+                    number: 10,
+                    state: "closed",
+                    title: "pr twin",
+                    html_url: "https://github.com/deftai/directive/pull/10",
+                    pull_request: {},
+                  },
+                  {
+                    number: 11,
+                    state: "closed",
+                    title: "pr twin 2",
+                    html_url: "https://github.com/deftai/directive/pull/11",
+                    pull_request: {},
+                  },
+                  {
+                    number: 12,
+                    state: "closed",
+                    title: "pr twin 3",
+                    html_url: "https://github.com/deftai/directive/pull/12",
+                    pull_request: {},
+                  },
+                  {
+                    number: 13,
+                    state: "closed",
+                    title: "real issue",
+                    html_url: "https://github.com/deftai/directive/issues/13",
+                  },
+                ]),
+                stderr: "",
+              };
+            }
+            if (isIssueCreatePost(args)) {
+              return {
+                returncode: 0,
+                stdout: JSON.stringify({
+                  number: 302,
+                  html_url: "https://github.com/deftai/directive/issues/302",
+                }),
+                stderr: "",
+              };
+            }
+            return { returncode: 0, stdout: "[]", stderr: "" };
+          }),
+        },
+      });
+      expect(result.outcome).toBe("filed");
+      expect(result.message).toContain("stopReason=cap");
+      expect(result.message).not.toContain("stopReason=window-exhausted");
+      expect(result.message).toContain("budget=3");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("excludes pull rows from title match and retained count", () => {
+    const walk = walkClosedIssuesForFeedbackDedup(
+      "deftai/directive",
+      "[framework-gap] Pull twin",
+      { window: 1 },
+      {
+        runGhApiFn: vi.fn(() => ({
+          returncode: 0,
+          stdout: JSON.stringify([
+            {
+              number: 80,
+              state: "closed",
+              title: "[framework-gap] Pull twin",
+              html_url: "https://github.com/deftai/directive/pull/80",
+              pull_request: {},
+            },
+            {
+              number: 81,
+              state: "closed",
+              title: "unrelated",
+              html_url: "https://github.com/deftai/directive/issues/81",
+            },
+          ]),
+          stderr: "",
+        })),
+      },
+    );
+    expect(walk.match).toBeNull();
+    expect(walk.outcome).toBe("window-exhausted");
+    expect(walk.inspectedIssueCount).toBe(1);
+    expect(walk.rawRows).toBeGreaterThanOrEqual(2);
+  });
+
+  it("blocks closed duplicate without disposition", () => {
+    const root = makeConsumerProject();
+    const posts: string[] = [];
+    try {
+      const result = runFeedbackFile({
+        summary: "Closed twin",
+        projectRoot: root,
+        confirm: true,
+        seams: {
+          runGhApiFn: vi.fn((args: readonly string[]) => {
+            if (isOpenInventory(args)) {
+              return { returncode: 0, stdout: "[]", stderr: "" };
+            }
+            if (isClosedPage(args)) {
+              return {
+                returncode: 0,
+                stdout: JSON.stringify([
+                  {
+                    number: 44,
+                    state: "closed",
+                    title: "[framework-gap] Closed twin",
+                    html_url: "https://github.com/deftai/directive/issues/44",
+                  },
+                ]),
+                stderr: "",
+              };
+            }
+            if (isIssueCreatePost(args) || isCommentPost(args)) {
+              posts.push("mutation");
+            }
+            return { returncode: 0, stdout: "[]", stderr: "" };
+          }),
+        },
+      });
+      expect(result.outcome).toBe("blocked-closed-duplicate");
+      expect(result.exitCode).toBe(1);
+      expect(result.message).toContain("--on-closed=comment");
+      expect(result.message).toContain("--on-closed=create-anyway");
+      expect(posts).toEqual([]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("--on-closed=comment posts without reopen", () => {
+    const root = makeConsumerProject();
+    const posts: string[] = [];
+    try {
+      const result = runFeedbackFile({
+        summary: "Closed comment",
+        projectRoot: root,
+        confirm: true,
+        onClosed: "comment",
+        seams: {
+          runGhApiFn: vi.fn((args: readonly string[]) => {
+            if (isOpenInventory(args)) {
+              return { returncode: 0, stdout: "[]", stderr: "" };
+            }
+            if (isClosedPage(args)) {
+              return {
+                returncode: 0,
+                stdout: JSON.stringify([
+                  {
+                    number: 55,
+                    state: "closed",
+                    title: "[framework-gap] Closed comment",
+                    html_url: "https://github.com/deftai/directive/issues/55",
+                  },
+                ]),
+                stderr: "",
+              };
+            }
+            if (isCommentPost(args)) {
+              posts.push("comment");
+              expect(args.some((a) => a.includes("/issues/55/comments"))).toBe(true);
+              return {
+                returncode: 0,
+                stdout: JSON.stringify({
+                  id: 900,
+                  html_url: "https://github.com/deftai/directive/issues/55#issuecomment-900",
+                }),
+                stderr: "",
+              };
+            }
+            if (isIssueCreatePost(args)) {
+              posts.push("create");
+            }
+            // PATCH reopen would be a different endpoint; ensure none.
+            if (args.includes("PATCH")) {
+              posts.push("patch");
+            }
+            return { returncode: 0, stdout: "{}", stderr: "" };
+          }),
+        },
+      });
+      expect(result.exitCode).toBe(0);
+      expect(result.commentUrl).toContain("issuecomment-900");
+      expect(posts).toEqual(["comment"]);
+      expect(result.body).toContain("_Evidence appended via");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("--on-closed=create-anyway creates with Related: closed #<n>", () => {
+    const root = makeConsumerProject();
+    try {
+      const result = runFeedbackFile({
+        summary: "Create anyway",
+        projectRoot: root,
+        confirm: true,
+        onClosed: "create-anyway",
+        seams: {
+          runGhApiFn: vi.fn((args: readonly string[]) => {
+            if (isOpenInventory(args)) {
+              return { returncode: 0, stdout: "[]", stderr: "" };
+            }
+            if (isClosedPage(args)) {
+              return {
+                returncode: 0,
+                stdout: JSON.stringify([
+                  {
+                    number: 66,
+                    state: "closed",
+                    title: "[framework-gap] Create anyway",
+                    html_url: "https://github.com/deftai/directive/issues/66",
+                  },
+                ]),
+                stderr: "",
+              };
+            }
+            if (isIssueCreatePost(args)) {
+              const input = args[args.indexOf("--input") + 1];
+              const payload = JSON.parse(readFileSync(String(input), "utf8")) as {
+                body?: string;
+              };
+              expect(payload.body).toContain("Related: closed #66");
+              return {
+                returncode: 0,
+                stdout: JSON.stringify({
+                  number: 67,
+                  html_url: "https://github.com/deftai/directive/issues/67",
+                }),
+                stderr: "",
+              };
+            }
+            return { returncode: 0, stdout: "[]", stderr: "" };
+          }),
+        },
+      });
+      expect(result.outcome).toBe("filed");
+      expect(result.body).toContain("Related: closed #66");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("malformed open row without number does not create", () => {
+    const root = makeConsumerProject();
+    const posts: string[] = [];
+    try {
+      const result = runFeedbackFile({
+        summary: "Malformed",
+        projectRoot: root,
+        confirm: true,
+        seams: {
+          runGhApiFn: vi.fn((args: readonly string[]) => {
+            if (isOpenInventory(args)) {
+              return {
+                returncode: 0,
+                stdout: JSON.stringify([
+                  {
+                    state: "open",
+                    title: "[framework-gap] Malformed",
+                    html_url: "https://github.com/deftai/directive/issues/1",
+                  },
+                ]),
+                stderr: "",
+              };
+            }
+            if (isIssueCreatePost(args) || isCommentPost(args)) {
+              posts.push("mutation");
+            }
+            return { returncode: 0, stdout: "[]", stderr: "" };
+          }),
+        },
+      });
+      expect(result.outcome).toBe("error-network");
+      expect(posts).toEqual([]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("pins FEEDBACK_CLOSED_DEDUP_WINDOW default at 500", () => {
+    expect(FEEDBACK_CLOSED_DEDUP_WINDOW).toBe(500);
   });
 });
 
@@ -533,6 +1135,8 @@ describe("adoption-blocker title token (#3713)", () => {
 
   it("finds a duplicate when one side is marked and the other is not", () => {
     const unmarkedOpen = {
+      number: 42,
+      state: "open",
       title: "[framework-gap] Missing skill coverage",
       html_url: "https://github.com/deftai/directive/issues/42",
     };
@@ -554,6 +1158,8 @@ describe("adoption-blocker title token (#3713)", () => {
         returncode: 0,
         stdout: JSON.stringify([
           {
+            number: 43,
+            state: "open",
             title: "[framework-gap] BLOCKER Missing skill coverage",
             html_url: "https://github.com/deftai/directive/issues/43",
           },
@@ -619,7 +1225,7 @@ describe("adoption-blocker title token (#3713)", () => {
         confirm: true,
         seams: {
           runGhApiFn: (args: readonly string[]) => {
-            if (args.includes("POST")) {
+            if (isIssueCreatePost(args)) {
               const input = args[args.indexOf("--input") + 1];
               const payload = JSON.parse(readFileSync(String(input), "utf8")) as {
                 title?: string;
@@ -660,7 +1266,7 @@ describe("adoption-blocker title token (#3713)", () => {
         confirm: true,
         seams: {
           runGhApiFn: (args: readonly string[]) => {
-            if (args.includes("POST")) {
+            if (isIssueCreatePost(args)) {
               const input = args[args.indexOf("--input") + 1];
               const payload = JSON.parse(readFileSync(String(input), "utf8")) as {
                 title?: string;

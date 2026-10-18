@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added — article-review Step 6.5 process-only critic pass before filing, with Step 5 mechanism inventory and Critic verdict section on filed issues. Refs #5694.
+- Added — Prefer-A Recut-2 for `feedback:file`: complete open inventory dedup, closed retained-count window (500) with disposition tokens, open-match evidence comment (`commented-open-duplicate`), and `--on-closed=comment|create-anyway` without reopen. Refs #5099.
 
 ### Changed
 - Changed — Activate Prefer-A Bound running briefs for #5099 and #1178 on master (proceed cohort add; productPullRequest unset). Refs #5099 #1178.
