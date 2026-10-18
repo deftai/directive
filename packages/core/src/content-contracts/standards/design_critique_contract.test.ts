@@ -2234,4 +2234,22 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(verdict.spendAsk).toBe("resolved");
     expect(verdict.disclosure).toContain("host memory discarded for closed field:");
   });
+
+  it("locks target-kind / ceiling-kind and brief fields for no-issue targets (#5486)", () => {
+    const text = readText(CONTRACT);
+    expect(text).toContain("### Target-kind (#5486)");
+    expect(text).toContain("### Ceiling-kind (#5486)");
+    expect(text).toContain("dispatch-sha-outbox-manifest");
+    expect(text).toContain("arc-post:");
+    expect(text).toContain("## No-issue target archive (#5486)");
+    expect(text).toContain("evaluateNoIssueGateAdmission");
+    expect(text).toContain("hashBoundRemedyBytes");
+    const template = readText(TEMPLATE);
+    expect(template).toContain("Target-kind");
+    expect(template).toContain("Ceiling-kind");
+    expect(template).toContain("issue");
+    expect(template).toContain("xbrief");
+    expect(template).toContain("envelope-file");
+    expect(template).toContain("dispatch-sha-outbox-manifest");
+  });
 });

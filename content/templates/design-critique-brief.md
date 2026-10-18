@@ -14,7 +14,9 @@ Dispatch envelope skeleton for one critic or synthesis pass. Fill the fields. Re
 - SHA at dispatch:
 - Run posture (`arc-mode: no-ingest` | `arc-mode: checkout`):
 - Materiality bar (`materiality-bar: open` | `materiality-bar: ship-ready`; ship-ready / lgtm launch tokens):
-- Target (work issue or umbrella):
+- Target (work issue, xBRIEF path, or envelope-file path):
+- Target-kind (`issue` | `xbrief` | `envelope-file`; default `issue`):
+- Ceiling-kind (`comment-id` | `dispatch-sha-outbox-manifest`; default `comment-id`):
 - Audit targets (marker ids, comma-separated, or `none`; ids only, no parent rationale). Copy onto the posted critic comment as an operative line-start `audit-targets:`. Pain-audit of relieves uses those ids (`pain-P1`), not an English heading:
 - Pain (Stop 1 bind list; closed forms `pain: P1` / `pain: P1, P2` / `pain:` then `- P1`). Copy onto the Stop 1 write-back (`role: triage`) as an operative line-start `pain:`. Do not copy onto critic comments. This is not `audit-targets` / `pain-P1`:
 - Seat families (N≥3: three claimed families before spawn):
@@ -45,6 +47,8 @@ Read, do not restate:
 | Topic | Contract heading |
 |---|---|
 | Gate (ADR-005) | Stop 1 — Gate |
+| Target-kind / Ceiling-kind (#5486) | Target-kind (#5486) / Ceiling-kind (#5486) |
+| No-issue archive / gate (#5486) | No-issue target archive (#5486) |
 | Stop 1 `refutation-target:` | Stop 1 — Gate |
 | Run posture `arc-mode:` | Stop 1 — Gate |
 | Spend `spend:` / `spend-ask:` | Stop 1 — Gate |

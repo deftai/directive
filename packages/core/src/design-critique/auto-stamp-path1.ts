@@ -8,6 +8,7 @@
  * Parent must supply a non-empty plain-English summary for the unpublished body (#5415).
  */
 
+import { matchAny } from "../orchestration/pathspec.js";
 import {
   type CompletedArcBlockReason,
   type CompletedArcVerdict,
@@ -249,4 +250,161 @@ export function evaluateAutoStampPath1Write(
     };
   }
   return refuse(unpublished, candidate, panelDelivery);
+}
+
+// ---------------------------------------------------------------------------
+// #5486 Remint-3 P1 write-posture + P3 gate consumer
+// ---------------------------------------------------------------------------
+
+/**
+ * P1 write-posture pick-one (tracked-vs-working-directory reading of in-tree):
+ * (i) critics zero in-tree writes + parent collects (chosen), or
+ * (ii) Run posture third action + allowlist under working-directory in-tree.
+ * Branch (ii) deleted as unused; parent-collect matches exclusive-create outboxes.
+ */
+export const CRITIC_WRITE_POSTURES = ["parent-collect", "run-posture-allowlist"] as const;
+export type CriticWritePosture = (typeof CRITIC_WRITE_POSTURES)[number];
+export const CHOSEN_CRITIC_WRITE_POSTURE: CriticWritePosture = "parent-collect";
+
+export type NoIssueGateAdmissionInput = {
+  readonly targetId: string;
+  readonly targetKind: "issue" | "xbrief" | "envelope-file";
+  /** Authoritative marker (brief/sidecar field), not a fake GitHub label. */
+  readonly authoritativeMarker: string;
+  readonly completedArc: CompletedArcVerdict;
+  readonly liveRevisionDigest: string;
+  readonly pinnedTargetDigest: string | null;
+  /**
+   * Adapter over GATE_MATCH_PREDICATES: for no-issue targets, `paths` matches
+   * target path identity and `body-text` matches the authoritative marker.
+   * Labels/state/age-days stay GitHub-issue path.
+   */
+  readonly match: Readonly<Record<string, unknown>>;
+};
+
+export type NoIssueGateAdmission =
+  | { readonly ok: true; readonly entryPoint: "evaluateNoIssueGateAdmission" }
+  | {
+      readonly ok: false;
+      readonly reason:
+        | "missing-marker"
+        | "incomplete-arc"
+        | "stale-revision"
+        | "unrecognised-predicate"
+        | "predicate-mismatch"
+        | "storage-only";
+      readonly detail: string;
+      readonly recovery: "discovery" | "manual-diagnosis";
+    };
+
+/** No-issue path admits only paths + body-text; labels/state/age-days stay issue-path. */
+const NO_ISSUE_GATE_PREDICATES = new Set(["body-text", "paths"]);
+
+function anyOfStrings(value: unknown): string[] | null {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
+  const anyOf = (value as Record<string, unknown>)["any-of"];
+  if (!Array.isArray(anyOf) || anyOf.length === 0) return null;
+  if (!anyOf.every((entry) => typeof entry === "string")) return null;
+  return anyOf as string[];
+}
+
+/**
+ * P3 gate consumer: named admission entry point consuming target identity,
+ * authoritative marker, completed-arc proof, and live revision via adapter
+ * over GATE_MATCH_PREDICATES. Storage fields alone are insufficient. No fake
+ * GitHub labels. Predicate *values* must match targetId / authoritativeMarker.
+ */
+export function evaluateNoIssueGateAdmission(
+  input: NoIssueGateAdmissionInput,
+): NoIssueGateAdmission {
+  if (input.authoritativeMarker.trim().length === 0) {
+    return {
+      ok: false,
+      reason: "missing-marker",
+      detail: "authoritative marker required; do not invent non-catalog GitHub labels",
+      recovery: "manual-diagnosis",
+    };
+  }
+  if (input.completedArc.status !== "complete") {
+    return {
+      ok: false,
+      reason: "incomplete-arc",
+      detail: `completed-arc proof required; status=${input.completedArc.status}`,
+      recovery: "discovery",
+    };
+  }
+  if (input.pinnedTargetDigest !== null && input.liveRevisionDigest !== input.pinnedTargetDigest) {
+    return {
+      ok: false,
+      reason: "stale-revision",
+      detail: `live revision sha256:${input.liveRevisionDigest} != pinned sha256:${input.pinnedTargetDigest}`,
+      recovery: "discovery",
+    };
+  }
+
+  const keys = Object.keys(input.match);
+  if (keys.length === 0) {
+    return {
+      ok: false,
+      reason: "storage-only",
+      detail: "storage fields alone insufficient; require GATE_MATCH_PREDICATES adapter keys",
+      recovery: "manual-diagnosis",
+    };
+  }
+  const extra = keys.filter((k) => !NO_ISSUE_GATE_PREDICATES.has(k));
+  if (extra.length > 0) {
+    return {
+      ok: false,
+      reason: "unrecognised-predicate",
+      detail: `unrecognised or unsupported no-issue predicate(s) ${JSON.stringify(extra)}; expected ${[...NO_ISSUE_GATE_PREDICATES].sort().join(", ")} (labels/state/age-days are issue-path only)`,
+      recovery: "manual-diagnosis",
+    };
+  }
+
+  if ("paths" in input.match) {
+    const paths = anyOfStrings(input.match.paths);
+    if (paths === null) {
+      return {
+        ok: false,
+        reason: "predicate-mismatch",
+        detail: "paths requires non-empty any-of string list",
+        recovery: "manual-diagnosis",
+      };
+    }
+    // Reuse GATE_MATCH_PREDICATES path globs (exact path or ** glob).
+    if (!matchAny(paths, input.targetId)) {
+      return {
+        ok: false,
+        reason: "predicate-mismatch",
+        detail: `paths.any-of does not match targetId ${input.targetId}`,
+        recovery: "manual-diagnosis",
+      };
+    }
+  }
+
+  if ("body-text" in input.match) {
+    const markers = anyOfStrings(input.match["body-text"]);
+    if (markers === null) {
+      return {
+        ok: false,
+        reason: "predicate-mismatch",
+        detail: "body-text requires non-empty any-of string list",
+        recovery: "manual-diagnosis",
+      };
+    }
+    // Reuse GATE_MATCH_PREDICATES body-text: case-insensitive substring.
+    const markerLower = input.authoritativeMarker.toLowerCase();
+    if (
+      !markers.some((needle) => needle.length > 0 && markerLower.includes(needle.toLowerCase()))
+    ) {
+      return {
+        ok: false,
+        reason: "predicate-mismatch",
+        detail: "body-text.any-of does not case-insensitively match authoritativeMarker",
+        recovery: "manual-diagnosis",
+      };
+    }
+  }
+
+  return { ok: true, entryPoint: "evaluateNoIssueGateAdmission" };
 }
