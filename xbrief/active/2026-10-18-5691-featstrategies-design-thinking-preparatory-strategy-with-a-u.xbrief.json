@@ -157,49 +157,57 @@
         {
           "id": 1,
           "text": "UAT-planning phase emits plan.items with requires:uat plus handoff carrier into consuming story plan.items with stable source identity",
-          "artifact_path": null,
+          "artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 2,
           "text": "Name phase UAT-planning; carry audience task hypothesis pass/fail and uat-evidence probe intent; item non-terminal until kind:uat evidence or valid human disposition",
-          "artifact_path": null,
+          "artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 3,
           "text": "Map Design Challenge/POV onto ProblemStatement; optional UserInsights/HowMightWe/SolutionConcepts never join Full required lists or Test narrative key",
-          "artifact_path": null,
+          "artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 4,
           "text": "BMAD skip keeps uat item; disposition only via stampNamespacedDisposition after operator confirm with correct disposition kind",
-          "artifact_path": null,
+          "artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 5,
           "text": "Register via strategies-pack + packs:render; interview chaining gate bullets; artifact-guards Preparatory Guard; README Type table",
-          "artifact_path": null,
+          "artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 6,
           "text": "--data capture reuses research Scope Confirmation option-3 then mandates TrustLevel:external references and Security context minimization",
-          "artifact_path": null,
+          "artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
           "ambiguous": false,
           "provenance": "statement"
         }
       ],
       "source_rung": "derived",
       "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "sentences": [
+        "UAT-planning phase emits plan.items with requires:uat plus handoff carrier into consuming story plan.items with stable source identity",
+        "Name phase UAT-planning; carry audience task hypothesis pass/fail and uat-evidence probe intent; item non-terminal until kind:uat evidence or valid human disposition",
+        "Map Design Challenge/POV onto ProblemStatement; optional UserInsights/HowMightWe/SolutionConcepts never join Full required lists or Test narrative key",
+        "BMAD skip keeps uat item; disposition only via stampNamespacedDisposition after operator confirm with correct disposition kind",
+        "Register via strategies-pack + packs:render; interview chaining gate bullets; artifact-guards Preparatory Guard; README Type table",
+        "--data capture reuses research Scope Confirmation option-3 then mandates TrustLevel:external references and Security context minimization"
+      ]
     },
     "id": "github.issue.5891399632",
     "updated": "2026-10-18T15:19:30Z"
