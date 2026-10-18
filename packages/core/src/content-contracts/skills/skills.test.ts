@@ -1253,7 +1253,14 @@ describe("article-review pre-filing closed-issue/PR search (#1178 Prefer-A Recut
         articleReviewHeadingIndex(text, "### Step 5:"),
         articleReviewHeadingIndex(text, "### Step 6:"),
       );
-      for (const token of ["implemented", "partial", "declined", "unresolved", "state_reason", "not_planned"]) {
+      for (const token of [
+        "implemented",
+        "partial",
+        "declined",
+        "unresolved",
+        "state_reason",
+        "not_planned",
+      ]) {
         expect(step5).toContain(token);
       }
       expect(step5).toContain("PR-only proposal suppression");
