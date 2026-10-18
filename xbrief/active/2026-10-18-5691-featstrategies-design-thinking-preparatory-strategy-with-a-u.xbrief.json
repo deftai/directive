@@ -106,6 +106,10 @@
           "content/packs/strategies/strategies-pack-0.1.json",
           "content/packs/skills/skills-pack-0.1.json",
           "packages/core/src/content-contracts/standards/strategy_chaining.test.ts",
+          "content/strategies/design-thinking.md",
+          "content/strategies/README.md",
+          "content/strategies/interview.md",
+          "content/strategies/artifact-guards.md",
           "CHANGELOG.md"
         ],
         "size": "L",
@@ -123,10 +127,14 @@
           "content/packs/strategies/strategies-pack-0.1.json",
           "content/packs/skills/skills-pack-0.1.json",
           "packages/core/src/content-contracts/standards/strategy_chaining.test.ts",
+          "content/strategies/design-thinking.md",
+          "content/strategies/README.md",
+          "content/strategies/interview.md",
+          "content/strategies/artifact-guards.md",
           "CHANGELOG.md"
         ],
         "module_boundary": "design-thinking preparatory strategy with UAT-planning requires:uat items",
-        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #5691."
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #5691; packs:render outputs under content/strategies/."
       },
       "x-directive/plan-id": {
         "version": 1,
