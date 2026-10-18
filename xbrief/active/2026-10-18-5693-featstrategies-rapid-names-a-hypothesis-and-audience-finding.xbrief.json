@@ -110,10 +110,15 @@
           "content/strategies/rapid.md",
           "packages/core/src/scope/delivery-evidence.ts",
           "packages/core/src/scope/delivery-evidence.test.ts",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "docs/RULE-MAP.md",
+          "packages/core/src/tutorial/proof.test.ts",
+          "content/tutorial/beats.json",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-tutorial/SKILL.md"
         ],
         "module_boundary": "rapid Step1 hypothesis/audience/PrototypeKind and Findings before experiment_archived",
-        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #5693."
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #5693. docs/RULE-MAP.md regenerated after rapid Bound. Tutorial beats/proof/skills-pack/SKILL for Findings-before-archive close (#5693 Greptile)."
       },
       "x-directive/plan-id": {
         "version": 1,
@@ -139,7 +144,12 @@
           "content/strategies/rapid.md",
           "packages/core/src/scope/delivery-evidence.ts",
           "packages/core/src/scope/delivery-evidence.test.ts",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "docs/RULE-MAP.md",
+          "packages/core/src/tutorial/proof.test.ts",
+          "content/tutorial/beats.json",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-tutorial/SKILL.md"
         ],
         "size": "M",
         "file_scope_confidence": "high",
