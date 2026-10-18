@@ -148,7 +148,8 @@
         "id": "github.issue.5891399632"
       },
       "x-directive/admitted-target-digest": "sha256:e5c6221d4d6bde1ea575ac5341d3940150e01df949cd724c839a54dc82ccb159",
-      "kind": "story"
+      "kind": "story",
+      "productPullRequest": 5734
     },
     "acceptance": {
       "commands": [],
