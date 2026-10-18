@@ -286,8 +286,7 @@ describe("file-path stage-(0) (#5486)", () => {
   });
 
   it("binds file-path via parent-read obligation fields, not bare existence", () => {
-    const body =
-      "model: grok\nrole: critic\n\nround: 1\nseat: grok\n## Findings\nok\n";
+    const body = "model: grok\nrole: critic\n\nround: 1\nseat: grok\n## Findings\nok\n";
     const verdict = acceptFilePathDispatchPostcondition({
       obligation: {
         targetId: manifest.targetId,
@@ -340,9 +339,44 @@ describe("file-path stage-(0) (#5486)", () => {
     expect(verdict.reasons.some((r) => r.includes("bare file existence"))).toBe(true);
   });
 
+  it("refuses parent-read manifests that diverge from the recorded obligation manifest", () => {
+    const body = "model: grok\nrole: critic\n\nround: 1\nseat: grok\n## Findings\nok\n";
+    const altered = {
+      ...manifest,
+      seats: [
+        ...manifest.seats,
+        { seatId: "extra", artifactRelPath: "seats/extra.md", exclusiveCreate: true as const },
+      ],
+    };
+    const verdict = acceptFilePathDispatchPostcondition({
+      obligation: {
+        targetId: manifest.targetId,
+        targetPath: manifest.targetPath,
+        round: 1,
+        seatId: "grok",
+        dispatchSha,
+        outboxManifest: manifest,
+      },
+      verification: {
+        kind: "outbox",
+        status: "ok",
+        dispatchSha,
+        manifest: altered,
+        seatArtifacts: { grok: body },
+      },
+      handback: {
+        seatId: "grok",
+        claimedArtifactId: boundArtifactIdForSeat("grok", dispatchSha),
+        toolCallCount: 1,
+      },
+    });
+    expect(verdict.accepted).toBe(false);
+    expect(verdict.failClass).toBe("mismatch");
+    expect(verdict.reasons.some((r) => r.includes("changed manifests"))).toBe(true);
+  });
+
   it("routes evaluatePanelSeatDelivery file-path class through stage-(0) caller", () => {
-    const body =
-      "model: grok\nrole: critic\n\nround: 1\nseat: grok\n## Findings\nok\n";
+    const body = "model: grok\nrole: critic\n\nround: 1\nseat: grok\n## Findings\nok\n";
     const verdict = evaluatePanelSeatDelivery({
       round: 1,
       expectedSeats: [{ seatId: "grok" }],

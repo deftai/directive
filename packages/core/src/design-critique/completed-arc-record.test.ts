@@ -3,31 +3,32 @@ import type { LabelClient } from "../vbrief-reconcile/types.js";
 import {
   applyIngestReadyRemainingSet,
   assertCompletedArcAllowsIngest,
+  buildCompletedArcArchiveRecord,
+  completedArcArchiveKey,
   COMPLETED_ARC_BLOCK_REASONS,
   classifyLgtmSeatCensus,
   commentsInCitedLeanArc,
   DesignCritiqueIngestBlockedError,
   emptyOrFootnoteCensusBindAllowed,
+  evaluateArcPromotion,
   evaluateCompletedArcRecord,
+  evaluateCompletedArcRecordFromArchive,
   evaluateLgtmCompletionConjunct,
   evaluateMoveForwardThreadAdmission,
-  buildCompletedArcArchiveRecord,
-  evaluateArcPromotion,
-  evaluateCompletedArcRecordFromArchive,
   evaluateTargetDigestAdmission,
-  harvestBoundRemedyIntoSameBrief,
-  hashTargetBytes,
-  resolveCompletedArcArchiveRoot,
   extractCitedCommentIds,
   extractOperativeMaterialityBar,
   extractOperativeTargetDigest,
+  harvestBoundRemedyIntoSameBrief,
   hashIssueBodyBytes,
+  hashTargetBytes,
   isInFlightCritiqueThread,
   isMoveForwardSynthesisShape,
   MOVE_FORWARD_SYNTHESIS_LEAD,
   mapSeatCensusUnderMaterialityBar,
   materialityBarRecordLine,
   parseOperatorMaterialityBar,
+  resolveCompletedArcArchiveRoot,
   type ThreadComment,
 } from "./completed-arc-record.js";
 
@@ -2819,6 +2820,13 @@ describe("no-issue archive / digest / harvest (#5486)", () => {
     expect(resolveCompletedArcArchiveRoot("/repo")).not.toContain(".deft-scratch");
   });
 
+  it("keeps distinct target ids from sharing an archive key after sanitization", () => {
+    const a = completedArcArchiveKey("xbrief/proposed/demo.xbrief.json", "arc-1");
+    const b = completedArcArchiveKey("xbrief_proposed_demo.xbrief.json", "arc-1");
+    expect(a).not.toBe(b);
+    expect(a).toMatch(/__[0-9a-f]{12}\//);
+  });
+
   it("widens target digest admission for xbrief bytes without forking", () => {
     const bytes = '{"plan":{"title":"demo"}}';
     const digest = hashTargetBytes(bytes);
@@ -2848,17 +2856,16 @@ describe("no-issue archive / digest / harvest (#5486)", () => {
       comments: [],
     });
     expect(evaluateCompletedArcRecordFromArchive(record).status).toBe("not-in-arc");
-    expect(
-      evaluateArcPromotion({ archiveRecord: record, liveArcCountForTarget: 2 }).ok,
-    ).toBe(false);
+    expect(evaluateArcPromotion({ archiveRecord: record, liveArcCountForTarget: 2 }).ok).toBe(
+      false,
+    );
     expect(
       evaluateArcPromotion({ archiveRecord: record, liveArcCountForTarget: 1, linkMirror: true }),
     ).toEqual({ ok: true, archiveIsSoT: true, mirrorLinked: true });
   });
 
   it("harvests Bound remedy into same brief with hashBoundRemedyBytes key", () => {
-    const body =
-      "## Bound remedy\n\n- limb one title\n- limb two title\n";
+    const body = "## Bound remedy\n\n- limb one title\n- limb two title\n";
     const ok = harvestBoundRemedyIntoSameBrief({
       planId: "github.issue.5764427724",
       expectedRevision: "rev-1",

@@ -243,16 +243,16 @@ export function acceptFilePathDispatchPostcondition(input: {
       ? input.handback.toolCallCount
       : null;
 
-  const expectedId = boundArtifactIdForSeat(
-    input.obligation.seatId,
-    input.obligation.dispatchSha,
-  );
+  const expectedId = boundArtifactIdForSeat(input.obligation.seatId, input.obligation.dispatchSha);
 
   if (input.verification.status !== "ok") {
     return filePathFail(
       "unverifiable",
       "unavailable",
-      [`parent verification unavailable: ${input.verification.reason}`, "unknown never accepts delivery"],
+      [
+        `parent verification unavailable: ${input.verification.reason}`,
+        "unknown never accepts delivery",
+      ],
       toolCalls,
     );
   }
@@ -279,7 +279,8 @@ export function acceptFilePathDispatchPostcondition(input: {
   }
 
   if (
-    verification.manifest.dispatchSha.toLowerCase() !== input.obligation.dispatchSha.toLowerCase() ||
+    verification.manifest.dispatchSha.toLowerCase() !==
+      input.obligation.dispatchSha.toLowerCase() ||
     verification.manifest.targetId !== input.obligation.targetId ||
     verification.manifest.round !== input.obligation.round
   ) {
@@ -287,6 +288,35 @@ export function acceptFilePathDispatchPostcondition(input: {
       "dispatch-failure",
       "mismatch",
       ["outbox manifest does not bind obligation targetId/round/dispatchSha"],
+      toolCalls,
+    );
+  }
+
+  const recorded = input.obligation.outboxManifest;
+  if (outboxManifestDigest(verification.manifest) !== outboxManifestDigest(recorded)) {
+    return filePathFail(
+      "dispatch-failure",
+      "mismatch",
+      [
+        "parent-read outbox manifest does not match obligation.outboxManifest",
+        "changed manifests must not count as verified",
+      ],
+      toolCalls,
+    );
+  }
+
+  // Explicit obligation.targetPath must match the parent-read manifest; omitted
+  // targetPath still binds via the recorded outboxManifest digest above.
+  if (
+    input.obligation.targetPath !== undefined &&
+    (verification.manifest.targetPath ?? null) !== (input.obligation.targetPath ?? null)
+  ) {
+    return filePathFail(
+      "dispatch-failure",
+      "mismatch",
+      [
+        `outbox manifest targetPath ${String(verification.manifest.targetPath)} does not match obligation targetPath ${String(input.obligation.targetPath)}`,
+      ],
       toolCalls,
     );
   }
@@ -526,14 +556,20 @@ export function evaluatePanelSeatDelivery(input: {
     const issueNumber = input.issueNumber;
     const inputCeilingCommentId = input.inputCeilingCommentId;
     const verification = input.verification;
-    if (issueNumber === undefined || inputCeilingCommentId === undefined || verification === undefined) {
+    if (
+      issueNumber === undefined ||
+      inputCeilingCommentId === undefined ||
+      verification === undefined
+    ) {
       rows.push({
         seatId: seat.seatId,
         verdict: withCommentIdVerdict({
           accepted: false,
           deliveryStatus: "dispatch-failure",
           failClass: "missing",
-          reasons: ["comment-id path requires issueNumber, inputCeilingCommentId, and verification"],
+          reasons: [
+            "comment-id path requires issueNumber, inputCeilingCommentId, and verification",
+          ],
           boundCommentId: null,
           complementaryToolCallCount: null,
         }),

@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { resolveAutoStampCatalogChip } from "./auto-stamp-chip.js";
 import {
+  CHOSEN_CRITIC_WRITE_POSTURE,
   evaluateAutoStampPath1Write,
+  evaluateNoIssueGateAdmission,
   isPainCoverageBlockReason,
   leanCiteOnlyPath1Body,
   PAIN_COVERAGE_BLOCK_REASONS,
-  CHOSEN_CRITIC_WRITE_POSTURE,
-  evaluateNoIssueGateAdmission,
 } from "./auto-stamp-path1.js";
 import {
   COMPLETED_ARC_BLOCK_REASONS,
@@ -469,7 +469,10 @@ describe("no-issue gate consumer / write-posture (#5486)", () => {
         completedArc: complete,
         liveRevisionDigest: "abc",
         pinnedTargetDigest: "abc",
-        match: { paths: { "any-of": ["xbrief/proposed/demo.xbrief.json"] }, "body-text": { "any-of": ["mechanism-shaped: true"] } },
+        match: {
+          paths: { "any-of": ["xbrief/proposed/demo.xbrief.json"] },
+          "body-text": { "any-of": ["mechanism-shaped: true"] },
+        },
       }),
     ).toEqual({ ok: true, entryPoint: "evaluateNoIssueGateAdmission" });
     expect(
@@ -483,5 +486,40 @@ describe("no-issue gate consumer / write-posture (#5486)", () => {
         match: { labels: { "any-of": ["design-critique:mechanism-shaped"] } },
       }).ok,
     ).toBe(false);
+  });
+
+  it("refuses nonmatching paths/body-text values and unsupported issue-path predicates", () => {
+    const complete = {
+      status: "complete" as const,
+      synthesisCommentId: 1,
+      citedLeanId: 2,
+      citedTableId: null,
+    };
+    const base = {
+      targetId: "xbrief/proposed/demo.xbrief.json",
+      targetKind: "xbrief" as const,
+      authoritativeMarker: "mechanism-shaped: true",
+      completedArc: complete,
+      liveRevisionDigest: "abc",
+      pinnedTargetDigest: "abc",
+    };
+    expect(
+      evaluateNoIssueGateAdmission({
+        ...base,
+        match: { paths: { "any-of": ["xbrief/proposed/other.xbrief.json"] } },
+      }).reason,
+    ).toBe("predicate-mismatch");
+    expect(
+      evaluateNoIssueGateAdmission({
+        ...base,
+        match: { "body-text": { "any-of": ["absent marker"] } },
+      }).reason,
+    ).toBe("predicate-mismatch");
+    expect(
+      evaluateNoIssueGateAdmission({
+        ...base,
+        match: { state: { "any-of": ["open"] } },
+      }).reason,
+    ).toBe("unrecognised-predicate");
   });
 });

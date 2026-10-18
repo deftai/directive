@@ -34,7 +34,10 @@ import {
   DESIGN_CRITIQUE_CATALOG_CHIPS,
   writeDesignCritiqueCatalogRemainingSet,
 } from "./exclusive-chip.js";
-import { evaluateAccumulatedPainAuditFollowThrough, hashBoundRemedyBytes } from "./pain-audit-follow-through-gate.js";
+import {
+  evaluateAccumulatedPainAuditFollowThrough,
+  hashBoundRemedyBytes,
+} from "./pain-audit-follow-through-gate.js";
 import {
   type AuditEnvelope,
   buildPainCoverageDeposit,
@@ -815,7 +818,7 @@ export function evaluateTargetDigestAdmission(input: {
       status: "blocked",
       reason: "stale-target",
       detail:
-        `live ${kind} bytes sha256:${live} do not match Target-digest sha256:${pinned};${pathNote}${shaNote} ` +
+        `live ${kind} bytes sha256:${live} does not match Target-digest sha256:${pinned};${pathNote}${shaNote} ` +
         "cache is not admission",
     };
   }
@@ -1788,12 +1791,12 @@ export function applyIngestReadyRemainingSet(
   return { ok: true, ...written };
 }
 
-
 // ---------------------------------------------------------------------------
 // #5486 Remint-3 P1 archive + P4 harvest + promotion (analysis substrate)
 // ---------------------------------------------------------------------------
 
-export const COMPLETED_ARC_ARCHIVE_SCHEMA = "deft.design-critique.completed-arc-archive.v1" as const;
+export const COMPLETED_ARC_ARCHIVE_SCHEMA =
+  "deft.design-critique.completed-arc-archive.v1" as const;
 export const COMPLETED_ARC_ARCHIVE_REL = ".deft/design-critique/archive" as const;
 
 /** Main-checkout-resolved archive root; dest-relative .deft-scratch is not archive root. */
@@ -1802,8 +1805,14 @@ export function resolveCompletedArcArchiveRoot(mainCheckoutRoot: string): string
 }
 
 export function completedArcArchiveKey(targetId: string, arcId: string): string {
+  // Collision-free: sanitize for path readability, then pin a short hash of the
+  // original ids so distinct targets cannot share a key after sanitization.
   const safe = (value: string) => value.replace(/[^A-Za-z0-9._-]+/g, "_");
-  return `${safe(targetId)}/${safe(arcId)}`;
+  const idHash = createHash("sha256")
+    .update(`${targetId}\0${arcId}`, "utf8")
+    .digest("hex")
+    .slice(0, 12);
+  return `${safe(targetId)}__${idHash}/${safe(arcId)}`;
 }
 
 export type CompletedArcArchiveRecord = {
@@ -1941,4 +1950,3 @@ export function evaluateArcPromotion(input: {
     mirrorLinked: input.linkMirror === true,
   };
 }
-

@@ -373,7 +373,6 @@ export const ACCEPTED_PAIN_CITE_FORMS: readonly string[] = [
   "operator-deferred: P1 path xbrief/proposed/example.xbrief.json",
 ];
 
-
 /**
  * #5486 Remint-3 P2 id-model (chosen before parser accept).
  * Composite scheme-plus-number is chosen over numeric reserved-range so local

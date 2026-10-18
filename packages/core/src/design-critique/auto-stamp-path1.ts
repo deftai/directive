@@ -251,7 +251,6 @@ export function evaluateAutoStampPath1Write(
   return refuse(unpublished, candidate, panelDelivery);
 }
 
-
 // ---------------------------------------------------------------------------
 // #5486 Remint-3 P1 write-posture + P3 gate consumer
 // ---------------------------------------------------------------------------
@@ -291,18 +290,28 @@ export type NoIssueGateAdmission =
         | "incomplete-arc"
         | "stale-revision"
         | "unrecognised-predicate"
+        | "predicate-mismatch"
         | "storage-only";
       readonly detail: string;
       readonly recovery: "discovery" | "manual-diagnosis";
     };
 
-const NO_ISSUE_GATE_PREDICATES = new Set(["labels", "body-text", "paths", "state", "age-days"]);
+/** No-issue path admits only paths + body-text; labels/state/age-days stay issue-path. */
+const NO_ISSUE_GATE_PREDICATES = new Set(["body-text", "paths"]);
+
+function anyOfStrings(value: unknown): string[] | null {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
+  const anyOf = (value as Record<string, unknown>)["any-of"];
+  if (!Array.isArray(anyOf) || anyOf.length === 0) return null;
+  if (!anyOf.every((entry) => typeof entry === "string")) return null;
+  return anyOf as string[];
+}
 
 /**
  * P3 gate consumer: named admission entry point consuming target identity,
  * authoritative marker, completed-arc proof, and live revision via adapter
  * over GATE_MATCH_PREDICATES. Storage fields alone are insufficient. No fake
- * GitHub labels.
+ * GitHub labels. Predicate *values* must match targetId / authoritativeMarker.
  */
 export function evaluateNoIssueGateAdmission(
   input: NoIssueGateAdmissionInput,
@@ -323,10 +332,7 @@ export function evaluateNoIssueGateAdmission(
       recovery: "discovery",
     };
   }
-  if (
-    input.pinnedTargetDigest !== null &&
-    input.liveRevisionDigest !== input.pinnedTargetDigest
-  ) {
+  if (input.pinnedTargetDigest !== null && input.liveRevisionDigest !== input.pinnedTargetDigest) {
     return {
       ok: false,
       reason: "stale-revision",
@@ -349,19 +355,50 @@ export function evaluateNoIssueGateAdmission(
     return {
       ok: false,
       reason: "unrecognised-predicate",
-      detail: `unrecognised predicate(s) ${JSON.stringify(extra)}; expected ${[...NO_ISSUE_GATE_PREDICATES].sort().join(", ")}`,
+      detail: `unrecognised or unsupported no-issue predicate(s) ${JSON.stringify(extra)}; expected ${[...NO_ISSUE_GATE_PREDICATES].sort().join(", ")} (labels/state/age-days are issue-path only)`,
       recovery: "manual-diagnosis",
     };
   }
-  // No-issue adapter: paths / body-text carry identity; labels must not be faked.
-  if ("labels" in input.match) {
-    return {
-      ok: false,
-      reason: "unrecognised-predicate",
-      detail: "no-issue gate must not fake GitHub labels; use paths/body-text adapter",
-      recovery: "manual-diagnosis",
-    };
+
+  if ("paths" in input.match) {
+    const paths = anyOfStrings(input.match.paths);
+    if (paths === null) {
+      return {
+        ok: false,
+        reason: "predicate-mismatch",
+        detail: "paths requires non-empty any-of string list",
+        recovery: "manual-diagnosis",
+      };
+    }
+    if (!paths.includes(input.targetId)) {
+      return {
+        ok: false,
+        reason: "predicate-mismatch",
+        detail: `paths.any-of does not include targetId ${input.targetId}`,
+        recovery: "manual-diagnosis",
+      };
+    }
   }
+
+  if ("body-text" in input.match) {
+    const markers = anyOfStrings(input.match["body-text"]);
+    if (markers === null) {
+      return {
+        ok: false,
+        reason: "predicate-mismatch",
+        detail: "body-text requires non-empty any-of string list",
+        recovery: "manual-diagnosis",
+      };
+    }
+    if (!markers.includes(input.authoritativeMarker)) {
+      return {
+        ok: false,
+        reason: "predicate-mismatch",
+        detail: "body-text.any-of does not include authoritativeMarker",
+        recovery: "manual-diagnosis",
+      };
+    }
+  }
+
   return { ok: true, entryPoint: "evaluateNoIssueGateAdmission" };
 }
-
