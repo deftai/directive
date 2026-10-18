@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5715",
-    "updated": "2026-10-18T20:38:54Z"
+    "updated": "2026-10-18T22:30:46Z"
   },
   "plan": {
     "title": "[framework-gap] BLOCKER Grok PreToolUse wrapper command uses repo-root path; Grok resolves relative to .grok/hooks/ and doubles it",
@@ -89,48 +89,57 @@
       }
     ],
     "acceptance": {
-      "commands": [],
-      "none_stated": true,
+      "commands": [
+        "pnpm exec vitest run packages/core/src/init-deposit/agent-hooks.test.ts"
+      ],
+      "none_stated": false,
       "clauses": [
         {
           "id": 1,
           "text": "Export GROK_PRETOOLUSE_WRAPPER_COMMAND as ./ + MARKER; nestedToolCommand for grok tool.before returns that only; keep script write at REL_PATH",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/init-deposit/agent-hooks.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 2,
           "text": "Deposit tests assert exact ./ command equality and resolve beside the Grok hooks JSON to the wrapper path; refuse toContain(MARKER) as PreToolUse proof",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/init-deposit/agent-hooks.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 3,
           "text": "Old-command fixture: seed REL_PATH PreToolUse; after redeposit commands are ./ form; health healthy; isGrokWrapperCommand recognizes old and new",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/init-deposit/agent-hooks.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 4,
           "text": "inspectAgentHookDeposit grok branch: REL_PATH PreToolUse that does not resolve beside the hooks JSON to the wrapper returns drifted with redeposit + new session recovery",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/init-deposit/agent-hooks.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 5,
           "text": "Recovery text in inspect detail and CHANGELOG: install fixed engine, deft update/redeposit, then new Grok session",
-          "artifact_path": null,
+          "artifact_path": "CHANGELOG.md",
           "ambiguous": false,
           "provenance": "statement"
         }
       ],
       "source_rung": "derived",
       "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "sentences": [
+        "Export GROK_PRETOOLUSE_WRAPPER_COMMAND as ./ + MARKER; nestedToolCommand for grok tool.before returns that only; keep script write at REL_PATH",
+        "Deposit tests assert exact ./ command equality and resolve beside the Grok hooks JSON to the wrapper path; refuse toContain(MARKER) as PreToolUse proof",
+        "Old-command fixture: seed REL_PATH PreToolUse; after redeposit commands are ./ form; health healthy; isGrokWrapperCommand recognizes old and new",
+        "inspectAgentHookDeposit grok branch: REL_PATH PreToolUse that does not resolve beside the hooks JSON to the wrapper returns drifted with redeposit + new session recovery",
+        "Recovery text in inspect detail and CHANGELOG: install fixed engine, deft update/redeposit, then new Grok session"
+      ]
     },
     "metadata": {
       "intended_placement": {
@@ -179,6 +188,6 @@
       }
     },
     "id": "github.issue.5912828768",
-    "updated": "2026-10-18T20:38:54Z"
+    "updated": "2026-10-18T22:30:46Z"
   }
 }
