@@ -176,7 +176,8 @@
           "packages/core/src/init-deposit/agent-hooks.ts",
           "packages/core/src/init-deposit/agent-hooks.test.ts",
           "packages/core/src/init-deposit/constants.ts",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "xbrief/active/2026-10-18-5715-framework-gap-blocker-grok-pretooluse-wrapper-command-uses-r.xbrief.json"
         ],
         "size": "M",
         "file_scope_confidence": "high",
@@ -185,7 +186,8 @@
           "#5656"
         ],
         "parallel_safe": true
-      }
+      },
+      "productPullRequest": 5749
     },
     "id": "github.issue.5912828768",
     "updated": "2026-10-18T22:30:46Z"
