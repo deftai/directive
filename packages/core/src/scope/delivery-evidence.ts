@@ -246,15 +246,21 @@ export function evaluateExperimentArchivedFindingsGate(plan: Record<string, unkn
   };
 }
 
+const TUTORIAL_PRACTICE_PLAN_IDS = new Set([
+  "signal-practice",
+  "postcard-practice",
+  "echo-practice",
+]);
+
 /**
  * Tutorial practice briefs (#4981) close with experiment_archived. When Findings
- * are absent, seed a practice note so #5693 does not break the scripted close
- * without expanding Bound file_scope into tutorial packs/beats.
- * Returns true when Findings were seeded.
+ * are absent on the three scripted practice plan ids, seed a practice note so
+ * #5693 does not break the scripted close without expanding Bound file_scope
+ * into tutorial packs/beats. Ordinary *-practice experiment ids are not seeded.
  */
 export function seedTutorialPracticeFindingsIfNeeded(plan: Record<string, unknown>): boolean {
   const id = typeof plan.id === "string" ? plan.id.trim() : "";
-  if (!id.endsWith("-practice")) return false;
+  if (!TUTORIAL_PRACTICE_PLAN_IDS.has(id)) return false;
   if (evaluateExperimentArchivedFindingsGate(plan).ok) return false;
   const narratives = asRecord(plan.narratives) ?? {};
   plan.narratives = {

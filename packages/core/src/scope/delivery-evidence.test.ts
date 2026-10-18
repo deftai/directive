@@ -1399,6 +1399,12 @@ describe("experiment_archived Findings gate (#5693)", () => {
         title: "ordinary",
       }),
     ).toBe(false);
+    expect(
+      seedTutorialPracticeFindingsIfNeeded({
+        id: "api-practice",
+        title: "ordinary experiment",
+      }),
+    ).toBe(false);
   });
 });
 

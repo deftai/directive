@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed — Activate Prefer-A Bound running briefs for #5690 and #5486 on master (proceed cohort; productPullRequest unset). Refs #5690 #5486.
 
 ### Fixed
-- Fixed — Tutorial practice `*-practice` briefs seed Findings on experiment_archived so #5693 does not break scripted tutorial close. Refs #5693.
+- Fixed — Tutorial Signal/Postcard/Echo practice briefs seed Findings on experiment_archived so #5693 does not break scripted tutorial close. Refs #5693.
 - Fixed — Land tracked completion records for #5486 (PR #5705), #5099 (PR #5707), and #1178 (PR #5708). Refs #5486 #5099 #1178.
 - Fixed — Land tracked completion records for #5690 (PR #5704) and #5694 (PR #5706). Refs #5690 #5694.
 - **CLI `verify:review-monitor --explicit-finish` honors mint-gate refusal (#5690).** Pass `--mint-gate-blocked` / mint-marker `--reason` into `writeMergePathExplicitFinishAttestation` so cohort `halted-explicit` cannot mask an unarmed product PR. Raise `agentsMdBudget.absoluteMaxBytes` 28100→28400 for the #5318/#5690 agents-entry pointer; sync review-cycle skills pack projection. Tracking #5690.
