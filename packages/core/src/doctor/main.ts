@@ -51,10 +51,7 @@ import {
   POWERSHELL_RESTRICTED_CMD_RECOVERY,
   probePowershellBinReachability,
 } from "../verify-env/command-spawn.js";
-import {
-  MIGRATED_ARTIFACT_DIR,
-  MIGRATED_ARTIFACT_SUFFIX,
-} from "../xbrief-migrate/constants.js";
+import { MIGRATED_ARTIFACT_DIR, MIGRATED_ARTIFACT_SUFFIX } from "../xbrief-migrate/constants.js";
 import { detectXbriefConvergence } from "../xbrief-migrate/detect.js";
 import {
   agentsRefreshPlan,

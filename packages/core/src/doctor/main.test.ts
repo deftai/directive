@@ -7,20 +7,20 @@ import { DANGLING_NODE_MODULES_LINKS_CHECK } from "./checks.js";
 import { LAYOUT_TREE } from "./constants.js";
 import { parseDoctorFlags } from "./flags.js";
 import {
-  classifyProjectLifecycle,
   classifyLifecycleOccupancy,
-  formatLifecycleOccupancySoftWarnLines,
-  NEVER_INCEPTED_SOFT_WARN,
-  TASKFILE_UNAVAILABLE_CLI_SUPPORTED,
+  classifyProjectLifecycle,
   cmdDoctor,
   collectFrameworkLayoutRows,
   enforceDirectiveSurface,
+  formatLifecycleOccupancySoftWarnLines,
+  NEVER_INCEPTED_SOFT_WARN,
   resolveOperatingMode,
   resolvePlatformSkew,
   resolveReconciliationLine,
   resolveTaskfileWiring,
   runResolutionDecision,
   runXbriefEnvelopeVersionCheck,
+  TASKFILE_UNAVAILABLE_CLI_SUPPORTED,
 } from "./main.js";
 import { createPlainSink } from "./output.js";
 import type { CheckResult, DoctorSeams, Finding } from "./types.js";
@@ -1463,7 +1463,6 @@ describe("linked worktree missing payload (#4443)", () => {
   });
 });
 
-
 describe("lifecycle occupancy (#4229 Prefer-A Recut-1)", () => {
   it("treats empty greenfield as never-incepted soft-warn", () => {
     const root = makeRoot();
@@ -1473,7 +1472,10 @@ describe("lifecycle occupancy (#4229 Prefer-A Recut-1)", () => {
     }
     writeFileSync(
       join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
-      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { title: "id", status: "active", items: [] } }),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { title: "id", status: "active", items: [] },
+      }),
       "utf8",
     );
     const occ = classifyLifecycleOccupancy(root);
@@ -1488,12 +1490,18 @@ describe("lifecycle occupancy (#4229 Prefer-A Recut-1)", () => {
     mkdirSync(join(root, "xbrief", "cancelled"), { recursive: true });
     writeFileSync(
       join(root, "xbrief", "cancelled", "was-real.xbrief.json"),
-      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { title: "c", status: "cancelled", items: [] } }),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { title: "c", status: "cancelled", items: [] },
+      }),
       "utf8",
     );
     writeFileSync(
       join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
-      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { title: "id", status: "active", items: [] } }),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { title: "id", status: "active", items: [] },
+      }),
       "utf8",
     );
     // Need valid layout: at least one migrated artifact for classifyProjectLifecycle valid
@@ -1510,7 +1518,10 @@ describe("lifecycle occupancy (#4229 Prefer-A Recut-1)", () => {
     mkdirSync(join(root, "xbrief", "active"), { recursive: true });
     writeFileSync(
       join(root, "xbrief", "active", "story.xbrief.json"),
-      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { title: "s", status: "running", items: [] } }),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { title: "s", status: "running", items: [] },
+      }),
       "utf8",
     );
     const occ = classifyLifecycleOccupancy(root);
@@ -1527,12 +1538,18 @@ describe("lifecycle occupancy (#4229 Prefer-A Recut-1)", () => {
     }
     writeFileSync(
       join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
-      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { title: "id", status: "active", items: [] } }),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { title: "id", status: "active", items: [] },
+      }),
       "utf8",
     );
     writeFileSync(
       join(root, "xbrief", "plan.xbrief.json"),
-      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { title: "plan", status: "active", items: [] } }),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { title: "plan", status: "active", items: [] },
+      }),
       "utf8",
     );
     const occ = classifyLifecycleOccupancy(root);

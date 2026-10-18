@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4229",
-    "updated": "2026-10-18T20:26:18.633Z"
+    "updated": "2026-10-18T21:35:58.591Z"
   },
   "plan": {
     "title": "Consumer process: deposit-only vs full lifecycle; go-task absent treated as impact=none (#3335)",
@@ -201,7 +201,7 @@
           "docs/RULE-MAP.md"
         ],
         "module_boundary": "deposit-only vs full lifecycle soft-visibility occupancy signal",
-        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #4229 Prefer-A Recut-1. content/docs/getting-started.md admitted for clause.5 CLI-native retarget (#4229 Greptile P1)."
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #4229 Prefer-A Recut-1. content/docs/getting-started.md admitted for clause.5 CLI-native retarget (#4229 Greptile P1). docs/RULE-MAP.md admitted for docs:rule-map:check after commands/agents-entry retarget (CI proceed widen)."
       },
       "x-directive/plan-id": {
         "version": 1,
