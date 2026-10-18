@@ -7,8 +7,14 @@ import {
   evaluateMergePathArm,
   writePrWatchWaitHeartbeat,
 } from "../pr-watch/main.js";
+import {
+  evaluateProductArmAtMintExit,
+  resolveCleanBeforeMintPhaseOwner,
+  writeMergePathExplicitFinishAttestation,
+} from "../swarm/cohort-review-monitors.js";
 import { DEFAULT_STALE_MINUTES } from "./constants.js";
 import { computeExpiresAt, renderReviewOwnerComment } from "./lease-comment.js";
+import { evaluateSuccessorRegisterForce } from "./record.js";
 import { probeMonitoringTier } from "./tier-detection.js";
 import {
   evaluateReviewMonitorGate,
@@ -782,5 +788,83 @@ describe("evaluateReviewMonitorGate", () => {
     const verifyAt = text.indexOf("verify:review-monitor");
     expect(watchAt).toBeGreaterThan(-1);
     expect(verifyAt).toBeGreaterThan(watchAt);
+  });
+});
+
+describe("CLEAN-before-mint + closer-mint-BLOCKED (#5690 Prefer-A Recut-1)", () => {
+  it("post-CLEAN closer heartbeat arms through pending mint; mint-BLOCKED closer exit is unarmed non-option-C", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-5690-clean-before-mint-"));
+    const lease = {
+      pr: 5690,
+      repo: "deftai/directive" as string | null,
+      head_sha: "tip5690" as string | null,
+      platform_primitive: "spawn_subagent" as const,
+      monitor_agent_id: "babysitter-5690",
+      owner: "owner",
+      started_at: NOW.toISOString(),
+      expires_at: computeExpiresAt(NOW),
+      worktree_path: null as string | null,
+      parent_session_id: null as string | null,
+      ended_at: null as string | null,
+      comment_id: 1 as number | null,
+    };
+    expect(writeMergePathCleanAttestation(root, 5690, "tip5690", NOW).ok).toBe(true);
+    writePrWatchWaitHeartbeat(root, 5690, {
+      phase: "polling",
+      parentId: POST_CLEAN_WAIT_PARENT_ID,
+      pid: 5_690,
+    });
+    const closerLive = heartbeatActiveForMergePathArm(root, 5690, {
+      tierPrimitive: "spawn_subagent",
+      lease,
+      isProcessAlive: () => true,
+      headSha: "tip5690",
+      resolveLiveHeadSha: () => "tip5690",
+    });
+    expect(closerLive).toBe(true);
+
+    const phase = resolveCleanBeforeMintPhaseOwner({
+      productClean: true,
+      mintPending: true,
+      preCleanWaitLive: false,
+      postCleanCloserLive: closerLive,
+    });
+    expect(phase.ownerKind).toBe("post-clean-closer");
+    expect(phase.restartPreCleanWatchForbidden).toBe(true);
+
+    const armedWhileMintPending = evaluateProductArmAtMintExit({
+      livePhaseCorrectWait: phase.livePhaseCorrectWait,
+      stickyLeaseActive: true,
+      mintGateBlocked: true,
+    });
+    expect(armedWhileMintPending.classification).toBe("armed-live");
+
+    // Closer returns mint-BLOCKED / exits: no live wait; must not write option-C.
+    const afterCloserMintBlocked = evaluateProductArmAtMintExit({
+      livePhaseCorrectWait: false,
+      stickyLeaseActive: true,
+      mintGateBlocked: true,
+      explicitFinish: true,
+    });
+    expect(afterCloserMintBlocked.classification).toBe("unarmed");
+    expect(afterCloserMintBlocked.mustRemediateBeforeMintAttention).toBe(true);
+    expect(afterCloserMintBlocked.forbidExplicitFinish).toBe(true);
+    const refused = writeMergePathExplicitFinishAttestation(root, 5690, {
+      reason: "closer mint-blocked intent-constraint",
+      mintGateBlocked: true,
+    });
+    expect(refused.ok).toBe(false);
+  });
+
+  it("successor register --force only when prior owner is dead (#5690)", () => {
+    expect(
+      evaluateSuccessorRegisterForce({ priorOwnerAlive: true, forceRequested: true }).allowForce,
+    ).toBe(false);
+    expect(
+      evaluateSuccessorRegisterForce({ priorOwnerAlive: false, forceRequested: true }).allowForce,
+    ).toBe(true);
+    expect(
+      evaluateSuccessorRegisterForce({ priorOwnerAlive: false, forceRequested: false }).allowForce,
+    ).toBe(false);
   });
 });

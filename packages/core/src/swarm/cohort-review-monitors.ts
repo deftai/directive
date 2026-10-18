@@ -44,7 +44,60 @@ export type ExplicitFinishWriteResult =
   | { readonly ok: false; readonly reason: string };
 
 /**
+ * #5318 inventory remediation moments, including #5690 mint-lane triggers.
+ * Existing exit/BLOCKED call-sites stay; mint-PR-open / mint-PR-merge are additive.
+ */
+export const COHORT_INVENTORY_REMEDIATION_TRIGGERS = [
+  "pr-open-discover",
+  "before-serial-rebase-squash-merge",
+  "approach1-exit-or-lease-release",
+  "tip-churn-dirty",
+  "dual-stop-conf-hold-blocked-halt",
+  "mint-PR-open",
+  "mint-PR-merge",
+] as const;
+
+export type CohortInventoryRemediationTrigger =
+  (typeof COHORT_INVENTORY_REMEDIATION_TRIGGERS)[number];
+
+export function isCohortInventoryRemediationTrigger(
+  value: string,
+): value is CohortInventoryRemediationTrigger {
+  return (COHORT_INVENTORY_REMEDIATION_TRIGGERS as readonly string[]).includes(value);
+}
+
+/** Markers that identify attended mint-gate BLOCKED (non-option-C) (#5690). */
+export const MINT_GATE_BLOCKED_REASON_MARKERS = [
+  "mint-gate",
+  "mint_gate",
+  "attended-mint",
+  "attended_mint",
+  "intent-constraint",
+  "intent_constraint",
+  "approved-scope",
+  "approved_scope",
+  "scope-provenance",
+  "scope_provenance",
+  "mint-blocked",
+  "mint_blocked",
+] as const;
+
+/**
+ * True when reason/source names attended mint / intent-constraint / approved-scope /
+ * scope-provenance BLOCKED — must not become option-C (#5690 Prefer-A Recut-1).
+ */
+export function isMintGateBlockedReason(text: string | null | undefined): boolean {
+  if (typeof text !== "string" || text.trim().length === 0) return false;
+  const lower = text.toLowerCase();
+  for (const marker of MINT_GATE_BLOCKED_REASON_MARKERS) {
+    if (lower.includes(marker)) return true;
+  }
+  return false;
+}
+
+/**
  * Record durable option-C finish for a PR. Prose dual-stop alone is not this.
+ * Mint-gate BLOCKED reasons are refused (non-option-C for product PR) (#5690).
  */
 export function writeMergePathExplicitFinishAttestation(
   projectRoot: string,
@@ -53,10 +106,26 @@ export function writeMergePathExplicitFinishAttestation(
     readonly reason?: string;
     readonly source?: string;
     readonly now?: Date;
+    /** When true, refuse even if reason/source omit mint markers (#5690). */
+    readonly mintGateBlocked?: boolean;
   } = {},
 ): ExplicitFinishWriteResult {
   if (!Number.isInteger(pr) || pr <= 0) {
     return { ok: false, reason: `invalid pr for explicit-finish attestation: ${pr}` };
+  }
+  const reasonText = input.reason ?? "option-C explicit finish";
+  const sourceText = input.source ?? "explicit-finish";
+  if (
+    input.mintGateBlocked === true ||
+    isMintGateBlockedReason(reasonText) ||
+    isMintGateBlockedReason(sourceText)
+  ) {
+    return {
+      ok: false,
+      reason:
+        `mint-gate BLOCKED is non-option-C for product PR #${pr}: refuse ` +
+        `writeMergePathExplicitFinishAttestation / --explicit-finish (#5690)`,
+    };
   }
   const rootAbs = resolve(projectRoot);
   const relTarget = mergePathExplicitFinishRelPath(pr);
@@ -70,8 +139,8 @@ export function writeMergePathExplicitFinishAttestation(
     schema: "deft.merge-path.explicit-finish.v1",
     pr_number: pr,
     finished_at: now.toISOString(),
-    reason: input.reason ?? "option-C explicit finish",
-    source: input.source ?? "explicit-finish",
+    reason: reasonText,
+    source: sourceText,
   };
   try {
     containedWrite({
@@ -108,6 +177,118 @@ export function hasMergePathExplicitFinishAttestation(projectRoot: string, pr: n
   } catch {
     return false;
   }
+}
+
+/**
+ * A mint-PR-only waiter is not product arm (#5690 Prefer-A Recut-1).
+ * Product live-wait requires the still-running wait to be for the product PR.
+ */
+export function evaluateProductLiveWaitContinuity(input: {
+  readonly productPr: number;
+  readonly waitingPr: number;
+  readonly waitLive: boolean;
+}): {
+  readonly productLiveWait: boolean;
+  readonly mintOnlyWaiter: boolean;
+} {
+  const samePr = input.productPr === input.waitingPr;
+  const productLiveWait = input.waitLive && samePr;
+  const mintOnlyWaiter = input.waitLive && !samePr;
+  return { productLiveWait, mintOnlyWaiter };
+}
+
+export type MergePathPhaseOwner = "approach1-pr-watch" | "post-clean-closer" | "none";
+
+/**
+ * CLEAN-before-mint phase-correct owner (#5690 Prefer-A Recut-1).
+ * When product is CLEAN and mint remains pending, the post-CLEAN closer is the
+ * continuing owner — do not restart pre-CLEAN pr:watch as post-CLEAN arm.
+ */
+export function resolveCleanBeforeMintPhaseOwner(input: {
+  readonly productClean: boolean;
+  readonly mintPending: boolean;
+  readonly preCleanWaitLive: boolean;
+  readonly postCleanCloserLive: boolean;
+}): {
+  readonly phase: "pre-clean" | "post-clean-closer";
+  readonly ownerKind: MergePathPhaseOwner;
+  readonly livePhaseCorrectWait: boolean;
+  readonly restartPreCleanWatchForbidden: boolean;
+} {
+  if (input.productClean && input.mintPending) {
+    return {
+      phase: "post-clean-closer",
+      ownerKind: input.postCleanCloserLive ? "post-clean-closer" : "none",
+      livePhaseCorrectWait: input.postCleanCloserLive,
+      restartPreCleanWatchForbidden: true,
+    };
+  }
+  if (input.productClean) {
+    return {
+      phase: "post-clean-closer",
+      ownerKind: input.postCleanCloserLive ? "post-clean-closer" : "none",
+      livePhaseCorrectWait: input.postCleanCloserLive,
+      restartPreCleanWatchForbidden: true,
+    };
+  }
+  return {
+    phase: "pre-clean",
+    ownerKind: input.preCleanWaitLive ? "approach1-pr-watch" : "none",
+    livePhaseCorrectWait: input.preCleanWaitLive,
+    restartPreCleanWatchForbidden: false,
+  };
+}
+
+export interface MintExitProductArmInput {
+  readonly livePhaseCorrectWait: boolean;
+  readonly stickyLeaseActive?: boolean;
+  /** True when Approach 1 / closer exited for attended mint-gate BLOCKED. */
+  readonly mintGateBlocked: boolean;
+  /**
+   * Caller-supplied option-C claim. Mint-gate BLOCKED forces this to false —
+   * no fourth MergePathArmReason; bind existing evaluateMergePathArm (#5690 P4).
+   */
+  readonly explicitFinish?: boolean;
+}
+
+export interface MintExitProductArmResult {
+  readonly arm: ReturnType<typeof evaluateMergePathArm>;
+  readonly classification: Extract<CohortArmClass, "armed-live" | "unarmed">;
+  readonly mustRemediateBeforeMintAttention: boolean;
+  readonly forbidExplicitFinish: boolean;
+  readonly message: string;
+}
+
+/**
+ * Bind evaluateMergePathArm / unarmed class at Approach 1 or closer mint-exit (#5690).
+ * Same-turn product remediates via verify:review-monitor --merge-path-arm --live-wait
+ * (and cohort inventory when N>1) before mint attention.
+ */
+export function evaluateProductArmAtMintExit(
+  input: MintExitProductArmInput,
+): MintExitProductArmResult {
+  const forbidExplicitFinish = input.mintGateBlocked === true;
+  const explicitFinish = forbidExplicitFinish ? false : input.explicitFinish === true;
+  const arm = evaluateMergePathArm({
+    livePhaseCorrectWait: input.livePhaseCorrectWait,
+    explicitFinish,
+    stickyLeaseActive: input.stickyLeaseActive,
+  });
+  const classification: Extract<CohortArmClass, "armed-live" | "unarmed"> =
+    arm.armed && arm.reason === "live_wait" ? "armed-live" : "unarmed";
+  const mustRemediateBeforeMintAttention =
+    input.mintGateBlocked === true && classification === "unarmed";
+  const message = mustRemediateBeforeMintAttention
+    ? `mint-exit product PR unarmed: same-turn verify:review-monitor --merge-path-arm --live-wait ` +
+      `(and verify:cohort-review-monitors when N>1) before mint attention (#5690); ${arm.message}`
+    : arm.message;
+  return {
+    arm,
+    classification,
+    mustRemediateBeforeMintAttention,
+    forbidExplicitFinish,
+    message,
+  };
 }
 
 /**

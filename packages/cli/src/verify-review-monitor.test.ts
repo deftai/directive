@@ -1,4 +1,4 @@
-import { mkdtempSync } from "node:fs";
+import { existsSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as reviewMonitor from "@deftai/directive-core/review-monitor";
@@ -42,6 +42,20 @@ describe("verify-review-monitor CLI", () => {
     expect(parsed.liveWait).toBe(true);
     expect(parsed.stickyLease).toBe(true);
     expect(parsed.explicitFinish).toBe(false);
+    expect(parsed.mintGateBlocked).toBe(false);
+    expect(parsed.reason).toBeNull();
+  });
+
+  it("parses mint-gate-blocked and reason for explicit-finish (#5690)", () => {
+    const parsed = parseVerifyReviewMonitorArgs([
+      "--pr=88",
+      "--explicit-finish",
+      "--mint-gate-blocked",
+      "--reason=attended-mint intent-constraint BLOCKED",
+    ]);
+    expect(parsed.explicitFinish).toBe(true);
+    expect(parsed.mintGateBlocked).toBe(true);
+    expect(parsed.reason).toBe("attended-mint intent-constraint BLOCKED");
   });
 
   it("rejects invalid call-site and pr", () => {
@@ -171,6 +185,51 @@ describe("verify-review-monitor CLI", () => {
       2,
     );
     expect(err.mock.calls.join("")).toMatch(/not a directory/);
+  });
+
+  it("explicit-finish with --mint-gate-blocked refuses durable attestation (#5690)", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-cli-mint-blocked-"));
+    vi.stubEnv("DEFT_MONITOR_TIER", "3");
+    vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    expect(
+      run([
+        "--pr",
+        "5690",
+        "--merge-path-arm",
+        "--explicit-finish",
+        "--mint-gate-blocked",
+        "--project-root",
+        root,
+      ]),
+    ).toBe(2);
+    expect(err.mock.calls.join("")).toMatch(/non-option-C|#5690|mint-gate/i);
+    expect(
+      existsSync(join(root, ".deft-scratch", "merge-path-arm", "pr-5690.explicit-finish.json")),
+    ).toBe(false);
+  });
+
+  it("explicit-finish with mint-marker --reason refuses durable attestation (#5690)", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-cli-mint-reason-"));
+    vi.stubEnv("DEFT_MONITOR_TIER", "3");
+    vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    expect(
+      run([
+        "--pr",
+        "5690",
+        "--merge-path-arm",
+        "--explicit-finish",
+        "--reason",
+        "closer mint-blocked intent-constraint",
+        "--project-root",
+        root,
+      ]),
+    ).toBe(2);
+    expect(err.mock.calls.join("")).toMatch(/non-option-C|#5690|mint-gate/i);
+    expect(
+      existsSync(join(root, ".deft-scratch", "merge-path-arm", "pr-5690.explicit-finish.json")),
+    ).toBe(false);
   });
 
   it("explicit-finish does not persist attestation on config-error project root", () => {
