@@ -306,7 +306,9 @@
           "packages/core/src/design-critique/auto-stamp-path1.ts",
           "packages/core/src/design-critique/auto-stamp-path1.test.ts",
           "content/contracts/design-critique.md",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "content/templates/design-critique-brief.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts"
         ],
         "module_boundary": "design-critique arc on xBRIEF / no GitHub issue target",
         "cohesion_exemption": "CHANGELOG.md shared Unreleased for #5486 Prefer-A Bound."
@@ -342,7 +344,9 @@
           "packages/core/src/design-critique/auto-stamp-path1.ts",
           "packages/core/src/design-critique/auto-stamp-path1.test.ts",
           "content/contracts/design-critique.md",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "content/templates/design-critique-brief.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts"
         ],
         "size": "L",
         "file_scope_confidence": "high",
