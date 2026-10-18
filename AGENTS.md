@@ -166,7 +166,7 @@ Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after 
 
 <!-- placeholder -->
 
-<!-- deft:managed-section v3 sha=fcf2c306af78 refreshed=2026-10-18T23:28:07Z session=761bf783c3dd -->
+<!-- deft:managed-section v3 sha=b9ca6eb7e8f7 refreshed=2026-10-18T23:38:24Z session=c1f36981b09e -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -208,7 +208,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## Unmanaged project header (#2065)
 
-! Do NOT treat the unmanaged AGENTS.md header as the work queue; ⊗ Do NOT add `Status`, `Next:`, or `Known Issues` blocks — they rot silently. See UPGRADING.md § AGENTS.md: managed vs unmanaged header. Process-use (#4229): see content/docs/getting-started.md. ⊗ Init-alone claims.
+! Do NOT treat the unmanaged AGENTS.md header as the work queue; ⊗ Do NOT add `Status`, `Next:`, or `Known Issues` blocks — they rot silently. See UPGRADING.md § AGENTS.md: managed vs unmanaged header for the Session orientation pointer. Process-use (#4229): see content/docs/getting-started.md. ⊗ Init-alone claims.
 
 ## Cache-as-authoritative work selection (#1149)
 
