@@ -1,0 +1,277 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5716",
+    "updated": "2026-10-18T21:04:33Z"
+  },
+  "plan": {
+    "title": "feat(design-critique): the arc is the recommended step before ingest for every issue; skip only with a recorded not-warranted line",
+    "status": "running",
+    "narratives": {
+      "Description": "feat(design-critique): the arc is the recommended step before ingest for every issue; skip only with a recorded not-warranted line",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5716",
+      "Overview": "## TL;DR\n\nEvery issue, maintainer or consumer, gets the design-critique arc before `issue:ingest`, or a recorded `design-critique: not warranted, because …` line. No subset, no qualifier, no \"ordinary scope\" exemption. This is a posture change on instruction surfaces plus one advisory line at the ingest chokepoint; it is not an engine gate and ADR-005 is unchanged. It makes the operator bar already recorded on #3995 (comment 5574437975) the deposited default for everyone, and absorbs #4229 resolution 5.\n\n## What \"all the time\" means, concretely\n\n1. **Trigger:** any GitHub issue about to be ingested. Not \"mechanism-shaped\", not \"design-type\". The `mechanism-shaped` stamp keeps its ADR-005 role (what the advisory judgment gate matches); it no longer scopes the recommendation.\n2. **Exemption:** exactly one — a recorded clearance line of the existing shape `design-critique: not warranted, because …` (parser `DESIGN_CRITIQUE_CLEARANCE_SHAPE`, `packages/core/src/orchestration/judgment-policy.ts`). Silence, \"ordinary playable\", \"chore\", or an unlabelled issue is not a skip. Chores pay one line, not an arc.\n3. **Default spend:** N=1 open critique. Never a panel by default.\n4. **Timing fence kept:** the arc belongs at planning. The skill's \"do not trigger on ordinary implement, build, or swarm work\" stays, because that fence is about *when*, not *which issues*.\n5. **Scopes with no GitHub issue:** out of reach until #5486 (open, in active) lands \"run an arc on an xBRIEF when no GitHub issue exists\". This issue names that dependency and does not pretend to cover it.\n\n## Why now\n\n- Operator bar on #3995 (2026-09-07): \"run an arc when possible; skip only with a recorded `design-critique: not warranted, because …`. Silence or 'ordinary playable' is not a skip.\" Two weeks of universal manual practice: most arcs find a problem; skipping usually ships a bad lean.\n- 2026-10-17/18: three N=1 critic passes on one proposal set blocked five central claims that would otherwise have been filed (#5694 class). Repeated use makes the pattern obvious: the arc is the step that catches the bad lean before code.\n- Consumer field report #4229: a consumer treated the arc as n/a for an \"ordinary playable scope\"; the deposited text allowed it.\n- Today the deposited posture is opt-in. The skill description reads \"Use when the operator asks … Do NOT trigger on ordinary implement, build, or swarm work\"; no always-on surface names the arc; `issue:ingest` returns `not-in-arc` silently for an unarced issue (`assertCompletedArcAllowsIngest`, `packages/core/src/intake/issue-ingest.ts:2385`, only throws on `blocked`).\n\n## Scope\n\nInstruction surfaces (unconditional wording on each):\n\n1. **Skill posture.** `deft-directive-design-critique` description and § When to Use (pack source `content/packs/skills/skills-pack-0.1.json`, `task packs:render`): the arc is the recommended step before `issue:ingest` for every issue; the only skip is the recorded clearance line; the build/swarm timing fence stays.\n2. **Managed AGENTS.md pointer.** One line in `content/templates/agents-entry.md` inside the 135-byte headroom (`agentsMdBudget.absoluteMaxBytes` 28400; no ratchet raise, #3735), propagated by `task agents:refresh`, gated by `agents_entry_contract` (#1309). Shape: before `issue:ingest`, arc or record `design-critique: not warranted, because …`. Supersedes the \"offer\" pointer drafted as NEW-C1 in the delivery coverage tracker.\n3. **Session routing / Plan order.** `content/commands.md` § Session routing: triage write-back → arc or recorded skip → `issue:ingest` → scope. Same line in the managed Session routing card if bytes allow.\n4. **Setup close-out.** `deft-directive-setup` tells the consumer the arc is the default planning step and shows the skip line. Prose only; no `judgmentGates` writer.\n\nThe one surface that fires every time (Rule Authority: prefer a verb over prose):\n\n5. **Ingest advisory.** In `issue:ingest`, when `evaluateCompletedArcRecord` returns `not-in-arc` and neither the issue body nor any comment carries a clearance-shaped line, print one advisory line naming the skill and the skip form. Exit 0. Never blocks. Reuses the existing verdict and parser; adds no new classifier. (This is the ingest-advisory road the NEW-C1 critic weighed and set aside only because the pointer was cheaper; with an unconditional recommendation the chokepoint line is what makes \"every issue\" true in practice.)\n\nMeasurement, so the posture can be judged later rather than argued:\n\n6. **Skip-rate visibility.** The advisory emits a counted event (existing run-summary / events stream) distinguishing `arced`, `skipped-recorded`, `neither`. This feeds the per-arc series #3995 still owes and #3923's measurement.\n\n## Recorded departure, stated so it is not silent\n\n- #3578 lists \"a review agent on every triage\" as explicitly rejected, and ADR-005 § refusals 3 says voluntary critiques are \"not precedent for always-fire\". Both are about the engine: an auto-firing gate or an auto-dispatched reviewer. This issue changes neither. It sets the *instruction* posture to recommended-by-default with a cheap recorded opt-out, which ADR-005 already allows as voluntary spend. The operator made that call on #3995 after measured practice; this issue deposits it. If the skip-rate series later shows the recommendation is mostly skipped, that is evidence for #3995, not a reason to hide the recommendation.\n\n## Not in scope (owned elsewhere)\n\n- Engine refusal of unarced work, auto-stamping `mechanism-shaped`, auto-dispatch, or an ADR-005 amendment: #3995, #3923, #3578. ADR-005 § refusals 3 stands.\n- A `judgmentGates` policy writer or promote-time enforcement ladder (#1511 holds `verify:judgment-gates` at `hold`; `--enforce` is a no-op on the declared/review entry).\n- Arcs on issue-less scopes: #5486.\n\n## Acceptance\n\n- Skill description and § When to Use carry the unconditional posture and the skip form; no \"mechanism-shaped\" qualifier on the recommendation.\n- Managed AGENTS.md carries the pointer; `verify:agents-md-budget` green, no ratchet raise.\n- `commands.md` Session routing names the order.\n- `issue:ingest` prints the advisory on `not-in-arc` with no clearance line; exit 0; one unit test for each of the three states.\n- Skip-rate events present in the run-summary stream.\n- Existing contracts green (`design_critique_contract.test.ts`, `skill-external-fetch-gate.test.ts`); one new contract assertion that the rendered skill description contains the skip form.\n- Cross-link comment on #4229 (resolution 5 delivered here) and on #3995 (operator bar deposited; series input added).\n- CHANGELOG `[Unreleased]` entry.\n\n## Critic verdict (process-only, pre-issue)\n\nPartial. The pointer (item 2) went through an N=1 pre-issue critic as NEW-C1 of the delivery coverage tracker at `83de55b393b2f03b6bd7445edaa3aa8bb4a31f4c`: a specGuard-style enforcement follow-up and a setup `judgmentGates` offer were struck; byte budget and owner #4229 were set. The unconditional posture (items 1, 3, 4), the ingest advisory (5) and the skip-rate events (6) have not been critiqued. By this issue's own rule, this issue gets the arc before ingest.\n\n## Relates\n\n#3995 (operator bar; round-1 F6 \"consumer skip is an instruction gap\"), #4229 (resolution 5, dominated here), #5486 (issue-less scopes), #3923, #3578, #4071, #5326, #5694, #3735, #1309. ADR-005 unchanged.\n\n🤖 Filed with [Claude Code](https://claude.com/claude-code)",
+      "Labels": "enhancement, agent-experience, process, urgent, area:skills, status:child, design-critique:ingest-ready, core-capabilities, promise:planning"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Operative not-warranted skip gate: advisory suppress and skipped-recorded require classifyPosition and per-line scan; warranted-only stays neither",
+        "status": "pending",
+        "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "Operative not-warranted skip gate: advisory suppress and skipped-recorded require classifyPosition and per-line scan; warranted-only stays neither"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Shared-intake classify-then-emit inside ingestOne: always emit arced|skipped-recorded|neither; advisory only for neither; exit code unchanged",
+        "status": "pending",
+        "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "Shared-intake classify-then-emit inside ingestOne: always emit arced|skipped-recorded|neither; advisory only for neither; exit code unchanged"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Enroll snake_case design_critique_ingest_posture end-to-end on run-summary kinds emitter fixture and trial step",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/run-summary/run-summary.test.ts",
+        "narrative": {
+          "Acceptance": "Enroll snake_case design_critique_ingest_posture end-to-end on run-summary kinds emitter fixture and trial step"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Named-eviction mandatory agents-entry pointer without raising managedMaxLines or absoluteMaxBytes; PR names deleted line",
+        "status": "pending",
+        "x-directive/artifact_path": "content/templates/agents-entry.md",
+        "narrative": {
+          "Acceptance": "Named-eviction mandatory agents-entry pointer without raising managedMaxLines or absoluteMaxBytes; PR names deleted line"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Deposited non-engine boundary clause: ADR-005 unchanged; ingest advisory exit 0 never blocks; contract tests lock skip-form string",
+        "status": "pending",
+        "x-directive/artifact_path": "content/contracts/design-critique.md",
+        "narrative": {
+          "Acceptance": "Deposited non-engine boundary clause: ADR-005 unchanged; ingest advisory exit 0 never blocks; contract tests lock skip-form string"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "Skill When-to-Use timing fence: recommend arc before issue:ingest for every GitHub issue; sole skip recorded not-warranted",
+        "status": "pending",
+        "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "Skill When-to-Use timing fence: recommend arc before issue:ingest for every GitHub issue; sole skip recorded not-warranted"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "Skill-surface spend recommendation N=1 only; panel N greater than or equal to 3 stays Stop 2 permission",
+        "status": "pending",
+        "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "Skill-surface spend recommendation N=1 only; panel N greater than or equal to 3 stays Stop 2 permission"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "Triage planning-order line in content/commands.md beside Triage Tasks not Session routing",
+        "status": "pending",
+        "x-directive/artifact_path": "content/commands.md",
+        "narrative": {
+          "Acceptance": "Triage planning-order line in content/commands.md beside Triage Tasks not Session routing"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "Setup close-out shows arc default and skip line; prose only; issue-less scopes remain THIS-ship boundary",
+        "status": "pending",
+        "x-directive/artifact_path": "content/skills/deft-directive-setup/SKILL.md",
+        "narrative": {
+          "Acceptance": "Setup close-out shows arc default and skip line; prose only; issue-less scopes remain THIS-ship boundary"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "agent-experience",
+      "process",
+      "urgent",
+      "area:skills",
+      "status:child",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:planning"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5716",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5716: feat(design-critique): the arc is the recommended step before ingest for every issue; skip only with a recorded not-warranted line"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "design-critique: not warranted, because …",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L17"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "design-critique-arc-recommended-before-ingest-every-issue",
+        "expected_outputs": [
+          "Tracking PR for #5716 Prefer-A Recut-3 arc-recommended-before-ingest"
+        ],
+        "depends_on": [
+          "github.issue.5368447709"
+        ],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/run-summary/run-summary.test.ts"
+        ],
+        "file_scope": [
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-design-critique/SKILL.md",
+          "content/contracts/design-critique.md",
+          "content/commands.md",
+          "content/templates/agents-entry.md",
+          "content/skills/deft-directive-setup/SKILL.md",
+          "packages/core/src/run-summary/run-summary.test.ts",
+          "packages/core/src/run-summary/emit.ts",
+          "packages/core/src/run-summary/index.ts",
+          "packages/core/src/run-summary/path.ts",
+          "packages/core/src/run-summary/production-callers.test.ts",
+          "packages/core/src/run-summary/session-id.test.ts",
+          "packages/core/src/run-summary/session-id.ts",
+          "packages/core/src/run-summary/share.test.ts",
+          "packages/core/src/run-summary/share.ts",
+          "packages/core/src/run-summary/types.ts",
+          "CHANGELOG.md"
+        ],
+        "size": "L",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5716",
+          "#4229",
+          "#3995",
+          "#5486",
+          "#5727"
+        ],
+        "parallel_safe": false
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-design-critique/SKILL.md",
+          "content/contracts/design-critique.md",
+          "content/commands.md",
+          "content/templates/agents-entry.md",
+          "content/skills/deft-directive-setup/SKILL.md",
+          "packages/core/src/run-summary/run-summary.test.ts",
+          "packages/core/src/run-summary/emit.ts",
+          "packages/core/src/run-summary/index.ts",
+          "packages/core/src/run-summary/path.ts",
+          "packages/core/src/run-summary/production-callers.test.ts",
+          "packages/core/src/run-summary/session-id.test.ts",
+          "packages/core/src/run-summary/session-id.ts",
+          "packages/core/src/run-summary/share.test.ts",
+          "packages/core/src/run-summary/share.ts",
+          "packages/core/src/run-summary/types.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "design-critique arc recommended before every issue:ingest",
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #5716 Prefer-A Recut-3."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5913161841,
+        "origin": "deftai/directive#5716",
+        "id": "github.issue.5913161841"
+      },
+      "x-directive/admitted-target-digest": "sha256:71f2b5c269d85c81909ee1b49c1e178d2165277e2ecbdd754646d0f14b870bda"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Operative not-warranted skip gate: advisory suppress and skipped-recorded require classifyPosition and per-line scan; warranted-only stays neither",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Shared-intake classify-then-emit inside ingestOne: always emit arced|skipped-recorded|neither; advisory only for neither; exit code unchanged",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Enroll snake_case design_critique_ingest_posture end-to-end on run-summary kinds emitter fixture and trial step",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Named-eviction mandatory agents-entry pointer without raising managedMaxLines or absoluteMaxBytes; PR names deleted line",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Deposited non-engine boundary clause: ADR-005 unchanged; ingest advisory exit 0 never blocks; contract tests lock skip-form string",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Skill When-to-Use timing fence: recommend arc before issue:ingest for every GitHub issue; sole skip recorded not-warranted",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Skill-surface spend recommendation N=1 only; panel N greater than or equal to 3 stays Stop 2 permission",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Triage planning-order line in content/commands.md beside Triage Tasks not Session routing",
+          "artifact_path": "content/commands.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Setup close-out shows arc default and skip line; prose only; issue-less scopes remain THIS-ship boundary",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "source_rung": "derived",
+      "derived_reason": "derived 9 independently testable clauses from the task statement before product edit (#3323)",
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5913161841",
+    "updated": "2026-10-18T21:04:33Z"
+  }
+}
