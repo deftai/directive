@@ -1,0 +1,643 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5677",
+    "updated": "2026-10-19T16:23:59Z"
+  },
+  "plan": {
+    "title": "leftover(#5674): residual deposit keep-unknowns (run/hooks/codeql/host-registration)",
+    "status": "running",
+    "narratives": {
+      "Description": "leftover(#5674): residual deposit keep-unknowns (run/hooks/codeql/host-registration)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5677",
+      "Overview": "## Summary\n\nLeftover from Prefer-A Bound Recut on #5674: residual keep-unknown deposit paths that stay outside the closed VERSION + lifecycle `.gitkeep` inert set.\n\n## Owns\n\nClassifier/keep-unknown residuals (not waived/exit-4 wiring — that stays on #5674):\n\n- `.deft/core/run` (Python launcher; must not be unconditional inert)\n- executable `.githooks/*`\n- host hook registration JSON\n- `.github/codeql/codeql-config.yml`\n- other installer-managed unknowns outside #5665 limb-1 and #5674 limb-4 exact set\n\n## Refs\n\n- Parent leftover: #5674\n- Prefer-A Bound Recut: https://github.com/deftai/directive/issues/5674#issuecomment-6219834876\n- Classifier story: #5665\n- Override mint/admission: #5542\r\n\n",
+      "Labels": "adoption-blocker, process, area:cli, dogfood, status:child, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "Demote CodeQL config exact-path inert after coverable-first in coverage-applicability evaluate",
+        "status": "pending",
+        "effort": "M",
+        "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts"
+      },
+      {
+        "id": "2",
+        "title": "Host-registration managed-projection demotion with A/M split for official hooks projection paths",
+        "status": "pending",
+        "effort": "M",
+        "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts"
+      },
+      {
+        "id": "3",
+        "title": "HOOK_FILENAMES-only exact pathname inert for official extension-less githooks pair",
+        "status": "pending",
+        "effort": "M",
+        "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts"
+      },
+      {
+        "id": "4",
+        "title": "Deletion-only shebang-proven relief for retired python run shim under deposit",
+        "status": "pending",
+        "effort": "M",
+        "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts"
+      },
+      {
+        "id": "5",
+        "title": "Authority keep-unknown wall for approved-scope and unlisted peers",
+        "status": "pending",
+        "effort": "M",
+        "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts"
+      },
+      {
+        "id": "6",
+        "title": "CHANGELOG Unreleased Security/Fixed for residual deposit keep-unknowns",
+        "status": "pending",
+        "effort": "M",
+        "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts"
+      }
+    ],
+    "tags": [
+      "adoption-blocker",
+      "process",
+      "area:cli",
+      "dogfood",
+      "status:child",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5677",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5677: leftover(#5674): residual deposit keep-unknowns (run/hooks/codeql/host-registration)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "criteria": [
+        {
+          "id": "1",
+          "title": "Demote CodeQL config exact-path inert after coverable-first in coverage-applicability evaluate",
+          "status": "pending",
+          "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts"
+        },
+        {
+          "id": "2",
+          "title": "Host-registration managed-projection demotion with A/M split for official hooks projection paths",
+          "status": "pending",
+          "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts"
+        },
+        {
+          "id": "3",
+          "title": "HOOK_FILENAMES-only exact pathname inert for official extension-less githooks pair",
+          "status": "pending",
+          "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts"
+        },
+        {
+          "id": "4",
+          "title": "Deletion-only shebang-proven relief for retired python run shim under deposit",
+          "status": "pending",
+          "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts"
+        },
+        {
+          "id": "5",
+          "title": "Authority keep-unknown wall for approved-scope and unlisted peers",
+          "status": "pending",
+          "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts"
+        },
+        {
+          "id": "6",
+          "title": "CHANGELOG Unreleased Security/Fixed for residual deposit keep-unknowns",
+          "status": "pending",
+          "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts"
+        }
+      ],
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Demote CodeQL config exact-path inert after coverable-first in coverage-applicability evaluate",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Host-registration managed-projection demotion with A/M split for official hooks projection paths",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "HOOK_FILENAMES-only exact pathname inert for official extension-less githooks pair",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Deletion-only shebang-proven relief for retired python run shim under deposit",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Authority keep-unknown wall for approved-scope and unlisted peers",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "CHANGELOG Unreleased Security/Fixed for residual deposit keep-unknowns",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/coverage-applicability/evaluate.ts",
+          "packages/core/src/coverage-applicability/evaluate.test.ts",
+          "packages/core/src/init-deposit/scaffold.ts",
+          "packages/core/src/deposit/python-free.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/coverage-applicability/evaluate.ts",
+        "cohesion_exemption": "CHANGELOG shared Unreleased for #5677"
+      },
+      "issueCommentThread": [
+        {
+          "body": "## Cross-link\n\n- Parent Prefer-A Bound Recut (operator-deferred P3): https://github.com/deftai/directive/issues/5674#issuecomment-6219834876\n- Parent leftover: #5674",
+          "id": 6219979200,
+          "html_url": "https://github.com/deftai/directive/issues/5677#issuecomment-6219979200",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-16T16:28:03Z",
+          "updated_at": "2026-10-16T16:28:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Prefer-A draft\n\nconflict_group: residual-deposit-keep-unknowns-run-hooks-codeql-host-registration\nTarget-digest: sha256:6dd6ef14e9fa870f8a0b7b13df831a8120516535488132bb1f12033254f70807\ndispatch-sha: b35d8ffa8184b4dbb0f4f5d643e540517c0e67c0\ndest: .deft-scratch/worktrees/arc-5677\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\n\n**Lean:** Prefer-A — close residual keep-unknowns with affirmative closed-path classification from installerManagedMatchers / deposit SoT: exact-path inert for registration JSON + CodeQL config + exact deposited hook/adapter/wrapper scripts + exact .deft/core/run deposit launcher; keep-unknown forever for .deft/approved-scope authority and arbitrary .deft/core beyond VERSION+run.\n\n## Bound remedy (draft)\n\n1. **Host registration + AppSec config inert (closes P1 subset).** After coverable-first, demote these exact posix paths to inert inside classifyChangedPath (pull exact strings from installerManagedMatchers / CODEQL_CONFIG_REL; do not invent parallel literals): .cursor/hooks.json, .codex/hooks.json, .grok/hooks/deft.json, .claude/settings.json, and .github/codeql/codeql-config.yml (CODEQL_CONFIG_REL). These are deposit projections, not Istanbul product.\n2. **Exact deposited executable scripts inert (closes P2).** Exact-path inert for the closed deposited hook/adapter/wrapper set only — not a .githooks/ or .cursor/hooks/ prefix blanket: .githooks/pre-commit, .githooks/pre-push, .githooks/_deft-run.sh, .cursor/hooks/deft-cursor-hook-adapter.mjs, .cursor/hooks/deft-cursor-hook-adapter.test.mjs, .grok/hooks/deft-pretooluse-wrapper.sh. Behavior stays owned by content-contract / deposit tests; classifier must not use prefix .githooks/ as coverage-applicability membership.\n3. **.deft/core/run deposit-launcher carve-out (closes P3).** Exact-path inert for .deft/core/run only, with recorded reason: deposited Python launcher outside the TS Istanbul surface; deposit/hygiene tests own it. Do not inert .deft/core/run children by prefix. Do not inert arbitrary .deft/core. This is the #5677 decision that #5674 Reject deferred — not unconditional silent widen.\n4. **Keep-unknown forever (closes P4 by naming the wall).** Remain unknown (override-eligible / refuse unknown-path): .deft/approved-scope/**, arbitrary .deft/core beyond VERSION + exact run, consumer-authored hooks under .cursor/hooks outside the two official adapter exact paths, and any installerManagedMatchers prefix-only peers not listed as exact in limbs 1-3. Do not claim blanket .deft / meta / .githooks inert.\n5. **Fixtures.** Unit/aggregate: each limb-1..3 exact path to inert; negatives stay unknown for .deft/approved-scope/x.json, .deft/core/payload.bin, .deft/core/run/hooks.json (or other run children), consumer .cursor/hooks/custom.js, and a non-listed .githooks/extra-hook. Preserve #5665 stamp/ledger and #5674 VERSION+lifecycle .gitkeep inert rules.\n\n### Reject (draft)\n- Unconditional / silent inert for .deft/core/run without this issue owning the carve-out\n- Prefix blanket inert for .githooks/, .cursor/hooks/, .deft/, .deft/core/**, or meta/\n- Treating override-wiring (#5674/#5542) as substitute for classifier-correctable deposit residuals\n- Claiming .deft/approved-scope authority paths closed by this Bound\n- Softening unknown-path refuse into warn-only for unlisted peers\n- Re-opening #5674 waived/exit-4 limbs inside this leftover\n\n## In plain English\n\n#5674 closed VERSION and lifecycle .gitkeep, and left run/hooks/codeql/host-registration as named residuals on this child. Prefer-A gives each residual a closed exact-path rule from the installer SoT so ordinary deposit upgrades stop unknown-path refusing, while .deft/approved-scope and anything outside that exact list stay unknown on purpose.\n\n## file_scope lean (draft)\npackages/core/src/coverage-applicability/evaluate.ts (+tests), CHANGELOG.md. Keep-outs: #5674 waived/exit-4 / pre-PR limbs; #5665 stamp/ledger set; blanket prefix widen; .deft/approved-scope authority.",
+          "id": 6254831673,
+          "html_url": "https://github.com/deftai/directive/issues/5677#issuecomment-6254831673",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T20:35:01Z",
+          "updated_at": "2026-10-18T20:35:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because #5674 operator-deferred P3 left residual deposit keep-unknowns (run / hooks / host-registration / codeql) without closed classifier owners on this child — Bound needed before implement.\n\nmechanism-shaped: true\ncharter: open critique\nrefutation-target: residual deposit peers may remain keep-unknown indefinitely without closed exact-path owners on #5677\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\ntarget-digest: sha256:6dd6ef14e9fa870f8a0b7b13df831a8120516535488132bb1f12033254f70807\nTarget-digest: sha256:6dd6ef14e9fa870f8a0b7b13df831a8120516535488132bb1f12033254f70807\ndispatch-sha: b35d8ffa8184b4dbb0f4f5d643e540517c0e67c0\ndest: .deft-scratch/worktrees/arc-5677\nverification-path: pin-read git show b35d8ffa8184b4dbb0f4f5d643e540517c0e67c0:\nprefer-a-draft: 6254831673\ndual-stop-reserved: 1\nclosed-findings:\n\npain: P1, P2, P3, P4\n\nPain inventory (non-operative prose):\n- P1 host registration / AppSec config unknowns — .cursor/hooks.json, .codex/hooks.json, .grok/hooks/deft.json, .claude/settings.json, and .github/codeql/codeql-config.yml still classify unknown and refuse ordinary deposit/upgrade diffs\n- P2 deposited executable hook/adapter unknowns — .githooks/pre-commit|pre-push|_deft-run.sh and official Cursor adapter / Grok wrapper exact paths still unknown; prefix blanket would violate #5674 Reject\n- P3 .deft/core/run unresolved — #5674 Reject forbade unconditional inert; this child must own the carve-out or an alternate closed rule\n- P4 keep-unknown wall unnamed — .deft/approved-scope authority and arbitrary .deft/core beyond VERSION+run lack an explicit forever-unknown boundary, so implementers may over-widen or leave refuse forever\n\n## Plain-language summary\n\n#5674 fixed VERSION and lifecycle gitkeeps. This leftover still unknown-path refuses on run, hooks, host registration, and codeql. The arc should lock exact-path rules from the installer SoT and name what stays unknown on purpose.",
+          "id": 6254838291,
+          "html_url": "https://github.com/deftai/directive/issues/5677#issuecomment-6254838291",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T20:35:39Z",
+          "updated_at": "2026-10-18T20:35:39Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\nseat-families: claude, codex, grok\nlaunch-probe: claude pong rc0; codex pong rc0; grok pong rc0\ninput-ceiling: 6254848908\nprefer-a-draft: 6254831673\nstop-1: 6254838291\ndispatch-sha: b35d8ffa8184b4dbb0f4f5d643e540517c0e67c0\ndest: .deft-scratch/worktrees/arc-5677\nverification-path: pin-read git show b35d8ffa8184b4dbb0f4f5d643e540517c0e67c0:\nspend: N≥3\narc-mode: no-ingest\nyolo-standing: on\n\nRound-1 N≥3 panel seating against Prefer-A draft 6254831673 and Stop 1 6254838291. Shared ceiling is this deposit id after POST.",
+          "id": 6254848908,
+          "html_url": "https://github.com/deftai/directive/issues/5677#issuecomment-6254848908",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T20:36:41Z",
+          "updated_at": "2026-10-18T20:36:42Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\nfamily: codex\nid-ceiling: 6254848908\ndispatch-sha: b35d8ffa8184b4dbb0f4f5d643e540517c0e67c0\n\n## In plain English\n\nPrefer-A cannot bind as written. Exact names bound the exemption's size, but do not prove installer-only changes. Several proposed paths already classify as executable, registration files preserve consumer configuration, and the Python launcher is actively pruned.\n\nMethod: read the issue body, the three specified in-ceiling comments, and #5674 comment 6219834876. Independently pin-read source at the dispatch SHA using git show. No sibling or post-ceiling comments read. These findings are source/control-flow verification, not executed tests.\n\nExisting mechanisms inventoried: coverable-first classification; exact stamp/VERSION/lifecycle exemptions; bound base/head JSON reads and closed-pointer demotion; installerManagedMatchers; host configuration merge/strip; exact git-hook copy lists; Python-artifact pruning. They are not interchangeable ownership proofs. All source references below are relative to https://github.com/deftai/directive/tree/b35d8ffa8184b4dbb0f4f5d643e540517c0e67c0.\n\n### C1 - blocks-the-design - Precedence and the promised fixtures disagree\n\nEvidence: packages/core/src/coverage-applicability/evaluate.ts, COVERABLE_EXTENSIONS and classifyChangedPath, returns coverable for .sh, .mjs and .js before inert rules. Thus _deft-run.sh, the Cursor adapters and Grok wrapper are coverable, not unknown as Stop 1 P2 asserts. The proposed negative .cursor/hooks/custom.js is also coverable. Generic prose rules already make .deft/core/README.md inert, contrary to the literal arbitrary-core \"unknown forever\" wall.\n\nFailure mode: adding the set after coverable-first cannot deliver limb-2 inert fixtures. Moving it before coverable-first changes executable precedence. Implementing limb 4 literally additionally turns currently coverable custom scripts into unknown and requires overriding existing inert matches.\n\nDisposition consequence: recut ordering and expected outcomes explicitly. Distinguish \"not newly exempted\" from literal unknown. Preserve executable/config classification for unlisted consumer paths; decide separately whether approved-scope needs a strict unknown guard. Named executable demotion is an actual precedence change, not unknown-path cleanup. Require aggregate as well as path fixtures.\n\n### C2 - blocks-the-design - Registration filenames do not prove projection-only changes\n\nEvidence: packages/core/src/init-deposit/agent-hooks.ts, mergeNestedConfig, mergeCursorConfig and writeAgentHookDeposit, deliberately merge managed entries into existing configuration. agent-hooks.test.ts tests preservation of custom groups and ./custom-session.sh. installerManagedMatchers is staging/guard ownership, not proof every byte is generated; classifyChangedPath does not inspect bytes.\n\nFailure mode: changing only a consumer command in .claude/settings.json or .cursor/hooks.json becomes all-inert/N/A under limb 1 despite changing executed behavior. The custom-hook wall does not protect commands inside these shared files. Likewise an exact executable pathname cannot distinguish a deposited adapter from a consumer rewrite. This is an authority/input boundary, not whether Istanbul measures JSON.\n\nDisposition consequence: replace unconditional registration exemptions with bound base/head proof that the delta is confined to managed projection, keeping consumer changes non-inert and proof failures closed. Existing readBlobJson/closed-pointer demotion is an architectural precedent, not an implemented host-config proof. Define equivalent content/provenance conditions for executable exemptions or retain current classification. Upstream deposit tests do not prove the reviewed consumer diff.\n\n### C3 - blocks-the-design - The run carve-out assumes a current artifact that is retired\n\nEvidence: packages/core/src/deposit/python-free.ts, isPythonRunShimPath and prunePythonArtifactsFromDeposit, explicitly identify .deft/core/run and remove a Python-shebang launcher. init-deposit.ts and refresh.ts import that pruning mechanism. The prune predicate checks content; the proposed exemption checks only the path.\n\nFailure mode: limb 3 permits an added or modified arbitrary extensionless executable at .deft/core/run to receive N/A although the ordinary modern deposit operation removes the legacy Python shim. This issue owning the decision does not establish current projection provenance.\n\nDisposition consequence: recut P3 around actual cleanup. If legacy removal needs relief, specify deletion-only exemption with base-blob evidence of the retired artifact; keep additions/modifications non-inert without a separate proven contract. Include A/M/D and non-Python-base cases. Do not justify unconditional inert by current deposit ownership.\n\n### C4 - sharpens-framing - The exact git-hook inventory lives outside hygiene's exact matchers\n\nEvidence: packages/core/src/init-deposit/hygiene.ts has a .githooks/ prefix, not exact entries for the three scripts. packages/core/src/init-deposit/scaffold.ts already has private HOOK_FILENAMES and HOOK_SUPPORT_FILENAMES, consumed by writeConsumerGitHooks.\n\nFailure mode: filtering exact hygiene entries misses the git hooks; consuming the prefix admits extra-hook; copying literals creates a parallel inventory.\n\nDisposition consequence: name scaffold's existing lists as the source of truth and permit a small shared export/refactor and tests in file_scope. Do not claim a missing inventory or treat all installer-managed exact entries as inert: that inventory also contains Taskfile.yml and package.json.\n\nRoad not taken: one path allowlist is cheap and deterministic for upgrade handling. It would suffice if the intended policy exempted every change at those paths, including consumer commands and rewritten adapters. That is broader than the draft's projection-only rationale. Bound diff proof and deletion-specific cleanup retain closed scope without treating spelling as provenance.\n\nRound-1 critic exit: return to parent synthesis. No ingest or further round seated.\r\n\n",
+          "id": 6254883029,
+          "html_url": "https://github.com/deftai/directive/issues/5677#issuecomment-6254883029",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T20:40:03Z",
+          "updated_at": "2026-10-18T20:40:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\naudit-targets: none\nfamily: grok\nid-ceiling: 6254848908\ndispatch-sha: b35d8ffa8184b4dbb0f4f5d643e540517c0e67c0\nverification-path: pin-read git show b35d8ffa8184b4dbb0f4f5d643e540517c0e67c0:\nprefer-a-draft: 6254831673\nstop-1: 6254838291\npanel-deposit: 6254848908\n\n## Round-1 critic (fresh)\n\nPin-read: issue #5677 body; Prefer-A draft 6254831673; Stop 1 6254838291; panel-deposit 6254848908; #5674 Prefer-A Bound Recut 6219834876; classifyChangedPath + residualDepositInertPaths at dispatch-sha; installerManagedMatchers / CODEQL_CONFIG_REL at dispatch-sha. Closed findings: none.\n\n### F1. Limb-2 script demotion is unreachable under coverable-first\nclass: blocks-the-design\n\n**Evidence.** At b35d8ffa, classifyChangedPath returns coverable for COVERABLE_EXTENSIONS before any #5665/#5674 inert demotion. That set includes .sh and .mjs. Prefer-A limb 2 lists .githooks/_deft-run.sh, .cursor/hooks/deft-cursor-hook-adapter.mjs, .cursor/hooks/deft-cursor-hook-adapter.test.mjs, and .grok/hooks/deft-pretooluse-wrapper.sh, and says demote after coverable-first (same placement as #5674 VERSION/gitkeep). Under that order those four paths never reach an inert arm. Tip tests already pin .githooks/pre-commit and .deft/core/run as unknown; they do not claim the .sh/.mjs deposit scripts are unknown.\n\n\n**Failure mode.** Implement copies the #5674 after-coverable-first pattern for limb 2. The four coverable-extension paths stay coverable; P2 is not closed for them. Or implement silently inserts inert before the extension check without Bound authority, reversing coverable-first for an unstated override.\n\n**Disposition consequence.** Bound cannot bind limb 2 as written. Either (a) drop already-coverable .sh/.mjs paths from the inert list and narrow P2 to still-unknown extension-less hooks (.githooks/pre-commit, .githooks/pre-push), or (b) restate product intent as coverable to inert for that closed script set and require an explicit exact-path override before the COVERABLE_EXTENSIONS return (not after coverable-first).\n\n### F2. Stop 1 P2 overstates unknown for coverable deposit scripts\nclass: sharpens-framing\n\n\n**Evidence.** Stop 1 P2 says deposited executable hook/adapter paths still unknown, naming _deft-run.sh and the Cursor adapter / Grok wrapper with pre-commit/pre-push. Pin-read classifier: extension-less pre-commit/pre-push to unknown; .sh/.mjs to coverable. evaluate.test.ts asserts pre-commit unknown and run/codeql unknown; it does not assert adapter/wrapper unknown.\n\n**Failure mode.** Prefer-A treats one unknown-refuse pain as one inert list. Binding closes refuse for paths that already classify coverable and changes measurement applicability (deposit script diffs become N/A) without naming that product fork.\n\n\n**Disposition consequence.** Split P2 in Bound/Stop honesty: P2a unknown-refuse (extension-less official githooks); P2b optional measurement-exempt inert for official .sh/.mjs deposit scripts only if (b) from F1 is chosen. Do not claim .sh/.mjs are unknown at this tip.\n\n### F3. Three .githooks exacts are not installerManagedMatchers exact entries\nclass: sharpens-framing\n\n\n**Evidence.** installerManagedMatchers() at pin has { prefix: \".githooks/\" } and exacts for the Cursor adapter pair + Grok wrapper + host registration JSON + CODEQL_CONFIG_REL. It has no exact entries for .githooks/pre-commit, .githooks/pre-push, or .githooks/_deft-run.sh. Pin tree under .githooks/ is exactly those three files. Limb 1 correctly pulls SoT exacts; limb 2 lists three githooks paths that filtering matchers for .exact cannot yield.\n\n\n**Failure mode.** Implement derives linb-2 from installerManagedMatchers().filter(exact) and ships an empty githooks inert set; pre-commit/pre-push stay unknown. Or copies draft literals while the Bound still claims SoT-exact provenance, drifting when deposit adds another .githooks file.\n\n\n**Disposition consequence.** Name a closed inventory for the three githooks paths (dispatch-sha .githooks/ tree, or new hygiene exact exports). Keep Reject against .githooks/ prefix membership. Adapter/wrapper exacts may keep citing installerManagedMatchers.\n\n### F4. .deft/core/run carve-out rationale is stale vs tip deposit posture\nclass: sharpens-framing\n\n**Evidence.** Limb 3 / issue body call .deft/core/run a deposited Python launcher outside TS Istanbul. Tip mechanisms: isPrunedPythonArtifactPath / isPythonRunShimPath treat .deft/core/run as pruned python-free artifact; #4090 recovery ladder must not name the retired launcher; path absent from pin tree object .deft/core/run; classifier tests still keep it unknown for #5677. #5674 Reject correctly forbade unconditional inert and deferred the decision here.\n\n**Failure mode.** Bound reason string teaches implementers that run is a live launcher surface. Residual upgrade diffs are more often delete/prune of a retired shim than edits to an active CLI.\n\n**Disposition consequence.** Keep exact-path inert for .deft/core/run only (children stay unknown). Rewrite the recorded reason to residual retired/pruned deposit shim (upgrade delete path), not live Python launcher. Do not reopen #5674 waived limbs.\n\n### F5. Limb 1 / Limb 4 / Reject inventory holds\nclass: footnote\n\n**Evidence.** Host registration JSON + CODEQL_CONFIG_REL are installerManagedMatchers exacts; not coverable via COVERABLE_EXTENSIONS or isCoverableConfig (codeql is not under .github/workflows/). Tip classify falls through to unknown - limb 1 after-coverable-first demotion is reachable. .deft/approved-scope/** already unknown in #5665/#5674 tests; Prefer-A limb 4 names the wall. Reject list matches #5674 Recut 6219834876 (no run unconditional inert; no prefix blankets; override is not substitute).\n\n**Failure mode.** None material for bind if F1-F4 land.\n\n**Disposition consequence.** Census only; no Bound change from F5 alone.\n\n### Mechanism inventory (before gap claims)\n- #5665 MANAGED_STAMP_LEDGER_INERT_PATHS exact inert after coverable-first.\n- #5674 residualDepositInertPaths: VERSION + lifecycle .gitkeep exacts; comment defers run/hooks/codeql/approved-scope to #5677.\n- installerManagedMatchers: exact host registration + adapters + CODEQL; prefix .githooks/ for staging/guard only - not classifier membership.\n- COVERABLE_EXTENSIONS already classifies deposited .sh/.mjs as coverable (no unknown-refuse gap there).\n- No general installerManaged to inert projector (correct - package.json is installer-managed and coverable).\n\n### Road-not-taken\nBlanket inert for every installerManagedMatchers.exact would also hit package.json / lockfiles / Taskfile and collapse coverable deposit upgrades into N/A. Rejected; exact closed lists stay correct.\n\n### Steelmans\nStrongest case for keeping limb-2 .sh/.mjs on the inert list: content-contract/deposit tests own behavior, so Istanbul applicability is the wrong gate. That steelman flips F1 to option (b) only when Bound explicitly authorizes override-before-coverable and restates P2 beyond unknown-refuse.\n\n### Injection / swarm lens\nClassifier changes refuse vs N/A authority for reviewed path sets. Exact closed lists + keep-unknown for .deft/approved-scope/** are the deterministic controls; Prefer-A Reject already forbids prefix widen and unknown-path soften. No additional injection finding beyond F1 silent override risk.\n\n",
+          "id": 6254951528,
+          "html_url": "https://github.com/deftai/directive/issues/5677#issuecomment-6254951528",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T20:46:45Z",
+          "updated_at": "2026-10-18T20:46:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nspend-amend: N≥3 → N=2\nreason: Claude Round-1 seat #5478 first-byte / 0-byte hang after pointer-prompt; stale claude.exe kill + one pointer retry also 0-byte (exit 4294967295). Launch-probe pong had been green. Cite https://github.com/deftai/directive/issues/5478. Bind from posted families Codex 6254883029 + Grok 6254951528.\nround-1-posted: codex 6254883029; grok 6254951528\nround-1-failed: claude (progress-fail then retry 0-byte)\nspend: N=2\nspend-ask: resolved\npanel-deposit: 6254848908",
+          "id": 6255009675,
+          "html_url": "https://github.com/deftai/directive/issues/5677#issuecomment-6255009675",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T20:52:36Z",
+          "updated_at": "2026-10-18T20:52:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Prefer-A Bound\n\nLean: Prefer-A Bound\nconflict_group: residual-deposit-keep-unknowns-run-hooks-codeql-host-registration\nTarget-digest: sha256:6dd6ef14e9fa870f8a0b7b13df831a8120516535488132bb1f12033254f70807\ndispatch-sha: b35d8ffa8184b4dbb0f4f5d643e540517c0e67c0\ndest: .deft-scratch/worktrees/arc-5677\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N=2\nspend-ask: resolved\nspend-amend: 6255009675\nprefer-a-draft: 6254831673\nstop-1: 6254838291\npanel-deposit: 6254848908\nround-1-critics: Codex 6254883029; Grok 6254951528\nclaude-seat: #5478 amend N≥3→N=2\n\n**Lean:** Prefer-A — close #5677 unknown-path residuals with reachable after-coverable-first exact rules; replace draft unconditional registration/run inert with bound-diff / deletion-only proofs; drop already-coverable .sh/.mjs from the inert list; name scaffold hook filenames as githooks SoT.\n\n## In plain English\n\nCodex and Grok both blocked the draft: several limb-2 scripts are already coverable under coverable-first, host registration files merge consumer config so a bare path exemption is too wide, and .deft/core/run is a retired/pruned shim rather than a live launcher. This Bound keeps exact CodeQL + extension-less official githooks inert, requires managed-projection proof for mergeable registration JSON, limits run relief to proven deletion of the retired shim, and leaves .deft/approved-scope plus unlisted peers unknown on purpose.\n\n## Bound remedy\n\n1. **CodeQL exact inert (relieves: P1 AppSec subset).** After coverable-first, demote CODEQL_CONFIG_REL (exact posix from installerManagedMatchers / hygiene SoT) to inert inside classifyChangedPath. Reachable: not COVERABLE_EXTENSIONS and not isCoverableConfig workflows-only.\n2. **Mergeable host-registration content-bound demotion (relieves: P1 registration).** For exact paths .cursor/hooks.json, .codex/hooks.json, .claude/settings.json, and .grok/hooks/deft.json: do not unconditional path-inert. Demote unknown/coverable to inert only for A/M when bound base/head proof shows the delta is confined to managed projection keys/entries (same architectural family as readBlobJson / closed-pointer demotion). Consumer-command / custom-group deltas stay non-inert. Proof failure or missing blobs keep current classification (unknown-path refuse remains lawful). R/D stay non-inert unless a separate closed rule says otherwise.\n3. **Extension-less official githooks exact inert (relieves: P2).** After coverable-first, exact-path inert for the closed deposited extension-less hook set sourced from scaffold HOOK_FILENAMES / HOOK_SUPPORT_FILENAMES (export/share if needed; do not invent a parallel literal list and do not use hygiene prefix .githooks/ as classifier membership): .githooks/pre-commit, .githooks/pre-push, .githooks/_deft-run.sh. These are unknown today (no extension), so after-coverable-first demotion is reachable.\n4. **Drop already-coverable .sh/.mjs from inert list (absorbs Grok F1/F2 + Codex C1).** Do not claim unknown-refuse relief for .cursor/hooks/deft-cursor-hook-adapter.mjs, .cursor/hooks/deft-cursor-hook-adapter.test.mjs, or .grok/hooks/deft-pretooluse-wrapper.sh — tip COVERABLE_EXTENSIONS already returns coverable before inert arms. Measurement-exempt inert for those scripts is out of this Bound (would need explicit override-before-coverable product intent + separate pain). Negatives: consumer .cursor/hooks/custom.js stays coverable; non-listed .githooks/extra-hook stays unknown.\n5. **.deft/core/run deletion-only retired-shim relief (relieves: P3).** Do not unconditional path-inert .deft/core/run. For status=D only: allow inert/N/A-style relief when base-blob evidence proves the retired python shim (isPythonRunShimPath / prune predicate family). A/M of an arbitrary extensionless executable at that path stay non-inert without a separate proven contract. Do not inert .deft/core/run children by prefix. Recorded reason: residual retired/pruned deposit shim on upgrade delete — not live Python launcher.\n6. **Keep-unknown wall (relieves: P4).** Remain unknown (override-eligible / refuse unknown-path) unless another closed rule already matches: .deft/approved-scope/**, arbitrary .deft/core/** beyond VERSION + the deletion-only run rule, consumer-authored hooks outside the official adapter exact paths. Do not claim literal unknown for paths already inert via prose/docs rules (e.g. .deft/core/README.md). Do not claim blanket .deft / meta / .githooks inert.\n7. **Fixtures.** Unit/aggregate: CODEQL exact to inert; extension-less three githooks to inert; registration JSON managed-only delta to inert and consumer-command delta to non-inert; run D+shim-base to relief and run A/M to non-inert; negatives for .deft/approved-scope/x.json, .deft/core/payload.bin, .githooks/extra-hook, adapter .mjs coverable. Preserve #5665 stamp/ledger and #5674 VERSION+lifecycle .gitkeep.\n\n### Reject\n- Unconditional / silent inert for .deft/core/run on A/M\n- Unconditional path-inert for mergeable host registration JSON without managed-projection proof\n- Prefix blanket inert for .githooks/, .cursor/hooks/, .deft/, .deft/core/**, or meta/\n- Claiming .sh/.mjs deposit scripts are unknown at this tip or closing P2 via unreachable after-coverable-first inert\n- Treating override-wiring (#5674/#5542) as substitute for classifier-correctable residuals\n- Claiming .deft/approved-scope authority paths closed by this Bound\n- Softening unknown-path refuse into warn-only for unlisted peers\n- Re-opening #5674 waived/exit-4 limbs inside this leftover\n- Deriving githooks exacts by filtering installerManagedMatchers().exact (prefix-only there)\n\n### Disposition of Round-1\n- Codex C1 / Grok F1 -> limbs 3-4 (reachable githooks + drop .sh/.mjs)\n- Codex C2 -> limb 2 (content-bound registration)\n- Codex C3 / Grok F4 -> limb 5 (deletion-only run)\n- Codex C4 / Grok F3 -> limb 3 SoT = scaffold hook lists\n- Grok F2 -> Stop honesty via limb 4\n- Grok F5 -> retained limb 1 + limb 6\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\n\n## file_scope lean\npackages/core/src/coverage-applicability/evaluate.ts (+tests); packages/core/src/init-deposit/scaffold.ts (export HOOK_FILENAMES / HOOK_SUPPORT_FILENAMES if needed for shared SoT); CHANGELOG.md. Keep-outs: #5674 waived/exit-4 / pre-PR limbs; #5665 stamp/ledger set; blanket prefix widen; .deft/approved-scope authority; override-before-coverable measurement exemption for .sh/.mjs.",
+          "id": 6255030624,
+          "html_url": "https://github.com/deftai/directive/issues/5677#issuecomment-6255030624",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T20:54:43Z",
+          "updated_at": "2026-10-18T20:54:43Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1,pain-P2,pain-P3,pain-P4\nfinding-classes: blocks-the-design\nharvest-changed: true\nfamily: codex\nid-ceiling: 6255030624\ndispatch-sha: b35d8ffa8184b4dbb0f4f5d643e540517c0e67c0\n\n## In plain English\n\nThe Bound needs another recut. It still calls a .sh file extensionless, promises registration-addition relief while requiring a base blob that additions cannot have, and leaves the earlier executable-content objection unresolved for pre-commit/pre-push. P3 and P4 have substantially improved; they do not clear the remaining P1/P2 blockers.\n\nMethod: read issue body and comments only through 6255030624, including all six required comments. Independently pin-read evaluate.ts, hygiene.ts, scaffold.ts, deposit/python-free.ts, and agent-hooks.ts with git show at dispatch-sha. Source/control-flow audit; no executed tests or implementation. Source links below are SHA-pinned.\n\n### PA1 - blocks-the-design - P2 still contains the exact precedence contradiction\n\nBound limbs 3 and 7 require three extensionless githooks to become inert, including `.githooks/_deft-run.sh`. In [evaluate.ts](https://github.com/deftai/directive/blob/b35d8ffa8184b4dbb0f4f5d643e540517c0e67c0/packages/core/src/coverage-applicability/evaluate.ts), extensionOf returns `.sh` and COVERABLE_EXTENSIONS returns coverable before any inert arm. [scaffold.ts](https://github.com/deftai/directive/blob/b35d8ffa8184b4dbb0f4f5d643e540517c0e67c0/packages/core/src/init-deposit/scaffold.ts) explicitly separates HOOK_FILENAMES = pre-commit/pre-push from HOOK_SUPPORT_FILENAMES = _deft-run.sh. Limb 4 drops other .sh/.mjs scripts but misses this support script; Reject forbids precisely the override needed to satisfy limb 7.\n\nHarvest change: restrict the proposed extensionless inventory to the two HOOK_FILENAMES; explicitly keep _deft-run.sh coverable alongside the other dropped scripts. Correct limbs 3/4/7 and the P2 relief claim together. Add both path and aggregate expectations so an _deft-run.sh-only diff remains applicable.\n\n### PA2 - blocks-the-design - P1 addition proof is unsatisfiable as stated\n\nLimb 2 admits A/M only with bound base/head proof and says missing blobs retain current classification. An actual A has no base blob. Existing readBlobJson in evaluate.ts returns failure for that missing object; the current precedents are M-only. Therefore a newly deposited registration cannot receive the promised A relief, even when its entire head document is the managed projection.\n\nHarvest change: distinguish verified absence at the bound base tree from a failed/unreadable base lookup. For A, explicitly allow verified absence plus a validated managed-only head document; for M require both documents and unchanged consumer remainder. Alternatively narrow to M and honestly retain/defer the first-addition portion of P1. Add A managed-only, A with custom entries, malformed head, and base-read-failure fixtures. Do not turn every read error into an empty document.\n\nThe managed-projection proof also needs a closed content definition: [agent-hooks.ts](https://github.com/deftai/directive/blob/b35d8ffa8184b4dbb0f4f5d643e540517c0e67c0/packages/core/src/init-deposit/agent-hooks.ts) has substring-based ownership recognizers, including command.includes(\"deft-hook\"), intended for merge/strip. Reusing those as proof would accept an altered command that retains the marker. Require canonical command/entry validation and unchanged custom remainder, with a marker-containing custom-command negative; a shared key or marker alone is not projection proof.\n\n### PA3 - blocks-the-design - P2 executable provenance objection was not harvested\n\nRound-1 Codex C2 requested equivalent content/provenance conditions for executable exemptions or retention of current classification. The disposition maps C2 only to registration limb 2; limb 3 still makes pre-commit/pre-push inert solely by pathname. scaffold.writeConsumerGitHooks copies known bytes during deposit, but the reviewed Git diff does not prove that writer produced those bytes. A consumer rewrite at either exact path would receive all-inert/N/A. Exporting the inventory addresses C4, not this C2 boundary.\n\nHarvest change: add bound-content proof for the two extensionless hooks, preserving non-inert classification for arbitrary replacements or failed proof; or retain their current classification and explicitly defer that pain. If the intended policy is instead to exempt every change at those filenames, including arbitrary consumer rewrites, state that broader product decision and disposition C2 explicitly rather than claiming the projection-only objection was absorbed. Include a consumer-rewrite negative and its aggregate refusal expectation.\n\n### P3/P4 audit disposition\n\nP3: deletion-only plus successful base-content evidence addresses the earlier A/M hole. [python-free.ts](https://github.com/deftai/directive/blob/b35d8ffa8184b4dbb0f4f5d643e540517c0e67c0/packages/core/src/deposit/python-free.ts) separates isPythonRunShimPath (spelling only) from isPythonRunShim (Python shebang). Implement the Bound's content-proof requirement, not the path helper alone; prune's read-error cleanup fallback is not evidence. Pin D+non-Python and D+unreadable-base as non-inert in the fixture harvest. This is a clarification of the accepted proof requirement, not a request for unconditional inert.\n\nP4: the \"unless another closed rule already matches\" qualification and explicit custom.js-coverable example repair the literal-unknown overstatement. Preserve that boundary; no additional P4 blocker found. [hygiene.ts](https://github.com/deftai/directive/blob/b35d8ffa8184b4dbb0f4f5d643e540517c0e67c0/packages/core/src/init-deposit/hygiene.ts) remains a staging ownership inventory, not blanket coverage exemption authority.\n\nCritic audit complete; exiting deft-directive-design-critique. Return to parent synthesis for explicit disposition and a corrected Bound harvest. No ingest or implementation.",
+          "id": 6255049877,
+          "html_url": "https://github.com/deftai/directive/issues/5677#issuecomment-6255049877",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T20:56:39Z",
+          "updated_at": "2026-10-18T20:56:39Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1,pain-P2,pain-P3,pain-P4\nfinding-classes: blocks-the-design\nharvest-changed: true\nfamily: grok\nid-ceiling: 6255030624\ndispatch-sha: b35d8ffa8184b4dbb0f4f5d643e540517c0e67c0\nverification-path: pin-read git show b35d8ffa8184b4dbb0f4f5d643e540517c0e67c0:\nprefer-a-bound: 6255030624\nstop-1: 6254838291\nprefer-a-draft: 6254831673\nround-1: Codex 6254883029; Grok 6254951528\nspend-amend: 6255009675\n\n## Pass-4 pain-audit (fresh)\n\nPin-read only through id-ceiling 6255030624: Bound 6255030624, Stop 1 6254838291, Prefer-A draft 6254831673, Round-1 Codex 6254883029, Round-1 Grok 6254951528, spend-amend 6255009675. Source pin at b35d8ffa: classifyChangedPath + COVERABLE_EXTENSIONS + residualDepositInertPaths (evaluate.ts); installerManagedMatchers + CODEQL_CONFIG_REL (hygiene.ts); HOOK_FILENAMES / HOOK_SUPPORT_FILENAMES (scaffold.ts); isPythonRunShimPath / prunePythonArtifactsFromDeposit (python-free.ts). No post-ceiling comments read.\n\n### PA1 - blocks-the-design - Limb 3 still lists coverable .githooks/_deft-run.sh as extension-less / after-coverable-first reachable\n\n**Evidence.** At b35d8ffa, COVERABLE_EXTENSIONS includes .sh (evaluate.ts). classifyChangedPath returns coverable for COVERABLE_EXTENSIONS before any residual inert arm. scaffold.ts: HOOK_FILENAMES = [pre-commit, pre-push] (extension-less); HOOK_SUPPORT_FILENAMES = [_deft-run.sh] (.sh). Bound limb 3 titles the set \"Extension-less official githooks\", sources HOOK_FILENAMES / HOOK_SUPPORT_FILENAMES, and lists .githooks/pre-commit, .githooks/pre-push, .githooks/_deft-run.sh with the claim \"These are unknown today (no extension), so after-coverable-first demotion is reachable.\" Limb 4 correctly drops Cursor .mjs + Grok wrapper .sh as already-coverable, but leaves _deft-run.sh on the limb-3 inert list. Limb 7 fixtures require \"extension-less three githooks to inert,\" which is unreachable for _deft-run.sh under coverable-first. Tip tests assert .githooks/pre-commit unknown; they do not assert _deft-run.sh unknown.\n\n**Failure mode.** Implement exports scaffold lists and demotes after coverable-first. pre-commit/pre-push go inert (P2 subset closed); _deft-run.sh stays coverable; Bound/fixture claim of three-path inert fails. Or implement silently inserts inert before COVERABLE_EXTENSIONS for that path without Bound override-before-coverable authority (Reject already forbids claiming .sh deposit scripts are unknown / closing P2 via unreachable after-coverable-first inert).\n\n**Disposition consequence (harvest change).** Recut limb 3 to HOOK_FILENAMES only: .githooks/pre-commit, .githooks/pre-push. Move .githooks/_deft-run.sh onto limb 4 drop/already-coverable list with the other .sh/.mjs scripts (or state explicit override-before-coverable product intent + separate pain). Retitle fixtures to two extension-less githooks inert + _deft-run.sh coverable negative. Keep scaffold SoT: HOOK_FILENAMES for extension-less membership; do not treat HOOK_SUPPORT_FILENAMES as extension-less.\n\n### Pain census vs Bound harvest\n\n- **P1 AppSec/CodeQL:** Limb 1 reachable after coverable-first (CODEQL_CONFIG_REL exact; not COVERABLE_EXTENSIONS; isCoverableConfig is workflows-only). Clear for this pain subset.\n- **P1 registration:** Limb 2 content-bound A/M demotion matches Codex C2; readBlobJson / closed-pointer family exists; agent-hooks mergeNestedConfig / isManagedCursorEntry / isManagedNestedGroup are the managed-projection predicates implement should name. Not blocking if PA1 recut lands; optional Recut sharpen: cite those predicates explicitly.\n- **P2:** Blocked by PA1 — extension-less relief only holds for pre-commit/pre-push; _deft-run.sh harvest still wrong.\n- **P3:** Limb 5 deletion-only + retired-shim reason absorbs Codex C3 / Grok F4. Note: isPythonRunShimPath is path-only; shebang proof lives in private isPythonRunShim inside python-free.ts. Recut should require base-blob shebang/prune-family content proof (export or inline), not path-only isPythonRunShimPath alone. Sharpens-framing beside PA1; not the sole harvest block.\n- **P4:** Limb 6 keep-unknown wall + honesty that prose/docs inert (e.g. .deft/core/README.md) is not literal unknown — holds. Clear if PA1 recut does not widen .deft/core/**.\n\n### Round-1 disposition check\n\nCodex C1/Grok F1 partially absorbed (limb 4 drops adapters/wrapper) but incomplete while _deft-run.sh remains on limb 3. Codex C2->limb 2, C3/F4->limb 5, C4/F3->scaffold SoT, F2->limb 4 honesty, F5->limbs 1+6: otherwise intact.\n\n### Verdict\n\nharvest-changed: true. Prefer-A Bound 6255030624 still blocks P2 closure until _deft-run.sh is removed from the after-coverable-first extension-less inert set. finding-classes: blocks-the-design.\n\nPain-audit exit: return to parent for Recut. No ingest.",
+          "id": 6255062848,
+          "html_url": "https://github.com/deftai/directive/issues/5677#issuecomment-6255062848",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T20:58:01Z",
+          "updated_at": "2026-10-18T20:58:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Prefer-A Bound Recut-1\n\nLean: Prefer-A Bound Recut-1\nconflict_group: residual-deposit-keep-unknowns-run-hooks-codeql-host-registration\nTarget-digest: sha256:6dd6ef14e9fa870f8a0b7b13df831a8120516535488132bb1f12033254f70807\ndispatch-sha: b35d8ffa8184b4dbb0f4f5d643e540517c0e67c0\ndest: .deft-scratch/worktrees/arc-5677\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N=2\nspend-ask: resolved\nsupersedes: 6255030624\nprefer-a-bound: 6255030624\nprefer-a-draft: 6254831673\nstop-1: 6254838291\npanel-deposit: 6254848908\nround-1-critics: Codex 6254883029; Grok 6254951528\nspend-amend: 6255009675\nPA-1: Codex 6255049877 (harvest-changed true); Grok 6255062848 (harvest-changed true)\ndual-stop-raise: +1\n\n**Lean:** Prefer-A Recut-1 — drop coverable _deft-run.sh from extension-less inert; HOOK_FILENAMES-only pathname inert with explicit C2 disposition; registration A uses verified base absence + managed-only head; run D requires shebang/prune content proof not path-only helper.\n\n## In plain English\n\nPA-1 caught three leftover holes: _deft-run.sh is a .sh coverable path mislabeled as extension-less, first-time registration adds cannot use a base blob that does not exist, and the two official githooks still needed an explicit provenance decision. This Recut fixes those harvest titles and keeps CodeQL, deletion-only run, and the .deft/approved-scope wall.\n\n## Bound remedy\n\n1. **CODEQL_CONFIG_REL exact inert after coverable-first (relieves: P1 AppSec).** Demote the hygiene CODEQL_CONFIG_REL exact posix path to inert. Reachable under tip classifyChangedPath (not COVERABLE_EXTENSIONS; isCoverableConfig is workflows-only).\n2. **Host-registration managed-projection demotion with A/M split (relieves: P1 registration).** Exact paths .cursor/hooks.json, .codex/hooks.json, .claude/settings.json, .grok/hooks/deft.json. No unconditional path-inert. For status=M: base+head bound proof that consumer remainder is unchanged and managed entries match canonical managed projection (name agent-hooks managed recognizers / canonical command validation — marker substring alone is insufficient; include marker-containing custom-command negative). For status=A: verified absence of the path in the bound base tree (distinct from failed/unreadable base lookup) plus validated managed-only head document; malformed head or base-read-failure stay non-inert. Consumer-command / custom-group deltas stay non-inert. R/D non-inert unless a separate closed rule applies.\n3. **HOOK_FILENAMES-only exact pathname inert (relieves: P2).** After coverable-first, inert only .githooks/pre-commit and .githooks/pre-push from scaffold HOOK_FILENAMES (export/share SoT). Explicit product disposition of Round-1 Codex C2 for these two paths: deposit-owned exact filenames — pathname inert is intentional even for a consumer rewrite at those names (installer update overwrites). Do not use hygiene prefix .githooks/ as classifier membership. Do not include HOOK_SUPPORT_FILENAMES.\n4. **HOOK_SUPPORT and adapter/wrapper stay coverable (absorbs PA1 _deft-run.sh + Round-1 .sh/.mjs).** Keep coverable / out of inert list: .githooks/_deft-run.sh, .cursor/hooks/deft-cursor-hook-adapter.mjs, .cursor/hooks/deft-cursor-hook-adapter.test.mjs, .grok/hooks/deft-pretooluse-wrapper.sh. No unknown-refuse claim for them at this tip. No override-before-coverable in this Bound. Negatives: consumer .cursor/hooks/custom.js coverable; .githooks/extra-hook unknown; _deft-run.sh-only diff remains coverage-applicable.\n5. **Run deletion shebang-proven relief (relieves: P3).** status=D only for .deft/core/run when base-blob content proves retired python shim (shebang/prune-family proof — implement content check, not path-only isPythonRunShimPath alone; unreadable base or non-Python base stay non-inert). A/M stay non-inert. No prefix inert for .deft/core/run children. Reason: residual retired/pruned deposit shim on upgrade delete.\n6. **Authority keep-unknown wall (relieves: P4).** Unknown unless another closed rule already matches: .deft/approved-scope/**, arbitrary .deft/core/** beyond VERSION + deletion-only run rule, consumer hooks outside official adapter exact paths. Honesty: paths already inert via prose/docs rules are not literal-unknown. No blanket .deft / meta / .githooks inert.\n7. **Fixture matrix for Recut-1 harvest.** CODEQL exact inert; pre-commit/pre-push inert; _deft-run.sh coverable negative; registration M managed-only inert + M consumer-delta non-inert; registration A verified-absence+managed-only inert + A custom/malformed/base-fail non-inert; run D+shebang relief + D+non-Python/D+unreadable non-inert; run A/M non-inert; .deft/approved-scope/x.json unknown; adapter .mjs coverable. Preserve #5665/#5674 VERSION+gitkeep.\n\n### Reject\n- Unconditional inert for .deft/core/run on A/M\n- Unconditional path-inert for mergeable registration JSON\n- Treating failed base lookup as verified absence\n- Including _deft-run.sh or other .sh/.mjs on the after-coverable-first inert list\n- Prefix blanket .githooks/ / .cursor/hooks/ / .deft/ / .deft/core/** / meta/\n- Softening unknown-path refuse for unlisted peers\n- Re-opening #5674 waived/exit-4 limbs\n- Claiming .deft/approved-scope closed\n- Using path-only isPythonRunShimPath as sole run D proof\n\n### Disposition of PA-1\n- Codex PA1 / Grok PA1 -> limbs 3-4 (_deft-run.sh off inert; HOOK_FILENAMES only)\n- Codex PA2 -> limb 2 A/M split + verified absence\n- Codex PA3 -> limb 3 explicit C2 disposition for HOOK_FILENAMES pathname policy\n- Grok P3 sharpen -> limb 5 shebang/prune content proof\n- P1 CodeQL / P4 wall retained\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\n\n## file_scope lean\npackages/core/src/coverage-applicability/evaluate.ts (+tests); packages/core/src/init-deposit/scaffold.ts (export HOOK_FILENAMES); packages/core/src/deposit/python-free.ts or shared shebang proof export as needed; CHANGELOG.md. Keep-outs: #5674 waived/exit-4; #5665 stamps; override-before-coverable for support/adapter scripts; .deft/approved-scope authority.",
+          "id": 6255079544,
+          "html_url": "https://github.com/deftai/directive/issues/5677#issuecomment-6255079544",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T20:59:47Z",
+          "updated_at": "2026-10-18T20:59:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1,pain-P2,pain-P3,pain-P4\nfinding-classes: none\nharvest-changed: false\nfamily: codex\nid-ceiling: 6255079544\ndispatch-sha: b35d8ffa8184b4dbb0f4f5d643e540517c0e67c0\n\n## In plain English\n\nRecut-1 resolves the PA-1 blockers. I found no remaining design blocker or required harvest change for P1-P4. The two extensionless hook filenames are now an explicit policy exemption, including consumer rewrites; this verdict does not mistake that choice for content provenance. Registration relief remains proof-dependent, and run relief remains deletion-only.\n\nMethod: read the issue body and in-ceiling comments, including Recut-1 6255079544, prior Bound 6255030624, PA-1 Codex 6255049877, PA-1 Grok 6255062848, Stop 1 6254838291, and Round-1 Codex 6254883029 / Grok 6254951528. Independently pin-read evaluate.ts, hygiene.ts, scaffold.ts, deposit/python-free.ts, and agent-hooks.ts with git show at dispatch-sha. No post-ceiling comments read. This is source/control-flow verification of the design, not an implementation or executed-test pass.\n\n## Pain audit\n\n- **P1: relief supported within the stated boundary.** [evaluate.ts](https://github.com/deftai/directive/blob/b35d8ffa8184b4dbb0f4f5d643e540517c0e67c0/packages/core/src/coverage-applicability/evaluate.ts) leaves the exact CodeQL config and registration paths unknown today. [hygiene.ts](https://github.com/deftai/directive/blob/b35d8ffa8184b4dbb0f4f5d643e540517c0e67c0/packages/core/src/init-deposit/hygiene.ts) supplies CODEQL_CONFIG_REL and the registration inventory. Recut limb 2 distinguishes verified base absence for A from unsuccessful lookup, so first-addition relief no longer requires an impossible base blob. M requires unchanged consumer remainder and canonical managed entries. In [agent-hooks.ts](https://github.com/deftai/directive/blob/b35d8ffa8184b4dbb0f4f5d643e540517c0e67c0/packages/core/src/init-deposit/agent-hooks.ts), merge functions preserve consumer configuration while ownership recognizers use substring matches. Recut explicitly refuses marker-only proof and requires the marker-containing custom-command negative. This disposes PA-1 PA2 without treating those recognizers as sufficient validation. R/D and failed proofs intentionally remain non-inert.\n- **P2: relief supported for the actual unknown subset.** [scaffold.ts](https://github.com/deftai/directive/blob/b35d8ffa8184b4dbb0f4f5d643e540517c0e67c0/packages/core/src/init-deposit/scaffold.ts) separates HOOK_FILENAMES (pre-commit/pre-push) from HOOK_SUPPORT_FILENAMES (_deft-run.sh). Recut now uses only the former for inert membership. The latter and the named adapters/wrapper remain coverable under evaluate.ts, including the support-script-only aggregate case. This disposes both PA-1 PA1 findings. writeConsumerGitHooks overwrites differing destination bytes from the deposit source, supporting the stated overwrite premise. Limb 3 expressly chooses pathname exemption even for consumer rewrites, disposing Codex PA3 through its stated policy-choice alternative. It does not prove that a particular reviewed rewrite was installer-produced.\n- **P3: relief supported for proven cleanup only.** [python-free.ts](https://github.com/deftai/directive/blob/b35d8ffa8184b4dbb0f4f5d643e540517c0e67c0/packages/core/src/deposit/python-free.ts) separates path recognition from a Python-shebang content predicate. Recut requires successful base-content proof for D, explicitly excludes unreadable/non-Python bases, and leaves A/M non-inert. Its fixture matrix closes the path-helper-only and read-error-fallback loopholes identified by PA-1. This is prune-family eligibility, not byte-for-byte historical provenance.\n- **P4: boundary preserved.** No new prefix exemption is authorized. The qualification that another existing closed rule can match preserves coverable custom scripts and already-inert prose while retaining unknown-path refusal for the named authority/payload negatives. VERSION, lifecycle gitkeeps, and prior stamp rules remain intact. P4 relief means a defined boundary, not exemption of approved-scope authority.\n\n## Mechanism and authority check\n\nExisting mechanisms are coverable-first path classification, exact stamp/residual inventories, bound-tree validation, rename-to-inert refusal, unknown-path refusal, and content-bound demotion before aggregation. Registration/run proofs must affect classification before unknown-path refusal; the existing plan-sequence proof placement supplies that integration pattern. The later coverable-only demotion stage alone cannot relieve these currently unknown paths. This is implementation guidance for the existing relief requirement, not an additional harvest condition.\n\nThe strongest alternative remains content proof for pre-commit/pre-push: it would distinguish arbitrary consumer behavior from deposited bytes. Recut deliberately selects broader filename policy instead. I would reopen that objection if the contract again claimed projection-only safety or consumer-rewrite protection; it currently says the opposite explicitly. For shared registration files, that broader exemption is expressly rejected and canonical validation plus unchanged consumer remainder remains the required control. No blanket installer-managed or directory-prefix authority is introduced.\n\nCritic pain-audit complete; exiting deft-directive-design-critique. Return to parent synthesis and sibling disposition. No ingest or implementation.",
+          "id": 6255112649,
+          "html_url": "https://github.com/deftai/directive/issues/5677#issuecomment-6255112649",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T21:03:05Z",
+          "updated_at": "2026-10-18T21:03:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1,pain-P2,pain-P3,pain-P4\nfinding-classes: none\nharvest-changed: false\nfamily: grok\nid-ceiling: 6255079544\ndispatch-sha: b35d8ffa8184b4dbb0f4f5d643e540517c0e67c0\nverification-path: pin-read git show b35d8ffa8184b4dbb0f4f5d643e540517c0e67c0:\nprefer-a-bound-recut-1: 6255079544\nsupersedes-bound: 6255030624\nstop-1: 6254838291\nPA-1: Codex 6255049877; Grok 6255062848\nround-1: Codex 6254883029; Grok 6254951528\n\n## Pass-4 pain-audit PA-2 (fresh)\n\nPin-read through id-ceiling 6255079544: Prefer-A Bound Recut-1 6255079544, prior Bound 6255030624, PA-1 Codex 6255049877, PA-1 Grok 6255062848, Stop 1 6254838291, Round-1 Codex 6254883029, Round-1 Grok 6254951528. Source pin at b35d8ffa: classifyChangedPath + COVERABLE_EXTENSIONS + residualDepositInertPaths + readBlobJson (evaluate.ts); CODEQL_CONFIG_REL + installerManagedMatchers (hygiene.ts); HOOK_FILENAMES / HOOK_SUPPORT_FILENAMES (scaffold.ts); isPythonRunShimPath + private isPythonRunShim (python-free.ts); isManagedCursorEntry / isManagedNestedGroup (agent-hooks.ts). No post-ceiling comments read. Source/control-flow audit only.\n\n## In plain English\n\nRecut-1 closes the three PA-1 harvest holes. _deft-run.sh is off the after-coverable-first inert list, registration Adds get a verified-absence path that does not pretend a missing base blob is a failed read, and pre-commit/pre-push now carry an explicit pathname-inert product decision for Codex C2. P1 through P4 hold against the tip classifier.\n\n### Pain census vs Recut-1 harvest\n\n- **P1 AppSec/CodeQL (limb 1):** CODEQL_CONFIG_REL exact (hygiene.ts) is not in COVERABLE_EXTENSIONS; isCoverableConfig is workflows-only. After-coverable-first demotion is reachable. Clear.\n- **P1 registration (limb 2):** A/M split harvests Codex PA2. status=M keeps base+head managed-projection proof with consumer remainder unchanged. status=A uses verified base-tree absence (distinct from readBlobJson ok:false) plus validated managed-only head; malformed head and base-read-failure stay non-inert. Reject forbids treating failed lookup as verified absence. Canonical command validation + marker-containing custom-command negative harvests the substring-only hole in tip isManagedCursorEntry / isManagedNestedGroup. Clear.\n- **P2 (limbs 3-4):** HOOK_FILENAMES-only (.githooks/pre-commit, .githooks/pre-push) after coverable-first; scaffold SoT matches tip private lists. _deft-run.sh moved to limb 4 coverable set with adapters/wrapper — COVERABLE_EXTENSIONS includes .sh/.mjs before any inert arm, so after-coverable-first inert for those paths stays unreachable and is correctly refused. Explicit C2 disposition: deposit-owned exact filenames, pathname inert even for consumer rewrite (writeConsumerGitHooks overwrites). Harvests Codex PA1/PA3 and Grok PA1. Fixture negative for _deft-run.sh-only diff remaining coverage-applicable. Clear.\n- **P3 (limb 5):** status=D only; base-blob shebang/prune-family content proof required; path-only isPythonRunShimPath alone forbidden (Reject + tip: private isPythonRunShim is the content check; path helper is spelling-only). A/M and D+non-Python/D+unreadable stay non-inert. Harvests Grok P3 sharpen + Round-1 C3. Clear.\n- **P4 (limb 6):** keep-unknown wall for .deft/approved-scope/**, arbitrary .deft/core/** beyond VERSION + deletion-only run, and consumer hooks outside official adapter exacts; honesty that prose/docs inert is not literal-unknown. No blanket .deft / meta / .githooks. Clear.\n\n### PA-1 disposition check\n\n- Codex/Grok PA1 (_deft-run.sh) -> limbs 3-4: absorbed.\n- Codex PA2 (A unsatisfiable / marker proof) -> limb 2 A/M + verified absence + canonical validation: absorbed.\n- Codex PA3 (C2 provenance) -> limb 3 explicit broader pathname policy: absorbed.\n- Grok P3 shebang sharpen -> limb 5: absorbed.\n\n### Footnote (non-blocking)\n\nfile_scope lean names evaluate/scaffold/python-free/CHANGELOG and does not list agent-hooks.ts. Limb 2 still requires naming agent-hooks managed recognizers / canonical command builders (currently private). Implement may export those helpers or share them without widening Reject; optional lean widen at stamp if scope provenance wants the export path listed. Not a harvest block.\n\n### Verdict\n\nCensus: finding classes none; harvest unchanged. Prefer-A Bound Recut-1 6255079544 clears Stop 1 P1-P4 against tip pin b35d8ffa.\n\nPain-audit exit: return to parent for VCT / synthesis. No ingest.",
+          "id": 6255113473,
+          "html_url": "https://github.com/deftai/directive/issues/5677#issuecomment-6255113473",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T21:03:10Z",
+          "updated_at": "2026-10-18T21:05:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Evidence | Status |\n|---|---|---|\n| CODEQL_CONFIG_REL after-coverable-first inert is reachable | evaluate.ts COVERABLE_EXTENSIONS / isCoverableConfig workflows-only; hygiene CODEQL_CONFIG_REL; Round-1 Grok F5; PA-2 clear | verified |\n| Registration needs managed-projection proof with A verified-absence vs M base+head | agent-hooks merge; Codex PA-1 PA2; Recut-1 limb 2; PA-2 clear | verified |\n| HOOK_FILENAMES-only (pre-commit/pre-push) pathname inert; _deft-run.sh coverable | scaffold HOOK_FILENAMES vs HOOK_SUPPORT; COVERABLE_EXTENSIONS .sh; PA-1 both families; Recut-1 limbs 3-4; PA-2 clear | verified |\n| Explicit C2 disposition for HOOK_FILENAMES deposit-owned pathname policy | Codex PA-1 PA3; Recut-1 limb 3; PA-2 clear | verified |\n| Run D shebang/prune content proof; A/M non-inert | python-free shebang vs path-only helper; Codex C3 / Grok F4; Recut-1 limb 5; PA-2 clear | verified |\n| Keep-unknown wall for authority peers; no prefix blankets | Round-1 + PA-2; Recut-1 limb 6; Reject list | verified |\n| Claude seat unavailable #5478; spend amended N=2 | spend-amend 6255009675; Round-1 Codex+Grok posted | verified |\n\nCites: Prefer-A Bound Recut-1 6255079544; Stop 1 6254838291; Round-1 Codex 6254883029 / Grok 6254951528; PA-1 Codex 6255049877 / Grok 6255062848; PA-2 Codex 6255112649 / Grok 6255113473; spend-amend 6255009675; dispatch-sha b35d8ffa8184b4dbb0f4f5d643e540517c0e67c0.\nNo Target-digest on this table (successor lean identity stays on Prefer-A Recut-1).",
+          "id": 6255124500,
+          "html_url": "https://github.com/deftai/directive/issues/5677#issuecomment-6255124500",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T21:04:15Z",
+          "updated_at": "2026-10-18T21:04:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because Prefer-A Bound Recut-1 6255079544 absorbs Round-1 and PA-1 blockers with reminted limbs; PA-2 Codex 6255112649 and Grok 6255113473 both report finding-classes: none and harvest-changed: false; verified-claims table 6255124500 is non-empty all-accept for P1-P4 under yolo standing.\n\nsuccessor-lean: 6255079544\nverified-claims-table: 6255124500\nconflict_group: residual-deposit-keep-unknowns-run-hooks-codeql-host-registration\ndispatch-sha: b35d8ffa8184b4dbb0f4f5d643e540517c0e67c0\ndest: .deft-scratch/worktrees/arc-5677\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N=2\nspend-amend: 6255009675\n\n## In plain English\n\nThis leftover closes the deposit keep-unknowns #5674 deferred. Ordinary upgrades get closed exact rules for CodeQL and the two official extension-less githooks, content-bound relief for mergeable host registration (including first add with verified base absence), and deletion-only relief when removing the retired .deft/core/run shim. Support scripts that are already coverable stay measurable. .deft/approved-scope and other unlisted peers stay unknown on purpose.\n\n## Completed-arc trail\n- Prefer-A draft 6254831673\n- Stop 1 6254838291\n- panel-deposit 6254848908\n- Round-1 Codex 6254883029; Grok 6254951528; Claude #5478 -> spend-amend 6255009675 N=2\n- Prefer-A Bound 6255030624\n- PA-1 Codex 6255049877 / Grok 6255062848 (harvest-changed true)\n- Prefer-A Bound Recut-1 6255079544 (dual-stop-raise +1)\n- PA-2 Codex 6255112649 / Grok 6255113473 (finding-classes: none; harvest-changed: false)\n- VCT 6255124500\n\nDisagreement set: empty after Recut-1 + clear PA-2.\nIngest remains a separate operator verb (task issue:ingest).",
+          "id": 6255127533,
+          "html_url": "https://github.com/deftai/directive/issues/5677#issuecomment-6255127533",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T21:04:32Z",
+          "updated_at": "2026-10-18T21:04:32Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5887609421,
+        "origin": "deftai/directive#5677",
+        "id": "github.issue.5887609421"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "6dd6ef14e9fa870f8a0b7b13df831a8120516535488132bb1f12033254f70807"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/coverage-applicability/evaluate.ts",
+          "packages/core/src/coverage-applicability/evaluate.test.ts",
+          "packages/core/src/init-deposit/scaffold.ts",
+          "packages/core/src/deposit/python-free.ts",
+          "CHANGELOG.md"
+        ],
+        "cohesion_exemption": "CHANGELOG shared Unreleased for #5677"
+      }
+    },
+    "id": "github.issue.5887609421",
+    "updated": "2026-10-19T16:23:59Z"
+  }
+}
