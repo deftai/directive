@@ -33,8 +33,19 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 1826 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1837 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#5691** -- feat(strategies): design-thinking preparatory strategy with a uat Test phase -- `[completed]`
+- **#5716** -- feat(design-critique): the arc is the recommended step before ingest for every issue; skip only with a recorded not-warranted line -- `[completed]`
+- **#5715** -- [framework-gap] BLOCKER Grok PreToolUse wrapper command uses repo-root path; Grok resolves relative to .grok/hooks/ and doubles it -- `[completed]`
+- **#4229** -- Consumer process: deposit-only vs full lifecycle; go-task absent treated as impact=none (#3335) -- `[completed]`
+- **#5693** -- feat(strategies): rapid names a hypothesis and audience; findings recorded before experiment_archived -- `[completed]`
+- **#5692** -- feat(interview): capture ProblemStatement before the Sizing Gate as a SHOULD (Light and Full) -- `[completed]`
+- **#1178** -- feat(scm,swarm): require search of existing closed issues and PRs before filing — pre-filing duplicate check -- `[completed]`
+- **#5099** -- [framework-gap] Extend feedback filing to comment on open issues and account for closed issues -- `[completed]`
+- **#5486** -- feat(design-critique): run an arc on an xBRIEF when no GitHub issue exists (analysis first) -- `[completed]`
+- **#5694** -- feat(skills): article-review runs one critic pass before filing issues -- `[completed]`
+- **#5690** -- recurrence(#4882): Approach1 mint-gate exit leaves product PR merge-path unarmed -- `[completed]`
 - **#4962** -- bug(triage): triage:accept silently drafts a proposed xBRIEF and can duplicate an existing scope for the same issue -- `[completed]`
 - **#4375** -- docs(skills): add a brief "how to file a directive issue" skill — the filing path is gated off by default and the house style is undocumented -- `[completed]`
 - **#5665** -- [framework-gap] BLOCKER Pre-PR coverage classifier rejects Directive-managed artifacts after upgrading to 0.125.2 -- `[completed]`
@@ -49,15 +60,4 @@ _Showing 25 of 1826 completed scopes (newest first). Full history: lifecycle `co
 - **#3908** -- [framework-gap] Fence scope lifecycle moves across processes -- `[completed]`
 - **#3906** -- [framework-gap] Acquire occupancy before session-start mutations -- `[completed]`
 - **#3907** -- [framework-gap] Add same-worktree CAS to ordered-plan mutations -- `[completed]`
-- **#5366** -- [AppSec] MEDIUM hooks-authz-05: PreToolUse dest harvest miss fail-opens write-shaped MCP and the path fence -- `[completed]`
-- **#5367** -- Gate triage:show load/render via readCacheScanPassed plus scanned content presence before printable CachedIssueDetail fields materialize. -- `[completed]`
-- **#5627** -- [AppSec] HIGH install-deposit-03: Unpinned GitHub framework tarball is extracted and planted as git hooks -- `[completed]`
-- **#4514** -- bug(design-critique): copyable brief template and skill omit the pain field so Stop 1 inherits missing-pain -- `[completed]`
-- **#3911** -- [framework-gap] Keep orientation state local and separate freshness domains -- `[completed]`
-- **#5042** -- spec:render collapses each phase's task list into the narrative paragraph -- `[completed]`
-- **#3827** -- bug(routing): swarm:routing-set fails containment in linked worktrees -- `[completed]`
-- **#5159** -- fix(class-checks): exclude lifecycle xBRIEF records from pipeline path classification -- `[completed]`
-- **#4878** -- Acceptance-evidence refusal names items[N] and ignores acceptance.clauses -- `[completed]`
-- **#3583** -- bug(scope): scope:complete does not auto-discover the merged PR for delivery evidence -- `[completed]`
-- **#5602** -- framework-gap: Prefer-A leftover-complete must use scope:complete / stampDeliveryProvenance (no hand productMerge stamps) -- `[completed]`
 

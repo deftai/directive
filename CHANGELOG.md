@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [0.126.1] - 2026-10-19
+
+> Design-thinking UAT prep (#5691), interview ProblemStatement (#5692), rapid Findings (#5693), design-critique before ingest (#5716), deposit-only soft-visibility (#4229), Grok PreToolUse wrapper (#5715), pre-filing search (#1178), feedback:file closed disposition (#5099), Approach1 mint-gate merge-path (#5690)
+
+### Added
 - Added — design-thinking preparatory strategy: Empathize → Define → Ideate → UAT-planning emits `x-directive/requires: uat` items with interview handoff carrier + omission check; BMAD skip via `stampNamespacedDisposition`; `--data` TrustLevel:external + Security context (#480); pack-only registration. Refs #5691.
 - Added — interview pre-sizing who/need `ProblemStatement` SHOULD (Light+Full): lawful sizing exemption, reframe not dual-ask, Light slim merge + Full reuse, persist at confirm gate, local recorded skip, discuss Challenge Vagueness solution-first example. Refs #5692.
 - Added — design-critique arc recommended before every issue:ingest; classify-then-emit arced|skipped-recorded|neither with design_critique_ingest_posture run-summary; advisory exit 0 never blocks; ADR-005 unchanged; agents-entry pointer (deleted Structured decision log always-on line). Refs #5716.
@@ -7306,7 +7318,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.126.0...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.126.1...HEAD
+[0.126.1]: https://github.com/deftai/directive/compare/v0.126.0...v0.126.1
 [0.126.0]: https://github.com/deftai/directive/compare/v0.125.2...v0.126.0
 [0.125.2]: https://github.com/deftai/directive/compare/v0.125.1...v0.125.2
 [0.125.1]: https://github.com/deftai/directive/compare/v0.125.0...v0.125.1
