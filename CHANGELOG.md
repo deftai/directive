@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed — Activate Prefer-A Bound security cohort briefs for Dependabot and CodeQL HIGH work (#5737 #5740-#5748); product fixes land in follow-on PRs.
 
 ### Fixed
+- Fixed — Remint intent-constraint for #5742 numeric-const bounds 512/200/40. Approval record only; no product behavior change. Refs #5742.
 - Fixed — Prepare approved-scope mint for #5744 (branches.test.ts membership). Records approval only; no product behavior change. Refs #5744.
 - Fixed — Record intent-constraint mint for #5742 greptile-detector ReDoS invariant. Approval record only; no product behavior change. Refs #5742.
 - Fixed — Pin brace-expansion@5 to 5.0.12 (Dependabot #16/#17/#18). Tracking #5737.
