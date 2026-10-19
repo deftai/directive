@@ -8,9 +8,9 @@ Maintainer-facing map of how Directive's rules are layered and grouped. This is 
 
 ## Overview
 
-- **Rules:** 25 groupings, 288 documents
+- **Rules:** 25 groupings, 289 documents
 - **Tasks:** 65 namespaces, 287 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
-- **Packs:** 6 source-of-truth packs (719 entries from rules|lessons|patterns|skills|strategies|entries)
+- **Packs:** 6 source-of-truth packs (720 entries from rules|lessons|patterns|skills|strategies|entries)
 
 Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the Taskfile gates that enforce them), and the **Lifecycle** that ties them together.
 
@@ -36,7 +36,7 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | resilience | Failure handling, recovery, and robustness rules. | 2 | 16 | 14 | 15 | 1 | 2 |
 | scm | Source-control conventions and Git/GitHub workflow rules. | 3 | 110 | 34 | 37 | 1 | 3 |
 | skills | Packaged multi-step agent workflows (build, release, interview, triage, review…). | 42 | 632 | 122 | 745 | 0 | 19 |
-| strategies | Higher-order approaches: interviewing, decomposition, planning, research, refactoring. | 16 | 325 | 89 | 141 | 0 | 12 |
+| strategies | Higher-order approaches: interviewing, decomposition, planning, research, refactoring. | 17 | 342 | 97 | 157 | 0 | 15 |
 | swarm | Multi-agent (swarm) coordination guidance. | 1 | 75 | 15 | 22 | 0 | 0 |
 | templates | Reusable document/scaffold templates. | 11 | 104 | 10 | 55 | 1 | 5 |
 | tools | Tooling standards (telemetry, search, formatters, the Taskfile contract). | 7 | 91 | 73 | 33 | 1 | 15 |
@@ -329,6 +329,7 @@ _Higher-order approaches: interviewing, decomposition, planning, research, refac
 - `artifact-guards.md` — Shared guard rules for strategies that write to vBRIEF artifacts. Referenced by individual strategy files to prevent silent overwrites of approved or completed work.
 - `bdd.md` — Behaviour-Driven Development -- failing acceptance tests drive requirements.
 - `brownfield.md` — Use `/deft:run:map` to invoke the map strategy.
+- `design-thinking.md` — End-user discovery that plans UAT on the fail-closed acceptance axis at scope-write time.
 - `discuss.md` — Structured alignment before planning — front-load decisions, prevent drift.
 - `emit-hints.md` — Shared hint referenced by strategies at the moment they emit scope vBRIEFs. It names the GitHub-issue tracking choice — none / umbrella / per-vBRIEF — so the choice is discoverable instead of the emission step ending silently.
 - `enterprise.md` — Compliance-heavy workflow -- v0.20 date-prefixed story/phase vBRIEF + PROJECT-DEFINITION with explicit approval gates at each stage.
@@ -488,5 +489,5 @@ Directive turns a coding agent into an auditable process: load only the guidance
 | `content/packs/patterns/patterns-pack-0.1.json` | 0.1 | 12 | 0 | 0 | 0 |
 | `content/packs/rules/rules-pack-0.1.json` | 0.1 | 612 | 303 | 105 | 187 |
 | `content/packs/skills/skills-pack-0.1.json` | 0.1 | 27 | 0 | 0 | 0 |
-| `content/packs/strategies/strategies-pack-0.1.json` | 0.1 | 16 | 0 | 0 | 0 |
+| `content/packs/strategies/strategies-pack-0.1.json` | 0.1 | 17 | 0 | 0 | 0 |
 | `content/packs/swarm-spec/swarm-spec-pack-0.1.json` | 0.1 | 1 | 0 | 0 | 0 |

@@ -19,6 +19,7 @@ Development strategies define the workflow from idea to implementation.
 | [discuss.md](./discuss.md) | `/deft:run:discuss` | preparatory | Alignment before planning | Feynman technique → locked decisions → Chaining Gate |
 | [probe.md](./probe.md) | `/deft:run:probe` | preparatory | Adversarial plan stress-testing | Walk decision tree → challenge assumptions → surface risks → Chaining Gate |
 | [research.md](./research.md) | `/deft:run:research` | preparatory | Pre-implementation research | Research → Don't Hand-Roll + Common Pitfalls → Chaining Gate |
+| [design-thinking.md](./design-thinking.md) | `/deft:run:design-thinking` | preparatory | End-user discovery + UAT planning | Empathize → Define → Ideate → UAT-planning → Chaining Gate |
 | [roadmap.md](./roadmap.md) | `/deft:run:roadmap` | preparatory | Roadmap maintenance | Discover → Triage → Cleanup |
 | [bdd.md](./bdd.md) | `/deft:run:bdd` | preparatory | Acceptance-test-first development | Scenarios → Failing Tests → Lock Decisions → Spec → Chaining Gate |
 | [rapid.md](./rapid.md) | `/deft:run:rapid` | spec-generating | Quick prototypes | Forced-Light path |

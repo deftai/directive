@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added — design-thinking preparatory strategy: Empathize → Define → Ideate → UAT-planning emits `x-directive/requires: uat` items with interview handoff carrier + omission check; BMAD skip via `stampNamespacedDisposition`; `--data` TrustLevel:external + Security context (#480); pack-only registration. Refs #5691.
 - Added — interview pre-sizing who/need `ProblemStatement` SHOULD (Light+Full): lawful sizing exemption, reframe not dual-ask, Light slim merge + Full reuse, persist at confirm gate, local recorded skip, discuss Challenge Vagueness solution-first example. Refs #5692.
 - Added — Prefer-A Recut-1 deposit-only vs lifecycle soft-visibility: never-incepted occupancy SoT (cancelled counts as history), doctor soft-warn + first-scope Next, Taskfile-unavailable status token (#3335 impact=none), CLI-native getting-started/commands lead, process-use checklist on agents-entry; ARC-before-ingest dominated to #5716. Refs #4229.
 - Added — rapid Step 1 records Hypothesis/Audience/PrototypeKind with separate Dual Stop fields; Step 5 pins Findings before experiment_archived; archive requires trim-non-empty Findings on the completing brief. Refs #5693.
@@ -31,6 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed — Grok PreToolUse wrapper command deposits `./deft-pretooluse-wrapper.sh` (beside deft.json) instead of the repo-root REL_PATH that doubled under `.grok/hooks/`. Inspect marks legacy REL_PATH drifted; recovery is install fixed engine, `deft update` / redeposit, then a **new** Grok session. Refs #5715.
+- Fixed — design-thinking handoff: add executable evaluateDesignThinkingUatOmissionCheck content-contract (source→destination) with recovery message. Refs #5691.
+- Fixed — design-thinking handoff: omission check is source→destination transfer-presence only; keep evaluateAcceptanceEvidenceGate at scope:complete (not at handoff); standalone fall back to interview chaining gate. Refs #5691.
 - Fixed - Widen #5692 membership so the regenerated Rule Map can land with the interview ProblemStatement change. Refs #5692.
 - Greptile P1 on #5692: ProblemStatement pre-scope ask is SHOULD (recorded skip ok); persist via PROJECT-DEFINITION merge not Phase-2 write-narratives; widen file_scope for docs/RULE-MAP.md regen.
 - Fixed — Tutorial close records Findings before experiment_archived (beats/proof/skills-pack); removes interim practice-id seed. Refs #5693.
