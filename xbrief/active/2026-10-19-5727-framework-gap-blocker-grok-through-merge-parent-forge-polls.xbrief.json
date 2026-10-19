@@ -135,6 +135,7 @@
           "content/skills/deft-directive-review-cycle/SKILL.md",
           "content/skills/deft-directive-swarm/references/host-grok-build.md",
           "content/templates/agents-entry.md",
+          "AGENTS.md",
           "CHANGELOG.md"
         ],
         "module_boundary": "packages/core/src/review-monitor/bounded-pr-watch-deny.ts",
@@ -685,6 +686,7 @@
           "content/skills/deft-directive-review-cycle/SKILL.md",
           "content/skills/deft-directive-swarm/references/host-grok-build.md",
           "content/templates/agents-entry.md",
+          "AGENTS.md",
           "CHANGELOG.md"
         ],
         "cohesion_exemption": "CHANGELOG shared; review-cycle/host-grok lawful-waits for #5727"
