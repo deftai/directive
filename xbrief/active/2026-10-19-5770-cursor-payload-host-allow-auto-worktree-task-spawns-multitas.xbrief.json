@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5770",
-    "updated": "2026-10-19T16:24:03Z"
+    "updated": "2026-10-19T18:16:00Z"
   },
   "plan": {
     "title": "Cursor payload-host: allow auto-worktree Task spawns + Multitask parent read-only / occupancy",
@@ -10,37 +10,37 @@
     "narratives": {
       "Description": "Cursor payload-host: allow auto-worktree Task spawns + Multitask parent read-only / occupancy",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5770",
-      "Overview": "## Summary\n\nOn **Cursor** with **Deft Directive** hooks enabled and **Multitask Mode** (parent delegates via native `Task`), **implement-class spawns are denied** with:\n\n> `Directive denied implement-class spawn: no worktree destination on the spawn payload`\n> (`tool_input.isolation=worktree`, `worktree_path`, `worktreePath`, `worktree`, `cwd`, `working_directory`, …)\n\nThis happens even for **`subagent_type: best-of-n-runner`**, which is documented as running in an **isolated git worktree**. Recovery text says to pass a dest field or continue in the parent—but on payload hosts the parent often **also** cannot write due to **occupancy / host session id mismatch** (`host:cursor:v1:…` vs `host:claude:v1:…` on the same project root after `deft session:ready` from the integrated terminal).\n\n**Assumption for this issue:** Cursor will **not** add new Task payload fields (`cwd`, `worktree_path`, etc.). Requesting **Directive-side** fixes and documentation only.\n\n## Environment\n\n- **Host:** Cursor (payload host; parent + subagents share project id)\n- **Consumer:** any Deft-enabled repository with agent hooks and optional xBRIEF / branch policy workflow\n- **Multitask Mode:** on; parent uses `Task` with `run_in_background: true`\n\n## Reproduction\n\n1. Enable Deft agent hooks (`.cursor/hooks.json` registered; `deft verify:hooks-installed --scope=agent --live` green).\n2. Open a Deft consumer repo on **Cursor** with mutation intent (active scoped work or implement verb).\n3. From Multitask parent, invoke **`Task`** with:\n   - `subagent_type: \"best-of-n-runner\"` (or `generalPurpose` for implement work)\n   - `run_in_background: true`\n   - Implement prompt (e.g. drive-to-merge-ready story)\n4. **Optional second failure:** run `deft session:ready` from integrated terminal, then parent **Write/Edit** on primary checkout while Cursor chat presents a different host session id than the occupancy lease.\n\n**Observed:** PreToolUse denies spawn (dest missing). **`explore`** read-only Task may succeed. Parent Write denied with occupancy / ritual messages.\n\n## Expected behavior (MVP)\n\n### 1. Auto-worktree Task types (no Cursor change)\n\nIf PreToolUse can read **`subagent_type`** from the Task payload, **allow implement-class spawn** when the type is in a documented **auto-worktree registry** (minimum: **`best-of-n-runner`**), without requiring explicit `cwd` / `worktree_path`.\n\n- Deny/allow logs should cite: `dest=auto-worktree(subagent_type=…)`.\n- Types **not** in the registry remain fail-closed unless a dest field is present.\n\n### 2. Payload-host Multitask occupancy\n\nFor **payload hosts** (Cursor, Codex, Claude Code), document and implement a supported pattern:\n\n- **Multitask parent** on **primary checkout**: **read-only** (coordinate, `explore` Task OK).\n- **Mutation lease** on **linked child worktree** used by implement spawn or manual `git worktree add`.\n\nReduce false dual-identity lockout when the same operator's Cursor session presents `host:cursor:…` but occupancy holds `host:claude:…` from a prior `session:ready` in the integrated terminal.\n\n### 3. Cursor spawn matrix (docs)\n\nOne short doc section: **what works on Cursor without Cursor product changes**\n\n| Mechanism | Implement on primary | Isolated worktree |\n|-----------|----------------------|-------------------|\n| `Task` + `explore` | N/A (read-only) | — |\n| `Task` + `best-of-n-runner` | — | **Should be allowed (MVP)** |\n| `Task` + `generalPurpose` (implement) | Denied unless dest | Denied unless dest / policy |\n| Parent Write after ritual | Primary tree (if lease + ritual OK) | Linked worktree |\n\nInclude recovery: linked worktree (e.g. under `.deft-scratch/`), `deft session:ready` from **project root**, SDK path if hook-admitted (`Agent.create({ local: { cwd } })`).\n\n## Actual behavior\n\n- **`best-of-n-runner`:** denied for missing dest (same as generic implement spawn).\n- **`generalPurpose` implement:** denied (acceptable if documented).\n- **Parent Write:** often blocked by occupancy + stale ritual; error text does not clearly separate spawn dest vs parent lease vs ritual doctor.\n\n## Acceptance criteria\n\n1. With Cursor hooks only (no Cursor Task schema changes), **`Task` + `best-of-n-runner` + implement prompt** passes PreToolUse on a clean ritual/lease in a **child worktree**.\n2. Deny message for unsupported Cursor spawns names **subagent_type** and points to the spawn matrix—not only \"pass worktree_path\".\n3. Published **Cursor payload-host spawn matrix** linked from hook recovery text or `commands.md`.\n4. (Stretch) Multitask parent on primary with active child worktree lease does not require **claude vs cursor** session id to block the same human on the same `payloadRoot`.\n\n## Non-goals\n\n- Requiring Cursor to add `cwd` / `worktree_path` to Task JSON.\n- Allowing implement-class mutation on an **occupied primary** checkout without isolation.\n- Disabling fail-closed spawn policy globally.\n\n## References\n\n- Swarm / spawn: mutating workers take their own worktree (#4066 / Phase 0–2 in swarm skill).\n- Host tool surface: linked worktree under `.deft-scratch/` (or equivalent).\n- **Repro context:** Cursor Multitask parent delegating implement work via native `Task` on a Deft consumer with active scoped work and agent hooks enabled.\n\n",
+      "Overview": "Prefer-A Bound Recut-4 P2/P4 for #5770: rewrite Cursor Task dest-missing deny to name presented subagent_type (no dest-key inventory lead); publish Multitask spawn matrix in host-cursor.md with CURSOR_TASK_SPAWN_CLASS_RECOVERY pointer; fixtures and CHANGELOG. P1 leftover #5775; P3 deferred #3613.",
       "Labels": "documentation, enhancement, swarm, agent-experience, process, harness, source-of-truth, urgent, dogfood, design-critique:ingest-ready, framework-gap, core-capabilities, promise:swarm"
     },
     "items": [
       {
         "id": "1",
         "title": "Rewrite spawn-occupancy Cursor Task dest-missing opener with presented subagent_type and drop stripped dest-key inventory lead",
-        "status": "pending",
+        "status": "completed",
         "effort": "M",
         "x-directive/artifact_path": "packages/core/src/session/spawn-occupancy.ts"
       },
       {
         "id": "2",
         "title": "Publish Multitask spawn matrix in host-cursor docs plus recovery pointer from dispatcher recovery constant",
-        "status": "pending",
+        "status": "completed",
         "effort": "M",
-        "x-directive/artifact_path": "packages/core/src/session/spawn-occupancy.ts"
+        "x-directive/artifact_path": "content/skills/deft-directive-swarm/references/host-cursor.md"
       },
       {
         "id": "3",
         "title": "Fixtures for deny-lead rewrite and matrix pointer wiring",
-        "status": "pending",
+        "status": "completed",
         "effort": "M",
-        "x-directive/artifact_path": "packages/core/src/session/spawn-occupancy.ts"
+        "x-directive/artifact_path": "packages/core/src/session/spawn-occupancy.test.ts"
       },
       {
         "id": "4",
         "title": "CHANGELOG Unreleased for Multitask nursery dest truth; primary Multitask leftover out of scope",
-        "status": "pending",
+        "status": "completed",
         "effort": "M",
-        "x-directive/artifact_path": "packages/core/src/session/spawn-occupancy.ts"
+        "x-directive/artifact_path": "CHANGELOG.md"
       }
     ],
     "tags": [
@@ -996,26 +996,26 @@
         {
           "id": "1",
           "title": "Rewrite spawn-occupancy Cursor Task dest-missing opener with presented subagent_type and drop stripped dest-key inventory lead",
-          "status": "pending",
+          "status": "completed",
           "x-directive/artifact_path": "packages/core/src/session/spawn-occupancy.ts"
         },
         {
           "id": "2",
           "title": "Publish Multitask spawn matrix in host-cursor docs plus recovery pointer from dispatcher recovery constant",
-          "status": "pending",
-          "x-directive/artifact_path": "packages/core/src/session/spawn-occupancy.ts"
+          "status": "completed",
+          "x-directive/artifact_path": "content/skills/deft-directive-swarm/references/host-cursor.md"
         },
         {
           "id": "3",
           "title": "Fixtures for deny-lead rewrite and matrix pointer wiring",
-          "status": "pending",
-          "x-directive/artifact_path": "packages/core/src/session/spawn-occupancy.ts"
+          "status": "completed",
+          "x-directive/artifact_path": "packages/core/src/session/spawn-occupancy.test.ts"
         },
         {
           "id": "4",
           "title": "CHANGELOG Unreleased for Multitask nursery dest truth; primary Multitask leftover out of scope",
-          "status": "pending",
-          "x-directive/artifact_path": "packages/core/src/session/spawn-occupancy.ts"
+          "status": "completed",
+          "x-directive/artifact_path": "CHANGELOG.md"
         }
       ],
       "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
@@ -1023,33 +1023,40 @@
         {
           "id": 1,
           "text": "Rewrite spawn-occupancy Cursor Task dest-missing opener with presented subagent_type and drop stripped dest-key inventory lead",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/session/spawn-occupancy.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 2,
           "text": "Publish Multitask spawn matrix in host-cursor docs plus recovery pointer from dispatcher recovery constant",
-          "artifact_path": null,
+          "artifact_path": "content/skills/deft-directive-swarm/references/host-cursor.md",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 3,
           "text": "Fixtures for deny-lead rewrite and matrix pointer wiring",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/session/spawn-occupancy.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 4,
           "text": "CHANGELOG Unreleased for Multitask nursery dest truth; primary Multitask leftover out of scope",
-          "artifact_path": null,
+          "artifact_path": "CHANGELOG.md",
           "ambiguous": false,
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "sentences": [
+        "Rewrite spawn-occupancy Cursor Task dest-missing opener with presented subagent_type and drop stripped dest-key inventory lead",
+        "Publish Multitask spawn matrix in host-cursor docs plus recovery pointer from dispatcher recovery constant",
+        "Fixtures for deny-lead rewrite and matrix pointer wiring",
+        "CHANGELOG Unreleased for Multitask nursery dest truth; primary Multitask leftover out of scope"
+      ],
+      "confessions": []
     },
     "id": "github.issue.5925729753",
     "updated": "2026-10-19T16:24:03Z"
