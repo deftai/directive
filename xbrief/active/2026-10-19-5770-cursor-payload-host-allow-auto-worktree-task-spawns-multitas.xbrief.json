@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5770",
-    "updated": "2026-10-19T18:16:00Z"
+    "updated": "2026-10-19T18:27:17Z"
   },
   "plan": {
     "title": "Cursor payload-host: allow auto-worktree Task spawns + Multitask parent read-only / occupancy",
@@ -986,7 +986,8 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "ce071de8e2262ae4023eecb109dd26b1a1a8530d1dd84b05c2c1744f13fb09d6"
-      }
+      },
+      "productPullRequest": 5780
     },
     "acceptance": {
       "commands": [],

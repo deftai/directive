@@ -328,8 +328,7 @@ export function presentedSpawnSubagentType(payload: unknown): string {
   if (fromTool !== null && fromTool.trim().length > 0) return fromTool.trim();
   const input = record(payload);
   if (input === null) return "unspecified";
-  const fromTop =
-    fieldString(input, "subagent_type") ?? fieldString(input, "subagentType");
+  const fromTop = fieldString(input, "subagent_type") ?? fieldString(input, "subagentType");
   if (fromTop !== null && fromTop.trim().length > 0) return fromTop.trim();
   return "unspecified";
 }
