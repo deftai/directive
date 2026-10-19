@@ -41,13 +41,13 @@ describe("test_upgrading_sections.py", () => {
     }
     expect(failures).toEqual([]);
   });
-  // #2274: UPGRADING orients ordinary users to the three-command model and
-  // points them at `directive update` while preserving the big-jump detail.
+  // #2274 / #5490: UPGRADING orients ordinary users to OVPR install/upgrade/doctor
+  // (aliases init/update) while preserving the big-jump detail.
   it("test_three_command_routing_points_ordinary_users_at_update", () => {
     const text = readText("UPGRADING.md");
-    for (const cmd of ["directive update", "directive doctor", "directive init"]) {
-      expect(text, `UPGRADING missing ${cmd}`).toContain(cmd);
-    }
+    expect(text, "UPGRADING missing directive doctor").toContain("directive doctor");
+    expect(text).toMatch(/directive (upgrade|update)\b/);
+    expect(text).toMatch(/directive (install|init)\b/);
     expect(text.toLowerCase()).toContain("ordinary");
     // The big-jump / advanced detail is preserved, not replaced.
     expect(text).toContain("Big-jump triage — multi-version upgrades");

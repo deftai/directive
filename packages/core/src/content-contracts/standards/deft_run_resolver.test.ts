@@ -54,7 +54,8 @@ function fakeGlobalBin(): string {
 function fakeRepoRoot(opts: { withDist: boolean; withSentinel: boolean }): string {
   const root = tempDir("deft-run-repo-");
   if (opts.withDist) {
-    const distDir = join(root, "packages", "cli", "dist");
+    // OVPR local CLI lives at packages/runtime/dist/bin.js (see .githooks/_deft-run.sh).
+    const distDir = join(root, "packages", "runtime", "dist");
     mkdirSync(distDir, { recursive: true });
     writeFileSync(
       join(distDir, "bin.js"),

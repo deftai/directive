@@ -694,9 +694,10 @@ After Wave 8, live deft gates run through the TypeScript engine. **The consumer 
 
 ## From v0.53.0–v0.53.1 → v0.53.2 (vitest no longer discovers vendored framework tests, #1878)
 
-- **Applies when (historical):** projects that used **vitest** on v0.53.0 / v0.53.1 when a copied deposit still vendored framework `*.test.ts` / `*.spec.ts` under a legacy install tree. Detection then: vitest discovered ~80+ framework tests via its default include glob and CI failed with `ERR_MODULE_NOT_FOUND` for `@deftai/core`. Current OVPR installs do **not** copy a `.deft/core/` deposit — this bucket is archaeology for mid-upgrade PRs still on those versions.
-- **Safe to auto-run:** Yes on current tip. Prefer leaving the legacy deposit era entirely:
-- **Commands (current):**
+- **Applies when:** historical — projects that used **vitest** on v0.53.0 / v0.53.1 when a copied deposit still vendored framework `*.test.ts` / `*.spec.ts` under a legacy install tree. Detection then: vitest discovered ~80+ framework tests via its default include glob and CI failed with `ERR_MODULE_NOT_FOUND` for `@deftai/core`. Current OVPR installs do **not** copy a `.deft/core/` deposit — this bucket is archaeology for mid-upgrade PRs still on those versions.
+- **Safe to auto-run:** Yes on current tip. Prefer leaving the legacy deposit era entirely.
+- **Restart required:** No.
+- **Commands:**
   - `npm i -g @deftai/directive@latest` then `directive upgrade` (or `directive install --repair` when the pin should stay)
   - Interim manual workaround **only if you are mid-upgrade on a still-red historical v0.53.0/v0.53.1 PR that still has a copied deposit**: exclude the legacy deposit path from vitest, then re-run CI:
 
