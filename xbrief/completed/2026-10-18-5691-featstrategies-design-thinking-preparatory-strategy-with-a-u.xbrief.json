@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5691",
-    "updated": "2026-10-18T15:19:30Z"
+    "updated": "2026-10-19T03:47:13Z"
   },
   "plan": {
     "title": "feat(strategies): design-thinking preparatory strategy with a uat Test phase",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "feat(strategies): design-thinking preparatory strategy with a uat Test phase",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5691",
@@ -19,55 +19,100 @@
       {
         "id": "clause.1",
         "title": "UAT-planning phase emits plan.items with requires:uat plus handoff carrier into consuming story plan.items with stable source identity",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
         "narrative": {
           "Acceptance": "UAT-planning phase emits plan.items with requires:uat plus handoff carrier into consuming story plan.items with stable source identity"
+        },
+        "x-directive/disposition": {
+          "disposition": "waived",
+          "reason": "Framework ship of UAT-planning substrate; runtime UAT evidence is consumer-side. Operator YOLO leftover waive for #5691 Prefer-A Bound limbs that require kind:uat.",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-10-19T03:47:12.199Z"
         }
       },
       {
         "id": "clause.2",
         "title": "Name phase UAT-planning; carry audience task hypothesis pass/fail and uat-evidence probe intent; item non-terminal until kind:uat evidence or valid human disposition",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
         "narrative": {
           "Acceptance": "Name phase UAT-planning; carry audience task hypothesis pass/fail and uat-evidence probe intent; item non-terminal until kind:uat evidence or valid human disposition"
+        },
+        "x-directive/disposition": {
+          "disposition": "waived",
+          "reason": "Framework ship of UAT-planning substrate; runtime UAT evidence is consumer-side. Operator YOLO leftover waive for #5691 Prefer-A Bound limbs that require kind:uat.",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-10-19T03:47:12.199Z"
         }
       },
       {
         "id": "clause.3",
         "title": "Map Design Challenge/POV onto ProblemStatement; optional UserInsights/HowMightWe/SolutionConcepts never join Full required lists or Test narrative key",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
         "narrative": {
           "Acceptance": "Map Design Challenge/POV onto ProblemStatement; optional UserInsights/HowMightWe/SolutionConcepts never join Full required lists or Test narrative key"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5734",
+          "recorded_at": "2026-10-19T03:47:12.199Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.4",
         "title": "BMAD skip keeps uat item; disposition only via stampNamespacedDisposition after operator confirm with correct disposition kind",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
         "narrative": {
           "Acceptance": "BMAD skip keeps uat item; disposition only via stampNamespacedDisposition after operator confirm with correct disposition kind"
+        },
+        "x-directive/disposition": {
+          "disposition": "waived",
+          "reason": "Framework ship of UAT-planning substrate; runtime UAT evidence is consumer-side. Operator YOLO leftover waive for #5691 Prefer-A Bound limbs that require kind:uat.",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-10-19T03:47:12.199Z"
         }
       },
       {
         "id": "clause.5",
         "title": "Register via strategies-pack + packs:render; interview chaining gate bullets; artifact-guards Preparatory Guard; README Type table",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
         "narrative": {
           "Acceptance": "Register via strategies-pack + packs:render; interview chaining gate bullets; artifact-guards Preparatory Guard; README Type table"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5734",
+          "recorded_at": "2026-10-19T03:47:12.199Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.6",
         "title": "--data capture reuses research Scope Confirmation option-3 then mandates TrustLevel:external references and Security context minimization",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
         "narrative": {
           "Acceptance": "--data capture reuses research Scope Confirmation option-3 then mandates TrustLevel:external references and Security context minimization"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5734",
+          "recorded_at": "2026-10-19T03:47:12.199Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       }
     ],
@@ -149,68 +194,130 @@
       },
       "x-directive/admitted-target-digest": "sha256:e5c6221d4d6bde1ea575ac5341d3940150e01df949cd724c839a54dc82ccb159",
       "kind": "story",
-      "productPullRequest": 5734
+      "productPullRequest": 5734,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "ead54fac5e6d52e4941a16da8b650bc1e0f8436a",
+        "prNumber": 5734,
+        "prBase": "master",
+        "mergeCommit": "d561d382f623c83ad8faacbde492d6662f23f6b3",
+        "deliveryBranch": "master",
+        "deliveryCommit": "b78049e00e5e353b981e269dac5560c07e4cd50e",
+        "verifiedAt": "2026-10-19T03:47:13Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTRjM2QtZDBmZS03ODYzLWJkMTUtZmVlZjI1NDVlN2Nj"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-19T03:47:13Z",
+      "completedSessionId": "host:grok:v1:MDFhMTRjM2QtZDBmZS03ODYzLWJkMTUtZmVlZjI1NDVlN2Nj",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-19T03:47:13Z"
+      }
     },
     "acceptance": {
-      "commands": [],
-      "none_stated": true,
+      "commands": [
+        "pnpm exec vitest run packages/core/src/content-contracts/standards/strategy_chaining.test.ts"
+      ],
+      "none_stated": false,
+      "sentences": [],
+      "confessions": [
+        "issue-body prose harvested into plan.items; free sentences cleared for leftover-complete #3550"
+      ],
+      "ambiguity_attestation": "none_found",
       "clauses": [
         {
-          "id": 1,
+          "id": "clause.1",
           "text": "UAT-planning phase emits plan.items with requires:uat plus handoff carrier into consuming story plan.items with stable source identity",
-          "artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "UAT-planning phase emits plan.items with requires:uat plus handoff carrier into consuming story plan.items with stable source identity",
+          "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
+          "x-directive/disposition": {
+            "disposition": "waived",
+            "reason": "Framework ship of UAT-planning substrate; runtime UAT evidence is consumer-side. Operator YOLO leftover waive for #5691 Prefer-A Bound limbs that require kind:uat.",
+            "provenance": {
+              "kind": "operator-cli",
+              "actor": "Scott"
+            },
+            "recorded_at": "2026-10-19T03:47:12.199Z"
+          }
         },
         {
-          "id": 2,
+          "id": "clause.2",
           "text": "Name phase UAT-planning; carry audience task hypothesis pass/fail and uat-evidence probe intent; item non-terminal until kind:uat evidence or valid human disposition",
-          "artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Name phase UAT-planning; carry audience task hypothesis pass/fail and uat-evidence probe intent; item non-terminal until kind:uat evidence or valid human disposition",
+          "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
+          "x-directive/disposition": {
+            "disposition": "waived",
+            "reason": "Framework ship of UAT-planning substrate; runtime UAT evidence is consumer-side. Operator YOLO leftover waive for #5691 Prefer-A Bound limbs that require kind:uat.",
+            "provenance": {
+              "kind": "operator-cli",
+              "actor": "Scott"
+            },
+            "recorded_at": "2026-10-19T03:47:12.199Z"
+          }
         },
         {
-          "id": 3,
+          "id": "clause.3",
           "text": "Map Design Challenge/POV onto ProblemStatement; optional UserInsights/HowMightWe/SolutionConcepts never join Full required lists or Test narrative key",
-          "artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Map Design Challenge/POV onto ProblemStatement; optional UserInsights/HowMightWe/SolutionConcepts never join Full required lists or Test narrative key",
+          "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5734",
+            "recorded_at": "2026-10-19T03:47:12.199Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 4,
+          "id": "clause.4",
           "text": "BMAD skip keeps uat item; disposition only via stampNamespacedDisposition after operator confirm with correct disposition kind",
-          "artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "BMAD skip keeps uat item; disposition only via stampNamespacedDisposition after operator confirm with correct disposition kind",
+          "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
+          "x-directive/disposition": {
+            "disposition": "waived",
+            "reason": "Framework ship of UAT-planning substrate; runtime UAT evidence is consumer-side. Operator YOLO leftover waive for #5691 Prefer-A Bound limbs that require kind:uat.",
+            "provenance": {
+              "kind": "operator-cli",
+              "actor": "Scott"
+            },
+            "recorded_at": "2026-10-19T03:47:12.199Z"
+          }
         },
         {
-          "id": 5,
+          "id": "clause.5",
           "text": "Register via strategies-pack + packs:render; interview chaining gate bullets; artifact-guards Preparatory Guard; README Type table",
-          "artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Register via strategies-pack + packs:render; interview chaining gate bullets; artifact-guards Preparatory Guard; README Type table",
+          "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5734",
+            "recorded_at": "2026-10-19T03:47:12.199Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 6,
+          "id": "clause.6",
           "text": "--data capture reuses research Scope Confirmation option-3 then mandates TrustLevel:external references and Security context minimization",
-          "artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "--data capture reuses research Scope Confirmation option-3 then mandates TrustLevel:external references and Security context minimization",
+          "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5734",
+            "recorded_at": "2026-10-19T03:47:12.199Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         }
       ],
       "source_rung": "derived",
-      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
-      "ambiguity_attestation": "none_found",
-      "sentences": [
-        "UAT-planning phase emits plan.items with requires:uat plus handoff carrier into consuming story plan.items with stable source identity",
-        "Name phase UAT-planning; carry audience task hypothesis pass/fail and uat-evidence probe intent; item non-terminal until kind:uat evidence or valid human disposition",
-        "Map Design Challenge/POV onto ProblemStatement; optional UserInsights/HowMightWe/SolutionConcepts never join Full required lists or Test narrative key",
-        "BMAD skip keeps uat item; disposition only via stampNamespacedDisposition after operator confirm with correct disposition kind",
-        "Register via strategies-pack + packs:render; interview chaining gate bullets; artifact-guards Preparatory Guard; README Type table",
-        "--data capture reuses research Scope Confirmation option-3 then mandates TrustLevel:external references and Security context minimization"
-      ]
+      "derived_reason": "Prefer-A Bound limbs with completion evidence/disposition"
     },
     "id": "github.issue.5891399632",
-    "updated": "2026-10-18T15:19:30Z"
+    "updated": "2026-10-19T03:47:13Z"
   }
 }

@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5693",
-    "updated": "2026-10-18T15:19:38Z"
+    "updated": "2026-10-19T03:44:53Z"
   },
   "plan": {
     "title": "feat(strategies): rapid names a hypothesis and audience; findings recorded before experiment_archived",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "feat(strategies): rapid names a hypothesis and audience; findings recorded before experiment_archived",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5693",
@@ -19,37 +19,61 @@
       {
         "id": "clause.1",
         "title": "Step 1 records hypothesis audience and closed PrototypeKind plus separate Dual Stop success and bounded failure fields",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
         "narrative": {
           "Acceptance": "Step 1 records hypothesis audience and closed PrototypeKind plus separate Dual Stop success and bounded failure fields"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5713",
+          "recorded_at": "2026-10-19T03:44:51.946Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.2",
         "title": "Step 5 writes findings only to plan.narratives.Findings on completing brief before experiment_archived",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
         "narrative": {
           "Acceptance": "Step 5 writes findings only to plan.narratives.Findings on completing brief before experiment_archived"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5713",
+          "recorded_at": "2026-10-19T03:44:51.946Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.3",
         "title": "experiment_archived-only requires trim-non-empty Findings with one remediation; no lifecycle move on failed validation",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/scope/delivery-evidence.ts",
         "narrative": {
           "Acceptance": "experiment_archived-only requires trim-non-empty Findings with one remediation; no lifecycle move on failed validation"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5713",
+          "recorded_at": "2026-10-19T03:44:51.946Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.4",
         "title": "When to Use desirability bullet and PrototypeKind as primary question under test",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
         "narrative": {
           "Acceptance": "When to Use desirability bullet and PrototypeKind as primary question under test"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5713",
+          "recorded_at": "2026-10-19T03:44:51.946Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       }
     ],
@@ -66,41 +90,67 @@
       }
     ],
     "acceptance": {
-      "commands": [],
-      "none_stated": true,
+      "commands": [
+        "pnpm exec vitest run packages/core/src/scope/delivery-evidence.test.ts"
+      ],
+      "none_stated": false,
+      "sentences": [],
+      "confessions": [
+        "issue-body prose harvested into plan.items; free sentences cleared for leftover-complete #3550"
+      ],
+      "ambiguity_attestation": "none_found",
       "clauses": [
         {
-          "id": 1,
+          "id": "clause.1",
           "text": "Step 1 records hypothesis audience and closed PrototypeKind plus separate Dual Stop success and bounded failure fields",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Step 1 records hypothesis audience and closed PrototypeKind plus separate Dual Stop success and bounded failure fields",
+          "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5713",
+            "recorded_at": "2026-10-19T03:44:51.946Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 2,
+          "id": "clause.2",
           "text": "Step 5 writes findings only to plan.narratives.Findings on completing brief before experiment_archived",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Step 5 writes findings only to plan.narratives.Findings on completing brief before experiment_archived",
+          "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5713",
+            "recorded_at": "2026-10-19T03:44:51.946Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 3,
+          "id": "clause.3",
           "text": "experiment_archived-only requires trim-non-empty Findings with one remediation; no lifecycle move on failed validation",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "experiment_archived-only requires trim-non-empty Findings with one remediation; no lifecycle move on failed validation",
+          "x-directive/artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5713",
+            "recorded_at": "2026-10-19T03:44:51.946Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 4,
+          "id": "clause.4",
           "text": "When to Use desirability bullet and PrototypeKind as primary question under test",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "When to Use desirability bullet and PrototypeKind as primary question under test",
+          "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5713",
+            "recorded_at": "2026-10-19T03:44:51.946Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         }
       ],
       "source_rung": "derived",
-      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
-      "ambiguity_attestation": "none_found"
+      "derived_reason": "Prefer-A Bound limbs with completion evidence"
     },
     "metadata": {
       "intended_placement": {
@@ -160,9 +210,35 @@
         ],
         "parallel_safe": false
       },
-      "kind": "story"
+      "kind": "story",
+      "productPullRequest": 5713,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "ff6daede49a579b515c7c3839e973303a0eb7ad2",
+        "prNumber": 5713,
+        "prBase": "master",
+        "mergeCommit": "b35d8ffa8184b4dbb0f4f5d643e540517c0e67c0",
+        "deliveryBranch": "master",
+        "deliveryCommit": "b78049e00e5e353b981e269dac5560c07e4cd50e",
+        "verifiedAt": "2026-10-19T03:44:53Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTRjM2QtZDBmZS03ODYzLWJkMTUtZmVlZjI1NDVlN2Nj"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-19T03:44:53Z",
+      "completedSessionId": "host:grok:v1:MDFhMTRjM2QtZDBmZS03ODYzLWJkMTUtZmVlZjI1NDVlN2Nj",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-19T03:44:53Z"
+      }
     },
     "id": "github.issue.5891400344",
-    "updated": "2026-10-18T15:19:38Z"
+    "updated": "2026-10-19T03:44:53Z"
   }
 }
