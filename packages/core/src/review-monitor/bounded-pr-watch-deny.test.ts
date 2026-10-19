@@ -196,6 +196,52 @@ describe("evaluateClaimedBabysitPathDeny (#5727 P4)", () => {
     });
     expect(flagId.deny).toBe(true);
     expect(flagId.reason).toBe("approach1-unbound");
+
+    const nullEvidence = evaluateClaimedBabysitPathDeny({
+      claimedKind: "approach1-spawn",
+      tier: TIER1,
+      boundEvidence: null,
+    });
+    expect(nullEvidence.deny).toBe(true);
+    expect(nullEvidence.reason).toBe("approach1-unbound");
+
+    const emptyId = evaluateClaimedBabysitPathDeny({
+      claimedKind: "approach1-spawn",
+      tier: TIER1,
+      boundEvidence: {
+        pr: 12,
+        monitorAgentId: "   ",
+        registeredPlatformPrimitive: "spawn_subagent",
+        childWatchBoundToMonitorId: true,
+      },
+    });
+    expect(emptyId.deny).toBe(true);
+
+    const emptyPrim = evaluateClaimedBabysitPathDeny({
+      claimedKind: "approach1-spawn",
+      tier: TIER1,
+      boundEvidence: {
+        pr: 12,
+        monitorAgentId: "rm-12",
+        registeredPlatformPrimitive: "   ",
+        childWatchBoundToMonitorId: true,
+      },
+    });
+    expect(emptyPrim.deny).toBe(true);
+
+    const otherPrim = evaluateClaimedBabysitPathDeny({
+      claimedKind: "approach1-spawn",
+      tier: TIER1,
+      boundEvidence: {
+        pr: 12,
+        evidencePr: 12,
+        monitorAgentId: "rm-12",
+        registeredPlatformPrimitive: "cursor-task",
+        childWatchBoundToMonitorId: true,
+      },
+    });
+    expect(otherPrim.deny).toBe(false);
+    expect(otherPrim.reason).toBe("admitted");
   });
 
   it("fails closed on different-PR arm", () => {
