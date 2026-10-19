@@ -295,6 +295,14 @@ describe("draft + banner + reason helpers", () => {
     expect(countFailedTestsFromSanitizedOutput("task check failed (exit 1)")).toBeNull();
     expect(countFailedTestsFromSanitizedOutput("Test Files  1 failed (1)")).toBeNull();
     expect(countFailedTestsFromSanitizedOutput("")).toBeNull();
+    expect(countFailedTestsFromSanitizedOutput("preamble\n  Tests 5 failed\ntrailer")).toBe(5);
+  });
+
+  it("rejects adversarial newline-heavy inputs without ReDoS (#5748 / CodeQL #144)", () => {
+    const newlines = "\n".repeat(50_000);
+    expect(countFailedTestsFromSanitizedOutput(newlines)).toBeNull();
+    expect(countFailedTestsFromSanitizedOutput(`${newlines}Tests 2 passed`)).toBeNull();
+    expect(countFailedTestsFromSanitizedOutput(`${newlines}Tests 4 failed`)).toBe(4);
   });
 });
 

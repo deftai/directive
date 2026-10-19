@@ -387,15 +387,24 @@ export function parseExitCodeFromReason(reason: string): number | null {
  * Count failed tests from a sanitized cause or thin reason (#4244 / #3282).
  * Does not scan raw suite bytes — callers must pass extractGateCause output
  * or the encoded `N failed tests` reason fragment.
+ *
+ * Tests-line parse is per-line (not /(?:^|\n)\s*…/) so CodeQL js/polynomial-redos
+ * alert #144 / #5748 stays clear. Whole-input cost is one split + one anchored
+ * match per line (forward progress; no overlapping suffix rescan). Caller
+ * extractGateCause / sanitizeCauseLine caps are mitigation, not FP clearance.
+ * Encoded sibling kept: alert #144 names only the testsLine shape.
  */
 export function countFailedTestsFromSanitizedOutput(
   output: string | null | undefined,
 ): number | null {
   if (!output) return null;
-  const testsLine = /(?:^|\n)\s*Tests\s+(\d+)\s+failed\b/i.exec(output);
-  if (testsLine) {
-    const n = Number.parseInt(testsLine[1] ?? "", 10);
-    return Number.isFinite(n) ? n : null;
+  const testsLineRe = /^Tests\s+(\d+)\s+failed\b/i;
+  for (const line of output.split(/\r?\n/)) {
+    const testsLine = testsLineRe.exec(line.trimStart());
+    if (testsLine) {
+      const n = Number.parseInt(testsLine[1] ?? "", 10);
+      return Number.isFinite(n) ? n : null;
+    }
   }
   const encoded = /(?:^|[;(]\s*)(\d+)\s+failed tests?\b/i.exec(output);
   if (encoded) {

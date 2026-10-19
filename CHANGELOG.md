@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed — Pin brace-expansion@5 to 5.0.12 (Dependabot #16/#17/#18). Tracking #5737.
 - Fixed — Bound Last-reviewed markdown-link SHA parse in greptile-detector (CodeQL alert #112). Tracking #5742.
 - Fixed — Replace COMMA_LIST_TAIL_RE with a monotonic character scanner in pr-closing-keywords detect (CodeQL polynomial-redos alert #121). Tracking #5745.
+- Fixed — Clear CodeQL `js/polynomial-redos` alert #144 in `countFailedTestsFromSanitizedOutput` by rewriting the Tests-failed line parse to a per-line anchored scan (no `/(?:^|\n)\s*…/` shape). Refs #5748, CodeQL alert #144.
 
 ### Security
 
