@@ -17,6 +17,7 @@ import {
   extractHelpKeysFromSource,
   extractSkillIdsFromPack,
   fetchPrBodyRest,
+  matchSurfacesField,
   originQualifyBranchName,
   originQualifyGitBase,
   parseDocsImpactArgs,
@@ -62,6 +63,116 @@ describe("docs-impact declaration parse (#4099)", () => {
   it("bounds rationale length without scoring its prose", () => {
     const long = `change_class: none\nsurfaces: none\nrationale: "${"x".repeat(RATIONALE_MAX_CHARS + 1)}"\n`;
     expect(parseDocsImpactDeclaration(long).errors.some((e) => e.includes("exceeds"))).toBe(true);
+  });
+});
+
+describe("surfaces: linear field parse (#5743 / CodeQL alert #114)", () => {
+  // Prefer-A Bound limb 2: same-line remainder (intentional narrow change vs old
+  // /^surfaces:\s*(.+)\s*$/im whose leading \s* could span line breaks).
+  const rationaleLine = 'rationale: "Boundary fixture."';
+
+  it("accepts ordinary none and kind:id lists on the same line", () => {
+    expect(matchSurfacesField("surfaces: none")).toBe("none");
+    expect(matchSurfacesField("surfaces: command:docs:capability-map")).toBe(
+      "command:docs:capability-map",
+    );
+    expect(matchSurfacesField("Surfaces: skill-trigger:deft-directive-triage")).toBe(
+      "skill-trigger:deft-directive-triage",
+    );
+    const parsed = parseDocsImpactDeclaration(
+      body("change_class: add\nsurfaces: command:docs:capability-map, help:task docs:capability-map"),
+    );
+    expect(parsed.errors).toEqual([]);
+    expect(parsed.declaration?.surfaces).toEqual([
+      { kind: "command", id: "docs:capability-map" },
+      { kind: "help", id: "task docs:capability-map" },
+    ]);
+  });
+
+  it("treats bare surfaces: as missing and whitespace-only as an empty list", () => {
+    expect(matchSurfacesField("surfaces:")).toBeNull();
+    expect(matchSurfacesField("surfaces:   ")).toBe("");
+    expect(
+      parseDocsImpactDeclaration(`change_class: none\nsurfaces:\n${rationaleLine}\n`).errors.some(
+        (e) => e.includes("missing surfaces:"),
+      ),
+    ).toBe(true);
+    const spacesOnly = parseDocsImpactDeclaration(
+      `change_class: none\nsurfaces:   \n${rationaleLine}\n`,
+    );
+    expect(spacesOnly.errors).toEqual([]);
+    expect(spacesOnly.declaration?.surfaces).toEqual([]);
+  });
+
+  it("rejects next-line values under the intentional same-line boundary", () => {
+    expect(matchSurfacesField("surfaces:\ncommand:foo")).toBeNull();
+    expect(matchSurfacesField("surfaces:\r\ncommand:foo")).toBeNull();
+    expect(matchSurfacesField("surfaces:\u2028command:foo")).toBeNull();
+    expect(matchSurfacesField("surfaces:\u2029command:foo")).toBeNull();
+    // Bare first line is skipped; a later same-line surfaces: still wins.
+    expect(matchSurfacesField("surfaces:\n\nsurfaces: none")).toBe("none");
+  });
+
+  it("uses the first surfaces: line when duplicates exist", () => {
+    expect(matchSurfacesField("surfaces: none\nsurfaces: command:other")).toBe("none");
+    const parsed = parseDocsImpactDeclaration(
+      body("change_class: add\nsurfaces: command:first\nsurfaces: command:second"),
+    );
+    expect(parsed.declaration?.surfaces).toEqual([{ kind: "command", id: "first" }]);
+  });
+
+  it("source no longer carries the polynomial SURFACES_RE shape", () => {
+    const src = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "docs-impact.ts"),
+      "utf8",
+    );
+    expect(src).not.toContain("SURFACES_RE");
+    // Live regex literal only — JSDoc may still name the retired pattern.
+    expect(src).not.toMatch(/=\s*\/\^surfaces:\\s\*\(\.\+\)\\s\*\$\/im/);
+    expect(src).toContain("matchSurfacesField");
+  });
+
+  it("adversarial accepted and rejected padding completes under an external child deadline", () => {
+    const child = `
+const prefix = "surfaces:";
+function matchSurfacesField(body) {
+  let start = 0;
+  const length = body.length;
+  while (start <= length) {
+    let end = start;
+    while (end < length) {
+      const ch = body.charCodeAt(end);
+      if (ch === 0x0a || ch === 0x0d || ch === 0x2028 || ch === 0x2029) break;
+      end += 1;
+    }
+    const line = body.slice(start, end);
+    if (line.length >= prefix.length && line.slice(0, prefix.length).toLowerCase() === prefix) {
+      const rest = line.slice(prefix.length);
+      if (rest.length > 0) return rest.trim();
+    }
+    if (end >= length) break;
+    if (body.charCodeAt(end) === 0x0d && end + 1 < length && body.charCodeAt(end + 1) === 0x0a) {
+      start = end + 2;
+    } else {
+      start = end + 1;
+    }
+  }
+  return null;
+}
+const spaces = " ".repeat(80000);
+const accepted = matchSurfacesField(prefix + spaces + "none" + spaces);
+const rejected = matchSurfacesField(prefix + String.fromCharCode(10) + spaces + "command:foo");
+if (accepted !== "none" || rejected !== null) {
+  console.error(JSON.stringify({ accepted, rejected }));
+  process.exit(1);
+}
+`;
+    const result = execFileSync(process.execPath, ["-e", child], {
+      encoding: "utf8",
+      timeout: 5_000,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    expect(result).toBe("");
   });
 });
 

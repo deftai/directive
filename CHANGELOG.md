@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dependabot high: source-map-js event-loop DoS via indexed source-map section offsets (alert #19).** Force `source-map-js@1.2.2` (GHSA-68fv-2mgg-jv7q / CVE-2026-93749; out of `>=1.0.0,<1.2.2`) through the pnpm 11 workspace override so magicast and postcss transitive pins leave the vulnerable line. Same pattern as the prior esbuild / brace-expansion / postcss pins in `pnpm-workspace.yaml`. Tracking #5740.
 - **CodeQL bad-tag-filter cleared in spec-authority banner test (alert #109).** Replace incomplete `/-->/g` closer count with `split("-->").length === 2` so the assertion still proves exactly one banner closer (rejects zero) without looking like an HTML tag filter; keep `--%3E` / `%0D%0A` / `%5C` path-encoding checks. Tracking #5741. Refs CodeQL alert #109.
 
+### Security
+- **CodeQL polynomial-redos in docs-impact `surfaces:` parse (alert #114 / #5743).** `parseDocsImpactDeclaration` no longer uses `/^surfaces:\s*(.+)\s*$/im`; linear same-line `matchSurfacesField` clears the ambiguous `(.+)\s*$` shape. Fixtures lock bare/whitespace/duplicate/LF-CRLF-LS-PS boundaries (next-line capture is an intentional narrow reject). Adversarial padding runs in a killable child. Tracking #5743. Refs CodeQL alert #114.
+
 ### Removed
 
 ## [0.126.1] - 2026-10-19
