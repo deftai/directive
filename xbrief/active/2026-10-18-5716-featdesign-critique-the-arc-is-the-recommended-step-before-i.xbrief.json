@@ -176,7 +176,7 @@
           "#5727"
         ],
         "parallel_safe": false,
-        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #5716 Prefer-A Recut-3. docs/RULE-MAP.md regenerated membership for #5716 skill/AGENTS pointer churn (#5192 precommitment). Product membership widen for AGENTS.md, ingest-posture, issue-ingest, telemetry enrollment, contract tests, PROJECT-DEFINITION (#5192 / #4956)."
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #5716 Prefer-A Recut-3. docs/RULE-MAP.md regenerated membership for #5716 skill/AGENTS pointer churn (#5192 precommitment). Product membership widen for AGENTS.md, ingest-posture, issue-ingest (intake/), telemetry enrollment, contract tests, PROJECT-DEFINITION (#5192 / #4956)."
       },
       "intended_placement": {
         "schema": "deft.scope.intended_placement.v1",
@@ -211,7 +211,7 @@
           "packages/core/src/intake/issue-ingest.ts"
         ],
         "module_boundary": "design-critique arc recommended before every issue:ingest",
-        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #5716 Prefer-A Recut-3. docs/RULE-MAP.md regenerated membership for #5716 skill/AGENTS pointer churn (#5192 precommitment). Product membership widen for AGENTS.md, ingest-posture, issue-ingest, telemetry enrollment, contract tests, PROJECT-DEFINITION (#5192 / #4956)."
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #5716 Prefer-A Recut-3. docs/RULE-MAP.md regenerated membership for #5716 skill/AGENTS pointer churn (#5192 precommitment). Product membership widen for AGENTS.md, ingest-posture, issue-ingest (intake/), telemetry enrollment, contract tests, PROJECT-DEFINITION (#5192 / #4956)."
       },
       "x-directive/plan-id": {
         "version": 1,
@@ -220,8 +220,7 @@
         "origin": "deftai/directive#5716",
         "id": "github.issue.5913161841"
       },
-      "x-directive/admitted-target-digest": "sha256:71f2b5c269d85c81909ee1b49c1e178d2165277e2ecbdd754646d0f14b870bda",
-      "productPullRequest": 5750
+      "x-directive/admitted-target-digest": "sha256:71f2b5c269d85c81909ee1b49c1e178d2165277e2ecbdd754646d0f14b870bda"
     },
     "acceptance": {
       "commands": [],
