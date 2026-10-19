@@ -86,26 +86,92 @@
         {
           "id": 1,
           "text": "CodeQL alert [#115](https://github.com/deftai/directive/security/code-scanning/115) clears on master (auto-close or dismiss with reason after fix).",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/doctor/manifest.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 2,
           "text": "Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/doctor/branches.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 3,
           "text": "CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #115.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Summary CodeQL open alert on default branch: HIGH `js/polynomial-redos` — Polynomial regular expression used on uncontrolled data.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "| Field | Value | |-------|-------| | Alert | [#115](https://github.com/deftai/directive/security/code-scanning/115) | | Rule | `js/polynomial-redos` | | Severity | HIGH | | Location | `packages/core/src/doctor/manifest.ts` ~L154 | | Message | This regular expression that depends on library input may run slow on strings with many repetitions of '/'.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "| ## What to build Rewrite or bound the flagged site so CodeQL `js/polynomial-redos` clears for this alert (or document accepted risk with suppress + rationale if false positive after review).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Prefer a real fix over suite-config changes.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Acceptance - [ ] CodeQL alert [#115](https://github.com/deftai/directive/security/code-scanning/115) clears on master (auto-close or dismiss with reason after fix).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "[ ] Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "[ ] CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #115.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Non-goals - Changing CodeQL suite config as the primary fix.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Bundling unrelated code-scanning alerts into this issue (siblings tracked separately).",
           "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "sec(codeql): HIGH clear polynomial-redos in doctor/manifest.ts (alert #115)"
+      ]
     },
     "metadata": {
       "intended_placement": {
