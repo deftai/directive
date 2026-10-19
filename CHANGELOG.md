@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added — Exclusive lawful waits + claimed-wait fail-closed for Grok through-merge parents (#5727 Prefer-A Recut-2 P3/P4): `BabysitPathKind` forge-poll, `evaluateClaimedBabysitPathDeny` / `admitClaimedBabysitPath`, exclusive-waits card on Envelope SLA / review-cycle / host-grok-build. Undeclared-shell interception remains leftover #5732. Refs #5727 #5229 #5732.
 
 ### Changed
 - Changed — Remint approved-scope for #5744 with productPullRequest + acceptance evidence. Approval record only; no product behavior change. Refs #5744.

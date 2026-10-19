@@ -1,12 +1,15 @@
 /**
- * Approach 1 babysitter one-liner for Grok / Tier-1 spawn_subagent (#5219 / #5229).
- * Prefer this dispatch over a parent-owned shell `pr:watch` or host `monitor`.
+ * Approach 1 babysitter one-liner for Grok / Tier-1 spawn_subagent (#5219 / #5229 / #5727).
+ * Prefer this dispatch over a parent-owned shell `pr:watch`, host `monitor`, or forge-poll.
  */
 import {
   babysitPathAdmissionCost,
   evaluateBoundedPrWatchDeny,
+  evaluateClaimedBabysitPathDeny,
   formatApproach1BabysitterOneLiner,
   isApproach1CheapestVs,
+  type ClaimedBabysitPathDenyInput,
+  type ClaimedBabysitPathDenyResult,
   type PlatformPrimitive,
   writeHostCapabilityStamp,
 } from "../review-monitor/index.js";
@@ -14,6 +17,7 @@ import {
 export {
   babysitPathAdmissionCost,
   evaluateBoundedPrWatchDeny,
+  evaluateClaimedBabysitPathDeny,
   formatApproach1BabysitterOneLiner,
   isApproach1CheapestVs,
   writeHostCapabilityStamp,
@@ -34,9 +38,10 @@ export function approach1BabysitterCommands(
 }
 
 /**
- * Cheapest admitted babysit path when Tier-1 spawn exists (#5229 Prefer-A).
+ * Exclusive lawful waits + cheapest admitted babysit when Tier-1 spawn exists
+ * (#5229 Prefer-A / #5727 Prefer-A Recut-2 P3).
  * Admission cost: Approach 1 spawn < child-bound Directive pr:watch << bare
- * shell watch / host monitor / bespoke %TEMP% pollers.
+ * shell watch / host monitor / forge-poll / bespoke %TEMP% pollers.
  */
 export function formatApproach1CheapestAdmissionCard(
   pr: number,
@@ -45,19 +50,69 @@ export function formatApproach1CheapestAdmissionCard(
 ): string {
   const vsShell = isApproach1CheapestVs("directive-pr-watch-bare");
   const vsHost = isApproach1CheapestVs("host-monitor");
+  const vsForge = isApproach1CheapestVs("forge-poll");
   return (
-    `Approach 1 babysitter — cheapest admitted path (#5219 / #5229):\n` +
+    `Approach 1 babysitter — exclusive lawful waits / cheapest admitted path (#5219 / #5229 / #5727):\n` +
+    `  exclusive lawful pre-CLEAN: Approach 1 child pr:watch --monitor-agent-id after ` +
+    `review-monitor:register --platform-primitive spawn_subagent with ` +
+    `verify:review-monitor --merge-path-arm --live-wait green\n` +
+    `  exclusive lawful post-CLEAN: parent-retained pr:wait-mergeable-and-merge\n` +
+    `  forbidden (BabysitPathKind): forge-poll / gh check-runs+mergeable_state sleep / ` +
+    `bespoke %TEMP% PowerShell / host-monitor / directive-pr-watch-bare\n` +
     `  admission: approach1-spawn=${babysitPathAdmissionCost("approach1-spawn")} ` +
     `< bare-pr-watch=${babysitPathAdmissionCost("directive-pr-watch-bare")} ` +
     `< host-monitor=${babysitPathAdmissionCost("host-monitor")} ` +
-    `(cheaperThanShell=${vsShell}, cheaperThanHostMonitor=${vsHost})\n` +
+    `< forge-poll=${babysitPathAdmissionCost("forge-poll")} ` +
+    `(cheaperThanShell=${vsShell}, cheaperThanHostMonitor=${vsHost}, cheaperThanForgePoll=${vsForge})\n` +
     `${formatApproach1BabysitterOneLiner(pr, monitorAgentId, platformPrimitive)}\n` +
     "Before CLI verify/subprocess: writeHostCapabilityStamp(projectRoot) so Tier probe stays spawn_subagent.\n" +
     "Bounded deny: Directive pr:watch / task deft:pr:watch without --monitor-agent-id when Tier 1 is provable.\n" +
-    "Named residual: bespoke unsanctioned %TEMP% pollers unless routed through deft-hook.\n" +
+    "Claimed-wait deny: admitClaimedBabysitPath / evaluateClaimedBabysitPathDeny (#5727).\n" +
+    "Named residual (#5732): undeclared-shell interception before execution (not this ship).\n" +
     "Child owns watch → class A residual handoff → re-watch until CLEAN; " +
     "parent closer runs pr:wait-mergeable-and-merge only after CLEAN."
   );
+}
+
+/**
+ * Named production caller for claimed babysit-path admission (#5727 P4).
+ * Composes `evaluateClaimedBabysitPathDeny` with cheapest-admission inventory;
+ * attaches the exclusive lawful-waits card when denied.
+ */
+export function admitClaimedBabysitPath(
+  input: ClaimedBabysitPathDenyInput & {
+    readonly pr?: number;
+    readonly monitorAgentId?: string;
+    readonly platformPrimitive?: PlatformPrimitive;
+  },
+): ClaimedBabysitPathDenyResult & { readonly cheapestAdmissionCard: string | null } {
+  const result = evaluateClaimedBabysitPathDeny(input);
+  if (!result.deny) {
+    return { ...result, cheapestAdmissionCard: null };
+  }
+  const pr =
+    input.pr !== undefined && input.pr > 0
+      ? input.pr
+      : input.boundEvidence !== undefined &&
+          input.boundEvidence !== null &&
+          input.boundEvidence.pr > 0
+        ? input.boundEvidence.pr
+        : 0;
+  const id =
+    input.monitorAgentId?.trim() ||
+    input.boundEvidence?.monitorAgentId?.trim() ||
+    "<id>";
+  const primitive = input.platformPrimitive ?? input.tier.primitive ?? "spawn_subagent";
+  const card = formatApproach1CheapestAdmissionCard(
+    pr > 0 ? pr : 0,
+    id,
+    (primitive as PlatformPrimitive) || "spawn_subagent",
+  );
+  return {
+    ...result,
+    message: `${result.message}\n${card}`,
+    cheapestAdmissionCard: card,
+  };
 }
 
 export function formatApproach1BabysitterCard(
