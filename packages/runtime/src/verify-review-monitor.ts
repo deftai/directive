@@ -33,6 +33,13 @@ interface ParsedArgs {
   mergePathArm: boolean;
   liveWait: boolean;
   explicitFinish: boolean;
+  /**
+   * Product mint-gate BLOCKED — refuse --explicit-finish write (#5690).
+   * Pass-through to writeMergePathExplicitFinishAttestation.mintGateBlocked.
+   */
+  mintGateBlocked: boolean;
+  /** Optional attestation reason; mint markers also refuse the write (#5690). */
+  reason: string | null;
   stickyLease: boolean;
   /** DeliveryAttemptRecord.startedAt for Approach 1 arm-startup halt (#5278 P3). */
   dispatchStartedAt: string | null;
@@ -60,6 +67,8 @@ export function parseVerifyReviewMonitorArgs(argv: readonly string[]): ParsedArg
     mergePathArm: false,
     liveWait: false,
     explicitFinish: false,
+    mintGateBlocked: false,
+    reason: null,
     stickyLease: false,
     dispatchStartedAt: null,
     help: false,
@@ -78,6 +87,17 @@ export function parseVerifyReviewMonitorArgs(argv: readonly string[]): ParsedArg
       acc.liveWait = true;
     } else if (arg === "--explicit-finish") {
       acc.explicitFinish = true;
+    } else if (arg === "--mint-gate-blocked") {
+      acc.mintGateBlocked = true;
+    } else if (arg === "--reason") {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return { ...acc, error: "argument --reason: expected one argument" };
+      }
+      acc.reason = value;
+      i += 1;
+    } else if (arg?.startsWith("--reason=")) {
+      acc.reason = arg.slice("--reason=".length);
     } else if (arg === "--sticky-lease") {
       acc.stickyLease = true;
     } else if (arg === "--dispatch-started-at") {
@@ -179,6 +199,9 @@ export function run(argv: readonly string[]): number {
         "                         pr:watch CLEAN attestation — #5219;\n" +
         "                         parent-shell pr:watch (parent_id=pr-watch) does not arm.\n" +
         "  --explicit-finish      Attest option-C BLOCKED/FAILED finish for this PR\n" +
+        "  --mint-gate-blocked    Refuse --explicit-finish write for product mint-gate\n" +
+        "                         BLOCKED (non-option-C; #5690)\n" +
+        "  --reason TEXT          Attestation reason; mint markers also refuse write (#5690)\n" +
         "  --sticky-lease         Attest a fresh sticky lease (not sufficient alone)\n" +
         "  --dispatch-started-at  DeliveryAttemptRecord.startedAt ISO for Approach 1\n" +
         "                         arm-startup halt (#5278); when merge-path-arm stays\n" +
@@ -227,6 +250,8 @@ export function run(argv: readonly string[]): number {
           args.pr,
           {
             source: "verify:review-monitor --explicit-finish",
+            reason: args.reason ?? undefined,
+            mintGateBlocked: args.mintGateBlocked,
           },
         );
         if (!written.ok) {

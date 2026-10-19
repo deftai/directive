@@ -6,8 +6,14 @@ import { isValueFeedbackPathAllowed, resolveValueFeedback } from "../policy/valu
 import {
   GhRestError,
   type GhRestSeams,
+  REST_MAX_PER_PAGE,
+  REST_PAGINATION_MAX_PAGES,
+  REST_SHARED_ROW_BUDGET,
   restCreateIssue,
-  restIssueListPaginated,
+  restIssueListOpenInventory,
+  restPostComment,
+  runGhApi,
+  splitRepo,
 } from "../scm/gh-rest.js";
 import { resolveProjectRoot } from "../scope/project-context.js";
 
@@ -15,6 +21,8 @@ export const DEFAULT_UPSTREAM_REPO = "deftai/directive";
 export const FRAMEWORK_GAP_TITLE_PREFIX = "[framework-gap]";
 /** Sole sanctioned title classification (#3713). Does not write `adoption-blocker`. */
 export const ADOPTION_BLOCKER_TITLE_TOKEN = "BLOCKER";
+/** Retained closed-issue count window for feedback:file dedup (#5099 Prefer-A Recut-2). */
+export const FEEDBACK_CLOSED_DEDUP_WINDOW = Number.parseInt("500", 10);
 
 const FRAMEWORK_GAP_PREFIX_RE = /^\[framework-gap\]\s*/i;
 const BLOCKER_TITLE_TOKEN_RE = /^BLOCKER\b[:\s-]*/i;
@@ -34,13 +42,16 @@ export function stripTitleClassificationTokens(title: string): string {
 export type FeedbackFileOutcome =
   | "draft"
   | "filed"
+  | "commented-open-duplicate"
   | "skipped-maintainer"
   | "blocked-policy"
-  | "blocked-duplicate"
+  | "blocked-closed-duplicate"
   | "blocked-no-confirm"
   | "error-bad-args"
   | "error-config"
   | "error-network";
+
+export type OnClosedDisposition = "comment" | "create-anyway";
 
 export interface FeedbackGapInput {
   readonly summary: string;
@@ -61,6 +72,11 @@ export interface FeedbackFileOptions extends FeedbackGapInput {
   readonly confirm?: boolean;
   readonly dryRun?: boolean;
   readonly json?: boolean;
+  readonly onClosed?: OnClosedDisposition;
+  /** Test/builder override for closed retained-issue window (default FEEDBACK_CLOSED_DEDUP_WINDOW). */
+  readonly closedWindow?: number;
+  /** Test/builder override for closed-walk raw-row budget (default REST_SHARED_ROW_BUDGET). */
+  readonly closedRowBudget?: number;
   readonly seams?: GhRestSeams;
 }
 
@@ -71,8 +87,27 @@ export interface FeedbackFileResult {
   readonly body: string;
   readonly repo: string;
   readonly issueUrl?: string | null;
+  readonly commentUrl?: string | null;
   readonly duplicateUrl?: string | null;
   readonly message: string;
+}
+
+export type ClosedIssueWalkOutcome = "window-exhausted" | "list-exhausted" | "cap" | "error";
+
+export interface ClosedIssueWalkResult {
+  readonly outcome: ClosedIssueWalkOutcome;
+  /** Retained closed issues examined (pull rows excluded). */
+  readonly inspectedIssueCount: number;
+  readonly rawRows: number;
+  readonly match: DuplicateMatch | null;
+  readonly malformedMatch: boolean;
+  readonly errorMessage?: string;
+}
+
+export interface RestClosedIssueWalkOptions {
+  readonly window?: number;
+  readonly perPage?: number;
+  readonly remainingBudget?: number;
 }
 
 function sanitizeOneLine(value: string): string {
@@ -165,9 +200,25 @@ function buildAdoptionImpactSection(input: FeedbackGapInput): readonly string[] 
   ];
 }
 
-/** Build the structured framework-gap issue body. */
-export function buildFrameworkGapBody(input: FeedbackGapInput): string {
+export type FrameworkGapBodyMode = "issue" | "comment";
+
+/** Build the structured framework-gap issue or evidence-comment body. */
+export function buildFrameworkGapBody(
+  input: FeedbackGapInput,
+  options?: { mode?: FrameworkGapBodyMode; relatedClosedNumber?: number },
+): string {
   const summary = sanitizeOneLine(input.summary);
+  const mode = options?.mode ?? "issue";
+  const footer =
+    mode === "comment"
+      ? "_Evidence appended via `deft feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._"
+      : "_Filed via `deft feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._";
+  const related =
+    typeof options?.relatedClosedNumber === "number" &&
+    Number.isFinite(options.relatedClosedNumber) &&
+    options.relatedClosedNumber > 0
+      ? [`Related: closed #${options.relatedClosedNumber}`, ""]
+      : [];
   const lines = [
     "## Summary",
     "",
@@ -190,43 +241,262 @@ export function buildFrameworkGapBody(input: FeedbackGapInput): string {
     sectionOrPlaceholder(input.sessionNotes, "_(not provided)_"),
     "",
     ...buildAdoptionImpactSection(input),
+    ...related,
     "---",
-    "_Filed via `deft feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._",
+    footer,
     "",
   ];
   return lines.join("\n");
 }
 
 export interface DuplicateMatch {
+  readonly number: number;
+  readonly state: string;
   readonly url: string;
   readonly title: string;
 }
 
-/** Search open upstream issues for a normalized title match. */
+type RowMatch = DuplicateMatch | "malformed" | null;
+
+function matchTitleRow(row: Record<string, unknown>, needle: string): RowMatch {
+  const issueTitle = typeof row.title === "string" ? row.title : "";
+  if (normalizeForDedup(issueTitle) !== needle) {
+    return null;
+  }
+  const url = typeof row.html_url === "string" ? row.html_url : "";
+  const state = typeof row.state === "string" ? row.state : "";
+  const number = row.number;
+  if (
+    typeof number !== "number" ||
+    !Number.isFinite(number) ||
+    number <= 0 ||
+    !Number.isInteger(number) ||
+    url.length === 0 ||
+    state.length === 0
+  ) {
+    return "malformed";
+  }
+  return { number, state, url, title: issueTitle };
+}
+
+type ClosedIssuePageResult =
+  | { readonly ok: true; readonly rows: Record<string, unknown>[] }
+  | { readonly ok: false; readonly message: string };
+
+function fetchClosedIssuePage(
+  repo: string,
+  page: number,
+  perPage: number,
+  seams: GhRestSeams,
+): ClosedIssuePageResult {
+  const [owner, name] = splitRepo(repo);
+  const endpoint = `repos/${owner}/${name}/issues`;
+  const runner = seams.runGhApiFn ?? runGhApi;
+  const args: string[] = [
+    endpoint,
+    "--method",
+    "GET",
+    "--raw-field",
+    "state=closed",
+    "--raw-field",
+    "sort=updated",
+    "--raw-field",
+    "direction=desc",
+    "--raw-field",
+    `per_page=${perPage}`,
+    "--raw-field",
+    `page=${page}`,
+  ];
+  const result = runner(args, { whichFn: seams.whichFn });
+  if (result.returncode !== 0) {
+    const detail = result.stderr.trim();
+    return {
+      ok: false,
+      message:
+        detail.length > 0
+          ? detail
+          : `closed-issue walk gh exit ${String(result.returncode)} (${endpoint})`,
+    };
+  }
+  const stdout = result.stdout.trim();
+  if (stdout.length === 0) {
+    return { ok: true, rows: [] };
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(stdout) as unknown;
+  } catch (exc: unknown) {
+    const message = exc instanceof Error ? exc.message : String(exc);
+    return { ok: false, message: `non-JSON closed-issue page: ${message}` };
+  }
+  if (!Array.isArray(parsed)) {
+    return {
+      ok: false,
+      message: `unexpected top-level type ${typeof parsed}`,
+    };
+  }
+  return { ok: true, rows: parsed as Record<string, unknown>[] };
+}
+
+/**
+ * Closed-issue sibling of `restWalkClosedPullsUpdatedDesc` for feedback:file dedup (#5099).
+ * Retained-count window; pull rows consume raw budget but are excluded from match/count.
+ */
+export function walkClosedIssuesForFeedbackDedup(
+  repo: string,
+  title: string,
+  options: RestClosedIssueWalkOptions = {},
+  seams: GhRestSeams = {},
+): ClosedIssueWalkResult {
+  const needle = normalizeForDedup(title);
+  if (needle.length === 0) {
+    return {
+      outcome: "list-exhausted",
+      inspectedIssueCount: 0,
+      rawRows: 0,
+      match: null,
+      malformedMatch: false,
+    };
+  }
+  const window = Math.max(1, options.window ?? FEEDBACK_CLOSED_DEDUP_WINDOW);
+  const cappedPerPage = Math.min(
+    Math.max(1, options.perPage ?? REST_MAX_PER_PAGE),
+    REST_MAX_PER_PAGE,
+  );
+  const budget = Math.max(0, options.remainingBudget ?? REST_SHARED_ROW_BUDGET);
+  let rawRows = 0;
+  let inspectedIssueCount = 0;
+
+  for (let page = 1; page <= REST_PAGINATION_MAX_PAGES; page += 1) {
+    if (rawRows >= budget) {
+      return {
+        outcome: "cap",
+        inspectedIssueCount,
+        rawRows,
+        match: null,
+        malformedMatch: false,
+      };
+    }
+
+    const pageResult = fetchClosedIssuePage(repo, page, cappedPerPage, seams);
+    if (!pageResult.ok) {
+      return {
+        outcome: "error",
+        inspectedIssueCount,
+        rawRows,
+        match: null,
+        malformedMatch: false,
+        errorMessage: pageResult.message,
+      };
+    }
+    const pagePayload = pageResult.rows;
+    if (pagePayload.length === 0) {
+      return {
+        outcome: "list-exhausted",
+        inspectedIssueCount,
+        rawRows,
+        match: null,
+        malformedMatch: false,
+      };
+    }
+
+    for (const item of pagePayload) {
+      if (rawRows >= budget) {
+        return {
+          outcome: "cap",
+          inspectedIssueCount,
+          rawRows,
+          match: null,
+          malformedMatch: false,
+        };
+      }
+      rawRows += 1;
+
+      if ("pull_request" in item) {
+        continue;
+      }
+
+      inspectedIssueCount += 1;
+      const matched = matchTitleRow(item, needle);
+      if (matched === "malformed") {
+        return {
+          outcome: "error",
+          inspectedIssueCount,
+          rawRows,
+          match: null,
+          malformedMatch: true,
+          errorMessage: "closed-issue title match lacks usable numeric number/state/url",
+        };
+      }
+      if (matched !== null) {
+        return {
+          outcome: "list-exhausted",
+          inspectedIssueCount,
+          rawRows,
+          match: matched,
+          malformedMatch: false,
+        };
+      }
+
+      if (inspectedIssueCount >= window) {
+        return {
+          outcome: "window-exhausted",
+          inspectedIssueCount,
+          rawRows,
+          match: null,
+          malformedMatch: false,
+        };
+      }
+    }
+
+    if (pagePayload.length < cappedPerPage) {
+      return {
+        outcome: "list-exhausted",
+        inspectedIssueCount,
+        rawRows,
+        match: null,
+        malformedMatch: false,
+      };
+    }
+  }
+
+  return {
+    outcome: "cap",
+    inspectedIssueCount,
+    rawRows,
+    match: null,
+    malformedMatch: false,
+  };
+}
+
+/** Search open upstream issues (complete inventory) for a normalized title match. */
+export type FindDuplicateIssueResult =
+  | { readonly ok: true; readonly match: DuplicateMatch | null }
+  | { readonly ok: false; readonly error: string };
+
 export function findDuplicateIssue(
   repo: string,
   title: string,
   seams: GhRestSeams = {},
-): DuplicateMatch | null {
+): FindDuplicateIssueResult {
   const needle = normalizeForDedup(title);
   if (needle.length === 0) {
-    return null;
+    return { ok: true, match: null };
   }
-  const issues = restIssueListPaginated(
-    repo,
-    { state: "open", limit: 100, excludePulls: true },
-    seams,
-  );
+  const issues = restIssueListOpenInventory(repo, seams);
   for (const issue of issues) {
-    const issueTitle = typeof issue.title === "string" ? issue.title : "";
-    if (normalizeForDedup(issueTitle) === needle) {
-      const url = typeof issue.html_url === "string" ? issue.html_url : "";
-      if (url.length > 0) {
-        return { url, title: issueTitle };
-      }
+    const matched = matchTitleRow(issue, needle);
+    if (matched === "malformed") {
+      return {
+        ok: false,
+        error: "open-issue title match lacks usable numeric number/state/url",
+      };
+    }
+    if (matched !== null) {
+      return { ok: true, match: matched };
     }
   }
-  return null;
+  return { ok: true, match: null };
 }
 
 function resolveRepo(options: FeedbackFileOptions): string {
@@ -252,7 +522,65 @@ function buildConfirmationPrompt(title: string, body: string): string {
   );
 }
 
-/** Core feedback:file workflow (#1709 gap escalation). */
+function buildOpenMatchPreview(match: DuplicateMatch, commentBody: string): string {
+  return (
+    `[deft feedback] Open duplicate: ${match.url} ("${match.title}").\n` +
+    "Proposed evidence comment (not posted):\n\n" +
+    `${commentBody}\n` +
+    "Re-run with --confirm to append this evidence as a comment (never creates a new issue).\n"
+  );
+}
+
+function buildClosedMatchBlock(match: DuplicateMatch): string {
+  return (
+    `[deft feedback] Closed duplicate: ${match.url} ("${match.title}").\n` +
+    "Re-run with an explicit disposition before any write:\n" +
+    "  --on-closed=comment        append evidence on the closed issue (no reopen)\n" +
+    "  --on-closed=create-anyway  create a new issue with Related: closed #<n>\n"
+  );
+}
+
+function incompleteClosedSearchNote(
+  stopReason: "window-exhausted" | "cap",
+  inspectedIssueCount: number,
+  boundary: number,
+): string {
+  if (stopReason === "window-exhausted") {
+    return (
+      `[deft feedback] Note: closed-issue search incomplete ` +
+      `(stopReason=window-exhausted, inspectedIssueCount=${inspectedIssueCount}, window=${boundary}).\n`
+    );
+  }
+  return (
+    `[deft feedback] Note: closed-issue search incomplete ` +
+    `(stopReason=cap, inspectedIssueCount=${inspectedIssueCount}, budget=${boundary}).\n`
+  );
+}
+
+function extractCommentUrl(
+  repo: string,
+  issueNumber: number,
+  created: Record<string, unknown>,
+): string | null {
+  if (typeof created.html_url === "string" && created.html_url.length > 0) {
+    return created.html_url;
+  }
+  const id = created.id;
+  if (typeof id === "number" && Number.isFinite(id)) {
+    return `https://github.com/${repo}/issues/${issueNumber}#issuecomment-${id}`;
+  }
+  return null;
+}
+
+function mutationsAllowed(
+  options: FeedbackFileOptions,
+  offline: boolean,
+  dryRun: boolean,
+): boolean {
+  return options.confirm === true && !dryRun && !offline;
+}
+
+/** Core feedback:file workflow (#1709 / #5099 Prefer-A Recut-2). */
 export function runFeedbackFile(options: FeedbackFileOptions): FeedbackFileResult {
   const summary = sanitizeOneLine(options.summary);
   if (summary.length === 0) {
@@ -282,14 +610,15 @@ export function runFeedbackFile(options: FeedbackFileOptions): FeedbackFileResul
 
   const repo = resolveRepo(options);
   const title = buildFrameworkGapTitle(summary, { adoptionBlocker: options.adoptionBlocker });
-  const body = buildFrameworkGapBody(options);
+  const issueBody = buildFrameworkGapBody(options);
+  const commentBody = buildFrameworkGapBody(options, { mode: "comment" });
 
   if (isMaintainerFrameworkRepo(projectRoot)) {
     return {
       outcome: "skipped-maintainer",
       exitCode: 0,
       title,
-      body,
+      body: issueBody,
       repo,
       message:
         "[deft feedback] Skipped: maintainer framework repo detected; gap escalation targets consumer projects only.\n",
@@ -300,13 +629,13 @@ export function runFeedbackFile(options: FeedbackFileOptions): FeedbackFileResul
   if (!isValueFeedbackPathAllowed("upstreamPrompt", policy)) {
     const readout =
       options.dryRun === true || options.json === true
-        ? `${buildConfirmationPrompt(title, body)}\n`
+        ? `${buildConfirmationPrompt(title, issueBody)}\n`
         : "";
     return {
       outcome: "blocked-policy",
       exitCode: 1,
       title,
-      body,
+      body: issueBody,
       repo,
       message:
         "[deft feedback] Blocked: plan.policy.valueFeedback upstreamPrompt is OFF. " +
@@ -320,32 +649,209 @@ export function runFeedbackFile(options: FeedbackFileOptions): FeedbackFileResul
   const dryRun = options.dryRun ?? false;
   const seams = options.seams ?? {};
   let dedupSkippedNote = "";
+  let incompleteNote = "";
+  let createBody = issueBody;
 
   if (!offline) {
     try {
-      const duplicate = findDuplicateIssue(repo, title, seams);
-      if (duplicate !== null) {
+      const openSearch = findDuplicateIssue(repo, title, seams);
+      if (!openSearch.ok) {
         return {
-          outcome: "blocked-duplicate",
-          exitCode: 1,
+          outcome: "error-network",
+          exitCode: 2,
           title,
-          body,
+          body: issueBody,
           repo,
-          duplicateUrl: duplicate.url,
-          message:
-            `[deft feedback] Duplicate detected: open issue ${duplicate.url} ` +
-            `("${duplicate.title}") matches this report.\n`,
+          message: networkErrorMessage(
+            "Open-issue inventory / duplicate search failed",
+            openSearch.error,
+          ),
         };
+      }
+      const openMatch = openSearch.match;
+      if (openMatch !== null) {
+        if (!options.confirm) {
+          return {
+            outcome: "draft",
+            exitCode: 1,
+            title,
+            body: commentBody,
+            repo,
+            duplicateUrl: openMatch.url,
+            issueUrl: openMatch.url,
+            message: buildOpenMatchPreview(openMatch, commentBody),
+          };
+        }
+        if (!mutationsAllowed(options, offline, dryRun)) {
+          return {
+            outcome: "draft",
+            exitCode: 0,
+            title,
+            body: commentBody,
+            repo,
+            duplicateUrl: openMatch.url,
+            issueUrl: openMatch.url,
+            message:
+              `[deft feedback] Dry run: would comment on open duplicate ${openMatch.url}.\n` +
+              `${buildOpenMatchPreview(openMatch, commentBody)}`,
+          };
+        }
+        try {
+          const created = restPostComment(repo, openMatch.number, commentBody, seams);
+          const commentUrl = extractCommentUrl(repo, openMatch.number, created);
+          return {
+            outcome: "commented-open-duplicate",
+            exitCode: 0,
+            title,
+            body: commentBody,
+            repo,
+            issueUrl: openMatch.url,
+            duplicateUrl: openMatch.url,
+            commentUrl,
+            message:
+              commentUrl !== null
+                ? `[deft feedback] Commented on open duplicate ${openMatch.url}\nComment: ${commentUrl}\n`
+                : `[deft feedback] Commented on open duplicate ${openMatch.url}\n`,
+          };
+        } catch (err: unknown) {
+          return {
+            outcome: "error-network",
+            exitCode: 2,
+            title,
+            body: commentBody,
+            repo,
+            duplicateUrl: openMatch.url,
+            message: networkErrorMessage("Open-duplicate comment failed", err),
+          };
+        }
       }
     } catch (err: unknown) {
       return {
         outcome: "error-network",
         exitCode: 2,
         title,
-        body,
+        body: issueBody,
         repo,
-        message: networkErrorMessage("Duplicate search failed", err),
+        message: networkErrorMessage("Open-issue inventory / duplicate search failed", err),
       };
+    }
+
+    const closedWalk = walkClosedIssuesForFeedbackDedup(
+      repo,
+      title,
+      {
+        window: options.closedWindow,
+        remainingBudget: options.closedRowBudget,
+      },
+      seams,
+    );
+
+    if (closedWalk.malformedMatch || closedWalk.outcome === "error") {
+      return {
+        outcome: "error-network",
+        exitCode: 2,
+        title,
+        body: issueBody,
+        repo,
+        message: networkErrorMessage(
+          "Closed-issue search failed",
+          closedWalk.errorMessage ?? "closed walk error",
+        ),
+      };
+    }
+
+    if (closedWalk.match !== null) {
+      const closedMatch = closedWalk.match;
+      if (options.onClosed === undefined) {
+        return {
+          outcome: "blocked-closed-duplicate",
+          exitCode: 1,
+          title,
+          body: issueBody,
+          repo,
+          duplicateUrl: closedMatch.url,
+          issueUrl: closedMatch.url,
+          message: buildClosedMatchBlock(closedMatch),
+        };
+      }
+
+      if (options.onClosed === "comment") {
+        if (!options.confirm) {
+          return {
+            outcome: "draft",
+            exitCode: 1,
+            title,
+            body: commentBody,
+            repo,
+            duplicateUrl: closedMatch.url,
+            issueUrl: closedMatch.url,
+            message:
+              buildClosedMatchBlock(closedMatch) +
+              "\nProposed evidence comment (not posted):\n\n" +
+              `${commentBody}\n` +
+              "Re-run with --confirm --on-closed=comment to append evidence (no reopen).\n",
+          };
+        }
+        if (!mutationsAllowed(options, offline, dryRun)) {
+          return {
+            outcome: "draft",
+            exitCode: 0,
+            title,
+            body: commentBody,
+            repo,
+            duplicateUrl: closedMatch.url,
+            issueUrl: closedMatch.url,
+            message:
+              `[deft feedback] Dry run: would comment on closed duplicate ${closedMatch.url} (no reopen).\n` +
+              `${commentBody}\n`,
+          };
+        }
+        try {
+          const created = restPostComment(repo, closedMatch.number, commentBody, seams);
+          const commentUrl = extractCommentUrl(repo, closedMatch.number, created);
+          return {
+            outcome: "commented-open-duplicate",
+            exitCode: 0,
+            title,
+            body: commentBody,
+            repo,
+            issueUrl: closedMatch.url,
+            duplicateUrl: closedMatch.url,
+            commentUrl,
+            message:
+              commentUrl !== null
+                ? `[deft feedback] Commented on closed duplicate ${closedMatch.url} (no reopen)\nComment: ${commentUrl}\n`
+                : `[deft feedback] Commented on closed duplicate ${closedMatch.url} (no reopen)\n`,
+          };
+        } catch (err: unknown) {
+          return {
+            outcome: "error-network",
+            exitCode: 2,
+            title,
+            body: commentBody,
+            repo,
+            duplicateUrl: closedMatch.url,
+            message: networkErrorMessage("Closed-duplicate comment failed", err),
+          };
+        }
+      }
+
+      createBody = buildFrameworkGapBody(options, {
+        mode: "issue",
+        relatedClosedNumber: closedMatch.number,
+      });
+    } else if (closedWalk.outcome === "window-exhausted") {
+      incompleteNote = incompleteClosedSearchNote(
+        "window-exhausted",
+        closedWalk.inspectedIssueCount,
+        options.closedWindow ?? FEEDBACK_CLOSED_DEDUP_WINDOW,
+      );
+    } else if (closedWalk.outcome === "cap") {
+      incompleteNote = incompleteClosedSearchNote(
+        "cap",
+        closedWalk.inspectedIssueCount,
+        options.closedRowBudget ?? REST_SHARED_ROW_BUDGET,
+      );
     }
   } else {
     dedupSkippedNote = "[deft feedback] Note: duplicate detection skipped (DEFT_NO_NETWORK=1).\n\n";
@@ -356,27 +862,27 @@ export function runFeedbackFile(options: FeedbackFileOptions): FeedbackFileResul
       outcome: "draft",
       exitCode: 1,
       title,
-      body,
+      body: createBody,
       repo,
-      message: `${dedupSkippedNote}${buildConfirmationPrompt(title, body)}`,
+      message: `${dedupSkippedNote}${incompleteNote}${buildConfirmationPrompt(title, createBody)}`,
     };
   }
 
-  if (dryRun || offline) {
+  if (!mutationsAllowed(options, offline, dryRun)) {
     return {
       outcome: "draft",
       exitCode: 0,
       title,
-      body,
+      body: createBody,
       repo,
       message:
-        `${dedupSkippedNote}[deft feedback] Dry run: would file upstream issue in ${repo}.\n` +
-        `${buildConfirmationPrompt(title, body)}`,
+        `${dedupSkippedNote}${incompleteNote}[deft feedback] Dry run: would file upstream issue in ${repo}.\n` +
+        `${buildConfirmationPrompt(title, createBody)}`,
     };
   }
 
   try {
-    const created = restCreateIssue(repo, title, body, [], seams);
+    const created = restCreateIssue(repo, title, createBody, [], seams);
     const issueUrl =
       typeof created.html_url === "string" && created.html_url.length > 0 ? created.html_url : null;
     const number = created.number;
@@ -388,20 +894,21 @@ export function runFeedbackFile(options: FeedbackFileOptions): FeedbackFileResul
       outcome: "filed",
       exitCode: 0,
       title,
-      body,
+      body: createBody,
       repo,
       issueUrl: urlLine,
       message:
-        urlLine !== null
+        `${incompleteNote}` +
+        (urlLine !== null
           ? `[deft feedback] Filed upstream issue: ${urlLine}\n`
-          : "[deft feedback] Issue filed upstream (URL unavailable in API response).\n",
+          : "[deft feedback] Issue filed upstream (URL unavailable in API response).\n"),
     };
   } catch (err: unknown) {
     return {
       outcome: "error-network",
       exitCode: 2,
       title,
-      body,
+      body: createBody,
       repo,
       message: networkErrorMessage("Upstream filing failed", err),
     };
@@ -421,6 +928,7 @@ export interface FeedbackFileCliArgs {
   confirm?: boolean;
   dryRun?: boolean;
   json?: boolean;
+  onClosed?: OnClosedDisposition;
   repo?: string;
   projectRoot?: string;
   error?: string;
@@ -431,6 +939,13 @@ const CONTEXT_JOIN = "\n";
 
 function appendContextValue(collected: string[], value: string | undefined): void {
   if (typeof value === "string") collected.push(value);
+}
+
+function parseOnClosedValue(value: string | undefined): OnClosedDisposition | "bad" {
+  if (value === "comment" || value === "create-anyway") {
+    return value;
+  }
+  return "bad";
 }
 
 /** Parse argv for feedback:file. */
@@ -480,6 +995,18 @@ export function parseFeedbackFileArgs(argv: readonly string[]): FeedbackFileCliA
       out.recoveryCost = argv[++i];
     } else if (arg?.startsWith("--recovery-cost=")) {
       out.recoveryCost = arg.slice("--recovery-cost=".length);
+    } else if (arg === "--on-closed") {
+      const parsed = parseOnClosedValue(argv[++i]);
+      if (parsed === "bad") {
+        return { ...out, error: "invalid --on-closed value (expected comment|create-anyway)" };
+      }
+      out.onClosed = parsed;
+    } else if (arg?.startsWith("--on-closed=")) {
+      const parsed = parseOnClosedValue(arg.slice("--on-closed=".length));
+      if (parsed === "bad") {
+        return { ...out, error: "invalid --on-closed value (expected comment|create-anyway)" };
+      }
+      out.onClosed = parsed;
     } else if (arg === "--repo") {
       out.repo = argv[++i];
     } else if (arg?.startsWith("--repo=")) {
@@ -524,6 +1051,7 @@ export function feedbackFileMain(argv: readonly string[]): number {
     confirm: args.confirm,
     dryRun: args.dryRun,
     json: args.json,
+    onClosed: args.onClosed,
     repo: args.repo,
     projectRoot: args.projectRoot,
   });
@@ -538,6 +1066,7 @@ export function feedbackFileMain(argv: readonly string[]): number {
           body: result.body,
           repo: result.repo,
           issue_url: result.issueUrl ?? null,
+          comment_url: result.commentUrl ?? null,
           duplicate_url: result.duplicateUrl ?? null,
           message: result.message.trim(),
         },

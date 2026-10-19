@@ -1,0 +1,379 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5743",
+    "updated": "2026-10-19T05:50:20Z"
+  },
+  "plan": {
+    "title": "sec(codeql): HIGH clear polynomial-redos in docs-impact.ts (alert #114)",
+    "status": "running",
+    "narratives": {
+      "Description": "sec(codeql): HIGH clear polynomial-redos in docs-impact.ts (alert #114)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5743",
+      "Overview": "## Summary\n\nCodeQL open alert on default branch: **HIGH** `js/polynomial-redos` — Polynomial regular expression used on uncontrolled data.\n\n| Field | Value |\n|-------|-------|\n| Alert | [#114](https://github.com/deftai/directive/security/code-scanning/114) |\n| Rule | `js/polynomial-redos` |\n| Severity | HIGH |\n| Location | `packages/core/src/docs/docs-impact.ts` ~L115 |\n| Message | This regular expression that depends on library input may run slow on strings starting with 'surfaces:' / 'surfaces:a' and with many repetitions of ' '. |\n\n## What to build\n\nRewrite or bound the flagged site so CodeQL `js/polynomial-redos` clears for this alert (or document accepted risk with suppress + rationale if false positive after review). Prefer a real fix over suite-config changes.\n\n## Acceptance\n\n- [ ] CodeQL alert [#114](https://github.com/deftai/directive/security/code-scanning/114) clears on master (auto-close or dismiss with reason after fix).\n- [ ] Existing unit tests for the touched module still pass; add adversarial input coverage if useful.\n- [ ] CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #114.\n\n## Non-goals\n\n- Changing CodeQL suite config as the primary fix.\n- Bundling unrelated code-scanning alerts into this issue (siblings tracked separately).",
+      "Labels": "security, urgent, design-critique:ingest-ready, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "title": "CodeQL alert  clears on master (auto-close or dismiss with reason after fix).",
+        "status": "proposed",
+        "id": "clause.1",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/docs/docs-impact.ts"
+      },
+      {
+        "title": "Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+        "status": "proposed",
+        "id": "clause.2",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/docs/docs-impact.ts"
+      },
+      {
+        "title": "CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #114.",
+        "status": "proposed",
+        "id": "clause.3",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/docs/docs-impact.ts"
+      }
+    ],
+    "tags": [
+      "security",
+      "urgent",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5743",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5743: sec(codeql): HIGH clear polynomial-redos in docs-impact.ts (alert #114)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "sec(codeql): HIGH clear polynomial-redos in docs-impact.ts (alert #114)",
+        "Summary CodeQL open alert on default branch: HIGH `js/polynomial-redos` — Polynomial regular expression used on uncontrolled data.",
+        "| Field | Value | |-------|-------| | Alert | [#114](https://github.com/deftai/directive/security/code-scanning/114) | | Rule | `js/polynomial-redos` | | Severity | HIGH | | Location | `packages/core/src/docs/docs-impact.ts` ~L115 | | Message | This regular expression that depends on library input may run slow on strings starting with 'surfaces:' / 'surfaces:a' and with many repetitions of ' '.",
+        "| ## What to build Rewrite or bound the flagged site so CodeQL `js/polynomial-redos` clears for this alert (or document accepted risk with suppress + rationale if false positive after review).",
+        "Prefer a real fix over suite-config changes.",
+        "Acceptance - [ ] CodeQL alert [#114](https://github.com/deftai/directive/security/code-scanning/114) clears on master (auto-close or dismiss with reason after fix).",
+        "[ ] Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+        "[ ] CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #114.",
+        "Non-goals - Changing CodeQL suite config as the primary fix.",
+        "Bundling unrelated code-scanning alerts into this issue (siblings tracked separately).",
+        "CodeQL alert [#114](https://github.com/deftai/directive/security/code-scanning/114) clears on master (auto-close or dismiss with reason after fix).",
+        "Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+        "CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #114."
+      ],
+      "admitted_source_sentences": [
+        "Summary CodeQL open alert on default branch: HIGH `js/polynomial-redos` — Polynomial regular expression used on uncontrolled data.",
+        "| Field | Value | |-------|-------| | Alert | [#114](https://github.com/deftai/directive/security/code-scanning/114) | | Rule | `js/polynomial-redos` | | Severity | HIGH | | Location | `packages/core/src/docs/docs-impact.ts` ~L115 | | Message | This regular expression that depends on library input may run slow on strings starting with 'surfaces:' / 'surfaces:a' and with many repetitions of ' '.",
+        "| ## What to build Rewrite or bound the flagged site so CodeQL `js/polynomial-redos` clears for this alert (or document accepted risk with suppress + rationale if false positive after review).",
+        "Prefer a real fix over suite-config changes.",
+        "Acceptance - [ ] CodeQL alert [#114](https://github.com/deftai/directive/security/code-scanning/114) clears on master (auto-close or dismiss with reason after fix).",
+        "[ ] Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+        "[ ] CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #114.",
+        "Non-goals - Changing CodeQL suite config as the primary fix.",
+        "Bundling unrelated code-scanning alerts into this issue (siblings tracked separately)."
+      ],
+      "admitted_source_digest": "096b7c773ba9155554f01094331c6a15d2df007b840b24e0639a5fc8b0834a1c",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "CodeQL alert [#114](https://github.com/deftai/directive/security/code-scanning/114) clears on master (auto-close or dismiss with reason after fix).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #114.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/docs/docs-impact.ts",
+          "packages/core/src/docs/docs-impact.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/docs/docs-impact.ts",
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for security cohort. pnpm-lock.yaml / pnpm-workspace.yaml shared Dependabot pin surfaces for #5737/#5740."
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A (draft)\nTarget-digest: sha256:06ab8f3b1bb8c673349bd9e1178ea609093b9dc44d949565dd099263e1043956\nconflict_group: docs-impact-surfaces-re-polynomial-redos\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\ndest: .deft-scratch/worktrees/arc-5743\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\n\n## In plain English\nCodeQL alert #114 flags SURFACES_RE in docs-impact.ts because /^surfaces:\\s*(.+)\\s*$/im can backtrack on uncontrolled PR-body input that starts with 'surfaces:' and repeats spaces. Prefer-A rewrites that capture away from the (.+)\\s*$ ambiguity so alert #114 clears by a real fix. Changing CodeQL suite config or suppress-as-primary stays a keep-out.\n\n## Draft remedy sketch\n1. Rewrite SURFACES_RE so the surfaces: line is parsed without greedy (.+) plus trailing \\s* on the same match (for example capture the remainder of the line then trim, or an equivalent non-ambiguous line parse). Keep parseDeclaredSurfaces / parseDocsImpactDeclaration behavior for none and kind:id lists.\n2. Add adversarial coverage for long space-padded / surfaces:-prefix strings that previously stressed the ReDoS shape; existing docs-impact unit tests stay green.\n3. CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #114 / #5743.\n4. Keep-out: CodeQL suite-config / path-exclude / suppress as the primary fix (issue Non-goals).\n\n## Reject (draft)\n- Treating CodeQL config / suppress / dismiss-without-fix as the primary remedy\n- Bundling unrelated code-scanning alerts into this issue\n- Changing CHANGE_CLASS_RE / RATIONALE_RE / declaration semantics beyond what SURFACES_RE rewrite requires\n- Claiming alert #114 cleared without a tip rewrite (or an evidence-backed false-positive disposition after review)\n\n## file_scope lean (draft)\npackages/core/src/docs/docs-impact.ts (+tests as needed); CHANGELOG.md.",
+          "id": 6256504732,
+          "html_url": "https://github.com/deftai/directive/issues/5743#issuecomment-6256504732",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:28:41Z",
+          "updated_at": "2026-10-18T23:29:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because CodeQL alert #114 names a mechanism-shaped polynomial-ReDoS on SURFACES_RE in packages/core/src/docs/docs-impact.ts: the (.+)\\s*$ capture on uncontrolled PR-body input is a concrete fail-closed security gate, not prose triage.\nmechanism-shaped: true\nrefutation-target: SURFACES_RE = /^surfaces:\\s*(.+)\\s*$/im is the primary clear path for CodeQL alert #114; suite-config / suppress is not the primary fix\ncharter: refutation\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nTarget-kind: issue\nCeiling-kind: comment-id\ndest: .deft-scratch/worktrees/arc-5743\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\nverification-path: pin-read git show 8341f369ccc55fa907abd5e575bb29556e467e9f: (dest cwd-without-occupy for on-pin file reads)\n\npain:\n- P1\n\n## Stop 1 — Gate\n\n### Pain inventory\n- P1: SURFACES_RE uses /^surfaces:\\s*(.+)\\s*$/im; CodeQL js/polynomial-redos alert #114 reports slow matching on strings starting with surfaces: / surfaces:a with many space repetitions — uncontrolled PR-body input reaches parseDocsImpactDeclaration.\n\n### Charter / spend\nCharter is refutation against the presumption that the flagged (.+)\\s*$ SURFACES_RE shape may remain as the primary clear path. Spend N=1 (narrow rewrite; Stop 2 panel permission does not apply). Prefer-A draft cite: 6256504732.\n\n### Reject / keep-outs (gate)\n- CodeQL suite config / path-exclude / suppress as primary\n- Sibling unrelated code-scanning alerts",
+          "id": 6256514353,
+          "html_url": "https://github.com/deftai/directive/issues/5743#issuecomment-6256514353",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:29:47Z",
+          "updated_at": "2026-10-18T23:29:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\nseat-families: codex\nlaunch-probe: codex pong rc0\ninput-ceiling: 6256518896\nprefer-a-draft: 6256504732\nstop-1: 6256514353\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\ndest: .deft-scratch/worktrees/arc-5743\nverification-path: pin-read git show 8341f369ccc55fa907abd5e575bb29556e467e9f:\nspend: N=1\narc-mode: no-ingest\nyolo-standing: on\n\nRound-1 N=1 Codex seat against Prefer-A draft 6256504732 and Stop 1 6256514353. Shared ceiling is this deposit id after POST.",
+          "id": 6256518896,
+          "html_url": "https://github.com/deftai/directive/issues/5743#issuecomment-6256518896",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:30:18Z",
+          "updated_at": "2026-10-18T23:30:19Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\nfamily: codex\nid-ceiling: 6256518896\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\n\nPrefer-A survives refutation as a direction: fix the parser, keep suite configuration and suppression out of the primary remedy. Two findings sharpen the binding scope; neither requires a broader parser redesign.\n\nVerification: pin-read the dispatched docs-impact.ts, docs-impact.test.ts, and Critic method / Stop 5 contract; read issue body and comments 6256504732, 6256514353, 6256518896 only. Static verification, not a runtime benchmark or CodeQL rerun. I have not independently established alert clearance.\n\nExisting mechanisms: parseDeclaredSurfaces already trims the captured value, recognizes none, splits comma-separated tokens, and filters kinds/empty ids. parseDocsImpactDeclaration distinguishes a missing surfaces match from an empty parsed list. evaluateDocsImpact already refuses omitted touched surfaces and false no-impact declarations. REST transport uses execFileSync with timeout/maxBuffer; --body-file reads a string directly before synchronous parsing. These are existing controls, not gaps requiring new infrastructure.\n\n### F1 — sharpens-framing — Specify the compatibility boundary before choosing a line-only extraction\n\nEvidence: at the dispatch SHA, SURFACES_RE is /^surfaces:\\s*(.+)\\s*$/im. Its leading \\s* includes line terminators. Thus a body fragment spelled `surfaces:\\ncommand:foo` can capture command:foo from the following line. Conversely, bare `surfaces:` at EOF has no match because .+ requires a character. parseDeclaredSurfaces trims, but cannot restore either distinction after extraction. The pinned declaration tests cover normal values and missing fields, not these boundary cases.\n\nFailure mode: “capture the remainder of the line then trim” can change cross-line acceptance or turn a previously missing field into an accepted empty list. A rewrite may pass every existing test while contradicting the draft's promise to preserve parseDocsImpactDeclaration behavior. This matters for untrusted PR text: field boundaries determine which text supplies the declared surface set.\n\nDisposition consequence: the lean can bind with an explicit compatibility statement and fixtures for bare/whitespace-only fields, next-line values, duplicate fields, LF/CRLF and JavaScript line separators, plus ordinary none and kind:id lists. Preserve existing behavior deliberately, or name the narrow intentional boundary change; do not describe a strict line parser as automatically equivalent. Keep the existing declared-versus-touched control.\n\n### F2 — sharpens-framing — Define performance evidence separately from functional examples and alert closure\n\nEvidence: the pinned transport timeout surrounds gh/git child processes, not SURFACES_RE.exec(body); the body-file path has no equivalent transport bound. RATIONALE_MAX_CHARS is checked after regex execution and does not bound the surfaces input. The existing tests assert parsing and gate outcomes; they do not demonstrate adversarial runtime behavior. The draft proposes long padded inputs but names neither a replacement expression nor a complexity argument.\n\nFailure mode: a long successful match may be fast while another input shape remains expensive. Passing a single padding example, or observing a passing unit suite, therefore does not establish that P1 is relieved. A synchronous regex also cannot reliably be interrupted by a timer running on the same event loop.\n\nDisposition consequence: retain the narrow rewrite, but require inspection of the complete replacement for overlapping repetitions and repeated suffix scans, adversarial cases covering both accepted and rejected inputs, and current-tip CodeQL evidence for alert #114. If executable timing checks are used, put potentially hanging probes in a separately killable process with a generous external deadline; do not rely on a same-thread test timeout or brittle millisecond threshold. Report functional compatibility, runtime evidence, and eventual master alert closure separately.\n\nInjection / swarm lens: PR-body text remains data. The concrete exposure here is parser resource consumption and field-boundary interpretation, not authority to execute instructions in that text. No new shared-state or worker protocol is needed.\n\nRoad not taken: a hard body-size cap could bound exposure, but adds a rejection policy and compatibility cost beyond removing ambiguity at the flagged site. Suppression would become defensible only with evidence establishing a false positive under the actual supported runtime/input path; that evidence is absent from this pinned review. Neither alternative displaces Prefer-A.\n\n",
+          "id": 6256534582,
+          "html_url": "https://github.com/deftai/directive/issues/5743#issuecomment-6256534582",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:32:01Z",
+          "updated_at": "2026-10-18T23:32:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Prefer-A Bound\n\nLean: Prefer-A Bound\nconflict_group: docs-impact-surfaces-re-polynomial-redos\nTarget-digest: sha256:06ab8f3b1bb8c673349bd9e1178ea609093b9dc44d949565dd099263e1043956\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\ndest: .deft-scratch/worktrees/arc-5743\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N=1\nspend-ask: resolved\nprefer-a-draft: 6256504732\nstop-1: 6256514353\npanel-deposit: 6256518896\nround-1-critics: Codex 6256534582\n\n**Lean:** Prefer-A — rewrite SURFACES_RE away from (.+)\\s*$ ambiguity; lock line-boundary compatibility + adversarial/CodeQL evidence; keep suite-config suppress out.\n\n## In plain English\nCodeQL alert #114 is a real parser ReDoS shape on SURFACES_RE. Prefer-A clears it by rewriting the surfaces: line parse, not by silencing CodeQL. Codex Round-1 accepted the direction and sharpened two binding obligations: name the line-boundary compatibility contract (so a rewrite does not silently change next-line / bare-field behavior), and separate functional fixtures from performance/alert-closure evidence.\n\n## Bound remedy\n1. **relieves: P1 — Rewrite SURFACES_RE off (.+)\\\\s*$ ambiguity.** Replace /^surfaces:\\s*(.+)\\s*$/im with a non-ambiguous surfaces: line parse (remainder-of-line then trim, or equivalent). Preserve parseDeclaredSurfaces / parseDocsImpactDeclaration outcomes for ordinary none and kind:id lists. Keep evaluateDocsImpact declared-versus-touched control unchanged.\n2. **relieves: P1 — Lock line-boundary compatibility fixtures (Codex F1).** Before or with the rewrite, record an explicit compatibility statement and fixtures for: bare/whitespace-only surfaces: fields; next-line values under current leading-\\\\s* behavior; duplicate surfaces: fields; LF/CRLF (and JS line-separator) line ends; ordinary none and kind:id lists. Preserve existing behavior deliberately, or name any narrow intentional boundary change — do not claim a strict line parser is automatically equivalent.\n3. **relieves: P1 — Adversarial + CodeQL evidence (Codex F2).** Add adversarial accepted and rejected inputs that stress the old (.+)\\s*$ shape. Inspect the complete replacement for overlapping repetitions / repeated suffix scans. Report functional compatibility, runtime evidence, and master alert #114 closure as separate evidence rows. If executable timing probes are used, run them in a separately killable process with an external deadline — not a same-thread millisecond assert. Tip CodeQL evidence for alert #114 is required for ship closure.\n4. **relieves: P1 — CHANGELOG Security/Fixed for alert #114 / #5743.**\n\n### Reject\n- CodeQL suite-config / path-exclude / suppress / dismiss-without-fix as the primary remedy\n- Bundling unrelated code-scanning alerts\n- Broader parser redesign beyond SURFACES_RE / surfaces: line parse\n- Hard PR-body size cap as the primary P1 control (Codex road-not-taken)\n- Claiming P1 relieved from a single padding example or green unit suite alone\n- Changing CHANGE_CLASS_RE / RATIONALE_RE / declaration semantics beyond what the SURFACES_RE rewrite requires\n\n### Disposition of Round-1\n- Codex F1 (sharpens-framing) -> accept-into-contract as limb 2\n- Codex F2 (sharpens-framing) -> accept-into-contract as limb 3\n- Prefer-A direction survives; empty disagreement set on blocks-the-design\n\nrelieves: P1\n\n## file_scope lean\npackages/core/src/docs/docs-impact.ts; packages/core/src/docs/docs-impact.test.ts (or adjacent adversarial fixtures); CHANGELOG.md.\nKeep-outs: CodeQL suite config as primary; sibling alerts; body-size-cap-as-primary; unrelated declaration-field rewrites.",
+          "id": 6256540029,
+          "html_url": "https://github.com/deftai/directive/issues/5743#issuecomment-6256540029",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:32:36Z",
+          "updated_at": "2026-10-18T23:32:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\nfinding-classes: none\nharvest-changed: false\nfamily: codex\nid-ceiling: 6256540029\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\n\nPrefer-A Bound clears P1 as a remedy contract. No blocking, sharpening, or footnote findings; no harvest change is required.\n\nI independently pin-read packages/core/src/docs/docs-impact.ts at the dispatch SHA and read the issue body, Stop 1 (6256514353), Bound (6256540029), and predecessor Codex (6256534582). Verification was static source inspection under the specified pin-read path, not a benchmark, replacement implementation, or CodeQL run. No comments above the ceiling were read.\n\nP1 coverage: the pinned parser executes SURFACES_RE directly on the supplied body before the rationale-length check. parseDeclaredSurfaces trims and filters tokens only after extraction; it cannot bound regex work. Bound limb 1 removes the ambiguous extraction itself, and limb 3 requires inspection of the complete replacement for overlapping repetitions and repeated suffix scans, accepted and rejected adversarial cases, and separate runtime and CodeQL evidence. These obligations address the resource-consumption mechanism rather than merely silencing its report. The separately killable-process requirement makes any executable timing probe meaningful despite synchronous parsing.\n\nThe predecessor findings are absorbed. Limb 2 explicitly covers the leading whitespace expression's cross-line behavior, bare and whitespace-only fields, duplicate fields, and line-ending variants; it permits a named narrow boundary change rather than falsely promising equivalence. Ordinary none and kind:id outcomes remain protected by limb 1. Limb 3 separates functional compatibility, runtime evidence, and master alert closure, with tip CodeQL evidence required for ship closure. Neither finding needs reopening.\n\nExisting controls remain adequate for their distinct purpose: parseDeclaredSurfaces filters recognized kinds and nonempty ids; evaluateDocsImpact checks declared versus touched surfaces and rejects false no-impact declarations. Retaining those controls prevents the resource fix from weakening the declaration gate. PR-body text remains untrusted data; this remedy changes its extraction cost and boundary handling, not its authority.\n\nA hard body-size cap could limit exposure, but would introduce a separate rejection policy and is unnecessary to this narrow remedy. No new control or broader parser redesign is needed to cover the named P1.\n\nThis verdict establishes design coverage only. The pinned source still contains the flagged expression; implementation validation and actual master alert #114 closure remain required delivery evidence. No ingest or implementation was performed.",
+          "id": 6256549446,
+          "html_url": "https://github.com/deftai/directive/issues/5743#issuecomment-6256549446",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:33:38Z",
+          "updated_at": "2026-10-18T23:33:38Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\nCites Prefer-A Bound successor lean 6256540029. No Target-digest on this table.\n\n| Claim | Method | Result |\n|---|---|---|\n| Stop 1 P1: SURFACES_RE (.+)\\\\s*$ polynomial-ReDoS (CodeQL alert #114) | pin-read docs-impact.ts + Round-1/PA disposition | Covered by Prefer-A Bound relieves:P1 (rewrite + compatibility fixtures + adversarial/CodeQL evidence + CHANGELOG) |\n| Round-1 Codex F1 line-boundary compatibility | REST 6256534582 + Bound limb 2 | accept-into-contract |\n| Round-1 Codex F2 performance/alert evidence separation | REST 6256534582 + Bound limb 3 | accept-into-contract |\n| PA-1 Codex 6256549446 | REST comment read | finding-classes: none; harvest-changed: false |\n| blocks-the-design census | Round-1 + PA-1 | empty |\n\nEmpty disagreement set after PA-1 clear.",
+          "id": 6256556378,
+          "html_url": "https://github.com/deftai/directive/issues/5743#issuecomment-6256556378",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:34:25Z",
+          "updated_at": "2026-10-18T23:34:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "design-critique: synthesis accepted, because agents agreed (empty disagreement set) citing Prefer-A Bound successor lean 6256540029\n\n## In plain English\n#5743 will rewrite SURFACES_RE away from the (.+)\\s*$ ReDoS shape so CodeQL alert #114 clears by a real fix, with explicit line-boundary compatibility fixtures and separate adversarial/CodeQL evidence. CodeQL suite-config suppress stays a keep-out. Ingest remains a separate operator verb.\n\n## Completed-arc record\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N=1\ndest: .deft-scratch/worktrees/arc-5743\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\nsuccessor-lean: Prefer-A Bound 6256540029\nverified-claims-table: 6256556378\nStop 1: 6256514353\npanel-deposit: 6256518896\nPrefer-A draft: 6256504732\nRound-1: Codex 6256534582\nPrefer-A Bound: 6256540029\nPA-1: Codex 6256549446 (clear; harvest-changed: false)\n\ndisagreement-set: empty\nforward: design-critique:ingest-ready chip; ingest is a later separate operator verb (task issue:ingest).",
+          "id": 6256556527,
+          "html_url": "https://github.com/deftai/directive/issues/5743#issuecomment-6256556527",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:34:26Z",
+          "updated_at": "2026-10-18T23:34:26Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5915168854,
+        "origin": "deftai/directive#5743",
+        "id": "github.issue.5915168854"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "06ab8f3b1bb8c673349bd9e1178ea609093b9dc44d949565dd099263e1043956"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/docs/docs-impact.ts",
+          "packages/core/src/docs/docs-impact.test.ts",
+          "CHANGELOG.md"
+        ],
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for security cohort. pnpm-lock.yaml / pnpm-workspace.yaml shared Dependabot pin surfaces for #5737/#5740."
+      }
+    },
+    "id": "github.issue.5915168854",
+    "updated": "2026-10-19T05:50:20Z"
+  }
+}

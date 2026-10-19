@@ -1,0 +1,400 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5690",
+    "updated": "2026-10-18T02:33:59Z"
+  },
+  "plan": {
+    "title": "recurrence(#4882): Approach1 mint-gate exit leaves product PR merge-path unarmed",
+    "status": "completed",
+    "narratives": {
+      "Description": "recurrence(#4882): Approach1 mint-gate exit leaves product PR merge-path unarmed",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5690",
+      "Overview": "\n- Product pre-CLEAN live-wait continuity through mint (relieves: P1): keep the existing product child pr:watch live across attended mint, or on Approach 1 exit immediately re-arm product with a successor whose first act is product pr:watch --monitor-agent-id after review-monitor:register (force only when prior owner is dead). A mint-PR-only waiter is not product arm.\n- CLEAN-before-mint phase-correct closer continuity (relieves: P1): when product reaches CLEAN while attended mint remains pending, the post-CLEAN closer (pr:wait-mergeable-and-merge / parent-retained closer) is the continuing product merge-path owner. Do not restart pre-CLEAN pr:watch as if that were post-CLEAN arm. If that closer returns mint-BLOCKED, timeout, or error for the pending mint gate, apply the same non-option-C + same-turn re-arm rules; keep a still-running phase-correct wait or successor through mint merge then resume closer/merge path. Required focused regression covers CLEAN-before-mint and closer-mint-BLOCKED; do not treat a fixture-supplied livePhaseCorrectWait:true as proof.\n- Mint-gate BLOCKED is non-option-C for product PR (relieves: P1): attended mint / intent-constraint / approved-scope / scope-provenance BLOCKED on a merge-path-owned product PR MUST NOT writeMergePathExplicitFinishAttestation / --explicit-finish for that product PR, including when the exit comes from the post-CLEAN closer. True option-C (human abandon / hard decision) stays under a different attested reason.\n- Same-turn product remediates before mint attention (relieves: P2): on Approach 1 or closer mint-gate exit for a merge-path-owned product PR, same turn MUST verify:review-monitor --merge-path-arm --live-wait (and verify:cohort-review-monitors when N>1) and remediate unarmed before parent attention moves to the mint PR.\n- Enforce exit/BLOCKED inventory plus mint-lane triggers (relieves: P3): keep existing #5318 call-sites after Approach 1 exit / lease release / BLOCKED halt; add mint-PR-open and mint-PR-merge as triggers that re-run cohort inventory / product --merge-path-arm --live-wait and remediate unarmed product PRs. Do not claim exit/BLOCKED triggers were absent from tip.\n- Call-site probe over fourth arm reason (relieves: P4): bind the existing evaluateMergePathArm / cohort unarmed class at the mint-exit transition (Approach 1 and closer); optional eval asserts that call-site. Do not invent a fourth MergePathArmReason unless a later mint-pause attestation is separately Bound.\n- Split wait / mint lane / post-mint residual: (1) product Approach 1 / closer wait continuity through the mint window including CLEAN-before-mint; (2) parallel mint-PR Approach 1 lane (one owner per PR); (3) after mint merge, dest residual rebase onto origin/<deliveryBranch> + @greptileai via existing residual/fix-batch paths, then re-enter the phase-correct product wait/closer. Successor wait is not residual implement.\n- Single-owner handoff: capable parent/durable owner assigns the next spawn; reuse pre-spawn lease/active-agent check; force registration only for dead-owner recovery; checked arming after the successor wait starts in the intended worktree/root. Duplicate mint-BLOCKED notifications reuse the same product owner. Preserve dual-stop budgets across successor replacements.\n- Successor envelope carries identity: repository, product PR/worktree, delivery branch, named mint dependency, and authorized action scope; resolve mint merge state from the forge and re-check the gate after fetch before mutation. Attended mint creation stays human TTY.\n\n\n",
+      "Labels": "bug, design, swarm, agent-experience, review-cycle, process, grok-build, source-of-truth, urgent, area:skills, design-critique:ingest-ready, framework-gap, core-capabilities, promise:lifecycle, promise:tickets, promise:gates, promise:swarm, promise:continuity"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Product pre-CLEAN live-wait continuity through mint (relieves: P1): keep the existing product child pr:watch live across attended mint, or on Approach 1 exit immediately re-arm product with a successor whose first act is product pr:watch --monitor-agent-id after review-monitor:register (force only when prior owner is dead). A mint-PR-only waiter is not product arm.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/review-monitor/verify.ts",
+        "narrative": {
+          "Acceptance": "Product pre-CLEAN live-wait continuity through mint (relieves: P1): keep the existing product child pr:watch live across attended mint, or on Approach 1 exit immediately re-arm product with a successor whose first act is product pr:watch --monitor-agent-id after review-monitor:register (force only when prior owner is dead). A mint-PR-only waiter is not product arm."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5704; vitest 90 passed",
+          "recorded_at": "2026-10-18T02:32:56.790Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "CLEAN-before-mint phase-correct closer continuity (relieves: P1): when product reaches CLEAN while attended mint remains pending, the post-CLEAN closer (pr:wait-mergeable-and-merge / parent-retained closer) is the continuing product merge-path owner. Do not restart pre-CLEAN pr:watch as if that were post-CLEAN arm. If that closer returns mint-BLOCKED, timeout, or error for the pending mint gate, apply the same non-option-C + same-turn re-arm rules; keep a still-running phase-correct wait or successor through mint merge then resume closer/merge path. Required focused regression covers CLEAN-before-mint and closer-mint-BLOCKED; do not treat a fixture-supplied livePhaseCorrectWait:true as proof.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/review-monitor/verify.ts",
+        "narrative": {
+          "Acceptance": "CLEAN-before-mint phase-correct closer continuity (relieves: P1): when product reaches CLEAN while attended mint remains pending, the post-CLEAN closer (pr:wait-mergeable-and-merge / parent-retained closer) is the continuing product merge-path owner. Do not restart pre-CLEAN pr:watch as if that were post-CLEAN arm. If that closer returns mint-BLOCKED, timeout, or error for the pending mint gate, apply the same non-option-C + same-turn re-arm rules; keep a still-running phase-correct wait or successor through mint merge then resume closer/merge path. Required focused regression covers CLEAN-before-mint and closer-mint-BLOCKED; do not treat a fixture-supplied livePhaseCorrectWait:true as proof."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5704; vitest 90 passed",
+          "recorded_at": "2026-10-18T02:32:56.790Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Mint-gate BLOCKED is non-option-C for product PR (relieves: P1): attended mint / intent-constraint / approved-scope / scope-provenance BLOCKED on a merge-path-owned product PR MUST NOT writeMergePathExplicitFinishAttestation / --explicit-finish for that product PR, including when the exit comes from the post-CLEAN closer. True option-C (human abandon / hard decision) stays under a different attested reason.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/review-monitor/record.ts",
+        "narrative": {
+          "Acceptance": "Mint-gate BLOCKED is non-option-C for product PR (relieves: P1): attended mint / intent-constraint / approved-scope / scope-provenance BLOCKED on a merge-path-owned product PR MUST NOT writeMergePathExplicitFinishAttestation / --explicit-finish for that product PR, including when the exit comes from the post-CLEAN closer. True option-C (human abandon / hard decision) stays under a different attested reason."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5704; vitest 90 passed",
+          "recorded_at": "2026-10-18T02:32:56.790Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Same-turn product remediates before mint attention (relieves: P2): on Approach 1 or closer mint-gate exit for a merge-path-owned product PR, same turn MUST verify:review-monitor --merge-path-arm --live-wait (and verify:cohort-review-monitors when N>1) and remediate unarmed before parent attention moves to the mint PR.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/swarm/cohort-review-monitors.ts",
+        "narrative": {
+          "Acceptance": "Same-turn product remediates before mint attention (relieves: P2): on Approach 1 or closer mint-gate exit for a merge-path-owned product PR, same turn MUST verify:review-monitor --merge-path-arm --live-wait (and verify:cohort-review-monitors when N>1) and remediate unarmed before parent attention moves to the mint PR."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5704; vitest 90 passed",
+          "recorded_at": "2026-10-18T02:32:56.790Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Enforce exit/BLOCKED inventory plus mint-lane triggers (relieves: P3): keep existing #5318 call-sites after Approach 1 exit / lease release / BLOCKED halt; add mint-PR-open and mint-PR-merge as triggers that re-run cohort inventory / product --merge-path-arm --live-wait and remediate unarmed product PRs. Do not claim exit/BLOCKED triggers were absent from tip.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/swarm/cohort-review-monitors.ts",
+        "narrative": {
+          "Acceptance": "Enforce exit/BLOCKED inventory plus mint-lane triggers (relieves: P3): keep existing #5318 call-sites after Approach 1 exit / lease release / BLOCKED halt; add mint-PR-open and mint-PR-merge as triggers that re-run cohort inventory / product --merge-path-arm --live-wait and remediate unarmed product PRs. Do not claim exit/BLOCKED triggers were absent from tip."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5704; vitest 90 passed",
+          "recorded_at": "2026-10-18T02:32:56.790Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "Call-site probe over fourth arm reason (relieves: P4): bind the existing evaluateMergePathArm / cohort unarmed class at the mint-exit transition (Approach 1 and closer); optional eval asserts that call-site. Do not invent a fourth MergePathArmReason unless a later mint-pause attestation is separately Bound.",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/review-monitor/verify.ts",
+        "narrative": {
+          "Acceptance": "Call-site probe over fourth arm reason (relieves: P4): bind the existing evaluateMergePathArm / cohort unarmed class at the mint-exit transition (Approach 1 and closer); optional eval asserts that call-site. Do not invent a fourth MergePathArmReason unless a later mint-pause attestation is separately Bound."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5704; vitest 90 passed",
+          "recorded_at": "2026-10-18T02:32:56.790Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "Split wait / mint lane / post-mint residual: (1) product Approach 1 / closer wait continuity through the mint window including CLEAN-before-mint; (2) parallel mint-PR Approach 1 lane (one owner per PR); (3) after mint merge, dest residual rebase onto origin/<deliveryBranch> + @greptileai via existing residual/fix-batch paths, then re-enter the phase-correct product wait/closer. Successor wait is not residual implement.",
+        "status": "completed",
+        "x-directive/artifact_path": "content/skills/deft-directive-review-cycle/SKILL.md",
+        "narrative": {
+          "Acceptance": "Split wait / mint lane / post-mint residual: (1) product Approach 1 / closer wait continuity through the mint window including CLEAN-before-mint; (2) parallel mint-PR Approach 1 lane (one owner per PR); (3) after mint merge, dest residual rebase onto origin/<deliveryBranch> + @greptileai via existing residual/fix-batch paths, then re-enter the phase-correct product wait/closer. Successor wait is not residual implement."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5704; vitest 90 passed",
+          "recorded_at": "2026-10-18T02:32:56.790Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "Single-owner handoff: capable parent/durable owner assigns the next spawn; reuse pre-spawn lease/active-agent check; force registration only for dead-owner recovery; checked arming after the successor wait starts in the intended worktree/root. Duplicate mint-BLOCKED notifications reuse the same product owner. Preserve dual-stop budgets across successor replacements.",
+        "status": "completed",
+        "x-directive/artifact_path": "content/skills/deft-directive-swarm/references/host-grok-build.md",
+        "narrative": {
+          "Acceptance": "Single-owner handoff: capable parent/durable owner assigns the next spawn; reuse pre-spawn lease/active-agent check; force registration only for dead-owner recovery; checked arming after the successor wait starts in the intended worktree/root. Duplicate mint-BLOCKED notifications reuse the same product owner. Preserve dual-stop budgets across successor replacements."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5704; vitest 90 passed",
+          "recorded_at": "2026-10-18T02:32:56.790Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "Successor envelope carries identity: repository, product PR/worktree, delivery branch, named mint dependency, and authorized action scope; resolve mint merge state from the forge and re-check the gate after fetch before mutation. Attended mint creation stays human TTY.",
+        "status": "completed",
+        "x-directive/artifact_path": "content/skills/deft-directive-review-cycle/SKILL.md",
+        "narrative": {
+          "Acceptance": "Successor envelope carries identity: repository, product PR/worktree, delivery branch, named mint dependency, and authorized action scope; resolve mint merge state from the forge and re-check the gate after fetch before mutation. Attended mint creation stays human TTY."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5704; vitest 90 passed",
+          "recorded_at": "2026-10-18T02:32:56.790Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design",
+      "swarm",
+      "agent-experience",
+      "review-cycle",
+      "process",
+      "grok-build",
+      "source-of-truth",
+      "urgent",
+      "area:skills",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:lifecycle",
+      "promise:tickets",
+      "promise:gates",
+      "promise:swarm",
+      "promise:continuity"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5690",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5690: recurrence(#4882): Approach1 mint-gate exit leaves product PR merge-path unarmed"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/swarm/cohort-review-monitors.test.ts packages/core/src/review-monitor/verify.test.ts packages/core/src/pr-watch/watch.test.ts"
+      ],
+      "none_stated": false,
+      "sentences": [],
+      "confessions": [
+        "issue-body prose harvested into plan.items; free sentences cleared for leftover-complete #3550"
+      ],
+      "clauses": [
+        {
+          "id": "clause.1",
+          "text": "Product pre-CLEAN live-wait continuity through mint (relieves: P1): keep the existing product child pr:watch live across attended mint, or on Approach 1 exit immediately re-arm product with a successor whose first act is product pr:watch --monitor-agent-id after review-monitor:register (force only when prior owner is dead). A mint-PR-only waiter is not product arm.",
+          "title": "Product pre-CLEAN live-wait continuity through mint (relieves: P1): keep the existing product child pr:watch live across attended mint, or on Approach 1 exit immediately re-arm product with a successor whose first act is product pr:watch --monitor-agent-id after review-monitor:register (force only when prior owner is dead). A mint-PR-only waiter is not product arm.",
+          "x-directive/artifact_path": "packages/core/src/review-monitor/verify.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5704; vitest 90 passed",
+            "recorded_at": "2026-10-18T02:32:56.790Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
+        },
+        {
+          "id": "clause.2",
+          "text": "CLEAN-before-mint phase-correct closer continuity (relieves: P1): when product reaches CLEAN while attended mint remains pending, the post-CLEAN closer (pr:wait-mergeable-and-merge / parent-retained closer) is the continuing product merge-path owner. Do not restart pre-CLEAN pr:watch as if that were post-CLEAN arm. If that closer returns mint-BLOCKED, timeout, or error for the pending mint gate, apply the same non-option-C + same-turn re-arm rules; keep a still-running phase-correct wait or successor through mint merge then resume closer/merge path. Required focused regression covers CLEAN-before-mint and closer-mint-BLOCKED; do not treat a fixture-supplied livePhaseCorrectWait:true as proof.",
+          "title": "CLEAN-before-mint phase-correct closer continuity (relieves: P1): when product reaches CLEAN while attended mint remains pending, the post-CLEAN closer (pr:wait-mergeable-and-merge / parent-retained closer) is the continuing product merge-path owner. Do not restart pre-CLEAN pr:watch as if that were post-CLEAN arm. If that closer returns mint-BLOCKED, timeout, or error for the pending mint gate, apply the same non-option-C + same-turn re-arm rules; keep a still-running phase-correct wait or successor through mint merge then resume closer/merge path. Required focused regression covers CLEAN-before-mint and closer-mint-BLOCKED; do not treat a fixture-supplied livePhaseCorrectWait:true as proof.",
+          "x-directive/artifact_path": "packages/core/src/review-monitor/verify.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5704; vitest 90 passed",
+            "recorded_at": "2026-10-18T02:32:56.790Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
+        },
+        {
+          "id": "clause.3",
+          "text": "Mint-gate BLOCKED is non-option-C for product PR (relieves: P1): attended mint / intent-constraint / approved-scope / scope-provenance BLOCKED on a merge-path-owned product PR MUST NOT writeMergePathExplicitFinishAttestation / --explicit-finish for that product PR, including when the exit comes from the post-CLEAN closer. True option-C (human abandon / hard decision) stays under a different attested reason.",
+          "title": "Mint-gate BLOCKED is non-option-C for product PR (relieves: P1): attended mint / intent-constraint / approved-scope / scope-provenance BLOCKED on a merge-path-owned product PR MUST NOT writeMergePathExplicitFinishAttestation / --explicit-finish for that product PR, including when the exit comes from the post-CLEAN closer. True option-C (human abandon / hard decision) stays under a different attested reason.",
+          "x-directive/artifact_path": "packages/core/src/review-monitor/record.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5704; vitest 90 passed",
+            "recorded_at": "2026-10-18T02:32:56.790Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
+        },
+        {
+          "id": "clause.4",
+          "text": "Same-turn product remediates before mint attention (relieves: P2): on Approach 1 or closer mint-gate exit for a merge-path-owned product PR, same turn MUST verify:review-monitor --merge-path-arm --live-wait (and verify:cohort-review-monitors when N>1) and remediate unarmed before parent attention moves to the mint PR.",
+          "title": "Same-turn product remediates before mint attention (relieves: P2): on Approach 1 or closer mint-gate exit for a merge-path-owned product PR, same turn MUST verify:review-monitor --merge-path-arm --live-wait (and verify:cohort-review-monitors when N>1) and remediate unarmed before parent attention moves to the mint PR.",
+          "x-directive/artifact_path": "packages/core/src/swarm/cohort-review-monitors.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5704; vitest 90 passed",
+            "recorded_at": "2026-10-18T02:32:56.790Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
+        },
+        {
+          "id": "clause.5",
+          "text": "Enforce exit/BLOCKED inventory plus mint-lane triggers (relieves: P3): keep existing #5318 call-sites after Approach 1 exit / lease release / BLOCKED halt; add mint-PR-open and mint-PR-merge as triggers that re-run cohort inventory / product --merge-path-arm --live-wait and remediate unarmed product PRs. Do not claim exit/BLOCKED triggers were absent from tip.",
+          "title": "Enforce exit/BLOCKED inventory plus mint-lane triggers (relieves: P3): keep existing #5318 call-sites after Approach 1 exit / lease release / BLOCKED halt; add mint-PR-open and mint-PR-merge as triggers that re-run cohort inventory / product --merge-path-arm --live-wait and remediate unarmed product PRs. Do not claim exit/BLOCKED triggers were absent from tip.",
+          "x-directive/artifact_path": "packages/core/src/swarm/cohort-review-monitors.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5704; vitest 90 passed",
+            "recorded_at": "2026-10-18T02:32:56.790Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
+        },
+        {
+          "id": "clause.6",
+          "text": "Call-site probe over fourth arm reason (relieves: P4): bind the existing evaluateMergePathArm / cohort unarmed class at the mint-exit transition (Approach 1 and closer); optional eval asserts that call-site. Do not invent a fourth MergePathArmReason unless a later mint-pause attestation is separately Bound.",
+          "title": "Call-site probe over fourth arm reason (relieves: P4): bind the existing evaluateMergePathArm / cohort unarmed class at the mint-exit transition (Approach 1 and closer); optional eval asserts that call-site. Do not invent a fourth MergePathArmReason unless a later mint-pause attestation is separately Bound.",
+          "x-directive/artifact_path": "packages/core/src/review-monitor/verify.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5704; vitest 90 passed",
+            "recorded_at": "2026-10-18T02:32:56.790Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
+        },
+        {
+          "id": "clause.7",
+          "text": "Split wait / mint lane / post-mint residual: (1) product Approach 1 / closer wait continuity through the mint window including CLEAN-before-mint; (2) parallel mint-PR Approach 1 lane (one owner per PR); (3) after mint merge, dest residual rebase onto origin/<deliveryBranch> + @greptileai via existing residual/fix-batch paths, then re-enter the phase-correct product wait/closer. Successor wait is not residual implement.",
+          "title": "Split wait / mint lane / post-mint residual: (1) product Approach 1 / closer wait continuity through the mint window including CLEAN-before-mint; (2) parallel mint-PR Approach 1 lane (one owner per PR); (3) after mint merge, dest residual rebase onto origin/<deliveryBranch> + @greptileai via existing residual/fix-batch paths, then re-enter the phase-correct product wait/closer. Successor wait is not residual implement.",
+          "x-directive/artifact_path": "content/skills/deft-directive-review-cycle/SKILL.md",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5704; vitest 90 passed",
+            "recorded_at": "2026-10-18T02:32:56.790Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
+        },
+        {
+          "id": "clause.8",
+          "text": "Single-owner handoff: capable parent/durable owner assigns the next spawn; reuse pre-spawn lease/active-agent check; force registration only for dead-owner recovery; checked arming after the successor wait starts in the intended worktree/root. Duplicate mint-BLOCKED notifications reuse the same product owner. Preserve dual-stop budgets across successor replacements.",
+          "title": "Single-owner handoff: capable parent/durable owner assigns the next spawn; reuse pre-spawn lease/active-agent check; force registration only for dead-owner recovery; checked arming after the successor wait starts in the intended worktree/root. Duplicate mint-BLOCKED notifications reuse the same product owner. Preserve dual-stop budgets across successor replacements.",
+          "x-directive/artifact_path": "content/skills/deft-directive-swarm/references/host-grok-build.md",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5704; vitest 90 passed",
+            "recorded_at": "2026-10-18T02:32:56.790Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
+        },
+        {
+          "id": "clause.9",
+          "text": "Successor envelope carries identity: repository, product PR/worktree, delivery branch, named mint dependency, and authorized action scope; resolve mint merge state from the forge and re-check the gate after fetch before mutation. Attended mint creation stays human TTY.",
+          "title": "Successor envelope carries identity: repository, product PR/worktree, delivery branch, named mint dependency, and authorized action scope; resolve mint merge state from the forge and re-check the gate after fetch before mutation. Attended mint creation stays human TTY.",
+          "x-directive/artifact_path": "content/skills/deft-directive-review-cycle/SKILL.md",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5704; vitest 90 passed",
+            "recorded_at": "2026-10-18T02:32:56.790Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
+        }
+      ],
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A Bound limbs with completion evidence",
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/skills/deft-directive-review-cycle/SKILL.md",
+          "content/skills/deft-directive-swarm/references/host-grok-build.md",
+          "content/templates/agents-entry.md",
+          "packages/core/src/swarm/cohort-review-monitors.ts",
+          "packages/core/src/swarm/cohort-review-monitors.test.ts",
+          "packages/core/src/swarm/cohort-review-monitors-cli.ts",
+          "packages/core/src/swarm/cohort-review-monitors-cli.test.ts",
+          "packages/core/src/pr-watch/watch.ts",
+          "packages/core/src/pr-watch/watch.test.ts",
+          "packages/core/src/pr-watch/main.ts",
+          "packages/core/src/review-monitor/verify.ts",
+          "packages/core/src/review-monitor/verify.test.ts",
+          "packages/core/src/review-monitor/record.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "Approach1 mint-gate exit must keep product merge-path armed",
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #5690 Prefer-A Bound."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5891114718,
+        "origin": "deftai/directive#5690",
+        "id": "github.issue.5891114718"
+      },
+      "x-directive/admitted-target-digest": "sha256:55d392d481786ee435f1443da8f4c755a1a5a40e6c3606f5b24047403c2e63d1",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "approach1-mint-gate-exit-unarms-product-pr",
+        "expected_outputs": [
+          "Tracking PR for #5690 Prefer-A Recut-1 mint-gate product arm continuity"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/swarm/cohort-review-monitors.test.ts packages/core/src/review-monitor/verify.test.ts packages/core/src/pr-watch/watch.test.ts"
+        ],
+        "file_scope": [
+          "content/skills/deft-directive-review-cycle/SKILL.md",
+          "content/skills/deft-directive-swarm/references/host-grok-build.md",
+          "content/templates/agents-entry.md",
+          "packages/core/src/swarm/cohort-review-monitors.ts",
+          "packages/core/src/swarm/cohort-review-monitors.test.ts",
+          "packages/core/src/swarm/cohort-review-monitors-cli.ts",
+          "packages/core/src/swarm/cohort-review-monitors-cli.test.ts",
+          "packages/core/src/pr-watch/watch.ts",
+          "packages/core/src/pr-watch/watch.test.ts",
+          "packages/core/src/pr-watch/main.ts",
+          "packages/core/src/review-monitor/verify.ts",
+          "packages/core/src/review-monitor/verify.test.ts",
+          "packages/core/src/review-monitor/record.ts",
+          "CHANGELOG.md"
+        ],
+        "size": "L",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5690",
+          "#4882",
+          "#5219",
+          "#5318"
+        ],
+        "parallel_safe": true
+      },
+      "productPullRequest": 5704,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "879f75f43e9148a300e6a4654d751ce0f50c9d8f",
+        "prNumber": 5704,
+        "prBase": "master",
+        "mergeCommit": "fa492bf576cf227c05d306ad8e3df18d03768e74",
+        "deliveryBranch": "master",
+        "deliveryCommit": "fa492bf576cf227c05d306ad8e3df18d03768e74",
+        "verifiedAt": "2026-10-18T02:33:59Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTRjM2QtZDBmZS03ODYzLWJkMTUtZmVlZjI1NDVlN2Nj"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-18T02:33:59Z",
+      "completedSessionId": "host:grok:v1:MDFhMTRjM2QtZDBmZS03ODYzLWJkMTUtZmVlZjI1NDVlN2Nj",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-18T02:33:59Z"
+      }
+    },
+    "id": "github.issue.5891114718",
+    "updated": "2026-10-18T02:33:59Z"
+  }
+}

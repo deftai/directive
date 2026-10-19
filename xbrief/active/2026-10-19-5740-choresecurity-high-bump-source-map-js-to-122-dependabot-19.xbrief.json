@@ -1,0 +1,465 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5740",
+    "updated": "2026-10-19T05:50:13Z"
+  },
+  "plan": {
+    "title": "chore(security): HIGH bump source-map-js to 1.2.2 (Dependabot #19)",
+    "status": "running",
+    "narratives": {
+      "Description": "chore(security): HIGH bump source-map-js to 1.2.2 (Dependabot #19)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5740",
+      "Overview": "## Problem\n\nDependabot alert [#19](https://github.com/deftai/directive/security/dependabot/19) is open: **HIGH** event-loop DoS in transitive `source-map-js` (development scope).\n\n- Package: `source-map-js` @ 1.2.1 (pnpm-lock.yaml)\n- Advisory: GHSA-68fv-2mgg-jv7q / CVE-2026-93749\n- Summary: source-map-js allows event-loop denial of service through indexed source-map section offsets\n- Vulnerable range: `>= 1.0.0, < 1.2.2`\n- First patched: **1.2.2**\n- Scope: development (transitive; typically via vite/postcss tooling)\n\nFails to validate per-section offset line values in indexed source maps; large offset values block the event loop synchronously.\n\n## What to build\n\nForce `source-map-js` to **1.2.2** (or newer) via the pnpm 11 workspace `overrides` in `pnpm-workspace.yaml` (same pattern as the existing esbuild / brace-expansion / postcss pins), refresh `pnpm-lock.yaml`, and record the pin in CHANGELOG [Unreleased].\n\n## Acceptance\n\n- `pnpm-workspace.yaml` overrides `source-map-js` to >= 1.2.2.\n- `pnpm-lock.yaml` resolves `source-map-js` out of the vulnerable range.\n- CHANGELOG [Unreleased] records the bump and cites Dependabot #19.\n- Dependabot alert #19 auto-closes or is dismissable as fixed.\n\nLiteral check:\n\n    pnpm why source-map-js\r\n\n",
+      "Labels": "security, urgent, design-critique:ingest-ready, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "Workspace override pin source-map-js to 1.2.2 in pnpm-workspace.yaml",
+        "status": "pending",
+        "effort": "S",
+        "x-directive/artifact_path": "pnpm-workspace.yaml"
+      },
+      {
+        "id": "2",
+        "title": "Conditional minimumReleaseAgeExclude for source-map-js@1.2.2 when needed",
+        "status": "pending",
+        "effort": "S",
+        "x-directive/artifact_path": "pnpm-workspace.yaml"
+      },
+      {
+        "id": "3",
+        "title": "Refresh pnpm-lock.yaml so every source-map-js entry resolves to 1.2.2",
+        "status": "pending",
+        "effort": "S",
+        "x-directive/artifact_path": "pnpm-workspace.yaml"
+      },
+      {
+        "id": "4",
+        "title": "Prove magicast and postcss parents resolve to 1.2.2 under frozen-lockfile install",
+        "status": "pending",
+        "effort": "M",
+        "x-directive/artifact_path": "pnpm-workspace.yaml"
+      },
+      {
+        "id": "5",
+        "title": "CHANGELOG Security/Fixed for Dependabot #19 / #5740 / GHSA-68fv-2mgg-jv7q",
+        "status": "pending",
+        "effort": "S",
+        "x-directive/artifact_path": "pnpm-workspace.yaml"
+      }
+    ],
+    "tags": [
+      "security",
+      "urgent",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5740",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5740: chore(security): HIGH bump source-map-js to 1.2.2 (Dependabot #19)"
+      }
+    ],
+    "acceptance": {
+      "criteria": [
+        {
+          "id": "1",
+          "title": "Workspace override pin source-map-js to 1.2.2 in pnpm-workspace.yaml",
+          "status": "pending"
+        },
+        {
+          "id": "2",
+          "title": "Conditional minimumReleaseAgeExclude for source-map-js@1.2.2 when needed",
+          "status": "pending"
+        },
+        {
+          "id": "3",
+          "title": "Refresh pnpm-lock.yaml so every source-map-js entry resolves to 1.2.2",
+          "status": "pending"
+        },
+        {
+          "id": "4",
+          "title": "Prove magicast and postcss parents resolve to 1.2.2 under frozen-lockfile install",
+          "status": "pending"
+        },
+        {
+          "id": "5",
+          "title": "CHANGELOG Security/Fixed for Dependabot #19 / #5740 / GHSA-68fv-2mgg-jv7q",
+          "status": "pending"
+        }
+      ],
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Workspace override pin source-map-js to 1.2.2 in pnpm-workspace.yaml",
+          "artifact_path": "pnpm-workspace.yaml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Conditional minimumReleaseAgeExclude for source-map-js@1.2.2 when needed",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Refresh pnpm-lock.yaml so every source-map-js entry resolves to 1.2.2",
+          "artifact_path": "pnpm-lock.yaml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Prove magicast and postcss parents resolve to 1.2.2 under frozen-lockfile install",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "CHANGELOG Security/Fixed for Dependabot #19 / #5740 / GHSA-68fv-2mgg-jv7q",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "pnpm-workspace.yaml",
+          "pnpm-lock.yaml",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "pnpm-workspace.yaml",
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for security cohort. pnpm-lock.yaml / pnpm-workspace.yaml shared Dependabot pin surfaces for #5737/#5740."
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A (draft)\nTarget-digest: sha256:a9eea1a3fd40035f4234a0705e8c59c465c8aa9de09a8603151b705334e98590\nconflict_group: dependabot-19-source-map-js-workspace-override\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\ndest: .deft-scratch/worktrees/arc-5740\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\n\n## In plain English\nDependabot alert #19 is HIGH event-loop DoS in transitive source-map-js@1.2.1 (dev; GHSA-68fv-2mgg-jv7q / CVE-2026-93749). Prefer-A adds a pnpm 11 workspace override source-map-js: \"1.2.2\" (same pattern as existing esbuild / brace-expansion / postcss pins), refreshes the lockfile, adds minimumReleaseAgeExclude if needed, and records CHANGELOG. Keep brace-expansion #5737 and unrelated churn out of this issue.\n\n## Draft remedy sketch\n1. Add overrides.source-map-js: \"1.2.2\" in pnpm-workspace.yaml (pnpm 11 reads overrides here, not package.json pnpm field).\n2. Add source-map-js@1.2.2 to minimumReleaseAgeExclude if the pin would otherwise be blocked by minimumReleaseAge (mirror vite/postcss/brace-expansion rows).\n3. Refresh pnpm-lock.yaml so source-map-js resolves to 1.2.2 (out of >=1.0.0,<1.2.2).\n4. CHANGELOG [Unreleased] Security/Fixed (or Dependencies) entry citing Dependabot #19 / #5740 / GHSA-68fv-2mgg-jv7q.\n5. Verify with pnpm why source-map-js (and lock grep) that no vulnerable 1.2.1 remains.\n\n## Reject (draft)\n- Treating Dependabot dismiss-without-fix / ignore as the primary remedy\n- Bundling brace-expansion alerts #16-#18 / keeper #5737 into this issue\n- Editing package.json pnpm.overrides instead of pnpm-workspace.yaml (wrong SoT for this repo)\n- Broad dependency upgrades beyond the source-map-js pin\n- Claiming alert #19 fixed without lockfile evidence at 1.2.2+\n\n## file_scope lean (draft)\npnpm-workspace.yaml; pnpm-lock.yaml; CHANGELOG.md.",
+          "id": 6257142864,
+          "html_url": "https://github.com/deftai/directive/issues/5740#issuecomment-6257142864",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:33:41Z",
+          "updated_at": "2026-10-19T00:33:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because Dependabot alert #19 names a mechanism-shaped HIGH advisory on transitive source-map-js@1.2.1 (GHSA-68fv-2mgg-jv7q / CVE-2026-93749): event-loop DoS via indexed source-map section offsets; patched at 1.2.2. Workspace override is the established pin path in this repo.\nmechanism-shaped: true\nrefutation-target: pnpm-workspace.yaml overrides.source-map-js = \"1.2.2\" (plus lock refresh + CHANGELOG) is the primary clear path for Dependabot #19; dismiss-without-fix is not\ncharter: refutation\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nTarget-kind: issue\nCeiling-kind: comment-id\ndest: .deft-scratch/worktrees/arc-5740\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\nverification-path: pin-read git show 8341f369ccc55fa907abd5e575bb29556e467e9f: (dest cwd-without-occupy for on-pin file reads)\n\npain:\n- P1\n\n## Stop 1 — Gate\n\n### Pain inventory\n- P1: pnpm-lock.yaml resolves source-map-js@1.2.1 inside vulnerable range >=1.0.0,<1.2.2 (Dependabot #19 / GHSA-68fv-2mgg-jv7q); development-scope transitive via vite/postcss tooling; workspace overrides do not yet pin source-map-js.\n\n### Charter / spend\nCharter is refutation against leaving source-map-js@1.2.1 unpinned as the primary clear path. Spend N=1 (narrow override + lock + CHANGELOG; Stop 2 panel permission does not apply).\n\n### Reject / keep-outs (gate)\n- Dependabot dismiss-without-fix as primary\n- brace-expansion #5737 / alerts #16-#18\n- Unrelated dependency churn",
+          "id": 6257143082,
+          "html_url": "https://github.com/deftai/directive/issues/5740#issuecomment-6257143082",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:33:42Z",
+          "updated_at": "2026-10-19T00:33:42Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\nseat-families: codex\nlaunch-probe: codex pong rc0\ninput-ceiling: 6257149864\nprefer-a-draft: 6257142864\nstop-1: 6257143082\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\ndest: .deft-scratch/worktrees/arc-5740\nverification-path: pin-read git show 8341f369ccc55fa907abd5e575bb29556e467e9f:\nspend: N=1\narc-mode: no-ingest\nyolo-standing: on\n\nRound-1 N=1 Codex seat against Prefer-A draft 6257142864 and Stop 1 6257143082. Shared ceiling is this deposit id after POST.",
+          "id": 6257149864,
+          "html_url": "https://github.com/deftai/directive/issues/5740#issuecomment-6257149864",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:34:21Z",
+          "updated_at": "2026-10-19T00:34:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\nfamily: codex\nid-ceiling: 6257149864\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\n\nVerdict: no blocks-the-design finding. The workspace override is an existing, appropriate mechanism for P1; the refutation attempt did not establish a reason to replace it with dismissal or broad upgrades.\n\nChecks performed: read the issue body and the three specified ceiling-bounded comments; pin-read pnpm-workspace.yaml, pnpm-lock.yaml, package.json, and the Critic method contract at the dispatch SHA. Independently queried Dependabot alert #19: it is open, development/transitive, names >=1.0.0,<1.2.2 as vulnerable, and identifies 1.2.2 as first patched. This advisory check is live metadata, not evidence of a changed dispatch tree.\n\nExisting mechanism inventory: package.json pins pnpm@11.8.0. pnpm-workspace.yaml already overrides vite, esbuild, both brace-expansion major lines, and postcss; it also has version-specific minimumReleaseAgeExclude entries. It has no source-map-js override. The pinned lock contains source-map-js@1.2.1 in both package and snapshot records, with incoming edges from magicast@0.5.4 and postcss@8.5.25.\n\nF1 — sharpens-framing: make verification cover both dependency paths and lockfile reproducibility.\nEvidence: the pinned lock has source-map-js: 1.2.1 under both magicast@0.5.4 and postcss@8.5.25, not just the PostCSS path emphasized in the sketch. Draft step 5 proposes pnpm why plus a grep for the old version.\nFailure mode: a package-presence check or a single importer dependency explanation does not by itself establish that all workspace paths use the repaired resolution or that the refreshed lock agrees with the override under a frozen install. Removing the literal 1.2.1 string is weaker than validating every source-map-js resolution against the advisory range.\nDisposition consequence: retain Prefer-A and its three-file scope. State verification as checking all source-map-js package/snapshot entries and incoming edges, using recursive workspace dependency inspection where needed, and completing a frozen-lockfile install with the pinned pnpm. Both known parents must resolve to 1.2.2. This sharpens acceptance evidence; it does not require a new enforcement mechanism or product tests.\n\nRoad not taken: a targeted lock-only transitive update could clear the currently resolved vulnerable version with less policy surface. Its strongest case is avoiding a permanent exact override. It does not provide the explicit persistent workspace pin requested here, and the established override mechanism already fits the change. Evidence of an incompatible parent requirement or a defective 1.2.2 release would change that preference; neither is established by the inspected tree or alert.\n\nNo implementation, install, or alert dismissal performed. Round-1 critic exit; synthesis remains with the parent.",
+          "id": 6257184214,
+          "html_url": "https://github.com/deftai/directive/issues/5740#issuecomment-6257184214",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:37:34Z",
+          "updated_at": "2026-10-19T00:37:34Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Prefer-A Bound\n\nLean: Prefer-A Bound\nconflict_group: dependabot-19-source-map-js-workspace-override\nTarget-digest: sha256:a9eea1a3fd40035f4234a0705e8c59c465c8aa9de09a8603151b705334e98590\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\ndest: .deft-scratch/worktrees/arc-5740\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N=1\nspend-ask: resolved\nprefer-a-draft: 6257142864\nstop-1: 6257143082\npanel-deposit: 6257149864\nround-1-critics: Codex 6257184214\n\n**Lean:** Prefer-A — pin source-map-js to 1.2.2 via pnpm-workspace.yaml overrides; refresh lock; CHANGELOG; verify both known parents + frozen install.\n\n## In plain English\nDependabot #19 is a real HIGH advisory on transitive source-map-js@1.2.1. Prefer-A clears it the same way this repo already pins esbuild/postcss/brace-expansion: a workspace override to 1.2.2, lock refresh, and CHANGELOG. Codex Round-1 accepted the direction and sharpened verification: both magicast and postcss parents must resolve to 1.2.2 under a frozen-lockfile install with pinned pnpm — not just a grep that 1.2.1 disappeared.\n\n## Bound remedy\n1. **relieves: P1 — Add workspace override source-map-js 1.2.2.** In pnpm-workspace.yaml overrides, add source-map-js: \"1.2.2\" (pnpm 11 reads overrides here). Mirror existing vite/esbuild/brace-expansion/postcss pin pattern.\n2. **relieves: P1 — minimumReleaseAgeExclude when needed.** Add source-map-js@1.2.2 to minimumReleaseAgeExclude if minimumReleaseAge would otherwise block the pin (same row pattern as postcss@8.5.25).\n3. **relieves: P1 — Refresh pnpm-lock.yaml out of vulnerable range.** After override, refresh lock so every source-map-js package/snapshot entry resolves to 1.2.2 (out of >=1.0.0,<1.2.2). Tip currently has source-map-js@1.2.1.\n4. **relieves: P1 — Dual-parent + frozen-install verification (Codex F1).** Acceptance evidence must show both known incoming edges (magicast@0.5.4 and postcss@8.5.25 at dispatch tip) resolve to 1.2.2, and a frozen-lockfile install with the pinned pnpm succeeds. Prefer recursive workspace dependency inspection over presence-only / single-importer checks; removing the literal 1.2.1 string alone is insufficient.\n5. **relieves: P1 — CHANGELOG Security/Fixed for Dependabot #19 / #5740 / GHSA-68fv-2mgg-jv7q.**\n\n### Reject\n- Dependabot dismiss-without-fix / ignore as the primary remedy\n- Bundling brace-expansion #5737 / alerts #16-#18 into this issue\n- Editing package.json pnpm.overrides instead of pnpm-workspace.yaml\n- Broad dependency upgrades beyond the source-map-js pin\n- Lock-only transitive update as co-equal primary without the workspace override (Codex road-not-taken; override is the established persistent pin)\n- Claiming P1 relieved from grep-absence of 1.2.1 alone without dual-parent + frozen-install evidence\n\n### Disposition of Round-1\n- Codex F1 (sharpens-framing) -> accept-into-contract as limb 4\n- Prefer-A direction survives; empty disagreement set on blocks-the-design\n\nrelieves: P1\n\n## file_scope lean\npnpm-workspace.yaml; pnpm-lock.yaml; CHANGELOG.md.\nKeep-outs: brace-expansion #5737; dismiss-without-fix as primary; package.json pnpm.overrides SoT; unrelated dependency churn.",
+          "id": 6257193072,
+          "html_url": "https://github.com/deftai/directive/issues/5740#issuecomment-6257193072",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:38:22Z",
+          "updated_at": "2026-10-19T00:38:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\nfinding-classes: sharpening\nharvest-changed: true\nfamily: codex\nid-ceiling: 6257193072\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\n\nP1 is substantively covered by the proposed remedy. No blocks-the-design finding. One sharpens-framing finding requires a citation-format edit inside the harvested Bound remedy; it does not change the dependency fix.\n\nCoverage audit: Stop 1 (https://github.com/deftai/directive/issues/5740#issuecomment-6257143082) names the vulnerable source-map-js@1.2.1 resolution and absent workspace pin. The successor (https://github.com/deftai/directive/issues/5740#issuecomment-6257193072) carries a standalone operative relieves: P1 line. Limb 1 supplies the persistent workspace override; limb 3 requires every package/snapshot resolution to reach 1.2.2; limb 4 requires both known incoming edges plus a pinned-pnpm frozen install. Together these address the entire named pain rather than merely removing a version string. Limb 2 is conditional installation support; limb 5 records the fix, but is not independently a security remedy.\n\nIndependent pin-read evidence: at the dispatch SHA, pnpm-workspace.yaml contains the existing override and release-age-exclusion mechanisms but no source-map-js pin. pnpm-lock.yaml contains source-map-js@1.2.1 package and snapshot records and incoming dependencies from magicast@0.5.4 and postcss@8.5.25. package.json pins pnpm@11.8.0. Thus Round-1 Codex F1 (https://github.com/deftai/directive/issues/5740#issuecomment-6257184214) is incorporated into limbs 3-4. This audits proposed coverage; it does not assert that the fix has been installed or the alert has closed.\n\nF1 - sharpens-framing: put explanatory pain-cite repetitions in inline code.\nEvidence: each numbered Bound-remedy limb starts with a bold relieves: P1 phrase. The Pain coverage contract requires every non-operative mention of a pain id or disposition token on a lean to be in inline code. The final standalone relieves: P1 is the actual operative cite; the five numbered bold occurrences are not.\nFailure mode: the human-facing limb labels resemble closed citations while occupying non-operative positions, violating the contract's explicit separation of explanation and machine-read coverage. This is not missing P1 coverage: the standalone cite already supplies it.\nDisposition consequence: preserve that standalone cite and all five remedy obligations; wrap the explanatory relieves: P1 fragments in inline code (or remove those redundant fragments). Because these edits occur inside the Bound-remedy slice, its byte-based digest changes: harvest-changed is true even though the implementation scope is unchanged. Follow the prescribed changed-harvest path with an updated lean and a later independent pain audit, rather than claiming this audit clears a differently hashed harvest.\n\nNo product implementation or ingest performed. No comments above the ceiling read. Critic exit; parent owns disposition and the next envelope.\n\n",
+          "id": 6257209804,
+          "html_url": "https://github.com/deftai/directive/issues/5740#issuecomment-6257209804",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:39:58Z",
+          "updated_at": "2026-10-19T00:39:58Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Prefer-A Bound\n\nLean: Prefer-A Recut-1\nconflict_group: dependabot-19-source-map-js-workspace-override\nTarget-digest: sha256:a9eea1a3fd40035f4234a0705e8c59c465c8aa9de09a8603151b705334e98590\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\ndest: .deft-scratch/worktrees/arc-5740\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N=1\nspend-ask: resolved\nprefer-a-draft: 6257142864\nstop-1: 6257143082\npanel-deposit: 6257149864\nround-1-critics: Codex 6257184214\nprior-bound: 6257193072\npain-audit-disposed: 6257209804\ndual-stop-raise:+1\n\n**Lean:** Prefer-A Recut-1 — same product limbs as Bound 6257193072; remint Bound-remedy titles so explanatory pain-cite tokens are inline-code only; keep one operative standalone cite (Codex PA-1 F1).\n\n## In plain English\nSame fix as Prefer-A Bound: workspace-override source-map-js to 1.2.2, lock refresh, dual-parent+frozen-install proof, CHANGELOG. Recut only fixes citation grammar so limb labels do not look like machine-read pain cites; the standalone operative cite stays.\n\n## Bound remedy\n1. **Workspace override pin source-map-js to 1.2.2** — In pnpm-workspace.yaml overrides, add source-map-js: \"1.2.2\" (pnpm 11 reads overrides here). Mirror existing vite/esbuild/brace-expansion/postcss pin pattern. (`relieves: P1`)\n2. **Conditional minimumReleaseAgeExclude for source-map-js@1.2.2** — Add source-map-js@1.2.2 to minimumReleaseAgeExclude if minimumReleaseAge would otherwise block the pin (same row pattern as postcss@8.5.25). (`relieves: P1`)\n3. **Lockfile refresh to 1.2.2 across all package/snapshot entries** — After override, refresh lock so every source-map-js package/snapshot entry resolves to 1.2.2 (out of >=1.0.0,<1.2.2). Tip currently has source-map-js@1.2.1. (`relieves: P1`)\n4. **Dual-parent magicast+postcss frozen-install verification** — Acceptance evidence must show both known incoming edges (magicast@0.5.4 and postcss@8.5.25 at dispatch tip) resolve to 1.2.2, and a frozen-lockfile install with the pinned pnpm succeeds. Prefer recursive workspace dependency inspection over presence-only / single-importer checks; removing the literal 1.2.1 string alone is insufficient. (`relieves: P1`)\n5. **CHANGELOG Security/Fixed for Dependabot #19 / #5740 / GHSA-68fv-2mgg-jv7q** — Record the pin and advisory. (`relieves: P1`)\n\nrelieves: P1\n\n### Reject\n- Dependabot dismiss-without-fix / ignore as the primary remedy\n- Bundling brace-expansion keeper #5737 / alerts #16-#18 into this issue\n- Editing package.json pnpm.overrides instead of pnpm-workspace.yaml\n- Broad dependency upgrades beyond the source-map-js pin\n- Lock-only transitive update as co-equal primary without the workspace override\n- Claiming P1 relieved from grep-absence of 1.2.1 alone without dual-parent + frozen-install evidence\n\n### Disposition of PA-1\n- Codex PA-1 6257209804 F1 (sharpens-framing; harvest-changed: true) -> accept: remint limb titles; wrap explanatory pain-cite tokens in inline code; preserve standalone operative cite and all five remedy obligations\n- Empty disagreement set on blocks-the-design\n\n## file_scope lean\npnpm-workspace.yaml; pnpm-lock.yaml; CHANGELOG.md.\nKeep-outs: brace-expansion #5737; dismiss-without-fix as primary; package.json pnpm.overrides SoT; unrelated dependency churn.",
+          "id": 6257216180,
+          "html_url": "https://github.com/deftai/directive/issues/5740#issuecomment-6257216180",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:40:35Z",
+          "updated_at": "2026-10-19T00:40:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\nfinding-classes: none\nharvest-changed: false\nfamily: codex\nid-ceiling: 6257216180\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\n\nRecut-1 honestly covers Stop 1 P1 as a proposed remedy. No blocking or sharpening finding; no further Bound-remedy change is required by this audit.\n\nCoverage: [Stop 1](https://github.com/deftai/directive/issues/5740#issuecomment-6257143082) names the vulnerable source-map-js@1.2.1 resolution and missing workspace pin. [Recut-1](https://github.com/deftai/directive/issues/5740#issuecomment-6257216180) addresses both through the persistent 1.2.2 workspace override and refresh of every package/snapshot resolution. Its dual-parent verification and pinned-pnpm frozen install preserve [Round-1 F1](https://github.com/deftai/directive/issues/5740#issuecomment-6257184214): both magicast and postcss must resolve to 1.2.2; absence of the old version string alone is insufficient. The conditional release-age exclusion supports installation; CHANGELOG records the fix rather than independently providing security relief.\n\nIndependent pin-read: at the dispatch SHA, pnpm-workspace.yaml has the existing overrides and version-specific minimumReleaseAgeExclude mechanism but no source-map-js override. pnpm-lock.yaml has source-map-js@1.2.1 package/snapshot records and incoming edges from magicast@0.5.4 and postcss@8.5.25. package.json pins pnpm@11.8.0. These anchors support the remedy and its verification obligations.\n\n[PA-1 F1](https://github.com/deftai/directive/issues/5740#issuecomment-6257209804) is disposed: compared with [prior Bound](https://github.com/deftai/directive/issues/5740#issuecomment-6257193072), Recut-1 remints all five remedy titles, places their explanatory `relieves: P1` repetitions in inline code, and retains the standalone operative `relieves: P1` line. All five substantive obligations survive. The historical PA-1 harvest-changing edit has been made in this successor; this audit requests no additional harvest change.\n\nThis is proposed-coverage clearance, not evidence that the dependency fix is installed or Dependabot #19 has closed. No product implementation or ingest performed; no comments above the ceiling read. Critic exit; parent owns disposition and any completed-arc gate under no-ingest posture.\n\n",
+          "id": 6257230181,
+          "html_url": "https://github.com/deftai/directive/issues/5740#issuecomment-6257230181",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:41:57Z",
+          "updated_at": "2026-10-19T00:41:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\nCites Prefer-A Recut-1 successor lean 6257216180. No Target-digest on this table.\n\n| Claim | Method | Result |\n|---|---|---|\n| Stop 1 P1: source-map-js@1.2.1 in vulnerable range (Dependabot #19 / GHSA-68fv-2mgg-jv7q) | pin-read pnpm-workspace.yaml + pnpm-lock.yaml + Round-1/PA disposition | Covered by Prefer-A Recut-1 standalone relieves:P1 (workspace override + lock refresh + dual-parent/frozen-install verification + CHANGELOG) |\n| Round-1 Codex F1 dual-parent + frozen-install verification | REST 6257184214 + Recut-1 limb 4 | accept-into-contract |\n| PA-1 Codex 6257209804 citation-format harvest change | REST + Recut-1 reminted titles / inline-code explanatory cites | disposed by Recut-1 6257216180 |\n| PA-2 Codex 6257230181 | REST comment read | finding-classes: none; harvest-changed: false |\n| blocks-the-design census | Round-1 + PA-1 + PA-2 | empty |\n\nEmpty disagreement set after PA-2 clear.",
+          "id": 6257235727,
+          "html_url": "https://github.com/deftai/directive/issues/5740#issuecomment-6257235727",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:42:28Z",
+          "updated_at": "2026-10-19T00:42:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "design-critique: synthesis accepted, because agents agreed (empty disagreement set) citing Prefer-A Recut-1 successor lean 6257216180 and verified-claims table 6257235727\n\n## In plain English\n#5740 will pin transitive source-map-js to 1.2.2 via pnpm-workspace.yaml overrides (same pattern as esbuild/postcss/brace-expansion), refresh the lockfile, prove both magicast and postcss parents resolve under a frozen install, and record CHANGELOG for Dependabot #19 / GHSA-68fv-2mgg-jv7q. Brace-expansion #5737 stays a keep-out. Ingest remains a separate operator verb.\n\n## Completed-arc record\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N=1\ndest: .deft-scratch/worktrees/arc-5740\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\nsuccessor-lean: Prefer-A Recut-1 6257216180\nverified-claims-table: 6257235727\nStop 1: 6257143082\npanel-deposit: 6257149864\nPrefer-A draft: 6257142864\nRound-1: Codex 6257184214\nPrefer-A Bound: 6257193072\nPA-1: Codex 6257209804 (harvest-changed: true; citation-format)\nPrefer-A Recut-1: 6257216180\nPA-2: Codex 6257230181 (clear; harvest-changed: false)\n\ndisagreement-set: empty\nforward: design-critique:ingest-ready chip; ingest is a later separate operator verb (task issue:ingest).",
+          "id": 6257235964,
+          "html_url": "https://github.com/deftai/directive/issues/5740#issuecomment-6257235964",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:42:30Z",
+          "updated_at": "2026-10-19T00:42:30Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5915130491,
+        "origin": "deftai/directive#5740",
+        "id": "github.issue.5915130491"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "a9eea1a3fd40035f4234a0705e8c59c465c8aa9de09a8603151b705334e98590"
+      },
+      "swarm": {
+        "file_scope": [
+          "pnpm-workspace.yaml",
+          "pnpm-lock.yaml",
+          "CHANGELOG.md"
+        ],
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for security cohort. pnpm-lock.yaml / pnpm-workspace.yaml shared Dependabot pin surfaces for #5737/#5740."
+      }
+    },
+    "id": "github.issue.5915130491",
+    "updated": "2026-10-19T05:50:13Z"
+  }
+}

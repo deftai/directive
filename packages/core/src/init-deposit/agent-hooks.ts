@@ -76,6 +76,8 @@ export const AGENT_HOOK_PATHS = [
  */
 export const GROK_PRETOOLUSE_WRAPPER_REL_PATH = ".grok/hooks/deft-pretooluse-wrapper.sh";
 export const GROK_PRETOOLUSE_WRAPPER_MARKER = "deft-pretooluse-wrapper.sh";
+/** Grok resolves relative PreToolUse commands beside deft.json (#5715). */
+export const GROK_PRETOOLUSE_WRAPPER_COMMAND = `./${GROK_PRETOOLUSE_WRAPPER_MARKER}`;
 
 /** Relative JS path the wrapper checks before invoking node (AC9.1). */
 export const PACKAGE_RELATIVE_HOOK_BIN_JS =
@@ -385,13 +387,14 @@ function isManagedCursorEntryForHost(value: unknown): boolean {
 
 type NestedHookHost = "claude" | "grok" | "codex";
 
-/** Grok tool.before deposits the outer-deny wrapper; other nested events use bin (AC9.1). */
+/** Grok tool.before deposits the outer-deny wrapper (./ form, #5715); other nested events use bin (AC9.1). */
 function nestedToolCommand(bin: string, host: NestedHookHost, event: HookEvent): string {
-  if (host === "grok" && event === "tool.before") return GROK_PRETOOLUSE_WRAPPER_REL_PATH;
+  if (host === "grok" && event === "tool.before") return GROK_PRETOOLUSE_WRAPPER_COMMAND;
   return command(bin, host, event);
 }
 
-function isGrokWrapperCommand(value: string): boolean {
+/** True for both ./COMMAND and legacy REL_PATH deposits (marker substring). */
+export function isGrokWrapperCommand(value: string): boolean {
   return value.includes(GROK_PRETOOLUSE_WRAPPER_MARKER);
 }
 
@@ -1040,8 +1043,10 @@ export function inspectAgentHookDeposit(
     try {
       const config = readConfig(absolute);
       // #5656: Grok PreToolUse points at the wrapper script; missing wrapper is not healthy.
+      // #5715: command must resolve beside deft.json (./ form); REL_PATH doubles under .grok/hooks/.
       if (definition.host === "grok") {
         const wrapperAbs = join(projectRoot, GROK_PRETOOLUSE_WRAPPER_REL_PATH);
+        const hooksDir = dirname(absolute);
         if (!existsSync(wrapperAbs)) {
           return {
             host: definition.host,
@@ -1050,7 +1055,28 @@ export function inspectAgentHookDeposit(
             compactSupport: definition.compactSupport,
             detail:
               `${GROK_PRETOOLUSE_WRAPPER_REL_PATH} is missing while ${definition.path} is registered. ` +
-              "Recovery: run `directive install --repair` / `writeAgentHookDeposit` so the outer-deny wrapper is redeposited." +
+              "Recovery: run `directive install --repair` / `writeAgentHookDeposit` so the outer-deny wrapper is redeposited, then start a new Grok session." +
+              compactNote,
+          };
+        }
+        const hooks = object(config.hooks);
+        const preTool = Array.isArray(hooks?.PreToolUse) ? hooks.PreToolUse : [];
+        const wrapperCommands = preTool.flatMap((entry) =>
+          nestedCommands(entry).filter((cmd) => isGrokWrapperCommand(cmd)),
+        );
+        const commandMissesBesideHooks = wrapperCommands.some(
+          (cmd) => resolve(hooksDir, cmd) !== wrapperAbs,
+        );
+        if (commandMissesBesideHooks) {
+          return {
+            host: definition.host,
+            path: definition.path,
+            status: "drifted",
+            compactSupport: definition.compactSupport,
+            detail:
+              `Grok PreToolUse wrapper command does not resolve beside ${definition.path} ` +
+              `(expected ${GROK_PRETOOLUSE_WRAPPER_COMMAND}; repo-root ${GROK_PRETOOLUSE_WRAPPER_REL_PATH} doubles under .grok/hooks/). ` +
+              "Recovery: run `directive install --repair` / redeposit, then start a new Grok session." +
               compactNote,
           };
         }

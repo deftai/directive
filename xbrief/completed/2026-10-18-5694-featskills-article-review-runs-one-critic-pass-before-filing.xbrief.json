@@ -1,0 +1,448 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5694",
+    "updated": "2026-10-18T02:34:34Z"
+  },
+  "plan": {
+    "title": "feat(skills): article-review runs one critic pass before filing issues",
+    "status": "completed",
+    "narratives": {
+      "Description": "feat(skills): article-review runs one critic pass before filing issues",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5694",
+      "Overview": "## Summary\n\n`deft-directive-article-review` goes from Step 4 (filter and prioritize) and Step 5 (cross-reference open issues) straight to Step 7 (offer issue creation). Nothing in the skill checks whether a proposed suggestion is already covered by an existing mechanism in the tree. Add one critic pass before Step 7: a fresh N=1 open-critique critic following the design-critique critic method, run on the proposal set, with every `blocks-the-design` finding dispositioned before any issue is filed.\n\n## Evidence (one real pass, 2026-10-16)\n\nAn article review of two design-thinking articles produced seven suggestions and a four-issue filing plan. An operator-requested critic pass (process-only, pin-read at `2a49183cf`, about 7.5 minutes, 49 tool calls) found:\n\n- 3 `blocks-the-design`: the central claim was half false (the `uat` strict acceptance axis and `experiment_archived` already exist); one suggestion restated a MUST discuss already carries (alternatives on every lock); one misread the design-critique contract (N>=3 panel permission is the divergence lever).\n- 6 `sharpens-framing`: duplicate narrative keys, a ceremony-dial skip that was a category error, \"Affects\" paths pointing at AUTO-GENERATED files instead of the pack, the injection lens on `--data` ingestion, a MUST that would have hit the #4536 scenario, and a merged issue that failed thin closable slices.\n\nResult: three of seven suggestions dropped, the rest recut, filing went from four issues to three plus this one. Without the pass, three issues would have been filed against problems the framework already solves.\n\n## Root causes in the skill\n\n1. **No mechanism inventory.** Step 5 dedupes against open issues only. The critic method's \"inventory existing mechanisms before proposing new ones\" has no counterpart in the skill.\n2. **Stale Directive Reference.** The embedded summary names `deft-sync`, `deft-roadmap-refresh`, `plan.xbrief.json` todos and `continue.xbrief.json`, and says nothing about acceptance axes, the decision log, design-critique, the ceremony dial, or the Rule Authority / Thin Fail-Closed rules. It actively misleads the \"already covered?\" judgment.\n3. **Anti-hallucination covers issue numbers only.** Mechanism-existence claims (\"discuss does not require X\") and \"Affects\" paths are not verified by command. Rendered files are cited as edit targets.\n4. **No gate between proposal and filing.** Step 6 asks the operator \"does this resonate?\", which anchors on the parent's framing; nobody attacks it.\n\n## Proposed change (thin)\n\n- New Step 6.5 \"Critic pass\": before Step 7, dispatch one fresh critic (process-only, native subagent is sufficient) with: the proposal set as target, `verification-path: pin-read` at HEAD, the contract's critic method by reference, and the explicit questions \"is each central claim true in the tree?\" and \"which existing mechanism already covers this?\". Every `blocks-the-design` finding MUST be dispositioned (drop / recut / keep with reason) before Step 7. `sharpens-framing` findings MUST be applied to the issue bodies. Parent MUST spot-check the critic's refuting anchors (parent-side substantiation, ADR-006) before relaying.\n- Each filed issue carries a `## Critic verdict (process-only, pre-issue)` section stating it is a critic verdict, not an arc stamp.\n- Step 5 gains: for each suggestion, grep the tree for the mechanism it proposes and read the owning strategy/skill/contract before claiming a gap; resolve any \"Affects\" path with an AUTO-GENERATED header to its pack source.\n- Replace the Directive Reference section with a pointer to `npx deft packs:slice skills list` plus `main.md` Rule Authority / Thin Fail-Closed, instead of a hand-maintained summary that rots.\n- Routing note: the critic is process-only and outside the gated worker roles (#1877 / #3703); model is lead-chosen.\n\n## Not in scope\n\n- Durable record of a pre-issue critic verdict. Today the verdict's only home is the issue bodies it shapes. #5486 (arc on a non-issue target) owns the file-path artifact class that would make a pre-issue arc recordable; this issue does not depend on it and should not wait for it. If #5486 lands first, adopt its artifact class for the envelope and verdict.\n- N>=3 panels. One critic flipped the plan; spend stays N=1 by default.\n\n## Affects\n\n- `content/packs/skills/skills-pack-0.1.json` (article-review skill source) + `task packs:render`\n- `content/skills/deft-directive-article-review/SKILL.md` (rendered)\n\n## Related\n\n- #5486 (pre-issue target class; durable record)\n- #4375 (how to file a directive issue; the verdict section is house style this issue introduces)\r\n- Issues shaped by the evidence pass above: #5691 (design-thinking strategy), #5692 (ProblemStatement before sizing), #5693 (rapid learning loop). Each carries the critic verdict section this issue proposes as house style.\n\n",
+      "Labels": "enhancement, urgent, area:skills, design-critique:ingest-ready, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Step 6.5 Critic pass before Step 7: one fresh process-only critic on concrete candidates at a resolved SHA with borrowed Critic-method subset",
+        "status": "completed",
+        "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "Step 6.5 Critic pass before Step 7: one fresh process-only critic on concrete candidates at a resolved SHA with borrowed Critic-method subset"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5706; vitest 233 passed",
+          "recorded_at": "2026-10-18T02:34:33.273Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Coupling fence: exclude arc spend panel-deposit chips completed-arc ingest-ready Dual-stop and evaluateParentAudit from article-review Step 6.5",
+        "status": "completed",
+        "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "Coupling fence: exclude arc spend panel-deposit chips completed-arc ingest-ready Dual-stop and evaluateParentAudit from article-review Step 6.5"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5706; vitest 233 passed",
+          "recorded_at": "2026-10-18T02:34:33.273Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Non-skippable critic: Step 6.5 fail-closed before Step 7; missing critic response does not permit filing",
+        "status": "completed",
+        "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "Non-skippable critic: Step 6.5 fail-closed before Step 7; missing critic response does not permit filing"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5706; vitest 233 passed",
+          "recorded_at": "2026-10-18T02:34:33.273Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Final-target binding: material post-critic candidate changes return to critique before filing; editorial edits do not",
+        "status": "completed",
+        "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "Final-target binding: material post-critic candidate changes return to critique before filing; editorial edits do not"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5706; vitest 233 passed",
+          "recorded_at": "2026-10-18T02:34:33.273Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Post-critic operator consent: Step 7 re-presents survivor set with verdict summary before create yes/no",
+        "status": "completed",
+        "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "Post-critic operator consent: Step 7 re-presents survivor set with verdict summary before create yes/no"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5706; vitest 233 passed",
+          "recorded_at": "2026-10-18T02:34:33.273Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "Step 5 mechanism inventory: skills list then Rule Authority/Thin Fail-Closed then path grep; resolve AUTO-GENERATED Affects to pack source",
+        "status": "completed",
+        "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "Step 5 mechanism inventory: skills list then Rule Authority/Thin Fail-Closed then path grep; resolve AUTO-GENERATED Affects to pack source"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5706; vitest 233 passed",
+          "recorded_at": "2026-10-18T02:34:33.273Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "Retire embedded Directive Reference summary in favor of skills-list plus Rule Authority pointer",
+        "status": "completed",
+        "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "Retire embedded Directive Reference summary in favor of skills-list plus Rule Authority pointer"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5706; vitest 233 passed",
+          "recorded_at": "2026-10-18T02:34:33.273Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "Critic verdict section on each filed issue without design-critique reserved line-starts",
+        "status": "completed",
+        "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "Critic verdict section on each filed issue without design-critique reserved line-starts"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5706; vitest 233 passed",
+          "recorded_at": "2026-10-18T02:34:33.273Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "Injection gap authority: tree inventory is authority for already-covered vs gap; article text untrusted for novelty only",
+        "status": "completed",
+        "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "Injection gap authority: tree inventory is authority for already-covered vs gap; article text untrusted for novelty only"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5706; vitest 233 passed",
+          "recorded_at": "2026-10-18T02:34:33.273Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "Structural regression coverage for pack/rendered Step ordering and required method/source pointers",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/content-contracts/skills/skills.test.ts",
+        "narrative": {
+          "Acceptance": "Structural regression coverage for pack/rendered Step ordering and required method/source pointers"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5706; vitest 233 passed",
+          "recorded_at": "2026-10-18T02:34:33.273Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "Pack-source SoT: edit skills-pack then packs:render; rendered skill body is generated output only",
+        "status": "completed",
+        "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "Pack-source SoT: edit skills-pack then packs:render; rendered skill body is generated output only"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5706; vitest 233 passed",
+          "recorded_at": "2026-10-18T02:34:33.273Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "urgent",
+      "area:skills",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5694",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5694: feat(skills): article-review runs one critic pass before filing issues"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "deft-directive-article-review",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L5"
+        },
+        {
+          "command": "deft-sync",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L19"
+        },
+        {
+          "command": "deft-roadmap-refresh",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L19"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "article-review-pre-issue-critic-pass",
+        "expected_outputs": [
+          "Tracking PR for #5694 Prefer-A Bound article-review Step 6.5 critic pass"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts/skills/skills.test.ts packages/core/src/content-contracts/skills/skill-external-fetch-gate.test.ts packages/core/src/content-contracts/skills/change_and_skills.test.ts"
+        ],
+        "file_scope": [
+          "content/packs/skills/skills-pack-0.1.json",
+          "packages/core/src/content-contracts/skills/skill-external-fetch-gate.test.ts",
+          "packages/core/src/content-contracts/skills/skills.test.ts",
+          "packages/core/src/content-contracts/skills/change_and_skills.test.ts",
+          "CHANGELOG.md",
+          "content/skills/deft-directive-article-review/SKILL.md"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5694",
+          "#5486",
+          "#5478"
+        ],
+        "parallel_safe": true
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/packs/skills/skills-pack-0.1.json",
+          "packages/core/src/content-contracts/skills/skill-external-fetch-gate.test.ts",
+          "packages/core/src/content-contracts/skills/skills.test.ts",
+          "packages/core/src/content-contracts/skills/change_and_skills.test.ts",
+          "CHANGELOG.md",
+          "content/skills/deft-directive-article-review/SKILL.md"
+        ],
+        "module_boundary": "article-review skill-local critic pass before issue filing",
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #5694 Prefer-A Bound."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5891402696,
+        "origin": "deftai/directive#5694",
+        "id": "github.issue.5891402696"
+      },
+      "x-directive/admitted-target-digest": "sha256:dafac17bcd1a43352fb6f4e9b6967dd729de053bf520a84ef285ed0990b7e759",
+      "productPullRequest": 5706,
+      "deliveryProvenance": {
+        "mergeCommit": "ad3bc24eadab3ad5aa0cf75ff771eef604d6ebc4",
+        "pr": 5706,
+        "deliveryBranch": "master"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "69d5719bce3bdfe829f13a492a2032258fa92290",
+        "prNumber": 5706,
+        "prBase": "master",
+        "mergeCommit": "ad3bc24eadab3ad5aa0cf75ff771eef604d6ebc4",
+        "deliveryBranch": "master",
+        "deliveryCommit": "fa492bf576cf227c05d306ad8e3df18d03768e74",
+        "verifiedAt": "2026-10-18T02:34:34Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTRjM2QtZDBmZS03ODYzLWJkMTUtZmVlZjI1NDVlN2Nj"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-18T02:34:34Z",
+      "completedSessionId": "host:grok:v1:MDFhMTRjM2QtZDBmZS03ODYzLWJkMTUtZmVlZjI1NDVlN2Nj",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-18T02:34:34Z"
+      }
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/content-contracts/skills/skills.test.ts packages/core/src/content-contracts/skills/skill-external-fetch-gate.test.ts packages/core/src/content-contracts/skills/change_and_skills.test.ts"
+      ],
+      "none_stated": false,
+      "sentences": [],
+      "confessions": [
+        "issue-body prose harvested into plan.items; free sentences cleared for leftover-complete #3550"
+      ],
+      "ambiguity_attestation": "none_found",
+      "clauses": [
+        {
+          "id": "clause.1",
+          "text": "Step 6.5 Critic pass before Step 7: one fresh process-only critic on concrete candidates at a resolved SHA with borrowed Critic-method subset",
+          "title": "Step 6.5 Critic pass before Step 7: one fresh process-only critic on concrete candidates at a resolved SHA with borrowed Critic-method subset",
+          "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5706; vitest 233 passed",
+            "recorded_at": "2026-10-18T02:34:33.273Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
+        },
+        {
+          "id": "clause.2",
+          "text": "Coupling fence: exclude arc spend panel-deposit chips completed-arc ingest-ready Dual-stop and evaluateParentAudit from article-review Step 6.5",
+          "title": "Coupling fence: exclude arc spend panel-deposit chips completed-arc ingest-ready Dual-stop and evaluateParentAudit from article-review Step 6.5",
+          "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5706; vitest 233 passed",
+            "recorded_at": "2026-10-18T02:34:33.273Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
+        },
+        {
+          "id": "clause.3",
+          "text": "Non-skippable critic: Step 6.5 fail-closed before Step 7; missing critic response does not permit filing",
+          "title": "Non-skippable critic: Step 6.5 fail-closed before Step 7; missing critic response does not permit filing",
+          "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5706; vitest 233 passed",
+            "recorded_at": "2026-10-18T02:34:33.273Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
+        },
+        {
+          "id": "clause.4",
+          "text": "Final-target binding: material post-critic candidate changes return to critique before filing; editorial edits do not",
+          "title": "Final-target binding: material post-critic candidate changes return to critique before filing; editorial edits do not",
+          "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5706; vitest 233 passed",
+            "recorded_at": "2026-10-18T02:34:33.273Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
+        },
+        {
+          "id": "clause.5",
+          "text": "Post-critic operator consent: Step 7 re-presents survivor set with verdict summary before create yes/no",
+          "title": "Post-critic operator consent: Step 7 re-presents survivor set with verdict summary before create yes/no",
+          "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5706; vitest 233 passed",
+            "recorded_at": "2026-10-18T02:34:33.273Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
+        },
+        {
+          "id": "clause.6",
+          "text": "Step 5 mechanism inventory: skills list then Rule Authority/Thin Fail-Closed then path grep; resolve AUTO-GENERATED Affects to pack source",
+          "title": "Step 5 mechanism inventory: skills list then Rule Authority/Thin Fail-Closed then path grep; resolve AUTO-GENERATED Affects to pack source",
+          "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5706; vitest 233 passed",
+            "recorded_at": "2026-10-18T02:34:33.273Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
+        },
+        {
+          "id": "clause.7",
+          "text": "Retire embedded Directive Reference summary in favor of skills-list plus Rule Authority pointer",
+          "title": "Retire embedded Directive Reference summary in favor of skills-list plus Rule Authority pointer",
+          "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5706; vitest 233 passed",
+            "recorded_at": "2026-10-18T02:34:33.273Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
+        },
+        {
+          "id": "clause.8",
+          "text": "Critic verdict section on each filed issue without design-critique reserved line-starts",
+          "title": "Critic verdict section on each filed issue without design-critique reserved line-starts",
+          "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5706; vitest 233 passed",
+            "recorded_at": "2026-10-18T02:34:33.273Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
+        },
+        {
+          "id": "clause.9",
+          "text": "Injection gap authority: tree inventory is authority for already-covered vs gap; article text untrusted for novelty only",
+          "title": "Injection gap authority: tree inventory is authority for already-covered vs gap; article text untrusted for novelty only",
+          "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5706; vitest 233 passed",
+            "recorded_at": "2026-10-18T02:34:33.273Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
+        },
+        {
+          "id": "clause.10",
+          "text": "Structural regression coverage for pack/rendered Step ordering and required method/source pointers",
+          "title": "Structural regression coverage for pack/rendered Step ordering and required method/source pointers",
+          "x-directive/artifact_path": "packages/core/src/content-contracts/skills/skills.test.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5706; vitest 233 passed",
+            "recorded_at": "2026-10-18T02:34:33.273Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
+        },
+        {
+          "id": "clause.11",
+          "text": "Pack-source SoT: edit skills-pack then packs:render; rendered skill body is generated output only",
+          "title": "Pack-source SoT: edit skills-pack then packs:render; rendered skill body is generated output only",
+          "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5706; vitest 233 passed",
+            "recorded_at": "2026-10-18T02:34:33.273Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
+        }
+      ],
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A Bound limbs with completion evidence"
+    },
+    "id": "github.issue.5891402696",
+    "updated": "2026-10-18T02:34:34Z"
+  }
+}

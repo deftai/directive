@@ -4,11 +4,17 @@ import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { approach1RemediationForUnarmedPrs } from "./approach1-babysitter.js";
 import {
+  COHORT_INVENTORY_REMEDIATION_TRIGGERS,
   cohortInventorySatisfiedByReviewClean,
+  evaluateProductArmAtMintExit,
+  evaluateProductLiveWaitContinuity,
   extractRepoScopedPullNumber,
   hasMergePathExplicitFinishAttestation,
+  isCohortInventoryRemediationTrigger,
+  isMintGateBlockedReason,
   parsePrsCsv,
   prsFromLaunchManifest,
+  resolveCleanBeforeMintPhaseOwner,
   resolveCohortPrSet,
   verifyCohortReviewMonitors,
   writeMergePathExplicitFinishAttestation,
@@ -317,6 +323,128 @@ describe("verifyCohortReviewMonitors (#5318)", () => {
     });
     expect(result.prs).toEqual([1]);
     expect(result.exitCode).toBe(0);
+  });
+});
+
+describe("mint-gate product arm continuity (#5690 Prefer-A Recut-1)", () => {
+  it("publishes mint-PR-open and mint-PR-merge inventory triggers without dropping exit/BLOCKED", () => {
+    expect(COHORT_INVENTORY_REMEDIATION_TRIGGERS).toContain("approach1-exit-or-lease-release");
+    expect(COHORT_INVENTORY_REMEDIATION_TRIGGERS).toContain("dual-stop-conf-hold-blocked-halt");
+    expect(COHORT_INVENTORY_REMEDIATION_TRIGGERS).toContain("mint-PR-open");
+    expect(COHORT_INVENTORY_REMEDIATION_TRIGGERS).toContain("mint-PR-merge");
+    expect(isCohortInventoryRemediationTrigger("mint-PR-open")).toBe(true);
+    expect(isCohortInventoryRemediationTrigger("not-a-trigger")).toBe(false);
+  });
+
+  it("refuses mint-gate BLOCKED as option-C / explicit-finish for product PR", () => {
+    const root = tempRoot();
+    expect(isMintGateBlockedReason("BLOCKED: intent-constraint mint required")).toBe(true);
+    expect(isMintGateBlockedReason("approved-scope mint-gate")).toBe(true);
+    expect(isMintGateBlockedReason("option-C human abandon")).toBe(false);
+
+    const refused = writeMergePathExplicitFinishAttestation(root, 5690, {
+      reason: "attended-mint intent-constraint BLOCKED",
+    });
+    expect(refused.ok).toBe(false);
+    if (!refused.ok) expect(refused.reason).toMatch(/non-option-C|#5690/);
+    expect(hasMergePathExplicitFinishAttestation(root, 5690)).toBe(false);
+
+    const flagged = writeMergePathExplicitFinishAttestation(root, 5690, {
+      reason: "option-C explicit finish",
+      mintGateBlocked: true,
+    });
+    expect(flagged.ok).toBe(false);
+
+    const allowed = writeMergePathExplicitFinishAttestation(root, 5691, {
+      reason: "option-C human abandon",
+    });
+    expect(allowed.ok).toBe(true);
+    expect(hasMergePathExplicitFinishAttestation(root, 5691)).toBe(true);
+  });
+
+  it("mint-PR-only waiter does not arm the product PR", () => {
+    const mintOnly = evaluateProductLiveWaitContinuity({
+      productPr: 5682,
+      waitingPr: 5686,
+      waitLive: true,
+    });
+    expect(mintOnly.productLiveWait).toBe(false);
+    expect(mintOnly.mintOnlyWaiter).toBe(true);
+
+    const product = evaluateProductLiveWaitContinuity({
+      productPr: 5682,
+      waitingPr: 5682,
+      waitLive: true,
+    });
+    expect(product.productLiveWait).toBe(true);
+    expect(product.mintOnlyWaiter).toBe(false);
+  });
+
+  it("CLEAN-before-mint keeps post-CLEAN closer as owner (not restarted pre-CLEAN watch)", () => {
+    const phase = resolveCleanBeforeMintPhaseOwner({
+      productClean: true,
+      mintPending: true,
+      preCleanWaitLive: false,
+      postCleanCloserLive: true,
+    });
+    expect(phase.phase).toBe("post-clean-closer");
+    expect(phase.ownerKind).toBe("post-clean-closer");
+    expect(phase.livePhaseCorrectWait).toBe(true);
+    expect(phase.restartPreCleanWatchForbidden).toBe(true);
+
+    const closerDead = resolveCleanBeforeMintPhaseOwner({
+      productClean: true,
+      mintPending: true,
+      preCleanWaitLive: true,
+      postCleanCloserLive: false,
+    });
+    expect(closerDead.livePhaseCorrectWait).toBe(false);
+    expect(closerDead.ownerKind).toBe("none");
+    expect(closerDead.restartPreCleanWatchForbidden).toBe(true);
+  });
+
+  it("mint-exit call-site binds evaluateMergePathArm; closer-mint-BLOCKED stays unarmed non-option-C", () => {
+    const live = evaluateProductArmAtMintExit({
+      livePhaseCorrectWait: true,
+      stickyLeaseActive: true,
+      mintGateBlocked: true,
+      explicitFinish: true,
+    });
+    expect(live.forbidExplicitFinish).toBe(true);
+    expect(live.classification).toBe("armed-live");
+    expect(live.mustRemediateBeforeMintAttention).toBe(false);
+    expect(live.arm.reason).toBe("live_wait");
+
+    const closerMintBlocked = evaluateProductArmAtMintExit({
+      livePhaseCorrectWait: false,
+      stickyLeaseActive: true,
+      mintGateBlocked: true,
+      explicitFinish: true,
+    });
+    expect(closerMintBlocked.forbidExplicitFinish).toBe(true);
+    expect(closerMintBlocked.classification).toBe("unarmed");
+    expect(closerMintBlocked.mustRemediateBeforeMintAttention).toBe(true);
+    expect(closerMintBlocked.arm.reason).toBe("unarmed_stand_down");
+    expect(closerMintBlocked.arm.armed).toBe(false);
+    expect(closerMintBlocked.message).toMatch(/same-turn|mint-exit|#5690/);
+  });
+
+  it("fixture-supplied livePhaseCorrectWait:true alone is not CLEAN-before-mint proof", () => {
+    // Regression contract: callers must derive live wait via closer/bind evidence.
+    // A bare true fixture arms evaluateMergePathArm but does not prove CLEAN-before-mint.
+    const bareTrue = evaluateProductArmAtMintExit({
+      livePhaseCorrectWait: true,
+      mintGateBlocked: true,
+    });
+    expect(bareTrue.arm.armed).toBe(true);
+    const phaseProof = resolveCleanBeforeMintPhaseOwner({
+      productClean: true,
+      mintPending: true,
+      preCleanWaitLive: false,
+      postCleanCloserLive: false,
+    });
+    expect(phaseProof.livePhaseCorrectWait).toBe(false);
+    expect(phaseProof.ownerKind).toBe("none");
   });
 });
 

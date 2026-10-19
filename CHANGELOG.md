@@ -6,6 +6,84 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Added
+
+### Changed
+- Changed — Activate Prefer-A Bound security cohort briefs for Dependabot and CodeQL HIGH work (#5737 #5740-#5748); product fixes land in follow-on PRs.
+
+### Fixed
+- Fixed — Remint intent-constraint for #5742 numeric-const bounds 512/200/40. Approval record only; no product behavior change. Refs #5742.
+- Fixed — Prepare approved-scope mint for #5744 (branches.test.ts membership). Records approval only; no product behavior change. Refs #5744.
+- Fixed — Record intent-constraint mint for #5742 greptile-detector ReDoS invariant. Approval record only; no product behavior change. Refs #5742.
+- Fixed — Pin brace-expansion@5 to 5.0.12 (Dependabot #16/#17/#18). Tracking #5737.
+- Fixed — Bound Last-reviewed markdown-link SHA parse in greptile-detector (CodeQL alert #112). Tracking #5742.
+- Fixed — Replace COMMA_LIST_TAIL_RE with a monotonic character scanner in pr-closing-keywords detect (CodeQL polynomial-redos alert #121). Tracking #5745.
+- Fixed — Clear CodeQL `js/polynomial-redos` alert #144 in `countFailedTestsFromSanitizedOutput` by rewriting the Tests-failed line parse to a per-line anchored scan (no `/(?:^|\n)\s*…/` shape). Refs #5748, CodeQL alert #144.
+- Fixed — Harden presentation-ceiling HTML script end-tag extraction with a delimiter-aware close so CodeQL js/bad-tag-filter alert #143 clears. Refs #5747 / CodeQL alert #143.
+- Fixed — GHES provisioning test binds --hostname/-H to an exact next argv host token (no hostname substring includes); clears CodeQL js/incomplete-url-substring-sanitization alert #137. Refs #137 #5746.
+
+### Security
+
+- **Dependabot high: source-map-js (alert #19).** Force source-map-js@1.2.2. Tracking #5740.
+- **CodeQL bad-tag-filter in spec-authority banner test (alert #109).** Tracking #5741.
+- **CodeQL polynomial-redos in docs-impact surfaces: parse (alert #114).** Tracking #5743.
+
+
+### Removed
+
+## [0.126.1] - 2026-10-19
+
+> Design-thinking UAT prep (#5691), interview ProblemStatement (#5692), rapid Findings (#5693), design-critique before ingest (#5716), deposit-only soft-visibility (#4229), Grok PreToolUse wrapper (#5715), pre-filing search (#1178), feedback:file closed disposition (#5099), Approach1 mint-gate merge-path (#5690)
+
+### Added
+- Added — design-thinking preparatory strategy: Empathize → Define → Ideate → UAT-planning emits `x-directive/requires: uat` items with interview handoff carrier + omission check; BMAD skip via `stampNamespacedDisposition`; `--data` TrustLevel:external + Security context (#480); pack-only registration. Refs #5691.
+- Added — interview pre-sizing who/need `ProblemStatement` SHOULD (Light+Full): lawful sizing exemption, reframe not dual-ask, Light slim merge + Full reuse, persist at confirm gate, local recorded skip, discuss Challenge Vagueness solution-first example. Refs #5692.
+- Added — design-critique arc recommended before every issue:ingest; classify-then-emit arced|skipped-recorded|neither with design_critique_ingest_posture run-summary; advisory exit 0 never blocks; ADR-005 unchanged; agents-entry pointer (deleted Structured decision log always-on line). Refs #5716.
+- Added — Prefer-A Recut-1 deposit-only vs lifecycle soft-visibility: never-incepted occupancy SoT (cancelled counts as history), doctor soft-warn + first-scope Next, Taskfile-unavailable status token (#3335 impact=none), CLI-native getting-started/commands lead, process-use checklist on agents-entry; ARC-before-ingest dominated to #5716. Refs #4229.
+- Added — rapid Step 1 records Hypothesis/Audience/PrototypeKind with separate Dual Stop fields; Step 5 pins Findings before experiment_archived; archive requires trim-non-empty Findings on the completing brief. Refs #5693.
+- Added — pre-filing closed-issue/PR search: article-review Step 5 requires both closed passes with coverage tokens and disposition; pre-pr owns first-PR-open path-intersection; thin AGENTS pointer. Refs #1178.
+- Added — article-review Step 6.5 process-only critic pass before filing, with Step 5 mechanism inventory and Critic verdict section on filed issues. Refs #5694.
+- Added — Prefer-A Recut-2 for `feedback:file`: complete open inventory dedup, closed retained-count window (500) with disposition tokens, open-match evidence comment (`commented-open-duplicate`), and `--on-closed=comment|create-anyway` without reopen. Refs #5099.
+- Added — Helpers for reviewing a brief without creating a GitHub issue. These support file-based critic results, retained review records, and returning the accepted remedy to the same brief. Refs #5486.
+
+### Changed
+- Changed - Correct #5716 merge-base file_scope: replace nonexistent lifecycle/issue-ingest with intake/issue-ingest so product PR #5750 clears verify:scope-provenance membership (#5192). Refs #5716 #5750.
+- Changed - Widen #5716 merge-base file_scope for product membership (AGENTS.md, ingest-posture, issue-ingest, telemetry enrollment, contract tests, PROJECT-DEFINITION) so product PR #5750 clears verify:scope-provenance (#5192 / #4956). Refs #5716 #5750.
+- Changed - Widen #5716 merge-base file_scope for docs/RULE-MAP.md so product PR #5750 can land regenerated Rule Map (#5192). Refs #5716 #5750.
+- Changed - Activate Prefer-A Bound running brief for #5715 on master (proceed cohort add; productPullRequest unset). Refs #5715.
+- Changed - Widen #5691 merge-base file_scope for docs/RULE-MAP.md so product PR #5734 can land regenerated Rule Map (#5192). Refs #5691 #5734.
+- Changed - Widen #4229 merge-base file_scope for docs/RULE-MAP.md so product PR #5729 can land regenerated Rule Map (#5192). Refs #4229 #5729.
+- Changed — Activate Prefer-A Recut-3 running brief for #5716 on master (proceed cohort add; productPullRequest unset). Refs #5716.
+- Changed — Activate Prefer-A Recut-1 running brief for #4229 on master (proceed cohort add; productPullRequest unset). Refs #4229.
+- Changed — Widen #5693 proceed file_scope for tutorial Findings close surfaces (beats/proof/skills-pack/SKILL) plus RULE-MAP. Refs #5693.
+- Changed — Activate Prefer-A Bound running briefs for #5691 #5692 #5693 on master (proceed cohort add; productPullRequest unset). Refs #5691 #5692 #5693.
+- Changed — Activate Prefer-A Bound running briefs for #5099 and #1178 on master (proceed cohort add; productPullRequest unset). Refs #5099 #1178.
+- Changed — Activate Prefer-A Bound running brief for #5694 on master (proceed cohort add; productPullRequest unset). Refs #5694.
+- Changed — Activate Prefer-A Bound running briefs for #5690 and #5486 on master (proceed cohort; productPullRequest unset). Refs #5690 #5486.
+
+### Fixed
+- Fixed — Land tracked completion records for #5691 #5692 #5693 #4229 #5715 #5716 after product PRs #5734 #5723 #5713 #5729 #5749 #5750. Refs #5691 #5692 #5693 #4229 #5715 #5716.
+
+- Fixed — Grok PreToolUse wrapper command deposits `./deft-pretooluse-wrapper.sh` (beside deft.json) instead of the repo-root REL_PATH that doubled under `.grok/hooks/`. Inspect marks legacy REL_PATH drifted; recovery is install fixed engine, `deft update` / redeposit, then a **new** Grok session. Refs #5715.
+- Fixed — design-thinking handoff: add executable evaluateDesignThinkingUatOmissionCheck content-contract (source→destination) with recovery message. Refs #5691.
+- Fixed — design-thinking handoff: omission check is source→destination transfer-presence only; keep evaluateAcceptanceEvidenceGate at scope:complete (not at handoff); standalone fall back to interview chaining gate. Refs #5691.
+- Fixed - Widen #5692 membership so the regenerated Rule Map can land with the interview ProblemStatement change. Refs #5692.
+- Greptile P1 on #5692: ProblemStatement pre-scope ask is SHOULD (recorded skip ok); persist via PROJECT-DEFINITION merge not Phase-2 write-narratives; widen file_scope for docs/RULE-MAP.md regen.
+- Fixed — Tutorial close records Findings before experiment_archived (beats/proof/skills-pack); removes interim practice-id seed. Refs #5693.
+- Fixed — Land tracked completion records for #5486 (PR #5705), #5099 (PR #5707), and #1178 (PR #5708). Refs #5486 #5099 #1178.
+- Fixed — Land tracked completion records for #5690 (PR #5704) and #5694 (PR #5706). Refs #5690 #5694.
+- **CLI `verify:review-monitor --explicit-finish` honors mint-gate refusal (#5690).** Pass `--mint-gate-blocked` / mint-marker `--reason` into `writeMergePathExplicitFinishAttestation` so cohort `halted-explicit` cannot mask an unarmed product PR. Raise `agentsMdBudget.absoluteMaxBytes` 28100→28400 for the #5318/#5690 agents-entry pointer; sync review-cycle skills pack projection. Tracking #5690.
+- **Approach 1 mint-gate exit no longer leaves the product PR merge-path unarmed (#5690).** Keep or same-turn re-arm product `--merge-path-arm --live-wait` across attended mint; mint-gate BLOCKED is non-option-C; CLEAN-before-mint keeps the post-CLEAN closer; #5318 inventory adds mint-PR-open / mint-PR-merge triggers. Tracking #5690. Refs #4882 #5219 #5318.
+
+### Removed
+
+## [0.126.0] - 2026-10-17
+
+> Through-merge cohort: mid-session deft feedback:file path, applying-host SessionStart before Shell PreToolUse, coverage waived-exit-4 and managed stamp inertness, triage:accept disclose/reuse, Harbor UUID lease and Write-hook unification.
+
+- **Fixed**: Land tracked completion record for applying-host SessionStart before Shell PreToolUse after product #5682. Refs #5676.
+- **Fixed**: Soft-pass named live occupancy owner after applying-host replace; Path B #4962 briefly cleared from active so #5676 is sole running planId for intent-constraint (re-activate #4962 after merge). Tracking #5676. Refs #5686 #5544.
 - **Path B activate #5676 sole running brief** (widened file_scope incl. co-located tests) so product PR #5682 can bind merge-base approved-scope. productPullRequest unset.
 - **Fixed**: Land tracked completion record for mid-session framework-gap filing path after product #5685. Refs #4375.
 - **Added**: Mid-session consumer framework-gap filing path (#4375). Wire `deft policy:enable-value-feedback -- --confirm --upstream-prompt` (bare `--confirm` leaves `upstreamPrompt` false); keep engine gate; pack + discovery inventory mid-session selection; gate-free `content/docs/framework-gap-filing.md`; gate-OFF dry-run/`--json` title+body readout; primary spelling `deft feedback:file`. Tracking #4375. Refs #1709.
@@ -42,6 +120,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Restore Prefer-A Bound keep-active brief for #3908 (productPullRequest unset; concrete file_scope). Tracking #3908.
 ### Fixed
 - **`triage:accept` now shows whether a brief was created, reused, or refused (#4962).** It reuses a single owning brief for the same issue and repository. When several briefs own the issue, or the owning brief is completed or cancelled, it refuses without creating another brief. Tracking #4962.
+- **SessionStart publishes applying-host before Shell PreToolUse (#5676).** Worktree `.deft/applying-host.json` records provider, raw id, `applyingHostSessionId`, and `claimed_at`. Non-matching multi-host deposits soft-pass when the command names that id; leftover `GROK_SESSION_ID` alone does not remap native Cursor to `host:claude` (genuine `GROK_HOOK_EVENT` Claude→grok preserved). Read-only `session:start` may bootstrap the record; mutation/rearm republishes as reinforcement. UUID residuals stay under #5544. Tracking #5676 / Refs #5544 #4708 #4660.
 - **Pre-push three-axis guidance no longer requires remote PR head match (#4888).** Local merge-chokepoint `deft check`/`task check` validates before push; `evaluateNonCascadeCandidateGreen` SHA-pair attestation applies after push when local HEAD matches the live remote PR head (and on conflict-resolve/behind-rebase). Tracking #4888.
 - **Combined cascade + candidate-validation limbs no longer skip attestation (#4888).** When both `cascadeMode` and `requireCandidateValidation` are set, cascade absolute refusal still runs first, then candidate validation must pass. Cascade-only callers stay cascade-only. Tracking #4888.
 - **Issue #3906 now has a tracked completion record.** The record links to the fix delivered in #5649, so the issue can close without losing its scope history. Tracking #3906.
@@ -7256,7 +7335,9 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.125.2...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.126.1...HEAD
+[0.126.1]: https://github.com/deftai/directive/compare/v0.126.0...v0.126.1
+[0.126.0]: https://github.com/deftai/directive/compare/v0.125.2...v0.126.0
 [0.125.2]: https://github.com/deftai/directive/compare/v0.125.1...v0.125.2
 [0.125.1]: https://github.com/deftai/directive/compare/v0.125.0...v0.125.1
 [0.125.0]: https://github.com/deftai/directive/compare/v0.124.0...v0.125.0
@@ -7521,6 +7602,7 @@ If you have custom scripts or references to deft files, update these paths:
 [0.2.0]: https://github.com/visionik/warping/releases/tag/v0.2.0
 
 [0.1.0]: https://github.com/visionik/warping/releases/tag/v0.1.0
+
 
 
 

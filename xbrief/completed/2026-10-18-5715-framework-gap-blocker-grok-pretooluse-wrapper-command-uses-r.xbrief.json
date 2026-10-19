@@ -1,0 +1,272 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5715",
+    "updated": "2026-10-19T03:46:03Z"
+  },
+  "plan": {
+    "title": "[framework-gap] BLOCKER Grok PreToolUse wrapper command uses repo-root path; Grok resolves relative to .grok/hooks/ and doubles it",
+    "status": "completed",
+    "narratives": {
+      "Description": "[framework-gap] BLOCKER Grok PreToolUse wrapper command uses repo-root path; Grok resolves relative to .grok/hooks/ and doubles it",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5715",
+      "Overview": "## Summary\n\nGrok PreToolUse wrapper command uses repo-root path; Grok resolves relative to .grok/hooks/ and doubles it\n\n## Context\n\nConsumer llmz on @deftai/directive 0.126.0 / engine 0.126.0. Path B / Prefer-A Bound #5656 deposits GROK_PRETOOLUSE_WRAPPER_REL_PATH into .grok/hooks/deft.json PreToolUse command. Observed in visionik/llmz during foundation land; session hook_execution updates show project/deft PreToolUse failing every Shell matcher.\n\n## Expected behavior\n\nGrok PreToolUse command for the outer-deny wrapper should resolve to <project>/.grok/hooks/deft-pretooluse-wrapper.sh (beside deft.json), matching Grok hooks docs: relative commands resolve against the JSON file directory. nestedToolCommand should deposit a basename or ./deft-pretooluse-wrapper.sh for host===grok tool.before while still writing the script file at .grok/hooks/deft-pretooluse-wrapper.sh.\n\n## Actual behavior / gap\n\nnestedToolCommand returns GROK_PRETOOLUSE_WRAPPER_REL_PATH = \".grok/hooks/deft-pretooluse-wrapper.sh\" and writeAgentHookDeposit writes that string into deft.json command. Grok joins it under the hooks dir → <project>/.grok/hooks/.grok/hooks/deft-pretooluse-wrapper.sh → command not found. Real file is <project>/.grok/hooks/deft-pretooluse-wrapper.sh. Introduced in 0.126 deposit (consumer commit f30bc9c chore/directive-0.126.0). Session kept failing after stash restored bare deft-hook because hooks load at session start.\n\n## Session notes\n\nRepro: deposit 0.126 Grok hooks; inspect PreToolUse command; start Grok session; any run_terminal_command. Evidence: updates.jsonl project/deft pre_tool_use failed error command not found doubled path. Grok docs 10-hooks.md: relative to the JSON file. Fix: keep file write at GROK_PRETOOLUSE_WRAPPER_REL_PATH; change nestedToolCommand grok/tool.before return to GROK_PRETOOLUSE_WRAPPER_MARKER or ./ + marker. Claude-style root-relative paths remain wrong for Grok command field.\n\n## Adoption impact\n\nThis report is a consumer hard-stop: the consumer cannot complete an intended Directive flow and has no reasonable workaround.\n\nTitle token: `BLOCKER`. This token does not apply the `adoption-blocker` ranking label. A privileged actor applies that label after the body-evidence test.\n\n### Affected consumer flow and version\n\nGrok Build PreToolUse outer-deny (#5656 Prefer-A Bound) on consumer @deftai/directive@0.126.0\n\n### Documented alternatives attempted\n\nHand-edit deft.json command to basename deft-pretooluse-wrapper.sh; or revert PreToolUse to bare deft-hook (loses outer-deny); or deft policy:disable-host-hooks --host grok --confirm (disables Grok host hooks). None preserve deposited #5656 outer-deny without manual edit.\n\n### Observed recovery cost\n\nEvery Grok PreToolUse Shell/Write matcher fails open or skips outer-deny until session restart after hand-edit; blocks trustworthy fail-closed mutation gating on Grok for 0.126 consumers.\n\n### Triage owner and date\n\nScott (MScottAdams), 2026-10-18\n\n---\n_Filed via `deft feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._\n\n",
+      "Labels": "bug, adoption-blocker, agent-experience, process, source-of-truth, urgent, area:cli, dogfood, design-critique:ingest-ready, framework-gap, core-capabilities, promise:lifecycle, promise:gates, promise:swarm"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Export GROK_PRETOOLUSE_WRAPPER_COMMAND as ./ + MARKER; nestedToolCommand for grok tool.before returns that only; keep script write at REL_PATH",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/init-deposit/agent-hooks.ts",
+        "narrative": {
+          "Acceptance": "Export GROK_PRETOOLUSE_WRAPPER_COMMAND as ./ + MARKER; nestedToolCommand for grok tool.before returns that only; keep script write at REL_PATH"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5749",
+          "recorded_at": "2026-10-19T03:46:02.232Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Deposit tests assert exact ./ command equality and resolve beside the Grok hooks JSON to the wrapper path; refuse toContain(MARKER) as PreToolUse proof",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/init-deposit/agent-hooks.test.ts",
+        "narrative": {
+          "Acceptance": "Deposit tests assert exact ./ command equality and resolve beside the Grok hooks JSON to the wrapper path; refuse toContain(MARKER) as PreToolUse proof"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5749",
+          "recorded_at": "2026-10-19T03:46:02.232Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Old-command fixture: seed REL_PATH PreToolUse; after redeposit commands are ./ form; health healthy; isGrokWrapperCommand recognizes old and new",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/init-deposit/agent-hooks.test.ts",
+        "narrative": {
+          "Acceptance": "Old-command fixture: seed REL_PATH PreToolUse; after redeposit commands are ./ form; health healthy; isGrokWrapperCommand recognizes old and new"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5749",
+          "recorded_at": "2026-10-19T03:46:02.232Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "inspectAgentHookDeposit grok branch: REL_PATH PreToolUse that does not resolve beside the hooks JSON to the wrapper returns drifted with redeposit + new session recovery",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/init-deposit/agent-hooks.ts",
+        "narrative": {
+          "Acceptance": "inspectAgentHookDeposit grok branch: REL_PATH PreToolUse that does not resolve beside the hooks JSON to the wrapper returns drifted with redeposit + new session recovery"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5749",
+          "recorded_at": "2026-10-19T03:46:02.232Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Recovery text in inspect detail and CHANGELOG: install fixed engine, deft update/redeposit, then new Grok session",
+        "status": "completed",
+        "x-directive/artifact_path": "CHANGELOG.md",
+        "narrative": {
+          "Acceptance": "Recovery text in inspect detail and CHANGELOG: install fixed engine, deft update/redeposit, then new Grok session"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5749",
+          "recorded_at": "2026-10-19T03:46:02.232Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "urgent",
+      "area:cli",
+      "dogfood",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:lifecycle",
+      "promise:gates",
+      "promise:swarm"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5715",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5715: [framework-gap] BLOCKER Grok PreToolUse wrapper command uses repo-root path; Grok resolves relative to .grok/hooks/ and doubles it"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/init-deposit/agent-hooks.test.ts"
+      ],
+      "none_stated": false,
+      "sentences": [],
+      "confessions": [
+        "issue-body prose harvested into plan.items; free sentences cleared for leftover-complete #3550"
+      ],
+      "ambiguity_attestation": "none_found",
+      "clauses": [
+        {
+          "id": "clause.1",
+          "text": "Export GROK_PRETOOLUSE_WRAPPER_COMMAND as ./ + MARKER; nestedToolCommand for grok tool.before returns that only; keep script write at REL_PATH",
+          "title": "Export GROK_PRETOOLUSE_WRAPPER_COMMAND as ./ + MARKER; nestedToolCommand for grok tool.before returns that only; keep script write at REL_PATH",
+          "x-directive/artifact_path": "packages/core/src/init-deposit/agent-hooks.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5749",
+            "recorded_at": "2026-10-19T03:46:02.232Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
+        },
+        {
+          "id": "clause.2",
+          "text": "Deposit tests assert exact ./ command equality and resolve beside the Grok hooks JSON to the wrapper path; refuse toContain(MARKER) as PreToolUse proof",
+          "title": "Deposit tests assert exact ./ command equality and resolve beside the Grok hooks JSON to the wrapper path; refuse toContain(MARKER) as PreToolUse proof",
+          "x-directive/artifact_path": "packages/core/src/init-deposit/agent-hooks.test.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5749",
+            "recorded_at": "2026-10-19T03:46:02.232Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
+        },
+        {
+          "id": "clause.3",
+          "text": "Old-command fixture: seed REL_PATH PreToolUse; after redeposit commands are ./ form; health healthy; isGrokWrapperCommand recognizes old and new",
+          "title": "Old-command fixture: seed REL_PATH PreToolUse; after redeposit commands are ./ form; health healthy; isGrokWrapperCommand recognizes old and new",
+          "x-directive/artifact_path": "packages/core/src/init-deposit/agent-hooks.test.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5749",
+            "recorded_at": "2026-10-19T03:46:02.232Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
+        },
+        {
+          "id": "clause.4",
+          "text": "inspectAgentHookDeposit grok branch: REL_PATH PreToolUse that does not resolve beside the hooks JSON to the wrapper returns drifted with redeposit + new session recovery",
+          "title": "inspectAgentHookDeposit grok branch: REL_PATH PreToolUse that does not resolve beside the hooks JSON to the wrapper returns drifted with redeposit + new session recovery",
+          "x-directive/artifact_path": "packages/core/src/init-deposit/agent-hooks.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5749",
+            "recorded_at": "2026-10-19T03:46:02.232Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
+        },
+        {
+          "id": "clause.5",
+          "text": "Recovery text in inspect detail and CHANGELOG: install fixed engine, deft update/redeposit, then new Grok session",
+          "title": "Recovery text in inspect detail and CHANGELOG: install fixed engine, deft update/redeposit, then new Grok session",
+          "x-directive/artifact_path": "CHANGELOG.md",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5749",
+            "recorded_at": "2026-10-19T03:46:02.232Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
+        }
+      ],
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A Bound limbs with completion evidence"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/init-deposit/agent-hooks.ts",
+          "packages/core/src/init-deposit/agent-hooks.test.ts",
+          "packages/core/src/init-deposit/constants.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "Grok PreToolUse wrapper command path beside deft.json",
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #5715 Prefer-A Bound."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5912828768,
+        "origin": "deftai/directive#5715",
+        "id": "github.issue.5912828768"
+      },
+      "x-directive/admitted-target-digest": "sha256:24b88789a3a4e447753efaeccc16ef404cad13122a13a0c7432fcefa9fbadf33",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "grok-pretooluse-wrapper-command-path-doubling",
+        "expected_outputs": [
+          "Tracking PR for #5715 Prefer-A Grok PreToolUse ./ wrapper command"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/init-deposit/agent-hooks.test.ts"
+        ],
+        "file_scope": [
+          "packages/core/src/init-deposit/agent-hooks.ts",
+          "packages/core/src/init-deposit/agent-hooks.test.ts",
+          "packages/core/src/init-deposit/constants.ts",
+          "CHANGELOG.md",
+          "xbrief/active/2026-10-18-5715-framework-gap-blocker-grok-pretooluse-wrapper-command-uses-r.xbrief.json"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5715",
+          "#5656"
+        ],
+        "parallel_safe": true
+      },
+      "productPullRequest": 5749,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "55dd2477a6cf3c668d493be933d546edfbae2cc4",
+        "prNumber": 5749,
+        "prBase": "master",
+        "mergeCommit": "8c96cf534137c83de0dfd24e0998b4cd6443472c",
+        "deliveryBranch": "master",
+        "deliveryCommit": "b78049e00e5e353b981e269dac5560c07e4cd50e",
+        "verifiedAt": "2026-10-19T03:46:03Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTRjM2QtZDBmZS03ODYzLWJkMTUtZmVlZjI1NDVlN2Nj"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-19T03:46:03Z",
+      "completedSessionId": "host:grok:v1:MDFhMTRjM2QtZDBmZS03ODYzLWJkMTUtZmVlZjI1NDVlN2Nj",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-19T03:46:03Z"
+      }
+    },
+    "id": "github.issue.5912828768",
+    "updated": "2026-10-19T03:46:03Z"
+  }
+}

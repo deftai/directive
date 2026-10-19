@@ -1,12 +1,24 @@
 # Getting Started with Deft Directive
 
-Deft Directive is a Taskfile-first framework for AI-assisted software work. It combines agent guidance, deterministic gates, xBRIEF lifecycle metadata, installer/doctor handoff, and cache-backed backlog workflows. This guide is the **first-project long form**: one path from install through a green Directive check.
+Deft Directive is a CLI-native framework for AI-assisted software work (`directive` / `deft` primary; Taskfile optional parallel). It combines agent guidance, deterministic gates, xBRIEF lifecycle metadata, installer/doctor handoff, and cache-backed backlog workflows. This guide is the **first-project long form**: one path from install through a green Directive check.
 
 > **Note**: For a single-picture mental model of how Directive turns an idea into shipped work, see [the Directive lifecycle](./directive-lifecycle.md). For command behavior, see [commands.md](../commands.md). Agent detect-state and recovery live in [QUICK-START.md](../QUICK-START.md). This page is that path's long form, not a second install sequence.
 
 ## The shape of the workflow
 
 Directive is two connected phases that repeat: an **inception** phase (Concept → Strategy Analysis → Specification + Artifacts) that feeds a recurring **per-session** phase (Session Start → Triage/Refine → Slice → Swarm → Review/Fix → Ship). Shipping surfaces new issues that flow back into the queue. The stage-to-command mapping lives in [the Directive lifecycle overview](./directive-lifecycle.md).
+
+## Process-use reporting (#4229)
+
+Claiming used-Directive for product work must name the relevant scope path, lifecycle progress (proposed through completed), and delivery evidence — not deposit or init alone.
+
+**You have not used Directive if:**
+
+1. Only PROJECT-DEFINITION exists and lifecycle folders are empty.
+2. Specs live only under docs/ outside the xBRIEF lifecycle.
+3. There was no promote/activate/session/implement against an active scope for the claimed work.
+
+Lawful idle / empty-active after real history is not failure. ARC-before-ingest posture is owned by open #5716 — do not treat ARC always-on as shipped here.
 
 ## Deft & Directive (naming)
 

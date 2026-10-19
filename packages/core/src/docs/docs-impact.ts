@@ -66,12 +66,55 @@ export type RunGitFn = (args: readonly string[]) => {
 
 const NO_IMPACT_RE = /no user-doc impact/i;
 const CHANGE_CLASS_RE = /^change_class:\s*(add|change|withdraw|none)\s*$/im;
-const SURFACES_RE = /^surfaces:\s*(.+)\s*$/im;
 const RATIONALE_RE = /^rationale:\s*"((?:\\.|[^"\\])*)"\s*$/im;
 const HELP_KEY_RE = /^\s+"([^"]+)": \{/gm;
 const SKILL_MD_RE = /^content\/skills\/([^/]+)\/SKILL\.md$/;
 const DOCS_SITE_RE = /^docs-site\/[^/]+\.html$/;
 const TASK_FRAGMENT_RE = /^tasks\/([^./]+)\.yml$/;
+const SURFACES_PREFIX = "surfaces:";
+
+/**
+ * First `surfaces:` field value (remainder of matching line, trimmed).
+ * Linear scan — replaces `/^surfaces:\s*(.+)\s*$/im` (CodeQL js/polynomial-redos alert #114 / #5743).
+ *
+ * Compatibility (Prefer-A Bound limb 2):
+ * - Same-line remainder only (intentional narrow change vs old leading `\s*`, which
+ *   could span LF/CRLF/LS/PS and capture the next line).
+ * - Bare `surfaces:` (no characters after the colon) is not a match (null), matching
+ *   the old `.+` requirement; whitespace-only remainder is a match with empty trim.
+ * - First matching line wins when duplicates exist.
+ * - Prefix match is case-insensitive (old `/i`).
+ */
+export function matchSurfacesField(body: string): string | null {
+  let start = 0;
+  const length = body.length;
+  while (start <= length) {
+    let end = start;
+    while (end < length) {
+      const ch = body.charCodeAt(end);
+      if (ch === 0x0a || ch === 0x0d || ch === 0x2028 || ch === 0x2029) break;
+      end += 1;
+    }
+    const line = body.slice(start, end);
+    if (line.length >= SURFACES_PREFIX.length) {
+      const head = line.slice(0, SURFACES_PREFIX.length);
+      if (head.toLowerCase() === SURFACES_PREFIX) {
+        const rest = line.slice(SURFACES_PREFIX.length);
+        // Old `.+` required at least one character after the colon.
+        if (rest.length > 0) {
+          return rest.trim();
+        }
+      }
+    }
+    if (end >= length) break;
+    if (body.charCodeAt(end) === 0x0d && end + 1 < length && body.charCodeAt(end + 1) === 0x0a) {
+      start = end + 2;
+    } else {
+      start = end + 1;
+    }
+  }
+  return null;
+}
 
 function isClosedKind(value: string): value is ClosedSurfaceKind {
   return (CLOSED_SURFACE_KINDS as readonly string[]).includes(value);
@@ -112,12 +155,12 @@ export function parseDocsImpactDeclaration(body: string): {
   const errors: string[] = [];
   const noUserDocImpact = NO_IMPACT_RE.test(body);
   const classMatch = CHANGE_CLASS_RE.exec(body);
-  const surfacesMatch = SURFACES_RE.exec(body);
+  const surfacesRaw = matchSurfacesField(body);
   const rationaleMatch = RATIONALE_RE.exec(body);
   if (classMatch === null && !noUserDocImpact) {
     errors.push("missing documentation-impact declaration (change_class or `no user-doc impact`)");
   }
-  if (surfacesMatch === null && !noUserDocImpact) {
+  if (surfacesRaw === null && !noUserDocImpact) {
     errors.push("missing surfaces: field (use `none` or kind:id list)");
   }
   if (rationaleMatch === null) {
@@ -145,7 +188,7 @@ export function parseDocsImpactDeclaration(body: string): {
     return { declaration: null, errors };
   }
   const changeClass: DocsImpactChangeClass = isChangeClass(classRaw) ? classRaw : "none";
-  const surfaces = noUserDocImpact ? [] : parseDeclaredSurfaces(surfacesMatch?.[1] ?? "none");
+  const surfaces = noUserDocImpact ? [] : parseDeclaredSurfaces(surfacesRaw ?? "none");
   return {
     declaration: {
       changeClass,

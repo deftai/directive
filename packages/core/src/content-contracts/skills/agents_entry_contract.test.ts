@@ -191,6 +191,12 @@ const RULE_AUTHORITY_THIN_FAIL_CLOSED_POINTER_MARKERS = [
   "One fail-closed `task deft:*` check + one remediation",
 ] as const;
 
+/** Always-on pre-ingest arc-or-skip pointer (#5716). */
+const DESIGN_CRITIQUE_PRE_INGEST_MARKERS = [
+  "Before issue:ingest",
+  "design-critique: not warranted, because",
+] as const;
+
 /** Always-on writing bar (#3368) — three words must stay in the line. */
 const WRITING_BAR_MARKERS = [
   "Clarity, simplicity, brevity",
@@ -946,6 +952,11 @@ describe("test_agents_entry_contract", () => {
   it("writing_bar_markers_present_in_both_files", () => {
     expect(missingMarkers(template, WRITING_BAR_MARKERS)).toEqual([]);
     expect(missingMarkers(agents, WRITING_BAR_MARKERS)).toEqual([]);
+  });
+
+  it("design_critique_pre_ingest_markers_present_in_both_files", () => {
+    expect(missingMarkers(template, DESIGN_CRITIQUE_PRE_INGEST_MARKERS)).toEqual([]);
+    expect(missingMarkers(agents, DESIGN_CRITIQUE_PRE_INGEST_MARKERS)).toEqual([]);
   });
 
   it("through_merge_dispatch_markers_present_in_both_files", () => {

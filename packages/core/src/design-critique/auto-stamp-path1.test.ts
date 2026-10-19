@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { resolveAutoStampCatalogChip } from "./auto-stamp-chip.js";
 import {
+  CHOSEN_CRITIC_WRITE_POSTURE,
   evaluateAutoStampPath1Write,
+  evaluateNoIssueGateAdmission,
   isPainCoverageBlockReason,
   leanCiteOnlyPath1Body,
   PAIN_COVERAGE_BLOCK_REASONS,
@@ -444,5 +446,103 @@ describe("path-1 plain-English summary (#5415)", () => {
       ok: false,
       reason: "empty-plain-english-summary",
     });
+  });
+});
+
+describe("no-issue gate consumer / write-posture (#5486)", () => {
+  it("chooses parent-collect write posture", () => {
+    expect(CHOSEN_CRITIC_WRITE_POSTURE).toBe("parent-collect");
+  });
+
+  it("admits no-issue gate over paths/body-text without fake labels", () => {
+    const complete = {
+      status: "complete" as const,
+      synthesisCommentId: 1,
+      citedLeanId: 2,
+      citedTableId: null,
+    };
+    expect(
+      evaluateNoIssueGateAdmission({
+        targetId: "xbrief/proposed/demo.xbrief.json",
+        targetKind: "xbrief",
+        authoritativeMarker: "mechanism-shaped: true",
+        completedArc: complete,
+        liveRevisionDigest: "abc",
+        pinnedTargetDigest: "abc",
+        match: {
+          paths: { "any-of": ["xbrief/proposed/demo.xbrief.json"] },
+          "body-text": { "any-of": ["mechanism-shaped: true"] },
+        },
+      }),
+    ).toEqual({ ok: true, entryPoint: "evaluateNoIssueGateAdmission" });
+    expect(
+      evaluateNoIssueGateAdmission({
+        targetId: "xbrief/proposed/demo.xbrief.json",
+        targetKind: "xbrief",
+        authoritativeMarker: "mechanism-shaped: true",
+        completedArc: complete,
+        liveRevisionDigest: "abc",
+        pinnedTargetDigest: "abc",
+        match: { labels: { "any-of": ["design-critique:mechanism-shaped"] } },
+      }).ok,
+    ).toBe(false);
+  });
+
+  it("refuses nonmatching paths/body-text values and unsupported issue-path predicates", () => {
+    const complete = {
+      status: "complete" as const,
+      synthesisCommentId: 1,
+      citedLeanId: 2,
+      citedTableId: null,
+    };
+    const base = {
+      targetId: "xbrief/proposed/demo.xbrief.json",
+      targetKind: "xbrief" as const,
+      authoritativeMarker: "mechanism-shaped: true",
+      completedArc: complete,
+      liveRevisionDigest: "abc",
+      pinnedTargetDigest: "abc",
+    };
+    expect(
+      evaluateNoIssueGateAdmission({
+        ...base,
+        match: { paths: { "any-of": ["xbrief/proposed/other.xbrief.json"] } },
+      }).reason,
+    ).toBe("predicate-mismatch");
+    expect(
+      evaluateNoIssueGateAdmission({
+        ...base,
+        match: { "body-text": { "any-of": ["absent marker"] } },
+      }).reason,
+    ).toBe("predicate-mismatch");
+    expect(
+      evaluateNoIssueGateAdmission({
+        ...base,
+        match: { state: { "any-of": ["open"] } },
+      }).reason,
+    ).toBe("unrecognised-predicate");
+  });
+
+  it("admits GATE_MATCH_PREDICATES path globs and case-insensitive body-text substrings", () => {
+    const complete = {
+      status: "complete" as const,
+      synthesisCommentId: 1,
+      citedLeanId: 2,
+      citedTableId: null,
+    };
+    expect(
+      evaluateNoIssueGateAdmission({
+        targetId: "xbrief/proposed/demo.xbrief.json",
+        targetKind: "xbrief",
+        authoritativeMarker: "Mechanism-Shaped: TRUE",
+        completedArc: complete,
+        liveRevisionDigest: "abc",
+        pinnedTargetDigest: "abc",
+        match: {
+          paths: { "any-of": ["xbrief/**/*.json"] },
+          "body-text": { "any-of": ["mechanism-shaped"] },
+        },
+      }),
+    ).toEqual({ ok: true, entryPoint: "evaluateNoIssueGateAdmission" });
   });
 });

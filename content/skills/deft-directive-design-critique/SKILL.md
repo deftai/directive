@@ -1,11 +1,12 @@
 ---
 name: deft-directive-design-critique
 description: >-
-  Thin router for the design-critique motion: triggers and pointer stops into
-  the contract, including the operator-gated loop. Use when the operator asks
-  for a design critique, design-critique, critique panel, mechanism-shaped
-  triage, arc, or run an arc. Do NOT trigger on ordinary implement, build, or
-  swarm work.
+  Thin design-critique router. Before every issue:ingest: arc or record
+  design-critique: not warranted, because … (default spend N=1; panel N>=3 =
+  Stop 2). Use when the operator asks for a design critique, design-critique,
+  critique panel, mechanism-shaped triage, arc, or run an arc. Do NOT restart
+  during already-planned implement/build/swarm — newly reached issue:ingest
+  still gets arc-or-recorded-skip.
 triggers:
   - design critique
   - design-critique
@@ -28,8 +29,9 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## When to Use
 
-- Operator asks for a design critique, a design-critique, a critique panel, mechanism-shaped triage, arc, or run an arc
-- ⊗ Ordinary implement, build, or swarm work
+- Before every `issue:ingest`: arc or record `design-critique: not warranted, because …` (default spend N=1; panel N≥3 = Stop 2 permission)
+- Operator asks for design critique / arc / critique panel / mechanism-shaped triage
+- ⊗ Restart during already-planned implement/build/swarm — newly reached `issue:ingest` still gets arc-or-recorded-skip
 
 ## Stops
 
@@ -65,8 +67,7 @@ Not sequential review. Same-round critics are isolated: each reads one fixed inp
 
 After same-round siblings are posted, the parent posts the successor lean; the operator confirms or amends before bind or stamp. Under yolo, the first all-accept lean carries honest pain cites. Mid-arc EXIT does not default to operator next-envelope after that bind-capable lean; the parent fills a pain-audit brief while a Dual-stop numbered or reserved slot remains; if both are spent, raise the cap or halt.
 
-⊗ Auto-dispatch critics from this skill.
-⊗ Copy the variant table, synthesis rules, or other contract bodies into this skill.
+⊗ Auto-dispatch critics from this skill. ⊗ Copy the variant table, synthesis rules, or other contract bodies into this skill.
 
 Seat families and Grok Build launcher: Envelope and ceiling. Grok critic recovery: Design-critique dispatch (dest-rooted grok --cwd --prompt-file after recorded native deny). Native admit without skip-class is not a critic.
 Claude Critic-spawn hygiene + progress (#5478): playbook Critic-spawn hygiene + progress; #5492 adjacent (argv ceiling). Containment first; restoration needs later successful pointer-envelope completion.

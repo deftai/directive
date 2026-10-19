@@ -1,0 +1,445 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5746",
+    "updated": "2026-10-19T05:50:27Z"
+  },
+  "plan": {
+    "title": "sec(codeql): HIGH clear incomplete-url-substring-sanitization in github-auth-modes.provisioning.test.ts (alert #137)",
+    "status": "running",
+    "narratives": {
+      "Description": "sec(codeql): HIGH clear incomplete-url-substring-sanitization in github-auth-modes.provisioning.test.ts (alert #137)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5746",
+      "Overview": "## Summary\n\nCodeQL open alert on default branch: **HIGH** `js/incomplete-url-substring-sanitization` — Incomplete URL substring sanitization.\n\n| Field | Value |\n|-------|-------|\n| Alert | [#137](https://github.com/deftai/directive/security/code-scanning/137) |\n| Rule | `js/incomplete-url-substring-sanitization` |\n| Severity | HIGH |\n| Location | `packages/core/src/intake/github-auth-modes.provisioning.test.ts` ~L174 |\n| Message | 'ghe.example.com' can be anywhere in the URL, and arbitrary hosts may come before or after it. |\n\n## What to build\n\nRewrite or bound the flagged site so CodeQL `js/incomplete-url-substring-sanitization` clears for this alert (or document accepted risk with suppress + rationale if false positive after review). Prefer a real fix over suite-config changes.\n\n## Acceptance\n\n- [ ] CodeQL alert [#137](https://github.com/deftai/directive/security/code-scanning/137) clears on master (auto-close or dismiss with reason after fix).\n- [ ] Existing unit tests for the touched module still pass; add adversarial input coverage if useful.\n- [ ] CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #137.\n\n## Non-goals\n\n- Changing CodeQL suite config as the primary fix.\n- Bundling unrelated code-scanning alerts into this issue (siblings tracked separately).",
+      "Labels": "security, urgent, design-critique:ingest-ready, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "title": "CodeQL alert  clears on master (auto-close or dismiss with reason after fix).",
+        "status": "proposed",
+        "id": "clause.1",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/intake/github-auth-modes.provisioning.test.ts"
+      },
+      {
+        "title": "Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+        "status": "proposed",
+        "id": "clause.2",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/intake/github-auth-modes.provisioning.test.ts"
+      },
+      {
+        "title": "CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #137.",
+        "status": "proposed",
+        "id": "clause.3",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/intake/github-auth-modes.provisioning.test.ts"
+      }
+    ],
+    "tags": [
+      "security",
+      "urgent",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5746",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5746: sec(codeql): HIGH clear incomplete-url-substring-sanitization in github-auth-modes.provisioning.test.ts (alert #137)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "sec(codeql): HIGH clear incomplete-url-substring-sanitization in github-auth-modes.provisioning.test.ts (alert #137)",
+        "Summary CodeQL open alert on default branch: HIGH `js/incomplete-url-substring-sanitization` — Incomplete URL substring sanitization.",
+        "| Field | Value | |-------|-------| | Alert | [#137](https://github.com/deftai/directive/security/code-scanning/137) | | Rule | `js/incomplete-url-substring-sanitization` | | Severity | HIGH | | Location | `packages/core/src/intake/github-auth-modes.provisioning.test.ts` ~L174 | | Message | 'ghe.example.com' can be anywhere in the URL, and arbitrary hosts may come before or after it.",
+        "| ## What to build Rewrite or bound the flagged site so CodeQL `js/incomplete-url-substring-sanitization` clears for this alert (or document accepted risk with suppress + rationale if false positive after review).",
+        "Prefer a real fix over suite-config changes.",
+        "Acceptance - [ ] CodeQL alert [#137](https://github.com/deftai/directive/security/code-scanning/137) clears on master (auto-close or dismiss with reason after fix).",
+        "[ ] Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+        "[ ] CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #137.",
+        "Non-goals - Changing CodeQL suite config as the primary fix.",
+        "Bundling unrelated code-scanning alerts into this issue (siblings tracked separately).",
+        "CodeQL alert [#137](https://github.com/deftai/directive/security/code-scanning/137) clears on master (auto-close or dismiss with reason after fix).",
+        "Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+        "CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #137."
+      ],
+      "admitted_source_sentences": [
+        "Summary CodeQL open alert on default branch: HIGH `js/incomplete-url-substring-sanitization` — Incomplete URL substring sanitization.",
+        "| Field | Value | |-------|-------| | Alert | [#137](https://github.com/deftai/directive/security/code-scanning/137) | | Rule | `js/incomplete-url-substring-sanitization` | | Severity | HIGH | | Location | `packages/core/src/intake/github-auth-modes.provisioning.test.ts` ~L174 | | Message | 'ghe.example.com' can be anywhere in the URL, and arbitrary hosts may come before or after it.",
+        "| ## What to build Rewrite or bound the flagged site so CodeQL `js/incomplete-url-substring-sanitization` clears for this alert (or document accepted risk with suppress + rationale if false positive after review).",
+        "Prefer a real fix over suite-config changes.",
+        "Acceptance - [ ] CodeQL alert [#137](https://github.com/deftai/directive/security/code-scanning/137) clears on master (auto-close or dismiss with reason after fix).",
+        "[ ] Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+        "[ ] CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #137.",
+        "Non-goals - Changing CodeQL suite config as the primary fix.",
+        "Bundling unrelated code-scanning alerts into this issue (siblings tracked separately)."
+      ],
+      "admitted_source_digest": "f425e845580cc82c883456c59b06854d67a178ca8bc0a0a0406ea130b380354e",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "CodeQL alert [#137](https://github.com/deftai/directive/security/code-scanning/137) clears on master (auto-close or dismiss with reason after fix).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #137.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Summary CodeQL open alert on default branch: HIGH `js/incomplete-url-substring-sanitization` — Incomplete URL substring sanitization.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "admitted-source"
+        },
+        {
+          "id": 5,
+          "text": "| Field | Value | |-------|-------| | Alert | [#137](https://github.com/deftai/directive/security/code-scanning/137) | | Rule | `js/incomplete-url-substring-sanitization` | | Severity | HIGH | | Location | `packages/core/src/intake/github-auth-modes.provisioning.test.ts` ~L174 | | Message | 'ghe.example.com' can be anywhere in the URL, and arbitrary hosts may come before or after it.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "admitted-source"
+        },
+        {
+          "id": 6,
+          "text": "| ## What to build Rewrite or bound the flagged site so CodeQL `js/incomplete-url-substring-sanitization` clears for this alert (or document accepted risk with suppress + rationale if false positive after review).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "admitted-source"
+        },
+        {
+          "id": 7,
+          "text": "Prefer a real fix over suite-config changes.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "admitted-source"
+        },
+        {
+          "id": 8,
+          "text": "Acceptance - [ ] CodeQL alert [#137](https://github.com/deftai/directive/security/code-scanning/137) clears on master (auto-close or dismiss with reason after fix).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "admitted-source"
+        },
+        {
+          "id": 9,
+          "text": "[ ] Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "admitted-source"
+        },
+        {
+          "id": 10,
+          "text": "[ ] CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #137.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "admitted-source"
+        },
+        {
+          "id": 11,
+          "text": "Non-goals - Changing CodeQL suite config as the primary fix.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "admitted-source"
+        },
+        {
+          "id": 12,
+          "text": "Bundling unrelated code-scanning alerts into this issue (siblings tracked separately).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "admitted-source"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "sec(codeql): HIGH clear incomplete-url-substring-sanitization in github-auth-modes.provisioning.test.ts (alert #137)"
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/intake/github-auth-modes.provisioning.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/intake/github-auth-modes.provisioning.test.ts",
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for security cohort. pnpm-lock.yaml / pnpm-workspace.yaml shared Dependabot pin surfaces for #5737/#5740."
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A (draft)\nTarget-digest: sha256:c908f7b84feedc4c830e074f90ba920d0b7becb8819173c5a51cdb66dc4409ad\nconflict_group: codeql-137-incomplete-url-substring-sanitization-provisioning-test\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\ndest: .deft-scratch/worktrees/arc-5746\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\n\n## In plain English\nCodeQL alert #137 flags HIGH js/incomplete-url-substring-sanitization on a unit-test assertion in github-auth-modes.provisioning.test.ts ~L174: row.includes(\"ghe.example.com\") after --hostname. CodeQL correctly notes the host substring can appear anywhere. Prefer-A rewrites that host check to an exact argv-token / URL-host parse so alert #137 clears by a real fix without weakening the GHES --hostname provisioning intent. Suite-config / suppress as primary stays a keep-out. This is a test file only.\n\n## Draft remedy sketch\n1. In packages/core/src/intake/github-auth-modes.provisioning.test.ts, replace the flagged row.includes(\"--hostname\") && row.includes(\"ghe.example.com\") check with an exact host-binding assertion: locate the --hostname flag index and assert the next argv token equals \"ghe.example.com\" (or parse that token via URL / normalizeGithubHostname and compare host). Do not keep a substring includes of the hostname string as the clearance path.\n2. Keep the existing expect(result.ok) and expect(result.githubHost).toBe(\"ghe.example.com\") intents; do not weaken the GHES probe contract.\n3. Existing unit tests for the touched module stay green; add a narrow adversarial note only if useful that a lookalike host token (for example not-ghe.example.com or ghe.example.com.evil) would not satisfy the rewritten exact-token / parsed-host check.\n4. CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #137 / #5746.\n5. Keep-out: CodeQL suite-config / path-exclude / suppress as the primary fix (issue Non-goals).\n\n## Reject (draft)\n- Treating CodeQL config / suppress / dismiss-without-fix as the primary remedy\n- Bundling unrelated code-scanning alerts into this issue\n- Rewriting production validateHostGhMode / resolveGithubHost beyond what the test assertion rewrite requires\n- Claiming alert #137 cleared without rewriting the flagged includes site (or an evidence-backed false-positive disposition after review)\n\n## file_scope lean (draft)\npackages/core/src/intake/github-auth-modes.provisioning.test.ts; CHANGELOG.md.",
+          "id": 6256863904,
+          "html_url": "https://github.com/deftai/directive/issues/5746#issuecomment-6256863904",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:08:10Z",
+          "updated_at": "2026-10-19T00:08:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because CodeQL alert #137 names a mechanism-shaped incomplete-url-substring-sanitization on a host includes check in packages/core/src/intake/github-auth-modes.provisioning.test.ts ~L174: row.includes(\"ghe.example.com\") after --hostname is a concrete fail-closed security-gate finding on the GHES provisioning assertion, not prose triage.\nmechanism-shaped: true\nrefutation-target: the flagged row.includes(\"--hostname\") && row.includes(\"ghe.example.com\") assertion is the primary clear path for CodeQL alert #137; suite-config / suppress is not the primary fix\ncharter: refutation\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nTarget-kind: issue\nCeiling-kind: comment-id\ndest: .deft-scratch/worktrees/arc-5746\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\nverification-path: pin-read git show 8341f369ccc55fa907abd5e575bb29556e467e9f: (dest cwd-without-occupy for on-pin file reads)\n\npain:\n- P1\n\n## Stop 1 — Gate\n\n### Pain inventory\n- P1: github-auth-modes.provisioning.test.ts ~L174 uses row.includes(\"ghe.example.com\") as a host check after --hostname; CodeQL js/incomplete-url-substring-sanitization alert #137 reports the host substring can appear anywhere in a URL-shaped token — the GHES provisioning test intent must clear by an exact argv-token / parsed-host rewrite, not suite-config.\n\n### Charter / spend\nCharter is refutation against the presumption that the flagged hostname substring includes may remain as the primary clear path. Spend N=1 (narrow test assertion rewrite; Stop 2 panel permission does not apply). Prefer-A draft cite: 6256863904.\n\n### Reject / keep-outs (gate)\n- CodeQL suite config / path-exclude / suppress as primary\n- Sibling unrelated code-scanning alerts\n- Production validateHostGhMode / resolveGithubHost rewrite beyond the test assertion",
+          "id": 6256868992,
+          "html_url": "https://github.com/deftai/directive/issues/5746#issuecomment-6256868992",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:08:39Z",
+          "updated_at": "2026-10-19T00:08:39Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\nseat-families: codex\nlaunch-probe: codex pong rc0\ninput-ceiling: 6256875959\nprefer-a-draft: 6256863904\nstop-1: 6256868992\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\ndest: .deft-scratch/worktrees/arc-5746\nverification-path: pin-read git show 8341f369ccc55fa907abd5e575bb29556e467e9f:\nspend: N=1\narc-mode: no-ingest\nyolo-standing: on\n\nRound-1 N=1 Codex seat against Prefer-A draft 6256863904 and Stop 1 6256868992. Shared ceiling is this deposit id after POST.\n\n",
+          "id": 6256875959,
+          "html_url": "https://github.com/deftai/directive/issues/5746#issuecomment-6256875959",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:09:16Z",
+          "updated_at": "2026-10-19T00:09:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-5\n```quarantined\nrole: critic\n```\naudit-targets: none\nfamily: codex\nid-ceiling: 6256875959\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\n\n## Finding 1 — sharpen-framing\nclassification: sharpens-framing\n\nEvidence: At the dispatch SHA, `githubApiArgs` emits `api --hostname <host> <path>`, `githubApiPath` already parses that argv shape, and the flagged test currently accepts any captured row containing both `--hostname` and `ghe.example.com`. Prefer-A's exact-next-token rewrite removes the CodeQL substring finding, but the draft still permits a broad `seen.some` assertion and offers URL parsing as an interchangeable option.\n\nFailure mode: A future or malformed captured invocation could contain the expected hostname in an unrelated position, or a lookalike such as `ghe.example.com.evil` could be accepted if the implementation chooses a substring-based URL check. That would make the test green without proving the GHES hostname is the value bound to `--hostname` for the intended API probe.\n\nDisposition consequence: Keep Prefer-A and the test-only scope, but make the acceptance criterion explicit: locate the `--hostname`/`-H` flag, require its immediate value to equal the normalized expected host, and bind the assertion to the relevant API row (using the existing `githubApiPath` helper or equivalent). Exact equality must reject lookalikes; retain `result.ok` and `result.githubHost` assertions. This is a sharpening, not a design blocker.\n\nRoad-not-taken: I do not recommend changing `resolveGithubHost` or production auth behavior; the pinned tree already has the argv construction and parsing mechanisms needed for a narrow assertion fix.",
+          "id": 6256919386,
+          "html_url": "https://github.com/deftai/directive/issues/5746#issuecomment-6256919386",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:13:14Z",
+          "updated_at": "2026-10-19T00:13:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Prefer-A Bound\n\nLean: Prefer-A Bound\nconflict_group: codeql-137-incomplete-url-substring-sanitization-provisioning-test\nTarget-digest: sha256:c908f7b84feedc4c830e074f90ba920d0b7becb8819173c5a51cdb66dc4409ad\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\ndest: .deft-scratch/worktrees/arc-5746\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N=1\nspend-ask: resolved\nprefer-a-draft: 6256863904\nstop-1: 6256868992\npanel-deposit: 6256875959\nround-1-critics: Codex 6256919386\n\n**Lean:** Prefer-A — rewrite flagged hostname substring includes to exact --hostname argv binding; keep GHES provisioning intent; suite-config suppress out.\n\n## In plain English\nCodeQL alert #137 is a real incomplete host-substring check on a GHES provisioning unit-test assertion. Prefer-A clears it by rewriting that assertion to an exact flag-bound host token, not by silencing CodeQL. Codex Round-1 accepted the direction and sharpened one binding obligation: require the immediate value after --hostname/-H to equal the normalized expected host on the relevant API row (via githubApiPath or equivalent), and reject lookalikes — do not treat URL parsing as an interchangeable substitute for that flag binding.\n\n## Bound remedy\n1. **relieves: P1 — Rewrite the flagged includes host check.** In packages/core/src/intake/github-auth-modes.provisioning.test.ts ~L174, replace row.includes(\"--hostname\") && row.includes(\"ghe.example.com\") with an exact host-binding assertion: locate --hostname or -H, require the immediate next argv token to equal the normalized expected host (ghe.example.com), and bind that check to the relevant API probe row (existing githubApiPath helper or equivalent). Do not keep substring includes of the hostname string as the clearance path. Do not use a substring-based URL check as a substitute.\n2. **relieves: P1 — Preserve GHES provisioning intent (Codex F1).** Retain expect(result.ok) and expect(result.githubHost).toBe(\"ghe.example.com\"). Exact equality must reject lookalike tokens (for example ghe.example.com.evil or not-ghe.example.com).\n3. **relieves: P1 — Adversarial note + CHANGELOG.** Existing unit tests for the touched module stay green; add a narrow adversarial assertion only if useful that a lookalike host token does not satisfy the rewritten check. CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #137 / #5746.\n4. **relieves: P1 — Keep-out suite-config.** CodeQL suite-config / path-exclude / suppress / dismiss-without-fix stays out as the primary remedy.\n\n### Reject\n- CodeQL suite-config / path-exclude / suppress / dismiss-without-fix as the primary remedy\n- Bundling unrelated code-scanning alerts\n- Rewriting production validateHostGhMode / resolveGithubHost / githubApiArgs beyond what the test assertion rewrite requires\n- Treating URL/normalizeGithubHostname parse as interchangeable with flag-bound exact next-token equality (Codex F1)\n- Claiming P1 relieved from green unit suite alone without the rewritten flagged site\n\n### Disposition of Round-1\n- Codex F1 (sharpens-framing) -> accept-into-contract as limbs 1–2\n- Prefer-A direction survives; empty disagreement set on blocks-the-design\n\nrelieves: P1\n\n## file_scope lean\npackages/core/src/intake/github-auth-modes.provisioning.test.ts; CHANGELOG.md.\nKeep-outs: CodeQL suite config as primary; sibling alerts; production auth rewrite beyond the assertion.",
+          "id": 6256926949,
+          "html_url": "https://github.com/deftai/directive/issues/5746#issuecomment-6256926949",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:13:55Z",
+          "updated_at": "2026-10-19T00:13:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-5\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\nfinding-classes: none\nharvest-changed: false\nfamily: codex\nid-ceiling: 6256926949\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\n\n## Pain-audit — P1\n\nCoverage is clear. The pinned implementation emits GHES API calls as api --hostname <host> <path>, and githubApiPath identifies the relevant API path while skipping option values. The Prefer-A Bound requires the flagged assertion to locate --hostname/-H, compare its immediate value by exact equality to the normalized expected host, and bind that check to the relevant API-probe row. That directly removes the incomplete hostname-substring acceptance and rejects lookalikes such as ghe.example.com.evil.\n\nThe Bound also preserves the GHES provisioning intent through result.ok and exact result.githubHost assertions, keeps the fix test-scoped, and retains the CodeQL #137 / #5746 CHANGELOG obligation. No blocking, sharpening, or footnote finding remains, and the harvested Bound remedy does not need to change.",
+          "id": 6256941545,
+          "html_url": "https://github.com/deftai/directive/issues/5746#issuecomment-6256941545",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:15:15Z",
+          "updated_at": "2026-10-19T00:15:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\nCites Prefer-A Bound successor lean 6256926949. No Target-digest on this table.\n\n| Claim | Method | Result |\n|---|---|---|\n| Stop 1 P1: hostname substring includes after --hostname (CodeQL alert #137) | pin-read github-auth-modes.provisioning.test.ts + Round-1/PA disposition | Covered by Prefer-A Bound relieves:P1 (exact --hostname/-H next-token equality on API row via githubApiPath or equivalent + preserve result.ok/githubHost + CHANGELOG; suite-config keep-out) |\n| Round-1 Codex F1 flag-bound exact host (sharpens-framing) | REST 6256919386 + Bound limbs 1–2 | accept-into-contract |\n| PA-1 Codex 6256941545 | REST comment read | finding-classes: none; harvest-changed: false |\n| blocks-the-design census | Round-1 + PA-1 | empty |\n\nEmpty disagreement set. Path-1 auto-stamp candidate cites Prefer-A Bound 6256926949 only.",
+          "id": 6256945649,
+          "html_url": "https://github.com/deftai/directive/issues/5746#issuecomment-6256945649",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:15:38Z",
+          "updated_at": "2026-10-19T00:15:38Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "design-critique: synthesis accepted, because agents agreed (empty disagreement set) citing Prefer-A Bound successor lean 6256926949\n\n## In plain English\n#5746 will rewrite the flagged GHES provisioning test assertion so --hostname binds an exact host token (not a hostname substring includes), clearing CodeQL alert #137 by a real fix while preserving result.ok / githubHost intent. Suite-config suppress stays a keep-out. Ingest remains a separate operator verb.\n\n## Completed-arc record\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N=1\ndest: .deft-scratch/worktrees/arc-5746\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\nsuccessor-lean: Prefer-A Bound 6256926949\nverified-claims-table: 6256945649\nStop 1: 6256868992\npanel-deposit: 6256875959\nPrefer-A draft: 6256863904\nRound-1: Codex 6256919386\nPain-audit: Codex 6256941545\npain-coverage: P1 relieved; PA finding-classes none; harvest-changed false",
+          "id": 6256947948,
+          "html_url": "https://github.com/deftai/directive/issues/5746#issuecomment-6256947948",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:15:50Z",
+          "updated_at": "2026-10-19T00:16:22Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5915169474,
+        "origin": "deftai/directive#5746",
+        "id": "github.issue.5915169474"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "c908f7b84feedc4c830e074f90ba920d0b7becb8819173c5a51cdb66dc4409ad"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/intake/github-auth-modes.provisioning.test.ts",
+          "CHANGELOG.md",
+          "xbrief/active/2026-10-19-5746-seccodeql-high-clear-incomplete-url-substring-sanitization-i.xbrief.json"
+        ],
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for security cohort. pnpm-lock.yaml / pnpm-workspace.yaml shared Dependabot pin surfaces for #5737/#5740. Active xBRIEF stamp for metadata.productPullRequest bind (#4864)."
+      },
+      "productPullRequest": 5767
+    },
+    "id": "github.issue.5915169474",
+    "updated": "2026-10-19T10:50:00Z"
+  }
+}

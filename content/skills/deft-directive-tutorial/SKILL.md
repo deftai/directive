@@ -77,7 +77,7 @@ The person finishes one menu option, or has a recorded skip. The agent reads eac
 - Step 3 start: `--confirm` (menu: 1 Yes / 2 Leave / 3 Discuss / 4 Back). Commands promote and activate the proposed work file, then create the branch. After `startLifecycleDone` (Back to start), JSON `command` is null — do not re-run them.
 - Step 4 change: `--content-seen` (menu: 1 Go / 2 Leave / 3 Discuss / 4 Back)
 - Step 5 prove: menu 1 Go (run check), then record `--check pass|fail` (fail stays; pass stays on Continue). Menu after pass: 1 Continue / 2 Leave / 3 Discuss / 4 Back. After fail: 1 Try again / 2 Leave / 3 Discuss / 4 Back. A combined `--project 1 --check pass` on a failed prove step records the new result.
-- Step 6 close: stamp acceptance proof then complete (`--complete`; menu: 1 Go / 2 Leave / 3 Discuss / 4 Back; only after a pass + Continue). Commands run `scope:stamp-evidence` then `scope:complete --non-delivery experiment_archived`. After `closeLifecycleDone` (Back to close), JSON `command` is null — do not re-run stamp-evidence or complete.
+- Step 6 close: record Findings on the work file, stamp acceptance proof, then complete (`--complete`; menu: 1 Go / 2 Leave / 3 Discuss / 4 Back; only after a pass + Continue). Commands write `plan.narratives.Findings`, run `scope:stamp-evidence`, then `scope:complete --non-delivery experiment_archived`. After `closeLifecycleDone` (Back to close), JSON `command` is null — do not re-run Findings write, stamp-evidence, or complete.
 - Step 7 leave: `advance` with no extra flags (only after close); otherwise `deft tutorial:leave`
 
 ## Progress

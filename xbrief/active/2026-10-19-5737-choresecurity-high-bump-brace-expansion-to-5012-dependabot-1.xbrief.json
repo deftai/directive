@@ -1,0 +1,404 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5737",
+    "updated": "2026-10-19T05:50:11Z"
+  },
+  "plan": {
+    "title": "chore(security): HIGH bump brace-expansion to 5.0.12 (Dependabot #16/#17/#18)",
+    "status": "running",
+    "narratives": {
+      "Description": "chore(security): HIGH bump brace-expansion to 5.0.12 (Dependabot #16/#17/#18)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5737",
+      "Overview": "## Problem\n\nThree open Dependabot alerts on the same transitive pin brace-expansion @ 5.0.9 (runtime via minimatch@10). Prior pin brace-expansion@5: 5.0.9 from #4348 / alerts #10/#13 is short of this trio.\n\n| Alert | Severity | Advisory | CVE | Needs |\n|---|---|---|---|---|\n| [#16](https://github.com/deftai/directive/security/dependabot/16) | HIGH | GHSA-6j4f-fj2g-mc7p | CVE-2026-102276 | >= 5.0.10 (parseCommaParts stack DoS) |\n| [#17](https://github.com/deftai/directive/security/dependabot/17) | HIGH | GHSA-qhr7-859c-m2p7 | CVE-2026-102278 | >= 5.0.11 (nested brace-group stack DoS) |\n| [#18](https://github.com/deftai/directive/security/dependabot/18) | MEDIUM | GHSA-q2hr-2g5m-vwhr | CVE-2026-102277 | **5.0.12** (quadratic {a},b} CPU DoS) |\n\nDistinct from the earlier CVE-2026-14257 / GHSA-mh99-v99m-4gvg tail-recursion fix. One pin to **5.0.12** clears all three.\n\nDedup: this issue is the ship vehicle. #5738 and #5739 close as duplicates of this one.\n\n## What to build\n\nBump the pnpm 11 workspace override for brace-expansion@5 to **5.0.12**, refresh pnpm-lock.yaml, and record the pin in CHANGELOG [Unreleased].\n\n## Acceptance\n\n- [ ] pnpm-workspace.yaml pins brace-expansion@5 to **5.0.12**.\n- [ ] pnpm-lock.yaml resolves brace-expansion@5 to 5.0.12 (out of all three vulnerable ranges).\n- [ ] CHANGELOG [Unreleased] records the bump and cites Dependabot #16/#17/#18.\n- [ ] Dependabot alerts #16, #17, and #18 auto-close or are dismissable as fixed.\n\nLiteral check:\n\n\npnpm why brace-expansion\n\n\n## Related\n\n- Duplicate of this ship: #5738, #5739\n- Prior pin: #4348",
+      "Labels": "security, urgent, design-critique:ingest-ready, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "title": "pnpm-workspace.yaml pins brace-expansion@5 to **5.0.12**.",
+        "status": "proposed",
+        "id": "clause.1",
+        "effort": "S",
+        "x-directive/artifact_path": "pnpm-workspace.yaml"
+      },
+      {
+        "title": "pnpm-lock.yaml resolves brace-expansion@5 to 5.0.12 (out of all three vulnerable ranges).",
+        "status": "proposed",
+        "id": "clause.2",
+        "effort": "S",
+        "x-directive/artifact_path": "pnpm-workspace.yaml"
+      },
+      {
+        "title": "CHANGELOG [Unreleased] records the bump and cites Dependabot #16/#17/#18.",
+        "status": "proposed",
+        "id": "clause.3",
+        "effort": "S",
+        "x-directive/artifact_path": "pnpm-workspace.yaml"
+      },
+      {
+        "title": "Dependabot alerts #16, #17, and #18 auto-close or are dismissable as fixed.",
+        "status": "proposed",
+        "id": "clause.4",
+        "effort": "S",
+        "x-directive/artifact_path": "pnpm-workspace.yaml"
+      }
+    ],
+    "tags": [
+      "security",
+      "urgent",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5737",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5737: chore(security): HIGH bump brace-expansion to 5.0.12 (Dependabot #16/#17/#18)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "chore(security): HIGH bump brace-expansion to 5.0.12 (Dependabot #16/#17/#18)",
+        "Problem Three open Dependabot alerts on the same transitive pin brace-expansion @ 5.0.9 (runtime via minimatch@10).",
+        "Prior pin brace-expansion@5: 5.0.9 from #4348 / alerts #10/#13 is short of this trio.",
+        "| Alert | Severity | Advisory | CVE | Needs | |---|---|---|---|---| | [#16](https://github.com/deftai/directive/security/dependabot/16) | HIGH | GHSA-6j4f-fj2g-mc7p | CVE-2026-102276 | >= 5.0.10 (parseCommaParts stack DoS) | | [#17](https://github.com/deftai/directive/security/dependabot/17) | HIGH | GHSA-qhr7-859c-m2p7 | CVE-2026-102278 | >= 5.0.11 (nested brace-group stack DoS) | | [#18](https://github.com/deftai/directive/security/dependabot/18) | MEDIUM | GHSA-q2hr-2g5m-vwhr | CVE-2026-102277 | 5.0.12 (quadratic {a},b} CPU DoS) | Distinct from the earlier CVE-2026-14257 / GHSA-mh99-v99m-4gvg tail-recursion fix.",
+        "One pin to 5.0.12 clears all three.",
+        "Dedup: this issue is the ship vehicle.",
+        "#5738 and #5739 close as duplicates of this one.",
+        "What to build Bump the pnpm 11 workspace override for brace-expansion@5 to 5.0.12, refresh pnpm-lock.yaml, and record the pin in CHANGELOG [Unreleased].",
+        "Acceptance - [ ] pnpm-workspace.yaml pins brace-expansion@5 to 5.0.12.",
+        "[ ] pnpm-lock.yaml resolves brace-expansion@5 to 5.0.12 (out of all three vulnerable ranges).",
+        "[ ] CHANGELOG [Unreleased] records the bump and cites Dependabot #16/#17/#18.",
+        "[ ] Dependabot alerts #16, #17, and #18 auto-close or are dismissable as fixed.",
+        "Literal check: pnpm why brace-expansion",
+        "Duplicate of this ship: #5738, #5739",
+        "Prior pin: #4348",
+        "pnpm-workspace.yaml pins brace-expansion@5 to 5.0.12.",
+        "pnpm-lock.yaml resolves brace-expansion@5 to 5.0.12 (out of all three vulnerable ranges).",
+        "CHANGELOG [Unreleased] records the bump and cites Dependabot #16/#17/#18.",
+        "Dependabot alerts #16, #17, and #18 auto-close or are dismissable as fixed."
+      ],
+      "admitted_source_sentences": [
+        "Problem Three open Dependabot alerts on the same transitive pin brace-expansion @ 5.0.9 (runtime via minimatch@10).",
+        "Prior pin brace-expansion@5: 5.0.9 from #4348 / alerts #10/#13 is short of this trio.",
+        "| Alert | Severity | Advisory | CVE | Needs | |---|---|---|---|---| | [#16](https://github.com/deftai/directive/security/dependabot/16) | HIGH | GHSA-6j4f-fj2g-mc7p | CVE-2026-102276 | >= 5.0.10 (parseCommaParts stack DoS) | | [#17](https://github.com/deftai/directive/security/dependabot/17) | HIGH | GHSA-qhr7-859c-m2p7 | CVE-2026-102278 | >= 5.0.11 (nested brace-group stack DoS) | | [#18](https://github.com/deftai/directive/security/dependabot/18) | MEDIUM | GHSA-q2hr-2g5m-vwhr | CVE-2026-102277 | 5.0.12 (quadratic {a},b} CPU DoS) | Distinct from the earlier CVE-2026-14257 / GHSA-mh99-v99m-4gvg tail-recursion fix.",
+        "One pin to 5.0.12 clears all three.",
+        "Dedup: this issue is the ship vehicle.",
+        "#5738 and #5739 close as duplicates of this one.",
+        "What to build Bump the pnpm 11 workspace override for brace-expansion@5 to 5.0.12, refresh pnpm-lock.yaml, and record the pin in CHANGELOG [Unreleased].",
+        "Acceptance - [ ] pnpm-workspace.yaml pins brace-expansion@5 to 5.0.12.",
+        "[ ] pnpm-lock.yaml resolves brace-expansion@5 to 5.0.12 (out of all three vulnerable ranges).",
+        "[ ] CHANGELOG [Unreleased] records the bump and cites Dependabot #16/#17/#18.",
+        "[ ] Dependabot alerts #16, #17, and #18 auto-close or are dismissable as fixed.",
+        "Literal check: pnpm why brace-expansion",
+        "Duplicate of this ship: #5738, #5739",
+        "Prior pin: #4348"
+      ],
+      "admitted_source_digest": "738f9683cb948c55e14530db16986952a372a7a8aa6afbeba5620f4549e45388",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "pnpm-workspace.yaml pins brace-expansion@5 to 5.0.12.",
+          "artifact_path": "pnpm-workspace.yaml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "pnpm-lock.yaml resolves brace-expansion@5 to 5.0.12 (out of all three vulnerable ranges).",
+          "artifact_path": "pnpm-lock.yaml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "CHANGELOG [Unreleased] records the bump and cites Dependabot #16/#17/#18.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Dependabot alerts #16, #17, and #18 auto-close or are dismissable as fixed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "pnpm-workspace.yaml",
+          "pnpm-lock.yaml",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "pnpm-workspace.yaml",
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for security cohort. pnpm-lock.yaml / pnpm-workspace.yaml shared Dependabot pin surfaces for #5737/#5740."
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A (draft)\nTarget-digest: sha256:45bdbca86e2e4f1b6bb670f80ee7079ceeb27ba86393ca8d27714c7cd0ab5e6b\nconflict_group: brace-expansion-5-pin-bump-5-0-12-dependabot-16-17-18\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\ndest: .deft-scratch/worktrees/arc-5737\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\n\n## In plain English\nDependabot alerts #16/#17/#18 stay open because pnpm-workspace.yaml still pins brace-expansion@5 to 5.0.9 (from #4348). One bump of that override to 5.0.12 clears all three CVEs (HIGH stack DoS + MEDIUM quadratic CPU DoS). Prefer-A is that pin bump, lockfile refresh, minimumReleaseAgeExclude update for the new pin, and CHANGELOG [Unreleased]. Unrelated dependency churn stays out of scope. Siblings #5738/#5739 are already duplicate-closed into this keeper.\n\n## Draft remedy sketch\n1. Bump pnpm-workspace.yaml overrides \"brace-expansion@5\" from 5.0.9 to 5.0.12.\n2. Refresh pnpm-lock.yaml so brace-expansion@5 resolves to 5.0.12 (out of the three vulnerable ranges).\n3. Update minimumReleaseAgeExclude: replace \brace-expansion@5.0.9 with \brace-expansion@5.0.12 (keep @2.1.4 and other excludes).\n4. CHANGELOG [Unreleased] Security/Fixed entry citing Dependabot #16/#17/#18 / CVE-2026-102276/102278/102277 / #5737.\n5. Keep-out: unrelated dep churn; brace-expansion@2 line unless tip evidence requires it; reopening duplicate trackers #5738/#5739; source-map-js alert #19 / #5740.\n\n## Reject (draft)\n- Leaving the pin at 5.0.9 / 5.0.10 / 5.0.11 when alert #18 needs 5.0.12\n- Bundling source-map-js (#5740 / Dependabot #19) or unrelated overrides into this Prefer-A\n- Dismissing Dependabot alerts without a lockfile-visible pin past the patched range\n- Broad lockfile churn beyond what the brace-expansion@5 override bump requires\n- Re-opening or co-shipping duplicate issues #5738/#5739 as separate pin vehicles\n\n## file_scope lean (draft)\npnpm-workspace.yaml; pnpm-lock.yaml; CHANGELOG.md.",
+          "id": 6257005127,
+          "html_url": "https://github.com/deftai/directive/issues/5737#issuecomment-6257005127",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:20:59Z",
+          "updated_at": "2026-10-19T00:20:59Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because Dependabot alerts #16/#17/#18 name concrete HIGH/MEDIUM brace-expansion advisories while the workspace override still pins brace-expansion@5 to 5.0.9 — a mechanism-shaped pin shortfall, not prose triage.\nmechanism-shaped: true\nrefutation-target: pnpm-workspace.yaml overrides \"brace-expansion@5\" remains 5.0.9 while alerts require >=5.0.10 / >=5.0.11 / 5.0.12; Prefer-A primary clear path is bump to 5.0.12 + lockfile refresh (not dismiss-without-fix)\ncharter: refutation\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nTarget-kind: issue\nCeiling-kind: comment-id\ndest: .deft-scratch/worktrees/arc-5737\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\nverification-path: pin-read git show 8341f369ccc55fa907abd5e575bb29556e467e9f: (dest cwd-without-occupy for on-pin file reads)\n\npain:\n- P1\n\n## Stop 1 — Gate\n\n### Pain inventory\n- P1: Open Dependabot alerts #16 (HIGH CVE-2026-102276 >=5.0.10), #17 (HIGH CVE-2026-102278 >=5.0.11), and #18 (MEDIUM CVE-2026-102277 needs 5.0.12) while pnpm-workspace.yaml still pins brace-expansion@5 to 5.0.9 and minimumReleaseAgeExclude still lists brace-expansion@5.0.9 — the pin is short of the patched line that clears all three.\n\n### Charter / spend\nCharter is refutation against the presumption that 5.0.9 (or a partial bump short of 5.0.12) may remain as the primary clear path. Spend N=1 (narrow override bump; Stop 2 panel permission does not apply). Prefer-A draft cite: 6257005127.\n\n### Reject / keep-outs (gate)\n- Dismiss Dependabot without lockfile-visible pin past 5.0.12\n- Bundle source-map-js (#5740 / alert #19) or unrelated overrides\n- Reopen duplicates #5738/#5739 as co-equal ship vehicles\n- Broad lockfile churn beyond the brace-expansion@5 bump",
+          "id": 6257009391,
+          "html_url": "https://github.com/deftai/directive/issues/5737#issuecomment-6257009391",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:21:21Z",
+          "updated_at": "2026-10-19T00:21:21Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\nseat-families: codex\nlaunch-probe: codex pong rc0\ninput-ceiling: 6257016068\nprefer-a-draft: 6257005127\nstop-1: 6257009391\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\ndest: .deft-scratch/worktrees/arc-5737\nverification-path: pin-read git show 8341f369ccc55fa907abd5e575bb29556e467e9f:\nspend: N=1\narc-mode: no-ingest\nyolo-standing: on\n\nRound-1 N=1 Codex seat against Prefer-A draft 6257005127 and Stop 1 6257009391. Shared ceiling is this deposit id after POST.",
+          "id": 6257016068,
+          "html_url": "https://github.com/deftai/directive/issues/5737#issuecomment-6257016068",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:21:57Z",
+          "updated_at": "2026-10-19T00:22:34Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\nfamily: codex\nid-ceiling: 6257016068\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\n\nPrefer-A survives refutation: no blocks-the-design finding. I read the issue body and the three specified comments, with no post-ceiling thread input. Verification used git show at the dispatch SHA plus read-only REST retrieval of Dependabot alerts 16/17/18; no installation, product edits, or exploit execution.\n\nExisting mechanisms: pnpm-workspace.yaml already has major-scoped overrides and exact-version minimumReleaseAgeExclude entries. The pinned lockfile contains the 5.0.9 override, package resolution/integrity, snapshot, and minimatch@10.2.5 dependency edge to 5.0.9. Its brace-expansion search found no resolved 2.x package. package.json pins pnpm@11.8.0. These mechanisms support the proposed narrow update; a new override mechanism is unnecessary.\n\n### F1 — sharpens-framing: distinguish the patched boundary from proof of completed remediation\nEvidence: live alert records independently report first patched versions 5.0.10, 5.0.11, and 5.0.12 respectively. Thus 5.0.12 is sufficient for these recorded ranges; Stop 1's phrase \"past 5.0.12\" is stricter than the actual boundary. The pinned lockfile shows that updating the override text alone would leave a vulnerable minimatch edge and package snapshot unless the refresh succeeds.\nFailure mode: interpreting \"past\" literally rejects the intended exact pin, while treating the intended bump as proof that alerts have cleared overstates a proposed change before the resulting graph and GitHub scan exist.\nDisposition consequence: the lean can bind with an exact 5.0.12 target and an explicit verification statement: regenerate with the pinned pnpm version, confirm every resolved 5.x brace-expansion node/edge is 5.0.12 and no 5.0.9 resolution survives, validate a frozen-lockfile install, and inspect workspace-wide dependency paths (pnpm -r why brace-expansion). Record GitHub alert closure separately after the default-branch dependency scan; until then say the lockfile is outside the recorded vulnerable ranges, not that closure was observed. This uses existing package-manager checks and keeps the three-file scope.\n\n### F2 — footnote: retaining the 2.1.4 override is scoped deferral, not evidence that both major lines are patched\nEvidence: the existing workspace override/comment still describes both major lines as patched, but alert advisory data also lists affected 2.x ranges, with 2.1.7 the highest first-patched 2.x version across this trio. No 2.x resolution appears in the dispatch lockfile.\nFailure mode: a future dependency introducing major 2 would be forced onto the vulnerable 2.1.4 pin; a blanket claim that all brace-expansion lines are secured would therefore be false. This is a latent dependency-policy risk, not evidence of a second currently resolved vulnerable path.\nDisposition consequence: no scope expansion required for P1. Keep the current 2.x keep-out and limit release-note/security claims to the resolved 5.x path and alerts 16/17/18. A newly resolved 2.x node would be the evidence that changes this disposition.\n\nThe untrusted-input failure here is availability loss through glob parsing: the advisories explain why output-count/length limits do not prevent these parsing failures. Keeping 5.0.9 and relying on those limits is therefore not an equivalent remedy. Partial bumps to 5.0.10 or 5.0.11 also leave a recorded advisory range open. No new prompt-authority or concurrent-worker mechanism is introduced by this dependency pin change.\n\nSources: [draft](https://github.com/deftai/directive/issues/5737#issuecomment-6257005127), [Stop 1](https://github.com/deftai/directive/issues/5737#issuecomment-6257009391), [panel deposit](https://github.com/deftai/directive/issues/5737#issuecomment-6257016068), [workspace at dispatch](https://github.com/deftai/directive/blob/8341f369ccc55fa907abd5e575bb29556e467e9f/pnpm-workspace.yaml), [lockfile at dispatch](https://github.com/deftai/directive/blob/8341f369ccc55fa907abd5e575bb29556e467e9f/pnpm-lock.yaml), Dependabot [16](https://github.com/deftai/directive/security/dependabot/16), [17](https://github.com/deftai/directive/security/dependabot/17), [18](https://github.com/deftai/directive/security/dependabot/18).\n\n",
+          "id": 6257037134,
+          "html_url": "https://github.com/deftai/directive/issues/5737#issuecomment-6257037134",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:23:53Z",
+          "updated_at": "2026-10-19T00:23:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Prefer-A Bound\n\nLean: Prefer-A Bound\nconflict_group: brace-expansion-5-pin-bump-5-0-12-dependabot-16-17-18\nTarget-digest: sha256:45bdbca86e2e4f1b6bb670f80ee7079ceeb27ba86393ca8d27714c7cd0ab5e6b\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\ndest: .deft-scratch/worktrees/arc-5737\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N=1\nspend-ask: resolved\nprefer-a-draft: 6257005127\nstop-1: 6257009391\npanel-deposit: 6257016068\nround-1-critics: Codex 6257037134\n\n**Lean:** Prefer-A — bump brace-expansion@5 override to exact 5.0.12; refresh lockfile until every resolved 5.x node/edge is 5.0.12; update minimumReleaseAgeExclude; CHANGELOG; keep @2 and unrelated deps out.\n\n## In plain English\nAlerts #16/#17/#18 stay open because the workspace still pins brace-expansion@5 to 5.0.9. Prefer-A clears them by bumping that override to exact 5.0.12 (the first version that covers all three recorded patched boundaries), refreshing the lockfile so no 5.0.9 5.x resolution survives, updating the age-exclude list, and recording CHANGELOG. Codex Round-1 accepted the direction and sharpened verification: treat 5.0.12 as the exact target (not \"past 5.0.12\"), prove the refreshed graph, and report GitHub alert closure separately after the default-branch scan. The brace-expansion@2.1.4 override stays a keep-out for this ship.\n\n## Bound remedy\n1. **relieves: P1 — Bump brace-expansion@5 override to exact 5.0.12.** Edit pnpm-workspace.yaml overrides so \"brace-expansion@5\" is 5.0.12 (not 5.0.9 / 5.0.10 / 5.0.11). Exact 5.0.12 is the sufficient patched boundary across alerts #16/#17/#18 (Codex F1: do not require \"past 5.0.12\").\n2. **relieves: P1 — Refresh lockfile and prove every 5.x resolution is 5.0.12.** Regenerate pnpm-lock.yaml with the pinned pnpm version (package.json engines/packageManager pin). Confirm every resolved brace-expansion@5 node/edge is 5.0.12 and no 5.0.9 (or other pre-5.0.12 5.x) resolution survives; validate a frozen-lockfile install; inspect workspace-wide paths via `pnpm -r why brace-expansion` (or equivalent). Override-text-only without a successful refresh does not relieve P1 (Codex F1).\n3. **relieves: P1 — Update minimumReleaseAgeExclude for the new 5.0.12 pin.** Replace \brace-expansion@5.0.9 with \brace-expansion@5.0.12; leave brace-expansion@2.1.4 and unrelated excludes alone.\n4. **relieves: P1 — CHANGELOG [Unreleased] Security/Fixed for #16/#17/#18 / #5737.** Cite Dependabot #16/#17/#18 and CVE-2026-102276/102278/102277. Limit security claims to the resolved 5.x path (Codex F2); do not claim both major lines are patched by this ship. Record GitHub Dependabot alert auto-close / dismissable-as-fixed as a separate delivery evidence row after the default-branch dependency scan — until then say the lockfile is outside the recorded vulnerable ranges, not that closure was observed (Codex F1).\n\n### Reject\n- Leaving the pin at 5.0.9 / 5.0.10 / 5.0.11 when alert #18 needs 5.0.12\n- Treating override-text edit alone as P1 relief without lockfile graph proof\n- Claiming Dependabot alert closure from this critique or from a green local install alone\n- Bundling source-map-js (#5740 / Dependabot #19) or unrelated overrides into this Prefer-A\n- Expanding file_scope to bump brace-expansion@2 to 2.1.7 without a newly resolved 2.x node (Codex F2: scoped deferral)\n- Dismissing Dependabot alerts without a lockfile-visible pin at 5.0.12\n- Re-opening or co-shipping duplicate issues #5738/#5739 as separate pin vehicles\n- Broad lockfile churn beyond what the brace-expansion@5 override bump requires\n\n### Disposition of Round-1\n- Codex F1 (sharpens-framing) -> accept-into-contract as limbs 1–2 and the separate-alert-closure evidence row in limb 4\n- Codex F2 (footnote) -> accept inventory; keep @2.1.4 keep-out; limit claims to resolved 5.x path / alerts 16–18\n- Prefer-A direction survives; empty disagreement set on blocks-the-design\n\nrelieves: P1\n\n## file_scope lean\npnpm-workspace.yaml; pnpm-lock.yaml; CHANGELOG.md.\nKeep-outs: brace-expansion@2 bump without tip-resolved 2.x node; source-map-js #5740; unrelated dep churn; duplicates #5738/#5739; dismiss-without-fix.",
+          "id": 6257047256,
+          "html_url": "https://github.com/deftai/directive/issues/5737#issuecomment-6257047256",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:24:49Z",
+          "updated_at": "2026-10-19T00:24:49Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\nfinding-classes: none\nharvest-changed: false\nfamily: codex\nid-ceiling: 6257047256\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\n\nVerdict: Prefer-A Bound honestly covers Stop 1 P1 as a remedy contract. No blocking, sharpening, or footnote findings; no change to the Bound-remedy harvest is required. This is design relief, not a claim that remediation has shipped.\n\nI read the issue body, Stop 1, the draft, Round-1 Codex, and the Bound comment through the specified ceiling. I independently rechecked the workspace, lockfile, and package-manager pin with git show at the dispatch SHA, and retrieved alerts 16/17/18 through read-only REST. No post-ceiling thread comments were read.\n\nExisting mechanisms and evidence: the workspace already supplies major-scoped overrides and exact-version minimumReleaseAgeExclude entries. Both the override and age exclusion still name 5.0.9. The lockfile records its override, package integrity entry, snapshot, and minimatch@10.2.5 edge to brace-expansion 5.0.9; no resolved 2.x package appears. package.json pins pnpm@11.8.0. The three alert records identify the runtime transitive 5.0.9 dependency and first patched versions 5.0.10, 5.0.11, and 5.0.12, respectively. Exact 5.0.12 is outside all three reported vulnerable ranges.\n\nThe remedy covers the complete P1 chain:\n- Limb 1 removes the insufficient pin using the existing override mechanism and the sufficient exact boundary.\n- Limb 2 requires regeneration with the pinned package manager, every resolved 5.x node/edge at 5.0.12, no older 5.x resolution, a frozen-lockfile install, and workspace-wide dependency-path inspection. This directly addresses the failure mode where an override edit leaves the vulnerable graph intact.\n- Limb 3 updates the existing age exclusion to match the replacement pin, completing the configuration change named in P1.\n- Limb 4 limits security claims to the resolved 5.x path and requires separate post-default-branch-scan alert evidence. The alerts remain open in this audit's read; that does not refute a proposed remedy, and the contract expressly forbids presenting local success as observed GitHub closure.\n\nKeeping the unresolved 2.x policy outside this ship does not leave a demonstrated P1 dependency path untreated at the dispatch SHA. The Bound text already limits its claims and identifies a newly resolved 2.x node as evidence requiring reconsideration. Partial bumps or dismiss-without-fix would leave the recorded problem; the Bound remedy rejects both. No additional mechanism is needed to make this P1 relief claim honest.\n\nSources: [Stop 1](https://github.com/deftai/directive/issues/5737#issuecomment-6257009391), [Bound remedy](https://github.com/deftai/directive/issues/5737#issuecomment-6257047256), [workspace at dispatch](https://github.com/deftai/directive/blob/8341f369ccc55fa907abd5e575bb29556e467e9f/pnpm-workspace.yaml), [lockfile at dispatch](https://github.com/deftai/directive/blob/8341f369ccc55fa907abd5e575bb29556e467e9f/pnpm-lock.yaml), Dependabot [16](https://github.com/deftai/directive/security/dependabot/16), [17](https://github.com/deftai/directive/security/dependabot/17), [18](https://github.com/deftai/directive/security/dependabot/18).\n\n",
+          "id": 6257063713,
+          "html_url": "https://github.com/deftai/directive/issues/5737#issuecomment-6257063713",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:26:19Z",
+          "updated_at": "2026-10-19T00:26:19Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\nCites Prefer-A Bound successor lean 6257047256. No Target-digest on this table.\n\n| Claim | Method | Result |\n|---|---|---|\n| Stop 1 P1: brace-expansion@5 still pinned 5.0.9 while Dependabot #16/#17/#18 need through 5.0.12 | pin-read pnpm-workspace.yaml/lockfile + Round-1/PA | Covered by Prefer-A Bound relieves:P1 (exact 5.0.12 bump + lockfile graph proof + age-exclude + CHANGELOG) |\n| Round-1 Codex F1 exact 5.0.12 + lockfile proof + separate alert-closure evidence | REST 6257037134 + Bound limbs 1/2/4 | accept-into-contract |\n| Round-1 Codex F2 keep @2.1.4 keep-out; limit claims to resolved 5.x | REST 6257037134 + Bound Reject/limb 4 | accept inventory |\n| Pain-audit P1 honest relief | REST 6257063713 finding-classes:none harvest-changed:false | clear; no Recut |\n| Empty disagreement set on blocks-the-design | Round-1 + PA | empty |",
+          "id": 6257072050,
+          "html_url": "https://github.com/deftai/directive/issues/5737#issuecomment-6257072050",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:27:07Z",
+          "updated_at": "2026-10-19T00:27:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "design-critique: synthesis accepted, because agents agreed (empty disagreement set) citing Prefer-A Bound successor lean 6257047256 and verified-claims table 6257072050\n\n## In plain English\n#5737 will bump the pnpm brace-expansion@5 override to exact 5.0.12, refresh the lockfile until every resolved 5.x node is 5.0.12, update minimumReleaseAgeExclude, and record CHANGELOG for Dependabot #16/#17/#18. Alert closure is recorded after the default-branch scan, not claimed from this critique. brace-expansion@2 and source-map-js stay keep-outs. Ingest remains a separate operator verb.\n\n## Completed-arc record\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N=1\ndest: .deft-scratch/worktrees/arc-5737\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\nsuccessor-lean: Prefer-A Bound 6257047256\nverified-claims-table: 6257072050\nStop 1: 6257009391\npanel-deposit: 6257016068\nPrefer-A draft: 6257005127\nRound-1: Codex 6257037134\nPrefer-A Bound: 6257047256\nPA-1: Codex 6257063713 (clear; harvest-changed: false)\n\ndisagreement-set: empty\nforward: design-critique:ingest-ready chip; ingest is a later separate operator verb (task issue:ingest).",
+          "id": 6257072326,
+          "html_url": "https://github.com/deftai/directive/issues/5737#issuecomment-6257072326",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:27:09Z",
+          "updated_at": "2026-10-19T00:27:09Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5915129756,
+        "origin": "deftai/directive#5737",
+        "id": "github.issue.5915129756"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "45bdbca86e2e4f1b6bb670f80ee7079ceeb27ba86393ca8d27714c7cd0ab5e6b"
+      },
+      "swarm": {
+        "file_scope": [
+          "pnpm-workspace.yaml",
+          "pnpm-lock.yaml",
+          "CHANGELOG.md"
+        ],
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for security cohort. pnpm-lock.yaml / pnpm-workspace.yaml shared Dependabot pin surfaces for #5737/#5740."
+      }
+    },
+    "id": "github.issue.5915129756",
+    "updated": "2026-10-19T05:50:11Z"
+  }
+}
