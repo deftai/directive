@@ -2,34 +2,19 @@
   "schema": "deft.intent-constraint.v1",
   "planId": "github.issue.5915168639",
   "xbriefRelPath": "xbrief/active/2026-10-19-5742-seccodeql-high-clear-polynomial-redos-in-greptile-detectorts.xbrief.json",
-  "approvedAt": "2026-10-19T15:32:51Z",
+  "approvedAt": "2026-10-19T14:22:00Z",
   "constraints": [
     {
       "value": "invariant",
       "unit": "parse-site",
-      "rejectionScope": "operation"
-    },
-    {
-      "value": "512",
-      "unit": "numeric-const",
-      "rejectionScope": "operation"
-    },
-    {
-      "value": "200",
-      "unit": "numeric-const",
-      "rejectionScope": "operation"
-    },
-    {
-      "value": "40",
-      "unit": "numeric-const",
       "rejectionScope": "operation"
     }
   ],
   "humanApproval": {
     "kind": "operator",
     "actor": "Scott",
-    "mintedAt": "2026-10-19T15:32:51Z",
+    "mintedAt": "2026-10-19T14:22:00Z",
     "mintedVia": "in-harness-ask"
   },
-  "contractDigest": "cfe6eb7b5f9cd86cfacc417270b08cc15bab816ff8cd5805b71cb7601737f72f"
+  "contractDigest": "c525792b8c99a582e0c1dcb31cc08c9f89cdac8cc3d8a5c628fdeac1e8ba16b2"
 }
