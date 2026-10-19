@@ -10,18 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- Changed — Activate Prefer-A Bound security cohort briefs for Dependabot and CodeQL HIGH work (#5737 #5740-#5748); product fixes land in follow-on PRs.
 
 ### Fixed
-- Fixed — Dependabot brace-expansion@5 pin to 5.0.12 (alerts #16/#17/#18). Refs #5737.
-- Fixed — Dependabot source-map-js pin to 1.2.2 (alert #19 / GHSA-68fv-2mgg-jv7q). Refs #5740.
-- Fixed — CodeQL HIGH bad-tag-filter in spec-authority.test.ts (alert #109). Refs #5741.
-- Fixed — CodeQL HIGH polynomial-redos in greptile-detector.ts (alert #112). Refs #5742.
-- Fixed — CodeQL HIGH polynomial-redos in docs-impact.ts (alert #114). Refs #5743.
-- Fixed — CodeQL HIGH polynomial-redos in doctor/manifest.ts (alert #115). Refs #5744.
-- Fixed — CodeQL HIGH polynomial-redos in pr-closing-keywords/detect.ts (alert #121). Refs #5745.
-- Fixed — CodeQL HIGH incomplete-url-substring-sanitization in github-auth-modes.provisioning.test.ts (alert #137). Refs #5746.
-- Fixed — CodeQL HIGH bad-tag-filter in presentation-ceiling/evaluate.ts (alert #143). Refs #5747.
-- Fixed — CodeQL HIGH polynomial-redos in release/auto-hatch.ts (alert #144). Refs #5748.
 
 ### Removed
 
