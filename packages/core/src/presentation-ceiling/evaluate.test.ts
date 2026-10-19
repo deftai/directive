@@ -691,3 +691,35 @@ it.each([
   );
   expect(result.exitCode).toBe(0);
 });
+
+describe("HTML script end-tag extraction (#5747 / CodeQL alert #143)", () => {
+  it.each([
+    [
+      "normal close",
+      '<html><script>readFileSync("CHANGELOG.md");</script></html>',
+    ],
+    [
+      "CodeQL-cited whitespace close",
+      '<html><script>readFileSync("CHANGELOG.md");</script\t\n bar></html>',
+    ],
+    [
+      "lookalike non-close sentinel preserved",
+      '<html><script>const x="</script-not-a-close>"; readFileSync("CHANGELOG.md");</script></html>',
+    ],
+    [
+      "reader in second of multiple scripts",
+      '<html><script>console.log(1);</script><script>readFileSync("CHANGELOG.md");</script></html>',
+    ],
+  ])("detects changelog readers through %s", (_label, html) => {
+    const result = evaluatePresentationCeilingFromSnapshot(
+      snap({
+        changedFiles: ["CHANGELOG.md"],
+        baseArtifacts: [artifact(CEILING)],
+        headArtifacts: [artifact(CEILING)],
+        standingFileContents: new Map([["page.html", html]]),
+      }),
+    );
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.some((f) => f.kind === "changelog-production-reader")).toBe(true);
+  });
+});
