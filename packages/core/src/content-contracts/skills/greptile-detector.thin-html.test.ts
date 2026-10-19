@@ -39,6 +39,17 @@ describe("Last-reviewed markdown-link SHA parse bound (#5742 / CodeQL #112)", ()
     expect(parseLastReviewedShaMarkdownLink(body)).toBe(MALFORMED_THEN_VALID_SHA);
   });
 
+  it("reads a full 40-hex SHA when owner+repo nearly exhaust the 200-char URL prefix budget", () => {
+    const owner = "o".repeat(39);
+    const repo = "r".repeat(100);
+    const sha = "a".repeat(40);
+    // https://github.com/ = 19; owner 39; /; repo 100; /commit/ = 8 → 167 chars before SHA.
+    // Under a shared 200-char scan the SHA would truncate to 33 hex; reserved SHA window keeps all 40.
+    const body =
+      `Last reviewed commit: [fix: long](https://github.com/${owner}/${repo}/commit/${sha})\n`;
+    expect(parseLastReviewedShaMarkdownLink(body)).toBe(sha);
+  });
+
   it("keeps escaped-bracket link text and AC4 inline/markdown contracts separate", () => {
     expect(parseLastReviewedShaMarkdownLink(BODY_ESCAPED_BRACKET_LINK_TEXT)).toBe(
       ESCAPED_BRACKET_SHA,

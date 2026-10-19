@@ -61,8 +61,13 @@ const NAIVE_INLINE_SHA_RE = /Last reviewed commit:\s*([0-9a-f]{7,40})/;
 const LAST_REVIEWED_MARKER = "Last reviewed commit:";
 /** Cap markdown link-text scan — adversarial bodies cannot force unbounded work (#5742 / CodeQL #112). */
 const MARKDOWN_LINK_TEXT_MAX = 512;
-/** Cap URL prefix read after `](` when extracting the commit SHA. */
-const MARKDOWN_COMMIT_URL_SCAN_MAX = 200;
+/**
+ * Cap URL prefix (scheme+host+owner+repo+/commit/) after `](`.
+ * SHA digits use a separate 40-char reserve so a long owner/repo cannot
+ * truncate a valid 40-hex SHA inside the prefix budget (Greptile P1).
+ */
+const MARKDOWN_COMMIT_URL_PREFIX_MAX = 200;
+const COMMIT_SHA_HEX_MAX = 40;
 
 function isAsciiWhitespace(ch: string): boolean {
   return ch === " " || ch === "\t" || ch === "\n" || ch === "\r" || ch === "\f" || ch === "\v";
@@ -77,25 +82,26 @@ function isLowerHex(ch: string): boolean {
  * Returns the SHA or null; never backtracks (#5742).
  */
 function parseGithubCommitShaAt(body: string, start: number): string | null {
-  const limit = Math.min(body.length, start + MARKDOWN_COMMIT_URL_SCAN_MAX);
+  const prefixLimit = Math.min(body.length, start + MARKDOWN_COMMIT_URL_PREFIX_MAX);
   let i = start;
   if (body.startsWith("https://", i)) i += 8;
   else if (body.startsWith("http://", i)) i += 7;
   else return null;
-  if (i >= limit || !body.startsWith("github.com/", i)) return null;
+  if (i >= prefixLimit || !body.startsWith("github.com/", i)) return null;
   i += "github.com/".length;
   const ownerStart = i;
-  while (i < limit && body[i] !== "/" && body[i] !== "\n") i++;
-  if (i === ownerStart || i >= limit || body[i] !== "/") return null;
+  while (i < prefixLimit && body[i] !== "/" && body[i] !== "\n") i++;
+  if (i === ownerStart || i >= prefixLimit || body[i] !== "/") return null;
   i++;
   const repoStart = i;
-  while (i < limit && body[i] !== "/" && body[i] !== "\n") i++;
-  if (i === repoStart || i + 8 > limit || !body.startsWith("/commit/", i)) return null;
+  while (i < prefixLimit && body[i] !== "/" && body[i] !== "\n") i++;
+  if (i === repoStart || i + 8 > prefixLimit || !body.startsWith("/commit/", i)) return null;
   i += "/commit/".length;
   const shaStart = i;
-  while (i < limit && i - shaStart < 40 && isLowerHex(body[i]!)) i++;
+  const shaLimit = Math.min(body.length, shaStart + COMMIT_SHA_HEX_MAX);
+  while (i < shaLimit && isLowerHex(body[i]!)) i++;
   const shaLen = i - shaStart;
-  if (shaLen < 7 || shaLen > 40) return null;
+  if (shaLen < 7 || shaLen > COMMIT_SHA_HEX_MAX) return null;
   return body.slice(shaStart, i);
 }
 
