@@ -1,0 +1,375 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5747",
+    "updated": "2026-10-19T05:50:29Z"
+  },
+  "plan": {
+    "title": "sec(codeql): HIGH clear bad-tag-filter in presentation-ceiling/evaluate.ts (alert #143)",
+    "status": "running",
+    "narratives": {
+      "Description": "sec(codeql): HIGH clear bad-tag-filter in presentation-ceiling/evaluate.ts (alert #143)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5747",
+      "Overview": "## Summary\n\nCodeQL open alert on default branch: **HIGH** `js/bad-tag-filter` — Bad HTML filtering regexp.\n\n| Field | Value |\n|-------|-------|\n| Alert | [#143](https://github.com/deftai/directive/security/code-scanning/143) |\n| Rule | `js/bad-tag-filter` |\n| Severity | HIGH |\n| Location | `packages/core/src/presentation-ceiling/evaluate.ts` ~L578 |\n| Message | This regular expression does not match script end tags like </script\\t\\n bar>. |\n\n## What to build\n\nRewrite or bound the flagged site so CodeQL `js/bad-tag-filter` clears for this alert (or document accepted risk with suppress + rationale if false positive after review). Prefer a real fix over suite-config changes.\n\n## Acceptance\n\n- [ ] CodeQL alert [#143](https://github.com/deftai/directive/security/code-scanning/143) clears on master (auto-close or dismiss with reason after fix).\n- [ ] Existing unit tests for the touched module still pass; add adversarial input coverage if useful.\n- [ ] CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #143.\n\n## Non-goals\n\n- Changing CodeQL suite config as the primary fix.\n- Bundling unrelated code-scanning alerts into this issue (siblings tracked separately).",
+      "Labels": "security, urgent, design-critique:ingest-ready, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "title": "CodeQL alert  clears on master (auto-close or dismiss with reason after fix).",
+        "status": "proposed",
+        "id": "clause.1",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/presentation-ceiling/evaluate.ts"
+      },
+      {
+        "title": "Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+        "status": "proposed",
+        "id": "clause.2",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/presentation-ceiling/evaluate.ts"
+      },
+      {
+        "title": "CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #143.",
+        "status": "proposed",
+        "id": "clause.3",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/presentation-ceiling/evaluate.ts"
+      }
+    ],
+    "tags": [
+      "security",
+      "urgent",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5747",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5747: sec(codeql): HIGH clear bad-tag-filter in presentation-ceiling/evaluate.ts (alert #143)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "sec(codeql): HIGH clear bad-tag-filter in presentation-ceiling/evaluate.ts (alert #143)",
+        "Summary CodeQL open alert on default branch: HIGH `js/bad-tag-filter` — Bad HTML filtering regexp.",
+        "| Field | Value | |-------|-------| | Alert | [#143](https://github.com/deftai/directive/security/code-scanning/143) | | Rule | `js/bad-tag-filter` | | Severity | HIGH | | Location | `packages/core/src/presentation-ceiling/evaluate.ts` ~L578 | | Message | This regular expression does not match script end tags like </script\\t\\n bar>.",
+        "| ## What to build Rewrite or bound the flagged site so CodeQL `js/bad-tag-filter` clears for this alert (or document accepted risk with suppress + rationale if false positive after review).",
+        "Prefer a real fix over suite-config changes.",
+        "Acceptance - [ ] CodeQL alert [#143](https://github.com/deftai/directive/security/code-scanning/143) clears on master (auto-close or dismiss with reason after fix).",
+        "[ ] Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+        "[ ] CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #143.",
+        "Non-goals - Changing CodeQL suite config as the primary fix.",
+        "Bundling unrelated code-scanning alerts into this issue (siblings tracked separately).",
+        "CodeQL alert [#143](https://github.com/deftai/directive/security/code-scanning/143) clears on master (auto-close or dismiss with reason after fix).",
+        "Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+        "CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #143."
+      ],
+      "admitted_source_sentences": [
+        "Summary CodeQL open alert on default branch: HIGH `js/bad-tag-filter` — Bad HTML filtering regexp.",
+        "| Field | Value | |-------|-------| | Alert | [#143](https://github.com/deftai/directive/security/code-scanning/143) | | Rule | `js/bad-tag-filter` | | Severity | HIGH | | Location | `packages/core/src/presentation-ceiling/evaluate.ts` ~L578 | | Message | This regular expression does not match script end tags like </script\\t\\n bar>.",
+        "| ## What to build Rewrite or bound the flagged site so CodeQL `js/bad-tag-filter` clears for this alert (or document accepted risk with suppress + rationale if false positive after review).",
+        "Prefer a real fix over suite-config changes.",
+        "Acceptance - [ ] CodeQL alert [#143](https://github.com/deftai/directive/security/code-scanning/143) clears on master (auto-close or dismiss with reason after fix).",
+        "[ ] Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+        "[ ] CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #143.",
+        "Non-goals - Changing CodeQL suite config as the primary fix.",
+        "Bundling unrelated code-scanning alerts into this issue (siblings tracked separately)."
+      ],
+      "admitted_source_digest": "69cc2027f43c011eb63b7f51f602be5ec0ca9867fe7f66fc0b97b62f302816bc",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "CodeQL alert [#143](https://github.com/deftai/directive/security/code-scanning/143) clears on master (auto-close or dismiss with reason after fix).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #143.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/presentation-ceiling/evaluate.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/presentation-ceiling/evaluate.ts"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A (draft)\nTarget-digest: sha256:2c68185498c9ab4c1b6e8a3956d468c49ff82e7a3a321fb26c5a35792c23e23e\nconflict_group: codeql-143-bad-tag-filter-presentation-ceiling-evaluate\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\ndest: .deft-scratch/worktrees/arc-5747\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\n\n## In plain English\n\nCodeQL alert #143 flags a HIGH js/bad-tag-filter hit on production presentation-ceiling readerEvidence: the HTML path extracts `script` bodies with an end-tag pattern that misses browser-forgiving closes such as `</script` + whitespace + junk + `>`. Prefer-A hardens that end-tag match so CodeQL clears, keeps the extract-for-static-analysis semantics (this is not a browser XSS sanitizer), adds adversarial coverage, and refuses suite-config or dismiss as the primary fix.\n\n## Proposed Bound remedy (draft — critics refute before bind)\n\nrelieves: P1\n- In packages/core/src/presentation-ceiling/evaluate.ts readerEvidence (~L578 at dispatch-sha), replace the incomplete end-tag `<\\/script\\s*>` with a complete end-tag that matches CodeQL's cited shape (at minimum `<\\/script\\b[^>]*>` so `</script\\t\\n bar>` matches). Keep start-tag `<script\\b[^>]*>`, keep non-greedy body capture, keep joining extracted bodies for downstream JS/TS parse / fallbackReaderEvidence. Do not change the HTML branch's purpose: extract script text for static reader-evidence, not sanitize for browser render.\n\nrelieves: P1\n- Add or extend unit coverage under packages/core/src/presentation-ceiling/ so an HTML fixture whose script closes as `</script\\t\\n bar>` (and a normal `</script>`) still yields the expected reader-evidence behavior for that extraction path. Existing module tests stay green.\n\nrelieves: P1\n- Verification endpoint: CodeQL alert #143 clears on master after the harden lands (Acceptance). Syntactic rewrite alone is not clearance.\n\nrelieves: P1\n- CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #143.\n\n## Reject (draft)\n\n- Changing .github/codeql/codeql-config.yml (or paths-ignore / query suite) as the primary fix.\n- Dismissing alert #143 as false-positive without hardening the flagged production site.\n- Bundling unrelated code-scanning alerts.\n- Treating this extractor as a general-purpose HTML sanitizer or pulling a sanitizer library as the default cut unless a later measurement shows the hardened regex still fails CodeQL clearance.\n- Widening file_scope past presentation-ceiling evaluate + its tests + CHANGELOG without a new lean.\n\n## file_scope (draft)\n\n- packages/core/src/presentation-ceiling/evaluate.ts\n- packages/core/src/presentation-ceiling/* (tests touching readerEvidence / HTML script extract)\n- CHANGELOG.md",
+          "id": 6257027950,
+          "html_url": "https://github.com/deftai/directive/issues/5747#issuecomment-6257027950",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:23:01Z",
+          "updated_at": "2026-10-19T00:23:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because CodeQL HIGH js/bad-tag-filter alert #143 is open on default branch at a concrete production site in packages/core/src/presentation-ceiling/evaluate.ts (~L578). Judgment is whether Prefer-A harden of the incomplete HTML script end-tag extractor is the right next-build cut versus suite-config, suppress, or a heavier parser/sanitizer dependency.\nrefutation-target: that hardening the production HTML script-body extractor end-tag pattern so CodeQL js/bad-tag-filter clears for alert #143 (keeping reader-evidence extraction semantics; suite-config / dismiss keep-out) is the correct primary fix.\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: Closed solution space (harden one production regex + tests + CHANGELOG); low blast; Stop 2 panel permission does not apply. Operator cue N=1.\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\ndest: .deft-scratch/worktrees/arc-5747\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\nTarget-digest: sha256:2c68185498c9ab4c1b6e8a3956d468c49ff82e7a3a321fb26c5a35792c23e23e\nPrefer-A draft cite: 6257027950\n\npain: P1\n- P1: packages/core/src/presentation-ceiling/evaluate.ts readerEvidence uses /<script\\b[^>]*>([\\s\\S]*?)<\\/script\\s*>/gi; CodeQL js/bad-tag-filter flags that the end-tag does not match script end tags like </script\\t\\n bar>, leaving HIGH alert #143 open on master (production code).\n\nclosed-findings: none\nverification-path: pin-read git show 8341f369ccc55fa907abd5e575bb29556e467e9f:; dest cwd-without-occupy (.deft-scratch/worktrees/arc-5747)\n\n",
+          "id": 6257030572,
+          "html_url": "https://github.com/deftai/directive/issues/5747#issuecomment-6257030572",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:23:16Z",
+          "updated_at": "2026-10-19T00:23:16Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 6257037912\nfamilies: codex\nseat: codex launcher: codex exec\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\nverification-path: pin-read git show 8341f369ccc55fa907abd5e575bb29556e467e9f:; dest cwd-without-occupy\nStop-1: 6257030572\nPrefer-A draft: 6257027950\nTarget-digest: sha256:2c68185498c9ab4c1b6e8a3956d468c49ff82e7a3a321fb26c5a35792c23e23e\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5747\naudit-targets: none\n\n",
+          "id": 6257037912,
+          "html_url": "https://github.com/deftai/directive/issues/5747#issuecomment-6257037912",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:23:57Z",
+          "updated_at": "2026-10-19T00:24:19Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nRound 1, open critique. Reviewed issue body and comments through 6257037912 only; source and contract reads pinned to 8341f369ccc55fa907abd5e575bb29556e467e9f.\n\nPrefer-A's local hardening direction is sufficient for P1, with adversarial behavioral tests, CHANGELOG, and actual master CodeQL clearance. The literal proposed minimum needs correction before binding; I do not endorse it unchanged.\n\n## F1 — blocks-the-design: the proposed word boundary can discard reader evidence\n\nEvidence: pinned evaluate.ts:578 extracts script bodies before TypeScript analysis. I reproduced the original and proposed expressions in Node, without modifying the tree. For an actual tab/newline close, the original extracts nothing and the proposed expression correctly extracts the reader. But for:\n\n~~~html\n<script>const x=\"</script-not-a-close>\"; readFileSync(\"CHANGELOG.md\");</script>\n~~~\n\nThe original captures the complete body; the proposed end-tag captures only `const x=\"`. The word boundary also matches before punctuation such as the hyphen. This is a concrete loss of downstream reader input, conflicting with the draft's preserve-extraction-semantics requirement. On this untrusted-source path, merely satisfying a filtering query must not introduce evidence blindness.\n\nDisposition: retain Prefer-A, but replace its permitted minimum with a delimiter-aware end-tag expression (for example `</script(?=[\t\n\f\r />])[^>]*>`, subject to CodeQL verification), or an equivalent implementation that preserves the reader in this counterexample. Keep the start-tag and downstream analysis scope unchanged. Bind behavioral coverage for both the cited malformed close and this non-close sentinel, normal closes, and multiple scripts. Use the existing evaluatePresentationCeilingFromSnapshot test harness to assert reader findings, not only regex matches: evaluate.test.ts already has CHANGELOG reader cases and negative source-string cases. This closes the concrete regression without expanding to general HTML parsing.\n\n## F2 — sharpens-framing: distinguish design acceptance from delivered clearance\n\nEvidence: draft 6257027950 correctly says syntactic rewrite alone is not clearance and requires alert #143 to clear on master. Pin-reading and the Node reproduction establish extraction behavior only; neither runs CodeQL or establishes the alert's current state. Failure mode: a green unit suite or merged regex change is recorded as P1 delivered before the default-branch analysis confirms it.\n\nDisposition: preserve the draft's endpoint and record the post-fix master SHA, successful relevant CodeQL analysis, and alert #143 fixed state as delivery evidence. No suite exclusion, suppression, or dismissal should substitute for that result. The lean can bind with this recording clarification; clearance is not claimed by this critique.\n\n## F3 — footnote: dispatch recording inconsistencies\n\nThe authoritative envelope ceiling is 6257037912 and was honored. The pinned contract's single-critic Round-1 rule specifies the triage write-back as ceiling when present (6257030572); its post-deposit exception applies to two or more critics. This N=1 envelope instead includes the later deposit. Also, Stop 1 records open critique while carrying a refutation-target; the envelope itself appropriately supplies no named refutation target. These are protocol-recording inconsistencies, not evidence that the product fix fails, and I have not silently re-ceiled or changed the charter. Parent should record their disposition rather than describe the dispatch as exact protocol conformance.\n\nRoad not taken: a full HTML parser could supply stronger tokenization semantics, but that adds dependency and integration scope beyond this demonstrated end-tag defect. A sanitizer library addresses a different purpose. Prefer the bounded extractor correction unless behavioral counterexamples or CodeQL results demonstrate that it cannot meet the stated endpoint.\n\nVerification limits: pinned source/contract inspection plus isolated Node regex reproduction; no product edits, module test run, or CodeQL run. This is the one critic post, not synthesis or ingest clearance.\n\n",
+          "id": 6257060741,
+          "html_url": "https://github.com/deftai/directive/issues/5747#issuecomment-6257060741",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:26:03Z",
+          "updated_at": "2026-10-19T00:26:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nCodeQL alert #143 is a production incomplete script end-tag in presentation-ceiling readerEvidence, not a browser XSS sanitizer hole. Prefer-A Bound hardens that end-tag with a delimiter-aware pattern so CodeQL's cited closes match without truncating bodies that contain lookalike strings such as </script-not-a-close>, keeps extract-for-static-analysis semantics, requires behavioral tests plus master CodeQL clearance, and leaves suite-config/dismiss out.\n\nLean: Prefer-A Bound\nTarget-digest: sha256:2c68185498c9ab4c1b6e8a3956d468c49ff82e7a3a321fb26c5a35792c23e23e\nconflict_group: codeql-143-bad-tag-filter-presentation-ceiling-evaluate\nSupersedes: 6257027950\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N=1\ninput-ceiling: 6257060741\nRound-1 critic: 6257060741 (codex)\nStop-1: 6257030572\ndest: .deft-scratch/worktrees/arc-5747\n\nrelieves: P1\n\n## Takes (Round-1 disposition)\n\n- F1 blocks-the-design (word-boundary end-tag can discard reader evidence) — accept-into-contract\n- F2 sharpens-framing (design acceptance ≠ delivered CodeQL clearance) — accept-into-contract\n- F3 footnote (N=1 ceiling / open-critique+refutation-target recording) — accept-into-contract (footnote; recorded)\n\n## Bound remedy\n\nrelieves: P1 — Delimiter-aware script end-tag (not bare \\b)\n- In packages/core/src/presentation-ceiling/evaluate.ts readerEvidence (~L578 at dispatch-sha), replace the incomplete end-tag <\\/script\\s*> with a complete end-tag that (a) matches CodeQL's cited shape including </script\\t\\n bar> and (b) does not end at lookalike non-closes such as </script-not-a-close> inside the body (F1). Prefer a delimiter-aware end-tag of the form <\\/script(?=[\\t\\n\\f\\r />])[^>]*> (or equivalent that preserves the F1 counterexample body and still clears CodeQL). Keep start-tag <script\\b[^>]*>, non-greedy body capture, and join-of-extracted-bodies for downstream analysis. Do not treat this extractor as a general HTML sanitizer; do not default to a sanitizer/parser dependency unless later measurement shows the delimiter-aware regex still fails CodeQL clearance.\n\nrelieves: P1 — Behavioral adversarial coverage via existing harness\n- Add/extend presentation-ceiling tests so HTML fixtures cover: normal </script>; CodeQL-cited </script\\t\\n bar>; F1 sentinel with </script-not-a-close> inside the body then a real close; multiple scripts. Prefer evaluatePresentationCeilingFromSnapshot / existing CHANGELOG-reader harness assertions (reader findings), not regex-only unit checks (F1 disposition). Existing module tests stay green.\n\nrelieves: P1 — Verification endpoint: master CodeQL clear for #143\n- Keep unit tests green for the touched module. Delivery evidence for P1 requires a CodeQL analysis that includes the fix clearing alert #143 on master (post-fix master SHA + alert fixed/auto-closed state). Syntactic rewrite and green unit suite alone are not clearance (F2).\n\nrelieves: P1 — CHANGELOG Security/Fixed for alert #143\n- CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #143.\n\n## Reject\n\n- Changing .github/codeql/codeql-config.yml (or paths-ignore / query suite) as the primary fix.\n- Dismissing alert #143 as false-positive without hardening the flagged production site.\n- Bundling unrelated code-scanning alerts.\n- Binding the draft's bare <\\/script\\b[^>]*> minimum without the F1 delimiter-aware correction (truncates on </script-not-a-close>).\n- Treating this extractor as a general-purpose HTML sanitizer, or pulling a sanitizer/parser library as the default cut unless later measurement shows the delimiter-aware regex still fails CodeQL clearance.\n- Claiming P1 delivered from unit green alone without master CodeQL clearance evidence (F2).\n\n## file_scope\n\n- packages/core/src/presentation-ceiling/evaluate.ts\n- packages/core/src/presentation-ceiling/* (tests touching readerEvidence / HTML script extract / evaluatePresentationCeilingFromSnapshot harness)\n- CHANGELOG.md",
+          "id": 6257084828,
+          "html_url": "https://github.com/deftai/directive/issues/5747#issuecomment-6257084828",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:28:19Z",
+          "updated_at": "2026-10-19T00:28:19Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\nfinding-classes: none\nharvest-changed: false\n\nPain-audit of Prefer-A Bound [6257084828](https://github.com/deftai/directive/issues/5747#issuecomment-6257084828), against Stop 1 [6257030572](https://github.com/deftai/directive/issues/5747#issuecomment-6257030572). Inputs were limited to the issue body and comments through ceiling 6257084828. Source and contract inspection pinned to 8341f369ccc55fa907abd5e575bb29556e467e9f.\n\nBound holds for P1 as a design contract; no Recut or harvested-remedy change is needed. This is not a claim that P1 has already been delivered.\n\n1. F1 is addressed. The pinned readerEvidence at evaluate.ts:578 extracts HTML script bodies, joins them, and sends them into TypeScript reader analysis. The Bound delimiter lookahead accepts the cited end-tag with actual tab/newline and trailing text while rejecting the hyphen after script in </script-not-a-close>. Isolated Node assertions of the proposed extraction expression passed normal close, actual-tab/newline close, the full F1 sentinel body with its subsequent readFileSync(\"CHANGELOG.md\"), and two scripts with the reader in the second body. The unchanged start-tag, non-greedy capture, and join preserve the bounded extraction pipeline. This directly addresses evidence loss from the prior bare word-boundary proposal on untrusted source input.\n\n2. Behavioral coverage is addressed. The Bound names normal closes, the CodeQL-cited close, the F1 sentinel, and multiple scripts, and directs reader-finding assertions through the existing evaluatePresentationCeilingFromSnapshot harness rather than regex-only checks. Pinned evaluate.test.ts already supplies changelog-production-reader and negative source-string cases, so this uses an existing observable behavior and test mechanism. The new HTML fixtures must exercise that path during implementation; the isolated assertions above do not substitute for those tests.\n\n3. F2 is addressed. The endpoint explicitly requires analysis including the fix on master, the post-fix master SHA, and alert #143 fixed/auto-closed evidence. Green unit tests or a syntactic rewrite cannot satisfy that endpoint, and suite exclusions, suppression, and dismissal cannot replace it. The CHANGELOG limb and narrow file scope remain consistent with P1.\n\nA full HTML parser remains a plausible stronger tokenizer, but the demonstrated defect does not require that integration scope. A behavioral counterexample to the bounded remedy or failure to obtain the required CodeQL clearance would justify revisiting that choice; the Bound already retains that contingency.\n\nVerification limits: pinned source/test/contract reads and four isolated Node extraction assertions only. No product edits, module-suite execution, or CodeQL execution; no assertion about the current alert state. The previously recorded F3 protocol footnote does not create a new P1 remedy change.\n\nPain-audit complete; exiting critic dispatch. Parent owns synthesis and completion admission. No ingest.\n\n",
+          "id": 6257100111,
+          "html_url": "https://github.com/deftai/directive/issues/5747#issuecomment-6257100111",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:29:45Z",
+          "updated_at": "2026-10-19T00:29:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Method | Result |\n|---|---|---|\n| P1 incomplete <\\/script\\s*> end-tag is the CodeQL #143 site in production evaluate.ts | Stop 1 6257030572; pin-read evaluate.ts ~L578 at 8341f369 | hold |\n| Prefer-A Bound 6257084828 relieves P1 | lean closed relieves: P1 + Bound remedy limbs (delimiter-aware end-tag; harness coverage; master CodeQL endpoint; CHANGELOG) | hold |\n| F1 delimiter-aware fold (no bare \\b truncation) | Round-1 6257060741 F1 accept-into-contract; Bound <\\/script(?=[\\t\\n\\f\\r />])[^>]*> (or equiv) | hold |\n| F2 master CodeQL clearance as delivery evidence | Round-1 F2 accept-into-contract; Bound verification limb | hold |\n| Pain-audit supports P1 without harvest change | critic 6257100111 audit-targets: pain-P1; finding-classes: none; harvest-changed: false | hold |\n| Keep-outs: suite-config / dismiss / unrelated alerts / sanitizer-as-default | Bound Reject + Round-1 endorsement | hold |\n| Target-digest matches live issue body | sha256:2c68185498c9ab4c1b6e8a3956d468c49ff82e7a3a321fb26c5a35792c23e23e | hold |\n| Empty disagreement set on Round-1 map | F1–F3 all accept-into-contract; no disagree/defer | hold |",
+          "id": 6257106108,
+          "html_url": "https://github.com/deftai/directive/issues/5747#issuecomment-6257106108",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:30:18Z",
+          "updated_at": "2026-10-19T00:30:18Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n## In plain English\n\nPrefer-A Bound is ready to ingest: harden the production presentation-ceiling script end-tag with a delimiter-aware pattern so CodeQL alert #143 clears without truncating bodies that contain lookalike non-closes, add harness-level adversarial HTML coverage, require master CodeQL clearance evidence, and leave suite-config/dismiss out. Ingest remains a separate operator verb.\n\nAccepted successor lean: 6257084828\nVerified-claims table: 6257106108\nPain-audit: 6257100111 (supports pain-P1; finding-classes: none; harvest-changed: false)\nRound-1 critic: 6257060741\nStop-1: 6257030572\nPrefer-A draft: 6257027950\npanel-deposit: 6257037912\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\ncompleted-arc: yes\nconflict_group: codeql-143-bad-tag-filter-presentation-ceiling-evaluate",
+          "id": 6257106330,
+          "html_url": "https://github.com/deftai/directive/issues/5747#issuecomment-6257106330",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:30:20Z",
+          "updated_at": "2026-10-19T00:30:20Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5915169703,
+        "origin": "deftai/directive#5747",
+        "id": "github.issue.5915169703"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "2c68185498c9ab4c1b6e8a3956d468c49ff82e7a3a321fb26c5a35792c23e23e"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/presentation-ceiling/evaluate.ts",
+          "CHANGELOG.md"
+        ]
+      }
+    },
+    "id": "github.issue.5915169703",
+    "updated": "2026-10-19T05:50:29Z"
+  }
+}

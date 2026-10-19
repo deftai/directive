@@ -1,0 +1,375 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5742",
+    "updated": "2026-10-19T05:50:18Z"
+  },
+  "plan": {
+    "title": "sec(codeql): HIGH clear polynomial-redos in greptile-detector.ts (alert #112)",
+    "status": "running",
+    "narratives": {
+      "Description": "sec(codeql): HIGH clear polynomial-redos in greptile-detector.ts (alert #112)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5742",
+      "Overview": "## Summary\n\nCodeQL open alert on default branch: **HIGH** `js/polynomial-redos` — Polynomial regular expression used on uncontrolled data.\n\n| Field | Value |\n|-------|-------|\n| Alert | [#112](https://github.com/deftai/directive/security/code-scanning/112) |\n| Rule | `js/polynomial-redos` |\n| Severity | HIGH |\n| Location | `packages/core/src/content-contracts/skills/greptile-detector.ts` ~L301 |\n| Message | This regular expression that depends on library input may run slow on strings starting with 'Last reviewed commit:[' and with many repetitions of 'Last reviewed commit:['. |\n\n## What to build\n\nRewrite or bound the flagged site so CodeQL `js/polynomial-redos` clears for this alert (or document accepted risk with suppress + rationale if false positive after review). Prefer a real fix over suite-config changes.\n\n## Acceptance\n\n- [ ] CodeQL alert [#112](https://github.com/deftai/directive/security/code-scanning/112) clears on master (auto-close or dismiss with reason after fix).\n- [ ] Existing unit tests for the touched module still pass; add adversarial input coverage if useful.\n- [ ] CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #112.\n\n## Non-goals\n\n- Changing CodeQL suite config as the primary fix.\n- Bundling unrelated code-scanning alerts into this issue (siblings tracked separately).",
+      "Labels": "security, urgent, design-critique:ingest-ready, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "title": "CodeQL alert  clears on master (auto-close or dismiss with reason after fix).",
+        "status": "proposed",
+        "id": "clause.1",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/content-contracts/skills/greptile-detector.ts"
+      },
+      {
+        "title": "Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+        "status": "proposed",
+        "id": "clause.2",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/content-contracts/skills/greptile-detector.ts"
+      },
+      {
+        "title": "CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #112.",
+        "status": "proposed",
+        "id": "clause.3",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/content-contracts/skills/greptile-detector.ts"
+      }
+    ],
+    "tags": [
+      "security",
+      "urgent",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5742",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5742: sec(codeql): HIGH clear polynomial-redos in greptile-detector.ts (alert #112)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "sec(codeql): HIGH clear polynomial-redos in greptile-detector.ts (alert #112)",
+        "Summary CodeQL open alert on default branch: HIGH `js/polynomial-redos` — Polynomial regular expression used on uncontrolled data.",
+        "| Field | Value | |-------|-------| | Alert | [#112](https://github.com/deftai/directive/security/code-scanning/112) | | Rule | `js/polynomial-redos` | | Severity | HIGH | | Location | `packages/core/src/content-contracts/skills/greptile-detector.ts` ~L301 | | Message | This regular expression that depends on library input may run slow on strings starting with 'Last reviewed commit:[' and with many repetitions of 'Last reviewed commit:['.",
+        "| ## What to build Rewrite or bound the flagged site so CodeQL `js/polynomial-redos` clears for this alert (or document accepted risk with suppress + rationale if false positive after review).",
+        "Prefer a real fix over suite-config changes.",
+        "Acceptance - [ ] CodeQL alert [#112](https://github.com/deftai/directive/security/code-scanning/112) clears on master (auto-close or dismiss with reason after fix).",
+        "[ ] Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+        "[ ] CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #112.",
+        "Non-goals - Changing CodeQL suite config as the primary fix.",
+        "Bundling unrelated code-scanning alerts into this issue (siblings tracked separately).",
+        "CodeQL alert [#112](https://github.com/deftai/directive/security/code-scanning/112) clears on master (auto-close or dismiss with reason after fix).",
+        "Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+        "CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #112."
+      ],
+      "admitted_source_sentences": [
+        "Summary CodeQL open alert on default branch: HIGH `js/polynomial-redos` — Polynomial regular expression used on uncontrolled data.",
+        "| Field | Value | |-------|-------| | Alert | [#112](https://github.com/deftai/directive/security/code-scanning/112) | | Rule | `js/polynomial-redos` | | Severity | HIGH | | Location | `packages/core/src/content-contracts/skills/greptile-detector.ts` ~L301 | | Message | This regular expression that depends on library input may run slow on strings starting with 'Last reviewed commit:[' and with many repetitions of 'Last reviewed commit:['.",
+        "| ## What to build Rewrite or bound the flagged site so CodeQL `js/polynomial-redos` clears for this alert (or document accepted risk with suppress + rationale if false positive after review).",
+        "Prefer a real fix over suite-config changes.",
+        "Acceptance - [ ] CodeQL alert [#112](https://github.com/deftai/directive/security/code-scanning/112) clears on master (auto-close or dismiss with reason after fix).",
+        "[ ] Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+        "[ ] CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #112.",
+        "Non-goals - Changing CodeQL suite config as the primary fix.",
+        "Bundling unrelated code-scanning alerts into this issue (siblings tracked separately)."
+      ],
+      "admitted_source_digest": "29043f44b9dfd72487c294f8605ed743f1fdc3bcd37db9339f427ea1292b30ad",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "CodeQL alert [#112](https://github.com/deftai/directive/security/code-scanning/112) clears on master (auto-close or dismiss with reason after fix).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #112.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/content-contracts/skills/greptile-detector.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/content-contracts/skills/greptile-detector.ts"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A (draft)\nTarget-digest: sha256:8db27fa2a749d0a4c00177e64e596bd3dfd4e8fd103968ac19da7aa607d34ac2\nconflict_group: greptile-detector-markdown-link-sha-polynomial-redos\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\ndest: .deft-scratch/worktrees/arc-5742\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\n\n## In plain English\nCodeQL alert #112 flags MARKDOWN_LINK_SHA_RE in greptile-detector.ts: the unbounded `\\[.*?\\]` after `Last reviewed commit:` can run slow on adversarial review bodies that repeat `Last reviewed commit:[`. Prefer-A clears that by rewriting or bounding the parse so polynomial ReDoS is gone, keeps existing Last-reviewed SHA fixtures green, and rejects CodeQL suite-config or suppress-only as the primary fix.\n\n## Draft remedy sketch\n1. Rewrite or bound MARKDOWN_LINK_SHA_RE so link-text matching cannot backtrack unboundedly (bounded character class for link text, possessive/atomic equivalent, or a two-step locate-then-bounded-link parse). Keep parseLastReviewedShaMarkdownLink / parseLastReviewedShaNaiveInline behavior for current fixtures (escaped brackets, AC4 markdown-link and inline forms).\n2. Add adversarial coverage that would hang or thrash under the old `.*?` form if useful; existing greptile-detector unit tests must still pass.\n3. CHANGELOG [Unreleased] Security/Fixed citing CodeQL alert #112 and #5742.\n4. Keep-outs: CodeQL suite-config / path keep-out as primary clearance; suppress-only without rewrite/bound; bundling unrelated code-scanning alerts; changing Greptile/SLizard detection semantics beyond the Last-reviewed SHA parse site.\n\n## Reject (draft)\n- CodeQL suite-config or path keep-out as the primary fix\n- Suppress-only / accepted-risk dismiss without a rewrite or bound at the flagged site\n- Bundling unrelated code-scanning alerts into this issue\n- Changing Greptile detector tier/badge/confidence semantics beyond Last-reviewed SHA parse\n- Leaving unbounded `.*?` in place because review bodies are 'usually trusted'",
+          "id": 6256512699,
+          "html_url": "https://github.com/deftai/directive/issues/5742#issuecomment-6256512699",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:29:36Z",
+          "updated_at": "2026-10-18T23:29:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because CodeQL HIGH js/polynomial-redos on MARKDOWN_LINK_SHA_RE (`\\[.*?\\]` after Last reviewed commit:) is a named parse mechanism on uncontrolled Greptile/review-body input; judgment is whether rewrite/bound clears alert #112 without suite-config primary or detector-semantics widen.\nrefutation-target: that rewriting or bounding MARKDOWN_LINK_SHA_RE (not CodeQL suite-config / suppress-only) is sufficient to clear alert #112 while preserving Last-reviewed SHA fixture behavior and without changing Greptile tier/badge/confidence semantics\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nTarget-kind: issue\nCeiling-kind: comment-id\ndest: .deft-scratch/worktrees/arc-5742\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\nverification-path: pin-read git show 8341f369ccc55fa907abd5e575bb29556e467e9f:packages/core/src/content-contracts/skills/greptile-detector.ts (dest cwd-without-occupy for on-pin file reads)\ndual-stop-reserved: first post-lean pain-audit in-cap via Dual-stop reserved slot when asserted coverage exists (N=1 default numbered budget; reserved literacy recorded)\npain: P1\n\n## Stop 1 — Gate\n\n### Pain inventory\n- P1: MARKDOWN_LINK_SHA_RE uses unbounded `\\[.*?\\]` after `Last reviewed commit:`, enabling polynomial ReDoS on adversarial strings that repeat `Last reviewed commit:[` (CodeQL alert #112 / js/polynomial-redos at greptile-detector.ts).\n\n### Charter / spend\nCharter is open critique of Prefer-A draft (rewrite/bound the flagged regex; keep-out CodeQL config as primary). Spend N=1 resolved from spend-recommend (closed solution space; single-site ReDoS clear; low design blast — not panel permission).\n\nPrefer-A draft cite: 6256512699\nclosed-findings: none (first arc)",
+          "id": 6256515021,
+          "html_url": "https://github.com/deftai/directive/issues/5742#issuecomment-6256515021",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:29:52Z",
+          "updated_at": "2026-10-18T23:29:52Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nissue: 5742\ncharter: open critique\nspend: N=1\nspend-ask: resolved\nspend-recommend: N=1\nround: 1 critic\nsiblings: 1\nseat-families: codex\ninput-ceiling: 6256517263\nSHA at dispatch: 8341f369ccc55fa907abd5e575bb29556e467e9f\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nTarget-kind: issue\nCeiling-kind: comment-id\ndest: .deft-scratch/worktrees/arc-5742\nverification-path: pin-read git show 8341f369ccc55fa907abd5e575bb29556e467e9f:packages/core/src/content-contracts/skills/greptile-detector.ts (dest cwd-without-occupy for on-pin file reads)\naudit-targets: none\npain: P1\nPrefer-A draft: 6256512699\nStop 1: 6256515021\nrefutation-target: that rewriting or bounding MARKDOWN_LINK_SHA_RE (not CodeQL suite-config / suppress-only) is sufficient to clear alert #112 while preserving Last-reviewed SHA fixture behavior and without changing Greptile tier/badge/confidence semantics",
+          "id": 6256517263,
+          "html_url": "https://github.com/deftai/directive/issues/5742#issuecomment-6256517263",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:30:07Z",
+          "updated_at": "2026-10-18T23:30:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nRound 1 fresh critic; open critique; arc-mode: no-ingest. Reviewed Prefer-A [6256512699](https://github.com/deftai/directive/issues/5742#issuecomment-6256512699), Stop 1 [6256515021](https://github.com/deftai/directive/issues/5742#issuecomment-6256515021), and panel-deposit 6256517263 within envelope ceiling 6256517263.\n\nVerdict: no blocks-the-design finding. Rewrite/bound is viable; the draft is not evidence that a particular replacement clears the alert. Three sharpens-framing findings follow.\n\nVerification and inventory: pin-read with git show at 8341f369ccc55fa907abd5e575bb29556e467e9f. The [detector](https://github.com/deftai/directive/blob/8341f369ccc55fa907abd5e575bb29556e467e9f/packages/core/src/content-contracts/skills/greptile-detector.ts#L58-L60) has separate MARKDOWN_LINK_SHA_RE and NAIVE_INLINE_SHA_RE; their exported parsers return the capture or null. simulatePollLoop uses the markdown parser for body SHA, with existing SHA-currency and clean-gate machinery downstream. Escaped-bracket and AC4 fixtures already cover the important behavior; extend those tests rather than introduce another parser interface or polling policy. REST GET of [alert #112](https://github.com/deftai/directive/security/code-scanning/112) confirms open js/polynomial-redos on this exact commit, exec site line 301, regex span line 60, and the repeated Last-reviewed-prefix witness. The alert site really is the unbounded lazy link-text form.\n\n1. **sharpens-framing — State a whole-search work bound.** Evidence: the unanchored regex retries successive Last-reviewed markers, each of which can inspect the remaining suffix. Repeated `Last reviewed commit:[` with no closing link creates overlapping scans. A two-step implementation that locates every marker and searches each remaining suffix for a delimiter can retain quadratic work without a regex. Consequence: keep Prefer-A, but require a fixed candidate window with explicit over-limit behavior, or a monotonic scan with linear total work; specify advancement after malformed candidates. Cover repeated markers with no terminator and malformed candidates followed by a valid link. A fixed bound is the smallest credible alternative to a scanner when the length limit and boundary behavior are accepted. A scanner becomes preferable if arbitrary-length compatible labels must remain supported.\n\n2. **sharpens-framing — Preserve deliberate non-matches as well as successful extraction.** Evidence: [swarm_poller_template.test.ts lines 300–356](https://github.com/deftai/directive/blob/8341f369ccc55fa907abd5e575bb29556e467e9f/packages/core/src/content-contracts/skills/swarm_poller_template.test.ts#L300-L356) demonstrates that a simple negated-closing-bracket matcher rejects BODY_ESCAPED_BRACKET_LINK_TEXT. Bounding that character class does not restore escaped-bracket support. Tests require markdown-link and escaped-label bodies to exit CLEAN in one poll. AC4 inline-only returns a SHA from the naive parser but null from the markdown parser, then STALL after three polls with sha_match. Third-confidence-form remains STALL with confidence; empty/truncated remain non-clean. Failure mode: interpreting “inline forms preserved” as permission for inline fallback changes SHA authority. Consequence: retain the separate parser contracts and these outcomes; accommodate the escaped-bracket fixture. Renaming a “non_greedy” test may be appropriate, but weakening its behavior assertion is not.\n\n3. **sharpens-framing — Separate feasibility from clearance evidence.** Evidence: the draft offers alternatives, not an executable replacement; alert #112 remains open at the dispatch SHA. Fixture success alone establishes neither complexity nor CodeQL clearance. Failure mode: accepting removal of `.*?` or a fast small example as remediation proof. Consequence: retain the issue's explicit CodeQL acceptance condition under the existing analysis configuration, and require adversarial regression coverage for the chosen algorithm alongside existing tests and the CHANGELOG entry. No suite-config or suppress-only primary fix is needed. This critique inspected pinned source and test assertions; it did not execute the suite or replacement CodeQL analysis and claims neither has passed.\n\nUntrusted-input lens: review-body text is uncontrolled library input even when presented as a Greptile summary. It must not cause unbounded parsing work or broaden which SHA evidence satisfies the clean gate. No new concurrency mechanism calls for a separate swarm design.\n\nProcess-only critique complete. No product implementation or ingestion performed.\n\n",
+          "id": 6256542085,
+          "html_url": "https://github.com/deftai/directive/issues/5742#issuecomment-6256542085",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:32:50Z",
+          "updated_at": "2026-10-18T23:32:50Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A Bound\nTarget-digest: sha256:8db27fa2a749d0a4c00177e64e596bd3dfd4e8fd103968ac19da7aa607d34ac2\nconflict_group: greptile-detector-markdown-link-sha-polynomial-redos\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\ndest: .deft-scratch/worktrees/arc-5742\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\nCiting Round-1: Codex 6256542085\nPrefer-A draft: 6256512699\nStop 1: 6256515021\npanel-deposit: 6256517263\n\n## In plain English\nClear CodeQL alert #112 by rewriting the Last-reviewed markdown-link SHA parse so whole-search work is bounded (no unbounded `.*?` / unbounded two-step suffix scans), keep the separate markdown vs naive parser contracts and today's deliberate non-matches (including escaped-bracket CLEAN and AC4 inline STALL), prove the chosen algorithm with adversarial regression plus existing tests, and land a CHANGELOG Security/Fixed entry. Suite-config or suppress-only stays rejected as primary.\n\n## Bound remedy\n\nrelieves: P1\n- Bound whole-search Last-reviewed markdown-link SHA parse: replace MARKDOWN_LINK_SHA_RE unbounded `\\[.*?\\]` with a fixed candidate window (explicit over-limit → null) or a monotonic linear scan that advances after malformed candidates; total work must be linear in body length. Cover repeated `Last reviewed commit:[` with no terminator and a malformed candidate followed by a valid link. Keep NAIVE_INLINE_SHA_RE as the separate inline path.\n- Preserve deliberate non-matches and SHA authority: retain separate parseLastReviewedShaMarkdownLink vs parseLastReviewedShaNaiveInline contracts; escaped-bracket markdown-link bodies must still extract SHA / CLEAN as today; AC4 inline-only must stay null on the markdown parser (naive may return SHA) without inventing markdown→inline fallback that widens SHA authority; AC4 third-confidence / empty / truncated outcomes unchanged. Extend existing fixtures rather than a new parser interface or polling policy.\n- Clearance evidence: adversarial regression for the chosen algorithm (repeated markers / no terminator / malformed-then-valid) alongside existing greptile-detector / swarm_poller_template tests; CHANGELOG [Unreleased] Security/Fixed citing CodeQL alert #112 and #5742; alert #112 must clear under the existing analysis configuration after the rewrite (fixture speed alone is not clearance proof).\n\n## Reject\n- CodeQL suite-config or path keep-out as the primary fix\n- Suppress-only / accepted-risk dismiss without rewrite/bound at the flagged site\n- Two-step locate-every-marker + unbounded suffix search that retains quadratic work\n- Collapsing markdown-link and naive-inline into one parser or adding inline fallback that widens SHA authority\n- Weakening escaped-bracket / AC4 non-match assertions\n- Bundling unrelated code-scanning alerts\n- Changing Greptile tier/badge/confidence / clean-gate semantics beyond Last-reviewed SHA parse\n- Treating removal of `.*?` or a fast small example as CodeQL clearance proof without alert #112 clearing under existing config\n\n## Takes\n- Codex F1 whole-search bound: accept-into-contract — remint Bound limb requiring fixed window or linear monotonic scan + repeated-marker / malformed-then-valid coverage\n- Codex F2 deliberate non-matches / SHA authority: accept-into-contract — remint Bound limb preserving separate parsers, escaped-bracket CLEAN, AC4 inline STALL without markdown→inline fallback\n- Codex F3 feasibility vs clearance: accept-into-contract — remint Bound limb requiring adversarial regression + CHANGELOG + alert clear under existing analysis config\n\nForward verdict: accept-into-contract. Next under yolo: pain-audit of Prefer-A Bound against pain-P1.",
+          "id": 6256550266,
+          "html_url": "https://github.com/deftai/directive/issues/5742#issuecomment-6256550266",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:33:44Z",
+          "updated_at": "2026-10-18T23:33:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\nfinding-classes: none\nharvest-changed: false\n\nPass-4 pain audit: [Prefer-A Bound 6256550266](https://github.com/deftai/directive/issues/5742#issuecomment-6256550266) honestly covers P1 from [Stop 1 6256515021](https://github.com/deftai/directive/issues/5742#issuecomment-6256515021). No blocking, sharpening, or footnote findings; no Bound remint needed.\n\nVerification: independently pin-read greptile-detector.ts and the relevant swarm_poller_template.test.ts assertions with git show at 8341f369ccc55fa907abd5e575bb29556e467e9f. REST-read Stop 1, Bound, and [Round-1 critic 6256542085](https://github.com/deftai/directive/issues/5742#issuecomment-6256542085); no comments after envelope ceiling 6256550266 were read.\n\nThe pinned [regex and separate inline matcher](https://github.com/deftai/directive/blob/8341f369ccc55fa907abd5e575bb29556e467e9f/packages/core/src/content-contracts/skills/greptile-detector.ts#L58-L60) substantiate the pain: repeated Last-reviewed prefixes can cause successive failed candidates to rescan overlapping suffixes through the unbounded lazy label match. Bound limb 1 addresses total search work, not merely the spelling of that quantifier. A fixed candidate window with explicit over-limit rejection or a monotonic linear scan, together with the explicit linear-total-work requirement, excludes the unbounded two-step suffix-search substitute. Repeated-marker/no-terminator and malformed-then-valid coverage target both the complexity failure and recovery behavior.\n\nBound limb 2 preserves the existing authority boundary on uncontrolled review-body text. The separate exported parsers remain separate; the pinned escaped-bracket fixture must still extract its SHA and CLEAN, while AC4 inline-only stays null in the markdown parser and STALL at the clean gate. The existing parser, fixtures, and downstream gate already provide the mechanisms to extend; no new parser interface, inline fallback, or polling policy is needed.\n\nBound limb 3 makes actual alert #112 clearance under the existing analysis configuration an implementation obligation, alongside adversarial regressions and the existing suites. This closes Round-1's feasibility-versus-clearance gap without treating a small fast example, quantifier removal, suppression, or suite exclusion as proof.\n\nThis is clearance of the proposed remedy's coverage of P1, not a claim that the vulnerability is already fixed or CodeQL has passed. No replacement was implemented, and no tests or replacement CodeQL analysis were executed. Process-only audit complete; no ingest or repository changes.\r\n\n",
+          "id": 6256560535,
+          "html_url": "https://github.com/deftai/directive/issues/5742#issuecomment-6256560535",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:34:53Z",
+          "updated_at": "2026-10-18T23:34:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\nCites Prefer-A Bound successor lean 6256550266. No Target-digest on this table.\n\n| Claim | Method | Result |\n|---|---|---|\n| Stop 1 P1: unbounded MARKDOWN_LINK_SHA_RE `\\[.*?\\]` admits polynomial ReDoS (CodeQL #112) | pin-read greptile-detector.ts L58-60 at 8341f369ccc55fa907abd5e575bb29556e467e9f + Round-1 REST alert confirmation | hold |\n| Prefer-A Bound asserts relieves: P1 with bounded whole-search + parser-authority + clearance-evidence limbs | REST lean 6256550266 ## Bound remedy | hold |\n| Round-1 Codex 6256542085 | REST | three sharpens-framing (whole-search bound; deliberate non-matches; clearance evidence); no blocks-the-design — all accept-into-contract on Bound |\n| PA-1 Codex 6256560535 | REST | finding-classes: none; harvest-changed: false; pain-P1 covered |\n| Reject suite-config / suppress-only as primary | Bound Reject + issue Non-goals | hold |\n\nEmpty disagreement set after PA-1 clear.",
+          "id": 6256565569,
+          "html_url": "https://github.com/deftai/directive/issues/5742#issuecomment-6256565569",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:35:28Z",
+          "updated_at": "2026-10-18T23:35:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "design-critique: synthesis accepted, because agents agreed (empty disagreement set) citing Prefer-A Bound successor lean 6256550266\n\n## In plain English\n#5742 will rewrite the Last-reviewed markdown-link SHA parse so whole-search work is bounded (clearing CodeQL alert #112), keep separate markdown vs naive parser contracts and today's deliberate non-matches, prove the chosen algorithm with adversarial regression plus existing tests, and land a CHANGELOG Security/Fixed entry — without suite-config or suppress-only as primary. Ingest remains a separate operator verb.\n\n## Completed-arc record\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N=1\ndest: .deft-scratch/worktrees/arc-5742\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\nsuccessor-lean: Prefer-A Bound 6256550266\nverified-claims-table: 6256565569\nStop 1: 6256515021\npanel-deposit: 6256517263\nPrefer-A draft: 6256512699\nRound-1: Codex 6256542085\nPA-1: Codex 6256560535 (clear; harvest-changed: false)\nconflict_group: greptile-detector-markdown-link-sha-polynomial-redos\n\ndisagreement-set: empty\nforward: design-critique:ingest-ready chip; ingest is a later separate operator verb (task issue:ingest).",
+          "id": 6256565685,
+          "html_url": "https://github.com/deftai/directive/issues/5742#issuecomment-6256565685",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:35:28Z",
+          "updated_at": "2026-10-18T23:35:28Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5915168639,
+        "origin": "deftai/directive#5742",
+        "id": "github.issue.5915168639"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "8db27fa2a749d0a4c00177e64e596bd3dfd4e8fd103968ac19da7aa607d34ac2"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/content-contracts/skills/greptile-detector.ts",
+          "CHANGELOG.md"
+        ]
+      }
+    },
+    "id": "github.issue.5915168639",
+    "updated": "2026-10-19T05:50:18Z"
+  }
+}

@@ -1,0 +1,375 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5741",
+    "updated": "2026-10-19T05:50:15Z"
+  },
+  "plan": {
+    "title": "sec(codeql): HIGH clear bad-tag-filter in spec-authority.test.ts (alert #109)",
+    "status": "running",
+    "narratives": {
+      "Description": "sec(codeql): HIGH clear bad-tag-filter in spec-authority.test.ts (alert #109)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5741",
+      "Overview": "## Summary\n\nCodeQL open alert on default branch: **HIGH** `js/bad-tag-filter` — Bad HTML filtering regexp.\n\n| Field | Value |\n|-------|-------|\n| Alert | [#109](https://github.com/deftai/directive/security/code-scanning/109) |\n| Rule | `js/bad-tag-filter` |\n| Severity | HIGH |\n| Location | `packages/core/src/spec-authority/spec-authority.test.ts` ~L601 |\n| Message | This regular expression only parses --> and not --!> as a HTML comment end tag. |\n\n## What to build\n\nRewrite or bound the flagged site so CodeQL `js/bad-tag-filter` clears for this alert (or document accepted risk with suppress + rationale if false positive after review). Prefer a real fix over suite-config changes.\n\n## Acceptance\n\n- [ ] CodeQL alert [#109](https://github.com/deftai/directive/security/code-scanning/109) clears on master (auto-close or dismiss with reason after fix).\n- [ ] Existing unit tests for the touched module still pass; add adversarial input coverage if useful.\n- [ ] CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #109.\n\n## Non-goals\n\n- Changing CodeQL suite config as the primary fix.\n- Bundling unrelated code-scanning alerts into this issue (siblings tracked separately).",
+      "Labels": "security, urgent, design-critique:ingest-ready, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "title": "CodeQL alert  clears on master (auto-close or dismiss with reason after fix).",
+        "status": "proposed",
+        "id": "clause.1",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/spec-authority/spec-authority.test.ts"
+      },
+      {
+        "title": "Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+        "status": "proposed",
+        "id": "clause.2",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/spec-authority/spec-authority.test.ts"
+      },
+      {
+        "title": "CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #109.",
+        "status": "proposed",
+        "id": "clause.3",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/spec-authority/spec-authority.test.ts"
+      }
+    ],
+    "tags": [
+      "security",
+      "urgent",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5741",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5741: sec(codeql): HIGH clear bad-tag-filter in spec-authority.test.ts (alert #109)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "sec(codeql): HIGH clear bad-tag-filter in spec-authority.test.ts (alert #109)",
+        "Summary CodeQL open alert on default branch: HIGH `js/bad-tag-filter` — Bad HTML filtering regexp.",
+        "| Field | Value | |-------|-------| | Alert | [#109](https://github.com/deftai/directive/security/code-scanning/109) | | Rule | `js/bad-tag-filter` | | Severity | HIGH | | Location | `packages/core/src/spec-authority/spec-authority.test.ts` ~L601 | | Message | This regular expression only parses --> and not --!> as a HTML comment end tag.",
+        "| ## What to build Rewrite or bound the flagged site so CodeQL `js/bad-tag-filter` clears for this alert (or document accepted risk with suppress + rationale if false positive after review).",
+        "Prefer a real fix over suite-config changes.",
+        "Acceptance - [ ] CodeQL alert [#109](https://github.com/deftai/directive/security/code-scanning/109) clears on master (auto-close or dismiss with reason after fix).",
+        "[ ] Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+        "[ ] CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #109.",
+        "Non-goals - Changing CodeQL suite config as the primary fix.",
+        "Bundling unrelated code-scanning alerts into this issue (siblings tracked separately).",
+        "CodeQL alert [#109](https://github.com/deftai/directive/security/code-scanning/109) clears on master (auto-close or dismiss with reason after fix).",
+        "Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+        "CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #109."
+      ],
+      "admitted_source_sentences": [
+        "Summary CodeQL open alert on default branch: HIGH `js/bad-tag-filter` — Bad HTML filtering regexp.",
+        "| Field | Value | |-------|-------| | Alert | [#109](https://github.com/deftai/directive/security/code-scanning/109) | | Rule | `js/bad-tag-filter` | | Severity | HIGH | | Location | `packages/core/src/spec-authority/spec-authority.test.ts` ~L601 | | Message | This regular expression only parses --> and not --!> as a HTML comment end tag.",
+        "| ## What to build Rewrite or bound the flagged site so CodeQL `js/bad-tag-filter` clears for this alert (or document accepted risk with suppress + rationale if false positive after review).",
+        "Prefer a real fix over suite-config changes.",
+        "Acceptance - [ ] CodeQL alert [#109](https://github.com/deftai/directive/security/code-scanning/109) clears on master (auto-close or dismiss with reason after fix).",
+        "[ ] Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+        "[ ] CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #109.",
+        "Non-goals - Changing CodeQL suite config as the primary fix.",
+        "Bundling unrelated code-scanning alerts into this issue (siblings tracked separately)."
+      ],
+      "admitted_source_digest": "d37fe04064e112d095b0383814d164dbd182cd833485cf736d9fba6746cd0806",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "CodeQL alert [#109](https://github.com/deftai/directive/security/code-scanning/109) clears on master (auto-close or dismiss with reason after fix).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #109.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/spec-authority/spec-authority.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/spec-authority/spec-authority.test.ts"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A (draft)\nTarget-digest: sha256:96a8388ba3202e5bf7dc647a71e8bea31cd44536d16912c4188f56e0cbb1748c\nconflict_group: codeql-109-bad-tag-filter-spec-authority-test\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\ndest: .deft-scratch/worktrees/arc-5741\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\n\n## In plain English\n\nCodeQL alert #109 flags a HIGH js/bad-tag-filter hit on a unit-test assertion that counts literal --> closers in a generated SPECIFICATION.md source banner. The test is proving path-encoding (--> becomes --%3E) so a malicious filename cannot break the HTML comment; it is not an HTML sanitizer. Prefer-A rewrites that assertion so it no longer looks like an incomplete HTML-comment filter, keeps the encoding invariants, and refuses suite-config or suppress as the primary fix.\n\n## Proposed Bound remedy (draft — critics refute before bind)\n\nrelieves: P1\n- In packages/core/src/spec-authority/spec-authority.test.ts (keeps unsafe explicit spec filename bytes), replace expect(sourceLine?.match(/-->/g)).toHaveLength(1) with a non-HTML-filter assertion that still proves exactly one literal three-character --> closer remains in the banner (for example indexOf/lastIndexOf equality, or split(\"-->\").length === 2). Keep the existing --%3E / %0D%0A / %5C contains checks.\nrelieves: P1\n- Prefer string/index counting over expanding to a complete HTML-comment-end regex that also matches --!> unless the critic shows that complete-pattern regex is required for CodeQL clearance AND preserves the encoding invariant. Do not introduce a production HTML sanitizer.\nrelieves: P1\n- Keep unit tests green for the touched module; add a brief adversarial note or assertion only if useful that encoded path bytes do not introduce a second comment-closer form.\nrelieves: P1\n- CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #109.\n\n## Reject\n\n- Changing .github/codeql/codeql-config.yml (or paths-ignore / query suite) as the primary fix.\n- Dismissing alert #109 as false-positive without rewriting the flagged site.\n- Bundling unrelated code-scanning alerts.\n- Rewriting production renderSpec / encoding logic beyond what the assertion rewrite requires.\n\n## file_scope (draft)\n\n- packages/core/src/spec-authority/spec-authority.test.ts\n- CHANGELOG.md",
+          "id": 6256521341,
+          "html_url": "https://github.com/deftai/directive/issues/5741#issuecomment-6256521341",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:30:34Z",
+          "updated_at": "2026-10-18T23:30:34Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because CodeQL HIGH js/bad-tag-filter alert #109 is open on default branch at a concrete assertion site in packages/core/src/spec-authority/spec-authority.test.ts (~L601). Judgment is whether Prefer-A rewrite of the incomplete HTML-comment-end match is the right next-build cut versus suite-config, suppress, or production encode changes.\nrefutation-target: that rewriting the flagged test assertion away from an incomplete --> HTML-comment filter pattern (keeping the encoding invariant that unsafe path bytes become --%3E and exactly one banner closer remains) is the correct primary fix, and that CodeQL suite-config / dismiss is keep-out.\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: Closed solution space (rewrite one assertion); low blast (test + CHANGELOG); Stop 2 panel permission does not apply. Operator cue N=1.\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\ndest: .deft-scratch/worktrees/arc-5741\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\nTarget-digest: sha256:96a8388ba3202e5bf7dc647a71e8bea31cd44536d16912c4188f56e0cbb1748c\nPrefer-A draft cite: 6256521341\n\npain: P1\n- P1: packages/core/src/spec-authority/spec-authority.test.ts asserts sourceLine?.match(/-->/g) has length 1; CodeQL js/bad-tag-filter flags that regexp as parsing only --> and not --!> as an HTML comment end tag, leaving HIGH alert #109 open on master.\n\nclosed-findings: none\nverification-path: pin-read git show 8341f369ccc55fa907abd5e575bb29556e467e9f:; dest cwd-without-occupy (.deft-scratch/worktrees/arc-5741)",
+          "id": 6256524779,
+          "html_url": "https://github.com/deftai/directive/issues/5741#issuecomment-6256524779",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:30:57Z",
+          "updated_at": "2026-10-18T23:30:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 6256527851\nfamilies: codex\nseat: codex launcher: codex exec\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\nverification-path: pin-read git show 8341f369ccc55fa907abd5e575bb29556e467e9f:; dest cwd-without-occupy\nStop-1: 6256524779\nPrefer-A draft: 6256521341\nTarget-digest: sha256:96a8388ba3202e5bf7dc647a71e8bea31cd44536d16912c4188f56e0cbb1748c\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5741\naudit-targets: none",
+          "id": 6256527851,
+          "html_url": "https://github.com/deftai/directive/issues/5741#issuecomment-6256527851",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:31:17Z",
+          "updated_at": "2026-10-18T23:31:18Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nRound 1, fresh critic; open critique; N=1. Reviewed issue body and comments through 6256527851, with source pinned to 8341f369ccc55fa907abd5e575bb29556e467e9f.\n\nPrefer-A is sufficient as the design direction for P1. Removing the incomplete regexp from this test assertion while retaining the encoding and resolver checks is a bounded remedy. No production sanitizer, suite change, dismissal, or unrelated alert work is justified by this site. This is design endorsement, not measured CodeQL clearance or a pain-audit clearance.\n\n### F1 — sharpens-framing — Make the replacement reject zero closers\nEvidence: [draft](https://github.com/deftai/directive/issues/5741#issuecomment-6256521341) offers indexOf/lastIndexOf equality; [pinned test L593-L603](https://github.com/deftai/directive/blob/8341f369ccc55fa907abd5e575bb29556e467e9f/packages/core/src/spec-authority/spec-authority.test.ts#L593) currently requires exactly one match. A read-only Node truth-table check gives equality=true for both zero and one closer, because the absent case compares -1 with -1. The existing contains checks do not themselves require a literal closing delimiter.\nFailure mode: a missing banner closer can pass that proposed replacement and weaken the original invariant.\nConsequence: the design can bind, but specify split(\"-->\").length === 2 on a defined source line, or require indexOf(\"-->\") >= 0 in addition to first/last equality. Keep the three encoded-byte checks and both resolver checks.\n\n### F2 — sharpens-framing — Preserve the actual verification endpoint\nEvidence: the pinned L566 skips this test on win32; L588 supplies a filename containing CR/LF, -->, and backslash; L601 matches only -->. The issue body requires alert #109 to clear on master. The draft's remedy explicitly requires green module tests but does not restate the post-fix CodeQL endpoint.\nFailure mode: a Windows green suite can skip the changed assertion, and a syntactic rewrite alone cannot establish that the alert cleared.\nConsequence: bind the existing issue acceptance explicitly: execute the touched test on a supported non-Windows runner and verify a CodeQL analysis containing the fix clears #109 on master. Keep dismissal and suite configuration out of the remedy. I used the prescribed pin-read verification path; no module tests or CodeQL analysis were executed in this critic run.\n\n### F3 — footnote — Single-critic ceiling recording differs from the contract\nEvidence: Stop 1 is 6256524779, while the envelope and deposit choose 6256527851 with N=1. The pinned contract's Envelope and ceiling section assigns the triage write-back as Round-1 ceiling when one exists; its post-deposit exception applies to N>=2. I honored the explicit envelope ceiling and did not re-ceiling. The additional input is dispatch metadata, so this does not change the product verdict. Record the discrepancy; do not claim this N=1 deposit follows the N>=2 exception.\n\n### F4 — footnote — The CodeQL concern is narrower than a demonstrated production vulnerability\nThe source confirms that /-->/g excludes --!>, exactly as reported in the issue. Here it counts a literal delimiter in generated output; it does not sanitize input. Existing mechanisms already test encoded CR/LF, greater-than, and backslash bytes plus source resolution. A complete comment-end regexp is the strongest alternative if the intended assertion becomes HTML-parser safety, but that is a different invariant from counting the known banner delimiter. Evidence of unsafe production output would change this verdict; the flagged assertion alone does not establish it.\n\nRecording handback: preserve each classified finding in the parent's disposition census. Any successor lean must state the accepted remedy and P1 disposition, and satisfy the contract's subsequent independent pain-audit and synthesis obligations; this Round-1 post with audit-targets: none does not discharge them. No implementation, ingest, label mutation, or PR work performed. EXIT.\n\n",
+          "id": 6256546083,
+          "html_url": "https://github.com/deftai/directive/issues/5741#issuecomment-6256546083",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:33:16Z",
+          "updated_at": "2026-10-18T23:33:16Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nCodeQL alert #109 is a test-assertion smell, not a production HTML sanitizer hole. Prefer-A Bound rewrites the incomplete --> match so CodeQL stops treating it as a bad tag filter, keeps the path-encoding proof (exactly one banner closer; unsafe bytes stay percent-encoded), and still requires the non-Windows test run plus master CodeQL clearance. Suite-config and dismiss stay out.\n\nLean: Prefer-A Bound\nTarget-digest: sha256:96a8388ba3202e5bf7dc647a71e8bea31cd44536d16912c4188f56e0cbb1748c\nconflict_group: codeql-109-bad-tag-filter-spec-authority-test\nSupersedes: 6256521341\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N=1\ninput-ceiling: 6256546083\nRound-1 critic: 6256546083 (codex)\nStop-1: 6256524779\ndest: .deft-scratch/worktrees/arc-5741\n\nrelieves: P1\n\n## Takes (Round-1 disposition)\n\n- F1 sharpens-framing (zero-closer reject) — accept-into-contract\n- F2 sharpens-framing (non-Windows + CodeQL clearance endpoint) — accept-into-contract\n- F3 footnote (N=1 ceiling vs triage write-back) — accept-into-contract (footnote; recorded)\n- F4 footnote (not production vuln) — accept-into-contract (footnote)\n\n## Bound remedy\n\nrelieves: P1 — Replace incomplete comment-end match with zero-rejecting closer count\n- In packages/core/src/spec-authority/spec-authority.test.ts (keeps unsafe explicit spec filename bytes), replace expect(sourceLine?.match(/-->/g)).toHaveLength(1) with a non-HTML-filter assertion that rejects zero closers and proves exactly one literal three-character --> closer remains: prefer split(\"-->\").length === 2 on a defined sourceLine, or (indexOf(\"-->\") >= 0 && indexOf === lastIndexOf). Do not use bare indexOf/lastIndexOf equality alone (F1: -1===-1 passes with zero closers). Keep existing --%3E / %0D%0A / %5C contains checks and resolver checks.\n\nrelieves: P1 — Prefer string count over complete-pattern HTML-end regex\n- Prefer string/index counting over expanding to a complete HTML-comment-end regex that also matches --!> unless a later measurement shows the complete-pattern regex is required for CodeQL clearance AND preserves the encoding invariant. Do not introduce a production HTML sanitizer.\n\nrelieves: P1 — Verification endpoint: non-Windows run + master CodeQL clear\n- Keep unit tests green for the touched module. Because the test is skipIf(win32), verification requires executing that case on a supported non-Windows runner (CI) and confirming a CodeQL analysis that includes the fix clears alert #109 on master (issue Acceptance). Syntactic rewrite alone is not clearance (F2).\n\nrelieves: P1 — CHANGELOG Security/Fixed for alert #109\n- CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #109.\n\n## Reject\n\n- Changing .github/codeql/codeql-config.yml (or paths-ignore / query suite) as the primary fix.\n- Dismissing alert #109 as false-positive without rewriting the flagged site.\n- Bundling unrelated code-scanning alerts.\n- Rewriting production renderSpec / encoding logic beyond what the assertion rewrite requires.\n- Bare indexOf/lastIndexOf equality without a zero-closer reject (F1 failure mode).\n\n## file_scope\n\n- packages/core/src/spec-authority/spec-authority.test.ts\n- CHANGELOG.md",
+          "id": 6256552214,
+          "html_url": "https://github.com/deftai/directive/issues/5741#issuecomment-6256552214",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:33:57Z",
+          "updated_at": "2026-10-18T23:33:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\nfinding-classes: none\nharvest-changed: false\n\nPain-audit of [Prefer-A Bound 6256552214](https://github.com/deftai/directive/issues/5741#issuecomment-6256552214), against [Stop 1 P1](https://github.com/deftai/directive/issues/5741#issuecomment-6256524779). Inputs bounded at 6256552214; source pin: 8341f369ccc55fa907abd5e575bb29556e467e9f. Fresh critic, N=1, process-only, no-ingest.\n\nBound holds as the remedy for P1. No Recut or changed remedy limb is needed.\n\nF1 is covered: on a defined sourceLine, split(\"-->\").length === 2 admits exactly one literal closer and rejects zero or multiple closers. The alternative explicitly requires a nonnegative first index as well as first/last equality, closing the -1 === -1 hole. The pinned assertion currently requires one match; Bound retains that invariant, the unsafe filename fixture, all three encoded-byte checks, and both resolver checks. Evidence: [pinned test L566-L604](https://github.com/deftai/directive/blob/8341f369ccc55fa907abd5e575bb29556e467e9f/packages/core/src/spec-authority/spec-authority.test.ts#L566).\n\nF2 is covered: the pinned case uses skipIf(win32), and Bound requires executing that case on a supported non-Windows runner plus a CodeQL analysis containing the fix that clears alert #109 on master. Green Windows tests or the syntax rewrite alone cannot satisfy that endpoint. Suite configuration and dismissal do not substitute for the bound verification.\n\nThe existing test proves reversible path encoding and banner-delimiter count; this site is not a production sanitizer. Replacing its incomplete regex with a literal count is a proportionate design, while measured CodeQL clearance remains required. No production vulnerability or successful alert clearance is inferred from this audit. I performed the prescribed pinned source inspection; I did not execute the module suite or CodeQL.\n\nDesign-critique pain-audit complete; exiting critic skill. Parent may continue the contract's verified synthesis steps using this audit. No implementation, ingest, or further dispatch performed. EXIT.\n\n",
+          "id": 6256560971,
+          "html_url": "https://github.com/deftai/directive/issues/5741#issuecomment-6256560971",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:34:56Z",
+          "updated_at": "2026-10-18T23:34:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Method | Result |\n|---|---|---|\n| P1 incomplete /-->/g assertion is the CodeQL #109 site | Stop 1 6256524779; pin-read spec-authority.test.ts ~L601 at 8341f369 | hold |\n| Prefer-A Bound 6256552214 relieves P1 | lean closed relieves: P1 + Bound remedy limbs | hold |\n| F1 zero-closer reject folded | Round-1 6256546083 F1 accept-into-contract; Bound split length===2 / nonnegative index | hold |\n| F2 non-Windows + master CodeQL clearance folded | Round-1 F2 accept-into-contract; Bound verification limb | hold |\n| Pain-audit supports P1 without harvest change | critic 6256560971 audit-targets: pain-P1; finding-classes: none; harvest-changed: false | hold |\n| Keep-outs: suite-config / dismiss / unrelated alerts / production encode widen | Bound Reject + Round-1 endorsement | hold |\n| Target-digest matches live issue body | sha256:96a8388ba3202e5bf7dc647a71e8bea31cd44536d16912c4188f56e0cbb1748c | hold |\n| Empty disagreement set on Round-1 map | F1–F4 all accept-into-contract; no disagree/defer | hold |",
+          "id": 6256566856,
+          "html_url": "https://github.com/deftai/directive/issues/5741#issuecomment-6256566856",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:35:36Z",
+          "updated_at": "2026-10-18T23:35:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n## In plain English\n\nPrefer-A Bound is ready to ingest: rewrite the incomplete --> test assertion so it still proves exactly one banner closer (and rejects zero), keep path-encoding checks, require non-Windows execution plus master CodeQL clearance for alert #109, and leave suite-config/dismiss out. Ingest remains a separate operator verb.\n\nAccepted successor lean: 6256552214\nVerified-claims table: 6256566856\nPain-audit: 6256560971 (supports pain-P1; finding-classes: none; harvest-changed: false)\nRound-1 critic: 6256546083\nStop-1: 6256524779\nPrefer-A draft: 6256521341\npanel-deposit: 6256527851\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\ncompleted-arc: yes\nconflict_group: codeql-109-bad-tag-filter-spec-authority-test",
+          "id": 6256567064,
+          "html_url": "https://github.com/deftai/directive/issues/5741#issuecomment-6256567064",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:35:37Z",
+          "updated_at": "2026-10-18T23:36:24Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5915168442,
+        "origin": "deftai/directive#5741",
+        "id": "github.issue.5915168442"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "96a8388ba3202e5bf7dc647a71e8bea31cd44536d16912c4188f56e0cbb1748c"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/spec-authority/spec-authority.test.ts",
+          "CHANGELOG.md"
+        ]
+      }
+    },
+    "id": "github.issue.5915168442",
+    "updated": "2026-10-19T05:50:15Z"
+  }
+}

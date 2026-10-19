@@ -1,0 +1,375 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5745",
+    "updated": "2026-10-19T05:50:25Z"
+  },
+  "plan": {
+    "title": "sec(codeql): HIGH clear polynomial-redos in pr-closing-keywords/detect.ts (alert #121)",
+    "status": "running",
+    "narratives": {
+      "Description": "sec(codeql): HIGH clear polynomial-redos in pr-closing-keywords/detect.ts (alert #121)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5745",
+      "Overview": "## Summary\n\nCodeQL open alert on default branch: **HIGH** `js/polynomial-redos` — Polynomial regular expression used on uncontrolled data.\n\n| Field | Value |\n|-------|-------|\n| Alert | [#121](https://github.com/deftai/directive/security/code-scanning/121) |\n| Rule | `js/polynomial-redos` |\n| Severity | HIGH |\n| Location | `packages/core/src/pr-closing-keywords/detect.ts` ~L155 |\n| Message | This regular expression that depends on library input may run slow on strings with many repetitions of ' '. |\n\n## What to build\n\nRewrite or bound the flagged site so CodeQL `js/polynomial-redos` clears for this alert (or document accepted risk with suppress + rationale if false positive after review). Prefer a real fix over suite-config changes.\n\n## Acceptance\n\n- [ ] CodeQL alert [#121](https://github.com/deftai/directive/security/code-scanning/121) clears on master (auto-close or dismiss with reason after fix).\n- [ ] Existing unit tests for the touched module still pass; add adversarial input coverage if useful.\n- [ ] CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #121.\n\n## Non-goals\n\n- Changing CodeQL suite config as the primary fix.\n- Bundling unrelated code-scanning alerts into this issue (siblings tracked separately).",
+      "Labels": "security, urgent, design-critique:ingest-ready, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "title": "CodeQL alert  clears on master (auto-close or dismiss with reason after fix).",
+        "status": "proposed",
+        "id": "clause.1",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/pr-closing-keywords/detect.ts"
+      },
+      {
+        "title": "Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+        "status": "proposed",
+        "id": "clause.2",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/pr-closing-keywords/detect.ts"
+      },
+      {
+        "title": "CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #121.",
+        "status": "proposed",
+        "id": "clause.3",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/pr-closing-keywords/detect.ts"
+      }
+    ],
+    "tags": [
+      "security",
+      "urgent",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5745",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5745: sec(codeql): HIGH clear polynomial-redos in pr-closing-keywords/detect.ts (alert #121)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "sec(codeql): HIGH clear polynomial-redos in pr-closing-keywords/detect.ts (alert #121)",
+        "Summary CodeQL open alert on default branch: HIGH `js/polynomial-redos` — Polynomial regular expression used on uncontrolled data.",
+        "| Field | Value | |-------|-------| | Alert | [#121](https://github.com/deftai/directive/security/code-scanning/121) | | Rule | `js/polynomial-redos` | | Severity | HIGH | | Location | `packages/core/src/pr-closing-keywords/detect.ts` ~L155 | | Message | This regular expression that depends on library input may run slow on strings with many repetitions of ' '.",
+        "| ## What to build Rewrite or bound the flagged site so CodeQL `js/polynomial-redos` clears for this alert (or document accepted risk with suppress + rationale if false positive after review).",
+        "Prefer a real fix over suite-config changes.",
+        "Acceptance - [ ] CodeQL alert [#121](https://github.com/deftai/directive/security/code-scanning/121) clears on master (auto-close or dismiss with reason after fix).",
+        "[ ] Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+        "[ ] CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #121.",
+        "Non-goals - Changing CodeQL suite config as the primary fix.",
+        "Bundling unrelated code-scanning alerts into this issue (siblings tracked separately).",
+        "CodeQL alert [#121](https://github.com/deftai/directive/security/code-scanning/121) clears on master (auto-close or dismiss with reason after fix).",
+        "Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+        "CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #121."
+      ],
+      "admitted_source_sentences": [
+        "Summary CodeQL open alert on default branch: HIGH `js/polynomial-redos` — Polynomial regular expression used on uncontrolled data.",
+        "| Field | Value | |-------|-------| | Alert | [#121](https://github.com/deftai/directive/security/code-scanning/121) | | Rule | `js/polynomial-redos` | | Severity | HIGH | | Location | `packages/core/src/pr-closing-keywords/detect.ts` ~L155 | | Message | This regular expression that depends on library input may run slow on strings with many repetitions of ' '.",
+        "| ## What to build Rewrite or bound the flagged site so CodeQL `js/polynomial-redos` clears for this alert (or document accepted risk with suppress + rationale if false positive after review).",
+        "Prefer a real fix over suite-config changes.",
+        "Acceptance - [ ] CodeQL alert [#121](https://github.com/deftai/directive/security/code-scanning/121) clears on master (auto-close or dismiss with reason after fix).",
+        "[ ] Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+        "[ ] CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #121.",
+        "Non-goals - Changing CodeQL suite config as the primary fix.",
+        "Bundling unrelated code-scanning alerts into this issue (siblings tracked separately)."
+      ],
+      "admitted_source_digest": "8159ce4c8c6339ad970dae02ade0d113cfd0a7116fbae948f66aa39244854971",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "CodeQL alert [#121](https://github.com/deftai/directive/security/code-scanning/121) clears on master (auto-close or dismiss with reason after fix).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #121.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/pr-closing-keywords/detect.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/pr-closing-keywords/detect.ts"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A (draft)\nTarget-digest: sha256:d18be0ce3dcbffcf91986753774c13306178c9410f41de5f97431a8b4e0db117\nconflict_group: pr-closing-keywords-comma-list-tail-polynomial-redos\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\ndest: .deft-scratch/worktrees/arc-5745\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\n\n## In plain English\nCodeQL alert #121 flags COMMA_LIST_TAIL_RE in pr-closing-keywords/detect.ts because /(?:\\s*,\\s*#(\\d+))+/y can run slow on uncontrolled PR/commit text with many space repetitions. Prefer-A rewrites or bounds that comma-list tail parse so alert #121 clears by a real fix. Changing CodeQL suite config or suppress-as-primary stays a keep-out.\n\n## Draft remedy sketch\n1. Rewrite or bound COMMA_LIST_TAIL_RE so comma-list tails after a closing-keyword hit are parsed without nested \\s* quantifiers that CodeQL js/polynomial-redos flags (for example a bounded space/comma scanner, sticky character walk, or equivalent non-ambiguous tail parse). Keep commaListIssueIds / collectClosingHits outcomes for ordinary Closes #N, #M lists.\n2. Add adversarial coverage for long space-padded / comma-heavy tails that previously stressed the ReDoS shape; existing pr-closing-keywords unit tests stay green.\n3. CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #121 / #5745.\n4. Keep-out: CodeQL suite-config / path-exclude / suppress as the primary fix (issue Non-goals).\n\n## Reject (draft)\n- Treating CodeQL config / suppress / dismiss-without-fix as the primary remedy\n- Bundling unrelated code-scanning alerts into this issue\n- Changing CLOSING_KEYWORD_RE / FP classification / intent-mode semantics beyond what the COMMA_LIST_TAIL_RE rewrite requires\n- Claiming alert #121 cleared without a tip rewrite (or an evidence-backed false-positive disposition after review)\n\n## file_scope lean (draft)\npackages/core/src/pr-closing-keywords/detect.ts (+tests as needed); CHANGELOG.md.",
+          "id": 6256836750,
+          "html_url": "https://github.com/deftai/directive/issues/5745#issuecomment-6256836750",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:05:30Z",
+          "updated_at": "2026-10-19T00:05:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because CodeQL alert #121 names a mechanism-shaped polynomial-ReDoS on COMMA_LIST_TAIL_RE in packages/core/src/pr-closing-keywords/detect.ts: nested \\s* quantifiers on uncontrolled PR/commit text are a concrete fail-closed security gate, not prose triage.\nmechanism-shaped: true\nrefutation-target: COMMA_LIST_TAIL_RE = /(?:\\s*,\\s*#(\\d+))+/y is the primary clear path for CodeQL alert #121; suite-config / suppress is not the primary fix\ncharter: refutation\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nTarget-kind: issue\nCeiling-kind: comment-id\ndest: .deft-scratch/worktrees/arc-5745\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\nverification-path: pin-read git show 8341f369ccc55fa907abd5e575bb29556e467e9f: (dest cwd-without-occupy for on-pin file reads)\n\npain:\n- P1\n\n## Stop 1 — Gate\n\n### Pain inventory\n- P1: COMMA_LIST_TAIL_RE uses /(?:\\s*,\\s*#(\\d+))+/y at detect.ts ~L151 (sink ~L155); CodeQL js/polynomial-redos alert #121 reports slow matching on strings with many space repetitions — uncontrolled library input reaches findHits / findAllClosingKeywordHits via collectClosingHits -> commaListIssueIds.\n\n### Charter / spend\nCharter is refutation against the presumption that the flagged COMMA_LIST_TAIL_RE shape may remain as the primary clear path. Spend N=1 (narrow rewrite; Stop 2 panel permission does not apply). Prefer-A draft cite: 6256836750.\n\n### Reject / keep-outs (gate)\n- CodeQL suite config / path-exclude / suppress as primary\n- Sibling unrelated code-scanning alerts",
+          "id": 6256839185,
+          "html_url": "https://github.com/deftai/directive/issues/5745#issuecomment-6256839185",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:05:44Z",
+          "updated_at": "2026-10-19T00:05:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\nseat-families: codex\nlaunch-probe: codex pong rc0\ninput-ceiling: 6256844457\nprefer-a-draft: 6256836750\nstop-1: 6256839185\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\ndest: .deft-scratch/worktrees/arc-5745\nverification-path: pin-read git show 8341f369ccc55fa907abd5e575bb29556e467e9f:\nspend: N=1\narc-mode: no-ingest\nyolo-standing: on\n\nRound-1 N=1 Codex seat against Prefer-A draft 6256836750 and Stop 1 6256839185. Shared ceiling is this deposit id after POST.",
+          "id": 6256844457,
+          "html_url": "https://github.com/deftai/directive/issues/5745#issuecomment-6256844457",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:06:15Z",
+          "updated_at": "2026-10-19T00:06:16Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6-astra\n```quarantined\nrole: critic\n```\naudit-targets: none\nfamily: codex\nid-ceiling: 6256844457\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\n\nRound 1, refutation. Prefer-A remains a reasonable narrow direction, with two framing findings below. I do not substantiate suppression or suite changes as the primary remedy.\n\nVerification: pin-read detect.ts, detect.test.ts, main.ts, and the design-critique contract at the dispatch SHA; read the issue and the three specified comments only. No runtime performance measurement or CodeQL rerun was performed; alert clearance is unverified.\n\nExisting mechanisms: COMMA_LIST_TAIL_RE is sticky and commaListIssueIds resets lastIndex on every call. It consumes the contiguous valid tail, then extracts every #digits occurrence. collectClosingHits inherits the first keyword's classification for tail IDs and separates FP-only from intent mode. hasFullCloseIntent always returns false; body text cannot grant authorization. main.ts applies the CLI close allowlist to detected intent hits. The named test file covers an ordinary five-ID list, but not whitespace limits or malformed-tail boundaries.\n\n### C1 — sharpens-framing: bound work without silently dropping detected IDs\n\nEvidence: draft step 1 permits a \"bounded space/comma scanner\" and promises ordinary-list preservation only. At the pin, detect.ts:151-160 accepts arbitrary ECMAScript whitespace before/after each comma and returns all IDs in the matched prefix. The function returns number[], with no truncation/error status.\n\nFailure mode: a whitespace or list-length cap that simply ends parsing makes `Closes #1,` + padding beyond the cap + `#2` lose #2. Ordinary fixtures remain green while attacker-controlled PR/commit text changes the set inspected by the intent allowlist. Similarly, an all-or-nothing replacement can discard already valid IDs when a later comma is malformed. This is an input-driven gate-evasion risk, not an instruction-following issue; the existing body-trailer refusal does not prevent it.\n\nDisposition consequence: Prefer-A can bind as a semantics-preserving rewrite, but state explicitly that bounds must not silently truncate valid tails. Prefer a monotonic scanner retaining current whitespace and valid-prefix behavior. If a resource ceiling is chosen, exhaustion must fail closed at the caller, which may widen the proposed file scope. Add exact-output cases for long valid whitespace, tabs/newlines, long lists, a valid prefix followed by a malformed tail, and stopping before unrelated later #IDs; cover intent and FP classification inheritance. No new authorization mechanism is needed.\n\n### C2 — sharpens-framing: separate the reported alert from a demonstrated complexity mechanism\n\nEvidence: the draft and Stop 1 attribute slow matching to nested whitespace quantifiers. The pinned expression has a sticky start and mandatory comma/#/digit delimiters separating repeated iterations; neither whitespace quantifier can consume those delimiters. The read confirms the reported regex site, but nesting alone does not establish polynomial runtime for this exact invocation. No original triggering input, runtime scaling results, or CodeQL trace is supplied in the bounded comments.\n\nFailure mode: a test that merely feeds a large space string and asserts completion can pass before and after the rewrite while being described as proof that the exploit was fixed. Conversely, an arbitrary cap can appear to solve the alert while causing C1's detection regression.\n\nDisposition consequence: retain the real-rewrite preference, but describe the pain as the reported CodeQL finding until its exact mechanism is reproduced. Acceptance should distinguish semantic adversarial tests, a forward-progress/linear-work argument for the replacement, and CodeQL confirmation for alert #121 on the resulting revision. Do not claim the original regex is proven exploitable, or proven a false positive, from this pin-read critique.\n\nRoad not taken: a fixed whitespace cap is compact and places a hard limit on local work, but its strongest case requires explicit fail-closed exhaustion handling and a defined input-limit contract. Those would change my preference; neither is in this lean. A monotonic scanner preserves the current accepted input without that new policy. Suppression would require evidence from the original CodeQL method; this review supplies none.\n\nCensus: blocks-the-design 0; sharpens-framing 2; footnote 0. Critic exit; return to parent synthesis. No further round or implementation initiated.\r\n\n",
+          "id": 6256863191,
+          "html_url": "https://github.com/deftai/directive/issues/5745#issuecomment-6256863191",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:08:06Z",
+          "updated_at": "2026-10-19T00:08:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Prefer-A Bound\n\nLean: Prefer-A Bound\nconflict_group: pr-closing-keywords-comma-list-tail-polynomial-redos\nTarget-digest: sha256:9e2c20a70ec661594c8fd2d665699644aa09c2a7e5c53f43414cff31fe645c9c\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\ndest: .deft-scratch/worktrees/arc-5745\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N=1\nspend-ask: resolved\nprefer-a-draft: 6256836750\nstop-1: 6256839185\npanel-deposit: 6256844457\nround-1-critics: Codex 6256863191\n\n**Lean:** Prefer-A — rewrite COMMA_LIST_TAIL_RE as a semantics-preserving monotonic scanner (or equivalent) away from the CodeQL-flagged nested \\s* shape; do not silently truncate valid tails; lock adversarial/linear-work/CodeQL evidence separately; keep suite-config suppress out.\n\n## In plain English\nCodeQL alert #121 is a reported polynomial-ReDoS shape on COMMA_LIST_TAIL_RE. Prefer-A clears it by rewriting the comma-list tail parse, not by silencing CodeQL. Codex Round-1 accepted the direction and sharpened two binding obligations: any bound must not silently drop already-valid #IDs (prefer a monotonic scanner that keeps current whitespace and valid-prefix behavior), and acceptance must separate semantic fixtures, a forward-progress/linear-work argument for the replacement, and tip CodeQL evidence for alert #121.\n\n## Bound remedy\n1. **relieves: P1 — Rewrite COMMA_LIST_TAIL_RE off nested \\\\s* ReDoS shape.** Replace /(?:\\\\s*,\\\\s*#(\\\\d+))+/y with a semantics-preserving monotonic scanner (or equivalent non-ambiguous sticky/character-walk parse). Preserve commaListIssueIds / collectClosingHits outcomes for ordinary Closes #N, #M lists, including sticky lastIndex reset and FP/intent classification inheritance for tail IDs. Keep CLOSING_KEYWORD_RE and hasFullCloseIntent refusal unchanged.\n2. **relieves: P1 — No silent truncation of valid tails (Codex C1).** Bounds must not silently drop already-valid #IDs when whitespace or list length grows. Prefer a monotonic scanner retaining current ECMAScript whitespace and valid-prefix behavior over a hard cap. If a resource ceiling is chosen instead, exhaustion must fail closed at the caller (may widen file_scope). Add exact-output fixtures for long valid whitespace, tabs/newlines, long lists, a valid prefix followed by a malformed tail, and stopping before unrelated later #IDs; cover intent and FP classification inheritance.\n3. **relieves: P1 — Separate semantic / linear-work / CodeQL evidence (Codex C2).** Treat P1 as the reported CodeQL finding until the exact mechanism is reproduced. Acceptance distinguishes: (a) semantic adversarial fixtures, (b) a forward-progress or linear-work argument for the complete replacement (inspect overlapping repetitions / repeated suffix scans), and (c) tip CodeQL evidence for alert #121. Do not claim the original regex is proven exploitable or a proven false positive from pin-read alone. If executable timing probes are used, run them in a separately killable process with an external deadline.\n4. **relieves: P1 — CHANGELOG Security/Fixed for alert #121 / #5745.**\n\n### Reject\n- CodeQL suite-config / path-exclude / suppress / dismiss-without-fix as the primary remedy\n- Bundling unrelated code-scanning alerts\n- Broader closing-keyword / FP / intent redesign beyond COMMA_LIST_TAIL_RE / commaListIssueIds\n- Hard whitespace/list-length cap that silently truncates valid tails (Codex road-not-taken without fail-closed exhaustion)\n- Claiming P1 relieved from a single padding example or green unit suite alone\n- Changing CLOSING_KEYWORD_RE / hasFullCloseIntent / allowlist semantics beyond what the tail rewrite requires\n\n### Disposition of Round-1\n- Codex C1 (sharpens-framing) -> accept-into-contract as limb 2\n- Codex C2 (sharpens-framing) -> accept-into-contract as limb 3\n- Prefer-A direction survives; empty disagreement set on blocks-the-design\n\nrelieves: P1\n\n## file_scope lean\npackages/core/src/pr-closing-keywords/detect.ts; packages/core/src/pr-closing-keywords/detect.test.ts (or adjacent adversarial fixtures); CHANGELOG.md.\nKeep-outs: CodeQL suite config as primary; sibling alerts; silent-truncation caps; unrelated CLOSING_KEYWORD_RE / intent redesign.",
+          "id": 6256869831,
+          "html_url": "https://github.com/deftai/directive/issues/5745#issuecomment-6256869831",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:08:43Z",
+          "updated_at": "2026-10-19T00:11:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6-astra\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\nfinding-classes: none\nharvest-changed: false\nfamily: codex\nid-ceiling: 6256869831\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\n\nPA-1 verdict: the Bound remedy covers P1 as written. No blocking, sharpening, or footnote findings; no harvest change is required. This is design coverage, not a claim that the implementation has shipped or alert #121 has cleared.\n\nVerification: read the issue body, Stop 1 (6256839185), Prefer-A Bound (6256869831), and the Round-1 predecessor (6256863191). Re-verified detect.ts with git show at the dispatch SHA and read the contract's Critic method and Pain coverage / Yolo leftover-pain sections. No comments beyond the ceiling were read. No timing probe, test execution, or CodeQL rerun was performed.\n\nThe pinned mechanism starts exactly at the keyword match's end, resets sticky lastIndex for each call, retains the contiguous valid comma-list prefix, and extracts its numeric IDs. collectClosingHits applies the initial keyword's classification to those IDs in both FP and intent modes. hasFullCloseIntent refuses body-derived authorization. These existing controls remain relevant under attacker-controlled text; a replacement must preserve detection rather than truncate away IDs.\n\nBound limbs 1 and 2 explicitly require that preservation, including ECMAScript whitespace, long valid tails, malformed-tail prefix retention, stopping before unrelated IDs, and classification inheritance. They absorb C1. A resource ceiling remains admissible only with caller-level fail-closed exhaustion, with scope widening acknowledged; it is not permission to return a partial successful result.\n\nLimb 3 absorbs C2: semantic fixtures, a forward-progress/linear-work argument for the complete replacement, and tip CodeQL evidence are separate acceptance obligations. The requirement to inspect repeated suffix scans prevents a locally monotonic cursor from substituting for an argument about the whole replacement. Together with the issue's default-branch alert-clearance acceptance, this addresses the reported finding without asserting that pin-read alone proves the original regex exploitable or harmless. Limb 4 supplies the requested release note. Suppression and unrelated detector redesign remain outside the remedy.\n\nCensus: blocks-the-design 0; sharpens-framing 0; footnote 0.\n\nDesign-critique critic complete -- exiting. Return to parent synthesis and its existing completion gates; no ingest or implementation initiated.\r\n\n",
+          "id": 6256886639,
+          "html_url": "https://github.com/deftai/directive/issues/5745#issuecomment-6256886639",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:10:14Z",
+          "updated_at": "2026-10-19T00:10:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\nCites Prefer-A Bound successor lean 6256869831. No Target-digest on this table.\n\n| Claim | Method | Result |\n|---|---|---|\n| Stop 1 P1: COMMA_LIST_TAIL_RE nested \\\\s* polynomial-ReDoS (CodeQL alert #121) | pin-read detect.ts + Round-1/PA disposition | Covered by Prefer-A Bound relieves:P1 (rewrite + no silent truncation + semantic/linear-work/CodeQL evidence + CHANGELOG) |\n| Round-1 Codex C1 no silent truncation / monotonic scanner | REST 6256863191 + Bound limb 2 | accept-into-contract |\n| Round-1 Codex C2 separate semantic / linear-work / CodeQL evidence | REST 6256863191 + Bound limb 3 | accept-into-contract |\n| PA-1 Codex 6256886639 | REST comment read | finding-classes: none; harvest-changed: false |\n| blocks-the-design census | Round-1 + PA-1 | empty |\n\nEmpty disagreement set after PA-1 clear.",
+          "id": 6256893054,
+          "html_url": "https://github.com/deftai/directive/issues/5745#issuecomment-6256893054",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:10:49Z",
+          "updated_at": "2026-10-19T00:10:49Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "design-critique: synthesis accepted, because agents agreed (empty disagreement set) citing Prefer-A Bound successor lean 6256869831\n\n## In plain English\n#5745 will rewrite COMMA_LIST_TAIL_RE as a semantics-preserving monotonic scanner (or equivalent) so CodeQL alert #121 clears by a real fix, without silently truncating valid comma-list tails, and with separate semantic / linear-work / CodeQL evidence. CodeQL suite-config suppress stays a keep-out. Ingest remains a separate operator verb.\n\n## Completed-arc record\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N=1\ndest: .deft-scratch/worktrees/arc-5745\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\nsuccessor-lean: Prefer-A Bound 6256869831\nverified-claims-table: 6256893054\nStop 1: 6256839185\npanel-deposit: 6256844457\nPrefer-A draft: 6256836750\nRound-1: Codex 6256863191\nPrefer-A Bound: 6256869831\nPA-1: Codex 6256886639 (clear; harvest-changed: false)\n\ndisagreement-set: empty\nforward: design-critique:ingest-ready chip; ingest is a later separate operator verb (task issue:ingest).",
+          "id": 6256893230,
+          "html_url": "https://github.com/deftai/directive/issues/5745#issuecomment-6256893230",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:10:50Z",
+          "updated_at": "2026-10-19T00:10:50Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5915169273,
+        "origin": "deftai/directive#5745",
+        "id": "github.issue.5915169273"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "9e2c20a70ec661594c8fd2d665699644aa09c2a7e5c53f43414cff31fe645c9c"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/pr-closing-keywords/detect.ts",
+          "CHANGELOG.md"
+        ]
+      }
+    },
+    "id": "github.issue.5915169273",
+    "updated": "2026-10-19T05:50:25Z"
+  }
+}
