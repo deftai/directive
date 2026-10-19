@@ -32,6 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **CodeQL polynomial-redos in docs-impact surfaces: parse (alert #114).** Tracking #5743.
 
 
+- Fixed — Clear CodeQL js/polynomial-redos alert #115 in doctor containDepositInstallRoot by replacing the trailing-slash regex strip with linear stripTrailingPathSeparators. Refs #115 #5744.
+
 ### Removed
 
 ## [0.126.1] - 2026-10-19
