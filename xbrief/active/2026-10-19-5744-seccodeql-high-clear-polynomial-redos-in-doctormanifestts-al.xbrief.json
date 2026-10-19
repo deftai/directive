@@ -112,7 +112,6 @@
         "schema": "deft.scope.intended_placement.v1",
         "files": [
           "packages/core/src/doctor/manifest.ts",
-          "packages/core/src/doctor/branches.test.ts",
           "CHANGELOG.md"
         ],
         "module_boundary": "packages/core/src/doctor/manifest.ts",
@@ -367,10 +366,9 @@
       "swarm": {
         "file_scope": [
           "packages/core/src/doctor/manifest.ts",
-          "packages/core/src/doctor/branches.test.ts",
           "CHANGELOG.md"
         ],
-        "cohesion_exemption": "CHANGELOG.md shared Unreleased for security cohort. pnpm-lock.yaml / pnpm-workspace.yaml shared Dependabot pin surfaces for #5737/#5740. Path B mint includes branches.test.ts for #5744 adversarial fixtures."
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for security cohort. pnpm-lock.yaml / pnpm-workspace.yaml shared Dependabot pin surfaces for #5737/#5740."
       }
     },
     "id": "github.issue.5915169068",
