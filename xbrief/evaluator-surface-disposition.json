@@ -1,10 +1,10 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 5057,
+  "issue": 5747,
   "surfaces": [
-    "tasks/verify.yml",
+    "packages/core/src/presentation-ceiling/**",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renewed disclosure for #5057 scope-provenance task-desc rewrite. Soft findings are advisory intent-pin drift; --enforce is a no-op. Disclosure only; not #3164 authorization."
+  "note": "Renewed disclosure for #5747 presentation-ceiling delimiter-aware script end-tag (CodeQL alert #143). Disclosure only; not #3164 authorization."
 }
