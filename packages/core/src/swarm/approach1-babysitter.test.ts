@@ -112,6 +112,26 @@ describe("admitClaimedBabysitPath named caller (#5727 P4)", () => {
     expect(result.cheapestAdmissionCard).toBeNull();
   });
 
+  it("denies when top-level pr differs from evidence PR (other-PR watch)", () => {
+    const result = admitClaimedBabysitPath({
+      claimedKind: "approach1-spawn",
+      tier: tier1,
+      pr: 5727,
+      boundEvidence: {
+        pr: 100,
+        evidencePr: 100,
+        monitorAgentId: "rm-100",
+        registeredPlatformPrimitive: "spawn_subagent",
+        childWatchBoundToMonitorId: true,
+      },
+    });
+    expect(result.deny).toBe(true);
+    expect(result.reason).toBe("different-pr-arm");
+    expect(result.message).toContain("5727");
+    expect(result.message).toContain("100");
+    expect(result.cheapestAdmissionCard).toContain("Approach 1");
+  });
+
   it("falls back to boundEvidence pr/id when top-level fields are absent", () => {
     const result = admitClaimedBabysitPath({
       claimedKind: "host-monitor",

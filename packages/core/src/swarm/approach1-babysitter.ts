@@ -86,11 +86,7 @@ export function admitClaimedBabysitPath(
     readonly platformPrimitive?: PlatformPrimitive;
   },
 ): ClaimedBabysitPathDenyResult & { readonly cheapestAdmissionCard: string | null } {
-  const result = evaluateClaimedBabysitPathDeny(input);
-  if (!result.deny) {
-    return { ...result, cheapestAdmissionCard: null };
-  }
-  const pr =
+  const targetPr =
     input.pr !== undefined && input.pr > 0
       ? input.pr
       : input.boundEvidence !== undefined &&
@@ -103,16 +99,54 @@ export function admitClaimedBabysitPath(
     input.boundEvidence?.monitorAgentId?.trim() ||
     "<id>";
   const primitive = input.platformPrimitive ?? input.tier.primitive ?? "spawn_subagent";
-  const card = formatApproach1CheapestAdmissionCard(
-    pr > 0 ? pr : 0,
-    id,
-    (primitive as PlatformPrimitive) || "spawn_subagent",
-  );
-  return {
-    ...result,
-    message: `${result.message}\n${card}`,
-    cheapestAdmissionCard: card,
+  const attachCard = (
+    result: ClaimedBabysitPathDenyResult,
+  ): ClaimedBabysitPathDenyResult & { readonly cheapestAdmissionCard: string | null } => {
+    if (!result.deny) {
+      return { ...result, cheapestAdmissionCard: null };
+    }
+    const card = formatApproach1CheapestAdmissionCard(
+      targetPr > 0 ? targetPr : 0,
+      id,
+      (primitive as PlatformPrimitive) || "spawn_subagent",
+    );
+    return {
+      ...result,
+      message: `${result.message}\n${card}`,
+      cheapestAdmissionCard: card,
+    };
   };
+
+  // Top-level claim PR must match evidence PR / evidencePr when both are set (#5727 Greptile).
+  if (
+    input.pr !== undefined &&
+    input.pr > 0 &&
+    input.boundEvidence !== undefined &&
+    input.boundEvidence !== null
+  ) {
+    const evidence = input.boundEvidence;
+    const evidenceTarget = evidence.pr > 0 ? evidence.pr : null;
+    const evidenceBound =
+      evidence.evidencePr !== undefined && evidence.evidencePr !== null && evidence.evidencePr > 0
+        ? evidence.evidencePr
+        : evidenceTarget;
+    if (
+      (evidenceTarget !== null && evidenceTarget !== input.pr) ||
+      (evidenceBound !== null && evidenceBound !== input.pr)
+    ) {
+      return attachCard({
+        deny: true,
+        claimedKind: input.claimedKind,
+        reason: "different-pr-arm",
+        message:
+          `claimed-babysit-path-deny: different-PR arm — top-level claim targets PR ` +
+          `${input.pr} but evidence is bound to PR ` +
+          `${evidenceBound ?? evidenceTarget} (#5727).`,
+      });
+    }
+  }
+
+  return attachCard(evaluateClaimedBabysitPathDeny(input));
 }
 
 export function formatApproach1BabysitterCard(

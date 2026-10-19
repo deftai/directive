@@ -211,7 +211,8 @@ export type ClaimedBabysitPathDenyReason =
   | "admitted-not-tier1"
   | "forbidden-claimed-kind"
   | "approach1-unbound"
-  | "different-pr-arm";
+  | "different-pr-arm"
+  | "missing-post-clean-wait";
 
 export interface ClaimedBabysitPathDenyResult {
   readonly deny: boolean;
@@ -226,8 +227,9 @@ function hasApproach1BoundEvidence(evidence: ClaimedBabysitBoundEvidence | null 
   const id = evidence.monitorAgentId?.trim() ?? "";
   if (id.length === 0 || id.startsWith("-")) return false;
   if (evidence.childWatchBoundToMonitorId !== true) return false;
+  // Exclusive lawful wait requires register --platform-primitive spawn_subagent (#5727 Greptile).
   const prim = (evidence.registeredPlatformPrimitive ?? "").toString().trim();
-  return prim === "spawn_subagent" || prim.length > 0;
+  return prim === "spawn_subagent";
 }
 
 /**
@@ -254,16 +256,24 @@ export function evaluateClaimedBabysitPathDeny(
     };
   }
 
-  if (
-    input.phase === "post-clean" &&
-    input.claimedPostCleanWait === "pr-wait-mergeable-and-merge"
-  ) {
+  if (input.phase === "post-clean") {
+    if (input.claimedPostCleanWait === "pr-wait-mergeable-and-merge") {
+      return {
+        deny: false,
+        claimedKind,
+        reason: "admitted-post-clean",
+        message:
+          "claimed-babysit-path-deny: post-CLEAN pr:wait-mergeable-and-merge is a lawful closer wait (#5727).",
+      };
+    }
+    // Do not fall through to pre-CLEAN Approach 1 admit without a closer claim (#5727 Greptile).
     return {
-      deny: false,
+      deny: true,
       claimedKind,
-      reason: "admitted-post-clean",
+      reason: "missing-post-clean-wait",
       message:
-        "claimed-babysit-path-deny: post-CLEAN pr:wait-mergeable-and-merge is a lawful closer wait (#5727).",
+        "claimed-babysit-path-deny: phase post-clean requires claimedPostCleanWait " +
+        "'pr-wait-mergeable-and-merge' — pre-CLEAN Approach 1 evidence alone is not a closer (#5727).",
     };
   }
 

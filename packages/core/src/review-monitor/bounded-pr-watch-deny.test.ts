@@ -240,8 +240,26 @@ describe("evaluateClaimedBabysitPathDeny (#5727 P4)", () => {
         childWatchBoundToMonitorId: true,
       },
     });
-    expect(otherPrim.deny).toBe(false);
-    expect(otherPrim.reason).toBe("admitted");
+    expect(otherPrim.deny).toBe(true);
+    expect(otherPrim.reason).toBe("approach1-unbound");
+  });
+
+  it("denies post-CLEAN without claimedPostCleanWait (no pre-CLEAN fallthrough)", () => {
+    const result = evaluateClaimedBabysitPathDeny({
+      claimedKind: "approach1-spawn",
+      tier: TIER1,
+      phase: "post-clean",
+      boundEvidence: {
+        pr: 5727,
+        evidencePr: 5727,
+        monitorAgentId: "rm-5727",
+        registeredPlatformPrimitive: "spawn_subagent",
+        childWatchBoundToMonitorId: true,
+      },
+    });
+    expect(result.deny).toBe(true);
+    expect(result.reason).toBe("missing-post-clean-wait");
+    expect(result.message).toContain("pr-wait-mergeable-and-merge");
   });
 
   it("fails closed on different-PR arm", () => {
