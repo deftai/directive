@@ -8,14 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added — Exclusive lawful waits + claimed-wait fail-closed for Grok through-merge parents (#5727 Prefer-A Recut-2 P3/P4): `BabysitPathKind` forge-poll, `evaluateClaimedBabysitPathDeny` / `admitClaimedBabysitPath`, exclusive-waits card on Envelope SLA / review-cycle / host-grok-build. Undeclared-shell interception remains leftover #5732. Refs #5727 #5229 #5732.
 
 ### Changed
+- Changed — Raise plan.policy.agentsMdBudget managedMaxLines 199→200 and absoluteMaxBytes 28300→29200 for deliberate #5727 exclusive lawful waits AGENTS line; sync review-cycle skills-pack source with projection. Refs #5727.
 - Changed — Remint approved-scope for #5744 with productPullRequest + acceptance evidence. Approval record only; no product behavior change. Refs #5744.
 - Changed — Cursor Task dest-missing deny names presented `subagent_type` (no stripped dest-key inventory lead); host-cursor Multitask spawn matrix + recovery pointer from `CURSOR_TASK_SPAWN_CLASS_RECOVERY`. Primary Multitask auto-worktree registry stays leftover #5775. Refs #5770.
 - Changed — Activate Prefer-A Bound briefs for #5770 (Cursor Multitask host-cursor matrix), #5677 (residual deposit keep-unknowns), and #5727 (Grok through-merge Approach 1 forge-poll forbid); productPullRequest unset. Refs #5770 #5677 #5727.
 - Changed — Activate Prefer-A Bound security cohort briefs for Dependabot and CodeQL HIGH work (#5737 #5740-#5748); product fixes land in follow-on PRs.
 
 ### Fixed
+- Fixed — Claimed-wait Approach 1 bound evidence admits Tier-1 register primitives spawn_subagent | cursor-task | claude-agent (not spawn_subagent-only); still rejects arbitrary nonempty strings, different-PR arm, and post-CLEAN without closer wait (#5727 Greptile). Refs #5727.
 - Fixed — Remint intent-constraint for #5742 numeric-const bounds 512/200/40. Approval record only; no product behavior change. Refs #5742.
 - Fixed — Prepare approved-scope mint for #5744 (branches.test.ts membership). Records approval only; no product behavior change. Refs #5744.
 - Fixed — Record intent-constraint mint for #5742 greptile-detector ReDoS invariant. Approval record only; no product behavior change. Refs #5742.

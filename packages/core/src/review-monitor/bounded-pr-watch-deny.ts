@@ -4,15 +4,20 @@
  * Recognizes only bounded vocabulary (`deft pr:watch` / `task deft:pr:watch` /
  * `task pr:watch`). Bespoke `%TEMP%` pollers are a named residual unless the
  * host routes them through deft-hook — this helper does not claim total coverage.
+ *
+ * Claimed-wait deny (#5727 Prefer-A Recut-2 P4) refuses forge-poll /
+ * bespoke-temp / host-monitor / bare pr:watch when Tier 1 is proven. Undeclared
+ * shell interception before execution remains leftover #5732.
  */
-import { isTier1, type MonitoringTierProbe } from "./tier-detection.js";
+import { isTier1, type MonitoringTierProbe, type PlatformPrimitive } from "./tier-detection.js";
 
-/** Admission cost: lower is cheaper / preferred (#5229 Prefer-A). */
+/** Admission cost: lower is cheaper / preferred (#5229 Prefer-A / #5727). */
 export type BabysitPathKind =
   | "approach1-spawn"
   | "directive-pr-watch-with-monitor-id"
   | "directive-pr-watch-bare"
   | "host-monitor"
+  | "forge-poll"
   | "bespoke-temp-poller";
 
 const ADMISSION_COST: Record<BabysitPathKind, number> = {
@@ -20,8 +25,34 @@ const ADMISSION_COST: Record<BabysitPathKind, number> = {
   "directive-pr-watch-with-monitor-id": 2,
   "directive-pr-watch-bare": 50,
   "host-monitor": 60,
+  "forge-poll": 80,
   "bespoke-temp-poller": 90,
 };
+
+/** Forbidden claimed pre-CLEAN waits when Tier-1 spawn_subagent is proven (#5727). */
+export const FORBIDDEN_CLAIMED_WAIT_KINDS_WHEN_TIER1: ReadonlySet<BabysitPathKind> = new Set([
+  "forge-poll",
+  "bespoke-temp-poller",
+  "host-monitor",
+  "directive-pr-watch-bare",
+]);
+
+/** Lawful pre-CLEAN claimed kinds when bound evidence is present (#5727). */
+export const LAWFUL_PRE_CLEAN_CLAIMED_KINDS: ReadonlySet<BabysitPathKind> = new Set([
+  "approach1-spawn",
+  "directive-pr-watch-with-monitor-id",
+]);
+
+/**
+ * Tier-1 Approach 1 register primitives admitted by bound-evidence (#5727).
+ * Matches host-capability stamp / merge-path-arm Approach 1 set — not every
+ * PlatformPrimitive (arbitrary nonempty strings stay rejected).
+ */
+export const APPROACH1_BOUND_PLATFORM_PRIMITIVES: ReadonlySet<string> = new Set([
+  "spawn_subagent",
+  "cursor-task",
+  "claude-agent",
+]);
 
 export function babysitPathAdmissionCost(kind: BabysitPathKind): number {
   return ADMISSION_COST[kind];
@@ -155,5 +186,179 @@ export function evaluateBoundedPrWatchDeny(
       `  task verify:review-monitor -- --pr ${pr} --merge-path-arm --live-wait\n` +
       `  ${residual}`,
     residualNamed: residual,
+  };
+}
+
+/** Bound evidence required to admit Approach 1 / child-bound watch claims (#5727). */
+export interface ClaimedBabysitBoundEvidence {
+  readonly pr: number;
+  readonly monitorAgentId?: string | null;
+  readonly registeredPlatformPrimitive?: PlatformPrimitive | string | null;
+  /** Child `pr:watch` carries the same `--monitor-agent-id` as the lease. */
+  readonly childWatchBoundToMonitorId?: boolean;
+  /**
+   * PR the wait evidence is actually bound to. When set and different from
+   * `pr`, deny as different-PR arm (#5727 negative).
+   */
+  readonly evidencePr?: number | null;
+}
+
+export interface ClaimedBabysitPathDenyInput {
+  readonly claimedKind: BabysitPathKind;
+  readonly tier: MonitoringTierProbe;
+  readonly boundEvidence?: ClaimedBabysitBoundEvidence | null;
+  /** Defaults to pre-clean; post-clean admits `pr:wait-mergeable-and-merge`. */
+  readonly phase?: "pre-clean" | "post-clean";
+  readonly claimedPostCleanWait?: "pr-wait-mergeable-and-merge" | null;
+}
+
+export type ClaimedBabysitPathDenyReason =
+  | "admitted"
+  | "admitted-post-clean"
+  | "admitted-not-tier1"
+  | "forbidden-claimed-kind"
+  | "approach1-unbound"
+  | "different-pr-arm"
+  | "missing-post-clean-wait";
+
+export interface ClaimedBabysitPathDenyResult {
+  readonly deny: boolean;
+  readonly claimedKind: BabysitPathKind;
+  readonly reason: ClaimedBabysitPathDenyReason;
+  readonly message: string;
+}
+
+function hasApproach1BoundEvidence(
+  evidence: ClaimedBabysitBoundEvidence | null | undefined,
+): boolean {
+  if (evidence === null || evidence === undefined) return false;
+  if (!(evidence.pr > 0)) return false;
+  const id = evidence.monitorAgentId?.trim() ?? "";
+  if (id.length === 0 || id.startsWith("-")) return false;
+  if (evidence.childWatchBoundToMonitorId !== true) return false;
+  // Approach 1 register: spawn_subagent | cursor-task | claude-agent (#5727 Greptile).
+  const prim = (evidence.registeredPlatformPrimitive ?? "").toString().trim();
+  return APPROACH1_BOUND_PLATFORM_PRIMITIVES.has(prim);
+}
+
+/**
+ * Fail closed on claimed babysit path when Tier 1 proves spawn_subagent and the
+ * claim is forge-poll / bespoke-temp / host-monitor / bare Directive pr:watch,
+ * or Approach 1 without bound evidence / different-PR arm (#5727 P4).
+ *
+ * Does not intercept undeclared shell before execution (#5732 residual).
+ * Keep `evaluateBoundedPrWatchDeny` for Directive command-form recognition.
+ */
+export function evaluateClaimedBabysitPathDeny(
+  input: ClaimedBabysitPathDenyInput,
+): ClaimedBabysitPathDenyResult {
+  const claimedKind = input.claimedKind;
+
+  if (!isTier1(input.tier)) {
+    return {
+      deny: false,
+      claimedKind,
+      reason: "admitted-not-tier1",
+      message:
+        `claimed-babysit-path-deny: Tier ${input.tier.tier} ` +
+        `(${input.tier.descriptor ?? "unknown"}) — claimed path admitted (no Tier-1 primitive).`,
+    };
+  }
+
+  if (input.phase === "post-clean") {
+    if (input.claimedPostCleanWait === "pr-wait-mergeable-and-merge") {
+      return {
+        deny: false,
+        claimedKind,
+        reason: "admitted-post-clean",
+        message:
+          "claimed-babysit-path-deny: post-CLEAN pr:wait-mergeable-and-merge is a lawful closer wait (#5727).",
+      };
+    }
+    // Do not fall through to pre-CLEAN Approach 1 admit without a closer claim (#5727 Greptile).
+    return {
+      deny: true,
+      claimedKind,
+      reason: "missing-post-clean-wait",
+      message:
+        "claimed-babysit-path-deny: phase post-clean requires claimedPostCleanWait " +
+        "'pr-wait-mergeable-and-merge' — pre-CLEAN Approach 1 evidence alone is not a closer (#5727).",
+    };
+  }
+
+  if (FORBIDDEN_CLAIMED_WAIT_KINDS_WHEN_TIER1.has(claimedKind)) {
+    const pr =
+      input.boundEvidence !== undefined &&
+      input.boundEvidence !== null &&
+      input.boundEvidence.pr > 0
+        ? String(input.boundEvidence.pr)
+        : "<N>";
+    const primitive = input.tier.primitive ?? "spawn_subagent";
+    return {
+      deny: true,
+      claimedKind,
+      reason: "forbidden-claimed-kind",
+      message:
+        `claimed-babysit-path-deny: Tier 1 provable — claimed wait kind ` +
+        `'${claimedKind}' is forbidden as pre-CLEAN babysit (#5727).\n` +
+        "  Exclusive lawful waits: Approach 1 child pr:watch --monitor-agent-id after " +
+        "review-monitor:register --platform-primitive spawn_subagent with " +
+        "verify:review-monitor --merge-path-arm --live-wait green; after CLEAN, " +
+        "parent-retained pr:wait-mergeable-and-merge.\n" +
+        "  Forbidden: parent forge-poll / gh check-runs+mergeable_state sleep / " +
+        "bespoke %TEMP% PowerShell watchers / host-monitor / bare directive-pr-watch.\n" +
+        `  Prefer: task review-monitor:register -- --pr ${pr} --monitor-agent-id <id> ` +
+        `--platform-primitive ${primitive}`,
+    };
+  }
+
+  if (LAWFUL_PRE_CLEAN_CLAIMED_KINDS.has(claimedKind)) {
+    const evidence = input.boundEvidence;
+    if (
+      evidence !== undefined &&
+      evidence !== null &&
+      evidence.evidencePr !== undefined &&
+      evidence.evidencePr !== null &&
+      evidence.evidencePr > 0 &&
+      evidence.evidencePr !== evidence.pr
+    ) {
+      return {
+        deny: true,
+        claimedKind,
+        reason: "different-pr-arm",
+        message:
+          `claimed-babysit-path-deny: different-PR arm — evidence bound to PR ` +
+          `${evidence.evidencePr} but claim targets PR ${evidence.pr} (#5727).`,
+      };
+    }
+
+    if (!hasApproach1BoundEvidence(evidence)) {
+      return {
+        deny: true,
+        claimedKind,
+        reason: "approach1-unbound",
+        message:
+          "claimed-babysit-path-deny: Approach 1 / child-bound watch claim lacks " +
+          "bound evidence (register --platform-primitive + monitor-agent-id + " +
+          "childWatchBoundToMonitorId) (#5727).",
+      };
+    }
+
+    return {
+      deny: false,
+      claimedKind,
+      reason: "admitted",
+      message:
+        "claimed-babysit-path-deny: Approach 1 / child-bound watch admitted with bound evidence.",
+    };
+  }
+
+  return {
+    deny: true,
+    claimedKind,
+    reason: "forbidden-claimed-kind",
+    message:
+      `claimed-babysit-path-deny: Tier 1 provable — unrecognized claimed kind ` +
+      `'${claimedKind}' refused (#5727).`,
   };
 }
