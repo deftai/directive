@@ -154,7 +154,17 @@
           "packages/core/src/run-summary/share.ts",
           "packages/core/src/run-summary/types.ts",
           "CHANGELOG.md",
-          "docs/RULE-MAP.md"
+          "docs/RULE-MAP.md",
+          "AGENTS.md",
+          "packages/core/src/content-contracts/skills/agents_entry_contract.test.ts",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "packages/core/src/design-critique/ingest-posture.test.ts",
+          "packages/core/src/design-critique/ingest-posture.ts",
+          "packages/core/src/lifecycle/issue-ingest.test.ts",
+          "packages/core/src/lifecycle/issue-ingest.ts",
+          "packages/core/src/telemetry-coverage/fake-trial.ts",
+          "packages/core/src/telemetry-coverage/kinds.ts",
+          "xbrief/PROJECT-DEFINITION.xbrief.json"
         ],
         "size": "L",
         "file_scope_confidence": "high",
@@ -166,7 +176,7 @@
           "#5727"
         ],
         "parallel_safe": false,
-        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #5716 Prefer-A Recut-3. docs/RULE-MAP.md regenerated membership for #5716 skill/AGENTS pointer churn (#5192 precommitment)."
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #5716 Prefer-A Recut-3. docs/RULE-MAP.md regenerated membership for #5716 skill/AGENTS pointer churn (#5192 precommitment). Product membership widen for AGENTS.md, ingest-posture, issue-ingest, telemetry enrollment, contract tests, PROJECT-DEFINITION (#5192 / #4956)."
       },
       "intended_placement": {
         "schema": "deft.scope.intended_placement.v1",
@@ -188,10 +198,20 @@
           "packages/core/src/run-summary/share.ts",
           "packages/core/src/run-summary/types.ts",
           "CHANGELOG.md",
-          "docs/RULE-MAP.md"
+          "docs/RULE-MAP.md",
+          "AGENTS.md",
+          "packages/core/src/content-contracts/skills/agents_entry_contract.test.ts",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "packages/core/src/design-critique/ingest-posture.test.ts",
+          "packages/core/src/design-critique/ingest-posture.ts",
+          "packages/core/src/lifecycle/issue-ingest.test.ts",
+          "packages/core/src/lifecycle/issue-ingest.ts",
+          "packages/core/src/telemetry-coverage/fake-trial.ts",
+          "packages/core/src/telemetry-coverage/kinds.ts",
+          "xbrief/PROJECT-DEFINITION.xbrief.json"
         ],
         "module_boundary": "design-critique arc recommended before every issue:ingest",
-        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #5716 Prefer-A Recut-3. docs/RULE-MAP.md regenerated membership for #5716 skill/AGENTS pointer churn (#5192 precommitment)."
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #5716 Prefer-A Recut-3. docs/RULE-MAP.md regenerated membership for #5716 skill/AGENTS pointer churn (#5192 precommitment). Product membership widen for AGENTS.md, ingest-posture, issue-ingest, telemetry enrollment, contract tests, PROJECT-DEFINITION (#5192 / #4956)."
       },
       "x-directive/plan-id": {
         "version": 1,
