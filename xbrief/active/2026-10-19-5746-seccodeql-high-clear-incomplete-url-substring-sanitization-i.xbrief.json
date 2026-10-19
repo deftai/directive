@@ -432,12 +432,14 @@
       "swarm": {
         "file_scope": [
           "packages/core/src/intake/github-auth-modes.provisioning.test.ts",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "xbrief/active/2026-10-19-5746-seccodeql-high-clear-incomplete-url-substring-sanitization-i.xbrief.json"
         ],
-        "cohesion_exemption": "CHANGELOG.md shared Unreleased for security cohort. pnpm-lock.yaml / pnpm-workspace.yaml shared Dependabot pin surfaces for #5737/#5740."
-      }
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for security cohort. pnpm-lock.yaml / pnpm-workspace.yaml shared Dependabot pin surfaces for #5737/#5740. Active xBRIEF stamp for metadata.productPullRequest bind (#4864)."
+      },
+      "productPullRequest": 5767
     },
     "id": "github.issue.5915169474",
-    "updated": "2026-10-19T05:50:27Z"
+    "updated": "2026-10-19T10:50:00Z"
   }
 }
