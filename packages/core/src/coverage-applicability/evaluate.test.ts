@@ -10,6 +10,17 @@ import {
 } from "../plan-sequence/types.js";
 import { COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP } from "../pre-pr-controller/phases.js";
 import {
+  DIRECT_WRITE_HOOK_MATCHER,
+  KILL_HOOK_MATCHER,
+  MCP_HOOK_MATCHER,
+  SHELL_HOOK_MATCHER,
+  SPAWN_HOOK_MATCHER,
+} from "../hooks/tools.js";
+import {
+  CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
+  CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS,
+} from "../init-deposit/agent-hooks.js";
+import {
   classifyChangedPath,
   decodeGitQuotedPath,
   evaluateCoverageApplicability,
@@ -19,6 +30,60 @@ import {
   isSpecificationNarrativeRefreshOnly,
   parseNameStatus,
 } from "./evaluate.js";
+
+const CURSOR_MATCHERS = [
+  DIRECT_WRITE_HOOK_MATCHER,
+  SPAWN_HOOK_MATCHER,
+  SHELL_HOOK_MATCHER,
+  KILL_HOOK_MATCHER,
+  MCP_HOOK_MATCHER,
+] as const;
+
+function canonicalCursorRegistration(
+  extras?: { readonly customSession?: unknown },
+): string {
+  const sessionStart: unknown[] = [
+    {
+      command: "deft-hook --host cursor --event session.start",
+      timeout: CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
+    },
+  ];
+  if (extras?.customSession !== undefined) sessionStart.unshift(extras.customSession);
+  return `${JSON.stringify(
+    {
+      version: 1,
+      hooks: {
+        sessionStart,
+        preToolUse: CURSOR_MATCHERS.map((matcher) => ({
+          command: "deft-hook --host cursor --event tool.before",
+          matcher,
+          failClosed: true,
+          timeout: CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS,
+        })),
+        preCompact: [
+          {
+            command: "deft-hook --host cursor --event session.compact",
+            timeout: CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
+          },
+        ],
+        beforeSubmitPrompt: [
+          {
+            command: "deft-hook --host cursor --event prompt.submit",
+            timeout: CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
+          },
+        ],
+        afterAgentResponse: [
+          {
+            command: "deft-hook --host cursor --event agent.response",
+            timeout: CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
+          },
+        ],
+      },
+    },
+    null,
+    2,
+  )}\n`;
+}
 
 const PROJECT_DEF_PATH = "xbrief/PROJECT-DEFINITION.xbrief.json";
 
@@ -183,10 +248,9 @@ describe("classifyChangedPath", () => {
     expect(classifyChangedPath(".deft/other.json", "A", null)).toBe("unknown");
     expect(classifyChangedPath(".deft/plan-sequence.json", "A", null)).toBe("unknown");
     expect(classifyChangedPath("meta/other.log", "M", null)).toBe("unknown");
-    expect(classifyChangedPath(".githooks/pre-commit", "M", null)).toBe("unknown");
   });
 
-  it("classifies exact VERSION + lifecycle gitkeep inert; keeps run/hooks/codeql unknown (#5674)", () => {
+  it("classifies exact VERSION + lifecycle gitkeep inert; keeps run/approved-scope unknown (#5674)", () => {
     expect(classifyChangedPath(".deft/core/VERSION", "A", null)).toBe("inert");
     expect(classifyChangedPath(".deft/core/VERSION", "M", null)).toBe("inert");
     for (const root of ["xbrief", "vbrief"] as const) {
@@ -194,13 +258,31 @@ describe("classifyChangedPath", () => {
         expect(classifyChangedPath(`${root}/${sub}/.gitkeep`, "A", null)).toBe("inert");
       }
     }
-    // Keep-unknown residuals owned until #5677 — do not widen.
+    // Path-level keep-unknown; #5677 owns content-bound run D + registration proofs.
     expect(classifyChangedPath(".deft/core/run", "A", null)).toBe("unknown");
     expect(classifyChangedPath(".deft/core/run/hooks.json", "M", null)).toBe("unknown");
     expect(classifyChangedPath(".deft/approved-scope/x.json", "A", null)).toBe("unknown");
-    expect(classifyChangedPath(".githooks/pre-commit", "M", null)).toBe("unknown");
-    expect(classifyChangedPath(".github/codeql/codeql-config.yml", "M", null)).toBe("unknown");
     expect(classifyChangedPath(".deft/core/payload.bin", "A", null)).toBe("unknown");
+  });
+
+  it("classifies CODEQL + HOOK_FILENAMES inert; keeps support/adapters coverable (#5677)", () => {
+    expect(classifyChangedPath(".github/codeql/codeql-config.yml", "M", null)).toBe("inert");
+    expect(classifyChangedPath(".githooks/pre-commit", "M", null)).toBe("inert");
+    expect(classifyChangedPath(".githooks/pre-push", "A", null)).toBe("inert");
+    // HOOK_SUPPORT + adapters/wrapper stay coverable under coverable-first.
+    expect(classifyChangedPath(".githooks/_deft-run.sh", "M", null)).toBe("coverable");
+    expect(classifyChangedPath(".cursor/hooks/deft-cursor-hook-adapter.mjs", "M", null)).toBe(
+      "coverable",
+    );
+    expect(classifyChangedPath(".cursor/hooks/deft-cursor-hook-adapter.test.mjs", "A", null)).toBe(
+      "coverable",
+    );
+    expect(classifyChangedPath(".grok/hooks/deft-pretooluse-wrapper.sh", "M", null)).toBe(
+      "coverable",
+    );
+    expect(classifyChangedPath(".cursor/hooks/custom.js", "A", null)).toBe("coverable");
+    expect(classifyChangedPath(".githooks/extra-hook", "M", null)).toBe("unknown");
+    expect(classifyChangedPath(".cursor/hooks.json", "M", null)).toBe("unknown");
   });
 });
 
@@ -1317,5 +1399,248 @@ describe("evaluateCoverageApplicability #5551 Prefer-A Bound", () => {
     childProcess.execFileSync("git", ["add", "-A"], { cwd: root });
     childProcess.execFileSync("git", ["commit", "-q", "-m", "headroom-na"], { cwd: root });
     expect(isCoverageHeadroomNotApplicable(bindingFor(root, baseSha))).toBe(true);
+  });
+});
+
+describe("evaluateCoverageApplicability #5677 Prefer-A Bound Recut-1", () => {
+  it("marks CODEQL + official githooks inert N/A and keeps _deft-run.sh applicable", () => {
+    const root = gitRepo({ "README.md": "# base\n" });
+    const baseSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    mkdirSync(join(root, ".github/codeql"), { recursive: true });
+    mkdirSync(join(root, ".githooks"), { recursive: true });
+    mkdirSync(join(root, "docs"), { recursive: true });
+    writeFileSync(join(root, ".github/codeql/codeql-config.yml"), "paths-ignore: []\n");
+    writeFileSync(join(root, ".githooks/pre-commit"), "#!/bin/sh\n");
+    writeFileSync(join(root, ".githooks/pre-push"), "#!/bin/sh\n");
+    writeFileSync(join(root, "docs/n.md"), "n\n");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: root });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "codeql-hooks"], { cwd: root });
+    const na = evaluateCoverageApplicability(bindingFor(root, baseSha));
+    expect(na.outcome).toBe("not-applicable");
+
+    const supportRoot = gitRepo({ "README.md": "# base\n" });
+    const supportBase = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: supportRoot, encoding: "utf8" })
+      .trim();
+    mkdirSync(join(supportRoot, ".githooks"), { recursive: true });
+    writeFileSync(join(supportRoot, ".githooks/_deft-run.sh"), "#!/bin/sh\necho run\n");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: supportRoot });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "support-sh"], { cwd: supportRoot });
+    const applicable = evaluateCoverageApplicability(bindingFor(supportRoot, supportBase));
+    expect(applicable.outcome).toBe("applicable");
+    if (applicable.outcome === "applicable") {
+      expect(applicable.coverablePaths).toContain(".githooks/_deft-run.sh");
+    }
+  });
+
+  it("demotes managed-only registration A/M and keeps consumer-delta / marker-custom non-inert", () => {
+    const addRoot = gitRepo({ "README.md": "# base\n" });
+    const addBase = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: addRoot, encoding: "utf8" })
+      .trim();
+    mkdirSync(join(addRoot, ".cursor"), { recursive: true });
+    mkdirSync(join(addRoot, "docs"), { recursive: true });
+    writeFileSync(join(addRoot, ".cursor/hooks.json"), canonicalCursorRegistration());
+    writeFileSync(join(addRoot, "docs/a.md"), "a\n");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: addRoot });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "reg-a"], { cwd: addRoot });
+    const addResult = evaluateCoverageApplicability(bindingFor(addRoot, addBase));
+    expect(addResult.outcome).toBe("not-applicable");
+    if (addResult.outcome === "not-applicable") {
+      expect(addResult.changes.find((c) => c.path === ".cursor/hooks.json")?.classification).toBe(
+        "inert",
+      );
+    }
+
+    const modRoot = gitRepo({
+      "README.md": "# base\n",
+      ".cursor/hooks.json": canonicalCursorRegistration({
+        customSession: { command: "./custom-session.sh" },
+      }),
+    });
+    const modBase = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: modRoot, encoding: "utf8" })
+      .trim();
+    const refreshed = JSON.parse(
+      canonicalCursorRegistration({ customSession: { command: "./custom-session.sh" } }),
+    ) as { version: number; hooks: { preToolUse: unknown[] } & Record<string, unknown> };
+    // Deposit-style rewrite: reverse matcher order (multiset-complete) + same consumer.
+    refreshed.hooks.preToolUse = [...refreshed.hooks.preToolUse].reverse();
+    writeFileSync(join(modRoot, ".cursor/hooks.json"), `${JSON.stringify(refreshed, null, 2)}\n`);
+    mkdirSync(join(modRoot, "docs"), { recursive: true });
+    writeFileSync(join(modRoot, "docs/m.md"), "m\n");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: modRoot });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "reg-m"], { cwd: modRoot });
+    const modResult = evaluateCoverageApplicability(bindingFor(modRoot, modBase));
+    expect(modResult.outcome).toBe("not-applicable");
+    if (modResult.outcome === "not-applicable") {
+      expect(modResult.changes.find((c) => c.path === ".cursor/hooks.json")?.classification).toBe(
+        "inert",
+      );
+    }
+
+    const customRoot = gitRepo({
+      "README.md": "# base\n",
+      ".cursor/hooks.json": canonicalCursorRegistration(),
+    });
+    const customBase = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: customRoot, encoding: "utf8" })
+      .trim();
+    writeFileSync(
+      join(customRoot, ".cursor/hooks.json"),
+      canonicalCursorRegistration({
+        customSession: { command: "deft-hook --host cursor --event session.start --evil" },
+      }),
+    );
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: customRoot });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "marker-custom"], { cwd: customRoot });
+    const customResult = evaluateCoverageApplicability(bindingFor(customRoot, customBase));
+    expect(customResult.outcome).toBe("refuse");
+    if (customResult.outcome === "refuse") expect(customResult.code).toBe("unknown-path");
+
+    const addCustom = gitRepo({ "README.md": "# base\n" });
+    const addCustomBase = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: addCustom, encoding: "utf8" })
+      .trim();
+    mkdirSync(join(addCustom, ".cursor"), { recursive: true });
+    writeFileSync(
+      join(addCustom, ".cursor/hooks.json"),
+      canonicalCursorRegistration({ customSession: { command: "./custom-session.sh" } }),
+    );
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: addCustom });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "reg-a-custom"], { cwd: addCustom });
+    const addCustomResult = evaluateCoverageApplicability(bindingFor(addCustom, addCustomBase));
+    expect(addCustomResult.outcome).toBe("refuse");
+    if (addCustomResult.outcome === "refuse") expect(addCustomResult.code).toBe("unknown-path");
+  });
+
+  it("relieves run D with python shebang base and refuses A/M / non-python / unreadable", () => {
+    const delRoot = gitRepo({
+      "README.md": "# base\n",
+      ".deft/core/run": "#!/usr/bin/env python3\nprint('legacy')\n",
+    });
+    const delBase = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: delRoot, encoding: "utf8" })
+      .trim();
+    childProcess.execFileSync("git", ["rm", "-q", ".deft/core/run"], { cwd: delRoot });
+    mkdirSync(join(delRoot, "docs"), { recursive: true });
+    writeFileSync(join(delRoot, "docs/d.md"), "d\n");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: delRoot });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "run-d"], { cwd: delRoot });
+    const delResult = evaluateCoverageApplicability(bindingFor(delRoot, delBase));
+    expect(delResult.outcome).toBe("not-applicable");
+    if (delResult.outcome === "not-applicable") {
+      expect(delResult.changes.find((c) => c.path === ".deft/core/run")?.classification).toBe(
+        "inert",
+      );
+    }
+
+    const nonPy = gitRepo({
+      "README.md": "# base\n",
+      ".deft/core/run": "#!/bin/sh\necho hi\n",
+    });
+    const nonPyBase = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: nonPy, encoding: "utf8" })
+      .trim();
+    childProcess.execFileSync("git", ["rm", "-q", ".deft/core/run"], { cwd: nonPy });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "run-d-sh"], { cwd: nonPy });
+    const nonPyResult = evaluateCoverageApplicability(bindingFor(nonPy, nonPyBase));
+    expect(nonPyResult.outcome).toBe("refuse");
+    if (nonPyResult.outcome === "refuse") expect(nonPyResult.code).toBe("unknown-path");
+
+    const addRun = evaluateCoverageApplicability(
+      {
+        projectRoot: "/tmp",
+        baseSha: "base",
+        headSha: "head",
+        treeHash: "tree",
+        requireTreeMatch: false,
+      },
+      {
+        runGit: (args) => {
+          const joined = args.join(" ");
+          if (joined.includes("name-status")) {
+            return { ok: true as const, stdout: "A\t.deft/core/run\n" };
+          }
+          if (joined.includes("status")) return { ok: true as const, stdout: "" };
+          return { ok: true as const, stdout: "base" };
+        },
+      },
+    );
+    expect(addRun.outcome).toBe("refuse");
+    if (addRun.outcome === "refuse") expect(addRun.code).toBe("unknown-path");
+
+    const unread = evaluateCoverageApplicability(
+      {
+        projectRoot: "/tmp",
+        baseSha: "base",
+        headSha: "head",
+        treeHash: "tree",
+        requireTreeMatch: false,
+      },
+      {
+        runGit: (args) => {
+          const joined = args.join(" ");
+          if (joined.includes("name-status")) {
+            return { ok: true as const, stdout: "D\t.deft/core/run\n" };
+          }
+          if (joined.includes("status")) return { ok: true as const, stdout: "" };
+          if (joined.includes("show")) {
+            return { ok: false as const, message: "missing blob" };
+          }
+          return { ok: true as const, stdout: "base" };
+        },
+      },
+    );
+    expect(unread.outcome).toBe("refuse");
+    if (unread.outcome === "refuse") expect(unread.code).toBe("unknown-path");
+  });
+
+  it("keeps approved-scope and unlisted peers unknown-path refuse", () => {
+    const approved = evaluateCoverageApplicability(
+      {
+        projectRoot: "/tmp",
+        baseSha: "base",
+        headSha: "head",
+        treeHash: "tree",
+        requireTreeMatch: false,
+      },
+      {
+        runGit: (args) => {
+          const joined = args.join(" ");
+          if (joined.includes("name-status")) {
+            return { ok: true as const, stdout: "A\t.deft/approved-scope/x.json\n" };
+          }
+          if (joined.includes("status")) return { ok: true as const, stdout: "" };
+          return { ok: true as const, stdout: "base" };
+        },
+      },
+    );
+    expect(approved.outcome).toBe("refuse");
+    if (approved.outcome === "refuse") expect(approved.code).toBe("unknown-path");
+
+    const extra = evaluateCoverageApplicability(
+      {
+        projectRoot: "/tmp",
+        baseSha: "base",
+        headSha: "head",
+        treeHash: "tree",
+        requireTreeMatch: false,
+      },
+      {
+        runGit: (args) => {
+          const joined = args.join(" ");
+          if (joined.includes("name-status")) {
+            return { ok: true as const, stdout: "A\t.githooks/extra-hook\n" };
+          }
+          if (joined.includes("status")) return { ok: true as const, stdout: "" };
+          return { ok: true as const, stdout: "base" };
+        },
+      },
+    );
+    expect(extra.outcome).toBe("refuse");
+    if (extra.outcome === "refuse") expect(extra.code).toBe("unknown-path");
   });
 });

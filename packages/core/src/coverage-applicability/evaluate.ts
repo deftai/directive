@@ -4,11 +4,31 @@
  */
 
 import * as childProcess from "node:child_process";
+import { isPythonRunShimContent } from "../deposit/python-free.js";
+import type { HookHost } from "../hooks/dispatcher.js";
+import {
+  DIRECT_WRITE_HOOK_MATCHER,
+  KILL_HOOK_MATCHER,
+  MCP_HOOK_MATCHER,
+  SHELL_HOOK_MATCHER,
+  SPAWN_HOOK_MATCHER,
+} from "../hooks/tools.js";
+import {
+  AGENT_HOOK_PATH_BY_HOST,
+  AGENT_HOOK_PATHS,
+  CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
+  CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS,
+  GROK_PRETOOLUSE_WRAPPER_COMMAND,
+  NESTED_HOOK_TIMEOUT_SECONDS,
+  NESTED_TOOL_BEFORE_TIMEOUT_SECONDS,
+} from "../init-deposit/agent-hooks.js";
 import { CANONICAL_INSTALL_ROOT } from "../init-deposit/constants.js";
 import {
   bareVersionMarkerRelativePaths,
+  CODEQL_CONFIG_REL,
   installerManagedMatchers,
 } from "../init-deposit/hygiene.js";
+import { HOOK_FILENAMES } from "../init-deposit/scaffold.js";
 import { isClosedPlanSequenceShape, PLAN_SEQUENCE_REL_PATH } from "../plan-sequence/types.js";
 import { COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP } from "../pre-pr-controller/phases.js";
 
@@ -790,10 +810,13 @@ function isManagedStampOrPolicyLedgerPath(path: string): boolean {
 
 /**
  * Prefer-A #5674 residual deposit markers: exact VERSION + lifecycle `.gitkeep`
- * paths from installerManagedMatchers / VBRIEF_LIFECYCLE_DIRS. Do not inert
- * `.deft/core/run`, hooks, codeql, or approved-scope (keep-unknown / #5677).
+ * paths from installerManagedMatchers / VBRIEF_LIFECYCLE_DIRS.
+ * #5677 Prefer-A Recut-1 adds CODEQL_CONFIG_REL + HOOK_FILENAMES exacts.
+ * Keep-unknown: `.deft/core/run` (except deletion shebang proof), approved-scope,
+ * HOOK_SUPPORT / adapter .sh|.mjs, unlisted peers.
  */
 const PAYLOAD_VERSION_PATH = `${CANONICAL_INSTALL_ROOT}/VERSION`;
+const PAYLOAD_RUN_PATH = `${CANONICAL_INSTALL_ROOT}/run`;
 
 function residualDepositInertPaths(): ReadonlySet<string> {
   const gitkeeps = installerManagedMatchers()
@@ -804,13 +827,433 @@ function residualDepositInertPaths(): ReadonlySet<string> {
         (exact.startsWith("xbrief/") || exact.startsWith("vbrief/")) &&
         exact.endsWith("/.gitkeep"),
     );
-  return new Set<string>([PAYLOAD_VERSION_PATH, ...gitkeeps]);
+  const officialGithooks = HOOK_FILENAMES.map((name) => `.githooks/${name}`);
+  return new Set<string>([PAYLOAD_VERSION_PATH, CODEQL_CONFIG_REL, ...officialGithooks, ...gitkeeps]);
 }
 
 const RESIDUAL_DEPOSIT_INERT_PATHS: ReadonlySet<string> = residualDepositInertPaths();
 
 function isResidualDepositInertPath(path: string): boolean {
   return RESIDUAL_DEPOSIT_INERT_PATHS.has(posixPath(path));
+}
+
+const HOST_REGISTRATION_PATHS: ReadonlySet<string> = new Set(AGENT_HOOK_PATHS);
+
+const NESTED_PRE_TOOL_MATCHERS = [
+  DIRECT_WRITE_HOOK_MATCHER,
+  SPAWN_HOOK_MATCHER,
+  SHELL_HOOK_MATCHER,
+  KILL_HOOK_MATCHER,
+  MCP_HOOK_MATCHER,
+] as const;
+
+function isHostRegistrationPath(path: string): boolean {
+  return HOST_REGISTRATION_PATHS.has(posixPath(path));
+}
+
+function isPayloadRunPath(path: string): boolean {
+  return posixPath(path) === PAYLOAD_RUN_PATH;
+}
+
+function deftHookCommand(host: HookHost, event: string): string {
+  return `deft-hook --host ${host} --event ${event}`;
+}
+
+function hostForRegistrationPath(path: string): HookHost | null {
+  const p = posixPath(path);
+  for (const host of Object.keys(AGENT_HOOK_PATH_BY_HOST) as HookHost[]) {
+    if (AGENT_HOOK_PATH_BY_HOST[host] === p) return host;
+  }
+  return null;
+}
+
+function nestedManagedGroup(host: Exclude<HookHost, "cursor">, event: string, matcher?: string) {
+  const toolBefore = event === "tool.before";
+  const command =
+    host === "grok" && toolBefore ? GROK_PRETOOLUSE_WRAPPER_COMMAND : deftHookCommand(host, event);
+  return {
+    ...(matcher !== undefined ? { matcher } : {}),
+    hooks: [
+      {
+        type: "command",
+        command,
+        timeout: toolBefore ? NESTED_TOOL_BEFORE_TIMEOUT_SECONDS : NESTED_HOOK_TIMEOUT_SECONDS,
+      },
+    ],
+  };
+}
+
+function buildCanonicalHostRegistration(host: HookHost): Record<string, unknown> {
+  if (host === "cursor") {
+    return {
+      version: 1,
+      hooks: {
+        sessionStart: [
+          {
+            command: deftHookCommand("cursor", "session.start"),
+            timeout: CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
+          },
+        ],
+        preToolUse: NESTED_PRE_TOOL_MATCHERS.map((matcher) => ({
+          command: deftHookCommand("cursor", "tool.before"),
+          matcher,
+          failClosed: true,
+          timeout: CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS,
+        })),
+        preCompact: [
+          {
+            command: deftHookCommand("cursor", "session.compact"),
+            timeout: CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
+          },
+        ],
+        beforeSubmitPrompt: [
+          {
+            command: deftHookCommand("cursor", "prompt.submit"),
+            timeout: CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
+          },
+        ],
+        afterAgentResponse: [
+          {
+            command: deftHookCommand("cursor", "agent.response"),
+            timeout: CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
+          },
+        ],
+      },
+    };
+  }
+  const compact = host === "claude" || host === "grok";
+  const hooks: Record<string, unknown> = {
+    SessionStart: [nestedManagedGroup(host, "session.start")],
+    PreToolUse: NESTED_PRE_TOOL_MATCHERS.map((matcher) =>
+      nestedManagedGroup(host, "tool.before", matcher),
+    ),
+  };
+  if (compact) {
+    hooks.PreCompact = [nestedManagedGroup(host, "session.compact")];
+    hooks.PostCompact = [nestedManagedGroup(host, "session.compact")];
+  }
+  return { hooks };
+}
+
+function isCanonicalCursorManagedEntry(eventKey: string, entry: unknown): boolean {
+  if (!isPlainObject(entry) || typeof entry.command !== "string") return false;
+  const cmd = entry.command;
+  if (eventKey === "sessionStart") {
+    return (
+      cmd === deftHookCommand("cursor", "session.start") &&
+      entry.timeout === CURSOR_SESSION_HOOK_TIMEOUT_SECONDS
+    );
+  }
+  if (eventKey === "preToolUse") {
+    return (
+      cmd === deftHookCommand("cursor", "tool.before") &&
+      typeof entry.matcher === "string" &&
+      (NESTED_PRE_TOOL_MATCHERS as readonly string[]).includes(entry.matcher) &&
+      entry.failClosed === true &&
+      entry.timeout === CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS
+    );
+  }
+  if (eventKey === "preCompact") {
+    return (
+      cmd === deftHookCommand("cursor", "session.compact") &&
+      entry.timeout === CURSOR_SESSION_HOOK_TIMEOUT_SECONDS
+    );
+  }
+  if (eventKey === "beforeSubmitPrompt") {
+    return (
+      cmd === deftHookCommand("cursor", "prompt.submit") &&
+      entry.timeout === CURSOR_SESSION_HOOK_TIMEOUT_SECONDS &&
+      entry.failClosed !== true
+    );
+  }
+  if (eventKey === "afterAgentResponse") {
+    return (
+      cmd === deftHookCommand("cursor", "agent.response") &&
+      entry.timeout === CURSOR_SESSION_HOOK_TIMEOUT_SECONDS &&
+      entry.failClosed !== true
+    );
+  }
+  return false;
+}
+
+function isCanonicalNestedManagedGroup(
+  host: Exclude<HookHost, "cursor">,
+  eventKey: string,
+  entry: unknown,
+): boolean {
+  if (!isPlainObject(entry) || !Array.isArray(entry.hooks) || entry.hooks.length !== 1) {
+    return false;
+  }
+  const hook = entry.hooks[0];
+  if (!isPlainObject(hook) || hook.type !== "command" || typeof hook.command !== "string") {
+    return false;
+  }
+  if (eventKey === "SessionStart") {
+    return (
+      entry.matcher === undefined &&
+      hook.command === deftHookCommand(host, "session.start") &&
+      hook.timeout === NESTED_HOOK_TIMEOUT_SECONDS
+    );
+  }
+  if (eventKey === "PreToolUse") {
+    const expectedCmd =
+      host === "grok" ? GROK_PRETOOLUSE_WRAPPER_COMMAND : deftHookCommand(host, "tool.before");
+    return (
+      typeof entry.matcher === "string" &&
+      (NESTED_PRE_TOOL_MATCHERS as readonly string[]).includes(entry.matcher) &&
+      hook.command === expectedCmd &&
+      hook.timeout === NESTED_TOOL_BEFORE_TIMEOUT_SECONDS
+    );
+  }
+  if (eventKey === "PreCompact" || eventKey === "PostCompact") {
+    return (
+      entry.matcher === undefined &&
+      hook.command === deftHookCommand(host, "session.compact") &&
+      hook.timeout === NESTED_HOOK_TIMEOUT_SECONDS
+    );
+  }
+  return false;
+}
+
+function managedMultisetComplete(
+  actual: readonly unknown[],
+  expected: readonly unknown[],
+): boolean {
+  if (actual.length !== expected.length) return false;
+  const used = new Set<number>();
+  for (const exp of expected) {
+    const idx = actual.findIndex((item, i) => !used.has(i) && structuralEqual(item, exp));
+    if (idx < 0) return false;
+    used.add(idx);
+  }
+  return true;
+}
+
+function partitionCursorRegistration(doc: unknown): {
+  readonly managedComplete: boolean;
+  readonly consumerRemainder: Record<string, unknown>;
+} | null {
+  if (!isPlainObject(doc)) return null;
+  if (doc.version !== 1) return null;
+  const hooks = doc.hooks;
+  if (!isPlainObject(hooks)) return null;
+  const eventKeys = [
+    "sessionStart",
+    "preToolUse",
+    "preCompact",
+    "beforeSubmitPrompt",
+    "afterAgentResponse",
+  ] as const;
+  const consumerHooks: Record<string, unknown[]> = {};
+  const managedByEvent: Record<string, unknown[]> = {};
+  for (const key of eventKeys) {
+    const arr = hooks[key];
+    if (arr === undefined) {
+      managedByEvent[key] = [];
+      continue;
+    }
+    if (!Array.isArray(arr)) return null;
+    const managed: unknown[] = [];
+    const consumer: unknown[] = [];
+    for (const entry of arr) {
+      if (isCanonicalCursorManagedEntry(key, entry)) managed.push(entry);
+      else consumer.push(entry);
+    }
+    managedByEvent[key] = managed;
+    if (consumer.length > 0) consumerHooks[key] = consumer;
+  }
+  for (const key of Object.keys(hooks)) {
+    if (!(eventKeys as readonly string[]).includes(key)) {
+      // Unknown hook event keys are consumer-authored.
+      const value = hooks[key];
+      if (Array.isArray(value) && value.length > 0) consumerHooks[key] = [...value];
+      else if (value !== undefined) return null;
+    }
+  }
+  const canonical = buildCanonicalHostRegistration("cursor");
+  const canonicalHooks = (canonical.hooks ?? {}) as Record<string, unknown[]>;
+  const managedComplete = eventKeys.every((key) =>
+    managedMultisetComplete(managedByEvent[key] ?? [], canonicalHooks[key] ?? []),
+  );
+  const remainder: Record<string, unknown> = {};
+  for (const key of Object.keys(doc)) {
+    if (key === "hooks" || key === "version") continue;
+    remainder[key] = doc[key];
+  }
+  if (Object.keys(consumerHooks).length > 0) {
+    remainder.hooks = consumerHooks;
+  }
+  return { managedComplete, consumerRemainder: remainder };
+}
+
+function partitionNestedRegistration(
+  host: Exclude<HookHost, "cursor">,
+  doc: unknown,
+): {
+  readonly managedComplete: boolean;
+  readonly consumerRemainder: Record<string, unknown>;
+} | null {
+  if (!isPlainObject(doc)) return null;
+  const hooks = doc.hooks;
+  if (!isPlainObject(hooks)) return null;
+  const compact = host === "claude" || host === "grok";
+  const eventKeys = compact
+    ? (["SessionStart", "PreToolUse", "PreCompact", "PostCompact"] as const)
+    : (["SessionStart", "PreToolUse"] as const);
+  const consumerHooks: Record<string, unknown[]> = {};
+  const managedByEvent: Record<string, unknown[]> = {};
+  for (const key of eventKeys) {
+    const arr = hooks[key];
+    if (arr === undefined) {
+      managedByEvent[key] = [];
+      continue;
+    }
+    if (!Array.isArray(arr)) return null;
+    const managed: unknown[] = [];
+    const consumer: unknown[] = [];
+    for (const entry of arr) {
+      if (isCanonicalNestedManagedGroup(host, key, entry)) managed.push(entry);
+      else consumer.push(entry);
+    }
+    managedByEvent[key] = managed;
+    if (consumer.length > 0) consumerHooks[key] = consumer;
+  }
+  for (const key of Object.keys(hooks)) {
+    if (!(eventKeys as readonly string[]).includes(key)) {
+      const value = hooks[key];
+      if (Array.isArray(value) && value.length > 0) consumerHooks[key] = [...value];
+      else if (value !== undefined) return null;
+    }
+  }
+  const canonical = buildCanonicalHostRegistration(host);
+  const canonicalHooks = (canonical.hooks ?? {}) as Record<string, unknown[]>;
+  const managedComplete = eventKeys.every((key) =>
+    managedMultisetComplete(managedByEvent[key] ?? [], canonicalHooks[key] ?? []),
+  );
+  const remainder: Record<string, unknown> = {};
+  for (const key of Object.keys(doc)) {
+    if (key === "hooks") continue;
+    remainder[key] = doc[key];
+  }
+  if (Object.keys(consumerHooks).length > 0) {
+    remainder.hooks = consumerHooks;
+  }
+  return { managedComplete, consumerRemainder: remainder };
+}
+
+function partitionHostRegistration(
+  host: HookHost,
+  doc: unknown,
+): {
+  readonly managedComplete: boolean;
+  readonly consumerRemainder: Record<string, unknown>;
+} | null {
+  return host === "cursor"
+    ? partitionCursorRegistration(doc)
+    : partitionNestedRegistration(host, doc);
+}
+
+function isManagedOnlyHostRegistration(host: HookHost, doc: unknown): boolean {
+  const part = partitionHostRegistration(host, doc);
+  if (part === null) return false;
+  return part.managedComplete && Object.keys(part.consumerRemainder).length === 0;
+}
+
+function pathPresenceInTree(
+  runGit: (args: readonly string[], cwd: string) => GitRunResult,
+  projectRoot: string,
+  sha: string,
+  path: string,
+): "absent" | "present" | "error" {
+  const listed = runGit(["ls-tree", "--name-only", sha, "--", posixPath(path)], projectRoot);
+  if (!listed.ok) return "error";
+  const lines = listed.stdout
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+  return lines.length === 0 ? "absent" : "present";
+}
+
+function readBlobText(
+  runGit: (args: readonly string[], cwd: string) => GitRunResult,
+  projectRoot: string,
+  sha: string,
+  path: string,
+): { ok: true; text: string } | { ok: false } {
+  const shown = runGit(["show", `${sha}:${posixPath(path)}`], projectRoot);
+  if (!shown.ok) return { ok: false };
+  return { ok: true, text: shown.stdout };
+}
+
+/**
+ * Prefer-A #5677 Recut-1 limb 2: host registration unknown→inert only when A/M
+ * managed-projection proof succeeds (verified base absence for A; remainder+canonical for M).
+ */
+function proveHostRegistrationManagedProjectionInert(
+  changes: readonly ClassifiedChange[],
+  input: EvaluateCoverageApplicabilityInput,
+  runGit: (args: readonly string[], cwd: string) => GitRunResult,
+): ClassifiedChange[] {
+  return changes.map((change) => {
+    if (!isHostRegistrationPath(change.path)) return change;
+    if (change.classification !== "unknown") return change;
+    if (change.status !== "A" && change.status !== "M") return change;
+    const host = hostForRegistrationPath(change.path);
+    if (host === null) return change;
+    const headBlob = readBlobJson(runGit, input.projectRoot, input.headSha, change.path);
+    if (!headBlob.ok) return change;
+    if (change.status === "A") {
+      const presence = pathPresenceInTree(runGit, input.projectRoot, input.baseSha, change.path);
+      if (presence !== "absent") return change;
+      if (!isManagedOnlyHostRegistration(host, headBlob.value)) return change;
+      return {
+        status: change.status,
+        path: change.path,
+        oldPath: change.oldPath,
+        classification: "inert",
+      };
+    }
+    // status=M
+    const baseBlob = readBlobJson(runGit, input.projectRoot, input.baseSha, change.path);
+    if (!baseBlob.ok) return change;
+    const basePart = partitionHostRegistration(host, baseBlob.value);
+    const headPart = partitionHostRegistration(host, headBlob.value);
+    if (basePart === null || headPart === null) return change;
+    if (!headPart.managedComplete) return change;
+    if (!structuralEqual(basePart.consumerRemainder, headPart.consumerRemainder)) return change;
+    return {
+      status: change.status,
+      path: change.path,
+      oldPath: change.oldPath,
+      classification: "inert",
+    };
+  });
+}
+
+/**
+ * Prefer-A #5677 Recut-1 limb 5: `.deft/core/run` status=D unknown→inert only with
+ * base-blob Python shebang proof (not path-only helper).
+ */
+function proveRetiredRunShimDeletionInert(
+  changes: readonly ClassifiedChange[],
+  input: EvaluateCoverageApplicabilityInput,
+  runGit: (args: readonly string[], cwd: string) => GitRunResult,
+): ClassifiedChange[] {
+  return changes.map((change) => {
+    if (!isPayloadRunPath(change.path)) return change;
+    if (change.classification !== "unknown") return change;
+    if (change.status !== "D") return change;
+    const baseBlob = readBlobText(runGit, input.projectRoot, input.baseSha, change.path);
+    if (!baseBlob.ok) return change;
+    if (!isPythonRunShimContent(baseBlob.text.slice(0, 200))) return change;
+    return {
+      status: change.status,
+      path: change.path,
+      oldPath: change.oldPath,
+      classification: "inert",
+    };
+  });
 }
 
 /**
@@ -1141,21 +1584,33 @@ export function evaluateCoverageApplicability(
 
   // #5551: exact-path plan-sequence A/M unknown→inert only after closed-shape proof.
   const afterSequenceProof = provePlanSequenceClosedShapeInert(changes, input, runGit);
+  // #5677 Prefer-A Recut-1: host-registration managed-projection + run D shebang proofs
+  // must run before unknown-path refuse (same family as plan-sequence).
+  const afterRegistrationProof = proveHostRegistrationManagedProjectionInert(
+    afterSequenceProof,
+    input,
+    runGit,
+  );
+  const afterRunShimProof = proveRetiredRunShimDeletionInert(
+    afterRegistrationProof,
+    input,
+    runGit,
+  );
 
-  if (afterSequenceProof.some((c) => c.classification === "unknown")) {
-    const unknownPaths = afterSequenceProof
+  if (afterRunShimProof.some((c) => c.classification === "unknown")) {
+    const unknownPaths = afterRunShimProof
       .filter((c) => c.classification === "unknown")
       .map((c) => c.path);
     return {
       outcome: "refuse",
       code: "unknown-path",
       reason: `coverage-applicability: unknown path classification: ${unknownPaths.join(", ")}`,
-      changes: afterSequenceProof,
+      changes: afterRunShimProof,
     };
   }
 
   if (
-    !afterSequenceProof.every(
+    !afterRunShimProof.every(
       (c) => c.classification === "coverable" || c.classification === "inert",
     )
   ) {
@@ -1163,7 +1618,7 @@ export function evaluateCoverageApplicability(
       outcome: "refuse",
       code: "mixed-unclassified",
       reason: "coverage-applicability: mixed classification without all-inert proof",
-      changes: afterSequenceProof,
+      changes: afterRunShimProof,
     };
   }
 
@@ -1179,13 +1634,13 @@ export function evaluateCoverageApplicability(
       reason:
         "coverage-applicability: dirty working tree is not the bound reviewed tree; " +
         "commit or stash coverable edits before coverage N/A",
-      changes: afterSequenceProof,
+      changes: afterRunShimProof,
     };
   }
 
   // #5479 Prefer-A Bound: demote PROJECT-DEFINITION refresh-only M rows after
   // path classify + binding refuses, before applicable aggregation.
-  const afterProjectDef = demoteProjectDefinitionRefreshChanges(afterSequenceProof, input, runGit);
+  const afterProjectDef = demoteProjectDefinitionRefreshChanges(afterRunShimProof, input, runGit);
   // #5551 Prefer-A Bound: demote plan/spec closed-pointer M rows; LIVE_SETTINGS stay
   // coverable by default when the allowlist proof fails.
   const evaluatedChanges = demoteLiveSettingsClosedPointerChanges(afterProjectDef, input, runGit);
