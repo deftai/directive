@@ -58,6 +58,20 @@ function stub(options: {
   };
 }
 
+/** Exact --hostname/-H next-token equality on an API row (CodeQL #137 / #5746). */
+function hostnameBoundOnApiRow(row: readonly string[], expectedHost: string): boolean {
+  if (githubApiPath(row) === null) {
+    return false;
+  }
+  for (let i = 0; i < row.length; i += 1) {
+    const token = row[i];
+    if (token === "--hostname" || token === "-H") {
+      return row[i + 1] === expectedHost;
+    }
+  }
+  return false;
+}
+
 describe("provisioning-trust host and source (#5016)", () => {
   it("resolves GH_HOST over git remote", () => {
     expect(
@@ -165,15 +179,21 @@ describe("provisioning-trust host and source (#5016)", () => {
 
   it("uses --hostname for GHES API probes", () => {
     const seen: string[][] = [];
+    const expectedHost = "ghe.example.com";
     const result = validateHostGhMode(
-      { GH_HOST: "ghe.example.com" },
+      { GH_HOST: expectedHost },
       { repo: TARGET, runGh: stub({ seen }) },
     );
     expect(result.ok).toBe(true);
-    expect(result.githubHost).toBe("ghe.example.com");
-    expect(seen.some((row) => row.includes("--hostname") && row.includes("ghe.example.com"))).toBe(
-      true,
-    );
+    expect(result.githubHost).toBe(expectedHost);
+    expect(seen.some((row) => hostnameBoundOnApiRow(row, expectedHost))).toBe(true);
+    // Lookalike host tokens must not satisfy exact next-token binding (CodeQL #137).
+    expect(
+      hostnameBoundOnApiRow(["api", "--hostname", "ghe.example.com.evil", "user"], expectedHost),
+    ).toBe(false);
+    expect(
+      hostnameBoundOnApiRow(["api", "--hostname", "not-ghe.example.com", "user"], expectedHost),
+    ).toBe(false);
   });
 });
 

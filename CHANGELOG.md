@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed — Bound Last-reviewed markdown-link SHA parse in greptile-detector (CodeQL alert #112). Tracking #5742.
 - Fixed — Replace COMMA_LIST_TAIL_RE with a monotonic character scanner in pr-closing-keywords detect (CodeQL polynomial-redos alert #121). Tracking #5745.
 - Fixed — Clear CodeQL `js/polynomial-redos` alert #144 in `countFailedTestsFromSanitizedOutput` by rewriting the Tests-failed line parse to a per-line anchored scan (no `/(?:^|\n)\s*…/` shape). Refs #5748, CodeQL alert #144.
+- Fixed — GHES provisioning test binds --hostname/-H to an exact next argv host token (no hostname substring includes); clears CodeQL js/incomplete-url-substring-sanitization alert #137. Refs #137 #5746.
 
 ### Security
 
