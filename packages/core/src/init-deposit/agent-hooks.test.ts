@@ -1043,7 +1043,7 @@ describe("inspectAgentHookDeposit", () => {
     expect(grokInspect).toMatchObject({ status: "drifted" });
     expect(grokInspect?.detail).toMatch(/does not resolve beside/);
     expect(grokInspect?.detail).toMatch(/new Grok session/);
-    expect(grokInspect?.detail).toMatch(/deft update/);
+    expect(grokInspect?.detail).toMatch(/directive install --repair/);
   });
 
   it("marks grok drifted when the PreToolUse wrapper script is missing (#5656)", () => {

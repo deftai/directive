@@ -400,7 +400,9 @@ describe("WAVE3-V2 upgrade-convert path (era fixtures)", () => {
     );
     expect(code).toBe(0);
     expect(c.text()).not.toMatch(/`directive uninstall` then `directive install`/);
-    expect(c.text()).toMatch(/go-tarball-deft-root/);
+    // wave4g: default plan is plain English (no shape_id hero); convert still lands via harness
+    expect(c.text()).toMatch(/older Directive layout|If you approve/);
+    // shape id 'go-tarball-deft-root' remains on harness, not default plan stdout
     expect(harness.setupFrom).toBe("go-tarball-deft-root");
     expect(harness.migrateFrom).toBe("go-tarball-deft-root");
     expect(readFileSync(join(root, "xbrief", "keep.txt"), "utf8")).toBe("user-xbrief\n");
@@ -424,7 +426,9 @@ describe("WAVE3-V2 upgrade-convert path (era fixtures)", () => {
     );
     expect(code).toBe(0);
     expect(c.text()).not.toMatch(/Until then, run `directive uninstall`/);
-    expect(c.text()).toMatch(/vendored-core-go/);
+    // wave4g: default plan is plain English (no shape_id hero); convert still lands via harness
+    expect(c.text()).toMatch(/older Directive layout|If you approve/);
+    // shape id 'vendored-core-go' remains on harness, not default plan stdout
     expect(harness.setupFrom).toBe("vendored-core-go");
     expect(readFileSync(join(root, "xbrief", "keep.txt"), "utf8")).toBe("preserve\n");
   });

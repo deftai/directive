@@ -127,3 +127,31 @@ describe("removeLegacyDirectivePackages / expanded removeLegacyDirectivePin (wav
     expect(dev.typescript).toBe("^5.0.0");
   });
 });
+
+describe("ensurePackageJson (F-016 / AC6.12)", () => {
+  it("creates { private: true } when package.json is missing", () => {
+    const root = tempProject();
+    expect(existsSync(join(root, "package.json"))).toBe(false);
+    const result = pm.ensurePackageJson(root);
+    expect(result.created).toBe(true);
+    expect(JSON.parse(readFileSync(result.path, "utf8"))).toEqual({ private: true });
+  });
+
+  it("promotes npm-remove `{}` husk to { private: true }", () => {
+    const root = tempProject();
+    // `npm remove` against a missing manifest invents {}; ensure must not no-op.
+    writeFileSync(join(root, "package.json"), "{}\n");
+    const result = pm.ensurePackageJson(root);
+    expect(result.created).toBe(true);
+    expect(JSON.parse(readFileSync(result.path, "utf8"))).toEqual({ private: true });
+  });
+
+  it("leaves a non-empty package.json untouched", () => {
+    const root = tempProject();
+    writePkg(root, { name: "app", private: true, dependencies: { leftpad: "1.0.0" } });
+    const before = readFileSync(join(root, "package.json"), "utf8");
+    const result = pm.ensurePackageJson(root);
+    expect(result.created).toBe(false);
+    expect(readFileSync(join(root, "package.json"), "utf8")).toBe(before);
+  });
+});

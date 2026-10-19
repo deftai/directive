@@ -1213,6 +1213,12 @@ export function runUpgrade(
   if (versionChange) {
     // AC10.3: replace pre-split @deftai/directive pin before PM adds the runtime.
     if (state.oldStyle || convertViaRemovals) {
+      // F-016 / AC6.12: create {private:true} BEFORE any PM remove. `npm remove`
+      // with no manifest invents `{}`, which would make a later ensurePackageJson
+      // no-op and drop the private greenfield marker.
+      if (convertViaRemovals && !existsSync(join(projectRoot, "package.json"))) {
+        ensurePackageJson(projectRoot);
+      }
       // Strip launcher pin + retired triad before PM add (wave4e / AC10.3).
       // Upgrade must not require old triad tarballs on the registry.
       // 1) PM remove first so lockfiles drop triad entries (pnpm otherwise 404s

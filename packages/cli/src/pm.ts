@@ -339,6 +339,13 @@ export interface EnsurePackageJsonResult {
 export function ensurePackageJson(projectRoot: string): EnsurePackageJsonResult {
   const path = join(projectRoot, "package.json");
   if (existsSync(path)) {
+    // `npm remove` against a missing manifest creates `{}` (wave4e strip-before-add).
+    // Treat that husk as "not yet a greenfield private package" so F-016 / AC6.12 hold.
+    const existing = readJsonObject(path);
+    if (existing !== null && Object.keys(existing).length === 0) {
+      writeFileSync(path, `${JSON.stringify({ private: true }, null, 2)}\n`);
+      return { created: true, path };
+    }
     return { created: false, path };
   }
   writeFileSync(path, `${JSON.stringify({ private: true }, null, 2)}\n`);
