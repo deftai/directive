@@ -147,16 +147,62 @@ function snippetAround(text: string, match: RegExpExecArray): string {
   return text.slice(snippetStart, snippetEnd).replace(/\n/g, " ");
 }
 
-/** One-keyword comma-list tail GitHub links: `Closes #4204, #4218, #4161`. */
-const COMMA_LIST_TAIL_RE = /(?:\s*,\s*#(\d+))+/y;
+/**
+ * Single-char ECMAScript `\s` probe (no quantifier). Used by the monotonic
+ * comma-list tail scanner so CodeQL `js/polynomial-redos` alert #121 stays clear.
+ */
+const WS_CHAR = /\s/;
 
+function isWs(ch: string | undefined): boolean {
+  return ch !== undefined && WS_CHAR.test(ch);
+}
+
+/**
+ * One-keyword comma-list tails: `Closes #4204, #4218, #4161`.
+ *
+ * Linear monotonic walk — replaces `/(?:\s*,\s*#(\d+))+/y` (CodeQL alert #121 /
+ * #5745). Each iteration advances past `,`, `#`, and at least one digit; optional
+ * ECMAScript whitespace around the comma is scanned once. Stops at the first
+ * malformed segment and returns the valid prefix only (no silent truncation of
+ * long valid tails). Forward progress is O(n) in the remaining text length.
+ */
 function commaListIssueIds(text: string, after: number): number[] {
-  COMMA_LIST_TAIL_RE.lastIndex = after;
-  const tail = COMMA_LIST_TAIL_RE.exec(text);
-  if (tail === null) {
-    return [];
+  const ids: number[] = [];
+  let i = after;
+  while (i < text.length) {
+    const segmentStart = i;
+    while (i < text.length && isWs(text[i])) {
+      i += 1;
+    }
+    if (i >= text.length || text[i] !== ",") {
+      break;
+    }
+    i += 1;
+    while (i < text.length && isWs(text[i])) {
+      i += 1;
+    }
+    if (i >= text.length || text[i] !== "#") {
+      break;
+    }
+    i += 1;
+    const digitStart = i;
+    while (i < text.length) {
+      const ch = text[i] as string;
+      if (ch < "0" || ch > "9") {
+        break;
+      }
+      i += 1;
+    }
+    if (i === digitStart) {
+      break;
+    }
+    ids.push(Number(text.slice(digitStart, i)));
+    // Unreachable under normal progress; keeps the loop strictly monotonic.
+    if (i <= segmentStart) {
+      break;
+    }
   }
-  return [...tail[0].matchAll(/#(\d+)/g)].map((m) => Number(m[1]));
+  return ids;
 }
 
 function collectClosingHits(text: string, source: string, fpOnly: boolean): Hit[] {
