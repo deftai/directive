@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { parseGreptileBody } from "../../pr-merge-readiness/parse.js";
 import {
+  BODY_AC4_INLINE_SHA_CLEAN,
   BODY_AC4_MARKDOWN_LINK_CLEAN,
+  BODY_ESCAPED_BRACKET_LINK_TEXT,
   BODY_PR4287_THIN_HTML,
   BODY_PR4292_INLINE_P1,
   BODY_PR4292_THIN_HTML,
@@ -18,6 +20,34 @@ import {
 } from "./greptile-detector.js";
 
 const HEAD = "73f6e732aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+const ESCAPED_BRACKET_SHA = "a1b2c3d4e5f60718293a4b5c6d7e8f9001122334";
+const HEAD_SHA_AC4 = "abcdef1234567";
+const MALFORMED_THEN_VALID_SHA = "feedface0123456";
+
+describe("Last-reviewed markdown-link SHA parse bound (#5742 / CodeQL #112)", () => {
+  it("returns null quickly on repeated Last reviewed commit:[ with no terminator", () => {
+    const adversarial = "Last reviewed commit:[".repeat(8000);
+    const started = Date.now();
+    expect(parseLastReviewedShaMarkdownLink(adversarial)).toBeNull();
+    expect(Date.now() - started).toBeLessThan(500);
+  });
+
+  it("skips a malformed candidate then extracts a later valid markdown-link SHA", () => {
+    const body =
+      "Last reviewed commit:[broken no close\n" +
+      `Last reviewed commit: [fix: later](https://github.com/deftai/directive/commit/${MALFORMED_THEN_VALID_SHA})\n`;
+    expect(parseLastReviewedShaMarkdownLink(body)).toBe(MALFORMED_THEN_VALID_SHA);
+  });
+
+  it("keeps escaped-bracket link text and AC4 inline/markdown contracts separate", () => {
+    expect(parseLastReviewedShaMarkdownLink(BODY_ESCAPED_BRACKET_LINK_TEXT)).toBe(
+      ESCAPED_BRACKET_SHA,
+    );
+    expect(parseLastReviewedShaMarkdownLink(BODY_AC4_MARKDOWN_LINK_CLEAN)).toBe(HEAD_SHA_AC4);
+    expect(parseLastReviewedShaMarkdownLink(BODY_AC4_INLINE_SHA_CLEAN)).toBeNull();
+    expect(parseLastReviewedShaNaiveInline(BODY_AC4_INLINE_SHA_CLEAN)).toBe(HEAD_SHA_AC4);
+  });
+});
 
 describe("thin HTML greptile_summary (#4289)", () => {
   it("names PR 4287 HTML: confidence present, no Last reviewed, not informal-clean", () => {

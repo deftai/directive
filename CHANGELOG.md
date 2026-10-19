@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed — Prepare approved-scope mint for #5744 (branches.test.ts membership). Records approval only; no product behavior change. Refs #5744.
 - Fixed — Record intent-constraint mint for #5742 greptile-detector ReDoS invariant. Approval record only; no product behavior change. Refs #5742.
 - Fixed — Pin brace-expansion@5 to 5.0.12 (Dependabot #16/#17/#18). Tracking #5737.
-- Fixed — Bound Last-reviewed markdown-link SHA parse in greptile-detector (CodeQL alert #112). Tracking #5742.
+- Fixed — Bound Last-reviewed markdown-link SHA parse in greptile-detector (monotonic linear scan; clears CodeQL polynomial-redos alert #112). Tracking #5742.
 - Fixed — Replace COMMA_LIST_TAIL_RE with a monotonic character scanner in pr-closing-keywords detect (CodeQL polynomial-redos alert #121). Tracking #5745.
 - Fixed — Clear CodeQL `js/polynomial-redos` alert #144 in `countFailedTestsFromSanitizedOutput` by rewriting the Tests-failed line parse to a per-line anchored scan (no `/(?:^|\n)\s*…/` shape). Refs #5748, CodeQL alert #144.
 - Fixed — Harden presentation-ceiling HTML script end-tag extraction with a delimiter-aware close so CodeQL js/bad-tag-filter alert #143 clears. Refs #5747 / CodeQL alert #143.
@@ -43,7 +43,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **CodeQL polynomial-redos in docs-impact surfaces: parse (alert #114).** Tracking #5743.
 
 
+<<<<<<< HEAD
 - Fixed — Clear CodeQL js/polynomial-redos alert #115 in doctor containDepositInstallRoot by replacing the trailing-slash regex strip with linear stripTrailingPathSeparators. Refs #115 #5744.
+=======
+>>>>>>> 0752b1e3c (fix(security): bound greptile Last-reviewed markdown-link SHA parse (CodeQL #112))
 
 ### Removed
 
