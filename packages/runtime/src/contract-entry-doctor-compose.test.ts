@@ -11,7 +11,7 @@ import { RUNTIME_PIN_PACKAGE } from "@deftai/directive-core/dist/install-health/
 
 const productDoctorRun = vi.fn(async (_argv: string[]): Promise<number> => {
   process.stdout.write("Pre-cutover: none -- current vBRIEF document model.\n");
-  process.stdout.write("Deposit hygiene: none -- no .deft/core deposit.\n");
+  process.stdout.write("Deposit hygiene: none -- package-based layout (no copied .deft/core tree; expected).\n");
   return 0;
 });
 
@@ -125,7 +125,7 @@ afterEach(() => {
   productDoctorRun.mockClear();
   productDoctorRun.mockImplementation(async () => {
     process.stdout.write("Pre-cutover: none -- current vBRIEF document model.\n");
-    process.stdout.write("Deposit hygiene: none -- no .deft/core deposit.\n");
+    process.stdout.write("Deposit hygiene: none -- package-based layout (no copied .deft/core tree; expected).\n");
     return 0;
   });
   while (TEMPS.length > 0) {
@@ -210,7 +210,10 @@ describe("handleContractEntrypoint doctor compose (F-015 / C6)", () => {
     const syncSection = out.slice(0, syncEnd);
     expect(syncSection).toContain("incomplete install (git precondition)");
     expect(syncSection).toContain(GIT_PRECONDITION_READINESS_DETAIL);
-    expect(syncSection).toContain(`Recovery: ${GIT_PRECONDITION_RECOVERY_GUIDANCE}`);
+    // wave 4g: plain Next: lines (same F-010 steps)
+    expect(syncSection).toMatch(/Next:/);
+    expect(syncSection).toContain("git init");
+    expect(syncSection).toContain("directive install --repair");
     expect(syncSection).not.toMatch(/npm i -g @deftai\/directive/);
     expect(productDoctorRun).toHaveBeenCalledTimes(1);
   });

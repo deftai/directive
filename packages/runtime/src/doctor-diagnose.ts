@@ -374,7 +374,7 @@ function line(ok: boolean, name: string, detail: string | null): string {
   return detail ? `  ${name}: ${mark} — ${detail}` : `  ${name}: ${mark}`;
 }
 
-/** Human-readable doctor report (AC12.3 / AC12.5 / F-010). */
+/** Human-readable doctor report (AC12.3 / AC12.5 / F-010 / wave 4g). */
 export function formatDoctorReport(diag: DoctorDiagnosis): string {
   const lines: string[] = [];
   // Header tracks overall health (exitCode), not install-health inSync alone —
@@ -383,10 +383,31 @@ export function formatDoctorReport(diag: DoctorDiagnosis): string {
   // generic "not in sync" that reads like a broken pin.
   if (diag.exitCode === 0) {
     lines.push("directive doctor: in sync");
+    lines.push("");
+    lines.push("This project's Directive version and wiring look consistent.");
   } else if (diag.incompleteInstall === "git-precondition") {
     lines.push("directive doctor: incomplete install (git precondition)");
+    lines.push("");
+    lines.push(
+      "This folder is not a git repository yet, so git hooks were not installed.",
+    );
+    lines.push("");
+    lines.push("Next:");
+    lines.push("  git init");
+    lines.push("  directive install --repair");
   } else {
     lines.push("directive doctor: not in sync");
+    lines.push("");
+    if (!diag.surfaces.installed.ok || !diag.surfaces.pin.ok) {
+      const ver = diag.version ?? "the pinned version";
+      lines.push(
+        `The project asks for Directive ${ver}, but that package is missing or the wrong version is installed.`,
+      );
+      lines.push("");
+      lines.push("Next:");
+      lines.push("  npm i -g @deftai/directive");
+      lines.push("  directive install --repair");
+    }
   }
 
   if (diag.version) lines.push(`  version: ${diag.version}`);
@@ -425,8 +446,15 @@ export function formatDoctorReport(diag: DoctorDiagnosis): string {
   if (diag.schemaRemedy) {
     lines.push(`Next: ${diag.schemaRemedy}`);
   }
-  if (diag.remedy) {
-    lines.push(`Recovery: ${diag.remedy}`);
+  if (diag.remedy && diag.incompleteInstall !== "git-precondition") {
+    // Avoid duplicating the plain Next: block when we already printed recovery.
+    if (diag.exitCode !== 0 && (diag.surfaces.installed.ok && diag.surfaces.pin.ok)) {
+      lines.push(`Recovery: ${diag.remedy}`);
+    } else if (diag.exitCode !== 0 && (!diag.surfaces.installed.ok || !diag.surfaces.pin.ok)) {
+      // Plain Next: block already covers AC9.7.
+    } else {
+      lines.push(`Recovery: ${diag.remedy}`);
+    }
   }
   return `${lines.join("\n")}\n`;
 }

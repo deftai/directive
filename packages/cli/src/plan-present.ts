@@ -21,18 +21,21 @@ export const WRAP_CEILING = 100;
 export const WRAP_FALLBACK = 80;
 
 /**
- * Insider script-policy sentence — kept for tests / -v dumps only.
- * Default plan uses §C9 HUMAN_INSTALL_SCRIPT_SETTINGS_LINE instead.
+ * Insider script-policy sentence — kept for tests / -v dumps only (wave 4g).
+ * Default plans describe PM effect in plain bullets; exact argv lives at -v.
  */
 export const HUMAN_INSTALL_SCRIPT_LINE =
   "Installation skips package lifecycle scripts for the Directive pin add; other project registry, authentication, proxy, and lockfile settings still apply.";
 
-/** §C9 Examples A/C — default-plan install-script disclosure (AC5.1). */
+/** Plain -v script note (wave 4g approved copy). */
 export const HUMAN_INSTALL_SCRIPT_SETTINGS_LINE =
-  "Installation may run scripts allowed by your project's settings.";
+  "Directive skips lifecycle scripts on that add. Other project install settings still apply.";
 
-/** §C9 Examples A/C — label for the actual PM command on the default plan. */
+/** @deprecated wave 4g — default plans no longer hero this label; kept for test imports. */
 export const INSTALL_COMMAND_LABEL = "Install command:";
+
+/** -v label for the actual PM command (AC5.1 evidence). */
+export const PM_WILL_RUN_LABEL = "Package manager will run:";
 
 /** Plain no-git disclosure (F-009 / F-010 voice) — incomplete install / precondition. */
 export const HUMAN_GIT_HOOKS_INACTIVE_LINE =
@@ -233,22 +236,23 @@ function writeKeyedBlock(io: PresentIo, lines: readonly string[]): void {
 }
 
 /**
- * §C9 Examples A/C / AC5.1 — Install command + script disclosure on the default plan.
- * Uninstall keeps the verbosity-gated helper below (F-014).
+ * AC5.1 evidence at -v only (wave 4g / wave 3g): exact PM argv + plain script note.
+ * Default plans use bullets for the practical effect instead.
  */
-function writeInstallCommandAndScriptDisclosure(
+function writePmCommandAndScriptVerbose(
   io: PresentIo,
   command: string | null,
+  verbosity: Verbosity,
 ): void {
-  if (!command) return;
+  if (verbosity < 1 || !command) return;
   writeBlank(io);
-  io.writeOut(`${INSTALL_COMMAND_LABEL}\n`);
+  io.writeOut(`${PM_WILL_RUN_LABEL}\n`);
   io.writeOut(`  ${command}\n`);
   writeBlank(io);
   io.writeOut(`${HUMAN_INSTALL_SCRIPT_SETTINGS_LINE}\n`);
 }
 
-/** Uninstall / optional -v-only PM command (F-014 hides Remove command on default). */
+/** Uninstall -v-only PM command (F-014; wave 4g label). */
 function writePmCommandVerbose(
   io: PresentIo,
   label: string,
@@ -261,7 +265,7 @@ function writePmCommandVerbose(
   io.writeOut(`  ${command}\n`);
 }
 
-/** §C9 Example A — first initialization plan (F-009 plain English). */
+/** §C9 Example A — first initialization plan (wave 4g plain English). */
 export function presentFirstInstallPlan(io: PresentIo, fields: FirstInstallPlanFields): void {
   const lock = lockfileNameFor(fields.pm);
   io.writeOut("Set up Deft Directive\n");
@@ -279,10 +283,12 @@ export function presentFirstInstallPlan(io: PresentIo, fields: FirstInstallPlanF
     `add Directive ${fields.version} to this project's development tools with ${fields.pm}`,
   );
   writeBullet(io, `update ${lock}`);
-  writeBullet(io, "set up Directive's project files");
+  writeBullet(io, "create Directive's project files for this folder");
+  writeBlank(io);
+  writeHumanParagraph(io, "Your other project files stay as they are.");
   writeBlank(io);
   writeDisclosures(io, fields);
-  writeInstallCommandAndScriptDisclosure(io, fields.pmCommand);
+  writePmCommandAndScriptVerbose(io, fields.pmCommand, fields.verbosity);
 
   if (fields.verbosity >= 1) {
     writeBlank(io);
@@ -310,7 +316,7 @@ export function presentFirstInstallPlan(io: PresentIo, fields: FirstInstallPlanF
   }
 }
 
-/** §C9 Example B — repair plan. */
+/** §C9 Example B — repair plan (wave 4g). */
 export function presentRepairPlan(io: PresentIo, fields: RepairPlanFields): void {
   io.writeOut("Repair Directive\n");
   writeBlank(io);
@@ -319,28 +325,27 @@ export function presentRepairPlan(io: PresentIo, fields: RepairPlanFields): void
   writeLabeled(io, "Directive version:", `${fields.version} (unchanged)`);
   writeBlank(io);
   if (!fields.needsPmRestore) {
-    writeHumanParagraph(io, "The installed package is healthy. No reinstall is needed.");
+    writeHumanParagraph(io, "The installed package looks fine. No reinstall is needed.");
     writeBlank(io);
-    io.writeOut("If you approve, Directive will:\n");
-    writeBullet(io, `rerun setup using Directive ${fields.version}`);
-    writeBullet(io, "recreate missing managed project files as needed");
-    writeBlank(io);
-    writeHumanParagraph(io, "Your existing settings and other files will be preserved.");
+    writeHumanParagraph(io, "You may still refresh the setup. If you approve, Directive will:");
+    writeBullet(io, `check this project's Directive-managed files for ${fields.version}`);
+    writeBullet(io, "write only what is missing or out of date");
+    writeBullet(io, "leave matching files and your other project files alone");
   } else {
     writeHumanParagraph(
       io,
-      `The installed package needs restoration (${fields.restoreReason ?? "mismatch"}).`,
+      "The installed package needs to be restored (missing or wrong version on disk).",
     );
     writeBlank(io);
     io.writeOut("If you approve, Directive will:\n");
-    writeBullet(io, `restore the Directive ${fields.version} pin with ${fields.pm}`);
+    writeBullet(io, `reinstall Directive ${fields.version} with ${fields.pm}`);
     writeBullet(io, "rerun project setup");
     writeBlank(io);
-    writeHumanParagraph(io, "Your existing settings and other files will be preserved.");
+    writeHumanParagraph(io, "Your existing settings and other files stay as they are.");
   }
   writeBlank(io);
   writeDisclosures(io, fields);
-  writeInstallCommandAndScriptDisclosure(io, fields.pmCommand);
+  writePmCommandAndScriptVerbose(io, fields.pmCommand, fields.verbosity);
 
   if (fields.verbosity >= 1) {
     writeBlank(io);
@@ -369,7 +374,7 @@ export function presentRepairPlan(io: PresentIo, fields: RepairPlanFields): void
   }
 }
 
-/** §C9 Example C — upgrade plan. */
+/** §C9 Example C — upgrade plan (wave 4g). */
 export function presentUpgradePlan(io: PresentIo, fields: UpgradePlanFields): void {
   const lock = lockfileNameFor(fields.pm);
   io.writeOut("Upgrade Directive\n");
@@ -379,48 +384,54 @@ export function presentUpgradePlan(io: PresentIo, fields: UpgradePlanFields): vo
   writeLabeled(io, "Current version:", fields.currentVersion);
   writeLabeled(io, "Target version:", fields.targetVersion);
   writeBlank(io);
-  if (fields.oldStyle) {
-    writeHumanParagraph(io, "This project uses an older Directive layout (old-style).");
-  } else if (fields.convertShapeId) {
+  if (fields.oldStyle || fields.convertShapeId) {
+    writeHumanParagraph(io, "This project still uses an older Directive layout.");
     writeHumanParagraph(
       io,
-      `This project uses a historical Directive layout ('${fields.convertShapeId}').`,
+      "A copied tree of Directive files may sit under .deft/core.",
     );
-  }
-  io.writeOut("If you approve, Directive will:\n");
-  if (fields.oldStyle) {
-    writeBullet(io, "remove the legacy `.deft/core` content copy (including any local edits)");
+    writeHumanParagraph(
+      io,
+      "The project version is still recorded as the old @deftai/directive package.",
+    );
+    writeBlank(io);
+    io.writeOut("If you approve, Directive will:\n");
     writeBullet(
       io,
-      `replace the legacy launcher pin with Directive ${fields.targetVersion}`,
+      "remove the copied .deft/core tree (including any local edits there)",
     );
-    writeBullet(io, `update ${lock}`);
-    writeBullet(io, "run setup and any required project-data migrations");
-  } else if (fields.convertShapeId) {
     writeBullet(
       io,
-      "remove the legacy install footprint (keeping xbrief/ and your files)",
+      `switch the project to Directive ${fields.targetVersion} as a normal project dependency`,
     );
-    writeBullet(io, `add Directive ${fields.targetVersion} with ${fields.pm}`);
     writeBullet(io, `update ${lock}`);
-    writeBullet(io, "run setup and any required project-data migrations");
+    writeBullet(io, "run setup and any needed data updates for that version");
+    writeBlank(io);
+    writeHumanParagraph(io, "Your existing project settings stay as they are.");
+    writeHumanParagraph(io, "Your notes and briefs under xbrief/ stay as they are.");
   } else if (fields.versionChange) {
-    writeBullet(io, `update the exact version in package.json to ${fields.targetVersion}`);
+    io.writeOut("If you approve, Directive will:\n");
+    writeBullet(io, `change this project's Directive version to ${fields.targetVersion}`);
     writeBullet(io, `update ${lock}`);
-    writeBullet(io, "run project setup and any required project-data migrations");
+    writeBullet(io, "run project setup and any needed data updates for that version");
+    writeBlank(io);
+    writeHumanParagraph(io, "Your existing project settings stay as they are.");
   } else {
+    io.writeOut("If you approve, Directive will:\n");
     writeBullet(
       io,
       `finish equal-version work for Directive ${fields.targetVersion}` +
-        (fields.needSetup ? " (setup, then migration as needed)" : " (migration as needed)"),
+        (fields.needSetup
+          ? " (setup, then migration as needed)"
+          : " (migration as needed)"),
     );
+    writeBlank(io);
+    writeHumanParagraph(io, "Your existing project settings stay as they are.");
   }
-  writeBlank(io);
-  writeHumanParagraph(io, "Your existing project settings will be preserved.");
   writeBlank(io);
   writeDisclosures(io, fields);
   if (fields.versionChange) {
-    writeInstallCommandAndScriptDisclosure(io, fields.pmCommand);
+    writePmCommandAndScriptVerbose(io, fields.pmCommand, fields.verbosity);
   }
 
   if (fields.verbosity >= 1) {
@@ -429,7 +440,7 @@ export function presentUpgradePlan(io: PresentIo, fields: UpgradePlanFields): vo
       `operation: upgrade`,
       `root: ${fields.projectRoot}`,
       `package manager: ${fields.pm} (${fields.pmEvidence})`,
-      `current: @deftai/directive-runtime@${fields.currentVersion}${fields.oldStyle ? " (old-style)" : ""}`,
+      `current: @deftai/directive-runtime@${fields.currentVersion}${fields.oldStyle ? " (older layout)" : ""}`,
       `target: @deftai/directive-runtime@${fields.targetVersion}`,
       fields.versionChange
         ? `PM: exact add target (pin + lockfile change)`
@@ -447,11 +458,11 @@ export function presentUpgradePlan(io: PresentIo, fields: UpgradePlanFields): vo
       `global launcher: unchanged`,
       INSTALL_SCRIPT_POLICY_PLAN_LINE,
     ];
-    if (fields.oldStyle) {
+    if (fields.oldStyle || fields.convertShapeId) {
       keyed.splice(
         5,
         0,
-        `remove: .deft/core (legacy content copy, even if edited)`,
+        `remove: .deft/core (copied content tree, even if edited)`,
         `replace: @deftai/directive pin → @deftai/directive-runtime@${fields.targetVersion}`,
       );
     }
@@ -580,8 +591,8 @@ function writeUninstallActionBullets(io: PresentIo, removal: UninstallRemovalSum
     writeBullet(
       io,
       pm
-        ? `remove the Directive runtime pin with ${pm}`
-        : "remove the Directive runtime pin from package.json",
+        ? `remove the Directive version from this project's development tools with ${pm}`
+        : "remove the Directive version from this project's package.json",
     );
   }
   if (
@@ -623,12 +634,7 @@ export function presentUninstallPlan(io: PresentIo, fields: UninstallPlanFields)
     );
   }
   writeBlank(io);
-  writePmCommandVerbose(
-    io,
-    "Package manager command (Directive runs this):",
-    fields.pmCommand,
-    fields.verbosity,
-  );
+  writePmCommandVerbose(io, PM_WILL_RUN_LABEL, fields.pmCommand, fields.verbosity);
 
   if (fields.verbosity >= 1) {
     writeBlank(io);
@@ -897,7 +903,7 @@ export function presentUninstallSuccess(
     if (opts.removal.hostHooks > 0) parts.push("host hooks");
     if (opts.removal.gitHooks > 0 || opts.removal.projectWiring > 0) parts.push("project wiring");
     if (opts.removal.legacyCore) parts.push("legacy core");
-    if (opts.removal.willRemovePin) parts.push("the runtime pin");
+    if (opts.removal.willRemovePin) parts.push("the Directive version from development tools");
   }
   if (parts.length > 0) {
     writeHumanParagraph(io, `Removed ${parts.join(", ")}.`);
@@ -949,7 +955,7 @@ export function presentAmbiguousYes(io: PresentIo, pinVersion: string): void {
   );
 }
 
-/** §C9 Example F — installation succeeded, setup failed. */
+/** §C9 Example F — installation succeeded, setup failed (wave 4g). */
 export function presentSetupFailedAfterInstall(
   io: PresentIo,
   opts: {
@@ -981,17 +987,17 @@ export function presentSetupFailedAfterInstall(
   }
   if (opts.operation === "install" || opts.operation === "upgrade") {
     io.writeErr(
-      `The project pin and lockfile now reference Directive ${opts.version}.\n`,
+      `The project version and lockfile already reference Directive ${opts.version}.\n`,
     );
     writeBlankErr(io);
   }
-  io.writeErr("Correct the cause, then run:\n");
+  io.writeErr("Fix the cause, then run:\n");
   io.writeErr("  directive install --repair\n");
   if (opts.operation === "upgrade") {
     io.writeErr("  (or directive upgrade again for data migration)\n");
   }
   writeBlankErr(io);
-  io.writeErr("Review the existing changes before committing.\n");
+  io.writeErr("Review the existing changes before you commit.\n");
 }
 
 /**

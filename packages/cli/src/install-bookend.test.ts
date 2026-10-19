@@ -580,7 +580,7 @@ describe("install bookend flag matrix (AC5 / AC6)", () => {
     expect(c.out()).not.toContain(HUMAN_GIT_HOOKS_INACTIVE_LINE);
   });
 
-  it("default dry-run plan includes Install command + script disclosure (PLAN-PM-CMD / §C9)", () => {
+  it("default dry-run plan uses plain bullets; no PM argv hero (wave 4g)", () => {
     const root = tempProject();
     const c = capture();
     const code = runInstall(
@@ -591,14 +591,13 @@ describe("install bookend flag matrix (AC5 / AC6)", () => {
       c.io,
     );
     expect(code).toBe(0);
-    expect(c.out()).toMatch(/Install command:/i);
-    expect(c.out()).toMatch(/pnpm add -D --save-exact/);
-    expect(c.out()).toMatch(
-      /Installation may run scripts allowed by your project's settings\./,
-    );
+    expect(c.out()).toMatch(/If you approve, Directive will:/i);
+    expect(c.out()).not.toMatch(/Install command:/i);
+    expect(c.out()).not.toMatch(/Package manager will run:/i);
+    expect(c.out()).not.toMatch(/pnpm add -D --save-exact/);
   });
 
-  it("pnpm plan discloses --save-exact on default and at -v (PLAN-PM-CMD)", () => {
+  it("pnpm plan discloses --save-exact at -v (AC5.1 / wave 4g)", () => {
     const root = tempProject();
     const c = capture();
     const code = runInstall(
@@ -609,7 +608,7 @@ describe("install bookend flag matrix (AC5 / AC6)", () => {
       c.io,
     );
     expect(code).toBe(0);
-    expect(c.out()).toMatch(/Install command:/i);
+    expect(c.out()).toMatch(/Package manager will run:/i);
     expect(c.out()).toMatch(/pnpm add -D --save-exact/);
   });
 

@@ -103,7 +103,7 @@ export function renderDepositFileSetHygieneLine(
 ): string {
   const deftDir = join(projectRoot, ".deft", "core");
   if (!existsSync(deftDir)) {
-    return "Deposit hygiene: none -- no .deft/core deposit.";
+    return "Deposit hygiene: none -- package-based layout (no copied .deft/core tree; expected).";
   }
   if (result.skipped) {
     return (

@@ -108,7 +108,7 @@ flowchart LR
 
 ## npm-Native Distribution (current)
 
-This section is the canonical package and installation topology (OVPR / #5490). Two labeled facts stay separate: **published package membership** comes from non-private `packages/*/package.json`; **publish sequence** comes from `.github/workflows/npm-publish.yml` and is an ordered list, not a topological sort of the workspace graph. This document records the observed sequence; it does not change the workflow. Install commands live in [README.md](../README.md). Node run requirements for consumers versus maintainers are not this topology.
+This section is the canonical package and installation topology (OVPR / #5490). Two labeled facts stay separate: **published package membership** comes from non-private `packages/*/package.json`; **publish sequence** comes from `.github/workflows/npm-publish.yml` and is an ordered list, not a topological sort of the workspace graph. This document records the observed sequence; it does not change the workflow. Install commands live in [README.md](../README.md). Default `directive install` / `upgrade` / `uninstall` plans describe package-manager effects in plain language; the exact package-manager argv is available at `-v`/`--verbose` (AC5.1). Node run requirements for consumers versus maintainers are not this topology.
 
 The repository **publishes two npm packages**. `@deftai/directive` is the global launcher (`directive` / `deft`). `@deftai/directive-runtime` is the exact project pin. Private workspace packages `types` / `core` / `content` are bundled into the runtime at publish time and are not separately published consumer packages.
 

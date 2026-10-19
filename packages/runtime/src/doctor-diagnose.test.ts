@@ -194,7 +194,9 @@ describe("runDoctorDiagnosis (AC12.3 surfaces)", () => {
     expect(diag.dataStatus).toBe("current");
     expect(diag.remedy).toBe(INSTALLATION_RECOVERY_GUIDANCE);
     const text = formatDoctorReport(diag);
-    expect(text).toContain(INSTALLATION_RECOVERY_GUIDANCE);
+    // wave 4g: plain Next: block (same AC9.7 steps, friendlier layout)
+    expect(text).toMatch(/npm i -g @deftai\/directive/);
+    expect(text).toMatch(/directive install --repair/);
     expect(text).not.toMatch(/directive upgrade/);
   });
 

@@ -313,9 +313,11 @@ describe("AC10.3 launcher upgrade conversion (pin replace + handoff)", () => {
     );
     expect(code).toBe(0);
     const text = c.out() + c.err();
-    expect(text).toMatch(/old-style/);
+    expect(text).toMatch(/older Directive layout/);
     expect(text).toMatch(/\.deft\/core/);
+    expect(text).toMatch(/switch the project to Directive/);
     expect(text).toMatch(/\[dry-run\]/);
+    expect(text).not.toMatch(/Install command:/);
     expect(existsSync(join(root, ".deft", "core", "VERSION"))).toBe(true);
     expect(readFileSync(join(root, "xbrief", "USER-NOTE.txt"), "utf8")).toBe("preserve-me\n");
   });
