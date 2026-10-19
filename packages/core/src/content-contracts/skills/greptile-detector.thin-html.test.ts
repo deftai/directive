@@ -45,8 +45,7 @@ describe("Last-reviewed markdown-link SHA parse bound (#5742 / CodeQL #112)", ()
     const sha = "a".repeat(40);
     // https://github.com/ = 19; owner 39; /; repo 100; /commit/ = 8 → 167 chars before SHA.
     // Under a shared 200-char scan the SHA would truncate to 33 hex; reserved SHA window keeps all 40.
-    const body =
-      `Last reviewed commit: [fix: long](https://github.com/${owner}/${repo}/commit/${sha})\n`;
+    const body = `Last reviewed commit: [fix: long](https://github.com/${owner}/${repo}/commit/${sha})\n`;
     expect(parseLastReviewedShaMarkdownLink(body)).toBe(sha);
   });
 
