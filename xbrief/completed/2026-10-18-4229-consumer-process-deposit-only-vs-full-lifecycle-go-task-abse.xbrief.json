@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4229",
-    "updated": "2026-10-18T20:26:18.633Z"
+    "updated": "2026-10-19T03:45:40Z"
   },
   "plan": {
     "title": "Consumer process: deposit-only vs full lifecycle; go-task absent treated as impact=none (#3335)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Consumer process: deposit-only vs full lifecycle; go-task absent treated as impact=none (#3335)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4229",
@@ -17,73 +17,121 @@
       {
         "id": "clause.1",
         "title": "Remint never-incepted history to count cancelled with proposed|pending|active|completed; distinguish has-history/no-current-scope from never-incepted",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/doctor/main.ts",
         "narrative": {
           "Acceptance": "Remint never-incepted history to count cancelled with proposed|pending|active|completed; distinguish has-history/no-current-scope from never-incepted"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5729",
+          "recorded_at": "2026-10-19T03:45:39.357Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.2",
         "title": "Map tip classifyProjectLifecycle into one occupancy SoT including unreadable/invalid distinct from proven zero history",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/doctor/main.ts",
         "narrative": {
           "Acceptance": "Map tip classifyProjectLifecycle into one occupancy SoT including unreadable/invalid distinct from proven zero history"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5729",
+          "recorded_at": "2026-10-19T03:45:39.357Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.3",
         "title": "Doctor and mutation session:start soft-warn only on reminted never-incepted; signal-only v1",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/doctor/main.ts",
         "narrative": {
           "Acceptance": "Doctor and mutation session:start soft-warn only on reminted never-incepted; signal-only v1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5729",
+          "recorded_at": "2026-10-19T03:45:39.357Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.4",
         "title": "First-scope Next via existing doctor single-Next / setup Phase 3; identity-only must not suppress Phase 3 when product mutation requested",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/doctor/main.ts",
         "narrative": {
           "Acceptance": "First-scope Next via existing doctor single-Next / setup Phase 3; identity-only must not suppress Phase 3 when product mutation requested"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5729",
+          "recorded_at": "2026-10-19T03:45:39.357Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.5",
         "title": "CLI-native visibility: keep #3335 impact=none; escalate Taskfile-unavailable as status token; retarget getting-started to directive/deft primary",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/commands.md",
         "narrative": {
           "Acceptance": "CLI-native visibility: keep #3335 impact=none; escalate Taskfile-unavailable as status token; retarget getting-started to directive/deft primary"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5729",
+          "recorded_at": "2026-10-19T03:45:39.357Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.6",
         "title": "Keep xbrief:preflight as when-invoked implement lock; not unconditional host mutation interceptor",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/doctor/main.ts",
         "narrative": {
           "Acceptance": "Keep xbrief:preflight as when-invoked implement lock; not unconditional host mutation interceptor"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5729",
+          "recorded_at": "2026-10-19T03:45:39.357Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.7",
         "title": "Ship short you-have-not-used-Directive-if reporting aid on deposit/AGENTS for process-use claims without equating lawful idle with failure",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/templates/agents-entry.md",
         "narrative": {
           "Acceptance": "Ship short you-have-not-used-Directive-if reporting aid on deposit/AGENTS for process-use claims without equating lawful idle with failure"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5729",
+          "recorded_at": "2026-10-19T03:45:39.357Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.8",
         "title": "Dominate only resolution 5 ARC-before-ingest pointer into open #5716; keep ARC always-on keep-outs",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/templates/agents-entry.md",
         "narrative": {
           "Acceptance": "Dominate only resolution 5 ARC-before-ingest pointer into open #5716; keep ARC always-on keep-outs"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5729",
+          "recorded_at": "2026-10-19T03:45:39.357Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       }
     ],
@@ -210,74 +258,146 @@
         "origin": "deftai/directive#4229",
         "id": "github.issue.5368447709"
       },
-      "x-directive/admitted-target-digest": "sha256:87e60d0e39325c12d722eacdc569e97d24ba5bca671baacd0cad19b3542fabeb"
+      "x-directive/admitted-target-digest": "sha256:87e60d0e39325c12d722eacdc569e97d24ba5bca671baacd0cad19b3542fabeb",
+      "productPullRequest": 5729,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "30b1f69982d3d983e7f75f021d1a620739af1d63",
+        "prNumber": 5729,
+        "prBase": "master",
+        "mergeCommit": "70d40ff855ca5043b863420a591ec810be9beec6",
+        "deliveryBranch": "master",
+        "deliveryCommit": "b78049e00e5e353b981e269dac5560c07e4cd50e",
+        "verifiedAt": "2026-10-19T03:45:40Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTRjM2QtZDBmZS03ODYzLWJkMTUtZmVlZjI1NDVlN2Nj"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-19T03:45:40Z",
+      "completedSessionId": "host:grok:v1:MDFhMTRjM2QtZDBmZS03ODYzLWJkMTUtZmVlZjI1NDVlN2Nj",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-19T03:45:40Z"
+      }
     },
     "acceptance": {
-      "commands": [],
-      "none_stated": true,
+      "commands": [
+        "pnpm exec vitest run packages/core/src/doctor/main.test.ts packages/core/src/session/session-start-lifecycle-visible.test.ts"
+      ],
+      "none_stated": false,
+      "sentences": [],
+      "confessions": [
+        "issue-body prose harvested into plan.items; free sentences cleared for leftover-complete #3550"
+      ],
+      "ambiguity_attestation": "none_found",
       "clauses": [
         {
-          "id": 1,
+          "id": "clause.1",
           "text": "Remint never-incepted history to count cancelled with proposed|pending|active|completed; distinguish has-history/no-current-scope from never-incepted",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Remint never-incepted history to count cancelled with proposed|pending|active|completed; distinguish has-history/no-current-scope from never-incepted",
+          "x-directive/artifact_path": "packages/core/src/doctor/main.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5729",
+            "recorded_at": "2026-10-19T03:45:39.357Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 2,
+          "id": "clause.2",
           "text": "Map tip classifyProjectLifecycle into one occupancy SoT including unreadable/invalid distinct from proven zero history",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Map tip classifyProjectLifecycle into one occupancy SoT including unreadable/invalid distinct from proven zero history",
+          "x-directive/artifact_path": "packages/core/src/doctor/main.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5729",
+            "recorded_at": "2026-10-19T03:45:39.357Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 3,
+          "id": "clause.3",
           "text": "Doctor and mutation session:start soft-warn only on reminted never-incepted; signal-only v1",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Doctor and mutation session:start soft-warn only on reminted never-incepted; signal-only v1",
+          "x-directive/artifact_path": "packages/core/src/doctor/main.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5729",
+            "recorded_at": "2026-10-19T03:45:39.357Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 4,
+          "id": "clause.4",
           "text": "First-scope Next via existing doctor single-Next / setup Phase 3; identity-only must not suppress Phase 3 when product mutation requested",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "First-scope Next via existing doctor single-Next / setup Phase 3; identity-only must not suppress Phase 3 when product mutation requested",
+          "x-directive/artifact_path": "packages/core/src/doctor/main.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5729",
+            "recorded_at": "2026-10-19T03:45:39.357Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 5,
+          "id": "clause.5",
           "text": "CLI-native visibility: keep #3335 impact=none; escalate Taskfile-unavailable as status token; retarget getting-started to directive/deft primary",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "CLI-native visibility: keep #3335 impact=none; escalate Taskfile-unavailable as status token; retarget getting-started to directive/deft primary",
+          "x-directive/artifact_path": "content/commands.md",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5729",
+            "recorded_at": "2026-10-19T03:45:39.357Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 6,
+          "id": "clause.6",
           "text": "Keep xbrief:preflight as when-invoked implement lock; not unconditional host mutation interceptor",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Keep xbrief:preflight as when-invoked implement lock; not unconditional host mutation interceptor",
+          "x-directive/artifact_path": "packages/core/src/doctor/main.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5729",
+            "recorded_at": "2026-10-19T03:45:39.357Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 7,
+          "id": "clause.7",
           "text": "Ship short you-have-not-used-Directive-if reporting aid on deposit/AGENTS for process-use claims without equating lawful idle with failure",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Ship short you-have-not-used-Directive-if reporting aid on deposit/AGENTS for process-use claims without equating lawful idle with failure",
+          "x-directive/artifact_path": "content/templates/agents-entry.md",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5729",
+            "recorded_at": "2026-10-19T03:45:39.357Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 8,
+          "id": "clause.8",
           "text": "Dominate only resolution 5 ARC-before-ingest pointer into open #5716; keep ARC always-on keep-outs",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Dominate only resolution 5 ARC-before-ingest pointer into open #5716; keep ARC always-on keep-outs",
+          "x-directive/artifact_path": "content/templates/agents-entry.md",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5729",
+            "recorded_at": "2026-10-19T03:45:39.357Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         }
       ],
       "source_rung": "derived",
-      "derived_reason": "derived 8 independently testable clauses from the task statement before product edit (#3323)",
-      "ambiguity_attestation": "none_found"
+      "derived_reason": "Prefer-A Bound limbs with completion evidence"
     },
     "id": "github.issue.5368447709",
-    "updated": "2026-10-18T20:12:36Z"
+    "updated": "2026-10-19T03:45:40Z"
   }
 }

@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5716",
-    "updated": "2026-10-18T21:04:33Z"
+    "updated": "2026-10-19T03:46:37Z"
   },
   "plan": {
     "title": "feat(design-critique): the arc is the recommended step before ingest for every issue; skip only with a recorded not-warranted line",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "feat(design-critique): the arc is the recommended step before ingest for every issue; skip only with a recorded not-warranted line",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5716",
@@ -17,82 +17,136 @@
       {
         "id": "clause.1",
         "title": "Operative not-warranted skip gate: advisory suppress and skipped-recorded require classifyPosition and per-line scan; warranted-only stays neither",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
         "narrative": {
           "Acceptance": "Operative not-warranted skip gate: advisory suppress and skipped-recorded require classifyPosition and per-line scan; warranted-only stays neither"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5750",
+          "recorded_at": "2026-10-19T03:46:36.340Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.2",
         "title": "Shared-intake classify-then-emit inside ingestOne: always emit arced|skipped-recorded|neither; advisory only for neither; exit code unchanged",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
         "narrative": {
           "Acceptance": "Shared-intake classify-then-emit inside ingestOne: always emit arced|skipped-recorded|neither; advisory only for neither; exit code unchanged"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5750",
+          "recorded_at": "2026-10-19T03:46:36.340Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.3",
         "title": "Enroll snake_case design_critique_ingest_posture end-to-end on run-summary kinds emitter fixture and trial step",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/run-summary/run-summary.test.ts",
         "narrative": {
           "Acceptance": "Enroll snake_case design_critique_ingest_posture end-to-end on run-summary kinds emitter fixture and trial step"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5750",
+          "recorded_at": "2026-10-19T03:46:36.340Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.4",
         "title": "Named-eviction mandatory agents-entry pointer without raising managedMaxLines or absoluteMaxBytes; PR names deleted line",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/templates/agents-entry.md",
         "narrative": {
           "Acceptance": "Named-eviction mandatory agents-entry pointer without raising managedMaxLines or absoluteMaxBytes; PR names deleted line"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5750",
+          "recorded_at": "2026-10-19T03:46:36.340Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.5",
         "title": "Deposited non-engine boundary clause: ADR-005 unchanged; ingest advisory exit 0 never blocks; contract tests lock skip-form string",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/contracts/design-critique.md",
         "narrative": {
           "Acceptance": "Deposited non-engine boundary clause: ADR-005 unchanged; ingest advisory exit 0 never blocks; contract tests lock skip-form string"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5750",
+          "recorded_at": "2026-10-19T03:46:36.340Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.6",
         "title": "Skill When-to-Use timing fence: recommend arc before issue:ingest for every GitHub issue; sole skip recorded not-warranted",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
         "narrative": {
           "Acceptance": "Skill When-to-Use timing fence: recommend arc before issue:ingest for every GitHub issue; sole skip recorded not-warranted"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5750",
+          "recorded_at": "2026-10-19T03:46:36.340Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.7",
         "title": "Skill-surface spend recommendation N=1 only; panel N greater than or equal to 3 stays Stop 2 permission",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
         "narrative": {
           "Acceptance": "Skill-surface spend recommendation N=1 only; panel N greater than or equal to 3 stays Stop 2 permission"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5750",
+          "recorded_at": "2026-10-19T03:46:36.340Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.8",
         "title": "Triage planning-order line in content/commands.md beside Triage Tasks not Session routing",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/commands.md",
         "narrative": {
           "Acceptance": "Triage planning-order line in content/commands.md beside Triage Tasks not Session routing"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5750",
+          "recorded_at": "2026-10-19T03:46:36.340Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.9",
         "title": "Setup close-out shows arc default and skip line; prose only; issue-less scopes remain THIS-ship boundary",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/skills/deft-directive-setup/SKILL.md",
         "narrative": {
           "Acceptance": "Setup close-out shows arc default and skip line; prose only; issue-less scopes remain THIS-ship boundary"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5750",
+          "recorded_at": "2026-10-19T03:46:36.340Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       }
     ],
@@ -221,81 +275,157 @@
         "id": "github.issue.5913161841"
       },
       "x-directive/admitted-target-digest": "sha256:71f2b5c269d85c81909ee1b49c1e178d2165277e2ecbdd754646d0f14b870bda",
-      "productPullRequest": 5750
+      "productPullRequest": 5750,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "ad1554e2b0d34cdf05f0e2e481a540e7f64bc754",
+        "prNumber": 5750,
+        "prBase": "master",
+        "mergeCommit": "b78049e00e5e353b981e269dac5560c07e4cd50e",
+        "deliveryBranch": "master",
+        "deliveryCommit": "b78049e00e5e353b981e269dac5560c07e4cd50e",
+        "verifiedAt": "2026-10-19T03:46:37Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTRjM2QtZDBmZS03ODYzLWJkMTUtZmVlZjI1NDVlN2Nj"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-19T03:46:37Z",
+      "completedSessionId": "host:grok:v1:MDFhMTRjM2QtZDBmZS03ODYzLWJkMTUtZmVlZjI1NDVlN2Nj",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-19T03:46:37Z"
+      }
     },
     "acceptance": {
-      "commands": [],
-      "none_stated": true,
+      "commands": [
+        "pnpm exec vitest run packages/core/src/run-summary/run-summary.test.ts"
+      ],
+      "none_stated": false,
+      "sentences": [],
+      "confessions": [
+        "issue-body prose harvested into plan.items; free sentences cleared for leftover-complete #3550"
+      ],
+      "ambiguity_attestation": "none_found",
       "clauses": [
         {
-          "id": 1,
+          "id": "clause.1",
           "text": "Operative not-warranted skip gate: advisory suppress and skipped-recorded require classifyPosition and per-line scan; warranted-only stays neither",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Operative not-warranted skip gate: advisory suppress and skipped-recorded require classifyPosition and per-line scan; warranted-only stays neither",
+          "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5750",
+            "recorded_at": "2026-10-19T03:46:36.340Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 2,
+          "id": "clause.2",
           "text": "Shared-intake classify-then-emit inside ingestOne: always emit arced|skipped-recorded|neither; advisory only for neither; exit code unchanged",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Shared-intake classify-then-emit inside ingestOne: always emit arced|skipped-recorded|neither; advisory only for neither; exit code unchanged",
+          "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5750",
+            "recorded_at": "2026-10-19T03:46:36.340Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 3,
+          "id": "clause.3",
           "text": "Enroll snake_case design_critique_ingest_posture end-to-end on run-summary kinds emitter fixture and trial step",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Enroll snake_case design_critique_ingest_posture end-to-end on run-summary kinds emitter fixture and trial step",
+          "x-directive/artifact_path": "packages/core/src/run-summary/run-summary.test.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5750",
+            "recorded_at": "2026-10-19T03:46:36.340Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 4,
+          "id": "clause.4",
           "text": "Named-eviction mandatory agents-entry pointer without raising managedMaxLines or absoluteMaxBytes; PR names deleted line",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Named-eviction mandatory agents-entry pointer without raising managedMaxLines or absoluteMaxBytes; PR names deleted line",
+          "x-directive/artifact_path": "content/templates/agents-entry.md",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5750",
+            "recorded_at": "2026-10-19T03:46:36.340Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 5,
+          "id": "clause.5",
           "text": "Deposited non-engine boundary clause: ADR-005 unchanged; ingest advisory exit 0 never blocks; contract tests lock skip-form string",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Deposited non-engine boundary clause: ADR-005 unchanged; ingest advisory exit 0 never blocks; contract tests lock skip-form string",
+          "x-directive/artifact_path": "content/contracts/design-critique.md",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5750",
+            "recorded_at": "2026-10-19T03:46:36.340Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 6,
+          "id": "clause.6",
           "text": "Skill When-to-Use timing fence: recommend arc before issue:ingest for every GitHub issue; sole skip recorded not-warranted",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Skill When-to-Use timing fence: recommend arc before issue:ingest for every GitHub issue; sole skip recorded not-warranted",
+          "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5750",
+            "recorded_at": "2026-10-19T03:46:36.340Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 7,
+          "id": "clause.7",
           "text": "Skill-surface spend recommendation N=1 only; panel N greater than or equal to 3 stays Stop 2 permission",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Skill-surface spend recommendation N=1 only; panel N greater than or equal to 3 stays Stop 2 permission",
+          "x-directive/artifact_path": "content/packs/skills/skills-pack-0.1.json",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5750",
+            "recorded_at": "2026-10-19T03:46:36.340Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 8,
+          "id": "clause.8",
           "text": "Triage planning-order line in content/commands.md beside Triage Tasks not Session routing",
-          "artifact_path": "content/commands.md",
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Triage planning-order line in content/commands.md beside Triage Tasks not Session routing",
+          "x-directive/artifact_path": "content/commands.md",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5750",
+            "recorded_at": "2026-10-19T03:46:36.340Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 9,
+          "id": "clause.9",
           "text": "Setup close-out shows arc default and skip line; prose only; issue-less scopes remain THIS-ship boundary",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Setup close-out shows arc default and skip line; prose only; issue-less scopes remain THIS-ship boundary",
+          "x-directive/artifact_path": "content/skills/deft-directive-setup/SKILL.md",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5750",
+            "recorded_at": "2026-10-19T03:46:36.340Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         }
       ],
       "source_rung": "derived",
-      "derived_reason": "derived 9 independently testable clauses from the task statement before product edit (#3323)",
-      "ambiguity_attestation": "none_found"
+      "derived_reason": "Prefer-A Bound limbs with completion evidence"
     },
     "id": "github.issue.5913161841",
-    "updated": "2026-10-18T21:04:33Z"
+    "updated": "2026-10-19T03:46:37Z"
   }
 }

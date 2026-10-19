@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5692",
-    "updated": "2026-10-18T15:19:34Z"
+    "updated": "2026-10-19T03:44:39Z"
   },
   "plan": {
     "title": "feat(interview): capture ProblemStatement before the Sizing Gate as a SHOULD (Light and Full)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "feat(interview): capture ProblemStatement before the Sizing Gate as a SHOULD (Light and Full)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5692",
@@ -19,91 +19,91 @@
       {
         "id": "clause.1",
         "title": "Pre-sizing who/need ask is lawful exemption; sizing confirmation still blocks subsequent interview questions",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
         "narrative": {
           "Acceptance": "Pre-sizing who/need ask is lawful exemption; sizing confirmation still blocks subsequent interview questions"
         },
         "x-directive/evidence": {
           "kind": "test",
-          "pointer": "content/packs/strategies/strategies-pack-0.1.json",
-          "recorded_at": "2026-10-18T19:29:30Z",
-          "recorded_by": "scope:stamp-evidence"
+          "pointer": "https://github.com/deftai/directive/pull/5723",
+          "recorded_at": "2026-10-19T03:44:37.607Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.2",
         "title": "Reframe not dual-ask: who/need replaces solution-first what-to-build lead frame",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
         "narrative": {
           "Acceptance": "Reframe not dual-ask: who/need replaces solution-first what-to-build lead frame"
         },
         "x-directive/evidence": {
           "kind": "test",
-          "pointer": "content/packs/strategies/strategies-pack-0.1.json",
-          "recorded_at": "2026-10-18T19:29:30Z",
-          "recorded_by": "scope:stamp-evidence"
+          "pointer": "https://github.com/deftai/directive/pull/5723",
+          "recorded_at": "2026-10-19T03:44:37.607Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.3",
         "title": "Add ProblemStatement to Light slim narrative merge list; Full reuses supplied ProblemStatement",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
         "narrative": {
           "Acceptance": "Add ProblemStatement to Light slim narrative merge list; Full reuses supplied ProblemStatement"
         },
         "x-directive/evidence": {
           "kind": "test",
-          "pointer": "content/packs/strategies/strategies-pack-0.1.json",
-          "recorded_at": "2026-10-18T19:29:30Z",
-          "recorded_by": "scope:stamp-evidence"
+          "pointer": "https://github.com/deftai/directive/pull/5723",
+          "recorded_at": "2026-10-19T03:44:37.607Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.4",
         "title": "Capture early before sizing; persist only at Post-Interview Confirmation Gate write boundary",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
         "narrative": {
           "Acceptance": "Capture early before sizing; persist only at Post-Interview Confirmation Gate write boundary"
         },
         "x-directive/evidence": {
           "kind": "test",
-          "pointer": "content/packs/strategies/strategies-pack-0.1.json",
-          "recorded_at": "2026-10-18T19:29:30Z",
-          "recorded_by": "scope:stamp-evidence"
+          "pointer": "https://github.com/deftai/directive/pull/5723",
+          "recorded_at": "2026-10-19T03:44:37.607Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.5",
         "title": "Local SHOULD skip/decline path with recorded reason without waiting on #4536",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
         "narrative": {
           "Acceptance": "Local SHOULD skip/decline path with recorded reason without waiting on #4536"
         },
         "x-directive/evidence": {
           "kind": "test",
-          "pointer": "content/packs/strategies/strategies-pack-0.1.json",
-          "recorded_at": "2026-10-18T19:29:30Z",
-          "recorded_by": "scope:stamp-evidence"
+          "pointer": "https://github.com/deftai/directive/pull/5723",
+          "recorded_at": "2026-10-19T03:44:37.607Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       },
       {
         "id": "clause.6",
         "title": "Discuss Challenge Vagueness one SHOULD example for solution-first framing",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
         "narrative": {
           "Acceptance": "Discuss Challenge Vagueness one SHOULD example for solution-first framing"
         },
         "x-directive/evidence": {
           "kind": "test",
-          "pointer": "content/packs/strategies/strategies-pack-0.1.json",
-          "recorded_at": "2026-10-18T19:29:30Z",
-          "recorded_by": "scope:stamp-evidence"
+          "pointer": "https://github.com/deftai/directive/pull/5723",
+          "recorded_at": "2026-10-19T03:44:37.607Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
         }
       }
     ],
@@ -121,63 +121,91 @@
       }
     ],
     "acceptance": {
-      "commands": [],
-      "none_stated": true,
+      "commands": [
+        "pnpm exec vitest run packages/core/src/content-contracts/standards/strategy_chaining.test.ts"
+      ],
+      "none_stated": false,
+      "sentences": [],
+      "confessions": [
+        "issue-body prose harvested into plan.items; free sentences cleared for leftover-complete #3550"
+      ],
+      "ambiguity_attestation": "none_found",
       "clauses": [
         {
-          "id": 1,
+          "id": "clause.1",
           "text": "Pre-sizing who/need ask is lawful exemption; sizing confirmation still blocks subsequent interview questions",
-          "artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Pre-sizing who/need ask is lawful exemption; sizing confirmation still blocks subsequent interview questions",
+          "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5723",
+            "recorded_at": "2026-10-19T03:44:37.607Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 2,
+          "id": "clause.2",
           "text": "Reframe not dual-ask: who/need replaces solution-first what-to-build lead frame",
-          "artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Reframe not dual-ask: who/need replaces solution-first what-to-build lead frame",
+          "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5723",
+            "recorded_at": "2026-10-19T03:44:37.607Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 3,
+          "id": "clause.3",
           "text": "Add ProblemStatement to Light slim narrative merge list; Full reuses supplied ProblemStatement",
-          "artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Add ProblemStatement to Light slim narrative merge list; Full reuses supplied ProblemStatement",
+          "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5723",
+            "recorded_at": "2026-10-19T03:44:37.607Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 4,
+          "id": "clause.4",
           "text": "Capture early before sizing; persist only at Post-Interview Confirmation Gate write boundary",
-          "artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Capture early before sizing; persist only at Post-Interview Confirmation Gate write boundary",
+          "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5723",
+            "recorded_at": "2026-10-19T03:44:37.607Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 5,
+          "id": "clause.5",
           "text": "Local SHOULD skip/decline path with recorded reason without waiting on #4536",
-          "artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Local SHOULD skip/decline path with recorded reason without waiting on #4536",
+          "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5723",
+            "recorded_at": "2026-10-19T03:44:37.607Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         },
         {
-          "id": 6,
+          "id": "clause.6",
           "text": "Discuss Challenge Vagueness one SHOULD example for solution-first framing",
-          "artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
-          "ambiguous": false,
-          "provenance": "statement"
+          "title": "Discuss Challenge Vagueness one SHOULD example for solution-first framing",
+          "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5723",
+            "recorded_at": "2026-10-19T03:44:37.607Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
         }
       ],
       "source_rung": "derived",
-      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
-      "ambiguity_attestation": "none_found",
-      "sentences": [
-        "Pre-sizing who/need ask is lawful exemption; sizing confirmation still blocks subsequent interview questions",
-        "Reframe not dual-ask: who/need replaces solution-first what-to-build lead frame",
-        "Add ProblemStatement to Light slim narrative merge list; Full reuses supplied ProblemStatement",
-        "Capture early before sizing; persist only at Post-Interview Confirmation Gate write boundary",
-        "Local SHOULD skip/decline path with recorded reason without waiting on #4536",
-        "Discuss Challenge Vagueness one SHOULD example for solution-first framing"
-      ]
+      "derived_reason": "Prefer-A Bound limbs with completion evidence"
     },
     "metadata": {
       "intended_placement": {
@@ -235,9 +263,34 @@
         "parallel_safe": false
       },
       "kind": "story",
-      "productPullRequest": 5723
+      "productPullRequest": 5723,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "f6a0220679ef76da221dfa5d3347c25db58b3bb0",
+        "prNumber": 5723,
+        "prBase": "master",
+        "mergeCommit": "f51ccc75a4bec440ce43546df8f76de211d514bf",
+        "deliveryBranch": "master",
+        "deliveryCommit": "b78049e00e5e353b981e269dac5560c07e4cd50e",
+        "verifiedAt": "2026-10-19T03:44:39Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTRjM2QtZDBmZS03ODYzLWJkMTUtZmVlZjI1NDVlN2Nj"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-19T03:44:39Z",
+      "completedSessionId": "host:grok:v1:MDFhMTRjM2QtZDBmZS03ODYzLWJkMTUtZmVlZjI1NDVlN2Nj",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-19T03:44:39Z"
+      }
     },
     "id": "github.issue.5891399990",
-    "updated": "2026-10-18T15:19:34Z"
+    "updated": "2026-10-19T03:44:39Z"
   }
 }

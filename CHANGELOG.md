@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed — Activate Prefer-A Bound running briefs for #5690 and #5486 on master (proceed cohort; productPullRequest unset). Refs #5690 #5486.
 
 ### Fixed
+- Fixed — Land tracked completion records for #5691 #5692 #5693 #4229 #5715 #5716 after product PRs #5734 #5723 #5713 #5729 #5749 #5750. Refs #5691 #5692 #5693 #4229 #5715 #5716.
 
 - Fixed — Grok PreToolUse wrapper command deposits `./deft-pretooluse-wrapper.sh` (beside deft.json) instead of the repo-root REL_PATH that doubled under `.grok/hooks/`. Inspect marks legacy REL_PATH drifted; recovery is install fixed engine, `deft update` / redeposit, then a **new** Grok session. Refs #5715.
 - Fixed — design-thinking handoff: add executable evaluateDesignThinkingUatOmissionCheck content-contract (source→destination) with recovery message. Refs #5691.
