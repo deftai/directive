@@ -220,7 +220,8 @@
         "origin": "deftai/directive#5716",
         "id": "github.issue.5913161841"
       },
-      "x-directive/admitted-target-digest": "sha256:71f2b5c269d85c81909ee1b49c1e178d2165277e2ecbdd754646d0f14b870bda"
+      "x-directive/admitted-target-digest": "sha256:71f2b5c269d85c81909ee1b49c1e178d2165277e2ecbdd754646d0f14b870bda",
+      "productPullRequest": 5750
     },
     "acceptance": {
       "commands": [],
