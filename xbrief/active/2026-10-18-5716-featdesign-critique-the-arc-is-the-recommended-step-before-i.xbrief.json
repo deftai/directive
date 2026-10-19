@@ -153,7 +153,8 @@
           "packages/core/src/run-summary/share.test.ts",
           "packages/core/src/run-summary/share.ts",
           "packages/core/src/run-summary/types.ts",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "docs/RULE-MAP.md"
         ],
         "size": "L",
         "file_scope_confidence": "high",
@@ -164,7 +165,8 @@
           "#5486",
           "#5727"
         ],
-        "parallel_safe": false
+        "parallel_safe": false,
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #5716 Prefer-A Recut-3. docs/RULE-MAP.md regenerated membership for #5716 skill/AGENTS pointer churn (#5192 precommitment)."
       },
       "intended_placement": {
         "schema": "deft.scope.intended_placement.v1",
@@ -185,10 +187,11 @@
           "packages/core/src/run-summary/share.test.ts",
           "packages/core/src/run-summary/share.ts",
           "packages/core/src/run-summary/types.ts",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "docs/RULE-MAP.md"
         ],
         "module_boundary": "design-critique arc recommended before every issue:ingest",
-        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #5716 Prefer-A Recut-3."
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #5716 Prefer-A Recut-3. docs/RULE-MAP.md regenerated membership for #5716 skill/AGENTS pointer churn (#5192 precommitment)."
       },
       "x-directive/plan-id": {
         "version": 1,
