@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- **Residual deposit keep-unknowns (#5677 Prefer-A Recut-1).** Coverage applicability: exact inert for CodeQL config + official extension-less githooks; managed-projection A/M demotion for host registration JSON; deletion-only shebang proof for retired `.deft/core/run`; keep-unknown wall for approved-scope and unlisted peers. Tracking #5677.
 - **Dependabot high: source-map-js (alert #19).** Force source-map-js@1.2.2. Tracking #5740.
 - **CodeQL bad-tag-filter in spec-authority banner test (alert #109).** Tracking #5741.
 - **CodeQL polynomial-redos in docs-impact surfaces: parse (alert #114).** Tracking #5743.
