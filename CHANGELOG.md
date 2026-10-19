@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- Changed - Activate Prefer-A Bound briefs for #5770 (Cursor Multitask host-cursor matrix), #5677 (residual deposit keep-unknowns), and #5727 (Grok through-merge Approach 1 forge-poll forbid); productPullRequest unset. Refs #5770 #5677 #5727.
 - Changed — Activate Prefer-A Bound security cohort briefs for Dependabot and CodeQL HIGH work (#5737 #5740-#5748); product fixes land in follow-on PRs.
 
 ### Fixed
