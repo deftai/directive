@@ -376,39 +376,6 @@
       }
     },
     "id": "github.issue.5915168639",
-    "updated": "2026-10-19T05:50:18Z",
-    "x-directive/intentConstraint": {
-      "schema": "deft.intent-constraint.v1",
-      "constraints": [
-        {
-          "value": "invariant",
-          "unit": "parse-site",
-          "rejectionScope": "operation",
-          "path": "packages/core/src/content-contracts/skills/greptile-detector.ts",
-          "note": "Last-reviewed markdown-link SHA parse is a monotonic linear scan with fixed windows; no unbounded regex backtracking (CodeQL #112 / #5742)."
-        },
-        {
-          "value": "512",
-          "unit": "numeric-const",
-          "rejectionScope": "operation",
-          "path": "packages/core/src/content-contracts/skills/greptile-detector.ts",
-          "note": "MARKDOWN_LINK_TEXT_MAX"
-        },
-        {
-          "value": "200",
-          "unit": "numeric-const",
-          "rejectionScope": "operation",
-          "path": "packages/core/src/content-contracts/skills/greptile-detector.ts",
-          "note": "MARKDOWN_COMMIT_URL_PREFIX_MAX"
-        },
-        {
-          "value": "40",
-          "unit": "numeric-const",
-          "rejectionScope": "operation",
-          "path": "packages/core/src/content-contracts/skills/greptile-detector.ts",
-          "note": "COMMIT_SHA_HEX_MAX"
-        }
-      ]
-    }
+    "updated": "2026-10-19T05:50:18Z"
   }
 }
