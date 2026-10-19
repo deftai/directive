@@ -870,10 +870,9 @@ function readFixture(name: string): string {
 }
 
 describe("test_agents_entry_contract", () => {
+  // Product SoT is templates/agents-entry.md only — root AGENTS.md is deposit/sterile (#5490).
   const template = readRepoFile("templates/agents-entry.md");
-  const agents = readRepoFile("AGENTS.md");
   const templateManaged = managedSection(template);
-  const agentsManaged = managedSection(agents);
 
   it("template_carries_managed_section_markers", () => {
     expect(template).toContain(OPEN_MARKER);
@@ -916,17 +915,12 @@ describe("test_agents_entry_contract", () => {
     expect(templateManaged).toContain("Implementation Intent Gate");
   });
 
-  it("propagation_command_markers_present_in_both_files", () => {
+  it("propagation_command_markers_present_in_template", () => {
     const templateMissing = missingMarkers(
       template,
       PROPAGATION_COMMAND_MARKERS.map(([consumer]) => consumer),
     );
-    const agentsMissing = missingMarkers(
-      agents,
-      PROPAGATION_COMMAND_MARKERS.map(([, maintainer]) => maintainer),
-    );
     expect(templateMissing).toEqual([]);
-    expect(agentsMissing).toEqual([]);
   });
 
   it("consumer_template_does_not_use_unresolved_bare_task_names", () => {
@@ -936,116 +930,93 @@ describe("test_agents_entry_contract", () => {
 
   it("propagation_policy_key_markers_present_in_both_files", () => {
     expect(missingMarkers(template, PROPAGATION_POLICY_KEY_MARKERS)).toEqual([]);
-    expect(missingMarkers(agents, PROPAGATION_POLICY_KEY_MARKERS)).toEqual([]);
   });
 
   it("propagation_header_markers_present_in_both_files", () => {
     expect(missingMarkers(template, PROPAGATION_HEADER_MARKERS)).toEqual([]);
-    expect(missingMarkers(agents, PROPAGATION_HEADER_MARKERS)).toEqual([]);
   });
 
   it("rule_authority_thin_fail_closed_pointer_bodies_present_in_both_files", () => {
     expect(missingMarkers(template, RULE_AUTHORITY_THIN_FAIL_CLOSED_POINTER_MARKERS)).toEqual([]);
-    expect(missingMarkers(agents, RULE_AUTHORITY_THIN_FAIL_CLOSED_POINTER_MARKERS)).toEqual([]);
   });
 
   it("writing_bar_markers_present_in_both_files", () => {
     expect(missingMarkers(template, WRITING_BAR_MARKERS)).toEqual([]);
-    expect(missingMarkers(agents, WRITING_BAR_MARKERS)).toEqual([]);
   });
 
   it("design_critique_pre_ingest_markers_present_in_both_files", () => {
     expect(missingMarkers(template, DESIGN_CRITIQUE_PRE_INGEST_MARKERS)).toEqual([]);
-    expect(missingMarkers(agents, DESIGN_CRITIQUE_PRE_INGEST_MARKERS)).toEqual([]);
   });
 
   it("through_merge_dispatch_markers_present_in_both_files", () => {
     expect(missingMarkers(template, THROUGH_MERGE_DISPATCH_MARKERS)).toEqual([]);
-    expect(missingMarkers(agents, THROUGH_MERGE_DISPATCH_MARKERS)).toEqual([]);
   });
 
   it("spawn_dest_placing_markers_present_in_both_files", () => {
     expect(missingMarkers(template, SPAWN_DEST_PLACING_MARKERS)).toEqual([]);
-    expect(missingMarkers(agents, SPAWN_DEST_PLACING_MARKERS)).toEqual([]);
   });
 
   it("after_merge_orphan_active_markers_present_in_both_files", () => {
     expect(missingMarkers(template, AFTER_MERGE_ORPHAN_ACTIVE_MARKERS)).toEqual([]);
-    expect(missingMarkers(agents, AFTER_MERGE_ORPHAN_ACTIVE_MARKERS)).toEqual([]);
   });
 
   it("evaluator_surface_and_consumer_test_lane_pin_present_in_both_files (#4386 / #1309)", () => {
     expect(missingMarkers(template, EVALUATOR_SURFACE_CONSUMER_LANE_MARKERS)).toEqual([]);
-    expect(missingMarkers(agents, EVALUATOR_SURFACE_CONSUMER_LANE_MARKERS)).toEqual([]);
   });
   it("already_installed_skip_markers_present_in_both_files (#4539 / #1309)", () => {
     expect(missingMarkers(template, ALREADY_INSTALLED_SKIP_MARKERS)).toEqual([]);
-    expect(missingMarkers(agents, ALREADY_INSTALLED_SKIP_MARKERS)).toEqual([]);
   });
 
   it("after_merge_completed_tracked_markers_present_in_both_files", () => {
     expect(missingMarkers(template, AFTER_MERGE_COMPLETED_TRACKED_MARKERS)).toEqual([]);
-    expect(missingMarkers(agents, AFTER_MERGE_COMPLETED_TRACKED_MARKERS)).toEqual([]);
   });
 
   it("mid_scope_gate_capability_tier_markers_present_in_both_files", () => {
     expect(missingMarkers(template, MID_SCOPE_GATE_CAPABILITY_TIER_MARKERS)).toEqual([]);
-    expect(missingMarkers(agents, MID_SCOPE_GATE_CAPABILITY_TIER_MARKERS)).toEqual([]);
   });
 
   it("deft_directive_disable_markers_present_in_both_files", () => {
     expect(missingMarkers(template, DEFT_DIRECTIVE_DISABLE_MARKERS)).toEqual([]);
-    expect(missingMarkers(agents, DEFT_DIRECTIVE_DISABLE_MARKERS)).toEqual([]);
   });
 
   it("controller_invocation_pre_pr_run_pointer_present (#4912 / #1309)", () => {
     expect(missingMarkers(templateManaged, CONTROLLER_INVOCATION_4912_MARKERS)).toEqual([]);
-    expect(missingMarkers(agentsManaged, CONTROLLER_INVOCATION_4912_MARKERS)).toEqual([]);
   });
 
   it("stamp_retirement_markers_present_in_both_files (#4271)", () => {
     expect(missingMarkers(template, STAMP_RETIREMENT_MARKERS)).toEqual([]);
-    expect(missingMarkers(agents, STAMP_RETIREMENT_MARKERS)).toEqual([]);
   });
 
   it("hook_runtime_unavailable_markers_present_in_both_files", () => {
     expect(missingMarkers(template, HOOK_RUNTIME_UNAVAILABLE_MARKERS)).toEqual([]);
-    expect(missingMarkers(agents, HOOK_RUNTIME_UNAVAILABLE_MARKERS)).toEqual([]);
   });
 
   it("work_claim_markers_present_in_both_files", () => {
     expect(missingMarkers(template, WORK_CLAIM_MARKERS)).toEqual([]);
-    expect(missingMarkers(agents, WORK_CLAIM_MARKERS)).toEqual([]);
   });
 
   it("stale_ritual_recovery_markers_present_in_both_files (#4290 / #1309)", () => {
     expect(missingMarkers(template, STALE_RITUAL_RECOVERY_MARKERS)).toEqual([]);
-    expect(missingMarkers(agents, STALE_RITUAL_RECOVERY_MARKERS)).toEqual([]);
   });
 
   it("registered_worker_auth_markers_present_in_both_files (#3663 / #1309)", () => {
     expect(missingMarkers(template, REGISTERED_WORKER_AUTH_MARKERS)).toEqual([]);
-    expect(missingMarkers(agents, REGISTERED_WORKER_AUTH_MARKERS)).toEqual([]);
   });
 
   it("portable_shell_orientation_markers_present_in_both_files", () => {
     expect(missingMarkers(template, SHELL_ORIENTATION_MARKERS)).toEqual([]);
-    expect(missingMarkers(agents, SHELL_ORIENTATION_MARKERS)).toEqual([]);
   });
 
   it("propagation_action_verb_list_present_in_both_files", () => {
     expect(missingMarkers(template, PROPAGATION_ACTION_VERBS)).toEqual([]);
-    expect(missingMarkers(agents, PROPAGATION_ACTION_VERBS)).toEqual([]);
   });
 
   it("skill_routing_table_removed_from_policy_files", () => {
-    expect(agents).not.toContain("## Skill Routing");
     expect(template).not.toContain("## Skill Routing");
   });
 
   it("skills_pointer_present_in_both_files", () => {
     expect(missingMarkers(template, SKILLS_POINTER_MARKERS)).toEqual([]);
-    expect(missingMarkers(agents, SKILLS_POINTER_MARKERS)).toEqual([]);
   });
 
   it("references_md_indexes_every_skill", () => {
@@ -1056,12 +1027,10 @@ describe("test_agents_entry_contract", () => {
 
   it("unmanaged_header_contract_markers_present_in_both_files", () => {
     expect(missingMarkers(template, UNMANAGED_HEADER_MARKERS)).toEqual([]);
-    expect(missingMarkers(agents, UNMANAGED_HEADER_MARKERS)).toEqual([]);
   });
 
   it("propagation_umbrella_status_markers_present_in_both_files", () => {
     expect(missingMarkers(template, PROPAGATION_UMBRELLA_STATUS_MARKERS)).toEqual([]);
-    expect(missingMarkers(agents, PROPAGATION_UMBRELLA_STATUS_MARKERS)).toEqual([]);
   });
 
   it.each(
@@ -1071,12 +1040,6 @@ describe("test_agents_entry_contract", () => {
     expect(validatePointerRule(section, spec)).toEqual([]);
   });
 
-  it.each(
-    POINTER_RELOCATED_RULES,
-  )("pointer_sufficient_rule_in_maintainer_managed_section $id", (spec) => {
-    const section = extractSection(agentsManaged, spec.header);
-    expect(validatePointerRule(section, spec)).toEqual([]);
-  });
 
   it("value_readback_suppression_window_is_four_hours", () => {
     expect(VALUE_READBACK_SUPPRESSION_HOURS).toBe(4);
@@ -1094,28 +1057,21 @@ describe("test_agents_entry_contract", () => {
 
   it("skill_pin_policy_default_pins_present_in_both_files", () => {
     expect(missingMarkers(template, DEFAULT_ALWAYS_PIN_SKILL_IDS)).toEqual([]);
-    expect(missingMarkers(agents, DEFAULT_ALWAYS_PIN_SKILL_IDS)).toEqual([]);
   });
 
   it("skill_pin_policy_anti_pattern_present_in_both_files", () => {
     expect(missingMarkers(template, SKILL_PIN_ANTI_PATTERN_MARKERS)).toEqual([]);
-    expect(missingMarkers(agents, SKILL_PIN_ANTI_PATTERN_MARKERS)).toEqual([]);
     expect(missingMarkers(template, STICKY_TIP_ROT_MARKERS)).toEqual([]);
-    expect(missingMarkers(agents, STICKY_TIP_ROT_MARKERS)).toEqual([]);
   });
 
   it("query_before_cancel_5278_requires_full_cancel_argv (#5465 / #1309)", () => {
     expect(missingMarkers(template, QUERY_BEFORE_CANCEL_5278_MARKERS)).toEqual([]);
-    expect(missingMarkers(agents, QUERY_BEFORE_CANCEL_5278_MARKERS)).toEqual([]);
     expect(template).not.toContain(QUERY_BEFORE_CANCEL_5278_FORBIDDEN_SHORT);
-    expect(agents).not.toContain(QUERY_BEFORE_CANCEL_5278_FORBIDDEN_SHORT);
   });
 
   it("query_before_cancel_5278_dual_invoke_uses_deft_namespace (#5463)", () => {
     expect(template).toContain("task deft:subagent:pre-cancel");
-    expect(agents).toContain("task deft:subagent:pre-cancel");
     expect(template).not.toContain(QUERY_BEFORE_CANCEL_5278_FORBIDDEN_BARE_DUAL);
-    expect(agents).not.toContain(QUERY_BEFORE_CANCEL_5278_FORBIDDEN_BARE_DUAL);
   });
 
   it("references_md_documents_pin_tiers", () => {

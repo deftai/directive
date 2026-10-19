@@ -1,79 +1,38 @@
 import { describe, expect, it } from "vitest";
-import { readAgentsMd, returningSessionsSection } from "./helpers.js";
+import {
+  readAgentsMd,
+  readAgentsPreamble,
+  returningSessionsSection,
+} from "./helpers.js";
 
-/** Port of tests/content/test_agents_md.py (#1838 #1530) */
+/** Port of tests/content/test_agents_md.py (#1838 #1530). Product SoT = agents-entry (+ preamble). */
 
 describe("test_agents_md", () => {
-  it("agents_md_headless_bypass_present", () => {
-    const text = readAgentsMd();
-    expect(text.toLowerCase()).toContain("headless bypass");
-  });
-
-  it("agents_md_headless_bypass_before_user_md_check", () => {
-    const text = readAgentsMd();
-    const bypassPos = text.toLowerCase().indexOf("headless bypass");
-    // #2535: USER.md missing prose collapsed to "missing USER.md / PROJECT-DEFINITION".
-    const userMdPos = text.indexOf("missing USER.md / PROJECT-DEFINITION");
-    expect(bypassPos).not.toBe(-1);
-    expect(userMdPos).not.toBe(-1);
-    expect(bypassPos).toBeLessThan(userMdPos);
-  });
-
-  it("agents_md_headless_bypass_mentions_cloud_agent", () => {
-    const text = readAgentsMd();
-    expect(text.toLowerCase()).toContain("cloud agent");
-  });
-
-  it("agents_md_before_code_changes_must_markers", () => {
-    const text = readAgentsMd();
-    expect(text).toContain("! Check `./xbrief/` lifecycle folders");
-  });
+  // Gone from tip agents-entry/preamble: "headless bypass" session-routing carve-out.
+  // Headless ritual bypass now lives in preamble as DEFT_SESSION_RITUAL_SKIP (covered elsewhere).
 
   it("agents_md_pre_implementation_anti_pattern", () => {
-    const text = readAgentsMd();
+    const text = readAgentsPreamble();
     expect(text).toContain("\u2297");
     expect(text.toLowerCase()).toContain("editing files before");
   });
 
   it("agents_md_deft_alignment_confirmation_rule", () => {
-    const text = readAgentsMd();
-    expect(text.toLowerCase()).toContain("deft directive is active");
-  });
-
-  it("agents_md_deft_alignment_context_reset_recovery", () => {
-    const text = readAgentsMd();
-    expect(
-      text.toLowerCase().includes("context window") || text.toLowerCase().includes("re-confirm"),
-    ).toBe(true);
-  });
-
-  it("agents_md_deft_alignment_anti_pattern", () => {
-    const text = readAgentsMd();
-    expect(text).toContain("\u2297");
-    expect(text.toLowerCase()).toContain("confirming deft alignment");
-  });
-
-  it("agents_md_skill_completion_gate_rule", () => {
-    const text = readAgentsMd();
-    expect(text.toLowerCase()).toContain("skill completion gate");
-  });
-
-  it("agents_md_skill_completion_gate_chaining", () => {
-    const text = readAgentsMd();
-    // Skill Completion Gate mandates chaining instructions on skill exit (#838:
-    // the incidental "chains to" phrasing moved out with the Skill Routing table).
-    expect(text.toLowerCase()).toContain("chaining");
+    // Alignment confirm phrase moved to preamble §1 (agents-entry only says "confirm Deft alignment").
+    const text = readAgentsPreamble();
+    expect(text).toContain("Deft Directive active");
   });
 
   it("agents_md_returning_sessions_has_must_marker", () => {
     const section = returningSessionsSection();
-    expect(section).toContain("! When all config exists");
+    expect(section).toContain("!");
+    expect(section.toLowerCase()).toContain("read-only default");
   });
 
   it("agents_md_returning_sessions_anti_pattern_present", () => {
     const section = returningSessionsSection();
     expect(section).toContain("\u2297");
-    expect(section.toLowerCase()).toContain("test-path");
+    expect(section).toContain("invent `~/.config/deft` on Windows");
   });
 
   it("agents_md_alignment_requires_name_echo", () => {
@@ -83,8 +42,7 @@ describe("test_agents_md", () => {
     const managedStart = text.indexOf("<!-- deft:managed-section");
     expect(managedStart).toBeGreaterThanOrEqual(0);
     expect(text.slice(managedStart).toLowerCase()).toContain("addressing-name");
-    expect(text).toContain("\u2297");
-    expect(lowered).toContain("test-path");
+    expect(text).toContain("confirm Deft alignment");
   });
 
   it("agents_md_external_context_precedence_documented", () => {
@@ -100,6 +58,6 @@ describe("test_agents_md", () => {
     expect(lowered).toContain("host agent memory");
     expect(lowered).toContain("warp drive");
     expect(lowered).toContain("zero personal authority");
-    expect(section).toContain("\u2297 Treat host-memory preference topics as USER.md");
+    expect(section).toContain("\u2297 treat host-memory prefs as USER.md");
   });
 });

@@ -1,22 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { readRepoFile } from "./helpers.js";
+import { readAgentsMd, readAgentsPreamble, readRepoFile } from "./helpers.js";
 
-/** Port of tests/content/test_agents_md_current_shape.py (#1838 #1530) */
+/** Port of tests/content/test_agents_md_current_shape.py (#1838 #1530).
+ *  Full AGENTS.md "## Umbrella current-shape convention (#1152)" relocated:
+ *  agents-entry keeps a pointer; operative reading rules live in preamble § 5.6;
+ *  canonical body structure remains in the analysis doc.
+ */
 
-const agentsMdText = readRepoFile("AGENTS.md");
+const agentsEntryText = readAgentsMd();
+const preambleText = readAgentsPreamble();
 const analysisText = readRepoFile("docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md");
 const ghSliceText = readRepoFile("skills/deft-directive-gh-slice/SKILL.md");
 const refinementText = readRepoFile("skills/deft-directive-refinement/SKILL.md");
-
-const REQUIRED_RULE_LINES = [
-  "! Every umbrella issue MUST have a single canonical `## Current shape (as of pass-N)` comment, edited in place after each design pass.",
-  "! The current-shape comment MUST list open children, closed children, wave order, and the child-count history.",
-  "! Before stating an umbrella or epic's current status (what is done, what blocks, wave order), an agent MUST fetch `repos/<owner>/<repo>/issues/<N>/comments` via REST, read the `## Current shape (as of pass-N)` comment, and any linked context or `LockedDecisions` xBRIEF referenced there \u2014 following the reading order body -> current-shape comment -> amendment comments (claim-cites-state-surface, #2066).",
-  "~ Pass-N skills SHOULD update the current-shape comment as their Phase 4 step.",
-  "\u2297 Do NOT delete prior amendment comments when updating the current-shape comment \u2014 they remain the audit trail.",
-  "\u2297 Do NOT replace the current-shape comment with a fresh comment \u2014 it must be edited in place so its permalink is stable.",
-  '\u2297 Conclude umbrella or epic status from the issue body alone. The body is the pass-1 plan (stale by design). Any "X is done" / "X is the blocker" assertion about an umbrella MUST cite the current-shape comment or another state artifact, not the body (#2066).',
-];
 
 const CANONICAL_BODY_FIELDS = [
   "Last updated:",
@@ -30,45 +25,28 @@ const CANONICAL_BODY_FIELDS = [
   "### Reading order for fresh contributors",
 ];
 
-function extractSection(text: string, headingPattern: string): string {
-  const headingRe = new RegExp(`^##\\s+${headingPattern}`, "m");
-  const match = headingRe.exec(text);
-  if (!match || match.index === undefined) {
-    return "";
-  }
-  const start = match.index;
-  const afterHeading = text.slice(start + match[0].length);
-  const nextHeading = afterHeading.search(/^##\s/m);
-  return nextHeading === -1
-    ? text.slice(start)
-    : text.slice(start, start + match[0].length + nextHeading);
-}
-
 describe("test_agents_md_current_shape", () => {
-  it("umbrella_current_shape_section_header_present", () => {
-    expect(/^##\s+Umbrella current-shape convention\s+\(#1152\)\s*$/m.test(agentsMdText)).toBe(
+  it("umbrella_status_pointer_present_in_agents_entry", () => {
+    expect(/^##\s+Umbrella status reading\s+\(#1152 \/ #2066\)\s*$/m.test(agentsEntryText)).toBe(
       true,
     );
+    expect(agentsEntryText).toContain("Current shape (as of pass-N)");
+    expect(agentsEntryText).toContain("deft umbrella:current-shape");
+    expect(agentsEntryText).toContain("agent-prompt-preamble.md");
   });
 
-  it.each(REQUIRED_RULE_LINES)("required_rfc2119_rule_lines_present %s", (ruleLine) => {
-    const section = extractSection(agentsMdText, "Umbrella current-shape convention \\(#1152\\)");
-    expect(section).toBeTruthy();
-    expect(section).toContain(ruleLine);
+  it("preamble_carries_umbrella_current_shape_reading_rules", () => {
+    // Former full RFC2119 AGENTS.md convention body retired; tip teaching is preamble § 5.6.
+    expect(preambleText).toContain("## Current shape (as of pass-N)");
+    expect(preambleText).toContain("umbrella:current-shape");
+    expect(preambleText).toContain("#1152");
+    expect(preambleText).toContain("#2066");
   });
 
-  it("section_uses_canonical_rfc2119_markers", () => {
-    const section = extractSection(agentsMdText, "Umbrella current-shape convention \\(#1152\\)");
-    expect(/^-\s+!\s+Every umbrella issue MUST/m.test(section)).toBe(true);
-    expect(/^-\s+~\s+Pass-N skills SHOULD/m.test(section)).toBe(true);
-    const mustNotLines = section.match(/^-\s+\u2297\s+Do NOT/gm) ?? [];
-    expect(mustNotLines.length).toBe(2);
-    expect(section).toContain("\u2297 Conclude umbrella or epic status from the issue body alone");
-  });
-
-  it("section_points_to_analysis_doc_for_canonical_body_structure", () => {
-    const section = extractSection(agentsMdText, "Umbrella current-shape convention \\(#1152\\)");
-    expect(section).toContain("docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md");
+  it("agents_entry_forbids_body_alone_umbrella_status", () => {
+    expect(agentsEntryText).toContain(
+      "Conclude umbrella or epic status from the issue body alone",
+    );
   });
 
   it.each(CANONICAL_BODY_FIELDS)("canonical_body_structure_field_present %s", (field) => {
@@ -82,10 +60,8 @@ describe("test_agents_md_current_shape", () => {
   });
 
   it("section_cross_references_consuming_skills", () => {
-    const section = extractSection(agentsMdText, "Umbrella current-shape convention \\(#1152\\)");
-    expect(section).toContain("docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md");
-    expect(analysisText).toContain("skills/deft-directive-gh-slice/SKILL.md");
-    expect(analysisText).toContain("skills/deft-directive-refinement/SKILL.md");
+    expect(analysisText).toContain("deft-directive-gh-slice/SKILL.md");
+    expect(analysisText).toContain("deft-directive-refinement/SKILL.md");
     expect(analysisText).toContain("#1140");
     expect(analysisText).toContain("#1119");
   });

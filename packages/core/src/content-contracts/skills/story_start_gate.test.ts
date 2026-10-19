@@ -9,6 +9,7 @@ function _read(rel_path: string) {
 
 describe("test_story_start_gate", () => {
   it("agents_template_contains_story_start_pointer_surface", () => {
+    // Product SoT is templates/agents-entry.md (root AGENTS.md is deposit/sterile).
     const text = readRepoFile("templates/agents-entry.md");
     expect(text).toContain("### Story Start Gate");
     expect(text).toContain("git status --short --branch");
@@ -18,16 +19,7 @@ describe("test_story_start_gate", () => {
     expect(text).toContain("deft scope:complete -- <active-story-path>");
     expect(text).toContain("commands.md");
   });
-  it("agents_md_contains_story_start_pointer_surface", () => {
-    const text = readRepoFile("AGENTS.md");
-    expect(text).toContain("### Story Start Gate");
-    expect(text).toContain("git status --short --branch");
-    expect(text).toContain("task verify:story-ready");
-    expect(text).toContain("task scope:promote -- <path>");
-    expect(text).toContain("task scope:activate -- <path>");
-    expect(text).toContain("task scope:complete -- <active-story-path>");
-    expect(text).toContain("commands.md");
-  });
+  // Removed agents_md_contains_story_start_pointer_surface: root AGENTS.md is not product SoT.
   it("commands_carries_story_start_bulk", () => {
     const text = readRepoFile("commands.md");
     expect(text).toContain("git status --short --branch");
