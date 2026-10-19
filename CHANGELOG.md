@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed — Activate Prefer-A Bound security cohort briefs for Dependabot and CodeQL HIGH work (#5737 #5740-#5748); product fixes land in follow-on PRs.
 
 ### Fixed
+- Fixed — Pin brace-expansion@5 to 5.0.12 (Dependabot #16/#17/#18; CVE-2026-102276 / CVE-2026-102278 / CVE-2026-102277). Tracking #5737.
 
 ### Security
 
