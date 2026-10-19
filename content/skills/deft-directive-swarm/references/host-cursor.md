@@ -22,7 +22,7 @@ Two local hatches, in this order:
 1. **Nursery inherit (interactive dest-rooted window).** Open Composer on the reserved linked worktree (not primary). One Task child may inherit that payload root: consult treats the window as dest, mints a unique reservation, and admits the child through `occupancy:grant`. While that grant is live, parent product writes in that tree are denied. A second Task in the same window is reservation-conflict. Nested Task from a dest-rooted session is still dest-missing unless *this* window is the dest. Nursery child `workspace_roots` equal the parent window.
 2. **Headless dest-rooted SDK.** `@cursor/sdk` `Agent.create({ local: { cwd: <reserved-worktree> } })` with `Agent.resume` / `agent.send` as the retain-capable sibling. Reservation before exec. Process-handle liveness (not parent-cwd `verify:subagent-alive`). Doctor check `cursor-sdk-auth` for the separate SDK login (`CURSOR_API_KEY`). The leaf implements in that session and does not nested-Task.
 
-Cursor Task dest-missing deny copy is CURSOR_TASK_SPAWN_CLASS_RECOVERY in packages/core/src/hooks/dispatcher.ts. It names these hatches as payload-root and does not advertise Task dest keys (#4362).
+Cursor Task dest-missing deny copy is CURSOR_TASK_SPAWN_CLASS_RECOVERY in packages/core/src/hooks/dispatcher.ts. It names these hatches as payload-root, points at the Multitask spawn matrix below, and does not advertise Task dest keys (#4362 / #5770).
 
 ! Create `<worktree>/.deft-scratch/subagent-status/` before spawn if `swarm:launch` / `swarm:pre-dispatch` did not already (#3730). Include preamble § 10.5 (heartbeat + commit early). Headless SDK liveness is the process handle; scratch heartbeats remain for dest-rooted Composer sessions.
 ! Include the canonical `templates/agent-prompt-preamble.md` content as the preamble.
@@ -32,6 +32,23 @@ Cursor Task dest-missing deny copy is CURSOR_TASK_SPAWN_CLASS_RECOVERY in packag
 
 ~ Cursor stays **Tier 1 → Approach 1**. Do not downgrade to `generic-terminal`. Spawn available means dest-placing dispatch exists, not Task-present (#3032 / #4295).
 ? Cloud `Task` (`environment: "cloud"`) is the #4294 dest-consult carve-out. Complementary. Do not treat cloud as local dest-proof. Do not duplicate that hook slice here.
+
+### Multitask spawn matrix (#5770)
+
+What works on Cursor without Cursor Task schema changes. Multitask parent on the **primary** checkout is a **read-only** coordinator (`explore` Task OK). Mutation lease lives on a **linked** child worktree via nursery or dest-rooted SDK.
+
+| Mechanism | Primary Multitask window | Linked-worktree window |
+|-----------|--------------------------|------------------------|
+| `Task` + `explore` | OK (read-only) | OK (read-only) |
+| `Task` + implement (`generalPurpose`, `best-of-n-runner`, …) | Denied dest-missing | Nursery inherit: parent already on linked worktree; one child; parent product writes fenced |
+| Dest-rooted `@cursor/sdk` `Agent.create({ local: { cwd } })` | N/A at Task spawn (cwd set on create) | Spawn gate-invisible for Task; child Write gated on lease after `cursor-sdk-auth` / `CURSOR_API_KEY` |
+| Cloud `Task` `environment: "cloud"` | Complementary (#4294); not local dest proof | — |
+
+Nursery and SDK are separate postures: nursery requires the parent window already on the linked worktree; SDK dest-roots a new session with `cwd`. Never treat primary-parent plus nursery-child as one path.
+
+Primary Multitask auto-worktree registry for native implement Task is leftover #5775 until measured child `workspace_roots` flip.
+⊗ Document primary RO parent plus nursery mutation as one path.
+⊗ Sequence `best-of-n-runner` ahead of nursery from a primary window.
 
 ### Fence-in-place (parked)
 

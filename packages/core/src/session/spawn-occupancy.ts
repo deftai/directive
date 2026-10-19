@@ -320,6 +320,36 @@ function rerootMissingDestMessage(): string {
   );
 }
 
+/** #5770: payload-reachable subagent_type for Cursor Task dest-missing diagnostics. */
+export function presentedSpawnSubagentType(payload: unknown): string {
+  const toolInput = spawnToolInput(payload);
+  const fromTool =
+    fieldString(toolInput, "subagent_type") ?? fieldString(toolInput, "subagentType");
+  if (fromTool !== null && fromTool.trim().length > 0) return fromTool.trim();
+  const input = record(payload);
+  if (input === null) return "unspecified";
+  const fromTop =
+    fieldString(input, "subagent_type") ?? fieldString(input, "subagentType");
+  if (fromTop !== null && fromTop.trim().length > 0) return fromTop.trim();
+  return "unspecified";
+}
+
+/**
+ * #5770: Cursor Task dest-missing lead. Names presented subagent_type; does not open
+ * with stripped dest-key inventory (Task cannot send those fields).
+ */
+export function cursorTaskMissingDestMessage(payload: unknown): string {
+  const presented = presentedSpawnSubagentType(payload);
+  return (
+    "Directive denied implement-class spawn: presented subagent_type=" +
+    presented +
+    " has no worktree destination on the Cursor Task payload. " +
+    "Spawned mutating work takes its own worktree; do not inherit the parent checkout. " +
+    "Task dest keys are not used. " +
+    SPAWN_CLASS_RECOVERY
+  );
+}
+
 function isExistingDirectory(path: string): boolean {
   try {
     return existsSync(path) && statSync(path).isDirectory();
@@ -536,6 +566,11 @@ export function consultImplementSpawnOccupancy(
         runGit,
       );
       if (nursery !== null) return nursery;
+      return consultDeny(
+        "destination-missing",
+        cursorTaskMissingDestMessage(input.payload),
+        parentId,
+      );
     }
     return consultDeny(
       "destination-missing",
