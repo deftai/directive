@@ -1,0 +1,372 @@
+{
+  "schemaVersion": 1,
+  "algo": "intent-extract-v1",
+  "plan": {
+    "title": "sec(codeql): HIGH clear polynomial-redos in doctor/manifest.ts (alert #115)",
+    "narratives": {
+      "Description": "sec(codeql): HIGH clear polynomial-redos in doctor/manifest.ts (alert #115)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5744",
+      "Overview": "## Summary\n\nCodeQL open alert on default branch: **HIGH** `js/polynomial-redos` — Polynomial regular expression used on uncontrolled data.\n\n| Field | Value |\n|-------|-------|\n| Alert | [#115](https://github.com/deftai/directive/security/code-scanning/115) |\n| Rule | `js/polynomial-redos` |\n| Severity | HIGH |\n| Location | `packages/core/src/doctor/manifest.ts` ~L154 |\n| Message | This regular expression that depends on library input may run slow on strings with many repetitions of '/'. |\n\n## What to build\n\nRewrite or bound the flagged site so CodeQL `js/polynomial-redos` clears for this alert (or document accepted risk with suppress + rationale if false positive after review). Prefer a real fix over suite-config changes.\n\n## Acceptance\n\n- [ ] CodeQL alert [#115](https://github.com/deftai/directive/security/code-scanning/115) clears on master (auto-close or dismiss with reason after fix).\n- [ ] Existing unit tests for the touched module still pass; add adversarial input coverage if useful.\n- [ ] CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #115.\n\n## Non-goals\n\n- Changing CodeQL suite config as the primary fix.\n- Bundling unrelated code-scanning alerts into this issue (siblings tracked separately).",
+      "Labels": "security, urgent, design-critique:ingest-ready, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "CodeQL alert  clears on master (auto-close or dismiss with reason after fix).",
+        "x-directive/artifact_path": "packages/core/src/doctor/manifest.ts"
+      },
+      {
+        "id": "clause.2",
+        "title": "Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+        "x-directive/artifact_path": "packages/core/src/doctor/manifest.ts"
+      },
+      {
+        "id": "clause.3",
+        "title": "CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #115.",
+        "x-directive/artifact_path": "packages/core/src/doctor/manifest.ts"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5744",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5744: sec(codeql): HIGH clear polynomial-redos in doctor/manifest.ts (alert #115)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "sec(codeql): HIGH clear polynomial-redos in doctor/manifest.ts (alert #115)",
+        "Summary CodeQL open alert on default branch: HIGH `js/polynomial-redos` — Polynomial regular expression used on uncontrolled data.",
+        "| Field | Value | |-------|-------| | Alert | [#115](https://github.com/deftai/directive/security/code-scanning/115) | | Rule | `js/polynomial-redos` | | Severity | HIGH | | Location | `packages/core/src/doctor/manifest.ts` ~L154 | | Message | This regular expression that depends on library input may run slow on strings with many repetitions of '/'.",
+        "| ## What to build Rewrite or bound the flagged site so CodeQL `js/polynomial-redos` clears for this alert (or document accepted risk with suppress + rationale if false positive after review).",
+        "Prefer a real fix over suite-config changes.",
+        "Acceptance - [ ] CodeQL alert [#115](https://github.com/deftai/directive/security/code-scanning/115) clears on master (auto-close or dismiss with reason after fix).",
+        "[ ] Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+        "[ ] CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #115.",
+        "Non-goals - Changing CodeQL suite config as the primary fix.",
+        "Bundling unrelated code-scanning alerts into this issue (siblings tracked separately).",
+        "CodeQL alert [#115](https://github.com/deftai/directive/security/code-scanning/115) clears on master (auto-close or dismiss with reason after fix).",
+        "Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+        "CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #115."
+      ],
+      "admitted_source_sentences": [
+        "Summary CodeQL open alert on default branch: HIGH `js/polynomial-redos` — Polynomial regular expression used on uncontrolled data.",
+        "| Field | Value | |-------|-------| | Alert | [#115](https://github.com/deftai/directive/security/code-scanning/115) | | Rule | `js/polynomial-redos` | | Severity | HIGH | | Location | `packages/core/src/doctor/manifest.ts` ~L154 | | Message | This regular expression that depends on library input may run slow on strings with many repetitions of '/'.",
+        "| ## What to build Rewrite or bound the flagged site so CodeQL `js/polynomial-redos` clears for this alert (or document accepted risk with suppress + rationale if false positive after review).",
+        "Prefer a real fix over suite-config changes.",
+        "Acceptance - [ ] CodeQL alert [#115](https://github.com/deftai/directive/security/code-scanning/115) clears on master (auto-close or dismiss with reason after fix).",
+        "[ ] Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+        "[ ] CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #115.",
+        "Non-goals - Changing CodeQL suite config as the primary fix.",
+        "Bundling unrelated code-scanning alerts into this issue (siblings tracked separately)."
+      ],
+      "admitted_source_digest": "2ce0d24aeda8ba861a51e8b2231ebaf9fe3f15e471839b15770782f989795e6d",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "CodeQL alert [#115](https://github.com/deftai/directive/security/code-scanning/115) clears on master (auto-close or dismiss with reason after fix).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #115.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/doctor/manifest.ts",
+          "packages/core/src/doctor/branches.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/doctor/manifest.ts",
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for security cohort. pnpm-lock.yaml / pnpm-workspace.yaml shared Dependabot pin surfaces for #5737/#5740."
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A (draft)\nTarget-digest: sha256:f7335abe8d677bee0420bd1ca4d5ca3fe41c5174d053cec838e2d979675a3406\nconflict_group: doctor-manifest-trailing-slash-polynomial-redos\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\ndest: .deft-scratch/worktrees/arc-5744\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\n\n## In plain English\nCodeQL alert #115 flags containDepositInstallRoot in doctor/manifest.ts L154 because trimmed.replace(/\\\\/g, \"/\").replace(/\\/+$/, \"\") applies /\\/+$/ to library input (raw install-root strings) and CodeQL reports slow matching on many \"/\" repetitions. Prefer-A rewrites that trailing-slash strip (and the normalize+strip chain on that line) to a linear helper so alert #115 clears by a real fix. Changing CodeQL suite config or suppress-as-primary stays a keep-out. Sibling AGENTS.md install-root regexes (INSTALLED_IN_RE / FULL_GUIDELINES_RE) are not this alert and stay out of file_scope unless tip evidence shows they are the same finding.\n\n## Draft remedy sketch\n1. Rewrite the L154 normalize+strip chain off /\\/+$/ — prefer packages/core/src/text/redos-safe.ts stripTrailingPathSeparators (already linear; handles trailing / and \\) plus a linear backslash-to-slash normalize for interior separators, or an equivalent non-backtracking helper colocated/imported so containDepositInstallRoot keeps the same posix path shape before the .. / absolute / containment checks.\n2. Keep containDepositInstallRoot acceptance and rejection behavior for ordinary .deft/core, empty/null, absolute, .. segments, and escaping symlink cases covered by branches.test.ts.\n3. Add adversarial coverage for long trailing-/ padded install-root strings that previously stressed the /\\/+$/ shape; existing unit tests stay green.\n4. CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #115 / #5744.\n5. Keep-out: CodeQL suite-config / path-exclude / suppress as the primary fix (issue Non-goals).\n\n## Reject (draft)\n- Treating CodeQL config / suppress / dismiss-without-fix as the primary remedy\n- Bundling unrelated code-scanning alerts into this issue\n- Rewriting INSTALLED_IN_RE / FULL_GUIDELINES_RE / parseInstallRootFromAgentsMd as co-equal limbs of this Prefer-A without tip evidence they are alert #115\n- Changing containment / ProjectionContainmentError / FALLBACK_INSTALL_ROOT semantics beyond what the L154 rewrite requires\n- Claiming alert #115 cleared without a tip rewrite (or an evidence-backed false-positive disposition after review)\n\n## file_scope lean (draft)\npackages/core/src/doctor/manifest.ts; packages/core/src/text/redos-safe.ts only if a shared helper lands or is reused; packages/core/src/doctor/branches.test.ts (or adjacent adversarial fixtures); CHANGELOG.md.",
+          "id": 6256845942,
+          "html_url": "https://github.com/deftai/directive/issues/5744#issuecomment-6256845942",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:06:24Z",
+          "updated_at": "2026-10-19T00:06:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because CodeQL alert #115 names a mechanism-shaped polynomial-ReDoS on containDepositInstallRoot in packages/core/src/doctor/manifest.ts L154: /\\/+$/ applied to library input (raw) is a concrete fail-closed security gate, not prose triage.\nmechanism-shaped: true\nrefutation-target: containDepositInstallRoot L154 /\\/+$/ (normalize+strip chain on trimmed raw) is the primary clear path for CodeQL alert #115; suite-config / suppress is not the primary fix\ncharter: refutation\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nTarget-kind: issue\nCeiling-kind: comment-id\ndest: .deft-scratch/worktrees/arc-5744\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\nverification-path: pin-read git show 8341f369ccc55fa907abd5e575bb29556e467e9f: (dest cwd-without-occupy for on-pin file reads)\n\npain:\n- P1\n\n## Stop 1 — Gate\n\n### Pain inventory\n- P1: containDepositInstallRoot uses trimmed.replace(/\\\\/g, \"/\").replace(/\\/+$/, \"\"); CodeQL js/polynomial-redos alert #115 reports slow matching on strings with many \"/\" repetitions — library input raw reaches the L154 strip before containment checks.\n\n### Charter / spend\nCharter is refutation against the presumption that the flagged /\\/+$/ L154 shape may remain as the primary clear path. Spend N=1 (narrow rewrite; Stop 2 panel permission does not apply). Prefer-A draft cite: 6256845942.\n\n### Reject / keep-outs (gate)\n- CodeQL suite config / path-exclude / suppress as primary\n- Sibling unrelated code-scanning alerts\n- Co-equal rewrite of INSTALLED_IN_RE / FULL_GUIDELINES_RE without tip evidence they are alert #115",
+          "id": 6256849581,
+          "html_url": "https://github.com/deftai/directive/issues/5744#issuecomment-6256849581",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:06:46Z",
+          "updated_at": "2026-10-19T00:06:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\nseat-families: codex\nlaunch-probe: codex pong rc0\ninput-ceiling: 6256862039\nprefer-a-draft: 6256845942\nstop-1: 6256849581\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\ndest: .deft-scratch/worktrees/arc-5744\nverification-path: pin-read git show 8341f369ccc55fa907abd5e575bb29556e467e9f:\nspend: N=1\narc-mode: no-ingest\nyolo-standing: on\n\nRound-1 N=1 Codex seat against Prefer-A draft 6256845942 and Stop 1 6256849581. Shared ceiling is this deposit id after POST.",
+          "id": 6256862039,
+          "html_url": "https://github.com/deftai/directive/issues/5744#issuecomment-6256862039",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:07:59Z",
+          "updated_at": "2026-10-19T00:08:00Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\nfamily: codex\nid-ceiling: 6256862039\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\n\nVerdict: no blocking refutation of Prefer-A. The pinned L154 chain contains the reported backtracking shape; reusing the linear helper is a valid narrow remedy. One sharpening finding changes the adversarial test prescription.\n\n### F1 — sharpens-framing — Exercise failed suffix matches, not only trailing slash padding\n\nEvidence: draft comment 6256845942 step 3 specifies long trailing-slash padding. At the dispatch SHA, manifest.ts L154 applies the unanchored-start regex /\\/+$/ after backslash normalization. A slash run at the end matches successfully; a slash run followed by a non-slash forces repeated unsuccessful suffix attempts. I extracted and executed the exact normalization statement from git show at the dispatch SHA in Node (no repository edits). For 'custom/' + '/'.repeat(n) + 'x', n=4,000/8,000/16,000 took approximately 4.9/22.8/78.4 ms; the corresponding trailing-only inputs took 0.080/0.014/0.023 ms. These are illustrative local measurements, not portable timing thresholds.\n\nFailure mode: a regression test containing only trailing separators can pass with the vulnerable implementation intact. The raw library argument is untrusted; a relative prefix passes the early absolute-path guard, and downstream containment runs only after the expensive normalization. Later rejection cannot protect this CPU boundary.\n\nDisposition consequence: Prefer-A can bind with the test wording sharpened to require a long interior slash run followed by a non-slash sentinel, plus the backslash equivalent (normalization creates the same slash run). Retain trailing-only cases for output parity. Exercise the exported containment path as well as any helper-level performance check; preserve exact output/fallback behavior, and use a generous bounded runtime check rather than the measured millisecond values above.\n\n### F2 — footnote — Existing mechanisms support the narrow fix; no new containment layer is needed\n\nPin-read inventory: redos-safe.ts already exports stripTrailingPathSeparators, which scans backward over slash/backslash and slices once; redos-safe.test.ts covers trailing slash, trailing backslash, all-slash, and unchanged strings. manifest.ts already imports that module. The current /\\\\/g backslash substitution is a single-character global match, with no variable-length ambiguous quantifier; it can remain as the linear normalization step. Keeping trim and the existing absolute-path guard, then using stripTrailingPathSeparators(trimmed.replace(/\\\\/g, '/')), preserves the normalized string transformation without introducing another helper.\n\nThe pinned containment implementation already rejects empty results and '..' segments, checks resolved relative containment, and invokes assertProjectionContained. Pin-read projection-containment.ts confirms existing-component/realpath checks for escaping symlinks; branches.test.ts covers traversal, absolute/empty/null input, normal and uncreated custom roots, and escaping symlinks. Preserve these controls and supplement mixed-separator parity cases; do not claim they are absent or redesign them under this alert.\n\nRoad not taken: an explicit length bound could cap the cost, but introduces new rejection semantics and a threshold contract where an existing linear helper removes the problematic mechanism directly. Suppression would need evidence that the alert does not apply; the pinned statement and local failure-suffix reproduction support a real fix. Neither sibling parser regex is necessary to this remedy. Actual CodeQL clearance remains an implementation/delivery acceptance check, not something this critique has established.\n\nVerification scope: issue body and the three named comments through the envelope ceiling; SHA-pinned source/tests/contract plus the isolated statement reproduction above. No later comments read, no product code changed, no full suite or CodeQL run. Round-1 critic complete; return to the parent for disposition. No further round seated.\n\n",
+          "id": 6256881799,
+          "html_url": "https://github.com/deftai/directive/issues/5744#issuecomment-6256881799",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:09:48Z",
+          "updated_at": "2026-10-19T00:09:48Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Prefer-A Bound\n\nLean: Prefer-A Bound\nconflict_group: doctor-manifest-trailing-slash-polynomial-redos\nTarget-digest: sha256:ec8dce5c441e2edba10994888985bede1e043ef98ad8b052550e60c09458fabc\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\ndest: .deft-scratch/worktrees/arc-5744\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N=1\nspend-ask: resolved\nprefer-a-draft: 6256845942\nstop-1: 6256849581\npanel-deposit: 6256862039\nround-1-critics: Codex 6256881799\n\n**Lean:** Prefer-A — rewrite containDepositInstallRoot L154 trailing-slash strip off /\\/+$/; reuse redos-safe stripTrailingPathSeparators; lock failed-suffix adversarial fixtures; keep suite-config suppress out.\n\n## In plain English\nCodeQL alert #115 is a real ReDoS shape on the L154 /\\/+$/ strip after backslash normalize in containDepositInstallRoot. Prefer-A clears it by swapping that strip for the existing linear helper, not by silencing CodeQL. Codex Round-1 accepted the direction and sharpened one binding obligation: adversarial tests must exercise failed suffix matches (long slash run then a non-slash sentinel), because trailing-only padding can pass while the vulnerable regex remains.\n\n## Bound remedy\n1. **relieves: P1 — Rewrite L154 trailing-slash strip off /\\/+$/.** Keep the linear single-character /\\\\/g backslash-to-slash normalize (Codex F2 inventory). Replace .replace(/\\/+$/, \"\") with stripTrailingPathSeparators from packages/core/src/text/redos-safe.ts (already imported via that module path in manifest.ts), or an equivalent non-backtracking strip. Preserve containDepositInstallRoot outcomes for ordinary .deft/core, empty/null, absolute, .. segments, uncreated custom roots, and escaping symlink fallbacks covered by branches.test.ts.\n2. **relieves: P1 — Lock failed-suffix adversarial fixtures (Codex F1).** Require fixtures with a long interior slash run followed by a non-slash sentinel (and the backslash equivalent that normalizes into the same slash run). Retain trailing-only cases for output parity only — they are not sufficient ReDoS regression alone. Exercise the exported containDepositInstallRoot path; if a helper-level timing check is used, keep it generous/bounded and do not hard-code the local millisecond measurements from Round-1. Supplement mixed-separator parity cases without redesigning containment.\n3. **relieves: P1 — Tip CodeQL / delivery evidence for alert #115.** Report functional compatibility and master alert #115 closure as separate evidence rows. Actual CodeQL clearance is an implementation acceptance check (Codex F2).\n4. **relieves: P1 — CHANGELOG Security/Fixed for alert #115 / #5744.**\n\n### Reject\n- CodeQL suite-config / path-exclude / suppress / dismiss-without-fix as the primary remedy\n- Bundling unrelated code-scanning alerts\n- Co-equal rewrite of INSTALLED_IN_RE / FULL_GUIDELINES_RE / parseInstallRootFromAgentsMd without tip evidence they are alert #115\n- Explicit length-bound / new rejection threshold as the primary P1 control (Codex road-not-taken)\n- Claiming a new containment layer is required (Codex F2: existing assertProjectionContained / .. / absolute guards suffice)\n- Claiming P1 relieved from trailing-only padding examples or a green unit suite alone\n- Changing FALLBACK_INSTALL_ROOT / ProjectionContainmentError semantics beyond what the L154 rewrite requires\n\n### Disposition of Round-1\n- Codex F1 (sharpens-framing) -> accept-into-contract as limb 2\n- Codex F2 (footnote) -> accept inventory; keep /\\\\/g; reuse stripTrailingPathSeparators; no new containment layer\n- Prefer-A direction survives; empty disagreement set on blocks-the-design\n\nrelieves: P1\n\n## file_scope lean\npackages/core/src/doctor/manifest.ts; packages/core/src/text/redos-safe.ts only if a shared helper lands or is reused (prefer existing stripTrailingPathSeparators); packages/core/src/doctor/branches.test.ts (or adjacent adversarial fixtures); CHANGELOG.md.\nKeep-outs: CodeQL suite config as primary; sibling alerts; INSTALLED_IN_RE/FULL_GUIDELINES_RE without tip evidence; length-bound-as-primary; containment redesign.",
+          "id": 6256889738,
+          "html_url": "https://github.com/deftai/directive/issues/5744#issuecomment-6256889738",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:10:30Z",
+          "updated_at": "2026-10-19T00:12:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\nfinding-classes: none\nharvest-changed: false\nfamily: codex\nid-ceiling: 6256889738\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\n\nVerdict: Prefer-A Bound 6256889738 honestly covers Stop 1 P1 as a remedy contract. No blocking, sharpening, or footnote findings; no Recut required. This is design relief, not a claim that the fix has shipped or alert #115 has closed.\n\nI independently pin-read manifest.ts and redos-safe.ts at the dispatch SHA. containDepositInstallRoot still performs the flagged trailing-slash regex after trim, the absolute-path guard, and backslash normalization, but before its containment checks. A relative prefix plus a slash run plus a non-slash sentinel reaches that operation; downstream containment cannot prevent its failed-suffix matching cost.\n\nLimb 1 removes that precise mechanism. The existing stripTrailingPathSeparators scans backward with a strictly decreasing index and slices once. After the retained backslash-to-slash normalization, its additional ability to strip backslashes cannot change the result: no backslashes remain. Thus the substitution preserves the normalized value supplied to the existing empty-result, traversal, relative-containment, and projection-containment guards. No new threshold or containment layer is needed.\n\nLimb 2 incorporates the substantive Round-1 objection: failed-suffix slash and normalized-backslash fixtures through the exported function, with trailing-only inputs explicitly limited to parity evidence. It does not substitute successful trailing matches for adversarial coverage or bind tests to the prior machine's timings.\n\nLimb 3 keeps functional compatibility separate from actual master CodeQL closure. That prevents a green unit suite or this audit from being reported as alert clearance. Limb 4 supplies the issue's changelog obligation; it is supporting delivery evidence, not independently the CPU-risk control. Read together, the four limbs cover P1 without claiming any existing implementation result.\n\nThe strongest alternative is a length cap, which could bound exposure, but would add rejection semantics where the existing linear helper removes the cause. Suppression would require contrary evidence about applicability; the pinned reachable operation supports the direct rewrite. Neither alternative exposes an unmet obligation in this Bound remedy.\n\nVerification scope: issue body, the three named comments within the ceiling, SHA-pinned source, and Contract Critic method/pain-audit obligations. No later thread comments read; no product edits, full-suite execution, or CodeQL run. Pain-audit complete; exiting the design-critique skill and returning to the parent for synthesis. No ingest or further critic round initiated.\n\n",
+          "id": 6256902852,
+          "html_url": "https://github.com/deftai/directive/issues/5744#issuecomment-6256902852",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:11:44Z",
+          "updated_at": "2026-10-19T00:11:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\nCites Prefer-A Bound successor lean 6256889738. No Target-digest on this table.\n\n| Claim | Method | Result |\n|---|---|---|\n| Stop 1 P1: containDepositInstallRoot L154 /\\/+$/ polynomial-ReDoS (CodeQL alert #115) | pin-read manifest.ts + Round-1/PA disposition | Covered by Prefer-A Bound relieves:P1 (rewrite to stripTrailingPathSeparators + failed-suffix fixtures + CodeQL evidence + CHANGELOG) |\n| Round-1 Codex F1 failed-suffix adversarial fixtures | REST 6256881799 + Bound limb 2 | accept-into-contract |\n| Round-1 Codex F2 existing helper / keep /\\\\/g / no new containment | REST 6256881799 + Bound limbs 1/Reject | accept inventory |\n| Pain-audit P1 honest relief | REST 6256902852 finding-classes:none harvest-changed:false | clear; no Recut |\n| Empty disagreement set on blocks-the-design | Round-1 + PA | empty |",
+          "id": 6256909297,
+          "html_url": "https://github.com/deftai/directive/issues/5744#issuecomment-6256909297",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:12:19Z",
+          "updated_at": "2026-10-19T00:12:19Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "design-critique: synthesis accepted, because agents agreed (empty disagreement set) citing Prefer-A Bound successor lean 6256889738 and verified-claims table 6256909297\n\n## In plain English\n#5744 will rewrite containDepositInstallRoot L154 off /\\/+$/ by reusing stripTrailingPathSeparators so CodeQL alert #115 clears by a real fix, with failed-suffix adversarial fixtures (not trailing-only padding) and tip CodeQL evidence. CodeQL suite-config suppress stays a keep-out. Ingest remains a separate operator verb.\n\n## Completed-arc record\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N=1\ndest: .deft-scratch/worktrees/arc-5744\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\nsuccessor-lean: Prefer-A Bound 6256889738\nverified-claims-table: 6256909297\nStop 1: 6256849581\npanel-deposit: 6256862039\nPrefer-A draft: 6256845942\nRound-1: Codex 6256881799\nPrefer-A Bound: 6256889738\nPA-1: Codex 6256902852 (clear; harvest-changed: false)\n\ndisagreement-set: empty\nforward: design-critique:ingest-ready chip; ingest is a later separate operator verb (task issue:ingest).",
+          "id": 6256909527,
+          "html_url": "https://github.com/deftai/directive/issues/5744#issuecomment-6256909527",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:12:20Z",
+          "updated_at": "2026-10-19T00:12:20Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5915169068,
+        "origin": "deftai/directive#5744",
+        "id": "github.issue.5915169068"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "ec8dce5c441e2edba10994888985bede1e043ef98ad8b052550e60c09458fabc"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/doctor/manifest.ts",
+          "packages/core/src/doctor/branches.test.ts",
+          "CHANGELOG.md"
+        ],
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for security cohort. pnpm-lock.yaml / pnpm-workspace.yaml shared Dependabot pin surfaces for #5737/#5740. Path B mint includes branches.test.ts for #5744 adversarial fixtures."
+      }
+    },
+    "id": "github.issue.5915169068"
+  },
+  "approvedRepos": [
+    "deftai/directive"
+  ],
+  "unknownPaths": [
+    "items[].x-directive/artifact_path",
+    "metadata.intended_placement",
+    "metadata.issueCommentThread",
+    "metadata.swarm.cohesion_exemption",
+    "metadata.x-directive/admitted-target-digest",
+    "metadata.x-directive/plan-id"
+  ]
+}
