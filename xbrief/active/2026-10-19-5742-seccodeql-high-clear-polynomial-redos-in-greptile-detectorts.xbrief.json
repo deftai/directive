@@ -376,6 +376,18 @@
       }
     },
     "id": "github.issue.5915168639",
-    "updated": "2026-10-19T05:50:18Z"
+    "updated": "2026-10-19T05:50:18Z",
+    "x-directive/intentConstraint": {
+      "schema": "deft.intent-constraint.v1",
+      "constraints": [
+        {
+          "value": "invariant",
+          "unit": "parse-site",
+          "rejectionScope": "operation",
+          "path": "packages/core/src/content-contracts/skills/greptile-detector.ts",
+          "note": "Last-reviewed markdown-link SHA parse is a monotonic linear scan with fixed URL-prefix and SHA windows; no unbounded regex backtracking (CodeQL #112 / #5742)."
+        }
+      ]
+    }
   }
 }
