@@ -4,12 +4,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import {
-  isClosedPlanSequenceShape,
-  PLAN_SEQUENCE_CONTRACT,
-  PLAN_SEQUENCE_REL_PATH,
-} from "../plan-sequence/types.js";
-import { COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP } from "../pre-pr-controller/phases.js";
-import {
   DIRECT_WRITE_HOOK_MATCHER,
   KILL_HOOK_MATCHER,
   MCP_HOOK_MATCHER,
@@ -20,6 +14,12 @@ import {
   CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
   CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS,
 } from "../init-deposit/agent-hooks.js";
+import {
+  isClosedPlanSequenceShape,
+  PLAN_SEQUENCE_CONTRACT,
+  PLAN_SEQUENCE_REL_PATH,
+} from "../plan-sequence/types.js";
+import { COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP } from "../pre-pr-controller/phases.js";
 import {
   classifyChangedPath,
   decodeGitQuotedPath,
@@ -39,9 +39,7 @@ const CURSOR_MATCHERS = [
   MCP_HOOK_MATCHER,
 ] as const;
 
-function canonicalCursorRegistration(
-  extras?: { readonly customSession?: unknown },
-): string {
+function canonicalCursorRegistration(extras?: { readonly customSession?: unknown }): string {
   const sessionStart: unknown[] = [
     {
       command: "deft-hook --host cursor --event session.start",

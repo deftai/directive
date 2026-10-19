@@ -828,7 +828,12 @@ function residualDepositInertPaths(): ReadonlySet<string> {
         exact.endsWith("/.gitkeep"),
     );
   const officialGithooks = HOOK_FILENAMES.map((name) => `.githooks/${name}`);
-  return new Set<string>([PAYLOAD_VERSION_PATH, CODEQL_CONFIG_REL, ...officialGithooks, ...gitkeeps]);
+  return new Set<string>([
+    PAYLOAD_VERSION_PATH,
+    CODEQL_CONFIG_REL,
+    ...officialGithooks,
+    ...gitkeeps,
+  ]);
 }
 
 const RESIDUAL_DEPOSIT_INERT_PATHS: ReadonlySet<string> = residualDepositInertPaths();
@@ -1591,11 +1596,7 @@ export function evaluateCoverageApplicability(
     input,
     runGit,
   );
-  const afterRunShimProof = proveRetiredRunShimDeletionInert(
-    afterRegistrationProof,
-    input,
-    runGit,
-  );
+  const afterRunShimProof = proveRetiredRunShimDeletionInert(afterRegistrationProof, input, runGit);
 
   if (afterRunShimProof.some((c) => c.classification === "unknown")) {
     const unknownPaths = afterRunShimProof
