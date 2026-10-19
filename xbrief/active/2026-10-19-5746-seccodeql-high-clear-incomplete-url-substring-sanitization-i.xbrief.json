@@ -114,7 +114,8 @@
           "packages/core/src/intake/github-auth-modes.provisioning.test.ts",
           "CHANGELOG.md"
         ],
-        "module_boundary": "packages/core/src/intake/github-auth-modes.provisioning.test.ts"
+        "module_boundary": "packages/core/src/intake/github-auth-modes.provisioning.test.ts",
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for security cohort. pnpm-lock.yaml / pnpm-workspace.yaml shared Dependabot pin surfaces for #5737/#5740."
       },
       "issueCommentThread": [
         {
@@ -366,7 +367,8 @@
         "file_scope": [
           "packages/core/src/intake/github-auth-modes.provisioning.test.ts",
           "CHANGELOG.md"
-        ]
+        ],
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for security cohort. pnpm-lock.yaml / pnpm-workspace.yaml shared Dependabot pin surfaces for #5737/#5740."
       }
     },
     "id": "github.issue.5915169474",

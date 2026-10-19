@@ -140,7 +140,8 @@
           "pnpm-lock.yaml",
           "CHANGELOG.md"
         ],
-        "module_boundary": "pnpm-workspace.yaml"
+        "module_boundary": "pnpm-workspace.yaml",
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for security cohort. pnpm-lock.yaml / pnpm-workspace.yaml shared Dependabot pin surfaces for #5737/#5740."
       },
       "issueCommentThread": [
         {
@@ -393,7 +394,8 @@
           "pnpm-workspace.yaml",
           "pnpm-lock.yaml",
           "CHANGELOG.md"
-        ]
+        ],
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for security cohort. pnpm-lock.yaml / pnpm-workspace.yaml shared Dependabot pin surfaces for #5737/#5740."
       }
     },
     "id": "github.issue.5915129756",
