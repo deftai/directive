@@ -103,9 +103,75 @@
           "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Summary CodeQL open alert on default branch: HIGH `js/incomplete-url-substring-sanitization` — Incomplete URL substring sanitization.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "admitted-source"
+        },
+        {
+          "id": 5,
+          "text": "| Field | Value | |-------|-------| | Alert | [#137](https://github.com/deftai/directive/security/code-scanning/137) | | Rule | `js/incomplete-url-substring-sanitization` | | Severity | HIGH | | Location | `packages/core/src/intake/github-auth-modes.provisioning.test.ts` ~L174 | | Message | 'ghe.example.com' can be anywhere in the URL, and arbitrary hosts may come before or after it.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "admitted-source"
+        },
+        {
+          "id": 6,
+          "text": "| ## What to build Rewrite or bound the flagged site so CodeQL `js/incomplete-url-substring-sanitization` clears for this alert (or document accepted risk with suppress + rationale if false positive after review).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "admitted-source"
+        },
+        {
+          "id": 7,
+          "text": "Prefer a real fix over suite-config changes.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "admitted-source"
+        },
+        {
+          "id": 8,
+          "text": "Acceptance - [ ] CodeQL alert [#137](https://github.com/deftai/directive/security/code-scanning/137) clears on master (auto-close or dismiss with reason after fix).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "admitted-source"
+        },
+        {
+          "id": 9,
+          "text": "[ ] Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "admitted-source"
+        },
+        {
+          "id": 10,
+          "text": "[ ] CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #137.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "admitted-source"
+        },
+        {
+          "id": 11,
+          "text": "Non-goals - Changing CodeQL suite config as the primary fix.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "admitted-source"
+        },
+        {
+          "id": 12,
+          "text": "Bundling unrelated code-scanning alerts into this issue (siblings tracked separately).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "admitted-source"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "sec(codeql): HIGH clear incomplete-url-substring-sanitization in github-auth-modes.provisioning.test.ts (alert #137)"
+      ]
     },
     "metadata": {
       "intended_placement": {
