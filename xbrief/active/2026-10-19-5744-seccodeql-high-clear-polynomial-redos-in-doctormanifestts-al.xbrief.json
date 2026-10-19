@@ -437,7 +437,8 @@
           "CHANGELOG.md"
         ],
         "cohesion_exemption": "CHANGELOG.md shared Unreleased for security cohort. pnpm-lock.yaml / pnpm-workspace.yaml shared Dependabot pin surfaces for #5737/#5740."
-      }
+      },
+      "productPullRequest": 5762
     },
     "id": "github.issue.5915169068",
     "updated": "2026-10-19T05:50:22Z"
