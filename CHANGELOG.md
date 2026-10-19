@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed — Remint approved-scope for #5744 with productPullRequest + acceptance evidence. Approval record only; no product behavior change. Refs #5744.
 - Changed — Cursor Task dest-missing deny names presented `subagent_type` (no stripped dest-key inventory lead); host-cursor Multitask spawn matrix + recovery pointer from `CURSOR_TASK_SPAWN_CLASS_RECOVERY`. Primary Multitask auto-worktree registry stays leftover #5775. Refs #5770.
 - Changed — Activate Prefer-A Bound briefs for #5770 (Cursor Multitask host-cursor matrix), #5677 (residual deposit keep-unknowns), and #5727 (Grok through-merge Approach 1 forge-poll forbid); productPullRequest unset. Refs #5770 #5677 #5727.
+- Changed — Record decision: Directive merges require `deft pre-pr:run --evaluate` green for the PR tip (Lane 1 dogfood until #5631). Refs #5631 #4912 #4976.
 - Changed — Activate Prefer-A Bound security cohort briefs for Dependabot and CodeQL HIGH work (#5737 #5740-#5748); product fixes land in follow-on PRs.
 
 ### Fixed
