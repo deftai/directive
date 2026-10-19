@@ -577,9 +577,7 @@ function readerEvidence(path: string, content: string): ReaderEvidence {
   if (/\.html?$/i.test(path))
     // Delimiter-aware end-tag: match CodeQL-cited closes such as </script\t\n bar>
     // without truncating lookalike non-closes like </script-not-a-close> (#5747 / alert #143).
-    content = [
-      ...content.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script(?=[\t\n\f\r />])[^>]*>/gi),
-    ]
+    content = [...content.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script(?=[\t\n\f\r />])[^>]*>/gi)]
       .map((match) => match[1] ?? "")
       .join("\n");
   if (!/\.(?:[cm]?[jt]sx?|html?)$/i.test(path)) return fallbackReaderEvidence(content);

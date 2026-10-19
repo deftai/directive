@@ -694,10 +694,7 @@ it.each([
 
 describe("HTML script end-tag extraction (#5747 / CodeQL alert #143)", () => {
   it.each([
-    [
-      "normal close",
-      '<html><script>readFileSync("CHANGELOG.md");</script></html>',
-    ],
+    ["normal close", '<html><script>readFileSync("CHANGELOG.md");</script></html>'],
     [
       "CodeQL-cited whitespace close",
       '<html><script>readFileSync("CHANGELOG.md");</script\t\n bar></html>',
