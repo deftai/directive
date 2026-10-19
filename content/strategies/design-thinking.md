@@ -132,6 +132,8 @@ Each UAT-planning item MUST carry, in its acceptance description (title and/or `
 2. **changed-scope / repeated-run** — a newer registered design-thinking revision supersedes an older one → transfer from the selected revision; do not silently inherit an obsolete skip into a changed who/need scope (fresh applicability decision when scope changed)
 3. **preserved-disposition** — if the source item already carries a valid human-origin disposition, preserve it on transfer; do not strip or re-forge provenance
 
+! Executable compare: apply `evaluateDesignThinkingUatOmissionCheck` (content-contract) — source→destination id/requires/disposition equality for every source `requires:uat` item. On miss, remediate with: design-thinking UAT omission: copy the source requires:uat item into the emitted story plan.items (preserve requires + source id/path/trace) before proceeding.
+
 ! The handoff omission check verifies **transfer presence / identity / disposition preservation only**. Do **not** run `evaluateAcceptanceEvidenceGate` at the handoff boundary — newly transferred UAT items are deliberately non-terminal (`pending` / `running`) and must not be rejected for lacking `kind:uat` evidence yet.
 
 ! Keep `evaluateAcceptanceEvidenceGate` at **`scope:complete`** on the completing brief's destination `plan.items` (the acceptance walker only sees the completing brief — preparatory orphans do not arm STRICT_ACCEPTANCE_AXES).

@@ -3,6 +3,37 @@ import { readText } from "./_helpers.js";
 
 const VALID_TYPES = new Set(["preparatory", "spec-generating"]);
 
+/** #5691 — executable source→destination omission check for design-thinking UAT handoff. */
+type UatHandoffItem = {
+  id: string;
+  requires?: string;
+  disposition?: string | null;
+};
+
+const UAT_OMISSION_RECOVERY =
+  "design-thinking UAT omission: copy the source requires:uat item into the emitted story plan.items (preserve requires + source id/path/trace) before proceeding";
+
+function evaluateDesignThinkingUatOmissionCheck(
+  sourceItems: UatHandoffItem[],
+  destinationItems: UatHandoffItem[],
+): { ok: true } | { ok: false; missingIds: string[]; recovery: string } {
+  const sourceUat = sourceItems.filter((item) => item.requires === "uat");
+  const destById = new Map(destinationItems.map((item) => [item.id, item]));
+  const missingIds: string[] = [];
+  for (const src of sourceUat) {
+    const dest = destById.get(src.id);
+    if (!dest || dest.requires !== "uat") {
+      missingIds.push(src.id);
+      continue;
+    }
+    if ((src.disposition ?? null) !== (dest.disposition ?? null)) {
+      missingIds.push(src.id);
+    }
+  }
+  if (missingIds.length === 0) return { ok: true };
+  return { ok: false, missingIds, recovery: UAT_OMISSION_RECOVERY };
+}
+
 function parseReadmeTable(): Array<Record<string, string>> {
   const text = readText("strategies/README.md");
   const rows: Array<Record<string, string>> = [];
@@ -275,6 +306,8 @@ describe("test_strategy_chaining.py", () => {
       expect(text).toContain("changed-scope");
       expect(text).toContain("preserved-disposition");
       expect(text).toContain("**recovery:** copy the source item");
+      expect(text).toContain(UAT_OMISSION_RECOVERY);
+      expect(text).toContain("evaluateDesignThinkingUatOmissionCheck");
       expect(text).toContain("evaluateAcceptanceEvidenceGate");
       expect(text).toContain(
         "Do **not** run `evaluateAcceptanceEvidenceGate` at the handoff boundary",
@@ -288,6 +321,31 @@ describe("test_strategy_chaining.py", () => {
       expect(text).toMatch(/UAT-planning[\s\S]*not "Test completed"/);
       expect(text).toContain("\u2297 Close UAT planning with LockedDecisions-style");
       expect(text).toContain("fall back to the [interview.md Chaining Gate]");
+    });
+
+    it("test_design_thinking_uat_omission_check_executable", () => {
+      const source: UatHandoffItem[] = [
+        { id: "uat-1", requires: "uat", disposition: null },
+        { id: "uat-2", requires: "uat", disposition: "waived" },
+        { id: "other", requires: "code-review" },
+      ];
+      expect(evaluateDesignThinkingUatOmissionCheck(source, source)).toEqual({ ok: true });
+      const dropped = evaluateDesignThinkingUatOmissionCheck(source, [
+        { id: "uat-2", requires: "uat", disposition: "waived" },
+      ]);
+      expect(dropped.ok).toBe(false);
+      if (!dropped.ok) {
+        expect(dropped.missingIds).toEqual(["uat-1"]);
+        expect(dropped.recovery).toBe(UAT_OMISSION_RECOVERY);
+      }
+      const strippedDisposition = evaluateDesignThinkingUatOmissionCheck(source, [
+        { id: "uat-1", requires: "uat", disposition: null },
+        { id: "uat-2", requires: "uat", disposition: null },
+      ]);
+      expect(strippedDisposition.ok).toBe(false);
+      if (!strippedDisposition.ok) {
+        expect(strippedDisposition.missingIds).toEqual(["uat-2"]);
+      }
     });
 
     it("test_design_thinking_item_fields_and_nonterminal", () => {
