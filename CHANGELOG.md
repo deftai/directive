@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added — Helpers for reviewing a brief without creating a GitHub issue. These support file-based critic results, retained review records, and returning the accepted remedy to the same brief. Refs #5486.
 
 ### Changed
+- Changed - Correct #5716 merge-base file_scope issue-ingest paths to packages/core/src/intake/ (typo lifecycle to intake) so product PR #5750 membership matches (#5192). Refs #5716 #5750.
 - Changed - Widen #5716 merge-base file_scope for product membership (AGENTS.md, ingest-posture, issue-ingest, telemetry enrollment, contract tests, PROJECT-DEFINITION) so product PR #5750 clears verify:scope-provenance (#5192 / #4956). Refs #5716 #5750.
 - Changed - Widen #5716 merge-base file_scope for docs/RULE-MAP.md so product PR #5750 can land regenerated Rule Map (#5192). Refs #5716 #5750.
 - Changed - Activate Prefer-A Bound running brief for #5715 on master (proceed cohort add; productPullRequest unset). Refs #5715.

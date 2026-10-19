@@ -160,8 +160,8 @@
           "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
           "packages/core/src/design-critique/ingest-posture.test.ts",
           "packages/core/src/design-critique/ingest-posture.ts",
-          "packages/core/src/lifecycle/issue-ingest.test.ts",
-          "packages/core/src/lifecycle/issue-ingest.ts",
+          "packages/core/src/intake/issue-ingest.test.ts",
+          "packages/core/src/intake/issue-ingest.ts",
           "packages/core/src/telemetry-coverage/fake-trial.ts",
           "packages/core/src/telemetry-coverage/kinds.ts",
           "xbrief/PROJECT-DEFINITION.xbrief.json"
@@ -176,7 +176,7 @@
           "#5727"
         ],
         "parallel_safe": false,
-        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #5716 Prefer-A Recut-3. docs/RULE-MAP.md regenerated membership for #5716 skill/AGENTS pointer churn (#5192 precommitment). Product membership widen for AGENTS.md, ingest-posture, issue-ingest, telemetry enrollment, contract tests, PROJECT-DEFINITION (#5192 / #4956)."
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #5716 Prefer-A Recut-3. docs/RULE-MAP.md regenerated membership for #5716 skill/AGENTS pointer churn (#5192 precommitment). Product membership widen for AGENTS.md, ingest-posture, issue-ingest, telemetry enrollment, contract tests, PROJECT-DEFINITION (#5192 / #4956). Correct issue-ingest paths to intake/ (typo lifecycle to intake)."
       },
       "intended_placement": {
         "schema": "deft.scope.intended_placement.v1",
@@ -204,14 +204,14 @@
           "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
           "packages/core/src/design-critique/ingest-posture.test.ts",
           "packages/core/src/design-critique/ingest-posture.ts",
-          "packages/core/src/lifecycle/issue-ingest.test.ts",
-          "packages/core/src/lifecycle/issue-ingest.ts",
+          "packages/core/src/intake/issue-ingest.test.ts",
+          "packages/core/src/intake/issue-ingest.ts",
           "packages/core/src/telemetry-coverage/fake-trial.ts",
           "packages/core/src/telemetry-coverage/kinds.ts",
           "xbrief/PROJECT-DEFINITION.xbrief.json"
         ],
         "module_boundary": "design-critique arc recommended before every issue:ingest",
-        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #5716 Prefer-A Recut-3. docs/RULE-MAP.md regenerated membership for #5716 skill/AGENTS pointer churn (#5192 precommitment). Product membership widen for AGENTS.md, ingest-posture, issue-ingest, telemetry enrollment, contract tests, PROJECT-DEFINITION (#5192 / #4956)."
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #5716 Prefer-A Recut-3. docs/RULE-MAP.md regenerated membership for #5716 skill/AGENTS pointer churn (#5192 precommitment). Product membership widen for AGENTS.md, ingest-posture, issue-ingest, telemetry enrollment, contract tests, PROJECT-DEFINITION (#5192 / #4956). Correct issue-ingest paths to intake/ (typo lifecycle to intake)."
       },
       "x-directive/plan-id": {
         "version": 1,
