@@ -39,8 +39,9 @@ describe("test_deprecated_skill_redirects", () => {
 
   it("readme_banner_has_agent_rule", () => {
     const content = readRepoFile("README.md");
-    expect(content.includes("Read [UPGRADING.md]") || content.includes("Read UPGRADING.md")).toBe(
-      true,
-    );
+    // Tip cold-start / upgrade banner: agents must read UPGRADING (link optional).
+    expect(
+      /Read (?:\[)?UPGRADING(?:\.md)?(?:\])?/i.test(content) || content.includes("Read UPGRADING"),
+    ).toBe(true);
   });
 });

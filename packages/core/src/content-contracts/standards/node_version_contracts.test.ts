@@ -68,7 +68,9 @@ describe("node version contracts (#4089)", () => {
     const cliPkg = JSON.parse(
       readFileSync(join(repoRoot(), "packages/cli/package.json"), { encoding: "utf8" }),
     ) as { engines?: { node?: string } };
-    expect(cliPkg.engines?.node).toBeUndefined();
+    // OVPR consumer floor is Node >=20 on the published launcher; maintainer pin stays 24.
+    expect(cliPkg.engines?.node).toBe(">=20");
+    expect(cliPkg.engines?.node).not.toMatch(/>=\s*24/);
   });
 
   it("names Node 24 and pnpm on the maintainer CONTRIBUTING path", () => {

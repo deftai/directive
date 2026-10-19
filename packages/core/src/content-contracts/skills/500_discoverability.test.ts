@@ -25,13 +25,18 @@ describe("test_500_discoverability", () => {
   it("main_md_documents_taskfile_include_pattern", () => {
     const text = readRepoFile(MAIN_MD);
     expect(text).toContain("Publishing deft tasks in your project root");
-    expect(text).toContain("taskfile: ./.deft/core/Taskfile.yml");
+    // OVPR: Taskfile lives under the runtime package (legacy `.deft/core/` demoted).
+    expect(text).toMatch(
+      /taskfile:\s*\.\/(?:node_modules\/@deftai\/directive-runtime|\.deft\/core)\/Taskfile\.yml/,
+    );
     expect(text).toContain("includes:");
   });
 
   it("quickstart_references_fallback_command", () => {
     const text = readRepoFile(QUICKSTART_MD);
-    expect(text).toContain("task -t ./.deft/core/Taskfile.yml migrate:preflight");
+    expect(text).toMatch(
+      /task -t \.\/(?:node_modules\/@deftai\/directive-runtime|\.deft\/core)\/Taskfile\.yml migrate:preflight/,
+    );
   });
 
   it("quickstart_cross_links_main_migration_section", () => {

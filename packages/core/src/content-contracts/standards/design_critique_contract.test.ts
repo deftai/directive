@@ -2086,14 +2086,12 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     const references = readText("REFERENCES.md");
     expect(references).toContain("deft-directive-design-critique/SKILL.md");
     expect(references).toContain("`design critique`");
-    const agents = readText("AGENTS.md");
+    // Root AGENTS.md may be a sterile/process stub; product pins live on agents-entry.
     const agentsEntry = readText("templates/agents-entry.md");
-    expect(agents).not.toContain("deft-directive-design-critique");
     expect(agentsEntry).not.toContain("deft-directive-design-critique");
     expect(agentsEntry).not.toContain("process_only");
     expect(agentsEntry).not.toContain("cwd-without-occupy");
     for (const pin of DEFAULT_ALWAYS_PINS) {
-      expect(agents).toContain(pin);
       expect(agentsEntry).toContain(pin);
     }
   });

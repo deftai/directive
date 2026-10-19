@@ -100,7 +100,7 @@ incidents/     # Repo incident records
 
 ```text
 packages/          # TypeScript engine packages (cli launcher, runtime, private types/core/content)
-# Historical only (deleted AC10.10): cmd/deft-install/ — do not teach as current
+# AC10.10 deleted: cmd/deft-install/ — do not teach as current
 scripts/           # Remaining JS helpers (not a Python validator layer)
 tasks/             # Taskfile include fragments for command namespaces
 .github/           # GitHub Actions workflows and PR template
