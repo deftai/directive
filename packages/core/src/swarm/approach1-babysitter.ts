@@ -4,12 +4,12 @@
  */
 import {
   babysitPathAdmissionCost,
+  type ClaimedBabysitPathDenyInput,
+  type ClaimedBabysitPathDenyResult,
   evaluateBoundedPrWatchDeny,
   evaluateClaimedBabysitPathDeny,
   formatApproach1BabysitterOneLiner,
   isApproach1CheapestVs,
-  type ClaimedBabysitPathDenyInput,
-  type ClaimedBabysitPathDenyResult,
   type PlatformPrimitive,
   writeHostCapabilityStamp,
 } from "../review-monitor/index.js";
@@ -94,10 +94,7 @@ export function admitClaimedBabysitPath(
           input.boundEvidence.pr > 0
         ? input.boundEvidence.pr
         : 0;
-  const id =
-    input.monitorAgentId?.trim() ||
-    input.boundEvidence?.monitorAgentId?.trim() ||
-    "<id>";
+  const id = input.monitorAgentId?.trim() || input.boundEvidence?.monitorAgentId?.trim() || "<id>";
   const primitive = input.platformPrimitive ?? input.tier.primitive ?? "spawn_subagent";
   const attachCard = (
     result: ClaimedBabysitPathDenyResult,

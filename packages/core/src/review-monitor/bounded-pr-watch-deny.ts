@@ -9,11 +9,7 @@
  * bespoke-temp / host-monitor / bare pr:watch when Tier 1 is proven. Undeclared
  * shell interception before execution remains leftover #5732.
  */
-import {
-  isTier1,
-  type MonitoringTierProbe,
-  type PlatformPrimitive,
-} from "./tier-detection.js";
+import { isTier1, type MonitoringTierProbe, type PlatformPrimitive } from "./tier-detection.js";
 
 /** Admission cost: lower is cheaper / preferred (#5229 Prefer-A / #5727). */
 export type BabysitPathKind =
@@ -221,7 +217,9 @@ export interface ClaimedBabysitPathDenyResult {
   readonly message: string;
 }
 
-function hasApproach1BoundEvidence(evidence: ClaimedBabysitBoundEvidence | null | undefined): boolean {
+function hasApproach1BoundEvidence(
+  evidence: ClaimedBabysitBoundEvidence | null | undefined,
+): boolean {
   if (evidence === null || evidence === undefined) return false;
   if (!(evidence.pr > 0)) return false;
   const id = evidence.monitorAgentId?.trim() ?? "";
