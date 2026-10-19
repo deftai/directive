@@ -1017,6 +1017,14 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 ⊗ Silently skip the prompt — greenfield users who never open a PR will miss the exports without it.
 ⊗ Invoke legacy `task spec:render` on a greenfield v0.20 project — use `task project:export-spec` instead (#2013).
 
+### Design-critique planning default (#5716)
+
+- ! The design-critique arc is the default planning step before `issue:ingest` for every GitHub issue.
+- ! Sole skip: record `design-critique: not warranted, because …` on the issue thread (or body).
+- ! Recommended-default spend is N=1; panel N≥3 stays Stop 2 permission.
+- ! Prose only — no `judgmentGates` writer from setup.
+- ! Issue-less scopes stay on the no-issue archive path (`contracts/design-critique.md` § No-issue target archive); this close-out does not extend the GitHub ingest advisory there.
+
 ### Handoff to deft-directive-build
 
 - ! Emit a structured-tool question asking whether to continue toward the build phase only when the host preserves numeric labels; otherwise emit the deterministic numbered menu in chat. Options: `1. Yes (run cost phase)`, `2. Not now (exit setup)`, `3. Discuss`, `4. Back (revisit previous phase)`. The numeric labels MUST remain visible and be returned as numeric selections or exact displayed option text.

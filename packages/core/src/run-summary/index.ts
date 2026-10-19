@@ -34,6 +34,8 @@ export {
   type DialEscalationEvaluationOutcome,
   type DialEscalationEvaluationRunSummaryPayload,
   type DialTransitionRunSummaryPayload,
+  type DesignCritiqueIngestPostureOutcome,
+  type DesignCritiqueIngestPostureRunSummaryPayload,
   ENV_RUN_SUMMARY_PATH,
   ENV_TOTAL_TOOL_TURNS,
   RUN_SUMMARY_EVENT_KINDS,

@@ -13,6 +13,11 @@ This contract scaffolds the motion. Only the ADR-005 judgment gate and the conte
 - ⊗ Pin this contract or `skills/deft-directive-design-critique` into `templates/agents-entry.md` or the AGENTS.md always-pin list. Discovery is on-demand via the Skills Index.
 - ⊗ Auto-dispatch critics from this contract (#3578 / #1702). Operator (or parent after an operator verb) dispatches the next envelope from the brief template.
 
+### Pre-ingest recommendation (#5716)
+
+Before `issue:ingest` for every GitHub issue, run the design-critique arc or record `design-critique: not warranted, because …`. ADR-005 is unchanged: no auto-dispatch, no engine refusal of unarced work. The ingest advisory is exit 0 and never blocks. This scaffolds the recommendation; content-contract tests lock the skip-form string. Discovery stays on-demand (no always-pin of this skill or contract path). Issue-less scopes use `## No-issue target archive (#5486)` — this GitHub ingest advisory does not extend there.
+
+
 ### The arc
 
 **An arc is one recorded motion over one target revision**, from the Stop 1 write-back (or a voluntary dispatch) through accepted synthesis or the halt line. It holds one or more rounds, and therefore one or more ceilings. An arc is per-target, not per-issue: one issue carries several arcs over time, and one arc can span several issues.

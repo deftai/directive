@@ -26,6 +26,7 @@ import {
   type CheckInvocationRunSummaryPayload,
   type DialEscalationEvaluationRunSummaryPayload,
   type DialTransitionRunSummaryPayload,
+  type DesignCritiqueIngestPostureRunSummaryPayload,
   ENV_TOTAL_TOOL_TURNS,
   RUN_SUMMARY_SCHEMA_VERSION,
   RUN_SUMMARY_STDOUT_PREFIX,
@@ -532,6 +533,12 @@ export class RunSummaryEmitter {
 
   emitAcPassBank(payload: AcPassBankRunSummaryPayload): EmitRunSummaryResult {
     return this.emit("ac_pass_bank", payload);
+  }
+
+  emitDesignCritiqueIngestPosture(
+    payload: DesignCritiqueIngestPostureRunSummaryPayload,
+  ): EmitRunSummaryResult {
+    return this.emit("design_critique_ingest_posture", payload);
   }
 
   /**

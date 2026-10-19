@@ -166,7 +166,7 @@ Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after 
 
 <!-- placeholder -->
 
-<!-- deft:managed-section v3 sha=b9ca6eb7e8f7 refreshed=2026-10-18T23:38:24Z session=c1f36981b09e -->
+<!-- deft:managed-section v3 sha=70d40ff855ca refreshed=2026-10-19T00:51:51Z session=ae81a6a76ae5 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -311,8 +311,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 ! `plan.policy.valueFeedback.enabled` defaults OFF — `deft policy:show --field=valueFeedback` / `deft policy:enable-value-feedback -- --confirm`; `deft value:show`; `deft feedback:file`; `deft-directive-feedback/SKILL.md` (#1709).
 ! Consumer hard-stop (#3713): `BLOCKER` is the sole permitted title classification — `deft feedback:file --blocker`; absence is not a verdict. ⊗ Derive `adoption-blocker` from a consumer title (body-evidence gated); `scm/github.md`.
 
-## Structured decision log (#1396 / #3211)
-! Significant choices → `deft decision:write`; re-load → `deft decision:list` / `xbrief/decisions/`; depth `.deft/core/docs/decision-log.md` (not triage/ADRs/lessons).
+! Before issue:ingest: arc or design-critique: not warranted, because ….
 ## Eval and framework health (#1703)
 
 ! `deft eval:health` when orienting or after gate/policy changes (Tier 0; 4-hour debounce). Release: `deft eval:run` / `deft eval:report`; skill routing: `deft eval:triggers` (#1586 / #1703).

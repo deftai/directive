@@ -2098,6 +2098,30 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     }
   });
 
+
+  it("locks pre-ingest recommendation skip form and non-engine boundary (#5716)", () => {
+    const contract = readText(CONTRACT);
+    expect(contract).toContain("### Pre-ingest recommendation (#5716)");
+    expect(contract).toContain("design-critique: not warranted, because …");
+    expect(contract).toContain("ADR-005 is unchanged");
+    expect(contract).toContain("ingest advisory is exit 0 and never blocks");
+    expect(contract).toContain("This scaffolds the recommendation; content-contract tests lock the skip-form string");
+    const preStart = contract.indexOf("### Pre-ingest recommendation (#5716)");
+    const preEnd = contract.indexOf("\n### ", preStart + 1);
+    const preIngest = contract.slice(preStart, preEnd > preStart ? preEnd : preStart + 800);
+    expect(preIngest.toLowerCase()).not.toMatch(/\benforces?\b/);
+    const skill = readText(SKILL_REL);
+    expect(skill).toContain("design-critique: not warranted, because …");
+    expect(skill).toContain("Before every `issue:ingest`");
+    expect(skill).toContain("default spend N=1");
+    const pack = JSON.parse(readText("packs/skills/skills-pack-0.1.json")) as {
+      skills: readonly { id: string; description?: string; body?: string }[];
+    };
+    const entry = pack.skills.find((s) => s.id === "deft-directive-design-critique");
+    expect(entry?.description).toContain("design-critique: not warranted, because");
+    expect(entry?.description).toContain("default spend N=1");
+  });
+
   it("pins host-neutral arc triggers on the thin skill and Skills Index (#3845 / #4202)", () => {
     const skill = readText(SKILL_REL);
     expect(skill).toContain("\n  - arc\n");

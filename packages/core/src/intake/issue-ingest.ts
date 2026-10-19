@@ -20,7 +20,12 @@ import {
   setPendingIngestDiagnosticOverlay,
   type ThreadComment,
 } from "../design-critique/completed-arc-record.js";
+import {
+  classifyDesignCritiqueIngestPosture,
+  DESIGN_CRITIQUE_INGEST_ADVISORY,
+} from "../design-critique/ingest-posture.js";
 import { formatStaleIngestReadyDiagnostic } from "../design-critique/stale-ingest-ready-diagnostic.js";
+import { emitRunSummaryEvent } from "../run-summary/emit.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import { captureAndAttachLiteralAcceptance } from "../literal-acceptance/index.js";
@@ -2286,6 +2291,8 @@ export function ingestOne(
     scmCall?: ScmCallFn;
     cwd?: string | null;
     cacheRoot?: string | null;
+    /** Bulk --all suppresses per-issue advisory print; events still emit (#5716). */
+    printIngestAdvisory?: boolean;
   },
 ): [IngestResult, string | null, string] {
   const number = Number(issue.number);
@@ -2371,6 +2378,28 @@ export function ingestOne(
     const comments = threadCommentsFromIssue(enriched);
     const labels = issueLabelNames(enriched);
     const preview = evaluateCompletedArcRecord({ comments, issueNumber: number });
+    const issueBody = typeof enriched.body === "string" ? enriched.body : "";
+    const ingestPosture = classifyDesignCritiqueIngestPosture({
+      verdict: preview,
+      issueBody,
+      comments,
+    });
+    if (ingestPosture !== null) {
+      const projectRootForSummary =
+        resolveProjectRoot(options.cwd ?? undefined) ??
+        (typeof options.cwd === "string" && options.cwd.length > 0
+          ? options.cwd
+          : process.cwd());
+      emitRunSummaryEvent({
+        projectRoot: projectRootForSummary,
+        event: "design_critique_ingest_posture",
+        payload: { posture: ingestPosture, issue_number: number },
+        component: "issue-ingest",
+      });
+      if (ingestPosture === "neither" && options.printIngestAdvisory !== false) {
+        process.stdout.write(DESIGN_CRITIQUE_INGEST_ADVISORY + "\n");
+      }
+    }
     const repoSlug = repoSlugFromUrl(options.repoUrl);
     if (preview.status === "blocked" && repoSlug !== null) {
       setPendingIngestDiagnosticOverlay(
@@ -2623,7 +2652,11 @@ export function ingestBulk(
   for (const issue of filtered) {
     let ingested: [IngestResult, string | null, string];
     try {
-      ingested = ingestOne(issue, { ...options, existingOrigins: origins });
+      ingested = ingestOne(issue, {
+        ...options,
+        existingOrigins: origins,
+        printIngestAdvisory: false,
+      });
     } catch (exc) {
       // #2306: a per-issue quarantine hard-fail must not sink the whole batch;
       // record it, emit nothing for that issue, and surface a non-zero exit

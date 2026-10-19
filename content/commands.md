@@ -618,6 +618,7 @@ Directive does not guess your mix. Either you name the next units in order (**or
 
 ### Triage Tasks
 
+- **Planning order (#5716):** triage write-back → arc or recorded `design-critique: not warranted, because …` → `issue:ingest` → scope. Sole skip is the recorded not-warranted line; silence is not a skip.
 - `task triage:bootstrap -- [--repo OWNER/NAME] [--limit N] [--state {open|closed|all}] [--batch-size N] [--delay-ms N]` -- seed the local triage cache and audit layer.
 - `task triage:evaluate -- <N...> [--concurrency N] [--repo OWNER/NAME] [--json]` -- Stage A isolated issue-eval (#3648). Detached `origin/master` worktrees own validity; the parent owns WIP census (`xbrief/active`, `xbrief/pending`, `plan-sequence`); GitHub REST owns open PRs/issues. Verdicts land under `.deft-scratch/issue-eval/<sha12>/<invocation-id>/`. No GitHub writes. Fan-out default 4. Value may set `critique-recommend:`; it must not emit `design-critique: warranted | not warranted, because …`. Decisions stay existing `triage:*` verbs.
 - `deft triage:queue --limit=10 [--author LOGIN|@me]` -- show ranked candidate work from cache-backed state. Optional `--author` / `--author-mine` filters to cache `author.login` (exact match; `@me` resolves via authenticated `gh`; comma allow-list; missing author disclosed as unknown) (#3129 / #1318 Layer 1). When the cache is empty, auto-populates from GitHub first (#2575) — do not conclude "nothing to do" from xBRIEF folders or live `gh issue list` alone (#2576).
