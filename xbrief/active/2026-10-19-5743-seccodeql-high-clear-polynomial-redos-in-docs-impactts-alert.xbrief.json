@@ -112,6 +112,7 @@
         "schema": "deft.scope.intended_placement.v1",
         "files": [
           "packages/core/src/docs/docs-impact.ts",
+          "packages/core/src/docs/docs-impact.test.ts",
           "CHANGELOG.md"
         ],
         "module_boundary": "packages/core/src/docs/docs-impact.ts",
@@ -366,6 +367,7 @@
       "swarm": {
         "file_scope": [
           "packages/core/src/docs/docs-impact.ts",
+          "packages/core/src/docs/docs-impact.test.ts",
           "CHANGELOG.md"
         ],
         "cohesion_exemption": "CHANGELOG.md shared Unreleased for security cohort. pnpm-lock.yaml / pnpm-workspace.yaml shared Dependabot pin surfaces for #5737/#5740."
