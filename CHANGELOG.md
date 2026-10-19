@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed — Grok PreToolUse wrapper command deposits `./deft-pretooluse-wrapper.sh` (beside deft.json) instead of the repo-root REL_PATH that doubled under `.grok/hooks/`. Inspect marks legacy REL_PATH drifted; recovery is install fixed engine, `deft update` / redeposit, then a **new** Grok session. Refs #5715.
 - Fixed - Widen #5692 membership so the regenerated Rule Map can land with the interview ProblemStatement change. Refs #5692.
 - Greptile P1 on #5692: ProblemStatement pre-scope ask is SHOULD (recorded skip ok); persist via PROJECT-DEFINITION merge not Phase-2 write-narratives; widen file_scope for docs/RULE-MAP.md regen.
 - Fixed — Tutorial close records Findings before experiment_archived (beats/proof/skills-pack); removes interim practice-id seed. Refs #5693.
