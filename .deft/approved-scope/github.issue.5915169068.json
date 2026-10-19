@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "xbriefRelPath": "xbrief/active/2026-10-19-5744-seccodeql-high-clear-polynomial-redos-in-doctormanifestts-al.xbrief.json",
   "planId": "github.issue.5915169068",
-  "approvedAt": "2026-10-19T13:50:30Z",
+  "approvedAt": "2026-10-19T15:19:58Z",
   "fileScope": [
     "CHANGELOG.md",
     "packages/core/src/doctor/branches.test.ts",
@@ -12,9 +12,9 @@
   "humanApproval": {
     "kind": "operator",
     "actor": "Scott",
-    "mintedAt": "2026-10-19T13:50:30Z",
+    "mintedAt": "2026-10-19T15:19:58Z",
     "mintedVia": "scope:record-approved-scope"
   },
-  "intentDigest": "fd14c3ed04062ba1414f50f02d525033f00fe9bd4543bac4825f21d4b3dd7208",
+  "intentDigest": "0d32d17803e682605bc71c6f9465289f133b81d55888f8c8af4ab1fcc43ed311",
   "digestAlgo": "intent-extract-v1"
 }
