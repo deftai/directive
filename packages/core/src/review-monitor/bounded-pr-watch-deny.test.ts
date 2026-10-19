@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  APPROACH1_BOUND_PLATFORM_PRIMITIVES,
   babysitPathAdmissionCost,
   evaluateBoundedPrWatchDeny,
   evaluateClaimedBabysitPathDeny,
@@ -229,19 +230,57 @@ describe("evaluateClaimedBabysitPathDeny (#5727 P4)", () => {
     });
     expect(emptyPrim.deny).toBe(true);
 
-    const otherPrim = evaluateClaimedBabysitPathDeny({
+    const arbitraryPrim = evaluateClaimedBabysitPathDeny({
       claimedKind: "approach1-spawn",
       tier: TIER1,
       boundEvidence: {
         pr: 12,
         evidencePr: 12,
         monitorAgentId: "rm-12",
-        registeredPlatformPrimitive: "cursor-task",
+        registeredPlatformPrimitive: "sessions_spawn",
         childWatchBoundToMonitorId: true,
       },
     });
-    expect(otherPrim.deny).toBe(true);
-    expect(otherPrim.reason).toBe("approach1-unbound");
+    expect(arbitraryPrim.deny).toBe(true);
+    expect(arbitraryPrim.reason).toBe("approach1-unbound");
+
+    const madeUp = evaluateClaimedBabysitPathDeny({
+      claimedKind: "approach1-spawn",
+      tier: TIER1,
+      boundEvidence: {
+        pr: 12,
+        evidencePr: 12,
+        monitorAgentId: "rm-12",
+        registeredPlatformPrimitive: "not-a-real-primitive",
+        childWatchBoundToMonitorId: true,
+      },
+    });
+    expect(madeUp.deny).toBe(true);
+    expect(madeUp.reason).toBe("approach1-unbound");
+  });
+
+  it("admits Approach 1 for Tier-1 cursor-task and claude-agent primitives", () => {
+    expect([...APPROACH1_BOUND_PLATFORM_PRIMITIVES].sort()).toEqual([
+      "claude-agent",
+      "cursor-task",
+      "spawn_subagent",
+    ]);
+
+    for (const prim of ["cursor-task", "claude-agent", "spawn_subagent"] as const) {
+      const result = evaluateClaimedBabysitPathDeny({
+        claimedKind: "approach1-spawn",
+        tier: TIER1,
+        boundEvidence: {
+          pr: 12,
+          evidencePr: 12,
+          monitorAgentId: "rm-12",
+          registeredPlatformPrimitive: prim,
+          childWatchBoundToMonitorId: true,
+        },
+      });
+      expect(result.deny).toBe(false);
+      expect(result.reason).toBe("admitted");
+    }
   });
 
   it("denies post-CLEAN without claimedPostCleanWait (no pre-CLEAN fallthrough)", () => {

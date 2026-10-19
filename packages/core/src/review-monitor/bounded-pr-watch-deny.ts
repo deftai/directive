@@ -43,6 +43,17 @@ export const LAWFUL_PRE_CLEAN_CLAIMED_KINDS: ReadonlySet<BabysitPathKind> = new 
   "directive-pr-watch-with-monitor-id",
 ]);
 
+/**
+ * Tier-1 Approach 1 register primitives admitted by bound-evidence (#5727).
+ * Matches host-capability stamp / merge-path-arm Approach 1 set — not every
+ * PlatformPrimitive (arbitrary nonempty strings stay rejected).
+ */
+export const APPROACH1_BOUND_PLATFORM_PRIMITIVES: ReadonlySet<string> = new Set([
+  "spawn_subagent",
+  "cursor-task",
+  "claude-agent",
+]);
+
 export function babysitPathAdmissionCost(kind: BabysitPathKind): number {
   return ADMISSION_COST[kind];
 }
@@ -225,9 +236,9 @@ function hasApproach1BoundEvidence(
   const id = evidence.monitorAgentId?.trim() ?? "";
   if (id.length === 0 || id.startsWith("-")) return false;
   if (evidence.childWatchBoundToMonitorId !== true) return false;
-  // Exclusive lawful wait requires register --platform-primitive spawn_subagent (#5727 Greptile).
+  // Approach 1 register: spawn_subagent | cursor-task | claude-agent (#5727 Greptile).
   const prim = (evidence.registeredPlatformPrimitive ?? "").toString().trim();
-  return prim === "spawn_subagent";
+  return APPROACH1_BOUND_PLATFORM_PRIMITIVES.has(prim);
 }
 
 /**
