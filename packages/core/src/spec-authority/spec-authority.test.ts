@@ -598,7 +598,9 @@ describe("spec-authority resolver", () => {
       expect(sourceLine).toContain("%0D%0A");
       expect(sourceLine).toContain("--%3E");
       expect(sourceLine).toContain("%5C");
-      expect(sourceLine?.match(/-->/g)).toHaveLength(1);
+      // Exactly one literal banner closer; reject zero/multiple (CodeQL #109 / Prefer-A Bound).
+      expect(sourceLine).toBeDefined();
+      expect(sourceLine!.split("-->")).toHaveLength(2);
       expect(isFullSpecState(root)).toBe(true);
       expect(isCurrentGeneratedSpecification(root)).toBe(true);
     },
