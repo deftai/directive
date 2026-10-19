@@ -43,10 +43,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **CodeQL polynomial-redos in docs-impact surfaces: parse (alert #114).** Tracking #5743.
 
 
-<<<<<<< HEAD
+### Fixed
+- Fixed — Bound Last-reviewed markdown-link SHA parse in greptile-detector (CodeQL alert #112). Tracking #5742.
 - Fixed — Clear CodeQL js/polynomial-redos alert #115 in doctor containDepositInstallRoot by replacing the trailing-slash regex strip with linear stripTrailingPathSeparators. Refs #115 #5744.
-=======
->>>>>>> 0752b1e3c (fix(security): bound greptile Last-reviewed markdown-link SHA parse (CodeQL #112))
+
 
 ### Removed
 
