@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+### Security
+
+- **Dependabot high: source-map-js event-loop DoS via indexed source-map section offsets (alert #19).** Force `source-map-js@1.2.2` (GHSA-68fv-2mgg-jv7q / CVE-2026-93749; out of `>=1.0.0,<1.2.2`) through the pnpm 11 workspace override so magicast and postcss transitive pins leave the vulnerable line. Same pattern as the prior esbuild / brace-expansion / postcss pins in `pnpm-workspace.yaml`. Tracking #5740.
+
 ### Removed
 
 ## [0.126.1] - 2026-10-19
