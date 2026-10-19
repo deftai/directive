@@ -85,7 +85,7 @@
           "packages/core/src/hooks/dispatcher.ts",
           "packages/core/src/session/spawn-occupancy.test.ts",
           "packages/core/src/hooks/dispatcher-spawn-dest.test.ts",
-          "content/docs/host-cursor.md",
+          "content/skills/deft-directive-swarm/references/host-cursor.md",
           "CHANGELOG.md"
         ],
         "cohesion_exemption": "CHANGELOG shared; host-cursor Multitask matrix for #5770"
@@ -97,7 +97,7 @@
           "packages/core/src/hooks/dispatcher.ts",
           "packages/core/src/session/spawn-occupancy.test.ts",
           "packages/core/src/hooks/dispatcher-spawn-dest.test.ts",
-          "content/docs/host-cursor.md",
+          "content/skills/deft-directive-swarm/references/host-cursor.md",
           "CHANGELOG.md"
         ],
         "module_boundary": "packages/core/src/session/spawn-occupancy.ts",
