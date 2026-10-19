@@ -2098,14 +2098,15 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     }
   });
 
-
   it("locks pre-ingest recommendation skip form and non-engine boundary (#5716)", () => {
     const contract = readText(CONTRACT);
     expect(contract).toContain("### Pre-ingest recommendation (#5716)");
     expect(contract).toContain("design-critique: not warranted, because …");
     expect(contract).toContain("ADR-005 is unchanged");
     expect(contract).toContain("ingest advisory is exit 0 and never blocks");
-    expect(contract).toContain("This scaffolds the recommendation; content-contract tests lock the skip-form string");
+    expect(contract).toContain(
+      "This scaffolds the recommendation; content-contract tests lock the skip-form string",
+    );
     const preStart = contract.indexOf("### Pre-ingest recommendation (#5716)");
     const preEnd = contract.indexOf("\n### ", preStart + 1);
     const preIngest = contract.slice(preStart, preEnd > preStart ? preEnd : preStart + 800);

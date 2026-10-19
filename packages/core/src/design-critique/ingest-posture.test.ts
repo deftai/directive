@@ -46,11 +46,14 @@ describe("ingest-posture (#5716 Prefer-A Recut-3)", () => {
       }),
     ).toBe("neither");
     expect(
-      hasOperativeNotWarrantedSkip("```"+"\ndesign-critique: not warranted, because x\n"+"```"+"\n", []),
+      hasOperativeNotWarrantedSkip(
+        "```" + "\ndesign-critique: not warranted, because x\n" + "```" + "\n",
+        [],
+      ),
     ).toBe(false);
-    expect(
-      hasOperativeNotWarrantedSkip("> design-critique: not warranted, because x\n", []),
-    ).toBe(false);
+    expect(hasOperativeNotWarrantedSkip("> design-critique: not warranted, because x\n", [])).toBe(
+      false,
+    );
     expect(
       classifyDesignCritiqueIngestPosture({
         verdict: { status: "not-in-arc" },
@@ -72,9 +75,7 @@ describe("ingest-posture (#5716 Prefer-A Recut-3)", () => {
 
   it("locks advisory copy without echoing a because-clause", () => {
     expect(DESIGN_CRITIQUE_INGEST_ADVISORY).toContain("deft-directive-design-critique");
-    expect(DESIGN_CRITIQUE_INGEST_ADVISORY).toContain(
-      "design-critique: not warranted, because …",
-    );
+    expect(DESIGN_CRITIQUE_INGEST_ADVISORY).toContain("design-critique: not warranted, because …");
     expect(DESIGN_CRITIQUE_INGEST_ADVISORY).toContain("never blocks");
     expect(DESIGN_CRITIQUE_INGEST_ADVISORY).not.toMatch(/because chore|because skip/);
   });

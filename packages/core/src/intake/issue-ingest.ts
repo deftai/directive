@@ -25,12 +25,12 @@ import {
   DESIGN_CRITIQUE_INGEST_ADVISORY,
 } from "../design-critique/ingest-posture.js";
 import { formatStaleIngestReadyDiagnostic } from "../design-critique/stale-ingest-ready-diagnostic.js";
-import { emitRunSummaryEvent } from "../run-summary/emit.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import { captureAndAttachLiteralAcceptance } from "../literal-acceptance/index.js";
 import { stampIntendedPlacement } from "../preflight/intended-placement.js";
 import { stampAcceptanceFromLiteralCapture } from "../product-first-done-gate/index.js";
+import { emitRunSummaryEvent } from "../run-summary/emit.js";
 import { type CompletedProcess, call } from "../scm/call.js";
 import { bindPlanItemIdsToClauses } from "../scope/acceptance-evidence.js";
 import { extractPlanId, findParentsByPlanId } from "../scope/parent-lineage.js";
@@ -2387,9 +2387,7 @@ export function ingestOne(
     if (ingestPosture !== null) {
       const projectRootForSummary =
         resolveProjectRoot(options.cwd ?? undefined) ??
-        (typeof options.cwd === "string" && options.cwd.length > 0
-          ? options.cwd
-          : process.cwd());
+        (typeof options.cwd === "string" && options.cwd.length > 0 ? options.cwd : process.cwd());
       emitRunSummaryEvent({
         projectRoot: projectRootForSummary,
         event: "design_critique_ingest_posture",

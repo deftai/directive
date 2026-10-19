@@ -9,11 +9,7 @@ import { classifyPosition } from "./citation-grammar.js";
 import type { CompletedArcVerdict, ThreadComment } from "./completed-arc-record.js";
 
 /** Closed three-state postures emitted on design_critique_ingest_posture. */
-export const DESIGN_CRITIQUE_INGEST_POSTURES = [
-  "arced",
-  "skipped-recorded",
-  "neither",
-] as const;
+export const DESIGN_CRITIQUE_INGEST_POSTURES = ["arced", "skipped-recorded", "neither"] as const;
 export type DesignCritiqueIngestPosture = (typeof DESIGN_CRITIQUE_INGEST_POSTURES)[number];
 
 /**

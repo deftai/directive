@@ -170,10 +170,7 @@ export interface AcPassBankRunSummaryPayload {
 }
 
 /** Pre-ingest arc posture three-state (#5716). */
-export type DesignCritiqueIngestPostureOutcome =
-  | "arced"
-  | "skipped-recorded"
-  | "neither";
+export type DesignCritiqueIngestPostureOutcome = "arced" | "skipped-recorded" | "neither";
 
 export interface DesignCritiqueIngestPostureRunSummaryPayload {
   readonly posture: DesignCritiqueIngestPostureOutcome;
