@@ -1,3 +1,8 @@
+/**
+ * Product pre-CLEAN `pr:watch` continuity through attended mint (#5690):
+ * keep this wait live for the product PR, or re-arm a product successor wait.
+ * A mint-PR-only watch is not product merge-path arm.
+ */
 import { defaultRunGh } from "../pr-merge-readiness/gh.js";
 import {
   DEFAULT_CI_BLOCKED_THRESHOLD,

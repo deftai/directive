@@ -3,25 +3,32 @@ import type { LabelClient } from "../vbrief-reconcile/types.js";
 import {
   applyIngestReadyRemainingSet,
   assertCompletedArcAllowsIngest,
+  buildCompletedArcArchiveRecord,
   COMPLETED_ARC_BLOCK_REASONS,
   classifyLgtmSeatCensus,
   commentsInCitedLeanArc,
+  completedArcArchiveKey,
   DesignCritiqueIngestBlockedError,
   emptyOrFootnoteCensusBindAllowed,
+  evaluateArcPromotion,
   evaluateCompletedArcRecord,
+  evaluateCompletedArcRecordFromArchive,
   evaluateLgtmCompletionConjunct,
   evaluateMoveForwardThreadAdmission,
   evaluateTargetDigestAdmission,
   extractCitedCommentIds,
   extractOperativeMaterialityBar,
   extractOperativeTargetDigest,
+  harvestBoundRemedyIntoSameBrief,
   hashIssueBodyBytes,
+  hashTargetBytes,
   isInFlightCritiqueThread,
   isMoveForwardSynthesisShape,
   MOVE_FORWARD_SYNTHESIS_LEAD,
   mapSeatCensusUnderMaterialityBar,
   materialityBarRecordLine,
   parseOperatorMaterialityBar,
+  resolveCompletedArcArchiveRoot,
   type ThreadComment,
 } from "./completed-arc-record.js";
 
@@ -2804,5 +2811,89 @@ describe("ship-ready LGTM / move-forward completion (#5488)", () => {
       seatCensus: ["footnote-only"],
     });
     expect(conjunct).toMatchObject({ ok: false, reason: "missing-move-forward" });
+  });
+});
+
+describe("no-issue archive / digest / harvest (#5486)", () => {
+  it("resolves archive root under main checkout, not dest scratch", () => {
+    expect(resolveCompletedArcArchiveRoot("/repo")).toContain(".deft/design-critique/archive");
+    expect(resolveCompletedArcArchiveRoot("/repo")).not.toContain(".deft-scratch");
+  });
+
+  it("keeps distinct target ids from sharing an archive key after sanitization", () => {
+    const a = completedArcArchiveKey("xbrief/proposed/demo.xbrief.json", "arc-1");
+    const b = completedArcArchiveKey("xbrief_proposed_demo.xbrief.json", "arc-1");
+    expect(a).not.toBe(b);
+    expect(a).toMatch(/__[0-9a-f]{12}\//);
+  });
+
+  it("widens target digest admission for xbrief bytes without forking", () => {
+    const bytes = '{"plan":{"title":"demo"}}';
+    const digest = hashTargetBytes(bytes);
+    const lean = `Lean:\nTarget-digest: sha256:${digest}\n`;
+    expect(
+      evaluateTargetDigestAdmission({
+        citedLeanBody: lean,
+        liveTargetBytes: bytes,
+        targetKind: "xbrief",
+        targetPath: "xbrief/proposed/demo.xbrief.json",
+      }),
+    ).toEqual({ status: "match", digest });
+    expect(
+      evaluateTargetDigestAdmission({
+        citedLeanBody: lean,
+        liveTargetBytes: bytes + "x",
+        targetKind: "xbrief",
+      }).status,
+    ).toBe("blocked");
+  });
+
+  it("reads completed-arc from retained archive and refuses two live arcs", () => {
+    const record = buildCompletedArcArchiveRecord({
+      targetId: "xbrief/proposed/demo.xbrief.json",
+      arcId: "arc-1",
+      targetKind: "xbrief",
+      comments: [],
+    });
+    expect(evaluateCompletedArcRecordFromArchive(record).status).toBe("not-in-arc");
+    expect(evaluateArcPromotion({ archiveRecord: record, liveArcCountForTarget: 2 }).ok).toBe(
+      false,
+    );
+    expect(
+      evaluateArcPromotion({ archiveRecord: record, liveArcCountForTarget: 1, linkMirror: true }),
+    ).toEqual({ ok: true, archiveIsSoT: true, mirrorLinked: true });
+  });
+
+  it("harvests Bound remedy into same brief with hashBoundRemedyBytes key", () => {
+    const body = "## Bound remedy\n\n- limb one title\n- limb two title\n";
+    const ok = harvestBoundRemedyIntoSameBrief({
+      planId: "github.issue.5764427724",
+      expectedRevision: "rev-1",
+      currentRevision: "rev-1",
+      boundRemedyBody: body,
+      overviewReplacement: "harvested overview",
+      planItemsReplacement: [{ id: "clause.1", title: "limb one title" }],
+      planMetadataPatch: {},
+      sourceProvenance: "bound:6226235114",
+      resultProvenance: "brief:github.issue.5764427724",
+    });
+    expect(ok.ok).toBe(true);
+    if (ok.ok) {
+      expect(ok.idempotenceKey).toHaveLength(64);
+      expect(ok.overview).toBe("harvested overview");
+    }
+    expect(
+      harvestBoundRemedyIntoSameBrief({
+        planId: "github.issue.5764427724",
+        expectedRevision: "rev-1",
+        currentRevision: "rev-2",
+        boundRemedyBody: body,
+        overviewReplacement: "x",
+        planItemsReplacement: [],
+        planMetadataPatch: {},
+        sourceProvenance: "s",
+        resultProvenance: "r",
+      }),
+    ).toEqual({ ok: false, reason: "revision-mismatch" });
   });
 });

@@ -139,6 +139,9 @@ describe("Directive Tutorial proof (#4981)", () => {
               },
             ],
           },
+          narratives: {
+            Findings: "Practice sitting closed; acceptance check verified.",
+          },
           metadata: {
             swarm: {
               file_scope: ["signal/**"],

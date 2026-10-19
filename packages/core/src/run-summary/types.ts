@@ -33,6 +33,7 @@ export const RUN_SUMMARY_EVENT_KINDS = [
   "acceptance",
   "acceptance_stamp",
   "ac_pass_bank",
+  "design_critique_ingest_posture",
 ] as const;
 
 export type RunSummaryEventKind = (typeof RUN_SUMMARY_EVENT_KINDS)[number];
@@ -168,6 +169,14 @@ export interface AcPassBankRunSummaryPayload {
   readonly path?: string;
 }
 
+/** Pre-ingest arc posture three-state (#5716). */
+export type DesignCritiqueIngestPostureOutcome = "arced" | "skipped-recorded" | "neither";
+
+export interface DesignCritiqueIngestPostureRunSummaryPayload {
+  readonly posture: DesignCritiqueIngestPostureOutcome;
+  readonly issue_number?: number;
+}
+
 /** Product-oracle attempt (#3322). Same emitter as #3319 / #3320. */
 export type VerificationOutcome = "pass" | "fail";
 
@@ -236,7 +245,8 @@ export type RunSummaryPayload =
   | VerificationRunSummaryPayload
   | AcceptanceRunSummaryPayload
   | AcceptanceStampRunSummaryPayload
-  | AcPassBankRunSummaryPayload;
+  | AcPassBankRunSummaryPayload
+  | DesignCritiqueIngestPostureRunSummaryPayload;
 
 export type RunSummaryLine = RunSummaryBaseFields & {
   readonly payload: RunSummaryPayload;

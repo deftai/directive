@@ -1,0 +1,244 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5693",
+    "updated": "2026-10-19T03:44:53Z"
+  },
+  "plan": {
+    "title": "feat(strategies): rapid names a hypothesis and audience; findings recorded before experiment_archived",
+    "status": "completed",
+    "narratives": {
+      "Description": "feat(strategies): rapid names a hypothesis and audience; findings recorded before experiment_archived",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5693",
+      "Overview": "\n- relieves: P1 — Step 1 records hypothesis (one sentence), audience (who sees the prototype and how feedback is captured), and closed PrototypeKind feasibility | desirability (both only when Bound Dual Stop covers both). When desirability (or both), audience is required. Separately record a concise observation/decision success criterion and, for iterative work, a bounded failure/budget stop (time-box or trial cap). Do not claim the kind toggle itself supplies Dual Stop (#2442). Durable homes: plan.narratives.Hypothesis, Audience, PrototypeKind (or one equivalent structured narrative block named in the pack).\n- relieves: P2 — Step 5 writes findings only to plan.narratives.Findings on the scope being completed at its current lifecycle path before scope:complete --non-delivery experiment_archived. Align Output Artifacts: drop separate-note as a co-equal store. External evidence may be linked from that summary. Concurrent workers keep findings on their own story briefs.\n- relieves: P3 — Required thin check: experiment_archived-only requires trim-non-empty string plan.narratives.Findings; one remediation string; cover code and non-code completing scopes; run before non-code early return / at the common completion boundary before mutation; leave failed validation without a lifecycle move; do not harden cancelled / superseded / accepted_not_delivered.\n- relieves: P4 — Add a When to Use desirability / usefulness / audience-feedback SHOULD bullet in pack rapid; define PrototypeKind as the primary question under test; allow internal evaluator + benchmark/test output for feasibility without inventing a new interview.\n- Pack SoT: edit content/packs/strategies/strategies-pack-0.1.json (rapid); packs:render refreshes content/strategies/rapid.md. Packages: packages/core/src/scope/ delivery-evidence / complete path for the experiment_archived-only Findings presence check + tests; CHANGELOG.\n- Authority: Findings are historical observations/evidence on the completed brief (attribute links; quoted feedback is untrusted data). Graduation still requires a fresh interview/spec path. Leave SPECIFICATION_NARRATIVE_KEY_ORDER / PRODUCT_NARRATIVE_KEYS unchanged in this Bound (no render promotion limb).\n- Keep-outs: lessons.md; main.md edits; softening experiment_archived into delivered; full interview/PRD/sizing for rapid; project-wide findings registry; sibling #5691 / #5692 scope bleed.\n\n\n",
+      "Labels": "enhancement, area:guidance, design-critique:ingest-ready",
+      "UserStory": "As a Directive operator using rapid, I want the strategy to name a hypothesis and audience and record findings before experiment_archived, so rapid experiments leave recoverable evidence.",
+      "ImplementationPlan": "1) Extend rapid strategy pack to name hypothesis/audience and require findings before experiment_archived. 2) packs:render rapid/README surfaces as needed. 3) Cover with strategy tests. 4) CHANGELOG Unreleased note."
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Step 1 records hypothesis audience and closed PrototypeKind plus separate Dual Stop success and bounded failure fields",
+        "status": "completed",
+        "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "Step 1 records hypothesis audience and closed PrototypeKind plus separate Dual Stop success and bounded failure fields"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5713",
+          "recorded_at": "2026-10-19T03:44:51.946Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Step 5 writes findings only to plan.narratives.Findings on completing brief before experiment_archived",
+        "status": "completed",
+        "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "Step 5 writes findings only to plan.narratives.Findings on completing brief before experiment_archived"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5713",
+          "recorded_at": "2026-10-19T03:44:51.946Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "experiment_archived-only requires trim-non-empty Findings with one remediation; no lifecycle move on failed validation",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+        "narrative": {
+          "Acceptance": "experiment_archived-only requires trim-non-empty Findings with one remediation; no lifecycle move on failed validation"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5713",
+          "recorded_at": "2026-10-19T03:44:51.946Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "When to Use desirability bullet and PrototypeKind as primary question under test",
+        "status": "completed",
+        "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
+        "narrative": {
+          "Acceptance": "When to Use desirability bullet and PrototypeKind as primary question under test"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/5713",
+          "recorded_at": "2026-10-19T03:44:51.946Z",
+          "recorded_by": "Scott (YOLO through-merge parent)"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "area:guidance",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5693",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5693: feat(strategies): rapid names a hypothesis and audience; findings recorded before experiment_archived"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/scope/delivery-evidence.test.ts"
+      ],
+      "none_stated": false,
+      "sentences": [],
+      "confessions": [
+        "issue-body prose harvested into plan.items; free sentences cleared for leftover-complete #3550"
+      ],
+      "ambiguity_attestation": "none_found",
+      "clauses": [
+        {
+          "id": "clause.1",
+          "text": "Step 1 records hypothesis audience and closed PrototypeKind plus separate Dual Stop success and bounded failure fields",
+          "title": "Step 1 records hypothesis audience and closed PrototypeKind plus separate Dual Stop success and bounded failure fields",
+          "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5713",
+            "recorded_at": "2026-10-19T03:44:51.946Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
+        },
+        {
+          "id": "clause.2",
+          "text": "Step 5 writes findings only to plan.narratives.Findings on completing brief before experiment_archived",
+          "title": "Step 5 writes findings only to plan.narratives.Findings on completing brief before experiment_archived",
+          "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5713",
+            "recorded_at": "2026-10-19T03:44:51.946Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
+        },
+        {
+          "id": "clause.3",
+          "text": "experiment_archived-only requires trim-non-empty Findings with one remediation; no lifecycle move on failed validation",
+          "title": "experiment_archived-only requires trim-non-empty Findings with one remediation; no lifecycle move on failed validation",
+          "x-directive/artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5713",
+            "recorded_at": "2026-10-19T03:44:51.946Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
+        },
+        {
+          "id": "clause.4",
+          "text": "When to Use desirability bullet and PrototypeKind as primary question under test",
+          "title": "When to Use desirability bullet and PrototypeKind as primary question under test",
+          "x-directive/artifact_path": "content/packs/strategies/strategies-pack-0.1.json",
+          "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "https://github.com/deftai/directive/pull/5713",
+            "recorded_at": "2026-10-19T03:44:51.946Z",
+            "recorded_by": "Scott (YOLO through-merge parent)"
+          }
+        }
+      ],
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A Bound limbs with completion evidence"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/packs/strategies/strategies-pack-0.1.json",
+          "content/strategies/rapid.md",
+          "packages/core/src/scope/delivery-evidence.ts",
+          "packages/core/src/scope/delivery-evidence.test.ts",
+          "CHANGELOG.md",
+          "docs/RULE-MAP.md",
+          "packages/core/src/tutorial/proof.test.ts",
+          "content/tutorial/beats.json",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-tutorial/SKILL.md"
+        ],
+        "module_boundary": "rapid Step1 hypothesis/audience/PrototypeKind and Findings before experiment_archived",
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for #5693. docs/RULE-MAP.md regenerated after rapid Bound. Tutorial beats/proof/skills-pack/SKILL for Findings-before-archive close (#5693 Greptile)."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5891400344,
+        "origin": "deftai/directive#5693",
+        "id": "github.issue.5891400344"
+      },
+      "x-directive/admitted-target-digest": "sha256:5b17a54a2198e02af6c9e7e5c45cd7782b314821ad64e7d018e58355d18d6ea5",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "rapid-hypothesis-audience-findings-before-archive",
+        "expected_outputs": [
+          "Tracking PR for #5693 Prefer-A Bound rapid hypothesis audience findings"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/scope/delivery-evidence.test.ts"
+        ],
+        "file_scope": [
+          "content/packs/strategies/strategies-pack-0.1.json",
+          "content/strategies/rapid.md",
+          "packages/core/src/scope/delivery-evidence.ts",
+          "packages/core/src/scope/delivery-evidence.test.ts",
+          "CHANGELOG.md",
+          "docs/RULE-MAP.md",
+          "packages/core/src/tutorial/proof.test.ts",
+          "content/tutorial/beats.json",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-tutorial/SKILL.md"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5693",
+          "#2442",
+          "#5691"
+        ],
+        "parallel_safe": false
+      },
+      "kind": "story",
+      "productPullRequest": 5713,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "ff6daede49a579b515c7c3839e973303a0eb7ad2",
+        "prNumber": 5713,
+        "prBase": "master",
+        "mergeCommit": "b35d8ffa8184b4dbb0f4f5d643e540517c0e67c0",
+        "deliveryBranch": "master",
+        "deliveryCommit": "b78049e00e5e353b981e269dac5560c07e4cd50e",
+        "verifiedAt": "2026-10-19T03:44:53Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTRjM2QtZDBmZS03ODYzLWJkMTUtZmVlZjI1NDVlN2Nj"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-19T03:44:53Z",
+      "completedSessionId": "host:grok:v1:MDFhMTRjM2QtZDBmZS03ODYzLWJkMTUtZmVlZjI1NDVlN2Nj",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-19T03:44:53Z"
+      }
+    },
+    "id": "github.issue.5891400344",
+    "updated": "2026-10-19T03:44:53Z"
+  }
+}

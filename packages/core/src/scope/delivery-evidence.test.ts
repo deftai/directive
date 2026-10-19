@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -14,6 +14,7 @@ import {
   defaultFetchPrPayload,
   discoverDeliveryEvidenceForComplete,
   evaluateDeliveryGate,
+  evaluateExperimentArchivedFindingsGate,
   evaluateStoredCompletionProvenanceForWriteGuard,
   type FetchClosingIssueIdsFn,
   type FetchClosingPrRefsFn,
@@ -1249,6 +1250,149 @@ describe("delivery evidence (#3041)", () => {
         ],
       }),
     ).toEqual({ repository: "deftai/directive", issueNumber: 99 });
+  });
+});
+
+describe("experiment_archived Findings gate (#5693)", () => {
+  let root = "";
+
+  afterEach(() => {
+    if (root) {
+      rmSync(root, { recursive: true, force: true });
+      root = "";
+    }
+  });
+
+  function writePlan(
+    projectRoot: string,
+    plan: Record<string, unknown>,
+    name = "story.xbrief.json",
+  ): string {
+    const file = join(projectRoot, "xbrief", "active", name);
+    writeFileSync(
+      file,
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan,
+      }),
+      "utf8",
+    );
+    return file;
+  }
+
+  it("evaluateExperimentArchivedFindingsGate requires trim-non-empty Findings", () => {
+    expect(evaluateExperimentArchivedFindingsGate({ title: "x" }).ok).toBe(false);
+    expect(
+      evaluateExperimentArchivedFindingsGate({
+        narratives: { Findings: "   " },
+      }).ok,
+    ).toBe(false);
+    expect(
+      evaluateExperimentArchivedFindingsGate({
+        narratives: { Findings: "learned that X failed under Y" },
+      }).ok,
+    ).toBe(true);
+  });
+
+  it("refuses code-bearing experiment_archived without Findings and leaves brief unmoved", () => {
+    root = makeRepo();
+    const file = writeCodeBearing(root);
+    const before = readFileSync(file, "utf8");
+    const result = runTransition("complete", file, new Date("2026-10-18T12:00:00Z"), {
+      nonDeliveryDisposition: "experiment_archived",
+      runGit: gitOk(),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/plan\.narratives\.Findings/);
+    expect(result.message).toMatch(/#5693/);
+    expect(readFileSync(file, "utf8")).toBe(before);
+    expect(existsSync(join(root, "xbrief", "completed", "story.xbrief.json"))).toBe(false);
+  });
+
+  it("accepts code-bearing experiment_archived with Findings", () => {
+    root = makeRepo();
+    const file = writePlan(root, {
+      title: "code story",
+      status: "running",
+      narratives: { Findings: "spike showed the API rate-limits at 10 rps" },
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/issues/3041",
+          type: "x-xbrief/github-issue",
+        },
+      ],
+      metadata: {
+        kind: "story",
+        swarm: { file_scope: ["packages/core/src/scope/transition.ts"] },
+      },
+      items: [],
+    });
+    const result = runTransition("complete", file, new Date("2026-10-18T12:00:00Z"), {
+      nonDeliveryDisposition: "experiment_archived",
+      runGit: gitOk(),
+    });
+    expect(result.ok).toBe(true);
+    const dest = join(root, "xbrief", "completed", "story.xbrief.json");
+    const data = JSON.parse(readFileSync(dest, "utf8")) as {
+      plan: { metadata: { completionProvenance: { disposition: string } } };
+    };
+    expect(data.plan.metadata.completionProvenance.disposition).toBe("experiment_archived");
+  });
+
+  it("refuses non-code experiment_archived without Findings before early return", () => {
+    root = makeRepo();
+    const file = writePlan(root, {
+      title: "docs story",
+      status: "running",
+      tags: ["docs-only"],
+      metadata: { kind: "docs" },
+      items: [],
+    });
+    const before = readFileSync(file, "utf8");
+    const result = runTransition("complete", file, new Date("2026-10-18T12:00:00Z"), {
+      nonDeliveryDisposition: "experiment_archived",
+      runGit: gitOk(),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/plan\.narratives\.Findings/);
+    expect(readFileSync(file, "utf8")).toBe(before);
+  });
+
+  it("accepts non-code experiment_archived with Findings", () => {
+    root = makeRepo();
+    const file = writePlan(root, {
+      title: "docs story",
+      status: "running",
+      tags: ["docs-only"],
+      narratives: { Findings: "audience rejected the copy in trial 1" },
+      metadata: { kind: "docs" },
+      items: [],
+    });
+    const result = runTransition("complete", file, new Date("2026-10-18T12:00:00Z"), {
+      nonDeliveryDisposition: "experiment_archived",
+      runGit: gitOk(),
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("does not require Findings for cancelled", () => {
+    root = makeRepo();
+    const cancelled = writeCodeBearing(root, "cancelled.xbrief.json");
+    const cancelledResult = runTransition("complete", cancelled, new Date("2026-10-18T12:00:00Z"), {
+      nonDeliveryDisposition: "cancelled",
+      runGit: gitOk(),
+    });
+    expect(cancelledResult.ok).toBe(true);
+  });
+
+  it("does not require Findings for accepted_not_delivered", () => {
+    root = makeRepo();
+    const accepted = writeCodeBearing(root, "accepted.xbrief.json");
+    const acceptedResult = runTransition("complete", accepted, new Date("2026-10-18T12:00:00Z"), {
+      nonDeliveryDisposition: "accepted_not_delivered",
+      runGit: gitOk(),
+    });
+    expect(acceptedResult.ok).toBe(true);
   });
 });
 

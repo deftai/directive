@@ -84,13 +84,13 @@
       "name": "Close",
       "wired": true,
       "where": "Step 6 of 7.",
-      "about": "Record acceptance proof on the work file, then mark the work finished only after the acceptance sentence was verified. Then the work list for this practice sitting is empty.",
+      "about": "Record a short Findings note on the work file (plan.narratives.Findings), stamp acceptance proof, then mark the work finished only after the acceptance sentence was verified. Then the work list for this practice sitting is empty.",
       "terms": [
         "done"
       ],
       "caveat": "",
       "output": "",
-      "command": "deft scope:stamp-evidence -- {activeWorkItemPath}\ndeft scope:complete -- {activeWorkItemPath} --non-delivery experiment_archived",
+      "command": "node -e \"const fs=require('fs');const p=process.argv[1];const j=JSON.parse(fs.readFileSync(p,'utf8'));j.plan=j.plan||{};j.plan.narratives={...(j.plan.narratives||{}),Findings:'Practice sitting closed; acceptance check verified.'};fs.writeFileSync(p,JSON.stringify(j,null,2)+'\\n');\" -- {activeWorkItemPath}\ndeft scope:stamp-evidence -- {activeWorkItemPath}\ndeft scope:complete -- {activeWorkItemPath} --non-delivery experiment_archived",
       "next": "Complete the work item?\n\n1. Go\n2. Leave\n3. Discuss\n4. Back"
     },
     {

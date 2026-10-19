@@ -72,9 +72,14 @@ import {
 } from "../session/git.js";
 import { isLinkedWorktreePath } from "../session/main-worktree.js";
 import {
+  type ApplyingHostTransport,
+  evaluateApplyingHostLifecycleAdmission,
   evaluateOccupancyWriteGate,
   formatOccupancyLeaseViewNote,
+  liveOccupant,
   occupancyPath,
+  publishApplyingHost,
+  publishApplyingHostFromCanonicalSessionId,
   resolveOccupancyLeaseRoot,
 } from "../session/occupancy.js";
 import { occupancyAwareDenialMessage } from "../session/occupancy-recovery.js";
@@ -3209,6 +3214,51 @@ function remapProxyShellUpdatedInput(
 }
 
 /**
+ * Publish the worktree applying-host record from SessionStart (#5676).
+ *
+ * Best-effort and non-blocking: a publish miss must not deny SessionStart.
+ * Leftover GROK_SESSION_ID alone never selects provider; only GROK_HOOK_EVENT
+ * marks Claude→grok vendor-compat transport.
+ */
+function tryPublishApplyingHostFromSessionStart(
+  input: HookDispatchInput,
+  projectRoot: string,
+): void {
+  try {
+    const environ = input.environ ?? process.env;
+    const identity = resolveHookHostIdentity(input.host, input.payload, environ);
+    if (identity.status !== "ok" || identity.sessionId === null) return;
+    // Do not replace applying-host while another session holds the live occupancy
+    // lease — keeps the incumbent owner's heartbeat/release/session:end usable
+    // (#5676 Greptile P1). Matching owner may republish as reinforcement.
+    const live = liveOccupant(projectRoot);
+    if (live !== null && live.sessionId !== identity.sessionId) {
+      return;
+    }
+    const transport: ApplyingHostTransport =
+      identity.provider === "grok" && environ.GROK_HOOK_EVENT?.trim()
+        ? "grok-hook-event"
+        : "native";
+    // Native Cursor SessionStart must stay cursor even when GROK_SESSION_ID lingers.
+    if (input.host === "cursor" && transport === "native") {
+      publishApplyingHost(projectRoot, {
+        provider: "cursor",
+        rawSessionId: identity.rawSessionId,
+        transport: "native",
+      });
+      return;
+    }
+    publishApplyingHost(projectRoot, {
+      provider: identity.provider,
+      rawSessionId: identity.rawSessionId,
+      transport,
+    });
+  } catch {
+    /* SessionStart stays non-blocking */
+  }
+}
+
+/**
  * Add the claim-time owner only after the existing shell decision allowed the
  * command. The host wire format must emit `allow` with updated input, so this
  * path is intentionally restricted by rewriteExactLifecycleCommand.
@@ -3252,6 +3302,30 @@ function attachLifecycleIdentityRewrite(
       identity.sessionId !== null &&
       hintedSession.sessionId !== identity.sessionId
     ) {
+      const admission = evaluateApplyingHostLifecycleAdmission({
+        projectRoot: resolve(input.projectRoot),
+        // Resolved provider (e.g. Claude+GROK_HOOK_EVENT → grok), not wire host.
+        depositHost: identity.provider,
+        depositSessionId: identity.sessionId,
+        namedSessionId: hintedSession.sessionId,
+      });
+      if (admission.kind === "soft-pass") return decision;
+      if (admission.kind === "repair") {
+        return deny(
+          input,
+          "occupancy-identity-conflict",
+          toolName,
+          withHookHostArgv(input.host, admission.message),
+        );
+      }
+      if (admission.kind === "foreign-owner") {
+        return deny(
+          input,
+          "occupancy-identity-conflict",
+          toolName,
+          withHookHostArgv(input.host, admission.message),
+        );
+      }
       return deny(
         input,
         "occupancy-identity-conflict",
@@ -3278,8 +3352,51 @@ function attachLifecycleIdentityRewrite(
       uninspectableLifecycleDenyMessage(hinted, named, input.payload),
     );
   }
-  // #4660: non-claiming read-only session:start keeps the prior allow.
-  if (!lifecycle.requiresOwner) return decision;
+  // #4660: non-claiming read-only session:start keeps the prior allow, and may
+  // publish/repair the applying-host record without requiring a prior record (#5676).
+  // Skip when --project-root (rewriteUnsafe) is present so this hook does not
+  // overwrite a different worktree; the CLI publishes the command target.
+  if (!lifecycle.requiresOwner) {
+    if (
+      lifecycle.rewriteSafe &&
+      lifecycle.sessionIdStatus === "present" &&
+      lifecycle.sessionId !== null
+    ) {
+      try {
+        const root = resolve(input.projectRoot);
+        // Same live-lease guard as SessionStart (#5676 Greptile P1): read-only
+        // session:start must not replace applying-host for a foreign live owner.
+        const live = liveOccupant(root);
+        if (live === null || live.sessionId === lifecycle.sessionId) {
+          const environ = input.environ ?? process.env;
+          const transport: ApplyingHostTransport = environ.GROK_HOOK_EVENT?.trim()
+            ? "grok-hook-event"
+            : "native";
+          // Prefer deposit identity when it matches the named canonical owner.
+          const identity = resolveHookHostIdentity(input.host, input.payload, environ);
+          if (
+            identity.status === "ok" &&
+            identity.sessionId === lifecycle.sessionId &&
+            // Leftover GROK_SESSION_ID alone must not publish Cursor as Claude/grok.
+            !(input.host === "cursor" && transport === "grok-hook-event")
+          ) {
+            publishApplyingHost(root, {
+              provider: identity.provider,
+              rawSessionId: identity.rawSessionId,
+              transport: input.host === "cursor" ? "native" : transport,
+            });
+          } else {
+            publishApplyingHostFromCanonicalSessionId(root, lifecycle.sessionId, {
+              transport: input.host === "cursor" ? "native" : transport,
+            });
+          }
+        }
+      } catch {
+        /* read-only path stays non-blocking */
+      }
+    }
+    return decision;
+  }
   type LifecycleIdentityCode = Extract<
     HookDecisionCode,
     "occupancy-identity-conflict" | "occupancy-identity-unavailable"
@@ -3316,24 +3433,56 @@ function attachLifecycleIdentityRewrite(
         "manual callers must pass --session-id explicitly outside the host rewrite path.",
     );
   }
+  const applyingAdmission = evaluateApplyingHostLifecycleAdmission({
+    projectRoot: resolve(input.projectRoot),
+    // Resolved provider (e.g. Claude+GROK_HOOK_EVENT → grok), not wire host.
+    depositHost: identity.provider,
+    depositSessionId: identity.sessionId,
+    namedSessionId: lifecycle.sessionIdStatus === "present" ? (lifecycle.sessionId ?? null) : null,
+  });
+  // Confirmed occupancy:steal must reach stealOccupancy under the thief's
+  // verified identity; applying-host still naming the incumbent must not block
+  // that supported takeover (#5676 Greptile P1).
+  const stealConfirmBypass =
+    lifecycle.verb === "occupancy:steal" &&
+    (hookShellCommand(input.payload) ?? "").split(/\s+/).includes("--confirm");
+  if (applyingAdmission.kind === "repair" && !stealConfirmBypass) {
+    return denyIdentity("occupancy-identity-conflict", applyingAdmission.message);
+  }
+  let liveOwnerBypass = false;
+  if (applyingAdmission.kind === "foreign-owner") {
+    const live = liveOccupant(resolve(input.projectRoot));
+    if (live !== null && live.sessionId === identity.sessionId) {
+      // Applying-host was replaced by another SessionStart; keep live lease owner
+      // on the rewrite path for heartbeat/release/session:end (#5676).
+      liveOwnerBypass = true;
+    } else if (!stealConfirmBypass) {
+      return denyIdentity("occupancy-identity-conflict", applyingAdmission.message);
+    }
+  }
+  // Confirmed steal: thief is always the verified host identity. Never promote
+  // applying-host (incumbent) or an unrelated --session-id into the lease
+  // (#5676 Greptile P1 "Takeovers trust the wrong owner").
+  const effectiveOwner =
+    stealConfirmBypass || liveOwnerBypass
+      ? identity.sessionId
+      : applyingAdmission.kind === "soft-pass" || applyingAdmission.kind === "enforce"
+        ? applyingAdmission.record.applyingHostSessionId
+        : identity.sessionId;
   const environmentId = (input.environ ?? process.env).DEFT_SESSION_ID?.trim();
-  if (
-    environmentId !== undefined &&
-    environmentId.length > 0 &&
-    environmentId !== identity.sessionId
-  ) {
+  if (environmentId !== undefined && environmentId.length > 0 && environmentId !== effectiveOwner) {
     return denyIdentity(
       "occupancy-identity-conflict",
-      `Directive denied ${toolName}: host owner ${identity.sessionId} conflicts with ` +
+      `Directive denied ${toolName}: host owner ${effectiveOwner} conflicts with ` +
         `DEFT_SESSION_ID ${environmentId}; refusing an auto-approved lifecycle rewrite.`,
     );
   }
-  if (lifecycle.sessionIdStatus === "present" && lifecycle.sessionId !== identity.sessionId) {
+  if (lifecycle.sessionIdStatus === "present" && lifecycle.sessionId !== effectiveOwner) {
     return denyIdentity(
       "occupancy-identity-conflict",
       `Directive denied ${toolName}: lifecycle command ${lifecycle.verb} names ` +
         `${lifecycle.sessionId ?? "<missing>"}, but the host owner is ` +
-        `${identity.sessionId}.`,
+        `${effectiveOwner}.`,
     );
   }
   const sourceTask =
@@ -3344,7 +3493,7 @@ function attachLifecycleIdentityRewrite(
     input.projectRoot,
     seams.realpathLifecycleExecutionRoot ?? realpathSync,
     seams.lifecycleExecutionPlatform ?? process.platform,
-    identity.sessionId,
+    effectiveOwner,
   );
   if (!executionRoot.aligned) {
     return denyIdentity(
@@ -3353,6 +3502,10 @@ function attachLifecycleIdentityRewrite(
         `Run the lifecycle command from ${normalizeHookProjectRoot(resolve(input.projectRoot))} ` +
         "so policy, lease, and ritual state target the same worktree.",
     );
+  }
+  // Soft-pass still requires same-worktree execution before skipping rewrite (#5676).
+  if (applyingAdmission.kind === "soft-pass") {
+    return decision;
   }
   const rewriteAllowed = lifecycle.rewriteSafe && sourceTask;
   if (lifecycle.sessionIdStatus === "absent" && !rewriteAllowed) {
@@ -3365,17 +3518,17 @@ function attachLifecycleIdentityRewrite(
     return denyIdentity(
       "occupancy-identity-unavailable",
       `Directive denied exact lifecycle command ${lifecycle.verb}: ${reason}. ` +
-        `Re-run the command with --session-id=${identity.sessionId}; Directive will verify ` +
+        `Re-run the command with --session-id=${effectiveOwner}; Directive will verify ` +
         "that explicit owner without auto-approving or replacing the command.",
     );
   }
-  const rewrite = rewriteExactLifecycleCommand(input.payload, identity.sessionId);
+  const rewrite = rewriteExactLifecycleCommand(input.payload, effectiveOwner);
   if (rewrite === null) return decision;
   if (rewrite.kind === "conflict") {
     return denyIdentity(
       "occupancy-identity-conflict",
       `Directive denied ${toolName}: ${rewrite.message} Host payload owner is ` +
-        `${identity.sessionId}, but the command names ${rewrite.existingSessionId}.`,
+        `${effectiveOwner}, but the command names ${rewrite.existingSessionId}.`,
     );
   }
   return { ...decision, updatedInput: rewrite.updatedInput };
@@ -3782,6 +3935,10 @@ function routeHookDecision(
         scopePath: null,
       };
     }
+    // #5676: SessionStart-first applying-host record before any Shell PreToolUse.
+    // Leftover GROK_SESSION_ID alone must not remap native Cursor; GROK_HOOK_EVENT
+    // still marks Claude→grok vendor-compat transport.
+    tryPublishApplyingHostFromSessionStart(input, projectRoot);
     try {
       const result = (seams.sessionStart ?? runSessionStartHookWrite)(projectRoot);
       if (result.code !== 0) {

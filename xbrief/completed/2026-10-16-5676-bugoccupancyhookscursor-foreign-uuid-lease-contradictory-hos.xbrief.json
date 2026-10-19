@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "bug(occupancy,hooks,cursor): foreign UUID lease + contradictory host owner on session:start (ProjectMON 0.125.2 dogfood)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(occupancy,hooks,cursor): foreign UUID lease + contradictory host owner on session:start (ProjectMON 0.125.2 dogfood)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5676",
@@ -17,55 +17,127 @@
       {
         "id": "clause.1",
         "title": "Publish worktree-scoped applying-host record on SessionStart before Shell PreToolUse with provider raw id applyingHostSessionId and claimed_at.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/hooks/dispatcher.ts",
         "narrative": {
           "Acceptance": "Publish worktree-scoped applying-host record on SessionStart before Shell PreToolUse with provider raw id applyingHostSessionId and claimed_at."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5682 squash-merge (Tracking #5676).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5682",
+            "mintedAt": "2026-10-17T20:00:15.427Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-17T20:00:15.427Z"
         }
       },
       {
         "id": "clause.2",
         "title": "Bootstrap and repair: reconnect SessionStart and/or read-only session start may write the applying-host record without a prior record; mutation rearm republishes as reinforcement.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/cli/src/session-start.ts",
         "narrative": {
           "Acceptance": "Bootstrap and repair: reconnect SessionStart and/or read-only session start may write the applying-host record without a prior record; mutation rearm republishes as reinforcement."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5682 squash-merge (Tracking #5676).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5682",
+            "mintedAt": "2026-10-17T20:00:15.427Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-17T20:00:15.427Z"
         }
       },
       {
         "id": "clause.3",
         "title": "Idempotent printed applyingHostSessionId remediation clears identity contradiction across participating adapters on immediate re-run without opposite host prefix.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/session/occupancy.ts",
         "narrative": {
           "Acceptance": "Idempotent printed applyingHostSessionId remediation clears identity contradiction across participating adapters on immediate re-run without opposite host prefix."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5682 squash-merge (Tracking #5676).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5682",
+            "mintedAt": "2026-10-17T20:00:15.427Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-17T20:00:15.427Z"
         }
       },
       {
         "id": "clause.4",
         "title": "Leftover GROK_SESSION_ID alone must not remap Cursor lifecycle to host claude; preserve genuine GROK_HOOK_EVENT Claude-grok; applying-host record distinguishes native Cursor from compat transport.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/hooks/dispatcher.ts",
         "narrative": {
           "Acceptance": "Leftover GROK_SESSION_ID alone must not remap Cursor lifecycle to host claude; preserve genuine GROK_HOOK_EVENT Claude-grok; applying-host record distinguishes native Cursor from compat transport."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5682 squash-merge (Tracking #5676).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5682",
+            "mintedAt": "2026-10-17T20:00:15.427Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-17T20:00:15.427Z"
         }
       },
       {
         "id": "clause.5",
         "title": "Composed re-arm walk: missing or stale record then SessionStart publication then mutation retry then gated ritual then later applying-host admission; UUID residual deferred to 5544.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "packages/core/src/session/occupancy.ts",
         "narrative": {
           "Acceptance": "Composed re-arm walk: missing or stale record then SessionStart publication then mutation retry then gated ritual then later applying-host admission; UUID residual deferred to 5544."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5682 squash-merge (Tracking #5676).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5682",
+            "mintedAt": "2026-10-17T20:00:15.427Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-17T20:00:15.427Z"
         }
       },
       {
         "id": "clause.6",
         "title": "Ship CHANGELOG Unreleased note for applying-host SessionStart Prefer-A Bound.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/artifact_path": "CHANGELOG.md",
         "narrative": {
           "Acceptance": "Ship CHANGELOG Unreleased note for applying-host SessionStart Prefer-A Bound."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5682 squash-merge (Tracking #5676).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5682",
+            "mintedAt": "2026-10-17T20:00:15.427Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-17T20:00:15.427Z"
         }
       }
     ],
@@ -200,6 +272,30 @@
           "#4660"
         ],
         "parallel_safe": true
+      },
+      "deliveryProvenance": {
+        "productPullRequest": 5682,
+        "mergeCommit": "efbeba33055e24d5d2c1a64d55c31436e4ebf0ce",
+        "deliveryBranch": "master"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-17T20:00:15.427Z"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 5682,
+        "prBase": "master",
+        "mergeCommit": "efbeba33055e24d5d2c1a64d55c31436e4ebf0ce",
+        "deliveryBranch": "master",
+        "deliveryCommit": "efbeba33055e24d5d2c1a64d55c31436e4ebf0ce",
+        "verifiedAt": "2026-10-17T20:00:15.427Z",
+        "verifier": "parent-retained-closer/leftover-5676",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
       }
     },
     "id": "github.issue.5887128674",

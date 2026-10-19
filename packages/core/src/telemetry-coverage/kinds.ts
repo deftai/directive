@@ -23,6 +23,7 @@ export const EVENT_KIND_TO_EMITTER_METHODS: Readonly<
   acceptance: ["emitAcceptance"],
   acceptance_stamp: ["emitAcceptanceStamp"],
   ac_pass_bank: ["emitAcPassBank"],
+  design_critique_ingest_posture: ["emitDesignCritiqueIngestPosture"],
 };
 
 /**
@@ -41,6 +42,7 @@ export const ENROLLED_FIELD_FIXTURE_KINDS: readonly RunSummaryEventKind[] = [
   "acceptance",
   "acceptance_stamp",
   "ac_pass_bank",
+  "design_critique_ingest_posture",
 ];
 
 const GENERIC_EMIT_METHODS = new Set(["emit"]);

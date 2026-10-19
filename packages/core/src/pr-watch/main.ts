@@ -382,6 +382,11 @@ export interface MergePathArmInput {
   readonly stickyLeaseActive?: boolean;
 }
 
+/**
+ * Three published arm reasons only (#4882). Mint-gate pause binds
+ * `unarmed_stand_down` at the mint-exit call-site — do not invent a fourth
+ * MergePathArmReason unless a later mint-pause attestation is separately Bound (#5690).
+ */
 export type MergePathArmReason = "live_wait" | "explicit_finish" | "unarmed_stand_down";
 
 export interface MergePathArmResult {

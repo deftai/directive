@@ -108,6 +108,15 @@ export const DEFAULT_TRIAL_STEPS: readonly FakeTrialStep[] = [
       });
     },
   },
+  {
+    kind: "design_critique_ingest_posture",
+    invoke: (emitter) => {
+      emitter.emitDesignCritiqueIngestPosture({
+        posture: "neither",
+        issue_number: 5716,
+      });
+    },
+  },
 ];
 
 export interface FakeTrialOptions {

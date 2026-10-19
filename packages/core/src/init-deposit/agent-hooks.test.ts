@@ -9,7 +9,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { runWithMutationLedger, snapshotMutationSummary } from "../fs/mutation-ledger.js";
 import {
@@ -29,12 +29,15 @@ import {
   CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS,
   DIRECT_WRITE_HOOK_MATCHER,
   evaluateGrokPretooluseWrapperOutcome,
+  GROK_PRETOOLUSE_WRAPPER_COMMAND,
+  GROK_PRETOOLUSE_WRAPPER_MARKER,
   GROK_PRETOOLUSE_WRAPPER_REL_PATH,
   GROK_WRAPPER_DENY_MISSING,
   GROK_WRAPPER_DENY_NONDECISION,
   grokPretooluseWrapperScriptSource,
   inspectAgentHookDeposit,
   inspectSessionStartNotice,
+  isGrokWrapperCommand,
   MCP_HOOK_MATCHER,
   NESTED_HOOK_TIMEOUT_SECONDS,
   NESTED_TOOL_BEFORE_TIMEOUT_SECONDS,
@@ -90,9 +93,34 @@ describe("writeAgentHookDeposit", () => {
     expect(readFileSync(join(root, ".grok/hooks/deft.json"), "utf8")).toContain(
       "--host grok --event session.start",
     );
-    expect(readFileSync(join(root, ".grok/hooks/deft.json"), "utf8")).toContain(
-      GROK_PRETOOLUSE_WRAPPER_REL_PATH,
+    const grokHooksPath = join(root, ".grok/hooks/deft.json");
+    const grokDeposit = JSON.parse(readFileSync(grokHooksPath, "utf8")) as {
+      hooks: {
+        SessionStart?: Array<{ hooks?: Array<{ command?: string }> }>;
+        PreToolUse?: Array<{ hooks?: Array<{ command?: string }> }>;
+      };
+    };
+    const preToolCommands = (grokDeposit.hooks.PreToolUse ?? []).flatMap((group) =>
+      (group.hooks ?? []).flatMap((hook) =>
+        typeof hook.command === "string" ? [hook.command] : [],
+      ),
     );
+    expect(preToolCommands.length).toBeGreaterThan(0);
+    for (const cmd of preToolCommands) {
+      expect(cmd).toBe(GROK_PRETOOLUSE_WRAPPER_COMMAND);
+      expect(resolve(dirname(grokHooksPath), cmd)).toBe(
+        join(root, GROK_PRETOOLUSE_WRAPPER_REL_PATH),
+      );
+    }
+    const sessionCommands = (grokDeposit.hooks.SessionStart ?? []).flatMap((group) =>
+      (group.hooks ?? []).flatMap((hook) =>
+        typeof hook.command === "string" ? [hook.command] : [],
+      ),
+    );
+    expect(sessionCommands.some((cmd) => cmd.includes("--host grok --event session.start"))).toBe(
+      true,
+    );
+    expect(sessionCommands.every((cmd) => !isGrokWrapperCommand(cmd))).toBe(true);
     expect(existsSync(join(root, GROK_PRETOOLUSE_WRAPPER_REL_PATH))).toBe(true);
     expect(readFileSync(join(root, GROK_PRETOOLUSE_WRAPPER_REL_PATH), "utf8")).toContain(
       "node_modules/@deftai/directive-runtime/dist/hook-bin.js",
@@ -915,6 +943,107 @@ describe("inspectAgentHookDeposit", () => {
     expect(inspectAgentHookDeposit(root).find((entry) => entry.host === "grok")).toMatchObject({
       status: "drifted",
     });
+  });
+
+  it("redeposits legacy REL_PATH PreToolUse commands to ./ form (#5715)", () => {
+    const root = project();
+    writeAgentHookDeposit(root, { printf: () => undefined });
+    const grokPath = join(root, ".grok/hooks/deft.json");
+    const grok = JSON.parse(readFileSync(grokPath, "utf8")) as {
+      hooks: {
+        SessionStart: Array<Record<string, unknown>>;
+        PreToolUse: Array<{
+          matcher?: string;
+          hooks?: Array<{ type?: string; command?: string; timeout?: number }>;
+        }>;
+      };
+    };
+    // Seed 0.126 shape: repo-root REL_PATH in PreToolUse + a custom unrelated hook.
+    grok.hooks.PreToolUse = [
+      {
+        matcher: "Shell",
+        hooks: [{ type: "command", command: "./custom-grok-check.sh", timeout: 5 }],
+      },
+      ...grok.hooks.PreToolUse.map((entry) => ({
+        ...entry,
+        hooks: (entry.hooks ?? []).map((hook) =>
+          typeof hook.command === "string" && isGrokWrapperCommand(hook.command)
+            ? { ...hook, command: GROK_PRETOOLUSE_WRAPPER_REL_PATH }
+            : hook,
+        ),
+      })),
+    ];
+    writeFileSync(grokPath, `${JSON.stringify(grok, null, 2)}\n`, "utf8");
+    expect(isGrokWrapperCommand(GROK_PRETOOLUSE_WRAPPER_REL_PATH)).toBe(true);
+    expect(isGrokWrapperCommand(GROK_PRETOOLUSE_WRAPPER_COMMAND)).toBe(true);
+    expect(isGrokWrapperCommand(GROK_PRETOOLUSE_WRAPPER_MARKER)).toBe(true);
+    expect(inspectAgentHookDeposit(root).find((entry) => entry.host === "grok")).toMatchObject({
+      status: "drifted",
+    });
+    expect(inspectAgentHookDeposit(root).find((entry) => entry.host === "grok")?.detail).toMatch(
+      /new Grok session/,
+    );
+
+    writeAgentHookDeposit(root, { printf: () => undefined });
+    const redeposited = JSON.parse(readFileSync(grokPath, "utf8")) as {
+      hooks: {
+        PreToolUse: Array<{ hooks?: Array<{ command?: string }> }>;
+      };
+    };
+    const commands = redeposited.hooks.PreToolUse.flatMap((group) =>
+      (group.hooks ?? []).flatMap((hook) =>
+        typeof hook.command === "string" ? [hook.command] : [],
+      ),
+    );
+    const wrapperCommands = commands.filter((cmd) => isGrokWrapperCommand(cmd));
+    expect(wrapperCommands.length).toBeGreaterThan(0);
+    expect(wrapperCommands.every((cmd) => cmd === GROK_PRETOOLUSE_WRAPPER_COMMAND)).toBe(true);
+    expect(commands).toContain("./custom-grok-check.sh");
+    expect(inspectAgentHookDeposit(root).find((entry) => entry.host === "grok")).toMatchObject({
+      status: "healthy",
+    });
+  });
+
+  it("treats non-array Grok PreToolUse as empty for beside-hooks command check (#5715)", () => {
+    const root = project();
+    writeAgentHookDeposit(root, { printf: () => undefined });
+    expect(existsSync(join(root, GROK_PRETOOLUSE_WRAPPER_REL_PATH))).toBe(true);
+    const grokPath = join(root, ".grok/hooks/deft.json");
+    const grok = JSON.parse(readFileSync(grokPath, "utf8")) as {
+      hooks: Record<string, unknown>;
+    };
+    grok.hooks.PreToolUse = { not: "an-array" };
+    writeFileSync(grokPath, `${JSON.stringify(grok, null, 2)}\n`, "utf8");
+    expect(inspectAgentHookDeposit(root).find((entry) => entry.host === "grok")).toMatchObject({
+      status: "drifted",
+    });
+  });
+
+  it("marks grok drifted when PreToolUse still uses REL_PATH that doubles beside deft.json (#5715)", () => {
+    const root = project();
+    writeAgentHookDeposit(root, { printf: () => undefined });
+    const grokPath = join(root, ".grok/hooks/deft.json");
+    const grok = JSON.parse(readFileSync(grokPath, "utf8")) as {
+      hooks: {
+        PreToolUse: Array<{ hooks?: Array<{ command?: string }> }>;
+      };
+    };
+    grok.hooks.PreToolUse = grok.hooks.PreToolUse.map((entry) => ({
+      ...entry,
+      hooks: (entry.hooks ?? []).map((hook) =>
+        typeof hook.command === "string" && isGrokWrapperCommand(hook.command)
+          ? { ...hook, command: GROK_PRETOOLUSE_WRAPPER_REL_PATH }
+          : hook,
+      ),
+    }));
+    writeFileSync(grokPath, `${JSON.stringify(grok, null, 2)}\n`, "utf8");
+    const doubled = resolve(dirname(grokPath), GROK_PRETOOLUSE_WRAPPER_REL_PATH);
+    expect(doubled).not.toBe(join(root, GROK_PRETOOLUSE_WRAPPER_REL_PATH));
+    const grokInspect = inspectAgentHookDeposit(root).find((entry) => entry.host === "grok");
+    expect(grokInspect).toMatchObject({ status: "drifted" });
+    expect(grokInspect?.detail).toMatch(/does not resolve beside/);
+    expect(grokInspect?.detail).toMatch(/new Grok session/);
+    expect(grokInspect?.detail).toMatch(/deft update/);
   });
 
   it("marks grok drifted when the PreToolUse wrapper script is missing (#5656)", () => {

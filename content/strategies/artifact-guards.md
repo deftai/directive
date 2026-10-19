@@ -19,7 +19,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 This file is not a standalone strategy — it is a shared guard referenced by other strategies. It activates automatically when a strategy writes to vBRIEF artifacts.
 
 - ! Referenced by spec-generating strategies: [speckit](./speckit.md), [enterprise](./enterprise.md), [rapid](./rapid.md), [interview](./interview.md), [yolo](./yolo.md)
-- ! Referenced by preparatory strategies: [bdd](./bdd.md), [discuss](./discuss.md), [research](./research.md), [map](./map.md), [probe](./probe.md)
+- ! Referenced by preparatory strategies: [bdd](./bdd.md), [discuss](./discuss.md), [research](./research.md), [map](./map.md), [probe](./probe.md), [design-thinking](./design-thinking.md)
 
 ## Workflow
 
@@ -64,7 +64,7 @@ Applies to strategies that write project identity as `PROJECT-DEFINITION` (⊗ n
 
 ## Preparatory Guard (Light)
 
-Applies to strategies that write scoped records to `proposed/`: **bdd**, **discuss**, **research**, **map**, **probe**, and brownfield **Add scope** paths from interview/setup.
+Applies to strategies that write scoped records to `proposed/`: **bdd**, **discuss**, **research**, **map**, **probe**, **design-thinking**, and brownfield **Add scope** paths from interview/setup.
 
 ! **Target folder resolution (xbrief-first)**: scan `./xbrief/proposed/` when it exists; else legacy `./vbrief/proposed/`. Prefer writing new scopes under the same root the project already uses.
 

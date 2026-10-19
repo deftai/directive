@@ -369,7 +369,56 @@ export const ACCEPTED_PAIN_CITE_FORMS: readonly string[] = [
   "does-not-relieve: P1",
   "operator-deferred: P1 #4377",
   "operator-deferred: P1 issue 4377",
+  "operator-deferred: P1 plan-id github.issue.123",
+  "operator-deferred: P1 path xbrief/proposed/example.xbrief.json",
 ];
+
+/**
+ * #5486 Remint-3 P2 id-model (chosen before parser accept).
+ * Composite scheme-plus-number is chosen over numeric reserved-range so local
+ * ids stay disjoint from GitHub 8+ digit comment forms (Reject: fake 8+ digit
+ * local ids). Stage-(a) migration inventories PainCite + leftover-pain sites.
+ */
+export const LOCAL_ARC_ID_MODEL = "composite-scheme-plus-number" as const;
+export type LocalArcIdModel = typeof LOCAL_ARC_ID_MODEL;
+export const LOCAL_ARC_ID_SCHEME = "arc-post" as const;
+export const ACCEPTED_LOCAL_CITATION_FORMS: readonly string[] = [
+  "successor lean arc-post:1",
+  "successor lean: arc-post:1",
+  "successor lean `arc-post:1`",
+  "**successor lean:** arc-post:1",
+];
+
+/** Operator-deferred leftover may cite a brief plan-id or path (#5486 P3). */
+export const ACCEPTED_LEFTOVER_BRIEF_CITE_FORMS: readonly string[] = [
+  "operator-deferred: P1 plan-id github.issue.123",
+  "operator-deferred: P1 path xbrief/proposed/example.xbrief.json",
+];
+
+/**
+ * Typed migration inventory for PainCite.deferredIssueNumber widening and the
+ * leftover-pain refusal sites that currently require a numeric deferred issue.
+ * Keep-outs narrow to pain-disposition outcomes; field-type widening for brief
+ * plan-id cites is permitted. leftover-pain.ts adapter landing is stage follow-on
+ * when that module enters file_scope.
+ */
+export const PAIN_CITE_MIGRATION_INVENTORY = [
+  {
+    site: "PainCite.deferredIssueNumber",
+    module: "packages/core/src/design-critique/citation-grammar.ts",
+    note: "widen with deferredBriefPlanId / deferredBriefPath; dispositions unchanged",
+  },
+  {
+    site: "assertedPainIdsFromCites operator-deferred null refuse",
+    module: "packages/core/src/design-critique/leftover-pain.ts",
+    note: "refuses when deferredIssueNumber is null; accept brief cite via typed field",
+  },
+  {
+    site: "evaluateBoundRemedyCites deferredIssueNumber null refuse",
+    module: "packages/core/src/design-critique/leftover-pain.ts",
+    note: "refuses operator-deferred without deferredIssueNumber; brief form is additive",
+  },
+] as const;
 
 export type PainDisposition = "relieves" | "does-not-relieve" | "operator-deferred";
 
@@ -377,6 +426,10 @@ export type PainCite = {
   readonly painId: string;
   readonly disposition: PainDisposition;
   readonly deferredIssueNumber: number | null;
+  /** #5486: operator-deferred brief plan-id when no second issue exists. */
+  readonly deferredBriefPlanId: string | null;
+  /** #5486: operator-deferred brief path when no second issue exists. */
+  readonly deferredBriefPath: string | null;
 };
 
 export type PainListScan = {
@@ -400,7 +453,7 @@ const LIST_ITEM_RE = /^[ \t]*(?:[-*]|\d+\.)[ \t]+/;
 const FIELD_LINE_RE = /^[ \t]*\*{0,2}[A-Za-z][A-Za-z0-9._-]*:\*{0,2}/;
 const PAIN_CITE_RE = new RegExp(
   `\\b(relieves|does-not-relieve|operator-deferred)\\b(?::[ \\t]*|[ \\t]+)(${PAIN_ID_TOKEN})` +
-    `(?:[ \\t]+(?:#|issue[ \\t]+)(\\d{1,8}))?`,
+    `(?:[ \\t]+(?:#|issue[ \\t]+)(\\d{1,8})|[ \\t]+plan-id[ \\t]+([A-Za-z0-9._/-]+)|[ \\t]+path[ \\t]+([A-Za-z0-9._/-]+))?`,
   "gi",
 );
 
@@ -508,10 +561,24 @@ export function scanPainCites(body: string): PainCiteScan {
       disposition === "operator-deferred" && Number.isSafeInteger(parsedIssue) && parsedIssue > 0
         ? parsedIssue
         : null;
-    const key = `${painId}|${disposition}|${deferredIssueNumber ?? ""}`;
+    const deferredBriefPlanId =
+      disposition === "operator-deferred" && typeof match[4] === "string" && match[4].length > 0
+        ? match[4]
+        : null;
+    const deferredBriefPath =
+      disposition === "operator-deferred" && typeof match[5] === "string" && match[5].length > 0
+        ? match[5]
+        : null;
+    const key = `${painId}|${disposition}|${deferredIssueNumber ?? ""}|${deferredBriefPlanId ?? ""}|${deferredBriefPath ?? ""}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    cites.push({ painId, disposition, deferredIssueNumber });
+    cites.push({
+      painId,
+      disposition,
+      deferredIssueNumber,
+      deferredBriefPlanId,
+      deferredBriefPath,
+    });
   }
   return { cites, rejected };
 }

@@ -221,6 +221,31 @@ export function isNonDeliveryDisposition(value: unknown): value is NonDeliveryDi
   );
 }
 
+/**
+ * experiment_archived-only Findings presence check (#5693).
+ *
+ * Requires trim-non-empty string `plan.narratives.Findings` before archive.
+ * Covers code and non-code completing scopes. One remediation string.
+ * Does not harden cancelled / superseded / accepted_not_delivered.
+ */
+export function evaluateExperimentArchivedFindingsGate(plan: Record<string, unknown>): {
+  ok: boolean;
+  message: string;
+} {
+  const narratives = asRecord(plan.narratives);
+  const findings = narratives?.Findings;
+  if (typeof findings === "string" && findings.trim().length > 0) {
+    return { ok: true, message: "" };
+  }
+  return {
+    ok: false,
+    message:
+      "Refusing scope:complete --non-delivery experiment_archived: " +
+      "plan.narratives.Findings must be a trim-non-empty string (#5693). " +
+      "Record findings on the completing brief before archive.",
+  };
+}
+
 /** True when the brief is treated as code-bearing for the delivery gate (#3041). */
 export function isCodeBearingScope(plan: Record<string, unknown>): boolean {
   const meta = asRecord(plan.metadata);
@@ -992,6 +1017,21 @@ export function evaluateDeliveryGate(options: DeliveryGateOptions): DeliveryGate
       defaultFetchClosingIssueIds(prNumber, repository, runGh));
   const verifier = options.verifier ?? "scope:complete";
   const codeBearing = isCodeBearingScope(options.plan);
+
+  // #5693: experiment_archived Findings check runs before the non-code early
+  // return so both code and non-code completing scopes are covered, and failed
+  // validation leaves the brief unmoved.
+  if (options.nonDeliveryDisposition === "experiment_archived") {
+    const findingsGate = evaluateExperimentArchivedFindingsGate(options.plan);
+    if (!findingsGate.ok) {
+      return {
+        ok: false,
+        message: findingsGate.message,
+        provenance: null,
+        codeBearing,
+      };
+    }
+  }
 
   if (!codeBearing) {
     return {

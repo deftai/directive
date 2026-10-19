@@ -8,9 +8,9 @@ Maintainer-facing map of how Directive's rules are layered and grouped. This is 
 
 ## Overview
 
-- **Rules:** 25 groupings, 288 documents
+- **Rules:** 25 groupings, 289 documents
 - **Tasks:** 65 namespaces, 287 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
-- **Packs:** 6 source-of-truth packs (719 entries from rules|lessons|patterns|skills|strategies|entries)
+- **Packs:** 6 source-of-truth packs (720 entries from rules|lessons|patterns|skills|strategies|entries)
 
 Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the Taskfile gates that enforce them), and the **Lifecycle** that ties them together.
 
@@ -21,7 +21,7 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | ci-cd | CI runner and pipeline guidance, loaded when migrating or configuring CI. | 6 | 5 | 4 | 6 | 0 | 0 |
 | coding | Core software-development rules for agents: hygiene, testing, debugging, security, build output. | 10 | 201 | 59 | 147 | 2 | 5 |
 | context | How to feed agents context well: examples, deterministic splits, spec deltas. | 8 | 42 | 67 | 30 | 16 | 13 |
-| contracts | Interface/behavioral contracts the framework enforces. | 16 | 225 | 16 | 146 | 0 | 5 |
+| contracts | Interface/behavioral contracts the framework enforces. | 16 | 231 | 16 | 149 | 0 | 5 |
 | conventions | Cross-cutting naming, formatting, and repo conventions. | 4 | 16 | 2 | 16 | 0 | 3 |
 | deployments | Provider-specific deployment playbooks (AWS, Azure, GCP, Cloudflare, Vercel, fly.io…). | 52 | 107 | 74 | 24 | 13 | 6 |
 | docs | Explanatory docs and the framework glossary. | 45 | 30 | 13 | 67 | 1 | 3 |
@@ -35,8 +35,8 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | references | External references and citations backing the guidance. | 4 | 19 | 1 | 19 | 0 | 0 |
 | resilience | Failure handling, recovery, and robustness rules. | 2 | 16 | 14 | 15 | 1 | 2 |
 | scm | Source-control conventions and Git/GitHub workflow rules. | 3 | 110 | 34 | 37 | 1 | 3 |
-| skills | Packaged multi-step agent workflows (build, release, interview, triage, review…). | 42 | 602 | 121 | 716 | 0 | 18 |
-| strategies | Higher-order approaches: interviewing, decomposition, planning, research, refactoring. | 16 | 318 | 88 | 138 | 0 | 11 |
+| skills | Packaged multi-step agent workflows (build, release, interview, triage, review…). | 42 | 637 | 122 | 745 | 0 | 19 |
+| strategies | Higher-order approaches: interviewing, decomposition, planning, research, refactoring. | 17 | 342 | 97 | 157 | 0 | 15 |
 | swarm | Multi-agent (swarm) coordination guidance. | 1 | 75 | 15 | 22 | 0 | 0 |
 | templates | Reusable document/scaffold templates. | 11 | 104 | 10 | 55 | 1 | 5 |
 | tools | Tooling standards (telemetry, search, formatters, the Taskfile contract). | 7 | 91 | 73 | 33 | 1 | 15 |
@@ -146,7 +146,7 @@ _Explanatory docs and the framework glossary._
 - `freshness-contract.md` — Long-lived multi-agent sessions can keep executing the pre-upgrade payload they loaded earlier even after `directive update` / deposit apply succeeds and disk probes report "up to date." This product **freshness contract** is host-agnostic:
 - `full-stop.md` — Uninstall plus delete `.deft/` is not a complete stop. Leftover host hook files still deny writes after the CLI is gone. This page is the reverse-init recipe: leftover classes, then the ordered stop while the CLI still exists.
 - `gate-integrity.md` — General product and process rule for Directive fix loops, refine loops, and quality-gate repair: **when a gate is red, clear red by fixing the work under test — not by mutating the gate.**
-- `getting-started.md` — Deft Directive is a Taskfile-first framework for AI-assisted software work. It combines agent guidance, deterministic gates, xBRIEF lifecycle metadata, installer/doctor handoff, and cache-backed backlog workflows. This guide is the…
+- `getting-started.md` — Deft Directive is a CLI-native framework for AI-assisted software work (`directive` / `deft` primary; Taskfile optional parallel). It combines agent guidance, deterministic gates, xBRIEF lifecycle metadata, installer/doctor handoff, and…
 - `good-agents-md.md` — **Source**: https://x.com/augmentcode/status/2047164534310494709 **Author**: Slava Zhenylenko (Member of Technical Staff, Augment Code) **Published**: 2026-04-23
 - `grok-build-subscription-setup.md` — Agent-facing playbook for a new maintainer. Paste this file (or issue [#4035](https://github.com/deftai/directive/issues/4035)) and say: follow this playbook. The human completes browser logins when the agent stops.
 - `hook-root-admission.md` — Every PreToolUse mutation carries **two** roots, and they are not interchangeable:
@@ -329,6 +329,7 @@ _Higher-order approaches: interviewing, decomposition, planning, research, refac
 - `artifact-guards.md` — Shared guard rules for strategies that write to vBRIEF artifacts. Referenced by individual strategy files to prevent silent overwrites of approved or completed work.
 - `bdd.md` — Behaviour-Driven Development -- failing acceptance tests drive requirements.
 - `brownfield.md` — Use `/deft:run:map` to invoke the map strategy.
+- `design-thinking.md` — End-user discovery that plans UAT on the fail-closed acceptance axis at scope-write time.
 - `discuss.md` — Structured alignment before planning — front-load decisions, prevent drift.
 - `emit-hints.md` — Shared hint referenced by strategies at the moment they emit scope vBRIEFs. It names the GitHub-issue tracking choice — none / umbrella / per-vBRIEF — so the choice is discoverable instead of the emission step ending silently.
 - `enterprise.md` — Compliance-heavy workflow -- v0.20 date-prefixed story/phase vBRIEF + PROJECT-DEFINITION with explicit approval gates at each stage.
@@ -488,5 +489,5 @@ Directive turns a coding agent into an auditable process: load only the guidance
 | `content/packs/patterns/patterns-pack-0.1.json` | 0.1 | 12 | 0 | 0 | 0 |
 | `content/packs/rules/rules-pack-0.1.json` | 0.1 | 612 | 303 | 105 | 187 |
 | `content/packs/skills/skills-pack-0.1.json` | 0.1 | 27 | 0 | 0 | 0 |
-| `content/packs/strategies/strategies-pack-0.1.json` | 0.1 | 16 | 0 | 0 | 0 |
+| `content/packs/strategies/strategies-pack-0.1.json` | 0.1 | 17 | 0 | 0 | 0 |
 | `content/packs/swarm-spec/swarm-spec-pack-0.1.json` | 0.1 | 1 | 0 | 0 | 0 |

@@ -234,6 +234,19 @@ A red product verification may be resolved only by a product change or an indepe
 ⊗ Fill PR / SHA / CI / review fields from recollection, narration, or prior-turn memory.
 ⊗ Claim `status: pass` with remote fields when `proof_status` is not `bound` or probes are missing (#3120).
 
+## First-PR-open closed-PR path-intersection (#1178)
+
+! Own the **first-PR-open** closed-PR path-intersection pass here (and any implement-leaf `gh pr create` bypass MUST call this same contract). Swarm Phase 6 stays merge / protected-issue / finalize and MUST point at this pre-pr owner — ⊗ treat Phase 6 as the first-open closed-PR search owner.
+
+Shared retrieval tokens match article-review pre-filing (#1178): closed-PR walk uses named default `PREFILING_CLOSED_PR_WINDOW` = **100**, outcome tokens `window-exhausted` | `list-exhausted` | `cap` | `error`, and file-list pagination must complete before path-intersection.
+
+- ! Before opening a product PR, walk closed/merged PRs inside `PREFILING_CLOSED_PR_WINDOW` (`GET .../pulls?state=closed&sort=updated&direction=desc`).
+- ! For each candidate, paginate `GET .../pulls/<n>/files` to completion. If file enumeration truncates or errors, record `error` / incomplete — ⊗ path-intersect on a truncated file list as a verified clear.
+- ! Mechanical trigger: any closed/merged PR inside the window whose files intersect the candidate changed-path set → MUST cite that PR and state what differs (disposition may still be `partial` / `unresolved`; overlap alone is not duplicate-scope proof).
+- ! Record the walk outcome token. Bounded no-match requires `window-exhausted` or `list-exhausted` with complete file lists for inspected PRs.
+- ⊗ Open a product PR with no closed-PR path-intersection pass.
+- ⊗ Import #5099 feedback:file closed-walk constants for this pass unless separately exported (cite-only).
+
 ## Exit Condition
 
 ! Exit when a complete Read-Write-Lint-Diff cycle produces **zero changes** -- no file edits in Write, no lint fixes in Lint, and no scope issues in Diff.
@@ -259,6 +272,7 @@ Docs: `docs/decision-log.md`.
 
 ## Anti-Patterns
 
+- ⊗ Open a product PR with no closed-PR path-intersection pass inside `PREFILING_CLOSED_PR_WINDOW` (#1178)
 - ⊗ Submit a PR without running this pre-PR loop (Read-Write-Lint-Diff) -- every PR branch should pass at least one full cycle
 - ⊗ Exit the loop after the Lint phase without completing the Diff phase -- Diff catches scope creep and unintended changes that Lint cannot detect
 - ⊗ Skip the Read phase and jump directly to Lint -- Read catches semantic issues (missing content, wrong RFC2119 markers, incomplete acceptance criteria) that linters do not check

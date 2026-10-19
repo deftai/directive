@@ -94,6 +94,37 @@ export interface RegisterReviewMonitorInput {
   readonly seams?: ReviewOwnerGithubSeams;
 }
 
+/**
+ * Successor product re-arm after mint-gate exit (#5690 Prefer-A Recut-1).
+ * Force registration only for dead-owner recovery; live incumbent must release first.
+ */
+export function evaluateSuccessorRegisterForce(input: {
+  readonly priorOwnerAlive: boolean;
+  readonly forceRequested: boolean;
+}): {
+  readonly allowForce: boolean;
+  readonly message: string;
+} {
+  if (!input.forceRequested) {
+    return {
+      allowForce: false,
+      message: "register without --force (live handoff / first claim) (#5690)",
+    };
+  }
+  if (input.priorOwnerAlive) {
+    return {
+      allowForce: false,
+      message:
+        "unconditional register --force refused while live product owner remains; " +
+        "release or wait for dead-owner recovery (#5690 / #3044)",
+    };
+  }
+  return {
+    allowForce: true,
+    message: "register --force allowed for dead-owner recovery (#5690 / #3044)",
+  };
+}
+
 export interface RegisterReviewMonitorResult {
   readonly exitCode: typeof EXIT_READY | typeof EXIT_CONFLICT | typeof EXIT_CONFIG_ERROR;
   readonly message: string;

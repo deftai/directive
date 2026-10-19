@@ -145,3 +145,69 @@ describe("comma-list closer-set (#4494)", () => {
     ]);
   });
 });
+
+describe("comma-list monotonic scanner (#5745 / CodeQL alert #121)", () => {
+  it("keeps long valid whitespace padding between commas", () => {
+    const pad = " ".repeat(4000);
+    const text = `Closes #10,${pad}#20,${pad}#30`;
+    expect(
+      findAllClosingKeywordHits(text, "pr-body")
+        .filter((h) => h.reason === "intent")
+        .map((h) => h.issueNumber),
+    ).toEqual([10, 20, 30]);
+  });
+
+  it("accepts tabs and newlines as ECMAScript whitespace around commas", () => {
+    const text = "Closes #11,\t#22,\n#33";
+    expect(
+      findAllClosingKeywordHits(text, "pr-body")
+        .filter((h) => h.reason === "intent")
+        .map((h) => h.issueNumber),
+    ).toEqual([11, 22, 33]);
+  });
+
+  it("keeps a long valid list without truncating later IDs", () => {
+    const ids = Array.from({ length: 40 }, (_, i) => 1000 + i);
+    const text = `Closes #${ids[0]}, ${ids
+      .slice(1)
+      .map((n) => `#${n}`)
+      .join(", ")}`;
+    expect(
+      findAllClosingKeywordHits(text, "pr-body")
+        .filter((h) => h.reason === "intent")
+        .map((h) => h.issueNumber),
+    ).toEqual(ids);
+  });
+
+  it("keeps the valid prefix and stops at a malformed tail", () => {
+    const text = "Closes #7, #8, #not-a-number, #9";
+    expect(
+      findAllClosingKeywordHits(text, "pr-body")
+        .filter((h) => h.reason === "intent")
+        .map((h) => h.issueNumber),
+    ).toEqual([7, 8]);
+  });
+
+  it("stops before an unrelated later #ID after a break", () => {
+    const text = "Closes #41, #42 then later mention #99 in prose";
+    expect(
+      findAllClosingKeywordHits(text, "pr-body")
+        .filter((h) => h.reason === "intent")
+        .map((h) => h.issueNumber),
+    ).toEqual([41, 42]);
+  });
+
+  it("inherits FP classification for comma-list tails", () => {
+    const text = "Intentionally not Closes #50, #51 in this body.";
+    const hits = findHits(text, "pr-body");
+    expect(hits.map((h) => h.issueNumber)).toEqual([50, 51]);
+    expect(hits.every((h) => h.reason === "negation")).toBe(true);
+  });
+
+  it("inherits intent classification for comma-list tails", () => {
+    const text = "Closes #60, #61\n\nDescription continues.";
+    const hits = findAllClosingKeywordHits(text, "pr-body");
+    expect(hits.map((h) => h.issueNumber)).toEqual([60, 61]);
+    expect(hits.every((h) => h.reason === "intent")).toBe(true);
+  });
+});

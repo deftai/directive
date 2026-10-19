@@ -17,6 +17,8 @@ import { canonicalHostSessionId } from "../session/host-session-owner.js";
 import {
   applyWorktreeOccupancy,
   grantOccupancyMembership,
+  publishApplyingHost,
+  readApplyingHost,
   releaseOccupancy,
   resolveOccupancySessionId,
 } from "../session/occupancy.js";
@@ -583,5 +585,361 @@ describe("Grok vendor-compat occupancy owner (#4708)", () => {
     expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-identity-conflict" });
     expect(decision.message).toContain("hook --host claude");
     expect(decision.message).toContain(GROK_FROM_PAYLOAD);
+  });
+});
+
+describe("applying-host SessionStart + multi-host soft-pass (#5676)", () => {
+  const RAW = "dcd6d34c-5e07-4e3c-89dd-83471ee80fdf";
+  const CURSOR_OWNER = canonicalHostSessionId("cursor", RAW);
+  const CLAUDE_OWNER = canonicalHostSessionId("claude", RAW);
+  const PAYLOAD_RAW = "01a0b008-c21f-79e1-b6fd-9ade8fd67bef";
+  const GROK_FROM_PAYLOAD = canonicalHostSessionId("grok", PAYLOAD_RAW);
+
+  function seams(overrides: HookPolicySeams = {}): HookPolicySeams {
+    return {
+      sessionStart: () => ({ code: 0, stdout: "", stderr: "" }),
+      runningInsideDeftRepo: () => true,
+      ...overrides,
+    };
+  }
+
+  it("publishes native Cursor applying-host on SessionStart despite leftover GROK_SESSION_ID", () => {
+    const root = mkdtempSync(join(tmpdir(), "hook-5676-session-start-"));
+    temps.push(root);
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "session.start",
+        projectRoot: root,
+        payload: { conversation_id: RAW, session_id: RAW },
+        environ: { GROK_SESSION_ID: "leftover-env" },
+      },
+      seams(),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "session-start" });
+    expect(readApplyingHost(root)).toMatchObject({
+      status: "ok",
+      record: {
+        provider: "cursor",
+        rawSessionId: RAW,
+        applyingHostSessionId: CURSOR_OWNER,
+        transport: "native",
+      },
+    });
+  });
+
+  it("preserves GROK_HOOK_EVENT Claude→grok transport on SessionStart", () => {
+    const root = mkdtempSync(join(tmpdir(), "hook-5676-grok-event-"));
+    temps.push(root);
+    decideHook(
+      {
+        host: "claude",
+        event: "session.start",
+        projectRoot: root,
+        payload: { session_id: PAYLOAD_RAW },
+        environ: { GROK_HOOK_EVENT: "SessionStart" },
+      },
+      seams(),
+    );
+    expect(readApplyingHost(root)).toMatchObject({
+      status: "ok",
+      record: {
+        provider: "grok",
+        rawSessionId: PAYLOAD_RAW,
+        applyingHostSessionId: GROK_FROM_PAYLOAD,
+        transport: "grok-hook-event",
+      },
+    });
+  });
+
+  it("soft-passes Claude deposit when Cursor applying-host is named; Cursor deposit enforces", () => {
+    const root = mkdtempSync(join(tmpdir(), "hook-5676-soft-pass-"));
+    temps.push(root);
+    publishApplyingHost(root, { provider: "cursor", rawSessionId: RAW, transport: "native" });
+    const cursor = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Shell",
+          conversation_id: RAW,
+          session_id: RAW,
+          tool_input: {
+            command: `deft session:start --session-id=${CURSOR_OWNER}`,
+            cwd: root,
+          },
+        },
+        environ: { GROK_SESSION_ID: "leftover-env" },
+      },
+      seams(),
+    );
+    expect(cursor).toMatchObject({ verdict: "allow" });
+    expect(cursor.message ?? "").not.toContain("host:claude:");
+
+    const claude = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Bash",
+          session_id: RAW,
+          tool_input: {
+            command: `deft session:start --session-id=${CURSOR_OWNER}`,
+            cwd: root,
+          },
+        },
+        environ: { GROK_SESSION_ID: "leftover-env" },
+      },
+      seams(),
+    );
+    expect(claude).toMatchObject({ verdict: "allow" });
+    expect(claude.message ?? "").not.toContain(`host owner is ${CLAUDE_OWNER}`);
+    expect(claude.updatedInput).toBeUndefined();
+  });
+
+  it("names SessionStart / read-only repair on missing-record same-raw flip-flop", () => {
+    const root = mkdtempSync(join(tmpdir(), "hook-5676-missing-"));
+    temps.push(root);
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Bash",
+          session_id: RAW,
+          tool_input: {
+            command: `deft session:start --session-id=${CURSOR_OWNER}`,
+            cwd: root,
+          },
+        },
+      },
+      seams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-identity-conflict" });
+    expect(decision.message).toContain("SessionStart");
+    expect(decision.message).toContain("--read-only");
+  });
+
+  it("read-only session:start may publish applying-host without a prior record", () => {
+    const root = mkdtempSync(join(tmpdir(), "hook-5676-readonly-"));
+    temps.push(root);
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Shell",
+          conversation_id: RAW,
+          session_id: RAW,
+          tool_input: {
+            command: `deft session:start --read-only --session-id=${CURSOR_OWNER}`,
+            cwd: root,
+          },
+        },
+        environ: { GROK_SESSION_ID: "leftover-env" },
+      },
+      seams(),
+    );
+    expect(decision).toMatchObject({ verdict: "allow" });
+    expect(readApplyingHost(root)).toMatchObject({
+      status: "ok",
+      record: { applyingHostSessionId: CURSOR_OWNER, transport: "native" },
+    });
+  });
+
+  it("read-only with --project-root does not publish into the hook worktree", () => {
+    const hookRoot = mkdtempSync(join(tmpdir(), "hook-5676-readonly-hook-"));
+    const targetRoot = mkdtempSync(join(tmpdir(), "hook-5676-readonly-target-"));
+    temps.push(hookRoot, targetRoot);
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: hookRoot,
+        payload: {
+          tool_name: "Shell",
+          conversation_id: RAW,
+          session_id: RAW,
+          tool_input: {
+            command: `deft session:start --read-only --project-root=${targetRoot} --session-id=${CURSOR_OWNER}`,
+            cwd: hookRoot,
+          },
+        },
+      },
+      seams(),
+    );
+    expect(decision).toMatchObject({ verdict: "allow" });
+    expect(readApplyingHost(hookRoot).status).toBe("missing");
+  });
+
+  it("GROK_HOOK_EVENT SessionStart then lifecycle rewrite uses resolved grok provider", () => {
+    const root = mkdtempSync(join(tmpdir(), "hook-5676-grok-rewrite-"));
+    temps.push(root);
+    decideHook(
+      {
+        host: "claude",
+        event: "session.start",
+        projectRoot: root,
+        payload: { session_id: PAYLOAD_RAW },
+        environ: { GROK_HOOK_EVENT: "SessionStart" },
+      },
+      seams(),
+    );
+    expect(readApplyingHost(root)).toMatchObject({
+      status: "ok",
+      record: { applyingHostSessionId: GROK_FROM_PAYLOAD, provider: "grok" },
+    });
+    const lifecycle = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Bash",
+          session_id: PAYLOAD_RAW,
+          tool_input: {
+            command: "deft session:start",
+            cwd: root,
+          },
+        },
+        environ: { GROK_HOOK_EVENT: "PreToolUse" },
+      },
+      seams(),
+    );
+    expect(lifecycle).toMatchObject({ verdict: "allow" });
+    expect(JSON.stringify(lifecycle.updatedInput ?? {})).toContain(GROK_FROM_PAYLOAD);
+    expect(lifecycle.message ?? "").not.toContain("soft-pass");
+  });
+
+  it("denies bare Claude lifecycle when Cursor applying-host is present", () => {
+    const root = mkdtempSync(join(tmpdir(), "hook-5676-bare-deny-"));
+    temps.push(root);
+    publishApplyingHost(root, { provider: "cursor", rawSessionId: RAW, transport: "native" });
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Bash",
+          session_id: RAW,
+          tool_input: {
+            command: "deft session:start",
+            cwd: root,
+          },
+        },
+      },
+      seams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-identity-conflict" });
+    expect(decision.message).toContain(CURSOR_OWNER);
+    expect(decision.message).toContain("--session-id=");
+  });
+
+  it("soft-pass still denies when tool cwd is a different worktree", () => {
+    const hookRoot = mkdtempSync(join(tmpdir(), "hook-5676-soft-cwd-a-"));
+    const otherRoot = mkdtempSync(join(tmpdir(), "hook-5676-soft-cwd-b-"));
+    temps.push(hookRoot, otherRoot);
+    publishApplyingHost(hookRoot, { provider: "cursor", rawSessionId: RAW, transport: "native" });
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: hookRoot,
+        payload: {
+          tool_name: "Bash",
+          session_id: RAW,
+          tool_input: {
+            command: `deft session:start --session-id=${CURSOR_OWNER}`,
+            cwd: otherRoot,
+          },
+        },
+      },
+      seams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-identity-conflict" });
+    expect(decision.message ?? "").toMatch(/worktree|same worktree|execution/i);
+  });
+
+  it("allows confirmed occupancy:steal under thief identity while incumbent applying-host is live (#5676 P1)", () => {
+    const root = mkdtempSync(join(tmpdir(), "hook-5676-steal-confirm-"));
+    temps.push(root);
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    applyWorktreeOccupancy(root, {
+      sessionId: CURSOR_OWNER,
+      now: new Date("2026-10-16T12:00:00Z"),
+      intent: "mutation",
+    });
+    publishApplyingHost(root, {
+      provider: "cursor",
+      rawSessionId: RAW,
+      transport: "native",
+      claimedAt: new Date("2026-10-16T12:00:00Z"),
+    });
+    const thiefRaw = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
+    const thief = canonicalHostSessionId("claude", thiefRaw);
+    const denied = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Bash",
+          session_id: thiefRaw,
+          tool_input: {
+            command: `deft occupancy:steal --occupant=${CURSOR_OWNER} --session-id=${thief}`,
+            cwd: root,
+          },
+        },
+        environ: {},
+      },
+      seams(),
+    );
+    expect(denied).toMatchObject({ verdict: "deny", code: "occupancy-identity-conflict" });
+    const allowed = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Bash",
+          session_id: thiefRaw,
+          tool_input: {
+            command: `deft occupancy:steal --occupant=${CURSOR_OWNER} --session-id=${thief} --confirm`,
+            cwd: root,
+          },
+        },
+        environ: {},
+      },
+      seams(),
+    );
+    expect(
+      allowed,
+      JSON.stringify({ v: allowed.verdict, c: allowed.code, m: allowed.message }),
+    ).toMatchObject({ verdict: "allow" });
+
+    const stranger = "host:cursor:v1:cccccccccccccccccccccccccccccccccccc";
+    const wrongNamed = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Bash",
+          session_id: thiefRaw,
+          tool_input: {
+            command: `deft occupancy:steal --occupant=${CURSOR_OWNER} --session-id=${stranger} --confirm`,
+            cwd: root,
+          },
+        },
+        environ: {},
+      },
+      seams(),
+    );
+    expect(wrongNamed).toMatchObject({ verdict: "deny", code: "occupancy-identity-conflict" });
   });
 });
