@@ -1,0 +1,379 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5748",
+    "updated": "2026-10-19T05:50:31Z"
+  },
+  "plan": {
+    "title": "sec(codeql): HIGH clear polynomial-redos in release/auto-hatch.ts (alert #144)",
+    "status": "running",
+    "narratives": {
+      "Description": "sec(codeql): HIGH clear polynomial-redos in release/auto-hatch.ts (alert #144)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5748",
+      "Overview": "## Summary\n\nCodeQL open alert on default branch: **HIGH** `js/polynomial-redos` — Polynomial regular expression used on uncontrolled data.\n\n| Field | Value |\n|-------|-------|\n| Alert | [#144](https://github.com/deftai/directive/security/code-scanning/144) |\n| Rule | `js/polynomial-redos` |\n| Severity | HIGH |\n| Location | `packages/core/src/release/auto-hatch.ts` ~L395 |\n| Message | This regular expression that depends on library input may run slow on strings with many repetitions of '\\n'. |\n\n## What to build\n\nRewrite or bound the flagged site so CodeQL `js/polynomial-redos` clears for this alert (or document accepted risk with suppress + rationale if false positive after review). Prefer a real fix over suite-config changes.\n\n## Acceptance\n\n- [ ] CodeQL alert [#144](https://github.com/deftai/directive/security/code-scanning/144) clears on master (auto-close or dismiss with reason after fix).\n- [ ] Existing unit tests for the touched module still pass; add adversarial input coverage if useful.\n- [ ] CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #144.\n\n## Non-goals\n\n- Changing CodeQL suite config as the primary fix.\n- Bundling unrelated code-scanning alerts into this issue (siblings tracked separately).",
+      "Labels": "security, urgent, design-critique:ingest-ready, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "title": "CodeQL alert  clears on master (auto-close or dismiss with reason after fix).",
+        "status": "proposed",
+        "id": "clause.1",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/release/auto-hatch.ts"
+      },
+      {
+        "title": "Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+        "status": "proposed",
+        "id": "clause.2",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/release/auto-hatch.ts"
+      },
+      {
+        "title": "CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #144.",
+        "status": "proposed",
+        "id": "clause.3",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/release/auto-hatch.ts"
+      }
+    ],
+    "tags": [
+      "security",
+      "urgent",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5748",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5748: sec(codeql): HIGH clear polynomial-redos in release/auto-hatch.ts (alert #144)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "sec(codeql): HIGH clear polynomial-redos in release/auto-hatch.ts (alert #144)",
+        "Summary CodeQL open alert on default branch: HIGH `js/polynomial-redos` — Polynomial regular expression used on uncontrolled data.",
+        "| Field | Value | |-------|-------| | Alert | [#144](https://github.com/deftai/directive/security/code-scanning/144) | | Rule | `js/polynomial-redos` | | Severity | HIGH | | Location | `packages/core/src/release/auto-hatch.ts` ~L395 | | Message | This regular expression that depends on library input may run slow on strings with many repetitions of '\\n'.",
+        "| ## What to build Rewrite or bound the flagged site so CodeQL `js/polynomial-redos` clears for this alert (or document accepted risk with suppress + rationale if false positive after review).",
+        "Prefer a real fix over suite-config changes.",
+        "Acceptance - [ ] CodeQL alert [#144](https://github.com/deftai/directive/security/code-scanning/144) clears on master (auto-close or dismiss with reason after fix).",
+        "[ ] Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+        "[ ] CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #144.",
+        "Non-goals - Changing CodeQL suite config as the primary fix.",
+        "Bundling unrelated code-scanning alerts into this issue (siblings tracked separately).",
+        "CodeQL alert [#144](https://github.com/deftai/directive/security/code-scanning/144) clears on master (auto-close or dismiss with reason after fix).",
+        "Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+        "CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #144."
+      ],
+      "admitted_source_sentences": [
+        "Summary CodeQL open alert on default branch: HIGH `js/polynomial-redos` — Polynomial regular expression used on uncontrolled data.",
+        "| Field | Value | |-------|-------| | Alert | [#144](https://github.com/deftai/directive/security/code-scanning/144) | | Rule | `js/polynomial-redos` | | Severity | HIGH | | Location | `packages/core/src/release/auto-hatch.ts` ~L395 | | Message | This regular expression that depends on library input may run slow on strings with many repetitions of '\\n'.",
+        "| ## What to build Rewrite or bound the flagged site so CodeQL `js/polynomial-redos` clears for this alert (or document accepted risk with suppress + rationale if false positive after review).",
+        "Prefer a real fix over suite-config changes.",
+        "Acceptance - [ ] CodeQL alert [#144](https://github.com/deftai/directive/security/code-scanning/144) clears on master (auto-close or dismiss with reason after fix).",
+        "[ ] Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+        "[ ] CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #144.",
+        "Non-goals - Changing CodeQL suite config as the primary fix.",
+        "Bundling unrelated code-scanning alerts into this issue (siblings tracked separately)."
+      ],
+      "admitted_source_digest": "287fff241f89b045af0d6fd03ad749eb9fb95f96dc6ae0276dd4868d97eedd52",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "CodeQL alert [#144](https://github.com/deftai/directive/security/code-scanning/144) clears on master (auto-close or dismiss with reason after fix).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #144.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/release/auto-hatch.ts",
+          "packages/core/src/release/auto-hatch.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/release/auto-hatch.ts",
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for security cohort. pnpm-lock.yaml / pnpm-workspace.yaml shared Dependabot pin surfaces for #5737/#5740."
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A (draft)\nTarget-digest: sha256:fe49f68c55c4c1470120ea313f58b9f9479d9fe79e33a9f1ea31de661277d871\nconflict_group: release-auto-hatch-count-failed-tests-polynomial-redos\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\ndest: .deft-scratch/worktrees/arc-5748\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\n\n## In plain English\nCodeQL alert #144 flags countFailedTestsFromSanitizedOutput in release/auto-hatch.ts because /(?:^|\\n)\\s*Tests\\s+(\\d+)\\s+failed\\b/i can run slow on uncontrolled sanitized gate output with many newline repetitions. Prefer-A rewrites or bounds that Tests-failed line parse so alert #144 clears by a real fix. Changing CodeQL suite config or suppress-as-primary stays a keep-out.\n\n## Draft remedy sketch\n1. Rewrite or bound the flagged testsLine regex in countFailedTestsFromSanitizedOutput so matching does not use the CodeQL js/polynomial-redos shape (?:^|\\n)\\s* on many \\n (for example a per-line scan, bounded newline walk, or equivalent non-ambiguous parse). Keep countFailedTestsFromSanitizedOutput outcomes for ordinary \"Tests N failed\" and encoded \"N failed tests\" fragments that callers already pass from extractGateCause / thin reason strings.\n2. Review the sibling encoded regex /(?:^|[;(]\\s*)(\\d+)\\s+failed tests?\\b/i in the same function; fix or leave with evidence if CodeQL only names the testsLine site. Do not widen into unrelated auto-hatch control flow.\n3. Add adversarial coverage for long newline-padded / Tests-failed shaped inputs that previously stressed the ReDoS shape; existing auto-hatch unit tests stay green.\n4. CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #144 / #5748.\n5. Keep-out: CodeQL suite-config / path-exclude / suppress as the primary fix (issue Non-goals).\n\n## Reject (draft)\n- Treating CodeQL config / suppress / dismiss-without-fix as the primary remedy\n- Bundling unrelated code-scanning alerts into this issue\n- Changing release pipeline / auto-hatch Step 5 / debt-filing semantics beyond what the countFailedTestsFromSanitizedOutput rewrite requires\n- Claiming alert #144 cleared without a tip rewrite (or an evidence-backed false-positive disposition after review)\n\n## file_scope lean (draft)\npackages/core/src/release/auto-hatch.ts (+tests as needed); CHANGELOG.md.",
+          "id": 6257014786,
+          "html_url": "https://github.com/deftai/directive/issues/5748#issuecomment-6257014786",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:21:50Z",
+          "updated_at": "2026-10-19T00:21:50Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because CodeQL alert #144 names a mechanism-shaped polynomial-ReDoS on countFailedTestsFromSanitizedOutput in packages/core/src/release/auto-hatch.ts: (?:^|\\n)\\s* on uncontrolled sanitized gate output is a concrete fail-closed security gate, not prose triage.\nmechanism-shaped: true\nrefutation-target: testsLine = /(?:^|\\n)\\s*Tests\\s+(\\d+)\\s+failed\\b/i in countFailedTestsFromSanitizedOutput is the primary clear path for CodeQL alert #144; suite-config / suppress is not the primary fix\ncharter: refutation\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nTarget-kind: issue\nCeiling-kind: comment-id\ndest: .deft-scratch/worktrees/arc-5748\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\nverification-path: pin-read git show 8341f369ccc55fa907abd5e575bb29556e467e9f: (dest cwd-without-occupy for on-pin file reads)\n\npain:\n- P1\n\n## Stop 1 — Gate\n\n### Pain inventory\n- P1: countFailedTestsFromSanitizedOutput uses /(?:^|\\n)\\s*Tests\\s+(\\d+)\\s+failed\\b/i at auto-hatch.ts ~L395; CodeQL js/polynomial-redos alert #144 reports slow matching on strings with many '\\n' repetitions — uncontrolled library input reaches the sink via extractGateCause / thin reason fragments passed into this helper.\n\n### Charter / spend\nCharter is refutation against the presumption that the flagged testsLine regex shape may remain as the primary clear path. Spend N=1 (narrow rewrite; Stop 2 panel permission does not apply). Prefer-A draft cite: 6257014786.\n\n### Reject / keep-outs (gate)\n- CodeQL suite config / path-exclude / suppress as primary\n- Sibling unrelated code-scanning alerts",
+          "id": 6257014990,
+          "html_url": "https://github.com/deftai/directive/issues/5748#issuecomment-6257014990",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:21:51Z",
+          "updated_at": "2026-10-19T00:21:51Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\nseat-families: codex\nlaunch-probe: codex pong rc0\ninput-ceiling: 6257023166\nprefer-a-draft: 6257014786\nstop-1: 6257014990\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\ndest: .deft-scratch/worktrees/arc-5748\nverification-path: pin-read git show 8341f369ccc55fa907abd5e575bb29556e467e9f:\nspend: N=1\narc-mode: no-ingest\nyolo-standing: on\n\nRound-1 N=1 Codex seat against Prefer-A draft 6257014786 and Stop 1 6257014990. Shared ceiling is this deposit id after POST.",
+          "id": 6257023166,
+          "html_url": "https://github.com/deftai/directive/issues/5748#issuecomment-6257023166",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:22:36Z",
+          "updated_at": "2026-10-19T00:22:37Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6-astra\n```quarantined\nrole: critic\n```\n\naudit-targets: none\nfamily: codex\nid-ceiling: 6257023166\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\n\nRound 1, refutation of the recorded Stop 1 target. Verdict: the primary-fix premise survives; no blocks-the-design finding. Prefer-A can bind with the following framing refinements.\n\n1. sharpens-framing — Separate the helper's worst-case behavior from demonstrated production reachability.\nEvidence: at the dispatch SHA, auto-hatch.ts:395 has the flagged newline alternative followed by newline-consuming whitespace. However, check/named-cause.ts, extractGateCause, splits output into lines, trims and drops empty lines, selects a cause, and sends ordinary selected causes through sanitizeCauseLine, which caps length at 240 characters. release/preflight.ts:280 parses that cause and emits a short numeric failed-test fragment; release/pipeline.ts:425 consumes the reason. The helper itself accepts unrestricted strings, and injected pipeline reasons need not follow the default formatter.\nConcrete failure mode: describing repeated raw suite newlines as reaching this sink through the ordinary extractGateCause path mistakes source taint for a demonstrated unbounded payload path. It can drive unnecessary changes to sanitization or release control flow while obscuring the actual local parser weakness.\nDisposition: retain the real helper rewrite and existing keep-outs, but describe it as removing the helper's intrinsic polynomial shape / clearing alert #144, with existing caller normalization recorded as mitigation. This evidence does not establish that the alert is a false positive across all call paths, and does not justify suppression as the primary fix.\n\n2. sharpens-framing — Specify unsuccessful adversarial matches, not just newline-padded successful summaries.\nEvidence: auto-hatch.ts:395 permits a fresh attempt at each newline, and its whitespace repetition can consume the remaining newline suffix before failing to find Tests. On a newline-only input, those overlapping suffix scans are the relevant quadratic shape. By contrast, newline padding followed by a valid Tests 2 failed summary can succeed at the first candidate. The existing auto-hatch.test.ts:289-297 cases cover ordinary summaries, encoded counts and simple negatives, but not this failure shape.\nConcrete failure mode: a long successful-input regression test can remain green with the vulnerable expression unchanged, giving false confidence that the adversarial case was covered.\nDisposition: refine draft step 3 to include long newline-only input and newline padding followed by a near miss such as Tests 2 passed, alongside a padded valid summary and the existing encoded-count cases. Review the replacement's whole-input scan cost; a bounded walk must not repeatedly rescan overlapping suffixes. Keep CodeQL clearance as a separate acceptance check; passing correctness cases alone does not prove complexity or alert closure.\n\nExisting mechanisms / road not taken: the sanitizer already bounds the normal cause path; the helper already gives Tests summaries priority over encoded fragments, and returns null for absent or non-finite counts. The encoded sibling's delimiter characters are not consumed by its following whitespace/digits, so the specific repeated-newline overlap does not transfer to that regex. A local linear scan is preferable to adding an arbitrary truncation rule. A bound-only solution remains defensible if it preserves the supported count semantics and proves that over-limit input cannot discard a real failed-test signal before preflight builds its thin reason.\n\nVerification: SHA-pinned source and adjacent unit/pipeline test inspection using git show, plus the issue body and exactly the three envelope-listed comments. No product edits, suite execution, or CodeQL rerun; no claim that alert #144 is already cleared.",
+          "id": 6257045844,
+          "html_url": "https://github.com/deftai/directive/issues/5748#issuecomment-6257045844",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:24:42Z",
+          "updated_at": "2026-10-19T00:24:42Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Prefer-A Bound\n\nLean: Prefer-A Bound\nconflict_group: release-auto-hatch-count-failed-tests-polynomial-redos\nTarget-digest: sha256:fe49f68c55c4c1470120ea313f58b9f9479d9fe79e33a9f1ea31de661277d871\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\ndest: .deft-scratch/worktrees/arc-5748\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N=1\nspend-ask: resolved\nprefer-a-draft: 6257014786\nstop-1: 6257014990\npanel-deposit: 6257023166\nround-1-critics: Codex 6257045844\n\n**Lean:** Prefer-A — rewrite countFailedTestsFromSanitizedOutput testsLine off the CodeQL-flagged (?:^|\\n)\\s* polynomial shape; preserve ordinary Tests-N-failed and encoded N-failed-tests outcomes; record caller normalization as mitigation not as false-positive clearance; lock unsuccessful adversarial matches and whole-input linear-work / tip CodeQL evidence separately; keep suite-config suppress out.\n\n## In plain English\nCodeQL alert #144 is a reported polynomial-ReDoS shape on the Tests-failed line parse in release/auto-hatch.ts. Prefer-A clears it by rewriting or bounding that helper parse, not by silencing CodeQL. Codex Round-1 accepted the direction and sharpened two binding obligations: separate the helper's intrinsic worst-case shape from demonstrated unbounded reachability through ordinary extractGateCause (which already line-selects and caps ordinary causes), and require unsuccessful adversarial matches (newline-only / near-miss) plus a whole-input forward-progress argument rather than only padded successful summaries.\n\n## Bound remedy\n1. **relieves: P1 — Rewrite testsLine off (?:^|\\n)\\s* ReDoS shape.** Replace /(?:^|\\n)\\s*Tests\\s+(\\d+)\\s+failed\\b/i in countFailedTestsFromSanitizedOutput with a semantics-preserving per-line or monotonic scanner (or equivalent non-ambiguous parse). Preserve outcomes for ordinary \"Tests N failed\" summaries and the encoded \"N failed tests\" sibling path. Do not widen into unrelated auto-hatch Step 5 / debt-filing control flow.\n2. **relieves: P1 — Caller normalization is mitigation, not false-positive clearance (Codex C1).** Record that extractGateCause / sanitizeCauseLine already line-select and cap ordinary causes (~240 chars) before many call sites; that does not establish alert #144 is a false positive across all call paths, and does not justify suppression as primary. Describe Prefer-A as removing the helper's intrinsic polynomial shape / clearing alert #144.\n3. **relieves: P1 — Unsuccessful adversarial matches + linear-work / CodeQL evidence (Codex C2).** Refine adversarial coverage to include long newline-only input and newline padding followed by a near miss (for example Tests 2 passed), alongside a padded valid summary and existing encoded-count cases. Review the replacement's whole-input scan cost so a bounded walk does not repeatedly rescan overlapping suffixes. Acceptance distinguishes: (a) semantic adversarial fixtures, (b) a forward-progress or linear-work argument for the complete replacement, and (c) tip CodeQL evidence for alert #144. Do not claim the original regex is proven exploitable or a proven false positive from pin-read alone.\n4. **relieves: P1 — Sibling encoded regex review.** Review /(?:^|[;(]\\s*)(\\d+)\\s+failed tests?\\b/i in the same function; fix only if evidence warrants, else leave with the Codex note that the repeated-newline overlap does not transfer. Do not expand file_scope for an unflagged sibling without evidence.\n5. **relieves: P1 — CHANGELOG Security/Fixed for alert #144 / #5748.**\n\n### Reject\n- CodeQL suite-config / path-exclude / suppress / dismiss-without-fix as the primary remedy\n- Bundling unrelated code-scanning alerts\n- Broader release pipeline / auto-hatch Step 5 / debt-filing redesign beyond countFailedTestsFromSanitizedOutput\n- Claiming P1 relieved from a single padded successful summary or green unit suite alone\n- Silent truncation that discards a real failed-test signal before preflight builds its thin reason\n\n### Disposition of Round-1\n- Codex C1 (sharpens-framing) -> accept-into-contract as limb 2\n- Codex C2 (sharpens-framing) -> accept-into-contract as limb 3\n- Prefer-A direction survives; empty disagreement set on blocks-the-design\n\nrelieves: P1\n\n## file_scope lean\npackages/core/src/release/auto-hatch.ts; packages/core/src/release/auto-hatch.test.ts (or adjacent adversarial fixtures); CHANGELOG.md.\nKeep-outs: CodeQL suite config as primary; sibling alerts; silent truncation of real failed-test signals; unrelated Step 5 / debt-filing redesign.",
+          "id": 6257052375,
+          "html_url": "https://github.com/deftai/directive/issues/5748#issuecomment-6257052375",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:25:17Z",
+          "updated_at": "2026-10-19T00:25:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\nfinding-classes: none\nharvest-changed: false\nfamily: codex\nid-ceiling: 6257052375\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\n\nPain-audit verdict: Prefer-A Bound covers Stop 1 P1 as written at the design level. The finding census is empty; no change to the harvested Bound remedy is required. This is not a claim that the fix has shipped or alert #144 has cleared.\n\nCoverage checked against Stop 1 (https://github.com/deftai/directive/issues/5748#issuecomment-6257014990) and Prefer-A Bound (https://github.com/deftai/directive/issues/5748#issuecomment-6257052375):\n\n- The pinned helper at packages/core/src/release/auto-hatch.ts:395 contains the reported newline alternative followed by newline-consuming whitespace. On unsuccessful newline-heavy input, candidate starts can scan overlapping suffixes. Bound limb 1 removes that shape; limb 3 requires whole-input forward progress or linear work, so merely moving the same repeated suffix scan into a loop would not satisfy the remedy.\n- Limb 3 explicitly covers newline-only and padded near-miss failures, alongside valid summaries and encoded counts. It separates semantic fixtures, complexity evidence, and tip CodeQL evidence. That addresses the failure shape rather than inferring relief from a successful padded match or a green unit suite.\n- The existing caller mitigation is real: check/named-cause.ts extractGateCause splits, trims, filters, and selects ordinary causes; sanitizeCauseLine caps those at 240 characters. release/preflight.ts:280 parses the selected cause and encodes a numeric failed-test fragment; release/pipeline.ts:425 parses the reason. Limb 2 accurately treats this as mitigation without claiming all helper inputs are bounded or that the alert is a false positive. Removing the intrinsic helper weakness therefore covers P1 without requiring unrelated caller redesign.\n- Existing helper behavior includes Tests-summary priority over encoded fragments and null for absent or non-finite counts. The semantics-preserving replacement obligation, preserved ordinary/encoded outcomes, and explicit rejection of silent signal-dropping truncation protect that role. The encoded sibling's delimiter is not consumed by its following whitespace/digits; limb 4 appropriately requires evidence before extending the fix. Changelog documentation supports traceability; it is not the security relief itself.\n\nVerification: SHA-pinned git show reads of auto-hatch.ts, its adjacent unit tests, check/named-cause.ts, release/preflight.ts, and release/pipeline.ts; issue body and comments filtered to the inclusive input ceiling. No implementation, suite run, CodeQL rerun, ingest, or label write. Model line self-attests GPT-6 as identified in this session; no more specific runtime slug was exposed.",
+          "id": 6257065773,
+          "html_url": "https://github.com/deftai/directive/issues/5748#issuecomment-6257065773",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:26:32Z",
+          "updated_at": "2026-10-19T00:26:32Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\nCites Prefer-A Bound successor lean 6257052375. No Target-digest on this table.\n\n| Claim | Method | Result |\n|---|---|---|\n| Stop 1 P1: countFailedTestsFromSanitizedOutput (?:^|\\n)\\s* polynomial-ReDoS (CodeQL alert #144) | pin-read auto-hatch.ts + Round-1/PA disposition | Covered by Prefer-A Bound relieves:P1 (rewrite + caller-mitigation framing + unsuccessful adversarial/linear-work/CodeQL evidence + sibling review + CHANGELOG) |\n| Round-1 Codex C1 caller normalization vs false-positive | REST 6257045844 + Bound limb 2 | accept-into-contract |\n| Round-1 Codex C2 unsuccessful adversarial + linear-work/CodeQL | REST 6257045844 + Bound limb 3 | accept-into-contract |\n| PA-1 Codex 6257065773 | REST comment read | finding-classes: none; harvest-changed: false |\n| blocks-the-design census | Round-1 + PA-1 | empty |\n\nEmpty disagreement set after PA-1 clear.",
+          "id": 6257070543,
+          "html_url": "https://github.com/deftai/directive/issues/5748#issuecomment-6257070543",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:26:59Z",
+          "updated_at": "2026-10-19T00:26:59Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set) citing Prefer-A Bound successor lean 6257052375\n\n## In plain English\n#5748 will rewrite countFailedTestsFromSanitizedOutput's Tests-failed line parse off the CodeQL-flagged (?:^|\\n)\\s* shape so alert #144 clears by a real fix, without treating ordinary extractGateCause caps as false-positive clearance, and with unsuccessful adversarial matches plus separate linear-work / tip CodeQL evidence. CodeQL suite-config suppress stays a keep-out. Ingest remains a separate operator verb.\n\n## Completed-arc record\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N=1\ndest: .deft-scratch/worktrees/arc-5748\ndispatch-sha: 8341f369ccc55fa907abd5e575bb29556e467e9f\nsuccessor-lean: Prefer-A Bound 6257052375\nverified-claims table: 6257070543\nverified-claims-table: 6257070543\nStop 1: 6257014990\npanel-deposit: 6257023166\nPrefer-A draft: 6257014786\nRound-1: Codex 6257045844\nPrefer-A Bound: 6257052375\nPA-1: Codex 6257065773 (clear; harvest-changed: false)\n\ndisagreement-set: empty\nforward: design-critique:ingest-ready chip; ingest is a later separate operator verb (task issue:ingest).",
+          "id": 6257070744,
+          "html_url": "https://github.com/deftai/directive/issues/5748#issuecomment-6257070744",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-19T00:27:00Z",
+          "updated_at": "2026-10-19T00:27:00Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5915169902,
+        "origin": "deftai/directive#5748",
+        "id": "github.issue.5915169902"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "fe49f68c55c4c1470120ea313f58b9f9479d9fe79e33a9f1ea31de661277d871"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/release/auto-hatch.ts",
+          "packages/core/src/release/auto-hatch.test.ts",
+          "CHANGELOG.md"
+        ],
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for security cohort. pnpm-lock.yaml / pnpm-workspace.yaml shared Dependabot pin surfaces for #5737/#5740."
+      }
+    },
+    "id": "github.issue.5915169902",
+    "updated": "2026-10-19T05:50:31Z"
+  }
+}
