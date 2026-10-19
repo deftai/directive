@@ -7,16 +7,20 @@ import { DANGLING_NODE_MODULES_LINKS_CHECK } from "./checks.js";
 import { LAYOUT_TREE } from "./constants.js";
 import { parseDoctorFlags } from "./flags.js";
 import {
+  classifyLifecycleOccupancy,
   classifyProjectLifecycle,
   cmdDoctor,
   collectFrameworkLayoutRows,
   enforceDirectiveSurface,
+  formatLifecycleOccupancySoftWarnLines,
+  NEVER_INCEPTED_SOFT_WARN,
   resolveOperatingMode,
   resolvePlatformSkew,
   resolveReconciliationLine,
   resolveTaskfileWiring,
   runResolutionDecision,
   runXbriefEnvelopeVersionCheck,
+  TASKFILE_UNAVAILABLE_CLI_SUPPORTED,
 } from "./main.js";
 import { createPlainSink } from "./output.js";
 import type { CheckResult, DoctorSeams, Finding } from "./types.js";
@@ -1456,5 +1460,104 @@ describe("linked worktree missing payload (#4443)", () => {
     expect(summary.nextCommand).toBe("directive update");
     expect(summary.nextCommand).not.toMatch(/npx|init/);
     expect(summary.rootCause).toContain("linked worktree");
+  });
+});
+
+describe("lifecycle occupancy (#4229 Prefer-A Recut-1)", () => {
+  it("treats empty greenfield as never-incepted soft-warn", () => {
+    const root = makeRoot();
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    for (const folder of ["proposed", "pending", "active", "completed", "cancelled"]) {
+      mkdirSync(join(root, "xbrief", folder), { recursive: true });
+    }
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { title: "id", status: "active", items: [] },
+      }),
+      "utf8",
+    );
+    const occ = classifyLifecycleOccupancy(root);
+    expect(occ.kind).toBe("never_incepted");
+    expect(occ.softWarn).toBe(true);
+    expect(occ.historyTotal).toBe(0);
+    expect(formatLifecycleOccupancySoftWarnLines(occ)[0]).toBe(NEVER_INCEPTED_SOFT_WARN);
+  });
+
+  it("counts cancelled as history (has-history/no-current-scope)", () => {
+    const root = makeRoot();
+    mkdirSync(join(root, "xbrief", "cancelled"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "cancelled", "was-real.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { title: "c", status: "cancelled", items: [] },
+      }),
+      "utf8",
+    );
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { title: "id", status: "active", items: [] },
+      }),
+      "utf8",
+    );
+    // Need valid layout: at least one migrated artifact for classifyProjectLifecycle valid
+    // PROJECT-DEFINITION alone may be enough via hasMigratedLifecycleArtifacts
+    const occ = classifyLifecycleOccupancy(root);
+    expect(occ.kind).toBe("has_history_no_current_scope");
+    expect(occ.softWarn).toBe(false);
+    expect(occ.counts.cancelled).toBe(1);
+    expect(formatLifecycleOccupancySoftWarnLines(occ)).toEqual([]);
+  });
+
+  it("maps active scopes to scope_active", () => {
+    const root = makeRoot();
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "story.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { title: "s", status: "running", items: [] },
+      }),
+      "utf8",
+    );
+    const occ = classifyLifecycleOccupancy(root);
+    expect(occ.kind).toBe("scope_active");
+    expect(occ.softWarn).toBe(false);
+    expect(occ.counts.active).toBe(1);
+  });
+
+  it("ignores root non-scope envelopes for history", () => {
+    const root = makeRoot();
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    for (const folder of ["proposed", "pending", "active", "completed", "cancelled"]) {
+      mkdirSync(join(root, "xbrief", folder), { recursive: true });
+    }
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { title: "id", status: "active", items: [] },
+      }),
+      "utf8",
+    );
+    writeFileSync(
+      join(root, "xbrief", "plan.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { title: "plan", status: "active", items: [] },
+      }),
+      "utf8",
+    );
+    const occ = classifyLifecycleOccupancy(root);
+    expect(occ.kind).toBe("never_incepted");
+  });
+
+  it("keeps Taskfile-unavailable status token string stable", () => {
+    expect(TASKFILE_UNAVAILABLE_CLI_SUPPORTED).toContain("Taskfile-unavailable");
+    expect(TASKFILE_UNAVAILABLE_CLI_SUPPORTED).toContain("#3335 impact=none");
   });
 });

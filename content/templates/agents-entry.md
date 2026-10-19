@@ -40,7 +40,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## Unmanaged project header (#2065)
 
-! Do NOT treat the unmanaged AGENTS.md header as the work queue; ⊗ Do NOT add `Status`, `Next:`, or `Known Issues` blocks — they rot silently. See UPGRADING.md § AGENTS.md: managed vs unmanaged header for the Session orientation pointer and rationale.
+! Do NOT treat the unmanaged AGENTS.md header as the work queue; ⊗ Do NOT add `Status`, `Next:`, or `Known Issues` blocks — they rot silently. See UPGRADING.md § AGENTS.md: managed vs unmanaged header for the Session orientation pointer. Process-use (#4229): see content/docs/getting-started.md. ⊗ Init-alone claims.
 
 ## Cache-as-authoritative work selection (#1149)
 

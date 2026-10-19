@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { evaluate as evaluateAgentsMdAdvisory } from "../agents-md-advisory/evaluate.js";
 import {
@@ -51,7 +51,7 @@ import {
   POWERSHELL_RESTRICTED_CMD_RECOVERY,
   probePowershellBinReachability,
 } from "../verify-env/command-spawn.js";
-import { MIGRATED_ARTIFACT_DIR } from "../xbrief-migrate/constants.js";
+import { MIGRATED_ARTIFACT_DIR, MIGRATED_ARTIFACT_SUFFIX } from "../xbrief-migrate/constants.js";
 import { detectXbriefConvergence } from "../xbrief-migrate/detect.js";
 import {
   agentsRefreshPlan,
@@ -215,6 +215,211 @@ export interface ProjectLifecycleReport {
   readonly state: ProjectLifecycleState;
   readonly healthy: boolean;
   readonly message?: string;
+}
+
+/** Lifecycle folders that count as scope history (#4229 Prefer-A Recut-1). */
+export const SCOPE_HISTORY_FOLDERS = [
+  "proposed",
+  "pending",
+  "active",
+  "completed",
+  "cancelled",
+] as const;
+
+/** Folders that count as current (non-terminal) scope presence (#4229). */
+export const CURRENT_SCOPE_FOLDERS = ["proposed", "pending", "active"] as const;
+
+/** Root envelopes that are not scope history (#4229). */
+export const ROOT_NON_SCOPE_ENVELOPES = new Set([
+  "PROJECT-DEFINITION.xbrief.json",
+  "plan.xbrief.json",
+  "specification.xbrief.json",
+]);
+
+export type ScopeFolderCounts = {
+  readonly proposed: number;
+  readonly pending: number;
+  readonly active: number;
+  readonly completed: number;
+  readonly cancelled: number;
+};
+
+/**
+ * One occupancy SoT mapped from tip classifyProjectLifecycle (#4229).
+ * never_incepted = proven zero history including cancelled; unreadable/invalid
+ * stay distinct from that proven-zero case.
+ */
+export type LifecycleOccupancyKind =
+  | "deposit_ok"
+  | "never_incepted"
+  | "has_history_no_current_scope"
+  | "scope_active"
+  | "layout_unreadable"
+  | "layout_invalid";
+
+export interface LifecycleOccupancyReport {
+  readonly kind: LifecycleOccupancyKind;
+  readonly layout: ProjectLifecycleReport;
+  readonly counts: ScopeFolderCounts;
+  readonly historyTotal: number;
+  readonly currentTotal: number;
+  /** Soft-warn only for reminted never_incepted (signal-only v1). */
+  readonly softWarn: boolean;
+  readonly message: string;
+}
+
+export const NEVER_INCEPTED_SOFT_WARN =
+  "[deft lifecycle-occupancy] never-incepted: deposit present but no real scope history under " +
+  "proposed|pending|active|completed|cancelled (signal-only; doctor/session green ≠ process-use proof) (#4229)";
+
+export const FIRST_SCOPE_NEXT_HINT =
+  "Write the first proposed scope (setup Phase 3 / directive bootstrap) — identity-only must not suppress Phase 3 when product mutation is requested (#4229)";
+
+export const TASKFILE_UNAVAILABLE_CLI_SUPPORTED =
+  "status=Taskfile-unavailable; CLI-supported (go-task absent; #3335 impact=none)";
+
+const EMPTY_SCOPE_COUNTS: ScopeFolderCounts = {
+  proposed: 0,
+  pending: 0,
+  active: 0,
+  completed: 0,
+  cancelled: 0,
+};
+
+function isScopeEnvelopeName(name: string): boolean {
+  if (!name.endsWith(MIGRATED_ARTIFACT_SUFFIX)) return false;
+  if (ROOT_NON_SCOPE_ENVELOPES.has(name)) return false;
+  return true;
+}
+
+/** Count real scope envelopes per history folder (cancelled included) (#4229). */
+export function countScopeHistoryFolders(
+  projectRoot: string,
+  seams?: { readdir?: (dir: string) => string[] },
+): { counts: ScopeFolderCounts; unreadable: boolean } {
+  const counts: { -readonly [K in keyof ScopeFolderCounts]: number } = {
+    ...EMPTY_SCOPE_COUNTS,
+  };
+  let unreadable = false;
+  const list = seams?.readdir ?? ((dir: string) => readdirSync(dir));
+  for (const folder of SCOPE_HISTORY_FOLDERS) {
+    const dir = join(projectRoot, MIGRATED_ARTIFACT_DIR, folder);
+    try {
+      const names = list(dir);
+      counts[folder] = names.filter(isScopeEnvelopeName).length;
+    } catch (err) {
+      const code =
+        err && typeof err === "object" && "code" in err
+          ? String((err as { code?: unknown }).code)
+          : "";
+      if (code !== "ENOENT") {
+        unreadable = true;
+      }
+    }
+  }
+  return { counts, unreadable };
+}
+
+/**
+ * Map tip classifyProjectLifecycle into one occupancy SoT (#4229 Prefer-A Recut-1).
+ * Cancelled counts as history so cancel-then-idle is has_history_no_current_scope.
+ */
+export function classifyLifecycleOccupancy(
+  projectRoot: string,
+  seams?: { readdir?: (dir: string) => string[] },
+): LifecycleOccupancyReport {
+  const layout = classifyProjectLifecycle(projectRoot);
+  if (layout.message?.includes("unreadable")) {
+    return {
+      kind: "layout_unreadable",
+      layout,
+      counts: EMPTY_SCOPE_COUNTS,
+      historyTotal: 0,
+      currentTotal: 0,
+      softWarn: false,
+      message: layout.message,
+    };
+  }
+  if (!layout.healthy) {
+    return {
+      kind: "layout_invalid",
+      layout,
+      counts: EMPTY_SCOPE_COUNTS,
+      historyTotal: 0,
+      currentTotal: 0,
+      softWarn: false,
+      message: layout.message ?? `Project-lifecycle ${layout.state}`,
+    };
+  }
+  const { counts, unreadable } = countScopeHistoryFolders(projectRoot, seams);
+  if (unreadable) {
+    return {
+      kind: "layout_unreadable",
+      layout,
+      counts,
+      historyTotal: 0,
+      currentTotal: 0,
+      softWarn: false,
+      message: `Project-lifecycle scope folders unreadable under ${layout.path}`,
+    };
+  }
+  const historyTotal =
+    counts.proposed + counts.pending + counts.active + counts.completed + counts.cancelled;
+  const currentTotal = counts.proposed + counts.pending + counts.active;
+  if (historyTotal === 0) {
+    return {
+      kind: "never_incepted",
+      layout,
+      counts,
+      historyTotal: 0,
+      currentTotal: 0,
+      softWarn: true,
+      message: NEVER_INCEPTED_SOFT_WARN,
+    };
+  }
+  if (currentTotal === 0) {
+    return {
+      kind: "has_history_no_current_scope",
+      layout,
+      counts,
+      historyTotal,
+      currentTotal: 0,
+      softWarn: false,
+      message:
+        `Lifecycle occupancy: has-history/no-current-scope ` +
+        `(history=${historyTotal}; cancelled=${counts.cancelled}; completed=${counts.completed}) (#4229)`,
+    };
+  }
+  if (counts.active > 0) {
+    return {
+      kind: "scope_active",
+      layout,
+      counts,
+      historyTotal,
+      currentTotal,
+      softWarn: false,
+      message: `Lifecycle occupancy: scope_active (active=${counts.active}) (#4229)`,
+    };
+  }
+  return {
+    kind: "deposit_ok",
+    layout,
+    counts,
+    historyTotal,
+    currentTotal,
+    softWarn: false,
+    message:
+      `Lifecycle occupancy: deposit_ok with current scopes ` +
+      `(proposed=${counts.proposed}; pending=${counts.pending}) (#4229)`,
+  };
+}
+
+/** Session/doctor soft-warn lines for never-incepted only (#4229). */
+export function formatLifecycleOccupancySoftWarnLines(
+  occupancy: LifecycleOccupancyReport,
+): string[] {
+  if (!occupancy.softWarn) return [];
+  return [occupancy.message, `Next: ${FIRST_SCOPE_NEXT_HINT}`];
 }
 
 export interface CollectFrameworkLayoutRowsInput {
@@ -664,6 +869,21 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
   }
   checkCommand("git", "git", true);
   checkCommand("node", "node", consumerContext);
+  // #4229: escalate missing go-task as a visible status token; keep #3335 impact=none.
+  if (!whichFn("task")) {
+    sink.warn(TASKFILE_UNAVAILABLE_CLI_SUPPORTED);
+    addFinding({
+      severity: "warning",
+      message: TASKFILE_UNAVAILABLE_CLI_SUPPORTED,
+      check: "dependency",
+      tool: "task",
+      status: "Taskfile-unavailable",
+      impact: "none",
+      suggestion: null,
+    });
+  } else {
+    sink.success("go-task (task) is installed");
+  }
 
   if (!jsonMode) {
     sink.blank();
@@ -807,6 +1027,35 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
       tree: lifecycle.tree,
       path: lifecycle.path,
       state: lifecycle.state,
+    });
+  }
+  // #4229: map tip lifecycle into occupancy SoT; soft-warn only never-incepted.
+  const occupancy = classifyLifecycleOccupancy(projectRoot);
+  sink.info(
+    `Lifecycle occupancy: ${occupancy.kind} (history=${occupancy.historyTotal}; current=${occupancy.currentTotal})`,
+  );
+  for (const line of formatLifecycleOccupancySoftWarnLines(occupancy)) {
+    sink.warn(line);
+  }
+  if (occupancy.softWarn) {
+    addFinding({
+      severity: "warning",
+      message: occupancy.message,
+      check: "lifecycle-occupancy",
+      status: occupancy.kind,
+      soft_warn: true,
+      signal_only: true,
+      next_hint: FIRST_SCOPE_NEXT_HINT,
+      counts: occupancy.counts,
+    });
+  } else {
+    addFinding({
+      severity: "skip",
+      message: occupancy.message,
+      check: "lifecycle-occupancy",
+      status: occupancy.kind,
+      soft_warn: false,
+      counts: occupancy.counts,
     });
   }
 
@@ -2225,6 +2474,29 @@ export function runResolutionDecision(
     });
   }
 
+  // #4229: after install blockers clear, surface first-scope Next for never-incepted.
+  let resolvedNext = nextCommand;
+  let resolvedWarnings = [...plan.warnings];
+  if (!actionRequired) {
+    const occupancy = classifyLifecycleOccupancy(projectRoot);
+    if (occupancy.kind === "never_incepted") {
+      resolvedNext = resolvedNext ?? "directive bootstrap";
+      resolvedWarnings = [...resolvedWarnings, FIRST_SCOPE_NEXT_HINT];
+      if (!jsonMode) {
+        sink.warn(NEVER_INCEPTED_SOFT_WARN);
+        sink.raw(`Next command: ${resolvedNext} -- ${FIRST_SCOPE_NEXT_HINT}`);
+      }
+      addFinding({
+        severity: "warning",
+        message: `Next command: ${resolvedNext} -- ${FIRST_SCOPE_NEXT_HINT}`,
+        check: "lifecycle-occupancy-next",
+        status: "never_incepted",
+        next_command: resolvedNext,
+        signal_only: true,
+      });
+    }
+  }
+
   return {
     operatingMode,
     reconciliation,
@@ -2232,9 +2504,9 @@ export function runResolutionDecision(
     platformSkewDetected: skew.skewDetected,
     mode: plan.mode,
     actionRequired,
-    nextCommand,
+    nextCommand: resolvedNext,
     rootCause: plan.nextAction.rootCause,
     remediation: plan.nextAction.remediation,
-    warnings: plan.warnings,
+    warnings: resolvedWarnings,
   };
 }
