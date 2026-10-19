@@ -6,7 +6,11 @@ import {
 } from "../fs/projection-containment.js";
 import { AGENTS_MANAGED_CLOSE } from "../platform/constants.js";
 import { findManagedOpenMarker } from "../platform/linear-scan.js";
-import { parseManifestKeyValueLine, stripEdgeQuotes } from "../text/redos-safe.js";
+import {
+  parseManifestKeyValueLine,
+  stripEdgeQuotes,
+  stripTrailingPathSeparators,
+} from "../text/redos-safe.js";
 import { readTextSafe } from "./paths.js";
 
 export function parseManifest(text: string): Record<string, string> {
@@ -151,7 +155,8 @@ export function containDepositInstallRoot(
   const trimmed = raw.trim();
   if (!trimmed) return FALLBACK_INSTALL_ROOT;
   if (isAbsolute(trimmed)) return FALLBACK_INSTALL_ROOT;
-  const posix = trimmed.replace(/\\/g, "/").replace(/\/+$/, "");
+  // Keep linear /\\/g normalize; strip trailing separators without /\/+$/ (#5744 / CodeQL #115).
+  const posix = stripTrailingPathSeparators(trimmed.replace(/\\/g, "/"));
   if (!posix || posix.split("/").includes("..")) return FALLBACK_INSTALL_ROOT;
   const projectAbs = resolve(projectRoot);
   const resolved = resolve(projectAbs, posix);
