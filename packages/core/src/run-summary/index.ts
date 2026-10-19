@@ -31,6 +31,8 @@ export {
   type CheckGateOutcome,
   type CheckInvocationRunSummaryPayload,
   DEFAULT_RUN_SUMMARY_BASENAME,
+  type DesignCritiqueIngestPostureOutcome,
+  type DesignCritiqueIngestPostureRunSummaryPayload,
   type DialEscalationEvaluationOutcome,
   type DialEscalationEvaluationRunSummaryPayload,
   type DialTransitionRunSummaryPayload,

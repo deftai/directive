@@ -326,11 +326,15 @@ describe("buildIssueVbrief", () => {
               payload: { rung?: string; none_stated?: boolean; clause_count?: number };
             },
         );
-      expect(lines[0]?.event).toBe("acceptance_stamp");
-      expect(lines[0]?.schema_version).toBe(1);
-      expect(lines[0]?.payload.rung).toBe("derived");
-      expect(lines[0]?.payload.none_stated).toBe(true);
-      expect(lines[0]?.payload.clause_count).toBe(1);
+      const stamp = lines.find((line) => line.event === "acceptance_stamp");
+      const posture = lines.find((line) => line.event === "design_critique_ingest_posture");
+      expect(posture?.event).toBe("design_critique_ingest_posture");
+      expect((posture?.payload as { posture?: string }).posture).toBe("neither");
+      expect(stamp?.event).toBe("acceptance_stamp");
+      expect(stamp?.schema_version).toBe(1);
+      expect(stamp?.payload.rung).toBe("derived");
+      expect(stamp?.payload.none_stated).toBe(true);
+      expect(stamp?.payload.clause_count).toBe(1);
     } finally {
       if (prev === undefined) {
         delete process.env.DEFT_RUN_SUMMARY_PATH;

@@ -143,8 +143,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 ! `plan.policy.valueFeedback.enabled` defaults OFF — `deft policy:show --field=valueFeedback` / `deft policy:enable-value-feedback -- --confirm`; `deft value:show`; `deft feedback:file`; `deft-directive-feedback/SKILL.md` (#1709).
 ! Consumer hard-stop (#3713): `BLOCKER` is the sole permitted title classification — `deft feedback:file --blocker`; absence is not a verdict. ⊗ Derive `adoption-blocker` from a consumer title (body-evidence gated); `scm/github.md`.
 
-## Structured decision log (#1396 / #3211)
-! Significant choices → `deft decision:write`; re-load → `deft decision:list` / `xbrief/decisions/`; depth `.deft/core/docs/decision-log.md` (not triage/ADRs/lessons).
+! Before issue:ingest: arc or design-critique: not warranted, because ….
 ## Eval and framework health (#1703)
 
 ! `deft eval:health` when orienting or after gate/policy changes (Tier 0; 4-hour debounce). Release: `deft eval:run` / `deft eval:report`; skill routing: `deft eval:triggers` (#1586 / #1703).
