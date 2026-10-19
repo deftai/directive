@@ -80,7 +80,9 @@ describe("surfaces: linear field parse (#5743 / CodeQL alert #114)", () => {
       "skill-trigger:deft-directive-triage",
     );
     const parsed = parseDocsImpactDeclaration(
-      body("change_class: add\nsurfaces: command:docs:capability-map, help:task docs:capability-map"),
+      body(
+        "change_class: add\nsurfaces: command:docs:capability-map, help:task docs:capability-map",
+      ),
     );
     expect(parsed.errors).toEqual([]);
     expect(parsed.declaration?.surfaces).toEqual([
