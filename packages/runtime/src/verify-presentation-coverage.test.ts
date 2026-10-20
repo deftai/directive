@@ -122,7 +122,10 @@ it("parses a real cold Task build followed by the source CLI report", { timeout:
   const put = (path: string, text: string) => writeFileSync(join(root, path), text);
   try {
     mkdirSync(join(root, "tasks"));
+    // OVPR: engine:invoke resolves packages/runtime/dist/bin.js. packages/cli
+    // package.json remains the is-buildable-source marker (engine-invoke.cjs).
     mkdirSync(join(root, "packages/cli"), { recursive: true });
+    mkdirSync(join(root, "packages/runtime"), { recursive: true });
     for (const file of [
       "engine.yml",
       "verify.yml",
@@ -144,6 +147,7 @@ it("parses a real cold Task build followed by the source CLI report", { timeout:
       }),
     );
     put("packages/cli/package.json", "{}");
+    put("packages/runtime/package.json", "{}");
     put(
       "tsconfig.json",
       JSON.stringify({
@@ -158,11 +162,11 @@ it("parses a real cold Task build followed by the source CLI report", { timeout:
       }),
     );
     const loader = pathToFileURL(createRequire(import.meta.url).resolve("tsx/esm")).href;
-    const cli = join(repo, "packages/cli/src/verify-presentation-coverage.ts");
+    const cli = join(repo, "packages/runtime/src/verify-presentation-coverage.ts");
     const shim = `const {spawnSync}=require('node:child_process'); const r=spawnSync(process.execPath, ${JSON.stringify(["--import", loader, cli])}.concat(process.argv.slice(3)), {stdio:'inherit'}); process.exit(r.status ?? 2);`;
     put(
       "build.cjs",
-      `const fs=require('node:fs'); console.log('cold build diagnostic'); fs.mkdirSync('packages/cli/dist',{recursive:true}); fs.writeFileSync('packages/cli/dist/bin.js',${JSON.stringify(shim)});`,
+      `const fs=require('node:fs'); console.log('cold build diagnostic'); fs.mkdirSync('packages/runtime/dist',{recursive:true}); fs.writeFileSync('packages/runtime/dist/bin.js',${JSON.stringify(shim)});`,
     );
     execFileSync("git", ["init", "--quiet", "--template=", root]);
     execFileSync(
@@ -170,6 +174,10 @@ it("parses a real cold Task build followed by the source CLI report", { timeout:
       [
         "-C",
         root,
+        "-c",
+        "core.hooksPath=/dev/null",
+        "-c",
+        "commit.gpgsign=false",
         "-c",
         "user.name=Test",
         "-c",
@@ -181,7 +189,7 @@ it("parses a real cold Task build followed by the source CLI report", { timeout:
       ],
       { stdio: "ignore" },
     );
-    expect(existsSync(join(root, "packages/cli/dist/bin.js"))).toBe(false);
+    expect(existsSync(join(root, "packages/runtime/dist/bin.js"))).toBe(false);
     const env = {
       ...process.env,
       DEFT_PACKAGE_MANAGER: "npm",
@@ -202,8 +210,8 @@ it("parses a real cold Task build followed by the source CLI report", { timeout:
     expect(child.error, diagnostic).toBeUndefined();
     expect(child.status, diagnostic).toBe(0);
     expect(child.stdout).toContain("cold build diagnostic");
-    expect(existsSync(join(root, "packages/cli/dist/bin.js"))).toBe(true);
-    expect(readFileSync(join(root, "packages/cli/dist/bin.js"), "utf8")).toBe(shim);
+    expect(existsSync(join(root, "packages/runtime/dist/bin.js"))).toBe(true);
+    expect(readFileSync(join(root, "packages/runtime/dist/bin.js"), "utf8")).toBe(shim);
     expect(parseCoverageReport(child.stdout, child.status ?? 0)).toEqual({
       armed: false,
       coverage: [],
