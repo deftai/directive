@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [0.126.2] - 2026-10-20
+
+> Exclusive lawful waits (#5727), residual deposit keep-unknowns (#5677), plan-id merge-gate adopt (#5782), Dependabot/CodeQL HIGH cohort (#5737 #5740-#5748), Cursor Multitask dest matrix (#5770)
+
+### Added
 - Added — Exclusive lawful waits + claimed-wait fail-closed for Grok through-merge parents (#5727 Prefer-A Recut-2 P3/P4): `BabysitPathKind` forge-poll, `evaluateClaimedBabysitPathDeny` / `admitClaimedBabysitPath`, exclusive-waits card on Envelope SLA / review-cycle / host-grok-build. Undeclared-shell interception remains leftover #5732. Refs #5727 #5229 #5732.
 
 ### Changed
@@ -7354,7 +7366,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.126.1...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.126.2...HEAD
+[0.126.2]: https://github.com/deftai/directive/compare/v0.126.1...v0.126.2
 [0.126.1]: https://github.com/deftai/directive/compare/v0.126.0...v0.126.1
 [0.126.0]: https://github.com/deftai/directive/compare/v0.125.2...v0.126.0
 [0.125.2]: https://github.com/deftai/directive/compare/v0.125.1...v0.125.2
