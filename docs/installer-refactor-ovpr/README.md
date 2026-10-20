@@ -21,7 +21,16 @@ On conflict: requirements win for installer semantics. History never relaxes an 
 
 ## Testing after master
 
-Installer automation is intended to live under `tools/install-harness/` (ht-auto + repo-upgrade), runnable without the YOLO sterile field. Results go to a gitignored writable location (see that harness README).
+Installer automation lives under [`tools/install-harness/`](../../tools/install-harness/README.md) (ht-auto + repo-upgrade), runnable without the YOLO sterile field.
+
+```bash
+# public npm / master
+./tools/install-harness/ht-auto/run-all.sh --registry npm --tag latest
+# Verdaccio tip (optional)
+./tools/install-harness/ht-auto/run-all.sh --tag yolo-cp-wave4i
+```
+
+Results go to gitignored `.deft-scratch/install-harness/` (see that harness README).
 
 External sanity sidecar (optional): `~/Projects/directive-install-sanity`.
 
