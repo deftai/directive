@@ -160,13 +160,15 @@ export function runConsumerDocsImpactSmoke(
 }
 
 function seedMinimalProjectDefinition(projectDir: string): void {
-  const vbriefDir = join(projectDir, "vbrief");
-  mkdirSync(vbriefDir, { recursive: true });
+  // Canonical xbrief/ layout (vbrief/ is legacy-only; verify:wip-cap requires xbrief/).
+  for (const folder of ["proposed", "pending", "active", "completed", "cancelled", "archive"]) {
+    mkdirSync(join(projectDir, "xbrief", folder), { recursive: true });
+  }
   writeFileSync(
-    join(vbriefDir, "PROJECT-DEFINITION.vbrief.json"),
+    join(projectDir, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
     `${JSON.stringify(
       {
-        vBRIEFInfo: { version: "0.6", description: "greenfield smoke fixture (#2022 Phase 3)" },
+        xBRIEFInfo: { version: "0.8", description: "greenfield smoke fixture (#2022 Phase 3)" },
         plan: {
           title: "PROJECT-DEFINITION",
           status: "running",
