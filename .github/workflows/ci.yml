@@ -1005,6 +1005,20 @@ jobs:
           $env:PATH = "$shimDir;$env:PATH"
           $consumer = Join-Path $smokeRoot 'consumer'
           New-Item -ItemType Directory -Path $consumer -Force | Out-Null
+          # Public @deftai/directive-runtime@latest is still a prerelease until GA.
+          # Pack tip OVPR runtime and install from the local tarball with an exact pin.
+          $packDir = Join-Path $smokeRoot 'packs'
+          New-Item -ItemType Directory -Path $packDir -Force | Out-Null
+          $smokeVersion = '0.0.0-win-autocrlf'
+          node (Join-Path $env:GITHUB_WORKSPACE 'packages\runtime\scripts\stage-bundle.mjs')
+          if ($LASTEXITCODE -ne 0) { throw "stage-bundle exited $LASTEXITCODE (#2118 OVPR)" }
+          $stageDir = Join-Path $env:GITHUB_WORKSPACE 'packages\runtime\.pack-stage'
+          node -e "const fs=require('fs'); const p=process.argv[1]; const j=JSON.parse(fs.readFileSync(p,'utf8')); j.version=process.argv[2]; fs.writeFileSync(p, JSON.stringify(j,null,2)+'\n');" (Join-Path $stageDir 'package.json') $smokeVersion
+          node (Join-Path $env:GITHUB_WORKSPACE 'packages\runtime\scripts\pack-staged-runtime.mjs') $stageDir $packDir
+          if ($LASTEXITCODE -ne 0) { throw "pack-staged-runtime exited $LASTEXITCODE (#2118 OVPR)" }
+          $runtimeTgz = Join-Path $packDir ("deftai-directive-runtime-" + $smokeVersion + ".tgz")
+          if (-not (Test-Path $runtimeTgz)) { throw "missing packed runtime tarball $runtimeTgz" }
+
           Push-Location $consumer
           try {
             git init -q
@@ -1014,16 +1028,39 @@ jobs:
             git switch -c smoke-baseline
             if ($LASTEXITCODE -ne 0) { throw "git switch smoke-baseline exited $LASTEXITCODE" }
 
-            node $cli init --yes --repo-root $consumer
-            if ($LASTEXITCODE -ne 0) { throw "directive init exited $LASTEXITCODE" }
+            '{"name":"win-autocrlf-consumer","private":true,"version":"0.0.0"}' | Set-Content -Path (Join-Path $consumer 'package.json') -Encoding utf8NoBOM
+            npm install --save-dev --save-exact $runtimeTgz
+            if ($LASTEXITCODE -ne 0) { throw "npm install packed runtime exited $LASTEXITCODE" }
+            # Rewrite file: pin + lock request to exact SemVer so repair/update skip registry.
+            node -e @"
+const fs=require('fs'); const ver=process.argv[1];
+const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
+pkg.devDependencies=pkg.devDependencies||{};
+pkg.devDependencies['@deftai/directive-runtime']=ver;
+fs.writeFileSync('package.json', JSON.stringify(pkg,null,2)+'\n');
+if (fs.existsSync('package-lock.json')) {
+  const lock=JSON.parse(fs.readFileSync('package-lock.json','utf8'));
+  const root=lock.packages && lock.packages[''];
+  if (root) {
+    const deps=root.devDependencies||root.dependencies||{};
+    deps['@deftai/directive-runtime']=ver;
+    root.devDependencies=deps;
+  }
+  const entry=lock.packages && lock.packages['node_modules/@deftai/directive-runtime'];
+  if (entry) entry.version=ver;
+  fs.writeFileSync('package-lock.json', JSON.stringify(lock,null,2)+'\n');
+}
+"@ $smokeVersion
+            node $cli install --repair --yes --repo-root $consumer
+            if ($LASTEXITCODE -ne 0) { throw "directive install --repair exited $LASTEXITCODE" }
 
             git add -A
             git commit -q -m baseline
             if ($LASTEXITCODE -ne 0) { throw "baseline commit exited $LASTEXITCODE" }
 
-            node $cli update --yes --repo-root $consumer
+            node $cli update --yes --repo-root $consumer --target-version $smokeVersion
             if ($LASTEXITCODE -ne 0) { throw "first directive update exited $LASTEXITCODE" }
-            node $cli update --yes --repo-root $consumer
+            node $cli update --yes --repo-root $consumer --target-version $smokeVersion
             if ($LASTEXITCODE -ne 0) { throw "second directive update exited $LASTEXITCODE" }
 
             task deft:verify:cache-fresh
