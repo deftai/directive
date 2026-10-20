@@ -893,7 +893,7 @@ export function resolveLiveRepoSlug(
 }
 
 function resolveLiveRepo(args: ParsedArgs, env: NodeJS.ProcessEnv): string | null {
-  return resolveLiveRepoSlug(args.repo, env);
+  return resolveLiveRepoSlug(args.repo ?? undefined, env);
 }
 
 function fetchPrNodeId(pr: number, repo: string, runGh: RunGhFn): string | null {

@@ -503,11 +503,27 @@ export function evaluateObservableScope(options: EvaluateOptions = {}): Evaluate
       }
     } else if (adopted.kind === "config" || adopted.kind === "bad-pin-suppressed") {
       return config(adopted.message);
+    } else if (badPin && running.length === 1) {
+      // no-PR: keep bad-pin for PR suppression, but restore sole-running so a
+      // stale pin still selects the running story among several mints (#5782 P1).
+      planId = running[0]!;
+      selected = parsedRecords.filter((r) => r.planId === planId);
+      if (selected.length === 0) {
+        return fail(`verify:observable-scope: no merge-base mint record for planId ${planId}.`);
+      }
     } else {
-      // no-PR: bad-pin fall-through unchanged → same multi refuse as tip.
       return config(
         "multiple running stories or merge-base mint records; pass --plan-id or pin DEFT_ACTIVE_SCOPE to the current story (old mints must not authorize new work)",
       );
+    }
+  } else if (badPin && running.length === 1) {
+    // Keep bad-pin for PR suppression above; restore sole-running outside the
+    // multi/PR adoption branch so a stale pin cannot authorize against another
+    // story's sole mint (#5782 Greptile P1).
+    planId = running[0]!;
+    selected = parsedRecords.filter((r) => r.planId === planId);
+    if (selected.length === 0) {
+      return fail(`verify:observable-scope: no merge-base mint record for planId ${planId}.`);
     }
   }
   if (selected.length > 1) {

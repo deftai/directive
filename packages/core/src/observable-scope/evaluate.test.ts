@@ -537,6 +537,97 @@ describe("evaluateObservableScope (#4495)", () => {
     }
   });
 
+  it("bad-pin + sole running refuses a different story's sole mint (#5782 P1)", () => {
+    const root = mkdtempSync(join(tmpdir(), "obs-bad-pin-sole-mint-"));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "a.xbrief.json"),
+      JSON.stringify({ plan: { id: "story-a", status: "running" } }),
+    );
+    const other = buildObservableScopeRecord({
+      planId: "story-b",
+      xbriefRelPath: "xbrief/active/b.xbrief.json",
+      allowedChanges: [{ kind: "control", op: "add", name: "email" }],
+      humanApproval: human,
+    });
+    if ("error" in other) throw new Error("mint");
+    const head = `
+<nav><button role="tab" aria-selected="true">Overview</button><button role="tab">Details</button></nav>
+<h1>Dashboard</h1>
+<input name="title" />
+<input name="email" />
+<button>Save</button>
+<table><tr><th>Name</th><th>Status</th></tr></table>
+<section id="card"></section>
+`;
+    const prev = process.env.DEFT_ACTIVE_SCOPE;
+    process.env.DEFT_ACTIVE_SCOPE = "xbrief/active/missing-pin.xbrief.json";
+    try {
+      const result = evaluateObservableScope({
+        ...files(head),
+        projectRoot: root,
+        planId: undefined,
+        recordTextsAtBase: new Map([
+          [".deft/observable-scope/story-b.json", `${JSON.stringify(other)}\n`],
+        ]),
+      });
+      expect(result.code).toBe(1);
+      expect(result.message).toMatch(/no merge-base mint record for planId story-a/);
+    } finally {
+      if (prev === undefined) delete process.env.DEFT_ACTIVE_SCOPE;
+      else process.env.DEFT_ACTIVE_SCOPE = prev;
+    }
+  });
+
+  it("bad-pin + sole running selects matching mint among several records (#5782 P1)", () => {
+    const root = mkdtempSync(join(tmpdir(), "obs-bad-pin-multi-rec-"));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "a.xbrief.json"),
+      JSON.stringify({ plan: { id: "story-a", status: "running" } }),
+    );
+    const mine = buildObservableScopeRecord({
+      planId: "story-a",
+      xbriefRelPath: "xbrief/active/a.xbrief.json",
+      allowedChanges: [{ kind: "control", op: "add", name: "email" }],
+      humanApproval: human,
+    });
+    const other = buildObservableScopeRecord({
+      planId: "story-b",
+      xbriefRelPath: "xbrief/active/b.xbrief.json",
+      allowedChanges: [{ kind: "control", op: "add", name: "phone" }],
+      humanApproval: human,
+    });
+    if ("error" in mine || "error" in other) throw new Error("mint");
+    const head = `
+<nav><button role="tab" aria-selected="true">Overview</button><button role="tab">Details</button></nav>
+<h1>Dashboard</h1>
+<input name="title" />
+<input name="email" />
+<button>Save</button>
+<table><tr><th>Name</th><th>Status</th></tr></table>
+<section id="card"></section>
+`;
+    const prev = process.env.DEFT_ACTIVE_SCOPE;
+    process.env.DEFT_ACTIVE_SCOPE = "xbrief/active/missing-pin.xbrief.json";
+    try {
+      const result = evaluateObservableScope({
+        ...files(head),
+        projectRoot: root,
+        planId: undefined,
+        recordTextsAtBase: new Map([
+          [".deft/observable-scope/story-b.json", `${JSON.stringify(other)}\n`],
+          [".deft/observable-scope/story-a.json", `${JSON.stringify(mine)}\n`],
+        ]),
+      });
+      // Multi records + sole running + bad-pin + no PR: sole-running selects A.
+      expect(result.code).toBe(0);
+    } finally {
+      if (prev === undefined) delete process.env.DEFT_ACTIVE_SCOPE;
+      else process.env.DEFT_ACTIVE_SCOPE = prev;
+    }
+  });
+
   it("does not apply an allowance bound to a different surface path", () => {
     const rec = buildObservableScopeRecord({
       planId: "story-1",
