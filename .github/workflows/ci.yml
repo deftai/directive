@@ -776,6 +776,17 @@ jobs:
           $runtimeNm = Join-Path $consumer 'node_modules\@deftai\directive-runtime'
           New-Item -ItemType Directory -Path $runtimeNm -Force | Out-Null
           Copy-Item (Join-Path $stageDir '*') $runtimeNm -Recurse -Force
+          # Staged runtime declares npm deps (parse5, archiver, typescript) but does
+          # not vendor their node_modules; install them under the copied package.
+          Push-Location $runtimeNm
+          try {
+            npm install --omit=dev --ignore-scripts
+            if ($LASTEXITCODE -ne 0) {
+              throw "npm install inside staged runtime exited $LASTEXITCODE"
+            }
+          } finally {
+            Pop-Location
+          }
 
           $cmdShim = Join-Path $shimDir 'deft.cmd'
           $cmdBody = "@echo off`r`nnode `"$env:GITHUB_WORKSPACE\packages\cli\dist\bin.js`" %*`r`n"
