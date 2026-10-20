@@ -83,26 +83,28 @@ export function resolveXbriefOutPaths(input: {
   env?: NodeJS.ProcessEnv;
 }): XbriefPaths {
   const projectRoot = resolve(input.projectRoot);
-  const expanded = expandUserPath(input.out, { home: input.home, env: input.env });
+  // Decide cwd-relative from the raw --out before expandUserPath/normalize strips `./`.
+  const rawOut = input.out;
+  const explicitlyCwdRelative =
+    rawOut === "." ||
+    rawOut.startsWith("./") ||
+    rawOut.startsWith(".\\") ||
+    rawOut.startsWith(`.${sep}`);
+  const expanded = expandUserPath(rawOut, { home: input.home, env: input.env });
 
   // Absolute (post-expand) paths must still nest under projectRoot.
   // Relative paths resolve against projectRoot (not bare cwd) so containment is stable.
   let candidate: string;
   if (isAbsolute(expanded)) {
     candidate = resolve(expanded);
+  } else if (explicitlyCwdRelative) {
+    // Explicit ./… resolves against the caller's cwd (DIRECTIVE_LAUNCHER_CWD when
+    // the launcher spawned us with cwd=projectRoot).
+    const env = input.env ?? process.env;
+    const cwd = input.cwd ?? env.DIRECTIVE_LAUNCHER_CWD ?? process.cwd();
+    candidate = resolve(cwd, expanded);
   } else {
-    // When out is explicitly cwd-relative (./…), resolve against cwd then re-check root.
-    const cwd = input.cwd ?? process.cwd();
-    if (
-      expanded === "." ||
-      expanded.startsWith(`.${sep}`) ||
-      expanded.startsWith("./") ||
-      expanded.startsWith(".\\")
-    ) {
-      candidate = resolve(cwd, expanded);
-    } else {
-      candidate = resolve(projectRoot, expanded);
-    }
+    candidate = resolve(projectRoot, expanded);
   }
 
   const stemRaw = stripXbriefSuffix(candidate);

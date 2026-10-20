@@ -99,8 +99,10 @@ describe("runtime/session task dispatch (#2181)", () => {
   });
 
   it("engine:invoke runs vendored bin.js when the artifact is present", () => {
+    // OVPR: resolve dist/bin.js (runtime package) or packages/runtime/dist/bin.js
+    // (framework source), then argv-spawn via engine-invoke.cjs.
     expect(engine).toMatch(
-      /if \[ -f "\$bin" \]; then[\s\S]*node "\{\{\.TASKFILE_DIR\}\}\/engine-invoke\.cjs" vendored "\$bin"/m,
+      /if \[ -n "\$bin" \] && \[ -f "\$bin" \]; then[\s\S]*node "\{\{\.TASKFILE_DIR\}\}\/engine-invoke\.cjs" vendored "\$bin"/m,
     );
     expect(engine).toMatch(/DEFT_ENGINE_CMD_JSON/);
   });

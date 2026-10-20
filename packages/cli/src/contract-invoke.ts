@@ -6,6 +6,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import {
+  ENV_LAUNCHER_CWD,
   ENV_LAUNCHER_VERSION,
   ENV_PROJECT_ROOT,
   EXIT_CODES,
@@ -44,12 +45,17 @@ export function invokeRuntime(options: InvokeOptions): InvokeResult {
   // Run ordinary product commands with cwd=projectRoot so handlers that default
   // to process.cwd() honor `--root` / `--repo-root`. Also set DIRECTIVE_PROJECT_ROOT
   // for contract/self-complete entrypoints that read the env explicitly.
+  // Preserve the caller's cwd in DIRECTIVE_LAUNCHER_CWD so explicitly cwd-relative
+  // paths (e.g. `--out ./story`) still resolve against the directory the user
+  // invoked from, not the project root.
+  const launcherCwd = process.cwd();
   const result = spawnSync(process.execPath, [runtime.entryPath, ...argv], {
     cwd: projectRoot,
     env: {
       ...process.env,
       [ENV_PROJECT_ROOT]: projectRoot,
       [ENV_LAUNCHER_VERSION]: launcherVersion,
+      [ENV_LAUNCHER_CWD]: launcherCwd,
     },
     encoding: "utf8",
     stdio: stdio === "inherit" ? "inherit" : ["ignore", "pipe", "pipe"],

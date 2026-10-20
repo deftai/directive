@@ -101,7 +101,7 @@ describe("spec-validate", () => {
     expect(ok).toBe(false);
     expect(msg).toContain("0.6");
     expect(msg).toContain("0.8");
-    expect(msg).toContain("migrate:xbrief");
+    expect(msg).toContain("directive upgrade");
     expect(msg).not.toContain("migrate:vbrief");
     rmSync(dir, { recursive: true, force: true });
   });

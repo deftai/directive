@@ -113,17 +113,26 @@ export type XbriefMigrationOutcome =
     }
   | { readonly kind: "config"; readonly message: string };
 
-function collectFiles(root: string, acc: string[] = []): string[] {
+/**
+ * Walk files under `root`.
+ * When `skipArchiveDir` is set, omit directories named `archive` — use that only
+ * when scanning the canonical `xbrief/` tree so `xbrief/archive/` unknowables
+ * are not re-migrated. Do not set it when copying a legacy `vbrief/` tree;
+ * source `vbrief/archive/` must still land in the migrated tree.
+ */
+function collectFiles(
+  root: string,
+  acc: string[] = [],
+  options: { readonly skipArchiveDir?: boolean } = {},
+): string[] {
   if (!isDirectory(root)) {
     return acc;
   }
   for (const entry of readdirSync(root, { withFileTypes: true })) {
     const full = join(root, entry.name);
-    // Archived unknowables stay under xbrief/archive/; never re-scan them as
-    // live migration/hybrid candidates (would block later upgrades).
     if (entry.isDirectory()) {
-      if (entry.name === ARCHIVE_REL_DIR) continue;
-      collectFiles(full, acc);
+      if (options.skipArchiveDir && entry.name === ARCHIVE_REL_DIR) continue;
+      collectFiles(full, acc, options);
     } else if (entry.isFile()) {
       acc.push(full);
     }
@@ -278,7 +287,7 @@ function planHybridEnvelopeRewrites(
   | { ok: true; pending: ReadonlyArray<{ path: string; body: string }> }
   | { ok: false; error: string } {
   const migratedDir = join(projectRoot, MIGRATED_ARTIFACT_DIR);
-  const artifactPaths = collectFiles(migratedDir).filter((path) =>
+  const artifactPaths = collectFiles(migratedDir, [], { skipArchiveDir: true }).filter((path) =>
     path.endsWith(MIGRATED_ARTIFACT_SUFFIX),
   );
   const pending: Array<{ path: string; body: string }> = [];
@@ -410,7 +419,7 @@ export function planRedundantLegacyEnvelopeStrips(
   projectRoot: string,
 ): { ok: true; pending: ReadonlyArray<StripRewrite> } | { ok: false; error: string } {
   const migratedDir = join(projectRoot, MIGRATED_ARTIFACT_DIR);
-  const artifactPaths = collectFiles(migratedDir).filter((path) =>
+  const artifactPaths = collectFiles(migratedDir, [], { skipArchiveDir: true }).filter((path) =>
     path.endsWith(MIGRATED_ARTIFACT_SUFFIX),
   );
   const pending: StripRewrite[] = [];

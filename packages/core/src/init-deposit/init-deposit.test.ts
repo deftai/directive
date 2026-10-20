@@ -927,7 +927,9 @@ describe("runInitDeposit", destContentionItTimeout(), () => {
 
     expect(code).toBe(2);
     expect(out.join("")).toContain("refusing to deposit");
-    expect(out.join("")).toContain("npx @deftai/directive init");
+    // OVPR / AC10.10: refusal points at launcher bookend + directive upgrade (not npx init).
+    expect(out.join("")).toContain("directive upgrade");
+    expect(out.join("")).toContain("npm i -g @deftai/directive");
   });
 
   it("prints wizard UX to stdout in interactive mode", async () => {

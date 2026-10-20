@@ -91,11 +91,29 @@ describe("runSetup install|repair (R8 / AC8.*)", () => {
     expect(marker.schemaVersion).toBe(CURRENT_DATA_SCHEMA_VERSION);
     expect(readProjectDataStatus(root).dataStatus).toBe("current");
 
+    // Repair may restore a missing currency marker (not a migration).
     rmSync(join(root, DATA_SCHEMA_MARKER_REL), { force: true });
     expect(existsSync(join(root, DATA_SCHEMA_MARKER_REL))).toBe(false);
     const repaired = runSetup({ operation: "repair", from: installed.runtimeVersion, root });
     expect(repaired.conflicts).toEqual([]);
-    expect(existsSync(join(root, DATA_SCHEMA_MARKER_REL))).toBe(false);
+    expect(existsSync(join(root, DATA_SCHEMA_MARKER_REL))).toBe(true);
+    expect(readProjectDataStatus(root).dataStatus).toBe("current");
+
+    // Repair must not bump an already-behind schema marker (upgrade owns migration).
+    writeFileSync(
+      join(root, DATA_SCHEMA_MARKER_REL),
+      `${JSON.stringify({ schemaVersion: CURRENT_DATA_SCHEMA_VERSION - 1 }, null, 2)}\n`,
+    );
+    const repairedBehind = runSetup({
+      operation: "repair",
+      from: installed.runtimeVersion,
+      root,
+    });
+    expect(repairedBehind.conflicts).toEqual([]);
+    const behind = JSON.parse(readFileSync(join(root, DATA_SCHEMA_MARKER_REL), "utf8")) as {
+      schemaVersion: number;
+    };
+    expect(behind.schemaVersion).toBe(CURRENT_DATA_SCHEMA_VERSION - 1);
     expect(readProjectDataStatus(root).dataStatus).toBe("migration_needed");
   });
 

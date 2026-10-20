@@ -6,7 +6,7 @@
   },
   "plan": {
     "id": "2026-10-20-5490-installer-core-happy-path",
-    "title": "#5490 installer core \u2014 install, repair, doctor, uninstall happy path",
+    "title": "#5490 installer core — install, repair, doctor, uninstall happy path",
     "status": "completed",
     "updated": "2026-10-20T18:00:00Z",
     "narratives": {
@@ -19,27 +19,24 @@
         "id": "2026-10-20-5490-installer-core-happy-path-ac1",
         "title": "directive install / doctor / repair / uninstall behave on OVPR tip fixtures.",
         "status": "completed",
-        "acceptance": {
-          "criteria": "directive install / doctor / repair / uninstall behave on OVPR tip fixtures.",
-          "status": "completed"
+        "narrative": {
+          "Acceptance": "directive install / doctor / repair / uninstall behave on OVPR tip fixtures."
         }
       },
       {
         "id": "2026-10-20-5490-installer-core-happy-path-ac2",
         "title": "No Go installer path required for new installs.",
         "status": "completed",
-        "acceptance": {
-          "criteria": "No Go installer path required for new installs.",
-          "status": "completed"
+        "narrative": {
+          "Acceptance": "No Go installer path required for new installs."
         }
       },
       {
         "id": "2026-10-20-5490-installer-core-happy-path-ac3",
         "title": "HT-auto automation retained under tools/install-harness/ht-auto/.",
         "status": "completed",
-        "acceptance": {
-          "criteria": "HT-auto automation retained under tools/install-harness/ht-auto/.",
-          "status": "completed"
+        "narrative": {
+          "Acceptance": "HT-auto automation retained under tools/install-harness/ht-auto/."
         }
       }
     ],

@@ -348,7 +348,7 @@ describe("writeAgentHookDeposit hook-runtime travel warning", () => {
     const root = repo();
     writeFileSync(
       join(root, RUNTIME_ANCHOR_MANIFEST),
-      '{"devDependencies":{"@deftai/directive":"0.9.1"}}\n',
+      `{"devDependencies":{"${PIN_DEPENDENCY_NAME}":"0.9.1"}}\n`,
       "utf8",
     );
     execFileSync("git", ["add", RUNTIME_ANCHOR_MANIFEST], {
@@ -369,7 +369,8 @@ describe("writeAgentHookDeposit hook-runtime travel warning", () => {
     const root = repo();
     writeFileSync(
       join(root, RUNTIME_ANCHOR_MANIFEST),
-      '{"devDependencies":{"@deftai/directive":"0.9.1"}}\n',
+      // OVPR pin is @deftai/directive-runtime (PIN_DEPENDENCY_NAME), not the launcher.
+      `{"devDependencies":{"${PIN_DEPENDENCY_NAME}":"0.9.1"}}\n`,
       "utf8",
     );
     commitAll(root, "anchor");

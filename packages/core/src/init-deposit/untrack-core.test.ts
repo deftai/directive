@@ -337,7 +337,7 @@ describe("destructive-mutation boundary (#2269 a1)", () => {
     // Portable __dirname (avoids relying on the Node-version-gated
     // `import.meta.dirname`, which some type-checkers reject).
     const initDepositDir = dirname(fileURLToPath(import.meta.url));
-    const initCliDir = resolve(initDepositDir, "../../../cli/src/init-cli");
+    const initCliDir = resolve(initDepositDir, "../../../runtime/src/init-cli");
     // The destructive index mutation is the `["rm", "--cached", ...]` argv
     // adjacency — NOT a bare `--cached` (e.g. the non-destructive
     // `git diff --cached` read in hygiene.ts). Shared port keeps ADR-004

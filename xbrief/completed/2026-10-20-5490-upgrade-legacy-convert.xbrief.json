@@ -6,7 +6,7 @@
   },
   "plan": {
     "id": "2026-10-20-5490-upgrade-legacy-convert",
-    "title": "#5490 upgrade + legacy convert \u2014 migrate eras into OVPR L0",
+    "title": "#5490 upgrade + legacy convert — migrate eras into OVPR L0",
     "status": "completed",
     "updated": "2026-10-20T18:00:00Z",
     "narratives": {
@@ -17,29 +17,26 @@
     "items": [
       {
         "id": "2026-10-20-5490-upgrade-legacy-convert-ac1",
-        "title": "Upgrade path covers latest-old\u2192new and new\u2192new with highest robustness.",
+        "title": "Upgrade path covers latest-old→new and new→new with highest robustness.",
         "status": "completed",
-        "acceptance": {
-          "criteria": "Upgrade path covers latest-old\u2192new and new\u2192new with highest robustness.",
-          "status": "completed"
+        "narrative": {
+          "Acceptance": "Upgrade path covers latest-old→new and new→new with highest robustness."
         }
       },
       {
         "id": "2026-10-20-5490-upgrade-legacy-convert-ac2",
         "title": "repo-upgrade harness landed under tools/install-harness/repo-upgrade/.",
         "status": "completed",
-        "acceptance": {
-          "criteria": "repo-upgrade harness landed under tools/install-harness/repo-upgrade/.",
-          "status": "completed"
+        "narrative": {
+          "Acceptance": "repo-upgrade harness landed under tools/install-harness/repo-upgrade/."
         }
       },
       {
         "id": "2026-10-20-5490-upgrade-legacy-convert-ac3",
         "title": "Completed briefs retain historical completion honesty on migrate.",
         "status": "completed",
-        "acceptance": {
-          "criteria": "Completed briefs retain historical completion honesty on migrate.",
-          "status": "completed"
+        "narrative": {
+          "Acceptance": "Completed briefs retain historical completion honesty on migrate."
         }
       }
     ],
@@ -67,7 +64,7 @@
     ],
     "acceptance": {
       "criteria": [
-        "Upgrade path covers latest-old\u2192new and new\u2192new with highest robustness.",
+        "Upgrade path covers latest-old→new and new→new with highest robustness.",
         "repo-upgrade harness landed under tools/install-harness/repo-upgrade/.",
         "Completed briefs retain historical completion honesty on migrate."
       ],

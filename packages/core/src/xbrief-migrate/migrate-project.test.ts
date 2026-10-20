@@ -272,6 +272,42 @@ describe("runXbriefMigration", () => {
     expect(existsSync(join(project, LEGACY_ARTIFACT_DIR))).toBe(false);
   });
 
+  it("preserves legacy vbrief/archive/ into the migrated tree (Greptile P1)", () => {
+    const project = mkdtempSync(join(tmpdir(), "xbrief-migrate-src-archive-"));
+    temps.push(project);
+    mkdirSync(join(project, LEGACY_ARTIFACT_DIR, "active"), { recursive: true });
+    mkdirSync(join(project, LEGACY_ARTIFACT_DIR, "archive", "active"), { recursive: true });
+    writeFileSync(
+      join(project, LEGACY_ARTIFACT_DIR, "active", "good.vbrief.json"),
+      `${JSON.stringify({
+        vBRIEFInfo: { version: "0.6", description: "ok" },
+        plan: { title: "Good", status: "running", items: [] },
+      })}\n`,
+      "utf8",
+    );
+    writeFileSync(
+      join(project, LEGACY_ARTIFACT_DIR, "archive", "active", "kept-note.txt"),
+      "operator archive note\n",
+      "utf8",
+    );
+    execFileSync("git", ["init"], { cwd: project });
+
+    const outcome = runXbriefMigration(
+      { projectRoot: project, force: true },
+      { writeOut: () => {}, writeErr: () => {} },
+    );
+    expect(outcome.kind).toBe("migrated");
+    expect(
+      existsSync(join(project, MIGRATED_ARTIFACT_DIR, "archive", "active", "kept-note.txt")),
+    ).toBe(true);
+    expect(
+      readFileSync(
+        join(project, MIGRATED_ARTIFACT_DIR, "archive", "active", "kept-note.txt"),
+        "utf8",
+      ),
+    ).toBe("operator archive note\n");
+  });
+
   itSymlink("refuses migration when vbrief/ is a symlink outside the project (#2601)", () => {
     const base = mkdtempSync(join(tmpdir(), "xbrief-migrate-symlink-"));
     temps.push(base);

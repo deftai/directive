@@ -126,9 +126,11 @@ describe("F-010 no-git incomplete install doctor (C7 warn+partial)", () => {
     expect(text).toMatch(/incomplete install \(git precondition\)/i);
     expect(text).not.toMatch(/^directive doctor: not in sync$/m);
     expect(text).not.toMatch(/^directive doctor: in sync$/m);
-    expect(text).toContain(`Recovery: ${GIT_PRECONDITION_RECOVERY_GUIDANCE}`);
+    // wave 4g: plain Next: block (same git-init recovery, friendlier layout)
+    expect(text).toContain("Next:");
     expect(text).toMatch(/git init/i);
     expect(text).toMatch(/directive install --repair/);
+    expect(diag.remedy).toBe(GIT_PRECONDITION_RECOVERY_GUIDANCE);
     expect(text).not.toContain(INSTALLATION_RECOVERY_GUIDANCE);
     expect(text).not.toMatch(/npm i -g @deftai\/directive/);
     for (const re of FORBIDDEN_DOCTOR_REMEDY_PATTERNS) {

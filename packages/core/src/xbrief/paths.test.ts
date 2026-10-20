@@ -42,4 +42,17 @@ describe("xbrief paths (#3057)", () => {
   it("throws XbriefPathError on empty expand", () => {
     expect(() => expandUserPath("")).toThrow(XbriefPathError);
   });
+
+  it("resolves ./out against DIRECTIVE_LAUNCHER_CWD when spawn cwd is projectRoot", () => {
+    const root = mkdtempSync(join(tmpdir(), "xbrief-paths-root-"));
+    const child = mkdtempSync(join(root, "child-"));
+    temps.push(root);
+    const paths = resolveXbriefOutPaths({
+      projectRoot: root,
+      out: "./story",
+      format: "json",
+      env: { DIRECTIVE_LAUNCHER_CWD: child },
+    });
+    expect(paths.jsonAbs).toBe(join(child, "story.xbrief.json"));
+  });
 });

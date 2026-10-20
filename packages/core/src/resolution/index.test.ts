@@ -29,7 +29,7 @@ describe("resolution/index barrel (#2264 / AC12.6)", () => {
     expect(resolution.RESOLUTION_MODES).toContain("proceed");
     expect(resolution.RESOLUTION_ENCODINGS).toEqual(["utf-8", "base64"]);
     expect(resolution.LOCAL_ENGINE_ROOT).toBe(".deft/.cli");
-    expect(resolution.PIN_DEPENDENCY_NAME).toBe("@deftai/directive");
+    expect(resolution.PIN_DEPENDENCY_NAME).toBe("@deftai/directive-runtime");
   });
 
   it("a consumer can drive an end-to-end decision through the barrel exports only", () => {

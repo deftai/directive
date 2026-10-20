@@ -6,7 +6,7 @@
   },
   "plan": {
     "id": "2026-10-20-5490-ovpr-product-delivery",
-    "title": "#5490 One Version Per Repo \u2014 product delivery (installer + runtime pin)",
+    "title": "#5490 One Version Per Repo — product delivery (installer + runtime pin)",
     "status": "completed",
     "updated": "2026-10-20T18:00:00Z",
     "narratives": {
@@ -19,36 +19,32 @@
         "id": "2026-10-20-5490-ovpr-product-delivery-ac1",
         "title": "Two published packages only (launcher + runtime) at one version (AC13.4).",
         "status": "completed",
-        "acceptance": {
-          "criteria": "Two published packages only (launcher + runtime) at one version (AC13.4).",
-          "status": "completed"
+        "narrative": {
+          "Acceptance": "Two published packages only (launcher + runtime) at one version (AC13.4)."
         }
       },
       {
         "id": "2026-10-20-5490-ovpr-product-delivery-ac2",
         "title": "Consumer pin is exact `@deftai/directive-runtime`; no copied `.deft/core` engine deposit.",
         "status": "completed",
-        "acceptance": {
-          "criteria": "Consumer pin is exact `@deftai/directive-runtime`; no copied `.deft/core` engine deposit.",
-          "status": "completed"
+        "narrative": {
+          "Acceptance": "Consumer pin is exact `@deftai/directive-runtime`; no copied `.deft/core` engine deposit."
         }
       },
       {
         "id": "2026-10-20-5490-ovpr-product-delivery-ac3",
         "title": "Install / upgrade / uninstall / doctor / repair work against OVPR shapes on tip.",
         "status": "completed",
-        "acceptance": {
-          "criteria": "Install / upgrade / uninstall / doctor / repair work against OVPR shapes on tip.",
-          "status": "completed"
+        "narrative": {
+          "Acceptance": "Install / upgrade / uninstall / doctor / repair work against OVPR shapes on tip."
         }
       },
       {
         "id": "2026-10-20-5490-ovpr-product-delivery-ac4",
         "title": "Requirements captured under docs/installer-refactor-ovpr/ for future work.",
         "status": "completed",
-        "acceptance": {
-          "criteria": "Requirements captured under docs/installer-refactor-ovpr/ for future work.",
-          "status": "completed"
+        "narrative": {
+          "Acceptance": "Requirements captured under docs/installer-refactor-ovpr/ for future work."
         }
       }
     ],

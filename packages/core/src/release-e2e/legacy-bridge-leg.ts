@@ -160,10 +160,11 @@ export function assertLegacyFixturesDetectedAndRefused(workRoot: string): [boole
     }
     for (const command of ["init", "update"] as const) {
       const refusal = buildLegacyRefusalMessage(command, detection);
-      if (!refusal.includes("frozen final Go bridge")) {
+      // AC10.10: Go installer deleted; refusal signposts launcher + directive upgrade.
+      if (!refusal.includes("directive upgrade") || !refusal.includes("npm i -g @deftai/directive")) {
         return [
           false,
-          `npm ${command} refusal for ${spec.kind} did not signpost the frozen Go bridge`,
+          `npm ${command} refusal for ${spec.kind} did not signpost directive upgrade`,
         ];
       }
     }
@@ -535,6 +536,16 @@ export function runLegacyBridgeLeg(
     return [
       true,
       "SKIP (npm not on PATH; Node-less operator) -- the npm-hybrid stage needs the npm channel",
+    ];
+  }
+
+  // AC10.10 / wave3t archaeology: cmd/deft-install is deleted on tip. Do not
+  // resurrect the Go tree or fake-green a frozen-binary handoff; soft-skip the leg.
+  const goInstallerPath = join(projectRoot, "cmd", "deft-install");
+  if (!existsSync(goInstallerPath)) {
+    return [
+      true,
+      "SKIP (AC10.10 / wave3t archaeology): cmd/deft-install deleted; frozen Go bridge leg retired",
     ];
   }
 

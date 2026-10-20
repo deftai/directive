@@ -52,9 +52,10 @@ describe("launcher package collapse (AC3.1 / AC13.4)", () => {
     expect(pkg.bin).toEqual({
       directive: "./dist/bin.js",
       deft: "./dist/bin.js",
-      // D4.3 / AC3.5: npm bin map points at the single self-contained file;
-      // PATH shims under bin/ remain in `files` for Windows/manual installs.
-      "deft-hook": "./dist/bin.js",
+      // AC3.5: npm bin map points at the PATH shim; shim sets DEFT_LAUNCHER_MODE
+      // and execs the single self-contained dist/bin.js (D4.3).
+      "deft-hook": "./bin/deft-hook",
     });
   });
 });
+

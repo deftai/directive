@@ -183,14 +183,10 @@ describe("directive update record-mode payload-root (#4446)", () => {
 
   it("dry-run plans AGENTS.md and dest-only delete from incoming tree (#4446)", async () => {
     const project = freshRoot("payload-root-agents-");
-    const stale = repoTemplate().replace(
-      "Deft is installed in .deft/core/.",
-      "STALE-DEST-TEMPLATE-4446",
-    );
-    const incomingText = repoTemplate().replace(
-      "Deft is installed in .deft/core/.",
-      "INCOMING-TEMPLATE-4446",
-    );
+    // OVPR template no longer says ".deft/core"; mutate a stable current phrase.
+    const templateAnchor = "Deft runtime is pinned as `@deftai/directive-runtime`.";
+    const stale = repoTemplate().replace(templateAnchor, "STALE-DEST-TEMPLATE-4446");
+    const incomingText = repoTemplate().replace(templateAnchor, "INCOMING-TEMPLATE-4446");
     const contentRoot = installIncomingAway("0.103.0", incomingText);
     writeInitializedProject(project, "0.78.0");
     const deftDir = join(project, ".deft", "core");
@@ -366,7 +362,7 @@ describe("directive update record-mode payload-root (#4446)", () => {
   it("recorded dest plan does not waive dirty-tree refuse (#4446)", async () => {
     const project = freshRoot("payload-root-dirty-");
     const incomingText = repoTemplate().replace(
-      "Deft is installed in .deft/core/.",
+      "Deft runtime is pinned as `@deftai/directive-runtime`.",
       "INCOMING-TEMPLATE-4446",
     );
     const contentRoot = installIncomingAway("0.103.0", incomingText);

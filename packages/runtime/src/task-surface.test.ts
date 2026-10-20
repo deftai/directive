@@ -36,7 +36,7 @@ describe("consumer task surface inline python cleanup (#2022 Phase 2)", () => {
 
   it("changelog-check CLI parses --against-merge-base (#633)", () => {
     const text = readFileSync(
-      join(REPO_ROOT, "packages", "cli", "src", "changelog-check.ts"),
+      join(REPO_ROOT, "packages", "runtime", "src", "changelog-check.ts"),
       "utf8",
     );
     expect(text).toContain("--against-merge-base");

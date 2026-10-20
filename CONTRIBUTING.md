@@ -214,12 +214,12 @@ pnpm exec vitest run --coverage <paths>   # iteration lane on changed modules
 
 ## Running CLI Locally
 
-The Deft CLI is TypeScript. On a framework-source checkout, `task <verb>` goes through `engine:invoke`, which runs `packages/cli/dist/bin.js` (rebuilt by `engine:_ts-build` when sources are newer). You can also invoke the dist binary directly after a build:
+The Deft CLI is TypeScript. On a framework-source checkout, `task <verb>` goes through `engine:invoke`, which runs `packages/runtime/dist/bin.js` (rebuilt by `engine:_ts-build` when sources are newer). You can also invoke the dist binary directly after a build:
 
 ```bash
 task doctor
 task check
-node packages/cli/dist/bin.js doctor
+node packages/runtime/dist/bin.js doctor
 ```
 
 Useful local commands:
@@ -360,11 +360,11 @@ Bare `task triage` / `task scope` and per-verb `--help` both render from
 this registry, so a new verb without a registry entry will not appear in
 the operator-facing catalog.
 
-`engine:invoke` (`tasks/engine.yml`) runs `packages/cli/dist/bin.js` on a
-framework-source checkout. Dist is rebuilt by `engine:_ts-build` when
-sources are newer. Slash-command / native-wrapper deposit
-(`content/commands.md` § Native multi-host registration) is a different
-family and out of this section.
+`engine:invoke` (`tasks/engine.yml`) runs `packages/runtime/dist/bin.js` on a
+framework-source checkout (OVPR; also accepts package-root `dist/bin.js`).
+Dist is rebuilt by `engine:_ts-build` when sources are newer. Slash-command /
+native-wrapper deposit (`content/commands.md` § Native multi-host registration)
+is a different family and out of this section.
 
 There is no single undifferentiated dispatch path. Pick a topology.
 
@@ -372,10 +372,10 @@ There is no single undifferentiated dispatch path. Pick a topology.
 
 Standalone verb (example: `task triage:evaluate`).
 
-1. **Handler** in `packages/cli/src/<stem>.ts` (or a core-only entry under
+1. **Handler** in `packages/runtime/src/<stem>.ts` (or a core-only entry under
    `packages/core/src/` with no CLI wrapper). Export `run` / `main`.
 2. **Register the stem** in `CLI_MODULE_VERBS` (CLI wrapper) or
-   `CORE_MODULE_VERBS` (core-only) in `packages/cli/src/dispatch.ts`. Add a
+   `CORE_MODULE_VERBS` (core-only) in `packages/runtime/src/dispatch.ts`. Add a
    `VERB_ALIASES` colon spelling (`"triage:foo": "triage-foo"`).
 3. **Taskfile fragment** under `tasks/` that calls `engine:invoke` with
    `ENGINE_CMD: '<stem> {{.CLI_ARGS}}'`. Expose `task triage:foo` as a root
@@ -394,7 +394,7 @@ Standalone verb (example: `task triage:evaluate`).
    `directive triage-foo --help`, and `task triage:foo -- --help`.
    `triage:accept --help` failing while `triage:evaluate --help` works is
    the class this intercept exists to catch.
-6. **Guards:** `packages/cli/src/dispatch.test.ts` (every CLI module verb,
+6. **Guards:** `packages/runtime/src/dispatch.test.ts` (every CLI module verb,
    core verb, and alias). New source files need a colocated test;
    `task verify:forward-coverage` is in `task check`.
 
@@ -404,11 +404,11 @@ New subcommand of an existing dispatcher (example: `task triage:accept` on
 `triage-actions`).
 
 1. **Handler case** in the existing module (e.g.
-   `packages/cli/src/triage-actions.ts`).
+   `packages/runtime/src/triage-actions.ts`).
 2. **Alias-to-subcommand map** in `dispatch.ts`
    (`TRIAGE_ACTION_ALIAS_SUBCOMMANDS` or the matching family) **and** a
    matching `SUBCOMMAND_ROUTES` row in
-   `packages/cli/src/cli-router/route-argv.ts`. The alias maps must mirror
+   `packages/runtime/src/cli-router/route-argv.ts`. The alias maps must mirror
    `SUBCOMMAND_ROUTES`.
 3. **Taskfile** inner task that invokes `engine:invoke` with the subcommand
    token (`ENGINE_CMD: 'triage-actions accept {{.CLI_ARGS}}'`) plus a root

@@ -36,6 +36,8 @@ export const RECOVERY_GUIDANCE = "npm i -g @deftai/directive, then directive ins
 /** Env vars passed when spawning the runtime (AC4.2). */
 export const ENV_PROJECT_ROOT = "DIRECTIVE_PROJECT_ROOT";
 export const ENV_LAUNCHER_VERSION = "DIRECTIVE_LAUNCHER_VERSION";
+/** Caller cwd before launcher sets spawn cwd=projectRoot (relative --out / ./ paths). */
+export const ENV_LAUNCHER_CWD = "DIRECTIVE_LAUNCHER_CWD";
 
 export const INSTALL_MANAGEMENT_COMMANDS = ["install", "upgrade", "uninstall", "doctor"] as const;
 

@@ -388,7 +388,10 @@ describe("runLegacyBridgeLeg", () => {
     expect(reason).toContain("npm not on PATH");
   });
 
-  it("PENDING while the SoT is null: asserts shape, skips the real frozen download", () => {
+  it("soft-skips when cmd/deft-install is deleted (AC10.10 / wave3t archaeology)", () => {
+    // Go installer source tree is gone on tip; do not resurrect cmd/deft-install
+    // or fake-green a frozen-binary handoff. Honest SKIP is the contract.
+    expect(existsSync(join(process.cwd(), "cmd", "deft-install"))).toBe(false);
     const [okFlag, reason] = runLegacyBridgeLeg(process.cwd(), {
       which: whichFor("npm"),
       lastGoInstaller: () => null,
@@ -396,104 +399,114 @@ describe("runLegacyBridgeLeg", () => {
       agentsTemplatePath: null,
     });
     expect(okFlag).toBe(true);
-    expect(reason).toContain("PENDING (SoT unfrozen)");
-    expect(reason).toContain("skipped the real frozen-binary download");
-  });
-
-  it("uses the real SoT reader by default (frozen at the pinned tag -> frozen path)", () => {
-    // Post-freeze (#1912) the real Tier-0 SoT is pinned, so the default reader
-    // takes the frozen stage-1 path. With gh absent (whichFor("npm")) the real
-    // frozen-binary download soft-skips while still reporting the frozen pin --
-    // proving the leg reads the live SoT rather than a stale null assumption.
-    const [okFlag, reason] = runLegacyBridgeLeg(process.cwd(), {
-      which: whichFor("npm"),
-      resolveEngine: () => "npm",
-      agentsTemplatePath: null,
-    });
-    expect(okFlag).toBe(true);
-    expect(reason).toContain("frozen pin");
     expect(reason).toContain("SKIP");
+    expect(reason).toContain("AC10.10");
+    expect(reason).toContain("cmd/deft-install deleted");
   });
 
-  it("validates the VERSION handshake on the SoT-null path with no binary download (a3)", () => {
-    // SoT null (pending-pin) means no frozen-binary download; the stage-2
-    // handshake must still run. A drifted VERSION must fail the leg even though
-    // the real frozen bridge is skipped -- proving the handshake is asserted
-    // end-to-end without a network/binary dependency.
-    let frozenDownloadAttempts = 0;
-    const [okFlag, reason] = runLegacyBridgeLeg(process.cwd(), {
-      which: whichFor("npm"),
-      lastGoInstaller: () => null,
-      resolveEngine: () => "npm",
-      agentsTemplatePath: null,
-      versionTextOverride: "ref: 'v0.0.1'\nsha: 'content-package'\ntag: 'v0.0.1'\n",
-      runFrozenBridge: () => {
-        frozenDownloadAttempts += 1;
-        return [true, "should not be reached on the SoT-null path"];
-      },
+  // Retired: frozen Go bridge download / VERSION handshake / SoT-frozen handoff
+  // paths assumed cmd/deft-install. Tip deleted that tree (AC10.10 / wave3t);
+  // keep the soft-skip above as the living contract instead of fake-green.
+  describe.skip("frozen Go bridge handoff (AC10.10 archaeology; cmd/deft-install deleted)", () => {
+    it("PENDING while the SoT is null: asserts shape, skips the real frozen download", () => {
+      const [okFlag, reason] = runLegacyBridgeLeg(process.cwd(), {
+        which: whichFor("npm"),
+        lastGoInstaller: () => null,
+        resolveEngine: () => "npm",
+        agentsTemplatePath: null,
+      });
+      expect(okFlag).toBe(true);
+      expect(reason).toContain("PENDING (SoT unfrozen)");
+      expect(reason).toContain("skipped the real frozen-binary download");
     });
-    expect(okFlag).toBe(false);
-    expect(reason).toContain("npm-hybrid");
-    expect(reason).toContain("handshake mismatch");
-    expect(frozenDownloadAttempts).toBe(0);
-  });
 
-  it("passes the SoT-null path when the installer-shaped VERSION is migrate-acceptable (a3)", () => {
-    const [okFlag, reason] = runLegacyBridgeLeg(process.cwd(), {
-      which: whichFor("npm"),
-      lastGoInstaller: () => null,
-      resolveEngine: () => "npm",
-      agentsTemplatePath: null,
+    it("uses the real SoT reader by default (frozen at the pinned tag -> frozen path)", () => {
+      const [okFlag, reason] = runLegacyBridgeLeg(process.cwd(), {
+        which: whichFor("npm"),
+        resolveEngine: () => "npm",
+        agentsTemplatePath: null,
+      });
+      expect(okFlag).toBe(true);
+      expect(reason).toContain("frozen pin");
+      expect(reason).toContain("SKIP");
     });
-    expect(okFlag).toBe(true);
-    expect(reason).toContain("PENDING (SoT unfrozen)");
-    expect(reason).toContain("stage-2 npm-hybrid");
-  });
 
-  it("runs the real pinned handoff when the SoT is frozen", () => {
-    const seenPins: string[] = [];
-    const [okFlag, reason] = runLegacyBridgeLeg(process.cwd(), {
-      which: whichFor("npm"),
-      lastGoInstaller: () => "v0.32.5",
-      resolveEngine: () => "npm",
-      agentsTemplatePath: null,
-      runFrozenBridge: (pin) => {
-        seenPins.push(pin);
-        return [true, `normalised at ${pin}`];
-      },
+    it("validates the VERSION handshake on the SoT-null path with no binary download (a3)", () => {
+      let frozenDownloadAttempts = 0;
+      const [okFlag, reason] = runLegacyBridgeLeg(process.cwd(), {
+        which: whichFor("npm"),
+        lastGoInstaller: () => null,
+        resolveEngine: () => "npm",
+        agentsTemplatePath: null,
+        versionTextOverride: "ref: 'v0.0.1'\nsha: 'content-package'\ntag: 'v0.0.1'\n",
+        runFrozenBridge: () => {
+          frozenDownloadAttempts += 1;
+          return [true, "should not be reached on the SoT-null path"];
+        },
+      });
+      expect(okFlag).toBe(false);
+      expect(reason).toContain("npm-hybrid");
+      expect(reason).toContain("handshake mismatch");
+      expect(frozenDownloadAttempts).toBe(0);
     });
-    expect(okFlag).toBe(true);
-    expect(reason).toContain("frozen pin v0.32.5");
-    expect(seenPins).toEqual(["v0.32.5"]);
-  });
 
-  it("FAILs when the frozen bridge handoff fails", () => {
-    const [okFlag, reason] = runLegacyBridgeLeg(process.cwd(), {
-      which: whichFor("npm"),
-      lastGoInstaller: () => "v0.32.5",
-      resolveEngine: () => "npm",
-      agentsTemplatePath: null,
-      runFrozenBridge: () => [false, "download blew up"],
+    it("passes the SoT-null path when the installer-shaped VERSION is migrate-acceptable (a3)", () => {
+      const [okFlag, reason] = runLegacyBridgeLeg(process.cwd(), {
+        which: whichFor("npm"),
+        lastGoInstaller: () => null,
+        resolveEngine: () => "npm",
+        agentsTemplatePath: null,
+      });
+      expect(okFlag).toBe(true);
+      expect(reason).toContain("PENDING (SoT unfrozen)");
+      expect(reason).toContain("stage-2 npm-hybrid");
     });
-    expect(okFlag).toBe(false);
-    expect(reason).toContain("frozen bridge");
-    expect(reason).toContain("download blew up");
-  });
 
-  it("soft-skips the frozen stage-1 when the bridge handoff skips (gh absent)", () => {
-    const [okFlag, reason] = runLegacyBridgeLeg(process.cwd(), {
-      which: whichFor("npm"),
-      lastGoInstaller: () => "v0.32.5",
-      resolveEngine: () => "npm",
-      agentsTemplatePath: null,
-      runFrozenBridge: () => [
-        true,
-        "SKIP (gh not on PATH; cannot fetch the frozen bridge v0.32.5)",
-      ],
+    it("runs the real pinned handoff when the SoT is frozen", () => {
+      const seenPins: string[] = [];
+      const [okFlag, reason] = runLegacyBridgeLeg(process.cwd(), {
+        which: whichFor("npm"),
+        lastGoInstaller: () => "v0.32.5",
+        resolveEngine: () => "npm",
+        agentsTemplatePath: null,
+        runFrozenBridge: (pin) => {
+          seenPins.push(pin);
+          return [true, `normalised at ${pin}`];
+        },
+      });
+      expect(okFlag).toBe(true);
+      expect(reason).toContain("frozen pin v0.32.5");
+      expect(seenPins).toEqual(["v0.32.5"]);
     });
-    expect(okFlag).toBe(true);
-    expect(reason).toContain("frozen pin v0.32.5");
-    expect(reason).toContain("SKIP");
+
+    it("FAILs when the frozen bridge handoff fails", () => {
+      const [okFlag, reason] = runLegacyBridgeLeg(process.cwd(), {
+        which: whichFor("npm"),
+        lastGoInstaller: () => "v0.32.5",
+        resolveEngine: () => "npm",
+        agentsTemplatePath: null,
+        runFrozenBridge: () => [false, "download blew up"],
+      });
+      expect(okFlag).toBe(false);
+      expect(reason).toContain("frozen bridge");
+      expect(reason).toContain("download blew up");
+    });
+
+    it("soft-skips the frozen stage-1 when the bridge handoff skips (gh absent)", () => {
+      const [okFlag, reason] = runLegacyBridgeLeg(process.cwd(), {
+        which: whichFor("npm"),
+        lastGoInstaller: () => "v0.32.5",
+        resolveEngine: () => "npm",
+        agentsTemplatePath: null,
+        runFrozenBridge: () => [
+          true,
+          "SKIP (gh not on PATH; cannot fetch the frozen bridge v0.32.5)",
+        ],
+      });
+      expect(okFlag).toBe(true);
+      expect(reason).toContain("frozen pin v0.32.5");
+      expect(reason).toContain("SKIP");
+    });
   });
 });
 
@@ -543,10 +556,13 @@ describe("runE2e --legacy-bridge wiring", () => {
       resolveEngine: () => "npm",
       agentsTemplatePath: null,
     };
+    // AC10.10: missing cmd/deft-install soft-skips the leg (ok), so e2e stays EXIT_OK.
     expect(runE2e(config(), seams)).toBe(EXIT_OK);
   });
 
-  it("folds a leg FAIL into a violation exit even when the rehearsal passes", () => {
+  // Retired with cmd/deft-install (AC10.10): cannot reach a frozen-bridge FAIL
+  // when the leg soft-skips before download. Kept skipped for archaeology.
+  it.skip("folds a leg FAIL into a violation exit even when the rehearsal passes", () => {
     vi.spyOn(ghOps, "provisionTempRepo").mockReturnValue([true, "created"]);
     vi.spyOn(rehearsalModule, "runRehearsal").mockReturnValue([true, "ok"]);
     vi.spyOn(ghOps, "destroyTempRepo").mockReturnValue([true, "deleted"]);

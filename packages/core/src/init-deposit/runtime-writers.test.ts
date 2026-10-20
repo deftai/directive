@@ -40,27 +40,6 @@ function loadWriterManifest(): WriterManifest {
   ) as WriterManifest;
 }
 
-function parseGoCanonicalGitignoreLines(): string[] {
-  const src = readFileSync(
-    join(here, "..", "..", "..", "..", "cmd", "deft-install", "setup.go"),
-    "utf8",
-  );
-  const start = src.indexOf("var canonicalGitignoreLines = []string{");
-  if (start < 0) throw new Error("canonicalGitignoreLines not found in setup.go");
-  const open = src.indexOf("[", start);
-  const close = src.indexOf("}", open);
-  const block = src.slice(open, close);
-  const lines: string[] = [];
-  for (const raw of block.split("\n")) {
-    const i = raw.indexOf('"');
-    if (i < 0) continue;
-    const j = raw.indexOf('"', i + 1);
-    if (j < 0) continue;
-    lines.push(raw.slice(i + 1, j));
-  }
-  return lines;
-}
-
 describe("runtime writer ignore containment (#3612 / #4116)", () => {
   const created: string[] = [];
 
@@ -70,7 +49,7 @@ describe("runtime writer ignore containment (#3612 / #4116)", () => {
     }
   });
 
-  it("locksteps imported writer constants to the Go-readable JSON manifest", () => {
+  it("locksteps imported writer constants to the JSON manifest", () => {
     const manifest = loadWriterManifest();
     expect([...RUNTIME_WRITER_PATHS_LOCAL_CACHE]).toEqual(manifest.localCache);
     expect([...RUNTIME_WRITER_PATHS_TRACKED_PROVENANCE]).toEqual(manifest.trackedProvenance);
@@ -88,24 +67,12 @@ describe("runtime writer ignore containment (#3612 / #4116)", () => {
     expect(missing).toEqual([]);
   });
 
-  it("covers every local-cache writer path with the Go baseline", () => {
-    const goLines = parseGoCanonicalGitignoreLines();
-    const missing = RUNTIME_WRITER_PATHS_LOCAL_CACHE.filter(
-      (path) => !ignoreSetCoversPath(goLines, path),
-    );
-    expect(missing).toEqual([]);
-  });
-
-  it("does not cover tracked-provenance writers on either baseline", () => {
-    const goLines = parseGoCanonicalGitignoreLines();
+  it("does not cover tracked-provenance writers on the TypeScript baseline", () => {
     for (const path of RUNTIME_WRITER_PATHS_TRACKED_PROVENANCE) {
       expect(ignoreSetCoversPath(CANONICAL_GITIGNORE_BASELINE, path)).toBe(false);
-      expect(ignoreSetCoversPath(goLines, path)).toBe(false);
     }
     expect(CANONICAL_GITIGNORE_BASELINE).not.toContain(".deft/approved-scope/");
     expect(CANONICAL_GITIGNORE_BASELINE).not.toContain(".deft/approved-scope");
-    expect(goLines).not.toContain(".deft/approved-scope/");
-    expect(goLines).not.toContain(".deft/approved-scope");
   });
 
   it("keeps neighbor local-only paths ignored", () => {
@@ -119,33 +86,24 @@ describe("runtime writer ignore containment (#3612 / #4116)", () => {
       ".deft/session-binds/",
     ]) {
       expect(CANONICAL_GITIGNORE_BASELINE).toContain(line);
-      expect(parseGoCanonicalGitignoreLines()).toContain(line);
     }
   });
 
   it("does not ignore GENERATION.json when covering orientation/session-bind (#3911)", () => {
     expect(ignoreSetCoversPath(CANONICAL_GITIGNORE_BASELINE, ".deft/GENERATION.json")).toBe(false);
-    expect(ignoreSetCoversPath(parseGoCanonicalGitignoreLines(), ".deft/GENERATION.json")).toBe(
-      false,
-    );
   });
 
-  it("lists approved-scope sidecar globs on both baselines", () => {
+  it("lists approved-scope sidecar globs on the TypeScript baseline", () => {
     expect(APPROVED_SCOPE_SIDECAR_GITIGNORE_LINES.length).toBeGreaterThan(0);
-    const goLines = parseGoCanonicalGitignoreLines();
     for (const line of APPROVED_SCOPE_SIDECAR_GITIGNORE_LINES) {
       expect(isGlobGitignoreRule(line)).toBe(true);
       expect(CANONICAL_GITIGNORE_BASELINE).toContain(line);
-      expect(goLines).toContain(line);
     }
   });
 
   it("fails closed on a deliberately uncovered writer path", () => {
     expect(
       ignoreSetCoversPath(CANONICAL_GITIGNORE_BASELINE, loadWriterManifest().uncoveredProbe),
-    ).toBe(false);
-    expect(
-      ignoreSetCoversPath(parseGoCanonicalGitignoreLines(), loadWriterManifest().uncoveredProbe),
     ).toBe(false);
   });
 

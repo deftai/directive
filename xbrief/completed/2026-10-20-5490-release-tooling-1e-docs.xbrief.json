@@ -19,36 +19,32 @@
         "id": "2026-10-20-5490-release-tooling-1e-docs-ac1",
         "title": "NPM_PUBLISH_PACKAGES / WORKSPACE_PACKAGES are runtime + launcher only.",
         "status": "completed",
-        "acceptance": {
-          "criteria": "NPM_PUBLISH_PACKAGES / WORKSPACE_PACKAGES are runtime + launcher only.",
-          "status": "completed"
+        "narrative": {
+          "Acceptance": "NPM_PUBLISH_PACKAGES / WORKSPACE_PACKAGES are runtime + launcher only."
         }
       },
       {
         "id": "2026-10-20-5490-release-tooling-1e-docs-ac2",
         "title": "Pass 2 post-publish fixture uses directive install --target-version.",
         "status": "completed",
-        "acceptance": {
-          "criteria": "Pass 2 post-publish fixture uses directive install --target-version.",
-          "status": "completed"
+        "narrative": {
+          "Acceptance": "Pass 2 post-publish fixture uses directive install --target-version."
         }
       },
       {
         "id": "2026-10-20-5490-release-tooling-1e-docs-ac3",
         "title": "docs/installer-refactor-ovpr/ is the durable OVPR docs home.",
         "status": "completed",
-        "acceptance": {
-          "criteria": "docs/installer-refactor-ovpr/ is the durable OVPR docs home.",
-          "status": "completed"
+        "narrative": {
+          "Acceptance": "docs/installer-refactor-ovpr/ is the durable OVPR docs home."
         }
       },
       {
         "id": "2026-10-20-5490-release-tooling-1e-docs-ac4",
         "title": "Focused release-e2e vitest green on wave4j (80/80 for targeted suites).",
         "status": "completed",
-        "acceptance": {
-          "criteria": "Focused release-e2e vitest green on wave4j (80/80 for targeted suites).",
-          "status": "completed"
+        "narrative": {
+          "Acceptance": "Focused release-e2e vitest green on wave4j (80/80 for targeted suites)."
         }
       }
     ],

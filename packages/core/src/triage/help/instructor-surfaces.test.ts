@@ -64,7 +64,7 @@ describe("maintainer instructor surfaces (#4091)", () => {
       "packages/runtime/src/dispatch.test.ts",
       "verify:forward-coverage",
       "engine:invoke",
-      "packages/cli/dist",
+      "packages/runtime/dist",
       "packages/core/src/scm/call.ts",
       "task verify:scm-boundary",
       "containedWrite",
