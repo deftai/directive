@@ -56,8 +56,54 @@ const _ADVISORY_HIGH_SIGNAL_RES: readonly RegExp[] = [
 ];
 
 const NAIVE_INLINE_SHA_RE = /Last reviewed commit:\s*([0-9a-f]{7,40})/;
-const MARKDOWN_LINK_SHA_RE =
-  /Last reviewed commit:\s*\[.*?\]\(https?:\/\/github\.com\/[^/]+\/[^/]+\/commit\/(?<sha>[0-9a-f]{7,40})/;
+
+/** Marker for Last-reviewed SHA lines (markdown-link and naive-inline share the label). */
+const LAST_REVIEWED_MARKER = "Last reviewed commit:";
+/** Cap markdown link-text scan — adversarial bodies cannot force unbounded work (#5742 / CodeQL #112). */
+const MARKDOWN_LINK_TEXT_MAX = 512;
+/**
+ * Cap URL prefix (scheme+host+owner+repo+/commit/) after `](`.
+ * SHA digits use a separate 40-char reserve so a long owner/repo cannot
+ * truncate a valid 40-hex SHA inside the prefix budget (Greptile P1).
+ */
+const MARKDOWN_COMMIT_URL_PREFIX_MAX = 200;
+const COMMIT_SHA_HEX_MAX = 40;
+
+function isAsciiWhitespace(ch: string): boolean {
+  return ch === " " || ch === "\t" || ch === "\n" || ch === "\r" || ch === "\f" || ch === "\v";
+}
+
+function isLowerHex(ch: string): boolean {
+  return (ch >= "0" && ch <= "9") || (ch >= "a" && ch <= "f");
+}
+
+/**
+ * Linear parse of `https?://github.com/<owner>/<repo>/commit/<sha>` at `start`.
+ * Returns the SHA or null; never backtracks (#5742).
+ */
+function parseGithubCommitShaAt(body: string, start: number): string | null {
+  const prefixLimit = Math.min(body.length, start + MARKDOWN_COMMIT_URL_PREFIX_MAX);
+  let i = start;
+  if (body.startsWith("https://", i)) i += 8;
+  else if (body.startsWith("http://", i)) i += 7;
+  else return null;
+  if (i >= prefixLimit || !body.startsWith("github.com/", i)) return null;
+  i += "github.com/".length;
+  const ownerStart = i;
+  while (i < prefixLimit && body[i] !== "/" && body[i] !== "\n") i++;
+  if (i === ownerStart || i >= prefixLimit || body[i] !== "/") return null;
+  i++;
+  const repoStart = i;
+  while (i < prefixLimit && body[i] !== "/" && body[i] !== "\n") i++;
+  if (i === repoStart || i + 8 > prefixLimit || !body.startsWith("/commit/", i)) return null;
+  i += "/commit/".length;
+  const shaStart = i;
+  const shaLimit = Math.min(body.length, shaStart + COMMIT_SHA_HEX_MAX);
+  while (i < shaLimit && isLowerHex(body[i]!)) i++;
+  const shaLen = i - shaStart;
+  if (shaLen < 7 || shaLen > COMMIT_SHA_HEX_MAX) return null;
+  return body.slice(shaStart, i);
+}
 
 interface DetectResult {
   tier1_p0: number;
@@ -297,9 +343,47 @@ export function detect(body: string): DetectResult {
   };
 }
 
+/**
+ * First Last-reviewed markdown-link SHA in `body`, or null.
+ * Monotonic linear scan with a fixed link-text window — clears CodeQL #112 (#5742).
+ * Escape-aware (`\[` / `\]`) so bracketed subjects still extract (#1326).
+ * Does not fall back to the naive-inline parser.
+ */
 export function parseLastReviewedShaMarkdownLink(body: string): string | null {
-  const m = MARKDOWN_LINK_SHA_RE.exec(body);
-  return m?.groups?.sha ?? null;
+  let searchFrom = 0;
+  while (searchFrom < body.length) {
+    const markerAt = body.indexOf(LAST_REVIEWED_MARKER, searchFrom);
+    if (markerAt === -1) return null;
+    let j = markerAt + LAST_REVIEWED_MARKER.length;
+    while (j < body.length && isAsciiWhitespace(body[j]!)) j++;
+    if (j >= body.length || body[j] !== "[") {
+      searchFrom = markerAt + 1;
+      continue;
+    }
+    const linkTextStart = j + 1;
+    let k = linkTextStart;
+    let closeAt = -1;
+    while (k < body.length && k - linkTextStart <= MARKDOWN_LINK_TEXT_MAX) {
+      const ch = body[k]!;
+      if (ch === "\\") {
+        k += 2;
+        continue;
+      }
+      if (ch === "]" && body[k + 1] === "(") {
+        closeAt = k;
+        break;
+      }
+      k++;
+    }
+    if (closeAt === -1) {
+      searchFrom = linkTextStart;
+      continue;
+    }
+    const sha = parseGithubCommitShaAt(body, closeAt + 2);
+    if (sha !== null) return sha;
+    searchFrom = closeAt + 1;
+  }
+  return null;
 }
 
 export function parseLastReviewedShaNaiveInline(body: string): string | null {

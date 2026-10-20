@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5744",
-    "updated": "2026-10-19T05:50:22Z"
+    "updated": "2026-10-20T00:58:48Z"
   },
   "plan": {
     "title": "sec(codeql): HIGH clear polynomial-redos in doctor/manifest.ts (alert #115)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "sec(codeql): HIGH clear polynomial-redos in doctor/manifest.ts (alert #115)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5744",
@@ -16,24 +16,213 @@
     "items": [
       {
         "title": "CodeQL alert  clears on master (auto-close or dismiss with reason after fix).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "effort": "S",
-        "x-directive/artifact_path": "packages/core/src/doctor/manifest.ts"
+        "x-directive/artifact_path": "packages/core/src/doctor/manifest.ts",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T00:58:45.974Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T00:58:45.974Z"
+        }
       },
       {
         "title": "Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "effort": "S",
-        "x-directive/artifact_path": "packages/core/src/doctor/manifest.ts"
+        "x-directive/artifact_path": "packages/core/src/doctor/manifest.ts",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T00:58:45.974Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T00:58:45.974Z"
+        }
       },
       {
         "title": "CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #115.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "effort": "S",
-        "x-directive/artifact_path": "packages/core/src/doctor/manifest.ts"
+        "x-directive/artifact_path": "packages/core/src/doctor/manifest.ts",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T00:58:45.974Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T00:58:45.974Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "clause.4",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T00:58:45.974Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T00:58:45.974Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "clause.5",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T00:58:45.974Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T00:58:45.974Z"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "clause.6",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T00:58:45.974Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T00:58:45.974Z"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "clause.7",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T00:58:45.974Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T00:58:45.974Z"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T00:58:45.974Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T00:58:45.974Z"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T00:58:45.974Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T00:58:45.974Z"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T00:58:45.974Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T00:58:45.974Z"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T00:58:45.974Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T00:58:45.974Z"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T00:58:45.974Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T00:58:45.974Z"
+        }
       }
     ],
     "tags": [
@@ -51,8 +240,12 @@
       }
     ],
     "acceptance": {
-      "commands": [],
-      "none_stated": true,
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/doctor"
+        }
+      ],
+      "none_stated": false,
       "source_rung": "derived",
       "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
       "sentences": [
@@ -86,32 +279,473 @@
         {
           "id": 1,
           "text": "CodeQL alert [#115](https://github.com/deftai/directive/security/code-scanning/115) clears on master (auto-close or dismiss with reason after fix).",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/doctor/manifest.ts",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link. Delivery attested via merge-commit.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T00:58:19.060Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T00:58:19.060Z"
+          }
         },
         {
           "id": 2,
           "text": "Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/doctor/branches.test.ts",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link. Delivery attested via merge-commit.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T00:58:19.060Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T00:58:19.060Z"
+          }
         },
         {
           "id": 3,
           "text": "CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #115.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link. Delivery attested via merge-commit.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T00:58:19.060Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T00:58:19.060Z"
+          }
+        },
+        {
+          "id": 4,
+          "text": "Summary CodeQL open alert on default branch: HIGH `js/polynomial-redos` — Polynomial regular expression used on uncontrolled data.",
           "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link. Delivery attested via merge-commit.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T00:58:19.060Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T00:58:19.060Z"
+          }
+        },
+        {
+          "id": 5,
+          "text": "| Field | Value | |-------|-------| | Alert | [#115](https://github.com/deftai/directive/security/code-scanning/115) | | Rule | `js/polynomial-redos` | | Severity | HIGH | | Location | `packages/core/src/doctor/manifest.ts` ~L154 | | Message | This regular expression that depends on library input may run slow on strings with many repetitions of '/'.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link. Delivery attested via merge-commit.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T00:58:19.060Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T00:58:19.060Z"
+          }
+        },
+        {
+          "id": 6,
+          "text": "| ## What to build Rewrite or bound the flagged site so CodeQL `js/polynomial-redos` clears for this alert (or document accepted risk with suppress + rationale if false positive after review).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link. Delivery attested via merge-commit.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T00:58:19.060Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T00:58:19.060Z"
+          }
+        },
+        {
+          "id": 7,
+          "text": "Prefer a real fix over suite-config changes.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link. Delivery attested via merge-commit.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T00:58:19.060Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T00:58:19.060Z"
+          }
+        },
+        {
+          "id": 8,
+          "text": "Acceptance - [ ] CodeQL alert [#115](https://github.com/deftai/directive/security/code-scanning/115) clears on master (auto-close or dismiss with reason after fix).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link. Delivery attested via merge-commit.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T00:58:19.060Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T00:58:19.060Z"
+          }
+        },
+        {
+          "id": 9,
+          "text": "[ ] Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link. Delivery attested via merge-commit.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T00:58:19.060Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T00:58:19.060Z"
+          }
+        },
+        {
+          "id": 10,
+          "text": "[ ] CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #115.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link. Delivery attested via merge-commit.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T00:58:19.060Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T00:58:19.060Z"
+          }
+        },
+        {
+          "id": 11,
+          "text": "Non-goals - Changing CodeQL suite config as the primary fix.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link. Delivery attested via merge-commit.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T00:58:19.060Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T00:58:19.060Z"
+          }
+        },
+        {
+          "id": 12,
+          "text": "Bundling unrelated code-scanning alerts into this issue (siblings tracked separately).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link. Delivery attested via merge-commit.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T00:58:19.060Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T00:58:19.060Z"
+          }
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "sec(codeql): HIGH clear polynomial-redos in doctor/manifest.ts (alert #115)"
+      ],
+      "criteria": [
+        {
+          "id": 1,
+          "text": "CodeQL alert [#115](https://github.com/deftai/directive/security/code-scanning/115) clears on master (auto-close or dismiss with reason after fix).",
+          "artifact_path": "packages/core/src/doctor/manifest.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link. Delivery attested via merge-commit.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T00:58:19.060Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T00:58:19.060Z"
+          }
+        },
+        {
+          "id": 2,
+          "text": "Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+          "artifact_path": "packages/core/src/doctor/branches.test.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link. Delivery attested via merge-commit.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T00:58:19.060Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T00:58:19.060Z"
+          }
+        },
+        {
+          "id": 3,
+          "text": "CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #115.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link. Delivery attested via merge-commit.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T00:58:19.060Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T00:58:19.060Z"
+          }
+        },
+        {
+          "id": 4,
+          "text": "Summary CodeQL open alert on default branch: HIGH `js/polynomial-redos` — Polynomial regular expression used on uncontrolled data.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link. Delivery attested via merge-commit.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T00:58:19.060Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T00:58:19.060Z"
+          }
+        },
+        {
+          "id": 5,
+          "text": "| Field | Value | |-------|-------| | Alert | [#115](https://github.com/deftai/directive/security/code-scanning/115) | | Rule | `js/polynomial-redos` | | Severity | HIGH | | Location | `packages/core/src/doctor/manifest.ts` ~L154 | | Message | This regular expression that depends on library input may run slow on strings with many repetitions of '/'.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link. Delivery attested via merge-commit.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T00:58:19.060Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T00:58:19.060Z"
+          }
+        },
+        {
+          "id": 6,
+          "text": "| ## What to build Rewrite or bound the flagged site so CodeQL `js/polynomial-redos` clears for this alert (or document accepted risk with suppress + rationale if false positive after review).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link. Delivery attested via merge-commit.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T00:58:19.060Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T00:58:19.060Z"
+          }
+        },
+        {
+          "id": 7,
+          "text": "Prefer a real fix over suite-config changes.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link. Delivery attested via merge-commit.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T00:58:19.060Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T00:58:19.060Z"
+          }
+        },
+        {
+          "id": 8,
+          "text": "Acceptance - [ ] CodeQL alert [#115](https://github.com/deftai/directive/security/code-scanning/115) clears on master (auto-close or dismiss with reason after fix).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link. Delivery attested via merge-commit.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T00:58:19.060Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T00:58:19.060Z"
+          }
+        },
+        {
+          "id": 9,
+          "text": "[ ] Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link. Delivery attested via merge-commit.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T00:58:19.060Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T00:58:19.060Z"
+          }
+        },
+        {
+          "id": 10,
+          "text": "[ ] CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #115.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link. Delivery attested via merge-commit.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T00:58:19.060Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T00:58:19.060Z"
+          }
+        },
+        {
+          "id": 11,
+          "text": "Non-goals - Changing CodeQL suite config as the primary fix.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link. Delivery attested via merge-commit.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T00:58:19.060Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T00:58:19.060Z"
+          }
+        },
+        {
+          "id": 12,
+          "text": "Bundling unrelated code-scanning alerts into this issue (siblings tracked separately).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Bound Prefer-A clause satisfied by product PR #5762 ship; leftover-complete after forge link. Delivery attested via merge-commit.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T00:58:19.060Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T00:58:19.060Z"
+          }
+        }
+      ]
     },
     "metadata": {
       "intended_placement": {
         "schema": "deft.scope.intended_placement.v1",
         "files": [
           "packages/core/src/doctor/manifest.ts",
+          "packages/core/src/doctor/branches.test.ts",
           "CHANGELOG.md"
         ],
         "module_boundary": "packages/core/src/doctor/manifest.ts",
@@ -366,12 +1000,42 @@
       "swarm": {
         "file_scope": [
           "packages/core/src/doctor/manifest.ts",
+          "packages/core/src/doctor/branches.test.ts",
           "CHANGELOG.md"
         ],
-        "cohesion_exemption": "CHANGELOG.md shared Unreleased for security cohort. pnpm-lock.yaml / pnpm-workspace.yaml shared Dependabot pin surfaces for #5737/#5740."
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for security cohort. pnpm-lock.yaml / pnpm-workspace.yaml shared Dependabot pin surfaces for #5737/#5740.",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/doctor"
+        ]
+      },
+      "productPullRequest": 5762,
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "0d82ba5cca5e78e3cfb825486d01f14dded06700",
+        "prNumber": 5762,
+        "prBase": "master",
+        "mergeCommit": "2027eac4f2172f6dd2826a8e0b7b7ca10e785162",
+        "deliveryBranch": "master",
+        "deliveryCommit": "8f95eb55c59d61143bb6b2fc9f7a6becc0dcf706",
+        "verifiedAt": "2026-10-20T00:58:48Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTUyNTktODk3Ni03ZGIxLTg1ZjMtZWE2ZDA4ZWIzYTJm"
+      },
+      "completedAt": "2026-10-20T00:58:48Z",
+      "completedSessionId": "host:grok:v1:MDFhMTUyNTktODk3Ni03ZGIxLTg1ZjMtZWE2ZDA4ZWIzYTJm",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-20T00:58:48Z"
       }
     },
     "id": "github.issue.5915169068",
-    "updated": "2026-10-19T05:50:22Z"
+    "updated": "2026-10-20T00:58:48Z"
   }
 }

@@ -177,6 +177,7 @@ On hit, repair via the fetch → UTF-8 file edit → edit path above. `verify:en
 - ~ Link to related issues using closing keywords
 - ~ Explain "why" not just "what" in the PR description
 - ! Run `task check` before opening a PR
+- ! On multi-active tips, product PRs that need merge-gate mint selection should carry a sole `deft-story: N` (positive issue number). That mark asserts #4864 delivery bind (`metadata.productPullRequest` must equal this PR before leftover finalize) and whole-story close at cohort finalize — only use it on the PR that is the delivery for #N. `verify:intent-constraint` / `verify:observable-scope` adopt the matching running `plan.id` from that mark (#5782); do not put plan-id shaped values on the mark line.
 
 ### Review Guidelines
 

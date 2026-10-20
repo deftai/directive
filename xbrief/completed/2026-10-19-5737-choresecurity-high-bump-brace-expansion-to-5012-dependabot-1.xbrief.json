@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5737",
-    "updated": "2026-10-19T05:50:11Z"
+    "updated": "2026-10-20T05:06:13Z"
   },
   "plan": {
     "title": "chore(security): HIGH bump brace-expansion to 5.0.12 (Dependabot #16/#17/#18)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "chore(security): HIGH bump brace-expansion to 5.0.12 (Dependabot #16/#17/#18)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5737",
@@ -15,32 +15,200 @@
     },
     "items": [
       {
-        "title": "pnpm-workspace.yaml pins brace-expansion@5 to **5.0.12**.",
-        "status": "proposed",
         "id": "clause.1",
+        "title": "pnpm-workspace.yaml pins brace-expansion@5 to **5.0.12**.",
+        "status": "completed",
         "effort": "S",
-        "x-directive/artifact_path": "pnpm-workspace.yaml"
+        "x-directive/artifact_path": "pnpm-workspace.yaml",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T05:02:31.898Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T05:02:31.898Z"
+        }
       },
       {
-        "title": "pnpm-lock.yaml resolves brace-expansion@5 to 5.0.12 (out of all three vulnerable ranges).",
-        "status": "proposed",
         "id": "clause.2",
+        "title": "pnpm-lock.yaml resolves brace-expansion@5 to 5.0.12 (out of all three vulnerable ranges).",
+        "status": "completed",
         "effort": "S",
-        "x-directive/artifact_path": "pnpm-workspace.yaml"
+        "x-directive/artifact_path": "pnpm-workspace.yaml",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T05:02:31.898Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T05:02:31.898Z"
+        }
       },
       {
-        "title": "CHANGELOG [Unreleased] records the bump and cites Dependabot #16/#17/#18.",
-        "status": "proposed",
         "id": "clause.3",
+        "title": "CHANGELOG [Unreleased] records the bump and cites Dependabot #16/#17/#18.",
+        "status": "completed",
         "effort": "S",
-        "x-directive/artifact_path": "pnpm-workspace.yaml"
+        "x-directive/artifact_path": "pnpm-workspace.yaml",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T05:02:31.898Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T05:02:31.898Z"
+        }
       },
       {
-        "title": "Dependabot alerts #16, #17, and #18 auto-close or are dismissable as fixed.",
-        "status": "proposed",
         "id": "clause.4",
+        "title": "Dependabot alerts #16, #17, and #18 auto-close or are dismissable as fixed.",
+        "status": "completed",
         "effort": "S",
-        "x-directive/artifact_path": "pnpm-workspace.yaml"
+        "x-directive/artifact_path": "pnpm-workspace.yaml",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T05:02:31.898Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T05:02:31.898Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "clause.5",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72f4c10f6cc6960042ab9f3a997b2d8b8462650e",
+          "recorded_at": "2026-10-20T05:06:13Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "clause.6",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72f4c10f6cc6960042ab9f3a997b2d8b8462650e",
+          "recorded_at": "2026-10-20T05:06:13Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "clause.7",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72f4c10f6cc6960042ab9f3a997b2d8b8462650e",
+          "recorded_at": "2026-10-20T05:06:13Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72f4c10f6cc6960042ab9f3a997b2d8b8462650e",
+          "recorded_at": "2026-10-20T05:06:13Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72f4c10f6cc6960042ab9f3a997b2d8b8462650e",
+          "recorded_at": "2026-10-20T05:06:13Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72f4c10f6cc6960042ab9f3a997b2d8b8462650e",
+          "recorded_at": "2026-10-20T05:06:13Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72f4c10f6cc6960042ab9f3a997b2d8b8462650e",
+          "recorded_at": "2026-10-20T05:06:13Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72f4c10f6cc6960042ab9f3a997b2d8b8462650e",
+          "recorded_at": "2026-10-20T05:06:13Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "clause.13",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72f4c10f6cc6960042ab9f3a997b2d8b8462650e",
+          "recorded_at": "2026-10-20T05:06:13Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "clause.14",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72f4c10f6cc6960042ab9f3a997b2d8b8462650e",
+          "recorded_at": "2026-10-20T05:06:13Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -58,12 +226,428 @@
       }
     ],
     "acceptance": {
-      "commands": [],
-      "none_stated": true,
       "source_rung": "derived",
-      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "none_stated": false,
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/doctor"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "clause.1",
+          "title": "pnpm-workspace.yaml pins brace-expansion@5 to **5.0.12**.",
+          "status": "completed",
+          "effort": "S",
+          "x-directive/artifact_path": "pnpm-workspace.yaml",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "72f4c10f6cc6960042ab9f3a997b2d8b8462650e",
+            "recorded_at": "2026-10-20T04:53:38.5018059Z",
+            "recorded_by": "Scott"
+          }
+        },
+        {
+          "id": "clause.2",
+          "title": "pnpm-lock.yaml resolves brace-expansion@5 to 5.0.12 (out of all three vulnerable ranges).",
+          "status": "completed",
+          "effort": "S",
+          "x-directive/artifact_path": "pnpm-workspace.yaml",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "72f4c10f6cc6960042ab9f3a997b2d8b8462650e",
+            "recorded_at": "2026-10-20T04:53:38.5018059Z",
+            "recorded_by": "Scott"
+          }
+        },
+        {
+          "id": "clause.3",
+          "title": "CHANGELOG [Unreleased] records the bump and cites Dependabot #16/#17/#18.",
+          "status": "completed",
+          "effort": "S",
+          "x-directive/artifact_path": "pnpm-workspace.yaml",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "72f4c10f6cc6960042ab9f3a997b2d8b8462650e",
+            "recorded_at": "2026-10-20T04:53:38.5018059Z",
+            "recorded_by": "Scott"
+          }
+        },
+        {
+          "id": "clause.4",
+          "title": "Dependabot alerts #16, #17, and #18 auto-close or are dismissable as fixed.",
+          "status": "completed",
+          "effort": "S",
+          "x-directive/artifact_path": "pnpm-workspace.yaml",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "72f4c10f6cc6960042ab9f3a997b2d8b8462650e",
+            "recorded_at": "2026-10-20T04:53:38.5018059Z",
+            "recorded_by": "Scott"
+          }
+        }
+      ],
+      "clauses": [
+        {
+          "id": "clause.1",
+          "text": "pnpm-workspace.yaml pins brace-expansion@5 to **5.0.12**.",
+          "artifact_path": "pnpm-workspace.yaml",
+          "ambiguous": false,
+          "provenance": {
+            "kind": "harvested",
+            "source": "plan.items"
+          },
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product ship; clause satisfied by merged Tracking PR.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T04:58:57.108Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T04:58:57.108Z"
+          }
+        },
+        {
+          "id": "clause.2",
+          "text": "pnpm-lock.yaml resolves brace-expansion@5 to 5.0.12 (out of all three vulnerable ranges).",
+          "artifact_path": "pnpm-workspace.yaml",
+          "ambiguous": false,
+          "provenance": {
+            "kind": "harvested",
+            "source": "plan.items"
+          },
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product ship; clause satisfied by merged Tracking PR.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T04:58:57.108Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T04:58:57.108Z"
+          }
+        },
+        {
+          "id": "clause.3",
+          "text": "CHANGELOG [Unreleased] records the bump and cites Dependabot #16/#17/#18.",
+          "artifact_path": "pnpm-workspace.yaml",
+          "ambiguous": false,
+          "provenance": {
+            "kind": "harvested",
+            "source": "plan.items"
+          },
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product ship; clause satisfied by merged Tracking PR.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T04:58:57.108Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T04:58:57.108Z"
+          }
+        },
+        {
+          "id": "clause.4",
+          "text": "Dependabot alerts #16, #17, and #18 auto-close or are dismissable as fixed.",
+          "artifact_path": "pnpm-workspace.yaml",
+          "ambiguous": false,
+          "provenance": {
+            "kind": "harvested",
+            "source": "plan.items"
+          },
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product ship; clause satisfied by merged Tracking PR.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T04:58:57.108Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T04:58:57.108Z"
+          }
+        },
+        {
+          "id": 1,
+          "text": "Problem Three open Dependabot alerts on the same transitive pin brace-expansion @ 5.0.9 (runtime via minimatch@10).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 2,
+          "text": "Prior pin brace-expansion@5: 5.0.9 from #4348 / alerts #10/#13 is short of this trio.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 3,
+          "text": "| Alert | Severity | Advisory | CVE | Needs | |---|---|---|---|---| | [#16](https://github.com/deftai/directive/security/dependabot/16) | HIGH | GHSA-6j4f-fj2g-mc7p | CVE-2026-102276 | >= 5.0.10 (parseCommaParts stack DoS) | | [#17](https://github.com/deftai/directive/security/dependabot/17) | HIGH | GHSA-qhr7-859c-m2p7 | CVE-2026-102278 | >= 5.0.11 (nested brace-group stack DoS) | | [#18](https://github.com/deftai/directive/security/dependabot/18) | MEDIUM | GHSA-q2hr-2g5m-vwhr | CVE-2026-102277 | 5.0.12 (quadratic {a},b} CPU DoS) | Distinct from the earlier CVE-2026-14257 / GHSA-mh99-v99m-4gvg tail-recursion fix.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 4,
+          "text": "One pin to 5.0.12 clears all three.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 5,
+          "text": "Dedup: this issue is the ship vehicle.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 6,
+          "text": "#5738 and #5739 close as duplicates of this one.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 7,
+          "text": "What to build Bump the pnpm 11 workspace override for brace-expansion@5 to 5.0.12, refresh pnpm-lock.yaml, and record the pin in CHANGELOG [Unreleased].",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 8,
+          "text": "Acceptance - [ ] pnpm-workspace.yaml pins brace-expansion@5 to 5.0.12.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 9,
+          "text": "[ ] pnpm-lock.yaml resolves brace-expansion@5 to 5.0.12 (out of all three vulnerable ranges).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 10,
+          "text": "[ ] CHANGELOG [Unreleased] records the bump and cites Dependabot #16/#17/#18.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 11,
+          "text": "[ ] Dependabot alerts #16, #17, and #18 auto-close or are dismissable as fixed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 12,
+          "text": "Literal check: pnpm why brace-expansion",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 13,
+          "text": "Duplicate of this ship: #5738, #5739",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 14,
+          "text": "Prior pin: #4348",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        }
+      ],
       "sentences": [
-        "chore(security): HIGH bump brace-expansion to 5.0.12 (Dependabot #16/#17/#18)",
         "Problem Three open Dependabot alerts on the same transitive pin brace-expansion @ 5.0.9 (runtime via minimatch@10).",
         "Prior pin brace-expansion@5: 5.0.9 from #4348 / alerts #10/#13 is short of this trio.",
         "| Alert | Severity | Advisory | CVE | Needs | |---|---|---|---|---| | [#16](https://github.com/deftai/directive/security/dependabot/16) | HIGH | GHSA-6j4f-fj2g-mc7p | CVE-2026-102276 | >= 5.0.10 (parseCommaParts stack DoS) | | [#17](https://github.com/deftai/directive/security/dependabot/17) | HIGH | GHSA-qhr7-859c-m2p7 | CVE-2026-102278 | >= 5.0.11 (nested brace-group stack DoS) | | [#18](https://github.com/deftai/directive/security/dependabot/18) | MEDIUM | GHSA-q2hr-2g5m-vwhr | CVE-2026-102277 | 5.0.12 (quadratic {a},b} CPU DoS) | Distinct from the earlier CVE-2026-14257 / GHSA-mh99-v99m-4gvg tail-recursion fix.",
@@ -78,11 +662,17 @@
         "Literal check: pnpm why brace-expansion",
         "Duplicate of this ship: #5738, #5739",
         "Prior pin: #4348",
-        "pnpm-workspace.yaml pins brace-expansion@5 to 5.0.12.",
+        "pnpm-workspace.yaml pins brace-expansion@5 to **5.0.12**.",
         "pnpm-lock.yaml resolves brace-expansion@5 to 5.0.12 (out of all three vulnerable ranges).",
         "CHANGELOG [Unreleased] records the bump and cites Dependabot #16/#17/#18.",
         "Dependabot alerts #16, #17, and #18 auto-close or are dismissable as fixed."
       ],
+      "confessions": [
+        "chore(security): HIGH bump brace-expansion to 5.0.12 (Dependabot #16/#17/#18)",
+        "pnpm-workspace.yaml pins brace-expansion@5 to 5.0.12."
+      ],
+      "ambiguity_attestation": "none_found",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
       "admitted_source_sentences": [
         "Problem Three open Dependabot alerts on the same transitive pin brace-expansion @ 5.0.9 (runtime via minimatch@10).",
         "Prior pin brace-expansion@5: 5.0.9 from #4348 / alerts #10/#13 is short of this trio.",
@@ -99,38 +689,7 @@
         "Duplicate of this ship: #5738, #5739",
         "Prior pin: #4348"
       ],
-      "admitted_source_digest": "738f9683cb948c55e14530db16986952a372a7a8aa6afbeba5620f4549e45388",
-      "clauses": [
-        {
-          "id": 1,
-          "text": "pnpm-workspace.yaml pins brace-expansion@5 to 5.0.12.",
-          "artifact_path": "pnpm-workspace.yaml",
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 2,
-          "text": "pnpm-lock.yaml resolves brace-expansion@5 to 5.0.12 (out of all three vulnerable ranges).",
-          "artifact_path": "pnpm-lock.yaml",
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 3,
-          "text": "CHANGELOG [Unreleased] records the bump and cites Dependabot #16/#17/#18.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 4,
-          "text": "Dependabot alerts #16, #17, and #18 auto-close or are dismissable as fixed.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        }
-      ],
-      "ambiguity_attestation": "none_found"
+      "admitted_source_digest": "738f9683cb948c55e14530db16986952a372a7a8aa6afbeba5620f4549e45388"
     },
     "metadata": {
       "intended_placement": {
@@ -395,10 +954,39 @@
           "pnpm-lock.yaml",
           "CHANGELOG.md"
         ],
-        "cohesion_exemption": "CHANGELOG.md shared Unreleased for security cohort. pnpm-lock.yaml / pnpm-workspace.yaml shared Dependabot pin surfaces for #5737/#5740."
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for security cohort. pnpm-lock.yaml / pnpm-workspace.yaml shared Dependabot pin surfaces for #5737/#5740.",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/doctor"
+        ]
+      },
+      "productPullRequest": 5760,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "ba729feadec324ea9d75c9a4bdff29f2a7d40021",
+        "prNumber": 5760,
+        "prBase": "master",
+        "mergeCommit": "72f4c10f6cc6960042ab9f3a997b2d8b8462650e",
+        "deliveryBranch": "master",
+        "deliveryCommit": "db26c453690125011a077d21be899682d6d555f4",
+        "verifiedAt": "2026-10-20T05:06:13Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTUyNTktODk3Ni03ZGIxLTg1ZjMtZWE2ZDA4ZWIzYTJm"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-20T05:06:13Z",
+      "completedSessionId": "host:grok:v1:MDFhMTUyNTktODk3Ni03ZGIxLTg1ZjMtZWE2ZDA4ZWIzYTJm",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-20T05:06:13Z"
       }
     },
     "id": "github.issue.5915129756",
-    "updated": "2026-10-19T05:50:11Z"
+    "updated": "2026-10-20T05:06:13Z"
   }
 }

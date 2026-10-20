@@ -37,10 +37,15 @@ export interface PythonArtifact {
   readonly kind: "py-file" | "scripts-tree" | "run-shim";
 }
 
-function isPythonRunShim(_path: string, head: string): boolean {
+/** True when file head is a Python shebang launcher (#5677 Prefer-A Recut-1 content proof). */
+export function isPythonRunShimContent(head: string): boolean {
   if (!head.startsWith("#!")) return false;
   const bang = head.split("\n", 1)[0] ?? head;
   return /python/i.test(bang);
+}
+
+function isPythonRunShim(_path: string, head: string): boolean {
+  return isPythonRunShimContent(head);
 }
 
 function walkForPyFilesSync(root: string, base: string, found: PythonArtifact[]): void {

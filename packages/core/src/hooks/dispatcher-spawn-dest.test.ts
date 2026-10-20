@@ -19,6 +19,7 @@ import {
 } from "./classify/payload.js";
 import {
   CURSOR_TASK_SPAWN_CLASS_RECOVERY,
+  CURSOR_TASK_SPAWN_MATRIX_POINTER,
   CURSOR_TASK_SPAWN_READ_ONLY_RECOVERY,
   decideHook,
   type HookPolicySeams,
@@ -1414,7 +1415,7 @@ describe("Grok-applied spawn_subagent handler-runtime identity (#4272)", () => {
   });
 });
 
-describe("Cursor Task dest-missing deny honesty (#4279 / #4362)", () => {
+describe("Cursor Task dest-missing deny honesty (#4279 / #4362 / #5770)", () => {
   it("keeps unmarked generalPurpose fail-closed and names dest-placing, not the reroot imperative", () => {
     const inspectRitual = vi.fn(() => ({
       ...STALE_RITUAL,
@@ -1435,12 +1436,15 @@ describe("Cursor Task dest-missing deny honesty (#4279 / #4362)", () => {
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
     expect(decision.message).toContain(CURSOR_TASK_SPAWN_CLASS_RECOVERY);
+    expect(decision.message).toContain(CURSOR_TASK_SPAWN_MATRIX_POINTER);
+    expect(decision.message).toContain("presented subagent_type=generalPurpose");
     expect(decision.message).not.toContain(rerootMissingDestImperative());
     expect(decision.message).not.toContain(
       "Pass a destination field inspectSpawnDestination reads",
     );
     expect(decision.message).not.toMatch(/before the spawn primitive/);
-    expect(countOccurrences(decision.message, rerootDestKeyList())).toBe(1);
+    expect(countOccurrences(decision.message, rerootDestKeyList())).toBe(0);
+    expect(decision.message).not.toMatch(/tool_input\.isolation=worktree/);
     expect(decision.message).toMatch(/payload-root/);
     expect(decision.message).toMatch(/Composer already on the reserved linked worktree/);
     expect(decision.message).toMatch(/consult mints the reservation/);
@@ -1450,6 +1454,7 @@ describe("Cursor Task dest-missing deny honesty (#4279 / #4362)", () => {
     expect(decision.message).toMatch(/CURSOR_API_KEY/);
     expect(decision.message).toMatch(/fences parent product writes/);
     expect(decision.message).toMatch(/exclusive of a live nursery occupancy grant/);
+    expect(decision.message).toMatch(/Multitask spawn matrix/);
     const parentIdx = decision.message.indexOf("Continue in the parent");
     const exploreIdx = decision.message.search(/subagent_type explore/i);
     expect(parentIdx).toBeGreaterThanOrEqual(0);
