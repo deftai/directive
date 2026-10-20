@@ -3,7 +3,8 @@
 const WS = /\s/;
 
 function isRootPathChar(ch: string): boolean {
-  return /[\w./-]/.test(ch);
+  // Include `@` so scoped package paths like node_modules/@deftai/... stay intact.
+  return /[\w./@-]/.test(ch);
 }
 
 function isSkillNameStart(ch: string): boolean {
