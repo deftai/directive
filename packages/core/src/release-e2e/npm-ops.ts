@@ -94,7 +94,7 @@ function runNpmStep(
 }
 
 /**
- * Bump the four published package versions to <version> and resolve any
+ * Bump the two published package versions (runtime + launcher) to <version> and resolve any
  * `workspace:` dependency spec to `^<version>` (npm cannot publish the pnpm
  * workspace protocol verbatim). Folds in the scope item-4 version-alignment
  * assertion: each manifest is read back and must report exactly <version>.
@@ -139,24 +139,97 @@ export function alignNpmPackageVersions(cloneDir: string, version: string): [boo
       ];
     }
   }
-  return [true, `aligned 4 package versions to ${version} (+ resolved workspace protocol)`];
+  return [true, `aligned 2 package versions to ${version} (+ resolved workspace protocol)`];
 }
 
 /**
- * Dry-run the npm publish for the four @deftai/directive* packages.
+ * Dry-run the npm publish for the two OVPR packages (runtime + launcher).
  *
  * Steps, all inside the throwaway clone:
  *   1. Resolve `npm`. SOFT-SKIP (ok=true) when npm is absent so Node-less
  *      operators are not blocked -- symmetric to --skip-npm.
  *   2. Resolve pnpm (or `corepack pnpm`) and `pnpm install --frozen-lockfile`.
  *   3. `pnpm -w run build`; dist/ must exist for the dist-only files allowlist.
- *   4. Align the four package.json versions + resolve the workspace protocol.
+ *   4. Align the two package.json versions + resolve the workspace protocol.
  *   5. `npm publish --dry-run --access public --tag e2e-rehearsal` per package
  *      in dependency order (#1925 bypasses implicit-`latest` when the rehearsal
  *      sentinel is below the highest published version).
  *
  * Returns [ok, reason] like verifyDraftRelease / verifyTag.
  */
+
+/**
+ * OVPR pack (#5490 / AC13.4): stage self-contained runtime, then pack launcher + runtime
+ * tarballs into packDir. Mirrors .github/workflows/npm-publish.yml prepare steps.
+ */
+/** Exported for greenfield smoke + release-e2e rehearse paths (AC13.4). */
+export function packOvprTarballs(
+  cloneDir: string,
+  version: string,
+  packDir: string,
+  npmPath: string,
+  env: NodeJS.ProcessEnv,
+  seams: E2ESeams,
+): [boolean, string, string[]] {
+  mkdirSync(packDir, { recursive: true });
+  const stageScript = join(cloneDir, "packages", "runtime", "scripts", "stage-bundle.mjs");
+  const packScript = join(cloneDir, "packages", "runtime", "scripts", "pack-staged-runtime.mjs");
+  if (!existsSync(stageScript) || !existsSync(packScript)) {
+    return [false, "OVPR pack scripts missing under packages/runtime/scripts/", []];
+  }
+  let [ok, reason] = runNpmStep(
+    [process.execPath, stageScript],
+    cloneDir,
+    env,
+    "stage-bundle runtime",
+    NPM_PACK_TIMEOUT_SECONDS,
+    seams,
+  );
+  if (!ok) return [false, reason, []];
+  const stageDir = join(cloneDir, "packages", "runtime", ".pack-stage");
+  if (!existsSync(join(stageDir, "package.json"))) {
+    return [false, `stage-bundle did not write ${stageDir}/package.json`, []];
+  }
+  try {
+    const staged = JSON.parse(readFileSync(join(stageDir, "package.json"), "utf8")) as Record<
+      string,
+      unknown
+    >;
+    staged.version = version;
+    writeFileSync(join(stageDir, "package.json"), `${JSON.stringify(staged, null, 2)}\n`, "utf8");
+  } catch (exc) {
+    return [false, `cannot stamp stage version: ${String(exc)}`, []];
+  }
+  [ok, reason] = runNpmStep(
+    [process.execPath, packScript, stageDir, packDir],
+    cloneDir,
+    env,
+    "pack-staged-runtime",
+    NPM_PACK_TIMEOUT_SECONDS,
+    seams,
+  );
+  if (!ok) return [false, reason, []];
+  [ok, reason] = runNpmStep(
+    [npmPath, "pack", "--pack-destination", packDir],
+    join(cloneDir, "packages", "cli"),
+    env,
+    "npm pack packages/cli",
+    NPM_PACK_TIMEOUT_SECONDS,
+    seams,
+  );
+  if (!ok) return [false, reason, []];
+  const runtimeTgz = join(packDir, `deftai-directive-runtime-${version}.tgz`);
+  const launcherTgz = join(packDir, `deftai-directive-${version}.tgz`);
+  if (!existsSync(runtimeTgz) || !existsSync(launcherTgz)) {
+    return [
+      false,
+      `OVPR pack missing tarballs (need ${runtimeTgz} and ${launcherTgz})`,
+      [],
+    ];
+  }
+  return [true, `packed OVPR pair at v${version}`, [runtimeTgz, launcherTgz]];
+}
+
 export function rehearseNpmPublish(
   cloneDir: string,
   version: string,
@@ -204,13 +277,27 @@ export function rehearseNpmPublish(
   if (!ok) {
     return [false, reason];
   }
-  for (const pkg of NPM_PUBLISH_PACKAGES) {
-    const pkgDir = join(cloneDir, "packages", pkg);
+  const packDir = join(cloneDir, ".deft-e2e-packs");
+  const packed = packOvprTarballs(cloneDir, version, packDir, npmPath, env, seams);
+  if (!packed[0]) {
+    return [false, packed[1]];
+  }
+  for (const tgz of packed[2]) {
     [ok, reason] = runNpmStep(
-      [npmPath, "publish", "--dry-run", "--access", "public", "--tag", NPM_E2E_REHEARSAL_TAG],
-      pkgDir,
+      [
+        npmPath,
+        "publish",
+        "--dry-run",
+        "--access",
+        "public",
+        "--tag",
+        NPM_E2E_REHEARSAL_TAG,
+        "--ignore-scripts",
+        tgz,
+      ],
+      cloneDir,
       env,
-      `npm publish --dry-run --tag ${NPM_E2E_REHEARSAL_TAG} packages/${pkg}`,
+      `npm publish --dry-run ${tgz}`,
       NPM_PUBLISH_DRYRUN_TIMEOUT_SECONDS,
       seams,
     );
@@ -220,8 +307,8 @@ export function rehearseNpmPublish(
   }
   return [
     true,
-    "npm publish --dry-run clean for 4 packages " +
-      `(types -> core -> content -> cli) at v${version}`,
+    "npm publish --dry-run clean for 2 packages " +
+      `(runtime -> cli/launcher) at v${version}`,
   ];
 }
 
@@ -255,8 +342,8 @@ function installedCliPackageVersion(consumerDir: string): string | null {
 }
 
 /**
- * Publish-layout install+run smoke (#1996, #2010, #4766): pack the four
- * @deftai/directive* packages, install the tarballs into a clean flat
+ * Publish-layout install+run smoke (#1996, #2010, #4766): pack the two
+ * OVPR @deftai packages, install the tarballs into a clean flat
  * node_modules, then run `directive --version` (exit-0 liveness + stamped
  * package identity) and `directive doctor` (deep-import coverage) so
  * import-resolution bugs like #1993 sub-problem 1 surface before a real npm
@@ -315,33 +402,9 @@ export function rehearseNpmInstallAndRun(
   }
 
   const packDir = join(cloneDir, ".deft-e2e-packs");
-  mkdirSync(packDir, { recursive: true });
-  const tgzPaths: string[] = [];
-  for (const pkg of NPM_PUBLISH_PACKAGES) {
-    const pkgDir = join(cloneDir, "packages", pkg);
-    [ok, reason] = runNpmStep(
-      [npmPath, "pack", "--pack-destination", packDir],
-      pkgDir,
-      env,
-      `npm pack packages/${pkg}`,
-      NPM_PACK_TIMEOUT_SECONDS,
-      seams,
-    );
-    if (!ok) return [false, reason];
-    const manifest = JSON.parse(readFileSync(join(pkgDir, "package.json"), "utf8")) as {
-      name?: string;
-      version?: string;
-    } | null;
-    if (
-      manifest === null ||
-      typeof manifest.name !== "string" ||
-      typeof manifest.version !== "string"
-    ) {
-      return [false, `version-align FAIL: invalid manifest in packages/${pkg}`];
-    }
-    const scoped = manifest.name.replaceAll("@", "").replaceAll("/", "-");
-    tgzPaths.push(join(packDir, `${scoped}-${manifest.version}.tgz`));
-  }
+  const packedInstall = packOvprTarballs(cloneDir, version, packDir, npmPath, env, seams);
+  if (!packedInstall[0]) return [false, packedInstall[1]];
+  const tgzPaths = packedInstall[2];
 
   const consumerDir = join(cloneDir, ".deft-e2e-consumer");
   mkdirSync(consumerDir, { recursive: true });
@@ -428,7 +491,7 @@ export function rehearseNpmInstallAndRun(
 
   return [
     true,
-    `packed + installed 4 packages at v${version}; ran directive --version (exit 0, package @${version}) + doctor without module-not-found`,
+    `packed + installed 2 packages at v${version}; ran directive --version (exit 0, package @${version}) + doctor without module-not-found`,
   ];
 }
 
@@ -547,14 +610,14 @@ export interface PostPublishTwoPassOptions {
   readonly skipInstall?: boolean;
 }
 
+/** OVPR: only the two public packages are installed from the registry (#5490 / AC13.4). */
 const DEFAULT_REGISTRY_PACKAGES = [
-  "@deftai/directive-types",
-  "@deftai/directive-core",
-  "@deftai/directive-content",
+  "@deftai/directive-runtime",
   "@deftai/directive",
 ] as const;
 
-const PASS2_UPDATE_ARGV = ["update", "--yes", "--upgrade", "--repo-root", ".", "--json"] as const;
+/** Pass 2: greenfield OVPR install of the just-published pair (not legacy update/migrate). */
+const PASS2_INSTALL_ARGV = ["install", "--yes", "--target-version"] as const;
 
 function fixtureGit(consumerDir: string, args: readonly string[], seams: E2ESeams): SpawnResult {
   if (seams.runGit) return seams.runGit(consumerDir, args);
@@ -677,12 +740,12 @@ function pass2UpdateEnv(cleanDir: string, consumerDir: string): NodeJS.ProcessEn
 function seedInitializedPass1Consumer(consumerDir: string, version: string): void {
   mkdirSync(join(consumerDir, "xbrief"), { recursive: true });
   seedXbriefLifecycleFolders(consumerDir);
-  mkdirSync(join(consumerDir, ".deft", "core"), { recursive: true });
   const xbriefBody = `${JSON.stringify({ plan: { narratives: { Overview: "ok" } } })}\n`;
   for (const rel of PASS1_ABSENCE_LOCK_PATHS) {
     const full = join(consumerDir, rel);
     if (!existsSync(full)) writeFileSync(full, xbriefBody, "utf8");
   }
+  // Empty consumer package.json — Pass 2 runs `directive install --target-version`.
   writeFileSync(
     join(consumerDir, "package.json"),
     `${JSON.stringify(
@@ -690,19 +753,13 @@ function seedInitializedPass1Consumer(consumerDir: string, version: string): voi
         name: "deft-4271-two-pass-consumer",
         private: true,
         version: "0.0.0",
-        dependencies: { "@deftai/directive": version },
       },
       null,
       2,
     )}\n`,
     "utf8",
   );
-  writeFileSync(
-    join(consumerDir, "AGENTS.md"),
-    "<!-- deft:managed-section -->\n# Deft\n<!-- /deft:managed-section -->\n",
-    "utf8",
-  );
-  writeFileSync(join(consumerDir, ".deft", "core", "main.md"), "# Deft\n", "utf8");
+  void version;
 }
 
 function runPass2UpdateFromInstalledCli(
@@ -732,14 +789,18 @@ function runPass2UpdateFromInstalledCli(
     return [false, `Pass 2 missing installed CLI at ${cliBin}`, []];
   }
   const spawn = seams.spawnText ?? spawnCommandText;
-  const update = spawn(process.execPath, [cliBin, ...PASS2_UPDATE_ARGV], {
-    cwd: consumerDir,
-    env: pass2UpdateEnv(cleanDir, consumerDir),
-    timeoutMs: NPM_INSTALL_RUN_TIMEOUT_SECONDS * 1000,
-  });
+  const update = spawn(
+    process.execPath,
+    [cliBin, ...PASS2_INSTALL_ARGV, version],
+    {
+      cwd: consumerDir,
+      env: pass2UpdateEnv(cleanDir, consumerDir),
+      timeoutMs: NPM_INSTALL_RUN_TIMEOUT_SECONDS * 1000,
+    },
+  );
   if (update.status !== 0) {
     const detail = `${update.stderr ?? ""}\n${update.stdout ?? ""}`.trim().slice(-500);
-    return [false, `Pass 2 directive update failed (exit ${update.status}): ${detail}`, []];
+    return [false, `Pass 2 directive install failed (exit ${update.status}): ${detail}`, []];
   }
   const porcelain = fixtureGit(consumerDir, ["status", "--porcelain"], seams);
   if (porcelain.status !== 0) {
@@ -751,7 +812,7 @@ function runPass2UpdateFromInstalledCli(
   }
   return [
     true,
-    "Pass 2 directive update OK",
+    "Pass 2 directive install OK",
     expandPass2PorcelainPaths(consumerDir, parsePorcelainPaths(porcelain.stdout ?? "")),
   ];
 }

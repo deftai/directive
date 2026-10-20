@@ -2,7 +2,9 @@
 
 The release process publishes `@deftai/directive` and `@deftai/directive-runtime` to npm (the **canonical** install channel). The Go installer (`cmd/deft-install/`, platform `install-*` binaries) is **deleted** (AC10.10) — release workflows skip the Go build matrix; do not rebuild or ship Go installer binaries.
 
-> **📚 See also**: [ARCHITECTURE.md](./ARCHITECTURE.md) • [CONCEPTS.md](./CONCEPTS.md) • [FILES.md](./FILES.md) • [../README.md](../README.md)
+**OVPR publish shape (AC13.4 / #5490):** exactly two public packages, same version, runtime then launcher. Private workspace packages `types` / `core` / `content` are vendored into the runtime via `packages/runtime/scripts/stage-bundle.mjs` + `pack-staged-runtime.mjs` (mirrored by `task release:e2e` / `packOvprTarballs`). Do not `npm pack packages/runtime` raw. Post-publish two-pass fixture Pass 2 is `directive install --yes --target-version <V>` (not legacy `update --upgrade`). Registry wait (`task release:wait-npm`) polls both public packages only.
+
+> **📚 See also**: [ARCHITECTURE.md](./ARCHITECTURE.md) • [CONCEPTS.md](./CONCEPTS.md) • [FILES.md](./FILES.md) • [installer-refactor-ovpr/README.md](./installer-refactor-ovpr/README.md) • [../README.md](../README.md)
 
 The interactive operator-side workflow (`task release` / `task release:publish` / `task release:rollback` / `task release:e2e`) is encoded in `skills/deft-directive-release/SKILL.md`. The notes below cover the underlying CI workflow and manual smoke-test procedure.
 

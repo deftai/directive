@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { collectPythonArtifacts, isRepoRootPythonRunShim } from "../deposit/python-free.js";
 import { defaultWhich, spawnText } from "../release/spawn.js";
 import { NPM_PUBLISH_PACKAGES } from "./constants.js";
-import { alignNpmPackageVersions, resolvePnpm } from "./npm-ops.js";
+import { alignNpmPackageVersions, packOvprTarballs, resolvePnpm } from "./npm-ops.js";
 import type { E2ESeams } from "./types.js";
 
 const SMOKE_VERSION = "9.9.9-smoke";
@@ -185,18 +185,6 @@ function seedMinimalProjectDefinition(projectDir: string): void {
   );
 }
 
-function packTarballPath(packDir: string, pkgDir: string): string | null {
-  const manifest = JSON.parse(readFileSync(join(pkgDir, "package.json"), "utf8")) as {
-    name?: string;
-    version?: string;
-  };
-  if (typeof manifest.name !== "string" || typeof manifest.version !== "string") {
-    return null;
-  }
-  const scoped = manifest.name.replaceAll("@", "").replaceAll("/", "-");
-  return join(packDir, `${scoped}-${manifest.version}.tgz`);
-}
-
 function runStep(
   spawn: typeof spawnText,
   label: string,
@@ -320,24 +308,20 @@ export function rehearseGreenfieldPythonFreeSmoke(
     [ok, reason] = alignNpmPackageVersions(repoRoot, SMOKE_VERSION);
     if (!ok) return [false, `greenfield smoke: ${reason}`];
 
-    const packed: string[] = [];
-    for (const pkg of NPM_PUBLISH_PACKAGES) {
-      const pkgDir = join(repoRoot, "packages", pkg);
-      [ok, reason] = runStep(
-        spawn,
-        `npm pack packages/${pkg}`,
-        npm,
-        ["pack", "--pack-destination", packDir],
-        { cwd: pkgDir, env: envBase, timeoutMs: 120_000 },
-        onProgress,
-      );
-      if (!ok) return [false, `greenfield smoke: ${reason}`];
-      const tgz = packTarballPath(packDir, pkgDir);
-      if (!tgz || !existsSync(tgz)) {
-        return [false, `greenfield smoke: missing pack tarball for ${pkg}`];
-      }
-      packed.push(tgz);
+    onProgress?.("greenfield smoke: OVPR stage+pack runtime + launcher");
+    const packSeams: E2ESeams = { ...seams, spawnText: spawn, which: seams.which ?? defaultWhich };
+    const packedResult = packOvprTarballs(
+      repoRoot,
+      SMOKE_VERSION,
+      packDir,
+      npm,
+      envBase,
+      packSeams,
+    );
+    if (!packedResult[0]) {
+      return [false, `greenfield smoke: ${packedResult[1]}`];
     }
+    const packed = packedResult[2];
 
     [ok, reason] = runStep(
       spawn,

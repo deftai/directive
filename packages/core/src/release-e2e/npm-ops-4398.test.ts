@@ -308,7 +308,7 @@ describe("post-publish install retry (#4398)", () => {
     expect(fn).toContain("--ignore-scripts");
     expect(fn.includes("npm view")).toBe(false);
     const yml = readFileSync(join(process.cwd(), ".github/workflows/npm-publish.yml"), "utf8");
-    expect(yml.match(/npm publish --provenance/g)?.length).toBe(4);
+    expect(yml.match(/npm publish --provenance/g)?.length).toBe(2);
     expect(yml).toContain("--post-publish-two-pass");
   });
 

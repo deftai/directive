@@ -1,8 +1,8 @@
 /**
  * Local-vs-released CLI drift report after a cut (#3753).
  *
- * Report-only: never runs `npm i -g`. Never fails the release. Polls all four
- * workspace packages with `--prefer-online` so a lag-poisoned npm cache cannot
+ * Report-only: never runs `npm i -g`. Never fails the release. Polls both
+ * public packages with `--prefer-online` so a lag-poisoned npm cache cannot
  * masquerade as a missing publish.
  */
 
@@ -21,11 +21,9 @@ import { validateVersion } from "./version.js";
 /** Same sentinel as release-e2e `REHEARSAL_VERSION` — do not poll npm for 0.0.1. */
 const REHEARSAL_VERSION = "0.0.1";
 
-/** Workspace packages published by npm-publish.yml (sibling propagate is not atomic). */
+/** Public packages published by npm-publish.yml (OVPR pair; sibling propagate is not atomic). */
 export const WORKSPACE_PACKAGES = [
-  "@deftai/directive-types",
-  "@deftai/directive-core",
-  "@deftai/directive-content",
+  "@deftai/directive-runtime",
   "@deftai/directive",
 ] as const;
 
@@ -219,7 +217,7 @@ function formatRegistryLine(
     return `  registry: probe-failed (${counts}; npm view errors — not a missing-publish verdict; wait and retry)`;
   }
   if (registry === "publish-incomplete") {
-    return `  registry: publish-incomplete (${counts}; none of the four packages resolved after the wait; wait before installing)`;
+    return `  registry: publish-incomplete (${counts}; neither public package resolved after the wait; wait before installing)`;
   }
   const missingText = missing.length > 0 ? `; missing: ${missing.join(", ")}` : "";
   return `  registry: still-propagating (${counts}${missingText}; wait before installing)`;
@@ -349,7 +347,7 @@ export function runPhase7NpmWait(
 
 const PHASE7_WAIT_HELP =
   "usage: deft release-wait-npm <version>\n" +
-  "  Phase 7 registry wait (#4267). Polls all four @deftai/directive* packages\n" +
+  "  Phase 7 registry wait (#4267). Polls both public OVPR packages\n" +
   "  until each lists <version>, or 10 minutes. Report-only: never runs npm i -g,\n" +
   "  never fails the GitHub release. Step 13 of task release stays a single probe.\n";
 
