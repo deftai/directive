@@ -5,9 +5,9 @@
  * changed production .ts/.js. Authority is git show merge-base only.
  * Tests and in-scope paths are not authority. P2 is not first-ship.
  *
- * Mint selection: --plan-id, DEFT_ACTIVE_SCOPE, or dest unique running xBRIEF.
- * Multiple merge-base mints without that pin fail closed. Do not take
- * records[0] by ls-tree/Map order.
+ * Mint selection: --plan-id, DEFT_ACTIVE_SCOPE, dest unique running xBRIEF, or
+ * demand-site PR deft-story adoption (#5782). Multiple merge-base mints without
+ * that pin fail closed. Do not take records[0] by ls-tree/Map order.
  *
  * Default origin (#4813): do not use evaluator-surface resolveDefaultBaseRef
  * (origin/HEAD then origin/main/origin/master) when a typed dest exists.
@@ -18,6 +18,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import type { RunGhFn } from "../docs/docs-impact.js";
 import { resolveDefaultBaseRef as resolveForgeDefaultBaseRef } from "../evaluator-surface/evaluate.js";
 import { normalizePath } from "../orchestration/pathspec.js";
 import { resolveCandidateBaseRef } from "../orphan-active/candidate-scope.js";
@@ -27,6 +28,7 @@ import { defaultGitRunner } from "../session/git.js";
 import { newFacts, uncoveredDeltas } from "./diff.js";
 import { extractConstraintFacts, isProductionSourcePath, surfaceSnapshot } from "./extract.js";
 import { intentConstraintRecordRel, parseIntentConstraintRecord } from "./mint.js";
+import { tryAdoptPlanIdFromPrStory } from "./plan-id-adopter.js";
 import {
   INTENT_CONSTRAINT_DIR,
   INTENT_CONSTRAINT_REMEDIATION,
@@ -74,6 +76,12 @@ export interface EvaluateOptions {
   readonly readAtHead?: (relPath: string) => string | null;
   readonly mergeBase?: string;
   readonly planId?: string;
+  /** Explicit `--pr` for demand-site deft-story plan-id adoption (#5782). */
+  readonly pr?: string;
+  /** Explicit `--repo` owner/repo for that adoption. */
+  readonly repo?: string;
+  /** Injected gh runner for PR body REST (tests). */
+  readonly runGh?: RunGhFn;
 }
 
 function runGit(projectRoot: string, args: readonly string[]): string | null {
@@ -572,7 +580,7 @@ export function evaluateIntentConstraint(options: EvaluateOptions = {}): Evaluat
       quiet,
     );
   }
-  const planId = resolved.kind === "id" ? resolved.id : undefined;
+  let planId = resolved.kind === "id" ? resolved.id : undefined;
   let candidates = parsedRecords;
   if (planId !== undefined && planId.length > 0) {
     candidates = parsedRecords.filter((r) => r.planId === planId);
@@ -585,14 +593,37 @@ export function evaluateIntentConstraint(options: EvaluateOptions = {}): Evaluat
       );
     }
   } else if (parsedRecords.length > 1 || running.length > 1) {
-    return attach(
-      config(
-        "multiple running stories or merge-base mint records; pass --plan-id or pin DEFT_ACTIVE_SCOPE to the current story (old mints must not authorize new work)",
-      ),
-      origin,
-      candidateMode,
-      quiet,
-    );
+    // Demand-site PR deft-story adoption (#5782). Intent invalid-pin is already terminal.
+    const adopted = tryAdoptPlanIdFromPrStory({
+      projectRoot,
+      pr: options.pr,
+      repo: options.repo,
+      runGh: options.runGh,
+      suppressOnBadPin: false,
+    });
+    if (adopted.kind === "id") {
+      planId = adopted.id;
+      candidates = parsedRecords.filter((r) => r.planId === planId);
+      if (candidates.length === 0) {
+        return attach(
+          fail(`verify:intent-constraint: no merge-base mint record for planId ${planId}.`),
+          origin,
+          candidateMode,
+          quiet,
+        );
+      }
+    } else if (adopted.kind === "config" || adopted.kind === "bad-pin-suppressed") {
+      return attach(config(adopted.message), origin, candidateMode, quiet);
+    } else {
+      return attach(
+        config(
+          "multiple running stories or merge-base mint records; pass --plan-id or pin DEFT_ACTIVE_SCOPE to the current story (old mints must not authorize new work)",
+        ),
+        origin,
+        candidateMode,
+        quiet,
+      );
+    }
   }
   const mint = soleRecord(candidates);
   if (mint === undefined) {

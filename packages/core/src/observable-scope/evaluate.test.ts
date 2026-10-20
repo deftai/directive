@@ -377,11 +377,14 @@ describe("evaluateObservableScope (#4495)", () => {
 <section id="card"></section>
 `;
     const prev = process.env.DEFT_ACTIVE_SCOPE;
+    const prevPr = process.env.GITHUB_PR_NUMBER;
     delete process.env.DEFT_ACTIVE_SCOPE;
+    delete process.env.GITHUB_PR_NUMBER;
     try {
       const result = evaluateObservableScope({
         ...files(head),
         projectRoot: root,
+        pr: "",
         recordTextsAtBase: new Map([
           [".deft/observable-scope/story-1.json", `${JSON.stringify(rec)}\n`],
         ]),
@@ -391,6 +394,8 @@ describe("evaluateObservableScope (#4495)", () => {
     } finally {
       if (prev === undefined) delete process.env.DEFT_ACTIVE_SCOPE;
       else process.env.DEFT_ACTIVE_SCOPE = prev;
+      if (prevPr === undefined) delete process.env.GITHUB_PR_NUMBER;
+      else process.env.GITHUB_PR_NUMBER = prevPr;
     }
   });
 
@@ -420,6 +425,217 @@ describe("evaluateObservableScope (#4495)", () => {
     });
     expect(result.code).toBe(1);
     expect(result.message).toMatch(/no merge-base mint record for planId story-1/);
+  });
+
+  it("adopts plan-id from sole PR deft-story under multi-running (#5782)", () => {
+    const root = mkdtempSync(join(tmpdir(), "obs-pr-adopt-"));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "a.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          id: "story-1",
+          status: "running",
+          narratives: {
+            Origin: "Ingested from https://github.com/deftai/directive/issues/5782",
+          },
+        },
+      }),
+    );
+    writeFileSync(
+      join(root, "xbrief", "active", "b.xbrief.json"),
+      JSON.stringify({ plan: { id: "story-2", status: "running" } }),
+    );
+    const other = buildObservableScopeRecord({
+      planId: "story-2",
+      xbriefRelPath: "xbrief/active/b.xbrief.json",
+      allowedChanges: [{ kind: "control", op: "add", name: "phone" }],
+      humanApproval: human,
+    });
+    if ("error" in other) throw new Error("mint");
+    const head = `
+<nav><button role="tab" aria-selected="true">Overview</button><button role="tab">Details</button></nav>
+<h1>Dashboard</h1>
+<input name="title" />
+<input name="email" />
+<button>Save</button>
+<table><tr><th>Name</th><th>Status</th></tr></table>
+<section id="card"></section>
+`;
+    const prev = process.env.DEFT_ACTIVE_SCOPE;
+    delete process.env.DEFT_ACTIVE_SCOPE;
+    try {
+      const result = evaluateObservableScope({
+        ...files(head),
+        projectRoot: root,
+        planId: undefined,
+        pr: "99",
+        repo: "deftai/directive",
+        runGh: () => ({
+          returncode: 0,
+          stdout: JSON.stringify({ body: "Tracking #5782\n\ndeft-story: 5782\n" }),
+          stderr: "",
+        }),
+        recordTextsAtBase: new Map([
+          [".deft/observable-scope/story-2.json", `${JSON.stringify(other)}\n`],
+          [
+            ".deft/observable-scope/story-1.json",
+            `${JSON.stringify(record([{ kind: "control", op: "add", name: "email" }]))}\n`,
+          ],
+        ]),
+      });
+      expect(result.code).toBe(0);
+    } finally {
+      if (prev === undefined) delete process.env.DEFT_ACTIVE_SCOPE;
+      else process.env.DEFT_ACTIVE_SCOPE = prev;
+    }
+  });
+
+  it("suppresses PR adoption on bad-pin + PR with named message (#5782)", () => {
+    const root = mkdtempSync(join(tmpdir(), "obs-bad-pin-pr-"));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "a.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          id: "story-1",
+          status: "running",
+          narratives: {
+            Origin: "Ingested from https://github.com/deftai/directive/issues/5782",
+          },
+        },
+      }),
+    );
+    writeFileSync(
+      join(root, "xbrief", "active", "b.xbrief.json"),
+      JSON.stringify({ plan: { id: "story-2", status: "running" } }),
+    );
+    const head = `
+<nav><button role="tab" aria-selected="true">Overview</button><button role="tab">Details</button></nav>
+<h1>Dashboard</h1>
+<input name="title" />
+<input name="email" />
+<button>Save</button>
+<table><tr><th>Name</th><th>Status</th></tr></table>
+<section id="card"></section>
+`;
+    const prev = process.env.DEFT_ACTIVE_SCOPE;
+    process.env.DEFT_ACTIVE_SCOPE = "xbrief/active/missing-pin.xbrief.json";
+    try {
+      const result = evaluateObservableScope({
+        ...files(head),
+        projectRoot: root,
+        planId: undefined,
+        pr: "99",
+        repo: "deftai/directive",
+        runGh: () => ({
+          returncode: 0,
+          stdout: JSON.stringify({ body: "deft-story: 5782\n" }),
+          stderr: "",
+        }),
+      });
+      expect(result.code).toBe(2);
+      expect(result.message).toMatch(/PR deft-story plan-id adoption was suppressed/);
+    } finally {
+      if (prev === undefined) delete process.env.DEFT_ACTIVE_SCOPE;
+      else process.env.DEFT_ACTIVE_SCOPE = prev;
+    }
+  });
+
+  it("bad-pin + sole running refuses a different story's sole mint (#5782 P1)", () => {
+    const root = mkdtempSync(join(tmpdir(), "obs-bad-pin-sole-mint-"));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "a.xbrief.json"),
+      JSON.stringify({ plan: { id: "story-a", status: "running" } }),
+    );
+    const other = buildObservableScopeRecord({
+      planId: "story-b",
+      xbriefRelPath: "xbrief/active/b.xbrief.json",
+      allowedChanges: [{ kind: "control", op: "add", name: "email" }],
+      humanApproval: human,
+    });
+    if ("error" in other) throw new Error("mint");
+    const head = `
+<nav><button role="tab" aria-selected="true">Overview</button><button role="tab">Details</button></nav>
+<h1>Dashboard</h1>
+<input name="title" />
+<input name="email" />
+<button>Save</button>
+<table><tr><th>Name</th><th>Status</th></tr></table>
+<section id="card"></section>
+`;
+    const prev = process.env.DEFT_ACTIVE_SCOPE;
+    process.env.DEFT_ACTIVE_SCOPE = "xbrief/active/missing-pin.xbrief.json";
+    try {
+      const result = evaluateObservableScope({
+        ...files(head),
+        projectRoot: root,
+        planId: undefined,
+        recordTextsAtBase: new Map([
+          [".deft/observable-scope/story-b.json", `${JSON.stringify(other)}\n`],
+        ]),
+      });
+      expect(result.code).toBe(1);
+      expect(result.message).toMatch(/no merge-base mint record for planId story-a/);
+    } finally {
+      if (prev === undefined) delete process.env.DEFT_ACTIVE_SCOPE;
+      else process.env.DEFT_ACTIVE_SCOPE = prev;
+    }
+  });
+
+  it("bad-pin + sole running selects matching mint among several records (#5782 P1)", () => {
+    const root = mkdtempSync(join(tmpdir(), "obs-bad-pin-multi-rec-"));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "a.xbrief.json"),
+      JSON.stringify({ plan: { id: "story-a", status: "running" } }),
+    );
+    const mine = buildObservableScopeRecord({
+      planId: "story-a",
+      xbriefRelPath: "xbrief/active/a.xbrief.json",
+      allowedChanges: [{ kind: "control", op: "add", name: "email" }],
+      humanApproval: human,
+    });
+    const other = buildObservableScopeRecord({
+      planId: "story-b",
+      xbriefRelPath: "xbrief/active/b.xbrief.json",
+      allowedChanges: [{ kind: "control", op: "add", name: "phone" }],
+      humanApproval: human,
+    });
+    if ("error" in mine || "error" in other) throw new Error("mint");
+    const head = `
+<nav><button role="tab" aria-selected="true">Overview</button><button role="tab">Details</button></nav>
+<h1>Dashboard</h1>
+<input name="title" />
+<input name="email" />
+<button>Save</button>
+<table><tr><th>Name</th><th>Status</th></tr></table>
+<section id="card"></section>
+`;
+    const prev = process.env.DEFT_ACTIVE_SCOPE;
+    const prevPr = process.env.GITHUB_PR_NUMBER;
+    process.env.DEFT_ACTIVE_SCOPE = "xbrief/active/missing-pin.xbrief.json";
+    delete process.env.GITHUB_PR_NUMBER;
+    try {
+      const result = evaluateObservableScope({
+        ...files(head),
+        projectRoot: root,
+        planId: undefined,
+        pr: "",
+        recordTextsAtBase: new Map([
+          [".deft/observable-scope/story-b.json", `${JSON.stringify(other)}\n`],
+          [".deft/observable-scope/story-a.json", `${JSON.stringify(mine)}\n`],
+        ]),
+      });
+      // Multi records + sole running + bad-pin + no PR: sole-running selects A.
+      expect(result.code).toBe(0);
+    } finally {
+      if (prev === undefined) delete process.env.DEFT_ACTIVE_SCOPE;
+      else process.env.DEFT_ACTIVE_SCOPE = prev;
+      if (prevPr === undefined) delete process.env.GITHUB_PR_NUMBER;
+      else process.env.GITHUB_PR_NUMBER = prevPr;
+    }
   });
 
   it("does not apply an allowance bound to a different surface path", () => {
