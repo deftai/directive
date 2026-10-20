@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added — OVPR installer path as the supported install/upgrade/uninstall/doctor surface (`@deftai/directive` launcher + exact `@deftai/directive-runtime` pin). Public publish is the two-package set only. Refs #5490 #5514.
 
 ### Changed
+- Changed — Raise plan.policy.agentsMdBudget managedMaxLines 200→205 and absoluteMaxBytes 29200→30500 after OVPR agents-entry path refresh (#5490). Ticket-parenthetical strip deferred: agents_entry_contract still requires headings like `## Session routing (#2176)`.
 - Changed — Retire the Go installer module from authored `codeStructure` and document OVPR as the install architecture in PROJECT-DEFINITION. Refs #5490.
 
 ### Fixed

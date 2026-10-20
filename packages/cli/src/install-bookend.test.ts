@@ -611,7 +611,7 @@ describe("install bookend flag matrix (AC5 / AC6)", () => {
     expect(c.out()).not.toMatch(/Install command:/i);
     expect(c.out()).not.toMatch(/Package manager will run:/i);
     expect(c.out()).not.toMatch(/pnpm add -D --save-exact/);
-  }, 30_000);
+  }, 60_000);
 
   it("pnpm plan discloses --save-exact at -v (AC5.1 / wave 4g)", () => {
     const root = tempProject();

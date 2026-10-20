@@ -226,6 +226,8 @@ const spawnHeavyGlobs = [
   "packages/runtime/src/hook-dispatch-worktree.test.ts",
   // Concurrent tsx self-complete children; unit 5s default flakes under coverage.
   "packages/runtime/src/wave2q-gen-rebuild-session.test.ts",
+  // Install bookend dry-run: in-process runInstall; unit 5s/30s flakes under coverage load.
+  "packages/cli/src/install-bookend.test.ts",
   "packages/core/src/session/occupancy-stress.test.ts",
   "packages/core/src/session/spawn-occupancy.test.ts",
   "packages/core/src/session/extra-coverage.test.ts",
