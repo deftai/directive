@@ -66,6 +66,22 @@ function emptyResult(from: string, root: string, message: string): MigrateResult
   };
 }
 
+/** Pull the on-disk path out of a detectLegacyVbriefLayout reason string. */
+function extractLegacyReasonPath(reason: string): string | null {
+  const filenamePrefix = "legacy artifact filename: ";
+  if (reason.startsWith(filenamePrefix)) {
+    return reason.slice(filenamePrefix.length);
+  }
+  // Reasons use "… in <path>". Prefer the last " in " so folder names that
+  // contain that substring (e.g. "project in progress") do not truncate.
+  const marker = " in ";
+  const idx = reason.lastIndexOf(marker);
+  if (idx >= 0) {
+    return reason.slice(idx + marker.length);
+  }
+  return null;
+}
+
 /**
  * True when install-management migrate still has lifecycle work (F-017).
  * Marker currency alone is insufficient — unmigrated vbrief/ must stay behind.
@@ -81,9 +97,9 @@ export function projectNeedsXbriefMigration(projectRoot: string): boolean {
   }
   // Marked vbrief/ retention is intentional; still migrate residual legacy
   // envelopes under xbrief/ (detectLegacyVbriefLayout would otherwise stay true
-  // forever from the mere presence of vbrief/). Reasons embed absolute paths —
-  // ignore only files under THIS project's retained vbrief/ tree (not a parent
-  // folder that happens to be named vbrief/).
+  // forever from the mere presence of vbrief/). Ignore only files under THIS
+  // project's retained vbrief/ tree (resolve paths; lastIndexOf for " in " so a
+  // parent folder containing that substring cannot truncate the path).
   if (convergence.state === "xbrief-marker") {
     const legacy = detectLegacyVbriefLayout(projectRoot);
     const retainedRoot = resolve(projectRoot, "vbrief").replace(/\\/g, "/");
@@ -92,13 +108,13 @@ export function projectNeedsXbriefMigration(projectRoot: string): boolean {
       if (reason === "vbrief/ directory present" || reason.startsWith("vbrief/")) {
         return false;
       }
-      const normalized = reason.replace(/\\/g, "/");
-      const pathMatch = normalized.match(/ in (.+)$/) ?? normalized.match(/filename: (.+)$/);
-      if (pathMatch) {
-        const filePath = pathMatch[1] ?? "";
-        if (filePath === retainedRoot || filePath.startsWith(retainedPrefix)) {
-          return false;
-        }
+      const extracted = extractLegacyReasonPath(reason);
+      if (extracted === null) {
+        return true;
+      }
+      const filePath = resolve(projectRoot, extracted).replace(/\\/g, "/");
+      if (filePath === retainedRoot || filePath.startsWith(retainedPrefix)) {
+        return false;
       }
       return true;
     });
