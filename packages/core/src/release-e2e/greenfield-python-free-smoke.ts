@@ -208,9 +208,12 @@ function runStep(
     onProgress?.(
       `greenfield smoke: ${label} — failed (exit ${result.status}) after ${elapsedMs}ms`,
     );
-    // Keep head + tail so long doctor suites still surface the primary error.
+    // Doctor suites are long; keep the full capture so the hard error is visible.
+    // Other steps keep head+tail to bound CI log size.
     const clipped =
-      detail.length <= 2000 ? detail : `${detail.slice(0, 1000)}\n…\n${detail.slice(-1000)}`;
+      label.includes("doctor") || detail.length <= 4000
+        ? detail
+        : `${detail.slice(0, 1000)}\n…\n${detail.slice(-1000)}`;
     return [
       false,
       `${label} failed (exit ${result.status})${timeoutHint}: ${clipped || "(no captured output)"}`,
