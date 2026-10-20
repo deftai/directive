@@ -106,6 +106,32 @@ describe("detectLegacyVbriefLayout branch coverage", () => {
     expect(result.legacyLayout).toBe(true);
     expect(result.reasons.some((r) => r.includes("x-vbrief/"))).toBe(true);
   });
+
+  it("skipLegacyRoot ignores retained vbrief/ content and still sees xbrief residual", () => {
+    mkdirSync(join(root, "vbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "vbrief", "active", "old.vbrief.json"),
+      JSON.stringify({ vBRIEFInfo: { version: "0.6" } }),
+      "utf8",
+    );
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "story.xbrief.json"),
+      JSON.stringify({ xBRIEFInfo: { version: "0.6" } }),
+      "utf8",
+    );
+    const skipped = detectLegacyVbriefLayout(root, { skipLegacyRoot: true });
+    expect(skipped.reasons.some((r) => r.includes("vbrief/"))).toBe(false);
+    expect(skipped.legacyLayout).toBe(true);
+    expect(skipped.reasons.some((r) => r.includes("declared version 0.6"))).toBe(true);
+
+    writeFileSync(
+      join(root, "xbrief", "active", "story.xbrief.json"),
+      JSON.stringify({ xBRIEFInfo: { version: "0.8" } }),
+      "utf8",
+    );
+    expect(detectLegacyVbriefLayout(root, { skipLegacyRoot: true }).legacyLayout).toBe(false);
+  });
 });
 
 describe("detectXbriefConvergence (#2270)", () => {

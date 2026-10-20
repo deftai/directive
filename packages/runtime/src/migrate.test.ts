@@ -204,7 +204,7 @@ describe("runMigrate (R7 / AC7.8)", () => {
   });
 
   it("F-017: path containing ' in ' still ignores retained vbrief-only residuals", () => {
-    // Greptile P2: first-match / in (.+)$/ truncated "project in progress/...".
+    // Parent folder substring must not affect skipLegacyRoot residual probe.
     const outer = tempRoot();
     const root = join(outer, "project in progress");
     mkdirSync(root, { recursive: true });
@@ -236,6 +236,39 @@ describe("runMigrate (R7 / AC7.8)", () => {
       "utf8",
     );
     expect(projectNeedsXbriefMigration(root)).toBe(false);
+  });
+
+  it("F-017: relative --root still sees residual xbrief@0.6 behind a marker", () => {
+    // Greptile P1: resolve(relativeRoot, detectorRelativePath) doubled the prefix.
+    const outer = tempRoot();
+    const absRoot = join(outer, "app");
+    mkdirSync(absRoot, { recursive: true });
+    writeFileSync(
+      join(absRoot, "package.json"),
+      `${JSON.stringify({ name: "rel", version: "0.0.0", private: true }, null, 2)}\n`,
+    );
+    mkdirSync(join(absRoot, "vbrief"), { recursive: true });
+    writeFileSync(
+      join(absRoot, "vbrief", "DEPRECATED.md"),
+      "<!-- deft:vbrief-deprecated -->\nlegacy retained\n",
+      "utf8",
+    );
+    mkdirSync(join(absRoot, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(absRoot, "xbrief", "active", "story.xbrief.json"),
+      `${JSON.stringify({
+        xBRIEFInfo: { version: "0.6", description: "residual" },
+        plan: { title: "Story", status: "running", items: [] },
+      })}\n`,
+      "utf8",
+    );
+    const prev = process.cwd();
+    try {
+      process.chdir(outer);
+      expect(projectNeedsXbriefMigration("app")).toBe(true);
+    } finally {
+      process.chdir(prev);
+    }
   });
 
   it("AC14.18: marker ContainedWrite failure preserves xbrief migrated + conflicts", () => {

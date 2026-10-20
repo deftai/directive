@@ -149,17 +149,29 @@ function scanFileContent(path: string, content: string, reasons: Set<string>): v
   }
 }
 
+export interface DetectLegacyVbriefLayoutOptions {
+  /**
+   * When true, skip the retained `vbrief/` tree and root-level `*.vbrief.json`
+   * probes. Used by install-management migrate after a deprecation marker so
+   * only residual envelopes under `xbrief/` count as pending work.
+   */
+  readonly skipLegacyRoot?: boolean;
+}
+
 /**
  * Detect whether `projectRoot` still uses the legacy vbrief on-disk layout.
  * Mirrors the structured-reasons pattern from `detectPreCutover` (#793).
  */
-export function detectLegacyVbriefLayout(projectRoot: string): LegacyVbriefLayoutDetection {
+export function detectLegacyVbriefLayout(
+  projectRoot: string,
+  opts: DetectLegacyVbriefLayoutOptions = {},
+): LegacyVbriefLayoutDetection {
   const reasons = new Set<string>();
 
   const legacyRoot = join(projectRoot, LEGACY_ARTIFACT_DIR);
   const migratedRoot = join(projectRoot, MIGRATED_ARTIFACT_DIR);
 
-  if (isDirectory(legacyRoot)) {
+  if (!opts.skipLegacyRoot && isDirectory(legacyRoot)) {
     reasons.add(`${LEGACY_ARTIFACT_DIR}/ directory present`);
     for (const jsonPath of walkJsonFiles(legacyRoot)) {
       scanFileContent(jsonPath, safeReadText(jsonPath), reasons);
@@ -173,7 +185,7 @@ export function detectLegacyVbriefLayout(projectRoot: string): LegacyVbriefLayou
   }
 
   // Root-level legacy artifacts (unusual but covered by acceptance probes).
-  if (existsSync(projectRoot) && isDirectory(projectRoot)) {
+  if (!opts.skipLegacyRoot && existsSync(projectRoot) && isDirectory(projectRoot)) {
     for (const entry of readdirSync(projectRoot, { withFileTypes: true })) {
       if (!entry.isFile() || !entry.name.endsWith(LEGACY_ARTIFACT_SUFFIX)) {
         continue;

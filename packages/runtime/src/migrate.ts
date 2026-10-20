@@ -15,6 +15,11 @@ import {
   type XbriefMigrationOutcome,
 } from "@deftai/directive-core/xbrief-migrate";
 
+/** Normalize caller roots (including relative `--root app`) before path probes. */
+function absoluteProjectRoot(projectRoot: string): string {
+  return resolve(projectRoot);
+}
+
 export const DATA_SCHEMA_MARKER_REL = ".deft/directive/data-schema.json";
 /** YOLO initial supported schema version recorded by migrate. */
 export const CURRENT_DATA_SCHEMA_VERSION = 1;
@@ -67,38 +72,12 @@ function emptyResult(from: string, root: string, message: string): MigrateResult
 }
 
 /**
- * Pull the on-disk path out of a detectLegacyVbriefLayout reason string.
- * Strip known prefixes (do not search for bare " in " — folder names may contain it).
- */
-function extractLegacyReasonPath(reason: string): string | null {
-  const patterns = [
-    /^legacy artifact filename: (.+)$/,
-    /^legacy info root key in (.+)$/,
-    /^declared version \S+ in (.+)$/,
-    /^legacy reference prefix \S+ in (.+)$/,
-  ];
-  for (const re of patterns) {
-    const match = reason.match(re);
-    if (match?.[1]) {
-      return match[1];
-    }
-  }
-  return null;
-}
-
-function pathIsUnderRoot(filePath: string, rootAbs: string): boolean {
-  const normalizedFile = filePath.replace(/\\/g, "/");
-  const normalizedRoot = rootAbs.replace(/\\/g, "/");
-  const prefix = normalizedRoot.endsWith("/") ? normalizedRoot : `${normalizedRoot}/`;
-  return normalizedFile === normalizedRoot || normalizedFile.startsWith(prefix);
-}
-
-/**
  * True when install-management migrate still has lifecycle work (F-017).
  * Marker currency alone is insufficient — unmigrated vbrief/ must stay behind.
  */
 export function projectNeedsXbriefMigration(projectRoot: string): boolean {
-  const convergence = detectXbriefConvergence(projectRoot);
+  const root = absoluteProjectRoot(projectRoot);
+  const convergence = detectXbriefConvergence(root);
   if (
     convergence.state === "legacy-only" ||
     convergence.state === "dual-populated" ||
@@ -106,21 +85,12 @@ export function projectNeedsXbriefMigration(projectRoot: string): boolean {
   ) {
     return true;
   }
-  // Marked vbrief/ retention is intentional; only residual under THIS project's
-  // xbrief/ tree still needs migrate (ignore retained vbrief/ content entirely).
+  // Marked vbrief/ retention is intentional; probe residual under xbrief/ only
+  // (skipLegacyRoot) so we never parse reason-string paths.
   if (convergence.state === "xbrief-marker") {
-    const legacy = detectLegacyVbriefLayout(projectRoot);
-    const xbriefRoot = resolve(projectRoot, "xbrief");
-    return legacy.reasons.some((reason) => {
-      const extracted = extractLegacyReasonPath(reason);
-      if (extracted === null) {
-        return false;
-      }
-      const filePath = resolve(projectRoot, extracted);
-      return pathIsUnderRoot(filePath, xbriefRoot);
-    });
+    return detectLegacyVbriefLayout(root, { skipLegacyRoot: true }).legacyLayout;
   }
-  return detectLegacyVbriefLayout(projectRoot).legacyLayout;
+  return detectLegacyVbriefLayout(root).legacyLayout;
 }
 
 function applyXbriefMigration(root: string):
