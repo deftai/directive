@@ -145,18 +145,23 @@
       "intended_placement": {
         "schema": "deft.scope.intended_placement.v1",
         "files": [
-          "packages/core/src/intent-constraint/evaluate.ts",
-          "packages/core/src/observable-scope/evaluate.ts",
-          "packages/core/src/pr-closing-keywords/main.ts",
-          "packages/core/src/docs/docs-impact.ts",
-          "packages/core/src/intake/residual-identity.ts",
-          "packages/cli/src/verify-intent-constraint.ts",
-          "packages/cli/src/verify-observable-scope.ts",
+          "CHANGELOG.md",
           "content/docs/intent-constraint.md",
           "content/docs/observable-scope.md",
-          "content/commands.md",
           "content/scm/github.md",
-          "CHANGELOG.md"
+          "packages/cli/src/verify-intent-constraint.ts",
+          "packages/cli/src/verify-observable-scope.ts",
+          "packages/core/src/docs/docs-impact.ts",
+          "packages/core/src/intake/residual-identity.ts",
+          "packages/core/src/intent-constraint/evaluate.test.ts",
+          "packages/core/src/intent-constraint/evaluate.ts",
+          "packages/core/src/intent-constraint/plan-id-adopter.test.ts",
+          "packages/core/src/intent-constraint/plan-id-adopter.ts",
+          "packages/core/src/observable-scope/evaluate.test.ts",
+          "packages/core/src/observable-scope/evaluate.ts",
+          "packages/core/src/pr-closing-keywords/main.ts",
+          "xbrief/evaluator-surface-disposition.json",
+          "docs/RULE-MAP.md"
         ],
         "module_boundary": "packages/core/src/intent-constraint/evaluate.ts",
         "cohesion_exemption": "CHANGELOG shared Unreleased; commands.md and scm/github.md docs for #5782 plan-id adopter"
@@ -1396,22 +1401,23 @@
       },
       "swarm": {
         "file_scope": [
-          "packages/core/src/intent-constraint/evaluate.ts",
-          "packages/core/src/observable-scope/evaluate.ts",
-          "packages/core/src/pr-closing-keywords/main.ts",
-          "packages/core/src/docs/docs-impact.ts",
-          "packages/core/src/intake/residual-identity.ts",
-          "packages/cli/src/verify-intent-constraint.ts",
-          "packages/cli/src/verify-observable-scope.ts",
+          "CHANGELOG.md",
           "content/docs/intent-constraint.md",
           "content/docs/observable-scope.md",
-          "content/commands.md",
           "content/scm/github.md",
-          "CHANGELOG.md",
+          "packages/cli/src/verify-intent-constraint.ts",
+          "packages/cli/src/verify-observable-scope.ts",
+          "packages/core/src/docs/docs-impact.ts",
+          "packages/core/src/intake/residual-identity.ts",
           "packages/core/src/intent-constraint/evaluate.test.ts",
-          "packages/core/src/observable-scope/evaluate.test.ts",
+          "packages/core/src/intent-constraint/evaluate.ts",
+          "packages/core/src/intent-constraint/plan-id-adopter.test.ts",
           "packages/core/src/intent-constraint/plan-id-adopter.ts",
-          "packages/core/src/intent-constraint/plan-id-adopter.test.ts"
+          "packages/core/src/observable-scope/evaluate.test.ts",
+          "packages/core/src/observable-scope/evaluate.ts",
+          "packages/core/src/pr-closing-keywords/main.ts",
+          "xbrief/evaluator-surface-disposition.json",
+          "docs/RULE-MAP.md"
         ],
         "cohesion_exemption": "CHANGELOG shared Unreleased; commands.md and scm/github.md docs for #5782 plan-id adopter"
       }
