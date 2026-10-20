@@ -1,0 +1,96 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Canonical completion brief for slice 1e two-package release path and docs home.",
+    "updated": "2026-10-20T18:00:00Z"
+  },
+  "plan": {
+    "id": "2026-10-20-5490-release-tooling-1e-docs",
+    "title": "#5490 release tooling 1e + installer-refactor docs cutover",
+    "status": "completed",
+    "updated": "2026-10-20T18:00:00Z",
+    "narratives": {
+      "Overview": "Aligned deft-directive-release skill, release-e2e (packOvprTarballs), cli-drift wait, and RELEASING.md to the two-package OVPR publish path. Landed docs/installer-refactor-ovpr/ with active requirements, architecture, human-test plan, and implementation history summary.",
+      "Description": "Canonical completion brief for slice 1e two-package release path and docs home.",
+      "Origin": "Canonical retrospective completion for the OVPR installer effort (#5490 / #5514) prior to master merge. Replaces non-canonical YOLO wave stubs."
+    },
+    "items": [
+      {
+        "id": "2026-10-20-5490-release-tooling-1e-docs-ac1",
+        "title": "NPM_PUBLISH_PACKAGES / WORKSPACE_PACKAGES are runtime + launcher only.",
+        "status": "completed",
+        "acceptance": {
+          "criteria": "NPM_PUBLISH_PACKAGES / WORKSPACE_PACKAGES are runtime + launcher only.",
+          "status": "completed"
+        }
+      },
+      {
+        "id": "2026-10-20-5490-release-tooling-1e-docs-ac2",
+        "title": "Pass 2 post-publish fixture uses directive install --target-version.",
+        "status": "completed",
+        "acceptance": {
+          "criteria": "Pass 2 post-publish fixture uses directive install --target-version.",
+          "status": "completed"
+        }
+      },
+      {
+        "id": "2026-10-20-5490-release-tooling-1e-docs-ac3",
+        "title": "docs/installer-refactor-ovpr/ is the durable OVPR docs home.",
+        "status": "completed",
+        "acceptance": {
+          "criteria": "docs/installer-refactor-ovpr/ is the durable OVPR docs home.",
+          "status": "completed"
+        }
+      },
+      {
+        "id": "2026-10-20-5490-release-tooling-1e-docs-ac4",
+        "title": "Focused release-e2e vitest green on wave4j (80/80 for targeted suites).",
+        "status": "completed",
+        "acceptance": {
+          "criteria": "Focused release-e2e vitest green on wave4j (80/80 for targeted suites).",
+          "status": "completed"
+        }
+      }
+    ],
+    "tags": [
+      "5490",
+      "ovpr",
+      "installer",
+      "canonical"
+    ],
+    "references": [
+      {
+        "type": "github-issue",
+        "id": "5490",
+        "url": "https://github.com/deftai/directive/issues/5490"
+      },
+      {
+        "type": "github-issue",
+        "id": "5514",
+        "url": "https://github.com/deftai/directive/issues/5514"
+      },
+      {
+        "type": "path",
+        "path": "docs/installer-refactor-ovpr/README.md"
+      }
+    ],
+    "acceptance": {
+      "criteria": [
+        "NPM_PUBLISH_PACKAGES / WORKSPACE_PACKAGES are runtime + launcher only.",
+        "Pass 2 post-publish fixture uses directive install --target-version.",
+        "docs/installer-refactor-ovpr/ is the durable OVPR docs home.",
+        "Focused release-e2e vitest green on wave4j (80/80 for targeted suites)."
+      ],
+      "status": "completed"
+    },
+    "metadata": {
+      "completedAt": "2026-10-20T18:00:00Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-20T18:00:00Z"
+      },
+      "canonicalOvprSet": true,
+      "note": "Honest completion stamp for master-merge hygiene. No fabricated PR merge provenance; delivery evidence is the yolo/wip-wave4j train + docs."
+    }
+  }
+}

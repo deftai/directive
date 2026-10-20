@@ -1,0 +1,86 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Canonical completion brief for HT automation usable after sterile field ends.",
+    "updated": "2026-10-20T18:00:00Z"
+  },
+  "plan": {
+    "id": "2026-10-20-5490-ht-auto-acceptance",
+    "title": "#5490 human-test automation acceptance \u2014 ht-auto + harness home",
+    "status": "completed",
+    "updated": "2026-10-20T18:00:00Z",
+    "narratives": {
+      "Overview": "HUMAN-TEST-PLAN cases HT-00\u2013HT-17 automated under tools/install-harness/ht-auto with dual Verdaccio-tip and public-npm modes. Results write to gitignored .deft-scratch/install-harness/. Enables installer regression on master without YOLO sterile field.",
+      "Description": "Canonical completion brief for HT automation usable after sterile field ends.",
+      "Origin": "Canonical retrospective completion for the OVPR installer effort (#5490 / #5514) prior to master merge. Replaces non-canonical YOLO wave stubs."
+    },
+    "items": [
+      {
+        "id": "2026-10-20-5490-ht-auto-acceptance-ac1",
+        "title": "tools/install-harness/README.md documents tip and master run recipes.",
+        "status": "completed",
+        "acceptance": {
+          "criteria": "tools/install-harness/README.md documents tip and master run recipes.",
+          "status": "completed"
+        }
+      },
+      {
+        "id": "2026-10-20-5490-ht-auto-acceptance-ac2",
+        "title": "ht-prep supports --registry npm|--tag latest without requiring YOLO env.sh.",
+        "status": "completed",
+        "acceptance": {
+          "criteria": "ht-prep supports --registry npm|--tag latest without requiring YOLO env.sh.",
+          "status": "completed"
+        }
+      },
+      {
+        "id": "2026-10-20-5490-ht-auto-acceptance-ac3",
+        "title": "HT plan points at the in-repo harness home.",
+        "status": "completed",
+        "acceptance": {
+          "criteria": "HT plan points at the in-repo harness home.",
+          "status": "completed"
+        }
+      }
+    ],
+    "tags": [
+      "5490",
+      "ovpr",
+      "installer",
+      "canonical"
+    ],
+    "references": [
+      {
+        "type": "github-issue",
+        "id": "5490",
+        "url": "https://github.com/deftai/directive/issues/5490"
+      },
+      {
+        "type": "github-issue",
+        "id": "5514",
+        "url": "https://github.com/deftai/directive/issues/5514"
+      },
+      {
+        "type": "path",
+        "path": "docs/installer-refactor-ovpr/README.md"
+      }
+    ],
+    "acceptance": {
+      "criteria": [
+        "tools/install-harness/README.md documents tip and master run recipes.",
+        "ht-prep supports --registry npm|--tag latest without requiring YOLO env.sh.",
+        "HT plan points at the in-repo harness home."
+      ],
+      "status": "completed"
+    },
+    "metadata": {
+      "completedAt": "2026-10-20T18:00:00Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-20T18:00:00Z"
+      },
+      "canonicalOvprSet": true,
+      "note": "Honest completion stamp for master-merge hygiene. No fabricated PR merge provenance; delivery evidence is the yolo/wip-wave4j train + docs."
+    }
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Canonical completion brief for Wave 2 installer core surfaces.",
+    "updated": "2026-10-20T18:00:00Z"
+  },
+  "plan": {
+    "id": "2026-10-20-5490-installer-core-happy-path",
+    "title": "#5490 installer core \u2014 install, repair, doctor, uninstall happy path",
+    "status": "completed",
+    "updated": "2026-10-20T18:00:00Z",
+    "narratives": {
+      "Overview": "Landed OVPR installer core on the tip: greenfield install --yes, doctor, repair idempotence, uninstall preserving xbriefs, and package-relative wiring under node_modules/@deftai/directive-runtime. Human HT-auto cases exercised the happy path on Verdaccio tips through wave4i.",
+      "Description": "Canonical completion brief for Wave 2 installer core surfaces.",
+      "Origin": "Canonical retrospective completion for the OVPR installer effort (#5490 / #5514) prior to master merge. Replaces non-canonical YOLO wave stubs."
+    },
+    "items": [
+      {
+        "id": "2026-10-20-5490-installer-core-happy-path-ac1",
+        "title": "directive install / doctor / repair / uninstall behave on OVPR tip fixtures.",
+        "status": "completed",
+        "acceptance": {
+          "criteria": "directive install / doctor / repair / uninstall behave on OVPR tip fixtures.",
+          "status": "completed"
+        }
+      },
+      {
+        "id": "2026-10-20-5490-installer-core-happy-path-ac2",
+        "title": "No Go installer path required for new installs.",
+        "status": "completed",
+        "acceptance": {
+          "criteria": "No Go installer path required for new installs.",
+          "status": "completed"
+        }
+      },
+      {
+        "id": "2026-10-20-5490-installer-core-happy-path-ac3",
+        "title": "HT-auto automation retained under tools/install-harness/ht-auto/.",
+        "status": "completed",
+        "acceptance": {
+          "criteria": "HT-auto automation retained under tools/install-harness/ht-auto/.",
+          "status": "completed"
+        }
+      }
+    ],
+    "tags": [
+      "5490",
+      "ovpr",
+      "installer",
+      "canonical"
+    ],
+    "references": [
+      {
+        "type": "github-issue",
+        "id": "5490",
+        "url": "https://github.com/deftai/directive/issues/5490"
+      },
+      {
+        "type": "github-issue",
+        "id": "5514",
+        "url": "https://github.com/deftai/directive/issues/5514"
+      },
+      {
+        "type": "path",
+        "path": "docs/installer-refactor-ovpr/README.md"
+      }
+    ],
+    "acceptance": {
+      "criteria": [
+        "directive install / doctor / repair / uninstall behave on OVPR tip fixtures.",
+        "No Go installer path required for new installs.",
+        "HT-auto automation retained under tools/install-harness/ht-auto/."
+      ],
+      "status": "completed"
+    },
+    "metadata": {
+      "completedAt": "2026-10-20T18:00:00Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-20T18:00:00Z"
+      },
+      "canonicalOvprSet": true,
+      "note": "Honest completion stamp for master-merge hygiene. No fabricated PR merge provenance; delivery evidence is the yolo/wip-wave4j train + docs."
+    }
+  }
+}
