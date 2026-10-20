@@ -146,36 +146,32 @@ describe("AC14.20 GENERATION deleted rebuilds (GEN-REBUILD)", () => {
 });
 
 describe("AC8.7 two-hook same-pin convergence", () => {
-  it(
-    "two concurrent self-completes leave one valid readiness + intact JSON",
-    async () => {
-      const root = tempRoot();
-      const installed = runSetup({ operation: "install", from: "none", root });
-      pinRuntime(root, installed.runtimeVersion);
-      rmSync(readinessPath(root, installed.runtimeVersion), { force: true });
+  it("two concurrent self-completes leave one valid readiness + intact JSON", async () => {
+    const root = tempRoot();
+    const installed = runSetup({ operation: "install", from: "none", root });
+    pinRuntime(root, installed.runtimeVersion);
+    rmSync(readinessPath(root, installed.runtimeVersion), { force: true });
 
-      const [a, b] = await Promise.all([spawnSelfComplete(root), spawnSelfComplete(root)]);
-      expect(a.code, a.stderr).toBe(0);
-      expect(b.code, b.stderr).toBe(0);
+    const [a, b] = await Promise.all([spawnSelfComplete(root), spawnSelfComplete(root)]);
+    expect(a.code, a.stderr).toBe(0);
+    expect(b.code, b.stderr).toBe(0);
 
-      const ready = readinessPath(root, installed.runtimeVersion);
-      expect(existsSync(ready)).toBe(true);
-      const readyBody = JSON.parse(readFileSync(ready, "utf8")) as { runtimeVersion?: string };
-      expect(readyBody.runtimeVersion).toBe(installed.runtimeVersion);
+    const ready = readinessPath(root, installed.runtimeVersion);
+    expect(existsSync(ready)).toBe(true);
+    const readyBody = JSON.parse(readFileSync(ready, "utf8")) as { runtimeVersion?: string };
+    expect(readyBody.runtimeVersion).toBe(installed.runtimeVersion);
 
-      const gen = JSON.parse(readFileSync(join(root, GENERATION_REL), "utf8")) as {
-        runtimeVersion?: string;
-      };
-      expect(gen.runtimeVersion).toBe(installed.runtimeVersion);
+    const gen = JSON.parse(readFileSync(join(root, GENERATION_REL), "utf8")) as {
+      runtimeVersion?: string;
+    };
+    expect(gen.runtimeVersion).toBe(installed.runtimeVersion);
 
-      // Shared host-hook JSON must remain parseable (no torn write).
-      const cursorHooks = join(root, ".cursor", "hooks.json");
-      if (existsSync(cursorHooks)) {
-        expect(() => JSON.parse(readFileSync(cursorHooks, "utf8"))).not.toThrow();
-      }
-    },
-    30_000,
-  );
+    // Shared host-hook JSON must remain parseable (no torn write).
+    const cursorHooks = join(root, ".cursor", "hooks.json");
+    if (existsSync(cursorHooks)) {
+      expect(() => JSON.parse(readFileSync(cursorHooks, "utf8"))).not.toThrow();
+    }
+  }, 30_000);
 });
 
 describe("AC8.9 session-start data-behind message", () => {
