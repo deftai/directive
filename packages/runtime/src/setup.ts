@@ -383,19 +383,23 @@ export function runSetup(options: {
     }
 
     // Seeds only on first-time install (AC8.4); repair/upgrade never create them.
-    // AC6.2: also leave data-schema current for empty/seeded install. Repair must
-    // not migrate; upgrade still migrates when data is truly behind.
+    // AC6.2: leave data-schema current for empty/seeded install. Repair may write a
+    // missing marker (not a migration); upgrade still migrates when data is behind.
     if (operation === "install" && conflicts.length === 0) {
       const seed = createSeedPlaceholder(root);
       if (seed !== null) created.push(seed);
-      if (!existsSync(join(root, DATA_SCHEMA_MARKER_REL))) {
-        writeContained(
-          root,
-          DATA_SCHEMA_MARKER_REL,
-          `${JSON.stringify({ schemaVersion: CURRENT_DATA_SCHEMA_VERSION }, null, 2)}\n`,
-        );
-        created.push(DATA_SCHEMA_MARKER_REL);
-      }
+    }
+    if (
+      (operation === "install" || operation === "repair") &&
+      conflicts.length === 0 &&
+      !existsSync(join(root, DATA_SCHEMA_MARKER_REL))
+    ) {
+      writeContained(
+        root,
+        DATA_SCHEMA_MARKER_REL,
+        `${JSON.stringify({ schemaVersion: CURRENT_DATA_SCHEMA_VERSION }, null, 2)}\n`,
+      );
+      created.push(DATA_SCHEMA_MARKER_REL);
     }
 
     // AC13.1: never materialize a content copy under .deft/core.
