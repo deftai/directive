@@ -229,10 +229,7 @@ function pruneEvaluatorWorktreeAdmin(
     // Case-only basename difference ⇒ distinct worktree identity on a
     // case-sensitive directory. Do not require existsSync: force-delete of the
     // target must not let a fold unregister a sibling admin entry (#5519).
-    if (
-      recordedBase !== targetBase &&
-      recordedBase.toLowerCase() === targetBase.toLowerCase()
-    ) {
+    if (recordedBase !== targetBase && recordedBase.toLowerCase() === targetBase.toLowerCase()) {
       continue;
     }
     if (worktreePathsReferToSame(recordedWorktree, worktreePath)) {
