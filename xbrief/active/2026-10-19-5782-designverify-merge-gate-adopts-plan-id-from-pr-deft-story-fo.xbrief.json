@@ -156,7 +156,12 @@
           "content/docs/observable-scope.md",
           "content/commands.md",
           "content/scm/github.md",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "packages/core/src/intent-constraint/evaluate.test.ts",
+          "packages/core/src/observable-scope/evaluate.test.ts",
+          "packages/core/src/intent-constraint/plan-id-adopter.ts",
+          "packages/core/src/intent-constraint/plan-id-adopter.test.ts",
+          "xbrief/evaluator-surface-disposition.json"
         ],
         "module_boundary": "packages/core/src/intent-constraint/evaluate.ts",
         "cohesion_exemption": "CHANGELOG shared Unreleased; commands.md and scm/github.md docs for #5782 plan-id adopter"
@@ -1411,7 +1416,8 @@
           "packages/core/src/intent-constraint/evaluate.test.ts",
           "packages/core/src/observable-scope/evaluate.test.ts",
           "packages/core/src/intent-constraint/plan-id-adopter.ts",
-          "packages/core/src/intent-constraint/plan-id-adopter.test.ts"
+          "packages/core/src/intent-constraint/plan-id-adopter.test.ts",
+          "xbrief/evaluator-surface-disposition.json"
         ],
         "cohesion_exemption": "CHANGELOG shared Unreleased; commands.md and scm/github.md docs for #5782 plan-id adopter"
       }
