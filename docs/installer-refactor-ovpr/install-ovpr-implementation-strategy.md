@@ -65,3 +65,15 @@ Paired publishes used interim `/yolo-beta-release` from yolo tips. Example verif
 - Teaching `deft-install` / `npx` as ongoing identity
 - Four-package publish order for new cuts
 - Sterile-field process as a standing requirement after cutover
+
+## Sterile-field undo (wave4j Phase 6a)
+
+On `yolo/wip-wave4j` before the master PR:
+
+1. Removed tracked `.no-deft-directive`.
+2. Restored maintainer `AGENTS.md` from `origin/master` (YOLO sterile stub discarded).
+3. Reset local `core.hooksPath` from `~/yolo-5490/noop-githooks` to product `.githooks`.
+4. Deleted **gitignored** local residue only: `.deft/core/`, `.deft/GENERATION.json` (not source).
+5. **Did not** run `directive uninstall --yes` against this checkout — dry-run planned removal of `.githooks/*`, which here are **product source** that ship in the content/runtime pack. Surgical strip preserves them.
+6. **No** `@deftai/directive-runtime` pin yet — consumer self-host install is Phase 10 after GA publish (#5514).
+
