@@ -526,4 +526,121 @@ describe("intent-constraint origin recut (#4813)", () => {
     expect(result.message).toContain("origin-mode=N/A");
     expect(result.message).toContain("candidates=injected");
   });
+
+  it("adopts plan-id from sole PR deft-story under multi-running (#5782)", () => {
+    const root = withTypescript(mkdtempSync(join(tmpdir(), "intent-pr-adopt-")));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "a.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          id: "story-1",
+          status: "running",
+          narratives: {
+            Origin: "Ingested from https://github.com/deftai/directive/issues/5782",
+          },
+        },
+      }),
+    );
+    writeFileSync(
+      join(root, "xbrief", "active", "b.xbrief.json"),
+      JSON.stringify({ plan: { id: "story-2", status: "running" } }),
+    );
+    const other = buildIntentConstraintRecord({
+      planId: "story-2",
+      xbriefRelPath: "xbrief/active/b.xbrief.json",
+      constraints: [{ value: "1", unit: "bytes", rejectionScope: "item" }],
+      humanApproval: human,
+    });
+    if ("error" in other) throw new Error(other.error);
+    const prev = process.env.DEFT_ACTIVE_SCOPE;
+    delete process.env.DEFT_ACTIVE_SCOPE;
+    try {
+      const result = evaluateIntentConstraint({
+        ...files(POSTED),
+        projectRoot: root,
+        planId: undefined,
+        pr: "99",
+        repo: "deftai/directive",
+        runGh: () => ({
+          returncode: 0,
+          stdout: JSON.stringify({ body: "Tracking #5782\n\ndeft-story: 5782\n" }),
+          stderr: "",
+        }),
+        recordTextsAtBase: new Map([
+          [".deft/intent-constraint/story-2.json", `${JSON.stringify(other, null, 2)}\n`],
+          [".deft/intent-constraint/story-1.json", `${JSON.stringify(record(), null, 2)}\n`],
+        ]),
+      });
+      expect(result.code).toBe(0);
+    } finally {
+      if (prev === undefined) delete process.env.DEFT_ACTIVE_SCOPE;
+      else process.env.DEFT_ACTIVE_SCOPE = prev;
+    }
+  });
+
+  it("keeps no-PR multi refuse when GITHUB_PR_NUMBER empty (#5782)", () => {
+    const root = withTypescript(mkdtempSync(join(tmpdir(), "intent-empty-pr-")));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "a.xbrief.json"),
+      JSON.stringify({ plan: { id: "story-1", status: "running" } }),
+    );
+    writeFileSync(
+      join(root, "xbrief", "active", "b.xbrief.json"),
+      JSON.stringify({ plan: { id: "story-2", status: "running" } }),
+    );
+    const prevScope = process.env.DEFT_ACTIVE_SCOPE;
+    const prevPr = process.env.GITHUB_PR_NUMBER;
+    delete process.env.DEFT_ACTIVE_SCOPE;
+    process.env.GITHUB_PR_NUMBER = "";
+    try {
+      const result = evaluateIntentConstraint({
+        ...files(POSTED),
+        projectRoot: root,
+        planId: undefined,
+      });
+      expect(result.code).toBe(2);
+      expect(result.message).toMatch(/multiple running stories/);
+    } finally {
+      if (prevScope === undefined) delete process.env.DEFT_ACTIVE_SCOPE;
+      else process.env.DEFT_ACTIVE_SCOPE = prevScope;
+      if (prevPr === undefined) delete process.env.GITHUB_PR_NUMBER;
+      else process.env.GITHUB_PR_NUMBER = prevPr;
+    }
+  });
+
+  it("lets --plan-id override PR deft-story adoption (#5782)", () => {
+    const root = withTypescript(mkdtempSync(join(tmpdir(), "intent-override-")));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "a.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          id: "story-2",
+          status: "running",
+          narratives: {
+            Origin: "Ingested from https://github.com/deftai/directive/issues/5782",
+          },
+        },
+      }),
+    );
+    writeFileSync(
+      join(root, "xbrief", "active", "b.xbrief.json"),
+      JSON.stringify({ plan: { id: "story-1", status: "running" } }),
+    );
+    const result = evaluateIntentConstraint({
+      ...files(POSTED),
+      projectRoot: root,
+      planId: "story-1",
+      pr: "99",
+      repo: "deftai/directive",
+      runGh: () => ({
+        returncode: 0,
+        stdout: JSON.stringify({ body: "deft-story: 5782\n" }),
+        stderr: "",
+      }),
+    });
+    expect(result.code).toBe(0);
+  });
 });

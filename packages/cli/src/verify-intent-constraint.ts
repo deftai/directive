@@ -9,6 +9,8 @@ interface ParsedArgs {
   staged: boolean;
   quiet: boolean;
   planId?: string;
+  pr?: string;
+  repo?: string;
   error?: string;
 }
 
@@ -48,6 +50,24 @@ export function parseArgs(argv: string[]): ParsedArgs {
       i += 1;
     } else if (arg?.startsWith("--plan-id=")) {
       parsed.planId = arg.slice("--plan-id=".length);
+    } else if (arg === "--pr") {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return { ...parsed, error: "argument --pr: expected one argument" };
+      }
+      parsed.pr = value;
+      i += 1;
+    } else if (arg?.startsWith("--pr=")) {
+      parsed.pr = arg.slice("--pr=".length);
+    } else if (arg === "--repo") {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return { ...parsed, error: "argument --repo: expected one argument" };
+      }
+      parsed.repo = value;
+      i += 1;
+    } else if (arg?.startsWith("--repo=")) {
+      parsed.repo = arg.slice("--repo=".length);
     } else if (arg === "--base-ref") {
       return {
         ...parsed,
@@ -74,6 +94,8 @@ export function run(argv: string[]): number {
     staged: args.staged,
     quiet: args.quiet,
     planId: args.planId,
+    pr: args.pr,
+    repo: args.repo,
   });
   if (result.message.length > 0) {
     if (result.stream === "stdout") process.stdout.write(`${result.message}\n`);

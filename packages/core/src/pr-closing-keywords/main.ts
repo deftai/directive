@@ -880,12 +880,20 @@ function refuseAllowCloseWhileRunning(
 const LIVE_PR_REQUIRES_REPO =
   "live PR one-PR-unit check requires repository identity (--repo or GITHUB_REPOSITORY)";
 
-function resolveLiveRepo(args: ParsedArgs, env: NodeJS.ProcessEnv): string | null {
-  const fromArgs = args.repo?.trim() ?? "";
+/** Resolve owner/repo from `--repo` then GITHUB_REPOSITORY (empty-as-absent). */
+export function resolveLiveRepoSlug(
+  repo: string | undefined,
+  env: NodeJS.ProcessEnv,
+): string | null {
+  const fromArgs = repo?.trim() ?? "";
   if (fromArgs.length > 0) return fromArgs;
   const fromEnv = env.GITHUB_REPOSITORY?.trim() ?? "";
   if (fromEnv.length > 0) return fromEnv;
   return null;
+}
+
+function resolveLiveRepo(args: ParsedArgs, env: NodeJS.ProcessEnv): string | null {
+  return resolveLiveRepoSlug(args.repo, env);
 }
 
 function fetchPrNodeId(pr: number, repo: string, runGh: RunGhFn): string | null {

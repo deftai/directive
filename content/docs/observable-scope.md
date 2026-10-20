@@ -30,3 +30,9 @@ One remediation: restore the baseline markup structure, or ask in the parent cha
 The verb is composed on `task check` (`FRAMEWORK_CHECK_GATES`, `CONSUMER_CHECK_GATES`, and required consumer enforcement). Missing, stale, invalid, or changed provider material fails; there is no generic fallback. Dependency delta versus master is two pure parser packages (`parse5` and `entities`). The JSX path trades a bundled pinned parser for one resolved from the consumer project, recorded per artifact and never compared against the mint. Truncated or incomplete HTML is refused (parse5 onParseError into anomalies). jsdom is not a dependency.
 
 Three-state exit: `0` skip, warn-findings, or pass / `1` missing mint or unlisted delta / `2` invalid configuration.
+
+### PR deft-story plan-id adoption (#5782)
+
+Same demand-site adopter as `verify:intent-constraint`: on multi-running or multi-mint tips with unresolved plan-id, adopt the unique running `plan.id` for a sole distinct `deft-story: N` on the PR body. Explicit `--plan-id` and a valid `DEFT_ACTIVE_SCOPE` win. Empty/non-digit PR env is no-PR-context. When `DEFT_ACTIVE_SCOPE` is set but not a running xBRIEF **and** PR context is present, adoption is suppressed with a named refuse (pass `--plan-id` or clear the pin) — without PR context the tip fall-through is unchanged. REST null is config/exit 2. No YAML planId pre-export.
+
+A `deft-story: N` mark asserts #4864 delivery bind and whole-story close at cohort finalize — only use it on the PR that is the delivery for #N. Adoption does not change finalize bind semantics.
