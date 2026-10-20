@@ -8,16 +8,9 @@
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import {
-  defaultRunGh,
-  fetchPrBodyRest,
-  type RunGhFn,
-} from "../docs/docs-impact.js";
+import { defaultRunGh, fetchPrBodyRest, type RunGhFn } from "../docs/docs-impact.js";
 import { briefOwnsIssue, issueOriginFromRepoSlug } from "../intake/residual-identity.js";
-import {
-  parseAllDeftStoryMarks,
-  resolveLiveRepoSlug,
-} from "../pr-closing-keywords/main.js";
+import { parseAllDeftStoryMarks, resolveLiveRepoSlug } from "../pr-closing-keywords/main.js";
 
 /** Observable bad-pin + PR context suppress wording (shared). */
 export const BAD_PIN_PR_SUPPRESS_MESSAGE =
@@ -235,9 +228,7 @@ export function adoptPlanIdFromOwnedIssue(
  * Demand-site PR-story plan-id adoption. Call only when the gate would otherwise
  * config-refuse unresolved planId under multi-running or multi-mint.
  */
-export function tryAdoptPlanIdFromPrStory(
-  options: PrStoryAdoptionOptions,
-): PrStoryAdoptionResult {
+export function tryAdoptPlanIdFromPrStory(options: PrStoryAdoptionOptions): PrStoryAdoptionResult {
   const env = options.env ?? process.env;
   const prCtx = resolveDigitPrContext(options.pr, env);
 

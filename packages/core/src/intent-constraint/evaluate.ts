@@ -18,6 +18,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import type { RunGhFn } from "../docs/docs-impact.js";
 import { resolveDefaultBaseRef as resolveForgeDefaultBaseRef } from "../evaluator-surface/evaluate.js";
 import { normalizePath } from "../orchestration/pathspec.js";
 import { resolveCandidateBaseRef } from "../orphan-active/candidate-scope.js";
@@ -35,7 +36,6 @@ import {
   type IntentConstraintRecord,
   type SurfaceSnapshot,
 } from "./types.js";
-import type { RunGhFn } from "../docs/docs-impact.js";
 
 export type OutputStream = "stdout" | "stderr" | "none";
 

@@ -83,9 +83,9 @@ describe("findUnparseableDeftStoryMarks (#5782)", () => {
 
 describe("evaluateBadPinPrSuppress (#5782)", () => {
   it("suppresses only when bad-pin and PR context", () => {
-    expect(
-      evaluateBadPinPrSuppress({ badPin: true, hasPrContext: true })?.message,
-    ).toBe(BAD_PIN_PR_SUPPRESS_MESSAGE);
+    expect(evaluateBadPinPrSuppress({ badPin: true, hasPrContext: true })?.message).toBe(
+      BAD_PIN_PR_SUPPRESS_MESSAGE,
+    );
     expect(evaluateBadPinPrSuppress({ badPin: true, hasPrContext: false })).toBeNull();
     expect(evaluateBadPinPrSuppress({ badPin: false, hasPrContext: true })).toBeNull();
   });

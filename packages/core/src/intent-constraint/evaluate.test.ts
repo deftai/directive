@@ -213,7 +213,9 @@ export function publish(input: { size: number }[]): void {
 
   it("config-fails multiple merge-base mints without a plan id", () => {
     const prev = process.env.DEFT_ACTIVE_SCOPE;
+    const prevPr = process.env.GITHUB_PR_NUMBER;
     delete process.env.DEFT_ACTIVE_SCOPE;
+    delete process.env.GITHUB_PR_NUMBER;
     const root = withTypescript(mkdtempSync(join(tmpdir(), "intent-multi-mint-")));
     mkdirSync(join(root, "xbrief", "active"), { recursive: true });
     try {
@@ -228,6 +230,7 @@ export function publish(input: { size: number }[]): void {
         ...files(POSTED),
         projectRoot: root,
         planId: undefined,
+        pr: "",
         recordTextsAtBase: new Map([
           [".deft/intent-constraint/other-story.json", `${JSON.stringify(other, null, 2)}\n`],
           [".deft/intent-constraint/story-1.json", `${JSON.stringify(record(), null, 2)}\n`],
@@ -238,6 +241,8 @@ export function publish(input: { size: number }[]): void {
     } finally {
       if (prev === undefined) delete process.env.DEFT_ACTIVE_SCOPE;
       else process.env.DEFT_ACTIVE_SCOPE = prev;
+      if (prevPr === undefined) delete process.env.GITHUB_PR_NUMBER;
+      else process.env.GITHUB_PR_NUMBER = prevPr;
     }
   });
 
@@ -286,18 +291,23 @@ export function publish(input: { size: number }[]): void {
       JSON.stringify({ plan: { id: "story-2", status: "running" } }),
     );
     const prev = process.env.DEFT_ACTIVE_SCOPE;
+    const prevPr = process.env.GITHUB_PR_NUMBER;
     delete process.env.DEFT_ACTIVE_SCOPE;
+    delete process.env.GITHUB_PR_NUMBER;
     try {
       const result = evaluateIntentConstraint({
         ...files(POSTED),
         projectRoot: root,
         planId: undefined,
+        pr: "",
       });
       expect(result.code).toBe(2);
       expect(result.message).toMatch(/multiple running stories/);
     } finally {
       if (prev === undefined) delete process.env.DEFT_ACTIVE_SCOPE;
       else process.env.DEFT_ACTIVE_SCOPE = prev;
+      if (prevPr === undefined) delete process.env.GITHUB_PR_NUMBER;
+      else process.env.GITHUB_PR_NUMBER = prevPr;
     }
   });
 

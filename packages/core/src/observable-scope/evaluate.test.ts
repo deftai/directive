@@ -377,11 +377,14 @@ describe("evaluateObservableScope (#4495)", () => {
 <section id="card"></section>
 `;
     const prev = process.env.DEFT_ACTIVE_SCOPE;
+    const prevPr = process.env.GITHUB_PR_NUMBER;
     delete process.env.DEFT_ACTIVE_SCOPE;
+    delete process.env.GITHUB_PR_NUMBER;
     try {
       const result = evaluateObservableScope({
         ...files(head),
         projectRoot: root,
+        pr: "",
         recordTextsAtBase: new Map([
           [".deft/observable-scope/story-1.json", `${JSON.stringify(rec)}\n`],
         ]),
@@ -391,6 +394,8 @@ describe("evaluateObservableScope (#4495)", () => {
     } finally {
       if (prev === undefined) delete process.env.DEFT_ACTIVE_SCOPE;
       else process.env.DEFT_ACTIVE_SCOPE = prev;
+      if (prevPr === undefined) delete process.env.GITHUB_PR_NUMBER;
+      else process.env.GITHUB_PR_NUMBER = prevPr;
     }
   });
 
@@ -609,12 +614,15 @@ describe("evaluateObservableScope (#4495)", () => {
 <section id="card"></section>
 `;
     const prev = process.env.DEFT_ACTIVE_SCOPE;
+    const prevPr = process.env.GITHUB_PR_NUMBER;
     process.env.DEFT_ACTIVE_SCOPE = "xbrief/active/missing-pin.xbrief.json";
+    delete process.env.GITHUB_PR_NUMBER;
     try {
       const result = evaluateObservableScope({
         ...files(head),
         projectRoot: root,
         planId: undefined,
+        pr: "",
         recordTextsAtBase: new Map([
           [".deft/observable-scope/story-b.json", `${JSON.stringify(other)}\n`],
           [".deft/observable-scope/story-a.json", `${JSON.stringify(mine)}\n`],
@@ -625,6 +633,8 @@ describe("evaluateObservableScope (#4495)", () => {
     } finally {
       if (prev === undefined) delete process.env.DEFT_ACTIVE_SCOPE;
       else process.env.DEFT_ACTIVE_SCOPE = prev;
+      if (prevPr === undefined) delete process.env.GITHUB_PR_NUMBER;
+      else process.env.GITHUB_PR_NUMBER = prevPr;
     }
   });
 
