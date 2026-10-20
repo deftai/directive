@@ -84,6 +84,28 @@ describe("manifest helpers", () => {
     }
   });
 
+  it("containDepositInstallRoot strips trailing separators linearly (#5744 / CodeQL #115)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-contain-5744-"));
+    try {
+      const slashRun = "/".repeat(12_000);
+      const backslashRun = "\\".repeat(12_000);
+      // Failed-suffix: long slash run then non-slash sentinel (not trailing-only padding).
+      const failedSlash = `custom${slashRun}x`;
+      const failedBackslash = `custom${backslashRun}x`;
+      const started = Date.now();
+      expect(containDepositInstallRoot(root, failedSlash)).toBe(`custom${slashRun}x`);
+      expect(containDepositInstallRoot(root, failedBackslash)).toBe(`custom${slashRun}x`);
+      // Trailing-only parity (insufficient alone as ReDoS regression).
+      expect(containDepositInstallRoot(root, `custom-core${slashRun}`)).toBe("custom-core");
+      expect(containDepositInstallRoot(root, `custom-core${backslashRun}`)).toBe("custom-core");
+      expect(containDepositInstallRoot(root, `nested/install${slashRun}`)).toBe("nested/install");
+      // Generous bound: linear strip must stay well under a second on CI.
+      expect(Date.now() - started).toBeLessThan(1_000);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("isDeprecationRedirectStub", () => {
     expect(isDeprecationRedirectStub("<!-- deft:deprecated-redirect -->\n")).toBe(true);
     expect(isDeprecationRedirectStub("# real skill\n")).toBe(false);

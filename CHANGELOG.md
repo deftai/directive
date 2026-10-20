@@ -10,14 +10,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
+### Fixed
+
+### Removed
+
+## [0.126.2] - 2026-10-20
+
+> Exclusive lawful waits (#5727), residual deposit keep-unknowns (#5677), plan-id merge-gate adopt (#5782), Dependabot/CodeQL HIGH cohort (#5737 #5740-#5748), Cursor Multitask dest matrix (#5770)
+
+### Added
+- Added — Exclusive lawful waits + claimed-wait fail-closed for Grok through-merge parents (#5727 Prefer-A Recut-2 P3/P4): `BabysitPathKind` forge-poll, `evaluateClaimedBabysitPathDeny` / `admitClaimedBabysitPath`, exclusive-waits card on Envelope SLA / review-cycle / host-grok-build. Undeclared-shell interception remains leftover #5732. Refs #5727 #5229 #5732.
+
+### Changed
+- Changed — Remint approved-scope for #5782 to include docs/RULE-MAP.md after content/docs edits. Approval record only; regenerated RULE-MAP lands on product #5785. Refs #5782 #5785.
+- Changed — Mint approved-scope for #5782 (file_scope widen + evaluator-surface-disposition + productPullRequest). Approval record only; no product behavior change. Refs #5782.
+- Changed — Activate Prefer-A Recut-5 Bound running brief for #5782 on master (proceed cohort add; productPullRequest unset); swarm.file_scope includes evaluate tests and planned plan-id-adopter helper. Refs #5782.
+- Changed — Raise plan.policy.agentsMdBudget managedMaxLines 199→200 and absoluteMaxBytes 28300→29200 for deliberate #5727 exclusive lawful waits AGENTS line; sync review-cycle skills-pack source with projection. Refs #5727.
+- Changed — Remint approved-scope for #5744 with productPullRequest + acceptance evidence. Approval record only; no product behavior change. Refs #5744.
+- Changed — Cursor Task dest-missing deny names presented `subagent_type` (no stripped dest-key inventory lead); host-cursor Multitask spawn matrix + recovery pointer from `CURSOR_TASK_SPAWN_CLASS_RECOVERY`. Primary Multitask auto-worktree registry stays leftover #5775. Refs #5770.
+- Changed — Activate Prefer-A Bound briefs for #5770 (Cursor Multitask host-cursor matrix), #5677 (residual deposit keep-unknowns), and #5727 (Grok through-merge Approach 1 forge-poll forbid); productPullRequest unset. Refs #5770 #5677 #5727.
+- Changed — Record decision: Directive merges require `deft pre-pr:run --evaluate` green for the PR tip (Lane 1 dogfood until #5631). Refs #5631 #4912 #4976.
 - Changed — Activate Prefer-A Bound security cohort briefs for Dependabot and CodeQL HIGH work (#5737 #5740-#5748); product fixes land in follow-on PRs.
 
 ### Fixed
+- Fixed — Land tracked completion records for #5677 #5727 #5737 #5740 #5741 #5742 #5743 #5745 #5747 #5748 #5782 after product merges. Refs #5677 #5727 #5737 #5740 #5741 #5742 #5743 #5745 #5747 #5748 #5782.
+- Fixed — Land tracked completion records for #5744 #5746 #5770 after product merges. Refs #5744 #5746 #5770.
+- Fixed — Merge-gate `verify:intent-constraint` / `verify:observable-scope` adopt plan-id from sole PR `deft-story: N` on multi-running/multi-mint tips (digit-gated PR context; REST null → exit 2; distinct-mark ownership; observable bad-pin+PR suppress). Refs #5782.
+- Fixed — Claimed-wait Approach 1 bound evidence admits Tier-1 register primitives spawn_subagent | cursor-task | claude-agent (not spawn_subagent-only); still rejects arbitrary nonempty strings, different-PR arm, and post-CLEAN without closer wait (#5727 Greptile). Refs #5727.
 - Fixed — Remint intent-constraint for #5742 numeric-const bounds 512/200/40. Approval record only; no product behavior change. Refs #5742.
 - Fixed — Prepare approved-scope mint for #5744 (branches.test.ts membership). Records approval only; no product behavior change. Refs #5744.
 - Fixed — Record intent-constraint mint for #5742 greptile-detector ReDoS invariant. Approval record only; no product behavior change. Refs #5742.
 - Fixed — Pin brace-expansion@5 to 5.0.12 (Dependabot #16/#17/#18). Tracking #5737.
-- Fixed — Bound Last-reviewed markdown-link SHA parse in greptile-detector (CodeQL alert #112). Tracking #5742.
+- Fixed — Bound Last-reviewed markdown-link SHA parse in greptile-detector (monotonic linear scan; clears CodeQL polynomial-redos alert #112). Tracking #5742.
 - Fixed — Replace COMMA_LIST_TAIL_RE with a monotonic character scanner in pr-closing-keywords detect (CodeQL polynomial-redos alert #121). Tracking #5745.
 - Fixed — Clear CodeQL `js/polynomial-redos` alert #144 in `countFailedTestsFromSanitizedOutput` by rewriting the Tests-failed line parse to a per-line anchored scan (no `/(?:^|\n)\s*…/` shape). Refs #5748, CodeQL alert #144.
 - Fixed — Harden presentation-ceiling HTML script end-tag extraction with a delimiter-aware close so CodeQL js/bad-tag-filter alert #143 clears. Refs #5747 / CodeQL alert #143.
@@ -25,9 +50,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- **Residual deposit keep-unknowns (#5677 Prefer-A Recut-1).** Coverage applicability: exact inert for CodeQL config + official extension-less githooks; managed-projection A/M demotion for host registration JSON; deletion-only shebang proof for retired `.deft/core/run`; keep-unknown wall for approved-scope and unlisted peers. Tracking #5677.
 - **Dependabot high: source-map-js (alert #19).** Force source-map-js@1.2.2. Tracking #5740.
 - **CodeQL bad-tag-filter in spec-authority banner test (alert #109).** Tracking #5741.
 - **CodeQL polynomial-redos in docs-impact surfaces: parse (alert #114).** Tracking #5743.
+
+
+### Fixed
+- Fixed — Bound Last-reviewed markdown-link SHA parse in greptile-detector (CodeQL alert #112). Tracking #5742.
+- Fixed — Clear CodeQL js/polynomial-redos alert #115 in doctor containDepositInstallRoot by replacing the trailing-slash regex strip with linear stripTrailingPathSeparators. Refs #115 #5744.
 
 
 ### Removed
@@ -7335,7 +7366,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.126.1...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.126.2...HEAD
+[0.126.2]: https://github.com/deftai/directive/compare/v0.126.1...v0.126.2
 [0.126.1]: https://github.com/deftai/directive/compare/v0.126.0...v0.126.1
 [0.126.0]: https://github.com/deftai/directive/compare/v0.125.2...v0.126.0
 [0.125.2]: https://github.com/deftai/directive/compare/v0.125.1...v0.125.2

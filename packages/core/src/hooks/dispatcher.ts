@@ -406,13 +406,19 @@ export interface HookDecision {
  * forbidden. Overlay also strips rerootMissingDestImperative for this host/tool.
  * Parent continues first, exclusive of a live nursery grant on the same tree.
  */
+/** #5770: recovery pointer to the published Multitask spawn matrix (host-cursor.md). */
+export const CURSOR_TASK_SPAWN_MATRIX_POINTER =
+  "See host-cursor.md Multitask spawn matrix (#5770).";
+
 export const CURSOR_TASK_SPAWN_CLASS_RECOVERY =
   "Continue in the parent when the parent will do the writes -- exclusive of a live " +
   "nursery occupancy grant on the same tree. Dest-placing is payload-root: Composer " +
   "already on the reserved linked worktree (consult mints the reservation; do not " +
   "pre-mint then Task), or dest-rooted @cursor/sdk Agent.create({ local: { cwd } }) " +
   "after cursor-sdk-auth / CURSOR_API_KEY. A live nursery grant fences parent product " +
-  "writes in that tree. Spawn with assist / ephemeral markers for scratch. " +
+  "writes in that tree. " +
+  CURSOR_TASK_SPAWN_MATRIX_POINTER +
+  " Spawn with assist / ephemeral markers for scratch. " +
   "Use subagent_type explore when the spawn is actually a read-only spawn. " +
   "Do not retry subagent_type plan on Cursor Task -- that skip is Grok spawn_subagent only.";
 

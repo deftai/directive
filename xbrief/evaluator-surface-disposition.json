@@ -1,10 +1,14 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 5747,
+  "issue": 5782,
   "surfaces": [
-    "packages/core/src/presentation-ceiling/**",
+    "packages/core/src/observable-scope/**",
+    "packages/core/src/intent-constraint/**",
+    "packages/cli/src/verify-observable-scope.ts",
+    "packages/cli/src/verify-intent-constraint.ts",
+    "packages/core/src/pr-closing-keywords/**",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renewed disclosure for #5747 presentation-ceiling delimiter-aware script end-tag (CodeQL alert #143). Disclosure only; not #3164 authorization."
+  "note": "Renewed disclosure for #5782 merge-gate plan-id adopter (intent-constraint + observable-scope + CLI verify wrappers). Disclosure only; not #3164 authorization."
 }

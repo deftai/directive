@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { SPAWN_CLASS_RECOVERY } from "../hooks/readonly.js";
 import {
   listChildOccupancyLeases,
   readChildOccupancyLease,
@@ -19,6 +20,7 @@ import {
   allocatedWorktreeMatches,
   applyCursorNurseryOccupancy,
   consultImplementSpawnOccupancy,
+  cursorTaskMissingDestMessage,
   evaluateImplementSpawnOccupancy,
   FENCE_IN_PLACE_PARKED_UNTIL,
   GROK_CRITIC_SPAWN_NOT_READY_RECOVERY,
@@ -26,6 +28,7 @@ import {
   inspectSpawnDestination,
   mintImplementSpawnReservation,
   persistSpawnReservation,
+  presentedSpawnSubagentType,
   readSpawnReservationIncarnation,
   releaseLeftoverSpawnReservation,
   releaseSpawnReservation,
@@ -1366,12 +1369,40 @@ describe("leftover dest-lock consult reuse (#4254)", () => {
   });
 });
 
-describe("reroot dest-missing deny honesty (#4279 / #4362)", () => {
-  it("keeps the dest-key list twice and the pass-imperative on the shared stem", () => {
+describe("reroot dest-missing deny honesty (#4279 / #4362 / #5770)", () => {
+  it("names presented subagent_type and drops dest-key inventory lead on Cursor Task", () => {
+    const payload = {
+      tool_name: "Task",
+      tool_input: { subagent_type: "generalPurpose", prompt: "implement" },
+    };
+    const decision = consultImplementSpawnOccupancy({
+      payload,
+      payloadRoot: "/project",
+      host: "cursor",
+      parentId: "parent-1",
+      environ: {},
+    });
+    expect(decision.allow).toBe(false);
+    if (decision.allow) return;
+    expect(decision.reason).toBe("destination-missing");
+    expect(decision.message).toBe(cursorTaskMissingDestMessage(payload));
+    expect(presentedSpawnSubagentType(payload)).toBe("generalPurpose");
+    expect(decision.message).toContain("presented subagent_type=generalPurpose");
+    expect(decision.message).not.toContain(rerootMissingDestImperative());
+    expect(countOccurrences(decision.message, rerootDestKeyList())).toBe(0);
+    expect(decision.message).not.toMatch(/tool_input\.isolation=worktree/);
+    expect(decision.message).toContain(SPAWN_CLASS_RECOVERY);
+    const parentIdx = decision.message.indexOf("Continue in the parent");
+    const exploreIdx = decision.message.search(/subagent_type explore/i);
+    expect(parentIdx).toBeGreaterThanOrEqual(0);
+    expect(exploreIdx).toBeGreaterThan(parentIdx);
+  });
+
+  it("names best-of-n-runner on Cursor Task primary dest-missing (#5770)", () => {
     const decision = consultImplementSpawnOccupancy({
       payload: {
         tool_name: "Task",
-        tool_input: { subagent_type: "generalPurpose", prompt: "implement" },
+        tool_input: { subagent_type: "best-of-n-runner", prompt: "implement" },
       },
       payloadRoot: "/project",
       host: "cursor",
@@ -1381,15 +1412,8 @@ describe("reroot dest-missing deny honesty (#4279 / #4362)", () => {
     expect(decision.allow).toBe(false);
     if (decision.allow) return;
     expect(decision.reason).toBe("destination-missing");
-    expect(decision.message).toContain(rerootMissingDestImperative());
-    expect(countOccurrences(decision.message, rerootDestKeyList())).toBe(2);
-    const parentIdx = decision.message.indexOf("Continue in the parent");
-    const exploreIdx = decision.message.search(/subagent_type explore/i);
-    expect(parentIdx).toBeGreaterThanOrEqual(0);
-    expect(exploreIdx).toBeGreaterThan(parentIdx);
-    expect(decision.message).toMatch(/assist \/ ephemeral/);
-    expect(decision.message).toMatch(/subagent_type plan/);
-    expect(decision.message).toMatch(/actually read-only/);
+    expect(decision.message).toContain("presented subagent_type=best-of-n-runner");
+    expect(countOccurrences(decision.message, rerootDestKeyList())).toBe(0);
   });
 
   it("keeps the same shared stem for Claude and Codex consult", () => {
@@ -1479,6 +1503,52 @@ describe("Cursor nursery inherit (#4295)", () => {
     expect(consult.allow).toBe(false);
     if (consult.allow) return;
     expect(consult.reason).toBe("destination-missing");
+  });
+
+  it("admits best-of-n-runner via nursery inherit on a linked window (#5770)", () => {
+    const main = mkdtempSync(join(tmpdir(), "nursery-bon-"));
+    temps.push(main);
+    gitInit(main);
+    const dest = join(main, "wt");
+    addLinkedWorktree(main, dest);
+    const now = new Date("2026-09-10T12:00:00Z");
+    applyWorktreeOccupancy(dest, { sessionId: "parent-1", now, env: {} });
+    const bonPayload = {
+      tool_name: "Task",
+      tool_input: { subagent_type: "best-of-n-runner", prompt: "implement" },
+    };
+    const consult = consultImplementSpawnOccupancy({
+      payload: bonPayload,
+      payloadRoot: dest,
+      host: "cursor",
+      parentId: "parent-1",
+      now,
+      environ: {},
+    });
+    expect(consult.allow).toBe(true);
+    if (!consult.allow) return;
+    expect(consult.nurseryInherit).toBe(true);
+    expect(consult.destPath).toBe(dest);
+  });
+
+  it("still dest-missing-denies best-of-n-runner on the primary checkout (#5770)", () => {
+    const main = mkdtempSync(join(tmpdir(), "nursery-bon-primary-"));
+    temps.push(main);
+    gitInit(main);
+    const consult = consultImplementSpawnOccupancy({
+      payload: {
+        tool_name: "Task",
+        tool_input: { subagent_type: "best-of-n-runner", prompt: "implement" },
+      },
+      payloadRoot: main,
+      host: "cursor",
+      parentId: "parent-1",
+      environ: {},
+    });
+    expect(consult.allow).toBe(false);
+    if (consult.allow) return;
+    expect(consult.reason).toBe("destination-missing");
+    expect(consult.message).toContain("presented subagent_type=best-of-n-runner");
   });
 
   it("reservation-conflicts a second Task in the same nursery window", () => {

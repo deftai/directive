@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "directive-merges-require-evaluate-green",
+  "decision": "Directive merges require evaluate green: on deftai/directive, parent MUST NOT squash-merge a PR unless deft pre-pr:run --evaluate is green for that PR tip (repo/base/head/body-hash binding). Workers MUST run deft pre-pr:run, observe required phases, and --complete before push/PR-open. Consumers stay soft until they enroll forge skip-as-miss (#5631).",
+  "governingRule": {
+    "description": "Prescribed pre-PR completion is controller-issued private-store authority; author tokens and skill-open are not passes. Dogfood Lane 1 parent evaluate gate until leftover #5631 makes skip a required-check miss.",
+    "path": "content/skills/deft-directive-pre-pr/SKILL.md",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Wait for #5631 forge required-check miss before any dogfood enforcement",
+      "whyNot": "Leaves Directive merges without an evaluate gate while Limb 5 enrollment remains open; soft skill honor stays unauditable."
+    },
+    {
+      "option": "Enroll consumers with the same required-check miss by default",
+      "whyNot": "Operator-owned repo-scoped rulesets; deposit must not auto-flip consumer merge protection (#1517)."
+    },
+    {
+      "option": "Treat worker DONE claims or opening the pre-pr skill as sufficient",
+      "whyNot": "Controller evaluate denies author tokens, checkboxes, and skill-open; private store is authoritative (#4912)."
+    }
+  ],
+  "whyWinner": "Lane 1 is repo-local process: per-PR-tip evaluate green on Directive only, no consumer forge enrollment. Durable until #5631 ships App-pinned skip-as-miss on deftai/directive.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-10-19T12:00:00Z",
+  "revisitTrigger": "When #5631 lands live skip-as-required-check-miss on deftai/directive, revisit whether parent evaluate remains mandatory or becomes advisory backup.",
+  "tags": [
+    "process",
+    "pre-pr",
+    "dogfood",
+    "merge-path"
+  ],
+  "relatedIssues": [
+    5631,
+    4912,
+    4976
+  ]
+}

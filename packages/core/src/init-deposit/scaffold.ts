@@ -507,8 +507,10 @@ export function ensureTaskfile(projectDir: string, io: InitDepositIo): boolean {
   return true;
 }
 
-const HOOK_FILENAMES = ["pre-commit", "pre-push"] as const;
-const HOOK_SUPPORT_FILENAMES = ["_deft-run.sh"] as const;
+/** Official extension-less consumer git hooks (#5677 Prefer-A Recut-1 SoT). */
+export const HOOK_FILENAMES = ["pre-commit", "pre-push"] as const;
+/** Support scripts beside HOOK_FILENAMES; coverable via .sh — not pathname-inert. */
+export const HOOK_SUPPORT_FILENAMES = ["_deft-run.sh"] as const;
 const HOOK_FILE_MODE = 0o755;
 
 export interface GitHooksSeams {

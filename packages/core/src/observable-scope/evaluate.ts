@@ -8,7 +8,9 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import type { RunGhFn } from "../docs/docs-impact.js";
 import { resolveDefaultBaseRef } from "../evaluator-surface/evaluate.js";
+import { tryAdoptPlanIdFromPrStory } from "../intent-constraint/plan-id-adopter.js";
 import { matchAny, normalizePath } from "../orchestration/pathspec.js";
 import { classifyVerifyObservableMintDemand, OBSERVABLE_MINT_WHEN_HINT } from "./demand.js";
 import { changeMatches, diffArtifacts, unlistedDeltas } from "./diff.js";
@@ -58,6 +60,12 @@ export interface EvaluateOptions {
   readonly mergeBase?: string;
   /** Current story planId; required when more than one mint record exists on the merge base. */
   readonly planId?: string;
+  /** Explicit `--pr` for demand-site deft-story plan-id adoption (#5782). */
+  readonly pr?: string;
+  /** Explicit `--repo` owner/repo for that adoption. */
+  readonly repo?: string;
+  /** Injected gh runner for PR body REST (tests). */
+  readonly runGh?: RunGhFn;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -183,29 +191,35 @@ function listRunningPlanIds(projectRoot: string): string[] {
   return ids;
 }
 
+type ObservablePlanIdResolution =
+  | { readonly kind: "id"; readonly id: string }
+  | { readonly kind: "bad-pin" }
+  | { readonly kind: "none" };
+
 function resolveCurrentPlanId(
   projectRoot: string,
   explicit: string | undefined,
   _mintPlanIds: readonly string[],
-): string | undefined {
-  if (explicit !== undefined && explicit.length > 0) return explicit;
+): ObservablePlanIdResolution {
+  if (explicit !== undefined && explicit.length > 0) return { kind: "id", id: explicit };
   const pin = process.env.DEFT_ACTIVE_SCOPE;
   if (pin !== undefined && pin.length > 0) {
     const rel = pin.replace(/\\/g, "/");
     try {
       const text = readFileSync(join(resolve(projectRoot), ...rel.split("/")), "utf8");
       const id = planIdFromXbriefText(text);
-      if (id !== undefined) return id;
+      if (id !== undefined) return { kind: "id", id };
     } catch {
-      // fall through
+      return { kind: "bad-pin" };
     }
+    return { kind: "bad-pin" };
   }
   const running = listRunningPlanIds(projectRoot);
   // Several running stories: never guess the mint owner from "the only
   // running id that already has a mint". That would let a mint-less
   // sibling ride the old story's allowedChanges.
-  if (running.length === 1) return running[0];
-  return undefined;
+  if (running.length === 1) return { kind: "id", id: running[0]! };
+  return { kind: "none" };
 }
 
 function fail(message: string): EvaluateResult {
@@ -458,11 +472,13 @@ export function evaluateObservableScope(options: EvaluateOptions = {}): Evaluate
   }
 
   const running = listRunningPlanIds(projectRoot);
-  const planId = resolveCurrentPlanId(
+  const resolved = resolveCurrentPlanId(
     projectRoot,
     options.planId,
     parsedRecords.map((r) => r.planId),
   );
+  let planId = resolved.kind === "id" ? resolved.id : undefined;
+  const badPin = resolved.kind === "bad-pin";
   let selected = parsedRecords;
   if (planId !== undefined && planId.length > 0) {
     selected = parsedRecords.filter((r) => r.planId === planId);
@@ -470,9 +486,45 @@ export function evaluateObservableScope(options: EvaluateOptions = {}): Evaluate
       return fail(`verify:observable-scope: no merge-base mint record for planId ${planId}.`);
     }
   } else if (parsedRecords.length > 1 || running.length > 1) {
-    return config(
-      "multiple running stories or merge-base mint records; pass --plan-id or pin DEFT_ACTIVE_SCOPE to the current story (old mints must not authorize new work)",
-    );
+    // Demand-site PR deft-story adoption (#5782). Bad-pin + PR suppresses adoption.
+    const adopted = tryAdoptPlanIdFromPrStory({
+      projectRoot,
+      pr: options.pr,
+      repo: options.repo,
+      runGh: options.runGh,
+      suppressOnBadPin: true,
+      badPin,
+    });
+    if (adopted.kind === "id") {
+      planId = adopted.id;
+      selected = parsedRecords.filter((r) => r.planId === planId);
+      if (selected.length === 0) {
+        return fail(`verify:observable-scope: no merge-base mint record for planId ${planId}.`);
+      }
+    } else if (adopted.kind === "config" || adopted.kind === "bad-pin-suppressed") {
+      return config(adopted.message);
+    } else if (badPin && running.length === 1) {
+      // no-PR: keep bad-pin for PR suppression, but restore sole-running so a
+      // stale pin still selects the running story among several mints (#5782 P1).
+      planId = running[0]!;
+      selected = parsedRecords.filter((r) => r.planId === planId);
+      if (selected.length === 0) {
+        return fail(`verify:observable-scope: no merge-base mint record for planId ${planId}.`);
+      }
+    } else {
+      return config(
+        "multiple running stories or merge-base mint records; pass --plan-id or pin DEFT_ACTIVE_SCOPE to the current story (old mints must not authorize new work)",
+      );
+    }
+  } else if (badPin && running.length === 1) {
+    // Keep bad-pin for PR suppression above; restore sole-running outside the
+    // multi/PR adoption branch so a stale pin cannot authorize against another
+    // story's sole mint (#5782 Greptile P1).
+    planId = running[0]!;
+    selected = parsedRecords.filter((r) => r.planId === planId);
+    if (selected.length === 0) {
+      return fail(`verify:observable-scope: no merge-base mint record for planId ${planId}.`);
+    }
   }
   if (selected.length > 1) {
     return config(

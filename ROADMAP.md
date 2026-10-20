@@ -33,8 +33,22 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 1837 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1851 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#5745** -- sec(codeql): HIGH clear polynomial-redos in pr-closing-keywords/detect.ts (alert #121) -- `[completed]`
+- **#5782** -- design(verify): merge-gate adopts plan-id from PR deft-story for intent-constraint -- `[completed]`
+- **#5743** -- sec(codeql): HIGH clear polynomial-redos in docs-impact.ts (alert #114) -- `[completed]`
+- **#5741** -- sec(codeql): HIGH clear bad-tag-filter in spec-authority.test.ts (alert #109) -- `[completed]`
+- **#5740** -- chore(security): HIGH bump source-map-js to 1.2.2 (Dependabot #19) -- `[completed]`
+- **#5747** -- sec(codeql): HIGH clear bad-tag-filter in presentation-ceiling/evaluate.ts (alert #143) -- `[completed]`
+- **#5748** -- sec(codeql): HIGH clear polynomial-redos in release/auto-hatch.ts (alert #144) -- `[completed]`
+- **#5737** -- chore(security): HIGH bump brace-expansion to 5.0.12 (Dependabot #16/#17/#18) -- `[completed]`
+- **#5677** -- leftover(#5674): residual deposit keep-unknowns (run/hooks/codeql/host-registration) -- `[completed]`
+- **#5727** -- [framework-gap] BLOCKER Grok through-merge parent forge-polls instead of Approach1 babysit when spawn_subagent is available -- `[completed]`
+- **#5742** -- sec(codeql): HIGH clear polynomial-redos in greptile-detector.ts (alert #112) -- `[completed]`
+- **#5746** -- sec(codeql): HIGH clear incomplete-url-substring-sanitization in github-auth-modes.provisioning.test.ts (alert #137) -- `[completed]`
+- **#5770** -- Cursor payload-host: allow auto-worktree Task spawns + Multitask parent read-only / occupancy -- `[completed]`
+- **#5744** -- sec(codeql): HIGH clear polynomial-redos in doctor/manifest.ts (alert #115) -- `[completed]`
 - **#5691** -- feat(strategies): design-thinking preparatory strategy with a uat Test phase -- `[completed]`
 - **#5716** -- feat(design-critique): the arc is the recommended step before ingest for every issue; skip only with a recorded not-warranted line -- `[completed]`
 - **#5715** -- [framework-gap] BLOCKER Grok PreToolUse wrapper command uses repo-root path; Grok resolves relative to .grok/hooks/ and doubles it -- `[completed]`
@@ -46,18 +60,4 @@ _Showing 25 of 1837 completed scopes (newest first). Full history: lifecycle `co
 - **#5486** -- feat(design-critique): run an arc on an xBRIEF when no GitHub issue exists (analysis first) -- `[completed]`
 - **#5694** -- feat(skills): article-review runs one critic pass before filing issues -- `[completed]`
 - **#5690** -- recurrence(#4882): Approach1 mint-gate exit leaves product PR merge-path unarmed -- `[completed]`
-- **#4962** -- bug(triage): triage:accept silently drafts a proposed xBRIEF and can duplicate an existing scope for the same issue -- `[completed]`
-- **#4375** -- docs(skills): add a brief "how to file a directive issue" skill — the filing path is gated off by default and the house style is undocumented -- `[completed]`
-- **#5665** -- [framework-gap] BLOCKER Pre-PR coverage classifier rejects Directive-managed artifacts after upgrading to 0.125.2 -- `[completed]`
-- **#5674** -- [framework-gap] leftover(#5665/#5542): wire coverage-applicability waived-exit into pre-PR/hotspots; residual deposit unknowns -- `[completed]`
-- **#5676** -- bug(occupancy,hooks,cursor): foreign UUID lease + contradictory host owner on session:start (ProjectMON 0.125.2 dogfood) -- `[completed]`
-- **#5544** -- bug(occupancy,hooks): bootstrap UUID lease blocks Claude host writes (Write hook vs CLI split-brain; DCR 0.125.0 Sonnet) -- `[completed]`
-- **#4961** -- feat(setup): seed PROJECT-DEFINITION from a design document (--from / --answers) instead of interview-only -- `[completed]`
-- **#4871** -- project:export-spec drops Requirements, AcceptanceCriteria, and TechStack -- `[completed]`
-- **#5656** -- bug(grok-build,hooks): missing deft-hook fails open, so product writes and implement spawns proceed with no scope xBRIEF -- `[completed]`
-- **#4888** -- Semantic policy conflicts stay invisible until task check -- `[completed]`
-- **#4892** -- Managed card cites ADR-003 but docs/decisions never ships -- `[completed]`
-- **#3908** -- [framework-gap] Fence scope lifecycle moves across processes -- `[completed]`
-- **#3906** -- [framework-gap] Acquire occupancy before session-start mutations -- `[completed]`
-- **#3907** -- [framework-gap] Add same-worktree CAS to ordered-plan mutations -- `[completed]`
 
