@@ -476,6 +476,22 @@ export function rehearseGreenfieldPythonFreeSmoke(
     });
     if (!ok) return [false, `greenfield smoke: ${reason}`];
 
+    // Surface OVPR doctor diagnosis before the heavier deft:check gate so CI
+    // failures name the failing surface instead of an opaque engine.yml scrap.
+    [ok, reason] = runStep(
+      spawn,
+      "directive doctor",
+      deft,
+      ["doctor", "--root", projectDir],
+      {
+        cwd: projectDir,
+        env: checkEnv,
+        timeoutMs: 60_000,
+      },
+      onProgress,
+    );
+    if (!ok) return [false, `greenfield smoke: ${reason}`];
+
     onProgress?.("greenfield smoke: running consumer task deft:check (engine-invoke path)");
     [ok, reason] = runStep(
       spawn,

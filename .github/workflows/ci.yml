@@ -1042,10 +1042,12 @@ jobs:
             git commit -q -m baseline
             if ($LASTEXITCODE -ne 0) { throw "baseline commit exited $LASTEXITCODE" }
 
-            node $cli update --yes --repo-root $consumer --target-version $smokeVersion
-            if ($LASTEXITCODE -ne 0) { throw "first directive update exited $LASTEXITCODE" }
-            node $cli update --yes --repo-root $consumer --target-version $smokeVersion
-            if ($LASTEXITCODE -ne 0) { throw "second directive update exited $LASTEXITCODE" }
+            # Local fixture version is not on the public registry; use repair
+            # twice to assert OVPR wiring stays clean under core.autocrlf=true.
+            node $cli install --repair --yes --repo-root $consumer
+            if ($LASTEXITCODE -ne 0) { throw "first directive repair exited $LASTEXITCODE" }
+            node $cli install --repair --yes --repo-root $consumer
+            if ($LASTEXITCODE -ne 0) { throw "second directive repair exited $LASTEXITCODE" }
 
             task deft:verify:cache-fresh
             if ($LASTEXITCODE -ne 0) { throw "task deft:verify:cache-fresh exited $LASTEXITCODE" }
