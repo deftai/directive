@@ -417,6 +417,22 @@ export function rehearseGreenfieldPythonFreeSmoke(
       return [false, `greenfield smoke: cannot rewrite exact runtime pin: ${String(exc)}`];
     }
 
+    // Initialize git before repair so setup can deposit hooks / GENERATION wiring
+    // that doctor and deft:check require. Docs-impact later seeds origin/master.
+    const gitBin = which("git");
+    if (gitBin === null) {
+      return [false, "greenfield smoke: git not on PATH; cannot init consumer repo before repair"];
+    }
+    [ok, reason] = runStep(
+      spawn,
+      "git init consumer",
+      gitBin,
+      ["init"],
+      { cwd: projectDir, env: installedEnv, timeoutMs: 30_000 },
+      onProgress,
+    );
+    if (!ok) return [false, `greenfield smoke: ${reason}`];
+
     [ok, reason] = runStep(
       spawn,
       "directive install --repair",
