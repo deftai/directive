@@ -744,11 +744,27 @@ jobs:
           ) -join [Environment]::NewLine
           [System.IO.File]::WriteAllText((Join-Path $consumer 'Taskfile.yml'), $consumerTaskfile, (New-Object System.Text.UTF8Encoding $false))
 
+          # OVPR (#5490): launcher passthrough needs an exact runtime pin + installed
+          # runtime. Keep the .deft/core Taskfile include for #2120 cache-fresh coverage.
+          $runtimePkgPath = Join-Path $env:GITHUB_WORKSPACE 'packages\runtime\package.json'
+          $runtimePkg = Get-Content -Raw $runtimePkgPath | ConvertFrom-Json
+          $runtimeVersion = [string]$runtimePkg.version
+          if ([string]::IsNullOrWhiteSpace($runtimeVersion)) {
+            throw "packages/runtime/package.json missing version for OVPR Windows fixture"
+          }
           $consumerPackageJson = @{
             packageManager = 'npm@11.16.0'
             deftConsumerDeposit = $true
+            devDependencies = @{
+              '@deftai/directive-runtime' = $runtimeVersion
+            }
           } | ConvertTo-Json -Compress
           [System.IO.File]::WriteAllText((Join-Path $consumer 'package.json'), $consumerPackageJson, (New-Object System.Text.UTF8Encoding $false))
+
+          $runtimeNm = Join-Path $consumer 'node_modules\@deftai\directive-runtime'
+          New-Item -ItemType Directory -Path $runtimeNm -Force | Out-Null
+          Copy-Item (Join-Path $env:GITHUB_WORKSPACE 'packages\runtime\package.json') (Join-Path $runtimeNm 'package.json')
+          Copy-Item (Join-Path $env:GITHUB_WORKSPACE 'packages\runtime\dist') (Join-Path $runtimeNm 'dist') -Recurse
 
           $cmdShim = Join-Path $shimDir 'deft.cmd'
           $cmdBody = "@echo off`r`nnode `"$env:GITHUB_WORKSPACE\packages\cli\dist\bin.js`" %*`r`n"

@@ -347,14 +347,42 @@ export function rehearseGreenfieldPythonFreeSmoke(
       ...pyFree,
       PATH: `${installedBin}:${pyFree.PATH ?? ""}`,
     };
-    // Ensure the greenfield dest exists before init (launcher also mkdir's for
-    // install/init --root, but the harness keeps an explicit empty project dir).
+    // Public @deftai/directive-runtime@latest is still a prerelease until GA, so
+    // greenfield smoke installs the packed tip runtime tarball into the consumer
+    // then runs install --repair for OVPR wiring (AC13.4 packed-pair path).
     mkdirSync(projectDir, { recursive: true });
+    writeFileSync(
+      join(projectDir, "package.json"),
+      `${JSON.stringify(
+        { name: "greenfield-smoke-consumer", private: true, version: "0.0.0" },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+    const runtimeTgz = packed.find((p) => p.includes("directive-runtime-"));
+    if (runtimeTgz === undefined) {
+      return [false, "greenfield smoke: packed runtime tarball missing from OVPR pack result"];
+    }
     [ok, reason] = runStep(
       spawn,
-      "directive init",
+      "npm install packed runtime tarball",
+      npm,
+      ["install", "--save-dev", "--save-exact", runtimeTgz],
+      {
+        cwd: projectDir,
+        env: installedEnv,
+        timeoutMs: 120_000,
+      },
+      onProgress,
+    );
+    if (!ok) return [false, `greenfield smoke: ${reason}`];
+
+    [ok, reason] = runStep(
+      spawn,
+      "directive install --repair",
       deft,
-      ["init", "--yes", "--repo-root", projectDir],
+      ["install", "--repair", "--yes", "--repo-root", projectDir],
       {
         cwd: work,
         env: installedEnv,

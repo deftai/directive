@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed — Launcher accepts `--repo-root` as an alias of `--root` and creates a missing install/init destination so greenfield `directive init --repo-root <new-dir>` works. Refs #5490.
+- Fixed — Greenfield python-free smoke installs the packed tip runtime tarball then `install --repair` (public runtime `@latest` is still a prerelease until GA). Refs #5490.
+- Fixed — Windows cache-fresh consumer fixture pins and materializes `@deftai/directive-runtime` so the OVPR launcher can passthrough `preflight-cache`. Refs #5490.
 - Fixed — Reject unrecognized uninstall flags (e.g. `--dryrun`) instead of performing a live uninstall. Refs #5490.
 - Fixed — Doctor bookend forwards supported diagnosis flags to the runtime. Refs #5490.
 - Fixed — Swarm worktree PM install launches Windows `.cmd` shims and keeps development dependencies so a runtime pin in `devDependencies` materializes. Refs #5490.
