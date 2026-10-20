@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5748",
-    "updated": "2026-10-19T05:50:31Z"
+    "updated": "2026-10-20T05:06:37Z"
   },
   "plan": {
     "title": "sec(codeql): HIGH clear polynomial-redos in release/auto-hatch.ts (alert #144)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "sec(codeql): HIGH clear polynomial-redos in release/auto-hatch.ts (alert #144)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5748",
@@ -15,25 +15,133 @@
     },
     "items": [
       {
-        "title": "CodeQL alert  clears on master (auto-close or dismiss with reason after fix).",
-        "status": "proposed",
         "id": "clause.1",
+        "title": "CodeQL alert  clears on master (auto-close or dismiss with reason after fix).",
+        "status": "completed",
         "effort": "S",
-        "x-directive/artifact_path": "packages/core/src/release/auto-hatch.ts"
+        "x-directive/artifact_path": "packages/core/src/release/auto-hatch.ts",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T05:02:31.898Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T05:02:31.898Z"
+        }
       },
       {
-        "title": "Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
-        "status": "proposed",
         "id": "clause.2",
+        "title": "Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+        "status": "completed",
         "effort": "S",
-        "x-directive/artifact_path": "packages/core/src/release/auto-hatch.ts"
+        "x-directive/artifact_path": "packages/core/src/release/auto-hatch.ts",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T05:02:31.898Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T05:02:31.898Z"
+        }
       },
       {
-        "title": "CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #144.",
-        "status": "proposed",
         "id": "clause.3",
+        "title": "CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #144.",
+        "status": "completed",
         "effort": "S",
-        "x-directive/artifact_path": "packages/core/src/release/auto-hatch.ts"
+        "x-directive/artifact_path": "packages/core/src/release/auto-hatch.ts",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T05:02:31.898Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T05:02:31.898Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "clause.4",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "78cc8c61f16ae413de9f7482054be3c05ec5d538",
+          "recorded_at": "2026-10-20T05:06:37Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "clause.5",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "78cc8c61f16ae413de9f7482054be3c05ec5d538",
+          "recorded_at": "2026-10-20T05:06:37Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "clause.6",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "78cc8c61f16ae413de9f7482054be3c05ec5d538",
+          "recorded_at": "2026-10-20T05:06:37Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "clause.7",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "78cc8c61f16ae413de9f7482054be3c05ec5d538",
+          "recorded_at": "2026-10-20T05:06:37Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "78cc8c61f16ae413de9f7482054be3c05ec5d538",
+          "recorded_at": "2026-10-20T05:06:37Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "78cc8c61f16ae413de9f7482054be3c05ec5d538",
+          "recorded_at": "2026-10-20T05:06:37Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -51,12 +159,297 @@
       }
     ],
     "acceptance": {
-      "commands": [],
-      "none_stated": true,
       "source_rung": "derived",
-      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "none_stated": false,
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/release/auto-hatch"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "clause.1",
+          "title": "CodeQL alert  clears on master (auto-close or dismiss with reason after fix).",
+          "status": "completed",
+          "effort": "S",
+          "x-directive/artifact_path": "packages/core/src/release/auto-hatch.ts",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "78cc8c61f16ae413de9f7482054be3c05ec5d538",
+            "recorded_at": "2026-10-20T04:53:38.5018059Z",
+            "recorded_by": "Scott"
+          }
+        },
+        {
+          "id": "clause.2",
+          "title": "Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+          "status": "completed",
+          "effort": "S",
+          "x-directive/artifact_path": "packages/core/src/release/auto-hatch.ts",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "78cc8c61f16ae413de9f7482054be3c05ec5d538",
+            "recorded_at": "2026-10-20T04:53:38.5018059Z",
+            "recorded_by": "Scott"
+          }
+        },
+        {
+          "id": "clause.3",
+          "title": "CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #144.",
+          "status": "completed",
+          "effort": "S",
+          "x-directive/artifact_path": "packages/core/src/release/auto-hatch.ts",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "78cc8c61f16ae413de9f7482054be3c05ec5d538",
+            "recorded_at": "2026-10-20T04:53:38.5018059Z",
+            "recorded_by": "Scott"
+          }
+        }
+      ],
+      "clauses": [
+        {
+          "id": "clause.1",
+          "text": "CodeQL alert  clears on master (auto-close or dismiss with reason after fix).",
+          "artifact_path": "packages/core/src/release/auto-hatch.ts",
+          "ambiguous": false,
+          "provenance": {
+            "kind": "harvested",
+            "source": "plan.items"
+          },
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product ship; clause satisfied by merged Tracking PR.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T04:58:57.115Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T04:58:57.115Z"
+          }
+        },
+        {
+          "id": "clause.2",
+          "text": "Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+          "artifact_path": "packages/core/src/release/auto-hatch.ts",
+          "ambiguous": false,
+          "provenance": {
+            "kind": "harvested",
+            "source": "plan.items"
+          },
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product ship; clause satisfied by merged Tracking PR.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T04:58:57.115Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T04:58:57.115Z"
+          }
+        },
+        {
+          "id": "clause.3",
+          "text": "CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #144.",
+          "artifact_path": "packages/core/src/release/auto-hatch.ts",
+          "ambiguous": false,
+          "provenance": {
+            "kind": "harvested",
+            "source": "plan.items"
+          },
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product ship; clause satisfied by merged Tracking PR.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T04:58:57.115Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T04:58:57.115Z"
+          }
+        },
+        {
+          "id": 1,
+          "text": "Summary CodeQL open alert on default branch: HIGH `js/polynomial-redos` — Polynomial regular expression used on uncontrolled data.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 2,
+          "text": "| Field | Value | |-------|-------| | Alert | [#144](https://github.com/deftai/directive/security/code-scanning/144) | | Rule | `js/polynomial-redos` | | Severity | HIGH | | Location | `packages/core/src/release/auto-hatch.ts` ~L395 | | Message | This regular expression that depends on library input may run slow on strings with many repetitions of '\\n'.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 3,
+          "text": "| ## What to build Rewrite or bound the flagged site so CodeQL `js/polynomial-redos` clears for this alert (or document accepted risk with suppress + rationale if false positive after review).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 4,
+          "text": "Prefer a real fix over suite-config changes.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 5,
+          "text": "Acceptance - [ ] CodeQL alert [#144](https://github.com/deftai/directive/security/code-scanning/144) clears on master (auto-close or dismiss with reason after fix).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 6,
+          "text": "[ ] Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 7,
+          "text": "[ ] CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #144.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 8,
+          "text": "Non-goals - Changing CodeQL suite config as the primary fix.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 9,
+          "text": "Bundling unrelated code-scanning alerts into this issue (siblings tracked separately).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        }
+      ],
       "sentences": [
-        "sec(codeql): HIGH clear polynomial-redos in release/auto-hatch.ts (alert #144)",
         "Summary CodeQL open alert on default branch: HIGH `js/polynomial-redos` — Polynomial regular expression used on uncontrolled data.",
         "| Field | Value | |-------|-------| | Alert | [#144](https://github.com/deftai/directive/security/code-scanning/144) | | Rule | `js/polynomial-redos` | | Severity | HIGH | | Location | `packages/core/src/release/auto-hatch.ts` ~L395 | | Message | This regular expression that depends on library input may run slow on strings with many repetitions of '\\n'.",
         "| ## What to build Rewrite or bound the flagged site so CodeQL `js/polynomial-redos` clears for this alert (or document accepted risk with suppress + rationale if false positive after review).",
@@ -66,10 +459,16 @@
         "[ ] CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #144.",
         "Non-goals - Changing CodeQL suite config as the primary fix.",
         "Bundling unrelated code-scanning alerts into this issue (siblings tracked separately).",
-        "CodeQL alert [#144](https://github.com/deftai/directive/security/code-scanning/144) clears on master (auto-close or dismiss with reason after fix).",
+        "CodeQL alert  clears on master (auto-close or dismiss with reason after fix).",
         "Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
         "CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #144."
       ],
+      "confessions": [
+        "sec(codeql): HIGH clear polynomial-redos in release/auto-hatch.ts (alert #144)",
+        "CodeQL alert [#144](https://github.com/deftai/directive/security/code-scanning/144) clears on master (auto-close or dismiss with reason after fix)."
+      ],
+      "ambiguity_attestation": "none_found",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
       "admitted_source_sentences": [
         "Summary CodeQL open alert on default branch: HIGH `js/polynomial-redos` — Polynomial regular expression used on uncontrolled data.",
         "| Field | Value | |-------|-------| | Alert | [#144](https://github.com/deftai/directive/security/code-scanning/144) | | Rule | `js/polynomial-redos` | | Severity | HIGH | | Location | `packages/core/src/release/auto-hatch.ts` ~L395 | | Message | This regular expression that depends on library input may run slow on strings with many repetitions of '\\n'.",
@@ -81,31 +480,7 @@
         "Non-goals - Changing CodeQL suite config as the primary fix.",
         "Bundling unrelated code-scanning alerts into this issue (siblings tracked separately)."
       ],
-      "admitted_source_digest": "287fff241f89b045af0d6fd03ad749eb9fb95f96dc6ae0276dd4868d97eedd52",
-      "clauses": [
-        {
-          "id": 1,
-          "text": "CodeQL alert [#144](https://github.com/deftai/directive/security/code-scanning/144) clears on master (auto-close or dismiss with reason after fix).",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 2,
-          "text": "Existing unit tests for the touched module still pass; add adversarial input coverage if useful.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 3,
-          "text": "CHANGELOG [Unreleased] Security/Fixed entry citing CodeQL alert #144.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        }
-      ],
-      "ambiguity_attestation": "none_found"
+      "admitted_source_digest": "287fff241f89b045af0d6fd03ad749eb9fb95f96dc6ae0276dd4868d97eedd52"
     },
     "metadata": {
       "intended_placement": {
@@ -370,10 +745,39 @@
           "packages/core/src/release/auto-hatch.test.ts",
           "CHANGELOG.md"
         ],
-        "cohesion_exemption": "CHANGELOG.md shared Unreleased for security cohort. pnpm-lock.yaml / pnpm-workspace.yaml shared Dependabot pin surfaces for #5737/#5740."
+        "cohesion_exemption": "CHANGELOG.md shared Unreleased for security cohort. pnpm-lock.yaml / pnpm-workspace.yaml shared Dependabot pin surfaces for #5737/#5740.",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/release/auto-hatch"
+        ]
+      },
+      "productPullRequest": 5765,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "bf155ec32a660f90853cbfef703e7a76ed3b2101",
+        "prNumber": 5765,
+        "prBase": "master",
+        "mergeCommit": "78cc8c61f16ae413de9f7482054be3c05ec5d538",
+        "deliveryBranch": "master",
+        "deliveryCommit": "db26c453690125011a077d21be899682d6d555f4",
+        "verifiedAt": "2026-10-20T05:06:37Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTUyNTktODk3Ni03ZGIxLTg1ZjMtZWE2ZDA4ZWIzYTJm"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-20T05:06:37Z",
+      "completedSessionId": "host:grok:v1:MDFhMTUyNTktODk3Ni03ZGIxLTg1ZjMtZWE2ZDA4ZWIzYTJm",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-20T05:06:37Z"
       }
     },
     "id": "github.issue.5915169902",
-    "updated": "2026-10-19T05:50:31Z"
+    "updated": "2026-10-20T05:06:37Z"
   }
 }

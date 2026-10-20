@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed — Activate Prefer-A Bound security cohort briefs for Dependabot and CodeQL HIGH work (#5737 #5740-#5748); product fixes land in follow-on PRs.
 
 ### Fixed
+- Fixed — Land tracked completion records for #5677 #5727 #5737 #5740 #5741 #5742 #5743 #5745 #5747 #5748 #5782 after product merges. Refs #5677 #5727 #5737 #5740 #5741 #5742 #5743 #5745 #5747 #5748 #5782.
 - Fixed — Land tracked completion records for #5744 #5746 #5770 after product merges. Refs #5744 #5746 #5770.
 - Fixed — Merge-gate `verify:intent-constraint` / `verify:observable-scope` adopt plan-id from sole PR `deft-story: N` on multi-running/multi-mint tips (digit-gated PR context; REST null → exit 2; distinct-mark ownership; observable bad-pin+PR suppress). Refs #5782.
 - Fixed — Claimed-wait Approach 1 bound evidence admits Tier-1 register primitives spawn_subagent | cursor-task | claude-agent (not spawn_subagent-only); still rejects arbitrary nonempty strings, different-PR arm, and post-CLEAN without closer wait (#5727 Greptile). Refs #5727.

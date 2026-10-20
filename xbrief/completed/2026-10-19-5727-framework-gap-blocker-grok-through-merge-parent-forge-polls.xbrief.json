@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5727",
-    "updated": "2026-10-19T16:24:01Z"
+    "updated": "2026-10-20T05:03:02Z"
   },
   "plan": {
     "title": "[framework-gap] BLOCKER Grok through-merge parent forge-polls instead of Approach1 babysit when spawn_subagent is available",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "[framework-gap] BLOCKER Grok through-merge parent forge-polls instead of Approach1 babysit when spawn_subagent is available",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5727",
@@ -17,30 +17,318 @@
       {
         "id": "1",
         "title": "Exclusive lawful-waits card plus forge-poll forbid class on review-cycle and host-grok surfaces",
-        "status": "pending",
-        "effort": "M",
-        "x-directive/artifact_path": "packages/core/src/review-monitor/bounded-pr-watch-deny.ts"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/review-monitor/bounded-pr-watch-deny.ts",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T05:02:31.898Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T05:02:31.898Z"
+        }
       },
       {
         "id": "2",
         "title": "Claimed-wait fail-closed evaluator plus named caller using BabysitPathKind cheapest-admission inventory",
-        "status": "pending",
-        "effort": "M",
-        "x-directive/artifact_path": "packages/core/src/review-monitor/bounded-pr-watch-deny.ts"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/review-monitor/bounded-pr-watch-deny.ts",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T05:02:31.898Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T05:02:31.898Z"
+        }
       },
       {
         "id": "3",
         "title": "Fixtures and negatives for Approach1 without bound evidence and different-PR arm",
-        "status": "pending",
-        "effort": "M",
-        "x-directive/artifact_path": "packages/core/src/review-monitor/bounded-pr-watch-deny.ts"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/review-monitor/bounded-pr-watch-deny.ts",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T05:02:31.898Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T05:02:31.898Z"
+        }
       },
       {
         "id": "4",
         "title": "CHANGELOG Unreleased for exclusive lawful waits ship; leftover undeclared-shell residual out of scope",
-        "status": "pending",
-        "effort": "M",
-        "x-directive/artifact_path": "packages/core/src/review-monitor/bounded-pr-watch-deny.ts"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/review-monitor/bounded-pr-watch-deny.ts",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T05:02:31.898Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T05:02:31.898Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "clause.5",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b52c97b4f15a102d437f2d1d095b4c5031868921",
+          "recorded_at": "2026-10-20T05:03:02Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "clause.6",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b52c97b4f15a102d437f2d1d095b4c5031868921",
+          "recorded_at": "2026-10-20T05:03:02Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "clause.7",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b52c97b4f15a102d437f2d1d095b4c5031868921",
+          "recorded_at": "2026-10-20T05:03:02Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b52c97b4f15a102d437f2d1d095b4c5031868921",
+          "recorded_at": "2026-10-20T05:03:02Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b52c97b4f15a102d437f2d1d095b4c5031868921",
+          "recorded_at": "2026-10-20T05:03:02Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b52c97b4f15a102d437f2d1d095b4c5031868921",
+          "recorded_at": "2026-10-20T05:03:02Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b52c97b4f15a102d437f2d1d095b4c5031868921",
+          "recorded_at": "2026-10-20T05:03:02Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b52c97b4f15a102d437f2d1d095b4c5031868921",
+          "recorded_at": "2026-10-20T05:03:02Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "clause.13",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b52c97b4f15a102d437f2d1d095b4c5031868921",
+          "recorded_at": "2026-10-20T05:03:02Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "clause.14",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b52c97b4f15a102d437f2d1d095b4c5031868921",
+          "recorded_at": "2026-10-20T05:03:02Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.15",
+        "title": "clause.15",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b52c97b4f15a102d437f2d1d095b4c5031868921",
+          "recorded_at": "2026-10-20T05:03:02Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.16",
+        "title": "clause.16",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b52c97b4f15a102d437f2d1d095b4c5031868921",
+          "recorded_at": "2026-10-20T05:03:02Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.17",
+        "title": "clause.17",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b52c97b4f15a102d437f2d1d095b4c5031868921",
+          "recorded_at": "2026-10-20T05:03:02Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.18",
+        "title": "clause.18",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b52c97b4f15a102d437f2d1d095b4c5031868921",
+          "recorded_at": "2026-10-20T05:03:02Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.19",
+        "title": "clause.19",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b52c97b4f15a102d437f2d1d095b4c5031868921",
+          "recorded_at": "2026-10-20T05:03:02Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.20",
+        "title": "clause.20",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b52c97b4f15a102d437f2d1d095b4c5031868921",
+          "recorded_at": "2026-10-20T05:03:02Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.21",
+        "title": "clause.21",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b52c97b4f15a102d437f2d1d095b4c5031868921",
+          "recorded_at": "2026-10-20T05:03:02Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.22",
+        "title": "clause.22",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b52c97b4f15a102d437f2d1d095b4c5031868921",
+          "recorded_at": "2026-10-20T05:03:02Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.23",
+        "title": "clause.23",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b52c97b4f15a102d437f2d1d095b4c5031868921",
+          "recorded_at": "2026-10-20T05:03:02Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.24",
+        "title": "clause.24",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b52c97b4f15a102d437f2d1d095b4c5031868921",
+          "recorded_at": "2026-10-20T05:03:02Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -62,67 +350,593 @@
       }
     ],
     "acceptance": {
-      "commands": [],
-      "none_stated": true,
       "source_rung": "derived",
+      "none_stated": false,
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/review-monitor/bounded-pr-watch-deny"
+        }
+      ],
       "criteria": [
         {
           "id": "1",
           "title": "Exclusive lawful-waits card plus forge-poll forbid class on review-cycle and host-grok surfaces",
-          "status": "pending",
-          "x-directive/artifact_path": "packages/core/src/review-monitor/bounded-pr-watch-deny.ts"
+          "status": "completed",
+          "effort": "S",
+          "x-directive/artifact_path": "packages/core/src/review-monitor/bounded-pr-watch-deny.ts",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "b52c97b4f15a102d437f2d1d095b4c5031868921",
+            "recorded_at": "2026-10-20T04:53:38.5018059Z",
+            "recorded_by": "Scott"
+          }
         },
         {
           "id": "2",
           "title": "Claimed-wait fail-closed evaluator plus named caller using BabysitPathKind cheapest-admission inventory",
-          "status": "pending",
-          "x-directive/artifact_path": "packages/core/src/review-monitor/bounded-pr-watch-deny.ts"
+          "status": "completed",
+          "effort": "S",
+          "x-directive/artifact_path": "packages/core/src/review-monitor/bounded-pr-watch-deny.ts",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "b52c97b4f15a102d437f2d1d095b4c5031868921",
+            "recorded_at": "2026-10-20T04:53:38.5018059Z",
+            "recorded_by": "Scott"
+          }
         },
         {
           "id": "3",
           "title": "Fixtures and negatives for Approach1 without bound evidence and different-PR arm",
-          "status": "pending",
-          "x-directive/artifact_path": "packages/core/src/review-monitor/bounded-pr-watch-deny.ts"
+          "status": "completed",
+          "effort": "S",
+          "x-directive/artifact_path": "packages/core/src/review-monitor/bounded-pr-watch-deny.ts",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "b52c97b4f15a102d437f2d1d095b4c5031868921",
+            "recorded_at": "2026-10-20T04:53:38.5018059Z",
+            "recorded_by": "Scott"
+          }
         },
         {
           "id": "4",
           "title": "CHANGELOG Unreleased for exclusive lawful waits ship; leftover undeclared-shell residual out of scope",
-          "status": "pending",
-          "x-directive/artifact_path": "packages/core/src/review-monitor/bounded-pr-watch-deny.ts"
+          "status": "completed",
+          "effort": "S",
+          "x-directive/artifact_path": "packages/core/src/review-monitor/bounded-pr-watch-deny.ts",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "b52c97b4f15a102d437f2d1d095b4c5031868921",
+            "recorded_at": "2026-10-20T04:53:38.5018059Z",
+            "recorded_by": "Scott"
+          }
         }
       ],
-      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
       "clauses": [
         {
-          "id": 1,
+          "id": "1",
           "text": "Exclusive lawful-waits card plus forge-poll forbid class on review-cycle and host-grok surfaces",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/review-monitor/bounded-pr-watch-deny.ts",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": {
+            "kind": "harvested",
+            "source": "plan.items"
+          },
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product ship; clause satisfied by merged Tracking PR.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T04:58:57.106Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T04:58:57.106Z"
+          }
         },
         {
-          "id": 2,
+          "id": "2",
           "text": "Claimed-wait fail-closed evaluator plus named caller using BabysitPathKind cheapest-admission inventory",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/review-monitor/bounded-pr-watch-deny.ts",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": {
+            "kind": "harvested",
+            "source": "plan.items"
+          },
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product ship; clause satisfied by merged Tracking PR.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T04:58:57.106Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T04:58:57.106Z"
+          }
         },
         {
-          "id": 3,
+          "id": "3",
           "text": "Fixtures and negatives for Approach1 without bound evidence and different-PR arm",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/review-monitor/bounded-pr-watch-deny.ts",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": {
+            "kind": "harvested",
+            "source": "plan.items"
+          },
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product ship; clause satisfied by merged Tracking PR.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T04:58:57.106Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T04:58:57.106Z"
+          }
         },
         {
-          "id": 4,
+          "id": "4",
           "text": "CHANGELOG Unreleased for exclusive lawful waits ship; leftover undeclared-shell residual out of scope",
+          "artifact_path": "packages/core/src/review-monitor/bounded-pr-watch-deny.ts",
+          "ambiguous": false,
+          "provenance": {
+            "kind": "harvested",
+            "source": "plan.items"
+          },
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product ship; clause satisfied by merged Tracking PR.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T04:58:57.106Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T04:58:57.106Z"
+          }
+        },
+        {
+          "id": 5,
+          "text": "Summary Grok through-merge parents still fall back to parent forge-poll loops (`gh` check-runs + mergeable_state sleep loops) when `spawn_subagent` Approach 1 babysit is available.",
           "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 6,
+          "text": "That bypasses merge-path arming (`review-monitor:register` + live `pr:watch --monitor-agent-id`) and recreates the unarmed-babysit failure class.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 7,
+          "text": "Observed Session through-merge cohort (2026-10-18): after rebasing activation PR #5726, parent started a PowerShell forge-poll script instead of dest-placing a babysit worktree and spawning Approach 1.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 8,
+          "text": "Operator corrected: \"you should not poll but use sub agents.\" Standing rules already require Approach 1 when Tier-1 `spawn_subagent` is available (#4882 / #5219 / review-cycle skill).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 9,
+          "text": "Expected When Grok Build `spawn_subagent` is available: 1.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 10,
+          "text": "Parent dest-places a babysit worktree for the PR tip 2.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 11,
+          "text": "Spawns Approach 1 with `stop-at: CLEAN`, `review-monitor:register --platform-primitive spawn_subagent`, and child `pr:watch --monitor-agent-id` 3.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 12,
+          "text": "Parent retains squash-merge only after babysitter DONE:CLEAN 4.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 13,
+          "text": "Parent forge-poll / one-shot `pr:watch` without `--monitor-agent-id` is refused or skill-blocked as unarmed",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 14,
+          "text": "Changing Greptile detection itself",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 15,
+          "text": "Removing `pr:watch` (it remains the child live-wait)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 16,
+          "text": "Claiming this closes Windows wrapper / #5656 residuals",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 17,
+          "text": "#4882 merge-path arm / live-wait",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 18,
+          "text": "#5219 Approach 1 lease binding",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 19,
+          "text": "#5318 cohort review-monitor inventory",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 20,
+          "text": "review-cycle skill Review Monitoring",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 21,
+          "text": "[ ] AGENTS.md / review-cycle / host-grok-build pin: parent forge-poll is ⊗ when `spawn_subagent` is available for Approach 1",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 22,
+          "text": "[ ] Through-merge / swarm parent path documents the only lawful waits: Approach 1 child `pr:watch --monitor-agent-id`, or post-CLEAN `pr:wait-mergeable-and-merge`",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 23,
+          "text": "[ ] Focused regression or skill-contract test/fixture that fails closed on parent-shell poll when Tier-1 stamp proves spawn_subagent",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 24,
+          "text": "[ ] CHANGELOG Unreleased note",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "sentences": [
+        "Summary Grok through-merge parents still fall back to parent forge-poll loops (`gh` check-runs + mergeable_state sleep loops) when `spawn_subagent` Approach 1 babysit is available.",
+        "That bypasses merge-path arming (`review-monitor:register` + live `pr:watch --monitor-agent-id`) and recreates the unarmed-babysit failure class.",
+        "Observed Session through-merge cohort (2026-10-18): after rebasing activation PR #5726, parent started a PowerShell forge-poll script instead of dest-placing a babysit worktree and spawning Approach 1.",
+        "Operator corrected: \"you should not poll but use sub agents.\" Standing rules already require Approach 1 when Tier-1 `spawn_subagent` is available (#4882 / #5219 / review-cycle skill).",
+        "Expected When Grok Build `spawn_subagent` is available: 1.",
+        "Parent dest-places a babysit worktree for the PR tip 2.",
+        "Spawns Approach 1 with `stop-at: CLEAN`, `review-monitor:register --platform-primitive spawn_subagent`, and child `pr:watch --monitor-agent-id` 3.",
+        "Parent retains squash-merge only after babysitter DONE:CLEAN 4.",
+        "Parent forge-poll / one-shot `pr:watch` without `--monitor-agent-id` is refused or skill-blocked as unarmed",
+        "Changing Greptile detection itself",
+        "Removing `pr:watch` (it remains the child live-wait)",
+        "Claiming this closes Windows wrapper / #5656 residuals",
+        "#4882 merge-path arm / live-wait",
+        "#5219 Approach 1 lease binding",
+        "#5318 cohort review-monitor inventory",
+        "review-cycle skill Review Monitoring",
+        "[ ] AGENTS.md / review-cycle / host-grok-build pin: parent forge-poll is ⊗ when `spawn_subagent` is available for Approach 1",
+        "[ ] Through-merge / swarm parent path documents the only lawful waits: Approach 1 child `pr:watch --monitor-agent-id`, or post-CLEAN `pr:wait-mergeable-and-merge`",
+        "[ ] Focused regression or skill-contract test/fixture that fails closed on parent-shell poll when Tier-1 stamp proves spawn_subagent",
+        "[ ] CHANGELOG Unreleased note",
+        "Exclusive lawful-waits card plus forge-poll forbid class on review-cycle and host-grok surfaces",
+        "Claimed-wait fail-closed evaluator plus named caller using BabysitPathKind cheapest-admission inventory",
+        "Fixtures and negatives for Approach1 without bound evidence and different-PR arm",
+        "CHANGELOG Unreleased for exclusive lawful waits ship; leftover undeclared-shell residual out of scope"
+      ],
+      "confessions": [],
+      "ambiguity_attestation": "none_found",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "admitted_source_sentences": [
+        "Summary Grok through-merge parents still fall back to parent forge-poll loops (`gh` check-runs + mergeable_state sleep loops) when `spawn_subagent` Approach 1 babysit is available.",
+        "That bypasses merge-path arming (`review-monitor:register` + live `pr:watch --monitor-agent-id`) and recreates the unarmed-babysit failure class.",
+        "Observed Session through-merge cohort (2026-10-18): after rebasing activation PR #5726, parent started a PowerShell forge-poll script instead of dest-placing a babysit worktree and spawning Approach 1.",
+        "Operator corrected: \"you should not poll but use sub agents.\" Standing rules already require Approach 1 when Tier-1 `spawn_subagent` is available (#4882 / #5219 / review-cycle skill).",
+        "Expected When Grok Build `spawn_subagent` is available: 1.",
+        "Parent dest-places a babysit worktree for the PR tip 2.",
+        "Spawns Approach 1 with `stop-at: CLEAN`, `review-monitor:register --platform-primitive spawn_subagent`, and child `pr:watch --monitor-agent-id` 3.",
+        "Parent retains squash-merge only after babysitter DONE:CLEAN 4.",
+        "Parent forge-poll / one-shot `pr:watch` without `--monitor-agent-id` is refused or skill-blocked as unarmed",
+        "Changing Greptile detection itself",
+        "Removing `pr:watch` (it remains the child live-wait)",
+        "Claiming this closes Windows wrapper / #5656 residuals",
+        "#4882 merge-path arm / live-wait",
+        "#5219 Approach 1 lease binding",
+        "#5318 cohort review-monitor inventory",
+        "review-cycle skill Review Monitoring",
+        "[ ] AGENTS.md / review-cycle / host-grok-build pin: parent forge-poll is ⊗ when `spawn_subagent` is available for Approach 1",
+        "[ ] Through-merge / swarm parent path documents the only lawful waits: Approach 1 child `pr:watch --monitor-agent-id`, or post-CLEAN `pr:wait-mergeable-and-merge`",
+        "[ ] Focused regression or skill-contract test/fixture that fails closed on parent-shell poll when Tier-1 stamp proves spawn_subagent",
+        "[ ] CHANGELOG Unreleased note"
+      ],
+      "admitted_source_digest": "735480a3a7780bdf3295d6efb9de8108c627078452179e2433c81b144e4bf553"
     },
     "metadata": {
       "intended_placement": {
@@ -689,10 +1503,39 @@
           "AGENTS.md",
           "CHANGELOG.md"
         ],
-        "cohesion_exemption": "CHANGELOG shared; review-cycle/host-grok lawful-waits for #5727"
+        "cohesion_exemption": "CHANGELOG shared; review-cycle/host-grok lawful-waits for #5727",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/review-monitor/bounded-pr-watch-deny"
+        ]
+      },
+      "productPullRequest": 5779,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "98d5764513cb29929df9f3b72c74695d1a9e8473",
+        "prNumber": 5779,
+        "prBase": "master",
+        "mergeCommit": "b52c97b4f15a102d437f2d1d095b4c5031868921",
+        "deliveryBranch": "master",
+        "deliveryCommit": "db26c453690125011a077d21be899682d6d555f4",
+        "verifiedAt": "2026-10-20T05:03:02Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTUyNTktODk3Ni03ZGIxLTg1ZjMtZWE2ZDA4ZWIzYTJm"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-20T05:03:02Z",
+      "completedSessionId": "host:grok:v1:MDFhMTUyNTktODk3Ni03ZGIxLTg1ZjMtZWE2ZDA4ZWIzYTJm",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-20T05:03:02Z"
       }
     },
     "id": "github.issue.5914106071",
-    "updated": "2026-10-19T16:24:01Z"
+    "updated": "2026-10-20T05:03:02Z"
   }
 }

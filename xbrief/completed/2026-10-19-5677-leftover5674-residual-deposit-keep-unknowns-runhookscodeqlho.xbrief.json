@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5677",
-    "updated": "2026-10-19T16:23:59Z"
+    "updated": "2026-10-20T05:03:14Z"
   },
   "plan": {
     "title": "leftover(#5674): residual deposit keep-unknowns (run/hooks/codeql/host-registration)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "leftover(#5674): residual deposit keep-unknowns (run/hooks/codeql/host-registration)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5677",
@@ -17,44 +17,248 @@
       {
         "id": "1",
         "title": "Demote CodeQL config exact-path inert after coverable-first in coverage-applicability evaluate",
-        "status": "pending",
-        "effort": "M",
-        "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T05:02:31.898Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T05:02:31.898Z"
+        }
       },
       {
         "id": "2",
         "title": "Host-registration managed-projection demotion with A/M split for official hooks projection paths",
-        "status": "pending",
-        "effort": "M",
-        "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T05:02:31.898Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T05:02:31.898Z"
+        }
       },
       {
         "id": "3",
         "title": "HOOK_FILENAMES-only exact pathname inert for official extension-less githooks pair",
-        "status": "pending",
-        "effort": "M",
-        "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T05:02:31.898Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T05:02:31.898Z"
+        }
       },
       {
         "id": "4",
         "title": "Deletion-only shebang-proven relief for retired python run shim under deposit",
-        "status": "pending",
-        "effort": "M",
-        "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T05:02:31.898Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T05:02:31.898Z"
+        }
       },
       {
         "id": "5",
         "title": "Authority keep-unknown wall for approved-scope and unlisted peers",
-        "status": "pending",
-        "effort": "M",
-        "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T05:02:31.898Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T05:02:31.898Z"
+        }
       },
       {
         "id": "6",
         "title": "CHANGELOG Unreleased Security/Fixed for residual deposit keep-unknowns",
-        "status": "pending",
-        "effort": "M",
-        "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T05:02:31.898Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T05:02:31.898Z"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "clause.7",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "59ba8e4131982e574b039647ff59262826ee7d28",
+          "recorded_at": "2026-10-20T05:03:14Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "59ba8e4131982e574b039647ff59262826ee7d28",
+          "recorded_at": "2026-10-20T05:03:14Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "59ba8e4131982e574b039647ff59262826ee7d28",
+          "recorded_at": "2026-10-20T05:03:14Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "59ba8e4131982e574b039647ff59262826ee7d28",
+          "recorded_at": "2026-10-20T05:03:14Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "59ba8e4131982e574b039647ff59262826ee7d28",
+          "recorded_at": "2026-10-20T05:03:14Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "59ba8e4131982e574b039647ff59262826ee7d28",
+          "recorded_at": "2026-10-20T05:03:14Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "clause.13",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "59ba8e4131982e574b039647ff59262826ee7d28",
+          "recorded_at": "2026-10-20T05:03:14Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "clause.14",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "59ba8e4131982e574b039647ff59262826ee7d28",
+          "recorded_at": "2026-10-20T05:03:14Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.15",
+        "title": "clause.15",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "59ba8e4131982e574b039647ff59262826ee7d28",
+          "recorded_at": "2026-10-20T05:03:14Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.16",
+        "title": "clause.16",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "59ba8e4131982e574b039647ff59262826ee7d28",
+          "recorded_at": "2026-10-20T05:03:14Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.17",
+        "title": "clause.17",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "59ba8e4131982e574b039647ff59262826ee7d28",
+          "recorded_at": "2026-10-20T05:03:14Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -76,93 +280,478 @@
       }
     ],
     "acceptance": {
-      "commands": [],
-      "none_stated": true,
       "source_rung": "derived",
+      "none_stated": false,
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/coverage-applicability"
+        }
+      ],
       "criteria": [
         {
           "id": "1",
           "title": "Demote CodeQL config exact-path inert after coverable-first in coverage-applicability evaluate",
-          "status": "pending",
-          "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts"
+          "status": "completed",
+          "effort": "S",
+          "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "59ba8e4131982e574b039647ff59262826ee7d28",
+            "recorded_at": "2026-10-20T04:53:38.5018059Z",
+            "recorded_by": "Scott"
+          }
         },
         {
           "id": "2",
           "title": "Host-registration managed-projection demotion with A/M split for official hooks projection paths",
-          "status": "pending",
-          "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts"
+          "status": "completed",
+          "effort": "S",
+          "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "59ba8e4131982e574b039647ff59262826ee7d28",
+            "recorded_at": "2026-10-20T04:53:38.5018059Z",
+            "recorded_by": "Scott"
+          }
         },
         {
           "id": "3",
           "title": "HOOK_FILENAMES-only exact pathname inert for official extension-less githooks pair",
-          "status": "pending",
-          "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts"
+          "status": "completed",
+          "effort": "S",
+          "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "59ba8e4131982e574b039647ff59262826ee7d28",
+            "recorded_at": "2026-10-20T04:53:38.5018059Z",
+            "recorded_by": "Scott"
+          }
         },
         {
           "id": "4",
           "title": "Deletion-only shebang-proven relief for retired python run shim under deposit",
-          "status": "pending",
-          "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts"
+          "status": "completed",
+          "effort": "S",
+          "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "59ba8e4131982e574b039647ff59262826ee7d28",
+            "recorded_at": "2026-10-20T04:53:38.5018059Z",
+            "recorded_by": "Scott"
+          }
         },
         {
           "id": "5",
           "title": "Authority keep-unknown wall for approved-scope and unlisted peers",
-          "status": "pending",
-          "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts"
+          "status": "completed",
+          "effort": "S",
+          "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "59ba8e4131982e574b039647ff59262826ee7d28",
+            "recorded_at": "2026-10-20T04:53:38.5018059Z",
+            "recorded_by": "Scott"
+          }
         },
         {
           "id": "6",
           "title": "CHANGELOG Unreleased Security/Fixed for residual deposit keep-unknowns",
-          "status": "pending",
-          "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts"
+          "status": "completed",
+          "effort": "S",
+          "x-directive/artifact_path": "packages/core/src/coverage-applicability/evaluate.ts",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "59ba8e4131982e574b039647ff59262826ee7d28",
+            "recorded_at": "2026-10-20T04:53:38.5018059Z",
+            "recorded_by": "Scott"
+          }
         }
       ],
-      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
       "clauses": [
         {
-          "id": 1,
+          "id": "1",
           "text": "Demote CodeQL config exact-path inert after coverable-first in coverage-applicability evaluate",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/coverage-applicability/evaluate.ts",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": {
+            "kind": "harvested",
+            "source": "plan.items"
+          },
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product ship; clause satisfied by merged Tracking PR.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T04:58:57.101Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T04:58:57.101Z"
+          }
         },
         {
-          "id": 2,
+          "id": "2",
           "text": "Host-registration managed-projection demotion with A/M split for official hooks projection paths",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/coverage-applicability/evaluate.ts",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": {
+            "kind": "harvested",
+            "source": "plan.items"
+          },
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product ship; clause satisfied by merged Tracking PR.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T04:58:57.101Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T04:58:57.101Z"
+          }
         },
         {
-          "id": 3,
+          "id": "3",
           "text": "HOOK_FILENAMES-only exact pathname inert for official extension-less githooks pair",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/coverage-applicability/evaluate.ts",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": {
+            "kind": "harvested",
+            "source": "plan.items"
+          },
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product ship; clause satisfied by merged Tracking PR.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T04:58:57.101Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T04:58:57.101Z"
+          }
         },
         {
-          "id": 4,
+          "id": "4",
           "text": "Deletion-only shebang-proven relief for retired python run shim under deposit",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/coverage-applicability/evaluate.ts",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": {
+            "kind": "harvested",
+            "source": "plan.items"
+          },
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product ship; clause satisfied by merged Tracking PR.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T04:58:57.101Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T04:58:57.101Z"
+          }
         },
         {
-          "id": 5,
+          "id": "5",
           "text": "Authority keep-unknown wall for approved-scope and unlisted peers",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/coverage-applicability/evaluate.ts",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": {
+            "kind": "harvested",
+            "source": "plan.items"
+          },
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product ship; clause satisfied by merged Tracking PR.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T04:58:57.101Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T04:58:57.101Z"
+          }
         },
         {
-          "id": 6,
+          "id": "6",
           "text": "CHANGELOG Unreleased Security/Fixed for residual deposit keep-unknowns",
+          "artifact_path": "packages/core/src/coverage-applicability/evaluate.ts",
+          "ambiguous": false,
+          "provenance": {
+            "kind": "harvested",
+            "source": "plan.items"
+          },
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product ship; clause satisfied by merged Tracking PR.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T04:58:57.101Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T04:58:57.101Z"
+          }
+        },
+        {
+          "id": 7,
+          "text": "Summary Leftover from Prefer-A Bound Recut on #5674: residual keep-unknown deposit paths that stay outside the closed VERSION + lifecycle `.gitkeep` inert set.",
           "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 8,
+          "text": "Classifier/keep-unknown residuals (not waived/exit-4 wiring — that stays on #5674):",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 9,
+          "text": "`.deft/core/run` (Python launcher; must not be unconditional inert)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 10,
+          "text": "executable `.githooks/*`",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 11,
+          "text": "host hook registration JSON",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 12,
+          "text": "`.github/codeql/codeql-config.yml`",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 13,
+          "text": "other installer-managed unknowns outside #5665 limb-1 and #5674 limb-4 exact set",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 14,
+          "text": "Parent leftover: #5674",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 15,
+          "text": "Prefer-A Bound Recut: https://github.com/deftai/directive/issues/5674#issuecomment-6219834876",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 16,
+          "text": "Classifier story: #5665",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 17,
+          "text": "Override mint/admission: #5542",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "sentences": [
+        "Summary Leftover from Prefer-A Bound Recut on #5674: residual keep-unknown deposit paths that stay outside the closed VERSION + lifecycle `.gitkeep` inert set.",
+        "Classifier/keep-unknown residuals (not waived/exit-4 wiring — that stays on #5674):",
+        "`.deft/core/run` (Python launcher; must not be unconditional inert)",
+        "executable `.githooks/*`",
+        "host hook registration JSON",
+        "`.github/codeql/codeql-config.yml`",
+        "other installer-managed unknowns outside #5665 limb-1 and #5674 limb-4 exact set",
+        "Parent leftover: #5674",
+        "Prefer-A Bound Recut: https://github.com/deftai/directive/issues/5674#issuecomment-6219834876",
+        "Classifier story: #5665",
+        "Override mint/admission: #5542",
+        "Demote CodeQL config exact-path inert after coverable-first in coverage-applicability evaluate",
+        "Host-registration managed-projection demotion with A/M split for official hooks projection paths",
+        "HOOK_FILENAMES-only exact pathname inert for official extension-less githooks pair",
+        "Deletion-only shebang-proven relief for retired python run shim under deposit",
+        "Authority keep-unknown wall for approved-scope and unlisted peers",
+        "CHANGELOG Unreleased Security/Fixed for residual deposit keep-unknowns"
+      ],
+      "confessions": [],
+      "ambiguity_attestation": "none_found",
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "admitted_source_sentences": [
+        "Summary Leftover from Prefer-A Bound Recut on #5674: residual keep-unknown deposit paths that stay outside the closed VERSION + lifecycle `.gitkeep` inert set.",
+        "Classifier/keep-unknown residuals (not waived/exit-4 wiring — that stays on #5674):",
+        "`.deft/core/run` (Python launcher; must not be unconditional inert)",
+        "executable `.githooks/*`",
+        "host hook registration JSON",
+        "`.github/codeql/codeql-config.yml`",
+        "other installer-managed unknowns outside #5665 limb-1 and #5674 limb-4 exact set",
+        "Parent leftover: #5674",
+        "Prefer-A Bound Recut: https://github.com/deftai/directive/issues/5674#issuecomment-6219834876",
+        "Classifier story: #5665",
+        "Override mint/admission: #5542"
+      ],
+      "admitted_source_digest": "24dfcd0515a49962b2f196971d124e8aa658dfb8a135f440a6dfda95da811690"
     },
     "metadata": {
       "intended_placement": {
@@ -634,10 +1223,39 @@
           "packages/core/src/deposit/python-free.ts",
           "CHANGELOG.md"
         ],
-        "cohesion_exemption": "CHANGELOG shared Unreleased for #5677"
+        "cohesion_exemption": "CHANGELOG shared Unreleased for #5677",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/coverage-applicability"
+        ]
+      },
+      "productPullRequest": 5781,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "e4d3f81d15c744b99fa96ca3b6e2f0459d7664b0",
+        "prNumber": 5781,
+        "prBase": "master",
+        "mergeCommit": "59ba8e4131982e574b039647ff59262826ee7d28",
+        "deliveryBranch": "master",
+        "deliveryCommit": "db26c453690125011a077d21be899682d6d555f4",
+        "verifiedAt": "2026-10-20T05:03:14Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTUyNTktODk3Ni03ZGIxLTg1ZjMtZWE2ZDA4ZWIzYTJm"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-20T05:03:14Z",
+      "completedSessionId": "host:grok:v1:MDFhMTUyNTktODk3Ni03ZGIxLTg1ZjMtZWE2ZDA4ZWIzYTJm",
+      "capacityBucket": "cognitive-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-20T05:03:14Z"
       }
     },
     "id": "github.issue.5887609421",
-    "updated": "2026-10-19T16:23:59Z"
+    "updated": "2026-10-20T05:03:14Z"
   }
 }
