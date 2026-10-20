@@ -138,7 +138,8 @@ function worktreePathsReferToSame(left: string, right: string): boolean {
     return true;
   }
   if (leftBase.toLowerCase() !== rightBase.toLowerCase()) {
-    return true;
+    // Distinct basenames even ignoring case → distinct worktrees.
+    return false;
   }
   // Case-only basename difference: re-probe without cache so a stale true cannot
   // unregister a case-distinct sibling after a failed sensitivity probe.
