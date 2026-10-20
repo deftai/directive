@@ -4,7 +4,7 @@
 # Resolution order:
 #   1. DEFT_HOOKS_PREFER_GLOBAL=1 forces the global `deft` (escape hatch, #2248).
 #   2. Framework-source (monorepo) checkout: prefer the freshly-built LOCAL CLI
-#      (packages/cli/dist/bin.js) over a possibly-stale global `deft`, so a
+#      (packages/runtime/dist/bin.js) over a possibly-stale global `deft`, so a
 #      newly-added-and-wired verb is not unknown to the global and does not
 #      block commits/pushes (#2248). Detected via the built local CLI existing
 #      under $REPO_ROOT together with a monorepo sentinel (pnpm-workspace.yaml).
@@ -14,7 +14,7 @@
 #   5. Nothing resolvable: fail with an install hint.
 
 run_deft() {
-    _deft_local="$REPO_ROOT/packages/cli/dist/bin.js"
+    _deft_local="$REPO_ROOT/packages/runtime/dist/bin.js"
 
     # (1) Escape hatch: force the global even in a monorepo.
     if [ "${DEFT_HOOKS_PREFER_GLOBAL:-}" = "1" ] && command -v deft >/dev/null 2>&1; then
@@ -41,7 +41,7 @@ run_deft() {
     fi
 
     # (5) Nothing resolvable.
-    echo "deft hooks: 'deft' not found on PATH and no local CLI at packages/cli/dist/bin.js." >&2
+    echo "deft hooks: 'deft' not found on PATH and no local CLI at packages/runtime/dist/bin.js." >&2
     echo "  Install: npm i -g @deftai/directive" >&2
     exit 1
 }
