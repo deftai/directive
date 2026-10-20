@@ -66,20 +66,31 @@ function emptyResult(from: string, root: string, message: string): MigrateResult
   };
 }
 
-/** Pull the on-disk path out of a detectLegacyVbriefLayout reason string. */
+/**
+ * Pull the on-disk path out of a detectLegacyVbriefLayout reason string.
+ * Strip known prefixes (do not search for bare " in " — folder names may contain it).
+ */
 function extractLegacyReasonPath(reason: string): string | null {
-  const filenamePrefix = "legacy artifact filename: ";
-  if (reason.startsWith(filenamePrefix)) {
-    return reason.slice(filenamePrefix.length);
-  }
-  // Reasons use "… in <path>". Prefer the last " in " so folder names that
-  // contain that substring (e.g. "project in progress") do not truncate.
-  const marker = " in ";
-  const idx = reason.lastIndexOf(marker);
-  if (idx >= 0) {
-    return reason.slice(idx + marker.length);
+  const patterns = [
+    /^legacy artifact filename: (.+)$/,
+    /^legacy info root key in (.+)$/,
+    /^declared version \S+ in (.+)$/,
+    /^legacy reference prefix \S+ in (.+)$/,
+  ];
+  for (const re of patterns) {
+    const match = reason.match(re);
+    if (match?.[1]) {
+      return match[1];
+    }
   }
   return null;
+}
+
+function pathIsUnderRoot(filePath: string, rootAbs: string): boolean {
+  const normalizedFile = filePath.replace(/\\/g, "/");
+  const normalizedRoot = rootAbs.replace(/\\/g, "/");
+  const prefix = normalizedRoot.endsWith("/") ? normalizedRoot : `${normalizedRoot}/`;
+  return normalizedFile === normalizedRoot || normalizedFile.startsWith(prefix);
 }
 
 /**
@@ -95,28 +106,18 @@ export function projectNeedsXbriefMigration(projectRoot: string): boolean {
   ) {
     return true;
   }
-  // Marked vbrief/ retention is intentional; still migrate residual legacy
-  // envelopes under xbrief/ (detectLegacyVbriefLayout would otherwise stay true
-  // forever from the mere presence of vbrief/). Ignore only files under THIS
-  // project's retained vbrief/ tree (resolve paths; lastIndexOf for " in " so a
-  // parent folder containing that substring cannot truncate the path).
+  // Marked vbrief/ retention is intentional; only residual under THIS project's
+  // xbrief/ tree still needs migrate (ignore retained vbrief/ content entirely).
   if (convergence.state === "xbrief-marker") {
     const legacy = detectLegacyVbriefLayout(projectRoot);
-    const retainedRoot = resolve(projectRoot, "vbrief").replace(/\\/g, "/");
-    const retainedPrefix = retainedRoot.endsWith("/") ? retainedRoot : `${retainedRoot}/`;
+    const xbriefRoot = resolve(projectRoot, "xbrief");
     return legacy.reasons.some((reason) => {
-      if (reason === "vbrief/ directory present" || reason.startsWith("vbrief/")) {
-        return false;
-      }
       const extracted = extractLegacyReasonPath(reason);
       if (extracted === null) {
-        return true;
-      }
-      const filePath = resolve(projectRoot, extracted).replace(/\\/g, "/");
-      if (filePath === retainedRoot || filePath.startsWith(retainedPrefix)) {
         return false;
       }
-      return true;
+      const filePath = resolve(projectRoot, extracted);
+      return pathIsUnderRoot(filePath, xbriefRoot);
     });
   }
   return detectLegacyVbriefLayout(projectRoot).legacyLayout;
