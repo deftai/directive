@@ -744,13 +744,25 @@ jobs:
           ) -join [Environment]::NewLine
           [System.IO.File]::WriteAllText((Join-Path $consumer 'Taskfile.yml'), $consumerTaskfile, (New-Object System.Text.UTF8Encoding $false))
 
-          # OVPR (#5490): launcher passthrough needs an exact runtime pin + installed
-          # runtime. Keep the .deft/core Taskfile include for #2120 cache-fresh coverage.
-          $runtimePkgPath = Join-Path $env:GITHUB_WORKSPACE 'packages\runtime\package.json'
-          $runtimePkg = Get-Content -Raw $runtimePkgPath | ConvertFrom-Json
-          $runtimeVersion = [string]$runtimePkg.version
-          if ([string]::IsNullOrWhiteSpace($runtimeVersion)) {
-            throw "packages/runtime/package.json missing version for OVPR Windows fixture"
+          # OVPR (#5490): launcher passthrough needs an exact runtime pin + a
+          # self-contained staged runtime (workspace packages/runtime still
+          # imports @deftai/directive-core). Keep .deft/core Taskfile include for
+          # #2120 cache-fresh coverage.
+          $stageScript = Join-Path $env:GITHUB_WORKSPACE 'packages\runtime\scripts\stage-bundle.mjs'
+          node $stageScript
+          if ($LASTEXITCODE -ne 0) {
+            throw "stage-bundle.mjs exited $LASTEXITCODE (OVPR Windows fixture)"
+          }
+          $stageDir = Join-Path $env:GITHUB_WORKSPACE 'packages\runtime\.pack-stage'
+          $stagedPkgPath = Join-Path $stageDir 'package.json'
+          if (-not (Test-Path $stagedPkgPath)) {
+            throw "stage-bundle did not write $stagedPkgPath"
+          }
+          # Workspace stage often keeps 0.0.0; stamp an exact fixture SemVer for the pin.
+          $runtimeVersion = '0.0.0-win-fixture'
+          node -e "const fs=require('fs'); const p=process.argv[1]; const j=JSON.parse(fs.readFileSync(p,'utf8')); j.version=process.argv[2]; fs.writeFileSync(p, JSON.stringify(j,null,2)+'\n');" $stagedPkgPath $runtimeVersion
+          if ($LASTEXITCODE -ne 0) {
+            throw "failed to stamp staged runtime version for OVPR Windows fixture"
           }
           $consumerPackageJson = @{
             packageManager = 'npm@11.16.0'
@@ -763,8 +775,7 @@ jobs:
 
           $runtimeNm = Join-Path $consumer 'node_modules\@deftai\directive-runtime'
           New-Item -ItemType Directory -Path $runtimeNm -Force | Out-Null
-          Copy-Item (Join-Path $env:GITHUB_WORKSPACE 'packages\runtime\package.json') (Join-Path $runtimeNm 'package.json')
-          Copy-Item (Join-Path $env:GITHUB_WORKSPACE 'packages\runtime\dist') (Join-Path $runtimeNm 'dist') -Recurse
+          Copy-Item (Join-Path $stageDir '*') $runtimeNm -Recurse -Force
 
           $cmdShim = Join-Path $shimDir 'deft.cmd'
           $cmdBody = "@echo off`r`nnode `"$env:GITHUB_WORKSPACE\packages\cli\dist\bin.js`" %*`r`n"
