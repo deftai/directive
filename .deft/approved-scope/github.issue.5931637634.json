@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-10-19-5782-designverify-merge-gate-adopts-plan-id-from-pr-deft-story-fo.xbrief.json",
+  "planId": "github.issue.5931637634",
+  "approvedAt": "2026-10-20T02:11:47Z",
+  "fileScope": [
+    "CHANGELOG.md",
+    "content/docs/intent-constraint.md",
+    "content/docs/observable-scope.md",
+    "content/scm/github.md",
+    "packages/cli/src/verify-intent-constraint.ts",
+    "packages/cli/src/verify-observable-scope.ts",
+    "packages/core/src/docs/docs-impact.ts",
+    "packages/core/src/intake/residual-identity.ts",
+    "packages/core/src/intent-constraint/evaluate.test.ts",
+    "packages/core/src/intent-constraint/evaluate.ts",
+    "packages/core/src/intent-constraint/plan-id-adopter.test.ts",
+    "packages/core/src/intent-constraint/plan-id-adopter.ts",
+    "packages/core/src/observable-scope/evaluate.test.ts",
+    "packages/core/src/observable-scope/evaluate.ts",
+    "packages/core/src/pr-closing-keywords/main.ts",
+    "xbrief/evaluator-surface-disposition.json"
+  ],
+  "fileScopeDigest": "05b294e6653893bf0e2936dd4898afb6aab72ae4550fbf75a4c0cb172c79f86a",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-10-20T02:11:47Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "8f10dad035a8fd3f1a44aa36a28027a6b63331e5be06e8bd706611be45227de1",
+  "digestAlgo": "intent-extract-v1"
+}
