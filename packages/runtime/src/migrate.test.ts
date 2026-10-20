@@ -145,6 +145,37 @@ describe("runMigrate (R7 / AC7.8)", () => {
     expect(readProjectDataStatus(root).dataStatus).toBe("current");
   });
 
+  it("F-017: marked vbrief retention still needs migrate for residual xbrief@0.6", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, "vbrief"), { recursive: true });
+    writeFileSync(
+      join(root, "vbrief", "DEPRECATED.md"),
+      "<!-- deft:vbrief-deprecated -->\nlegacy retained\n",
+      "utf8",
+    );
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "story.xbrief.json"),
+      `${JSON.stringify({
+        xBRIEFInfo: { version: "0.6", description: "residual" },
+        plan: { title: "Story", status: "running", items: [] },
+      })}\n`,
+      "utf8",
+    );
+    expect(projectNeedsXbriefMigration(root)).toBe(true);
+
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "story.xbrief.json"),
+      `${JSON.stringify({
+        xBRIEFInfo: { version: "0.8", description: "current" },
+        plan: { title: "Story", status: "running", items: [] },
+      })}\n`,
+      "utf8",
+    );
+    expect(projectNeedsXbriefMigration(root)).toBe(false);
+  });
+
   it("AC14.18: marker ContainedWrite failure preserves xbrief migrated + conflicts", () => {
     const root = tempRoot();
     mkdirSync(join(root, "vbrief", "active"), { recursive: true });

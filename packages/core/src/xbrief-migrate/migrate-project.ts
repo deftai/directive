@@ -847,6 +847,63 @@ function runAgentsRefresh(
   }
 }
 
+/**
+ * In-place residual envelope rewrites under xbrief/ (#3236 / wave3b L1).
+ * Returns a terminal outcome when work was applied or refused; null when none pending.
+ */
+function rewriteResidualXbriefEnvelopes(
+  projectRoot: string,
+  args: XbriefMigrationArgs,
+): XbriefMigrationOutcome | null {
+  const plan = planHybridEnvelopeRewrites(projectRoot);
+  if (!plan.ok) {
+    return { kind: "config", message: plan.error };
+  }
+  if (plan.pending.length > 0) {
+    if (!args.force) {
+      const git = checkGitClean(projectRoot);
+      if (git.status === "WARN") {
+        return {
+          kind: "refused",
+          message: `${git.message} ${xbriefMigrationGuidance()} Pass --force to override.`,
+        };
+      }
+    }
+    const files = applyHybridEnvelopeRewrites(projectRoot, plan.pending);
+    return {
+      kind: "rewritten",
+      files,
+      message: `Rewrote ${files} residual envelope(s) (${PRE_LEGACY_VBRIEF_VERSION}/${LEGACY_VBRIEF_VERSION}/${MIGRATE_THROUGH_VBRIEF_VERSION}) in place to xBRIEFInfo@${VBRIEF_VERSION} under '${MIGRATED_ARTIFACT_DIR}/'.`,
+    };
+  }
+
+  const strip = planRedundantLegacyEnvelopeStrips(projectRoot);
+  if (!strip.ok) {
+    return { kind: "config", message: strip.error };
+  }
+  if (strip.pending.length > 0) {
+    if (!args.force) {
+      const git = checkGitClean(projectRoot);
+      if (git.status === "WARN") {
+        return {
+          kind: "refused",
+          message: `${git.message} ${xbriefMigrationGuidance()} Pass --force to override.`,
+        };
+      }
+    }
+    const applied = applyRedundantLegacyEnvelopeStrips(projectRoot, strip.pending);
+    if (!applied.ok) {
+      return { kind: "config", message: applied.error };
+    }
+    return {
+      kind: "rewritten",
+      files: applied.files,
+      message: `Stripped ${applied.files} redundant leftover vBRIEFInfo envelope(s) beside xBRIEFInfo@0.8 under '${MIGRATED_ARTIFACT_DIR}/'.`,
+    };
+  }
+  return null;
+}
+
 /** Core orchestrator for the consumer xbrief rename (#2110) + convergence (#2270). */
 export function runXbriefMigration(
   args: XbriefMigrationArgs,
@@ -858,15 +915,23 @@ export function runXbriefMigration(
   const convergence = detectXbriefConvergence(projectRoot);
 
   switch (convergence.state) {
-    // Already converged: legacy root is retained behind an explicit marker.
-    // Rerun is a pure no-op (no re-removal, no duplicate marker) — idempotent.
-    case "xbrief-marker":
+    // Layout converged behind an explicit marker. Still rewrite residual hybrid
+    // envelopes under xbrief/ (#3236) — the marker must not skip JSON bumps
+    // (Greptile P1 on #5790: early return previously left xBRIEFInfo@0.6 in place).
+    case "xbrief-marker": {
+      if (convergence.xbriefHasContent) {
+        const residual = rewriteResidualXbriefEnvelopes(projectRoot, args);
+        if (residual !== null) {
+          return residual;
+        }
+      }
       return {
         kind: "converged",
         action: "marker",
         already: true,
         message: `Legacy '${LEGACY_ARTIFACT_DIR}/' already carries a deprecation marker — layout already converged.`,
       };
+    }
 
     // Ambiguous dual-empty root: a fully-migrated empty legacy tree. Converge to
     // a single canonical root by removing it (or marking it when read-compat
@@ -910,52 +975,11 @@ export function runXbriefMigration(
   // hybrid xBRIEFInfo@0.6 and orphan @0.7 envelopes in place (same transform).
   // Run before the layout-detection short-circuit so compact `"version":"0.6"`
   // JSON that the string-scan may miss still gets rewritten.
+  // (xbrief-marker residual path is handled above in the switch.)
   if (convergence.xbriefHasContent && !convergence.vbriefPresent) {
-    const plan = planHybridEnvelopeRewrites(projectRoot);
-    if (!plan.ok) {
-      return { kind: "config", message: plan.error };
-    }
-    if (plan.pending.length > 0) {
-      if (!args.force) {
-        const git = checkGitClean(projectRoot);
-        if (git.status === "WARN") {
-          return {
-            kind: "refused",
-            message: `${git.message} ${xbriefMigrationGuidance()} Pass --force to override.`,
-          };
-        }
-      }
-      const files = applyHybridEnvelopeRewrites(projectRoot, plan.pending);
-      return {
-        kind: "rewritten",
-        files,
-        message: `Rewrote ${files} residual envelope(s) (${PRE_LEGACY_VBRIEF_VERSION}/${LEGACY_VBRIEF_VERSION}/${MIGRATE_THROUGH_VBRIEF_VERSION}) in place to xBRIEFInfo@${VBRIEF_VERSION} under '${MIGRATED_ARTIFACT_DIR}/'.`,
-      };
-    }
-
-    const strip = planRedundantLegacyEnvelopeStrips(projectRoot);
-    if (!strip.ok) {
-      return { kind: "config", message: strip.error };
-    }
-    if (strip.pending.length > 0) {
-      if (!args.force) {
-        const git = checkGitClean(projectRoot);
-        if (git.status === "WARN") {
-          return {
-            kind: "refused",
-            message: `${git.message} ${xbriefMigrationGuidance()} Pass --force to override.`,
-          };
-        }
-      }
-      const applied = applyRedundantLegacyEnvelopeStrips(projectRoot, strip.pending);
-      if (!applied.ok) {
-        return { kind: "config", message: applied.error };
-      }
-      return {
-        kind: "rewritten",
-        files: applied.files,
-        message: `Stripped ${applied.files} redundant leftover vBRIEFInfo envelope(s) beside xBRIEFInfo@0.8 under '${MIGRATED_ARTIFACT_DIR}/'.`,
-      };
+    const residual = rewriteResidualXbriefEnvelopes(projectRoot, args);
+    if (residual !== null) {
+      return residual;
     }
   }
 

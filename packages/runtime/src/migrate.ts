@@ -81,12 +81,17 @@ export function projectNeedsXbriefMigration(projectRoot: string): boolean {
   }
   // Marked vbrief/ retention is intentional; still migrate residual legacy
   // envelopes under xbrief/ (detectLegacyVbriefLayout would otherwise stay true
-  // forever from the mere presence of vbrief/).
+  // forever from the mere presence of vbrief/). Reasons embed absolute paths, so
+  // ignore any reason that points at the retained legacy tree.
   if (convergence.state === "xbrief-marker") {
     const legacy = detectLegacyVbriefLayout(projectRoot);
-    return legacy.reasons.some(
-      (reason) => !reason.startsWith("vbrief/") && reason !== "vbrief/ directory present",
-    );
+    return legacy.reasons.some((reason) => {
+      if (reason === "vbrief/ directory present" || reason.startsWith("vbrief/")) {
+        return false;
+      }
+      const normalized = reason.replace(/\\/g, "/");
+      return !/(^|\/)vbrief\//.test(normalized);
+    });
   }
   return detectLegacyVbriefLayout(projectRoot).legacyLayout;
 }

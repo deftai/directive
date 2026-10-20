@@ -17,6 +17,7 @@ import { isAtomicWriteTemp } from "../fs/mutation-ledger.js";
 import {
   LEGACY_ARTIFACT_DIR,
   MIGRATED_ARTIFACT_DIR,
+  VBRIEF_DEPRECATION_MARKER_BODY,
   VBRIEF_DEPRECATION_MARKER_FILENAME,
   VBRIEF_DEPRECATION_MARKER_SENTINEL,
 } from "./constants.js";
@@ -971,6 +972,30 @@ describe("runXbriefMigration hybrid in-place rewrite (#3236)", () => {
     expect(rewritten.plan.references[0].type).toBe("x-xbrief/github-issue");
     expect(rewritten.plan.references[1].type).toBe("x-xbrief/plan");
     expect(existsSync(join(project, LEGACY_ARTIFACT_DIR))).toBe(false);
+  });
+
+  it("rewrites residual xBRIEFInfo@0.6 under xbrief/ when vbrief/ is retained behind a marker", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-hybrid-marker-"));
+    temps.push(base);
+    const project = scaffoldHybridXbriefOnly(base);
+    const artifact = join(project, MIGRATED_ARTIFACT_DIR, "active", "story.xbrief.json");
+    mkdirSync(join(project, LEGACY_ARTIFACT_DIR), { recursive: true });
+    writeFileSync(
+      join(project, LEGACY_ARTIFACT_DIR, VBRIEF_DEPRECATION_MARKER_FILENAME),
+      VBRIEF_DEPRECATION_MARKER_BODY,
+      "utf8",
+    );
+
+    const outcome = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    expect(outcome.kind).toBe("rewritten");
+    if (outcome.kind === "rewritten") {
+      expect(outcome.files).toBe(1);
+      expect(outcome.message).toMatch(/xBRIEFInfo@0\.8/);
+    }
+    expect(JSON.parse(readFileSync(artifact, "utf8")).xBRIEFInfo.version).toBe("0.8");
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR, VBRIEF_DEPRECATION_MARKER_FILENAME))).toBe(
+      true,
+    );
   });
 
   it("thin-rewrites orphan xBRIEFInfo@0.7 envelopes on an xbrief-only tree", () => {
