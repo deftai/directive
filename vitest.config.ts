@@ -224,6 +224,8 @@ const spawnHeavyGlobs = [
   "packages/runtime/src/cli-bin-symlink-entrypoint.test.ts",
   "packages/runtime/src/hook-host-identity-lifetime.test.ts",
   "packages/runtime/src/hook-dispatch-worktree.test.ts",
+  // Concurrent tsx self-complete children; unit 5s default flakes under coverage.
+  "packages/runtime/src/wave2q-gen-rebuild-session.test.ts",
   "packages/core/src/session/occupancy-stress.test.ts",
   "packages/core/src/session/spawn-occupancy.test.ts",
   "packages/core/src/session/extra-coverage.test.ts",
