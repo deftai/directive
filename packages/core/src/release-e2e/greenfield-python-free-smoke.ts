@@ -379,8 +379,8 @@ export function rehearseGreenfieldPythonFreeSmoke(
     if (!ok) return [false, `greenfield smoke: ${reason}`];
 
     // npm records file:../packs/... for a local tarball; OVPR repair requires an
-    // exact SemVer pin. Rewrite to the packed smoke version (node_modules already
-    // holds that exact package from the tarball install).
+    // exact SemVer pin + matching lockfile request. Rewrite both so repair skips
+    // registry PM restore (9.9.9-smoke is not on the public registry).
     try {
       const consumerPkgPath = join(projectDir, "package.json");
       const consumerPkg = JSON.parse(readFileSync(consumerPkgPath, "utf8")) as {
@@ -391,6 +391,26 @@ export function rehearseGreenfieldPythonFreeSmoke(
       deps["@deftai/directive-runtime"] = SMOKE_VERSION;
       consumerPkg.devDependencies = deps;
       writeFileSync(consumerPkgPath, `${JSON.stringify(consumerPkg, null, 2)}\n`, "utf8");
+
+      const lockPath = join(projectDir, "package-lock.json");
+      if (existsSync(lockPath)) {
+        const lock = JSON.parse(readFileSync(lockPath, "utf8")) as {
+          packages?: Record<string, Record<string, unknown>>;
+        };
+        const root = lock.packages?.[""];
+        if (root && typeof root === "object") {
+          const rootDeps = (root.devDependencies ?? root.dependencies) as
+            | Record<string, string>
+            | undefined;
+          if (rootDeps) rootDeps["@deftai/directive-runtime"] = SMOKE_VERSION;
+          if (!root.devDependencies && rootDeps) root.devDependencies = rootDeps;
+        }
+        const entry = lock.packages?.["node_modules/@deftai/directive-runtime"];
+        if (entry && typeof entry === "object") {
+          entry.version = SMOKE_VERSION;
+        }
+        writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`, "utf8");
+      }
     } catch (exc) {
       return [false, `greenfield smoke: cannot rewrite exact runtime pin: ${String(exc)}`];
     }
