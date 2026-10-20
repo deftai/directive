@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5770",
-    "updated": "2026-10-19T18:27:17Z"
+    "updated": "2026-10-20T00:59:24Z"
   },
   "plan": {
     "title": "Cursor payload-host: allow auto-worktree Task spawns + Multitask parent read-only / occupancy",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Cursor payload-host: allow auto-worktree Task spawns + Multitask parent read-only / occupancy",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5770",
@@ -19,28 +19,72 @@
         "title": "Rewrite spawn-occupancy Cursor Task dest-missing opener with presented subagent_type and drop stripped dest-key inventory lead",
         "status": "completed",
         "effort": "M",
-        "x-directive/artifact_path": "packages/core/src/session/spawn-occupancy.ts"
+        "x-directive/artifact_path": "packages/core/src/session/spawn-occupancy.ts",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5780 ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T00:58:45.974Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T00:58:45.974Z"
+        }
       },
       {
         "id": "2",
         "title": "Publish Multitask spawn matrix in host-cursor docs plus recovery pointer from dispatcher recovery constant",
         "status": "completed",
         "effort": "M",
-        "x-directive/artifact_path": "content/skills/deft-directive-swarm/references/host-cursor.md"
+        "x-directive/artifact_path": "content/skills/deft-directive-swarm/references/host-cursor.md",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5780 ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T00:58:45.974Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T00:58:45.974Z"
+        }
       },
       {
         "id": "3",
         "title": "Fixtures for deny-lead rewrite and matrix pointer wiring",
         "status": "completed",
         "effort": "M",
-        "x-directive/artifact_path": "packages/core/src/session/spawn-occupancy.test.ts"
+        "x-directive/artifact_path": "packages/core/src/session/spawn-occupancy.test.ts",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5780 ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T00:58:45.974Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T00:58:45.974Z"
+        }
       },
       {
         "id": "4",
         "title": "CHANGELOG Unreleased for Multitask nursery dest truth; primary Multitask leftover out of scope",
         "status": "completed",
         "effort": "M",
-        "x-directive/artifact_path": "CHANGELOG.md"
+        "x-directive/artifact_path": "CHANGELOG.md",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5780 ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T00:58:45.974Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T00:58:45.974Z"
+        }
       }
     ],
     "tags": [
@@ -88,7 +132,10 @@
           "content/skills/deft-directive-swarm/references/host-cursor.md",
           "CHANGELOG.md"
         ],
-        "cohesion_exemption": "CHANGELOG shared; host-cursor Multitask matrix for #5770"
+        "cohesion_exemption": "CHANGELOG shared; host-cursor Multitask matrix for #5770",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/session/spawn-occupancy"
+        ]
       },
       "intended_placement": {
         "schema": "deft.scope.intended_placement.v1",
@@ -987,36 +1034,117 @@
         "algorithm": "sha256",
         "sha256": "ce071de8e2262ae4023eecb109dd26b1a1a8530d1dd84b05c2c1744f13fb09d6"
       },
-      "productPullRequest": 5780
+      "productPullRequest": 5780,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "080099e7e81f6cb3bee518a53c8637cc68918b36",
+        "prNumber": 5780,
+        "prBase": "master",
+        "mergeCommit": "a602018c9c26736b49441e3647703a9e55f4f9dc",
+        "deliveryBranch": "master",
+        "deliveryCommit": "8f95eb55c59d61143bb6b2fc9f7a6becc0dcf706",
+        "verifiedAt": "2026-10-20T00:59:24Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTUyNTktODk3Ni03ZGIxLTg1ZjMtZWE2ZDA4ZWIzYTJm"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-20T00:59:24Z",
+      "completedSessionId": "host:grok:v1:MDFhMTUyNTktODk3Ni03ZGIxLTg1ZjMtZWE2ZDA4ZWIzYTJm",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-20T00:59:24Z"
+      }
     },
     "acceptance": {
-      "commands": [],
-      "none_stated": true,
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/session/spawn-occupancy"
+        }
+      ],
+      "none_stated": false,
       "source_rung": "derived",
       "criteria": [
         {
-          "id": "1",
-          "title": "Rewrite spawn-occupancy Cursor Task dest-missing opener with presented subagent_type and drop stripped dest-key inventory lead",
+          "id": 1,
+          "text": "Rewrite spawn-occupancy Cursor Task dest-missing opener with presented subagent_type and drop stripped dest-key inventory lead",
+          "artifact_path": "packages/core/src/session/spawn-occupancy.ts",
+          "ambiguous": false,
+          "provenance": "statement",
           "status": "completed",
-          "x-directive/artifact_path": "packages/core/src/session/spawn-occupancy.ts"
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Bound Prefer-A clause satisfied by product PR #5780 ship; leftover-complete after forge link. Delivery attested via merge-commit.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T00:58:19.060Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T00:58:19.060Z"
+          }
         },
         {
-          "id": "2",
-          "title": "Publish Multitask spawn matrix in host-cursor docs plus recovery pointer from dispatcher recovery constant",
+          "id": 2,
+          "text": "Publish Multitask spawn matrix in host-cursor docs plus recovery pointer from dispatcher recovery constant",
+          "artifact_path": "content/skills/deft-directive-swarm/references/host-cursor.md",
+          "ambiguous": false,
+          "provenance": "statement",
           "status": "completed",
-          "x-directive/artifact_path": "content/skills/deft-directive-swarm/references/host-cursor.md"
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Bound Prefer-A clause satisfied by product PR #5780 ship; leftover-complete after forge link. Delivery attested via merge-commit.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T00:58:19.060Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T00:58:19.060Z"
+          }
         },
         {
-          "id": "3",
-          "title": "Fixtures for deny-lead rewrite and matrix pointer wiring",
+          "id": 3,
+          "text": "Fixtures for deny-lead rewrite and matrix pointer wiring",
+          "artifact_path": "packages/core/src/session/spawn-occupancy.test.ts",
+          "ambiguous": false,
+          "provenance": "statement",
           "status": "completed",
-          "x-directive/artifact_path": "packages/core/src/session/spawn-occupancy.test.ts"
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Bound Prefer-A clause satisfied by product PR #5780 ship; leftover-complete after forge link. Delivery attested via merge-commit.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T00:58:19.060Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T00:58:19.060Z"
+          }
         },
         {
-          "id": "4",
-          "title": "CHANGELOG Unreleased for Multitask nursery dest truth; primary Multitask leftover out of scope",
+          "id": 4,
+          "text": "CHANGELOG Unreleased for Multitask nursery dest truth; primary Multitask leftover out of scope",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement",
           "status": "completed",
-          "x-directive/artifact_path": "CHANGELOG.md"
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Bound Prefer-A clause satisfied by product PR #5780 ship; leftover-complete after forge link. Delivery attested via merge-commit.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T00:58:19.060Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T00:58:19.060Z"
+          }
         }
       ],
       "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
@@ -1026,28 +1154,76 @@
           "text": "Rewrite spawn-occupancy Cursor Task dest-missing opener with presented subagent_type and drop stripped dest-key inventory lead",
           "artifact_path": "packages/core/src/session/spawn-occupancy.ts",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Bound Prefer-A clause satisfied by product PR #5780 ship; leftover-complete after forge link. Delivery attested via merge-commit.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T00:58:19.060Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T00:58:19.060Z"
+          }
         },
         {
           "id": 2,
           "text": "Publish Multitask spawn matrix in host-cursor docs plus recovery pointer from dispatcher recovery constant",
           "artifact_path": "content/skills/deft-directive-swarm/references/host-cursor.md",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Bound Prefer-A clause satisfied by product PR #5780 ship; leftover-complete after forge link. Delivery attested via merge-commit.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T00:58:19.060Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T00:58:19.060Z"
+          }
         },
         {
           "id": 3,
           "text": "Fixtures for deny-lead rewrite and matrix pointer wiring",
           "artifact_path": "packages/core/src/session/spawn-occupancy.test.ts",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Bound Prefer-A clause satisfied by product PR #5780 ship; leftover-complete after forge link. Delivery attested via merge-commit.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T00:58:19.060Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T00:58:19.060Z"
+          }
         },
         {
           "id": 4,
           "text": "CHANGELOG Unreleased for Multitask nursery dest truth; primary Multitask leftover out of scope",
           "artifact_path": "CHANGELOG.md",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Bound Prefer-A clause satisfied by product PR #5780 ship; leftover-complete after forge link. Delivery attested via merge-commit.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T00:58:19.060Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T00:58:19.060Z"
+          }
         }
       ],
       "ambiguity_attestation": "none_found",
@@ -1060,6 +1236,6 @@
       "confessions": []
     },
     "id": "github.issue.5925729753",
-    "updated": "2026-10-19T16:24:03Z"
+    "updated": "2026-10-20T00:59:24Z"
   }
 }
