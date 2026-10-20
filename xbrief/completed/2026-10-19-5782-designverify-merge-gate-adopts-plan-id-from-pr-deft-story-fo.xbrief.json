@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5782",
-    "updated": "2026-10-19T23:34:43Z"
+    "updated": "2026-10-20T05:24:52Z"
   },
   "plan": {
     "title": "design(verify): merge-gate adopts plan-id from PR deft-story for intent-constraint",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "design(verify): merge-gate adopts plan-id from PR deft-story for intent-constraint",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5782",
@@ -17,37 +17,193 @@
       {
         "id": "1",
         "title": "Digit-gated PR-story plan-id adopter with REST null config exit 2 for both intent and observable gates",
-        "status": "pending",
-        "effort": "L",
-        "x-directive/artifact_path": "packages/core/src/intent-constraint/evaluate.ts"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/intent-constraint/evaluate.ts",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T05:02:31.898Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T05:02:31.898Z"
+        }
       },
       {
         "id": "2",
         "title": "Distinct deft-story mark ownership and whole-story bind docs for sole-mark adoption",
-        "status": "pending",
-        "effort": "M",
-        "x-directive/artifact_path": "packages/core/src/intent-constraint/evaluate.ts"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/intent-constraint/evaluate.ts",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T05:02:31.898Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T05:02:31.898Z"
+        }
       },
       {
         "id": "3",
         "title": "Shared named bad-pin suppress helper for both gates without YAML planId pre-export",
-        "status": "pending",
-        "effort": "M",
-        "x-directive/artifact_path": "packages/core/src/intent-constraint/evaluate.ts"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/intent-constraint/evaluate.ts",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T05:02:31.898Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T05:02:31.898Z"
+        }
       },
       {
         "id": "4",
         "title": "Remediation table including unparseable deft-story mark row and tests for distinct multi-mark refuse",
-        "status": "pending",
-        "effort": "M",
-        "x-directive/artifact_path": "packages/core/src/intent-constraint/evaluate.ts"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/intent-constraint/evaluate.ts",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T05:02:31.898Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T05:02:31.898Z"
+        }
       },
       {
         "id": "5",
         "title": "CHANGELOG Unreleased plus intent-constraint and observable-scope operator docs",
-        "status": "pending",
+        "status": "completed",
         "effort": "S",
-        "x-directive/artifact_path": "packages/core/src/intent-constraint/evaluate.ts"
+        "x-directive/artifact_path": "packages/core/src/intent-constraint/evaluate.ts",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR ship; leftover-complete after forge link.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-20T05:02:31.898Z",
+            "mintedVia": "leftover-complete-cohort-closeout"
+          },
+          "recorded_at": "2026-10-20T05:02:31.898Z"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "clause.6",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "03f689271ad35b9749534766809ba17b321e1de1",
+          "recorded_at": "2026-10-20T05:24:52Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "clause.7",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "03f689271ad35b9749534766809ba17b321e1de1",
+          "recorded_at": "2026-10-20T05:24:52Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "03f689271ad35b9749534766809ba17b321e1de1",
+          "recorded_at": "2026-10-20T05:24:52Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "03f689271ad35b9749534766809ba17b321e1de1",
+          "recorded_at": "2026-10-20T05:24:52Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "03f689271ad35b9749534766809ba17b321e1de1",
+          "recorded_at": "2026-10-20T05:24:52Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "03f689271ad35b9749534766809ba17b321e1de1",
+          "recorded_at": "2026-10-20T05:24:52Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "03f689271ad35b9749534766809ba17b321e1de1",
+          "recorded_at": "2026-10-20T05:24:52Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "clause.13",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "03f689271ad35b9749534766809ba17b321e1de1",
+          "recorded_at": "2026-10-20T05:24:52Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -66,80 +222,377 @@
     ],
     "acceptance": {
       "source_rung": "derived",
-      "none_stated": true,
-      "commands": [],
+      "none_stated": false,
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/intent-constraint"
+        }
+      ],
       "criteria": [
         {
           "id": "1",
           "title": "Digit-gated PR-story plan-id adopter with REST null config exit 2 for both intent and observable gates",
-          "status": "pending",
-          "x-directive/artifact_path": "packages/core/src/intent-constraint/evaluate.ts"
+          "status": "completed",
+          "effort": "S",
+          "x-directive/artifact_path": "packages/core/src/intent-constraint/evaluate.ts",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "03f689271ad35b9749534766809ba17b321e1de1",
+            "recorded_at": "2026-10-20T04:53:38.5018059Z",
+            "recorded_by": "Scott"
+          }
         },
         {
           "id": "2",
           "title": "Distinct deft-story mark ownership and whole-story bind docs for sole-mark adoption",
-          "status": "pending",
-          "x-directive/artifact_path": "packages/core/src/intent-constraint/evaluate.ts"
+          "status": "completed",
+          "effort": "S",
+          "x-directive/artifact_path": "packages/core/src/intent-constraint/evaluate.ts",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "03f689271ad35b9749534766809ba17b321e1de1",
+            "recorded_at": "2026-10-20T04:53:38.5018059Z",
+            "recorded_by": "Scott"
+          }
         },
         {
           "id": "3",
           "title": "Shared named bad-pin suppress helper for both gates without YAML planId pre-export",
-          "status": "pending",
-          "x-directive/artifact_path": "packages/core/src/intent-constraint/evaluate.ts"
+          "status": "completed",
+          "effort": "S",
+          "x-directive/artifact_path": "packages/core/src/intent-constraint/evaluate.ts",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "03f689271ad35b9749534766809ba17b321e1de1",
+            "recorded_at": "2026-10-20T04:53:38.5018059Z",
+            "recorded_by": "Scott"
+          }
         },
         {
           "id": "4",
           "title": "Remediation table including unparseable deft-story mark row and tests for distinct multi-mark refuse",
-          "status": "pending",
-          "x-directive/artifact_path": "packages/core/src/intent-constraint/evaluate.ts"
+          "status": "completed",
+          "effort": "S",
+          "x-directive/artifact_path": "packages/core/src/intent-constraint/evaluate.ts",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "03f689271ad35b9749534766809ba17b321e1de1",
+            "recorded_at": "2026-10-20T04:53:38.5018059Z",
+            "recorded_by": "Scott"
+          }
         },
         {
           "id": "5",
           "title": "CHANGELOG Unreleased plus intent-constraint and observable-scope operator docs",
-          "status": "pending",
-          "x-directive/artifact_path": "packages/core/src/intent-constraint/evaluate.ts"
+          "status": "completed",
+          "effort": "S",
+          "x-directive/artifact_path": "packages/core/src/intent-constraint/evaluate.ts",
+          "x-directive/requires": "merge",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "03f689271ad35b9749534766809ba17b321e1de1",
+            "recorded_at": "2026-10-20T04:53:38.5018059Z",
+            "recorded_by": "Scott"
+          }
         }
       ],
-      "confessions": [],
-      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
       "clauses": [
         {
-          "id": 1,
+          "id": "1",
           "text": "Digit-gated PR-story plan-id adopter with REST null config exit 2 for both intent and observable gates",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/intent-constraint/evaluate.ts",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": {
+            "kind": "harvested",
+            "source": "plan.items"
+          },
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product ship; clause satisfied by merged Tracking PR.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T04:58:57.116Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T04:58:57.116Z"
+          }
         },
         {
-          "id": 2,
+          "id": "2",
           "text": "Distinct deft-story mark ownership and whole-story bind docs for sole-mark adoption",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/intent-constraint/evaluate.ts",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": {
+            "kind": "harvested",
+            "source": "plan.items"
+          },
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product ship; clause satisfied by merged Tracking PR.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T04:58:57.116Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T04:58:57.116Z"
+          }
         },
         {
-          "id": 3,
+          "id": "3",
           "text": "Shared named bad-pin suppress helper for both gates without YAML planId pre-export",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/intent-constraint/evaluate.ts",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": {
+            "kind": "harvested",
+            "source": "plan.items"
+          },
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product ship; clause satisfied by merged Tracking PR.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T04:58:57.116Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T04:58:57.116Z"
+          }
         },
         {
-          "id": 4,
+          "id": "4",
           "text": "Remediation table including unparseable deft-story mark row and tests for distinct multi-mark refuse",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/intent-constraint/evaluate.ts",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": {
+            "kind": "harvested",
+            "source": "plan.items"
+          },
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product ship; clause satisfied by merged Tracking PR.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T04:58:57.116Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T04:58:57.116Z"
+          }
         },
         {
-          "id": 5,
+          "id": "5",
           "text": "CHANGELOG Unreleased plus intent-constraint and observable-scope operator docs",
+          "artifact_path": "packages/core/src/intent-constraint/evaluate.ts",
+          "ambiguous": false,
+          "provenance": {
+            "kind": "harvested",
+            "source": "plan.items"
+          },
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product ship; clause satisfied by merged Tracking PR.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T04:58:57.116Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T04:58:57.116Z"
+          }
+        },
+        {
+          "id": 6,
+          "text": "relieves: P1 — KISS CI plan-id adopt: when `GITHUB_PR_NUMBER` (or `--pr`) is a positive digit string and intent-constraint would config-refuse unresolved planId under multi-running or multi-mint, REST-fetch the PR body, parse sole `deft-story: N`, resolve the matching `status: running` brief `plan.id`, and select that mint.",
           "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 7,
+          "text": "Explicit `--plan-id` / valid `DEFT_ACTIVE_SCOPE` still win.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 8,
+          "text": "Empty PR env (master push / local check) keeps today's sole-running behavior.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 9,
+          "text": "relieves: P2 — KISS association: sole distinct `deft-story: N` -> exactly one running brief for that issue in this repo (reuse existing mark parsers + ownership helpers); read `plan.id` from the brief (do not invent it from N).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 10,
+          "text": "Multi or missing association fails closed with remediation that names the mark.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 11,
+          "text": "relieves: P3 — KISS share both gates: call the same adoption helper from `verify:observable-scope` on `check:merge` so one gate going green cannot leave the sibling multi-refuse red on the same tip.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 12,
+          "text": "relieves: P4 — KISS docs tests CHANGELOG: unit coverage for sole-mark success, multi/missing refuse, no-PR unchanged; short docs that multi-active product PRs need `deft-story: N`; CHANGELOG Unreleased.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
+        },
+        {
+          "id": 13,
+          "text": "Keep implementation simple — reuse `fetchPrBodyRest` / `parseAllDeftStoryMarks`; do not grow a second mark dialect or a YAML plan-id pre-export.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "status": "completed",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Admitted-source identity restored for leftover-complete (#5055); Prefer-A not_applicable after product ship.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedAt": "2026-10-20T05:02:31.898Z",
+              "mintedVia": "leftover-complete-cohort-closeout"
+            },
+            "recorded_at": "2026-10-20T05:02:31.898Z"
+          }
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "sentences": [
+        "relieves: P1 — KISS CI plan-id adopt: when `GITHUB_PR_NUMBER` (or `--pr`) is a positive digit string and intent-constraint would config-refuse unresolved planId under multi-running or multi-mint, REST-fetch the PR body, parse sole `deft-story: N`, resolve the matching `status: running` brief `plan.id`, and select that mint.",
+        "Explicit `--plan-id` / valid `DEFT_ACTIVE_SCOPE` still win.",
+        "Empty PR env (master push / local check) keeps today's sole-running behavior.",
+        "relieves: P2 — KISS association: sole distinct `deft-story: N` -> exactly one running brief for that issue in this repo (reuse existing mark parsers + ownership helpers); read `plan.id` from the brief (do not invent it from N).",
+        "Multi or missing association fails closed with remediation that names the mark.",
+        "relieves: P3 — KISS share both gates: call the same adoption helper from `verify:observable-scope` on `check:merge` so one gate going green cannot leave the sibling multi-refuse red on the same tip.",
+        "relieves: P4 — KISS docs tests CHANGELOG: unit coverage for sole-mark success, multi/missing refuse, no-PR unchanged; short docs that multi-active product PRs need `deft-story: N`; CHANGELOG Unreleased.",
+        "Keep implementation simple — reuse `fetchPrBodyRest` / `parseAllDeftStoryMarks`; do not grow a second mark dialect or a YAML plan-id pre-export.",
+        "Digit-gated PR-story plan-id adopter with REST null config exit 2 for both intent and observable gates",
+        "Distinct deft-story mark ownership and whole-story bind docs for sole-mark adoption",
+        "Shared named bad-pin suppress helper for both gates without YAML planId pre-export",
+        "Remediation table including unparseable deft-story mark row and tests for distinct multi-mark refuse",
+        "CHANGELOG Unreleased plus intent-constraint and observable-scope operator docs"
+      ],
+      "confessions": [],
+      "ambiguity_attestation": "none_found",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "admitted_source_sentences": [
+        "relieves: P1 — KISS CI plan-id adopt: when `GITHUB_PR_NUMBER` (or `--pr`) is a positive digit string and intent-constraint would config-refuse unresolved planId under multi-running or multi-mint, REST-fetch the PR body, parse sole `deft-story: N`, resolve the matching `status: running` brief `plan.id`, and select that mint.",
+        "Explicit `--plan-id` / valid `DEFT_ACTIVE_SCOPE` still win.",
+        "Empty PR env (master push / local check) keeps today's sole-running behavior.",
+        "relieves: P2 — KISS association: sole distinct `deft-story: N` -> exactly one running brief for that issue in this repo (reuse existing mark parsers + ownership helpers); read `plan.id` from the brief (do not invent it from N).",
+        "Multi or missing association fails closed with remediation that names the mark.",
+        "relieves: P3 — KISS share both gates: call the same adoption helper from `verify:observable-scope` on `check:merge` so one gate going green cannot leave the sibling multi-refuse red on the same tip.",
+        "relieves: P4 — KISS docs tests CHANGELOG: unit coverage for sole-mark success, multi/missing refuse, no-PR unchanged; short docs that multi-active product PRs need `deft-story: N`; CHANGELOG Unreleased.",
+        "Keep implementation simple — reuse `fetchPrBodyRest` / `parseAllDeftStoryMarks`; do not grow a second mark dialect or a YAML plan-id pre-export."
+      ],
+      "admitted_source_digest": "d4af7c9651198c052960784604f937e2a39eb35a7fbcef08949e44dd4aa229a3"
     },
     "metadata": {
       "intended_placement": {
@@ -1413,10 +1866,39 @@
           "packages/core/src/intent-constraint/plan-id-adopter.ts",
           "packages/core/src/intent-constraint/plan-id-adopter.test.ts"
         ],
-        "cohesion_exemption": "CHANGELOG shared Unreleased; commands.md and scm/github.md docs for #5782 plan-id adopter"
+        "cohesion_exemption": "CHANGELOG shared Unreleased; commands.md and scm/github.md docs for #5782 plan-id adopter",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/intent-constraint"
+        ]
+      },
+      "productPullRequest": 5785,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "913b65f078d7f0b420a3eb8c4256938f44f70824",
+        "prNumber": 5785,
+        "prBase": "master",
+        "mergeCommit": "03f689271ad35b9749534766809ba17b321e1de1",
+        "deliveryBranch": "master",
+        "deliveryCommit": "db26c453690125011a077d21be899682d6d555f4",
+        "verifiedAt": "2026-10-20T05:24:52Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTUyNTktODk3Ni03ZGIxLTg1ZjMtZWE2ZDA4ZWIzYTJm"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-20T05:24:52Z",
+      "completedSessionId": "host:grok:v1:MDFhMTUyNTktODk3Ni03ZGIxLTg1ZjMtZWE2ZDA4ZWIzYTJm",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-20T05:24:52Z"
       }
     },
     "id": "github.issue.5931637634",
-    "updated": "2026-10-19T23:34:43Z"
+    "updated": "2026-10-20T05:24:52Z"
   }
 }
