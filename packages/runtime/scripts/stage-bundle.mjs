@@ -196,7 +196,9 @@ function rewriteFile(file, resolvers, vendorRoots) {
   for (const entry of PRIVATE) {
     const resolveSub = resolvers.get(entry.folder);
     const vendorRoot = vendorRoots.get(entry.folder);
-    const scoped = entry.scoped.replace(/\//g, "\\/");
+    // Escape `\` then `/` so the RegExp constructor cannot see a partial sanitizer
+    // (CodeQL js/incomplete-sanitization).
+    const scoped = entry.scoped.replace(/\\/g, "\\\\").replace(/\//g, "\\/");
     // from "..."; import("..."); require("..."); require.resolve("...");
     // import.meta.resolve("...")
     const re = new RegExp(

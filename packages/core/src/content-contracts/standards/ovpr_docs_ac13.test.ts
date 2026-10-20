@@ -144,7 +144,7 @@ describe("OVPR docs AC13.8 / AC9.11 / AC13.10 (wave2r)", () => {
     for (const rel of ["templates/agents-entry.md", "SKILL.md"] as const) {
       const text = readText(rel);
       expect(text, `${rel} missing runtime prefix`).toContain(RUNTIME_PREFIX);
-      expect(text).toMatch(new RegExp(`${RUNTIME_PREFIX.replace(/\//g, "\\/")}main\\.md`));
+      expect(text).toContain(`${RUNTIME_PREFIX}main.md`);
     }
   });
 
