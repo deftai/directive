@@ -49,11 +49,7 @@ function readMarkerVersion(projectRoot: string): number | null | "invalid" {
   }
 }
 
-function emptyResult(
-  from: string,
-  root: string,
-  message: string,
-): MigrateResult {
+function emptyResult(from: string, root: string, message: string): MigrateResult {
   return {
     contract: 1,
     entry: "migrate",
@@ -83,21 +79,29 @@ export function projectNeedsXbriefMigration(projectRoot: string): boolean {
   ) {
     return true;
   }
+  // Marked vbrief/ retention is intentional; still migrate residual legacy
+  // envelopes under xbrief/ (detectLegacyVbriefLayout would otherwise stay true
+  // forever from the mere presence of vbrief/).
   if (convergence.state === "xbrief-marker") {
-    return false;
+    const legacy = detectLegacyVbriefLayout(projectRoot);
+    return legacy.reasons.some(
+      (reason) => !reason.startsWith("vbrief/") && reason !== "vbrief/ directory present",
+    );
   }
   return detectLegacyVbriefLayout(projectRoot).legacyLayout;
 }
 
-function applyXbriefMigration(root: string): {
-  ok: true;
-  migrated: string[];
-  archived: string[];
-  message: string;
-} | {
-  ok: false;
-  message: string;
-} {
+function applyXbriefMigration(root: string):
+  | {
+      ok: true;
+      migrated: string[];
+      archived: string[];
+      message: string;
+    }
+  | {
+      ok: false;
+      message: string;
+    } {
   if (!projectNeedsXbriefMigration(root)) {
     return { ok: true, migrated: [], archived: [], message: "xbrief lifecycle already current" };
   }
@@ -119,9 +123,7 @@ function applyXbriefMigration(root: string): {
         archived: [...outcome.archivedPaths],
         message:
           `xbrief migrate: ${outcome.migratedPaths.length} migrated` +
-          (outcome.archivedPaths.length > 0
-            ? `, ${outcome.archivedPaths.length} archived`
-            : ""),
+          (outcome.archivedPaths.length > 0 ? `, ${outcome.archivedPaths.length} archived` : ""),
       };
     case "rewritten":
       return {

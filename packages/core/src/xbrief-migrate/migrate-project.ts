@@ -4,6 +4,11 @@ import { containedRemove, containedRename, containedWrite } from "../fs/containe
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { checkGitClean } from "../migrate-preflight/index.js";
 import { applyAgentsRefresh } from "../platform/agents-md.js";
+import {
+  hasLifecycleWriteStamp,
+  isMigrationLifecycleWrite,
+  stampLifecycleWrite,
+} from "../scope/lifecycle-write.js";
 import { validateVbriefSchema } from "../vbrief-validate/schema.js";
 import { patchAgentsMdHeader, renderHeaderPatchSummary } from "./agents-header.js";
 import {
@@ -14,21 +19,16 @@ import {
   LEGACY_ARTIFACT_SUFFIX,
   LEGACY_INFO_ROOT_KEY,
   LEGACY_VBRIEF_VERSION,
+  MIGRATE_THROUGH_VBRIEF_VERSION,
   MIGRATED_ARTIFACT_DIR,
   MIGRATED_ARTIFACT_SUFFIX,
   MIGRATED_INFO_ROOT_KEY,
-  MIGRATE_THROUGH_VBRIEF_VERSION,
   OBSOLETE_FRAMEWORK_NARRATIVE_FILENAME,
   PRE_LEGACY_VBRIEF_VERSION,
   VBRIEF_DEPRECATION_MARKER_BODY,
   VBRIEF_DEPRECATION_MARKER_FILENAME,
   VBRIEF_VERSION,
 } from "./constants.js";
-import {
-  hasLifecycleWriteStamp,
-  isMigrationLifecycleWrite,
-  stampLifecycleWrite,
-} from "../scope/lifecycle-write.js";
 import { deleteTopLevelJsonKey } from "./delete-top-level-json-key.js";
 import { detectLegacyVbriefLayout, detectXbriefConvergence } from "./detect.js";
 import {
@@ -119,7 +119,10 @@ function collectFiles(root: string, acc: string[] = []): string[] {
   }
   for (const entry of readdirSync(root, { withFileTypes: true })) {
     const full = join(root, entry.name);
+    // Archived unknowables stay under xbrief/archive/; never re-scan them as
+    // live migration/hybrid candidates (would block later upgrades).
     if (entry.isDirectory()) {
+      if (entry.name === ARCHIVE_REL_DIR) continue;
       collectFiles(full, acc);
     } else if (entry.isFile()) {
       acc.push(full);
@@ -172,10 +175,7 @@ export type MigrateFileDisposition =
  * Classify a legacy lifecycle file: migrate envelope, archive unknowable, or
  * token-rewrite copy (non-envelope). F-017: never hard-fail the tree for S5/corrupt.
  */
-export function classifyLegacyMigrationFile(
-  srcPath: string,
-  raw: string,
-): MigrateFileDisposition {
+export function classifyLegacyMigrationFile(srcPath: string, raw: string): MigrateFileDisposition {
   const isLifecycleEnvelope =
     srcPath.endsWith(LEGACY_ARTIFACT_SUFFIX) || srcPath.endsWith(MIGRATED_ARTIFACT_SUFFIX);
   if (!isLifecycleEnvelope) {
@@ -992,7 +992,9 @@ export function emitXbriefMigration(
       const migrated = outcome.migratedPaths.length;
       io.writeOut(
         `Migrated ${migrated} file(s) from ${LEGACY_ARTIFACT_DIR}/ to ${MIGRATED_ARTIFACT_DIR}/` +
-          (archived > 0 ? `; archived ${archived} unknowable file(s) under ${MIGRATED_ARTIFACT_DIR}/${ARCHIVE_REL_DIR}/` : "") +
+          (archived > 0
+            ? `; archived ${archived} unknowable file(s) under ${MIGRATED_ARTIFACT_DIR}/${ARCHIVE_REL_DIR}/`
+            : "") +
           `.\n` +
           `Backup written to ${outcome.backupDir}.\n`,
       );

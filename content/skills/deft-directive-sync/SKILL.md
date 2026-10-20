@@ -4,8 +4,8 @@ description: >-
   Session-start framework sync and upgrade handoff. OVPR path: npm i -g
   @deftai/directive then directive install / upgrade / install --repair /
   doctor; validates xBRIEF lifecycle, detects stale origins (RFC D12), and
-  finishes SCM release handoff in released | pr-open | blocked:<reason>
-  (#1604 / #5490).
+  finishes SCM release handoff in released | pr-open | blocked:<reason> (#1604
+  / #5490).
 triggers:
   - good morning
   - update deft

@@ -2,8 +2,9 @@
  * Spawn the runtime entry as a separate node process (AC4.2).
  * Never via PATH; never a download substitute.
  */
-import { existsSync } from "node:fs";
+
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import {
   ENV_LAUNCHER_VERSION,
   ENV_PROJECT_ROOT,
@@ -40,10 +41,11 @@ export function invokeRuntime(options: InvokeOptions): InvokeResult {
     };
   }
   const stdio = options.stdio ?? "inherit";
-  // Keep the caller's cwd so relative --project-root / file args stay relative to
-  // the invocation directory. Pass the discovered root via env for the runtime.
+  // Run ordinary product commands with cwd=projectRoot so handlers that default
+  // to process.cwd() honor `--root` / `--repo-root`. Also set DIRECTIVE_PROJECT_ROOT
+  // for contract/self-complete entrypoints that read the env explicitly.
   const result = spawnSync(process.execPath, [runtime.entryPath, ...argv], {
-    cwd: process.cwd(),
+    cwd: projectRoot,
     env: {
       ...process.env,
       [ENV_PROJECT_ROOT]: projectRoot,
@@ -102,7 +104,16 @@ export function doctorArgv(): string[] {
   return ["doctor", "--data-status"];
 }
 
-/** Human-facing full diagnosis (R12). */
-export function doctorDiagnoseArgv(): string[] {
-  return ["doctor"];
+/**
+ * Human-facing diagnosis (R12).
+ * Forwards supported doctor flags from the launcher argv (`--full`, `--json`,
+ * `--data-status`) so `directive doctor --full` reaches the product doctor.
+ */
+export function doctorDiagnoseArgv(argv: readonly string[] = []): string[] {
+  const forwarded: string[] = ["doctor"];
+  const allowed = new Set(["--full", "--json", "--data-status"]);
+  for (const a of argv) {
+    if (allowed.has(a)) forwarded.push(a);
+  }
+  return forwarded;
 }

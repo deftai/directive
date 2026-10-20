@@ -3,14 +3,20 @@
  * After `git worktree add`, materialize node_modules via the project PM.
  * Failure must prevent claiming readiness.
  */
+
+import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { spawnSync } from "node:child_process";
 
 export type WorktreePm = "npm" | "pnpm";
 
 export type WorktreePmInstallResult =
-  | { readonly ok: true; readonly pm: WorktreePm; readonly skipped: boolean; readonly reason?: string }
+  | {
+      readonly ok: true;
+      readonly pm: WorktreePm;
+      readonly skipped: boolean;
+      readonly reason?: string;
+    }
   | { readonly ok: false; readonly pm: WorktreePm | null; readonly message: string };
 
 export type WorktreePmRunner = (
@@ -24,10 +30,17 @@ function defaultRunner(
   args: readonly string[],
   cwd: string,
 ): { status: number | null; stderr: string; stdout: string } {
+  // Windows exposes npm/pnpm as .cmd shims; spawnSync needs shell to launch them.
+  // Force a non-production NODE_ENV so a runtime pin in devDependencies is installed.
+  const env = { ...process.env };
+  if (env.NODE_ENV === "production") {
+    env.NODE_ENV = "development";
+  }
   const proc = spawnSync(command, [...args], {
     cwd,
     encoding: "utf8",
-    env: process.env,
+    env,
+    shell: process.platform === "win32",
   });
   return {
     status: proc.status,
@@ -97,18 +110,22 @@ export function installWorktreePackages(
     };
   }
   const runner = seams.runner ?? defaultRunner;
-  const args = pm === "pnpm" ? (["install", "--frozen-lockfile"] as const) : (["install"] as const);
-  // Prefer frozen when lockfile exists for npm
+  // Always include devDependencies: @deftai/directive-runtime is commonly a
+  // devDependency, and NODE_ENV=production would otherwise omit it.
+  const args =
+    pm === "pnpm"
+      ? (["install", "--frozen-lockfile", "--prod=false"] as const)
+      : (["install", "--include=dev"] as const);
   const npmArgs =
     pm === "npm" && existsSync(join(worktreePath, "package-lock.json"))
-      ? (["ci"] as const)
+      ? (["ci", "--include=dev"] as const)
       : args;
   const useArgs = pm === "npm" ? npmArgs : args;
   const proc = runner(pm, useArgs, worktreePath);
   if (proc.status !== 0) {
     // Retry npm ci failure with npm install (lockfile drift across worktrees is rare)
     if (pm === "npm" && useArgs[0] === "ci") {
-      const retry = runner(pm, ["install"], worktreePath);
+      const retry = runner(pm, ["install", "--include=dev"], worktreePath);
       if (retry.status === 0) {
         return { ok: true, pm, skipped: false };
       }

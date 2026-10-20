@@ -87,12 +87,11 @@
             "owner": "directive"
           },
           {
-            "id": "go-installer",
-            "name": "Go Installer",
-            "purpose": "Standalone installer binary for end-user and maintainer installs.",
+            "id": "go-module",
+            "name": "Go Module Metadata",
+            "purpose": "Root go.mod retained for residual content/templates embed helpers. The Go installer binary (cmd/deft-install) is deleted; OVPR npm packages own install/upgrade.",
             "pathGlobs": [
-              "go.mod",
-              "cmd/deft-install/**/*.go"
+              "go.mod"
             ],
             "owner": "directive"
           },
@@ -177,10 +176,10 @@
             "description": "Authored metadata lives in vBRIEF; rendered markdown, roadmap exports, and codebase maps are generated views with explicit regeneration commands."
           },
           {
-            "id": "vendored-core-install",
-            "module": "go-installer",
-            "name": "Vendored core install",
-            "description": "The supported installer layout deposits framework payloads in `.deft/core/` and treats legacy clone layouts as upgrade/migration inputs."
+            "id": "ovpr-exact-runtime-pin",
+            "module": "typescript-engine",
+            "name": "OVPR exact runtime pin",
+            "description": "Supported installs use the thin `@deftai/directive` launcher plus an exact `@deftai/directive-runtime` project pin; legacy `.deft/core` clone layouts are upgrade/migration inputs only."
           }
         ],
         "projectionManifest": [

@@ -11,39 +11,22 @@ import {
   RECOVERY_GUIDANCE,
   RUNTIME_PACKAGE_NAME,
 } from "./constants.js";
-import { readInteractiveLine, type InteractiveLine } from "./interactive-stdin.js";
 import {
   doctorArgv,
   doctorDiagnoseArgv,
+  type InvokeResult,
   invokeRuntime,
   migrateArgv,
   setupArgv,
   uninstallArgv,
-  type InvokeResult,
 } from "./contract-invoke.js";
-import { checkNodeVersion } from "./node-check.js";
+import { type InteractiveLine, readInteractiveLine } from "./interactive-stdin.js";
 import {
-  detectPackageManager,
-  ensurePackageJson,
-  ensurePackageManagerAvailable,
-  fingerprintPlanCriticalFiles,
-  formatPmExactAddCommand,
-  formatPmRemoveCommand,
-  INSTALL_SCRIPT_POLICY_PLAN_LINE,
-  lockfileRecordsExactPin,
-  PARTIAL_CHANGES_MAY_REMAIN,
-  planFingerprintChanged,
-  readDeclaredPackageManagerVersion,
-  purgeRetiredDirectiveLockfiles,
-  removeLegacyDirectivePackages,
-  removeLegacyDirectivePin,
-  RETIRED_DIRECTIVE_PACKAGE_NAMES,
-  runPmExactAdd,
-  runPmRemove,
-  type PackageManager,
-  type PlanFingerprint,
-  type PmAddResult,
-} from "./pm.js";
+  formatShapeRecoveryMessage,
+  isL2RefusalDecision,
+  resolveInstallShape,
+} from "./legacy-shapes/index.js";
+import { checkNodeVersion } from "./node-check.js";
 import type { ProjectInstallState } from "./pin.js";
 import { isContractSupported, readInstalledRuntime, readProjectInstallState } from "./pin.js";
 import {
@@ -60,11 +43,33 @@ import {
   presentUninstallSuccess,
   presentUpgradePlan,
   presentUpgradeSuccess,
+  type SetupSummary,
   summarizeUninstallRemovals,
   tryParseSetupSummary,
-  type SetupSummary,
   type Verbosity,
 } from "./plan-present.js";
+import {
+  detectPackageManager,
+  ensurePackageJson,
+  ensurePackageManagerAvailable,
+  fingerprintPlanCriticalFiles,
+  formatPmExactAddCommand,
+  formatPmRemoveCommand,
+  INSTALL_SCRIPT_POLICY_PLAN_LINE,
+  lockfileRecordsExactPin,
+  PARTIAL_CHANGES_MAY_REMAIN,
+  type PackageManager,
+  type PlanFingerprint,
+  type PmAddResult,
+  planFingerprintChanged,
+  purgeRetiredDirectiveLockfiles,
+  RETIRED_DIRECTIVE_PACKAGE_NAMES,
+  readDeclaredPackageManagerVersion,
+  removeLegacyDirectivePackages,
+  removeLegacyDirectivePin,
+  runPmExactAdd,
+  runPmRemove,
+} from "./pm.js";
 import {
   compareExactVersions,
   resolveLatestStableVersion,
@@ -75,14 +80,9 @@ import {
   applyLauncherCleanup,
   cleanupHooksPath,
   discoverUninstallFootprint,
-  verifyUninstallComplete,
   type UninstallDiscovery,
+  verifyUninstallComplete,
 } from "./uninstall-map.js";
-import {
-  formatShapeRecoveryMessage,
-  isL2RefusalDecision,
-  resolveInstallShape,
-} from "./legacy-shapes/index.js";
 
 export interface BookendIo {
   writeOut(text: string): void;
@@ -125,9 +125,7 @@ export interface InstallDeps {
   /** Override Node version for plan Node best-effort disclosure (AC14.54 tests). */
   readonly nodeVersion?: string;
   /** Override PM availability preflight (AC5.8 / AC14.45 tests). */
-  readonly checkPmAvailable?: (
-    pm: PackageManager,
-  ) => { ok: true } | { ok: false; message: string };
+  readonly checkPmAvailable?: (pm: PackageManager) => { ok: true } | { ok: false; message: string };
   readonly resolveLatest?: () =>
     | Promise<{ ok: true; version: string } | { ok: false; message: string }>
     | { ok: true; version: string }
@@ -144,9 +142,7 @@ export interface InstallDeps {
 export interface UpgradeDeps extends InstallDeps {
   readonly resolvePublishedContract?: (
     version: string,
-  ) =>
-    | { ok: true; contract: number }
-    | { ok: false; message: string };
+  ) => { ok: true; contract: number } | { ok: false; message: string };
   readonly invokeMigrate?: (argv: readonly string[]) => InvokeResult;
   readonly invokeDoctorDataStatus?: () =>
     | { ok: true; dataStatus: DataStatusValue }
@@ -172,9 +168,10 @@ export interface UninstallDeps {
     pm: PackageManager;
     packageName: string;
   }) => PmAddResult;
-  readonly applyCleanup?: (projectRoot: string, discovery: UninstallDiscovery) => ReturnType<
-    typeof applyLauncherCleanup
-  >;
+  readonly applyCleanup?: (
+    projectRoot: string,
+    discovery: UninstallDiscovery,
+  ) => ReturnType<typeof applyLauncherCleanup>;
   readonly cleanupHooksPath?: (projectRoot: string) => ReturnType<typeof cleanupHooksPath>;
 }
 
@@ -263,10 +260,7 @@ function parseFlags(argv: readonly string[]): {
   };
 }
 
-function printPlan(
-  io: BookendIo,
-  lines: readonly string[],
-): void {
+function printPlan(io: BookendIo, lines: readonly string[]): void {
   io.writeOut("Plan:\n");
   for (const line of lines) {
     io.writeOut(`  ${line}\n`);
@@ -358,10 +352,7 @@ function shouldDefaultToRepair(projectRoot: string, state: ProjectInstallState):
   return !existsSync(join(projectRoot, ".deft", "GENERATION.json"));
 }
 
-function printConfiguredMenu(
-  io: BookendIo,
-  opts: ChooseMenuOptions,
-): void {
+function printConfiguredMenu(io: BookendIo, opts: ChooseMenuOptions): void {
   const repairMarker = opts.defaultChoice === "repair" ? ">" : " ";
   const cancelMarker = opts.defaultChoice === "cancel" ? ">" : " ";
   io.writeOut("Directive is already configured in this project.\n\n");
@@ -374,7 +365,10 @@ function printConfiguredMenu(
   io.writeOut("    Leave the project unchanged.\n\n");
 }
 
-function parseMenuChoice(answer: string, defaultChoice: ConfiguredMenuChoice): ConfiguredMenuChoice {
+function parseMenuChoice(
+  answer: string,
+  defaultChoice: ConfiguredMenuChoice,
+): ConfiguredMenuChoice {
   const trimmed = answer.trim().toLowerCase();
   if (trimmed.length === 0) return defaultChoice;
   if (trimmed === "1" || trimmed === "r" || trimmed === "repair") return "repair";
@@ -541,16 +535,7 @@ export function runInstall(
     return runRepair(projectRoot, state, flags, launcherVersion, io, deps, env);
   }
 
-  return runFirstInstall(
-    projectRoot,
-    state,
-    flags,
-    launcherVersion,
-    io,
-    deps,
-    env,
-    convertShapeId,
-  );
+  return runFirstInstall(projectRoot, state, flags, launcherVersion, io, deps, env, convertShapeId);
 }
 
 function runFirstInstall(
@@ -589,9 +574,7 @@ function runFirstInstall(
     }
     targetVersion = validated.version;
   } else {
-    const resolver =
-      deps.resolveLatest ??
-      (() => resolveLatestStableVersion(env, projectRoot));
+    const resolver = deps.resolveLatest ?? (() => resolveLatestStableVersion(env, projectRoot));
     const resolved = resolver();
     // Support sync or async seam; install path is sync so only sync results are used.
     if (resolved instanceof Promise) {
@@ -626,12 +609,7 @@ function runFirstInstall(
     return EXIT_CODES.SUCCESS;
   }
 
-  const approval = requireApproval(
-    flags,
-    deps,
-    io,
-    "Set up Directive in this project?",
-  );
+  const approval = requireApproval(flags, deps, io, "Set up Directive in this project?");
   if (approval !== null) return approval;
 
   const stale = assertPlanStillValid(projectRoot, pmDetect.pm, planFp, io);
@@ -639,7 +617,7 @@ function runFirstInstall(
 
   if (willCreatePkg) {
     ensurePackageJson(projectRoot);
-    io.writeOut("Created package.json { \"private\": true }\n");
+    io.writeOut('Created package.json { "private": true }\n');
   }
 
   const add =
@@ -714,9 +692,7 @@ function runRepair(
 
   const lockOk = lockfileRecordsExactPin(projectRoot, pinVersion, pmDetect.pm);
   const installedOk =
-    state.installed !== null &&
-    state.installed.version === pinVersion &&
-    state.contractSupported;
+    state.installed !== null && state.installed.version === pinVersion && state.contractSupported;
   const needsPmRestore = !lockOk || !installedOk;
 
   if (needsPmRestore) {
@@ -978,11 +954,7 @@ export function parseDoctorDataStatusResponse(result: {
       };
     }
     const status = obj.dataStatus;
-    if (
-      status !== "current" &&
-      status !== "migration_needed" &&
-      status !== "diagnosis_failed"
-    ) {
+    if (status !== "current" && status !== "migration_needed" && status !== "diagnosis_failed") {
       return { ok: false, message: `doctor data-status unknown: ${String(status)}` };
     }
     return { ok: true, dataStatus: status };
@@ -1071,8 +1043,7 @@ export function runUpgrade(
     }
     targetVersion = validated.version;
   } else {
-    const resolver =
-      deps.resolveLatest ?? (() => resolveLatestStableVersion(env, projectRoot));
+    const resolver = deps.resolveLatest ?? (() => resolveLatestStableVersion(env, projectRoot));
     const resolved = resolver();
     if (resolved instanceof Promise) {
       io.writeErr("Internal error: async resolveLatest is not supported in sync upgrade path.\n");
@@ -1090,9 +1061,7 @@ export function runUpgrade(
   let versionOrd: number;
   try {
     versionOrd =
-      state.oldStyle || convertViaRemovals
-        ? 1
-        : compareExactVersions(targetVersion, currentPin);
+      state.oldStyle || convertViaRemovals ? 1 : compareExactVersions(targetVersion, currentPin);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     io.writeErr(`${msg}\n`);
@@ -1237,7 +1206,9 @@ export function runUpgrade(
       // Lockfile-only triad (pnpm) still 404s hybrid Verdaccio — drop those lockfiles.
       const purged = purgeRetiredDirectiveLockfiles(projectRoot);
       if (purged.length > 0 && flags.verbosity >= 1) {
-        io.writeOut(`Purged lockfile(s) referencing retired Directive packages: ${purged.join(", ")}\n`);
+        io.writeOut(
+          `Purged lockfile(s) referencing retired Directive packages: ${purged.join(", ")}\n`,
+        );
       }
     }
     // Convert shapes may lack a package.json (rare); ensure before PM add.
@@ -1411,10 +1382,15 @@ export function runUninstall(
   io: BookendIo = defaultIo(),
   deps: UninstallDeps = {},
 ): number {
-  const { flags, usageError } = parseFlags(argv);
+  const { flags, rest, usageError } = parseFlags(argv);
   const env = deps.env ?? process.env;
   if (usageError !== null) {
     io.writeErr(`${usageError}\n`);
+    return EXIT_CODES.USAGE;
+  }
+  // Unknown leftover argv (e.g. --dryrun misspelling) → usage before any removal.
+  if (rest.length > 0) {
+    io.writeErr(`Unknown argument(s): ${rest.join(" ")}\n`);
     return EXIT_CODES.USAGE;
   }
 
@@ -1422,7 +1398,9 @@ export function runUninstall(
   const discovery = discoverUninstallFootprint(projectRoot);
 
   if (!discovery.hasFootprint) {
-    io.writeOut("No Directive installation footprint found in this project. Nothing to uninstall.\n");
+    io.writeOut(
+      "No Directive installation footprint found in this project. Nothing to uninstall.\n",
+    );
     return EXIT_CODES.SUCCESS;
   }
 
@@ -1435,9 +1413,7 @@ export function runUninstall(
           ? `${a.path} (marked section)`
           : `${a.path} (${a.entryKey ?? "structured entry"})`,
     );
-  const keepPaths = discovery.artifacts
-    .filter((a) => a.kind === "retained")
-    .map((a) => a.path);
+  const keepPaths = discovery.artifacts.filter((a) => a.kind === "retained").map((a) => a.path);
   if (!keepPaths.includes("xbrief") && existsSync(join(projectRoot, "xbrief"))) {
     keepPaths.push("xbrief");
   }
@@ -1468,9 +1444,7 @@ export function runUninstall(
         : null;
   const pmCommand =
     packagesToRemove.length > 0 && pmDetect.ok
-      ? packagesToRemove
-          .map((p) => formatPmRemoveCommand(pmDetect.pm, p, projectRoot))
-          .join("; ")
+      ? packagesToRemove.map((p) => formatPmRemoveCommand(pmDetect.pm, p, projectRoot)).join("; ")
       : null;
   const removal = summarizeUninstallRemovals(removePaths, {
     willRemovePin: packagesToRemove.length > 0,
@@ -1544,8 +1518,7 @@ export function runUninstall(
   }
 
   const cleanup =
-    deps.applyCleanup?.(projectRoot, discovery) ??
-    applyLauncherCleanup(projectRoot, discovery);
+    deps.applyCleanup?.(projectRoot, discovery) ?? applyLauncherCleanup(projectRoot, discovery);
   if (flags.verbosity >= 1) {
     io.writeOut(
       `launcher cleanup: removed=${JSON.stringify(cleanup.removed)} ` +
@@ -1590,8 +1563,7 @@ export function runUninstall(
     }
   }
 
-  const hooksPathResult =
-    deps.cleanupHooksPath?.(projectRoot) ?? cleanupHooksPath(projectRoot);
+  const hooksPathResult = deps.cleanupHooksPath?.(projectRoot) ?? cleanupHooksPath(projectRoot);
   if (flags.verbosity >= 1) {
     io.writeOut(`core.hooksPath: ${hooksPathResult}\n`);
   }
@@ -1599,7 +1571,11 @@ export function runUninstall(
   const verification = verifyUninstallComplete(projectRoot);
   // Legacy launcher pin leftover only matters for old-style; modern projects should not have it.
   const filteredLeftovers = verification.leftovers.filter((l) => {
-    if (l === `package.json#${LAUNCHER_PACKAGE_NAME}` && !state.oldStyle && !discovery.hasLegacyLauncherPin) {
+    if (
+      l === `package.json#${LAUNCHER_PACKAGE_NAME}` &&
+      !state.oldStyle &&
+      !discovery.hasLegacyLauncherPin
+    ) {
       return false;
     }
     return true;
@@ -1654,9 +1630,7 @@ export function runDoctor(
   }
 
   if (state.oldStyle) {
-    io.writeOut(
-      "This project uses an older Directive layout. Run `directive upgrade`.\n",
-    );
+    io.writeOut("This project uses an older Directive layout. Run `directive upgrade`.\n");
     return EXIT_CODES.FAILURE;
   }
 
@@ -1713,7 +1687,7 @@ export function runDoctor(
     projectRoot,
     launcherVersion,
     runtime: state.installed,
-    argv: doctorDiagnoseArgv(),
+    argv: doctorDiagnoseArgv(argv),
     stdio: "pipe",
   });
   if (result.stdout) {

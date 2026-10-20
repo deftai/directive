@@ -2,6 +2,8 @@
  * Thin launcher router (UNIFIED §A5 / R3).
  * Zero dependency on runtime/core/content (AC3.1).
  */
+
+import { runDoctorStub, runInstall, runUninstall, runUpgrade } from "./bookends.js";
 import {
   EXIT_CODES,
   INSTALL_ALIASES,
@@ -10,16 +12,10 @@ import {
   RETIRED_INSTALL_VERBS,
   RUNTIME_PACKAGE_NAME,
 } from "./constants.js";
+import { invokeRuntime } from "./contract-invoke.js";
 import { discoverProject, takeRootFlag } from "./discover.js";
 import { checkNodeVersion } from "./node-check.js";
-import { readProjectInstallState, type ProjectInstallState } from "./pin.js";
-import { invokeRuntime } from "./contract-invoke.js";
-import {
-  runDoctorStub,
-  runInstall,
-  runUninstall,
-  runUpgrade,
-} from "./bookends.js";
+import { type ProjectInstallState, readProjectInstallState } from "./pin.js";
 import { readLauncherVersion } from "./version.js";
 
 export interface LauncherIo {
@@ -49,7 +45,7 @@ function printHelp(version: string, io: LauncherIo): void {
       `          [--dry-run] [--yes] [--root <path>]\n` +
       `  upgrade [--target-version <ver>] [--dry-run] [--yes] [--root <path>]\n` +
       `  uninstall [--dry-run] [--yes] [--root <path>]\n` +
-      `  doctor [--root <path>]\n` +
+      `  doctor [--root <path>] [--full] [--json]\n` +
       `\n` +
       `Aliases: init→install, update→upgrade, remove→uninstall\n` +
       `\n` +
@@ -70,6 +66,7 @@ function printHelp(version: string, io: LauncherIo): void {
       `  --version, -V              Show launcher / pin status\n` +
       `  --help, -h                 Show this help\n` +
       `  --root <path>              Project root (must be Git toplevel when in a repo)\n` +
+      `  --repo-root <path>         Alias of --root (historical init/update spelling)\n` +
       `  --target-version <exact>   Exact runtime version (required for prereleases)\n` +
       `  --package-manager npm|pnpm Force PM when lockfile evidence is absent\n` +
       `  --repair                  Restore the existing exact pin + wiring\n` +
@@ -119,10 +116,7 @@ function isInstallManagement(cmd: string): cmd is (typeof INSTALL_MANAGEMENT_COM
 /**
  * Main launcher entry. Returns process exit code.
  */
-export function runLauncher(
-  argv: readonly string[],
-  io: LauncherIo = defaultIo(),
-): number {
+export function runLauncher(argv: readonly string[], io: LauncherIo = defaultIo()): number {
   const node = checkNodeVersion();
   if (!node.ok) {
     io.writeErr(`${node.message}\n`);
@@ -136,7 +130,7 @@ export function runLauncher(
   const { root: rootFlag, rest } = takeRootFlag(argv);
 
   if (rootFlag === "") {
-    io.writeErr("directive: --root requires a path\n");
+    io.writeErr("directive: --root / --repo-root requires a path\n");
     return EXIT_CODES.USAGE;
   }
 
@@ -144,7 +138,9 @@ export function runLauncher(
 
   // First non-flag token is the command. Keep --help/-h on the argv forwarded
   // to product commands; launcher help only when no command remains.
-  const commandIndex = rest.findIndex((a) => a !== "--help" && a !== "-h" && a !== "--version" && a !== "-V" && !a.startsWith("-"));
+  const commandIndex = rest.findIndex(
+    (a) => a !== "--help" && a !== "-h" && a !== "--version" && a !== "-V" && !a.startsWith("-"),
+  );
   const rawCmd = commandIndex >= 0 ? rest[commandIndex] : undefined;
   const forwardArgv =
     commandIndex >= 0
@@ -152,8 +148,7 @@ export function runLauncher(
       : rest.filter((a) => a !== "--version" && a !== "-V");
   const cmdArgv = commandIndex >= 0 ? forwardArgv.slice(1) : [];
   const wantsLauncherHelp =
-    rest.length === 0 ||
-    (rawCmd === undefined && (rest.includes("--help") || rest.includes("-h")));
+    rest.length === 0 || (rawCmd === undefined && (rest.includes("--help") || rest.includes("-h")));
 
   const discovered = discoverProject({
     rootFlag,
@@ -204,7 +199,10 @@ export function runLauncher(
     return EXIT_CODES.SUCCESS;
   }
 
-  if (RETIRED_INSTALL_VERBS.has(cmd) || (rawCmd !== undefined && RETIRED_INSTALL_VERBS.has(rawCmd))) {
+  if (
+    RETIRED_INSTALL_VERBS.has(cmd) ||
+    (rawCmd !== undefined && RETIRED_INSTALL_VERBS.has(rawCmd))
+  ) {
     const suggestion =
       rawCmd === "migrate" || cmd === "migrate" || rawCmd === "install-upgrade"
         ? "Did you mean: upgrade?\n"
@@ -254,9 +252,7 @@ export function runLauncher(
       }
       return runDoctorStub(null, null, cmdArgv, launcherVersion, io);
     }
-    io.writeErr(
-      `No Directive project here. Run \`directive install\` inside a repository.\n`,
-    );
+    io.writeErr(`No Directive project here. Run \`directive install\` inside a repository.\n`);
     return EXIT_CODES.FAILURE;
   }
 
@@ -265,9 +261,7 @@ export function runLauncher(
   if (state.oldStyle) {
     const oldStyleAllowed = new Set(["upgrade", "uninstall"]);
     if (!oldStyleAllowed.has(cmd)) {
-      io.writeErr(
-        "This project uses an older Directive layout. Run `directive upgrade`.\n",
-      );
+      io.writeErr("This project uses an older Directive layout. Run `directive upgrade`.\n");
       return EXIT_CODES.FAILURE;
     }
   }

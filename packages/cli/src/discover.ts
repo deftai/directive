@@ -2,10 +2,11 @@
  * Git-aware project discovery (AC3.7 / INIT-05 / INIT-06).
  * No dependency on runtime/core — uses child_process only.
  */
+
+import { spawnSync } from "node:child_process";
 import { existsSync, realpathSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, resolve } from "node:path";
-import { spawnSync } from "node:child_process";
 
 export type DiscoverErrorKind =
   | "git_error"
@@ -104,14 +105,16 @@ export function discoverProject(options: DiscoverOptions = {}): DiscoverResult {
         return {
           ok: false,
           kind: "refused_root",
-          message: "Refusing filesystem root as install destination. Pass a project path deliberately.",
+          message:
+            "Refusing filesystem root as install destination. Pass a project path deliberately.",
         };
       }
       if (isUserHome(rootFlag)) {
         return {
           ok: false,
           kind: "refused_home",
-          message: "Refusing home directory as install destination. Pass a project path deliberately.",
+          message:
+            "Refusing home directory as install destination. Pass a project path deliberately.",
         };
       }
     }
@@ -158,8 +161,7 @@ export function discoverProject(options: DiscoverOptions = {}): DiscoverResult {
   if (git.code !== 0 && git.code !== 128 && git.stderr.length > 0) {
     // Git binary missing often yields status null/1 with ENOENT — treat as no-git path.
     const missingGit =
-      (git.stderr.includes("ENOENT") || git.code === 127) &&
-      !existsSync(resolve(cwd, ".git"));
+      (git.stderr.includes("ENOENT") || git.code === 127) && !existsSync(resolve(cwd, ".git"));
     if (!missingGit && git.code !== 128) {
       // Only hard-fail when git ran but errored unexpectedly inside a likely repo.
       if (existsSync(resolve(cwd, ".git"))) {
@@ -210,7 +212,11 @@ export function discoverProject(options: DiscoverOptions = {}): DiscoverResult {
   };
 }
 
-/** Parse --root <path> from argv; returns remaining argv without the flag. */
+/**
+ * Parse `--root` / `--repo-root` from argv; returns remaining argv without the flag.
+ * `--repo-root` is the historical init/update spelling kept as an alias so greenfield
+ * smoke and runtime init-cli argv stay accepted by the OVPR launcher.
+ */
 export function takeRootFlag(argv: readonly string[]): {
   root: string | null;
   rest: string[];
@@ -219,7 +225,7 @@ export function takeRootFlag(argv: readonly string[]): {
   let root: string | null = null;
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!;
-    if (a === "--root") {
+    if (a === "--root" || a === "--repo-root") {
       const next = argv[i + 1];
       if (next === undefined || next.startsWith("-")) {
         root = "";
@@ -230,7 +236,13 @@ export function takeRootFlag(argv: readonly string[]): {
       continue;
     }
     if (a.startsWith("--root=")) {
-      root = a.slice("--root=".length);
+      const value = a.slice("--root=".length);
+      root = value.length === 0 ? "" : isAbsolute(value) ? value : resolve(value);
+      continue;
+    }
+    if (a.startsWith("--repo-root=")) {
+      const value = a.slice("--repo-root=".length);
+      root = value.length === 0 ? "" : isAbsolute(value) ? value : resolve(value);
       continue;
     }
     rest.push(a);

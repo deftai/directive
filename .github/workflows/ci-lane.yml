@@ -80,27 +80,29 @@ jobs:
         if: inputs.suite == 'go'
         run: pnpm run build
 
+      # Quote the run value: a bare `#5490` in a plain YAML scalar is a comment
+      # and truncates the script (unexpected EOF on the opening `"`).
       - name: Run Go tests
         if: inputs.suite == 'go'
-        run: echo "Go installer removed (AC10.10 / #5490); skipping go test"
+        run: 'echo "Go installer removed (AC10.10 / #5490); skipping go test"'
 
       - name: Build linux/amd64
         if: inputs.suite == 'go'
         env:
           GOOS: linux
           GOARCH: amd64
-        run: echo "Go installer removed (AC10.10 / #5490); skipping go build"
+        run: 'echo "Go installer removed (AC10.10 / #5490); skipping go build"'
 
       - name: Build darwin/arm64
         if: inputs.suite == 'go'
         env:
           GOOS: darwin
           GOARCH: arm64
-        run: echo "Go installer removed (AC10.10 / #5490); skipping go build"
+        run: 'echo "Go installer removed (AC10.10 / #5490); skipping go build"'
 
       - name: Build windows/amd64
         if: inputs.suite == 'go'
         env:
           GOOS: windows
           GOARCH: amd64
-        run: echo "Go installer removed (AC10.10 / #5490); skipping go build"
+        run: 'echo "Go installer removed (AC10.10 / #5490); skipping go build"'
