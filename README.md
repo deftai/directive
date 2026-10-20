@@ -70,6 +70,8 @@ directive toolchain:check --consumer
 
 #### Legacy Go installer — RETIRED (#1912 / AC10.10)
 
+> **Maintainer / design history:** OVPR requirements and delivery notes live under [`docs/installer-refactor-ovpr/`](./docs/installer-refactor-ovpr/).
+
 > **Historical only.** The Go installer (`cmd/deft-install/`, platform `install-*` binaries) is **deleted**. Do not download or run it. Current install/upgrade is npm/pnpm only (above). Supported latest-legacy layouts convert with `directive upgrade`; see [UPGRADING.md](./content/UPGRADING.md).
 
 #### Agent / headless install
