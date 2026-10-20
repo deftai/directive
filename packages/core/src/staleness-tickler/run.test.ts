@@ -70,7 +70,44 @@ describe("maybeRunStalenessTickler (#2488/#2489)", () => {
     });
     expect(result.prompted).toBe(true);
     expect(result.lines.join("\n")).toContain("Directive payload behind");
-    expect(result.lines.join("\n")).toContain("npm i -g @deftai/directive@latest");
+    expect(result.lines.join("\n")).toContain("directive upgrade");
+    expect(result.lines.join("\n")).not.toMatch(/Running `npm i -g/);
+  });
+
+  it("TICKLER-GLOBAL: consent yes is advice-only — never calls upgrade/migrate seams", () => {
+    const root = makeRepo({ schemaVersion: "0.6" });
+    let upgradeCalls = 0;
+    let migrateCalls = 0;
+    const result = maybeRunStalenessTickler(root, {
+      env: testEnv,
+      isInteractive: true,
+      askConsent: () => "yes",
+      runUpgrade: () => {
+        upgradeCalls += 1;
+        return { ok: true, message: "should-not-run" };
+      },
+      runMigrate: () => {
+        migrateCalls += 1;
+        return { ok: true, message: "should-not-run" };
+      },
+      probeDirective: {
+        isFile: (path) => path.endsWith("VERSION"),
+        readText: (path) =>
+          path.endsWith("VERSION") ? `sha: ${"a".repeat(40)}\nref: v1.0.0\ntag: v1.0.0\n` : null,
+        runNpmView: () => ({ ok: true, version: "2.0.0" }),
+      },
+      ...idleSeams,
+    });
+    expect(result.prompted).toBe(true);
+    expect(upgradeCalls).toBe(0);
+    expect(migrateCalls).toBe(0);
+    const text = result.lines.join("\n");
+    expect(text).toContain("directive upgrade");
+    expect(text).toMatch(/Show `directive upgrade` command\?/);
+    expect(text).not.toMatch(/upgrade Directive and migrate xBRIEF now\?/);
+    expect(text).not.toMatch(/Running `npm i -g/);
+    expect(text).not.toContain("Running xBRIEF migration");
+    expect(text).not.toContain("should-not-run");
   });
 
   it("prompts for stale-xbrief-only", () => {
@@ -88,7 +125,7 @@ describe("maybeRunStalenessTickler (#2488/#2489)", () => {
     });
     expect(result.prompted).toBe(true);
     expect(result.lines.join("\n")).toContain("xBRIEF schema behind-major");
-    expect(result.lines.join("\n")).toContain("deft migrate:xbrief");
+    expect(result.lines.join("\n")).toContain("directive upgrade");
   });
 
   it("prompts when both dimensions are stale", () => {

@@ -1,7 +1,5 @@
-import { spawnSync } from "node:child_process";
 import { loadProjectDefinition } from "../policy/resolve.js";
 import { loadStalenessTicklerPolicy } from "../policy/staleness-tickler.js";
-import { runXbriefMigration } from "../xbrief-migrate/migrate-project.js";
 import {
   holdTierOnUnverified,
   isSnoozeActive,
@@ -28,8 +26,13 @@ import type {
   StalenessTicklerTier,
 } from "./types.js";
 
-export const DIRECTIVE_UPGRADE_COMMAND = "npm i -g @deftai/directive@latest";
-export const XBRIEF_MIGRATE_COMMAND = "deft migrate:xbrief";
+/** Deliberate project pin/migrate verb (AC3.6 / D4.8 — tickler never executes it). */
+export const DIRECTIVE_UPGRADE_COMMAND = "directive upgrade";
+/** Install-management recovery for behind envelopes (AC8.9 / F-017). */
+export const XBRIEF_MIGRATE_COMMAND = "directive upgrade";
+/** Human-only launcher bootstrap advice (AC9.7 / D4.8) — never executed by tickler. */
+export const LAUNCHER_BOOTSTRAP_ADVICE =
+  "npm i -g @deftai/directive, then directive install --repair";
 
 export interface StalenessTicklerOptions {
   readonly now?: Date;
@@ -39,7 +42,10 @@ export interface StalenessTicklerOptions {
   readonly probeXbrief?: ProbeXbriefOptions;
   readonly askConsent?: (prompt: string) => "yes" | "no" | "snooze" | "remind";
   readonly isInteractive?: boolean;
-  readonly executeUpgrade?: boolean;
+  /**
+   * Injected seams retained for regression tests only.
+   * Default path never calls them (TICKLER-GLOBAL / AC3.6 / D4.8).
+   */
   readonly runUpgrade?: () => { ok: boolean; message: string };
   readonly runMigrate?: (projectRoot: string) => { ok: boolean; message: string };
 }
@@ -53,36 +59,6 @@ const TIER_TONE: Record<StalenessTicklerTier, string> = {
 
 function defaultAskConsent(_prompt: string): "yes" | "no" | "snooze" | "remind" {
   return "snooze";
-}
-
-function defaultRunUpgrade(): { ok: boolean; message: string } {
-  const result = spawnSync("npm", ["i", "-g", "@deftai/directive@latest"], {
-    encoding: "utf8",
-    timeout: 120_000,
-  });
-  if (result.status === 0) {
-    return { ok: true, message: "Directive upgrade completed." };
-  }
-  const stderr = (result.stderr ?? "").trim();
-  return {
-    ok: false,
-    message: stderr.length > 0 ? stderr : `npm exited with status ${result.status ?? "unknown"}`,
-  };
-}
-
-function defaultRunMigrate(projectRoot: string): { ok: boolean; message: string } {
-  const io = { writeOut: () => {}, writeErr: () => {} };
-  const outcome = runXbriefMigration({ projectRoot }, io);
-  if (outcome.kind === "migrated") {
-    return {
-      ok: true,
-      message: `xBRIEF migration completed (${outcome.files} files; backup ${outcome.backupDir}).`,
-    };
-  }
-  if (outcome.kind === "converged" || outcome.kind === "noop") {
-    return { ok: true, message: outcome.message };
-  }
-  return { ok: false, message: outcome.message };
 }
 
 export function probeStalenessDimensions(
@@ -142,22 +118,26 @@ function formatDimensionLines(probe: StalenessProbeResult): string[] {
 
 function buildPromptLine(tier: StalenessTicklerTier, probe: StalenessProbeResult): string {
   const tone = TIER_TONE[tier];
-  const actions: string[] = [];
+  const needs: string[] = [];
   if (probe.directive.stale) {
-    actions.push("upgrade Directive");
+    needs.push("Directive upgrade");
   }
   if (probe.xbrief.stale) {
-    actions.push("migrate xBRIEF");
+    needs.push("xBRIEF migrate");
   }
-  const actionText = actions.join(" and ");
+  const needText = needs.join(" / ");
+  // Advice-only (TICKLER-GLOBAL): yes prints how to run `directive upgrade`; never mutates.
   if (tier === "assert") {
     return (
-      `[deft staleness:${tone}] Version drift is compounding (${actionText}). ` +
-      "Plain snooze is unavailable — choose yes, opt-out via plan.policy.stalenessTickler.optOut, " +
-      "or remind after next release."
+      `[deft staleness:${tone}] Version drift is compounding (${needText}). ` +
+      `You must run \`${DIRECTIVE_UPGRADE_COMMAND}\` yourself — choose yes for the command, ` +
+      "opt-out via plan.policy.stalenessTickler.optOut, or remind after next release."
     );
   }
-  return `[deft staleness:${tone}] ${actionText} now? [y/n/s]`;
+  return (
+    `[deft staleness:${tone}] ${needText} needed. ` +
+    `Show \`${DIRECTIVE_UPGRADE_COMMAND}\` command? [y/n/s]`
+  );
 }
 
 function nextStateAfterPrompt(
@@ -286,24 +266,11 @@ export function maybeRunStalenessTickler(
   }
 
   if (choice === "yes") {
-    const runUpgrade = options.runUpgrade ?? defaultRunUpgrade;
-    const runMigrate = options.runMigrate ?? defaultRunMigrate;
-    if (probe.directive.stale) {
-      lines.push(`[deft staleness] Running \`${DIRECTIVE_UPGRADE_COMMAND}\`…`);
-      const upgrade = runUpgrade();
+    // Advice-only (TICKLER-GLOBAL / AC3.6 / D4.8): never call runUpgrade/runMigrate.
+    if (probe.directive.stale || probe.xbrief.stale) {
       lines.push(
-        upgrade.ok
-          ? `[deft staleness] ${upgrade.message}`
-          : `[deft staleness] Upgrade failed (non-fatal): ${upgrade.message}`,
-      );
-    }
-    if (probe.xbrief.stale) {
-      lines.push(`[deft staleness] Running xBRIEF migration…`);
-      const migrate = runMigrate(projectRoot);
-      lines.push(
-        migrate.ok
-          ? `[deft staleness] ${migrate.message}`
-          : `[deft staleness] Migration failed (non-fatal): ${migrate.message}`,
+        `[deft staleness] Run \`${DIRECTIVE_UPGRADE_COMMAND}\` for project pin/migrate ` +
+          `(Directive never runs global install). Launcher missing/outdated: ${LAUNCHER_BOOTSTRAP_ADVICE}.`,
       );
     }
   }

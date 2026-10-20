@@ -51,9 +51,22 @@ afterEach(() => {
   for (const root of temps.splice(0)) rmSync(root, { recursive: true, force: true });
 });
 
-function project(): string {
+function project(options: { withRuntime?: boolean } = {}): string {
   const root = mkdtempSync(join(tmpdir(), "deft-agent-hooks-"));
   temps.push(root);
+  // Default: stub local runtime so deposit prefers package-relative (AC9.1).
+  if (options.withRuntime !== false) {
+    const hookBin = join(
+      root,
+      "node_modules",
+      "@deftai",
+      "directive-runtime",
+      "dist",
+      "hook-bin.js",
+    );
+    mkdirSync(join(hookBin, ".."), { recursive: true });
+    writeFileSync(hookBin, "// stub\n", "utf8");
+  }
   return root;
 }
 
@@ -110,7 +123,10 @@ describe("writeAgentHookDeposit", () => {
     expect(sessionCommands.every((cmd) => !isGrokWrapperCommand(cmd))).toBe(true);
     expect(existsSync(join(root, GROK_PRETOOLUSE_WRAPPER_REL_PATH))).toBe(true);
     expect(readFileSync(join(root, GROK_PRETOOLUSE_WRAPPER_REL_PATH), "utf8")).toContain(
-      "deft-hook",
+      "node_modules/@deftai/directive-runtime/dist/hook-bin.js",
+    );
+    expect(readFileSync(join(root, GROK_PRETOOLUSE_WRAPPER_REL_PATH), "utf8")).not.toContain(
+      "command -v deft-hook",
     );
     expect(readFileSync(join(root, GROK_PRETOOLUSE_WRAPPER_REL_PATH), "utf8")).toContain("#5656");
     if (process.platform !== "win32") {
@@ -306,31 +322,36 @@ describe("writeAgentHookDeposit", () => {
           hooks: {
             sessionStart: [
               {
-                command: "deft-hook --host cursor --event session.start",
+                command:
+                  "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host cursor --event session.start",
                 timeout: CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
               },
             ],
             preToolUse: [
               {
-                command: "deft-hook --host cursor --event tool.before",
+                command:
+                  "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host cursor --event tool.before",
                 matcher: DIRECT_WRITE_HOOK_MATCHER,
                 failClosed: true,
                 timeout: 5,
               },
               {
-                command: "deft-hook --host cursor --event tool.before",
+                command:
+                  "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host cursor --event tool.before",
                 matcher: SPAWN_HOOK_MATCHER,
                 failClosed: true,
                 timeout: 5,
               },
               {
-                command: "deft-hook --host cursor --event tool.before",
+                command:
+                  "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host cursor --event tool.before",
                 matcher: SHELL_HOOK_MATCHER,
                 failClosed: true,
                 timeout: 5,
               },
               {
-                command: "deft-hook --host cursor --event tool.before",
+                command:
+                  "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host cursor --event tool.before",
                 matcher: MCP_HOOK_MATCHER,
                 failClosed: true,
                 timeout: 5,
@@ -338,7 +359,8 @@ describe("writeAgentHookDeposit", () => {
             ],
             preCompact: [
               {
-                command: "deft-hook --host cursor --event session.compact",
+                command:
+                  "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host cursor --event session.compact",
                 timeout: CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
               },
             ],
@@ -373,8 +395,18 @@ describe("writeAgentHookDeposit", () => {
     for (const path of AGENT_HOOK_PATHS) {
       const deposit = readFileSync(join(root, path), "utf8");
       expect(deposit.split(DIRECT_WRITE_HOOK_MATCHER)).toHaveLength(2);
-      expect(deposit).toContain("deft-hook --host");
+      expect(deposit).toContain(
+        "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host",
+      );
     }
+  });
+
+  it("keeps bare deft-hook when local runtime hook-bin is absent (legacy init/refresh)", () => {
+    const root = project({ withRuntime: false });
+    writeAgentHookDeposit(root);
+    const claude = readFileSync(join(root, ".claude/settings.json"), "utf8");
+    expect(claude).toContain("deft-hook --host claude");
+    expect(claude).not.toContain("directive-runtime/dist/hook-bin.js");
   });
 
   it("replaces legacy Cursor adapter registrations with one fast direct-write hook", () => {
@@ -1018,7 +1050,7 @@ describe("inspectAgentHookDeposit", () => {
     expect(grokInspect).toMatchObject({ status: "drifted" });
     expect(grokInspect?.detail).toMatch(/does not resolve beside/);
     expect(grokInspect?.detail).toMatch(/new Grok session/);
-    expect(grokInspect?.detail).toMatch(/deft update/);
+    expect(grokInspect?.detail).toMatch(/directive install --repair/);
   });
 
   it("marks grok drifted when the PreToolUse wrapper script is missing (#5656)", () => {
@@ -1159,7 +1191,7 @@ describe("inspectAgentHookDeposit", () => {
 });
 
 describe("evaluateGrokPretooluseWrapperOutcome (#5656)", () => {
-  it("denies when deft-hook is missing", () => {
+  it("denies when package-relative hook-bin is missing", () => {
     expect(
       evaluateGrokPretooluseWrapperOutcome({
         deftHookResolvable: false,
@@ -1169,7 +1201,7 @@ describe("evaluateGrokPretooluseWrapperOutcome (#5656)", () => {
     ).toEqual({ kind: "deny", reason: GROK_WRAPPER_DENY_MISSING });
   });
 
-  it("denies when deft-hook is non-executable", () => {
+  it("denies when package-relative hook-bin is not runnable", () => {
     expect(
       evaluateGrokPretooluseWrapperOutcome({
         deftHookResolvable: true,

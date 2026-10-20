@@ -1,0 +1,18 @@
+{
+  "schema": "xbrief",
+  "id": "yolo-5490-wave3b",
+  "title": "Wave 3b — L2 shape registry + L1 xbrief 0.7 migrate-through",
+  "status": "completed",
+  "summary": "Isolated legacy-shapes/ registry (uninstall-reinstall for go/submodule/vendored-core-go; unsupported-honest orphan). Bookends +22 lines dispatch only. xbrief 0.7 thin migrate-through reusing 0.6→0.8 transform; ACCEPTED stays 0.6+0.8. L0 legacy-conversion regressions green.",
+  "completedAt": "2026-10-14T03:00:00Z",
+  "wave": "3b",
+  "acs": ["AC10.8", "AC14.32", "AC15.2", "AC10.7"],
+  "commits": [
+    "d2d3148a4a20ebf88e792c84ac82bfb5666c57e4",
+    "23ae71761a76542fc9ece9d50ff9deee562deb21"
+  ],
+  "verdaccio": {
+    "tag": "yolo-cp-wave3b",
+    "version": "0.0.0-yolo.cp-wave3b.1"
+  }
+}

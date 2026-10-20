@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { defaultGitRunner as swarmGitRunner } from "../../swarm/worktrees.js";
 import type { GitRunner } from "./types.js";
 import {
+  __testOnly_clearCaseInsensitiveDirCache,
   addEvaluatorWorktree,
   EvaluatorWorktreeError,
   removeEvaluatorWorktree,
@@ -57,6 +58,7 @@ function hostsCaseDistinctNames(dir: string): boolean {
 
 const temps: string[] = [];
 afterEach(() => {
+  __testOnly_clearCaseInsensitiveDirCache();
   for (const root of temps.splice(0)) {
     rmSync(root, { recursive: true, force: true });
   }

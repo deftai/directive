@@ -32,8 +32,29 @@ export {
   SHELL_HOOK_MATCHER,
   SPAWN_HOOK_MATCHER,
 } from "../hooks/tools.js";
+/** Legacy bare PATH marker — rewritten to PACKAGE_RELATIVE_HOOK_BIN on deposit (AC9.2). */
 export const DEFT_HOOK_COMMAND_MARKER = "deft-hook";
 export const LEGACY_DEFT_HOOK_COMMAND_MARKER = "deft hook:dispatch";
+/** Package-relative hook invocation (AC9.1) — identical on every OS and PM. */
+export const PACKAGE_RELATIVE_HOOK_BIN =
+  "node node_modules/@deftai/directive-runtime/dist/hook-bin.js";
+
+/**
+ * Prefer package-relative when local runtime hook-bin exists; otherwise keep the
+ * working bare PATH command for legacy init/refresh (Greptile wave2c P1).
+ */
+export function resolveAgentHookCommandBin(projectRoot: string): string {
+  const hookBin = join(
+    resolve(projectRoot),
+    "node_modules",
+    "@deftai",
+    "directive-runtime",
+    "dist",
+    "hook-bin.js",
+  );
+  return existsSync(hookBin) ? PACKAGE_RELATIVE_HOOK_BIN : DEFT_HOOK_COMMAND_MARKER;
+}
+
 export const AGENT_HOOK_PATHS = [
   ".claude/settings.json",
   ".grok/hooks/deft.json",
@@ -42,33 +63,48 @@ export const AGENT_HOOK_PATHS = [
 ] as const;
 
 /**
- * Grok PreToolUse outer-deny wrapper (#5656 Prefer-A Bound).
+ * Grok PreToolUse outer-deny wrapper (#5656 Prefer-A Bound, OVPR / AC9.1).
  * Host schema has no attested failClosed; the wrapper emits Grok's deny
- * envelope when deft-hook is missing, non-executable, crashes, or returns
- * malformed non-empty stdout. Empty stdout + exit 0 remains Grok allow wire.
- * Wrapper-never-starts (missing interpreter / host timeout with no decision)
- * is an explicit host-contract residual — not closed by this deposit.
+ * envelope when the package-relative hook-bin cannot run (missing module /
+ * missing node), crashes, or returns malformed non-empty stdout. Empty
+ * stdout + exit 0 remains Grok allow wire. Wrapper-never-starts (missing
+ * interpreter / host timeout with no decision) is an explicit host-contract
+ * residual — not closed by this deposit.
+ *
+ * The wrapper invokes PACKAGE_RELATIVE_HOOK_BIN only — never `deft-hook` on PATH.
  */
 export const GROK_PRETOOLUSE_WRAPPER_REL_PATH = ".grok/hooks/deft-pretooluse-wrapper.sh";
 export const GROK_PRETOOLUSE_WRAPPER_MARKER = "deft-pretooluse-wrapper.sh";
 /** Grok resolves relative PreToolUse commands beside deft.json (#5715). */
 export const GROK_PRETOOLUSE_WRAPPER_COMMAND = `./${GROK_PRETOOLUSE_WRAPPER_MARKER}`;
 
+/** Relative JS path the wrapper checks before invoking node (AC9.1). */
+export const PACKAGE_RELATIVE_HOOK_BIN_JS =
+  "node_modules/@deftai/directive-runtime/dist/hook-bin.js";
+
 export const GROK_WRAPPER_DENY_MISSING =
-  "Directive denied this tool: deft-hook is missing or not executable " +
-  "(#5656 / #3785). Install @deftai/directive so PreToolUse can run, or " +
-  "disable Grok host hooks out of band (`deft policy:disable-host-hooks " +
-  "--host grok --confirm`).";
+  "Directive denied this tool: package-relative hook-bin is missing " +
+  `(${PACKAGE_RELATIVE_HOOK_BIN_JS}) or node cannot run it ` +
+  "(#5656 / #3785 / AC9.1). Install @deftai/directive-runtime in this project " +
+  "(`npm install` / `directive install --repair`), or disable Grok host hooks " +
+  "out of band (`directive policy:disable-host-hooks --host grok --confirm`).";
 
 export const GROK_WRAPPER_DENY_NONDECISION =
-  "Directive denied this tool: deft-hook produced no usable decision (#5656). " +
-  "Crash, non-zero exit, and malformed non-empty stdout are non-decisions.";
+  "Directive denied this tool: package-relative hook-bin produced no usable " +
+  "decision (#5656 / AC9.1). Crash, non-zero exit, and malformed non-empty " +
+  "stdout are non-decisions.";
 
 /** Pure outcome for the Grok outer-deny wrapper (shell script mirrors this). */
 export type GrokWrapperOutcome =
   | { readonly kind: "deny"; readonly reason: string }
   | { readonly kind: "passthrough"; readonly stdout: string };
 
+/**
+ * Evaluate Grok wrapper outcome.
+ * `deftHookResolvable` / `deftHookExecutable` mean the package-relative
+ * hook-bin.js is present / runnable via node (names kept for call-site
+ * compatibility; there is no PATH `deft-hook` resolve).
+ */
 export function evaluateGrokPretooluseWrapperOutcome(input: {
   readonly deftHookResolvable: boolean;
   readonly deftHookExecutable?: boolean;
@@ -100,7 +136,7 @@ export function evaluateGrokPretooluseWrapperOutcome(input: {
   return { kind: "passthrough", stdout };
 }
 
-/** POSIX shell deposited beside `.grok/hooks/deft.json` (#5656). */
+/** POSIX shell deposited beside `.grok/hooks/deft.json` (#5656, OVPR AC9.1). */
 export function grokPretooluseWrapperScriptSource(): string {
   const missingJson = JSON.stringify({ decision: "deny", reason: GROK_WRAPPER_DENY_MISSING });
   const nondecisionJson = JSON.stringify({
@@ -108,25 +144,25 @@ export function grokPretooluseWrapperScriptSource(): string {
     reason: GROK_WRAPPER_DENY_NONDECISION,
   });
   const q = (s: string) => s.replace(/'/g, "'\\''");
+  const hookJs = PACKAGE_RELATIVE_HOOK_BIN_JS;
   const lines = [
     "#!/usr/bin/env sh",
-    "# Grok PreToolUse outer deny when deft-hook cannot decide (#5656 Prefer-A Bound).",
+    "# Grok PreToolUse outer deny when package-relative hook-bin cannot decide",
+    "# (#5656 Prefer-A Bound / OVPR AC9.1). Invokes ONLY:",
+    `#   node ${hookJs} --host grok --event tool.before`,
+    "# Never resolves deft-hook on PATH.",
     "# Residual: if this wrapper never starts (missing sh / host timeout with no",
     "# decision), the host contract still applies — Directive cannot observe that case.",
     "set -eu",
     `DENY_MISSING='${q(missingJson)}'`,
     `DENY_NONDECISION='${q(nondecisionJson)}'`,
+    `HOOK_JS="${hookJs}"`,
     "",
-    "resolve_deft_hook() {",
-    "  if command -v deft-hook >/dev/null 2>&1; then",
-    "    command -v deft-hook",
-    "    return 0",
-    "  fi",
-    "  return 1",
-    "}",
-    "",
-    "HOOK_BIN=$(resolve_deft_hook || true)",
-    'if [ -z "${HOOK_BIN}" ] || [ ! -x "${HOOK_BIN}" ]; then',
+    'if [ ! -f "$HOOK_JS" ]; then',
+    "  printf '%s\\n' \"$DENY_MISSING\"",
+    "  exit 0",
+    "fi",
+    "if ! command -v node >/dev/null 2>&1; then",
     "  printf '%s\\n' \"$DENY_MISSING\"",
     "  exit 0",
     "fi",
@@ -135,7 +171,7 @@ export function grokPretooluseWrapperScriptSource(): string {
     "TMP=$(mktemp) || { printf '%s\\n' \"$DENY_NONDECISION\"; exit 0; }",
     "trap 'rm -f \"$TMP\"' EXIT INT HUP TERM",
     "set +e",
-    '"$HOOK_BIN" --host grok --event tool.before >"$TMP"',
+    'node "$HOOK_JS" --host grok --event tool.before >"$TMP"',
     "CODE=$?",
     "set -e",
     'OUT=$(cat "$TMP" || true)',
@@ -267,9 +303,17 @@ function object(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
-/** Bare PATH name hosts invoke; Windows .cmd reachability is #4654/#4659, not Bypass. */
-function command(host: HookHost, event: HookEvent): string {
-  return `${DEFT_HOOK_COMMAND_MARKER} --host ${host} --event ${event}`;
+/** Hook command using the resolved bin for this project. */
+function command(bin: string, host: HookHost, event: HookEvent): string {
+  return `${bin} --host ${host} --event ${event}`;
+}
+
+function isManagedHookCommand(commandText: string): boolean {
+  return (
+    commandText.includes(PACKAGE_RELATIVE_HOOK_BIN) ||
+    commandText.includes(DEFT_HOOK_COMMAND_MARKER) ||
+    commandText.includes(LEGACY_DEFT_HOOK_COMMAND_MARKER)
+  );
 }
 
 function readConfig(path: string): Record<string, unknown> {
@@ -317,20 +361,14 @@ function nestedCommands(value: unknown): string[] {
 
 function isManagedNestedGroup(value: unknown): boolean {
   return nestedCommands(value).some(
-    (cmd) =>
-      cmd.includes(DEFT_HOOK_COMMAND_MARKER) ||
-      cmd.includes(LEGACY_DEFT_HOOK_COMMAND_MARKER) ||
-      isGrokWrapperCommand(cmd),
+    (commandText) => isManagedHookCommand(commandText) || isGrokWrapperCommand(commandText),
   );
 }
 
 function isManagedNestedGroupForHost(value: unknown, host: NestedHookHost): boolean {
-  return nestedCommands(value).some((cmd) => {
-    if (host === "grok" && isGrokWrapperCommand(cmd)) return true;
-    return (
-      (cmd.includes(DEFT_HOOK_COMMAND_MARKER) || cmd.includes(LEGACY_DEFT_HOOK_COMMAND_MARKER)) &&
-      cmd.includes(`--host ${host}`)
-    );
+  return nestedCommands(value).some((commandText) => {
+    if (host === "grok" && isGrokWrapperCommand(commandText)) return true;
+    return isManagedHookCommand(commandText) && commandText.includes(`--host ${host}`);
   });
 }
 
@@ -338,9 +376,7 @@ function isManagedCursorEntry(value: unknown): boolean {
   const entry = object(value);
   if (typeof entry?.command !== "string") return false;
   return (
-    entry.command.includes(DEFT_HOOK_COMMAND_MARKER) ||
-    entry.command.includes(LEGACY_DEFT_HOOK_COMMAND_MARKER) ||
-    entry.command.includes("deft-cursor-hook-adapter.mjs")
+    isManagedHookCommand(entry.command) || entry.command.includes("deft-cursor-hook-adapter.mjs")
   );
 }
 
@@ -350,9 +386,10 @@ function isManagedCursorEntryForHost(value: unknown): boolean {
 
 type NestedHookHost = "claude" | "grok" | "codex";
 
-function nestedToolCommand(host: NestedHookHost, event: HookEvent): string {
+/** Grok tool.before deposits the outer-deny wrapper (./ form, #5715); other nested events use bin (AC9.1). */
+function nestedToolCommand(bin: string, host: NestedHookHost, event: HookEvent): string {
   if (host === "grok" && event === "tool.before") return GROK_PRETOOLUSE_WRAPPER_COMMAND;
-  return command(host, event);
+  return command(bin, host, event);
 }
 
 /** True for both ./COMMAND and legacy REL_PATH deposits (marker substring). */
@@ -360,13 +397,13 @@ export function isGrokWrapperCommand(value: string): boolean {
   return value.includes(GROK_PRETOOLUSE_WRAPPER_MARKER);
 }
 
-function nestedGroup(host: NestedHookHost, event: HookEvent, matcher?: string) {
+function nestedGroup(bin: string, host: NestedHookHost, event: HookEvent, matcher?: string) {
   return {
     ...(event === "tool.before" && matcher !== undefined ? { matcher } : {}),
     hooks: [
       {
         type: "command",
-        command: nestedToolCommand(host, event),
+        command: nestedToolCommand(bin, host, event),
         timeout:
           event === "tool.before"
             ? NESTED_TOOL_BEFORE_TIMEOUT_SECONDS
@@ -380,6 +417,7 @@ function mergeNestedConfig(
   config: Record<string, unknown>,
   path: string,
   host: NestedHookHost,
+  bin: string,
   options: { compact?: boolean } = {},
 ): Record<string, unknown> {
   const hooks = hooksObject(config, path);
@@ -389,10 +427,10 @@ function mergeNestedConfig(
   const preTool = eventArray(hooks, "PreToolUse", path).filter(
     (entry) => !isManagedNestedGroup(entry),
   );
-  hooks.SessionStart = [...session, nestedGroup(host, "session.start")];
+  hooks.SessionStart = [...session, nestedGroup(bin, host, "session.start")];
   hooks.PreToolUse = [
     ...preTool,
-    ...NESTED_PRE_TOOL_MATCHERS.map((matcher) => nestedGroup(host, "tool.before", matcher)),
+    ...NESTED_PRE_TOOL_MATCHERS.map((matcher) => nestedGroup(bin, host, "tool.before", matcher)),
   ];
   if (options.compact) {
     const preCompact = eventArray(hooks, "PreCompact", path).filter(
@@ -401,8 +439,8 @@ function mergeNestedConfig(
     const postCompact = eventArray(hooks, "PostCompact", path).filter(
       (entry) => !isManagedNestedGroup(entry),
     );
-    hooks.PreCompact = [...preCompact, nestedGroup(host, "session.compact")];
-    hooks.PostCompact = [...postCompact, nestedGroup(host, "session.compact")];
+    hooks.PreCompact = [...preCompact, nestedGroup(bin, host, "session.compact")];
+    hooks.PostCompact = [...postCompact, nestedGroup(bin, host, "session.compact")];
   }
   return { ...config, hooks };
 }
@@ -454,7 +492,11 @@ function stripManagedCursorConfig(
   return { ...config, version: 1, hooks: nextHooks };
 }
 
-function mergeCursorConfig(config: Record<string, unknown>, path: string): Record<string, unknown> {
+function mergeCursorConfig(
+  config: Record<string, unknown>,
+  path: string,
+  bin: string,
+): Record<string, unknown> {
   const hooks = hooksObject(config, path);
   const session = eventArray(hooks, "sessionStart", path).filter(
     (entry) => !isManagedCursorEntry(entry),
@@ -474,14 +516,14 @@ function mergeCursorConfig(config: Record<string, unknown>, path: string): Recor
   hooks.sessionStart = [
     ...session,
     {
-      command: command("cursor", "session.start"),
+      command: command(bin, "cursor", "session.start"),
       timeout: CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
     },
   ];
   hooks.preToolUse = [
     ...preTool,
     ...NESTED_PRE_TOOL_MATCHERS.map((matcher) => ({
-      command: command("cursor", "tool.before"),
+      command: command(bin, "cursor", "tool.before"),
       matcher,
       failClosed: true,
       timeout: CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS,
@@ -490,21 +532,21 @@ function mergeCursorConfig(config: Record<string, unknown>, path: string): Recor
   hooks.preCompact = [
     ...preCompact,
     {
-      command: command("cursor", "session.compact"),
+      command: command(bin, "cursor", "session.compact"),
       timeout: CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
     },
   ];
   hooks.beforeSubmitPrompt = [
     ...beforeSubmit,
     {
-      command: command("cursor", "prompt.submit"),
+      command: command(bin, "cursor", "prompt.submit"),
       timeout: CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
     },
   ];
   hooks.afterAgentResponse = [
     ...afterResponse,
     {
-      command: command("cursor", "agent.response"),
+      command: command(bin, "cursor", "agent.response"),
       timeout: CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
     },
   ];
@@ -561,6 +603,7 @@ export function writeAgentHookDeposit(
 ): AgentHookDepositResult {
   const changedPaths: AgentHookPath[] = [];
   const strippedPaths: AgentHookPath[] = [];
+  const bin = resolveAgentHookCommandBin(projectRoot);
   const definitions: Array<{
     host: HookHost;
     path: AgentHookPath;
@@ -570,25 +613,25 @@ export function writeAgentHookDeposit(
     {
       host: "claude",
       path: AGENT_HOOK_PATHS[0],
-      merge: (config, path) => mergeNestedConfig(config, path, "claude", { compact: true }),
+      merge: (config, path) => mergeNestedConfig(config, path, "claude", bin, { compact: true }),
       strip: (config, path) => stripManagedNestedConfig(config, path, "claude"),
     },
     {
       host: "grok",
       path: AGENT_HOOK_PATHS[1],
-      merge: (config, path) => mergeNestedConfig(config, path, "grok", { compact: true }),
+      merge: (config, path) => mergeNestedConfig(config, path, "grok", bin, { compact: true }),
       strip: (config, path) => stripManagedNestedConfig(config, path, "grok"),
     },
     {
       host: "cursor",
       path: AGENT_HOOK_PATHS[2],
-      merge: mergeCursorConfig,
+      merge: (config, path) => mergeCursorConfig(config, path, bin),
       strip: stripManagedCursorConfig,
     },
     {
       host: "codex",
       path: AGENT_HOOK_PATHS[3],
-      merge: (config, path) => mergeNestedConfig(config, path, "codex", { compact: false }),
+      merge: (config, path) => mergeNestedConfig(config, path, "codex", bin, { compact: false }),
       strip: (config, path) => stripManagedNestedConfig(config, path, "codex"),
     },
   ];
@@ -724,26 +767,38 @@ export function writeAgentHookDeposit(
   };
 }
 
-function hasNestedSessionStart(config: Record<string, unknown>, host: NestedHookHost): boolean {
+function hasNestedSessionStart(
+  config: Record<string, unknown>,
+  host: NestedHookHost,
+  bin: string,
+): boolean {
   const hooks = object(config.hooks);
   if (hooks === null) return false;
   const session = Array.isArray(hooks.SessionStart) ? hooks.SessionStart : [];
-  const sessionCommand = command(host, "session.start");
+  const sessionCommand = command(bin, host, "session.start");
   return session.some((entry) => {
     const group = object(entry);
     return group?.matcher === undefined && nestedCommands(entry).includes(sessionCommand);
   });
 }
 
-function hasCursorSessionStart(config: Record<string, unknown>): boolean {
+function hasCursorSessionStart(config: Record<string, unknown>, bin: string): boolean {
   const hooks = object(config.hooks);
   if (hooks === null || config.version !== 1) return false;
   const session = Array.isArray(hooks.sessionStart) ? hooks.sessionStart : [];
-  return session.some((entry) => object(entry)?.command === command("cursor", "session.start"));
+  return session.some(
+    (entry) => object(entry)?.command === command(bin, "cursor", "session.start"),
+  );
 }
 
-function hasSessionStartRegistration(config: Record<string, unknown>, host: HookHost): boolean {
-  return host === "cursor" ? hasCursorSessionStart(config) : hasNestedSessionStart(config, host);
+function hasSessionStartRegistration(
+  config: Record<string, unknown>,
+  host: HookHost,
+  bin: string,
+): boolean {
+  return host === "cursor"
+    ? hasCursorSessionStart(config, bin)
+    : hasNestedSessionStart(config, host, bin);
 }
 
 /** #3739: nested tool.before health must require the readiness timeout, like Cursor. */
@@ -800,19 +855,20 @@ function hasGrokDirectWriteRegistration(preTool: readonly unknown[], toolCommand
 function hasNestedRegistration(
   config: Record<string, unknown>,
   host: NestedHookHost,
+  bin: string,
   options: { compact?: boolean } = {},
 ): boolean {
   const hooks = object(config.hooks);
   if (hooks === null) return false;
   const preTool = Array.isArray(hooks.PreToolUse) ? hooks.PreToolUse : [];
-  const toolCommand = nestedToolCommand(host, "tool.before");
-  const compactCommand = command(host, "session.compact");
+  const toolCommand = nestedToolCommand(bin, host, "tool.before");
+  const compactCommand = command(bin, host, "session.compact");
   const preToolOk =
     host === "grok"
       ? hasGrokDirectWriteRegistration(preTool, toolCommand) &&
         hasExactPreToolMatchers(preTool, toolCommand, NESTED_NON_DIRECT_WRITE_MATCHERS)
       : hasExactPreToolMatchers(preTool, toolCommand, NESTED_PRE_TOOL_MATCHERS);
-  const base = hasNestedSessionStart(config, host) && preToolOk;
+  const base = hasNestedSessionStart(config, host, bin) && preToolOk;
   if (!base) return false;
   if (!options.compact) return true;
   const preCompact = Array.isArray(hooks.PreCompact) ? hooks.PreCompact : [];
@@ -823,10 +879,10 @@ function hasNestedRegistration(
   );
 }
 
-function isCursorToolBeforeEntry(value: unknown, matcher: string): boolean {
+function isCursorToolBeforeEntry(value: unknown, matcher: string, bin: string): boolean {
   const hook = object(value);
   return (
-    hook?.command === command("cursor", "tool.before") &&
+    hook?.command === command(bin, "cursor", "tool.before") &&
     hook.matcher === matcher &&
     hook.failClosed === true &&
     // #3246: budget must cover gated ritual + live agent-hook readiness.
@@ -834,7 +890,7 @@ function isCursorToolBeforeEntry(value: unknown, matcher: string): boolean {
   );
 }
 
-function hasCursorRegistration(config: Record<string, unknown>): boolean {
+function hasCursorRegistration(config: Record<string, unknown>, bin: string): boolean {
   const hooks = object(config.hooks);
   if (hooks === null || config.version !== 1) return false;
   const preTool = Array.isArray(hooks.preToolUse) ? hooks.preToolUse : [];
@@ -842,20 +898,22 @@ function hasCursorRegistration(config: Record<string, unknown>): boolean {
   const beforeSubmit = Array.isArray(hooks.beforeSubmitPrompt) ? hooks.beforeSubmitPrompt : [];
   const afterResponse = Array.isArray(hooks.afterAgentResponse) ? hooks.afterAgentResponse : [];
   return (
-    hasCursorSessionStart(config) &&
+    hasCursorSessionStart(config, bin) &&
     NESTED_PRE_TOOL_MATCHERS.every((matcher) =>
-      preTool.some((entry) => isCursorToolBeforeEntry(entry, matcher)),
+      preTool.some((entry) => isCursorToolBeforeEntry(entry, matcher, bin)),
     ) &&
-    preCompact.some((entry) => object(entry)?.command === command("cursor", "session.compact")) &&
+    preCompact.some(
+      (entry) => object(entry)?.command === command(bin, "cursor", "session.compact"),
+    ) &&
     beforeSubmit.some(
       (entry) =>
-        object(entry)?.command === command("cursor", "prompt.submit") &&
+        object(entry)?.command === command(bin, "cursor", "prompt.submit") &&
         object(entry)?.timeout === CURSOR_SESSION_HOOK_TIMEOUT_SECONDS &&
         object(entry)?.failClosed !== true,
     ) &&
     afterResponse.some(
       (entry) =>
-        object(entry)?.command === command("cursor", "agent.response") &&
+        object(entry)?.command === command(bin, "cursor", "agent.response") &&
         object(entry)?.timeout === CURSOR_SESSION_HOOK_TIMEOUT_SECONDS &&
         object(entry)?.failClosed !== true,
     )
@@ -900,6 +958,7 @@ export function inspectSessionStartNotice(
   projectRoot: string,
   hostHooksPolicy: HostHooksPolicy = loadHostHooksPolicyFromProject(projectRoot),
 ): SessionStartNoticeInspection[] {
+  const bin = resolveAgentHookCommandBin(projectRoot);
   return (Object.keys(AGENT_HOOK_PATH_BY_HOST) as HookHost[]).map((host) => {
     if (!isHostHookDepositEnabled(host, hostHooksPolicy)) {
       return { host, registered: false };
@@ -909,7 +968,7 @@ export function inspectSessionStartNotice(
       return { host, registered: false };
     }
     const config = readConfig(absolute);
-    return { host, registered: hasSessionStartRegistration(config, host) };
+    return { host, registered: hasSessionStartRegistration(config, host, bin) };
   });
 }
 
@@ -918,6 +977,7 @@ export function inspectAgentHookDeposit(
   projectRoot: string,
   hostHooksPolicy: HostHooksPolicy = loadHostHooksPolicyFromProject(projectRoot),
 ): AgentHookInspection[] {
+  const bin = resolveAgentHookCommandBin(projectRoot);
   const definitions: Array<{
     host: HookHost;
     path: AgentHookPath;
@@ -928,25 +988,25 @@ export function inspectAgentHookDeposit(
       host: "claude",
       path: AGENT_HOOK_PATHS[0],
       compactSupport: "deposited",
-      valid: (config) => hasNestedRegistration(config, "claude", { compact: true }),
+      valid: (config) => hasNestedRegistration(config, "claude", bin, { compact: true }),
     },
     {
       host: "grok",
       path: AGENT_HOOK_PATHS[1],
       compactSupport: "deposited",
-      valid: (config) => hasNestedRegistration(config, "grok", { compact: true }),
+      valid: (config) => hasNestedRegistration(config, "grok", bin, { compact: true }),
     },
     {
       host: "cursor",
       path: AGENT_HOOK_PATHS[2],
       compactSupport: "deposited",
-      valid: hasCursorRegistration,
+      valid: (config) => hasCursorRegistration(config, bin),
     },
     {
       host: "codex",
       path: AGENT_HOOK_PATHS[3],
       compactSupport: "unsupported",
-      valid: (config) => hasNestedRegistration(config, "codex", { compact: false }),
+      valid: (config) => hasNestedRegistration(config, "codex", bin, { compact: false }),
     },
   ];
 
@@ -989,7 +1049,7 @@ export function inspectAgentHookDeposit(
             compactSupport: definition.compactSupport,
             detail:
               `${GROK_PRETOOLUSE_WRAPPER_REL_PATH} is missing while ${definition.path} is registered. ` +
-              "Recovery: install the fixed engine, run `deft update` / redeposit, then start a new Grok session." +
+              "Recovery: run `directive install --repair` / `writeAgentHookDeposit` so the outer-deny wrapper is redeposited, then start a new Grok session." +
               compactNote,
           };
         }
@@ -1010,7 +1070,7 @@ export function inspectAgentHookDeposit(
             detail:
               `Grok PreToolUse wrapper command does not resolve beside ${definition.path} ` +
               `(expected ${GROK_PRETOOLUSE_WRAPPER_COMMAND}; repo-root ${GROK_PRETOOLUSE_WRAPPER_REL_PATH} doubles under .grok/hooks/). ` +
-              "Recovery: install the fixed engine, run `deft update` / redeposit, then start a new Grok session." +
+              "Recovery: run `directive install --repair` / redeposit, then start a new Grok session." +
               compactNote,
           };
         }

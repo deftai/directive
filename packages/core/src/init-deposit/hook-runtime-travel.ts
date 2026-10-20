@@ -3,7 +3,7 @@
  *
  * Directive keeps the agent-hook registration files trackable by design and
  * born-ignores the deposit that implements them. When a registration travels
- * with the tree and nothing in that tree lets a clone obtain `deft-hook`, the
+ * with the tree and nothing in that tree lets a clone obtain package-relative hook-bin, the
  * registration arrives and the runtime does not. A fresh clone, CI runner, or
  * container without a global install then fail-closes every mutation on an
  * opaque exit 127, and no Directive code runs to explain it.
@@ -40,11 +40,12 @@ import {
 import { PIN_DEPENDENCY_NAME, type PinReadResult, readPin } from "../resolution/pin.js";
 
 /**
- * Hosts that deny mutations when deft-hook cannot decide (#5656 / #3785).
+ * Hosts that deny mutations when package-relative hook-bin cannot decide (#5656 / #3785 / AC9.1).
  * Cursor deposits schema `failClosed: true`. Grok deposits a PreToolUse shell
- * wrapper that emits the host deny envelope for missing/non-decision deft-hook
- * (#5656 Prefer-A Bound). Extending this list alone is not a deny — the deposit
- * writer must land the matching authority (schema field or wrapper).
+ * wrapper that emits the host deny envelope for missing/non-decision
+ * package-relative hook-bin (#5656 Prefer-A Bound / AC9.1). Extending this list
+ * alone is not a deny — the deposit writer must land the matching authority
+ * (schema field or wrapper).
  * Claude/Codex remain fail-open with silent gate-loss naming below.
  */
 export const FAIL_CLOSED_HOOK_HOSTS: readonly HookHost[] = ["cursor", "grok"];
@@ -83,7 +84,7 @@ const REMOTE_SPEC_PREFIXES = [
 ] as const;
 
 /**
- * Whether a clone could install `deft-hook` from this spec.
+ * Whether a clone could install package-relative `@deftai/directive-runtime` (hook-bin) from this spec.
  *
  * Allowlist, not denylist. Location forms are open-ended -- `file:`,
  * `git+file:`, `../directive`, `/opt/directive`, `C:\src\directive`, `~/dev` --
@@ -287,21 +288,22 @@ function buildWarning(
   const lines = [
     `\u26a0 Hook registration travels without its runtime (#3785): ${listed}`,
     cause,
-    "  clone, CI runner, or container cannot obtain the `deft-hook` command these files name.",
+    "  clone, CI runner, or container cannot obtain package-relative `node_modules/@deftai/directive-runtime/dist/hook-bin.js` (AC9.1) these files invoke.",
   ];
   if (failClosed.length > 0) {
     lines.push(
       "  Fail-closed hosts then deny every mutation on an opaque exit 127, and no Directive",
       "  code runs to say why. There is no in-session recovery on a host without Node.",
-      "  Cursor uses schema failClosed; Grok uses a wrapper-mediated deny (#5656). Grok",
-      "  wrapper-never-starts remains a host-contract residual.",
+      "  Cursor uses schema failClosed; Grok uses a wrapper-mediated deny over",
+      "  package-relative hook-bin (#5656 / AC9.1). Grok wrapper-never-starts remains a",
+      "  host-contract residual.",
     );
   }
   if (silentGateLoss.length > 0) {
     const hosts = [...new Set(silentGateLoss.map((entry) => entry.host))].join(", ");
     lines.push(
       `  Silent gate loss (#5656): non-fail-closed host(s) [${hosts}] keep the registration but`,
-      "  fail open when deft-hook is absent — mutations proceed with no Directive gate. A durable",
+      "  fail open when package-relative hook-bin is absent — mutations proceed with no Directive gate. A durable",
       `  record is written to ${HOOK_GATE_OFF_REL_PATH}.`,
     );
   }
@@ -428,8 +430,8 @@ export function inspectHookRuntimeTravel(
           silentGateLossHosts: silentGateLoss.map((entry) => entry.host),
           travelingRegistrations: travelingRegistrations.map((entry) => entry.path),
           detail:
-            "Non-fail-closed host hook registration travels without deft-hook; " +
-            "mutations fail open until the runtime is installed or host hooks are disabled (#5656).",
+            "Non-fail-closed host hook registration travels without package-relative hook-bin; " +
+            "mutations fail open until @deftai/directive-runtime is installed or host hooks are disabled (#5656 / AC9.1).",
         });
       } catch {
         // Record write is best-effort; warning copy still names the path.

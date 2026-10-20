@@ -77,7 +77,7 @@ function expectInOrder(haystack: string, needles: readonly string[]): void {
 
 const CORE_JOURNEY = [
   "npm i -g @deftai/directive",
-  "directive init",
+  "directive install",
   "directive doctor",
   "USER.md",
   "xbrief/PROJECT-DEFINITION.xbrief.json",
@@ -129,7 +129,7 @@ describe("first-project journey on a staged deposit (#4097)", () => {
   it("locks directive/deft vocabulary and does not teach hop-1 migrate:vbrief", () => {
     const text = readDepositJourney(packRoot);
     const first = sectionBody(text, "First Project");
-    expect(first).toContain("directive init");
+    expect(first).toContain("directive install");
     expect(first).toContain("directive doctor");
     expect(first).toContain("deft check");
     expect(first).toContain("%APPDATA%\\deft\\USER.md");

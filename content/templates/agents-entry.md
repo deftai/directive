@@ -1,35 +1,35 @@
 <!-- deft:managed-section v3 -->
 # Deft — AI Development Framework
 
-Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
+Deft runtime is pinned as `@deftai/directive-runtime`. Full guidelines: node_modules/@deftai/directive-runtime/main.md
 
-! If any .deft/core/.agents/skills/ path here cannot be read (missing, stale, or a redirect stub), recover (#4090): `directive doctor --full`, else `npm i -g @deftai/directive@<pin>` then doctor --full. ⊗ never a payload path.
+! If any `node_modules/@deftai/directive-runtime/` skill path here cannot be read (missing, stale, or a redirect stub), recover (AC9.7): `npm i -g @deftai/directive`, then `directive install --repair`. ⊗ never invent a payload path.
 
 ## Temporary test kill-switch (#3039)
 
-! Before further Directive process load, check root `.deft-directive-disable` (presence = flag). If present → stop DD load; recovery = delete file + NEW agent session. Deposit OK; not `.no-deft-directive` (#2926). Docs: `.deft/core/docs/deft-directive-disable.md`.
+! Before further Directive process load, check root `.deft-directive-disable` (presence = flag). If present → stop DD load; recovery = delete file + NEW agent session. Deposit OK; not `.no-deft-directive` (#2926). Docs: `node_modules/@deftai/directive-runtime/docs/deft-directive-disable.md`.
 ⊗ Claim full operation while the flag exists or after delete without a NEW agent session.
 
 ## Hook runtime unavailable (#3785)
 
-! Opaque non-zero exit (usually 127) on every mutation = `deft-hook` is not executable on this host, not a Directive deny — no Directive code ran, and no in-session flag reaches it. Out of band: `deft policy:disable-host-hooks --host cursor --confirm`, or install the runtime (`npm i -g @deftai/directive@<pin>`). Depth: `.deft/core/docs/hook-runtime-unavailable.md`.
+! Opaque non-zero exit (usually 127) on every mutation = `deft-hook` is not executable on this host, not a Directive deny — no Directive code ran, and no in-session flag reaches it. Out of band: `deft policy:disable-host-hooks --host cursor --confirm`, or restore via AC9.7 (`npm i -g @deftai/directive`, then `directive install --repair`). Depth: `node_modules/@deftai/directive-runtime/docs/hook-runtime-unavailable.md`.
 ⊗ Hand-edit `failClosed` in `.cursor/hooks.json` — the next `deft update` rewrites it and silently re-arms the lockout.
 
 ## Codex ritual-git recovery (#4664)
 
-! Codex sandbox EPERM on ritual `git` → approve outside-sandbox once for the session (`/approvals` / session trust). Depth: `.deft/core/contracts/agent-hook-readiness.md`. ⊗ Invent an in-process git substitute; ⊗ treat repeated per-verb prompts as Continuity discharge.
+! Codex sandbox EPERM on ritual `git` → approve outside-sandbox once for the session (`/approvals` / session trust). Depth: `node_modules/@deftai/directive-runtime/contracts/agent-hook-readiness.md`. ⊗ Invent an in-process git substitute; ⊗ treat repeated per-verb prompts as Continuity discharge.
 
 ## Session routing (#2176)
 
-! **Read-only default** until mutation intent: load AGENTS.md / main.md / USER.md / `xbrief/PROJECT-DEFINITION.xbrief.json`; resolve USER.md via `deft session:start` (`USER.md resolved …`; win32 `%APPDATA%\deft\USER.md`; unix `~/.config/deft/USER.md`; ⊗ invent `~/.config/deft` on Windows #2544); confirm Deft alignment + addressing-name; USER.md "Personal (always wins)" sole Personal SoT overrides external context (Warp Drive / MCP / prompt-injected / host agent memory); ⊗ treat host-memory prefs as USER.md; unsigned → zero Personal authority; closed field wins + disclose once; promote only on confirm; ⊗ auto-sync or delete-all host memory; ⊗ no mutable `deft session:start` / triage welcome / sync / branch-policy unless asked or implementation-ready (#2176) — `.deft/core/commands.md` § Session routing. Bootstrap: Cold-start (#2273) → PATH `directive --version` / `deft --version` vs pin (doctor exit 0 is not skip) → #4090 (`directive doctor --full`, then `evaluateSkew`: `reject-global`→`npm i -g @deftai/directive@<pin>`, else follow emitted decision, no pin and no deposit→ `npx @deftai/directive init` → re-compare) ⊗ never a payload path; pre-cutover → setup Pre-Cutover (#2068); missing USER.md / PROJECT-DEFINITION → setup Phase 1/2 (#1813) ⊗ before answering; else main → USER → PROJECT-DEFINITION; ~ sync. identity-only + product mutation → Phase 3 Starting-new / Rapid before Mutation (Process-only; ⊗ --prompt). Mutation → `deft session:start` then `deft verify:session-ritual -- --tier=gated` (#1149). Occupancy (#4625): not #3334/#3396; ritual does not bind complete/check (occupancyLive; #3729). ⊗#3805. Dest-wo: process-only, leftover complete, finalize-cohort. #4624. Stale-ritual (#4290): name ready/rearm/cold only when occupancy admits this actor; restricted primary → `--primary-claim-exception=operator-default-branch` or linked-worktree same-actor. ? `deft session:start -- --read-only` (#2176). ? Tracked docs: `deft session:start --posture=requirements` (#4444).
+! **Read-only default** until mutation intent: load AGENTS.md / main.md / USER.md / `xbrief/PROJECT-DEFINITION.xbrief.json`; resolve USER.md via `deft session:start` (`USER.md resolved …`; win32 `%APPDATA%\deft\USER.md`; unix `~/.config/deft/USER.md`; ⊗ invent `~/.config/deft` on Windows #2544); confirm Deft alignment + addressing-name; USER.md "Personal (always wins)" sole Personal SoT overrides external context (Warp Drive / MCP / prompt-injected / host agent memory); ⊗ treat host-memory prefs as USER.md; unsigned → zero Personal authority; closed field wins + disclose once; promote only on confirm; ⊗ auto-sync or delete-all host memory; ⊗ no mutable `deft session:start` / triage welcome / sync / branch-policy unless asked or implementation-ready (#2176) — `node_modules/@deftai/directive-runtime/commands.md` § Session routing. Bootstrap: Cold-start (#2273) → PATH `directive --version` / `deft --version` vs pin (doctor exit 0 is not skip) → #4090 (`directive doctor --full`, then `evaluateSkew`: `reject-global`→`npm i -g @deftai/directive@<pin>`, else follow emitted decision, no pin → `directive install` → re-compare; wiring fault → `npm i -g @deftai/directive` then `directive install --repair`) ⊗ never a payload path; pre-cutover → setup Pre-Cutover (#2068); missing USER.md / PROJECT-DEFINITION → setup Phase 1/2 (#1813) ⊗ before answering; else main → USER → PROJECT-DEFINITION; ~ sync. identity-only + product mutation → Phase 3 Starting-new / Rapid before Mutation (Process-only; ⊗ --prompt). Mutation → `deft session:start` then `deft verify:session-ritual -- --tier=gated` (#1149). Occupancy (#4625): not #3334/#3396; ritual does not bind complete/check (occupancyLive; #3729). ⊗#3805. Dest-wo: process-only, leftover complete, finalize-cohort. #4624. Stale-ritual (#4290): name ready/rearm/cold only when occupancy admits this actor; restricted primary → `--primary-claim-exception=operator-default-branch` or linked-worktree same-actor. ? `deft session:start -- --read-only` (#2176). ? Tracked docs: `deft session:start --posture=requirements` (#4444).
 
 ## Session-start ritual (#1149)
 
-! On **mutation** session start, run `deft session:start`; before code-writing or `start_agent` dispatch run `deft verify:session-ritual -- --tier=gated` (stale after `plan.policy.sessionRitualStalenessHours`; records `deft verify:tools` / `deft doctor` / `deft verify:cache-fresh` / `deft agents:refresh` / `npm i -g @deftai/directive@latest`; #1149 / #1348) — `.deft/core/commands.md` § Session-start ritual. Recovery: `deft session:ready` (one-shot: start + gated ritual + cache recovery; #2993). The #3124 SCM mirror tip does not fire (`triage:classify --mirror` withdrawn, #4070). Work-claim (#4200): catalog label `status:claimed`; verb `deft scm issue work-claim`; session-start and `xbrief:preflight` MUST scan; warn is success, not a lock; claim refuses read-only / no occupancy. Depth: `.deft/core/scm/github.md`.
+! On **mutation** session start, run `deft session:start`; before code-writing or `start_agent` dispatch run `deft verify:session-ritual -- --tier=gated` (stale after `plan.policy.sessionRitualStalenessHours`; records `deft verify:tools` / `deft doctor` / `deft verify:cache-fresh` / `deft agents:refresh` / `npm i -g @deftai/directive@latest`; #1149 / #1348) — `node_modules/@deftai/directive-runtime/commands.md` § Session-start ritual. Recovery: `deft session:ready` (one-shot: start + gated ritual + cache recovery; #2993). The #3124 SCM mirror tip does not fire (`triage:classify --mirror` withdrawn, #4070). Work-claim (#4200): catalog label `status:claimed`; verb `deft scm issue work-claim`; session-start and `xbrief:preflight` MUST scan; warn is success, not a lock; claim refuses read-only / no occupancy. Depth: `node_modules/@deftai/directive-runtime/scm/github.md`.
 
 ## WIP cap
 
-! Respect `plan.policy.wipCap` (default 20) — at cap `deft scope:promote` refuses; relief via `deft scope:demote --batch --older-than-days 30` (#2319 / #1121). Full WIP: `.deft/core/.agents/skills/deft-directive-swarm/SKILL.md`.
+! Respect `plan.policy.wipCap` (default 20) — at cap `deft scope:promote` refuses; relief via `deft scope:demote --batch --older-than-days 30` (#2319 / #1121). Full WIP: `node_modules/@deftai/directive-runtime/.agents/skills/deft-directive-swarm/SKILL.md`.
 
 ## xBRIEF layout (#2034 / #2110)
 
@@ -50,17 +50,17 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## Umbrella status reading (#1152 / #2066)
 
-! `issues/<N>/comments` via REST → `## Current shape (as of pass-N)` + linked context (claim-cites-state-surface, #2066); body → shape → amendments. Prefer `deft umbrella:current-shape <N>` — full contract: `.deft/core/templates/agent-prompt-preamble.md` § 5.6.
+! `issues/<N>/comments` via REST → `## Current shape (as of pass-N)` + linked context (claim-cites-state-surface, #2066); body → shape → amendments. Prefer `deft umbrella:current-shape <N>` — full contract: `node_modules/@deftai/directive-runtime/templates/agent-prompt-preamble.md` § 5.6.
 
 ⊗ Conclude umbrella or epic status from the issue body alone — cite current-shape or another state artifact (#2066).
 
 ## Deterministic questions runtime obligation (#1470)
 
-! Structured questions MUST end with `Discuss` then `Back`; hatch alias `I have questions`; pause latch on selection ingress — `.deft/core/contracts/deterministic-questions.md` (#1470 / #767 / #5373).
+! Structured questions MUST end with `Discuss` then `Back`; hatch alias `I have questions`; pause latch on selection ingress — `node_modules/@deftai/directive-runtime/contracts/deterministic-questions.md` (#1470 / #767 / #5373).
 
 ## Issue body→comments reading (#2143)
 
-! Fetch body + `issues/<N>/comments` via REST before requirements or dispatch — `.deft/core/templates/agent-prompt-preamble.md` § 5.6 / `deft issue:ingest` (#2143). ⊗ Build a dispatch envelope from the issue body alone when the issue has comments.
+! Fetch body + `issues/<N>/comments` via REST before requirements or dispatch — `node_modules/@deftai/directive-runtime/templates/agent-prompt-preamble.md` § 5.6 / `deft issue:ingest` (#2143). ⊗ Build a dispatch envelope from the issue body alone when the issue has comments.
 
 ## Content packs
 
@@ -78,10 +78,10 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## Skills
 
-! **Skills Index** (Level-0): `npx deft packs:slice skills list` (text, not `--json`; local also `.\node_modules\.bin\deft`) — scan before improvising; read `SKILL.md` on match. `welcome` / `onboard triage` → `deft triage:welcome --onboard`.
+! **Skills Index** (Level-0): `directive packs:slice skills list` (text, not `--json`; local also `.\node_modules\.bin\deft`) — scan before improvising; read `SKILL.md` on match. `welcome` / `onboard triage` → `deft triage:welcome --onboard`.
 ## Skill pin policy (#2508)
 
-! Process-critical skills with false-negative risk MUST be named in AGENTS.md (always-pin tier) — tier definitions: `.deft/core/docs/skill-pin-policy.md` (#2508).
+! Process-critical skills with false-negative risk MUST be named in AGENTS.md (always-pin tier) — tier definitions: `node_modules/@deftai/directive-runtime/docs/skill-pin-policy.md` (#2508).
 ! **Default always-pins:** `deft-directive-build`, `deft-directive-pre-pr`, `deft-directive-review-cycle`, `deft-directive-swarm` — read each `SKILL.md` when that work type starts. Controller invocation (#4912): `deft pre-pr:run` starts prescribed pre-PR. Pre-filing closed-issue/PR search (#1178) owned by article-review Step 5 / pre-pr path-intersection — pointer only.
 ! Policy-anchored review-response (#3452): HEAD policy before out-of-model. Depth: review-cycle SKILL.
 ⊗ Pin entire language packs, deployment docs, or framework bulk into AGENTS.md — pins are for false-negative-sensitive process gates only (#2508).
@@ -92,7 +92,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 ## Thin Fail-Closed Design (#3265)
 ! One fail-closed `task deft:*` check + one remediation. See main.md.
 ## Writing bar (#3368)
-! Clarity, simplicity, brevity in documents and user communications, including sub-agent status and handbacks. Cut ceremony, not required fields. STE how: `.deft/core/docs/writing-ste100.md` (#2927). ⊗ Full STE; ⊗ historical rewrite; ⊗ red CI style gate; ⊗ prefacing the rule.
+! Clarity, simplicity, brevity in documents and user communications, including sub-agent status and handbacks. Cut ceremony, not required fields. STE how: `node_modules/@deftai/directive-runtime/docs/writing-ste100.md` (#2927). ⊗ Full STE; ⊗ historical rewrite; ⊗ red CI style gate; ⊗ prefacing the rule.
 
 ## Continuous Improvement Learning (#607 / #3164)
 
@@ -121,7 +121,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## Nuclear-family A2A topology (#3155)
 
-! Agent-to-agent messaging is **nuclear-family** only: parent / sibling (same cohort) / child. Cross-cohort or cross-session coordination goes through a shared parent or durable parent-owned artifacts — not peer mesh. Depth: swarm.md / security.md / docs/decisions/ADR-003 (.deft/core/docs) (#2705). Pair: #3158; #3179.
+! Agent-to-agent messaging is **nuclear-family** only: parent / sibling (same cohort) / child. Cross-cohort or cross-session coordination goes through a shared parent or durable parent-owned artifacts — not peer mesh. Depth: swarm.md / security.md / node_modules/@deftai/directive-runtime/docs/decisions/ADR-003 (#2705). Pair: #3158; #3179.
 ⊗ Open-mesh agent-to-agent messaging across cohorts or sessions ("agents everywhere").
 ⊗ Treat retained / re-addressable children as license to mesh outside the nuclear family.
 
@@ -131,12 +131,12 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## Parent-steer inbox (#4286)
 
-! Grok-build leaves whose tool loop exceeds ~3 min poll `.deft-scratch/subagent-steer/<agent-id>.json`. `deft verify:subagent-steer` exit 1 is `STEER_PENDING`, not missing-heartbeat takeover. Depth: content/docs/subagent-heartbeat.md (.deft/core/docs). ⊗ Replace split-dispatch mid-scope approval gates with this inbox. ⊗ Treat unread steer as REDISPATCH_OK.
+! Grok-build leaves whose tool loop exceeds ~3 min poll `.deft-scratch/subagent-steer/<agent-id>.json`. `deft verify:subagent-steer` exit 1 is `STEER_PENDING`, not missing-heartbeat takeover. Depth: content/docs/subagent-heartbeat.md (node_modules/@deftai/directive-runtime/docs). ⊗ Replace split-dispatch mid-scope approval gates with this inbox. ⊗ Treat unread steer as REDISPATCH_OK.
 ! Query-before-cancel (#5278): before `swarm:pre-dispatch -- --scope-id <id> --target-id <worktree> --action cancel` on a still ledger-active attempt, run `deft subagent:pre-cancel` (dual-invoke `task deft:subagent:pre-cancel`). Exit 0 only when status-steer ack/observed window clears, heartbeat is STALE/missing under #2879 grace, or `--force --reason` is set. ⊗ Bare ledger cancel while pre-cancel is red. ⊗ Treat unread steer as `REDISPATCH_OK`.
 
 ## Review-surface precedence (#2308)
 
-! Route PR shepherding / review work through `deft-directive-review-cycle` — `.deft/core/.agents/skills/deft-directive-review-cycle/SKILL.md`; host `babysit` / `bugbot` / `security-review` advisory-only (#2308 / #2261). Zero-reviewer (#3630): `NO_REVIEWER_INSTALLED` → pre-pr (`skipped:no-reviewer-installed`); empty never CLEAN. Depth: review-cycle SKILL.
+! Route PR shepherding / review work through `deft-directive-review-cycle` — `node_modules/@deftai/directive-runtime/.agents/skills/deft-directive-review-cycle/SKILL.md`; host `babysit` / `bugbot` / `security-review` advisory-only (#2308 / #2261). Zero-reviewer (#3630): `NO_REVIEWER_INSTALLED` → pre-pr (`skipped:no-reviewer-installed`); empty never CLEAN. Depth: review-cycle SKILL.
 ! Sticky tip-rot (#5162): `clean_gate_holdout=sha_match` + non-HEAD Last-reviewed + no in-flight Greptile on HEAD past sticky-sha clock (~10 min) → `GREPTILE_SHA_STALL` / `BLOCKED: greptile-sha-stall`; ask once (#564) before `@greptileai review`, then re-enter native `pr:watch`. ⊗ Bare one-shot `sha_match` escalate; ⊗ silent auto-post.
 
 ## Value feedback and attribution (#1709)
@@ -144,6 +144,8 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 ! `plan.policy.valueFeedback.enabled` defaults OFF — `deft policy:show --field=valueFeedback` / `deft policy:enable-value-feedback -- --confirm`; `deft value:show`; `deft feedback:file`; `deft-directive-feedback/SKILL.md` (#1709).
 ! Consumer hard-stop (#3713): `BLOCKER` is the sole permitted title classification — `deft feedback:file --blocker`; absence is not a verdict. ⊗ Derive `adoption-blocker` from a consumer title (body-evidence gated); `scm/github.md`.
 
+## Structured decision log (#1396 / #3211)
+! Significant choices → `deft decision:write`; re-load → `deft decision:list` / `xbrief/decisions/`; depth `node_modules/@deftai/directive-runtime/docs/decision-log.md` (not triage/ADRs/lessons).
 ! Before issue:ingest: arc or design-critique: not warranted, because ….
 ## Eval and framework health (#1703)
 
@@ -151,17 +153,17 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## Branch policy & branch verification
 
-! Feature branches — `deft verify:branch`, `deft verify:forward-coverage` (90% warn-first, #3514), `deft coverage:hotspots`, hooks, `deft check` (#746 / #747) — `.deft/core/scm/github.md`. One origin/PR else one-PR-unit grant (not #1378/`--allow-close`).
+! Feature branches — `deft verify:branch`, `deft verify:forward-coverage` (90% warn-first, #3514), `deft coverage:hotspots`, hooks, `deft check` (#746 / #747) — `node_modules/@deftai/directive-runtime/scm/github.md`. One origin/PR else one-PR-unit grant (not #1378/`--allow-close`).
 ! Scope gates (#3145 / #4956 / #5192) — `deft verify:test-boundary` (warn-only), `deft verify:scope-provenance` (merge-base `file_scope` production fence; production allowance 2–5; test roots free on that fence only; membership uses continuity-resolved mint or concrete merge-base precommitment — tests/fixtures not free in membership), `deft verify:consumer-check-contract`, `deft verify:evaluator-surface`, `deft verify:class-checks`, `deft verify:observable-scope`, `deft verify:intent-constraint`, `deft verify:presentation-ceiling`, `deft verify:presentation-coverage`, `deft verify:durable-effect-acquisition`, `deft verify:consumer-test-lane` (docs: `docs/test-boundary.md`, `docs/scope-provenance.md`).
 ! After proceed: no scope ceremony (#4956). No approved-scope digest on proceed; head brief does not widen the production fence; over-budget splits (no remint). Missing-mint Path B membership remediates via split or land a widened concrete brief; activation leaves `productPullRequest` unset (#5387). Class checks #4980. #4383 closed. Depth: `docs/scope-provenance.md`.
 
 ## Branch Policy Disclosure (#746)
 
-! When `plan.policy.allowDirectCommitsToMaster = true`, surface via `deft policy:show --field=allowDirectCommitsToMaster` (#746) — `.deft/core/scm/github.md` § Branch policy.
+! When `plan.policy.allowDirectCommitsToMaster = true`, surface via `deft policy:show --field=allowDirectCommitsToMaster` (#746) — `node_modules/@deftai/directive-runtime/scm/github.md` § Branch policy.
 
 ## Destructive gh verbs (#1019)
 
-! Default-branch push and destructive gh verbs: `deft preflight-gh`. Typed opt-out `deft policy:allow-destructive-gh-verbs -- --confirm` (reverse `policy:enforce-destructive-gh-verbs`). Env `DEFT_ALLOW_DESTRUCTIVE_GH_VERBS` is a per-invocation override. `--repo=origin master`, `--all`, and `--mirror` refuse as default-branch updates. Depth: `.deft/core/scm/github.md` § Destructive gh verbs.
+! Default-branch push and destructive gh verbs: `deft preflight-gh`. Typed opt-out `deft policy:allow-destructive-gh-verbs -- --confirm` (reverse `policy:enforce-destructive-gh-verbs`). Env `DEFT_ALLOW_DESTRUCTIVE_GH_VERBS` is a per-invocation override. `--repo=origin master`, `--all`, and `--mirror` refuse as default-branch updates. Depth: `node_modules/@deftai/directive-runtime/scm/github.md` § Destructive gh verbs.
 
 ## Windows PowerShell: multi-line git/gh bodies (#2646 / #2744)
 
@@ -169,7 +171,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## Contextual guardrails (runtime-detect lazy-load)
 
-! Detect OS/shell; use portable syntax or explicit shell (#2568). `.deft/core/scm/github.md` (#2157/#2369): PS encoding→`deft verify:encoding` (#798); TS capture; cascade→`deft pr:wait-mergeable-and-merge`; SCM→`deft verify:scm-boundary`.
+! Detect OS/shell; use portable syntax or explicit shell (#2568). `node_modules/@deftai/directive-runtime/scm/github.md` (#2157/#2369): PS encoding→`deft verify:encoding` (#798); TS capture; cascade→`deft pr:wait-mergeable-and-merge`; SCM→`deft verify:scm-boundary`.
 ! Forge outage (#3422): drop GitHub I/O on attributed outage or repeated 429/502/503; report once to the human; re-probe on `plan.policy.forgeOutageRetryMinutes` (default 30; USER.md Personal wins). Depth: `scm/github.md` § #3180.
 ! Credential-class ban (#3858 / #2275): installation authentication may be admitted without claiming App identity when no user is required (#5016). Those three verbs parse `--repo` / `-R` before `requireScmReady` at depth deep. Doctor and default `session:start` stay shallow. Depth: `scm/github.md` § #2275.
 ! Registered-worker auth (#3663): local linked-worktree workers validate the independently stored assignment at `requireScmReady`; an inferred parent stamp is never exported as `DEFT_GITHUB_AUTH_MODE=host-gh` for those workers. Depth: `scm/github.md`.
@@ -186,7 +188,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## Human merge gate (#1193)
 
-! Merge-gate enforcement readiness (#1517): forge required-status-check detect+record at strategy start (`evaluateMergeGateEnforcementAtStrategyStart`); durable `.deft/merge-gate-enforcement/`; optional configure never empty-PUT/auto-promote; does not grant bot-merge. Depth: `.deft/core/scm/github.md`.
+! Merge-gate enforcement readiness (#1517): forge required-status-check detect+record at strategy start (`evaluateMergeGateEnforcementAtStrategyStart`); durable `.deft/merge-gate-enforcement/`; optional configure never empty-PUT/auto-promote; does not grant bot-merge. Depth: `node_modules/@deftai/directive-runtime/scm/github.md`.
 
 ! When `plan.policy.requireHumanMerge` is true (default if `autoDeployOnMerge`), agents may open PRs, may not merge. Override: `deft policy:allow-bot-merge -- --confirm` or `DEFT_ALLOW_BOT_MERGE=1` — `commands.md` / `contracts/intent-ceiling.md`.
 
@@ -196,5 +198,5 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## Commands
 
-! `/deft:directive:*` namespace (#418 / #1670); full table in `.deft/core/commands.md` — load on demand.
+! `/deft:directive:*` namespace (#418 / #1670); full table in `node_modules/@deftai/directive-runtime/commands.md` — load on demand.
 <!-- /deft:managed-section -->

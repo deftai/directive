@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "defaults": {
+    "tag": "yolo-cp-wave4a",
+    "operation": "auto"
+  },
+  "notes": "Harness catalog. When ~/yolo-5490/logs/wave4/deftai-survey.json exists, run-all.sh prefers it. Manual entries and survey rows share the same field aliases (see README).",
+  "samples": [
+    {
+      "name": "local-smoke",
+      "source": "synthetic-ovpr-v",
+      "shape": "synthetic-ovpr-v",
+      "operation": "upgrade",
+      "enabled": true,
+      "notes": "Harness self-check: install older Verdaccio pin (wave2za) then upgrade to tip. No github clone."
+    },
+    {
+      "name": "statusreport-example",
+      "clone_url": "https://github.com/deftai/statusreport.git",
+      "sha": "REPLACE_WITH_SURVEY_SHA",
+      "shape": "legacy-or-ovpr",
+      "operation": "auto",
+      "enabled": false,
+      "skip_reason": "placeholder — enable after P0-5 survey pins a SHA",
+      "notes": "Example remote sample shape. Never uses ~/Projects/directive."
+    }
+  ]
+}

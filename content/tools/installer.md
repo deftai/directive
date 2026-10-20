@@ -2,22 +2,22 @@
 
 Legend: !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-## Version Currency
+## Current install path (OVPR)
 
-! `deft-install` MUST query the GitHub Releases API (`GET /repos/deftai/directive/releases/latest`) after the welcome banner and before the project-name prompt, with a 1.5s combined connect/read timeout. The `User-Agent` header MUST be `deft-install/<version>`.
+The Go installer (`cmd/deft-install/`, `deft-install`) is **deleted** (AC10.10). Do not download or run it.
 
-! On version match, `deft-install` MUST print a one-line confirmation (`Running latest (<version>)`) and proceed without prompting.
+! Install the global launcher with `npm i -g @deftai/directive` (or `pnpm add -g @deftai/directive`).
+! Activate a project with `directive install` (exact `@deftai/directive-runtime` pin + package-relative wiring).
+! Repair wiring with `directive install --repair`; move pin / migrate data with `directive upgrade`.
+! Diagnose with read-only `directive doctor`.
+⊗ Teach `npx` / `pnpm exec` / `deft-install` as day-to-day identity.
+⊗ Copy framework content into `.deft/core/` as the current install location.
 
-! On version mismatch, `deft-install` MUST print the embedded version, latest version, publish date, and download URL, then prompt `[y/N]` with default abort.
+See [docs/launcher.md](../docs/launcher.md), [docs/getting-started.md](../docs/getting-started.md), and [UPGRADING.md](../UPGRADING.md) § Current path.
 
-! On network error or timeout, `deft-install` MUST print a "could not verify" message and prompt `[y/N]` with default abort.
+## Retired Go installer (historical)
 
-! On non-TTY stdin, `deft-install` MUST exit 1 for any non-match outcome unless `DEFT_NO_UPDATE_CHECK=1` is set or `--no-update-check` is passed.
-
-⊗ Run the version check for `--version` or `--help` invocations.
-
-⊗ Suppress the prompt for any class of drift: rc-vs-GA, patch, and minor drift all use the same confirmation rule.
-
-⊗ Warn when the embedded version is ahead of latest. Locally built development binaries must proceed without update-check noise in that case.
-
-Comparison rule: warn iff `embedded < latest` under SemVer ordering. Pre-release identifiers sort below their corresponding GA per SemVer, so `v0.20.0-rc.1 < v0.20.0` without special-casing release candidates.
+> **Archaeology only.** Older releases shipped a Go `deft-install` binary with
+> Releases API version-currency checks and headless `--yes --upgrade` flags.
+> That product surface is gone; the MUST rules that used to live here no longer
+> apply. Prefer the OVPR path above.

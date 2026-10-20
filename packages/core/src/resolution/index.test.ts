@@ -1,18 +1,27 @@
 import { describe, expect, it } from "vitest";
 import * as resolution from "./index.js";
 
-describe("resolution/index barrel (#2264)", () => {
-  it("re-exports the classifier, plan, ladder, integrity, skew, and pin primitives", () => {
+describe("resolution/index barrel (#2264 / AC12.6)", () => {
+  it("re-exports the classifier, plan, engine resolve/pin, integrity, and pin primitives", () => {
     expect(typeof resolution.classify).toBe("function");
     expect(typeof resolution.plan).toBe("function");
-    expect(typeof resolution.decideEngineLadder).toBe("function");
+    expect(typeof resolution.decideEngineAvailability).toBe("function");
     expect(typeof resolution.resolveEngine).toBe("function");
     expect(typeof resolution.checkLocalEngineIntegrity).toBe("function");
-    expect(typeof resolution.evaluateSkew).toBe("function");
+    expect(typeof resolution.evaluateEnginePin).toBe("function");
+    expect(typeof resolution.contentMatchesEngine).toBe("function");
     expect(typeof resolution.readPin).toBe("function");
     expect(typeof resolution.reconcileVersions).toBe("function");
     expect(typeof resolution.defaultEngineProbe).toBe("function");
     expect(typeof resolution.localEnginePlatformDir).toBe("function");
+  });
+
+  it("does not export retired ladder / skew escape-hatch symbols (AC12.6)", () => {
+    const bag = resolution as Record<string, unknown>;
+    expect(bag.decideEngineLadder).toBeUndefined();
+    expect(bag.evaluateSkew).toBeUndefined();
+    expect(bag.ACCEPT_ENGINE_SKEW_ENV).toBeUndefined();
+    expect(bag.DEFAULT_ENGINE_SKEW_WINDOW).toBeUndefined();
   });
 
   it("re-exports the shared type-level constants", () => {
@@ -20,9 +29,7 @@ describe("resolution/index barrel (#2264)", () => {
     expect(resolution.RESOLUTION_MODES).toContain("proceed");
     expect(resolution.RESOLUTION_ENCODINGS).toEqual(["utf-8", "base64"]);
     expect(resolution.LOCAL_ENGINE_ROOT).toBe(".deft/.cli");
-    expect(resolution.DEFAULT_ENGINE_SKEW_WINDOW).toBe(3);
-    expect(resolution.ACCEPT_ENGINE_SKEW_ENV).toBe("DEFT_ACCEPT_ENGINE_SKEW");
-    expect(resolution.PIN_DEPENDENCY_NAME).toBe("@deftai/directive");
+    expect(resolution.PIN_DEPENDENCY_NAME).toBe("@deftai/directive-runtime");
   });
 
   it("a consumer can drive an end-to-end decision through the barrel exports only", () => {

@@ -8,12 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added — OVPR installer path as the supported install/upgrade/uninstall/doctor surface (`@deftai/directive` launcher + exact `@deftai/directive-runtime` pin). Public publish is the two-package set only. Refs #5490 #5514.
 
 ### Changed
+- Changed — Raise plan.policy.agentsMdBudget managedMaxLines 200→205 and absoluteMaxBytes 29200→30500 after OVPR agents-entry path refresh (#5490). Ticket-parenthetical strip deferred: agents_entry_contract still requires headings like `## Session routing (#2176)`.
+- Changed — Retire the Go installer module from authored `codeStructure` and document OVPR as the install architecture in PROJECT-DEFINITION. Refs #5490.
 
 ### Fixed
+- Fixed — Launcher accepts `--repo-root` as an alias of `--root` and creates a missing install/init destination so greenfield `directive init --repo-root <new-dir>` works. Refs #5490.
+- Fixed — Greenfield python-free smoke installs the packed tip runtime tarball then `install --repair` (public runtime `@latest` is still a prerelease until GA). Refs #5490.
+- Fixed — Windows cache-fresh consumer fixture pins and materializes `@deftai/directive-runtime` so the OVPR launcher can passthrough `preflight-cache`. Refs #5490.
+- Fixed — Reject unrecognized uninstall flags (e.g. `--dryrun`) instead of performing a live uninstall. Refs #5490.
+- Fixed — Doctor bookend forwards supported diagnosis flags to the runtime. Refs #5490.
+- Fixed — Swarm worktree PM install launches Windows `.cmd` shims and keeps development dependencies so a runtime pin in `devDependencies` materializes. Refs #5490.
+- Fixed — xbrief migrate hybrid/leftover scans skip `xbrief/archive/` so archived unknowables do not block later upgrades. Refs #5490.
 
 ### Removed
+- Removed — Go installer (`cmd/deft-install`) and four-package publish artifacts from the supported product path; master ships OVPR two-package only. Refs #5490.
 
 ## [0.126.2] - 2026-10-20
 

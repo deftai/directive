@@ -79,7 +79,7 @@ describe("taskfile lifecycle:event approval recorder (#2631)", () => {
   });
 
   it("directive lifecycle:event resolves to lifecycle-event handler", () => {
-    const dispatchText = readFileSync(join(repoRoot(), "packages/cli/src/dispatch.ts"), {
+    const dispatchText = readFileSync(join(repoRoot(), "packages/runtime/src/dispatch.ts"), {
       encoding: "utf8",
     });
     expect(dispatchText).toContain('"lifecycle-event"');

@@ -443,7 +443,7 @@ describe("checks", () => {
       },
     });
     expect(result.status).toBe("skip");
-    expect(result.detail).toContain("migrate:xbrief");
+    expect(result.detail).toContain("directive upgrade");
     expect(result.data).toMatchObject({ bare_marker_disagreement: true });
   });
 
@@ -881,7 +881,7 @@ describe("checkStaleXbriefSchemaDeposit (#2368)", () => {
       const result = checkStaleXbriefSchemaDeposit(root);
       expect(result.status).toBe("fail");
       expect(result.detail).toContain("directive update");
-      expect(result.detail).toContain("not `deft migrate:xbrief`");
+      expect(result.detail).toContain("not lifecycle migrate");
       expect(deriveExitCode([result], [])).toBe(0);
     } finally {
       rmSync(root, { recursive: true, force: true });
@@ -900,7 +900,7 @@ describe("checkStaleXbriefSchemaDeposit (#2368)", () => {
       );
       const line = renderXbriefMigrationLine(root);
       expect(line).toContain("xBrief migration: none");
-      expect(line).not.toContain("migrate:xbrief");
+      expect(line).not.toContain("directive upgrade");
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -988,31 +988,38 @@ describe("checkXbriefEnvelopeMajorVersion (#3243)", () => {
     }
   });
 
-  it("fails closed for non-0.6 behind-major without migrate remediation", () => {
+  it("F-017: treats 0.5 behind-major as migratable via directive upgrade", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-env-maj-"));
     try {
-      // 0.5 classifies as behind-major but migrate:xbrief only rewrites exact 0.6.
-      writeEnvelope(root, "xbrief/active/ancient.xbrief.json", "0.5");
+      writeEnvelope(root, "xbrief/active/from05.xbrief.json", "0.5");
+      const result = checkXbriefEnvelopeMajorVersion(root);
+      expect(result.status).toBe("fail");
+      expect(result.data?.status).toBe("behind-major");
+      expect(result.detail).toContain("declared 0.5");
+      expect(result.detail).toContain("framework 0.8");
+      expect(result.data?.next_command).toBe(XBRIEF_ENVELOPE_MIGRATE_COMMAND);
+      expect(result.data?.suggestion).toBe("directive upgrade");
+      expect(result.detail).toContain("directive upgrade");
+      expect(deriveExitCode([result], [])).toBe(1);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed for pre-0.5 behind-major with upgrade archive guidance (F-017)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-env-maj-"));
+    try {
+      writeEnvelope(root, "xbrief/active/ancient.xbrief.json", "0.3");
       const result = checkXbriefEnvelopeMajorVersion(root);
       expect(result.status).toBe("fail");
       expect(result.data?.status).toBe("behind-major-non-migratable");
       expect(result.detail).toContain("non-migratable");
-      expect(result.detail).toContain("declared 0.5");
+      expect(result.detail).toContain("declared 0.3");
       expect(result.detail).toContain("framework 0.8");
-      expect(result.detail).not.toContain(
-        `Next action: run \`${XBRIEF_ENVELOPE_MIGRATE_COMMAND}\``,
-      );
-      // Actionable next steps — not migrate-only, not version-only bump (#3243).
       expect(result.detail).toContain("Next actions:");
-      expect(result.detail).toMatch(/fix FS permissions/i);
-      expect(result.detail).toMatch(/re-emit full xBRIEFInfo@/i);
-      expect(result.detail).toMatch(/delete or replace invalid lifecycle artifacts/i);
-      expect(result.detail).toContain("do not only bump the version field");
-      expect(result.detail).toContain("only when declared is exact 0.6");
-      expect(result.data?.next_command).toBeNull();
-      expect(String(result.data?.suggestion ?? "")).toMatch(
-        /not version-only|re-emit|permissions|delete\/replace/i,
-      );
+      expect(result.detail).toContain("directive upgrade");
+      expect(result.detail).toMatch(/xbrief\/archive/i);
+      expect(result.data?.next_command).toBe(XBRIEF_ENVELOPE_MIGRATE_COMMAND);
       expect(deriveExitCode([result], [])).toBe(1);
     } finally {
       rmSync(root, { recursive: true, force: true });
@@ -1142,7 +1149,7 @@ describe("checkXbriefEnvelopeMajorVersion (#3243)", () => {
       expect(result.data?.status).toBe("behind-major-non-migratable");
       expect(result.detail).toContain("xbrief/active");
       expect(result.detail).toMatch(/missing\/unreadable|non-migratable/);
-      expect(result.data?.next_command).toBeNull();
+      expect(result.data?.next_command).toBe(XBRIEF_ENVELOPE_MIGRATE_COMMAND);
       expect(deriveExitCode([result], [])).toBe(1);
       const scan = scanXbriefEnvelopeVersions(root, {
         isDir: (p) =>
@@ -1228,7 +1235,7 @@ describe("checkXbriefEnvelopeMajorVersion (#3243)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-env-maj-"));
     try {
       writeEnvelope(root, "xbrief/active/stale06.xbrief.json", "0.6");
-      writeEnvelope(root, "xbrief/pending/ancient.xbrief.json", "0.5");
+      writeEnvelope(root, "xbrief/pending/ancient.xbrief.json", "0.3");
       const result = checkXbriefEnvelopeMajorVersion(root);
       expect(result.status).toBe("fail");
       expect(result.data?.status).toBe("behind-major-mixed");
@@ -1236,7 +1243,7 @@ describe("checkXbriefEnvelopeMajorVersion (#3243)", () => {
       expect(result.detail).toContain("stale06.xbrief.json");
       expect(result.detail).toContain("ancient.xbrief.json");
       expect(result.detail).toContain(XBRIEF_ENVELOPE_MIGRATE_COMMAND);
-      expect(result.detail).toMatch(/rewrite|structure/i);
+      expect(result.detail).toContain("directive upgrade");
       expect(result.data?.migratable_count).toBe(1);
       expect(result.data?.non_migratable_count).toBe(1);
       expect(deriveExitCode([result], [])).toBe(1);

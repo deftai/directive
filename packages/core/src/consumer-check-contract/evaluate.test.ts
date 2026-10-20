@@ -207,6 +207,15 @@ tasks:
       "./.deft/core/Taskfile.yml",
     );
     expect(
+      resolveCanonicalDeftTaskfileInclude(`version: '3'
+
+includes:
+  deft:
+    taskfile: ./node_modules/@deftai/directive-runtime/Taskfile.yml
+    optional: true
+`),
+    ).toBe("./node_modules/@deftai/directive-runtime/Taskfile.yml");
+    expect(
       resolveCanonicalDeftTaskfileInclude("version: '3'\ntasks:\n  check:\n    deps: []\n"),
     ).toBe(null);
     expect(

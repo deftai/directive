@@ -9,6 +9,7 @@ import {
 } from "../../doctor/checks.js";
 import {
   RECOVERY_LADDER_AGENTS_REFRESH,
+  RECOVERY_LADDER_INSTALL_REPAIR,
   RECOVERY_LADDER_NPM_GLOBAL,
   RECOVERY_LADDER_UNREADABLE_TRUNCATED,
   RECOVERY_LADDER_UNREADABLE_TRUNCATED_OPEN,
@@ -34,7 +35,7 @@ const SEAMS = {
 };
 
 function dispatchText(): string {
-  return readFileSync(join(repoRoot(), "packages/cli/src/dispatch.ts"), { encoding: "utf8" });
+  return readFileSync(join(repoRoot(), "packages/runtime/src/dispatch.ts"), { encoding: "utf8" });
 }
 
 describe("recovery ladder (#4090)", () => {
@@ -99,7 +100,8 @@ describe("recovery ladder (#4090)", () => {
     const fields = recoveryLadderFields("agents-refresh");
     expect(fields.suggested_fix).toBe(RECOVERY_LADDER_AGENTS_REFRESH);
     expect(fields.suggested_fix_alt).toBe(RECOVERY_LADDER_UPDATE);
-    expect(fields.suggested_fix_npx).toBe("npx @deftai/directive agents:refresh");
+    // AC9.11 / AC9.7: suggested_fix_npx is the launcher-plus-repair sequence, never npx.
+    expect(fields.suggested_fix_npx).toBe(RECOVERY_LADDER_INSTALL_REPAIR);
     expect(fields.suggested_fix_npm_global).toBe(RECOVERY_LADDER_NPM_GLOBAL);
     expect(fields.go_bridge_releases_url).toContain("github.com/deftai/directive/releases");
 
@@ -123,7 +125,6 @@ describe("recovery ladder (#4090)", () => {
     expect(present?.status).toBe("fail");
     expect(present?.detail).not.toContain(".deft/core/run");
     expect(present?.data?.suggested_fix).toBe(RECOVERY_LADDER_AGENTS_REFRESH);
-    expect(present?.data?.suggested_fix).toBe("deft agents:refresh");
   });
 
   it("exports hasManagedSectionMarker from doctor and platform classifiers", () => {
@@ -188,19 +189,13 @@ describe("recovery ladder (#4090)", () => {
     expect(future.message).toContain("will not write");
   });
 
-  it("managed carrier reuses #4090 ladder spellings and is doctor-first (#4430)", () => {
+  it("managed carrier teaches AC9.7 launcher-plus-repair (wave2r)", () => {
     const template = readText("templates/agents-entry.md");
-    expect(template).toContain(`${RECOVERY_LADDER_NPM_GLOBAL}@<pin>`);
-    expect(template).toContain(`install the runtime (\`${RECOVERY_LADDER_NPM_GLOBAL}@<pin>\`)`);
+    expect(template).toContain(RECOVERY_LADDER_NPM_GLOBAL);
+    expect(template).toContain(RECOVERY_LADDER_AGENTS_REFRESH);
     expect(template).toContain("directive doctor");
-    expect(template).not.toContain(`${RECOVERY_LADDER_NPM_GLOBAL} && directive doctor`);
-    const fallback = template.split("\n").find((line) => line.includes(".agents/skills")) ?? "";
-    expect(fallback.length).toBeGreaterThan(0);
-    const doctorAt = fallback.indexOf("directive doctor");
-    const installAt = fallback.indexOf(`${RECOVERY_LADDER_NPM_GLOBAL}@<pin>`);
-    expect(doctorAt).toBeGreaterThanOrEqual(0);
-    expect(installAt).toBeGreaterThanOrEqual(0);
-    expect(doctorAt).toBeLessThan(installAt);
+    expect(template).not.toMatch(/\bnpx\s+(-y\s+)?@deftai\/directive\b/);
+    expect(template).toContain("node_modules/@deftai/directive-runtime/");
   });
 
   it("QUICK-START is not a second parser and does not append Case G", () => {

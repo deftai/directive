@@ -74,7 +74,7 @@ export function resolveLayoutRootOrCanonical(projectRoot: string): string {
         containsRecognizedArtifact(legacyRoot) &&
         !(isDirectory(migratedRoot) && containsMigratedArtifact(migratedRoot)));
     if (refuseLegacy) {
-      throw err; // Legacy-only project: operator must run deft migrate:xbrief.
+      throw err; // Legacy-only project: operator must run directive upgrade.
     }
     return join(projectRoot, MIGRATED_ARTIFACT_DIR); // New/empty project; use canonical path.
   }
@@ -152,10 +152,10 @@ function containsRecognizedArtifact(root: string): boolean {
  *
  * Requires the migrated `xbrief/` layout: the `xbrief/` directory must exist
  * AND contain at least one `.xbrief.json` artifact. If no such layout is found,
- * throws with a clear error directing the operator to run `deft migrate:xbrief`.
+ * throws with a clear error directing the operator to run `directive upgrade`.
  *
  * The legacy `vbrief/` read-path fallback was removed in #2112 (0.73.0 MINOR).
- * Projects that have not migrated must run `deft migrate:xbrief` first.
+ * Projects that have not migrated must run `directive upgrade` first (F-017 / AC8.9).
  *
  * @throws {Error} When no `xbrief/` layout with `.xbrief.json` artifacts exists.
  */
@@ -172,7 +172,7 @@ export function resolveLifecycleLayout(projectRoot: string): LifecycleLayout {
   }
   throw new Error(
     `No xbrief/ layout found at ${projectRoot}. ` +
-      "Run `deft migrate:xbrief` to convert your project from the legacy vbrief/ layout.",
+      "Run `directive upgrade` to convert your project from the legacy vbrief/ layout.",
   );
 }
 
@@ -244,7 +244,7 @@ export function resolveProjectDefinitionPath(projectRoot: string): string {
       isDirectory(join(projectRoot, LEGACY_ARTIFACT_DIR)) &&
       !isDirectory(join(projectRoot, MIGRATED_ARTIFACT_DIR))
     ) {
-      throw err; // Legacy-only project: operator must run deft migrate:xbrief.
+      throw err; // Legacy-only project: operator must run directive upgrade.
     }
     return join(
       projectRoot,

@@ -275,12 +275,12 @@ describe("syntactic closed-surface detection", () => {
     const base = 'export const CLI_MODULE_VERBS = ["check"];';
     const head = 'export const CLI_MODULE_VERBS = ["check", "docs-impact"];';
     const changes = detectClosedSurfaceChanges({
-      nameStatus: [{ status: "M", path: "packages/cli/src/dispatch.ts" }],
-      baseFiles: { "packages/cli/src/dispatch.ts": base },
-      headFiles: { "packages/cli/src/dispatch.ts": head },
+      nameStatus: [{ status: "M", path: "packages/runtime/src/dispatch.ts" }],
+      baseFiles: { "packages/runtime/src/dispatch.ts": base },
+      headFiles: { "packages/runtime/src/dispatch.ts": head },
     });
     expect(
-      extractCommandIdsFromSources({ "packages/cli/src/dispatch.ts": head }).has("docs-impact"),
+      extractCommandIdsFromSources({ "packages/runtime/src/dispatch.ts": head }).has("docs-impact"),
     ).toBe(true);
     expect(changes).toContainEqual({ kind: "command", id: "docs-impact", op: "add" });
   });

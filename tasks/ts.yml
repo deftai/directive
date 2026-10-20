@@ -39,4 +39,4 @@ tasks:
     desc: "Run the ported verify:encoding gate (TS @deftai/core port, #1718)"
     deps: [build]
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/verify-encoding.js" --all --project-root "{{.DEFT_ROOT}}"
+      - node "{{.DEFT_ROOT}}/packages/runtime/dist/verify-encoding.js" --all --project-root "{{.DEFT_ROOT}}"

@@ -14,7 +14,7 @@ export function runE2e(config: E2EConfig, seams: E2ESeams & LegacyBridgeLegSeams
     emit("Provision temp repo", `DRYRUN (would run \`gh repo create --private ${owner}/${slug}\`)`);
     const npmPlan = config.skipNpm
       ? "task release:rollback"
-      : "npm publish dry-run (4 packages) -> task release:rollback";
+      : "npm publish dry-run (2 packages) -> task release:rollback";
     emit(
       "Rehearsal",
       "DRYRUN (would run pipeline-mirror rehearsal: clone -> push heads+tags -> task release -> " +

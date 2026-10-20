@@ -8,7 +8,7 @@ Maintainer-facing map of how Directive's rules are layered and grouped. This is 
 
 ## Overview
 
-- **Rules:** 25 groupings, 289 documents
+- **Rules:** 25 groupings, 291 documents
 - **Tasks:** 65 namespaces, 287 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
 - **Packs:** 6 source-of-truth packs (720 entries from rules|lessons|patterns|skills|strategies|entries)
 
@@ -24,7 +24,7 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | contracts | Interface/behavioral contracts the framework enforces. | 16 | 231 | 16 | 149 | 0 | 5 |
 | conventions | Cross-cutting naming, formatting, and repo conventions. | 4 | 16 | 2 | 16 | 0 | 3 |
 | deployments | Provider-specific deployment playbooks (AWS, Azure, GCP, Cloudflare, Vercel, fly.io…). | 52 | 107 | 74 | 24 | 13 | 6 |
-| docs | Explanatory docs and the framework glossary. | 45 | 30 | 13 | 67 | 1 | 3 |
+| docs | Explanatory docs and the framework glossary. | 47 | 30 | 13 | 67 | 1 | 3 |
 | events | Event and signal definitions used across the framework. | 1 | 0 | 0 | 0 | 0 | 0 |
 | incidents | Incident handling and postmortem guidance. | 2 | 0 | 0 | 0 | 0 | 0 |
 | interfaces | Interface definitions and boundaries. | 4 | 119 | 66 | 37 | 2 | 9 |
@@ -35,7 +35,7 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | references | External references and citations backing the guidance. | 4 | 19 | 1 | 19 | 0 | 0 |
 | resilience | Failure handling, recovery, and robustness rules. | 2 | 16 | 14 | 15 | 1 | 2 |
 | scm | Source-control conventions and Git/GitHub workflow rules. | 3 | 111 | 34 | 37 | 1 | 3 |
-| skills | Packaged multi-step agent workflows (build, release, interview, triage, review…). | 42 | 637 | 122 | 745 | 0 | 19 |
+| skills | Packaged multi-step agent workflows (build, release, interview, triage, review…). | 42 | 628 | 121 | 740 | 0 | 19 |
 | strategies | Higher-order approaches: interviewing, decomposition, planning, research, refactoring. | 17 | 342 | 97 | 157 | 0 | 15 |
 | swarm | Multi-agent (swarm) coordination guidance. | 1 | 75 | 15 | 22 | 0 | 0 |
 | templates | Reusable document/scaffold templates. | 11 | 104 | 10 | 55 | 1 | 5 |
@@ -150,11 +150,13 @@ _Explanatory docs and the framework glossary._
 - `good-agents-md.md` — **Source**: https://x.com/augmentcode/status/2047164534310494709 **Author**: Slava Zhenylenko (Member of Technical Staff, Augment Code) **Published**: 2026-04-23
 - `grok-build-subscription-setup.md` — Agent-facing playbook for a new maintainer. Paste this file (or issue [#4035](https://github.com/deftai/directive/issues/4035)) and say: follow this playbook. The human completes browser logins when the agent stops.
 - `hook-root-admission.md` — Every PreToolUse mutation carries **two** roots, and they are not interchangeable:
-- `hook-runtime-unavailable.md` — Host behavior when `deft-hook` cannot run is **not universal**. Cursor and Grok deny; Claude and Codex silently lose the gate.
+- `hook-runtime-unavailable.md` — Current Directive hooks invoke `node node_modules/@deftai/directive-runtime/dist/hook-bin.js …` (AC9.1 — not bare `deft-hook` on PATH). When the runtime package is absent, Node reports `Cannot find module…
 - `host-surface-assumptions.md` — Directive control surfaces assume two host behaviors that **some** modern agent hosts break by design.
 - `host-tool-surface-audit.md` — The PreToolUse write gate only runs on tool names the host's deposited matcher selects. A name nobody listed is not a permissive policy — it is a gate that never executes. #3987 was exactly that: Grok Build's shell tool…
 - `intent-constraint.md` — Refs: #4541 · Related: [scope-provenance.md](../content/docs/scope-provenance.md) (#3145), [gate-integrity.md](../content/docs/gate-integrity.md) (#3156), [observable-scope.md](../content/docs/observable-scope.md) (#4495)
 - `inter-run-learning.md` — **Load when:** designing or implementing cross-session agent memory, hot/cold budgets, frozen snapshots, or retargeting memory pattern issues under epic #2741.
+- `known-limitations.md` — Accepted product decisions for the launcher + pinned-runtime install model. Documented for users; not open design questions. Catalogue source: UNIFIED §A9.
+- `launcher.md` — `@deftai/directive` is a small **global launcher**. It finds the project, reads the exact `@deftai/directive-runtime` pin, and either runs an installation-management bookend (`install` / `upgrade` / `uninstall` / `doctor`) or hands…
 - `no-deft-directive.md` — Some projects should not use Deft Directive. Use a **root file flag** so tools and agents stop offering install, session ritual, and setup.
 - `observable-scope.md` — Refs: #4495, #4588 · Related: [scope-provenance.md](../content/docs/scope-provenance.md) (#3145), [gate-integrity.md](../content/docs/gate-integrity.md) (#3156), [#4503](https://github.com/deftai/directive/issues/4503),…
 - `openclaw-agent-host.md` — Consumer/operator guide for running **Deft Directive** under **OpenClaw** persistent-memory agents (`ape-deft`-class and peers).
@@ -357,7 +359,7 @@ _Reusable document/scaffold templates._
 - `PULL_REQUEST_TEMPLATE.md` — -->
 - `agent-prompt-preamble.md` — This is the canonical preamble that orchestrators (this conversation, swarm-skill dispatchers, monitor agents, scheduled / cloud agents) MUST include verbatim or by reference in any implementation sub-agent's dispatch envelope. It…
 - `agents-consumer-header.md` — One-line project description (edit me).
-- `agents-entry.md` — Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
+- `agents-entry.md` — Deft runtime is pinned as `@deftai/directive-runtime`. Full guidelines: node_modules/@deftai/directive-runtime/main.md
 - `agents-entry.placeholders.md` — This document is the canonical spec for placeholder tokens that may appear inside the `<!-- deft:managed-section v2 -->` ... `<!-- /deft:managed-section -->` block of `templates/agents-entry.md`. The marker version was bumped from `v1`…
 - `design-critique-brief.md` — Dispatch envelope skeleton for one critic or synthesis pass. Fill the fields. Read the rules in [`contracts/design-critique.md`](../content/contracts/design-critique.md). Do not copy those rule bodies into this envelope.
 - `make-spec-example.md` — I want to build uptop, a CLI+TUI that has all or nearly all of the features of btop, but in addition to being a TUI can be a useful CLI by 1. outputting collected data repeatedly at an interval specified by the user, defaulting to once…
@@ -371,7 +373,7 @@ _Tooling standards (telemetry, search, formatters, the Taskfile contract)._
 
 - `RWLDL.md` — Iterative code refinement by alternating micro (detailed) and macro (high-level) improvements.
 - `greptile.md` — **Scope:** Configuring the Greptile AI code review bot for use with deft projects.
-- `installer.md` — ! `deft-install` MUST query the GitHub Releases API (`GET /repos/deftai/directive/releases/latest`) after the welcome banner and before the project-name prompt, with a 1.5s combined connect/read timeout. The `User-Agent` header MUST be…
+- `installer.md` — The Go installer (`cmd/deft-install/`, `deft-install`) is **deleted** (AC10.10). Do not download or run it.
 - `package-manager-network.md` — **Scope:** How Directive's own tooling (session ritual, doctor, read-only flows) treats npm/pnpm registry access as an explicit, security-sensitive, opt-in operation. Applies to Directive's own code, not to a consumer project's own…
 - `taskfile-migration.md` — 1. **Audit** -- List all existing build/test/deploy commands (Makefile targets, npm scripts, shell scripts) 2. **Map** -- Map each command to a Task equivalent using [taskfile.md](../content/tools/taskfile.md) naming conventions 3. **Create** -- Write…
 - `taskfile.md` — **Scope:** Task-based build automation using [Task](https://taskfile.dev/) instead of Makefiles or shell scripts.

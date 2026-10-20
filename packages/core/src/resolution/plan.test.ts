@@ -7,7 +7,7 @@ import {
   type ResolutionPlan,
 } from "@deftai/directive-types";
 import { describe, expect, it } from "vitest";
-import { decideEngineLadder, type LadderFacts } from "./engine-ladder.js";
+import { decideEngineAvailability, type EngineFacts } from "./engine-resolve.js";
 import type { IntegrityResult } from "./integrity.js";
 import { plan } from "./plan.js";
 
@@ -54,14 +54,11 @@ function intact(): IntegrityResult {
   };
 }
 
-function ladderFacts(overrides: Partial<LadderFacts> = {}): LadderFacts {
+function engineFacts(overrides: Partial<EngineFacts> = {}): EngineFacts {
   return {
     pinVersion: "0.65.0",
     globalEngineVersion: null,
     localEngine: null,
-    registryUp: true,
-    globalPrefixWritable: true,
-    stagedTarballAvailable: false,
     platform: "linux",
     ...overrides,
   };
@@ -83,7 +80,13 @@ describe("resolution/plan precedence table (#2264 a1)", () => {
 
   it("greenfield without deposit -> init", () => {
     const p = plan(
-      facts({ hasDeftCore: false, hasManagedSection: false, hasAppCode: false, hasGit: false }),
+      facts({
+        hasDeftCore: false,
+        hasManagedSection: false,
+        hasAppCode: false,
+        hasGit: false,
+        pinVersion: null,
+      }),
     );
     expect(p.mode).toBe("init");
     expect(p.nextAction.rootCause).toContain("greenfield");
@@ -91,20 +94,34 @@ describe("resolution/plan precedence table (#2264 a1)", () => {
   });
 
   it("brownfield without deposit -> init", () => {
-    const p = plan(facts({ hasDeftCore: false, hasManagedSection: false }));
+    const p = plan(facts({ hasDeftCore: false, hasManagedSection: false, pinVersion: null }));
     expect(p.mode).toBe("init");
     expect(p.nextAction.rootCause).toContain("brownfield");
   });
 
   it("managed section present but payload absent -> init (reconstitute)", () => {
-    const p = plan(facts({ hasDeftCore: false, hasManagedSection: true }));
+    const p = plan(facts({ hasDeftCore: false, hasManagedSection: true, pinVersion: null }));
     expect(p.mode).toBe("init");
     expect(p.nextAction.rootCause).toContain("payload is absent");
   });
 
+  it("OVPR exact pin without .deft/core -> proceed (#5490)", () => {
+    const p = plan(
+      facts({
+        hasDeftCore: false,
+        deftCorePayloadVersion: null,
+        hasManagedSection: true,
+        pinVersion: "9.9.9-smoke",
+        engineVersion: "9.9.9-smoke",
+      }),
+    );
+    expect(p.mode).toBe("proceed");
+    expect(p.nextAction.rootCause).not.toContain("payload is absent");
+  });
+
   it("linked worktree + managed section + missing payload -> local update (#4443)", () => {
     const p = plan(
-      facts({ hasDeftCore: false, hasManagedSection: true }),
+      facts({ hasDeftCore: false, hasManagedSection: true, pinVersion: null }),
       {},
       {
         linkedWorktree: true,
@@ -117,20 +134,23 @@ describe("resolution/plan precedence table (#2264 a1)", () => {
     expect(p.nextAction.remediation).toContain("directive update");
   });
 
-  it("initialized-stale (content behind pin) -> update", () => {
+  it("initialized-stale (content behind pin) -> update with AC9.7-safe remediation", () => {
     const p = plan(facts({ deftCorePayloadVersion: "0.63.0" }));
     expect(p.mode).toBe("update");
-    expect(p.nextAction.command).toBe("npx @deftai/directive update");
+    expect(p.nextAction.command).toBeNull();
+    expect(p.nextAction.remediation).toMatch(/directive upgrade|directive install --repair/);
+    expect(p.nextAction.remediation).not.toMatch(/\bnpx\b|pnpm exec/);
   });
 
-  it("legacy vbrief without xbrief adds a migrate:xbrief warning", () => {
+  it("legacy vbrief without xbrief adds a directive upgrade warning (F-017 / AC8.9)", () => {
     const p = plan(facts({ deftCorePayloadVersion: "0.63.0", hasVbrief: true, hasXbrief: false }));
-    expect(p.warnings.join(" ")).toContain("migrate:xbrief");
+    expect(p.warnings.join(" ")).toContain("directive upgrade");
+    expect(p.warnings.join(" ")).not.toContain("migrate:xbrief");
   });
 
   it("warm sandbox (global absent, local intact >= pin) -> proceed", () => {
-    const engineResolution = decideEngineLadder(
-      ladderFacts({ localEngine: { version: "0.65.0", integrity: intact() } }),
+    const engineResolution = decideEngineAvailability(
+      engineFacts({ localEngine: { version: "0.65.0", integrity: intact() } }),
     );
     const p = plan(
       facts({ engineReachable: false, engineVersion: null }),
@@ -140,115 +160,60 @@ describe("resolution/plan precedence table (#2264 a1)", () => {
     expect(p.mode).toBe("proceed");
   });
 
-  it("cold sandbox (must install, prefix not writable) -> install-sandbox", () => {
-    const engineResolution = decideEngineLadder(ladderFacts({ globalPrefixWritable: false }));
+  it("engine unavailable (no global/local) -> blocked + AC9.7 (AC12.6)", () => {
+    const engineResolution = decideEngineAvailability(engineFacts());
     const p = plan(
       facts({ engineReachable: false, engineVersion: null }),
       {},
       { engineResolution, platform: "linux" },
     );
-    expect(p.mode).toBe("install-sandbox");
-    expect(p.nextAction.command).toContain(".deft/.cli/linux");
-    expect(p.warnings.join(" ")).toContain("ladder:");
-  });
-
-  it("registry-down with staged tarball -> install-staged", () => {
-    const engineResolution = decideEngineLadder(
-      ladderFacts({ registryUp: false, globalPrefixWritable: false, stagedTarballAvailable: true }),
-    );
-    const p = plan(
-      facts({ engineReachable: false, engineVersion: null }),
-      {},
-      { engineResolution },
-    );
-    expect(p.mode).toBe("install-staged");
-  });
-
-  it("registry-down with no tarball -> blocked", () => {
-    const engineResolution = decideEngineLadder(
-      ladderFacts({ registryUp: false, stagedTarballAvailable: false }),
-    );
-    const p = plan(
-      facts({ engineReachable: false, engineVersion: null }),
-      {},
-      { engineResolution },
-    );
     expect(p.mode).toBe("blocked");
+    expect(p.nextAction.command).toBeNull();
+    expect(p.nextAction.remediation).toContain("directive install --repair");
   });
 
-  it("engine behind pin -> install-global", () => {
+  it("engine behind pin -> blocked + AC9.7 (no install-global)", () => {
     const p = plan(facts({ engineVersion: "0.63.0" }));
-    expect(p.mode).toBe("install-global");
-    expect(p.nextAction.command).toContain("npm i -g @deftai/directive@0.65.0");
-  });
-
-  it("engine ahead within window with content at engine -> align-pin (#4718)", () => {
-    const p = plan(facts({ engineVersion: "0.67.0", deftCorePayloadVersion: "0.67.0" }), {
-      engineSkewWindow: 3,
-    });
-    expect(p.mode).toBe("align-pin");
-    expect(p.nextAction.command).toBe("npm install --save-dev @deftai/directive@0.67.0");
-    expect(p.nextAction.remediation.toLowerCase()).toContain("lock");
-  });
-
-  it("engine ahead within window with content behind engine -> update", () => {
-    const p = plan(facts({ engineVersion: "0.67.0", deftCorePayloadVersion: "0.65.0" }), {
-      engineSkewWindow: 3,
-    });
-    expect(p.mode).toBe("update");
-    expect(p.nextAction.command).toBe("npx @deftai/directive update");
-  });
-
-  it("engine ahead within window with null content -> update", () => {
-    const p = plan(facts({ engineVersion: "0.67.0", deftCorePayloadVersion: null }), {
-      engineSkewWindow: 3,
-    });
-    expect(p.mode).toBe("update");
-  });
-
-  it("engine ahead beyond window -> blocked (fail-closed)", () => {
-    const p = plan(facts({ engineVersion: "0.80.0" }), { engineSkewWindow: 3 });
     expect(p.mode).toBe("blocked");
     expect(p.nextAction.command).toBeNull();
-    expect(JSON.stringify(p.nextAction)).not.toMatch(/<gate>/);
-    expect(p.nextAction.remediation).toContain("DEFT_ACCEPT_ENGINE_SKEW");
-    expect(p.nextAction.remediation).not.toMatch(/proceed/i);
-    expect(p.nextAction.command ?? "").not.toContain("--accept-engine-jump");
+    expect(p.nextAction.remediation).toContain("directive install --repair");
+    expect(p.nextAction.remediation).not.toMatch(/align-pin|install-global|npx/i);
   });
 
-  it("engine ahead beyond window with escape hatch and content at engine -> align-pin (#4718)", () => {
-    const p = plan(
-      facts({ engineVersion: "0.80.0", deftCorePayloadVersion: "0.80.0" }),
-      { engineSkewWindow: 3 },
-      { acceptEngineJump: true },
-    );
-    expect(p.mode).toBe("align-pin");
-    expect(p.nextAction.command).toBe("npm install --save-dev @deftai/directive@0.80.0");
+  it("engine ahead with content at engine -> blocked (AC12.6, no align-pin)", () => {
+    const p = plan(facts({ engineVersion: "0.67.0", deftCorePayloadVersion: "0.67.0" }));
+    expect(p.mode).toBe("blocked");
+    expect(p.nextAction.command).toBeNull();
+    expect(p.nextAction.remediation).toContain("directive install --repair");
   });
 
-  it("engine ahead beyond window with escape hatch and content behind engine -> update", () => {
-    const p = plan(
-      facts({ engineVersion: "0.80.0", deftCorePayloadVersion: "0.65.0" }),
-      { engineSkewWindow: 3 },
-      { acceptEngineJump: true },
-    );
+  it("engine ahead with content behind engine -> update without npx", () => {
+    const p = plan(facts({ engineVersion: "0.67.0", deftCorePayloadVersion: "0.65.0" }));
+    expect(p.mode).toBe("update");
+    expect(p.nextAction.command).toBeNull();
+    expect(p.nextAction.remediation).toMatch(/directive upgrade/);
+  });
+
+  it("engine ahead with null content -> update", () => {
+    const p = plan(facts({ engineVersion: "0.67.0", deftCorePayloadVersion: null }));
     expect(p.mode).toBe("update");
   });
 
-  it("engine ahead beyond window, interactive -> blocked (prompt)", () => {
-    const p = plan(
-      facts({ engineVersion: "0.80.0" }),
-      { engineSkewWindow: 3 },
-      { interactive: true },
-    );
-    expect(p.mode).toBe("blocked");
-    expect(p.nextAction.rootCause).toContain("interactive");
-    expect(p.nextAction.command).toBeNull();
-    expect(p.nextAction.remediation).toContain("DEFT_ACCEPT_ENGINE_SKEW");
-    expect(p.nextAction.remediation).not.toMatch(/proceed/i);
+  it("engine far ahead with content behind -> update (no skew window / escape hatch)", () => {
+    const p = plan(facts({ engineVersion: "0.80.0", deftCorePayloadVersion: "0.65.0" }));
+    expect(p.mode).toBe("update");
+    expect(p.nextAction.remediation).toMatch(/directive upgrade/);
+    expect(p.nextAction.remediation).not.toMatch(/DEFT_ACCEPT_ENGINE_SKEW|accept-engine-jump/);
   });
 
-  it("no reachable engine and no ladder resolution -> blocked", () => {
+  it("engine far ahead with content at engine -> blocked AC9.7 (no escape hatch)", () => {
+    const p = plan(facts({ engineVersion: "0.80.0", deftCorePayloadVersion: "0.80.0" }));
+    expect(p.mode).toBe("blocked");
+    expect(p.nextAction.remediation).toContain("directive install --repair");
+    expect(p.nextAction.remediation).not.toMatch(/DEFT_ACCEPT_ENGINE_SKEW|accept-engine-jump/);
+  });
+
+  it("no reachable engine and no resolution decision -> blocked", () => {
     const p = plan(facts({ engineReachable: false, engineVersion: null }));
     expect(p.mode).toBe("blocked");
     expect(p.nextAction.rootCause).toContain("no Directive engine is reachable");
@@ -283,9 +248,7 @@ describe("resolution/plan is the single source of truth (#2264 a2)", () => {
       return p.nextAction.command ?? `manual:${p.mode}`;
     }
     expect(consume(plan(facts()))).toBe("ready");
-    expect(consume(plan(facts({ deftCorePayloadVersion: "0.63.0" })))).toBe(
-      "npx @deftai/directive update",
-    );
+    expect(consume(plan(facts({ deftCorePayloadVersion: "0.63.0" })))).toBe("manual:update");
     expect(consume(plan(facts({ preCutoverArtifacts: true })))).toBe("manual:migrate");
   });
 
@@ -304,34 +267,30 @@ describe("resolution/plan is the single source of truth (#2264 a2)", () => {
     expect(props.schemaVersion?.const).toBe(RESOLUTION_PLAN_SCHEMA_VERSION);
   });
 
-  it("every resolution mode is reachable through the precedence table", () => {
+  it("retired ladder modes are not emitted; remaining modes stay reachable (AC12.6)", () => {
     const observed = new Set<string>();
     observed.add(plan(facts()).mode); // proceed
     observed.add(plan(facts({ preCutoverArtifacts: true })).mode); // migrate
     observed.add(plan(facts({ hasDeftCore: false, hasManagedSection: false })).mode); // init
     observed.add(plan(facts({ deftCorePayloadVersion: "0.63.0" })).mode); // update
-    observed.add(plan(facts({ engineVersion: "0.67.0", deftCorePayloadVersion: "0.67.0" })).mode); // align-pin
-    observed.add(plan(facts({ engineVersion: "0.63.0" })).mode); // install-global
+    observed.add(plan(facts({ engineVersion: "0.67.0", deftCorePayloadVersion: "0.67.0" })).mode);
+    observed.add(plan(facts({ engineVersion: "0.63.0" })).mode);
     observed.add(
       plan(
         facts({ engineReachable: false, engineVersion: null }),
         {},
-        { engineResolution: decideEngineLadder(ladderFacts({ globalPrefixWritable: false })) },
+        { engineResolution: decideEngineAvailability(engineFacts()) },
       ).mode,
-    ); // install-sandbox
-    observed.add(
-      plan(
-        facts({ engineReachable: false, engineVersion: null }),
-        {},
-        {
-          engineResolution: decideEngineLadder(
-            ladderFacts({ registryUp: false, stagedTarballAvailable: true }),
-          ),
-        },
-      ).mode,
-    ); // install-staged
-    observed.add(plan(facts({ engineVersion: "0.80.0" }), { engineSkewWindow: 3 }).mode); // blocked
-    expect([...observed].sort()).toEqual([...RESOLUTION_MODES].sort());
+    );
+    observed.add(plan(facts({ engineVersion: "0.80.0", deftCorePayloadVersion: "0.80.0" })).mode); // blocked
+    for (const retired of ["align-pin", "install-global", "install-sandbox", "install-staged"]) {
+      expect(observed.has(retired), retired).toBe(false);
+    }
+    expect(observed.has("proceed")).toBe(true);
+    expect(observed.has("blocked")).toBe(true);
+    expect(observed.has("update")).toBe(true);
+    // Schema enum may still list retired modes for compat; product path must not emit them.
+    expect(RESOLUTION_MODES).toEqual(expect.arrayContaining([...observed]));
   });
 });
 
@@ -369,57 +328,47 @@ describe("resolution/plan files threading (#2268 headless single-sourcing)", () 
   });
 });
 
-describe("resolution/plan package-manager rendering (#2197)", () => {
-  it("defaults to npm command forms when no packageManager is supplied", () => {
-    expect(plan(facts({ engineVersion: "0.63.0" })).nextAction.command).toContain(
-      "npm i -g @deftai/directive@0.65.0",
-    );
-    expect(
-      plan(facts({ hasDeftCore: false, hasManagedSection: false })).nextAction.command,
-    ).toContain("npx @deftai/directive init");
+describe("resolution/plan package-manager rendering (#2197 / AC12.5–12.6)", () => {
+  it("engine-behind pin never emits install-global command (npm or pnpm)", () => {
+    const npmPlan = plan(facts({ engineVersion: "0.63.0" }));
+    expect(npmPlan.mode).toBe("blocked");
+    expect(npmPlan.nextAction.command).toBeNull();
+    expect(npmPlan.nextAction.remediation).toContain("directive install --repair");
+
+    const pnpmPlan = plan(facts({ engineVersion: "0.63.0" }), {}, { packageManager: "pnpm" });
+    expect(pnpmPlan.mode).toBe("blocked");
+    expect(pnpmPlan.nextAction.command).toBeNull();
   });
 
-  it("renders pnpm install-global when packageManager is pnpm", () => {
-    const p = plan(facts({ engineVersion: "0.63.0" }), {}, { packageManager: "pnpm" });
-    expect(p.mode).toBe("install-global");
-    expect(p.nextAction.command).toBe("pnpm add -g @deftai/directive@0.65.0");
-  });
-
-  it("renders pnpm ephemeral init / update when packageManager is pnpm", () => {
-    const initPlan = plan(
-      facts({ hasDeftCore: false, hasManagedSection: false }),
+  it("update / former align-pin paths do not teach npx or pnpm dlx", () => {
+    const updatePlan = plan(
+      facts({ engineVersion: "0.67.0", deftCorePayloadVersion: "0.65.0" }),
       {},
       { packageManager: "pnpm" },
     );
-    expect(initPlan.nextAction.command).toBe("pnpm dlx @deftai/directive init");
-
-    const updatePlan = plan(
-      facts({ engineVersion: "0.67.0", deftCorePayloadVersion: "0.65.0" }),
-      { engineSkewWindow: 3 },
-      { packageManager: "pnpm" },
-    );
     expect(updatePlan.mode).toBe("update");
-    expect(updatePlan.nextAction.command).toBe("pnpm dlx @deftai/directive update");
+    expect(updatePlan.nextAction.command).toBeNull();
+    expect(updatePlan.nextAction.remediation).not.toMatch(/\bnpx\b|dlx/);
 
     const alignPlan = plan(
       facts({ engineVersion: "0.67.0", deftCorePayloadVersion: "0.67.0" }),
-      { engineSkewWindow: 3 },
+      {},
       { packageManager: "pnpm" },
     );
-    expect(alignPlan.mode).toBe("align-pin");
-    expect(alignPlan.nextAction.command).toBe("pnpm add -D @deftai/directive@0.67.0");
+    expect(alignPlan.mode).toBe("blocked");
+    expect(alignPlan.nextAction.command).toBeNull();
   });
 
-  it("keeps the sandbox rung on npm --prefix even when packageManager is pnpm (locked non-goal)", () => {
-    const engineResolution = decideEngineLadder(ladderFacts({ globalPrefixWritable: false }));
+  it("unavailable engine is blocked rather than npm --prefix install", () => {
+    const engineResolution = decideEngineAvailability(engineFacts());
     const p = plan(
       facts({ engineReachable: false, engineVersion: null }),
       {},
       { engineResolution, platform: "linux", packageManager: "pnpm" },
     );
-    expect(p.mode).toBe("install-sandbox");
-    expect(p.nextAction.command).toContain("npm install --prefix .deft/.cli/linux");
-    expect(p.nextAction.command).not.toContain("pnpm");
+    expect(p.mode).toBe("blocked");
+    expect(p.nextAction.command).toBeNull();
+    expect(p.nextAction.remediation).toContain("directive install --repair");
   });
 });
 

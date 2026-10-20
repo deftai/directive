@@ -1,0 +1,83 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Canonical completion brief for Wave 3 upgrade/convert/migrate work.",
+    "updated": "2026-10-20T18:00:00Z"
+  },
+  "plan": {
+    "id": "2026-10-20-5490-upgrade-legacy-convert",
+    "title": "#5490 upgrade + legacy convert — migrate eras into OVPR L0",
+    "status": "completed",
+    "updated": "2026-10-20T18:00:00Z",
+    "narratives": {
+      "Overview": "Delivered upgrade and legacy-convert coverage for migratable eras into current OVPR layout, including convert-via-removals where needed, honest completed-brief migration stamps, and repo-upgrade harness samples. Prefer customer-first migrate of already-finished briefs.",
+      "Description": "Canonical completion brief for Wave 3 upgrade/convert/migrate work.",
+      "Origin": "Canonical retrospective completion for the OVPR installer effort (#5490 / #5514) prior to master merge. Replaces non-canonical YOLO wave stubs."
+    },
+    "items": [
+      {
+        "id": "2026-10-20-5490-upgrade-legacy-convert-ac1",
+        "title": "Upgrade path covers latest-old→new and new→new with highest robustness.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Upgrade path covers latest-old→new and new→new with highest robustness."
+        }
+      },
+      {
+        "id": "2026-10-20-5490-upgrade-legacy-convert-ac2",
+        "title": "repo-upgrade harness landed under tools/install-harness/repo-upgrade/.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "repo-upgrade harness landed under tools/install-harness/repo-upgrade/."
+        }
+      },
+      {
+        "id": "2026-10-20-5490-upgrade-legacy-convert-ac3",
+        "title": "Completed briefs retain historical completion honesty on migrate.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Completed briefs retain historical completion honesty on migrate."
+        }
+      }
+    ],
+    "tags": [
+      "5490",
+      "ovpr",
+      "installer",
+      "canonical"
+    ],
+    "references": [
+      {
+        "type": "github-issue",
+        "id": "5490",
+        "url": "https://github.com/deftai/directive/issues/5490"
+      },
+      {
+        "type": "github-issue",
+        "id": "5514",
+        "url": "https://github.com/deftai/directive/issues/5514"
+      },
+      {
+        "type": "path",
+        "path": "docs/installer-refactor-ovpr/README.md"
+      }
+    ],
+    "acceptance": {
+      "criteria": [
+        "Upgrade path covers latest-old→new and new→new with highest robustness.",
+        "repo-upgrade harness landed under tools/install-harness/repo-upgrade/.",
+        "Completed briefs retain historical completion honesty on migrate."
+      ],
+      "status": "completed"
+    },
+    "metadata": {
+      "completedAt": "2026-10-20T18:00:00Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-20T18:00:00Z"
+      },
+      "canonicalOvprSet": true,
+      "note": "Honest completion stamp for master-merge hygiene. No fabricated PR merge provenance; delivery evidence is the yolo/wip-wave4j train + docs."
+    }
+  }
+}

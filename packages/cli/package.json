@@ -1,29 +1,20 @@
 {
   "name": "@deftai/directive",
   "version": "0.0.0",
-  "description": "Directive CLI — npm install path for the Deft Directive framework.",
+  "description": "Directive launcher \u2014 finds the project pin and hands off to @deftai/directive-runtime.",
   "license": "MIT",
   "homepage": "https://deftai.github.io/directive/",
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/bin.js",
   "bin": {
     "directive": "./dist/bin.js",
     "deft": "./dist/bin.js",
-    "deft-ts": "./dist/bin.js",
-    "deft-hook": "./dist/hook-bin.js",
-    "deft-verify-encoding": "./dist/verify-encoding.js"
-  },
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    }
+    "deft-hook": "./bin/deft-hook"
   },
   "files": [
-    "dist/**/*.js",
-    "dist/**/*.d.ts",
-    "scripts/remove-windows-ps1-shims.mjs"
+    "dist/bin.js",
+    "bin/deft-hook",
+    "bin/deft-hook.cmd"
   ],
   "repository": {
     "type": "git",
@@ -34,12 +25,11 @@
     "access": "public",
     "provenance": true
   },
-  "dependencies": {
-    "@deftai/directive-core": "workspace:*",
-    "@deftai/directive-content": "workspace:*"
+  "engines": {
+    "node": ">=20"
   },
+  "dependencies": {},
   "scripts": {
-    "build": "tsc -b",
-    "postinstall": "node ./scripts/remove-windows-ps1-shims.mjs"
+    "build": "tsc -b && node ./scripts/bundle.mjs"
   }
 }

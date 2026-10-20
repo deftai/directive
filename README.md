@@ -1,21 +1,20 @@
-<!-- deft:cold-start-bootstrap v1 (#2273) -->
+<!-- deft:cold-start-bootstrap v2 (#5490 / AC13.8) -->
 > ## ⚡ Cold-start bootstrap (read this first)
 >
-> **New clone, or `deft` / `directive` won't run, or PATH version is behind the pin?** Directive runs from an npm-installed engine — there is no committed shell shim, so *you* (agent or human) are the interpreter. Work the **global-first ladder** below top-down and stop at the first rung that yields a working `directive` admitted by the pin compare on rung 1. Exact PATH-version equality is the check after repairing a behind-pin engine, not the stop for every case. The version to install is always the one pinned in the project's committed `package.json`. Doctor exit 0 is not skip.
+> **New clone, or `directive` / `deft` won't run?** Install the global launcher once, then use project install / repair. The version authority is the exact `@deftai/directive-runtime` pin in the project's `package.json`. Doctor exit 0 is not skip for bootstrap.
 >
-> 1. **Already on PATH?** Compare `directive --version` / `deft --version` to the committed `package.json` pin (outside the doctor binary). Matching pin: proceed, then run `directive doctor --full` (or the `deft` alias) and follow its `Next command:`. Behind pin: `npm i -g @deftai/directive@<pin>`, then re-probe that same PATH executable for the pin version — success is that match, not install exit 0. Supported ahead: proceed with the existing `update` / `align-pin` next step; far ahead stays fail-closed. No pin and no deposit: `npx @deftai/directive init`, then return to this compare against the pin init wrote. Bare `directive doctor` may skip (24h clean / 4h dirty); `--full` bypasses that throttle. A process that starts is not bootstrap success.
-> 2. **Local engine.** If `.deft/.cli/<platform>` holds an intact engine at or above the `package.json` pin, use it.
-> 3. **Global install (canonical).** With a pin: `npm i -g @deftai/directive@<pin>` (Node ≥ 20), then re-run `directive doctor --full`. No pin and no deposit: `npx @deftai/directive init`, then return to step 1. Using pnpm? `pnpm add -g @deftai/directive@<pin>` (same package, same registry) — make sure `PNPM_HOME` is on your `PATH` (`pnpm setup` if not).
-> 4. **Sandbox install.** If the global npm prefix isn't writable (sandboxed environment), install into the project instead: `npm install --prefix .deft/.cli/<platform> @deftai/directive@<pinned>`. (This internal `.deft/.cli/` layout is always npm-shaped, regardless of your project's package manager.)
-> 5. **Codex ritual git.** Distinct from npm-prefix sandbox install above: `session:start` and peer ritual verbs (`verify:session-ritual`, `issue:ingest`, `scope:promote`, …) spawn host `git`. Under the Codex sandbox (Windows TUI), that can fail with `spawnSync git EPERM` and a prompt like `Would you like to run the following command? Environment: local`. Approve outside-sandbox for ritual `git` once for the session in the Codex TUI approval prompt; prefer session-scoped approval or `/approvals` workspace trust when offered. Repeated per-verb `Environment: local` prompts do not discharge Continuity. Do not invent an in-process git substitute. Also distinct from Codex project-hook `/hooks` trust (`manual-review-required`).
-> 6. **Abandoned occupancy lease.** Only when the lease is abandoned (stale/expired owner, not a live peer session): `occupancy:release --session-id=<id from .deft/occupancy.json>` or wait for TTL claim-over. Do not release another session's live lease. Do not invent a new unlock verb (#3954 / #4667).
-> 7. **Corporate mirror symptoms.** If install returns `E404` / `ETARGET`, or `@latest` silently stays behind the public release, follow the [corporate or mirrored npm registry recovery](./content/UPGRADING.md#corporate-or-mirrored-npm-registry).
-> 8. **Offline.** If the npm registry is unreachable, install from a staged tarball / vendored payload. If none exists, stage one — recovery cannot proceed without a payload.
+> 1. **Launcher on PATH?** Run `directive --version` / `deft --version`. If missing or broken: `npm i -g @deftai/directive` (or `pnpm add -g @deftai/directive` — ensure `PNPM_HOME` is on `PATH` via `pnpm setup`).
+> 2. **New project (no runtime pin):** `directive install` / `directive init` — pins `@deftai/directive-runtime` and runs setup.
+> 3. **Clone / pull / new worktree:** `pnpm install` or `npm install`, then the first eligible runtime command or registered host hook completes local activation.
+> 4. **Wiring broken; keep the pin:** `npm i -g @deftai/directive`, then `directive install --repair`.
+> 5. **Move version / migrate data:** `directive upgrade` (alias `update`).
+> 6. **Not sure:** `directive doctor` (read-only). CI / swarm: `directive install --repair --yes` with a valid pin.
+> 7. **Corporate mirror / offline:** see [UPGRADING.md](./content/UPGRADING.md#corporate-or-mirrored-npm-registry).
+> 8. **Codex ritual git:** approve outside-sandbox / `Environment: local` ritual `git` once per session (or via `/approvals` workspace trust — not repeated per-verb). Do not invent an in-process git substitute. Symptom: `spawnSync git EPERM`.
+> 9. **Abandoned occupancy lease.** Only when the lease is abandoned (stale/expired owner, not a live peer session): `occupancy:release --session-id=<id from .deft/occupancy.json>` or wait for TTL claim-over. Do not release another session's live lease. Do not invent a new unlock verb (#3954 / #4667).
 >
-> Old deposits missing this compare line: `npx -y @deftai/directive@<pin> agents:refresh`, then assert the every-session compare (`directive --version` vs pin) is present in the managed AGENTS.md section. Refresh exit 0 is not that evidence. When the pin predates this compare, that `@<pin>` refresh cannot add the line — obtain current bootstrap content with `directive update` on a repaired engine, or `npx -y @deftai/directive@latest agents:refresh`, then re-assert presence. Full deposit currency (main.md, SKILL.md) is `directive update` on the repaired engine.
->
-> This block is always committed (never gitignored) and does **not** depend on the `.deft/core/` payload being present, so it is reachable on a fresh clone even when the vendored framework is missing. Once `directive` runs, continue with the guidance below and in `AGENTS.md`.
-<!-- /deft:cold-start-bootstrap v1 -->
+> Never use `npx` / `pnpm exec` as day-to-day identity. There is no copied `.deft/core/` content — pointers resolve under `node_modules/@deftai/directive-runtime/`. Once `directive` runs, continue with the guidance below and in `AGENTS.md`.
+<!-- /deft:cold-start-bootstrap v2 -->
 
 **Stuck?** [Support hub](./content/docs/SUPPORT.md) — symptom index to `directive doctor --full` or this cold-start. **First project:** [getting-started](./content/docs/getting-started.md).
 
@@ -37,74 +36,56 @@ Agents Lie, Cheat, and Steal (LCS). Directive is the practice layer that helps p
 
 ## 🚀 Getting Started
 
-Directive is three commands — `init`, `update`, and `doctor`. After install, walk the [first-project tutorial](./content/docs/getting-started.md). Hands-on learning: the [Directive training course](https://github.com/deftai/directive-training).
+Two packages: global **`@deftai/directive`** (launcher) and project-pinned **`@deftai/directive-runtime`**. Installation management: `install`, `upgrade`, `uninstall`, `doctor` (aliases `init` / `update` / `remove`). Walk the [first-project tutorial](./content/docs/getting-started.md). Launcher details: [launcher.md](./content/docs/launcher.md). Limitations: [known-limitations.md](./content/docs/known-limitations.md).
 
-| Your situation | Run this one command | What it does |
+| Your situation | Run this | What it does |
 | --- | --- | --- |
-| New, empty project directory | `directive init` | Scaffolds a fresh Directive deposit (`.deft/core/`, the `AGENTS.md` managed section, the `xbrief/` layout, and a committed `package.json` pin). |
-| Existing codebase (app code, no Directive yet) | `directive init` | Installs Directive support beside your code without disturbing it, then points you at brownfield spec extraction. |
-| Existing Directive project (already initialized) | `directive update` | Refreshes the vendored payload and self-heals the engine. (`init` detects this state and delegates to `update` with a disclosure line — it never re-scaffolds an existing install.) |
-| Not sure, or something looks broken | `directive doctor --full` | Read-only diagnosis. Bare `directive doctor` may throttle-skip (24h clean / 4h dirty); `--full` re-probes and prints exactly one next step. |
-| Legacy / pre-v0.20 layout | `directive init` (or `directive doctor`) | Classifies the layout and routes you to the specific migration path (see [UPGRADING.md](./content/UPGRADING.md)). |
-
-`directive init` is the **universal entrypoint**. `directive` (the `deft` alias also works) runs any verb; `npx @deftai/directive <verb>` or `pnpm dlx @deftai/directive <verb>` runs one without a global install.
+| New project | `directive install` | Exact runtime pin + setup (alias: `init`) |
+| Clone / new worktree | `pnpm install` / `npm install`, then any eligible command | Materializes the runtime; first eligible invocation completes local activation |
+| Wiring broken; keep pin | `directive install --repair` | Restores pin + owned wiring |
+| Move version / migrate data | `directive upgrade` | Alias: `update` |
+| Remove project wiring | `directive uninstall` | Alias: `remove`; preserves xbrief/settings/user prose |
+| Not sure | `directive doctor` | Read-only diagnosis |
+| Supported latest legacy (pre-split + `.deft/core`) | `directive upgrade` | Converts to runtime pin |
 
 ### 1. Install and initialize
 
 ```bash
 npm i -g @deftai/directive
-```
-
-**Using pnpm?** Same package, same registry:
-
-```bash
-pnpm add -g @deftai/directive
-```
-
-Make sure pnpm's global bin directory is on your `PATH` (run `pnpm setup` once to configure `PNPM_HOME`). Then:
-
-```bash
-directive init      # classify this directory and set up (or route) accordingly
-directive doctor --full    # confirm the install; --full bypasses throttle
+# or: pnpm add -g @deftai/directive
+directive install          # alias: directive init
+directive doctor
 directive toolchain:check --consumer
 ```
 
-**Node runtime (required):** Install **Node 20+**, **Git**, **GitHub CLI (`gh`)**, and the package manager you use (`npm` is bundled with Node; pnpm is an alternative). After `directive init`, confirm with `directive doctor --full` and `directive toolchain:check --consumer`. That consumer probe always checks Node, git, gh, and the selected manager (`npm` or `pnpm`). It does not require Python, uv, Go, or Task. Framework maintainers building this repository use a separate Node 24 pin plus pnpm, Go, and Task; see [CONTRIBUTING.md](./CONTRIBUTING.md). See [UPGRADING.md § Node runtime](./content/UPGRADING.md#node-runtime-1828--1530) for details.
+**Node runtime (AC16.2):** Supported (tested as a gate) Node lines are **22 and 24**. Node 20 is best-effort with a warning; Node &lt; 20 is refused. Also need **Git**, **GitHub CLI (`gh`)**, and **npm or pnpm**. Framework maintainers: see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
-**What gets tracked vs ignored:** `init` and `update` add Directive's local-only artifacts to your `.gitignore` — the reconstitutable deposit `.deft/core/`, the per-platform engine cache `.deft/.cli/`, session/ritual state such as `.deft/ritual-state.json`, and the `.deft-cache/` content cache. Your committed `package.json` pin is **never** ignored: it is the anchor that lets `directive init` / `directive update` reconstitute `.deft/core/` on a fresh clone, so it stays tracked in version control.
+**Tracked vs ignored:** the exact `@deftai/directive-runtime` pin and owned wiring are committed; `node_modules` and per-checkout `.deft/directive/wiring-ready.*.json` are ignored. There is no copied `.deft/core/` content.
 
-> **🔄 Upgrading an existing Directive project?** The ordinary path is `directive update` from your project root (after `npm i -g @deftai/directive@latest`, or `pnpm add -g @deftai/directive@latest` on pnpm). See [UPGRADING.md](./content/UPGRADING.md) for the canonical steps and the advanced/big-jump detail. On **npm v12**, install scripts and non-registry sources are opt-in — [UPGRADING.md § npm v12 install-time security defaults](./content/UPGRADING.md#npm-v12-install-time-security-defaults) (Directive packages need no allowlist; app trees may). **Agents:** ! Read [UPGRADING.md](./content/UPGRADING.md) on the first session after a framework update.
+> **🔄 Upgrading?** `npm i -g @deftai/directive@latest`, then `directive upgrade`. Wiring-only: `directive install --repair`. See [UPGRADING.md](./content/UPGRADING.md). **Agents:** ! Read UPGRADING on the first session after a framework update.
 
 > **📦 Brownfield adoption:** Adding Deft to an existing project with pre-v0.20 `SPECIFICATION.md` / `PROJECT.md`? See [docs/BROWNFIELD.md](./content/docs/BROWNFIELD.md) and UPGRADING.md § Frozen pre-v0.20 document-model migration (#2068).
 
 > **📢 Cloned manually (no installer)?** Tell your agent: `Read deft/QUICK-START.md and follow it.` It creates your project's `AGENTS.md` and starts the setup flow automatically.
 
-#### Legacy and offline install (Go installer, #1912)
+#### Legacy Go installer — RETIRED (#1912 / AC10.10)
 
-> **Node is always required to *run* Deft.** The Go installer is a **legacy bridge**, not the first-start installer — npm is canonical (above). Reach for it only when npm isn't an option: an **offline / air-gapped** deposit, or **migrating an existing old on-disk layout**.
+> **Maintainer / design history:** OVPR requirements and delivery notes live under [`docs/installer-refactor-ovpr/`](./docs/installer-refactor-ovpr/).
 
-> **⬇️ Legacy binaries** — from the [latest GitHub Release](https://github.com/deftai/directive/releases/latest):
-> - **Windows:** [`install-windows-amd64.exe`](https://github.com/deftai/directive/releases/latest/download/install-windows-amd64.exe) | [`install-windows-arm64.exe`](https://github.com/deftai/directive/releases/latest/download/install-windows-arm64.exe)
-> - **macOS:** [`install-macos-universal`](https://github.com/deftai/directive/releases/latest/download/install-macos-universal)
-> - **Linux:** [`install-linux-amd64`](https://github.com/deftai/directive/releases/latest/download/install-linux-amd64) | [`install-linux-arm64`](https://github.com/deftai/directive/releases/latest/download/install-linux-arm64)
-
-**Windows:** Download `install-windows-amd64.exe` (or `install-windows-arm64.exe`) and run it — SmartScreen may warn; click "More info" then "Run anyway".
-
-**macOS:** Download `install-macos-universal`, then `chmod +x install-macos-universal && ./install-macos-universal`. If Gatekeeper blocks it: right-click then Open, or `xattr -d com.apple.quarantine install-macos-universal`.
-
-**Linux:** Download `install-linux-amd64` (or `install-linux-arm64`), then `chmod +x install-linux-amd64 && ./install-linux-amd64`.
+> **Historical only.** The Go installer (`cmd/deft-install/`, platform `install-*` binaries) is **deleted**. Do not download or run it. Current install/upgrade is npm/pnpm only (above). Supported latest-legacy layouts convert with `directive upgrade`; see [UPGRADING.md](./content/UPGRADING.md).
 
 #### Agent / headless install
 
 ```bash
 npm i -g @deftai/directive
+directive install --yes
 ```
 
-Node 20+ is required. For **offline / air-gapped** deposits or **migrating a legacy on-disk layout**, the Go-installer binaries remain at [GitHub Releases](https://github.com/deftai/directive/releases/latest) (see [Legacy and offline install](#legacy-and-offline-install-go-installer-1912)).
+Supported Node lines are **22 and 24** (Node 20 best-effort). Offline / air-gapped: use your corporate npm mirror for `@deftai/directive` + `@deftai/directive-runtime` (see UPGRADING corporate-registry notes). Do not fall back to deleted Go installer binaries.
 
 #### Framework maintainers (this repository)
 
-Building from source requires Go 1.22+. Use `go run ./cmd/deft-install/` or `deft-install --yes --upgrade --maintainer --repo-root /path/to/directive --json`. Maintainer setup: [CONTRIBUTING.md](./CONTRIBUTING.md).
+Maintainer setup uses the Node/pnpm workspace documented in [CONTRIBUTING.md](./CONTRIBUTING.md). The Go installer path is deleted — do not run `go run ./cmd/deft-install/` or `deft-install`.
 
 ### 2. Set Up Your Preferences
 

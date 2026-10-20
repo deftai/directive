@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { isFile, readText } from "./_helpers.js";
 
 const TRIAGE_HEADING = "Big-jump triage";
-const DOCTOR_ANCHOR = "canonical-installer--doctor-handoff-v037--epic-56-1339-1340-1409";
+/** RETIRED archaeology heading slug (tip appends `--retired`). */
+const DOCTOR_ANCHOR_PREFIX = "canonical-installer--doctor-handoff-v037--epic-56-1339-1340-1409";
 
 function githubSlug(text: string): string {
   const s = text
@@ -87,11 +88,16 @@ describe("test_upgrading_bigjump_triage.py", () => {
   it("test_triage_references_quickstart_and_doctor_surface", () => {
     const body = sectionBody(readText("UPGRADING.md"), TRIAGE_HEADING, 2);
     expect(body).toContain("QUICK-START.md#");
-    // npm is now the canonical upgrade command; Go installer is a frozen legacy bridge (#1912)
+    // OVPR: npm launcher + directive upgrade / doctor (AC10.10).
     expect(body).toContain("npm i -g @deftai/directive@latest");
-    expect(body).toContain("deft doctor");
+    expect(body).toMatch(/\b(directive|deft) doctor\b/);
+    expect(body).toContain("directive upgrade");
   });
   it("test_doctor_anchor_actually_exists", () => {
-    expect(anchorSet(readText("UPGRADING.md"))).toContain(DOCTOR_ANCHOR);
+    const anchors = [...anchorSet(readText("UPGRADING.md"))];
+    expect(
+      anchors.some((a) => a === DOCTOR_ANCHOR_PREFIX || a.startsWith(`${DOCTOR_ANCHOR_PREFIX}--`)),
+      `expected an anchor starting with ${DOCTOR_ANCHOR_PREFIX}`,
+    ).toBe(true);
   });
 });

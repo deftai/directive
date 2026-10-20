@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { HOOK_HOSTS, type HookEvent, type HookHost } from "../hooks/dispatcher.js";
 import { READ_ONLY_HOOK_ENV } from "../hooks/tools.js";
 import { DEFT_HOOK_COMMAND_MARKER } from "../init-deposit/agent-hooks.js";
+import { DEFT_DOCTOR_HOOK_DIAGNOSTIC } from "../install-health/constants.js";
 import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import {
   quoteWin32CommandForShell,
@@ -16,7 +17,7 @@ export const LIVE_PROBE_CASE_RETRY_COUNT = 1;
 export const LIVE_PROBE_TIMEOUT_RECOVERY =
   "Recovery: retry the gated ritual when load is lower. Do not reinstall @deftai/directive or disable hostHooks for a timeout.";
 export const LIVE_PROBE_BROKEN_RECOVERY =
-  "Recovery: reinstall @deftai/directive and run `deft update`.";
+  "Recovery: npm i -g @deftai/directive, then directive install --repair.";
 
 export type AgentHookLiveProbeIssue =
   | "hook-command-missing"
@@ -146,8 +147,21 @@ function denyFixture(projectRoot: string): string {
   });
 }
 
+/** Doctor probe env: suppress self-completing setup (AC9.10) and force read-only deny. */
+function doctorProbeEnv(extra: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
+  return {
+    ...process.env,
+    [DEFT_DOCTOR_HOOK_DIAGNOSTIC]: "1",
+    ...extra,
+  };
+}
+
 function denyProbeEnv(): NodeJS.ProcessEnv {
-  return { ...process.env, [READ_ONLY_HOOK_ENV]: "1" };
+  return doctorProbeEnv({ [READ_ONLY_HOOK_ENV]: "1" });
+}
+
+function allowProbeEnv(): NodeJS.ProcessEnv {
+  return doctorProbeEnv();
 }
 
 function parseJsonObject(stdout: string): ParsedJson {
@@ -245,7 +259,7 @@ function runFixtureProbe(
     args: ["--host", host, "--event", LIVE_PROBE_EVENT, "--project-root", projectRoot] as const,
     stdin: fixture === "allow" ? allowFixture(projectRoot) : denyFixture(projectRoot),
     cwd: projectRoot,
-    env: fixture === "allow" ? process.env : denyProbeEnv(),
+    env: fixture === "allow" ? allowProbeEnv() : denyProbeEnv(),
   };
   let spawned = spawnHook(input);
   for (

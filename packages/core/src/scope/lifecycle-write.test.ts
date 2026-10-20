@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   hasCompleteTransitionWrite,
+  hasLifecycleWriteStamp,
   hasTransitionWrite,
+  isMigrationLifecycleWrite,
   LEFTOVER_LAND_PR_REMEDIATION,
   stampLifecycleWrite,
   transitionWriteFitsFolder,
@@ -15,6 +17,34 @@ describe("lifecycle-write (#3679)", () => {
     const meta = plan.metadata as { lifecycleWrite: { action: string; writtenAt: string } };
     expect(meta.lifecycleWrite.action).toBe("complete");
     expect(meta.lifecycleWrite.writtenAt).toBe("2026-08-25T00:00:00Z");
+    expect(meta.lifecycleWrite).not.toHaveProperty("migration");
+    expect(isMigrationLifecycleWrite(plan)).toBe(false);
+  });
+
+  it("#5540: migration:true stamp is complete-class and clears on later write", () => {
+    const plan: Record<string, unknown> = { status: "completed" };
+    stampLifecycleWrite(plan, "complete", "2026-10-15T12:00:00Z", { migration: true });
+    expect(hasLifecycleWriteStamp(plan)).toBe(true);
+    expect(hasTransitionWrite(plan)).toBe(true);
+    expect(transitionWriteFitsFolder(plan, "completed")).toBe(true);
+    expect(isMigrationLifecycleWrite(plan)).toBe(true);
+    const meta = plan.metadata as {
+      lifecycleWrite: { action: string; writtenAt: string; migration?: boolean };
+      completedAt?: string;
+    };
+    expect(meta.lifecycleWrite).toEqual({
+      action: "complete",
+      writtenAt: "2026-10-15T12:00:00Z",
+      migration: true,
+    });
+    expect(meta.completedAt).toBeUndefined();
+
+    stampLifecycleWrite(plan, "complete", "2026-10-16T00:00:00Z");
+    expect(isMigrationLifecycleWrite(plan)).toBe(false);
+    expect((plan.metadata as { lifecycleWrite: Record<string, unknown> }).lifecycleWrite).toEqual({
+      action: "complete",
+      writtenAt: "2026-10-16T00:00:00Z",
+    });
   });
 
   it("treats legacy completedAt as verb evidence", () => {

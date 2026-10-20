@@ -143,7 +143,14 @@ describe("#1987 freeze-gate graceful skip", () => {
     expect(workflowText).not.toContain("No Go-installer release past the frozen line is allowed");
   });
   it("the build job is gated on frozen_skip so it skips cleanly when frozen", () => {
-    expect(workflowText).toContain("needs.freeze-gate.outputs.frozen_skip != 'true'");
+    // AC10.10 / #5490: Go installer deleted — build is hard-skipped; frozen_skip
+    // remain on freeze-gate for residual above-the-line tagging, but build no longer
+    // needs the frozen_skip predicate.
+    expect(
+      workflowText.includes("needs.freeze-gate.outputs.frozen_skip != 'true'") ||
+        /if:\s*\$\{\{\s*false\s*\}\}.*Go installer deleted/s.test(workflowText) ||
+        workflowText.includes("if: ${{ false }} # AC10.10"),
+    ).toBe(true);
   });
   it("the unparseable-SoT case still fails loud (fail-closed, never fail-open)", () => {
     const codeOnly = stripYamlComments(workflowText);

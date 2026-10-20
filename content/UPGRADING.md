@@ -10,15 +10,21 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## Current path
 
-Ordinary upgrades use the three-command model. This section is the current recovery path; frozen version-to-version hops stay below as history and keep their existing `UPGRADING.md#` anchors.
+Two packages: global `@deftai/directive` (launcher) and project-pinned `@deftai/directive-runtime`. Supported Node gates: **22 and 24** (Node 20 best-effort). See [launcher.md](./docs/launcher.md) and [known-limitations.md](./docs/known-limitations.md).
 
 | Your situation | Run this |
 | --- | --- |
-| Ordinary upgrade of an existing Directive project | `npm i -g @deftai/directive@latest`, then `directive update` in the project (`pnpm add -g @deftai/directive@latest` on pnpm) |
-| Not sure, or something looks broken | `directive doctor` |
-| First-time adoption, or a legacy / pre-v0.20 layout | `directive init` |
+| Ordinary upgrade (move pin / migrate data) | `npm i -g @deftai/directive@latest`, then `directive upgrade` (`update` is an alias) |
+| Wiring broken; pin should stay | `npm i -g @deftai/directive`, then `directive install --repair` |
+| Fresh clone / new worktree | Project `pnpm install` / `npm install`, then first eligible runtime command or hook |
+| Not sure | `directive doctor` (read-only) |
+| First-time adoption | `directive install` (`init` alias) |
+| Supported latest legacy (pre-split pin + `.deft/core`) | `directive upgrade` |
+| Remove project wiring | `directive uninstall` (`remove` alias) |
 
-Walkthrough: [Canonical upgrade — npm](#canonical-upgrade--npm-v0551). Multi-version jumps: [Big-jump triage](#big-jump-triage--multi-version-upgrades-start-here). Corporate or mirrored registry: [Corporate or mirrored npm registry](#corporate-or-mirrored-npm-registry). Frozen hop 1: [Frozen pre-v0.20 document-model migration](#frozen-pre-v020-document-model-migration-2068).
+Do not teach `npx`/`pnpm exec` as ongoing identity. Retired verbs (`migrate`, `bootstrap`, …) are unknown commands.
+
+Walkthrough history below keeps existing `UPGRADING.md#` anchors. Corporate or mirrored registry: [Corporate or mirrored npm registry](#corporate-or-mirrored-npm-registry).
 
 ---
 
@@ -171,10 +177,10 @@ Refs: [#2034](https://github.com/deftai/directive/issues/2034), [#2110](https://
 Directive is driven by three commands, and upgrading is one of them. Route by situation to exactly one:
 
 - **Ordinary upgrade of an existing Directive project** → `directive update` (after `npm i -g @deftai/directive@latest`). This is the one command most upgrades need; the [Canonical upgrade — npm](#canonical-upgrade--npm-v0551) section below is the full walkthrough.
-- **Not sure what state you are in, or something looks broken** → `directive doctor`. It is read-only and prints exactly one recommended next step (including "run `directive update`" when the deposit is stale).
-- **First-time adoption, or a legacy / pre-v0.20 layout** → `directive init`. It classifies the directory and either scaffolds Directive or routes you to the specific migration path.
+- **Not sure what state you are in, or something looks broken** → `directive doctor`. It is read-only and prints exactly one recommended next step (including "run `directive upgrade`" when the pin/schema is behind).
+- **First-time adoption** → `directive install`. Supported latest-legacy layouts convert with `directive upgrade`; see [Current path](#current-path).
 
-Everything below preserves the **advanced and big-jump** detail — multi-version jumps, the frozen pre-v0.20 bridge, legacy Go-installer migration, and the per-version transitions. Ordinary upgraders only need `directive update`; reach into the detailed sections when `directive doctor` or the [big-jump triage](#big-jump-triage--multi-version-upgrades-start-here) points you there.
+Everything below preserves **advanced and big-jump** detail — multi-version jumps, the frozen pre-v0.20 document-model bridge, and per-version transitions. Ordinary upgraders only need the [Current path](#current-path) table; reach into the detailed sections when `directive doctor` or the [big-jump triage](#big-jump-triage--multi-version-upgrades-start-here) points you there. The Go installer (`deft-install`) is **deleted** — historical footnotes below are retired archaeology, not current recovery.
 
 ---
 
@@ -182,7 +188,7 @@ Everything below preserves the **advanced and big-jump** detail — multi-versio
 
 From v0.55.1 onwards `@deftai/directive` is published on npm. The canonical consumer upgrade path is:
 
-1. **Upgrade the global engine** (Node ≥ 20):
+1. **Upgrade the global launcher** (Node **22 / 24** supported; Node 20 best-effort):
 
    ```bash
    npm i -g @deftai/directive@latest
@@ -194,7 +200,7 @@ From v0.55.1 onwards `@deftai/directive` is published on npm. The canonical cons
    pnpm add -g @deftai/directive@latest
    ```
 
-   Ensure pnpm's global bin directory is on your `PATH` (`pnpm setup` configures `PNPM_HOME`). A project-local `pnpm add -D @deftai/directive@latest` (run via `pnpm exec directive …`) is equivalent for pnpm-managed repos that avoid global installs. `deft update` / `deft migrate` / `deft doctor` all work identically regardless of which package manager installed the engine.
+   Ensure pnpm's global bin directory is on your `PATH` (`pnpm setup` configures `PNPM_HOME`). Prefer the global launcher on PATH. Project-local launcher installs are not the supported activation path — pin `@deftai/directive-runtime` via `directive install` / `directive upgrade`. `directive upgrade` / `directive doctor` work once the launcher is available.
 
 ### Corporate or mirrored npm registry
 
@@ -250,27 +256,25 @@ internal hostnames or credentials. With `--network`, the release-availability
 probe isolates with a temp cwd whose project `.npmrc` sets `@deftai:registry`
 to public npm, because `--registry` does not beat the scoped key.
 
-2. **Refresh the project deposit** from your project root:
+2. **Move the project pin / migrate data** from your project root:
 
    ```bash
-   deft update
+   directive upgrade
    ```
 
-   This re-copies the vendored `.deft/core/` payload and refreshes project-root `.githooks/` (#2049).
+   (`update` is an alias.) This updates the exact `@deftai/directive-runtime` pin through the package manager, refreshes package-relative wiring (AGENTS.md / hooks / skills), and migrates existing xbrief data when needed. There is **no** copied `.deft/core/` deposit.
 
-   **Prettier / format gate (#2534):** managed `.deft/core/` is outside your consumer Prettier gate. `directive init` and `directive update` idempotently deposit or heal a root `.prettierignore` entry for `.deft/core/` so `prettier --check .` (and `task check` when Prettier is wired) does not fail on the vendored framework payload. You do not need to reformat `.deft/core/` after upgrade.
+   **Wiring-only repair (pin should stay):** `directive install --repair`.
 
-   **Schema rewrite / format before the upgrade PR (#3395):** `deft update` may rewrite consumer-owned `xbrief/schemas/*`. It does **not** run your repo formatter. When the update summary lists rewritten consumer-owned paths, run `task fmt` (or your formatter) **before** opening the upgrade PR so Prettier / `task check` stay green.
+   **Schema rewrite / format before the upgrade PR (#3395):** `directive upgrade` may rewrite consumer-owned `xbrief/schemas/*`. It does **not** run your repo formatter. When the upgrade summary lists rewritten consumer-owned paths, run `task fmt` (or your formatter) **before** opening the upgrade PR so Prettier / `task check` stay green.
 
-   > **`deft update` is the single canonical upgrade verb (#2064).** The older `deft install-upgrade` (and its `task upgrade` maintainer alias) now print a one-line notice and delegate to this exact `deft update` path — they no longer have their own semantics. Previously `install-upgrade` only rewrote the marker/manifest without swapping the payload, so on a stale deposit it reported a false "Project already at X. Nothing to do." Use `deft update`; there is nothing `install-upgrade` does that `deft update` does not.
+   > **`directive upgrade` is the single canonical upgrade verb.** Retired verbs (`migrate`, `bootstrap`, `install-upgrade`, …) are unknown commands. Prefer the [Current path](#current-path) table over any older deposit-era prose retained below for archaeology.
 
-3. **Stamp npm provenance (one-time, idempotent):**
+3. **Confirm** with read-only diagnosis:
 
    ```bash
-   deft migrate
+   directive doctor
    ```
-
-   Adds `managed_by: npm` to `.deft/core/VERSION` so doctor and future updates recognize the npm channel. Safe to re-run — when already hybrid, migrate is a no-op.
 
 4. **Verify:**
 
@@ -345,7 +349,7 @@ upgrade-handoff: blocked:<reason>
 
 ## OpenPackage tiered skills (optional, #2462)
 
-The npm engine (`npm i -g @deftai/directive`) remains the canonical runtime handler for gates, lifecycle, and `.deft/core/` refresh. **OpenPackage** is an optional cross-harness distribution path for placing tiered consumer skills into Cursor, Codex CLI, and OpenCode native directories — without a Directive-owned skill router.
+The npm launcher (`npm i -g @deftai/directive`) plus project-pinned `@deftai/directive-runtime` remain the canonical handlers for gates and lifecycle. **OpenPackage** is an optional cross-harness distribution path for placing tiered consumer skills into Cursor, Codex CLI, and OpenCode native directories — without a Directive-owned skill router.
 
 1. Install OpenPackage CLI: `npm i -g opkg`
 2. From a maintainer checkout (or release tree), sync skills into the package (default: **daily-core** only):
@@ -364,7 +368,7 @@ The npm engine (`npm i -g @deftai/directive`) remains the canonical runtime hand
 
 **Default install tier:** **daily-core** (setup, sync, build, pre-pr, review-cycle, triage) — the sync script and `deft-tiers.json` `defaultInstallTier` select this unless you override with `--tier all`, `--tier standard`, or `--tier advanced`. **Standard** covers operational workflows; **advanced** (release, swarm, debug, article-review) stays deferred. Full lists: `packaging/openpackage/deft-tiers.json`. Detail: [`packaging/openpackage/deft-directive-skills/README.md`](../packaging/openpackage/deft-directive-skills/README.md).
 
-Consumer AGENTS.md stays pointer-thin — scan `npx deft packs:slice skills list` Skills Index; do not enumerate skills in the managed section.
+Consumer AGENTS.md stays pointer-thin — scan `directive packs:slice skills list` Skills Index; do not enumerate skills in the managed section.
 
 ### Always-on bootstrap budget (DD-3, #2463)
 
@@ -508,7 +512,7 @@ This file owns the numbered hop commands. [docs/BROWNFIELD.md](./docs/BROWNFIELD
    task -t /path/to/deft-v0.59.0/Taskfile.yml migrate:vbrief -- --dry-run
    task -t /path/to/deft-v0.59.0/Taskfile.yml migrate:vbrief
    ```
-   Frozen `migrate:vbrief` self-invokes `migrate:preflight` on that same pinned Taskfile. Do not run current-npm `task migrate:preflight` as the hop-1 gate. Current deposits have no `migrate:vbrief` target — `task -t ./.deft/core/Taskfile.yml migrate:vbrief` is a dead fallback.
+   Frozen `migrate:vbrief` self-invokes `migrate:preflight` on that same pinned Taskfile. Do not run current-npm `task migrate:preflight` as the hop-1 gate. Current runtimes have no `migrate:vbrief` target — any historical Taskfile path under a copied deposit is a retired dead fallback (do not run).
 5. **Hop 1 postcondition** (frozen runtime, not current `deft doctor`): the migrator exits 0, and the project has `vbrief/specification.vbrief.json`, `vbrief/PROJECT-DEFINITION.vbrief.json`, and `vbrief/{proposed,pending,active,completed,cancelled}/`. Root `SPECIFICATION.md` / `PROJECT.md` are deprecation redirects. This is vBRIEF 0.6, not xBRIEF.
 6. Upgrade to current npm: `npm i -g @deftai/directive@latest`, then `deft update` from the project root. Optional: regenerate exports with `task roadmap:render`, `task project:render`, and `task prd:render -- --force` when you maintain a `PRD.md` (frozen-payload renderers; hop 2 will rewrite layout).
 7. **Hop 2:** `deft migrate:xbrief` (or `task migrate:xbrief` from a maintainer checkout). Requires a clean working tree unless `--force`.
@@ -521,7 +525,7 @@ This file owns the numbered hop commands. [docs/BROWNFIELD.md](./docs/BROWNFIELD
 
 The automated migrator is a convenience, not the only route. If the `v0.59.0` payload is genuinely unreachable (tag deleted, no network, Python/uv unavailable, or the migrator errors on an unusual legacy shape), you are **not** stranded — port forward manually:
 
-1. On **current npm**, scaffold a clean project beside the old one: `directive init` (or `npx @deftai/directive init`). This produces the current xBRIEF layout directly, skipping both hops.
+1. On **current npm**, scaffold a clean project beside the old one: `directive install` (alias `init`). This produces the current xBRIEF layout directly, skipping both hops.
 2. Hand-port your content: copy the substance of the old `SPECIFICATION.md` / `PROJECT.md` into the new project definition and scope xBRIEFs the setup flow creates. Your prose is the source of truth; only the container format changed.
 3. Keep the old tree read-only for reference until the new project's `deft doctor` is green, then archive it.
 
@@ -529,68 +533,45 @@ This is lossless for content (you re-author the container, not the substance) an
 
 See [docs/BROWNFIELD.md](./docs/BROWNFIELD.md) for what migration produces and how content is preserved.
 
-### One-time migration from the Go installer (legacy → npm)
+### One-time migration from the Go installer (legacy → npm) — RETIRED
 
-If your current install uses the frozen Go installer (`deft-install`), migrate once:
+> **Historical only.** The Go installer (`cmd/deft-install/`, `deft-install`) is
+> **deleted** (AC10.10). Do **not** download or run Go installer binaries.
 
-1. Install Node ≥ 20 if not already present.
-2. Run `npm i -g @deftai/directive@latest` to install the engine from npm.
-3. In your project, run `deft update` to refresh `.deft/core/` and `.githooks/`.
-4. Run `deft migrate` once to stamp npm provenance (idempotent).
-5. Run `deft agents:refresh` if the AGENTS.md managed section is stale.
-6. Verify with `deft doctor` — install integrity confirms the npm payload is current.
+Supported latest-legacy layouts (pre-split pin + copied `.deft/core`) convert
+with the OVPR path:
 
-The frozen Go installer remains available at [GitHub Releases](https://github.com/deftai/directive/releases) as a legacy / offline bridge but receives no further updates (#1912); Node ≥ 20 is still required to run Deft afterward. After this one-time step, the four-step npm path above is all you need for every future upgrade.
+```bash
+npm i -g @deftai/directive@latest
+directive upgrade
+directive doctor
+```
 
-> **Security (#2305): only run the migration bridge against a repository you trust.** A malicious repo can commit `.deft` / `.deft/core` (or a parent) as a symlink that escapes the tree, causing the deposit to write framework content outside the project directory under your account. The canonical npm CLI now refuses a symlink-escaping deposit boundary, but the **frozen Go installer** (`cmd/deft-install/upgrade.go`) is **not** patched — it is explicitly won't-fix / risk-accepted (no further Go releases, #1912). Run it only on repositories you control or trust.
+Wiring-only repair: `directive install --repair`. Fresh adoption: `directive install`.
+See [Current path](#current-path) and [known-limitations.md](./docs/known-limitations.md).
 
 ---
 
-## Legacy layout refused by the npm CLI (#1912)
+## Legacy layout refused by the npm CLI (#1912) — RETIRED bridge
 
-If you run `npx @deftai/directive init` (or `update`) on a project that still
-uses a **legacy on-disk layout**, the npm CLI **refuses** and exits non-zero
-**without depositing or refreshing anything**. The npm path never migrates a
-legacy layout; the frozen final Go installer is the one-and-only migration
-bridge. This is the run-from-npm, use-time gate that backs the one-time
-migration above.
+If you run `directive install` / `directive upgrade` on a project that still
+uses an **unsupported** legacy on-disk layout, the CLI may refuse and exit
+non-zero without changing the tree. The deleted Go installer is **not** a
+recovery path.
 
-> **Security (#2305): trust the repo before running the frozen migration bridge.** The npm CLI refuses a deposit whose `.deft` / `.deft/core` (or a parent) is a symlink escaping the resolved project tree, so a malicious repo cannot redirect the deposit to an arbitrary location under your account. The one residual exposure the npm gate cannot cover is running the **frozen Go bridge** against an untrusted repo during legacy migration (the Go binary acts before npm ever runs); it is explicitly won't-fix / risk-accepted (#1912). Only run the migration bridge against a repository you trust.
+**Supported recovery:**
 
-**Legacy layouts the npm CLI refuses:**
+1. Install / refresh the global launcher: `npm i -g @deftai/directive@latest`
+2. For supported latest-legacy (pre-split pin + copied `.deft/core`): run
+   `directive upgrade`
+3. For wiring drift with a valid pin: `directive install --repair`
+4. Confirm with `directive doctor`
 
-- a git-clone or git-submodule deposit of the framework;
-- a legacy `deft/`-prefixed install root (the canonical root is `.deft/core/`);
-- a pre-v0.27 AGENTS.md with a sentinel-only managed-section (no v2/v3
-  managed-section markers);
-- an orphan `.deft/VERSION` manifest with no `.deft/core/` directory.
-
-**The two-step recovery (version-neutral):**
-
-1. **Run the frozen final Go bridge installer** to migrate the old layout to the
-   canonical `.deft/core/` vendored layout. Download the binary for your
-   platform from [GitHub Releases](https://github.com/deftai/directive/releases)
-   (see [Legacy and offline install](https://github.com/deftai/directive#legacy-and-offline-install-go-installer-1912))
-   and run it from your project directory. The bridge is **frozen** — always
-   the latest published release; there is no version to memorise.
-2. **Re-run the npm path** once the layout is canonical-vendored:
-
-   ```bash
-   npx @deftai/directive init      # or: npx @deftai/directive update
-   ```
-
-After step 1 the layout is `.deft/core/`, so the npm CLI takes over cleanly and
-`npm i -g @deftai/directive@latest` is your only future upgrade command.
-
-> **Why a pointer, not a baked command?** The npm CLI, `directive doctor`, and
-> AGENTS.md never bake a Go-installer version number or a literal upgrade command
-> into your installed files. They signpost this stable doc + the Releases page so
-> the bridge always resolves fresh — the upgrade instructions can never go stale
-> inside the artifact being upgraded.
-
-`directive doctor` emits the same signpost (a `legacy-layout` check that fails
-with this URL) whenever it detects a legacy layout, so an agent or operator who
-runs the doctor first gets pointed at this exact two-step before touching `init`.
+If the layout is older than the supported latest-legacy window, use a fresh
+`directive install` beside the old tree and hand-port project data (see
+[Fresh-start fallback (#2297)](#fresh-start-fallback-2297)), or follow the
+frozen pre-v0.20 document-model bridge when that section applies.
+Do not teach `npx` / `pnpm exec` / `deft-install` as ongoing identity.
 
 ---
 
@@ -612,19 +593,18 @@ runs the doctor first gets pointed at this exact two-step before touching `init`
 - **From v0.26.x — auto-handled (interactive).** Run the triage adoption ritual: [From v0.26.x → v0.27](#from-v026x---v027-triage-adoption-via-task-triagewelcome).
 - **From v0.27.x — mostly auto-handled.** Pick up the install manifest and the `deft/` → `.deft/core/` layout: [From v0.27.x → v0.28](#from-v027x---v028-canonical-install-manifest-at-installversion), [From deft/ → .deft/core/](#from-deft---deftcore), and [From drifted AGENTS.md → current install](#from-drifted-agentsmd---current-install-task-upgrade-repair-path-1061).
 - **From v0.60.x — manual (hook refresh).** After #2049, consumer `.githooks/` dispatch through the `deft` CLI only. Run [From v0.60.0 → v0.61.x (refresh project-root git hooks, #2049)](#from-v0600--v061x-refresh-project-root-git-hooks-2049) after every framework upgrade that touches hook templates.
-- **From v0.28–v0.36 (and the final hop to current) — auto-handled.** If still on the Go-installer layout, follow the [One-time migration from the Go installer](#one-time-migration-from-the-go-installer-legacy--npm) above, then `npm i -g @deftai/directive@latest` for all future upgrades.
+- **From v0.28–v0.36 (and the final hop to current) — auto-handled.** Supported latest-legacy layouts: follow [One-time migration from the Go installer](#one-time-migration-from-the-go-installer-legacy--npm--retired) (OVPR `directive upgrade` only — Go installer deleted), then keep using `npm i -g @deftai/directive@latest` for all future upgrades.
 - **From v0.70.x — auto-handled (lazy).** The triage working-set cache moved off `.eval/` to `.triage-cache/`; run any triage/scope/doctor command once after upgrade to trigger the lazy migration: [From v0.70.x → v0.71.0 (triage cache relocation, #1703)](#from-v070x--v0710-triage-cache-relocation-1703).
 
-**Final step for every bucket.** Finish on the canonical npm upgrade path, then let the doctor confirm you are current:
+**Final step for every bucket.** Finish on the OVPR upgrade path, then let the doctor confirm you are current:
 
 ```bash
 npm i -g @deftai/directive@latest
-deft update
-deft migrate
-deft doctor
+directive upgrade
+directive doctor
 ```
 
-Run those from your project root after any bucket-specific hops (`deft update` refreshes `.deft/core/` and `.githooks/`; `deft migrate` stamps npm provenance once and is idempotent). If still on a Go-installer layout, follow the [One-time migration from the Go installer](#one-time-migration-from-the-go-installer-legacy--npm) first.
+Run those from your project root after any bucket-specific hops. Wiring-only: `directive install --repair`. Do **not** run deleted `deft-install` binaries.
 
 ---
 
@@ -656,55 +636,36 @@ Run those from your project root after any bucket-specific hops (`deft update` r
 ## From v0.60.0 → v0.61.x (refresh project-root git hooks, #2049)
 
 - **Applies when:** your project was on deft v0.60.x (or earlier) with `.githooks/` installed via `deft setup` / the npm deposit path, and hooks still invoke legacy Python scripts (`scripts/preflight_branch.py`, `scripts/preflight_gh.py`, etc.). Detection: `deft verify:hooks-installed` fails with "still dispatches through Python scripts (expected deft CLI only, #2049)" or pre-commit/pre-push errors mentioning missing `scripts/*.py` on Python-free installs.
-- **Safe to auto-run:** Yes. `deft update` from the project root re-deposits the current `.githooks/` templates and refreshes the vendored `.deft/core/` payload. No manual hook editing required when the update completes cleanly.
-- **Restart required:** No for hook wiring — but start a **new agent session** after update so AGENTS.md and skills reflect the refreshed managed section.
+- **Safe to auto-run:** Yes. `directive upgrade` (or `directive install --repair` when the pin should stay) refreshes package-relative wiring including project-root `.githooks/`. No manual hook editing required when the run completes cleanly.
+- **Restart required:** No for hook wiring — but start a **new agent session** after upgrade so AGENTS.md and skills reflect the refreshed managed section.
 - **Commands:**
-  - `npm i -g @deftai/directive@latest` (upgrade the global CLI/engine)
-  - `deft update` (from project root — refreshes `.deft/core/` + `.githooks/`)
-  - `deft verify:hooks-installed` (confirm pre-commit/pre-push dispatch via `deft verify:branch`, `deft verify:encoding`, `deft preflight-gh`)
-  - `deft doctor` (install integrity + managed-section freshness)
+  - `npm i -g @deftai/directive@latest` (upgrade the global launcher)
+  - `directive upgrade` (from project root — pin/wiring; or `directive install --repair` for wiring-only)
+  - `directive doctor` (install integrity + managed-section freshness)
 
-If `deft update` is unavailable (older deposit), run `deft init` on a greenfield tree or upgrade the global CLI first — `task setup` / `deft setup` only wires `core.hooksPath` and refuses when project-root `.githooks/` is missing (#2530).
+If the launcher is missing, install it first (`npm i -g @deftai/directive`). Do not use deleted `deft-install` binaries.
 
 ---
 
-## Canonical installer + doctor handoff (v0.37+ / Epic-5+6 #1339 #1340, #1409)
+## Canonical installer + doctor handoff (v0.37+ / Epic-5+6 #1339 #1340, #1409) — RETIRED
 
-> **Note (v0.55.1+):** npm is now the canonical install and upgrade path. See [Canonical upgrade — npm](#canonical-upgrade--npm-v0551) above. The Go-installer install path documented here is a **frozen legacy bridge** (#1912); it remains accurate for consumers still on that layout.
+> **Current path only:** `npm i -g @deftai/directive@latest`, then `directive upgrade`
+> (pin/data) or `directive install --repair` (wiring). Confirm with `directive doctor`.
+> See [Current path](#current-path). The Go installer (`deft-install`) and copied
+> `.deft/core/` deposit refresh are **deleted** — do not download binaries or teach
+> deposit re-copy as ongoing identity.
 
-**Legacy Go-installer path (for archaeology / migration reference):**
-
-1. Download and run the platform-specific installer binary from GitHub Releases.
-2. The installer writes the payload + manifest + AGENTS.md + skills, then **deterministically calls `scripts/doctor.py --session --json`** at the end.
-3. Doctor (now the single owner of all health/install-integrity/staleness logic) reads the `<install>/VERSION` manifest and, when the recorded sha lags the remote ref, emits a **clear recommendation** to run the canonical headless upgrader: `deft-install --yes --upgrade --repo-root . --json`.
-4. On subsequent sessions `task doctor` / `run doctor` (thin shims to the canonical `scripts/doctor.py`) continue to surface the same guidance.
-
-### Canonical headless upgrade command (consumers + CI/agents) (#1409)
-
-! The canonical, one-command payload refresh for an **existing** install is:
+**Historical archaeology (do not run):** older releases used a Go installer
+binary and doctor recommendations that pointed at its headless `--yes --upgrade`
+flags. That binary and those messages are gone (AC10.10). CI / agents use:
 
 ```bash
-deft-install --yes --upgrade --repo-root . --json
+npm i -g @deftai/directive
+directive install --repair --yes   # wiring; valid pin required
+# or:
+directive upgrade --yes            # move pin / migrate data
+directive doctor
 ```
-
-- `--yes` / `--non-interactive` skips all prompts (ideal for CI / agents).
-- `--upgrade` forces the update path even when the framework dir already exists.
-- `--repo-root .` targets the current project (or pass an explicit path).
-- `--json` emits a single machine-readable result object on stdout; **drop `--json` for human-readable output**.
-
-Run it from your project root. Unlike the legacy metadata-only verbs, this command actually **replaces the framework payload** in `.deft/core/` AND refreshes the manifest + AGENTS.md, so doctor logic, skills, and scripts all advance to the current snapshot. This is the command the doctor's payload-staleness check now recommends verbatim.
-
-**Version-skew note:** consumers on an installer binary that predates the Epic-4/5/6 headless work do not have these flags. Download the latest `deft-install` binary from GitHub Releases first, then run it with `--yes --upgrade --repo-root . --json`.
-
-**Legacy paths (back-compat only / de-emphasized):**
-- `task upgrade` / `run upgrade` -- **metadata-only acknowledgment**: refreshes the `.deft-version` marker, the `<install>/VERSION` manifest, and the AGENTS.md managed section, but does NOT replace the framework payload. Use the headless installer command above for a real payload refresh.
-- `task relocate -- --confirm` (and the `task relocate:relocate -- --confirm` form) -- **back-compat only**: moves / reinstalls the framework dir for the rare install-path-consistency relocate, not for routine upgrades.
-- `run install --force` -- back-compat reinstall path superseded by `--yes --upgrade`.
-- `task framework:doctor`, `run doctor` direct old shims, `scripts/framework_doctor.py` (retired #1336)
-- Manual git submodule updates or cloning `deft/` by hand (the installer is the reproducible, manifest-stamped mechanism)
-- Old AGENTS.md thin pointers and upgrade prose that pre-date the unified handoff
-
-All documentation (README, AGENTS.md, this file, `deft-directive-sync` skill) now points agents at the headless installer command + doctor handoff as the authoritative flow. Old sections below are retained for migration archaeology only.
 
 ---
 
@@ -733,15 +694,15 @@ After Wave 8, live deft gates run through the TypeScript engine. **The consumer 
 
 ## From v0.53.0–v0.53.1 → v0.53.2 (vitest no longer discovers vendored framework tests, #1878)
 
-- **Applies when:** your project uses **vitest** AND you upgraded to v0.53.0 or v0.53.1, whose deposit vendored the TypeScript engine under `.deft/core/packages/` **including** the framework's own `*.test.ts` / `*.spec.ts` files. Detection: your vitest run discovers ~80+ files under `.deft/core/packages/` via its default include glob (`**/*.{test,spec}.?(c|m)[jt]s?(x)`) and CI fails with `ERR_MODULE_NOT_FOUND` for `@deftai/core` plus framework parity assertion failures. Projects that do not use vitest (or that already exclude `.deft/core/**`) are unaffected.
-- **Safe to auto-run:** Yes. The installer now prunes the vendored `*.test.*` / `*.spec.*` files from the `.deft/core/packages/` deposit on every install and upgrade (and the release archive omits them too), leaving no framework test files for your vitest to discover. The prune touches only the framework's own test SOURCE files; non-test engine sources are left intact. No operator action is required once you are on v0.53.2+.
-- **Restart required:** No -- the prune is a filesystem change to the vendored deposit; the agent's in-memory context does not depend on it.
+- **Applies when:** historical — projects that used **vitest** on v0.53.0 / v0.53.1 when a copied deposit still vendored framework `*.test.ts` / `*.spec.ts` under a legacy install tree. Detection then: vitest discovered ~80+ framework tests via its default include glob and CI failed with `ERR_MODULE_NOT_FOUND` for `@deftai/core`. Current OVPR installs do **not** copy a `.deft/core/` deposit — this bucket is archaeology for mid-upgrade PRs still on those versions.
+- **Safe to auto-run:** Yes on current tip. Prefer leaving the legacy deposit era entirely.
+- **Restart required:** No.
 - **Commands:**
-  - `deft-install --yes --upgrade --repo-root . --json` (refreshes the `.deft/core/` deposit; the prune runs automatically as part of the install)
-  - Interim manual workaround **only if you are mid-upgrade on a still-red v0.53.0/v0.53.1 PR**: add `.deft/core/**` to your vitest config's `test.exclude` (and `coverage.exclude`) so vitest skips the vendored payload, then re-run CI:
+  - `npm i -g @deftai/directive@latest` then `directive upgrade` (or `directive install --repair` when the pin should stay)
+  - Interim manual workaround **only if you are mid-upgrade on a still-red historical v0.53.0/v0.53.1 PR that still has a copied deposit**: exclude the legacy deposit path from vitest, then re-run CI:
 
 ```ts
-// vitest.config.ts
+// vitest.config.ts — historical mid-upgrade workaround only
 export default defineConfig({
   test: {
     exclude: ['**/node_modules/**', '.deft/core/**'],
@@ -750,7 +711,7 @@ export default defineConfig({
 });
 ```
 
-This manual exclude is harmless to keep, but it becomes unnecessary once the installer prune lands in your deposit. Note: the deft-core-guard workflow (#1430) refuses a PR that mixes a `.deft/core/**` change with your own files, so apply the vitest-config exclude in a **separate** PR from the framework deposit.
+This manual exclude is harmless to keep on historical branches. On current OVPR tip there is no copied deposit to exclude.
 
 ---
 
@@ -892,7 +853,7 @@ The relocator preserves consumer-authored prose ABOVE the AGENTS.md managed-sect
 
 The relocator does NOT auto-rewrite consumer-owned files (the canonical reason: external CI workflows, dotfiles, and tooling outside the framework's control may also hardcode the legacy path -- the framework cannot mechanically distinguish a benign reference from a load-bearing one). After the relocate, scan the advisory grep output and update each occurrence by hand:
 
-- `AGENTS.md` head/tail (above and below the managed-section markers) -- replace `deft/run` with `.deft/core/run` and `Full guidelines: deft/main.md` with `Full guidelines: .deft/core/main.md`.
+- `AGENTS.md` head/tail (above and below the managed-section markers) -- historical v0.27 relocator rewrote `deft/run` → deposit-era paths. Current OVPR managed sections use `node_modules/@deftai/directive-runtime/` (no copied deposit).
 - CI workflow files (`.github/workflows/*.yml`) -- replace any `deft/run <task>` invocations.
 - Project scripts (`scripts/`, `Makefile`, `Taskfile.yml`, dotfiles) that hardcode the legacy path.
 - README / docs / contributor-onboarding prose that points new contributors at `directive bootstrap` for first-time setup (replaces legacy `deft/run bootstrap` / `run project` / `run spec` shims).

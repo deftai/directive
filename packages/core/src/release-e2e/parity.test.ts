@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { normaliseStderr, PARITY_SCENARIOS } from "../../../cli/src/release-e2e-fixtures.js";
+// Fixtures moved with the pale rename into packages/runtime (wave4f+).
+import { normaliseStderr, PARITY_SCENARIOS } from "../../../runtime/src/release-e2e-fixtures.js";
 
 describe("release-e2e parity helpers", () => {
   it("normalises repo slugs in stderr", () => {

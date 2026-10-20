@@ -155,7 +155,7 @@ function skipStringLiteral(text: string, startIndex: number): number {
  * harness for the same protocol and is counted separately below.
  */
 export const PRODUCTION_MUTATION_INVENTORY: Readonly<Record<string, number>> = Object.freeze({
-  "packages/cli/src/dispatch.ts": 2,
+  "packages/runtime/src/dispatch.ts": 2,
   "packages/core/src/policy/ceremony-dial.ts": 1,
   "packages/core/src/policy/destructive-gh-verbs.ts": 1,
   "packages/core/src/policy/host-hooks.ts": 1,
@@ -212,7 +212,7 @@ export interface MutationBoundaryScan {
   readonly filesScanned: number;
 }
 
-const SCAN_ROOTS: readonly string[] = ["packages/core/src", "packages/cli/src"];
+const SCAN_ROOTS: readonly string[] = ["packages/core/src", "packages/runtime/src"];
 const TEST_PATH_MARKERS: readonly string[] = [".test.ts", ".test.tsx", "/fixtures/"];
 
 function toPosix(p: string): string {

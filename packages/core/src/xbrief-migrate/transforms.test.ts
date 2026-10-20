@@ -145,14 +145,23 @@ describe("transformArtifactV06ToV08", () => {
     expect(rewriteEmbeddedTokens(rewriteEmbeddedTokens(input))).toBe(rewriteEmbeddedTokens(input));
   });
 
+  it("rewrites vbrief/archive links onto archive/from-legacy (Greptile P1)", () => {
+    const input = "see vbrief/archive/active/foo.vbrief.json";
+    expect(rewriteEmbeddedTokens(input)).toBe(
+      "see xbrief/archive/from-legacy/active/foo.xbrief.json",
+    );
+    expect(rewriteEmbeddedTokens(rewriteEmbeddedTokens(input))).toBe(rewriteEmbeddedTokens(input));
+  });
+
   it("does not rewrite external http(s) uri strings", () => {
     const uri = "https://github.com/deftai/xbrief/blob/main/spec.md";
     expect(rewriteEmbeddedTokens(uri)).toBe(uri);
   });
 
-  it("returns original artifact unchanged on transactional failure", () => {
+  it("returns original artifact unchanged on transactional failure (pre-0.5)", () => {
+    // 0.5 is tip migrate-through (F-017); pre-0.5 / unknown still fail closed.
     const bad = structuredClone(SAMPLE_V06) as Record<string, unknown>;
-    (bad.vBRIEFInfo as Record<string, unknown>).version = "0.7";
+    (bad.vBRIEFInfo as Record<string, unknown>).version = "0.4";
 
     const result = transformArtifactV06ToV08Transactional(bad);
     expect(result.ok).toBe(false);
@@ -160,8 +169,133 @@ describe("transformArtifactV06ToV08", () => {
       throw new Error("expected failure");
     }
     expect(result.artifact).toBe(bad);
-    expect(result.artifact.vBRIEFInfo).toMatchObject({ version: "0.7" });
+    expect(result.artifact.vBRIEFInfo).toMatchObject({ version: "0.4" });
     expect(() => transformArtifactV06ToV08(bad)).toThrow(TransformError);
+    expect(() => transformArtifactV06ToV08(bad)).toThrow(/0\.4|unsupported|0\.5|0\.6|0\.7/);
+  });
+
+  it("thin-migrates vBRIEFInfo@0.5 → xBRIEFInfo@0.8 (version bump + subItems→items)", () => {
+    const input = {
+      vBRIEFInfo: {
+        version: "0.5",
+        description: "pre-0.6 plan",
+        created: "2026-06-01T00:00:00Z",
+        updated: "2026-06-01T00:00:00Z",
+      },
+      plan: {
+        title: "0.5 story",
+        status: "running",
+        items: [
+          {
+            id: "phase1",
+            title: "Phase 1",
+            status: "running",
+            subItems: [{ id: "phase1.t1", title: "Sub", status: "completed" }],
+          },
+        ],
+        references: [
+          {
+            uri: "vbrief/active/child.vbrief.json",
+            type: "x-vbrief/plan",
+            title: "Child",
+          },
+        ],
+      },
+    } as Record<string, unknown>;
+
+    const out = transformArtifactV06ToV08(structuredClone(input));
+    expect(out).not.toHaveProperty("vBRIEFInfo");
+    expect(out).toMatchObject({
+      xBRIEFInfo: { version: "0.8", description: "pre-0.6 plan" },
+      plan: {
+        references: [{ type: "x-xbrief/plan", uri: "xbrief/active/child.xbrief.json" }],
+      },
+    });
+    const phase = (out.plan as { items: Array<Record<string, unknown>> }).items[0];
+    expect(phase).toMatchObject({
+      id: "phase1",
+      items: [{ id: "phase1.t1", title: "Sub", status: "completed" }],
+    });
+    expect(phase).not.toHaveProperty("subItems");
+    expect(validateVbriefSchema(out, "from-05.xbrief.json")).toEqual([]);
+    expect(transformArtifactV06ToV08(out)).toEqual(out);
+  });
+
+  it("thin-accepts rename-era xBRIEFInfo@0.7 and bumps to xBRIEFInfo@0.8", () => {
+    const input = {
+      xBRIEFInfo: {
+        version: "0.7",
+        description: "orphan rename-era",
+        created: "2026-06-26T00:00:00Z",
+        updated: "2026-06-26T00:00:00Z",
+      },
+      plan: {
+        title: "Orphan 0.7",
+        status: "running",
+        items: [],
+        references: [
+          {
+            uri: "xbrief/active/child.xbrief.json",
+            type: "x-vbrief/plan",
+            title: "Child",
+          },
+        ],
+      },
+    } as Record<string, unknown>;
+
+    const out = transformArtifactV06ToV08(structuredClone(input));
+    expect(out).not.toHaveProperty("vBRIEFInfo");
+    expect(out).toMatchObject({
+      xBRIEFInfo: { version: "0.8", description: "orphan rename-era" },
+      plan: {
+        references: [{ type: "x-xbrief/plan", uri: "xbrief/active/child.xbrief.json" }],
+      },
+    });
+    expect(validateVbriefSchema(out, "orphan-07-xbrief.json")).toEqual([]);
+    expect(transformArtifactV06ToV08(out)).toEqual(out);
+  });
+
+  it("thin-accepts pre-rename-key vBRIEFInfo@0.7 (rich≈0.8 shape) and emits xBRIEFInfo@0.8", () => {
+    const input = {
+      vBRIEFInfo: {
+        version: "0.7",
+        description: "rich pre-rename 0.7",
+        created: "2026-06-26T00:00:00Z",
+        updated: "2026-06-26T00:00:00Z",
+      },
+      plan: {
+        title: "Rich 0.7",
+        status: "running",
+        items: [
+          {
+            id: "1",
+            title: "Container",
+            type: "group",
+            status: "auto",
+            summary: "rollup",
+            items: [],
+          },
+        ],
+        references: [
+          {
+            uri: "vbrief/active/child.vbrief.json",
+            type: "x-vbrief/plan",
+            title: "Child",
+          },
+        ],
+      },
+    } as Record<string, unknown>;
+
+    const out = transformArtifactV06ToV08(structuredClone(input));
+    expect(out).not.toHaveProperty("vBRIEFInfo");
+    expect(out).toMatchObject({
+      xBRIEFInfo: { version: "0.8", description: "rich pre-rename 0.7" },
+      plan: {
+        items: [{ type: "group", status: "auto", summary: "rollup" }],
+        references: [{ type: "x-xbrief/plan", uri: "xbrief/active/child.xbrief.json" }],
+      },
+    });
+    expect(validateVbriefSchema(out, "orphan-07-vbrief.json")).toEqual([]);
   });
 
   it("does not mutate the input object on success", () => {

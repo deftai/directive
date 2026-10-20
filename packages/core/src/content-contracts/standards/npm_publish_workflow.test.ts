@@ -65,7 +65,8 @@ describe("npm_publish_workflow (#5365 Prefer-A Bound)", () => {
     expect(prepare).toMatch(/upload-artifact/);
     expect(publish).toMatch(/download-artifact/);
     const publishCmds = publish.match(/npm publish[^\n]*/g) ?? [];
-    expect(publishCmds.length).toBe(4);
+    // OVPR publishes exactly two packages: @deftai/directive + @deftai/directive-runtime.
+    expect(publishCmds.length).toBe(2);
     for (const cmd of publishCmds) {
       expect(cmd).toContain("--provenance");
       expect(cmd).toContain("--ignore-scripts");

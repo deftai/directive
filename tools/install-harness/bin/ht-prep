@@ -1,0 +1,224 @@
+#!/usr/bin/env bash
+# ht-prep — HUMAN-TEST-PLAN shared bootstrap for one shell session.
+#
+# Prints export/cd lines on stdout for:  eval "$(ht-prep …)"
+# Human status goes to stderr.
+#
+# Usage:
+#   eval "$(ht-prep)"                         # shared env only (HT_VER, PATH, …)
+#   eval "$(ht-prep ht-02)"                   # + new empty consumer (no git)
+#   eval "$(ht-prep ht-07 --git)"             # + new consumer + git init
+#   eval "$(ht-prep --reuse "$CONSUMER")"     # refresh shared env; keep CONSUMER
+#   eval "$(ht-prep ht-03 --tag yolo-cp-wave4i)"
+#   IH_REGISTRY=npm eval "$(ht-prep --tag latest)"
+#
+# Safely re-runnable: always refreshes PATH / HT_VER / sanity path; only creates
+# a new CONSUMER when you pass a slug (or replaces via --reuse).
+
+set -euo pipefail
+
+usage() {
+  cat <<'EOF' >&2
+ht-prep — HUMAN-TEST-PLAN bootstrap (eval into your shell)
+
+  eval "$(ht-prep)"
+  eval "$(ht-prep <slug>)"
+  eval "$(ht-prep <slug> --git)"
+  eval "$(ht-prep --reuse <path>)"
+  eval "$(ht-prep <slug> --tag yolo-cp-wave4i)"
+  IH_REGISTRY=npm eval "$(ht-prep --tag latest)"
+
+Options:
+  --git              git init in the new consumer (minimal identity config)
+  --reuse <path>     keep/set CONSUMER to an existing directory (no mktemp)
+  --tag <dist-tag>   Dist-tag or version (default: $HT_TAG, else latest/tip)
+  --registry <name>  verdaccio (default) | npm
+  --help             this help
+
+Stdout is only shell code. Status prints on stderr.
+EOF
+}
+
+IH_SELF="$(cd "$(dirname "$0")" && pwd)"
+IH_ROOT="$(cd "$IH_SELF/.." && pwd)"
+IH_REPO_ROOT="$(cd "$IH_ROOT/../.." && pwd)"
+# shellcheck disable=SC1091
+source "$IH_ROOT/lib/env.sh"
+
+HT_TAG_DEFAULT="${HT_TAG:-}"
+if [[ -z "$HT_TAG_DEFAULT" ]]; then
+  if [[ "${IH_REGISTRY}" == "npm" || "${IH_REGISTRY}" == "public" || "${IH_REGISTRY}" == "latest" ]]; then
+    HT_TAG_DEFAULT="latest"
+  else
+    HT_TAG_DEFAULT="yolo-cp-wave4i"
+  fi
+fi
+HT_SANITY_DEFAULT="${HT_SANITY:-$HOME/Projects/directive-install-sanity}"
+
+SLUG=""
+REUSE=""
+WANT_GIT=0
+HT_TAG_ARG=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    --git)
+      WANT_GIT=1
+      shift
+      ;;
+    --reuse)
+      REUSE="${2:?--reuse requires a path}"
+      shift 2
+      ;;
+    --tag)
+      HT_TAG_ARG="${2:?--tag requires a dist-tag}"
+      shift 2
+      ;;
+    --registry)
+      export IH_REGISTRY="${2:?--registry requires verdaccio|npm}"
+      shift 2
+      ;;
+    -*)
+      echo "ht-prep: unknown option: $1" >&2
+      usage
+      exit 2
+      ;;
+    *)
+      if [[ -n "$SLUG" ]]; then
+        echo "ht-prep: unexpected extra argument: $1" >&2
+        exit 2
+      fi
+      SLUG="$1"
+      shift
+      ;;
+  esac
+done
+
+if [[ -n "$SLUG" && -n "$REUSE" ]]; then
+  echo "ht-prep: use either a slug or --reuse, not both" >&2
+  exit 2
+fi
+
+HT_TAG="${HT_TAG_ARG:-$HT_TAG_DEFAULT}"
+REG_URL="$(ih_registry_url)"
+export HT_TAG
+export HT_SANITY="${HT_SANITY:-$HT_SANITY_DEFAULT}"
+export IH_REGISTRY
+
+# Verdaccio tip mode may use YOLO prefix + npmrc; public npm mode uses default npm.
+if [[ "$REG_URL" == "$VERDACCIO_URL" ]]; then
+  if [[ -f "$YOLO_5490/env.sh" ]]; then
+    # shellcheck disable=SC1091
+    source "$YOLO_5490/env.sh"
+  fi
+  export PATH="${YOLO_5490}/prefix/bin:${PATH:-}"
+  if [[ -f "${YOLO_5490}/.npmrc-yolo" ]]; then
+    export NPM_CONFIG_USERCONFIG="${NPM_CONFIG_USERCONFIG:-$YOLO_5490/.npmrc-yolo}"
+  fi
+  if ! curl -sf -o /dev/null "$VERDACCIO_URL/"; then
+    echo "ht-prep: Verdaccio not reachable at $VERDACCIO_URL (or set --registry npm)" >&2
+    exit 1
+  fi
+fi
+
+HT_VER="$(npm view "@deftai/directive@$HT_TAG" version --registry "$REG_URL")"
+export HT_VER
+
+if ! command -v directive >/dev/null 2>&1; then
+  echo "ht-prep: warning: directive not on PATH yet — install tip/global launcher first" >&2
+fi
+
+emit_export() {
+  local name="$1" value="$2"
+  local q
+  q=$(printf "%s" "$value" | sed "s/'/'\\\\''/g")
+  printf "export %s='%s'\n" "$name" "$q"
+}
+
+write_consumer_npmrc() {
+  local root="$1"
+  if [[ "$REG_URL" == "$VERDACCIO_URL" ]]; then
+    cat >"$root/.npmrc" <<EOF
+registry=https://registry.npmjs.org/
+@deftai:registry=${VERDACCIO_URL}/
+EOF
+  else
+    cat >"$root/.npmrc" <<'EOF'
+registry=https://registry.npmjs.org/
+EOF
+  fi
+}
+
+FIXTURE_ROOT="${IH_SCRATCH}/fixtures/ht-prep"
+mkdir -p "$FIXTURE_ROOT"
+
+CONSUMER=""
+CREATED=0
+
+if [[ -n "$REUSE" ]]; then
+  if [[ ! -d "$REUSE" ]]; then
+    echo "ht-prep: --reuse path is not a directory: $REUSE" >&2
+    exit 1
+  fi
+  CONSUMER="$(cd "$REUSE" && pwd)"
+  if [[ ! -f "$CONSUMER/.npmrc" ]]; then
+    write_consumer_npmrc "$CONSUMER"
+    echo "ht-prep: wrote .npmrc into reused consumer" >&2
+  fi
+elif [[ -n "$SLUG" ]]; then
+  SAFE_SLUG=$(printf "%s" "$SLUG" | tr -c 'A-Za-z0-9._-' '-' | sed 's/-\+/-/g; s/^-//; s/-$//')
+  [[ -n "$SAFE_SLUG" ]] || SAFE_SLUG="ht"
+  CONSUMER="$(mktemp -d "$FIXTURE_ROOT/${SAFE_SLUG}-XXXXXX")"
+  write_consumer_npmrc "$CONSUMER"
+  CREATED=1
+  if [[ "$WANT_GIT" -eq 1 ]]; then
+    git -C "$CONSUMER" init -q
+    git -C "$CONSUMER" config user.email "ht@local"
+    git -C "$CONSUMER" config user.name "ht-prep"
+    git -C "$CONSUMER" config commit.gpgsign false
+  fi
+fi
+
+# --- stdout for eval ---
+emit_export PATH "$PATH"
+if [[ -n "${NPM_CONFIG_USERCONFIG:-}" ]]; then
+  emit_export NPM_CONFIG_USERCONFIG "$NPM_CONFIG_USERCONFIG"
+fi
+emit_export YOLO_5490 "$YOLO_5490"
+emit_export IH_SCRATCH "$IH_SCRATCH"
+emit_export IH_REGISTRY "$IH_REGISTRY"
+emit_export HT_TAG "$HT_TAG"
+emit_export HT_VER "$HT_VER"
+emit_export HT_SANITY "$HT_SANITY"
+emit_export VERDACCIO_URL "$VERDACCIO_URL"
+
+if [[ -n "$CONSUMER" ]]; then
+  emit_export CONSUMER "$CONSUMER"
+  q=$(printf "%s" "$CONSUMER" | sed "s/'/'\\\\''/g")
+  printf "cd '%s'\n" "$q"
+fi
+
+# --- stderr status ---
+{
+  echo "ht-prep: OK"
+  echo "  IH_REGISTRY=$IH_REGISTRY"
+  echo "  registry=$REG_URL"
+  echo "  HT_TAG=$HT_TAG"
+  echo "  HT_VER=$HT_VER"
+  echo "  HT_SANITY=$HT_SANITY"
+  echo "  IH_SCRATCH=$IH_SCRATCH"
+  echo "  directive=$(command -v directive 2>/dev/null || echo missing)"
+  if [[ -n "$CONSUMER" ]]; then
+    if [[ "$CREATED" -eq 1 ]]; then
+      echo "  CONSUMER=$CONSUMER  (new$([[ "$WANT_GIT" -eq 1 ]] && echo ', git init'))"
+    else
+      echo "  CONSUMER=$CONSUMER  (reused)"
+    fi
+  else
+    echo "  CONSUMER=(unchanged — pass a slug or --reuse <path>)"
+  fi
+} >&2

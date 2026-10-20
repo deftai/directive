@@ -15,6 +15,11 @@ import { fileURLToPath } from "node:url";
 
 export const CONTENT_PACKAGE_NAME = "@deftai/directive-content";
 
+/** Published runtime that may hoist content at its package root (AC1.3 / PKG-AC13). */
+export const RUNTIME_PACKAGE_NAME = "@deftai/directive-runtime";
+
+const CONTENT_ROOT_PACKAGE_NAMES = new Set([CONTENT_PACKAGE_NAME, RUNTIME_PACKAGE_NAME]);
+
 /** Thrown when {@link resolveInstalledContentRoot} cannot resolve the content package. */
 export class ContentPackageNotFoundError extends Error {
   override readonly name = "ContentPackageNotFoundError";
@@ -27,8 +32,9 @@ async function defaultResolveSpecifier(specifier: string): Promise<string> {
 }
 
 /**
- * Walk upward from `resolvedEntry` until a `package.json` names
- * {@link CONTENT_PACKAGE_NAME}; returns that directory.
+ * Walk upward from `resolvedEntry` until a `package.json` names the private
+ * content package or the published runtime (content hoisted into runtime);
+ * returns that directory.
  */
 export function contentPackageRootFromResolvedEntry(resolvedEntry: string): string {
   let dir = statSync(resolvedEntry).isDirectory() ? resolvedEntry : dirname(resolvedEntry);
@@ -40,7 +46,7 @@ export function contentPackageRootFromResolvedEntry(resolvedEntry: string): stri
         if (
           typeof parsed === "object" &&
           parsed !== null &&
-          (parsed as { name?: string }).name === CONTENT_PACKAGE_NAME
+          CONTENT_ROOT_PACKAGE_NAMES.has(String((parsed as { name?: string }).name ?? ""))
         ) {
           return dir;
         }
@@ -55,35 +61,39 @@ export function contentPackageRootFromResolvedEntry(resolvedEntry: string): stri
     dir = parent;
   }
   throw new ContentPackageNotFoundError(
-    `Resolved ${CONTENT_PACKAGE_NAME} entry at ${resolvedEntry}, but no matching package root was found. ` +
-      "Reinstall with `pnpm add @deftai/directive-content` or `npm i @deftai/directive-content`.",
+    `Resolved content entry at ${resolvedEntry}, but no matching package root was found. ` +
+      "Reinstall with `npm i @deftai/directive-runtime` (or `pnpm add @deftai/directive-content`).",
   );
 }
 
 /**
- * Resolve the installed {@link CONTENT_PACKAGE_NAME} package root via Node module
- * resolution (`import.meta.resolve`).
+ * Resolve the installed content root via Node module resolution.
  *
- * Resolves the package's `package.json` subpath rather than its bare specifier:
- * the content package ships no entry point (no `main`, `exports`, or `index.js`),
- * so a bare-specifier resolve throws. The `package.json` subpath always resolves,
- * and {@link contentPackageRootFromResolvedEntry} walks up from it to the package
- * root. Refs #2023.
+ * Prefers the private {@link CONTENT_PACKAGE_NAME} when present (workspace /
+ * legacy). Falls back to {@link RUNTIME_PACKAGE_NAME} when content is hoisted
+ * into the published runtime package (AC1.3). Resolves `package.json` subpaths
+ * rather than bare specifiers (#2023).
  */
 export async function resolveInstalledContentRoot(
   resolveSpecifier: ResolveSpecifier = defaultResolveSpecifier,
 ): Promise<string> {
-  let resolvedEntry: string;
-  try {
-    resolvedEntry = await resolveSpecifier(`${CONTENT_PACKAGE_NAME}/package.json`);
-  } catch (cause) {
-    const detail = cause instanceof Error ? cause.message : String(cause);
-    throw new ContentPackageNotFoundError(
-      `${CONTENT_PACKAGE_NAME} is not installed or could not be resolved. ` +
-        "Install it with `pnpm add @deftai/directive-content` or `npm i @deftai/directive-content` " +
-        "so init/update can deposit framework content locally. " +
-        `Resolution error: ${detail}`,
-    );
+  const candidates = [
+    `${CONTENT_PACKAGE_NAME}/package.json`,
+    `${RUNTIME_PACKAGE_NAME}/package.json`,
+  ];
+  let lastDetail = "";
+  for (const specifier of candidates) {
+    try {
+      const resolvedEntry = await resolveSpecifier(specifier);
+      return contentPackageRootFromResolvedEntry(resolvedEntry);
+    } catch (cause) {
+      lastDetail = cause instanceof Error ? cause.message : String(cause);
+    }
   }
-  return contentPackageRootFromResolvedEntry(resolvedEntry);
+  throw new ContentPackageNotFoundError(
+    `Neither ${CONTENT_PACKAGE_NAME} nor ${RUNTIME_PACKAGE_NAME} could be resolved for content. ` +
+      "Install `@deftai/directive-runtime` (or the private content package in a workspace) " +
+      "so init/update can deposit framework content locally. " +
+      `Resolution error: ${lastDetail}`,
+  );
 }

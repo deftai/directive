@@ -6,14 +6,14 @@ function readme(): string {
 }
 
 /**
- * The README "What gets tracked vs ignored" gitignore claim paragraph (#2274).
- * Extracted so its contents can be asserted against the real init/update
- * gitignore behavior (packages/core/src/init-deposit/gitignore.ts).
+ * The README tracked-vs-ignored claim (#2274 / OVPR #5490).
+ * Tip teaches the runtime pin + owned wiring as committed, and
+ * node_modules / per-checkout wiring-ready as ignored — no copied .deft/core.
  */
 function gitignoreClaim(): string {
   const content = readme();
-  const m = content.match(/\*\*What gets tracked vs ignored:\*\*[\s\S]*?(?=\n\n)/);
-  expect(m, "README must carry a 'What gets tracked vs ignored' claim").not.toBeNull();
+  const m = content.match(/\*\*Tracked vs ignored:\*\*[\s\S]*?(?=\n\n|\n>)/);
+  expect(m, "README must carry a 'Tracked vs ignored' claim").not.toBeNull();
   return m?.[0] ?? "";
 }
 
@@ -100,51 +100,55 @@ describe("test_readme_brownfield.py", () => {
     });
   });
 
-  // #2274: README/BROWNFIELD/UPGRADING + top-level help all agree on the
-  // three-command init/update/doctor model, route users by situation, and the
-  // README gitignore claim matches the real init/update behavior.
+  // #2274 / #5490: README/BROWNFIELD/UPGRADING agree on OVPR install/upgrade/doctor
+  // (aliases init/update). README tracked-vs-ignored claim matches tip OVPR.
   describe("TestThreeCommandModel", () => {
     it("test_readme_getting_started_leads_with_npm_then_init", () => {
       const content = readme();
-      // The install step leads with the global npm install, then `directive init`.
+      // The install step leads with the global npm install, then `directive install`.
       const step = content.slice(content.indexOf("### 1. Install and initialize"));
       const npmIdx = step.indexOf("npm i -g @deftai/directive");
-      const initIdx = step.indexOf("directive init");
+      const installIdx = step.indexOf("directive install");
       expect(npmIdx).toBeGreaterThanOrEqual(0);
-      expect(initIdx).toBeGreaterThan(npmIdx);
+      expect(installIdx).toBeGreaterThan(npmIdx);
+      expect(step).toMatch(/alias:\s*directive init|alias:\s*`?init`?/i);
     });
 
     it("test_readme_routes_by_situation_across_three_commands", () => {
       const content = readme();
-      for (const cmd of ["directive init", "directive update", "directive doctor"]) {
+      for (const cmd of ["directive install", "directive upgrade", "directive doctor"]) {
         expect(content, `README missing ${cmd}`).toContain(cmd);
       }
+      // Aliases remain documented.
+      expect(content).toMatch(/alias(?:es)?[`'":\s/]*init/i);
+      expect(content).toMatch(/alias(?:es)?[`'":\s/]*update/i);
     });
 
     it("test_readme_brownfield_upgrading_agree_on_three_command_model", () => {
       for (const rel of ["README.md", "docs/BROWNFIELD.md", "UPGRADING.md"]) {
         const content = readText(rel);
-        for (const cmd of ["directive init", "directive update", "directive doctor"]) {
-          expect(content, `${rel} missing ${cmd}`).toContain(cmd);
-        }
+        expect(content, `${rel} missing directive doctor`).toContain("directive doctor");
+        // Primary verbs or documented aliases (init ↔ install, update ↔ upgrade).
+        const hasInstall = /directive (install|init)\b/.test(content);
+        const hasUpgrade = /directive (upgrade|update)\b/.test(content);
+        expect(hasInstall, `${rel} missing install/init`).toBe(true);
+        expect(hasUpgrade, `${rel} missing upgrade/update`).toBe(true);
       }
     });
 
     it("test_readme_gitignore_claim_matches_reality", () => {
       const claim = gitignoreClaim();
       for (const tok of [
-        ".deft/core/",
-        ".deft/.cli/",
-        "ritual-state.json",
-        ".deft-cache/",
-        "package.json",
+        "@deftai/directive-runtime",
+        "node_modules",
+        "wiring-ready",
+        "no copied `.deft/core/`",
       ]) {
-        expect(claim, `gitignore claim missing ${tok}`).toContain(tok);
+        expect(claim, `tracked/ignored claim missing ${tok}`).toContain(tok);
       }
-      // The committed package.json pin is the reconstitution anchor -> tracked,
-      // never ignored (packages/core/src/init-deposit/gitignore.ts NEVER_IGNORE_LINES).
-      expect(/package\.json[\s\S]*never[\s\S]*ignored/i.test(claim)).toBe(true);
-      // The claim no longer says init scaffolds vbrief/.
+      // Pin + owned wiring are committed; there is no copied .deft/core deposit.
+      expect(claim.toLowerCase()).toMatch(/committed/);
+      expect(claim.toLowerCase()).toMatch(/ignored/);
       expect(claim.toLowerCase()).not.toContain("vbrief/");
     });
 
@@ -158,20 +162,20 @@ describe("test_readme_brownfield.py", () => {
 
     it("test_upgrading_points_ordinary_users_at_directive_update", () => {
       const content = readText("UPGRADING.md");
-      expect(content).toContain("directive update");
+      expect(content).toMatch(/directive (upgrade|update)\b/);
       expect(content.toLowerCase()).toContain("ordinary");
     });
   });
 
-  // #2197: README / UPGRADING / BROWNFIELD document a first-class pnpm
-  // install/upgrade path (same npm registry) plus the PNPM_HOME PATH caveat.
+  // #2197 / #5490: README / UPGRADING / BROWNFIELD document pnpm global install
+  // plus PNPM_HOME. Ephemeral pnpm dlx / npx are forbidden day-to-day identity.
   describe("TestPnpmSupport", () => {
     it("test_readme_documents_pnpm_install_and_path_caveat", () => {
       const content = readme();
       expect(content).toContain("pnpm add -g @deftai/directive");
       expect(content).toContain("PNPM_HOME");
-      // Ephemeral pnpm dlx form documented alongside npx.
-      expect(content).toContain("pnpm dlx @deftai/directive");
+      expect(content).not.toContain("pnpm dlx @deftai/directive");
+      expect(content).toMatch(/Never use `npx` \/ `pnpm exec`/i);
     });
 
     it("test_upgrading_documents_pnpm_upgrade_one_liner", () => {

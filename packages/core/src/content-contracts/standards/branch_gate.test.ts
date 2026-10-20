@@ -1,5 +1,11 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { readText } from "./_helpers.js";
+import { readText, repoRoot } from "./_helpers.js";
+
+/** YOLO #5490 sterile field: root AGENTS.md is a stub; product hooks stay real. */
+const yoloSterile = existsSync(join(repoRoot(), ".no-deft-directive"));
+const itAgents = yoloSterile ? it.skip : it;
 
 describe("test_branch_gate.py", () => {
   it("test_pre_commit_hook_exists_and_calls_script", () => {
@@ -31,7 +37,7 @@ describe("test_branch_gate.py", () => {
   it("test_deft_run_sh_falls_back_to_local_cli", () => {
     const text = readText(".githooks/_deft-run.sh");
     expect(text).toContain("command -v deft");
-    expect(text).toContain("packages/cli/dist/bin.js");
+    expect(text).toContain("packages/runtime/dist/bin.js");
     expect(text).toContain("run_deft()");
   });
   it("test_deft_run_sh_prefers_local_in_framework_source (#2248)", () => {
@@ -88,13 +94,13 @@ describe("test_branch_gate.py", () => {
     expect(text).not.toContain("--mode fp");
     expect(text).toContain("PR_NUMBER");
   });
-  it("test_agents_md_disclosure_block_present", () => {
+  itAgents("test_agents_md_disclosure_block_present", () => {
     const text = readText("AGENTS.md");
     expect(text).toContain("Branch Policy Disclosure");
     expect(text).toContain("allowDirectCommitsToMaster");
     expect(text).toContain("DEFT_ALLOW_DEFAULT_BRANCH_COMMIT");
   });
-  it("test_agents_md_branching_cross_references_enforcement_surfaces", () => {
+  itAgents("test_agents_md_branching_cross_references_enforcement_surfaces", () => {
     const text = readText("AGENTS.md");
     expect(text).toContain("verify:branch");
     expect(text).toContain("branch-gate");
@@ -137,16 +143,19 @@ describe("test_branch_gate.py", () => {
     expect(workflowEnv).not.toContain("DEFT_ALLOW_DEFAULT_BRANCH_COMMIT");
   });
   it("local authoring path stays fail-closed without the env (#3499 / #747)", () => {
-    const agents = readText("AGENTS.md");
     const hook = readText(".githooks/pre-commit");
     const taskfile = readText("Taskfile.yml");
     const readme = readText("README.md");
     expect(hook).toContain("run_deft verify:branch");
     expect(taskfile).toContain("verify:branch");
-    expect(agents).toContain("verify:branch");
-    expect(agents).toContain("DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1");
     expect(readme).toMatch(/Emergency bypass/i);
     expect(readme).toContain("DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1");
+    // Root AGENTS.md is a YOLO stub when .no-deft-directive is present; skip those asserts only.
+    if (!yoloSterile) {
+      const agents = readText("AGENTS.md");
+      expect(agents).toContain("verify:branch");
+      expect(agents).toContain("DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1");
+    }
   });
 });
 

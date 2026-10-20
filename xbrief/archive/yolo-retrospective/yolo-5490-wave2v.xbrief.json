@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "kind": "xbrief",
+  "title": "YOLO #5490 Wave 2v — setup wiring completeness",
+  "status": "completed",
+  "branch": "yolo/wip-wave2v",
+  "tip": "08646b28871cd84777ab9a454f2d68d5594e2dc1",
+  "tag": "yolo-cp-wave2v",
+  "verdaccio": "0.0.0-yolo.cp-wave2v.2",
+  "smoke": "wave2v.sh PASS",
+  "acs": ["AC8.1", "AC8.10", "AC9.6", "AC9.7", "AC11.10"],
+  "findings": ["FEAT-PRESERVE", "AGENTS-STUB", "SKILL-INV", "OWN-SKILLS"]
+}

@@ -85,7 +85,7 @@ jobs:
     # #1987: skip the Go binary build (and, via the needs chain, every downstream
     # Go job incl. the release-asset upload) when the freeze gate flagged the tag
     # as above the frozen line. npm publish runs in a separate workflow regardless.
-    if: ${{ needs.freeze-gate.outputs.frozen_skip != 'true' }}
+    if: ${{ false }} # AC10.10 / #5490: Go installer deleted; skip binary build
     runs-on: blacksmith-4vcpu-ubuntu-2404
     strategy:
       matrix:
@@ -129,7 +129,8 @@ jobs:
           go build
           -ldflags "-X main.version=${{ github.ref_name }} -X main.defaultBranch=${{ github.ref_name }}"
           -o ${{ matrix.artifact }}
-          ./cmd/deft-install/
+          # ./cmd/deft-install/ removed AC10.10
+          echo "skipped"; exit 0; #
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ matrix.artifact }}

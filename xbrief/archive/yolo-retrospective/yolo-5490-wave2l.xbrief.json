@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "kind": "xbrief",
+  "title": "YOLO #5490 Wave 2l — SEAM-DOC + PIN-LAUNCHER + PROD-DEV",
+  "status": "completed",
+  "branch": "yolo/wip-wave2l",
+  "tip": "5b3c51f679c6934478851b7c533672f6b7cdf691",
+  "tag": "yolo-cp-wave2l",
+  "verdaccio": "0.0.0-yolo.cp-wave2l.1",
+  "smoke": "wave2l.sh PASS",
+  "acs": ["AC6.2","AC14.51","AC5.11","AC14.48","INIT-13"],
+  "findings": ["SEAM-DOC","PIN-LAUNCHER","PROD-DEV"]
+}

@@ -1,6 +1,6 @@
 <!-- DEFT-PREAMBLE-V1 -->
 ! Cold-start check: deft runs from the npm-installed engine (`npm i -g @deftai/directive`). If neither `deft` nor `directive` will run on this machine, do not proceed with the instructions below -- recover first (#1933 Option 1, deprecate-by-disuse).
-! To recover: follow the #4090 ladder before any other instruction in this file or in the consumer AGENTS.md. PATH `directive --version` / `deft --version` vs the committed `package.json` pin is the skip predicate — doctor exit 0 is not skip. Behind pin: `npm i -g @deftai/directive@<pin>` then re-probe that PATH executable. No pin and no deposit: `npx @deftai/directive init`, then return to the compare. Then `directive doctor --full` (or `deft doctor --full`). CLI not on PATH: `npm i -g @deftai/directive@<pin>` then doctor --full. ⊗ never recover by reading an undeposited README block (#2273 / #4430).
+! To recover: install/update the global launcher, then repair wiring — `npm i -g @deftai/directive`, then `directive install --repair`. PATH `directive --version` / `deft --version` confirms the launcher. No runtime pin yet: `directive install`. Then `directive doctor` (read-only). ⊗ never recover via `npx` / `pnpm exec`; ⊗ never recover by reading an undeposited README block (#2273 / #4430 / AC9.7).
 ! Respect any "Restart required" directive -- if present, stop and tell the user to start a fresh session after cleanup commands complete. Otherwise continue.
 
 # Warp AI Guidelines
@@ -11,7 +11,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 **⚠️ Rule Precedence**: USER.md has two sections: `Personal` (always wins — name, custom rules) and `Defaults` (fallback — strategy, coverage, languages; PROJECT-DEFINITION.xbrief.json overrides these). (Override path via `DEFT_USER_PATH` env var; )
 
-**📋 Lazy Loading**: See `npx deft packs:slice skills list` (Skills Index; `REFERENCES.md` is maintainer-only and does not ship) for guidance on when to load which files.
+**📋 Lazy Loading**: See `directive packs:slice skills list` (Skills Index; `REFERENCES.md` is maintainer-only and does not ship) for guidance on when to load which files.
 
 ## Overview
 
@@ -245,7 +245,7 @@ version: '3'
 
 includes:
   deft:
-    taskfile: ./.deft/core/Taskfile.yml
+    taskfile: ./node_modules/@deftai/directive-runtime/Taskfile.yml
     optional: true
 ```
 
@@ -266,8 +266,8 @@ task migrate:vbrief
 ! Fallback when the consumer Taskfile has no deft include:
 
 ```
-task -t ./.deft/core/Taskfile.yml migrate:preflight
-task -t ./.deft/core/Taskfile.yml migrate:vbrief
+task -t ./node_modules/@deftai/directive-runtime/Taskfile.yml migrate:preflight
+task -t ./node_modules/@deftai/directive-runtime/Taskfile.yml migrate:vbrief
 ```
 
 After migration completes, upgrade to current npm per [UPGRADING.md](./content/UPGRADING.md). Full steps: [Frozen pre-v0.20 document-model migration](./content/UPGRADING.md#frozen-pre-v020-document-model-migration-2068).

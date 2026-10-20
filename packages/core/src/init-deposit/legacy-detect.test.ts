@@ -245,22 +245,22 @@ describe("refusal helpers", () => {
     evidence: [".deft/VERSION"],
   };
 
-  it("buildLegacyRefusalMessage signposts the stable URL and carries no version", () => {
+  it("buildLegacyRefusalMessage points at directive upgrade (no Go bridge)", () => {
     const msg = buildLegacyRefusalMessage("init", detection);
     expect(msg).toContain("refusing to deposit");
-    expect(msg).toContain("npx @deftai/directive init");
-    expect(msg).toContain("github.com/deftai/directive/blob/master/content/UPGRADING.md");
-    expect(msg).toContain("github.com/deftai/directive/releases");
-    expect(msg).not.toMatch(/v?\d+\.\d+\.\d+/);
+    expect(msg).toContain("directive upgrade");
+    expect(msg).toContain("npm i -g @deftai/directive");
+    expect(msg).toContain("UPGRADING.md");
+    expect(msg).not.toMatch(/Go bridge|deft-install/i);
   });
 
-  it("buildLegacyRefusalMessage update variant re-runs the update verb", () => {
+  it("buildLegacyRefusalMessage update variant also names directive upgrade", () => {
     const msg = buildLegacyRefusalMessage("update", detection);
     expect(msg).toContain("refusing to refresh");
-    expect(msg).toContain("npx @deftai/directive update");
+    expect(msg).toContain("directive upgrade");
   });
 
-  it("buildLegacyRefusalJson carries machine fields + stable URLs, no version", () => {
+  it("buildLegacyRefusalJson carries machine fields + recovery, no Go URL", () => {
     const json = buildLegacyRefusalJson("init", "/proj", detection);
     expect(json.success).toBe(false);
     expect(json.action).toBe("refuse");
@@ -268,14 +268,16 @@ describe("refusal helpers", () => {
     expect(json.legacy_layout_kind).toBe("orphan-deft-version");
     expect(json.error_code).toBe("legacy_layout_refused");
     expect(json.upgrading_doc_url).toContain("UPGRADING.md");
-    expect(JSON.stringify(json)).not.toMatch(/v?\d+\.\d+\.\d+/);
+    expect(json.recovery).toBe("directive upgrade");
+    expect(json).not.toHaveProperty("go_bridge_releases_url");
   });
 
-  it("legacyLayoutSignpostLine carries the stable URL", () => {
+  it("legacyLayoutSignpostLine carries the stable URL and upgrade verb", () => {
     const line = legacyLayoutSignpostLine(detection);
     expect(line).toContain("Legacy Deft layout detected");
     expect(line).toContain("UPGRADING.md");
-    expect(line).not.toMatch(/v?\d+\.\d+\.\d+/);
+    expect(line).toContain("directive upgrade");
+    expect(line).not.toMatch(/Go bridge/i);
   });
 
   it("dualLayoutSignpostLine points at deft/ removal, not the Go bridge", () => {

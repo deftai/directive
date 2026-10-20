@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { repoRoot } from "./_helpers.js";
+import { readText, repoRoot } from "./_helpers.js";
 import { iterTaskBlocks, readRoot, readTaskfile } from "./_taskfile-helpers.js";
 
 /** Documented value-feedback / metrics `task` forms that must resolve (#2337). */
@@ -69,10 +69,10 @@ function collectTaskSurface(): Set<string> {
   return names;
 }
 
-/** Extract bare `task namespace:verb` tokens from maintainer docs. */
+/** Extract bare `task|deft|directive namespace:verb` tokens from maintainer docs. */
 function extractDocumentedTaskRefs(text: string): string[] {
   const refs: string[] = [];
-  const re = /`task ([a-z][\w:-]*)`/g;
+  const re = /`(?:task|deft|directive) ([a-z][\w:-]*)`/g;
   for (const match of text.matchAll(re)) {
     const name = match[1];
     if (name && !name.includes("<") && !name.includes(">")) {
@@ -110,14 +110,15 @@ describe("taskfile value-feedback aliases (#2337)", () => {
   });
 
   it("AGENTS.md value-feedback task references resolve on the Taskfile surface", () => {
-    const agents = readFileSync(join(repoRoot(), "AGENTS.md"), { encoding: "utf8" });
+    // Product entry template (root AGENTS.md may be a sterile/process stub).
+    const agents = readText("templates/agents-entry.md");
     const documented = extractDocumentedTaskRefs(agents).filter((name) =>
       VALUE_DOC_MARKERS.some((marker) => name === marker),
     );
     expect(documented.length).toBeGreaterThan(0);
     const surface = collectTaskSurface();
     for (const name of documented) {
-      expect(surface.has(name), `AGENTS.md references missing task ${name}`).toBe(true);
+      expect(surface.has(name), `agents-entry references missing task ${name}`).toBe(true);
     }
   });
 });

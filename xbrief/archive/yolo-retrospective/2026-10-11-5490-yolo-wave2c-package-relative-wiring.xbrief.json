@@ -1,0 +1,58 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "YOLO Wave 2c",
+    "updated": "2026-10-11T00:33:18.000Z"
+  },
+  "plan": {
+    "id": "yolo.5490.wave2c",
+    "title": "YOLO Wave 2c \u2014 package-relative wiring",
+    "status": "completed",
+    "updated": "2026-10-11T00:33:18.000Z",
+    "tags": [
+      "yolo",
+      "5490",
+      "wave2c"
+    ],
+    "narratives": {
+      "Description": "Wiring targets node_modules/@deftai/directive-runtime; no .deft/core on new install.",
+      "Origin": "YOLO",
+      "Overview": "wave2c.sh PASS; tag yolo-cp-wave2c tip 9a1d4a9e5",
+      "Labels": "yolo"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "package-relative refs",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "AGENTS/hooks/skills/Taskfile/githooks"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "no core deposit",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "new install creates no .deft/core"
+        }
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        "~/yolo-5490/smokes/wave2c.sh"
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "YOLO 2c",
+      "clauses": []
+    },
+    "metadata": {
+      "yolo": {
+        "wave": "2c",
+        "tag": "yolo-cp-wave2c",
+        "live_gates_waived": true
+      }
+    }
+  }
+}

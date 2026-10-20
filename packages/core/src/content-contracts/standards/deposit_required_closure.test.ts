@@ -99,8 +99,10 @@ describe("declared deposit closure against staged pack (#3601 C1)", () => {
     expect(skills).toContain("packs:slice skills list");
     const steer = template.split("## Parent-steer inbox")[1]?.split("## ")[0] ?? "";
     expect(steer).toContain("content/docs/subagent-heartbeat.md");
-    expect(steer).toContain(".deft/core/docs");
-    expect(skills).toContain("npx deft");
+    expect(steer).toContain("node_modules/@deftai/directive-runtime/docs");
+    expect(steer).not.toContain(".deft/core/docs");
+    expect(skills).not.toMatch(/\bnpx\s+deft\b/);
+    expect(skills).toContain("directive packs:slice");
     expect(skills).toContain("--json");
     expect(skills).toContain("node_modules");
   });

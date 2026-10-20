@@ -1,0 +1,11 @@
+{
+  "schema": "xbrief",
+  "id": "yolo-5490-wave3g",
+  "title": "Wave 3g — F-009/F-011/F-014 plain presenters + TTY wrap",
+  "status": "completed",
+  "summary": "Shop-English install/uninstall plans; path walls and Install/Remove command hero lines moved to -v; TTY word-wrap for human prose.",
+  "completedAt": "2026-10-14T16:00:00Z",
+  "wave": "3g",
+  "inbox": ["F-009", "F-011", "F-014"],
+  "verdaccio": { "tag": "yolo-cp-wave3g", "version": "0.0.0-yolo.cp-wave3g.1" }
+}

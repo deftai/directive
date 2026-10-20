@@ -91,7 +91,7 @@ export function countVbriefWip(projectRoot: string): number {
       !existsSync(join(projectRoot, MIGRATED_ARTIFACT_DIR)) &&
       existsSync(join(projectRoot, LEGACY_ARTIFACT_DIR))
     ) {
-      throw err; // Legacy-only project: operator must run deft migrate:xbrief.
+      throw err; // Legacy-only project: operator must run directive upgrade.
     }
     return 0; // No layout found at all; no WIP files to count.
   }

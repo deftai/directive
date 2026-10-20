@@ -1568,7 +1568,7 @@ describe("docs and managed text after proceed (#4956)", () => {
   });
 
   it("authz grant phrase mint remains on human-presence mint", () => {
-    const mint = readRepo("packages/cli/src/human-presence-mint.ts");
+    const mint = readRepo("packages/runtime/src/human-presence-mint.ts");
     expect(mint).toMatch(/AUTHZ_INTERACTIVE_CONFIRM_PHRASE = "mint"/);
   });
 
@@ -1583,7 +1583,7 @@ describe("docs and managed text after proceed (#4956)", () => {
   });
 
   it("activate still has no approved-scope reader (#4383 open)", () => {
-    const lifecycle = readRepo("packages/cli/src/scope-lifecycle.ts");
+    const lifecycle = readRepo("packages/runtime/src/scope-lifecycle.ts");
     expect(lifecycle).not.toMatch(/approved-scope/);
     expect(lifecycle).not.toMatch(/fileScopeDigest/);
     const scopeDir = join(repoRoot, "packages/core/src/scope");

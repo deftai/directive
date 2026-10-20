@@ -16,7 +16,12 @@ export {
   migrateConfidenceCorpus,
 } from "./confidence.js";
 export {
+  ARCHIVE_README_BODY,
+  ARCHIVE_README_FILENAME,
+  ARCHIVE_REL_DIR,
+  MIGRATE_THROUGH_VBRIEF_VERSION,
   OBSOLETE_FRAMEWORK_NARRATIVE_FILENAME,
+  PRE_LEGACY_VBRIEF_VERSION,
   VBRIEF_DEPRECATION_MARKER_BODY,
   VBRIEF_DEPRECATION_MARKER_FILENAME,
   VBRIEF_DEPRECATION_MARKER_SENTINEL,
@@ -48,9 +53,11 @@ export {
   isEffectivelyEmptyDir,
 } from "./fs-helpers.js";
 export {
+  classifyLegacyMigrationFile,
   convergeLegacyVbriefRoot,
   emitXbriefMigration,
   legacyInfoIsRedundantWithCanonical,
+  type MigrateFileDisposition,
   planRedundantLegacyEnvelopeStrips,
   removeStaleMigratedFrameworkNarrative,
   runXbriefMigration,
@@ -63,6 +70,7 @@ export {
 } from "./migrate-project.js";
 export { renderXbriefMigrationLine, xbriefMigrationGuidance } from "./signpost.js";
 export {
+  applyThinV05ToV06,
   assertFeatureEmissionAllowed,
   assertLayoutAwareWritePath,
   FeatureEmissionRejectedError,

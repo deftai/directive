@@ -1,0 +1,11 @@
+{
+  "schema": "xbrief",
+  "id": "yolo-5490-wave3i",
+  "title": "Wave 3i — F-015 compose install-sync + product doctor",
+  "status": "completed",
+  "summary": "directive doctor runs AC12.3 sync report then --- product doctor --- then full cmdDoctor suite. F-010 incomplete framing preserved.",
+  "completedAt": "2026-10-14T17:00:00Z",
+  "wave": "3i",
+  "inbox": ["F-015"],
+  "verdaccio": { "tag": "yolo-cp-wave3i", "version": "0.0.0-yolo.cp-wave3i.1" }
+}

@@ -1,0 +1,10 @@
+{
+  "schema": "xbrief",
+  "id": "yolo-5490-wave3d",
+  "title": "Wave 3d — UNIFIED clarifications + removal strategy RED skeleton",
+  "status": "completed",
+  "summary": "C1–C8 clarifications checked in; survey flipped to convert-via-removals (pending 3f fixtures); runtime removal-steps RED skeleton (4 intentional fails for 3e/3f).",
+  "completedAt": "2026-10-14T12:00:00Z",
+  "wave": "3d",
+  "verdaccio": { "tag": "yolo-cp-wave3d", "version": "0.0.0-yolo.cp-wave3d.1" }
+}

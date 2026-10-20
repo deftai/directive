@@ -80,18 +80,34 @@ export function readSwarmSkillSurface(): string {
   return parts.join("\n\n");
 }
 
+/**
+ * Product SoT for managed AGENTS content (`templates/agents-entry.md`).
+ * Root AGENTS.md is a deposit/sterile artifact — contracts must not read it
+ * for product teaching (#5490 wave4i).
+ */
 export function readAgentsMd(): string {
-  return readRepoFile("AGENTS.md");
+  return readRepoFile("templates/agents-entry.md");
 }
 
-/** Slice the first `## Returning Sessions` section body out of AGENTS.md. */
+/** Orchestrator preamble SoT (`templates/agent-prompt-preamble.md`). */
+export function readAgentsPreamble(): string {
+  return readRepoFile("templates/agent-prompt-preamble.md");
+}
+
+/**
+ * Session-routing body (successor of retired `## Returning Sessions`).
+ * Tip agents-entry collapses returning-session rules into this section.
+ */
 export function returningSessionsSection(): string {
   const text = readAgentsMd();
-  const start = text.indexOf("## Returning Sessions");
+  const heading = "## Session routing (#2176)";
+  const start = text.indexOf(heading);
   if (start === -1) {
-    throw new Error("AGENTS.md: missing '## Returning Sessions' section (#696)");
+    throw new Error(
+      "templates/agents-entry.md: missing '## Session routing (#2176)' (Returning Sessions successor)",
+    );
   }
-  const rest = text.slice(start + "## Returning Sessions".length);
+  const rest = text.slice(start + heading.length);
   const nextHeading = rest.indexOf("\n## ");
   return nextHeading === -1 ? rest : rest.slice(0, nextHeading);
 }

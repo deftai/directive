@@ -9,14 +9,6 @@ import { isUpgradePinPathContentAllowed } from "./hygiene.js";
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 
 describe("core-guard pin-content SoT (#3193 / #3427)", () => {
-  it("matches the Go embed byte-for-byte", () => {
-    const goEmbed = readFileSync(
-      resolve(repoRoot, "cmd/deft-install/core_guard_pin_content.embed"),
-      "utf8",
-    );
-    expect(CORE_GUARD_PIN_CONTENT_PYTHON).toBe(goEmbed);
-  });
-
   it("is not a tracked .py file and still implements the pin-path SoT names", () => {
     expect(CORE_GUARD_PIN_CONTENT_PYTHON).not.toContain("core_guard_pin_content.py");
     expect(CORE_GUARD_PIN_CONTENT_PYTHON).toContain("is_dir_key");

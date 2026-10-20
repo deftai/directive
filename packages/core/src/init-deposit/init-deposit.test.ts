@@ -201,6 +201,7 @@ describe("runInitDeposit", destContentionItTimeout(), () => {
     const pkg = parseJsonObject(readFileSync(join(project, "package.json"), "utf8"));
     expect(pkg.private).toBe(true);
     expect((pkg.devDependencies as Record<string, string>)[PIN_DEPENDENCY_NAME]).toBe("0.53.0");
+    // Legacy init has no local @deftai/directive-runtime — keep working bare PATH.
     expect(readFileSync(join(project, ".codex", "hooks.json"), "utf8")).toContain(
       "deft-hook --host codex --event tool.before",
     );
@@ -926,7 +927,9 @@ describe("runInitDeposit", destContentionItTimeout(), () => {
 
     expect(code).toBe(2);
     expect(out.join("")).toContain("refusing to deposit");
-    expect(out.join("")).toContain("npx @deftai/directive init");
+    // OVPR / AC10.10: refusal points at launcher bookend + directive upgrade (not npx init).
+    expect(out.join("")).toContain("directive upgrade");
+    expect(out.join("")).toContain("npm i -g @deftai/directive");
   });
 
   it("prints wizard UX to stdout in interactive mode", async () => {

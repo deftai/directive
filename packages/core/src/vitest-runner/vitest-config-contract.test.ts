@@ -175,10 +175,13 @@ describe("vitest.config.ts Windows vs CI branch parity (#2630)", () => {
 
 describe("vitest.config.ts coverage wall classes (#4591)", () => {
   const source = readFileSync(configPath, "utf8");
-  const helpers = readFileSync(join(repoRoot, "packages/cli/src/gates-cli/_helpers.ts"), "utf8");
+  const helpers = readFileSync(
+    join(repoRoot, "packages/runtime/src/gates-cli/_helpers.ts"),
+    "utf8",
+  );
   const constants = readFileSync(join(repoRoot, "packages/core/src/release/constants.ts"), "utf8");
   const worktree = readFileSync(
-    join(repoRoot, "packages/cli/src/hook-dispatch-worktree.test.ts"),
+    join(repoRoot, "packages/runtime/src/hook-dispatch-worktree.test.ts"),
     "utf8",
   );
 
@@ -231,7 +234,10 @@ describe("vitest.config.ts coverage wall classes (#4591)", () => {
   });
 
   it("reuses share-plus-reset for leftover occupancy fixtures", () => {
-    const grant = readFileSync(join(repoRoot, "packages/cli/src/occupancy-grant.test.ts"), "utf8");
+    const grant = readFileSync(
+      join(repoRoot, "packages/runtime/src/occupancy-grant.test.ts"),
+      "utf8",
+    );
     const child = readFileSync(
       join(repoRoot, "packages/core/src/session/child-occupancy.test.ts"),
       "utf8",

@@ -200,7 +200,7 @@ describe("rule-to-verb-parity (#5521)", () => {
       [join(REPO_ROOT, "content/templates/agents-entry.md")]:
         "! Run `deft totally-missing:verb` now.\n",
       [join(REPO_ROOT, "content/templates/agent-prompt-preamble.md")]: "# empty\n",
-      [join(REPO_ROOT, "packages/cli/src/dispatch.ts")]:
+      [join(REPO_ROOT, "packages/runtime/src/dispatch.ts")]:
         'export const CLI_MODULE_VERBS = ["check"] as const;\nexport const CORE_MODULE_VERBS = [];\n',
       [join(REPO_ROOT, "packages/cli/src/cli-router/route-argv.ts")]:
         'export const TOP_LEVEL_UX_VERBS = ["check"] as const;\nexport const SUBCOMMAND_ROUTES = {};\n',

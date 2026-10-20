@@ -49,7 +49,7 @@ const LOADED_LANE_EDGE_ITS: ReadonlyArray<{ file: string; titlePrefix: string }>
       "after init + commit + fresh clone, the pin is present and .deft/core is reconstitutable",
   },
   {
-    file: "packages/cli/src/verify-ac.test.ts",
+    file: "packages/runtime/src/verify-ac.test.ts",
     titlePrefix: "runs stated plan.acceptance.commands and exits 0 on pass",
   },
   {
@@ -145,19 +145,19 @@ const LOADED_LANE_EDGE_ITS: ReadonlyArray<{ file: string; titlePrefix: string }>
   },
   {
     file: "packages/core/src/resolution/cold-clone-reconstitution.test.ts",
-    titlePrefix: "a1: reconstitutes engine + content from a cold clone with zero manual steps",
+    titlePrefix: "a1: missing engine does not auto-install (AC12.5/AC12.6); points at AC9.7",
   },
   {
     file: "packages/core/src/resolution/cold-clone-reconstitution.test.ts",
-    titlePrefix: "a1: resolves a bridged workspace-local USER.md with no DEFT_USER_PATH",
+    titlePrefix: "a1: with a usable global engine, reconstitutes content + workspace USER.md",
   },
   {
     file: "packages/core/src/resolution/cold-clone-reconstitution.test.ts",
-    titlePrefix: "a2: emits and asserts the keystone ladder trace step-by-step",
+    titlePrefix: "a2: emits engine resolve trace without install rungs",
   },
   {
     file: "packages/core/src/resolution/cold-clone-reconstitution.test.ts",
-    titlePrefix: "a4: matched-env clone short-circuits the ladder at step 1/2 with no reinstall",
+    titlePrefix: "a4: matched-env clone uses global engine with no reinstall",
   },
   {
     file: "packages/core/src/hooks/owner-liveness.test.ts",

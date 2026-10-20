@@ -141,7 +141,7 @@ is covered by the canonical .gitignore baseline deposited by deft-install.
 export const MINIMAL_TASKFILE = `version: '3'
 
 # Taskfile for this project.
-# Installed by deft-install --yes (Epic-4). Add your own tasks below or in
+# Installed by directive install (OVPR). Add your own tasks below or in
 # additional included files. The deft include namespaces framework tasks
 # under deft: (#3218): task deft:check, task deft:vbrief:*, task deft:doctor.
 # Prefer deft check first; then task deft:check on this include-only consumer.
@@ -156,7 +156,7 @@ includes:
 export const CANONICAL_TASKFILE_INCLUDE = "taskfile: ./.deft/core/Taskfile.yml";
 
 const DEFT_INCLUDE_CHILD_BLOCK =
-  "  # Added by deft-install --yes (Epic-4)\n" +
+  "  # Added by directive install (OVPR)\n" +
   "  deft:\n" +
   "    taskfile: ./.deft/core/Taskfile.yml\n" +
   "    optional: true\n";
@@ -483,7 +483,7 @@ export function ensureTaskfile(projectDir: string, io: InitDepositIo): boolean {
     } else {
       resultText =
         `${existing}${existing.endsWith("\n") ? "" : "\n"}\n` +
-        "# deft-install --yes (Epic-4): could not locate the existing top-level `includes:` line for structural insertion; appended a fresh block. Manual merge recommended.\n" +
+        "# directive install: could not locate the existing top-level `includes:` line for structural insertion; appended a fresh block. Manual merge recommended.\n" +
         "includes:\n" +
         "  deft:\n" +
         "    taskfile: ./.deft/core/Taskfile.yml\n" +
@@ -495,7 +495,7 @@ export function ensureTaskfile(projectDir: string, io: InitDepositIo): boolean {
   } else {
     resultText =
       `${existing}${existing.endsWith("\n") ? "" : "\n"}\n` +
-      "# Added by deft-install --yes (Epic-4)\n" +
+      "# Added by directive install (OVPR)\n" +
       "includes:\n" +
       "  deft:\n" +
       "    taskfile: ./.deft/core/Taskfile.yml\n" +
@@ -846,15 +846,20 @@ function coreGuardWorkflowContent(): string {
   const baseRef = githubActionsExpr("github.event.pull_request.base.ref");
   return (
     "name: deft-core-guard\n\n" +
-    "# Deft framework guard (#1430 / #3127 / #3193 / #3345 / #3388): a single PR should not mix changes to the\n" +
+    "# Deft framework guard (#1430 / #3127 / #3193 / #3345 / #3388 / #5552): a single PR should not mix changes to the\n" +
     "# vendored framework payload (.deft/core/**) with true application/product files.\n" +
     "# One upgrade PR MAY include deposit + installer-managed paths + package.json pin/lock\n" +
     "# + .deft/GENERATION.json when package.json is @deftai/directive* dependency-key pin-only\n" +
     "# and lockfiles are pin follow-through (#3193). Framework updates come from `deft update`\n" +
     "# / install and should land without product feature work so reviewers treat the payload\n" +
     "# as machine-managed. Delete this file if you do not want the guard.\n" +
+    "# Paths filter (#5552): skip (no check) on app-only PRs; still run for .deft/core/**\n" +
+    "# or .deft/GENERATION.json so #4120 monotonic stays live. Missing check ≠ skipped job.\n" +
     "on:\n" +
-    "  pull_request:\n\n" +
+    "  pull_request:\n" +
+    "    paths:\n" +
+    "      - '.deft/core/**'\n" +
+    "      - '.deft/GENERATION.json'\n\n" +
     "permissions:\n" +
     "  contents: read\n\n" +
     "jobs:\n" +

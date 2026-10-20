@@ -118,7 +118,7 @@ function expandPaths(projectRoot: string, patterns: readonly string[]): string[]
         migrated: true,
       };
     } else if (existsSync(join(projectRoot, LEGACY_ARTIFACT_DIR))) {
-      throw err; // Legacy-only project: operator must run deft migrate:xbrief.
+      throw err; // Legacy-only project: operator must run directive upgrade.
     } else {
       // Neither exists -- return empty list.
       return [];

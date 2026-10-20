@@ -235,6 +235,11 @@ function isAllowListed(relPath: string, patterns: readonly string[]): boolean {
 
 function isVbriefPath(posix: string): boolean {
   // Layout-aware (#2109 part 1): accept either lifecycle root + either suffix.
+  // Skip xbrief|vbrief/archive/: unknowables stay archived and must not
+  // re-enter bare-key conformance (#1620), matching migrate detect.ts.
+  if (posix.startsWith("xbrief/archive/") || posix.startsWith("vbrief/archive/")) {
+    return false;
+  }
   return isLifecycleArtifactPath(posix);
 }
 

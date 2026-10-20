@@ -805,6 +805,18 @@ export function evaluateStoredCompletionProvenanceForWriteGuard(
     return { ok: true };
   }
 
+  // #5540: format/layout migrate may stamp complete+migration:true on already
+  // finished briefs without inventing delivery evidence. Do not require
+  // completionProvenance for those adds (do not invent it either).
+  const lifecycleWrite = asRecord(meta?.lifecycleWrite);
+  if (
+    lifecycleWrite !== null &&
+    lifecycleWrite.action === "complete" &&
+    lifecycleWrite.migration === true
+  ) {
+    return { ok: true };
+  }
+
   if (!isCodeBearingScope(plan)) {
     return { ok: true };
   }

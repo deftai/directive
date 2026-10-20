@@ -27,7 +27,8 @@ describe("sync upgrade handoff (#1604)", () => {
   it("leads with npm + directive/deft update as primary path", () => {
     const text = readSync();
     expect(text).toContain("npm i -g @deftai/directive@latest");
-    expect(text).toMatch(/directive update|deft update/);
+    // OVPR tip: primary verb is `directive upgrade` (alias `update`).
+    expect(text).toMatch(/directive upgrade|directive update|deft update/);
     expect(text).toContain("Phase 0 -- Primary upgrade");
     // Submodule is demoted, not primary
     expect(text).toMatch(/Legacy \/ back-compat only/i);
@@ -39,13 +40,14 @@ describe("sync upgrade handoff (#1604)", () => {
     expect(text).toContain("When mutation is authorized");
     expect(text).toMatch(/good morning/i);
     expect(text).toMatch(
-      /\u2297 Run `npm i -g @deftai\/directive@latest` or `directive update` \/ `deft update` on a routine "good morning"/,
+      /\u2297 Run `npm i -g @deftai\/directive@latest` or `directive upgrade`(?: \/ `directive install --repair`)? on a routine "good morning"/,
     );
   });
 
   it("requires worktree isolation before deposit handoff", () => {
     const text = readSync();
-    expect(text).toContain("Consumer worktree isolation before deposit");
+    // Tip heading: "before mutate" (OVPR); older "before deposit" still accepted.
+    expect(text).toMatch(/Consumer worktree isolation before (?:mutate|deposit)/);
     expect(text).toContain("git status --porcelain");
     expect(text).toContain("blocked:dirty-worktree");
     expect(text).toContain("Framework-only path allowlist");

@@ -326,14 +326,14 @@ export function extractSkillIdsFromPack(source: string): Set<string> {
 
 export function extractCommandIdsFromSources(files: Record<string, string>): Set<string> {
   const ids = new Set<string>();
-  const dispatch = files["packages/cli/src/dispatch.ts"];
+  const dispatch = files["packages/runtime/src/dispatch.ts"];
   if (dispatch !== undefined) {
     for (const name of ["CLI_MODULE_VERBS", "CORE_MODULE_VERBS"]) {
       for (const id of extractQuotedArray(dispatch, name)) ids.add(id);
     }
     for (const id of extractRecordKeys(dispatch, "VERB_ALIASES")) ids.add(id);
   }
-  const router = files["packages/cli/src/cli-router/route-argv.ts"];
+  const router = files["packages/runtime/src/cli-router/route-argv.ts"];
   if (router !== undefined) {
     for (const id of extractQuotedArray(router, "TOP_LEVEL_UX_VERBS")) ids.add(id);
   }
@@ -377,8 +377,8 @@ export function detectClosedSurfaceChanges(input: {
 
   const commandTouched = input.nameStatus.some(
     (row) =>
-      row.path === "packages/cli/src/dispatch.ts" ||
-      row.path === "packages/cli/src/cli-router/route-argv.ts" ||
+      row.path === "packages/runtime/src/dispatch.ts" ||
+      row.path === "packages/runtime/src/cli-router/route-argv.ts" ||
       row.path === "Taskfile.yml" ||
       TASK_FRAGMENT_RE.test(row.path),
   );
@@ -647,8 +647,8 @@ export function defaultRunGit(
 }
 
 const SNAPSHOT_PATHS = [
-  "packages/cli/src/dispatch.ts",
-  "packages/cli/src/cli-router/route-argv.ts",
+  "packages/runtime/src/dispatch.ts",
+  "packages/runtime/src/cli-router/route-argv.ts",
   "Taskfile.yml",
   "content/packs/skills/skills-pack-0.1.json",
   "packages/core/src/triage/help/registry-data.ts",

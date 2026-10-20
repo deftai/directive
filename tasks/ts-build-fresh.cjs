@@ -10,7 +10,7 @@
  *   2 — usage / config error
  *
  * Warm-dist skip avoids a full `tsc -b` (and its nested shell:true spawns) on
- * every `task <verb>` when packages/cli/dist/bin.js is already up to date.
+ * every `task <verb>` when packages/runtime/dist/bin.js is already up to date.
  */
 
 const fs = require("node:fs");
@@ -52,7 +52,7 @@ function main() {
     process.exit(0);
   }
 
-  const distDir = path.join(root, "packages", "cli", "dist");
+  const distDir = path.join(root, "packages", "runtime", "dist");
   const bin = path.join(distDir, "bin.js");
   const stamp = path.join(distDir, ".deft-ts-build-stamp");
   if (!fs.existsSync(bin)) {
@@ -66,7 +66,7 @@ function main() {
   const markerMtime = fs.statSync(marker).mtimeMs;
   const candidates = [];
 
-  for (const pkg of ["cli", "core", "types"]) {
+  for (const pkg of ["runtime", "core", "types", "cli"]) {
     const pkgRoot = path.join(root, "packages", pkg);
     if (!fs.existsSync(pkgRoot)) continue;
     walkSourceFiles(path.join(pkgRoot, "src"), candidates);

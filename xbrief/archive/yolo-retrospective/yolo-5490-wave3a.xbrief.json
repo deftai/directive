@@ -1,0 +1,19 @@
+{
+  "schema": "xbrief",
+  "id": "yolo-5490-wave3a",
+  "title": "Wave 3a — historical survey (xbrief schemas + install-era clusters)",
+  "status": "completed",
+  "summary": "Checked-in specs/5490-wave3-historical-survey.md: UNIFIED §D5 3a completeness PASS; Track A xbrief 0.5–0.8 inventory; Track B 11 shape_ids / 5 major eras; L0/L1/L2 isolation bar recorded; no recovery claims yet.",
+  "completedAt": "2026-10-14T03:00:00Z",
+  "wave": "3a",
+  "acs": ["AC10.8", "AC14.32", "AC15.2"],
+  "artifacts": [
+    "specs/5490-wave3-historical-survey.md",
+    "~/yolo-5490/logs/wave3/xbrief-schema-inventory.md",
+    "~/yolo-5490/logs/wave3/install-era-clusters.md"
+  ],
+  "verdaccio": {
+    "tag": "yolo-cp-wave3a",
+    "version": "0.0.0-yolo.cp-wave3a.1"
+  }
+}

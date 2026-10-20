@@ -1,0 +1,18 @@
+{
+  "schema": "xbrief",
+  "id": "yolo-5490-wave3c",
+  "title": "Wave 3c — operator report / WAVE3-COMPLETION",
+  "status": "completed",
+  "summary": "Operator decision matrix checked in. Pre-latest-legacy → uninstall then install. xbrief 0.7 migrate-through; 0.5 stays off-tip. L0 isolation held. Deferred era E2E fixtures listed honestly.",
+  "completedAt": "2026-10-14T03:10:00Z",
+  "wave": "3c",
+  "acs": ["AC10.8", "AC14.32", "AC15.2", "AC10.7"],
+  "artifacts": [
+    "specs/5490-wave3-completion.md",
+    "~/yolo-5490/logs/WAVE3-COMPLETION.md"
+  ],
+  "verdaccio": {
+    "tag": "yolo-cp-wave3c",
+    "version": "0.0.0-yolo.cp-wave3c.1"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "YOLO Wave 4b2+4b3 — F-4B-GO-TEACH + F-4B-NPX-DOCS folded into one CP",
+    "updated": "2026-10-16T19:25:00.000Z"
+  },
+  "plan": {
+    "title": "Wave 4b2/4b3 — Go teaching + agent npx docs (P1)",
+    "status": "completed",
+    "id": "yolo-5490-wave4b2",
+    "narratives": {
+      "Description": "Close F-4B-GO-TEACH (AC10.10) and F-4B-NPX-DOCS (AC13.8/AC9.11) on one CP: CONTRIBUTING/tasks/install/RELEASING no longer teach Go installer bootstrap; host-grokbot and host-lifecycle-duties use directive doctor / packs:slice (no npx).",
+      "Overview": "Cut yolo/wip-wave4b2 from yolo/cp-wave4b @ e0f0e0f9. RED→GREEN ovpr_docs_residual_wave4b2. Folded 4b3 into same freeze. Verdaccio yolo-cp-wave4b2 / 0.0.0-yolo.cp-wave4b2.1.",
+      "Acceptance": "No current-path go run/build ./cmd/deft-install or Building the Go Installer in CONTRIBUTING/tasks/install/RELEASING; no agent-facing npx @deftai/directive doctor or npx deft packs:slice in fixed files; owner tests green; packed runtime greps clean."
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "RED ovpr_docs_residual_wave4b2 owner tests",
+        "status": "completed"
+      },
+      {
+        "id": "2",
+        "title": "GREEN Go teaching (CONTRIBUTING/install.yml/RELEASING/+)",
+        "status": "completed"
+      },
+      {
+        "id": "3",
+        "title": "GREEN agent npx (host-grokbot/host-lifecycle/+)",
+        "status": "completed"
+      },
+      {
+        "id": "4",
+        "title": "Focused vitest + SLizard; fold 4b3 into one CP",
+        "status": "completed"
+      },
+      {
+        "id": "5",
+        "title": "Freeze yolo/cp-wave4b2 + Verdaccio publish",
+        "status": "completed"
+      }
+    ]
+  }
+}

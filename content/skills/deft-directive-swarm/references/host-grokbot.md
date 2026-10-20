@@ -79,7 +79,7 @@ Discovery set — **thin routers only**. Each item points at the existing Direct
 
 ## Doctor / cold-start (one happy path)
 
-! One narratable path: `npx @deftai/directive doctor` → follow its one `Next command:` → optional agent-driven setup (`skills/deft-directive-setup/SKILL.md`).
+! One narratable path: ensure global launcher (`npm i -g @deftai/directive` when missing) → `directive doctor` → follow its one `Next command:` → optional agent-driven setup (`skills/deft-directive-setup/SKILL.md`). Wiring-only recovery is AC9.7: `npm i -g @deftai/directive` then `directive install --repair`. ⊗ Teach npx / pnpm-exec shortcuts as day-to-day identity (AC9.11 / AC13.8).
 
 ! Hide package-manager and offline forks behind doctor. Do not invent a second Grok Bot install ladder. Category: Grok Bot is a **coding host**; Directive remains the repo practice layer (`docs/CATEGORY.md`).
 

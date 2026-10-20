@@ -80,34 +80,24 @@ function staleCli(local: string, target: string): ActiveCliCheckResult {
 }
 
 describe("cli drift report (#3753)", () => {
-  it("polls all four workspace packages, never one", () => {
-    expect(WORKSPACE_PACKAGES).toEqual([
-      "@deftai/directive-types",
-      "@deftai/directive-core",
-      "@deftai/directive-content",
-      "@deftai/directive",
-    ]);
+  it("polls both public packages, never one", () => {
+    expect(WORKSPACE_PACKAGES).toEqual(["@deftai/directive-runtime", "@deftai/directive"]);
   });
 
   it("bypasses the npm metadata cache on every view", () => {
-    const args = npmViewArgs("@deftai/directive-core", "0.107.0");
+    const args = npmViewArgs("@deftai/directive-runtime", "0.107.0");
     expect(args).toContain("--prefer-online");
     expect(args).toContain("versions");
     expect(args).toContain("--json");
-    expect(args).toContain("@deftai/directive-core");
-    expect(args.join(" ")).not.toContain("@deftai/directive-core@0.107.0");
+    expect(args).toContain("@deftai/directive-runtime");
+    expect(args.join(" ")).not.toContain("@deftai/directive-runtime@0.107.0");
     expect(remediationCommand("0.107.0")).toBe(
       "npm i -g @deftai/directive@0.107.0 --prefer-online",
     );
   });
 
   it("classifies partial visibility as still-propagating", () => {
-    const probes = [
-      probe("@deftai/directive-types", true),
-      probe("@deftai/directive-core", false),
-      probe("@deftai/directive-content", true),
-      probe("@deftai/directive", true),
-    ];
+    const probes = [probe("@deftai/directive-runtime", false), probe("@deftai/directive", true)];
     expect(classifyRegistryVisibility({ probes, waitExhausted: true, skipped: false })).toBe(
       "still-propagating",
     );
@@ -123,7 +113,7 @@ describe("cli drift report (#3753)", () => {
     );
   });
 
-  it("polls until all four resolve, then stops", () => {
+  it("polls until both resolve, then stops", () => {
     let calls = 0;
     const { probes, waitExhausted } = pollWorkspacePackages("0.107.0", {
       timeoutMs: 90_000,
@@ -133,7 +123,7 @@ describe("cli drift report (#3753)", () => {
         calls += 1;
         // First pass: core missing. Second pass: all visible.
         const coreMissing = calls <= WORKSPACE_PACKAGES.length;
-        if (name === "@deftai/directive-core" && coreMissing) {
+        if (name === "@deftai/directive-runtime" && coreMissing) {
           return probe(name, false);
         }
         return probe(name, true);
@@ -232,12 +222,12 @@ describe("cli drift report (#3753)", () => {
       skipRegistryPoll: false,
       pollTimeoutMs: 0,
       checkActiveCli: () => staleCli("0.95.0", "0.107.0"),
-      viewPackage: (name) => probe(name, name !== "@deftai/directive-core"),
+      viewPackage: (name) => probe(name, name !== "@deftai/directive-runtime"),
     });
     expect(report.shadowed).toBe(true);
     expect(report.registry).toBe("still-propagating");
     expect(report.lines.join("\n")).toContain("PATH-shadowed");
-    expect(report.lines.join("\n")).toContain("@deftai/directive-core");
+    expect(report.lines.join("\n")).toContain("@deftai/directive-runtime");
   });
 
   it("marks the wait exhausted when the poll ceiling elapses", () => {
@@ -310,7 +300,7 @@ describe("cli drift report (#3753)", () => {
           message: "no CLI",
           lines: [],
         }),
-        viewPackage: (name) => probe(name, name !== "@deftai/directive-core"),
+        viewPackage: (name) => probe(name, name !== "@deftai/directive-runtime"),
       },
       (text) => {
         chunks.push(text);
@@ -319,7 +309,7 @@ describe("cli drift report (#3753)", () => {
     expect(code).toBe(0);
     expect(sleeps.length).toBeGreaterThan(0);
     expect(chunks.join("")).toContain("still-propagating");
-    expect(chunks.join("")).toContain("@deftai/directive-core");
+    expect(chunks.join("")).toContain("@deftai/directive-runtime");
     expect(chunks.join("")).toContain("wait before installing");
     expect(chunks.join("")).toContain("npm i -g @deftai/directive@0.107.0 --prefer-online");
     expect(chunks.join("")).toContain("does not run npm i -g");
@@ -378,10 +368,13 @@ describe("cli drift report (#3753)", () => {
       classifyRegistryVisibility({ probes: failed, waitExhausted: true, skipped: false }),
     ).toBe("probe-failed");
     const mixed = [
-      probe("@deftai/directive-types", true),
-      { name: "@deftai/directive-core" as const, visible: false, version: null, probeFailed: true },
-      probe("@deftai/directive-content", true),
       probe("@deftai/directive", true),
+      {
+        name: "@deftai/directive-runtime" as const,
+        visible: false,
+        version: null,
+        probeFailed: true,
+      },
     ];
     expect(
       classifyRegistryVisibility({ probes: mixed, waitExhausted: false, skipped: false }),

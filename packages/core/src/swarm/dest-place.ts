@@ -13,6 +13,11 @@ import { reconstituteLinkedWorktreeDeposit } from "../init-deposit/gitignore.js"
 import { isLinkedWorktreePath, mainWorktreeRoot } from "../session/main-worktree.js";
 import { ensureSubagentStatusDir } from "./subagent-status-dir.js";
 import type { TextCaptureResult } from "./subprocess.js";
+import {
+  installWorktreePackages,
+  type WorktreePmRunner,
+  worktreeHasRuntimePin,
+} from "./worktree-pm-install.js";
 import { defaultGitRunner, type GitRunner } from "./worktrees.js";
 
 export type DestPlaceFailureCode =
@@ -44,6 +49,7 @@ export interface DestPlaceImplementSpawnInput {
   readonly worktreePath: string;
   readonly commitIsh: string;
   readonly git?: GitRunner;
+  readonly pmRunner?: WorktreePmRunner;
 }
 
 function resolvePath(raw: string, repoRoot: string): string {
@@ -212,18 +218,39 @@ export function destPlaceImplementSpawn(input: DestPlaceImplementSpawnInput): De
     };
   }
 
-  const deposit = reconstituteLinkedWorktreeDeposit(worktreePath, {
-    preferPrimaryCore: true,
-  });
-  if (deposit.status === "refused") {
-    return {
-      ok: false,
-      code: "deposit-refused",
-      message:
-        `dest-place deposit reconstitution refused for ${worktreePath}: ${deposit.message}. ` +
-        `Worktree left in place (no force-remove). Retry reconstitutes the same path when HEAD matches; ` +
-        `or pick a fresh path.`,
-    };
+  if (worktreeHasRuntimePin(worktreePath)) {
+    const pm = installWorktreePackages(worktreePath, { runner: input.pmRunner });
+    if (!pm.ok) {
+      return {
+        ok: false,
+        code: "deposit-refused",
+        message:
+          `dest-place PM install failed for ${worktreePath}: ${pm.message}. ` +
+          `Worktree left in place (no force-remove).`,
+      };
+    }
+  } else {
+    const deposit = reconstituteLinkedWorktreeDeposit(worktreePath, {
+      preferPrimaryCore: true,
+    });
+    if (deposit.status === "refused") {
+      return {
+        ok: false,
+        code: "deposit-refused",
+        message:
+          `dest-place deposit reconstitution refused for ${worktreePath}: ${deposit.message}. ` +
+          `Worktree left in place (no force-remove). Retry reconstitutes the same path when HEAD matches; ` +
+          `or pick a fresh path.`,
+      };
+    }
+    const pm = installWorktreePackages(worktreePath, { runner: input.pmRunner });
+    if (!pm.ok && pm.message.includes("Yarn/Bun")) {
+      return {
+        ok: false,
+        code: "deposit-refused",
+        message: `dest-place PM install refused for ${worktreePath}: ${pm.message}`,
+      };
+    }
   }
 
   ensureSubagentStatusDir(worktreePath);

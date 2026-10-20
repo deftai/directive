@@ -40,11 +40,8 @@ export interface PlanPolicy {
    */
   readonly projectInvariants?: readonly ProjectInvariant[];
   /**
-   * Engine-vs-pin skew tolerance for the three-band skew policy (#2264).
-   *
-   * Pre-1.0 the window is measured in minor versions (default 3); post-1.0 it
-   * collapses to "same major". `engine > pin` beyond this window fails closed
-   * unless `--accept-engine-jump` / `DEFT_ACCEPT_ENGINE_SKEW=1` is supplied.
+   * Reserved / unused (AC12.6): engine ladder and skew windows were removed.
+   * Kept optional so older plan policy documents still parse.
    */
   readonly engineSkewWindow?: number | null;
   readonly triageScope?: readonly TriageScopeRule[];

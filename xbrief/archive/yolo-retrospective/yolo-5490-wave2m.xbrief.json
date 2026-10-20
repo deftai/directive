@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "kind": "xbrief",
+  "title": "YOLO #5490 Wave 2m — UX-INT interactive bookends",
+  "status": "completed",
+  "branch": "yolo/wip-wave2m",
+  "tip": "69215bdad3c502bba14311b20ab96c5af1c51f40",
+  "tag": "yolo-cp-wave2m",
+  "verdaccio": "0.0.0-yolo.cp-wave2m.1",
+  "smoke": "wave2m.sh PASS",
+  "acs": ["AC5.2","AC6.4","AC14.1","AC14.39"],
+  "findings": ["UX-INT"]
+}

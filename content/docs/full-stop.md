@@ -15,7 +15,7 @@ Keep these separate.
 | Goal | Existing path | What it is not |
 | --- | --- | --- |
 | Stop using Directive in this project | [`.no-deft-directive`](./no-deft-directive.md) / `directive policy:disable-directive` | Not uninstall. Those docs already forbid auto-delete of the deposit. |
-| Full stop (this page) | Ordered strip below, then uninstall | Not opt-out. Not the [temporary kill-switch](./deft-directive-disable.md). |
+| Full stop (this page) | Ordered strip below, then `directive uninstall` | Not opt-out. Not the [temporary kill-switch](./deft-directive-disable.md). |
 
 ⊗ Do not fold `policy:disable-directive` into the uninstall command list. That mixes two goals.
 
@@ -27,7 +27,7 @@ Partition before you act. These are not one leftover list.
 
 `.cursor/hooks.json` is trackable `failClosed: true`. After `npm uninstall -g`, leftover Cursor hook files still deny every mutation with opaque exit 127.
 
-Grok is not universally fail-open once Prefer-A Bound #5656 lands: `.grok/hooks/deft.json` deposits a PreToolUse shell wrapper that emits Grok's deny envelope when `deft-hook` is missing or non-decision. Leftover Grok wrapper + registration can therefore still deny after uninstall when the host starts the wrapper. Wrapper-never-starts (missing interpreter / host timeout with no decision) remains a host-contract residual. Claude and Codex leftovers still fail open after the CLI is gone — silent gate loss, not Cursor/Grok fail-closed parity.
+Grok is not universally fail-open once Prefer-A Bound #5656 lands: `.grok/hooks/deft.json` deposits a PreToolUse shell wrapper that emits Grok's deny envelope when the package-relative hook-bin (`node_modules/@deftai/directive-runtime/dist/hook-bin.js`) is missing or non-decision (AC9.1). Leftover Grok wrapper + registration can therefore still deny after uninstall when the host starts the wrapper. Wrapper-never-starts (missing interpreter / host timeout with no decision) remains a host-contract residual. Claude and Codex leftovers still fail open after the CLI is gone — silent gate loss, not Cursor/Grok fail-closed parity.
 
 ! Strip live Cursor **and** Grok fail-closed / wrapper-mediated hook authority while the CLI still exists.
 ! Reuse leftover-free strip: write empty host hook files (`{}`) and remove `.grok/hooks/deft-pretooluse-wrapper.sh` via hostHooks opt-out + `directive update`.

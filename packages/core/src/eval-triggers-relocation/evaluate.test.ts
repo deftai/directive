@@ -10,7 +10,7 @@ describe("eval-triggers-relocation (#1586)", () => {
 
   it("classifyTriggerRoutingPaths skips unrelated diffs", () => {
     const result = evaluate({
-      paths: ["packages/cli/src/dispatch.ts"],
+      paths: ["packages/runtime/src/dispatch.ts"],
       quiet: true,
     });
     expect(result.code).toBe(0);

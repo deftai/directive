@@ -144,47 +144,128 @@ jobs:
         run: |
           set -euo pipefail
           echo "Packing npm packages at version ${VERSION}"
-          for dir in packages/types packages/core packages/content packages/cli; do
+          # AC13.4: only launcher + runtime are published. Private workspace
+          # packages (types/core/content) stay version-aligned for the monorepo build.
+          for dir in packages/types packages/core packages/content packages/runtime packages/cli; do
             npm version "${VERSION}" --no-git-tag-version --allow-same-version --prefix "${dir}"
           done
 
-      - name: Resolve workspace protocol for npm pack
+      - name: Prepare launcher + stage self-contained runtime (AC13.4)
         shell: bash
         env:
           VERSION: ${{ steps.identity.outputs.version }}
         run: |
           set -euo pipefail
+          # Launcher must ship with empty deps (AC3.1).
           node --input-type=commonjs -e "
             const fs = require('node:fs');
-            const semver = '^' + process.env.VERSION;
-            for (const path of ['packages/core/package.json', 'packages/cli/package.json']) {
-              const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
-              if (pkg.dependencies) {
-                for (const [name, ver] of Object.entries(pkg.dependencies)) {
-                  if (typeof ver === 'string' && ver.startsWith('workspace:')) {
-                    pkg.dependencies[name] = semver;
-                  }
-                }
-              }
-              fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');
-            }
+            const launcher = JSON.parse(fs.readFileSync('packages/cli/package.json', 'utf8'));
+            launcher.dependencies = {};
+            delete launcher.devDependencies;
+            fs.writeFileSync('packages/cli/package.json', JSON.stringify(launcher, null, 2) + '\n');
+          "
+          # Vendor private core/content/types into a pack stage (no registry deps on them).
+          STAGE="$(node packages/runtime/scripts/stage-bundle.mjs)"
+          echo "STAGE=${STAGE}" >> "${GITHUB_ENV}"
+          VERSION="${VERSION}" STAGE="${STAGE}" node --input-type=commonjs -e "
+            const fs = require('node:fs');
+            const path = require('node:path');
+            const ver = process.env.VERSION;
+            const stage = process.env.STAGE;
+            const pkgPath = path.join(stage, 'package.json');
+            const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+            pkg.version = ver;
+            fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
+            // PKG-AC13-NEST: private pkgs live under vendor/ without package.json — no nested version bump.
           "
 
-      - name: Pack four @deftai packages
+      - name: Pack two @deftai packages (launcher + runtime)
         shell: bash
         env:
           VERSION: ${{ steps.identity.outputs.version }}
         run: |
           set -euo pipefail
           mkdir -p tarballs
-          for dir in packages/types packages/core packages/content packages/cli; do
-            (cd "${dir}" && npm pack --pack-destination "${GITHUB_WORKSPACE}/tarballs")
-          done
+          test -n "${STAGE:-}" && test -d "${STAGE}"
+          # AC1.3: pack helper embeds vendored node_modules then strips @deftai/* from deps.
+          node packages/runtime/scripts/pack-staged-runtime.mjs "${STAGE}" "${GITHUB_WORKSPACE}/tarballs"
+          (cd packages/cli && npm pack --pack-destination "${GITHUB_WORKSPACE}/tarballs")
           ls -la tarballs
-          test -f "tarballs/deftai-directive-types-${VERSION}.tgz"
-          test -f "tarballs/deftai-directive-core-${VERSION}.tgz"
-          test -f "tarballs/deftai-directive-content-${VERSION}.tgz"
+          test -f "tarballs/deftai-directive-runtime-${VERSION}.tgz"
           test -f "tarballs/deftai-directive-${VERSION}.tgz"
+          # AC3.1 + AC1.3 + D4.3 + AC13.4: launcher empty deps / single JS bin +
+          # PATH shims; runtime has no @deftai deps and vendors under vendor/ (no
+          # nested node_modules/@deftai/*/package.json).
+          node --input-type=commonjs -e "
+            const {execSync}=require('node:child_process');
+            const ver=process.env.VERSION;
+            const launcher=JSON.parse(execSync('tar -xOf '+JSON.stringify('tarballs/deftai-directive-'+ver+'.tgz')+' package/package.json',{encoding:'utf8'}));
+            if (Object.keys(launcher.dependencies||{}).length!==0) {
+              console.error('AC3.1 fail: launcher deps not empty', launcher.dependencies);
+              process.exit(1);
+            }
+            if (!launcher.bin || launcher.bin.directive!=='./dist/bin.js' || launcher.bin.deft!=='./dist/bin.js' || launcher.bin['deft-hook']!=='./bin/deft-hook') {
+              console.error('D4.3/AC3.5 fail: launcher bin map', launcher.bin);
+              process.exit(1);
+            }
+            const launcherListing=execSync('tar -tzf '+JSON.stringify('tarballs/deftai-directive-'+ver+'.tgz'),{encoding:'utf8'});
+            const launcherEntries=launcherListing.split('\n').filter(Boolean);
+            const launcherJs=launcherEntries.filter(n=>n.endsWith('.js')&&!n.endsWith('.js.map')).sort();
+            if (launcherJs.join('\n')!=='package/dist/bin.js') {
+              console.error('D4.3 fail: expected exactly one launcher JS', launcherJs);
+              process.exit(1);
+            }
+            if (launcherEntries.some(n=>n.includes('hook-bin'))) {
+              console.error('D4.3 fail: legacy hook-bin present in launcher tarball');
+              process.exit(1);
+            }
+            for (const need of ['package/bin/deft-hook','package/bin/deft-hook.cmd']) {
+              if (!launcherEntries.includes(need)) {
+                console.error('AC3.5 fail: missing PATH shim', need);
+                process.exit(1);
+              }
+            }
+            const runtime=JSON.parse(execSync('tar -xOf '+JSON.stringify('tarballs/deftai-directive-runtime-'+ver+'.tgz')+' package/package.json',{encoding:'utf8'}));
+            if (!runtime.directive || runtime.directive.contract!==1) {
+              console.error('runtime missing contract', runtime.directive);
+              process.exit(1);
+            }
+            const deftaiDeps=Object.keys(runtime.dependencies||{}).filter(k=>k.startsWith('@deftai/'));
+            if (deftaiDeps.length!==0) {
+              console.error('AC1.3 fail: runtime dependencies contain @deftai/*', deftaiDeps);
+              process.exit(1);
+            }
+            if (runtime.bundledDependencies) {
+              console.error('AC1.3 fail: runtime still declares bundledDependencies', runtime.bundledDependencies);
+              process.exit(1);
+            }
+            const listing=execSync('tar -tzf '+JSON.stringify('tarballs/deftai-directive-runtime-'+ver+'.tgz'),{encoding:'utf8'});
+            const names=listing.split('\n');
+            for (const nested of [
+              'package/node_modules/@deftai/directive-core/package.json',
+              'package/node_modules/@deftai/directive-content/package.json',
+              'package/node_modules/@deftai/directive-types/package.json',
+              'package/vendor/directive-core/package.json',
+              'package/vendor/directive-content/package.json',
+              'package/vendor/directive-types/package.json',
+            ]) {
+              if (names.includes(nested)) {
+                console.error('AC1.3 fail: nested package.json must be absent', nested);
+                process.exit(1);
+              }
+            }
+            for (const prefix of [
+              'package/vendor/directive-core/',
+              'package/vendor/directive-content/',
+              'package/vendor/directive-types/',
+            ]) {
+              if (!names.some(n=>n.startsWith(prefix))) {
+                console.error('AC13.4 fail: missing vendor tree', prefix);
+                process.exit(1);
+              }
+            }
+            console.log('AC3.1 + AC1.3 + D4.3 + AC13.4 ok');
+          "
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -238,42 +319,16 @@ jobs:
           name: npm-tarballs-${{ needs.prepare.outputs.version }}
           path: tarballs
 
-      # Dependency order: types -> core -> content -> cli
+      # AC13.4: publish only launcher + runtime (same version).
       # Idempotent re-publish (#1916): if a prior tag run partially succeeded,
       # workflow_dispatch / --failed rerun must not fail on E409 for packages
       # already at this version. Lifecycle scripts suppressed on tarball publish.
-      - name: Publish @deftai/directive-types
-        working-directory: packages/types
+      - name: Publish @deftai/directive-runtime
+        working-directory: packages/runtime
         shell: bash
         run: |
           set -euo pipefail
-          TGZ="${GITHUB_WORKSPACE}/tarballs/deftai-directive-types-${VERSION}.tgz"
-          test -f "${TGZ}"
-          PKG=$(node -p "require('./package.json').name")
-          npm publish --provenance --access public --tag "${DIST_TAG}" --ignore-scripts "${TGZ}" || {
-            npm view "${PKG}@${VERSION}" version >/dev/null
-            echo "Already published ${PKG}@${VERSION}, continuing"
-          }
-
-      - name: Publish @deftai/directive-core
-        working-directory: packages/core
-        shell: bash
-        run: |
-          set -euo pipefail
-          TGZ="${GITHUB_WORKSPACE}/tarballs/deftai-directive-core-${VERSION}.tgz"
-          test -f "${TGZ}"
-          PKG=$(node -p "require('./package.json').name")
-          npm publish --provenance --access public --tag "${DIST_TAG}" --ignore-scripts "${TGZ}" || {
-            npm view "${PKG}@${VERSION}" version >/dev/null
-            echo "Already published ${PKG}@${VERSION}, continuing"
-          }
-
-      - name: Publish @deftai/directive-content
-        working-directory: packages/content
-        shell: bash
-        run: |
-          set -euo pipefail
-          TGZ="${GITHUB_WORKSPACE}/tarballs/deftai-directive-content-${VERSION}.tgz"
+          TGZ="${GITHUB_WORKSPACE}/tarballs/deftai-directive-runtime-${VERSION}.tgz"
           test -f "${TGZ}"
           PKG=$(node -p "require('./package.json').name")
           npm publish --provenance --access public --tag "${DIST_TAG}" --ignore-scripts "${TGZ}" || {
@@ -303,7 +358,7 @@ jobs:
     env:
       VERSION: ${{ needs.prepare.outputs.version }}
     steps:
-      # Bound-remedy 4 (#4271 / #4398 / #5365): after the four packages publish,
+      # Bound-remedy 4 (#4271 / #4398 / #5365): after the two packages publish,
       # run the two-pass fixture from a non-OIDC job. Do not checkout
       # needs.prepare.outputs.source_sha then pnpm install/build — that is
       # CodeQL actions/cache-poisoning/poisonable-step under workflow_dispatch

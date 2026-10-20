@@ -1,0 +1,19 @@
+# ht-auto — steps that stay HUMAN_REQUIRED
+# These do not count against automatable pass % in run-all.sh scorecard.
+
+HT-03  Live interactive TTY: prompt must block for [y/N]; Enter/n cancel; y accept.
+       Injected/PTY best-effort is informational only — AC5.2 feel needs a real terminal.
+
+HT-03+ Host UI AC9.8 feel: Claude / Cursor / Codex / Grok open-skill / host wiring
+       “looks right” judgment after install — not automatable from this harness.
+
+HT-04  Soft residual: full §C9 prose polish / wrap aesthetics (F-009/F-011 class)
+       remain human taste; harness only asserts non-mutation + non-debug default stdout.
+
+HT-15  Legacy convert — SKIP without prepared ht-15-legacy-* fixture; do not invent trees.
+       (When fixture present, mechanical convert can move to AUTO; until then SKIP ≠ FAIL.)
+
+# Operator-owned always
+- FAIL severity / product call (block-forward vs fix-forward)
+- Filing /yolo-cp-finding entries
+- Declaring beta GO after Tier A human green

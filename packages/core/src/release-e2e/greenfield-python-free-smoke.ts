@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { collectPythonArtifacts, isRepoRootPythonRunShim } from "../deposit/python-free.js";
 import { defaultWhich, spawnText } from "../release/spawn.js";
 import { NPM_PUBLISH_PACKAGES } from "./constants.js";
-import { alignNpmPackageVersions, resolvePnpm } from "./npm-ops.js";
+import { alignNpmPackageVersions, packOvprTarballs, resolvePnpm } from "./npm-ops.js";
 import type { E2ESeams } from "./types.js";
 
 const SMOKE_VERSION = "9.9.9-smoke";
@@ -124,7 +124,7 @@ export function runConsumerDocsImpactSmoke(
     [["checkout", "-B", "feat/docs-impact-smoke"], "feature branch"],
   ] as const) {
     const [ok, reason] = runGitStep(spawn, gitBin, args, projectDir, gitEnv);
-    if (!ok) return [false, `docs-impact git fixture (${label}): ${reason}`];
+    if (!ok) return [false, `docs-impact git fixture for ${label}: ${reason}`];
   }
 
   writeFileSync(validBody, VALID_DOCS_IMPACT_BODY, "utf8");
@@ -160,20 +160,22 @@ export function runConsumerDocsImpactSmoke(
 }
 
 function seedMinimalProjectDefinition(projectDir: string): void {
-  const vbriefDir = join(projectDir, "vbrief");
-  mkdirSync(vbriefDir, { recursive: true });
+  // Canonical xbrief/ layout (vbrief/ is legacy-only; verify:wip-cap requires xbrief/).
+  for (const folder of ["proposed", "pending", "active", "completed", "cancelled", "archive"]) {
+    mkdirSync(join(projectDir, "xbrief", folder), { recursive: true });
+  }
   writeFileSync(
-    join(vbriefDir, "PROJECT-DEFINITION.vbrief.json"),
+    join(projectDir, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
     `${JSON.stringify(
       {
-        vBRIEFInfo: { version: "0.6", description: "greenfield smoke fixture (#2022 Phase 3)" },
+        xBRIEFInfo: { version: "0.8", description: "greenfield smoke fixture #2022 Phase 3" },
         plan: {
           title: "PROJECT-DEFINITION",
           status: "running",
           items: [],
           policy: {},
           narratives: {
-            Overview: "Greenfield smoke fixture (#2022 Phase 3).",
+            Overview: "Greenfield smoke fixture #2022 Phase 3.",
             "tech stack": "Node.js",
           },
         },
@@ -183,18 +185,6 @@ function seedMinimalProjectDefinition(projectDir: string): void {
     )}\n`,
     "utf8",
   );
-}
-
-function packTarballPath(packDir: string, pkgDir: string): string | null {
-  const manifest = JSON.parse(readFileSync(join(pkgDir, "package.json"), "utf8")) as {
-    name?: string;
-    version?: string;
-  };
-  if (typeof manifest.name !== "string" || typeof manifest.version !== "string") {
-    return null;
-  }
-  const scoped = manifest.name.replaceAll("@", "").replaceAll("/", "-");
-  return join(packDir, `${scoped}-${manifest.version}.tgz`);
 }
 
 function runStep(
@@ -218,9 +208,15 @@ function runStep(
     onProgress?.(
       `greenfield smoke: ${label} — failed (exit ${result.status}) after ${elapsedMs}ms`,
     );
+    // Doctor suites are long; keep the full capture so the hard error is visible.
+    // Other steps keep head+tail to bound CI log size.
+    const clipped =
+      label.includes("doctor") || detail.length <= 4000
+        ? detail
+        : `${detail.slice(0, 1000)}\n…\n${detail.slice(-1000)}`;
     return [
       false,
-      `${label} failed (exit ${result.status})${timeoutHint}: ${detail.slice(-800) || "(no captured output)"}`,
+      `${label} failed (exit ${result.status})${timeoutHint}: ${clipped || "(no captured output)"}`,
     ];
   }
   onProgress?.(`greenfield smoke: ${label} — OK (${elapsedMs}ms)`);
@@ -320,24 +316,20 @@ export function rehearseGreenfieldPythonFreeSmoke(
     [ok, reason] = alignNpmPackageVersions(repoRoot, SMOKE_VERSION);
     if (!ok) return [false, `greenfield smoke: ${reason}`];
 
-    const packed: string[] = [];
-    for (const pkg of NPM_PUBLISH_PACKAGES) {
-      const pkgDir = join(repoRoot, "packages", pkg);
-      [ok, reason] = runStep(
-        spawn,
-        `npm pack packages/${pkg}`,
-        npm,
-        ["pack", "--pack-destination", packDir],
-        { cwd: pkgDir, env: envBase, timeoutMs: 120_000 },
-        onProgress,
-      );
-      if (!ok) return [false, `greenfield smoke: ${reason}`];
-      const tgz = packTarballPath(packDir, pkgDir);
-      if (!tgz || !existsSync(tgz)) {
-        return [false, `greenfield smoke: missing pack tarball for ${pkg}`];
-      }
-      packed.push(tgz);
+    onProgress?.("greenfield smoke: OVPR stage+pack runtime + launcher");
+    const packSeams: E2ESeams = { ...seams, spawnText: spawn, which: seams.which ?? defaultWhich };
+    const packedResult = packOvprTarballs(
+      repoRoot,
+      SMOKE_VERSION,
+      packDir,
+      npm,
+      envBase,
+      packSeams,
+    );
+    if (!packedResult[0]) {
+      return [false, `greenfield smoke: ${packedResult[1]}`];
     }
+    const packed = packedResult[2];
 
     [ok, reason] = runStep(
       spawn,
@@ -363,11 +355,95 @@ export function rehearseGreenfieldPythonFreeSmoke(
       ...pyFree,
       PATH: `${installedBin}:${pyFree.PATH ?? ""}`,
     };
+    // Public @deftai/directive-runtime@latest is still a prerelease until GA, so
+    // greenfield smoke installs the packed tip runtime tarball into the consumer
+    // then runs install --repair for OVPR wiring (AC13.4 packed-pair path).
+    mkdirSync(projectDir, { recursive: true });
+    writeFileSync(
+      join(projectDir, "package.json"),
+      `${JSON.stringify(
+        { name: "greenfield-smoke-consumer", private: true, version: "0.0.0" },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+    const runtimeTgz = packed.find((p) => p.includes("directive-runtime-"));
+    if (runtimeTgz === undefined) {
+      return [false, "greenfield smoke: packed runtime tarball missing from OVPR pack result"];
+    }
     [ok, reason] = runStep(
       spawn,
-      "directive init",
+      "npm install packed runtime tarball",
+      npm,
+      ["install", "--save-dev", "--save-exact", runtimeTgz],
+      {
+        cwd: projectDir,
+        env: installedEnv,
+        timeoutMs: 120_000,
+      },
+      onProgress,
+    );
+    if (!ok) return [false, `greenfield smoke: ${reason}`];
+
+    // npm records file:../packs/... for a local tarball; OVPR repair requires an
+    // exact SemVer pin + matching lockfile request. Rewrite both so repair skips
+    // registry PM restore (9.9.9-smoke is not on the public registry).
+    try {
+      const consumerPkgPath = join(projectDir, "package.json");
+      const consumerPkg = JSON.parse(readFileSync(consumerPkgPath, "utf8")) as {
+        devDependencies?: Record<string, string>;
+        dependencies?: Record<string, string>;
+      };
+      const deps = consumerPkg.devDependencies ?? consumerPkg.dependencies ?? {};
+      deps["@deftai/directive-runtime"] = SMOKE_VERSION;
+      consumerPkg.devDependencies = deps;
+      writeFileSync(consumerPkgPath, `${JSON.stringify(consumerPkg, null, 2)}\n`, "utf8");
+
+      const lockPath = join(projectDir, "package-lock.json");
+      if (existsSync(lockPath)) {
+        const lock = JSON.parse(readFileSync(lockPath, "utf8")) as {
+          packages?: Record<string, Record<string, unknown>>;
+        };
+        const root = lock.packages?.[""];
+        if (root && typeof root === "object") {
+          const rootDeps = (root.devDependencies ?? root.dependencies) as
+            | Record<string, string>
+            | undefined;
+          if (rootDeps) rootDeps["@deftai/directive-runtime"] = SMOKE_VERSION;
+          if (!root.devDependencies && rootDeps) root.devDependencies = rootDeps;
+        }
+        const entry = lock.packages?.["node_modules/@deftai/directive-runtime"];
+        if (entry && typeof entry === "object") {
+          entry.version = SMOKE_VERSION;
+        }
+        writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`, "utf8");
+      }
+    } catch (exc) {
+      return [false, `greenfield smoke: cannot rewrite exact runtime pin: ${String(exc)}`];
+    }
+
+    // Initialize git before repair so setup can deposit hooks / GENERATION wiring
+    // that doctor and deft:check require. Docs-impact later seeds origin/master.
+    const gitBin = which("git");
+    if (gitBin === null) {
+      return [false, "greenfield smoke: git not on PATH; cannot init consumer repo before repair"];
+    }
+    [ok, reason] = runStep(
+      spawn,
+      "git init consumer",
+      gitBin,
+      ["init"],
+      { cwd: projectDir, env: installedEnv, timeoutMs: 30_000 },
+      onProgress,
+    );
+    if (!ok) return [false, `greenfield smoke: ${reason}`];
+
+    [ok, reason] = runStep(
+      spawn,
+      "directive install --repair",
       deft,
-      ["init", "--yes", "--repo-root", projectDir],
+      ["install", "--repair", "--yes", "--repo-root", projectDir],
       {
         cwd: work,
         env: installedEnv,
@@ -404,6 +480,22 @@ export function rehearseGreenfieldPythonFreeSmoke(
       env: checkEnv,
       onProgress,
     });
+    if (!ok) return [false, `greenfield smoke: ${reason}`];
+
+    // Surface OVPR doctor diagnosis before the heavier deft:check gate so CI
+    // failures name the failing surface instead of an opaque engine.yml scrap.
+    [ok, reason] = runStep(
+      spawn,
+      "directive doctor",
+      deft,
+      ["doctor", "--root", projectDir],
+      {
+        cwd: projectDir,
+        env: checkEnv,
+        timeoutMs: 60_000,
+      },
+      onProgress,
+    );
     if (!ok) return [false, `greenfield smoke: ${reason}`];
 
     onProgress?.("greenfield smoke: running consumer task deft:check (engine-invoke path)");

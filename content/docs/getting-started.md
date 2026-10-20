@@ -22,7 +22,7 @@ Lawful idle / empty-active after real history is not failure. ARC-before-ingest 
 
 ## Deft & Directive (naming)
 
-**Deft is the company; Directive is the product.** *Deft* names the organization and the on-disk footprint (`.deft/`, `@deftai/*` npm scope, user config under `~/.config/deft/`). *Directive* names the framework you install and run: the npm package is `@deftai/directive`, and the primary CLI is `directive` (`deft` is an alias). Legacy `deft-install` / `deft` paths in this guide refer to the same product during the staged transition ([#423](https://github.com/deftai/directive/issues/423)).
+**Deft is the company; Directive is the product.** *Deft* names the organization and the on-disk footprint (`.deft/`, `@deftai/*` npm scope, user config under `~/.config/deft/`). *Directive* names the framework you install and run: the npm package is `@deftai/directive`, and the primary CLI is `directive` (`deft` is an alias). The Go installer (`deft-install`) is deleted — use the global launcher + `directive install` / `directive upgrade` path only.
 
 Public consumer commands on this page use `directive` / `deft`. After `directive init`, the root Taskfile is include-only, so `task deft:<verb>` is the namespaced Task equivalent. Do not copy bare `task <verb>` from the framework source tree into a new project.
 
@@ -30,54 +30,43 @@ Public consumer commands on this page use `directive` / `deft`. After `directive
 
 ## Prerequisites
 
-- **Node 20+**, **Git**, and **GitHub CLI (`gh`)**.
-- The package manager you use to install Directive (`npm` is bundled with Node; pnpm is an alternative).
-- After install, confirm with `directive toolchain:check --consumer`. That probe checks Node, git, gh, and the selected manager. It does not require Python, uv, Go, or Task.
+- **Node 22 or 24** (tested gates). Node 20 is allowed best-effort with a warning; Node &lt; 20 is refused.
+- **Git**, and **GitHub CLI (`gh`)** for GitHub-backed workflows.
+- **npm or pnpm** (Yarn and Bun projects are refused).
+- After install, confirm with `directive doctor` and `directive toolchain:check --consumer`.
 
-**Go 1.22+** is only for the frozen Go installer or a source build. Framework maintainers of this repository use a separate Node 24 pin; see [CONTRIBUTING.md](../../CONTRIBUTING.md).
+Two published packages: global **`@deftai/directive`** (launcher) and project-pinned **`@deftai/directive-runtime`**. See [launcher.md](./launcher.md) and [known-limitations.md](./known-limitations.md).
+
+Framework maintainers of this repository use a separate Node 24 pin; see [CONTRIBUTING.md](../../CONTRIBUTING.md).
 
 ---
 
 ## Installation
 
-### npm (canonical)
-
-Install Directive globally from npm:
+### Global launcher + project install (canonical)
 
 ```bash
 npm i -g @deftai/directive
-directive --version    # primary command
-deft --version         # alias — same binary
+# or: pnpm add -g @deftai/directive
+
+cd your-project   # must be a Git repo for most workflows
+directive install # alias: init — pins @deftai/directive-runtime exactly
+directive doctor
 ```
 
-One-shot without a global install:
+After clone or a new worktree: run the project package manager (`npm install` / `pnpm install`), then the first eligible runtime command or registered hook completes local activation.
 
-```bash
-npx @deftai/directive doctor --full
-npx @deftai/directive session:start
-```
+**Repair (pin unchanged):** `npm i -g @deftai/directive`, then `directive install --repair`.
 
-This npm path has been the canonical distribution channel since v0.55.1. A pnpm-managed repository can install the same package with `pnpm add -g @deftai/directive` or project-locally with `pnpm add -D @deftai/directive`.
+**Upgrade version or migrate data:** `directive upgrade` (alias: `update`).
 
-**Success:** `directive --version` prints a version. **Recovery:** run `directive doctor --full` and follow its one `Next command:`. Agent detect-state cases live in [QUICK-START.md](../QUICK-START.md).
+**Uninstall project wiring:** `directive uninstall` (alias: `remove`).
 
-### Go installer (legacy bridge)
+Do not use `npx` / `pnpm exec` as day-to-day identity. Retired verbs (`migrate`, `bootstrap`, `sync`, `install-upgrade`, `install-uninstall`, `doctor fix`) print unknown command.
 
-The Go installer is a frozen legacy bridge for older installs and source-oriented recovery. New consumer installs should use npm above; see [UPGRADING.md](../UPGRADING.md#one-time-migration-from-the-go-installer-legacy--npm) when migrating an existing Go-installer layout.
+**Success:** `directive --version` shows the launcher; the project has an exact `@deftai/directive-runtime` pin and `directive doctor` is healthy. **Recovery:** [QUICK-START.md](../QUICK-START.md).
 
-Download a platform installer from the [Directive release page](https://github.com/deftai/directive/releases) and run it from the project you want to adopt:
-
-```bash
-deft-install --yes --repo-root . --json
-```
-
-For existing consumer projects, the headless upgrade path is:
-
-```bash
-deft-install --yes --upgrade --repo-root . --json
-```
-
-Those consumer flows project Deft-managed files into your project root (`AGENTS.md`, skills pointers, gitignore entries, xbrief scaffolding, and related guard configuration). Framework maintainers working inside a `deftai/directive` checkout should instead follow [`CONTRIBUTING.md`](../../CONTRIBUTING.md) and use `--maintainer`; maintainer setup checks tools without rewriting consumer-managed files.
+Supported latest-legacy layouts (pre-split pin + copied `.deft/core`): run `directive upgrade`. The Go installer has been removed.
 
 ---
 
@@ -96,19 +85,19 @@ directive --version
 
 **Success:** a version string. **Recovery:** `directive doctor --full`.
 
-### 2. Create a Git repository, then init
+### 2. Create a Git repository, then install
 
-`directive init` deposits files. It does not create a Git repository. `deft verify:story-ready` and `deft check` both require a Git worktree. Start in an empty project directory:
+`directive install` (alias `init`) does not create a Git repository. Start in an empty project directory:
 
 ```bash
 mkdir my-project && cd my-project
 git init
-directive init
+directive install
 ```
 
-`init` writes the vendored deposit into gitignored `.deft/core/`, renders `AGENTS.md`, scaffolds `xbrief/` lifecycle folders, and adds an include-only root `Taskfile.yml`. Tracked vs ignored: the reconstitutable deposit and session cache are ignored; your `package.json` pin stays tracked.
+`install` adds an exact `@deftai/directive-runtime` pin through the package manager, runs setup (package-relative `AGENTS.md` / hooks / skills), and may seed initial project data. There is no copied `.deft/core/` content.
 
-**Success:** `.deft/core/` and `AGENTS.md` exist. **Recovery:** `directive doctor --full` (one `Next command:`).
+**Success:** `package.json` pins `@deftai/directive-runtime`, managed wiring exists, `directive doctor` is healthy. **Recovery:** `directive install --repair` after `npm i -g @deftai/directive`.
 
 ### 3. Doctor
 

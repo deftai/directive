@@ -1,6 +1,7 @@
 {
   "name": "@deftai/directive-core",
   "version": "0.0.0",
+  "private": true,
   "description": "TypeScript engine core for the Directive framework.",
   "license": "MIT",
   "type": "module",
@@ -295,7 +296,6 @@
       "types": "./dist/spec-reconstruct/reconstruct.d.ts",
       "default": "./dist/spec-reconstruct/reconstruct.js"
     },
-
     "./validate-content": {
       "types": "./dist/validate-content/index.d.ts",
       "default": "./dist/validate-content/index.js"
@@ -423,6 +423,14 @@
     "./task-surface": {
       "types": "./dist/task-surface/index.d.ts",
       "default": "./dist/task-surface/index.js"
+    },
+    "./install-health": {
+      "types": "./dist/install-health/index.d.ts",
+      "default": "./dist/install-health/index.js"
+    },
+    "./install-contract": {
+      "types": "./dist/install-contract/index.d.ts",
+      "default": "./dist/install-contract/index.js"
     },
     "./dist/*.js": {
       "types": "./dist/*.d.ts",

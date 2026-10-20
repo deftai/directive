@@ -22,7 +22,7 @@ const CONSUMER_RUN_SOURCES = [
   "docs-site/index.html",
   "packages/core/src/verify-env/node-runtime.ts",
   "packages/core/src/session/toolchain-preflight.ts",
-  "packages/cli/src/dispatch.ts",
+  "packages/runtime/src/dispatch.ts",
   "packages/core/src/check/named-cause.ts",
   "packages/core/src/doctor/payload-staleness.ts",
   "skills/deft-directive-sync/SKILL.md",
@@ -42,7 +42,7 @@ function readRepo(relPath: string): string {
 function consumerReadmeSlice(readme: string): string {
   const coldStart =
     readme.match(
-      /<!-- deft:cold-start-bootstrap[\s\S]*?<!-- \/deft:cold-start-bootstrap v1 -->/,
+      /<!-- deft:cold-start-bootstrap[\s\S]*?<!-- \/deft:cold-start-bootstrap v\d+ -->/,
     )?.[0] ?? "";
   const start = readme.indexOf("## 🚀 Getting Started");
   const maintainer = readme.indexOf("#### Framework maintainers");
@@ -68,7 +68,9 @@ describe("node version contracts (#4089)", () => {
     const cliPkg = JSON.parse(
       readFileSync(join(repoRoot(), "packages/cli/package.json"), { encoding: "utf8" }),
     ) as { engines?: { node?: string } };
-    expect(cliPkg.engines?.node).toBeUndefined();
+    // OVPR consumer floor is Node >=20 on the published launcher; maintainer pin stays 24.
+    expect(cliPkg.engines?.node).toBe(">=20");
+    expect(cliPkg.engines?.node).not.toMatch(/>=\s*24/);
   });
 
   it("names Node 24 and pnpm on the maintainer CONTRIBUTING path", () => {

@@ -13,7 +13,7 @@ Pins are for **false-negative-sensitive process gates**, not for copying entire 
 | Tier | Meaning | How the agent discovers it |
 |---|---|---|
 | **always-pin** | Named in AGENTS.md (managed or consumer unmanaged header) as a required `SKILL.md` load when a matching work type starts | Always-loaded AGENTS.md |
-| **on-demand** | Routed via Skills Index triggers (consumer: `npx deft packs:slice skills list`; maintainer: `REFERENCES.md`) — scan Level-0, read Level-1 on match | Skills Index → `SKILL.md` |
+| **on-demand** | Routed via Skills Index triggers (consumer + maintainer: `REFERENCES.md` § Skills Index; package-relative skill bodies under `node_modules/@deftai/directive-runtime/`) — scan Level-0, read Level-1 on match | Skills Index → `SKILL.md` |
 | **reference-only** | External, rare, or maintainer-only corpora; no standing trigger routing | Explicit doc pointer only |
 
 ### Criteria for always-pin
@@ -43,7 +43,7 @@ These four process skills are the **default always-pin list** for directive deve
 | `deft-directive-review-cycle` | Greptile/bot review response until merge-ready (#2308) |
 | `deft-directive-swarm` | Parallel agent dispatch / cohort orchestration |
 
-Consumer installs mirror the same four paths under `.deft/core/.agents/skills/`. Maintainer checkouts use `content/skills/<name>/SKILL.md`.
+Consumer installs mirror the same four paths under package-relative skill pointers (`node_modules/@deftai/directive-runtime/` / `.agents/skills/`). Maintainer checkouts use `content/skills/<name>/SKILL.md`.
 
 `deft-directive-setup` stays **on-demand** (explicit `setup` / `bootstrap` triggers). `deft-directive-sync` stays **on-demand** (session-start `sync` trigger and managed AGENTS pointers).
 

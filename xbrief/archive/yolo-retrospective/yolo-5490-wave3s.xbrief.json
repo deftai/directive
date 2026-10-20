@@ -1,0 +1,49 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "YOLO validated-issues V3 wave 3s — AC76-MARKER-TEST + MIGRATE-PARTIAL-REPORT",
+    "updated": "2026-10-15T23:30:00.000Z"
+  },
+  "plan": {
+    "title": "Wave 3s — Upgrade V→W marker proof and migrate partial report",
+    "status": "completed",
+    "id": "yolo-5490-wave3s",
+    "narratives": {
+      "Description": "Close P2 AC76-MARKER-TEST and MIGRATE-PARTIAL-REPORT from wave3p UNIFIED reassessment. Owner test upgrades V→W where only W's setup writes a distinctive marker. Migrate one-file failure at verbosity 0 names the failed file, lists migrated files, and names directive upgrade; exit 1.",
+      "Overview": "Branch yolo/wip-wave3s from yolo/cp-wave3r @ 64b6b06b6. Owner tests first (red→green). Prefer UNIFIED AC14.18 default report over -v-only path dumps. No Verdaccio freeze in this worker — orchestrator freezes after SLizard/Greptile.",
+      "Acceptance": "AC7.6 marker exists after V→W handoff (fails if V setup ran). AC14.18 default-verbosity migrate failure report names failed file + migrated set + directive upgrade; exit 1. Focused vitest green for upgrade bookend."
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "AC76-MARKER-TEST: V→W setup writes W-only marker (AC7.6)",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/cli/src/upgrade-bookend.test.ts",
+        "narrative": {
+          "Acceptance": "Given pin V and upgrade to W, when W's setup seam runs after pin move, then .deft/directive/ac76-w-marker exists; V's setup would not write it."
+        }
+      },
+      {
+        "id": "2",
+        "title": "MIGRATE-PARTIAL-REPORT: one-file migrate failure at verbosity 0 (AC14.18)",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/cli/src/plan-present.ts",
+        "narrative": {
+          "Acceptance": "Given migrate fails on one file after successful PM+setup, when report is at verbosity 0, then stdout/err names the failed file, lists migrated files, names directive upgrade, and exit is 1."
+        }
+      }
+    ],
+    "tags": ["yolo", "5490", "wave3s", "AC76-MARKER-TEST", "MIGRATE-PARTIAL-REPORT"],
+    "acceptance": [
+      "V→W upgrade owner test finds W-only setup marker",
+      "Migrate one-file failure report at default verbosity names file + migrated + directive upgrade",
+      "Focused vitest green for upgrade bookend / plan-present / related bookends"
+    ],
+    "metadata": {
+      "wave": "3s",
+      "inbox": ["AC76-MARKER-TEST", "MIGRATE-PARTIAL-REPORT"],
+      "base": "yolo/cp-wave3r@64b6b06b6eb54a41bca668964858dedb1b048314",
+      "productCommit": "e5e4a03f5292bf413826fe1a4c5022990f43f1a6"
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "schema": "xbrief",
+  "id": "yolo-5490-wave3l",
+  "title": "Wave 3l — F-016 fix-pass acceptance",
+  "status": "completed",
+  "summary": "Acceptance tip for F-016: convert upgrade keeps root package.json + runtime pin; doctor can see project.",
+  "completedAt": "2026-10-14T20:15:00Z",
+  "wave": "3l",
+  "inbox": ["F-016"],
+  "verdaccio": { "tag": "yolo-cp-wave3l", "version": "0.0.0-yolo.cp-wave3l.1" }
+}

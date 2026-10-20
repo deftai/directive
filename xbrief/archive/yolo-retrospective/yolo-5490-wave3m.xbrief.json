@@ -1,0 +1,11 @@
+{
+  "schema": "xbrief",
+  "id": "yolo-5490-wave3m",
+  "title": "Wave 3m — F-017 migrate 0.5→0.8 on upgrade + archive + doctor",
+  "status": "completed",
+  "summary": "Thin 0.5→0.6→0.8 on tip; S5/unparseable → xbrief/archive/; contract migrate wired; doctor/precutover teach directive upgrade.",
+  "completedAt": "2026-10-14T22:30:00Z",
+  "wave": "3m",
+  "inbox": ["F-017"],
+  "verdaccio": { "tag": "yolo-cp-wave3m", "version": "0.0.0-yolo.cp-wave3m.1" }
+}

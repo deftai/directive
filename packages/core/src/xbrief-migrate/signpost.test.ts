@@ -53,7 +53,8 @@ describe("renderXbriefMigrationLine", () => {
     const line = renderXbriefMigrationLine(root);
     expect(line).toContain("migrate required");
     expect(line).toContain("only vbrief/ found");
-    expect(line).toContain("migrate:xbrief");
+    expect(line).toContain("directive upgrade");
+    expect(line).not.toContain("migrate:xbrief");
   });
 
   it("reports an unambiguous xbrief-active + vbrief-removed state after migration [a2]", () => {
@@ -119,7 +120,8 @@ describe("renderXbriefMigrationLine", () => {
     expect(line).toContain("converge pending");
     expect(line).toContain("xbrief active");
     expect(line).toContain("empty legacy vbrief/");
-    expect(line).toContain("migrate:xbrief");
+    expect(line).toContain("directive upgrade");
+    expect(line).not.toContain("migrate:xbrief");
   });
 
   it("does not claim xbrief active for empty-vbrief when xbrief/ is absent", () => {
@@ -156,7 +158,8 @@ describe("renderXbriefMigrationLine", () => {
     const line = renderXbriefMigrationLine(root);
     expect(line).toContain("migrate required");
     expect(line).toContain("both vbrief/ and xbrief/ found");
-    expect(line).toContain("migrate:xbrief");
+    expect(line).toContain("directive upgrade");
+    expect(line).not.toContain("migrate:xbrief");
   });
 
   it("reports none (not migrate:xbrief) when only a stale deposited schema remains (#2368)", () => {

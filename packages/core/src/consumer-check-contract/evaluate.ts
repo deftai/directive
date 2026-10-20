@@ -95,22 +95,24 @@ export interface ConsumerCheckContractOptions {
 }
 
 /**
- * Relative path forms accepted for the deft-install canonical Taskfile include
- * (init-deposit `MINIMAL_TASKFILE` / `CANONICAL_TASKFILE_INCLUDE`).
+ * Relative path forms accepted for the deft-install / OVPR canonical Taskfile include
+ * (init-deposit `MINIMAL_TASKFILE` / OVPR `RUNTIME_TASKFILE_INCLUDE`).
  * Use only as a path-value matcher — never as a whole-file text search (Greptile P1 #3218).
+ * OVPR (#5490): also accept node_modules/@deftai/directive-runtime/Taskfile.yml.
  */
-export const CANONICAL_DEFT_TASKFILE_PATH_RE = /^(?:\.\.?\/)?\.deft\/core\/Taskfile\.yml$/i;
+export const CANONICAL_DEFT_TASKFILE_PATH_RE =
+  /^(?:\.\.?\/)?(?:\.deft\/core\/Taskfile\.yml|node_modules\/@deftai\/directive-runtime\/Taskfile\.yml)$/i;
 
-/** `taskfile: ./.deft/core/Taskfile.yml` under an includes: child (object form). */
+/** `taskfile: ./.deft/core/Taskfile.yml` (or OVPR runtime) under an includes: child. */
 const INCLUDE_TASKFILE_KEY_RE =
-  /^taskfile:\s*['"]?((?:\.\.?\/)?\.deft\/core\/Taskfile\.yml)['"]?\s*(?:#.*)?$/i;
+  /^taskfile:\s*['"]?((?:\.\.?\/)?(?:\.deft\/core\/Taskfile\.yml|node_modules\/@deftai\/directive-runtime\/Taskfile\.yml))['"]?\s*(?:#.*)?$/i;
 
 /**
  * Short form under includes: — **must** be namespace `deft` so `task deft:check`
  * remains the documented greenfield entrypoint (Greptile conf residual #3218).
  */
 const INCLUDE_DEFT_SHORT_FORM_RE =
-  /^deft:\s*['"]?((?:\.\.?\/)?\.deft\/core\/Taskfile\.yml)['"]?\s*(?:#.*)?$/i;
+  /^deft:\s*['"]?((?:\.\.?\/)?(?:\.deft\/core\/Taskfile\.yml|node_modules\/@deftai\/directive-runtime\/Taskfile\.yml))['"]?\s*(?:#.*)?$/i;
 
 /** Object-form entry start for the `deft` namespace only. */
 const INCLUDE_DEFT_ENTRY_START_RE = /^deft\s*:\s*(?:#.*)?$/i;

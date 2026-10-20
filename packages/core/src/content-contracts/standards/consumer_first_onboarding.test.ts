@@ -15,7 +15,10 @@ describe("consumer-first onboarding (#1813)", () => {
     const text = readText("QUICK-START.md");
     expect(text).toContain("Contributor pointer (non-blocking)");
     expect(text).toContain("CONTRIBUTING.md");
-    expect(text).toContain("--maintainer");
+    // Go `--maintainer` flag is deleted with the installer; tip points at
+    // CONTRIBUTING / Node+pnpm maintainer workflow instead (AC10.10).
+    expect(text).toMatch(/Node\/pnpm|maintainer workflow|CONTRIBUTING\.md/i);
+    expect(text).not.toContain("--maintainer");
   });
 
   it("deft-directive-setup skill defaults to consumer-first flow", () => {
@@ -23,6 +26,7 @@ describe("consumer-first onboarding (#1813)", () => {
     expect(text).toContain("## Consumer-first default (#1813)");
     expect(text).toContain("do NOT open with a contributor-vs-consumer fork");
     expect(text).toContain("## Contributor / framework-maintainer path (secondary)");
-    expect(text).toContain("--maintainer");
+    expect(text).toContain("CONTRIBUTING.md");
+    expect(text).not.toContain("--maintainer");
   });
 });

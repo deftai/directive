@@ -10,10 +10,11 @@ export const REPO_SLUG_PREFIX = "deftai-release-test-";
 export const REHEARSAL_VERSION = "0.0.1";
 
 /**
- * #1910: dependency order for the npm publish dry-run rehearsal, mirroring
- * .github/workflows/npm-publish.yml (types -> core -> content -> cli).
+ * #1910 / #5490 OVPR: publish order for the npm dry-run rehearsal, mirroring
+ * .github/workflows/npm-publish.yml (runtime then launcher; AC13.4).
+ * Private types/core/content are vendored into the runtime stage — not published.
  */
-export const NPM_PUBLISH_PACKAGES = ["types", "core", "content", "cli"] as const;
+export const NPM_PUBLISH_PACKAGES = ["runtime", "cli"] as const;
 /** #1925: throwaway dist-tag so dry-run does not apply `latest` to 0.0.1. */
 export const NPM_E2E_REHEARSAL_TAG = "e2e-rehearsal";
 export const NPM_INSTALL_TIMEOUT_SECONDS = 600;

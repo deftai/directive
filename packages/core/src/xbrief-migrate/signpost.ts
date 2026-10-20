@@ -1,9 +1,9 @@
 import { legacyClauseIdSignpostSuffix } from "./clause-ids.js";
 import { detectXbriefConvergence } from "./detect.js";
 
-/** Operator guidance for the TS-native xbrief rename (#2034 / #2110). */
+/** Operator guidance for lifecycle migration (AC8.9 / F-017): install-management owns upgrade. */
 export function xbriefMigrationGuidance(): string {
-  return "Run `deft migrate:xbrief` (or `task migrate:xbrief`) to convert vbrief/ to xbrief/ safely.";
+  return "Run `directive upgrade` to migrate vbrief/ to current xbrief/ safely.";
 }
 
 /**
@@ -11,7 +11,7 @@ export function xbriefMigrationGuidance(): string {
  * reporting an unambiguous convergence state (#2270 / #2112). As of #2112
  * (0.73.0 MINOR), the legacy vbrief read path is removed; the `legacy-only` and
  * `dual-populated` states are still reported here so the doctor can direct
- * unmigrated-project operators to `deft migrate:xbrief` before the engine runs.
+ * unmigrated-project operators to `directive upgrade` (AC8.9 / F-017).
  */
 export function renderXbriefMigrationLine(projectRoot: string): string {
   const convergence = detectXbriefConvergence(projectRoot);

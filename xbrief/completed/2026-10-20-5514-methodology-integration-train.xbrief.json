@@ -1,0 +1,92 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Canonical completion brief for #5514 branch/publish/self-host methodology used for OVPR delivery.",
+    "updated": "2026-10-20T18:00:00Z"
+  },
+  "plan": {
+    "id": "2026-10-20-5514-methodology-integration-train",
+    "title": "#5514 OVPR methodology — integration branch, soak, consumer-only self-host",
+    "status": "completed",
+    "updated": "2026-10-20T18:00:00Z",
+    "narratives": {
+      "Overview": "Executed #5514 methodology: long-lived yolo/5490 integration trunk, master kept releasable, paired beta publish without emergency @latest flip, consumer-only self-hosting after cutover, and HEAD never governing this checkout as the install engine during the train. Sterile field was process acceleration; undoing it is sequenced with GA self-install after master merge.",
+      "Description": "Canonical completion brief for #5514 branch/publish/self-host methodology used for OVPR delivery.",
+      "Origin": "Canonical retrospective completion for the OVPR installer effort (#5490 / #5514) prior to master merge. Replaces non-canonical YOLO wave stubs."
+    },
+    "items": [
+      {
+        "id": "2026-10-20-5514-methodology-integration-train-ac1",
+        "title": "Integration trunk yolo/5490 with checkpoint waves; wave4j cut from wave4i after master→5490 merge-up.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Integration trunk yolo/5490 with checkpoint waves; wave4j cut from wave4i after master→5490 merge-up."
+        }
+      },
+      {
+        "id": "2026-10-20-5514-methodology-integration-train-ac2",
+        "title": "Public beta from tip without merging to master for the beta cut.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Public beta from tip without merging to master for the beta cut."
+        }
+      },
+      {
+        "id": "2026-10-20-5514-methodology-integration-train-ac3",
+        "title": "pre-ovpr-installer-master-merge tag on master before OVPR merge.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "pre-ovpr-installer-master-merge tag on master before OVPR merge."
+        }
+      },
+      {
+        "id": "2026-10-20-5514-methodology-integration-train-ac4",
+        "title": "Self-host cutover deferred until GA pin exists (Phase 10 of merge plan).",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Self-host cutover deferred until GA pin exists (Phase 10 of merge plan)."
+        }
+      }
+    ],
+    "tags": [
+      "5490",
+      "ovpr",
+      "installer",
+      "canonical"
+    ],
+    "references": [
+      {
+        "type": "github-issue",
+        "id": "5490",
+        "url": "https://github.com/deftai/directive/issues/5490"
+      },
+      {
+        "type": "github-issue",
+        "id": "5514",
+        "url": "https://github.com/deftai/directive/issues/5514"
+      },
+      {
+        "type": "path",
+        "path": "docs/installer-refactor-ovpr/README.md"
+      }
+    ],
+    "acceptance": {
+      "criteria": [
+        "Integration trunk yolo/5490 with checkpoint waves; wave4j cut from wave4i after master→5490 merge-up.",
+        "Public beta from tip without merging to master for the beta cut.",
+        "pre-ovpr-installer-master-merge tag on master before OVPR merge.",
+        "Self-host cutover deferred until GA pin exists (Phase 10 of merge plan)."
+      ],
+      "status": "completed"
+    },
+    "metadata": {
+      "completedAt": "2026-10-20T18:00:00Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-20T18:00:00Z"
+      },
+      "canonicalOvprSet": true,
+      "note": "Honest completion stamp for master-merge hygiene. No fabricated PR merge provenance; delivery evidence is the yolo/wip-wave4j train + docs."
+    }
+  }
+}

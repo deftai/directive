@@ -596,8 +596,8 @@ describe("runResolutionDecision state matrix (#2267)", () => {
     expect(summary.mode).toBe("proceed");
     expect(summary.actionRequired).toBe(false);
     expect(countNextCommands(text)).toBe(0);
-    expect(text).toContain("directive migrate:xbrief");
-    expect(summary.warnings.some((w) => w.includes("migrate:xbrief"))).toBe(true);
+    expect(text).toContain("directive upgrade");
+    expect(summary.warnings.some((w) => w.includes("directive upgrade"))).toBe(true);
     const resolutionFinding = findings.filter((f) => f.check === "resolution")[0];
     expect(resolutionFinding?.severity).toBe("skip");
     // Exercise the proceed-branch guard message so a regression fails the suite
@@ -605,29 +605,29 @@ describe("runResolutionDecision state matrix (#2267)", () => {
     expect(resolutionFinding?.message).toContain("proceed");
   });
 
-  it("engine behind pin (mismatched env) -> one install-global directive command", () => {
+  it("engine behind pin (mismatched env) -> blocked + AC9.7 (install-global retired)", () => {
     const root = makeRoot();
     makeDeposit(root);
     writePackagePin(root, "0.68.0");
-    const { summary, text } = runDecision(root, { engineProbe: engineAt("0.60.0") });
-    expect(summary.mode).toBe("install-global");
-    expect(summary.nextCommand).toBe("npm i -g @deftai/directive@0.68.0");
+    const { summary } = runDecision(root, { engineProbe: engineAt("0.60.0") });
+    expect(summary.mode).toBe("blocked");
+    expect(summary.nextCommand).toBeNull();
+    expect(summary.remediation).toContain("directive install --repair");
     expect(summary.reconciliation).toContain("behind");
-    expect(summary.nextCommand?.startsWith("task ")).toBe(false);
-    expect(countNextCommands(text)).toBe(1);
   });
 
-  it("engine ahead within window (mismatched env) -> update", () => {
+  it("engine ahead within window (mismatched env) -> update without npx", () => {
     const root = makeRoot();
     makeDeposit(root);
     writePackagePin(root, "0.68.0");
     const { summary } = runDecision(root, { engineProbe: engineAt("0.69.0") });
     expect(summary.mode).toBe("update");
-    expect(summary.nextCommand).toBe("npx @deftai/directive update");
+    expect(summary.nextCommand).toBeNull();
+    expect(summary.remediation).toMatch(/directive upgrade|directive install --repair/);
     expect(summary.reconciliation).toContain("ahead");
   });
 
-  it("content at engine plus pin lag on pnpm is align-pin, not npx update (#4718)", () => {
+  it("content at engine plus pin lag on pnpm is blocked (align-pin retired, AC12.6)", () => {
     const root = makeRoot();
     makeDeposit(root);
     writeFileSync(join(root, ".deft", "core", "VERSION"), "tag: 'v0.69.0'\n", "utf8");
@@ -642,20 +642,20 @@ describe("runResolutionDecision state matrix (#2267)", () => {
     );
     writeFileSync(join(root, "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n", "utf8");
     const { summary } = runDecision(root, { engineProbe: engineAt("0.69.0") });
-    expect(summary.mode).toBe("align-pin");
-    expect(summary.actionRequired).toBe(true);
-    expect(summary.nextCommand).toBe("pnpm add -D @deftai/directive@0.69.0");
-    expect(summary.nextCommand).not.toContain("update");
+    expect(summary.mode).toBe("blocked");
+    expect(summary.nextCommand).toBeNull();
+    expect(summary.remediation).toContain("directive install --repair");
   });
 
-  it("content at engine plus pin lag on npm is pin follow-through (#4718)", () => {
+  it("content at engine plus pin lag on npm is blocked (align-pin retired, AC12.6)", () => {
     const root = makeRoot();
     makeDeposit(root);
     writeFileSync(join(root, ".deft", "core", "VERSION"), "tag: 'v0.69.0'\n", "utf8");
     writePackagePin(root, "0.68.0");
     const { summary } = runDecision(root, { engineProbe: engineAt("0.69.0") });
-    expect(summary.mode).toBe("align-pin");
-    expect(summary.nextCommand).toBe("npm install --save-dev @deftai/directive@0.69.0");
+    expect(summary.mode).toBe("blocked");
+    expect(summary.nextCommand).toBeNull();
+    expect(summary.remediation).toContain("directive install --repair");
   });
 });
 
@@ -701,7 +701,7 @@ describe("xbrief envelope version check (#2971)", () => {
     expect(text).toContain("framework 0.8");
   });
 
-  it("fails closed on 0.6 under xbrief layout with migrate:xbrief next action", () => {
+  it("fails closed on 0.6 under xbrief layout with directive upgrade next action", () => {
     const root = makeRoot();
     writeProjectDefinition(root, {
       xBRIEFInfo: { version: "0.6", description: "stale write-path" },
@@ -710,9 +710,9 @@ describe("xbrief envelope version check (#2971)", () => {
     const { findings, text } = runEnvelope(root);
     expect(findings[0]?.severity).toBe("error");
     expect(findings[0]?.status).toBe("behind-major");
-    expect(findings[0]?.next_command).toBe("deft migrate:xbrief");
-    expect(findings[0]?.suggestion).toBe("deft migrate:xbrief");
-    expect(text).toContain("migrate:xbrief");
+    expect(findings[0]?.next_command).toBe("directive upgrade");
+    expect(findings[0]?.suggestion).toBe("directive upgrade");
+    expect(text).toContain("directive upgrade");
     expect(text).toContain("behind-major");
     expect(text).toContain("declared 0.6");
     expect(text).toContain("framework 0.8");
@@ -728,7 +728,7 @@ describe("xbrief envelope version check (#2971)", () => {
     const { findings } = runEnvelope(root);
     expect(findings[0]?.severity).toBe("error");
     expect(findings[0]?.status).toBe("behind-major");
-    expect(findings[0]?.next_command).toBe("deft migrate:xbrief");
+    expect(findings[0]?.next_command).toBe("directive upgrade");
   });
 
   it("fails closed when a lifecycle story is 0.6 even if PROJECT-DEFINITION is 0.8 (#3243)", () => {
@@ -1358,7 +1358,7 @@ describe("framework-layout split identities (#4162)", () => {
       state: "dual-populated",
       healthy: false,
     });
-    expect(classifyProjectLifecycle(dual).message).toContain("migrate:xbrief");
+    expect(classifyProjectLifecycle(dual).message).toContain("directive upgrade");
 
     const marked = makeRoot();
     seedEnvelope(marked);

@@ -144,15 +144,28 @@ describe("recovery target resolvability (#4430 / #2273)", () => {
     }
   });
 
-  it.each(
-    RECOVERY_CARRIERS,
-  )("recovery install appends @<pin> from package.json, not an unversioned registry default: %s", (relPath) => {
+  it("recovery install appends @<pin> from package.json on managed agents-entry", () => {
+    const window = recoveryWindow(
+      "templates/agents-entry.md",
+      readRepoFile("templates/agents-entry.md"),
+    );
+    const instructions = recoveryInstructions(window);
+    expect(instructions.length).toBeGreaterThan(0);
+    expect(window).toContain(RECOVERY_LADDER_NPM_GLOBAL_PINNED);
+    // AC9.7 wiring repair stays unversioned; skew recovery uses @<pin>.
+    expect(window).toMatch(/npm i -g @deftai\/directive@<pin>/);
+  });
+
+  it.each([
+    "main.md",
+    "SKILL.md",
+  ] as const)("root carrier recovery documents AC9.7 repair without inventing payload paths: %s", (relPath) => {
     const window = recoveryWindow(relPath, readRepoFile(relPath));
     const instructions = recoveryInstructions(window);
     expect(instructions.length).toBeGreaterThan(0);
-    for (const instruction of instructions) {
-      expect(instruction).toContain(RECOVERY_LADDER_NPM_GLOBAL_PINNED);
-      expect(instruction).not.toMatch(/`npm i -g @deftai\/directive`/);
-    }
+    const joined = instructions.join("\n");
+    expect(joined).toContain(RECOVERY_LADDER_NPM_GLOBAL);
+    expect(joined).toMatch(/directive install --repair|directive doctor/);
+    expect(joined).not.toMatch(/\.deft\/core\/QUICK-START\.md/);
   });
 });

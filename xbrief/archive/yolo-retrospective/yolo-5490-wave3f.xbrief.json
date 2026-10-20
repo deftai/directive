@@ -1,0 +1,10 @@
+{
+  "schema": "xbrief",
+  "id": "yolo-5490-wave3f",
+  "title": "Wave 3f — universal upgrade via removal strategies",
+  "status": "completed",
+  "summary": "upgrade converts vendored-core-go, go-tarball, submodule (file gitlink), dual-layout, orphan without dump-out. L0 2f sacred. Index-mode submodule remains unsupported-honest.",
+  "completedAt": "2026-10-14T15:30:00Z",
+  "wave": "3f",
+  "verdaccio": { "tag": "yolo-cp-wave3f", "version": "0.0.0-yolo.cp-wave3f.1" }
+}

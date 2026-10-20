@@ -30,9 +30,9 @@ describe("corporate npm registry recovery guidance (#2808)", () => {
   it("keeps the cold-start README pointer thin and anchored", () => {
     const readme = readText("README.md");
 
+    // Thin pointer only — diagnosis tokens (E404/ETARGET) live in UPGRADING.md.
     expect(readme).toContain("content/UPGRADING.md#corporate-or-mirrored-npm-registry");
-    expect(readme).toContain("E404");
-    expect(readme).toContain("ETARGET");
+    expect(readme.toLowerCase()).toMatch(/corporate mirror|offline/);
   });
 
   it("distinguishes offline npm config reads from explicit public-registry probes", () => {

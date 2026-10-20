@@ -77,7 +77,9 @@ describe("rehearseGreenfieldPythonFreeSmoke (#2022 Phase 3)", () => {
       { skipWorkspacePrep: true },
     );
     expect(ok).toBe(false);
-    expect(reason).toContain("spawn budget");
+    // OVPR pack runs stage-bundle via packOvprTarballs before later runStep labels;
+    // exit 128 still fails closed with the pack step name in the reason.
+    expect(reason).toMatch(/stage-bundle runtime failed \(exit 128\)|spawn budget/);
   });
 });
 

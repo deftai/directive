@@ -89,6 +89,16 @@ export function resolveFrameworkRootForProject(
       // try next candidate
     }
   }
+  // OVPR (#5490): exact runtime pin lives under node_modules; that package is
+  // the framework root (main.md + tasks) when .deft/core is absent.
+  const ovprRuntime = join(root, "node_modules", "@deftai", "directive-runtime");
+  try {
+    if (statSync(ovprRuntime).isDirectory() && existsSync(join(ovprRuntime, "main.md"))) {
+      return ovprRuntime;
+    }
+  } catch {
+    // fall through
+  }
   return resolveDefaultFrameworkRoot();
 }
 

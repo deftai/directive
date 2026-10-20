@@ -1,83 +1,71 @@
 import { describe, expect, it } from "vitest";
-import { readRepoFile, repoFileExists } from "./helpers.js";
+import { readAgentsPreamble, repoFileExists } from "./helpers.js";
 
-/** Port of tests/content/test_agents_md_preamble.py (#1838 #1530) */
+/** Port of tests/content/test_agents_md_preamble.py (#1838 #1530).
+ *  #954 orchestration discipline lives in templates/agent-prompt-preamble.md (not root AGENTS.md).
+ */
 
-const _AGENTS_MD = "AGENTS.md";
-
-const agents_md_text = readRepoFile("AGENTS.md");
+const preambleText = readAgentsPreamble();
 
 describe("test_agents_md_preamble", () => {
-  it("agents_md_exists", () => {
-    expect(repoFileExists("AGENTS.md")).toBeTruthy();
+  it("agents_preamble_template_exists", () => {
+    expect(repoFileExists("templates/agent-prompt-preamble.md")).toBeTruthy();
   });
-  it("954_section_heading_present", () => {
-    expect(/^##\s+Multi-agent orchestration discipline\s+\(#954\)\s*$/m.test(agents_md_text)).toBe(
-      true,
-    );
+
+  it("954_canonical_preamble_present", () => {
+    // Former AGENTS.md "## Multi-agent orchestration discipline (#954)" → preamble title.
+    expect(preambleText).toContain("# Canonical orchestrator preamble (#954)");
   });
+
   it("rest_by_default_rule_present", () => {
-    expect(agents_md_text).toContain("prefer REST surfaces over GraphQL");
+    expect(preambleText).toContain("MUST prefer REST");
     for (const forbidden of [
-      "gh issue view --json",
-      "gh pr view --json",
+      "gh issue view <N> --json",
+      "gh pr view <N> --json",
       "gh pr ready",
       "gh pr update-branch",
     ]) {
-      expect(agents_md_text).toContain(forbidden);
+      expect(preambleText).toContain(forbidden);
     }
   });
+
   it("no_draft_retoggle_rule_present", () => {
-    expect(/toggle PR Draft.*Ready state at most once/.test(agents_md_text)).toBeTruthy();
+    expect(/at most one toggle per cycle/i.test(preambleText)).toBeTruthy();
+    expect(preambleText).toContain("Draft");
+    expect(preambleText).toContain("Ready");
   });
+
   it("rate_limit_throttle_rule_present", () => {
-    expect(agents_md_text).toContain("gh api rate_limit");
-    expect(
-      agents_md_text.includes("graphql.remaining") || agents_md_text.includes("graphql_remaining"),
-    ).toBe(true);
-    const permit_patterns = [
-      "probe\\s+`ghx api rate_limit`",
-      "`ghx api rate_limit`\\s*\\(or\\s*`gh api rate_limit`\\)",
-    ];
-    for (const pattern of permit_patterns) {
-      expect(!new RegExp(pattern).test(agents_md_text)).toBe(true);
-    }
+    expect(preambleText).toContain("gh api rate_limit");
+    expect(preambleText).toContain("graphql.remaining");
+    // Probe must stay on live `gh`, not ghx (see agent_prompt_preamble_template.test.ts).
+    expect(!/ghx\s+api\s+rate_limit/.test(preambleText)).toBe(true);
   });
+
   it("dispatcher_lifecycle_hygiene_rule_present", () => {
-    expect(agents_md_text).toContain("Dispatcher-level lifecycle hygiene");
-    expect(agents_md_text).toContain("all-or-nothing");
-    expect(
-      agents_md_text.includes("two separate dispatches") || agents_md_text.includes("two-dispatch"),
-    ).toBe(true);
+    expect(preambleText).toContain("Dispatcher lifecycle hygiene");
+    expect(preambleText).toContain("all-or-nothing");
+    expect(preambleText).toContain("two dispatches");
   });
-  it("meta_rule_points_at_template", () => {
-    expect(agents_md_text).toContain("templates/agent-prompt-preamble.md");
+
+  it("meta_rule_orchestrators_must_include_preamble", () => {
+    expect(preambleText).toContain("templates/agent-prompt-preamble.md");
     expect(
-      /Orchestrators dispatching implementation sub-agents MUST include the canonical preamble/.test(
-        agents_md_text,
-      ),
+      /orchestrators[\s\S]*MUST include/i.test(preambleText) ||
+        /MUST include[\s\S]*canonical preamble/i.test(preambleText),
     ).toBeTruthy();
   });
+
   it("ghx_writes_correction_present", () => {
-    expect(agents_md_text).toContain("cached read-only GET proxy");
-    expect(
-      agents_md_text.includes("single positional") ||
-        agents_md_text.includes("single arg") ||
-        agents_md_text.includes("accepts 1 arg"),
-    ).toBe(true);
-    expect(
-      /[Ww]rites?\s+\(POST\/PATCH\/PUT\/DELETE.*\)?\s+(MUST|must)\s+fall through to\s+`?gh`?/.test(
-        agents_md_text,
-      ),
-    ).toBeTruthy();
+    // Detail moved partly to scm/github.md; preamble still teaches cached GET + live gh mutations.
+    expect(preambleText).toContain("cached read-only GET");
+    expect(preambleText).toContain("`ghx` is read-only");
+    expect(preambleText).toContain("mutations stay on live `gh`");
   });
+
   it("rules_use_required_must_marker", () => {
-    const sectionMatch = agents_md_text.match(
-      /^##\s+Multi-agent orchestration discipline\s+\(#954\)[\s\S]*?(?=^##\s|Z)/m,
-    );
-    expect(sectionMatch).not.toBeNull();
-    const sectionText = sectionMatch?.[0] ?? "";
-    const mustLines = sectionText.match(/^- !\s+/gm) ?? [];
-    expect(mustLines.length).toBeGreaterThanOrEqual(5);
+    const mustLines = preambleText.match(/^!\s+/gm) ?? [];
+    const mustBulletLines = preambleText.match(/^-\s+!\s+/gm) ?? [];
+    expect(mustLines.length + mustBulletLines.length).toBeGreaterThanOrEqual(5);
   });
 });

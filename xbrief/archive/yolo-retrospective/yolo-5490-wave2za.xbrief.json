@@ -1,0 +1,19 @@
+{
+  "schema": "xbrief",
+  "id": "yolo-5490-wave2za",
+  "title": "Wave 2za \u2014 UX-PRESENT \u00a7C9 human plan/report (F-002)",
+  "status": "completed",
+  "summary": "Default install/repair/upgrade/uninstall presentation matches UNIFIED \u00a7C9 Examples A\u2013F; keyed dumps behind -v/-vv/--debug. Greptile run1 blockers fixed; run2 residual lockfile-in-repair-review addressed. Smoke wave2za.sh PASS on Verdaccio yolo-cp-wave2za / 0.0.0-yolo.cp-wave2za.3.",
+  "completedAt": "2026-10-12T15:03:25Z",
+  "wave": "2za",
+  "findingKeys": [
+    "UX-PRESENT"
+  ],
+  "inbox": [
+    "F-002"
+  ],
+  "verdaccio": {
+    "tag": "yolo-cp-wave2za",
+    "version": "0.0.0-yolo.cp-wave2za.3"
+  }
+}

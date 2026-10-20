@@ -345,6 +345,7 @@ describe("runRefreshDeposit", () => {
       expect(existsSync(join(result.deftDir, "main.md"))).toBe(true);
       const codexHooks = readFileSync(join(project, ".codex", "hooks.json"), "utf8");
       expect(codexHooks).toContain("./consumer-check.sh");
+      // Legacy refresh without local runtime keeps working bare PATH command.
       expect(codexHooks).toContain("deft-hook --host codex --event tool.before");
       expect(readFileSync(join(project, ".codex", "config.toml"), "utf8")).toBe(
         'model = "gpt-5"\n',
@@ -1485,7 +1486,9 @@ describe("runRefreshDepositCli legacy refusal", () => {
     expect(parsed.legacy_layout).toBe(true);
     expect(parsed.legacy_layout_kind).toBe("legacy-deft-prefixed");
     expect(err.join("")).toContain("refusing to refresh");
-    expect(err.join("")).toContain("npx @deftai/directive update");
+    // OVPR / AC10.10: refusal points at launcher bookend + directive upgrade (not npx update).
+    expect(err.join("")).toContain("directive upgrade");
+    expect(err.join("")).toContain("npm i -g @deftai/directive");
   });
 
   it("update refuses a legacy layout in interactive mode (message on stdout)", async () => {
@@ -2335,12 +2338,11 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
       });
 
       expect(code).toBe(0);
-      // The ladder ran the install with zero manual npm/PATH steps.
-      expect(installRunner).toHaveBeenCalledWith(
-        expect.objectContaining({ rung: "install-global", pinVersion: "0.54.0" }),
-      );
-      expect(err.join("")).toContain("engine self-heal (global-first ladder)");
-      // The refresh still completed after the self-heal.
+      // AC12.5 / AC12.6: never auto-installs; prints AC9.7 remediation and continues.
+      expect(installRunner).not.toHaveBeenCalled();
+      expect(err.join("")).toContain("engine self-heal:");
+      expect(err.join("")).toMatch(/Remediation:|npm i -g @deftai\/directive/);
+      // The refresh still completed after the diagnostic self-heal path.
       expect(existsSync(join(project, ".deft", "core", "main.md"))).toBe(true);
     },
   );

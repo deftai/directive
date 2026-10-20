@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "kind": "xbrief",
+  "title": "YOLO #5490 Wave 2t — UX-INT-TTY live interactive bookends",
+  "status": "completed",
+  "branch": "yolo/wip-wave2t",
+  "tip": "1179ebde3",
+  "tag": "yolo-cp-wave2t",
+  "verdaccio": "0.0.0-yolo.cp-wave2t.2",
+  "smoke": "wave2t.sh PASS",
+  "acs": ["AC5.2", "AC14.1", "AC14.39", "INIT-11"],
+  "findings": ["UX-INT-TTY"]
+}

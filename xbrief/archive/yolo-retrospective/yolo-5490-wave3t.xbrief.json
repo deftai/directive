@@ -1,0 +1,58 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "YOLO validated-issues V3 wave 3t \u2014 DEFT-INSTALL-RESIDUAL (AC10.10)",
+    "updated": "2026-10-16T04:17:32.000Z"
+  },
+  "plan": {
+    "title": "Wave 3t \u2014 Go installer residual teaching deleted / archaeology-only",
+    "status": "completed",
+    "id": "yolo-5490-wave3t",
+    "narratives": {
+      "Description": "Close P2 DEFT-INSTALL-RESIDUAL (AC10.10). Rewrite ARCHITECTURE.md, FILES.md, deft-directive-sync skill, and content-manifest so the Go installer is deleted/archaeology-only and never a current path. Align current teaching with OVPR (global launcher + directive install/upgrade/uninstall/doctor; AC9.7 repair). Extend content-contract owner tests beyond init-cli.",
+      "Overview": "Branch yolo/wip-wave3t from yolo/cp-wave3s @ fd90fcbcae. Owner tests first (red\u2192green). Prefer current-path surfaces over dated audit archaeology. No Verdaccio freeze in this worker \u2014 orchestrator freezes after SLizard/Greptile.",
+      "Acceptance": "Content scanners find no current-path Go installer teaching on the four residual surfaces. ARCHITECTURE/FILES/sync/manifest teach OVPR + AC9.7. architecture-package-topology requires deleted/archaeology wording (not deft-install gate as current). wave3t.sh PASS."
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "Rewrite residual surfaces: ARCHITECTURE / FILES / sync skill / content-manifest",
+        "status": "completed",
+        "x-directive/artifact_path": "docs/ARCHITECTURE.md",
+        "narrative": {
+          "Acceptance": "Given the four residual surfaces, when an operator reads current guidance, then Go installer is deleted/archaeology-only and OVPR verbs + AC9.7 repair are taught."
+        }
+      },
+      {
+        "id": "2",
+        "title": "Owner tests: wave3t residual + flip architecture topology Go assertion",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/content-contracts/standards/ovpr_docs_residual_wave3t.test.ts",
+        "narrative": {
+          "Acceptance": "Given wave3t residual + architecture-package-topology tests, when vitest runs, then current-path Go teaching fails closed and deleted/archaeology + OVPR asserts pass."
+        }
+      }
+    ],
+    "tags": [
+      "yolo",
+      "5490",
+      "wave3t",
+      "DEFT-INSTALL-RESIDUAL",
+      "AC10.10"
+    ],
+    "acceptance": [
+      "ARCHITECTURE/FILES/sync/manifest teach deleted Go + OVPR/AC9.7",
+      "ovpr_docs_residual_wave3t + architecture-package-topology green",
+      "wave3t.sh PASS",
+      "No Verdaccio/CP freeze in this worker"
+    ],
+    "metadata": {
+      "wave": "3t",
+      "inbox": [
+        "DEFT-INSTALL-RESIDUAL"
+      ],
+      "base": "yolo/cp-wave3s@fd90fcbcae2e5cffb32699f9887199f10eb036c4",
+      "productCommit": "8d48c7588002642e372648938a3545bfe119e400"
+    }
+  }
+}

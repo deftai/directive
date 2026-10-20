@@ -605,8 +605,11 @@ export function loadCommandRegistries(repoRoot: string): CommandRegistries {
     }
   }
 
-  const dispatch = readFileSync(join(repoRoot, "packages/cli/src/dispatch.ts"), "utf8");
-  const router = readFileSync(join(repoRoot, "packages/cli/src/cli-router/route-argv.ts"), "utf8");
+  const dispatch = readFileSync(join(repoRoot, "packages/runtime/src/dispatch.ts"), "utf8");
+  const router = readFileSync(
+    join(repoRoot, "packages/runtime/src/cli-router/route-argv.ts"),
+    "utf8",
+  );
   const moduleVerbs = parseStringArrayExport(dispatch, "CLI_MODULE_VERBS");
   const coreVerbs = parseStringArrayExport(dispatch, "CORE_MODULE_VERBS");
   const aliasKeys = parseRecordKeys(dispatch, "VERB_ALIASES");

@@ -83,7 +83,7 @@ describe("test_decomposition_readiness", () => {
       "strategies/speckit.md",
       "vbrief/vbrief.md",
       "tasks/scope.yml",
-      "packages/cli/src/triage-help.ts",
+      "packages/runtime/src/triage-help.ts",
     ]) {
       const text =
         path.startsWith("packages/") || path.startsWith("tasks/")

@@ -1,0 +1,44 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "YOLO Wave 4b \u2014 F-4B-AGENTS-CORE fix (.deft/core out of agents-entry)",
+    "updated": "2026-10-16T16:14:09.000Z"
+  },
+  "plan": {
+    "title": "Wave 4b \u2014 F-4B-AGENTS-CORE (P0)",
+    "status": "completed",
+    "id": "yolo-5490-wave4b",
+    "narratives": {
+      "Description": "Close F-4B-AGENTS-CORE: rewrite agents-entry ADR-003 Depth cite to OVPR package-relative path; owner test bans .deft/core in template; re-prove setup/doctor-diagnose/setup-wiring.",
+      "Overview": "Cut yolo/wip-wave4b from yolo/cp-wave4a @ 75e4afce. RED\u2192GREEN owner test in ovpr_docs_ac13. Freeze yolo/cp-wave4b + Verdaccio yolo-cp-wave4b / 0.0.0-yolo.cp-wave4b.1.",
+      "Acceptance": "Zero .deft/core in content/templates/agents-entry.md; setup conflicts=[]; wiring-ready written; doctor-diagnose AC6.2 green; packed runtime template clean."
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "RED owner test .deft/core in agents-entry",
+        "status": "completed"
+      },
+      {
+        "id": "2",
+        "title": "GREEN Depth cite + template clean",
+        "status": "completed"
+      },
+      {
+        "id": "3",
+        "title": "Focused vitest setup/doctor/wiring/ovpr",
+        "status": "completed"
+      },
+      {
+        "id": "4",
+        "title": "SLizard + Greptile + fixture smoke",
+        "status": "completed"
+      },
+      {
+        "id": "5",
+        "title": "Freeze CP + Verdaccio publish",
+        "status": "completed"
+      }
+    ]
+  }
+}

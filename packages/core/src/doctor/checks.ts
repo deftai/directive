@@ -48,8 +48,10 @@ import {
   LEGACY_ARTIFACT_DIR,
   LEGACY_INFO_ROOT_KEY,
   LEGACY_VBRIEF_VERSION,
+  MIGRATE_THROUGH_VBRIEF_VERSION,
   MIGRATED_ARTIFACT_DIR,
   MIGRATED_ARTIFACT_SUFFIX,
+  PRE_LEGACY_VBRIEF_VERSION,
 } from "../xbrief-migrate/constants.js";
 import { detectXbriefConvergence, type XbriefConvergenceState } from "../xbrief-migrate/detect.js";
 import { readDeclaredArtifactVersion } from "../xbrief-migrate/transforms.js";
@@ -78,8 +80,16 @@ import type { CheckResult, DanglingNodeModulesLink } from "./types.js";
 /** Narrow recovery for linked-worktree missing VERSION with agreeing bare (#5390). */
 export const MISSING_MANIFEST_RECONSTITUTE_FIX = "deft session:start" as const;
 
-/** Remediation verb for project envelope behind-major (#2971 / #3243 / #3236). */
-export const XBRIEF_ENVELOPE_MIGRATE_COMMAND = "deft migrate:xbrief" as const;
+/** Remediation for project envelope behind-major (AC8.9 / F-017): install-management upgrade. */
+export const XBRIEF_ENVELOPE_MIGRATE_COMMAND = "directive upgrade" as const;
+
+function isMigratableEnvelopeVersion(version: string | null): boolean {
+  return (
+    version === PRE_LEGACY_VBRIEF_VERSION ||
+    version === LEGACY_VBRIEF_VERSION ||
+    version === MIGRATE_THROUGH_VBRIEF_VERSION
+  );
+}
 
 /** Doctor check name for envelope major mismatch (Q5 Option 2, #3243). */
 export const XBRIEF_ENVELOPE_MAJOR_CHECK = "xbrief-envelope-version" as const;
@@ -568,7 +578,7 @@ function probeDirectoryPresence(path: string, seams: CheckSeams): PathPresence {
  * Live project envelopes for fail-closed major mismatch (#3243 first ship).
  * PROJECT-DEFINITION + pending/active in-flight work. Proposed backlog and
  * completed/cancelled archives are not fail-closed here (historical debt; full
- * tree rewrite remains on `deft migrate:xbrief` / #3236).
+ * tree rewrite remains on `directive upgrade` / #3236 / F-017).
  */
 const ENVELOPE_MAJOR_SCAN_FOLDERS = ["pending", "active"] as const;
 
@@ -708,9 +718,9 @@ export function scanXbriefEnvelopeVersions(
 /**
  * Fail closed when any scanned project xBRIEF envelope declares a major behind
  * the framework target (#3243 / epic #3237 Q5 Option 2). Behind-minor does not
- * fail this check. Remediation: `deft migrate:xbrief` (rewrites hybrid 0.6 on
- * already-xbrief trees — #3236). Distinct from `stale-xbrief-schema-deposit`
- * which routes schema-only drift to `directive update`.
+ * fail this check. Remediation: `directive upgrade` (F-017; rewrites 0.5/0.6/0.7
+ * including hybrid on already-xbrief trees — #3236). Distinct from
+ * `stale-xbrief-schema-deposit` which routes schema-only drift to `directive update`.
  */
 export function checkXbriefEnvelopeMajorVersion(
   projectRoot: string,
@@ -749,21 +759,22 @@ export function checkXbriefEnvelopeMajorVersion(
     };
   }
 
-  // Fail closed for behind-major live envelopes (#3243 / #3236):
-  // - exact 0.6 → migratable via `deft migrate:xbrief`
-  // - null / 0.5 / unreadable / … → structural rewrite (migrate does not clear)
+  // Fail closed for behind-major live envelopes (#3243 / #3236 / F-017):
+  // - 0.5 / 0.6 / orphan 0.7 → migratable via `directive upgrade`
+  // - null / pre-0.5 / unreadable / … → archive or hand-port (upgrade archives S5)
   // When both classes are present, report BOTH remediations in one fail so
   // migrate-only guidance cannot hide the non-migratable repair (#3243 review).
-  const migratableBehindMajor = scan.behindMajor.filter(
-    (e) => e.declaredVersion === LEGACY_VBRIEF_VERSION,
+  const migratableBehindMajor = scan.behindMajor.filter((e) =>
+    isMigratableEnvelopeVersion(e.declaredVersion),
   );
   const nonMigratableBehindMajor = scan.behindMajor.filter(
-    (e) => e.declaredVersion !== LEGACY_VBRIEF_VERSION,
+    (e) => !isMigratableEnvelopeVersion(e.declaredVersion),
   );
 
   if (migratableBehindMajor.length > 0 && nonMigratableBehindMajor.length > 0) {
     const migSample = migratableBehindMajor.slice(0, 3);
     const nonSample = nonMigratableBehindMajor.slice(0, 3);
+    const migDeclared = [...new Set(migSample.map((e) => e.declaredVersion ?? "?"))].join(", ");
     const nonDeclared = [
       ...new Set(nonSample.map((e) => e.declaredVersion ?? "missing/unreadable")),
     ].join(", ");
@@ -772,13 +783,11 @@ export function checkXbriefEnvelopeMajorVersion(
       status: "fail",
       detail:
         `behind-major (mixed) -- framework ${targetVersion}: ` +
-        `${migratableBehindMajor.length} migratable (${LEGACY_VBRIEF_VERSION}: ` +
+        `${migratableBehindMajor.length} migratable (${migDeclared}: ` +
         `${migSample.map((e) => e.relativePath).join(", ")}) and ` +
         `${nonMigratableBehindMajor.length} non-migratable (declared ${nonDeclared}: ` +
         `${nonSample.map((e) => e.relativePath).join(", ")}). ` +
-        `Next: (1) run \`${XBRIEF_ENVELOPE_MIGRATE_COMMAND}\` for exact ${LEGACY_VBRIEF_VERSION}; ` +
-        `(2) rewrite non-migratable live envelopes to full xBRIEFInfo@${targetVersion} structure ` +
-        `(not version-only; migrate does not clear them).`,
+        `Next: run \`${XBRIEF_ENVELOPE_MIGRATE_COMMAND}\` (migrates 0.5/0.6/0.7; archives unknowable).`,
       data: {
         status: "behind-major-mixed",
         target_version: targetVersion,
@@ -790,9 +799,7 @@ export function checkXbriefEnvelopeMajorVersion(
           ...nonSample.map((e) => e.relativePath),
         ],
         next_command: XBRIEF_ENVELOPE_MIGRATE_COMMAND,
-        suggestion:
-          `${XBRIEF_ENVELOPE_MIGRATE_COMMAND} for 0.6; rewrite non-migratable to full ` +
-          `xBRIEFInfo@${targetVersion} structure (not version-only)`,
+        suggestion: XBRIEF_ENVELOPE_MIGRATE_COMMAND,
       },
     };
   }
@@ -800,6 +807,7 @@ export function checkXbriefEnvelopeMajorVersion(
   if (migratableBehindMajor.length > 0) {
     const sample = migratableBehindMajor.slice(0, 5);
     const samplePaths = sample.map((e) => e.relativePath).join(", ");
+    const declaredSummary = [...new Set(sample.map((e) => e.declaredVersion ?? "?"))].join(", ");
     const more =
       migratableBehindMajor.length > sample.length
         ? ` (+${migratableBehindMajor.length - sample.length} more)`
@@ -808,10 +816,10 @@ export function checkXbriefEnvelopeMajorVersion(
       name: checkName,
       status: "fail",
       detail:
-        `behind-major -- declared ${LEGACY_VBRIEF_VERSION}, framework ${targetVersion} ` +
+        `behind-major -- declared ${declaredSummary}, framework ${targetVersion} ` +
         `(${migratableBehindMajor.length} artifact(s): ${samplePaths}${more}). ` +
         `Next action: run \`${XBRIEF_ENVELOPE_MIGRATE_COMMAND}\` to bump project JSON envelopes ` +
-        `to xBRIEFInfo@${targetVersion} (layout rename alone is not enough; #3236 rewrites hybrid 0.6 in place).`,
+        `to xBRIEFInfo@${targetVersion} (layout rename alone is not enough; upgrade rewrites hybrid envelopes in place).`,
       data: {
         status: "behind-major",
         declared_versions: sample.map((e) => e.declaredVersion),
@@ -825,10 +833,7 @@ export function checkXbriefEnvelopeMajorVersion(
   }
 
   if (nonMigratableBehindMajor.length > 0) {
-    // Fail closed without claiming migrate:xbrief alone clears these — that verb
-    // rewrites exact 0.6 only (#3236). Give executable next actions per class
-    // (permissions / re-emit / delete-replace) so Doctor is not permanently blocked
-    // after a non-applicable remediation (#3243 review).
+    // Fail closed: upgrade archives unknowable S5; still call out hand review.
     const sample = nonMigratableBehindMajor.slice(0, 5);
     const declaredVersions = [
       ...new Set(sample.map((e) => e.declaredVersion ?? "missing/unreadable")),
@@ -844,10 +849,9 @@ export function checkXbriefEnvelopeMajorVersion(
       detail:
         `behind-major (non-migratable) -- declared ${declaredVersions}, framework ${targetVersion} ` +
         `(${nonMigratableBehindMajor.length} artifact(s): ${samplePaths}${more}). ` +
-        `Next actions: (1) if a path is unreadable, fix FS permissions then re-run doctor; ` +
-        `(2) re-emit full xBRIEFInfo@${targetVersion} via scope tools ` +
-        `(\`${XBRIEF_ENVELOPE_MIGRATE_COMMAND}\` only when declared is exact ${LEGACY_VBRIEF_VERSION}); ` +
-        `(3) delete or replace invalid lifecycle artifacts after human confirm — ` +
+        `Next actions: (1) run \`${XBRIEF_ENVELOPE_MIGRATE_COMMAND}\` (archives unknowable under xbrief/archive/); ` +
+        `(2) if a path is unreadable, fix FS permissions then re-run doctor; ` +
+        `(3) hand-port or replace invalid lifecycle artifacts after human confirm — ` +
         `do not only bump the version field.`,
       data: {
         status: "behind-major-non-migratable",
@@ -855,10 +859,8 @@ export function checkXbriefEnvelopeMajorVersion(
         target_version: targetVersion,
         behind_major_count: nonMigratableBehindMajor.length,
         sample_paths: sample.map((e) => e.relativePath),
-        next_command: null,
-        suggestion:
-          `fix FS permissions if unreadable; re-emit full xBRIEFInfo@${targetVersion} via scope tools ` +
-          `(migrate:xbrief only for exact ${LEGACY_VBRIEF_VERSION}); or delete/replace invalid artifacts after human confirm (not version-only)`,
+        next_command: XBRIEF_ENVELOPE_MIGRATE_COMMAND,
+        suggestion: XBRIEF_ENVELOPE_MIGRATE_COMMAND,
       },
     };
   }
@@ -1471,7 +1473,7 @@ const MIGRATED_XBRIEF_LAYOUT_STATES = new Set<XbriefConvergenceState>([
 /**
  * #2368: on an already-migrated xbrief/ layout, a stale deposited
  * `xbrief/schemas/vbrief-core.schema.json` (vBRIEFInfo v0.6) must NOT route
- * operators to `migrate:xbrief` — that verb requires a vbrief/ tree. Point at
+ * operators to lifecycle migrate — refresh deposited schemas via
  * `directive update` instead. Advisory only (exit-exempt).
  */
 export function checkStaleXbriefSchemaDeposit(
@@ -1525,7 +1527,7 @@ export function checkStaleXbriefSchemaDeposit(
     status: "fail",
     detail:
       `Stale deposited schema at ${STALE_VBRIEF_CORE_SCHEMA_REL} still carries the legacy ${LEGACY_INFO_ROOT_KEY} root key on an already-migrated xbrief/ layout. ` +
-      "Run `directive update` to refresh deposited schema files — not `deft migrate:xbrief` (no vbrief/ tree remains to convert).",
+      "Run `directive update` to refresh deposited schema files — not lifecycle migrate (no vbrief/ tree remains to convert).",
     data: stampAdvisory({
       schema_path: schemaPath,
       convergence_state: convergence.state,

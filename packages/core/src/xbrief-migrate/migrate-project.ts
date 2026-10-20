@@ -4,17 +4,28 @@ import { containedRemove, containedRename, containedWrite } from "../fs/containe
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { checkGitClean } from "../migrate-preflight/index.js";
 import { applyAgentsRefresh } from "../platform/agents-md.js";
+import {
+  hasLifecycleWriteStamp,
+  isMigrationLifecycleWrite,
+  stampLifecycleWrite,
+} from "../scope/lifecycle-write.js";
 import { validateVbriefSchema } from "../vbrief-validate/schema.js";
 import { patchAgentsMdHeader, renderHeaderPatchSummary } from "./agents-header.js";
 import {
+  ARCHIVE_FROM_VBRIEF_REL_DIR,
+  ARCHIVE_README_BODY,
+  ARCHIVE_README_FILENAME,
+  ARCHIVE_REL_DIR,
   LEGACY_ARTIFACT_DIR,
   LEGACY_ARTIFACT_SUFFIX,
   LEGACY_INFO_ROOT_KEY,
   LEGACY_VBRIEF_VERSION,
+  MIGRATE_THROUGH_VBRIEF_VERSION,
   MIGRATED_ARTIFACT_DIR,
   MIGRATED_ARTIFACT_SUFFIX,
   MIGRATED_INFO_ROOT_KEY,
   OBSOLETE_FRAMEWORK_NARRATIVE_FILENAME,
+  PRE_LEGACY_VBRIEF_VERSION,
   VBRIEF_DEPRECATION_MARKER_BODY,
   VBRIEF_DEPRECATION_MARKER_FILENAME,
   VBRIEF_VERSION,
@@ -35,6 +46,31 @@ import {
   rewriteEmbeddedTokens,
   transformArtifactV06ToV08Transactional,
 } from "./transforms.js";
+
+/**
+ * #5540: for completed/ envelopes with no durable lifecycleWrite yet, add
+ * `{ action: "complete", writtenAt: now, migration: true }`. Never overwrites
+ * an existing complete/fail/cancel stamp. Leaves completedAt alone.
+ */
+export function maybeStampMigratedCompletedArtifact(
+  artifact: JsonObject,
+  srcPath: string,
+  nowIso: string = new Date().toISOString(),
+): void {
+  const norm = srcPath.replace(/\\/g, "/");
+  if (!norm.includes("/completed/")) {
+    return;
+  }
+  const planRaw = artifact.plan;
+  if (typeof planRaw !== "object" || planRaw === null || Array.isArray(planRaw)) {
+    return;
+  }
+  const plan = planRaw as Record<string, unknown>;
+  if (hasLifecycleWriteStamp(plan)) {
+    return;
+  }
+  stampLifecycleWrite(plan, "complete", nowIso, { migration: true });
+}
 
 export interface XbriefMigrationArgs {
   readonly projectRoot: string;
@@ -58,7 +94,13 @@ export type VbriefConvergeAction = "removed" | "marker";
 export type XbriefMigrationOutcome =
   | { readonly kind: "noop"; readonly message: string }
   | { readonly kind: "refused"; readonly message: string }
-  | { readonly kind: "migrated"; readonly backupDir: string; readonly files: number }
+  | {
+      readonly kind: "migrated";
+      readonly backupDir: string;
+      readonly files: number;
+      readonly migratedPaths: readonly string[];
+      readonly archivedPaths: readonly string[];
+    }
   | {
       readonly kind: "rewritten";
       readonly files: number;
@@ -72,14 +114,26 @@ export type XbriefMigrationOutcome =
     }
   | { readonly kind: "config"; readonly message: string };
 
-function collectFiles(root: string, acc: string[] = []): string[] {
+/**
+ * Walk files under `root`.
+ * When `skipArchiveDir` is set, omit directories named `archive` — use that only
+ * when scanning the canonical `xbrief/` tree so `xbrief/archive/` unknowables
+ * are not re-migrated. Do not set it when copying a legacy `vbrief/` tree;
+ * source `vbrief/archive/` must still land in the migrated tree.
+ */
+function collectFiles(
+  root: string,
+  acc: string[] = [],
+  options: { readonly skipArchiveDir?: boolean } = {},
+): string[] {
   if (!isDirectory(root)) {
     return acc;
   }
   for (const entry of readdirSync(root, { withFileTypes: true })) {
     const full = join(root, entry.name);
     if (entry.isDirectory()) {
-      collectFiles(full, acc);
+      if (options.skipArchiveDir && entry.name === ARCHIVE_REL_DIR) continue;
+      collectFiles(full, acc, options);
     } else if (entry.isFile()) {
       acc.push(full);
     }
@@ -112,39 +166,144 @@ function mapRelativePath(relativePath: string): string {
     .join("/");
 }
 
-function writeMigratedFile(projectRoot: string, srcPath: string, destPath: string): void {
-  // #2980 wave C: product write sink routes through containedWrite.
-  const root = resolve(projectRoot);
-  if (srcPath.endsWith(LEGACY_ARTIFACT_SUFFIX)) {
-    const parsed = JSON.parse(readFileSync(srcPath, "utf8")) as JsonObject;
-    const result = transformArtifactV06ToV08Transactional(parsed);
-    if (!result.ok) {
-      throw new Error(result.error);
-    }
-    containedWrite({
-      root,
-      target: destPath,
-      data: `${JSON.stringify(result.artifact, null, 2)}\n`,
-      mode: "replace",
-    });
-    return;
+/** Versions tip can envelope-migrate (0.5 thin→0.6→0.8; 0.6/0.7→0.8; 0.8 no-op). */
+function isSupportedMigrateVersion(version: string | null): boolean {
+  return (
+    version === PRE_LEGACY_VBRIEF_VERSION ||
+    version === LEGACY_VBRIEF_VERSION ||
+    version === MIGRATE_THROUGH_VBRIEF_VERSION ||
+    version === VBRIEF_VERSION
+  );
+}
+
+export type MigrateFileDisposition =
+  | { readonly kind: "migrate"; readonly body: string }
+  | { readonly kind: "archive"; readonly reason: string }
+  | { readonly kind: "copy"; readonly body: string };
+
+/**
+ * Classify a legacy lifecycle file: migrate envelope, archive unknowable, or
+ * token-rewrite copy (non-envelope). F-017: never hard-fail the tree for S5/corrupt.
+ */
+export function classifyLegacyMigrationFile(srcPath: string, raw: string): MigrateFileDisposition {
+  const isLifecycleEnvelope =
+    srcPath.endsWith(LEGACY_ARTIFACT_SUFFIX) || srcPath.endsWith(MIGRATED_ARTIFACT_SUFFIX);
+  if (!isLifecycleEnvelope) {
+    // schemas/, .triage-cache/, notes, etc. — token rewrite only.
+    return { kind: "copy", body: rewriteEmbeddedTokens(raw) };
   }
 
-  const raw = readFileSync(srcPath, "utf8");
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    return { kind: "archive", reason: `unparseable JSON: ${detail}` };
+  }
+  if (!isPlainJsonObject(parsed)) {
+    return { kind: "archive", reason: "JSON root is not an object" };
+  }
+  const version = readDeclaredArtifactVersion(parsed);
+  if (version === null) {
+    return { kind: "archive", reason: "missing vBRIEFInfo/xBRIEFInfo version" };
+  }
+  if (!isSupportedMigrateVersion(version)) {
+    return {
+      kind: "archive",
+      reason: `unsupported envelope version ${version}`,
+    };
+  }
+  const result = transformArtifactV06ToV08Transactional(parsed);
+  if (!result.ok) {
+    return { kind: "archive", reason: result.error };
+  }
+  maybeStampMigratedCompletedArtifact(result.artifact, srcPath);
+  return { kind: "migrate", body: `${JSON.stringify(result.artifact, null, 2)}\n` };
+}
+
+/** True when the legacy relative path already lives under `vbrief/archive/`. */
+function legacyRelUnderArchive(legacyRel: string): boolean {
+  return legacyRel === ARCHIVE_REL_DIR || legacyRel.startsWith(`${ARCHIVE_REL_DIR}/`);
+}
+
+/**
+ * Destination under staged `xbrief/` for a legacy relative path.
+ * Files already under `vbrief/archive/` land in `archive/from-vbrief/…` so they
+ * cannot collide with newly archived active/completed envelopes (which use
+ * `archive/<mapped-rel>`).
+ */
+function destRelForLegacy(legacyRel: string): string {
+  if (legacyRelUnderArchive(legacyRel)) {
+    const rest = legacyRel.slice(ARCHIVE_REL_DIR.length).replace(/^\//, "");
+    const mappedRest = rest.length > 0 ? mapRelativePath(rest) : "root";
+    return `${ARCHIVE_REL_DIR}/${ARCHIVE_FROM_VBRIEF_REL_DIR}/${mappedRest}`;
+  }
+  return mapRelativePath(legacyRel);
+}
+
+/** Where to place an unknowable envelope that must be archived (not migrated). */
+function archiveDestRelative(legacyRel: string): string {
+  if (legacyRelUnderArchive(legacyRel)) {
+    return destRelForLegacy(legacyRel);
+  }
+  return `${ARCHIVE_REL_DIR}/${mapRelativePath(legacyRel)}`;
+}
+
+function ensureArchiveReadme(projectRoot: string, stagedOrMigratedDir: string): void {
+  const readme = join(stagedOrMigratedDir, ARCHIVE_REL_DIR, ARCHIVE_README_FILENAME);
+  if (existsSync(readme)) return;
   containedWrite({
-    root,
-    target: destPath,
-    data: rewriteEmbeddedTokens(raw),
+    root: resolve(projectRoot),
+    target: readme,
+    data: ARCHIVE_README_BODY,
     mode: "replace",
   });
 }
 
+function writeMigratedFile(
+  projectRoot: string,
+  srcPath: string,
+  destPath: string,
+  archivePath: string,
+): "migrated" | "archived" | "copied" {
+  const root = resolve(projectRoot);
+  const raw = readFileSync(srcPath, "utf8");
+  const disposition = classifyLegacyMigrationFile(srcPath, raw);
+
+  if (disposition.kind === "archive") {
+    containedWrite({
+      root,
+      target: archivePath,
+      data: raw,
+      mode: "replace",
+    });
+    return "archived";
+  }
+
+  containedWrite({
+    root,
+    target: destPath,
+    data: disposition.body,
+    mode: "replace",
+  });
+  return disposition.kind === "migrate" ? "migrated" : "copied";
+}
+
+/** True when declared version is a residual hybrid/orphan rewrite candidate. */
+function isHybridRewriteSourceVersion(version: string | null): boolean {
+  return (
+    version === PRE_LEGACY_VBRIEF_VERSION ||
+    version === LEGACY_VBRIEF_VERSION ||
+    version === MIGRATE_THROUGH_VBRIEF_VERSION
+  );
+}
+
 /**
  * Plan in-place hybrid envelope rewrites for xbrief lifecycle `.xbrief.json`
- * artifacts that still declare `xBRIEFInfo@0.6` after the layout rename
- * (#3236 / #2974). Pure probe — no writes. Already-0.8 artifacts, schema
- * deposits, and non-0.6 JSON are skipped so residual #2368 schema-only markers
- * still route to `directive update`.
+ * artifacts that still declare `xBRIEFInfo@0.6` (or orphan rename-era `@0.7`)
+ * after the layout rename (#3236 / #2974 / wave3b L1). Pure probe — no writes.
+ * Already-0.8 artifacts, schema deposits, and other versions are skipped so
+ * residual #2368 schema-only markers still route to `directive update`.
  */
 function planHybridEnvelopeRewrites(
   projectRoot: string,
@@ -152,7 +311,7 @@ function planHybridEnvelopeRewrites(
   | { ok: true; pending: ReadonlyArray<{ path: string; body: string }> }
   | { ok: false; error: string } {
   const migratedDir = join(projectRoot, MIGRATED_ARTIFACT_DIR);
-  const artifactPaths = collectFiles(migratedDir).filter((path) =>
+  const artifactPaths = collectFiles(migratedDir, [], { skipArchiveDir: true }).filter((path) =>
     path.endsWith(MIGRATED_ARTIFACT_SUFFIX),
   );
   const pending: Array<{ path: string; body: string }> = [];
@@ -168,8 +327,8 @@ function planHybridEnvelopeRewrites(
         error: `failed to parse hybrid envelope candidate ${relative(projectRoot, filePath)}: ${detail}`,
       };
     }
-    // Only residual v0.6 envelopes are rewrite candidates; skip 0.8 and unknown.
-    if (readDeclaredArtifactVersion(parsed) !== LEGACY_VBRIEF_VERSION) {
+    // Residual 0.6 + orphan 0.7 only; skip 0.8 and unknown (0.7 is migrate-through).
+    if (!isHybridRewriteSourceVersion(readDeclaredArtifactVersion(parsed))) {
       continue;
     }
     const result = transformArtifactV06ToV08Transactional(parsed);
@@ -179,7 +338,21 @@ function planHybridEnvelopeRewrites(
         error: `failed to transform hybrid envelope ${relative(projectRoot, filePath)}: ${result.error}`,
       };
     }
-    if (!result.changed) {
+    const planBefore = result.artifact.plan;
+    const hadStamp =
+      typeof planBefore === "object" &&
+      planBefore !== null &&
+      !Array.isArray(planBefore) &&
+      hasLifecycleWriteStamp(planBefore as Record<string, unknown>);
+    // Stamp so a stamp-only #5540 pass still rewrites completed/ hybrids.
+    maybeStampMigratedCompletedArtifact(result.artifact, filePath);
+    const addedMigrationStamp =
+      !hadStamp &&
+      typeof result.artifact.plan === "object" &&
+      result.artifact.plan !== null &&
+      !Array.isArray(result.artifact.plan) &&
+      isMigrationLifecycleWrite(result.artifact.plan as Record<string, unknown>);
+    if (!result.changed && !addedMigrationStamp) {
       continue;
     }
     pending.push({
@@ -270,7 +443,7 @@ export function planRedundantLegacyEnvelopeStrips(
   projectRoot: string,
 ): { ok: true; pending: ReadonlyArray<StripRewrite> } | { ok: false; error: string } {
   const migratedDir = join(projectRoot, MIGRATED_ARTIFACT_DIR);
-  const artifactPaths = collectFiles(migratedDir).filter((path) =>
+  const artifactPaths = collectFiles(migratedDir, [], { skipArchiveDir: true }).filter((path) =>
     path.endsWith(MIGRATED_ARTIFACT_SUFFIX),
   );
   const pending: StripRewrite[] = [];
@@ -514,7 +687,12 @@ function migrateLegacyTree(
   projectRoot: string,
   legacyDir: string,
   options: { keepLegacy: boolean },
-): { backupDir: string; files: number } {
+): {
+  backupDir: string;
+  files: number;
+  migratedPaths: string[];
+  archivedPaths: string[];
+} {
   const migratedDir = join(projectRoot, MIGRATED_ARTIFACT_DIR);
   const convergence = detectXbriefConvergence(projectRoot);
   const hasCanonicalCache = isDirectory(join(migratedDir, ".triage-cache"));
@@ -533,12 +711,38 @@ function migrateLegacyTree(
   mkdirSync(stagedDir, { recursive: true });
 
   const files = collectFiles(legacyDir);
+  const migratedPaths: string[] = [];
+  const archivedPaths: string[] = [];
+  /** Fail closed if two legacy sources would write the same staged path. */
+  const claimedTargets = new Map<string, string>();
   try {
     for (const srcPath of files) {
-      const rel = relative(legacyDir, srcPath);
+      const rel = relative(legacyDir, srcPath).replace(/\\/g, "/");
       if (shouldOmitLegacyMigrationFile(rel)) continue;
-      const destPath = join(stagedDir, mapRelativePath(rel));
-      writeMigratedFile(projectRoot, srcPath, destPath);
+      const destRel = destRelForLegacy(rel);
+      const destPath = join(stagedDir, destRel);
+      const archiveRel = archiveDestRelative(rel);
+      const archivePath = join(stagedDir, archiveRel);
+      for (const target of new Set([destRel, archiveRel])) {
+        const prior = claimedTargets.get(target);
+        if (prior !== undefined && prior !== rel) {
+          throw new Error(
+            `migration destination collision: '${MIGRATED_ARTIFACT_DIR}/${target}' claimed by both '${prior}' and '${rel}'`,
+          );
+        }
+        claimedTargets.set(target, rel);
+      }
+      const disposition = writeMigratedFile(projectRoot, srcPath, destPath, archivePath);
+      if (disposition === "archived") {
+        archivedPaths.push(`${MIGRATED_ARTIFACT_DIR}/${archiveRel}`);
+      } else if (disposition === "migrated") {
+        migratedPaths.push(`${MIGRATED_ARTIFACT_DIR}/${destRel}`);
+      } else {
+        migratedPaths.push(`${MIGRATED_ARTIFACT_DIR}/${destRel}`);
+      }
+    }
+    if (archivedPaths.length > 0) {
+      ensureArchiveReadme(projectRoot, stagedDir);
     }
     overlayCanonicalTriageCache(migratedDir, stagedDir);
     renameOrReplace(stagedDir, migratedDir);
@@ -550,7 +754,12 @@ function migrateLegacyTree(
     } else {
       rmSync(legacyDir, { recursive: true, force: true });
     }
-    return { backupDir, files: files.length };
+    return {
+      backupDir,
+      files: files.length,
+      migratedPaths,
+      archivedPaths,
+    };
   } catch (err) {
     rmSync(stagedDir, { recursive: true, force: true });
     throw err;
@@ -638,6 +847,63 @@ function runAgentsRefresh(
   }
 }
 
+/**
+ * In-place residual envelope rewrites under xbrief/ (#3236 / wave3b L1).
+ * Returns a terminal outcome when work was applied or refused; null when none pending.
+ */
+function rewriteResidualXbriefEnvelopes(
+  projectRoot: string,
+  args: XbriefMigrationArgs,
+): XbriefMigrationOutcome | null {
+  const plan = planHybridEnvelopeRewrites(projectRoot);
+  if (!plan.ok) {
+    return { kind: "config", message: plan.error };
+  }
+  if (plan.pending.length > 0) {
+    if (!args.force) {
+      const git = checkGitClean(projectRoot);
+      if (git.status === "WARN") {
+        return {
+          kind: "refused",
+          message: `${git.message} ${xbriefMigrationGuidance()} Pass --force to override.`,
+        };
+      }
+    }
+    const files = applyHybridEnvelopeRewrites(projectRoot, plan.pending);
+    return {
+      kind: "rewritten",
+      files,
+      message: `Rewrote ${files} residual envelope(s) (${PRE_LEGACY_VBRIEF_VERSION}/${LEGACY_VBRIEF_VERSION}/${MIGRATE_THROUGH_VBRIEF_VERSION}) in place to xBRIEFInfo@${VBRIEF_VERSION} under '${MIGRATED_ARTIFACT_DIR}/'.`,
+    };
+  }
+
+  const strip = planRedundantLegacyEnvelopeStrips(projectRoot);
+  if (!strip.ok) {
+    return { kind: "config", message: strip.error };
+  }
+  if (strip.pending.length > 0) {
+    if (!args.force) {
+      const git = checkGitClean(projectRoot);
+      if (git.status === "WARN") {
+        return {
+          kind: "refused",
+          message: `${git.message} ${xbriefMigrationGuidance()} Pass --force to override.`,
+        };
+      }
+    }
+    const applied = applyRedundantLegacyEnvelopeStrips(projectRoot, strip.pending);
+    if (!applied.ok) {
+      return { kind: "config", message: applied.error };
+    }
+    return {
+      kind: "rewritten",
+      files: applied.files,
+      message: `Stripped ${applied.files} redundant leftover vBRIEFInfo envelope(s) beside xBRIEFInfo@0.8 under '${MIGRATED_ARTIFACT_DIR}/'.`,
+    };
+  }
+  return null;
+}
+
 /** Core orchestrator for the consumer xbrief rename (#2110) + convergence (#2270). */
 export function runXbriefMigration(
   args: XbriefMigrationArgs,
@@ -649,15 +915,23 @@ export function runXbriefMigration(
   const convergence = detectXbriefConvergence(projectRoot);
 
   switch (convergence.state) {
-    // Already converged: legacy root is retained behind an explicit marker.
-    // Rerun is a pure no-op (no re-removal, no duplicate marker) — idempotent.
-    case "xbrief-marker":
+    // Layout converged behind an explicit marker. Still rewrite residual hybrid
+    // envelopes under xbrief/ (#3236) — the marker must not skip JSON bumps
+    // (Greptile P1 on #5790: early return previously left xBRIEFInfo@0.6 in place).
+    case "xbrief-marker": {
+      if (convergence.xbriefHasContent) {
+        const residual = rewriteResidualXbriefEnvelopes(projectRoot, args);
+        if (residual !== null) {
+          return residual;
+        }
+      }
       return {
         kind: "converged",
         action: "marker",
         already: true,
         message: `Legacy '${LEGACY_ARTIFACT_DIR}/' already carries a deprecation marker — layout already converged.`,
       };
+    }
 
     // Ambiguous dual-empty root: a fully-migrated empty legacy tree. Converge to
     // a single canonical root by removing it (or marking it when read-compat
@@ -697,56 +971,15 @@ export function runXbriefMigration(
       break;
   }
 
-  // #3236: on already-xbrief trees with no vbrief/, rewrite residual hybrid
-  // xBRIEFInfo@0.6 envelopes in place (transform accepts hybrid — #2974).
+  // #3236 / wave3b L1: on already-xbrief trees with no vbrief/, rewrite residual
+  // hybrid xBRIEFInfo@0.6 and orphan @0.7 envelopes in place (same transform).
   // Run before the layout-detection short-circuit so compact `"version":"0.6"`
   // JSON that the string-scan may miss still gets rewritten.
+  // (xbrief-marker residual path is handled above in the switch.)
   if (convergence.xbriefHasContent && !convergence.vbriefPresent) {
-    const plan = planHybridEnvelopeRewrites(projectRoot);
-    if (!plan.ok) {
-      return { kind: "config", message: plan.error };
-    }
-    if (plan.pending.length > 0) {
-      if (!args.force) {
-        const git = checkGitClean(projectRoot);
-        if (git.status === "WARN") {
-          return {
-            kind: "refused",
-            message: `${git.message} ${xbriefMigrationGuidance()} Pass --force to override.`,
-          };
-        }
-      }
-      const files = applyHybridEnvelopeRewrites(projectRoot, plan.pending);
-      return {
-        kind: "rewritten",
-        files,
-        message: `Rewrote ${files} hybrid xBRIEFInfo@0.6 envelope(s) in place to xBRIEFInfo@0.8 under '${MIGRATED_ARTIFACT_DIR}/'.`,
-      };
-    }
-
-    const strip = planRedundantLegacyEnvelopeStrips(projectRoot);
-    if (!strip.ok) {
-      return { kind: "config", message: strip.error };
-    }
-    if (strip.pending.length > 0) {
-      if (!args.force) {
-        const git = checkGitClean(projectRoot);
-        if (git.status === "WARN") {
-          return {
-            kind: "refused",
-            message: `${git.message} ${xbriefMigrationGuidance()} Pass --force to override.`,
-          };
-        }
-      }
-      const applied = applyRedundantLegacyEnvelopeStrips(projectRoot, strip.pending);
-      if (!applied.ok) {
-        return { kind: "config", message: applied.error };
-      }
-      return {
-        kind: "rewritten",
-        files: applied.files,
-        message: `Stripped ${applied.files} redundant leftover vBRIEFInfo envelope(s) beside xBRIEFInfo@0.8 under '${MIGRATED_ARTIFACT_DIR}/'.`,
-      };
+    const residual = rewriteResidualXbriefEnvelopes(projectRoot, args);
+    if (residual !== null) {
+      return residual;
     }
   }
 
@@ -786,8 +1019,12 @@ export function runXbriefMigration(
   }
 
   try {
-    const { backupDir, files } = migrateLegacyTree(projectRoot, legacyDir, { keepLegacy });
-    return { kind: "migrated", backupDir, files };
+    const { backupDir, files, migratedPaths, archivedPaths } = migrateLegacyTree(
+      projectRoot,
+      legacyDir,
+      { keepLegacy },
+    );
+    return { kind: "migrated", backupDir, files, migratedPaths, archivedPaths };
   } catch (err) {
     return {
       kind: "config",
@@ -818,12 +1055,19 @@ export function emitXbriefMigration(
     case "config":
       io.writeErr(`migrate:xbrief: ${outcome.message}\n`);
       return 2;
-    case "migrated":
+    case "migrated": {
+      const archived = outcome.archivedPaths.length;
+      const migrated = outcome.migratedPaths.length;
       io.writeOut(
-        `Migrated ${outcome.files} file(s) from ${LEGACY_ARTIFACT_DIR}/ to ${MIGRATED_ARTIFACT_DIR}/.\n` +
+        `Migrated ${migrated} file(s) from ${LEGACY_ARTIFACT_DIR}/ to ${MIGRATED_ARTIFACT_DIR}/` +
+          (archived > 0
+            ? `; archived ${archived} unknowable file(s) under ${MIGRATED_ARTIFACT_DIR}/${ARCHIVE_REL_DIR}/`
+            : "") +
+          `.\n` +
           `Backup written to ${outcome.backupDir}.\n`,
       );
       return 0;
+    }
     case "rewritten":
       io.writeOut(`${outcome.message}\n`);
       return 0;

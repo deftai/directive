@@ -1,10 +1,11 @@
 ---
 name: deft-directive-sync
 description: >-
-  Session-start framework sync and upgrade handoff. Refreshes deposit via npm
-  + directive/deft update, validates xBRIEF lifecycle, detects stale origins
-  (RFC D12), and finishes SCM release handoff in released | pr-open |
-  blocked:<reason> (#1604).
+  Session-start framework sync and upgrade handoff. OVPR path: npm i -g
+  @deftai/directive then directive install / upgrade / install --repair /
+  doctor; validates xBRIEF lifecycle, detects stale origins (RFC D12), and
+  finishes SCM release handoff in released | pr-open | blocked:<reason> (#1604
+  / #5490).
 triggers:
   - good morning
   - update deft
@@ -21,9 +22,9 @@ triggers:
 
 # Deft Directive Sync
 
-Session-start framework sync and upgrade handoff -- refresh the framework deposit via npm + `directive update` / `deft update`, validate xBRIEF lifecycle structure, detect stale origins (RFC D12), then finish SCM release handoff in a named terminal state (#1604).
+Session-start framework sync and upgrade handoff -- OVPR install management via the global launcher + project verbs, validate xBRIEF lifecycle structure, detect stale origins (RFC D12), then finish SCM release handoff in a named terminal state (#1604 / #5490).
 
-> **Canonical bootstrap / update path (#761 / #1604):** Install and upgrade via npm: `npm i -g @deftai/directive` (install) or `npm i -g @deftai/directive@latest` (upgrade); Node >= 20 is required. Then from the project root run `directive update` (or `deft update`) to refresh `.deft/core/`, optionally `deft migrate` for npm provenance, and `directive doctor` / `deft doctor` / `task doctor` to confirm deposit health. For machines without Node, the frozen legacy Go installer (`deft-install` / platform-specific `install-*` from GitHub Releases) is a no-Node bootstrap bridge (#1912) -- migrate to npm once Node is available. Legacy Python-launcher upgrade / `task upgrade` are metadata-only acknowledgment (they do NOT replace the payload). **Git-submodule / `task framework:doctor` paths are back-compat only** -- Phases 1-2 below are the legacy update flow, de-emphasized in UPGRADING.md / README. Deposit success is not upgrade released; Phase 8 records one terminal state: `released` | `pr-open` | `blocked:<reason>`. See UPGRADING.md and #761 / #1912 / #1604.
+> **Canonical bootstrap / update path (OVPR / AC10.10 / #5490):** Install the global launcher once: `npm i -g @deftai/directive` (or `@latest` when refreshing the launcher). Node >= 20 is required (22/24 supported). From the project root: `directive install` (first pin + setup; alias `init`), `directive upgrade` (move pin / migrate data; alias `update`), `directive install --repair` when wiring is broken but the pin should stay (**AC9.7:** `npm i -g @deftai/directive` then `directive install --repair`), `directive uninstall`, and `directive doctor`. There is **no** copied `.deft/core/` deposit — pointers resolve under `node_modules/@deftai/directive-runtime/`. The Go installer (`cmd/deft-install/`, `deft-install`, platform `install-*`) is **deleted** — do not download or run it (AC10.10). Legacy Python-launcher / `task upgrade` are metadata-only. **Git-submodule / `task framework:doctor` paths are back-compat only** — Phases 1-2 below are the legacy update flow. Install success is not upgrade released; Phase 8 records one terminal state: `released` | `pr-open` | `blocked:<reason>`. See UPGRADING.md / README.
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
@@ -46,9 +47,9 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 npm i -g @deftai/directive@latest
 ```
 
-(or the pnpm equivalent: `pnpm add -g @deftai/directive@latest`). Then re-run `directive update` / `deft update` and `directive doctor`.
+(or the pnpm equivalent: `pnpm add -g @deftai/directive@latest`). Then re-run `directive install --repair` / `directive upgrade` / `directive doctor` as appropriate (AC9.7).
 
-⊗ Send the operator to manual GitHub release-asset archaeology or Go installer discovery as the happy path when Node is available -- npm is the primary remediation (#761 / #1604).
+⊗ Send the operator to manual GitHub release-asset archaeology or the deleted Go installer (`deft-install`) as a current path — OVPR npm + `directive install` / `upgrade` / `install --repair` is the only remediation (AC10.10 / #5490).
 
 ## Session orientation — unmanaged header (#2065)
 
@@ -102,68 +103,69 @@ A project is **pre-cutover** if ANY of the following are true. This prose mirror
 ⊗ Skip model state detection during sync -- always report the document model state.
 ⊗ Silently ignore pre-cutover artifacts -- the user must be informed with an actionable command to fix the state.
 
-## Phase 0 -- Primary upgrade (npm deposit) (#761 / #1604)
+## Phase 0 -- Primary upgrade (OVPR) (#5490 / #1604)
 
-! Treat npm + `directive update` / `deft update` as the **primary** consumer upgrade path when an upgrade is authorized. Do not lead with submodule update when Node is available.
+! Treat npm + `directive upgrade` (alias `update`) as the **primary** consumer upgrade path when an upgrade is authorized. Wiring-only recovery is `directive install --repair` (AC9.7). Do not lead with submodule update when Node is available. Do not teach deleted `deft-install` / `.deft/core/` refresh as current.
 
 ### 0a: When mutation is authorized
 
-! **Mutating** engine install / deposit refresh is authorized only when at least one of:
+! **Mutating** launcher install / pin move / repair is authorized only when at least one of:
 
 1. The operator used an **explicit upgrade** trigger: `update deft`, `update directive`, `upgrade framework`, or equivalent ("upgrade Directive", "run update").
-2. Doctor / payload-staleness already reports the deposit is **behind** and the operator confirmed the upgrade (or autonomous upgrade was pre-approved).
-3. CLI is **missing** from PATH -- then Missing CLI remediation may install the global package so doctor/update can run.
+2. Doctor already reports the install is **behind** / needs repair and the operator confirmed (or autonomous upgrade was pre-approved).
+3. CLI is **missing** from PATH -- then Missing CLI remediation may install the global launcher so doctor/upgrade/repair can run.
 
 ! For routine session orientation triggers (`good morning`, `sync frameworks`, plain `update xbrief` without upgrade language):
 
-1. ! Run **read-only** checks: CLI present?, `directive doctor` / `deft doctor` / `task doctor` when available, structure validation (Phases 3+).
-2. ! If doctor reports a stale deposit or available upgrade, **report** the recommended command and ask for consent before mutating.
-3. ⊗ Run `npm i -g @deftai/directive@latest` or `directive update` / `deft update` on a routine "good morning" without staleness evidence **and** operator consent (or pre-approved autonomous upgrade).
+1. ! Run **read-only** checks: CLI present?, `directive doctor` / `deft doctor` when available, structure validation (Phases 3+).
+2. ! If doctor reports a stale pin, wiring drift, or available upgrade, **report** the recommended command (`directive upgrade` or `directive install --repair`) and ask for consent before mutating.
+3. ⊗ Run `npm i -g @deftai/directive@latest` or `directive upgrade` / `directive install --repair` on a routine "good morning" without staleness evidence **and** operator consent (or pre-approved autonomous upgrade).
 
-### 0b: Consumer worktree isolation before deposit
+### 0b: Consumer worktree isolation before mutate
 
-! Before any mutating deposit that will be handed off in Phase 8:
+! Before any mutating install/upgrade/repair that will be handed off in Phase 8:
 
 1. ! Run `git status --porcelain` at the **project root** (not only the legacy submodule).
 2. ! If the worktree or index has non-framework product changes (or any unexpected staged paths), **stop** and either:
    - ask the operator to stash / commit product work first, or
-   - record `blocked:dirty-worktree` and skip deposit mutation,
-   - or, with explicit consent, isolate product changes (stash including index) so the deposit cannot mix with them.
-3. ! After deposit, stage **only** framework-managed paths for the upgrade commit (e.g. `.deft/core/`, managed AGENTS section, hooks, VERSION / marker files). Reconstruct a clean index if needed rather than `git add -A`.
+   - record `blocked:dirty-worktree` and skip mutation,
+   - or, with explicit consent, isolate product changes (stash including index) so the upgrade cannot mix with them.
+3. ! After mutate, stage **only** framework-managed paths for the upgrade commit (e.g. `package.json` / lockfile pin, managed AGENTS section, hooks, tracked wiring / `.deft/GENERATION.json`). Do **not** `git add` checkout-local ignored `.deft/directive/wiring-ready.*`. Reconstruct a clean index if needed rather than `git add -A`.
 4. ⊗ Create a framework-only commit or PR from a mixed worktree/index that still carries product feature paths.
 
-### 0c: Engine + deposit (when authorized)
+### 0c: Launcher + project verbs (when authorized)
 
 1. ! Confirm the global CLI is available (`directive --version` or `deft --version`). If missing, run Missing CLI / PATH remediation above, then continue.
-2. ! Upgrade the global engine only when mutation is authorized (0a):
+2. ! Upgrade the global launcher only when mutation is authorized (0a):
 
 ```bash
 npm i -g @deftai/directive@latest
 ```
 
-3. ! From the **project root**, after worktree isolation (0b), refresh the deposit:
+3. ! From the **project root**, after worktree isolation (0b), run the matching OVPR verb:
 
 ```bash
-directive update
-# or: deft update
+directive upgrade
+# wiring-only (keep pin): directive install --repair
+# first-time pin: directive install
 ```
 
-4. ~ Optionally stamp npm provenance (idempotent): `directive migrate` / `deft migrate`.
-5. ! Verify deposit health:
+4. ! Verify install health:
 
 ```bash
 directive doctor
-# or: deft doctor / task doctor
+# or: deft doctor
 ```
 
-6. ! Record whether the working tree now has **framework-only** changes under `.deft/core/`, managed AGENTS section, hooks, or related managed files that need SCM release.
+5. ! Record whether the working tree now has **framework-only** changes under the pin/lockfile, managed AGENTS section, hooks, or related managed files that need SCM release.
 
 ### 0d: Framework-only change-set discipline
 
-! Keep upgrade commits/PRs **framework-only** -- do not mix product feature work into the same commit or PR as the deposit refresh.
+! Keep upgrade commits/PRs **framework-only** -- do not mix product feature work into the same commit or PR as the pin/wiring refresh.
 
-⊗ Treat a successful deposit alone as `released` -- the default branch must carry the update (or a PR must be open) before the operator goal is complete (#1604).
-⊗ Force a global CLI upgrade or deposit mutation on routine session sync without consent or staleness evidence.
+⊗ Treat a successful local mutate alone as `released` -- the default branch must carry the update (or a PR must be open) before the operator goal is complete (#1604).
+⊗ Force a global launcher upgrade or project mutate on routine session sync without consent or staleness evidence.
+⊗ Teach deleted Go installer (`deft-install`) or copied `.deft/core/` refresh as the current path (AC10.10).
 
 ## Phase 1 -- Pre-flight (legacy submodule path)
 
@@ -293,7 +295,7 @@ After structure validation, sync framework-level assets.
 
 ### 6a: Check AGENTS.md freshness
 
-~ Compare the project's `AGENTS.md` against the deft template (if a template exists in the updated deposit / `.deft/core/` or legacy `deft/` submodule):
+~ Compare the project's `AGENTS.md` against the deft template under `node_modules/@deftai/directive-runtime/templates/` after `directive upgrade` / `directive install --repair` (legacy `deft/` submodule only when still on that layout):
 
 1. ~ Diff the structure (section headings, key rules) rather than expecting byte-identical content
 2. ~ Report any new sections or rules added upstream that are missing locally
@@ -309,7 +311,7 @@ After structure validation, sync framework-level assets.
 
 ### 6c: List new skills
 
-! Compare the `skills/` directory (or deposited `.deft/core/` skills) before and after the update:
+! Compare skills under `node_modules/@deftai/directive-runtime/.agents/skills/` (or project `.agents/skills/` pointers) before and after `directive upgrade` / `directive install --repair`:
 
 1. ! List any new skill directories added in the update
 2. ~ For each new skill, read its frontmatter `description` field and present a one-liner
@@ -451,8 +453,9 @@ Include the PR URL when state is `pr-open`, and the merge/default-branch SHA whe
 - ⊗ Stop after a local framework-only commit without naming the next release step or recording a terminal state (#1604)
 - ⊗ Claim terminal state `released` when the update is only local or only on an open PR
 - ⊗ Auto-merge when `requireHumanMerge` is true or branch protection forbids bot merge (#1193)
-- ⊗ Treat git submodule update as the primary consumer upgrade path when npm + `directive update` / `deft update` is available
-- ⊗ Send operators to manual GitHub release-asset archaeology when `npm i -g @deftai/directive@latest` is the correct remediation
+- ⊗ Treat git submodule update as the primary consumer upgrade path when npm + `directive upgrade` / `directive install --repair` is available
+- ⊗ Send operators to manual GitHub release-asset archaeology or deleted `deft-install` when `npm i -g @deftai/directive` + `directive install --repair` / `directive upgrade` is the correct remediation (AC10.10)
+- ⊗ Teach copied `.deft/core/` deposit refresh as the current install location
 - ⊗ Overwrite project-level `./xbrief/*.xbrief.json` files -- those are project data
 - ⊗ Skip the pre-flight dirty check -- a dirty submodule can cause merge conflicts or data loss
 - ⊗ Include a separate fetch of the xBRIEF schema from upstream deftai/xBRIEF -- that is a CI concern (see #128), not a user sync task

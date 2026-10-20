@@ -70,22 +70,15 @@ function installFakeContentPackage(projectRoot: string, version = "0.53.0"): str
   return pkgDir;
 }
 
+/** OVPR (#5490): public packages are runtime + launcher; private types/core/content stay unpublished. */
 function scaffoldPackages(cloneDir: string): void {
   const manifests: Record<string, unknown> = {
-    types: { name: "@deftai/directive-types", version: "0.0.0" },
-    core: {
-      name: "@deftai/directive-core",
-      version: "0.0.0",
-      dependencies: { "@deftai/directive-types": "workspace:*" },
-    },
-    content: { name: "@deftai/directive-content", version: "0.0.0" },
+    runtime: { name: "@deftai/directive-runtime", version: "0.0.0" },
     cli: {
       name: "@deftai/directive",
       version: "0.0.0",
       dependencies: {
-        "@deftai/directive-types": "workspace:*",
-        "@deftai/directive-core": "workspace:*",
-        "@deftai/directive-content": "workspace:*",
+        "@deftai/directive-runtime": "workspace:*",
       },
     },
   };
@@ -93,6 +86,53 @@ function scaffoldPackages(cloneDir: string): void {
     const pkgDir = join(cloneDir, "packages", name);
     mkdirSync(pkgDir, { recursive: true });
     writeFileSync(join(pkgDir, "package.json"), JSON.stringify(data), "utf8");
+  }
+  const scriptsDir = join(cloneDir, "packages", "runtime", "scripts");
+  mkdirSync(scriptsDir, { recursive: true });
+  writeFileSync(join(scriptsDir, "stage-bundle.mjs"), "// test stub\n", "utf8");
+  writeFileSync(join(scriptsDir, "pack-staged-runtime.mjs"), "// test stub\n", "utf8");
+}
+
+/**
+ * Simulate OVPR pack artifacts that real stage-bundle / pack-staged-runtime / npm pack write.
+ * Call from spawnText seams when those steps are mocked as success.
+ */
+function simulateOvprPackArtifacts(
+  cloneDir: string,
+  version: string,
+  cmd: readonly string[],
+): void {
+  const joined = cmd.map(String).join(" ");
+  if (joined.includes("stage-bundle")) {
+    const stageDir = join(cloneDir, "packages", "runtime", ".pack-stage");
+    mkdirSync(stageDir, { recursive: true });
+    writeFileSync(
+      join(stageDir, "package.json"),
+      JSON.stringify({ name: "@deftai/directive-runtime", version: "0.0.0" }),
+      "utf8",
+    );
+    return;
+  }
+  if (joined.includes("pack-staged-runtime") || joined.includes("pack --pack-destination")) {
+    const packDestIdx = cmd.findIndex((part) => String(part) === "--pack-destination");
+    const packDirFromFlag =
+      packDestIdx >= 0 && cmd[packDestIdx + 1] ? String(cmd[packDestIdx + 1]) : null;
+    const packDir =
+      packDirFromFlag ??
+      (joined.includes("pack-staged-runtime") && cmd.length >= 2
+        ? String(cmd[cmd.length - 1])
+        : join(cloneDir, ".deft-e2e-packs"));
+    mkdirSync(packDir, { recursive: true });
+    if (joined.includes("pack-staged-runtime")) {
+      writeFileSync(
+        join(packDir, `deftai-directive-runtime-${version}.tgz`),
+        "runtime-tgz\n",
+        "utf8",
+      );
+    }
+    if (joined.includes("pack --pack-destination") || joined.includes("npm pack")) {
+      writeFileSync(join(packDir, `deftai-directive-${version}.tgz`), "launcher-tgz\n", "utf8");
+    }
   }
 }
 
@@ -261,8 +301,8 @@ describe("alignNpmPackageVersions", () => {
     scaffoldPackages(clone);
     const [okFlag, reason] = alignNpmPackageVersions(clone, "1.2.3");
     expect(okFlag).toBe(true);
-    expect(reason).toContain("aligned 4 package versions to 1.2.3");
-    for (const name of ["types", "core", "content", "cli"]) {
+    expect(reason).toContain("aligned 2 package versions to 1.2.3");
+    for (const name of ["runtime", "cli"]) {
       const data = JSON.parse(
         readFileSync(join(clone, "packages", name, "package.json"), "utf8"),
       ) as { version: string };
@@ -271,16 +311,16 @@ describe("alignNpmPackageVersions", () => {
     const cli = JSON.parse(
       readFileSync(join(clone, "packages", "cli", "package.json"), "utf8"),
     ) as { dependencies: Record<string, string> };
-    expect(cli.dependencies["@deftai/directive-core"]).toBe("^1.2.3");
+    expect(cli.dependencies["@deftai/directive-runtime"]).toBe("^1.2.3");
     expect(Object.values(cli.dependencies).every((v) => !v.startsWith("workspace:"))).toBe(true);
   });
 
   it("returns false when a manifest is missing", () => {
     const clone = mkdtempSync(join(tmpdir(), "deft-npm-align-miss-"));
-    mkdirSync(join(clone, "packages", "types"), { recursive: true });
+    mkdirSync(join(clone, "packages", "runtime"), { recursive: true });
     writeFileSync(
-      join(clone, "packages", "types", "package.json"),
-      JSON.stringify({ name: "@deftai/directive-types", version: "0.0.0" }),
+      join(clone, "packages", "runtime", "package.json"),
+      JSON.stringify({ name: "@deftai/directive-runtime", version: "0.0.0" }),
       "utf8",
     );
     const [okFlag, reason] = alignNpmPackageVersions(clone, "1.2.3");
@@ -305,44 +345,57 @@ describe("rehearseNpmPublish", () => {
     expect(reason).toContain("neither pnpm nor corepack");
   });
 
-  it("installs, builds, aligns, then publishes in dependency order", () => {
+  it("installs, builds, aligns, then publishes OVPR tarballs in dependency order", () => {
     const clone = mkdtempSync(join(tmpdir(), "deft-npm-pub-"));
     scaffoldPackages(clone);
     const calls: Array<{ cmd: string[]; cwd?: string }> = [];
     const seams: E2ESeams = {
       which: (n) => `/usr/bin/${n}`,
       spawnText: (cmd, args, options) => {
-        calls.push({ cmd: [cmd, ...args], cwd: options?.cwd });
+        const full = [cmd, ...args];
+        calls.push({ cmd: full, cwd: options?.cwd });
+        simulateOvprPackArtifacts(clone, "0.0.1", full);
         return ok();
       },
     };
     const [okFlag, reason] = rehearseNpmPublish(clone, "0.0.1", seams);
     expect(okFlag).toBe(true);
-    expect(reason).toContain("npm publish --dry-run clean for 4 packages");
+    expect(reason).toContain("npm publish --dry-run clean for 2 packages");
     expect(calls[0]?.cmd).toContain("install");
     expect(calls[1]?.cmd).toContain("build");
+    expect(calls.some((c) => c.cmd.some((part) => String(part).includes("stage-bundle")))).toBe(
+      true,
+    );
     const publishCalls = calls.filter((c) => c.cmd.includes("publish"));
     expect(
       publishCalls.every((c) => c.cmd.includes("--tag") && c.cmd.includes("e2e-rehearsal")),
     ).toBe(true);
-    const publishCwds = publishCalls.map((c) => c.cwd);
-    expect(publishCwds).toEqual([
-      join(clone, "packages", "types"),
-      join(clone, "packages", "core"),
-      join(clone, "packages", "content"),
-      join(clone, "packages", "cli"),
-    ]);
-    const types = JSON.parse(
-      readFileSync(join(clone, "packages", "types", "package.json"), "utf8"),
+    expect(publishCalls).toHaveLength(2);
+    expect(publishCalls.every((c) => c.cwd === clone)).toBe(true);
+    expect(
+      publishCalls.some((c) =>
+        c.cmd.some((part) => String(part).includes("deftai-directive-runtime-0.0.1.tgz")),
+      ),
+    ).toBe(true);
+    expect(
+      publishCalls.some((c) =>
+        c.cmd.some((part) => String(part).endsWith("deftai-directive-0.0.1.tgz")),
+      ),
+    ).toBe(true);
+    const runtime = JSON.parse(
+      readFileSync(join(clone, "packages", "runtime", "package.json"), "utf8"),
     ) as { version: string };
-    expect(types.version).toBe("0.0.1");
+    expect(runtime.version).toBe("0.0.1");
   });
 
   it("passes Program Files npm paths to spawnCommandText for publish dry-run (#2555)", () => {
     const clone = mkdtempSync(join(tmpdir(), "deft-npm-pub-spaced-"));
     scaffoldPackages(clone);
     const npmPath = "C:\\Program Files\\nodejs\\npm.cmd";
-    const spawnSpy = vi.spyOn(commandSpawn, "spawnCommandText").mockReturnValue(ok());
+    const spawnSpy = vi.spyOn(commandSpawn, "spawnCommandText").mockImplementation((cmd, args) => {
+      simulateOvprPackArtifacts(clone, "0.0.1", [cmd, ...(args ?? [])]);
+      return ok();
+    });
     const seams: E2ESeams = {
       which: (n) => {
         if (n === "npm") return npmPath;
@@ -376,17 +429,18 @@ describe("rehearseNpmPublish", () => {
     expect(calls.some((c) => c.includes("publish"))).toBe(false);
   });
 
-  it("short-circuits when the core publish fails", () => {
+  it("short-circuits when the runtime tarball publish fails", () => {
     const clone = mkdtempSync(join(tmpdir(), "deft-npm-pub-fail-"));
     scaffoldPackages(clone);
-    const publishCwds: Array<string | undefined> = [];
+    const publishArgs: string[][] = [];
     const seams: E2ESeams = {
       which: (n) => `/usr/bin/${n}`,
-      spawnText: (cmd, args, options) => {
+      spawnText: (cmd, args) => {
         const full = [cmd, ...args];
+        simulateOvprPackArtifacts(clone, "0.0.1", full);
         if (full.includes("publish")) {
-          publishCwds.push(options?.cwd);
-          if (options?.cwd === join(clone, "packages", "core")) {
+          publishArgs.push(full.map(String));
+          if (full.some((part) => String(part).includes("deftai-directive-runtime-"))) {
             return { status: 1, stdout: "", stderr: "EPERM" };
           }
         }
@@ -395,9 +449,10 @@ describe("rehearseNpmPublish", () => {
     };
     const [okFlag, reason] = rehearseNpmPublish(clone, "0.0.1", seams);
     expect(okFlag).toBe(false);
-    expect(reason).toContain("packages/core");
-    expect(publishCwds).not.toContain(join(clone, "packages", "content"));
-    expect(publishCwds).not.toContain(join(clone, "packages", "cli"));
+    expect(reason).toContain("deftai-directive-runtime-");
+    expect(
+      publishArgs.some((args) => args.some((part) => part.endsWith("deftai-directive-0.0.1.tgz"))),
+    ).toBe(false);
   });
 });
 
@@ -415,8 +470,9 @@ describe("rehearseNpmInstallAndRun (#1996)", () => {
     const seams: E2ESeams = {
       which: (n) => `/usr/bin/${n}`,
       spawnText: (cmd, args, options) => {
-        calls.push({ cmd: [cmd, ...args], cwd: options?.cwd });
         const full = [cmd, ...args];
+        calls.push({ cmd: full, cwd: options?.cwd });
+        simulateOvprPackArtifacts(clone, "0.0.1", full);
         if (full.some((part) => String(part).includes("bin.js"))) {
           if (full.includes("--version")) {
             return { status: 0, stdout: stampedVersionBanner("0.0.1"), stderr: "" };
@@ -430,7 +486,7 @@ describe("rehearseNpmInstallAndRun (#1996)", () => {
     expect(okFlag).toBe(true);
     expect(reason).toContain("without module-not-found");
     expect(reason).toContain("package @0.0.1");
-    expect(calls.some((c) => c.cmd.includes("pack"))).toBe(true);
+    expect(calls.some((c) => c.cmd.some((part) => String(part).includes("pack")))).toBe(true);
     expect(calls.some((c) => c.cmd.includes("install"))).toBe(true);
     expect(calls.some((c) => c.cmd.some((part) => String(part).includes("bin.js")))).toBe(true);
   });
@@ -444,6 +500,7 @@ describe("rehearseNpmInstallAndRun (#1996)", () => {
       spawnText: (cmd, args) => {
         const full = [cmd, ...args];
         calls.push(full);
+        simulateOvprPackArtifacts(clone, "0.0.1", full);
         if (full.some((part) => String(part).includes("bin.js"))) {
           if (full.includes("--version")) {
             return { status: 0, stdout: stampedVersionBanner("0.0.1"), stderr: "" };
@@ -466,6 +523,7 @@ describe("rehearseNpmInstallAndRun (#1996)", () => {
       which: (n) => `/usr/bin/${n}`,
       spawnText: (cmd, args) => {
         const full = [cmd, ...args];
+        simulateOvprPackArtifacts(clone, "0.0.1", full);
         if (full.some((part) => String(part).includes("bin.js"))) {
           return {
             status: 1,
@@ -489,6 +547,7 @@ describe("rehearseNpmInstallAndRun (#1996)", () => {
       which: (n) => `/usr/bin/${n}`,
       spawnText: (cmd, args) => {
         const full = [cmd, ...args];
+        simulateOvprPackArtifacts(clone, "0.0.1", full);
         if (full.some((part) => String(part).includes("bin.js"))) {
           if (full.includes("--version")) {
             return { status: 0, stdout: stampedVersionBanner("0.0.1"), stderr: "" };
@@ -515,6 +574,7 @@ describe("rehearseNpmInstallAndRun (#1996)", () => {
       which: (n) => `/usr/bin/${n}`,
       spawnText: (cmd, args) => {
         const full = [cmd, ...args];
+        simulateOvprPackArtifacts(clone, "0.0.1", full);
         if (full.some((part) => String(part).includes("bin.js")) && full.includes("--version")) {
           return { status: 7, stdout: "", stderr: "boom" };
         }
@@ -536,6 +596,7 @@ describe("rehearseNpmInstallAndRun (#1996)", () => {
       which: (n) => `/usr/bin/${n}`,
       spawnText: (cmd, args) => {
         const full = [cmd, ...args];
+        simulateOvprPackArtifacts(clone, "0.0.1", full);
         if (full.some((part) => String(part).includes("bin.js")) && full.includes("--version")) {
           return { status: 0, stdout: stampedVersionBanner("0.0.0"), stderr: "" };
         }
@@ -557,6 +618,7 @@ describe("rehearseNpmInstallAndRun (#1996)", () => {
       which: (n) => `/usr/bin/${n}`,
       spawnText: (cmd, args) => {
         const full = [cmd, ...args];
+        simulateOvprPackArtifacts(clone, "0.0.1", full);
         if (full.some((part) => String(part).includes("bin.js")) && full.includes("--version")) {
           return {
             status: 0,
@@ -582,6 +644,7 @@ describe("rehearseNpmInstallAndRun (#1996)", () => {
       which: (n) => `/usr/bin/${n}`,
       spawnText: (cmd, args) => {
         const full = [cmd, ...args];
+        simulateOvprPackArtifacts(clone, "0.0.1", full);
         if (full.includes("install") && full.some((part) => String(part).endsWith(".tgz"))) {
           const pkgDir = join(clone, ".deft-e2e-consumer", "node_modules", "@deftai", "directive");
           mkdirSync(pkgDir, { recursive: true });
@@ -618,6 +681,7 @@ describe("rehearseNpmInstallAndRun (#1996)", () => {
       which: (n) => `/usr/bin/${n}`,
       spawnText: (cmd, args) => {
         const full = [cmd, ...args];
+        simulateOvprPackArtifacts(clone, "0.0.1", full);
         if (full.includes("install") && full.some((part) => String(part).endsWith(".tgz"))) {
           const pkgDir = join(clone, ".deft-e2e-consumer", "node_modules", "@deftai", "directive");
           mkdirSync(pkgDir, { recursive: true });
@@ -643,6 +707,7 @@ describe("rehearseNpmInstallAndRun (#1996)", () => {
       which: (n) => `/usr/bin/${n}`,
       spawnText: (cmd, args) => {
         const full = [cmd, ...args];
+        simulateOvprPackArtifacts(clone, "0.0.1", full);
         if (full.includes("install") && full.some((part) => String(part).endsWith(".tgz"))) {
           const consumerDir = join(clone, ".deft-e2e-consumer");
           const pkgDir = join(consumerDir, "node_modules", "@deftai", "directive");
@@ -700,7 +765,7 @@ describe("post-publish two-pass fixture (#4271)", () => {
 });
 
 describe("tag-bind nested package.json versions (#4271)", () => {
-  it("asserts version === V on hoisted and nested manifests", () => {
+  it("asserts version === V on hoisted OVPR manifests", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-4271-bind-"));
     const writePkg = (dir: string, name: string, version: string): void => {
       mkdirSync(dir, { recursive: true });
@@ -708,23 +773,15 @@ describe("tag-bind nested package.json versions (#4271)", () => {
     };
     writePkg(join(root, "node_modules", "@deftai", "directive"), "@deftai/directive", "1.2.3");
     writePkg(
-      join(
-        root,
-        "node_modules",
-        "@deftai",
-        "directive-core",
-        "node_modules",
-        "@deftai",
-        "directive-types",
-      ),
-      "@deftai/directive-types",
+      join(root, "node_modules", "@deftai", "directive-runtime"),
+      "@deftai/directive-runtime",
       "1.2.3",
     );
     expect(() => assertTagBoundDirectiveVersions(root, "1.2.3")).not.toThrow();
     expect(collectDirectivePackageManifests(root).length).toBeGreaterThanOrEqual(2);
     writePkg(
-      join(root, "node_modules", "@deftai", "directive-content"),
-      "@deftai/directive-content",
+      join(root, "node_modules", "@deftai", "directive-runtime"),
+      "@deftai/directive-runtime",
       "9.9.9",
     );
     expect(() => assertTagBoundDirectiveVersions(root, "1.2.3")).toThrow(/tag-bind FAIL/);
@@ -768,7 +825,7 @@ describe("Pass 2 absence-lock precondition (#4271)", () => {
         workspaceRoot: process.cwd(),
         version: "1.2.3",
         skipInstall: true,
-        pass2ChangedPaths: [".deft/core/main.md", "AGENTS.md"],
+        pass2ChangedPaths: ["AGENTS.md", "package.json"],
       },
       { which: () => "/usr/bin/npm" },
     );
@@ -787,7 +844,7 @@ describe("Pass 2 absence-lock precondition (#4271)", () => {
     expect(bad).toBe(false);
   });
 
-  it("npm-publish.yml invokes the fixture after the four publishes", () => {
+  it("npm-publish.yml invokes the fixture after the OVPR publishes", () => {
     const yml = readFileSync(join(process.cwd(), ".github/workflows/npm-publish.yml"), "utf8");
     const rehearsal = readFileSync(
       join(process.cwd(), "packages/core/src/release-e2e/rehearsal.ts"),
@@ -814,7 +871,7 @@ describe("Pass 2 absence-lock precondition (#4271)", () => {
     expect(reason).toMatch(/tag-bind FAIL|no @deftai\/directive/);
   });
 
-  it("live path runs installed directive update and inspects Pass 2 paths", () => {
+  it("live path runs installed directive install --target-version and inspects Pass 2 paths", () => {
     const clean = mkdtempSync(join(tmpdir(), "deft-4271-live-"));
     const consumer = join(clean, "consumer");
     mkdirSync(join(consumer, "xbrief"), { recursive: true });
@@ -829,7 +886,14 @@ describe("Pass 2 absence-lock precondition (#4271)", () => {
       JSON.stringify({ name: "@deftai/directive", version: "1.2.3" }),
     );
     writeFileSync(join(pkgDir, "dist", "bin.js"), "export {};\n");
-    let sawUpdate = false;
+    // Also seed runtime so tag-bind sees both public OVPR packages when skipInstall is false.
+    const runtimeDir = join(clean, "node_modules", "@deftai", "directive-runtime");
+    mkdirSync(runtimeDir, { recursive: true });
+    writeFileSync(
+      join(runtimeDir, "package.json"),
+      JSON.stringify({ name: "@deftai/directive-runtime", version: "1.2.3" }),
+    );
+    let sawInstall = false;
     const [okFlag, reason] = runPostPublishTwoPassFixture(
       {
         cleanDir: clean,
@@ -841,22 +905,28 @@ describe("Pass 2 absence-lock precondition (#4271)", () => {
       {
         which: () => "/usr/bin/npm",
         spawnText: (_cmd, args) => {
-          if (args.includes("update")) sawUpdate = true;
+          if (args.includes("install") && args.includes("--target-version")) {
+            sawInstall = true;
+            // Simulate OVPR install managed files the Pass 2 commit-set allows.
+            writeFileSync(
+              join(consumer, "AGENTS.md"),
+              "<!-- deft:managed-section -->\n# Deft\n<!-- /deft:managed-section -->\n",
+            );
+          }
           return { status: 0, stdout: "{}", stderr: "" };
         },
         runGit: (_root, args) => {
           if (args.includes("--porcelain")) {
-            return { status: 0, stdout: " M .deft/core/main.md\n", stderr: "" };
+            return { status: 0, stdout: " M AGENTS.md\n M package.json\n", stderr: "" };
           }
           return { status: 0, stdout: "", stderr: "" };
         },
       },
     );
     expect(okFlag).toBe(true);
-    expect(sawUpdate).toBe(true);
+    expect(sawInstall).toBe(true);
     expect(reason).toContain("two-pass fixture green");
     expect(existsSync(join(consumer, "package.json"))).toBe(true);
     expect(readFileSync(join(consumer, "AGENTS.md"), "utf8")).toContain("deft:managed-section");
-    expect(existsSync(join(consumer, ".deft", "core", "main.md"))).toBe(true);
   });
 });

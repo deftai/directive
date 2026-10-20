@@ -128,7 +128,7 @@ export function detectPreCutover(projectRoot: string): PrecutoverDetection {
     // (SPECIFICATION.md / PROJECT.md) were already detected above; a bare empty directory
     // without any artifacts is greenfield, not pre-cutover.
     if (reasons.length > 0) {
-      reasons.push("xbrief/ lifecycle layout not found -- run `deft migrate:xbrief` first");
+      reasons.push("xbrief/ lifecycle layout not found -- run `directive upgrade`");
     }
     return { preCutover: reasons.length > 0, reasons };
   }
@@ -142,18 +142,22 @@ export function detectPreCutover(projectRoot: string): PrecutoverDetection {
   return { preCutover: reasons.length > 0, reasons };
 }
 
-/** Last release that ships `scripts/migrate_vbrief.py` on the consumer deposit path (#2068). */
+/** Historical tag that last shipped `scripts/migrate_vbrief.py` (#2068); not taught as recovery. */
 export const FROZEN_PRECUTOVER_MIGRATION_TAG = "v0.59.0";
 
+/**
+ * Doctor next-step for pre-cutover / data-behind (AC8.9 / F-017).
+ * Teach `directive upgrade` — not frozen `task migrate:vbrief` / `deft migrate:xbrief` recipes.
+ */
 export function frozenPreCutoverMigrationGuidance(): string {
   return (
-    `Current npm releases no longer ship in-product \`task migrate:vbrief\`. Best-effort path (anchored on the ` +
-    `${FROZEN_PRECUTOVER_MIGRATION_TAG} git tag, from which GitHub serves a source tarball on demand): pin framework ` +
-    `${FROZEN_PRECUTOVER_MIGRATION_TAG}, install Python 3.11+ and uv, run \`task migrate:vbrief\` once from that payload, ` +
-    `then upgrade to current npm. This is a two-hop chain: pre-v0.20 flat model -> vBRIEF v0.6 (on ${FROZEN_PRECUTOVER_MIGRATION_TAG}) ` +
-    `-> xBRIEF via \`deft migrate:xbrief\` on current npm. If the ${FROZEN_PRECUTOVER_MIGRATION_TAG} payload is unavailable, ` +
-    `fall back to a manual fresh start: \`directive init\` a new project on current npm and hand-port your spec content. ` +
-    `See UPGRADING.md § Frozen pre-v0.20 document-model migration (#2068).`
+    `Pre-v0.20 hand-authored root docs and legacy lifecycle layouts are recovered through ` +
+    `installation management: run \`directive upgrade\` so the pinned runtime can migrate ` +
+    `supported envelopes to current xbrief/ (and archive unknowable files under xbrief/archive/). ` +
+    `Diagnostic note: the last release that shipped an in-tree \`task migrate:vbrief\` helper was ` +
+    `${FROZEN_PRECUTOVER_MIGRATION_TAG}; that two-hop recipe is no longer the taught path. ` +
+    `If upgrade cannot recover your content, \`directive init\` a fresh project and hand-port. ` +
+    `See UPGRADING.md (#2068) for historical context only.`
   );
 }
 

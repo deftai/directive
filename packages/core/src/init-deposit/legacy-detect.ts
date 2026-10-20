@@ -1,12 +1,9 @@
 /**
  * Legacy on-disk layout detection for the npm CLI (#1912 Tier-2).
  *
- * The `npx @deftai/directive` CLI is fetched fresh at use-time. Before it
- * deposits (init) or refreshes (update) the canonical `.deft/core/` vendored
- * layout, it must detect a LEGACY on-disk layout and REFUSE -- the npm path
- * never migrates. Stage 1 (the frozen final Go bridge installer) migrates the
- * old layout; stage 2 (this npm CLI) takes over once the layout is
- * canonical-vendored.
+ * Before deposit/refresh of a pre-split layout, detect LEGACY on-disk shapes
+ * and REFUSE. Supported latest-legacy conversion uses `directive upgrade`
+ * (launcher + runtime pin); the Go installer has been removed (AC10.10).
  *
  * Legacy shapes recognized:
  *  - orphan-deft-version      : `.deft/VERSION` present but `.deft/core/` absent
@@ -17,17 +14,13 @@
  * Reuses the manifest/AGENTS heuristics in ../doctor/manifest.ts -- it does NOT
  * reinvent them.
  *
- * Core principle (locked): never bake the upgrade command/version into the
- * artifact being upgraded -- bake in a stable pointer resolved fresh. The
- * refusal therefore signposts a STABLE UPGRADING.md URL, never a baked version.
- *
- * Refs #1912, #1669.
+ * Refs #1912, #1669, #5490.
  */
 
 import { execFileSync } from "node:child_process";
 import { statSync } from "node:fs";
 import { join } from "node:path";
-import { GO_BRIDGE_RELEASES_URL, UPGRADING_DOC_URL } from "../doctor/constants.js";
+import { UPGRADING_DOC_URL } from "../doctor/constants.js";
 import { extractManagedSection, parseInstallRootFromAgentsMd } from "../doctor/manifest.js";
 import { readTextSafe } from "../doctor/paths.js";
 import { containedRemove } from "../fs/contained-write.js";
@@ -260,30 +253,25 @@ export class LegacyLayoutRefusedError extends Error {
 }
 
 /**
- * Build the human-facing two-step recovery message. Version-neutral: it
- * signposts the stable UPGRADING.md doc + the frozen-bridge releases page and
- * NEVER bakes a Go-installer version or a literal upgrade command.
+ * Build the human-facing recovery message for a legacy layout refusal.
+ * Points at `directive upgrade` (two-package model); Go installer removed (AC10.10).
  */
 export function buildLegacyRefusalMessage(
   command: "init" | "update",
   detection: LegacyLayoutDetection,
 ): string {
-  const rerun = `npx @deftai/directive ${command}`;
   return (
     `directive ${command}: refusing to ${command === "init" ? "deposit" : "refresh"} -- ` +
     "a LEGACY Deft layout was detected.\n\n" +
     `  Detected: ${detection.detail}` +
     (detection.kind ? ` (${detection.kind})` : "") +
     "\n\n" +
-    "The npm CLI does not migrate legacy layouts. Recover in two steps:\n\n" +
-    "  1. Run the frozen final Go bridge installer to migrate this layout to the\n" +
-    "     canonical .deft/core/ vendored layout. The binaries + exact command are\n" +
-    "     documented (version-neutral) at:\n" +
-    `       ${UPGRADING_DOC_URL}\n` +
-    `     Frozen Go bridge releases: ${GO_BRIDGE_RELEASES_URL}\n` +
-    `  2. Re-run \`${rerun}\` once the layout is canonical-vendored.\n\n` +
-    "Why a pointer, not a command: never bake the upgrade command/version into the\n" +
-    "artifact being upgraded -- the links above resolve the current bridge fresh.\n"
+    "Supported conversion uses the launcher bookend:\n\n" +
+    "  1. Install/update the global launcher: npm i -g @deftai/directive\n" +
+    "  2. From the project root run: directive upgrade\n" +
+    "     (alias: directive update). This converts the supported latest legacy\n" +
+    "     layout to an exact @deftai/directive-runtime pin and removes copied core.\n\n" +
+    `See ${UPGRADING_DOC_URL}\n`
   );
 }
 
@@ -305,7 +293,7 @@ export function buildLegacyRefusalJson(
     detail: detection.detail,
     evidence: [...detection.evidence],
     upgrading_doc_url: UPGRADING_DOC_URL,
-    go_bridge_releases_url: GO_BRIDGE_RELEASES_URL,
+    recovery: "directive upgrade",
   };
 }
 
@@ -316,9 +304,8 @@ export function legacyLayoutSignpostLine(detection: LegacyLayoutDetection): stri
   }
   return (
     `Legacy Deft layout detected (${detection.kind ?? "unknown"}): ${detection.detail} ` +
-    "Run the frozen Go bridge installer to migrate to .deft/core/, then use the npm " +
-    `CLI (\`npx @deftai/directive update\`). See ${UPGRADING_DOC_URL} ` +
-    `(frozen bridge: ${GO_BRIDGE_RELEASES_URL}).`
+    "Run `directive upgrade` (after `npm i -g @deftai/directive`) to convert the " +
+    `supported latest legacy layout. See ${UPGRADING_DOC_URL}.`
   );
 }
 
