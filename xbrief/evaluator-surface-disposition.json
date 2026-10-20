@@ -10,7 +10,9 @@
     "packages/core/src/pr-closing-keywords/**",
     "packages/core/src/class-checks/evaluate.ts",
     "packages/core/src/class-checks/evaluate.test.ts",
+    "packages/core/src/consumer-check-contract/evaluate.ts",
+    "vitest.config.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "OVPR master-merge (#5490 / PR #5790): renew disclosure covering prior #5782 surfaces plus class-checks evaluate tip delta brought in on yolo/wip-wave4j. Disclosure only; not #3164 authorization."
+  "note": "OVPR master-merge (#5490 / PR #5790): renew disclosure for class-checks + consumer-check-contract evaluate surfaces and vitest.config.ts (install-bookend moved to spawn-heavy). Disclosure only; not #3164 authorization."
 }
