@@ -3,21 +3,21 @@
  * Unit matrix avoids network; optional Verdaccio cases skip when registry is down.
  */
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { runInstall } from "./bookends.js";
+import { classifyPinVersion, type ProjectInstallState, readProjectInstallState } from "./pin.js";
 import { HUMAN_GIT_HOOKS_INACTIVE_LINE } from "./plan-present.js";
-import { classifyPinVersion, readProjectInstallState, type ProjectInstallState } from "./pin.js";
 import {
   buildPmExactAddArgs,
   detectPackageManager,
   formatMissingPmGuidance,
   formatPmExactAddCommand,
   isExactSemver,
-  isPrereleaseVersion,
   isPnpmWorkspaceRoot,
+  isPrereleaseVersion,
   lockfileRecordsExactPin,
   readDeclaredPackageManagerVersion,
 } from "./pm.js";
@@ -29,7 +29,10 @@ function tempProject(name = "wave2a"): string {
   const root = mkdtempSync(join(tmpdir(), `${name}-`));
   TEMPS.push(root);
   // Minimal git-ish marker not required for bookend unit tests (root passed in).
-  writeFileSync(join(root, "package.json"), `${JSON.stringify({ name: "t", version: "0.0.0", private: true }, null, 2)}\n`);
+  writeFileSync(
+    join(root, "package.json"),
+    `${JSON.stringify({ name: "t", version: "0.0.0", private: true }, null, 2)}\n`,
+  );
   return root;
 }
 
@@ -328,15 +331,22 @@ describe("install bookend flag matrix (AC5 / AC6)", () => {
     const root = tempProject();
     const c = capture();
     let resolveCalled = false;
-    const code = runInstall(root, stateFor(root), ["--yes", "--target-version"], "0.0.0-test", c.io, {
-      resolveLatest: () => {
-        resolveCalled = true;
-        return { ok: true as const, version: "1.2.3" };
+    const code = runInstall(
+      root,
+      stateFor(root),
+      ["--yes", "--target-version"],
+      "0.0.0-test",
+      c.io,
+      {
+        resolveLatest: () => {
+          resolveCalled = true;
+          return { ok: true as const, version: "1.2.3" };
+        },
+        runPmAdd: () => {
+          throw new Error("PM must not run");
+        },
       },
-      runPmAdd: () => {
-        throw new Error("PM must not run");
-      },
-    });
+    );
     expect(code).toBe(2);
     expect(resolveCalled).toBe(false);
     expect(c.err()).toMatch(/--target-version requires a value/);
@@ -393,7 +403,13 @@ describe("install bookend flag matrix (AC5 / AC6)", () => {
   it("--repair + --target-version exits 2 (AC6.5)", () => {
     const root = tempProject();
     const c = capture();
-    const code = runInstall(root, stateFor(root), ["--repair", "--target-version", "1.2.3", "--yes"], "0.0.0-test", c.io);
+    const code = runInstall(
+      root,
+      stateFor(root),
+      ["--repair", "--target-version", "1.2.3", "--yes"],
+      "0.0.0-test",
+      c.io,
+    );
     expect(code).toBe(2);
     expect(c.err() + c.out()).toMatch(/--target-version/);
   });
@@ -660,13 +676,21 @@ describe("install bookend flag matrix (AC5 / AC6)", () => {
       c.io,
     );
     expect(code).toBe(0);
-    expect(c.out()).toMatch(/pnpm add -D --save-exact --ignore-scripts --config\.production=false -w /);
+    expect(c.out()).toMatch(
+      /pnpm add -D --save-exact --ignore-scripts --config\.production=false -w /,
+    );
   });
 
   it("rejects range --target-version before mutation", () => {
     const root = tempProject();
     const c = capture();
-    const code = runInstall(root, stateFor(root), ["--yes", "--target-version", "^1.2.3"], "0.0.0-test", c.io);
+    const code = runInstall(
+      root,
+      stateFor(root),
+      ["--yes", "--target-version", "^1.2.3"],
+      "0.0.0-test",
+      c.io,
+    );
     expect(code).toBe(2);
     expect(c.err() + c.out()).toMatch(/exact/i);
   });
@@ -721,7 +745,10 @@ describe("install bookend flag matrix (AC5 / AC6)", () => {
           pmCalled = true;
           const pkgPath = join(projectRoot, "package.json");
           const pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as Record<string, unknown>;
-          pkg.devDependencies = { ...(pkg.devDependencies as object), "@deftai/directive-runtime": version };
+          pkg.devDependencies = {
+            ...(pkg.devDependencies as object),
+            "@deftai/directive-runtime": version,
+          };
           writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
           const nm = join(projectRoot, "node_modules", "@deftai", "directive-runtime");
           mkdirSync(nm, { recursive: true });

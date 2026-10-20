@@ -329,25 +329,29 @@ describe("writeAgentHookDeposit", () => {
             ],
             preToolUse: [
               {
-                command: "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host cursor --event tool.before",
+                command:
+                  "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host cursor --event tool.before",
                 matcher: DIRECT_WRITE_HOOK_MATCHER,
                 failClosed: true,
                 timeout: 5,
               },
               {
-                command: "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host cursor --event tool.before",
+                command:
+                  "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host cursor --event tool.before",
                 matcher: SPAWN_HOOK_MATCHER,
                 failClosed: true,
                 timeout: 5,
               },
               {
-                command: "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host cursor --event tool.before",
+                command:
+                  "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host cursor --event tool.before",
                 matcher: SHELL_HOOK_MATCHER,
                 failClosed: true,
                 timeout: 5,
               },
               {
-                command: "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host cursor --event tool.before",
+                command:
+                  "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host cursor --event tool.before",
                 matcher: MCP_HOOK_MATCHER,
                 failClosed: true,
                 timeout: 5,
@@ -355,7 +359,8 @@ describe("writeAgentHookDeposit", () => {
             ],
             preCompact: [
               {
-                command: "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host cursor --event session.compact",
+                command:
+                  "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host cursor --event session.compact",
                 timeout: CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
               },
             ],
@@ -390,7 +395,9 @@ describe("writeAgentHookDeposit", () => {
     for (const path of AGENT_HOOK_PATHS) {
       const deposit = readFileSync(join(root, path), "utf8");
       expect(deposit.split(DIRECT_WRITE_HOOK_MATCHER)).toHaveLength(2);
-      expect(deposit).toContain("node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host");
+      expect(deposit).toContain(
+        "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host",
+      );
     }
   });
 

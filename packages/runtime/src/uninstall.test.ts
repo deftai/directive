@@ -55,10 +55,7 @@ describe("runUninstall (AC11.5 / AC11.7)", () => {
     const root = tempRoot();
     mkdirSync(join(root, "xbrief"), { recursive: true });
     writeFileSync(join(root, "xbrief", "NOTE.txt"), "user-data\n");
-    writeFileSync(
-      join(root, "AGENTS.md"),
-      `# Project\n\nUser prose stays.\n`,
-    );
+    writeFileSync(join(root, "AGENTS.md"), `# Project\n\nUser prose stays.\n`);
     runSetup({ operation: "install", from: "none", root });
 
     expect(existsSync(join(root, ".deft", "GENERATION.json"))).toBe(true);

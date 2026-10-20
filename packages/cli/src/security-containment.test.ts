@@ -2,6 +2,8 @@
  * Wave 2j RED — SEC-ESC / SEC-ROOT owner-boundary containment (AC3.4, AC3.8,
  * AC11.10, AC14.43, D4.15).
  */
+
+import { execFileSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -13,14 +15,10 @@ import {
   writeFileSync,
 } from "node:fs";
 import { homedir, tmpdir } from "node:os";
-import { join, resolve } from "node:path";
-import { execFileSync } from "node:child_process";
+import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { discoverProject } from "./discover.js";
-import {
-  applyLauncherCleanup,
-  discoverUninstallFootprint,
-} from "./uninstall-map.js";
+import { applyLauncherCleanup, discoverUninstallFootprint } from "./uninstall-map.js";
 
 const roots: string[] = [];
 
@@ -57,10 +55,7 @@ describe("SEC-ESC ownership path escape (AC3.4 / AC11.10 / D4.15)", () => {
     execFileSync("git", ["init", "-q"], { cwd: project });
     const victim = join(parent, "mal-victim.txt");
     writeFileSync(victim, "do-not-delete\n");
-    writeFileSync(
-      join(project, "package.json"),
-      `${JSON.stringify({ private: true }, null, 2)}\n`,
-    );
+    writeFileSync(join(project, "package.json"), `${JSON.stringify({ private: true }, null, 2)}\n`);
     mkdirSync(join(project, ".deft"), { recursive: true });
     writeFileSync(
       join(project, ".deft", "GENERATION.json"),
@@ -167,12 +162,8 @@ describe("SEC-ESC ownership path escape (AC3.4 / AC11.10 / D4.15)", () => {
       )}\n`,
     );
     const discovery = discoverUninstallFootprint(project);
-    expect(discovery.artifacts.some((a) => a.path === "." || a.path.includes(".."))).toBe(
-      false,
-    );
-    expect(discovery.rejectedOwnershipPaths).toEqual(
-      expect.arrayContaining([".", "nested/.."]),
-    );
+    expect(discovery.artifacts.some((a) => a.path === "." || a.path.includes(".."))).toBe(false);
+    expect(discovery.rejectedOwnershipPaths).toEqual(expect.arrayContaining([".", "nested/.."]));
     applyLauncherCleanup(project, discovery);
     expect(existsSync(project)).toBe(true);
     expect(existsSync(join(project, "keep.txt"))).toBe(true);

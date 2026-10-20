@@ -2,7 +2,7 @@
  * AC10.10 / DEFT-INSTALL-MSG — Go installer messages and DEFT_INSTALL_BINARY
  * teaching must not ship in runtime init-cli.
  */
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";

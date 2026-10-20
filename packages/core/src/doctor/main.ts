@@ -2300,9 +2300,7 @@ export function resolveReconciliationLine(facts: ResolutionFacts): string {
   if (facts.engineVersion !== null && facts.pinVersion !== null) {
     const pinResult = evaluateEnginePin(facts.engineVersion, facts.pinVersion);
     if (pinResult.band === "engine-ahead" || pinResult.band === "engine-behind") {
-      notes.push(
-        pinResult.message ?? `engine ${facts.engineVersion} vs pin ${facts.pinVersion}`,
-      );
+      notes.push(pinResult.message ?? `engine ${facts.engineVersion} vs pin ${facts.pinVersion}`);
     }
   }
   // Without a committed pin there is nothing to reconcile against, so never

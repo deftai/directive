@@ -31,19 +31,13 @@ export const NODE_SUPPORTED_MAJOR = 22;
 export const NODE_EOL_NOTE =
   "Node 20 reached end of life on 30 April 2026. Directive is tested on Node 22 and 24 and runs on 20 on a best-effort basis.";
 
-export const RECOVERY_GUIDANCE =
-  "npm i -g @deftai/directive, then directive install --repair";
+export const RECOVERY_GUIDANCE = "npm i -g @deftai/directive, then directive install --repair";
 
 /** Env vars passed when spawning the runtime (AC4.2). */
 export const ENV_PROJECT_ROOT = "DIRECTIVE_PROJECT_ROOT";
 export const ENV_LAUNCHER_VERSION = "DIRECTIVE_LAUNCHER_VERSION";
 
-export const INSTALL_MANAGEMENT_COMMANDS = [
-  "install",
-  "upgrade",
-  "uninstall",
-  "doctor",
-] as const;
+export const INSTALL_MANAGEMENT_COMMANDS = ["install", "upgrade", "uninstall", "doctor"] as const;
 
 export const INSTALL_ALIASES: Record<string, (typeof INSTALL_MANAGEMENT_COMMANDS)[number]> = {
   init: "install",

@@ -55,7 +55,10 @@ const A9_TOPICS: ReadonlyArray<{ id: string; re: RegExp }> = [
   { id: "uninstall-best-effort", re: /uninstall can be best-effort/i },
   { id: "old-global-clis", re: /old global CLI/i },
   { id: "no-delegate-old-runtime", re: /never delegates to an old-style|does not run old-style/i },
-  { id: "historical-latest-legacy", re: /latest .+copied-core|latest package\.json-pinned|supported latest legacy/i },
+  {
+    id: "historical-latest-legacy",
+    re: /latest .+copied-core|latest package\.json-pinned|supported latest legacy/i,
+  },
   { id: "retired-verbs", re: /retired verbs/i },
   { id: "update-means-upgrade", re: /update[`'"]? means [`'"]?upgrade/i },
   { id: "ignore-entries-limited", re: /package\/readiness ignore|ignore entries/i },
@@ -103,7 +106,9 @@ describe("OVPR docs AC13.8 / AC9.11 / AC13.10 (wave2r)", () => {
     expect(found, `${rel} still teaches forbidden commands`).toEqual([]);
   });
 
-  it.each(AGENT_USER_SURFACES)("%s does not teach .deft/core as current install location", (rel) => {
+  it.each(
+    AGENT_USER_SURFACES,
+  )("%s does not teach .deft/core as current install location", (rel) => {
     const text = readText(rel);
     const found: string[] = [];
     for (const re of CORE_TEACHING_RES) {
@@ -121,9 +126,7 @@ describe("OVPR docs AC13.8 / AC9.11 / AC13.10 (wave2r)", () => {
   it("README / main / SKILL / agents-entry teach AC9.7 recovery", () => {
     for (const rel of ["README.md", "main.md", "SKILL.md", "templates/agents-entry.md"] as const) {
       const text = readText(rel);
-      expect(text, `${rel} missing global launcher install`).toMatch(
-        /npm i -g @deftai\/directive/,
-      );
+      expect(text, `${rel} missing global launcher install`).toMatch(/npm i -g @deftai\/directive/);
       expect(text, `${rel} missing install --repair`).toContain(AC97);
     }
   });

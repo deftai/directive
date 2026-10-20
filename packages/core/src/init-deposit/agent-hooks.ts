@@ -62,7 +62,6 @@ export const AGENT_HOOK_PATHS = [
   ".codex/hooks.json",
 ] as const;
 
-
 /**
  * Grok PreToolUse outer-deny wrapper (#5656 Prefer-A Bound, OVPR / AC9.1).
  * Host schema has no attested failClosed; the wrapper emits Grok's deny
@@ -431,9 +430,7 @@ function mergeNestedConfig(
   hooks.SessionStart = [...session, nestedGroup(bin, host, "session.start")];
   hooks.PreToolUse = [
     ...preTool,
-    ...NESTED_PRE_TOOL_MATCHERS.map((matcher) =>
-      nestedGroup(bin, host, "tool.before", matcher),
-    ),
+    ...NESTED_PRE_TOOL_MATCHERS.map((matcher) => nestedGroup(bin, host, "tool.before", matcher)),
   ];
   if (options.compact) {
     const preCompact = eventArray(hooks, "PreCompact", path).filter(
@@ -616,15 +613,13 @@ export function writeAgentHookDeposit(
     {
       host: "claude",
       path: AGENT_HOOK_PATHS[0],
-      merge: (config, path) =>
-        mergeNestedConfig(config, path, "claude", bin, { compact: true }),
+      merge: (config, path) => mergeNestedConfig(config, path, "claude", bin, { compact: true }),
       strip: (config, path) => stripManagedNestedConfig(config, path, "claude"),
     },
     {
       host: "grok",
       path: AGENT_HOOK_PATHS[1],
-      merge: (config, path) =>
-        mergeNestedConfig(config, path, "grok", bin, { compact: true }),
+      merge: (config, path) => mergeNestedConfig(config, path, "grok", bin, { compact: true }),
       strip: (config, path) => stripManagedNestedConfig(config, path, "grok"),
     },
     {
@@ -636,8 +631,7 @@ export function writeAgentHookDeposit(
     {
       host: "codex",
       path: AGENT_HOOK_PATHS[3],
-      merge: (config, path) =>
-        mergeNestedConfig(config, path, "codex", bin, { compact: false }),
+      merge: (config, path) => mergeNestedConfig(config, path, "codex", bin, { compact: false }),
       strip: (config, path) => stripManagedNestedConfig(config, path, "codex"),
     },
   ];

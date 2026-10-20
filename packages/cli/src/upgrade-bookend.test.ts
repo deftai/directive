@@ -1,7 +1,7 @@
 /**
  * Owner-boundary tests for upgrade / update bookend (Wave 2b / R7 / AC7.* / AC4.10).
  */
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -10,7 +10,7 @@ import {
   parseDoctorDataStatusResponse,
   runUpgrade,
 } from "./bookends.js";
-import { readProjectInstallState, type ProjectInstallState } from "./pin.js";
+import { type ProjectInstallState, readProjectInstallState } from "./pin.js";
 import { compareExactVersions } from "./registry.js";
 
 const TEMPS: string[] = [];
@@ -279,7 +279,13 @@ describe("upgrade bookend gates (AC7.1 / AC7.3)", () => {
     pkg.devDependencies = { "@deftai/directive-runtime": "^1.2.3" };
     writeFileSync(join(root, "package.json"), `${JSON.stringify(pkg, null, 2)}\n`);
     const c = capture();
-    const code = runUpgrade(root, stateFor(root), ["--yes", "--target-version", "1.2.4"], "0.0.0-test", c.io);
+    const code = runUpgrade(
+      root,
+      stateFor(root),
+      ["--yes", "--target-version", "1.2.4"],
+      "0.0.0-test",
+      c.io,
+    );
     expect(code).toBe(2);
     expect(c.err() + c.out()).toMatch(/directive install/i);
   });

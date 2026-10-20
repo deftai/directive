@@ -44,9 +44,7 @@ describe("test_agents_md_current_shape", () => {
   });
 
   it("agents_entry_forbids_body_alone_umbrella_status", () => {
-    expect(agentsEntryText).toContain(
-      "Conclude umbrella or epic status from the issue body alone",
-    );
+    expect(agentsEntryText).toContain("Conclude umbrella or epic status from the issue body alone");
   });
 
   it.each(CANONICAL_BODY_FIELDS)("canonical_body_structure_field_present %s", (field) => {

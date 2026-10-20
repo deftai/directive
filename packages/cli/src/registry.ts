@@ -115,16 +115,12 @@ export function resolveLatestStableVersion(
   env: NodeJS.ProcessEnv = process.env,
   projectRoot?: string,
 ): ResolveLatestResult {
-  const result = spawnSync(
-    "npm",
-    ["view", RUNTIME_PACKAGE_NAME, "version", "--json"],
-    {
-      encoding: "utf8",
-      env,
-      cwd: projectRoot,
-      shell: process.platform === "win32",
-    },
-  );
+  const result = spawnSync("npm", ["view", RUNTIME_PACKAGE_NAME, "version", "--json"], {
+    encoding: "utf8",
+    env,
+    cwd: projectRoot,
+    shell: process.platform === "win32",
+  });
   if (result.error) {
     return {
       ok: false,
@@ -157,8 +153,7 @@ export function resolveLatestStableVersion(
   if (isPrereleaseVersion(version)) {
     return {
       ok: false,
-      message:
-        `Registry latest (${version}) is a prerelease. Pass --target-version <exact> to install it (AC6.1).`,
+      message: `Registry latest (${version}) is a prerelease. Pass --target-version <exact> to install it (AC6.1).`,
     };
   }
   return { ok: true, version };
@@ -201,7 +196,7 @@ export function resolvePublishedContract(
         (result.stderr ? `: ${result.stderr.trim()}` : ""),
     };
   }
-  let raw = (result.stdout ?? "").trim();
+  const raw = (result.stdout ?? "").trim();
   if (raw.length === 0) {
     return {
       ok: false,

@@ -5,20 +5,20 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
 import {
   ContainedWriteError,
   ContainedWriteErrorCode,
   type ContainedWriteInput,
   type ContainedWriteResult,
 } from "@deftai/directive-core/dist/fs/contained-write.js";
+import { afterEach, describe, expect, it } from "vitest";
+import { readProjectDataStatus } from "./data-status.js";
 import {
   CURRENT_DATA_SCHEMA_VERSION,
   DATA_SCHEMA_MARKER_REL,
   projectNeedsXbriefMigration,
   runMigrate,
 } from "./migrate.js";
-import { readProjectDataStatus } from "./data-status.js";
 
 const TEMPS: string[] = [];
 
@@ -111,7 +111,11 @@ describe("runMigrate (R7 / AC7.8)", () => {
     writeFileSync(
       join(root, "vbrief", "active", "story.vbrief.json"),
       `${JSON.stringify({
-        vBRIEFInfo: { version: "0.5", description: "contract-migrate", created: "2026-06-01T00:00:00Z" },
+        vBRIEFInfo: {
+          version: "0.5",
+          description: "contract-migrate",
+          created: "2026-06-01T00:00:00Z",
+        },
         plan: { title: "Story", status: "running", items: [] },
       })}\n`,
       "utf8",
@@ -147,7 +151,11 @@ describe("runMigrate (R7 / AC7.8)", () => {
     writeFileSync(
       join(root, "vbrief", "active", "story.vbrief.json"),
       `${JSON.stringify({
-        vBRIEFInfo: { version: "0.5", description: "partial-fail", created: "2026-06-01T00:00:00Z" },
+        vBRIEFInfo: {
+          version: "0.5",
+          description: "partial-fail",
+          created: "2026-06-01T00:00:00Z",
+        },
         plan: { title: "Story", status: "running", items: [] },
       })}\n`,
       "utf8",

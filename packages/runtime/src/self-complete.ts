@@ -57,9 +57,7 @@ export interface SelfCompleteResult {
   readonly setup: SetupResult | null;
 }
 
-export function isDoctorDiagnosticEnv(
-  environ: NodeJS.ProcessEnv = process.env,
-): boolean {
+export function isDoctorDiagnosticEnv(environ: NodeJS.ProcessEnv = process.env): boolean {
   const v = environ[DEFT_DOCTOR_HOOK_DIAGNOSTIC];
   if (v === undefined || v === "") return false;
   const lower = v.toLowerCase();
@@ -117,8 +115,7 @@ export function maybeSelfCompleteSetup(
   // AC14.20: configured project with GENERATION deleted must rebuild.
   if (!generationPresent) {
     const pin = readRuntimePin(projectRoot);
-    const configured =
-      pin.pinVersion !== null && hasDirectiveWiringEvidence(projectRoot);
+    const configured = pin.pinVersion !== null && hasDirectiveWiringEvidence(projectRoot);
     if (!configured) {
       return { ran: false, skipReason: "not-configured", setup: null };
     }

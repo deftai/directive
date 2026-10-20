@@ -11,23 +11,23 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  buildOwnershipRecord,
+  fingerprintContent,
   GENERATION_REL,
+  generationPath,
+  inspectOwnershipRecord,
   MANAGED_SECTION_CLOSE,
   MANAGED_SECTION_MARKER_ID,
   MANAGED_SECTION_OPEN_PREFIX,
-  OWNERSHIP_SCHEMA_VERSION,
-  buildOwnershipRecord,
-  fingerprintContent,
-  generationPath,
-  inspectOwnershipRecord,
   normalizeRelativePath,
+  OWNERSHIP_SCHEMA_VERSION,
+  type OwnedArtifact,
   ownershipRecordsEqual,
   parseOwnershipRecord,
   readOwnershipRecord,
+  type SetupOwnershipRecord,
   stableOwnershipFingerprint,
   writeOwnershipRecord,
-  type OwnedArtifact,
-  type SetupOwnershipRecord,
 } from "./ownership.js";
 
 const temps: string[] = [];
@@ -80,9 +80,7 @@ function sampleArtifacts(): OwnedArtifact[] {
   ];
 }
 
-function sampleRecord(
-  overrides: Partial<SetupOwnershipRecord> = {},
-): SetupOwnershipRecord {
+function sampleRecord(overrides: Partial<SetupOwnershipRecord> = {}): SetupOwnershipRecord {
   return buildOwnershipRecord({
     runtimeVersion: "1.2.3",
     packageManager: "pnpm",

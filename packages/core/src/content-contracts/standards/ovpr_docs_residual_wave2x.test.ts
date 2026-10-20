@@ -116,20 +116,19 @@ describe("OVPR residual docs wave2x (AC10.10 / AC13.8 / AC9.11)", () => {
     expect(found, `${rel} still teaches .deft/core as current`).toEqual([]);
   });
 
-  it.each(RESIDUAL_SURFACES)(
-    "%s does not prescribe deft-install / Go installer as current guidance",
-    (rel) => {
-      const text = readText(rel);
-      const found: string[] = [];
-      for (const { id, re } of DEFT_INSTALL_CURRENT_RES) {
-        for (const line of hits(text, re)) {
-          if (isProhibitionLine(line)) continue;
-          found.push(`${id}: ${line}`);
-        }
+  it.each(
+    RESIDUAL_SURFACES,
+  )("%s does not prescribe deft-install / Go installer as current guidance", (rel) => {
+    const text = readText(rel);
+    const found: string[] = [];
+    for (const { id, re } of DEFT_INSTALL_CURRENT_RES) {
+      for (const line of hits(text, re)) {
+        if (isProhibitionLine(line)) continue;
+        found.push(`${id}: ${line}`);
       }
-      expect(found, `${rel} still teaches deft-install as current`).toEqual([]);
-    },
-  );
+    }
+    expect(found, `${rel} still teaches deft-install as current`).toEqual([]);
+  });
 
   it("UPGRADING Current path teaches OVPR + AC9.7 (not deposit refresh)", () => {
     const text = readText("UPGRADING.md");

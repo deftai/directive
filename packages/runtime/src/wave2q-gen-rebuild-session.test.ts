@@ -3,22 +3,15 @@
  * (AC14.20, AC8.7/AC14.52, AC8.9).
  */
 import { execFileSync, spawn, spawnSync } from "node:child_process";
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { RUNTIME_PIN_PACKAGE } from "@deftai/directive-core/dist/install-health/constants.js";
 import { GENERATION_REL } from "@deftai/directive-core/dist/install-health/ownership.js";
-import { CURRENT_DATA_SCHEMA_VERSION, DATA_SCHEMA_MARKER_REL } from "./migrate.js";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { run as runHookDispatch } from "./hook-dispatch.js";
+import { CURRENT_DATA_SCHEMA_VERSION, DATA_SCHEMA_MARKER_REL } from "./migrate.js";
 import { maybeSelfCompleteSetup } from "./self-complete.js";
 import { runSetup } from "./setup.js";
 
@@ -32,15 +25,11 @@ beforeAll(() => {
   // Child tsx process resolves @deftai/directive-core via packages/core/dist.
   const marker = join(REPO_ROOT, "packages", "core", "dist", "install-health", "cheap.js");
   if (existsSync(marker)) return;
-  const built = spawnSync(
-    "pnpm",
-    ["exec", "tsc", "-b", "packages/core", "packages/runtime"],
-    {
-      cwd: REPO_ROOT,
-      encoding: "utf8",
-      shell: process.platform === "win32",
-    },
-  );
+  const built = spawnSync("pnpm", ["exec", "tsc", "-b", "packages/core", "packages/runtime"], {
+    cwd: REPO_ROOT,
+    encoding: "utf8",
+    shell: process.platform === "win32",
+  });
   if (built.status !== 0 || !existsSync(marker)) {
     throw new Error(`wave2q child needs core dist: ${built.stderr || built.stdout}`);
   }
@@ -195,8 +184,7 @@ describe("AC8.9 session-start data-behind message", () => {
     const out: string[] = [];
     const err: string[] = [];
     const code = runHookDispatch(["--host", "cursor", "--event", "session.start"], {
-      readStdin: () =>
-        JSON.stringify({ cwd: root, workspace_roots: [root] }),
+      readStdin: () => JSON.stringify({ cwd: root, workspace_roots: [root] }),
       writeOut: (t) => out.push(t),
       writeErr: (t) => err.push(t),
       cwd: () => root,

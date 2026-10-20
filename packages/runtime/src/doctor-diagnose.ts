@@ -9,12 +9,12 @@ import { join } from "node:path";
 import {
   checkFullInSync,
   DEFT_DOCTOR_HOOK_DIAGNOSTIC,
-  INSTALLATION_RECOVERY_GUIDANCE,
-  RUNTIME_PACKAGE_PATH_PREFIX,
   type FullInSyncResult,
+  INSTALLATION_RECOVERY_GUIDANCE,
   type PredicateResult,
+  RUNTIME_PACKAGE_PATH_PREFIX,
 } from "@deftai/directive-core/dist/install-health/index.js";
-import { readProjectDataStatus, type DataStatusValue } from "./data-status.js";
+import { type DataStatusValue, readProjectDataStatus } from "./data-status.js";
 
 export { DEFT_DOCTOR_HOOK_DIAGNOSTIC };
 
@@ -22,8 +22,7 @@ export { DEFT_DOCTOR_HOOK_DIAGNOSTIC };
  * F-010 / C7 — no-.git partial install: primary recovery is git init then repair,
  * not the generic AC9.7 global reinstall line.
  */
-export const GIT_PRECONDITION_RECOVERY_GUIDANCE =
-  "git init, then directive install --repair";
+export const GIT_PRECONDITION_RECOVERY_GUIDANCE = "git init, then directive install --repair";
 
 /** Readiness detail when wiring-ready is withheld solely because there is no .git. */
 export const GIT_PRECONDITION_READINESS_DETAIL =
@@ -139,10 +138,7 @@ function inspectHookAndSkillForm(projectRoot: string): {
     ".codex/hooks.json",
     ".grok/hooks/deft.json",
   ];
-  const skillRelCandidates = [
-    ".agents/skills/deft/SKILL.md",
-    "AGENTS.md",
-  ];
+  const skillRelCandidates = [".agents/skills/deft/SKILL.md", "AGENTS.md"];
 
   let hookOk = true;
   let hookDetail: string | null = null;
@@ -154,7 +150,8 @@ function inspectHookAndSkillForm(projectRoot: string): {
     try {
       const text = readFileSync(abs, "utf8");
       const hasPkg = text.includes(prefix) && text.includes("hook-bin");
-      const hasLegacy = text.includes(".deft/core/") || /(^|[\s"`'])deft-hook([\s"`']|$)/.test(text);
+      const hasLegacy =
+        text.includes(".deft/core/") || /(^|[\s"`'])deft-hook([\s"`']|$)/.test(text);
       if (hasLegacy || !hasPkg) {
         hookOk = false;
         hookDetail = `${rel} does not use package-relative hook-bin form`;
@@ -211,8 +208,14 @@ function inspectHookAndSkillForm(projectRoot: string): {
   }
 
   return {
-    hookCommandForm: { ok: hookOk || !sawHook, detail: hookOk ? (sawHook ? null : hookDetail) : hookDetail },
-    skillPointers: { ok: skillOk || !sawSkill, detail: skillOk ? (sawSkill ? null : skillDetail) : skillDetail },
+    hookCommandForm: {
+      ok: hookOk || !sawHook,
+      detail: hookOk ? (sawHook ? null : hookDetail) : hookDetail,
+    },
+    skillPointers: {
+      ok: skillOk || !sawSkill,
+      detail: skillOk ? (sawSkill ? null : skillDetail) : skillDetail,
+    },
   };
 }
 
@@ -388,9 +391,7 @@ export function formatDoctorReport(diag: DoctorDiagnosis): string {
   } else if (diag.incompleteInstall === "git-precondition") {
     lines.push("directive doctor: incomplete install (git precondition)");
     lines.push("");
-    lines.push(
-      "This folder is not a git repository yet, so git hooks were not installed.",
-    );
+    lines.push("This folder is not a git repository yet, so git hooks were not installed.");
     lines.push("");
     lines.push("Next:");
     lines.push("  git init");
@@ -418,13 +419,21 @@ export function formatDoctorReport(diag: DoctorDiagnosis): string {
   lines.push(line(diag.surfaces.wiring.ok, "wiring", diag.surfaces.wiring.detail));
   lines.push(line(diag.surfaces.readiness.ok, "readiness", diag.surfaces.readiness.detail));
   lines.push(
-    line(diag.surfaces.hookCommandForm.ok, "hook command form", diag.surfaces.hookCommandForm.detail),
+    line(
+      diag.surfaces.hookCommandForm.ok,
+      "hook command form",
+      diag.surfaces.hookCommandForm.detail,
+    ),
   );
   lines.push(
     line(diag.surfaces.skillPointers.ok, "skill pointers", diag.surfaces.skillPointers.detail),
   );
   lines.push(
-    line(diag.surfaces.schemaCurrency.ok, "xbrief/schema currency", diag.surfaces.schemaCurrency.detail),
+    line(
+      diag.surfaces.schemaCurrency.ok,
+      "xbrief/schema currency",
+      diag.surfaces.schemaCurrency.detail,
+    ),
   );
   if (diag.hookProbe) {
     lines.push(line(diag.hookProbe.ok, "hook probe", diag.hookProbe.detail));
@@ -448,7 +457,7 @@ export function formatDoctorReport(diag: DoctorDiagnosis): string {
   }
   if (diag.remedy && diag.incompleteInstall !== "git-precondition") {
     // Avoid duplicating the plain Next: block when we already printed recovery.
-    if (diag.exitCode !== 0 && (diag.surfaces.installed.ok && diag.surfaces.pin.ok)) {
+    if (diag.exitCode !== 0 && diag.surfaces.installed.ok && diag.surfaces.pin.ok) {
       lines.push(`Recovery: ${diag.remedy}`);
     } else if (diag.exitCode !== 0 && (!diag.surfaces.installed.ok || !diag.surfaces.pin.ok)) {
       // Plain Next: block already covers AC9.7.

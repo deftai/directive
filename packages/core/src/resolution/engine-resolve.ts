@@ -78,7 +78,9 @@ export function decideEngineAvailability(facts: EngineFacts): EngineDecision {
     steps.push("local: absent");
   }
 
-  steps.push("unresolved: recover with npm i -g @deftai/directive, then directive install --repair");
+  steps.push(
+    "unresolved: recover with npm i -g @deftai/directive, then directive install --repair",
+  );
   return {
     usable: false,
     resolvedVersion: null,

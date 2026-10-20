@@ -14,12 +14,12 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
 import { INSTALLATION_RECOVERY_GUIDANCE } from "@deftai/directive-core/dist/install-health/constants.js";
 import {
   checkFullInSync,
   RUNTIME_PIN_PACKAGE,
 } from "@deftai/directive-core/dist/install-health/index.js";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   assertInventoryCompleteness,
   INSTALLER_OUTPUT_INVENTORY,
@@ -133,9 +133,9 @@ describe("runSetup package-relative wiring (Wave 2c / R9)", () => {
       (a) => a.kind === "whole-file" && a.path.includes("/skills/") && a.path.endsWith("SKILL.md"),
     );
     expect(skillOwned.length).toBeGreaterThanOrEqual(10);
-    expect(
-      skillOwned.some((a) => a.path === ".agents/skills/deft-directive-pre-pr/SKILL.md"),
-    ).toBe(true);
+    expect(skillOwned.some((a) => a.path === ".agents/skills/deft-directive-pre-pr/SKILL.md")).toBe(
+      true,
+    );
     expect(
       skillOwned.some((a) => a.path === ".github/skills/deft-directive-review-cycle/SKILL.md"),
     ).toBe(true);
@@ -144,17 +144,13 @@ describe("runSetup package-relative wiring (Wave 2c / R9)", () => {
   it("FEAT-PRESERVE: inventory complete and setup deposits slash commands", () => {
     assertInventoryCompleteness();
     expect(inventoryEntry("slash-commands")?.setupActivator).toBe("ensureSlashCommands");
-    expect(inventoryEntry("gitattributes-core-markers")?.disposition).toBe(
-      "na-retired-copy-model",
-    );
+    expect(inventoryEntry("gitattributes-core-markers")?.disposition).toBe("na-retired-copy-model");
     expect(INSTALLER_OUTPUT_INVENTORY.some((e) => e.id === "openclaw-integrations")).toBe(true);
 
     const root = tempRoot();
     runSetup({ operation: "install", from: "none", root });
     expect(existsSync(join(root, ".claude", "commands"))).toBe(true);
-    const cmdSample = readdirSync(join(root, ".claude", "commands")).find((n) =>
-      n.endsWith(".md"),
-    );
+    const cmdSample = readdirSync(join(root, ".claude", "commands")).find((n) => n.endsWith(".md"));
     expect(cmdSample).toBeTruthy();
     const body = readFileSync(join(root, ".claude", "commands", cmdSample!), "utf8");
     expect(body).toContain(RUNTIME_PREFIX);
@@ -190,9 +186,7 @@ describe("runSetup package-relative wiring (Wave 2c / R9)", () => {
     };
     expect(gen.ownership.some((a) => a.path === userRel)).toBe(false);
     expect(
-      gen.ownership.some(
-        (a) => a.path.startsWith(".claude/commands/") && a.kind === "whole-file",
-      ),
+      gen.ownership.some((a) => a.path.startsWith(".claude/commands/") && a.kind === "whole-file"),
     ).toBe(true);
   });
 
@@ -323,10 +317,7 @@ describe("runSetup package-relative wiring (Wave 2c / R9)", () => {
     writeFileSync(join(root, ".deft-directive-disable"), "", "utf8");
     const combined = execFileSync(
       "sh",
-      [
-        "-c",
-        `. "$REPO_ROOT/.githooks/_directive-run.sh"; run_directive doctor 2>&1; echo EXIT:$?`,
-      ],
+      ["-c", `. "$REPO_ROOT/.githooks/_directive-run.sh"; run_directive doctor 2>&1; echo EXIT:$?`],
       {
         encoding: "utf8",
         cwd: root,

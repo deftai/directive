@@ -78,54 +78,50 @@ describe("stage-bundle AC1.3 packaging purity (PKG-AC13-NEST)", () => {
     }
   });
 
-  it(
-    "packed tarball has no nested @deftai package.json and keeps vendor trees",
-    () => {
-      const outDir = mkdtempSync(join(tmpdir(), "stage-ac13-pack-"));
-      const artDir = mkdtempSync(join(tmpdir(), "art-ac13-"));
-      try {
-        const staged = spawnSync(process.execPath, [STAGE_SCRIPT, outDir], {
-          cwd: REPO_ROOT,
-          encoding: "utf8",
-        });
-        expect(staged.status, staged.stderr || staged.stdout).toBe(0);
+  it("packed tarball has no nested @deftai package.json and keeps vendor trees", () => {
+    const outDir = mkdtempSync(join(tmpdir(), "stage-ac13-pack-"));
+    const artDir = mkdtempSync(join(tmpdir(), "art-ac13-"));
+    try {
+      const staged = spawnSync(process.execPath, [STAGE_SCRIPT, outDir], {
+        cwd: REPO_ROOT,
+        encoding: "utf8",
+      });
+      expect(staged.status, staged.stderr || staged.stdout).toBe(0);
 
-        const packed = spawnSync(process.execPath, [PACK_SCRIPT, outDir, artDir], {
-          cwd: REPO_ROOT,
-          encoding: "utf8",
-        });
-        expect(packed.status, packed.stderr || packed.stdout).toBe(0);
-        const tgz = packed.stdout.trim().split("\n").filter(Boolean).at(-1);
-        expect(tgz && existsSync(tgz)).toBe(true);
+      const packed = spawnSync(process.execPath, [PACK_SCRIPT, outDir, artDir], {
+        cwd: REPO_ROOT,
+        encoding: "utf8",
+      });
+      expect(packed.status, packed.stderr || packed.stdout).toBe(0);
+      const tgz = packed.stdout.trim().split("\n").filter(Boolean).at(-1);
+      expect(tgz && existsSync(tgz)).toBe(true);
 
-        const pkgJson = spawnSync("tar", ["-xOf", tgz!, "package/package.json"], {
-          encoding: "utf8",
-        });
-        expect(pkgJson.status).toBe(0);
-        const pkg = JSON.parse(pkgJson.stdout) as {
-          dependencies?: Record<string, string>;
-          bundledDependencies?: string[];
-          directive?: { contract?: number };
-        };
-        expect(deftaiDepKeys(pkg)).toEqual([]);
-        expect(pkg.bundledDependencies).toBeUndefined();
-        expect(pkg.directive?.contract).toBe(1);
+      const pkgJson = spawnSync("tar", ["-xOf", tgz!, "package/package.json"], {
+        encoding: "utf8",
+      });
+      expect(pkgJson.status).toBe(0);
+      const pkg = JSON.parse(pkgJson.stdout) as {
+        dependencies?: Record<string, string>;
+        bundledDependencies?: string[];
+        directive?: { contract?: number };
+      };
+      expect(deftaiDepKeys(pkg)).toEqual([]);
+      expect(pkg.bundledDependencies).toBeUndefined();
+      expect(pkg.directive?.contract).toBe(1);
 
-        const listing = spawnSync("tar", ["-tzf", tgz!], { encoding: "utf8" });
-        expect(listing.status).toBe(0);
-        const names = listing.stdout.split("\n");
-        for (const name of PRIVATE) {
-          expect(names.some((n) => n.startsWith(`package/vendor/${name}/`))).toBe(true);
-          expect(names.includes(`package/vendor/${name}/package.json`)).toBe(false);
-        }
-        expect(nestedDeftaiPackageJsonPaths(listing.stdout)).toEqual([]);
-      } finally {
-        rmSync(outDir, { recursive: true, force: true });
-        rmSync(artDir, { recursive: true, force: true });
+      const listing = spawnSync("tar", ["-tzf", tgz!], { encoding: "utf8" });
+      expect(listing.status).toBe(0);
+      const names = listing.stdout.split("\n");
+      for (const name of PRIVATE) {
+        expect(names.some((n) => n.startsWith(`package/vendor/${name}/`))).toBe(true);
+        expect(names.includes(`package/vendor/${name}/package.json`)).toBe(false);
       }
-    },
-    120_000,
-  );
+      expect(nestedDeftaiPackageJsonPaths(listing.stdout)).toEqual([]);
+    } finally {
+      rmSync(outDir, { recursive: true, force: true });
+      rmSync(artDir, { recursive: true, force: true });
+    }
+  }, 120_000);
 
   it("skills/deft/SKILL.md is the full package-root skill, not the .agents redirect stub", () => {
     const outDir = mkdtempSync(join(tmpdir(), "stage-ac13-deft-"));
@@ -167,16 +163,12 @@ describe("stage-bundle AC1.3 packaging purity (PKG-AC13-NEST)", () => {
       expect(existsSync(resolveContentJs)).toBe(true);
       const src = readFileSync(resolveContentJs, "utf8");
       // Greptile P1: package-name constants must stay package names, not relative paths.
-      expect(src).toMatch(
-        /CONTENT_PACKAGE_NAME\s*=\s*["']@deftai\/directive-content["']/,
-      );
+      expect(src).toMatch(/CONTENT_PACKAGE_NAME\s*=\s*["']@deftai\/directive-content["']/);
       expect(src).not.toMatch(/CONTENT_PACKAGE_NAME\s*=\s*["']\.\.?\//);
 
       // Installed layout: content hoisted at runtime package root.
       expect(existsSync(join(outDir, "templates"))).toBe(true);
-      expect(existsSync(join(outDir, "vendor", "directive-content", "package.json"))).toBe(
-        false,
-      );
+      expect(existsSync(join(outDir, "vendor", "directive-content", "package.json"))).toBe(false);
 
       const { CONTENT_PACKAGE_NAME, resolveInstalledContentRoot } = await import(
         pathToFileURL(resolveContentJs).href
@@ -196,13 +188,7 @@ describe("stage-bundle AC1.3 packaging purity (PKG-AC13-NEST)", () => {
       expect(existsSync(join(root, "templates"))).toBe(true);
 
       // P2: vendor/directive-core has no package.json; version reader walks to runtime.
-      const engineVersionJs = join(
-        outDir,
-        "vendor",
-        "directive-core",
-        "dist",
-        "engine-version.js",
-      );
+      const engineVersionJs = join(outDir, "vendor", "directive-core", "dist", "engine-version.js");
       expect(existsSync(engineVersionJs)).toBe(true);
       const { readCorePackageVersion } = await import(pathToFileURL(engineVersionJs).href);
       const runtimePkg = JSON.parse(readFileSync(join(outDir, "package.json"), "utf8")) as {

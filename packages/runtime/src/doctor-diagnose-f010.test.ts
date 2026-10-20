@@ -6,13 +6,11 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
 import {
   INSTALLATION_RECOVERY_GUIDANCE,
   RUNTIME_PIN_PACKAGE,
 } from "@deftai/directive-core/dist/install-health/constants.js";
-import { CURRENT_DATA_SCHEMA_VERSION, DATA_SCHEMA_MARKER_REL } from "./migrate.js";
-import { runSetup } from "./setup.js";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   FORBIDDEN_DOCTOR_REMEDY_PATTERNS,
   formatDoctorReport,
@@ -20,6 +18,8 @@ import {
   GIT_PRECONDITION_RECOVERY_GUIDANCE,
   runDoctorDiagnosis,
 } from "./doctor-diagnose.js";
+import { CURRENT_DATA_SCHEMA_VERSION, DATA_SCHEMA_MARKER_REL } from "./migrate.js";
+import { runSetup } from "./setup.js";
 
 const TEMPS: string[] = [];
 
@@ -102,9 +102,7 @@ describe("F-010 no-git incomplete install doctor (C7 warn+partial)", () => {
     writeLockfileNpm(root, installed.runtimeVersion);
     writeDataSchema(root, CURRENT_DATA_SCHEMA_VERSION);
     expect(
-      existsSync(
-        join(root, ".deft", "directive", `wiring-ready.${installed.runtimeVersion}.json`),
-      ),
+      existsSync(join(root, ".deft", "directive", `wiring-ready.${installed.runtimeVersion}.json`)),
     ).toBe(false);
 
     const diag = runDoctorDiagnosis(root, {
@@ -157,9 +155,7 @@ describe("F-010 no-git incomplete install doctor (C7 warn+partial)", () => {
     });
     expect(repaired.conflicts).toEqual([]);
     expect(
-      existsSync(
-        join(root, ".deft", "directive", `wiring-ready.${repaired.runtimeVersion}.json`),
-      ),
+      existsSync(join(root, ".deft", "directive", `wiring-ready.${repaired.runtimeVersion}.json`)),
     ).toBe(true);
 
     const after = runDoctorDiagnosis(root, { launcherPresent: true, probeHooks: false });
@@ -182,12 +178,7 @@ describe("F-010 no-git incomplete install doctor (C7 warn+partial)", () => {
     pinRuntime(root, installed.runtimeVersion);
     writeLockfileNpm(root, installed.runtimeVersion);
     writeDataSchema(root, CURRENT_DATA_SCHEMA_VERSION);
-    const ready = join(
-      root,
-      ".deft",
-      "directive",
-      `wiring-ready.${installed.runtimeVersion}.json`,
-    );
+    const ready = join(root, ".deft", "directive", `wiring-ready.${installed.runtimeVersion}.json`);
     expect(existsSync(ready)).toBe(true);
     rmSync(ready, { force: true });
 

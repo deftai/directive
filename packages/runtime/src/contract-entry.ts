@@ -4,8 +4,8 @@
  * Plain `doctor` composes install-sync diagnosis + full product doctor (F-015 / C6).
  */
 import { readProjectDataStatus } from "./data-status.js";
-import { formatDoctorReport, runDoctorDiagnosis } from "./doctor-diagnose.js";
 import { run as runProductDoctor } from "./doctor.js";
+import { formatDoctorReport, runDoctorDiagnosis } from "./doctor-diagnose.js";
 import { runMigrate } from "./migrate.js";
 import { runSetup } from "./setup.js";
 import { runUninstall } from "./uninstall.js";
@@ -48,9 +48,7 @@ export function buildProductDoctorArgv(argv: readonly string[], root: string): s
  * If argv is a Contract 1 bookend entry, handle it and return an exit code.
  * Otherwise return null so the ordinary product router runs.
  */
-export async function handleContractEntrypoint(
-  argv: readonly string[],
-): Promise<number | null> {
+export async function handleContractEntrypoint(argv: readonly string[]): Promise<number | null> {
   const head = argv[0];
   if (head === undefined) return null;
 
@@ -100,9 +98,7 @@ export async function handleContractEntrypoint(
 
   if (head === "doctor") {
     const root =
-      takeFlag([...argv], "--root") ??
-      process.env.DIRECTIVE_PROJECT_ROOT ??
-      process.cwd();
+      takeFlag([...argv], "--root") ?? process.env.DIRECTIVE_PROJECT_ROOT ?? process.cwd();
 
     // Machine discriminant for equal-version upgrade (AC4.10). Sync-only; no product suite.
     if (hasFlag(argv, "--data-status")) {

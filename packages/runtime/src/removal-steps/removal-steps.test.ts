@@ -6,27 +6,27 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
-  readFileSync,
   readdirSync,
+  readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
 import {
   CONSUMER_HEADER_PLACEHOLDER_ONELINER,
   renderConsumerHeader,
 } from "@deftai/directive-core/dist/platform/agents-consumer-header.js";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   isUnsafeSubmoduleGitlink,
   normalizeGitmodules,
   pruneEmptyAncestors,
+  RemovalStepError,
   removeCopiedCore,
   removeDeftFrameworkTree,
   removeOrphanDeftVersion,
   removeSoleAuthorHusks,
-  RemovalStepError,
   runStep,
 } from "./steps.js";
 import { runStrategy, STRATEGIES, strategyForShape } from "./strategies.js";
@@ -60,9 +60,7 @@ describe("pruneEmptyAncestors (C4 / F-012)", () => {
     rmSync(skillFile);
 
     const removed = pruneEmptyAncestors(root, ".agents/skills/directive-coding/SKILL.md");
-    expect(removed).toEqual(
-      expect.arrayContaining([".agents/skills/directive-coding"]),
-    );
+    expect(removed).toEqual(expect.arrayContaining([".agents/skills/directive-coding"]));
     expect(existsSync(join(root, ".agents", "skills", "directive-coding"))).toBe(false);
     // Must not delete .agents/skills (holds foreign skill) or .agents.
     expect(existsSync(join(root, ".agents", "skills", "user-skill", "SKILL.md"))).toBe(true);
@@ -80,9 +78,7 @@ describe("pruneEmptyAncestors (C4 / F-012)", () => {
     rmSync(join(root, ".githooks", "pre-commit"));
 
     const cmds = pruneEmptyAncestors(root, ".claude/commands/deft-continue.md");
-    expect(cmds).toEqual(
-      expect.arrayContaining([".claude/commands", ".claude"]),
-    );
+    expect(cmds).toEqual(expect.arrayContaining([".claude/commands", ".claude"]));
     expect(existsSync(join(root, ".claude"))).toBe(false);
 
     const hooks = pruneEmptyAncestors(root, ".githooks/pre-commit");
@@ -105,10 +101,7 @@ describe("pruneEmptyAncestors (C4 / F-012)", () => {
 describe("removeSoleAuthorHusks (C5 / F-013)", () => {
   it("removes {private:true}-only package.json and {} hooks we created", () => {
     const root = tempRoot();
-    writeFileSync(
-      join(root, "package.json"),
-      `${JSON.stringify({ private: true }, null, 2)}\n`,
-    );
+    writeFileSync(join(root, "package.json"), `${JSON.stringify({ private: true }, null, 2)}\n`);
     mkdirSync(join(root, ".cursor"), { recursive: true });
     writeFileSync(join(root, ".cursor", "hooks.json"), "{}\n");
     // User content must stay.
@@ -120,9 +113,7 @@ describe("removeSoleAuthorHusks (C5 / F-013)", () => {
     );
 
     const removed = removeSoleAuthorHusks(root);
-    expect(removed).toEqual(
-      expect.arrayContaining(["package.json", ".cursor/hooks.json"]),
-    );
+    expect(removed).toEqual(expect.arrayContaining(["package.json", ".cursor/hooks.json"]));
     expect(existsSync(join(root, "package.json"))).toBe(false);
     expect(existsSync(join(root, ".cursor", "hooks.json"))).toBe(false);
     expect(existsSync(join(root, "xbrief", "keep.txt"))).toBe(true);
@@ -200,10 +191,7 @@ describe("removeSoleAuthorHusks (C5 / F-013)", () => {
       join(root, "Taskfile.yml"),
       "version: '3'\n\n# Installed by Directive setup (Wave 2c). Framework tasks under deft:.\nincludes:\n",
     );
-    writeFileSync(
-      join(root, ".gitignore"),
-      "node_modules/\n.deft/directive/wiring-ready.*.json\n",
-    );
+    writeFileSync(join(root, ".gitignore"), "node_modules/\n.deft/directive/wiring-ready.*.json\n");
     // Placeholder one-liner present confirms seed recognition helpers stay imported.
     expect(CONSUMER_HEADER_PLACEHOLDER_ONELINER.length).toBeGreaterThan(0);
 

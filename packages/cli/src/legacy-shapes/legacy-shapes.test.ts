@@ -3,14 +3,7 @@
  * WAVE3-V2 (3f): convert-via-removals upgrade/install succeeds (strategy → pin → setup).
  * Survey shape_ids from specs/5490-wave3-historical-survey.md; L0 paths stay thin.
  */
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -22,8 +15,8 @@ import {
   decisionForShapeId,
   formatShapeRecoveryMessage,
   isL2RefusalDecision,
-  resolveInstallShape,
   type RecoveryDecision,
+  resolveInstallShape,
   type SurveyShapeId,
 } from "./index.js";
 

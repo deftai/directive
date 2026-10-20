@@ -10,8 +10,8 @@ import { ensureSubagentStatusDir } from "./subagent-status-dir.js";
 import { runText, type TextCaptureResult } from "./subprocess.js";
 import {
   installWorktreePackages,
-  worktreeHasRuntimePin,
   type WorktreePmRunner,
+  worktreeHasRuntimePin,
 } from "./worktree-pm-install.js";
 
 export class WorktreeMapError extends Error {

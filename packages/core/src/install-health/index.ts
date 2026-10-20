@@ -7,6 +7,7 @@
  * Primary pin package: `@deftai/directive-runtime` (UNIFIED target architecture).
  */
 
+export { checkCheapInSync } from "./cheap.js";
 export {
   DEFT_DOCTOR_HOOK_DIAGNOSTIC,
   GENERATION_REL,
@@ -16,19 +17,35 @@ export {
   RUNTIME_PIN_PACKAGE,
   readinessFileName,
 } from "./constants.js";
-
-export { checkCheapInSync } from "./cheap.js";
 export { checkFullInSync } from "./in-sync.js";
-
 export type {
-  CheapInSyncResult,
-  FullInSyncOptions,
-  FullInSyncResult,
-  MinimalGenerationSetup,
-  PredicateResult,
-  SeparateSyncSignals,
-} from "./types.js";
+  OwnedArtifact,
+  OwnershipInspection,
+  OwnershipKind,
+  PackageManagerFact,
+  SetupOwnershipRecord,
+} from "./ownership.js";
+export {
+  buildOwnershipRecord,
+  fingerprintContent,
+  generationPath,
+  inspectOwnershipRecord,
+  MANAGED_SECTION_CLOSE,
+  MANAGED_SECTION_MARKER_ID,
+  MANAGED_SECTION_OPEN_PREFIX,
+  normalizeRelativePath,
+  OWNERSHIP_KINDS,
+  OWNERSHIP_SCHEMA_VERSION,
+  ownershipRecordsEqual,
+  PACKAGE_MANAGER_FACTS,
+  parseOwnershipRecord,
+  readEvidenceGenerationNumber,
+  readOwnershipRecord,
+  stableOwnershipFingerprint,
+  writeOwnershipRecord,
+} from "./ownership.js";
 
+export type { FsSeams, LockfileVersionRead, ReadinessRead, RuntimePinRead } from "./readers.js";
 export {
   compareSchemaVersion,
   isExactSemver,
@@ -41,39 +58,17 @@ export {
   readReadiness,
   readRuntimePin,
 } from "./readers.js";
-
-export type { FsSeams, LockfileVersionRead, ReadinessRead, RuntimePinRead } from "./readers.js";
-
+export type {
+  CheapInSyncResult,
+  FullInSyncOptions,
+  FullInSyncResult,
+  MinimalGenerationSetup,
+  PredicateResult,
+  SeparateSyncSignals,
+} from "./types.js";
+export type { WiringCheckResult } from "./wiring.js";
 export {
-  WIRING_PROBE_RELS,
   checkWiringTargetsRuntime,
   hasDirectiveWiringEvidence,
+  WIRING_PROBE_RELS,
 } from "./wiring.js";
-export type { WiringCheckResult } from "./wiring.js";
-
-export {
-  MANAGED_SECTION_CLOSE,
-  MANAGED_SECTION_MARKER_ID,
-  MANAGED_SECTION_OPEN_PREFIX,
-  OWNERSHIP_KINDS,
-  OWNERSHIP_SCHEMA_VERSION,
-  PACKAGE_MANAGER_FACTS,
-  buildOwnershipRecord,
-  fingerprintContent,
-  generationPath,
-  inspectOwnershipRecord,
-  normalizeRelativePath,
-  ownershipRecordsEqual,
-  parseOwnershipRecord,
-  readEvidenceGenerationNumber,
-  readOwnershipRecord,
-  stableOwnershipFingerprint,
-  writeOwnershipRecord,
-} from "./ownership.js";
-export type {
-  OwnedArtifact,
-  OwnershipInspection,
-  OwnershipKind,
-  PackageManagerFact,
-  SetupOwnershipRecord,
-} from "./ownership.js";

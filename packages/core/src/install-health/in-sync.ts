@@ -14,13 +14,13 @@
 import { INSTALLATION_RECOVERY_GUIDANCE } from "./constants.js";
 import {
   compareSchemaVersion,
+  type FsSeams,
   readGenerationSetup,
   readInstalledRuntimeVersion,
   readLockfileRuntimeVersion,
   readProjectXbriefSchemaVersion,
   readReadiness,
   readRuntimePin,
-  type FsSeams,
 } from "./readers.js";
 import type {
   FullInSyncOptions,
@@ -30,11 +30,7 @@ import type {
 } from "./types.js";
 import { checkWiringTargetsRuntime } from "./wiring.js";
 
-function pred(
-  ok: boolean,
-  version: string | null,
-  reason: string | null,
-): PredicateResult {
+function pred(ok: boolean, version: string | null, reason: string | null): PredicateResult {
   return { ok, version, reason: ok ? null : reason };
 }
 
@@ -85,11 +81,7 @@ export function checkFullInSync(
   } else if (lockRead.version === null) {
     lockfile = pred(false, null, `lockfile (${lockRead.kind}) does not record runtime pin`);
   } else if (lockRead.version !== V) {
-    lockfile = pred(
-      false,
-      lockRead.version,
-      `lockfile version ${lockRead.version} ≠ pin ${V}`,
-    );
+    lockfile = pred(false, lockRead.version, `lockfile version ${lockRead.version} ≠ pin ${V}`);
   } else {
     lockfile = pred(true, lockRead.version, null);
   }
@@ -101,18 +93,13 @@ export function checkFullInSync(
   } else if (installedVersion === null) {
     installed = pred(false, null, "installed @deftai/directive-runtime missing");
   } else if (installedVersion !== V) {
-    installed = pred(
-      false,
-      installedVersion,
-      `installed ${installedVersion} ≠ pin ${V}`,
-    );
+    installed = pred(false, installedVersion, `installed ${installedVersion} ≠ pin ${V}`);
   } else {
     installed = pred(true, installedVersion, null);
   }
 
   // AC2.6: pin≠installed → fail closed, no setup.
-  const identityMismatch =
-    V !== null && installedVersion !== null && installedVersion !== V;
+  const identityMismatch = V !== null && installedVersion !== null && installedVersion !== V;
   const failClosed = identityMismatch;
   const allowSetup = !failClosed;
 
@@ -133,11 +120,7 @@ export function checkFullInSync(
   }
 
   const wiringCheck = checkWiringTargetsRuntime(projectRoot, seams);
-  const wiring: PredicateResult = pred(
-    wiringCheck.ok,
-    V,
-    wiringCheck.reason,
-  );
+  const wiring: PredicateResult = pred(wiringCheck.ok, V, wiringCheck.reason);
 
   let readiness: PredicateResult;
   if (V === null) {

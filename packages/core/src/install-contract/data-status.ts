@@ -40,9 +40,7 @@ export function parseDataStatusJson(raw: string): DataStatusJson {
     throw new Error("data-status.contract must be an integer");
   }
   if (obj.contract !== CONTRACT_NUMBER) {
-    throw new Error(
-      `data-status.contract must be ${CONTRACT_NUMBER}; got ${String(obj.contract)}`,
-    );
+    throw new Error(`data-status.contract must be ${CONTRACT_NUMBER}; got ${String(obj.contract)}`);
   }
   if (!isDataStatusValue(obj.dataStatus)) {
     throw new Error(`data-status.dataStatus missing or unknown: ${String(obj.dataStatus)}`);

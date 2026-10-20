@@ -3,10 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const FALLBACK_VERSION = "0.0.0";
-const VERSION_PACKAGE_NAMES = new Set([
-  "@deftai/directive-core",
-  "@deftai/directive-runtime",
-]);
+const VERSION_PACKAGE_NAMES = new Set(["@deftai/directive-core", "@deftai/directive-runtime"]);
 
 function parsePackageVersion(raw: string): string {
   const parsed: unknown = JSON.parse(raw);

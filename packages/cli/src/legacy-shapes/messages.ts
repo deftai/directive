@@ -9,8 +9,7 @@ export function formatShapeRecoveryMessage(
   shape: ShapeResolution,
   command: "upgrade" | "install",
 ): string {
-  const evidence =
-    shape.evidence.length > 0 ? ` Evidence: ${shape.evidence.join(", ")}.` : "";
+  const evidence = shape.evidence.length > 0 ? ` Evidence: ${shape.evidence.join(", ")}.` : "";
 
   if (shape.decision === "uninstall-reinstall") {
     return (

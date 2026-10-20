@@ -22,9 +22,9 @@ describe("launcher package collapse (AC3.1 / AC13.4)", () => {
     expect(pkg.name).toBe("@deftai/directive");
     const deps = pkg.dependencies;
     expect(deps).toEqual({});
-    expect(pkg.devDependencies === undefined || Object.keys(pkg.devDependencies as object).length === 0).toBe(
-      true,
-    );
+    expect(
+      pkg.devDependencies === undefined || Object.keys(pkg.devDependencies as object).length === 0,
+    ).toBe(true);
     // No install script (AC3.5)
     const scripts = (pkg.scripts ?? {}) as Record<string, string>;
     expect(scripts.postinstall).toBeUndefined();

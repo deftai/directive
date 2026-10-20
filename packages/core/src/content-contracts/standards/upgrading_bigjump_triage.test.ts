@@ -3,8 +3,7 @@ import { isFile, readText } from "./_helpers.js";
 
 const TRIAGE_HEADING = "Big-jump triage";
 /** RETIRED archaeology heading slug (tip appends `--retired`). */
-const DOCTOR_ANCHOR_PREFIX =
-  "canonical-installer--doctor-handoff-v037--epic-56-1339-1340-1409";
+const DOCTOR_ANCHOR_PREFIX = "canonical-installer--doctor-handoff-v037--epic-56-1339-1340-1409";
 
 function githubSlug(text: string): string {
   const s = text

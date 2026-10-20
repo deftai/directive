@@ -3154,12 +3154,7 @@ export function registeredVerbs(): readonly string[] {
 }
 
 /** Top-level UX commands routed before the flat dispatcher (#1670). */
-const TOP_LEVEL_COMMAND_NAMES = [
-  "init",
-  "update",
-  "doctor",
-  "check",
-] as const;
+const TOP_LEVEL_COMMAND_NAMES = ["init", "update", "doctor", "check"] as const;
 
 /** Scope lifecycle verbs exposed as scope:<verb> in help (#2172). */
 const SCOPE_COMMAND_NAMES = [

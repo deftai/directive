@@ -64,7 +64,8 @@ describe("already-installed skip (#4539 / wave2r OVPR)", () => {
     const block = coldStartBlock(readText("README.md"));
     expect(block).toContain(RUNTIME_PREFIX);
     expect(block).toMatch(/no copied|\.deft\/core/i);
-  });  it("README already-installed hop uses doctor", () => {
+  });
+  it("README already-installed hop uses doctor", () => {
     const block = coldStartBlock(readText("README.md"));
     expect(block).toMatch(/directive doctor/);
   });

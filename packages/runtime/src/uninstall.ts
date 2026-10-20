@@ -14,11 +14,7 @@ import {
   type OwnedArtifact,
 } from "@deftai/directive-core/dist/install-health/index.js";
 import { pruneEmptyAncestors, removeSoleAuthorHusks } from "./removal-steps/steps.js";
-import {
-  HOOK_BIN_COMMAND,
-  RUNTIME_PREFIX,
-  SKILL_POINTER_INVENTORY,
-} from "./setup-wiring.js";
+import { HOOK_BIN_COMMAND, RUNTIME_PREFIX, SKILL_POINTER_INVENTORY } from "./setup-wiring.js";
 
 export interface UninstallResult {
   readonly contract: 1;
@@ -137,8 +133,7 @@ function removeManagedSection(body: string): { next: string; removed: boolean } 
 }
 
 function stripTaskfileDeftInclude(body: string): { next: string; removed: boolean } {
-  const blockRe =
-    /(^|\n)([ \t]*)deft:\s*(?:#.*)?\n(?:\2[ \t]+[^\n]*\n)*/;
+  const blockRe = /(^|\n)([ \t]*)deft:\s*(?:#.*)?\n(?:\2[ \t]+[^\n]*\n)*/;
   if (blockRe.test(body)) {
     const next = body.replace(blockRe, "$1");
     return { next: next.replace(/\n{3,}/g, "\n\n"), removed: next !== body };
@@ -348,10 +343,7 @@ export function runUninstall(options: { readonly root: string }): UninstallResul
     if (did) {
       if (next.trim().length === 0) safeRemove(root, "AGENTS.md", removed);
       else {
-        writeFileSync(
-          join(root, "AGENTS.md"),
-          next.endsWith("\n") ? next : `${next}\n`,
-        );
+        writeFileSync(join(root, "AGENTS.md"), next.endsWith("\n") ? next : `${next}\n`);
         modified.push("AGENTS.md#marked-section");
       }
     } else {
@@ -378,10 +370,7 @@ export function runUninstall(options: { readonly root: string }): UninstallResul
   if (taskBody !== null && !modified.some((m) => m.startsWith("Taskfile.yml#"))) {
     const { next, removed: did } = stripTaskfileDeftInclude(taskBody);
     if (did) {
-      writeFileSync(
-        join(root, "Taskfile.yml"),
-        next.endsWith("\n") ? next : `${next}\n`,
-      );
+      writeFileSync(join(root, "Taskfile.yml"), next.endsWith("\n") ? next : `${next}\n`);
       modified.push("Taskfile.yml#includes.deft");
     }
   }

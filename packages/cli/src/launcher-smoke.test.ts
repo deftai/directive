@@ -90,19 +90,16 @@ describe("launcher smoke", () => {
     ["bootstrap", /install/i],
     ["install-upgrade", /upgrade|install/i],
     ["install-uninstall", /uninstall|install/i],
-  ] as const)(
-    "retired verb %s exits 2 with unknown-command + known list (AC13.6)",
-    (verb, suggestion) => {
-      const c = capture();
-      const code = runLauncher([verb], c.io);
-      expect(code).toBe(2);
-      expect(c.err()).toMatch(/Unknown command/i);
-      expect(c.err()).toMatch(/install, upgrade, uninstall, doctor/);
-      expect(c.err()).toMatch(suggestion);
-      // Must not revive as a working install verb
-      expect(c.out() + c.err()).not.toMatch(/delegating to|Set up Deft|Plan:/i);
-    },
-  );
+  ] as const)("retired verb %s exits 2 with unknown-command + known list (AC13.6)", (verb, suggestion) => {
+    const c = capture();
+    const code = runLauncher([verb], c.io);
+    expect(code).toBe(2);
+    expect(c.err()).toMatch(/Unknown command/i);
+    expect(c.err()).toMatch(/install, upgrade, uninstall, doctor/);
+    expect(c.err()).toMatch(suggestion);
+    // Must not revive as a working install verb
+    expect(c.out() + c.err()).not.toMatch(/delegating to|Set up Deft|Plan:/i);
+  });
 
   it("doctor fix is unknown — doctor stays read-only (AC13.6)", () => {
     const c = capture();

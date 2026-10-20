@@ -3,20 +3,17 @@
  * CONTRIBUTING / tasks/install / RELEASING must not teach Go installer as current.
  * Agent-facing host-grokbot + host-lifecycle-duties must not teach npx recovery.
  */
-import { describe, expect, it } from "vitest";
-import { readFileSync, existsSync } from "node:fs";
+
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { describe, expect, it } from "vitest";
 import { readText, repoRoot } from "./_helpers.js";
 
 const AC97 = "directive install --repair";
 const GLOBAL_LAUNCHER = "npm i -g @deftai/directive";
 
 /** Maintainer / release carriers that resurrected current-path Go teaching. */
-const GO_TEACH_SURFACES = [
-  "CONTRIBUTING.md",
-  "tasks/install.yml",
-  "docs/RELEASING.md",
-] as const;
+const GO_TEACH_SURFACES = ["CONTRIBUTING.md", "tasks/install.yml", "docs/RELEASING.md"] as const;
 
 /** Packed agent-facing surfaces that taught npx as narratable recovery/discovery. */
 const NPX_AGENT_SURFACES = [
@@ -98,9 +95,7 @@ function npxTeachingHits(text: string): string[] {
 
 function readRepoRootFile(rel: string): string {
   const abs = join(repoRoot(), rel);
-  return readFileSync(abs, { encoding: "utf8" })
-    .replace(/\r\n/g, "\n")
-    .replace(/\r/g, "\n");
+  return readFileSync(abs, { encoding: "utf8" }).replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 }
 
 describe("OVPR residual docs wave4b2 (AC10.10 F-4B-GO-TEACH)", () => {
@@ -108,18 +103,15 @@ describe("OVPR residual docs wave4b2 (AC10.10 F-4B-GO-TEACH)", () => {
     expect(existsSync(join(repoRoot(), "cmd/deft-install"))).toBe(false);
   });
 
-  it.each(GO_TEACH_SURFACES)(
-    "%s does not prescribe deft-install / Go installer as current guidance",
-    (rel) => {
-      const text = rel.startsWith("docs/") || rel === "CONTRIBUTING.md" || rel.startsWith("tasks/")
+  it.each(
+    GO_TEACH_SURFACES,
+  )("%s does not prescribe deft-install / Go installer as current guidance", (rel) => {
+    const text =
+      rel.startsWith("docs/") || rel === "CONTRIBUTING.md" || rel.startsWith("tasks/")
         ? readRepoRootFile(rel)
         : readText(rel);
-      expect(
-        currentGoGuidanceHits(text),
-        `${rel} still teaches Go installer as current`,
-      ).toEqual([]);
-    },
-  );
+    expect(currentGoGuidanceHits(text), `${rel} still teaches Go installer as current`).toEqual([]);
+  });
 
   it("CONTRIBUTING teaches Node/pnpm OVPR maintainer path (not Go bootstrap)", () => {
     const text = readRepoRootFile("CONTRIBUTING.md");
@@ -147,13 +139,10 @@ describe("OVPR residual docs wave4b2 (AC10.10 F-4B-GO-TEACH)", () => {
 });
 
 describe("OVPR residual docs wave4b3 (AC13.8 / AC9.11 F-4B-NPX-DOCS)", () => {
-  it.each(NPX_AGENT_SURFACES)(
-    "%s does not teach npx @deftai/directive or npx deft",
-    (rel) => {
-      const text = readText(rel);
-      expect(npxTeachingHits(text), `${rel} still teaches npx`).toEqual([]);
-    },
-  );
+  it.each(NPX_AGENT_SURFACES)("%s does not teach npx @deftai/directive or npx deft", (rel) => {
+    const text = readText(rel);
+    expect(npxTeachingHits(text), `${rel} still teaches npx`).toEqual([]);
+  });
 
   it("host-grokbot narratable doctor path is OVPR (directive doctor / AC9.7)", () => {
     const text = readText("skills/deft-directive-swarm/references/host-grokbot.md");

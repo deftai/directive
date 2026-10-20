@@ -81,10 +81,7 @@ function staleCli(local: string, target: string): ActiveCliCheckResult {
 
 describe("cli drift report (#3753)", () => {
   it("polls both public packages, never one", () => {
-    expect(WORKSPACE_PACKAGES).toEqual([
-      "@deftai/directive-runtime",
-      "@deftai/directive",
-    ]);
+    expect(WORKSPACE_PACKAGES).toEqual(["@deftai/directive-runtime", "@deftai/directive"]);
   });
 
   it("bypasses the npm metadata cache on every view", () => {
@@ -100,10 +97,7 @@ describe("cli drift report (#3753)", () => {
   });
 
   it("classifies partial visibility as still-propagating", () => {
-    const probes = [
-      probe("@deftai/directive-runtime", false),
-      probe("@deftai/directive", true),
-    ];
+    const probes = [probe("@deftai/directive-runtime", false), probe("@deftai/directive", true)];
     expect(classifyRegistryVisibility({ probes, waitExhausted: true, skipped: false })).toBe(
       "still-propagating",
     );
@@ -375,7 +369,12 @@ describe("cli drift report (#3753)", () => {
     ).toBe("probe-failed");
     const mixed = [
       probe("@deftai/directive", true),
-      { name: "@deftai/directive-runtime" as const, visible: false, version: null, probeFailed: true },
+      {
+        name: "@deftai/directive-runtime" as const,
+        visible: false,
+        version: null,
+        probeFailed: true,
+      },
     ];
     expect(
       classifyRegistryVisibility({ probes: mixed, waitExhausted: false, skipped: false }),

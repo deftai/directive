@@ -4,14 +4,7 @@
  * sets DEFT_LAUNCHER_MODE=hook and execs the same dist/bin.js.
  */
 import { spawnSync } from "node:child_process";
-import {
-  existsSync,
-  mkdtempSync,
-  readFileSync,
-  readdirSync,
-  rmSync,
-  symlinkSync,
-} from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -90,7 +83,9 @@ describe("launcher single-file bundle (D4.3 / AC3.2)", () => {
       const jsEntries = entries.filter((n) => n.endsWith(".js") && !n.endsWith(".js.map"));
       expect(jsEntries).toEqual(["package/dist/bin.js"]);
       expect(entries.some((n) => n.includes("hook-bin"))).toBe(false);
-      expect(entries).toEqual(expect.arrayContaining(["package/bin/deft-hook", "package/bin/deft-hook.cmd"]));
+      expect(entries).toEqual(
+        expect.arrayContaining(["package/bin/deft-hook", "package/bin/deft-hook.cmd"]),
+      );
 
       const pkgJson = JSON.parse(
         spawnSync("tar", ["-xOf", tgz, "package/package.json"], { encoding: "utf8" }).stdout,

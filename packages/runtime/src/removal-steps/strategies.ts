@@ -2,11 +2,7 @@
  * WAVE3-V2 layout strategies — fixed table of ordered removal step ids.
  * Bookends dispatch detect → strategy; bulk logic stays in steps (smell test).
  */
-import {
-  RemovalStepError,
-  runStep,
-  type RemovalStepId,
-} from "./steps.js";
+import { RemovalStepError, type RemovalStepId, runStep } from "./steps.js";
 
 /** Shape ids that have a convert-via-removals strategy (survey + L0). */
 export type StrategyShapeId =

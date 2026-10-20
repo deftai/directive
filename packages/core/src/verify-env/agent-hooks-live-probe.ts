@@ -2,8 +2,8 @@ import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 import { HOOK_HOSTS, type HookEvent, type HookHost } from "../hooks/dispatcher.js";
 import { READ_ONLY_HOOK_ENV } from "../hooks/tools.js";
-import { DEFT_DOCTOR_HOOK_DIAGNOSTIC } from "../install-health/constants.js";
 import { DEFT_HOOK_COMMAND_MARKER } from "../init-deposit/agent-hooks.js";
+import { DEFT_DOCTOR_HOOK_DIAGNOSTIC } from "../install-health/constants.js";
 import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import {
   quoteWin32CommandForShell,

@@ -2,21 +2,14 @@
  * Owner-boundary tests for Wave 2f / R10 / AC10.1–10.6 / AC10.9 (launcher side).
  * Latest supported legacy: exact pre-split @deftai/directive pin + copied-core evidence.
  */
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { runLauncher } from "./launcher.js";
-import { readPin, readProjectInstallState } from "./pin.js";
 import { runUpgrade } from "./bookends.js";
 import { LAUNCHER_PACKAGE_NAME, RUNTIME_PACKAGE_NAME } from "./constants.js";
+import { runLauncher } from "./launcher.js";
+import { readPin, readProjectInstallState } from "./pin.js";
 
 const TEMPS: string[] = [];
 
@@ -79,9 +72,7 @@ function writeCopiedCoreEvidence(root: string, opts?: { edited?: boolean }): voi
   );
   writeFileSync(
     join(core, "main.md"),
-    opts?.edited
-      ? "# locally edited core main\nKEEP-EDIT-MARKER\n"
-      : "# deposited main\n",
+    opts?.edited ? "# locally edited core main\nKEEP-EDIT-MARKER\n" : "# deposited main\n",
   );
 }
 

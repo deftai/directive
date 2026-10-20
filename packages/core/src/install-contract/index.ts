@@ -10,10 +10,10 @@ export {
   DataStatus,
   ENTRY_POINTS,
   EXIT_CODES,
+  type ExitCode,
   LAUNCHER_MAX_SUPPORTED_CONTRACT,
   SETUP_FROM_VALUES,
   SETUP_OPERATIONS,
-  type ExitCode,
 } from "./constants.js";
 
 export {

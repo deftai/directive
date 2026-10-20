@@ -114,7 +114,7 @@ describe("test_500_discoverability", () => {
 
   it("setup_skill_and_agents_entry_cover_pre_cutover_without_Go_installer", () => {
     // AC10.10: Go installer source tree is deleted; pre-cutover teaching lives in TS/content.
-    const entry = readRepoFile(AGENTS_ENTRY_TEMPLATE)
+    const entry = readRepoFile(AGENTS_ENTRY_TEMPLATE);
     expect(entry).toContain("## Session routing (#2176)");
     expect(entry).toContain("Pre-Cutover (#2068)");
     expect(entry).toContain("commands.md");

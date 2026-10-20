@@ -48,9 +48,9 @@ import {
   LEGACY_ARTIFACT_DIR,
   LEGACY_INFO_ROOT_KEY,
   LEGACY_VBRIEF_VERSION,
+  MIGRATE_THROUGH_VBRIEF_VERSION,
   MIGRATED_ARTIFACT_DIR,
   MIGRATED_ARTIFACT_SUFFIX,
-  MIGRATE_THROUGH_VBRIEF_VERSION,
   PRE_LEGACY_VBRIEF_VERSION,
 } from "../xbrief-migrate/constants.js";
 import { detectXbriefConvergence, type XbriefConvergenceState } from "../xbrief-migrate/detect.js";
@@ -774,9 +774,7 @@ export function checkXbriefEnvelopeMajorVersion(
   if (migratableBehindMajor.length > 0 && nonMigratableBehindMajor.length > 0) {
     const migSample = migratableBehindMajor.slice(0, 3);
     const nonSample = nonMigratableBehindMajor.slice(0, 3);
-    const migDeclared = [
-      ...new Set(migSample.map((e) => e.declaredVersion ?? "?")),
-    ].join(", ");
+    const migDeclared = [...new Set(migSample.map((e) => e.declaredVersion ?? "?"))].join(", ");
     const nonDeclared = [
       ...new Set(nonSample.map((e) => e.declaredVersion ?? "missing/unreadable")),
     ].join(", ");
@@ -809,9 +807,7 @@ export function checkXbriefEnvelopeMajorVersion(
   if (migratableBehindMajor.length > 0) {
     const sample = migratableBehindMajor.slice(0, 5);
     const samplePaths = sample.map((e) => e.relativePath).join(", ");
-    const declaredSummary = [
-      ...new Set(sample.map((e) => e.declaredVersion ?? "?")),
-    ].join(", ");
+    const declaredSummary = [...new Set(sample.map((e) => e.declaredVersion ?? "?"))].join(", ");
     const more =
       migratableBehindMajor.length > sample.length
         ? ` (+${migratableBehindMajor.length - sample.length} more)`

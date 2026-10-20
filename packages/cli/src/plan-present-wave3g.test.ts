@@ -6,15 +6,15 @@ import { describe, expect, it } from "vitest";
 import {
   HUMAN_GIT_HOOKS_INACTIVE_LINE,
   HUMAN_INSTALL_SCRIPT_LINE,
+  type PresentIo,
   presentFirstInstallPlan,
   presentInstallSuccess,
   presentUninstallPlan,
   presentUninstallSuccess,
   resolveWrapWidth,
   summarizeUninstallRemovals,
-  wrapWords,
-  type PresentIo,
   type UninstallRemovalSummary,
+  wrapWords,
 } from "./plan-present.js";
 
 function capture(): { io: PresentIo; out: () => string } {
@@ -60,7 +60,8 @@ describe("F-009 first-install plain English", () => {
     pm: "npm" as const,
     pmEvidence: "package-lock.json",
     version: "1.2.3",
-    pmCommand: "npm install --save-dev --save-exact --ignore-scripts @deftai/directive-runtime@1.2.3",
+    pmCommand:
+      "npm install --save-dev --save-exact --ignore-scripts @deftai/directive-runtime@1.2.3",
     willCreatePkg: true,
     gitHooksInactive: true,
     nodeWarning: null,

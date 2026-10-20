@@ -9,9 +9,7 @@ import type { RuntimePackageContractMeta } from "./types.js";
  * Extract version and contract from a parsed runtime package.json object.
  * Throws if either field is missing or malformed.
  */
-export function readRuntimeContractFromPackageJson(
-  pkg: unknown,
-): RuntimePackageContractMeta {
+export function readRuntimeContractFromPackageJson(pkg: unknown): RuntimePackageContractMeta {
   if (pkg === null || typeof pkg !== "object") {
     throw new Error("runtime package.json must be an object");
   }

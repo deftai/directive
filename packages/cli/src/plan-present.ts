@@ -386,20 +386,14 @@ export function presentUpgradePlan(io: PresentIo, fields: UpgradePlanFields): vo
   writeBlank(io);
   if (fields.oldStyle || fields.convertShapeId) {
     writeHumanParagraph(io, "This project still uses an older Directive layout.");
-    writeHumanParagraph(
-      io,
-      "A copied tree of Directive files may sit under .deft/core.",
-    );
+    writeHumanParagraph(io, "A copied tree of Directive files may sit under .deft/core.");
     writeHumanParagraph(
       io,
       "The project version is still recorded as the old @deftai/directive package.",
     );
     writeBlank(io);
     io.writeOut("If you approve, Directive will:\n");
-    writeBullet(
-      io,
-      "remove the copied .deft/core tree (including any local edits there)",
-    );
+    writeBullet(io, "remove the copied .deft/core tree (including any local edits there)");
     writeBullet(
       io,
       `switch the project to Directive ${fields.targetVersion} as a normal project dependency`,
@@ -421,9 +415,7 @@ export function presentUpgradePlan(io: PresentIo, fields: UpgradePlanFields): vo
     writeBullet(
       io,
       `finish equal-version work for Directive ${fields.targetVersion}` +
-        (fields.needSetup
-          ? " (setup, then migration as needed)"
-          : " (migration as needed)"),
+        (fields.needSetup ? " (setup, then migration as needed)" : " (migration as needed)"),
     );
     writeBlank(io);
     writeHumanParagraph(io, "Your existing project settings stay as they are.");
@@ -564,7 +556,11 @@ export function summarizeUninstallRemovals(
   };
 }
 
-function writeUninstallActionBullets(io: PresentIo, removal: UninstallRemovalSummary, pm: string | null): void {
+function writeUninstallActionBullets(
+  io: PresentIo,
+  removal: UninstallRemovalSummary,
+  pm: string | null,
+): void {
   io.writeOut("If you approve, Directive will:\n");
   if (removal.skillPointers > 0) {
     writeBullet(
@@ -585,7 +581,10 @@ function writeUninstallActionBullets(io: PresentIo, removal: UninstallRemovalSum
   if (wiringBits.length > 0) {
     writeBullet(io, `remove ${wiringBits.join(", ")}`);
   } else if (removal.other > 0) {
-    writeBullet(io, `remove ${removal.other} other Directive-owned path${removal.other === 1 ? "" : "s"}`);
+    writeBullet(
+      io,
+      `remove ${removal.other} other Directive-owned path${removal.other === 1 ? "" : "s"}`,
+    );
   }
   if (removal.willRemovePin) {
     writeBullet(
@@ -654,7 +653,9 @@ export function presentUninstallPlan(io: PresentIo, fields: UninstallPlanFields)
     const keyed = [
       `operation: uninstall`,
       `root: ${fields.projectRoot}`,
-      fields.pm ? `package manager: ${fields.pm} (${fields.pmEvidence})` : `package manager: (none)`,
+      fields.pm
+        ? `package manager: ${fields.pm} (${fields.pmEvidence})`
+        : `package manager: (none)`,
       fields.pinVersion ? `pin: ${fields.pinVersion}` : `pin: (none)`,
       fields.pmCommand ? `PM command: ${fields.pmCommand}` : `PM command: (none)`,
     ];
@@ -858,10 +859,7 @@ export function presentUpgradeSuccess(
     io.writeOut("  package.json\n");
     io.writeOut(`  ${lockfileNameFor(opts.pm)}\n`);
   }
-  const review = [
-    ...collectReviewPaths(opts.summary),
-    ...collectReviewPaths(opts.migrateSummary),
-  ];
+  const review = [...collectReviewPaths(opts.summary), ...collectReviewPaths(opts.migrateSummary)];
   const seen = new Set<string>();
   for (const p of review) {
     if (seen.has(p)) continue;
@@ -966,9 +964,7 @@ export function presentSetupFailedAfterInstall(
   },
 ): void {
   if (opts.operation === "install" || opts.operation === "upgrade") {
-    io.writeErr(
-      `Directive ${opts.version} is installed, but project setup did not finish.\n`,
-    );
+    io.writeErr(`Directive ${opts.version} is installed, but project setup did not finish.\n`);
   } else {
     io.writeErr(`Directive ${opts.version} repair ran, but project setup did not finish.\n`);
   }
@@ -986,9 +982,7 @@ export function presentSetupFailedAfterInstall(
     writeBlankErr(io);
   }
   if (opts.operation === "install" || opts.operation === "upgrade") {
-    io.writeErr(
-      `The project version and lockfile already reference Directive ${opts.version}.\n`,
-    );
+    io.writeErr(`The project version and lockfile already reference Directive ${opts.version}.\n`);
     writeBlankErr(io);
   }
   io.writeErr("Fix the cause, then run:\n");
@@ -1018,9 +1012,7 @@ export function presentMigrateFailedAfterUpgrade(
       `Directive ${opts.version} is installed, but project data migration did not finish.\n`,
     );
   } else {
-    io.writeErr(
-      `Directive ${opts.version} data migration did not finish.\n`,
-    );
+    io.writeErr(`Directive ${opts.version} data migration did not finish.\n`);
   }
   writeBlankErr(io);
 
@@ -1047,9 +1039,7 @@ export function presentMigrateFailedAfterUpgrade(
     writeBlankErr(io);
   }
   if (opts.versionChange) {
-    io.writeErr(
-      `The project pin and lockfile now reference Directive ${opts.version}.\n`,
-    );
+    io.writeErr(`The project pin and lockfile now reference Directive ${opts.version}.\n`);
     writeBlankErr(io);
   }
   io.writeErr("Correct the cause, then run:\n");
@@ -1068,12 +1058,7 @@ function writeBlankErr(io: PresentIo): void {
  */
 function collectReviewPaths(summary: SetupSummary | null | undefined): string[] {
   if (!summary) return [];
-  const prefer = [
-    "AGENTS.md",
-    ".gitignore",
-    "Taskfile.yml",
-    ".deft/GENERATION.json",
-  ];
+  const prefer = ["AGENTS.md", ".gitignore", "Taskfile.yml", ".deft/GENERATION.json"];
   const migrated = summary.migrated ?? [];
   const archived = summary.archived ?? [];
   const all = [...summary.created, ...summary.modified, ...migrated, ...archived];

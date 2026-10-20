@@ -260,7 +260,7 @@ function parseFlags(argv: readonly string[]): {
   };
 }
 
-function printPlan(io: BookendIo, lines: readonly string[]): void {
+function _printPlan(io: BookendIo, lines: readonly string[]): void {
   io.writeOut("Plan:\n");
   for (const line of lines) {
     io.writeOut(`  ${line}\n`);
@@ -268,7 +268,7 @@ function printPlan(io: BookendIo, lines: readonly string[]): void {
 }
 
 /** AC5.1 / AC14.54 — install-script policy + Node best-effort note when applicable. */
-function appendCommonPlanDisclosures(
+function _appendCommonPlanDisclosures(
   lines: string[],
   deps: Pick<InstallDeps, "nodeVersion">,
 ): void {
@@ -283,7 +283,7 @@ function appendCommonPlanDisclosures(
 export const GIT_HOOKS_INACTIVE_PLAN_LINE =
   "Git hooks: inactive until git init + eligible repair/self-complete (cannot set core.hooksPath=.githooks yet)";
 
-function appendGitHooksPlanDisclosure(lines: string[], projectRoot: string): void {
+function _appendGitHooksPlanDisclosure(lines: string[], projectRoot: string): void {
   if (!existsSync(join(projectRoot, ".git"))) {
     lines.push(GIT_HOOKS_INACTIVE_PLAN_LINE);
   }
@@ -1030,7 +1030,7 @@ export function runUpgrade(
   const fromLabel = state.oldStyle
     ? "old-style"
     : convertViaRemovals
-      ? upgradeShape!.shapeId
+      ? upgradeShape?.shapeId
       : currentPin;
 
   // Resolve target once before plan (AC7.2)
@@ -1154,7 +1154,7 @@ export function runUpgrade(
     needSetup,
     needMigrate,
     oldStyle: state.oldStyle,
-    convertShapeId: convertViaRemovals ? upgradeShape!.shapeId : null,
+    convertShapeId: convertViaRemovals ? upgradeShape?.shapeId : null,
     gitHooksInactive: !existsSync(join(projectRoot, ".git")),
     nodeWarning: checkNodeVersion(deps.nodeVersion).warning ?? null,
     verbosity: flags.verbosity,
@@ -1264,7 +1264,7 @@ export function runUpgrade(
       const pkgPath = join(projectRoot, "package.json");
       if (!existsSync(pkgPath)) {
         io.writeErr(
-          `Convert upgrade lost package.json after setup (shape ${upgradeShape!.shapeId}). ` +
+          `Convert upgrade lost package.json after setup (shape ${upgradeShape?.shapeId}). ` +
             `Expected exact ${RUNTIME_PACKAGE_NAME}@${targetVersion}. ` +
             `Fix the cause, then run: directive upgrade --yes.\n`,
         );
@@ -1273,7 +1273,7 @@ export function runUpgrade(
       const pinAfterSetup = readProjectInstallState(projectRoot).pin;
       if (pinAfterSetup.kind !== "exact" || pinAfterSetup.version !== targetVersion) {
         io.writeErr(
-          `Convert upgrade lost runtime pin after setup (shape ${upgradeShape!.shapeId}): ` +
+          `Convert upgrade lost runtime pin after setup (shape ${upgradeShape?.shapeId}): ` +
             `expected ${RUNTIME_PACKAGE_NAME}@${targetVersion}, got ${pinAfterSetup.raw ?? "(none)"}. ` +
             `Fix the cause, then run: directive upgrade --yes.\n`,
         );

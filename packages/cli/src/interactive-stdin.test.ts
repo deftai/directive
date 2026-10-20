@@ -2,7 +2,7 @@
  * UX-INT-TTY (AC5.2): blocking interactive stdin must retry EAGAIN, not auto-cancel.
  */
 import { describe, expect, it, vi } from "vitest";
-import { readInteractiveLine, type InteractiveByteReader } from "./interactive-stdin.js";
+import { type InteractiveByteReader, readInteractiveLine } from "./interactive-stdin.js";
 
 function errno(code: string): NodeJS.ErrnoException {
   const err = new Error(code) as NodeJS.ErrnoException;

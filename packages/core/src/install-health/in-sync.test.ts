@@ -7,11 +7,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  INSTALLATION_RECOVERY_GUIDANCE,
-  RUNTIME_PIN_PACKAGE,
-  checkFullInSync,
-} from "./index.js";
+import { checkFullInSync, INSTALLATION_RECOVERY_GUIDANCE, RUNTIME_PIN_PACKAGE } from "./index.js";
 
 const temps: string[] = [];
 

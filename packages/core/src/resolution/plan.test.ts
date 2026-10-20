@@ -262,9 +262,7 @@ describe("resolution/plan is the single source of truth (#2264 a2)", () => {
         { engineResolution: decideEngineAvailability(engineFacts()) },
       ).mode,
     );
-    observed.add(
-      plan(facts({ engineVersion: "0.80.0", deftCorePayloadVersion: "0.80.0" })).mode,
-    ); // blocked
+    observed.add(plan(facts({ engineVersion: "0.80.0", deftCorePayloadVersion: "0.80.0" })).mode); // blocked
     for (const retired of ["align-pin", "install-global", "install-sandbox", "install-staged"]) {
       expect(observed.has(retired), retired).toBe(false);
     }

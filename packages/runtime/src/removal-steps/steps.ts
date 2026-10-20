@@ -4,13 +4,7 @@
  * Layout steps (core / deft / hooks / skills / gitmodules / orphan): wave 3f.
  */
 import { execFileSync } from "node:child_process";
-import {
-  existsSync,
-  lstatSync,
-  readdirSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, lstatSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, sep } from "node:path";
 import { containedRemove } from "@deftai/directive-core/dist/fs/contained-write.js";
 import {
@@ -81,10 +75,7 @@ const HOST_HOOK_RELS = [
   ".grok/hooks/deft.json",
 ] as const;
 
-const DIRECTIVE_PACKAGE_NAMES = new Set([
-  "@deftai/directive",
-  "@deftai/directive-runtime",
-]);
+const DIRECTIVE_PACKAGE_NAMES = new Set(["@deftai/directive", "@deftai/directive-runtime"]);
 
 const GITIGNORE_SEED_LINES = new Set([
   "node_modules/",
@@ -256,10 +247,18 @@ function isNearEmptyLockfile(abs: string): boolean {
   if (trimmed.length < 120 && !trimmed.includes("node_modules/")) return true;
   if (abs.endsWith("pnpm-lock.yaml")) {
     // Near-empty pnpm lock: no package snapshots beyond lockfileVersion / settings.
-    if (!/^\s*[^#\s].*:/m.test(trimmed.replace(/^lockfileVersion:.*$/m, "").replace(/^settings:[\s\S]*?(?=\n\S|\n*$)/m, ""))) {
+    if (
+      !/^\s*[^#\s].*:/m.test(
+        trimmed
+          .replace(/^lockfileVersion:.*$/m, "")
+          .replace(/^settings:[\s\S]*?(?=\n\S|\n*$)/m, ""),
+      )
+    ) {
       return trimmed.length < 200;
     }
-    if (/importers:\s*\n\s*\.:\s*\n\s*(?:dependencies|devDependencies):\s*\n\s*\{\s*\}/.test(trimmed)) {
+    if (
+      /importers:\s*\n\s*\.:\s*\n\s*(?:dependencies|devDependencies):\s*\n\s*\{\s*\}/.test(trimmed)
+    ) {
       return !/packages:\s*\n\s*\S/.test(trimmed) || trimmed.length < 400;
     }
     return false;
@@ -706,9 +705,7 @@ export function runStep(stepId: RemovalStepId, ctx: StepContext): StepResult {
   switch (stepId) {
     case "pruneEmptyAncestors": {
       const seeds =
-        ctx.emptiedFrom !== undefined
-          ? [ctx.emptiedFrom]
-          : [...(ctx.priorRemoved ?? [])];
+        ctx.emptiedFrom !== undefined ? [ctx.emptiedFrom] : [...(ctx.priorRemoved ?? [])];
       if (seeds.length === 0) {
         // Standalone call still requires a seed (uninstall / unit API).
         throw new Error("pruneEmptyAncestors requires ctx.emptiedFrom or ctx.priorRemoved");

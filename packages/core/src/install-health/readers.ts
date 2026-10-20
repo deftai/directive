@@ -73,10 +73,7 @@ function readJsonObject(
   }
 }
 
-function dependencySpec(
-  pkg: Record<string, unknown>,
-  name: string,
-): string | null {
+function dependencySpec(pkg: Record<string, unknown>, name: string): string | null {
   for (const block of ["devDependencies", "dependencies"] as const) {
     const deps = pkg[block];
     if (typeof deps === "object" && deps !== null && !Array.isArray(deps)) {
@@ -142,9 +139,7 @@ function readNpmLockVersion(
   if (lock === null) return null;
   const packages = lock.packages;
   if (typeof packages === "object" && packages !== null && !Array.isArray(packages)) {
-    const entry = (packages as Record<string, unknown>)[
-      `node_modules/${RUNTIME_PIN_PACKAGE}`
-    ];
+    const entry = (packages as Record<string, unknown>)[`node_modules/${RUNTIME_PIN_PACKAGE}`];
     if (typeof entry === "object" && entry !== null && !Array.isArray(entry)) {
       const version = (entry as Record<string, unknown>).version;
       if (typeof version === "string" && isExactSemver(version)) {

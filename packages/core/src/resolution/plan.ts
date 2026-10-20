@@ -22,11 +22,7 @@ import type {
   ResolutionPlan,
 } from "@deftai/directive-types";
 import { RESOLUTION_PLAN_SCHEMA_VERSION } from "@deftai/directive-types";
-import {
-  contentMatchesEngine,
-  evaluateEnginePin,
-  type EnginePinResult,
-} from "./engine-pin.js";
+import { contentMatchesEngine, type EnginePinResult, evaluateEnginePin } from "./engine-pin.js";
 import type { EngineDecision } from "./engine-resolve.js";
 import { type PackageManager, renderEphemeral } from "./package-manager.js";
 import { reconcileVersions } from "./pin.js";

@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { runInstall } from "./bookends.js";
-import { readProjectInstallState, type ProjectInstallState } from "./pin.js";
+import { type ProjectInstallState, readProjectInstallState } from "./pin.js";
 
 const TEMPS: string[] = [];
 
@@ -175,13 +175,7 @@ describe("§C9 UX-PRESENT (F-002)", () => {
     writeNpmLockRecordingPin(root, version);
     writeInstalledRuntime(root, version);
     const c = capture();
-    const code = runInstall(
-      root,
-      stateFor(root),
-      ["--repair", "--dry-run"],
-      "0.0.0-test",
-      c.io,
-    );
+    const code = runInstall(root, stateFor(root), ["--repair", "--dry-run"], "0.0.0-test", c.io);
     expect(code).toBe(0);
     const text = c.out();
     expect(text).toMatch(/Repair Directive/);

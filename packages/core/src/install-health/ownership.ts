@@ -308,10 +308,7 @@ export function stableOwnershipFingerprint(record: SetupOwnershipRecord): string
 }
 
 /** True when two records are equal under AC13.2 (ignore per-run legacy fields). */
-export function ownershipRecordsEqual(
-  a: SetupOwnershipRecord,
-  b: SetupOwnershipRecord,
-): boolean {
+export function ownershipRecordsEqual(a: SetupOwnershipRecord, b: SetupOwnershipRecord): boolean {
   return stableOwnershipFingerprint(a) === stableOwnershipFingerprint(b);
 }
 
@@ -358,11 +355,7 @@ export function readEvidenceGenerationNumber(projectRoot: string): number {
       return 0;
     }
     const generation = (parsed as { generation?: unknown }).generation;
-    if (
-      typeof generation === "number" &&
-      Number.isSafeInteger(generation) &&
-      generation >= 1
-    ) {
+    if (typeof generation === "number" && Number.isSafeInteger(generation) && generation >= 1) {
       return generation;
     }
   } catch {
@@ -415,11 +408,7 @@ export function writeOwnershipRecord(
     Number.isSafeInteger(options.generation) &&
     options.generation >= 1 &&
     readEvidenceGenerationNumber(projectRoot) !== options.generation;
-  if (
-    prior !== null &&
-    ownershipRecordsEqual(prior, stable) &&
-    !forceGeneration
-  ) {
+  if (prior !== null && ownershipRecordsEqual(prior, stable) && !forceGeneration) {
     // Already current: do not rewrite (AC13.2 + dirty-tree avoidance).
     return target;
   }

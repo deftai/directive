@@ -2,15 +2,17 @@
  * Package-relative wiring writers for Contract 1 setup (Wave 2c / R9 / AC13.1).
  * All managed pointers target node_modules/@deftai/directive-runtime/ — never .deft/core.
  */
+
+import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import {
   containedChmod,
   containedRemove,
   containedWrite,
 } from "@deftai/directive-core/dist/fs/contained-write.js";
+import type { HookHost } from "@deftai/directive-core/dist/hooks/dispatcher.js";
 import {
   DIRECT_WRITE_HOOK_MATCHER,
   KILL_HOOK_MATCHER,
@@ -28,20 +30,19 @@ import {
 } from "@deftai/directive-core/dist/install-health/index.js";
 import { applyAgentsRefresh } from "@deftai/directive-core/dist/platform/agents-md.js";
 import {
+  type HostHooksPolicy,
   isHostHookDepositEnabled,
   loadHostHooksPolicyFromProject,
-  type HostHooksPolicy,
 } from "@deftai/directive-core/dist/policy/host-hooks.js";
 import {
   isHostSlashCommandDepositEnabled,
   loadHostSlashCommandsPolicyFromProject,
 } from "@deftai/directive-core/dist/policy/host-slash-commands.js";
-import type { HookHost } from "@deftai/directive-core/dist/hooks/dispatcher.js";
 import { depositOpenClawSoftRebindSkill } from "@deftai/directive-core/dist/session/openclaw-soft-rebind-deposit.js";
 import {
   emitHostCommandFiles,
-  listSlashEmitterHosts,
   type HostEmittedFile,
+  listSlashEmitterHosts,
 } from "@deftai/directive-core/dist/slash/emitters.js";
 import { isThinWrapperMarkdown } from "@deftai/directive-core/dist/slash/generator.js";
 import { depositOpenClawL2ProductCommands } from "@deftai/directive-core/dist/slash/openclaw-deposit.js";
@@ -52,7 +53,12 @@ export const RUNTIME_BIN_REL = `${RUNTIME_PREFIX}dist/bin.js`;
 export const RUNTIME_MAIN_MD = `${RUNTIME_PREFIX}main.md`;
 export const RUNTIME_TASKFILE_INCLUDE = `taskfile: ./${RUNTIME_PREFIX}Taskfile.yml`;
 
-export type TrackResult = { created: boolean; modified: boolean; conflict?: boolean; conflictReason?: string };
+export type TrackResult = {
+  created: boolean;
+  modified: boolean;
+  conflict?: boolean;
+  conflictReason?: string;
+};
 
 function readText(path: string): string | null {
   try {
@@ -62,11 +68,7 @@ function readText(path: string): string | null {
   }
 }
 
-function writeContained(
-  projectRoot: string,
-  relPath: string,
-  body: string,
-): void {
+function writeContained(projectRoot: string, relPath: string, body: string): void {
   containedWrite({
     root: projectRoot,
     target: relPath,
@@ -80,11 +82,7 @@ function relPosix(...parts: string[]): string {
   return join(...parts).replace(/\\/g, "/");
 }
 
-function trackChange(
-  projectRoot: string,
-  rel: string,
-  next: string,
-): TrackResult {
+function trackChange(projectRoot: string, rel: string, next: string): TrackResult {
   const prior = readText(join(projectRoot, rel));
   if (prior === next) return { created: false, modified: false };
   writeContained(projectRoot, rel, next);
@@ -103,7 +101,11 @@ export function resolveDeftSkillTargetRel(): string {
   return "SKILL.md";
 }
 
-function thinSkillPointer(dir: string, description: string, targetRel: string): {
+function thinSkillPointer(
+  dir: string,
+  description: string,
+  targetRel: string,
+): {
   dir: string;
   body: string;
 } {
@@ -297,7 +299,11 @@ export function ensureSkillPointers(projectRoot: string): {
   for (const hostRoot of SKILL_HOST_ROOTS) {
     for (const entry of SKILL_POINTER_INVENTORY) {
       const rel = relPosix(hostRoot, entry.dir, "SKILL.md");
-      const change = trackChange(projectRoot, rel, entry.body.endsWith("\n") ? entry.body : `${entry.body}\n`);
+      const change = trackChange(
+        projectRoot,
+        rel,
+        entry.body.endsWith("\n") ? entry.body : `${entry.body}\n`,
+      );
       if (change.created) created.push(rel);
       else if (change.modified) modified.push(rel);
     }
@@ -683,7 +689,9 @@ function mergeNestedHost(
 function mergeCursorHost(existing: Record<string, unknown>): Record<string, unknown> {
   const hooks = object(existing.hooks) ?? {};
   const keep = (key: string) =>
-    Array.isArray(hooks[key]) ? (hooks[key] as unknown[]).filter((e) => !cursorManagedEntry(e)) : [];
+    Array.isArray(hooks[key])
+      ? (hooks[key] as unknown[]).filter((e) => !cursorManagedEntry(e))
+      : [];
   return {
     ...existing,
     version: 1,
@@ -973,8 +981,7 @@ export function ensureGitHooks(projectRoot: string): {
         execFileSync("git", ["-C", projectRoot, "config", "core.hooksPath", ".githooks"]);
         hooksPathActive = true;
       } catch {
-        inactiveDisclosure =
-          "Git hooks inactive: could not set core.hooksPath=.githooks";
+        inactiveDisclosure = "Git hooks inactive: could not set core.hooksPath=.githooks";
       }
     } else if (current === ".githooks" || current === ".githooks/") {
       hooksPathActive = true;
@@ -998,9 +1005,7 @@ includes:
 `;
 
 const DEFT_INCLUDE_BLOCK =
-  `  deft:\n` +
-  `    taskfile: ./${RUNTIME_PREFIX}Taskfile.yml\n` +
-  `    optional: true\n`;
+  `  deft:\n` + `    taskfile: ./${RUNTIME_PREFIX}Taskfile.yml\n` + `    optional: true\n`;
 
 /**
  * Merge the Directive `deft:` include into an existing Taskfile without
@@ -1044,8 +1049,7 @@ export function ensureTaskfileInclude(projectRoot: string): TrackResult & {
   const includesMatch = existing.match(/(^|\n)includes:\s*(#.*)?\n/);
   if (includesMatch && includesMatch.index !== undefined) {
     const insertAt = includesMatch.index + includesMatch[0].length;
-    const next =
-      existing.slice(0, insertAt) + DEFT_INCLUDE_BLOCK + existing.slice(insertAt);
+    const next = existing.slice(0, insertAt) + DEFT_INCLUDE_BLOCK + existing.slice(insertAt);
     writeContained(projectRoot, rel, next.endsWith("\n") ? next : `${next}\n`);
     return { created: false, modified: true };
   }

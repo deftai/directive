@@ -31,7 +31,8 @@ export const DIRECTIVE_UPGRADE_COMMAND = "directive upgrade";
 /** Install-management recovery for behind envelopes (AC8.9 / F-017). */
 export const XBRIEF_MIGRATE_COMMAND = "directive upgrade";
 /** Human-only launcher bootstrap advice (AC9.7 / D4.8) — never executed by tickler. */
-export const LAUNCHER_BOOTSTRAP_ADVICE = "npm i -g @deftai/directive, then directive install --repair";
+export const LAUNCHER_BOOTSTRAP_ADVICE =
+  "npm i -g @deftai/directive, then directive install --repair";
 
 export interface StalenessTicklerOptions {
   readonly now?: Date;

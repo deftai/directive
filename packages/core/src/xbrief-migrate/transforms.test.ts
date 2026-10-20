@@ -284,9 +284,7 @@ describe("transformArtifactV06ToV08", () => {
       xBRIEFInfo: { version: "0.8", description: "rich pre-rename 0.7" },
       plan: {
         items: [{ type: "group", status: "auto", summary: "rollup" }],
-        references: [
-          { type: "x-xbrief/plan", uri: "xbrief/active/child.xbrief.json" },
-        ],
+        references: [{ type: "x-xbrief/plan", uri: "xbrief/active/child.xbrief.json" }],
       },
     });
     expect(validateVbriefSchema(out, "orphan-07-vbrief.json")).toEqual([]);

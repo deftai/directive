@@ -7,28 +7,28 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
-  readFileSync,
   readdirSync,
+  readFileSync,
   rmSync,
   statSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
 import {
   DEFT_DOCTOR_HOOK_DIAGNOSTIC,
   INSTALLATION_RECOVERY_GUIDANCE,
   RUNTIME_PIN_PACKAGE,
 } from "@deftai/directive-core/dist/install-health/constants.js";
-import { CURRENT_DATA_SCHEMA_VERSION, DATA_SCHEMA_MARKER_REL } from "./migrate.js";
-import { runSetup } from "./setup.js";
+import { afterEach, describe, expect, it } from "vitest";
 import {
+  type DoctorDiagnosis,
   FORBIDDEN_DOCTOR_REMEDY_PATTERNS,
   formatDoctorReport,
   runDoctorDiagnosis,
-  type DoctorDiagnosis,
 } from "./doctor-diagnose.js";
+import { CURRENT_DATA_SCHEMA_VERSION, DATA_SCHEMA_MARKER_REL } from "./migrate.js";
+import { runSetup } from "./setup.js";
 
 const TEMPS: string[] = [];
 
@@ -104,7 +104,7 @@ function snapshotTree(root: string): Map<string, { hash: string; mtimeMs: number
     for (const name of entries) {
       if (name === "node_modules") continue;
       const abs = join(dir, name);
-      let st;
+      let st: ReturnType<typeof statSync>;
       try {
         st = statSync(abs);
       } catch {
@@ -257,12 +257,7 @@ describe("runDoctorDiagnosis (AC12.3 surfaces)", () => {
     pinRuntime(root, installed.runtimeVersion);
     writeLockfileNpm(root, installed.runtimeVersion);
     writeDataSchema(root, CURRENT_DATA_SCHEMA_VERSION);
-    const ready = join(
-      root,
-      ".deft",
-      "directive",
-      `wiring-ready.${installed.runtimeVersion}.json`,
-    );
+    const ready = join(root, ".deft", "directive", `wiring-ready.${installed.runtimeVersion}.json`);
     rmSync(ready, { force: true });
     expect(existsSync(ready)).toBe(false);
 

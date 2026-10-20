@@ -8,12 +8,12 @@ export {
   type ShapeResolution,
 } from "./detect.js";
 export {
+  formatShapeRecoveryMessage,
+  isL2RefusalDecision,
+} from "./messages.js";
+export {
   DECISION_BY_SHAPE_ID,
   decisionForShapeId,
   type RecoveryDecision,
   type SurveyShapeId,
 } from "./registry.js";
-export {
-  formatShapeRecoveryMessage,
-  isL2RefusalDecision,
-} from "./messages.js";

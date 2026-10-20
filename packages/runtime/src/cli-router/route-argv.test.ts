@@ -13,16 +13,19 @@ describe("route-argv: retired install verbs (AC13.6 / #5490 wave 2h)", () => {
     expect(TOP_LEVEL_UX_VERBS).not.toContain("bootstrap");
   });
 
-  it.each(["migrate", "bootstrap", "sync", "install-upgrade", "install-uninstall"] as const)(
-    "retired verb %s stubs as unknown-command",
-    (verb) => {
-      expect(RETIRED_TOP_LEVEL_INSTALL_VERBS.has(verb)).toBe(true);
-      const routed = routeArgv([verb]);
-      expect(routed.kind).toBe("stub");
-      expect(routed.stubMessage ?? "").toMatch(/Unknown command/i);
-      expect(routed.stubMessage ?? "").toMatch(/install, upgrade, uninstall, doctor/);
-    },
-  );
+  it.each([
+    "migrate",
+    "bootstrap",
+    "sync",
+    "install-upgrade",
+    "install-uninstall",
+  ] as const)("retired verb %s stubs as unknown-command", (verb) => {
+    expect(RETIRED_TOP_LEVEL_INSTALL_VERBS.has(verb)).toBe(true);
+    const routed = routeArgv([verb]);
+    expect(routed.kind).toBe("stub");
+    expect(routed.stubMessage ?? "").toMatch(/Unknown command/i);
+    expect(routed.stubMessage ?? "").toMatch(/install, upgrade, uninstall, doctor/);
+  });
 
   it("init and update still route (launcher aliases; legacy runtime paths)", () => {
     expect(routeArgv(["init"]).argv).toEqual(["init"]);

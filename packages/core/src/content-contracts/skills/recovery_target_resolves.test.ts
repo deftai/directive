@@ -156,16 +156,16 @@ describe("recovery target resolvability (#4430 / #2273)", () => {
     expect(window).toMatch(/npm i -g @deftai\/directive@<pin>/);
   });
 
-  it.each(["main.md", "SKILL.md"] as const)(
-    "root carrier recovery documents AC9.7 repair without inventing payload paths: %s",
-    (relPath) => {
-      const window = recoveryWindow(relPath, readRepoFile(relPath));
-      const instructions = recoveryInstructions(window);
-      expect(instructions.length).toBeGreaterThan(0);
-      const joined = instructions.join("\n");
-      expect(joined).toContain(RECOVERY_LADDER_NPM_GLOBAL);
-      expect(joined).toMatch(/directive install --repair|directive doctor/);
-      expect(joined).not.toMatch(/\.deft\/core\/QUICK-START\.md/);
-    },
-  );
+  it.each([
+    "main.md",
+    "SKILL.md",
+  ] as const)("root carrier recovery documents AC9.7 repair without inventing payload paths: %s", (relPath) => {
+    const window = recoveryWindow(relPath, readRepoFile(relPath));
+    const instructions = recoveryInstructions(window);
+    expect(instructions.length).toBeGreaterThan(0);
+    const joined = instructions.join("\n");
+    expect(joined).toContain(RECOVERY_LADDER_NPM_GLOBAL);
+    expect(joined).toMatch(/directive install --repair|directive doctor/);
+    expect(joined).not.toMatch(/\.deft\/core\/QUICK-START\.md/);
+  });
 });

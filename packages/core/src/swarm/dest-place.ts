@@ -13,12 +13,12 @@ import { reconstituteLinkedWorktreeDeposit } from "../init-deposit/gitignore.js"
 import { isLinkedWorktreePath, mainWorktreeRoot } from "../session/main-worktree.js";
 import { ensureSubagentStatusDir } from "./subagent-status-dir.js";
 import type { TextCaptureResult } from "./subprocess.js";
-import { defaultGitRunner, type GitRunner } from "./worktrees.js";
 import {
   installWorktreePackages,
-  worktreeHasRuntimePin,
   type WorktreePmRunner,
+  worktreeHasRuntimePin,
 } from "./worktree-pm-install.js";
+import { defaultGitRunner, type GitRunner } from "./worktrees.js";
 
 export type DestPlaceFailureCode =
   | "path-required"

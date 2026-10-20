@@ -174,8 +174,7 @@ export function readProjectInstallState(projectRoot: string): ProjectInstallStat
     pinRead.version !== null &&
     installed !== null &&
     installed.version === pinRead.version;
-  const contractSupported =
-    installed === null ? true : isContractSupported(installed.contract);
+  const contractSupported = installed === null ? true : isContractSupported(installed.contract);
   return {
     pin: pinRead,
     installed,

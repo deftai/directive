@@ -2,6 +2,9 @@
 import { readFileSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { checkCheapInSync } from "@deftai/directive-core/dist/install-health/cheap.js";
+import { INSTALLATION_RECOVERY_GUIDANCE } from "@deftai/directive-core/dist/install-health/constants.js";
+import type { CheapInSyncResult } from "@deftai/directive-core/dist/install-health/types.js";
 import {
   decideHook,
   type HookDecision,
@@ -17,9 +20,6 @@ import {
   projectRootFromHookPayload,
   renderHostDecision,
 } from "@deftai/directive-core/hooks";
-import { checkCheapInSync } from "@deftai/directive-core/dist/install-health/cheap.js";
-import { INSTALLATION_RECOVERY_GUIDANCE } from "@deftai/directive-core/dist/install-health/constants.js";
-import type { CheapInSyncResult } from "@deftai/directive-core/dist/install-health/types.js";
 import { readProjectDataStatus } from "./data-status.js";
 import { maybeSelfCompleteSetup } from "./self-complete.js";
 
@@ -106,9 +106,7 @@ export function resolveLaunchingCheckoutRootFromPath(modulePath: string): string
 }
 
 /** Resolve launching checkout from a module URL (defaults to this file). */
-export function resolveLaunchingCheckoutRoot(
-  moduleUrl: string = import.meta.url,
-): string | null {
+export function resolveLaunchingCheckoutRoot(moduleUrl: string = import.meta.url): string | null {
   try {
     return resolveLaunchingCheckoutRootFromPath(fileURLToPath(moduleUrl));
   } catch {

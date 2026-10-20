@@ -67,28 +67,27 @@ describe("OVPR install cold-start (AC10.10 / AC13.8)", () => {
     );
   });
 
-  it.each(COLD_START_SURFACES)(
-    "%s does not teach Go release-asset install-* as the primary path",
-    (rel) => {
-      const content = readText(rel);
-      const violations: string[] = [];
-      for (const re of GO_ASSET_RES) {
-        const flags = re.flags.includes("g") ? re.flags : `${re.flags}g`;
-        for (const m of content.matchAll(new RegExp(re.source, flags))) {
-          const line = lineOf(content, m.index ?? 0);
-          if (isRetiredOrHistoricalContext(line)) continue;
-          // Allow a RETIRED section heading/body that names the deleted assets.
-          const windowStart = Math.max(0, (m.index ?? 0) - 400);
-          const window = content.slice(windowStart, (m.index ?? 0) + 200);
-          if (/RETIRED|Historical only|has been removed|deleted/i.test(window)) continue;
-          violations.push(line);
-        }
+  it.each(
+    COLD_START_SURFACES,
+  )("%s does not teach Go release-asset install-* as the primary path", (rel) => {
+    const content = readText(rel);
+    const violations: string[] = [];
+    for (const re of GO_ASSET_RES) {
+      const flags = re.flags.includes("g") ? re.flags : `${re.flags}g`;
+      for (const m of content.matchAll(new RegExp(re.source, flags))) {
+        const line = lineOf(content, m.index ?? 0);
+        if (isRetiredOrHistoricalContext(line)) continue;
+        // Allow a RETIRED section heading/body that names the deleted assets.
+        const windowStart = Math.max(0, (m.index ?? 0) - 400);
+        const window = content.slice(windowStart, (m.index ?? 0) + 200);
+        if (/RETIRED|Historical only|has been removed|deleted/i.test(window)) continue;
+        violations.push(line);
       }
-      // Bare releases/latest/download without install-* may appear in archaeology
-      // pointers; only the platform install-* asset URLs were the Go one-liner.
-      expect(violations, `${rel} still teaches Go install-* assets as current`).toEqual([]);
-    },
-  );
+    }
+    // Bare releases/latest/download without install-* may appear in archaeology
+    // pointers; only the platform install-* asset URLs were the Go one-liner.
+    expect(violations, `${rel} still teaches Go install-* assets as current`).toEqual([]);
+  });
 
   it("QUICK-START headless / agent path uses npm + directive verbs, not Go --yes flags", () => {
     const content = readText("QUICK-START.md");

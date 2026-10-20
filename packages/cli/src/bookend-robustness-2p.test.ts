@@ -9,14 +9,14 @@ import { afterEach, describe, expect, it } from "vitest";
 import { runInstall } from "./bookends.js";
 import { EXIT_CODES, NODE_EOL_NOTE } from "./constants.js";
 import { checkNodeVersion } from "./node-check.js";
-import { readProjectInstallState, type ProjectInstallState } from "./pin.js";
+import { type ProjectInstallState, readProjectInstallState } from "./pin.js";
 import {
   ensurePackageManagerAvailable,
   fingerprintPlanCriticalFiles,
   formatMissingPmGuidance,
   interpretPmSpawnResult,
-  planFingerprintChanged,
   PARTIAL_CHANGES_MAY_REMAIN,
+  planFingerprintChanged,
 } from "./pm.js";
 
 const TEMPS: string[] = [];

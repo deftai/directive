@@ -7,9 +7,17 @@
  * Bounded cleanup: never treat a recorded path as authority to delete
  * arbitrary user content.
  */
-import { existsSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, isAbsolute, join, normalize, relative, resolve, sep } from "node:path";
+
 import { execFileSync } from "node:child_process";
+import {
+  existsSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { dirname, isAbsolute, join, normalize, relative, resolve, sep } from "node:path";
 import { LAUNCHER_PACKAGE_NAME, RUNTIME_PACKAGE_NAME } from "./constants.js";
 
 export type UninstallOwnershipKind =
@@ -178,9 +186,7 @@ function safeWriteText(projectRoot: string, rel: string, body: string): boolean 
   }
 }
 
-function parseOwnershipArtifacts(
-  projectRoot: string,
-): {
+function parseOwnershipArtifacts(projectRoot: string): {
   inspection: "valid" | "absent" | "unreadable";
   artifacts: DiscoveredArtifact[];
   rejected: string[];
@@ -295,7 +301,9 @@ function listWiringReady(projectRoot: string): string[] {
 export function discoverKnownArtifacts(projectRoot: string): DiscoveredArtifact[] {
   const out: DiscoveredArtifact[] = [];
   const push = (art: DiscoveredArtifact) => {
-    if (!out.some((a) => a.path === art.path && a.kind === art.kind && a.entryKey === art.entryKey)) {
+    if (
+      !out.some((a) => a.path === art.path && a.kind === art.kind && a.entryKey === art.entryKey)
+    ) {
       out.push(art);
     }
   };
@@ -397,11 +405,7 @@ function mergeArtifacts(
 
 /** Discover Directive footprint for uninstall planning (AC11.2). */
 export function discoverUninstallFootprint(projectRoot: string): UninstallDiscovery {
-  const {
-    inspection,
-    artifacts: fromRecord,
-    rejected,
-  } = parseOwnershipArtifacts(projectRoot);
+  const { inspection, artifacts: fromRecord, rejected } = parseOwnershipArtifacts(projectRoot);
   const fromKnown = discoverKnownArtifacts(projectRoot);
   const artifacts = mergeArtifacts(fromRecord, fromKnown);
   const hasRuntimePin = pkgHasDep(projectRoot, RUNTIME_PACKAGE_NAME);
@@ -493,8 +497,7 @@ function stripHostHooks(cfg: Record<string, unknown>): Record<string, unknown> {
 
 function stripTaskfileDeftInclude(body: string): { next: string; removed: boolean } {
   // Remove a block-style `deft:` child under includes (2-space indent).
-  const blockRe =
-    /(^|\n)([ \t]*)deft:\s*(?:#.*)?\n(?:\2[ \t]+[^\n]*\n)*/;
+  const blockRe = /(^|\n)([ \t]*)deft:\s*(?:#.*)?\n(?:\2[ \t]+[^\n]*\n)*/;
   if (blockRe.test(body)) {
     const next = body.replace(blockRe, "$1");
     return { next: next.replace(/\n{3,}/g, "\n\n"), removed: next !== body };
@@ -559,9 +562,7 @@ export function applyLauncherCleanup(
     uncertainty.push("GENERATION.json absent; used known-artifact map");
   }
   for (const bad of discovery.rejectedOwnershipPaths) {
-    uncertainty.push(
-      `rejected unsafe ownership path (escape/absolute): ${bad}`,
-    );
+    uncertainty.push(`rejected unsafe ownership path (escape/absolute): ${bad}`);
   }
 
   // AC11.4: strip hook registrations (structured-entry) before deleting targets.
@@ -652,13 +653,7 @@ export function applyLauncherCleanup(
       if (body !== null) {
         const { next, removed: did } = stripTaskfileDeftInclude(body);
         if (did) {
-          if (
-            safeWriteText(
-              projectRoot,
-              art.path,
-              next.endsWith("\n") ? next : `${next}\n`,
-            )
-          ) {
+          if (safeWriteText(projectRoot, art.path, next.endsWith("\n") ? next : `${next}\n`)) {
             modified.push(`${art.path}#includes.deft`);
           } else {
             uncertainty.push(`refused write outside project: ${art.path}`);
@@ -736,12 +731,8 @@ export function applyLauncherCleanup(
       if (left.length === 0) {
         if (safeUnlink(projectRoot, ".deft/directive")) removed.push(".deft/directive");
       } else {
-        leftovers.push(
-          ...left.map((n) => `.deft/directive/${n}`),
-        );
-        uncertainty.push(
-          `.deft/directive retains unrecognized entries; not removed wholesale`,
-        );
+        leftovers.push(...left.map((n) => `.deft/directive/${n}`));
+        uncertainty.push(`.deft/directive retains unrecognized entries; not removed wholesale`);
       }
     } catch {
       /* ignore */

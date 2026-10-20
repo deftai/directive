@@ -2,10 +2,11 @@
  * Package-manager selection and exact-add helpers for the launcher (AC5.7 / INIT-13).
  * Node builtins + child_process only — no runtime/core dependency.
  */
+
+import { type SpawnSyncReturns, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { spawnSync, type SpawnSyncReturns } from "node:child_process";
 import { LAUNCHER_PACKAGE_NAME, RUNTIME_PACKAGE_NAME } from "./constants.js";
 
 /** AC5.15 / AC14.56 — mandated interruption report text. */
@@ -144,25 +145,20 @@ function readDeclaredPackageManagerSlot(projectRoot: string): DeclaredPmSlot {
  * Refuses yarn and bun (AC5.7), including an explicit packageManager /
  * devEngines.packageManager field with no lockfile (do not fall through to npm).
  */
-export function detectPackageManager(
-  projectRoot: string,
-  flag: string | null,
-): DetectPmResult {
+export function detectPackageManager(projectRoot: string, flag: string | null): DetectPmResult {
   const hasYarn = existsSync(join(projectRoot, "yarn.lock"));
   const hasBun =
     existsSync(join(projectRoot, "bun.lock")) || existsSync(join(projectRoot, "bun.lockb"));
   if (hasYarn) {
     return {
       ok: false,
-      message:
-        "Yarn projects are not supported (AC5.7). Use npm or pnpm, or remove yarn.lock.",
+      message: "Yarn projects are not supported (AC5.7). Use npm or pnpm, or remove yarn.lock.",
     };
   }
   if (hasBun) {
     return {
       ok: false,
-      message:
-        "Bun projects are not supported (AC5.7). Use npm or pnpm, or remove bun.lock.",
+      message: "Bun projects are not supported (AC5.7). Use npm or pnpm, or remove bun.lock.",
     };
   }
 
@@ -246,7 +242,7 @@ function pnpmRootImporterBlock(text: string): string | null {
   while (i < lines.length && !/^importers:\s*$/.test(lines[i]!)) i++;
   if (i >= lines.length) return null;
   i++;
-  while (i < lines.length && !/^  \.:\s*$/.test(lines[i]!)) {
+  while (i < lines.length && !/^ {2}\.:\s*$/.test(lines[i]!)) {
     const line = lines[i]!;
     if (line !== "" && !line.startsWith(" ")) return null;
     i++;
@@ -256,7 +252,7 @@ function pnpmRootImporterBlock(text: string): string | null {
   const block: string[] = [];
   while (i < lines.length) {
     const line = lines[i]!;
-    if (line !== "" && (/^  \S/.test(line) || /^[^ \t]/.test(line))) break;
+    if (line !== "" && (/^ {2}\S/.test(line) || /^[^ \t]/.test(line))) break;
     block.push(line);
     i++;
   }
@@ -275,9 +271,7 @@ function pnpmRootRecordsExactPin(text: string, exactVersion: string): boolean {
   return match[1] === exactVersion && match[2] === exactVersion;
 }
 
-function npmRootRequest(
-  packages: Record<string, unknown>,
-): string | null {
+function npmRootRequest(packages: Record<string, unknown>): string | null {
   const root = packages[""];
   if (typeof root !== "object" || root === null || Array.isArray(root)) return null;
   const rec = root as Record<string, unknown>;
@@ -592,22 +586,9 @@ export function buildPmExactAddArgs(
   // --ignore-scripts: runtime postinstall only strips Windows ps1 shims; pin/wiring
   // do not require it. Avoids pnpm 10+ ERR_PNPM_IGNORED_BUILDS fail-closed on add.
   if (pm === "npm") {
-    return [
-      "install",
-      "--save-dev",
-      "--save-exact",
-      "--ignore-scripts",
-      "--include=dev",
-      spec,
-    ];
+    return ["install", "--save-dev", "--save-exact", "--ignore-scripts", "--include=dev", spec];
   }
-  const args = [
-    "add",
-    "-D",
-    "--save-exact",
-    "--ignore-scripts",
-    "--config.production=false",
-  ];
+  const args = ["add", "-D", "--save-exact", "--ignore-scripts", "--config.production=false"];
   if (isPnpmWorkspaceRoot(projectRoot)) {
     args.push("-w");
   }
@@ -677,7 +658,11 @@ const LOCKFILE_CANDIDATES = ["pnpm-lock.yaml", "package-lock.json", "npm-shrinkw
 function lockfileReferencesRetiredDirective(contents: string): boolean {
   for (const name of RETIRED_DIRECTIVE_PACKAGE_NAMES) {
     // Match package name as a dependency key / snapshot id, not random substrings.
-    if (contents.includes(`"${name}"`) || contents.includes(`${name}@`) || contents.includes(`${name}:`)) {
+    if (
+      contents.includes(`"${name}"`) ||
+      contents.includes(`${name}@`) ||
+      contents.includes(`${name}:`)
+    ) {
       return true;
     }
     // pnpm lock often uses "'@deftai/directive-core'" quoted forms already covered;

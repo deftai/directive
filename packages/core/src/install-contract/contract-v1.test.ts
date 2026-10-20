@@ -8,21 +8,21 @@ import {
   CONTRACT_PACKAGE_JSON_KEY,
   DATA_STATUS_VALUES,
   DataStatus,
-  EXIT_CODES,
-  ENTRY_POINTS,
-  LAUNCHER_MAX_SUPPORTED_CONTRACT,
-  parseDataStatusJson,
-  serializeDataStatusJson,
-  SETUP_OPERATIONS,
-  SETUP_FROM_VALUES,
-  isContractSupportedByLauncher,
-  readRuntimeContractFromPackageJson,
   type DataStatusJson,
-  type EntryPointName,
-  type SetupArgv,
-  type MigrateArgv,
-  type UninstallArgv,
   type DoctorArgv,
+  ENTRY_POINTS,
+  type EntryPointName,
+  EXIT_CODES,
+  isContractSupportedByLauncher,
+  LAUNCHER_MAX_SUPPORTED_CONTRACT,
+  type MigrateArgv,
+  parseDataStatusJson,
+  readRuntimeContractFromPackageJson,
+  SETUP_FROM_VALUES,
+  SETUP_OPERATIONS,
+  type SetupArgv,
+  serializeDataStatusJson,
+  type UninstallArgv,
 } from "./index.js";
 
 describe("launcher-runtime contract v1 (AC4.1 named suite)", () => {
@@ -104,7 +104,10 @@ describe("launcher-runtime contract v1 (AC4.1 named suite)", () => {
     expect(isContractSupportedByLauncher(1, LAUNCHER_MAX_SUPPORTED_CONTRACT)).toBe(true);
     expect(isContractSupportedByLauncher(0, LAUNCHER_MAX_SUPPORTED_CONTRACT)).toBe(false);
     expect(
-      isContractSupportedByLauncher(LAUNCHER_MAX_SUPPORTED_CONTRACT + 1, LAUNCHER_MAX_SUPPORTED_CONTRACT),
+      isContractSupportedByLauncher(
+        LAUNCHER_MAX_SUPPORTED_CONTRACT + 1,
+        LAUNCHER_MAX_SUPPORTED_CONTRACT,
+      ),
     ).toBe(false);
   });
 

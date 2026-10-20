@@ -16,21 +16,16 @@ import {
 import {
   buildOwnershipRecord,
   fingerprintContent,
+  type OwnedArtifact,
   ownershipRecordsEqual,
+  type PackageManagerFact,
   readEvidenceGenerationNumber,
   readOwnershipRecord,
   writeOwnershipRecord,
-  type OwnedArtifact,
-  type PackageManagerFact,
 } from "@deftai/directive-core/dist/install-health/index.js";
-import {
-  CURRENT_DATA_SCHEMA_VERSION,
-  DATA_SCHEMA_MARKER_REL,
-} from "./migrate.js";
-import {
-  isConvertStrategyFrom,
-  runStrategy,
-} from "./removal-steps/index.js";
+import { assertInventoryCompleteness } from "./installer-output-inventory.js";
+import { CURRENT_DATA_SCHEMA_VERSION, DATA_SCHEMA_MARKER_REL } from "./migrate.js";
+import { isConvertStrategyFrom, runStrategy } from "./removal-steps/index.js";
 import {
   ensureAgentsManagedSection,
   ensureGitHooks,
@@ -43,7 +38,6 @@ import {
   listVerifiedManagedSlashCommandPaths,
   RUNTIME_PREFIX,
 } from "./setup-wiring.js";
-import { assertInventoryCompleteness } from "./installer-output-inventory.js";
 
 export type SetupOperation = "install" | "repair" | "upgrade";
 
@@ -92,11 +86,7 @@ function readText(path: string): string | null {
 }
 
 /** Contained write under projectRoot; refuses symlink escape. */
-function writeContained(
-  projectRoot: string,
-  relPath: string,
-  body: string,
-): void {
+function writeContained(projectRoot: string, relPath: string, body: string): void {
   containedWrite({
     root: projectRoot,
     target: relPath,
@@ -243,11 +233,7 @@ function buildOwnershipArtifacts(projectRoot: string): OwnedArtifact[] {
       });
     }
   }
-  for (const rel of [
-    ".githooks/pre-commit",
-    ".githooks/pre-push",
-    ".githooks/_directive-run.sh",
-  ]) {
+  for (const rel of [".githooks/pre-commit", ".githooks/pre-push", ".githooks/_directive-run.sh"]) {
     const body = readText(join(projectRoot, rel));
     if (body !== null) {
       artifacts.push({

@@ -1040,7 +1040,6 @@ describe("test_agents_entry_contract", () => {
     expect(validatePointerRule(section, spec)).toEqual([]);
   });
 
-
   it("value_readback_suppression_window_is_four_hours", () => {
     expect(VALUE_READBACK_SUPPRESSION_HOURS).toBe(4);
   });

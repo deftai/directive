@@ -2,8 +2,9 @@
  * Rule 10 / rule 9 inventory for Wave 2e doctor remedies.
  * update-as-repair and agent npx/pnpm-exec must not appear in Contract-1 doctor text.
  */
-import { describe, expect, it } from "vitest";
+
 import { INSTALLATION_RECOVERY_GUIDANCE } from "@deftai/directive-core/dist/install-health/constants.js";
+import { describe, expect, it } from "vitest";
 import {
   FORBIDDEN_DOCTOR_REMEDY_PATTERNS,
   formatDoctorReport,

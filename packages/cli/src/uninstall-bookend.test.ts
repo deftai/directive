@@ -1,12 +1,13 @@
 /**
  * Wave 2g RED/GREEN — uninstall ownership map + bookend (R11 / AC11.*).
  */
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync } from "node:fs";
+
+import { execFileSync } from "node:child_process";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execFileSync } from "node:child_process";
 import { afterEach, describe, expect, it } from "vitest";
-import { runUninstall, type BookendIo, type UninstallDeps } from "./bookends.js";
+import { type BookendIo, runUninstall, type UninstallDeps } from "./bookends.js";
 import type { ProjectInstallState } from "./pin.js";
 import {
   applyLauncherCleanup,
@@ -47,10 +48,7 @@ function captureIo(): BookendIo & { out: () => string; err: () => string } {
   };
 }
 
-function writeGeneration(
-  root: string,
-  ownership: Array<Record<string, string>>,
-): void {
+function writeGeneration(root: string, ownership: Array<Record<string, string>>): void {
   mkdirSync(join(root, ".deft"), { recursive: true });
   writeFileSync(
     join(root, ".deft", "GENERATION.json"),
@@ -176,19 +174,16 @@ function seedModernInstall(root: string): void {
   execFileSync("git", ["-C", root, "config", "core.hooksPath", ".githooks"]);
 }
 
-function baseState(root: string, overrides: Partial<ProjectInstallState> = {}): ProjectInstallState {
+function baseState(
+  root: string,
+  overrides: Partial<ProjectInstallState> = {},
+): ProjectInstallState {
   return {
     pin: { kind: "exact", version: "0.0.0-yolo.cp-wave2g.1", raw: "0.0.0-yolo.cp-wave2g.1" },
     installed: {
       version: "0.0.0-yolo.cp-wave2g.1",
       contract: 1,
-      packageJsonPath: join(
-        root,
-        "node_modules",
-        "@deftai",
-        "directive-runtime",
-        "package.json",
-      ),
+      packageJsonPath: join(root, "node_modules", "@deftai", "directive-runtime", "package.json"),
       entryPath: join(root, "node_modules", "@deftai", "directive-runtime", "dist", "bin.js"),
     },
     pinMatchesInstalled: true,
@@ -206,16 +201,14 @@ describe("uninstall discovery (AC11.2)", () => {
     expect(d.hasFootprint).toBe(true);
     expect(d.ownershipInspection).toBe("valid");
     expect(d.artifacts.some((a) => a.path === "xbrief" && a.kind === "retained")).toBe(true);
-    expect(
-      d.artifacts.some((a) => a.path === ".deft/settings.json" && a.kind === "retained"),
-    ).toBe(true);
+    expect(d.artifacts.some((a) => a.path === ".deft/settings.json" && a.kind === "retained")).toBe(
+      true,
+    );
     expect(d.artifacts.some((a) => a.path === "AGENTS.md" && a.kind === "marked-section")).toBe(
       true,
     );
     expect(
-      d.artifacts.some(
-        (a) => a.path === ".cursor/hooks.json" && a.kind === "structured-entry",
-      ),
+      d.artifacts.some((a) => a.path === ".cursor/hooks.json" && a.kind === "structured-entry"),
     ).toBe(true);
   });
 

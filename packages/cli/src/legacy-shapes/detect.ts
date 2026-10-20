@@ -99,7 +99,9 @@ export function resolveInstallShape(projectRoot: string): ShapeResolution | null
 
   // L0: exact runtime pin (OVPR). Leftover .deft/core is hygiene, not vendored-core-go.
   if (pin.kind === "exact" && !pin.oldStyle && pin.version !== null) {
-    return resolution("ovpr-runtime-pin", [`package.json#@deftai/directive-runtime@${pin.version}`]);
+    return resolution("ovpr-runtime-pin", [
+      `package.json#@deftai/directive-runtime@${pin.version}`,
+    ]);
   }
 
   // L0: latest-legacy exact pre-split pin + copied-core (wave 2f).

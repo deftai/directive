@@ -128,12 +128,7 @@ describe("runSetup install|repair (R8 / AC8.*)", () => {
     const root = tempRoot();
     initGit(root);
     const first = runSetup({ operation: "install", from: "none", root });
-    const readyPath = join(
-      root,
-      ".deft",
-      "directive",
-      `wiring-ready.${first.runtimeVersion}.json`,
-    );
+    const readyPath = join(root, ".deft", "directive", `wiring-ready.${first.runtimeVersion}.json`);
     expect(existsSync(readyPath)).toBe(true);
     writeFileSync(
       join(root, "AGENTS.md"),
@@ -244,14 +239,8 @@ describe("runSetup old-style conversion (Wave 2f / AC10.3 / AC10.6 / AC10.9)", (
   function seedLegacyCore(root: string, edited = false): void {
     const core = join(root, ".deft", "core");
     mkdirSync(core, { recursive: true });
-    writeFileSync(
-      join(core, "VERSION"),
-      "ref: 'v0.119.2'\ninstall_root: '.deft/core'\n",
-    );
-    writeFileSync(
-      join(core, "main.md"),
-      edited ? "# edited\nKEEP-EDIT\n" : "# deposit\n",
-    );
+    writeFileSync(join(core, "VERSION"), "ref: 'v0.119.2'\ninstall_root: '.deft/core'\n");
+    writeFileSync(join(core, "main.md"), edited ? "# edited\nKEEP-EDIT\n" : "# deposit\n");
     writeFileSync(
       join(root, ".deft", "GENERATION.json"),
       `${JSON.stringify(

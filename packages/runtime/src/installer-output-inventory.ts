@@ -3,11 +3,7 @@
  * targets (or N/A with UNIFIED-aligned justification). Evidence for feature
  * preservation — not a generic installer registry.
  */
-export type InventoryDisposition =
-  | "retained"
-  | "rewired"
-  | "conditional"
-  | "na-retired-copy-model";
+export type InventoryDisposition = "retained" | "rewired" | "conditional" | "na-retired-copy-model";
 
 export interface InstallerOutputInventoryEntry {
   /** Stable id for tests / smokes. */
@@ -55,8 +51,7 @@ export const INSTALLER_OUTPUT_INVENTORY: readonly InstallerOutputInventoryEntry[
     legacyOutputs: [".github/skills/** (GitHub Copilot skill discovery)"],
     ovprTarget: ".github/skills/<name>/SKILL.md → runtime skills/ (via skill host roots)",
     disposition: "retained",
-    justification:
-      "AC8.1 Copilot example — covered by SKILL_HOST_ROOTS including .github/skills.",
+    justification: "AC8.1 Copilot example — covered by SKILL_HOST_ROOTS including .github/skills.",
     setupActivator: "ensureSkillPointers",
   },
   {
@@ -99,15 +94,13 @@ export const INSTALLER_OUTPUT_INVENTORY: readonly InstallerOutputInventoryEntry[
     ovprTarget:
       "Host command/prompt thin wrappers → node_modules/@deftai/directive-runtime/<dispatchPath>",
     disposition: "rewired",
-    justification: "AC8.1 / AC8.10 — retain slash/prompt deposits; rewrite off .deft/core teaching.",
+    justification:
+      "AC8.1 / AC8.10 — retain slash/prompt deposits; rewrite off .deft/core teaching.",
     setupActivator: "ensureSlashCommands",
   },
   {
     id: "openclaw-integrations",
-    legacyOutputs: [
-      "OpenClaw L2 product-command skills",
-      "OpenClaw soft AGENTS re-bind skill",
-    ],
+    legacyOutputs: ["OpenClaw L2 product-command skills", "OpenClaw soft AGENTS re-bind skill"],
     ovprTarget: "OpenClaw workspace skills dirs when OC signals present (conditional)",
     disposition: "conditional",
     justification:
@@ -157,7 +150,8 @@ export const INSTALLER_OUTPUT_INVENTORY: readonly InstallerOutputInventoryEntry[
 
 /** Ids that must have a setup activator (not silent omissions). */
 export const MUST_ACTIVATE_INVENTORY_IDS: readonly string[] = INSTALLER_OUTPUT_INVENTORY.filter(
-  (e) => e.disposition === "retained" || e.disposition === "rewired" || e.disposition === "conditional",
+  (e) =>
+    e.disposition === "retained" || e.disposition === "rewired" || e.disposition === "conditional",
 ).map((e) => e.id);
 
 export function inventoryEntry(id: string): InstallerOutputInventoryEntry | undefined {

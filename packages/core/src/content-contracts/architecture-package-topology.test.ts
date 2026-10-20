@@ -256,9 +256,7 @@ describe("architecture package topology (#4093)", () => {
     expect(arch).not.toMatch(/not deleted/);
     expect(arch).not.toMatch(/no-Node bootstrap bridge/i);
     // Current-path teaching of the gate command must not appear outside archaeology/prohibition.
-    const gateLines = arch
-      .split("\n")
-      .filter((l) => /deft-install gate/i.test(l));
+    const gateLines = arch.split("\n").filter((l) => /deft-install gate/i.test(l));
     expect(gateLines.length).toBeGreaterThan(0);
     for (const line of gateLines) {
       expect(line).toMatch(/do not|deleted|archaeology|historical|not teach/i);

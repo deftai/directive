@@ -22,10 +22,7 @@ import { validateVersion } from "./version.js";
 const REHEARSAL_VERSION = "0.0.1";
 
 /** Public packages published by npm-publish.yml (OVPR pair; sibling propagate is not atomic). */
-export const WORKSPACE_PACKAGES = [
-  "@deftai/directive-runtime",
-  "@deftai/directive",
-] as const;
+export const WORKSPACE_PACKAGES = ["@deftai/directive-runtime", "@deftai/directive"] as const;
 
 export type WorkspacePackageName = (typeof WORKSPACE_PACKAGES)[number];
 

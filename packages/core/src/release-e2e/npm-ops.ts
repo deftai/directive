@@ -221,11 +221,7 @@ export function packOvprTarballs(
   const runtimeTgz = join(packDir, `deftai-directive-runtime-${version}.tgz`);
   const launcherTgz = join(packDir, `deftai-directive-${version}.tgz`);
   if (!existsSync(runtimeTgz) || !existsSync(launcherTgz)) {
-    return [
-      false,
-      `OVPR pack missing tarballs (need ${runtimeTgz} and ${launcherTgz})`,
-      [],
-    ];
+    return [false, `OVPR pack missing tarballs (need ${runtimeTgz} and ${launcherTgz})`, []];
   }
   return [true, `packed OVPR pair at v${version}`, [runtimeTgz, launcherTgz]];
 }
@@ -307,8 +303,7 @@ export function rehearseNpmPublish(
   }
   return [
     true,
-    "npm publish --dry-run clean for 2 packages " +
-      `(runtime -> cli/launcher) at v${version}`,
+    "npm publish --dry-run clean for 2 packages " + `(runtime -> cli/launcher) at v${version}`,
   ];
 }
 
@@ -611,10 +606,7 @@ export interface PostPublishTwoPassOptions {
 }
 
 /** OVPR: only the two public packages are installed from the registry (#5490 / AC13.4). */
-const DEFAULT_REGISTRY_PACKAGES = [
-  "@deftai/directive-runtime",
-  "@deftai/directive",
-] as const;
+const DEFAULT_REGISTRY_PACKAGES = ["@deftai/directive-runtime", "@deftai/directive"] as const;
 
 /** Pass 2: greenfield OVPR install of the just-published pair (not legacy update/migrate). */
 const PASS2_INSTALL_ARGV = ["install", "--yes", "--target-version"] as const;
@@ -789,15 +781,11 @@ function runPass2UpdateFromInstalledCli(
     return [false, `Pass 2 missing installed CLI at ${cliBin}`, []];
   }
   const spawn = seams.spawnText ?? spawnCommandText;
-  const update = spawn(
-    process.execPath,
-    [cliBin, ...PASS2_INSTALL_ARGV, version],
-    {
-      cwd: consumerDir,
-      env: pass2UpdateEnv(cleanDir, consumerDir),
-      timeoutMs: NPM_INSTALL_RUN_TIMEOUT_SECONDS * 1000,
-    },
-  );
+  const update = spawn(process.execPath, [cliBin, ...PASS2_INSTALL_ARGV, version], {
+    cwd: consumerDir,
+    env: pass2UpdateEnv(cleanDir, consumerDir),
+    timeoutMs: NPM_INSTALL_RUN_TIMEOUT_SECONDS * 1000,
+  });
   if (update.status !== 0) {
     const detail = `${update.stderr ?? ""}\n${update.stdout ?? ""}`.trim().slice(-500);
     return [false, `Pass 2 directive install failed (exit ${update.status}): ${detail}`, []];

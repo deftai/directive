@@ -46,7 +46,15 @@ export const DATA_STATUS_VALUES: readonly DataStatusValue[] = [
 export const ENTRY_POINTS: readonly EntryPointSpec[] = [
   {
     name: "setup",
-    argv: ["setup", "--operation", "<install|repair|upgrade>", "--from", "<version|old-style|none>", "--root", "<path>"],
+    argv: [
+      "setup",
+      "--operation",
+      "<install|repair|upgrade>",
+      "--from",
+      "<version|old-style|none>",
+      "--root",
+      "<path>",
+    ],
   },
   {
     name: "migrate",

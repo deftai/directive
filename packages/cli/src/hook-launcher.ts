@@ -3,9 +3,10 @@
  * when basename(argv[1]) is deft-hook (or DEFT_LAUNCHER_MODE=hook).
  * Host configs should use `node node_modules/@deftai/directive-runtime/dist/hook-bin.js`.
  */
+
+import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { spawnSync } from "node:child_process";
 import { EXIT_CODES, RECOVERY_GUIDANCE, RUNTIME_PACKAGE_NAME } from "./constants.js";
 import { discoverProject } from "./discover.js";
 import { checkNodeVersion } from "./node-check.js";

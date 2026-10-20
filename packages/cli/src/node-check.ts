@@ -15,9 +15,7 @@ export interface NodeCheckResult {
   readonly exitCode: number;
 }
 
-export function checkNodeVersion(
-  version: string = process.versions.node,
-): NodeCheckResult {
+export function checkNodeVersion(version: string = process.versions.node): NodeCheckResult {
   const major = Number.parseInt(version.split(".")[0] ?? "", 10);
   if (!Number.isFinite(major) || major < NODE_ENGINES_FLOOR_MAJOR) {
     return {

@@ -12,8 +12,8 @@ import { join } from "node:path";
 import { RUNTIME_PACKAGE_PATH_PREFIX } from "./constants.js";
 import {
   MANAGED_SECTION_CLOSE,
-  MANAGED_SECTION_OPEN_PREFIX,
   MANAGED_SECTION_MARKER_ID,
+  MANAGED_SECTION_OPEN_PREFIX,
 } from "./ownership.js";
 import type { FsSeams } from "./readers.js";
 
@@ -81,10 +81,7 @@ function targetsRuntime(
   if (text.includes(".deft/core/")) return false;
   // Hook JSON / skill pointers must not invoke bare deft-hook. AGENTS managed
   // prose may name it when teaching recovery (agents-entry.md).
-  if (
-    !options.allowDeftHookProse &&
-    /(^|[\s"`'])deft-hook([\s"`']|$)/.test(text)
-  ) {
+  if (!options.allowDeftHookProse && /(^|[\s"`'])deft-hook([\s"`']|$)/.test(text)) {
     return false;
   }
   return true;
@@ -116,10 +113,7 @@ function inspectProbe(rel: string, text: string): boolean {
  * AGENTS.md counts only with a managed section targeting the runtime prefix;
  * other probes count when they target the runtime prefix or are git-hook shims.
  */
-export function hasDirectiveWiringEvidence(
-  projectRoot: string,
-  seams: FsSeams = {},
-): boolean {
+export function hasDirectiveWiringEvidence(projectRoot: string, seams: FsSeams = {}): boolean {
   const isFile = seams.isFile ?? defaultIsFile;
   const readText = seams.readText ?? defaultReadText;
   for (const rel of WIRING_PROBE_RELS) {

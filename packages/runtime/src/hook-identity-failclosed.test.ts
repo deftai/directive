@@ -3,23 +3,15 @@
  * AC14.8, AC14.26, AC14.65). Foreign payload root and pin≠installed must
  * fail closed before policy; matching roots + in-sync still reach decideHook.
  */
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+
+import { execFileSync } from "node:child_process";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { execFileSync } from "node:child_process";
 import { INSTALLATION_RECOVERY_GUIDANCE } from "@deftai/directive-core/dist/install-health/constants.js";
 import type { CheapInSyncResult } from "@deftai/directive-core/dist/install-health/types.js";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  resolveLaunchingCheckoutRootFromPath,
-  run,
-} from "./hook-dispatch.js";
+import { resolveLaunchingCheckoutRootFromPath, run } from "./hook-dispatch.js";
 
 const temps: string[] = [];
 
@@ -71,22 +63,25 @@ function dispatchWrite(opts: {
 }): { code: number; body: Record<string, unknown>; raw: string } {
   const out: string[] = [];
   const host = opts.host ?? "cursor";
-  const exit = run([`--host=${host}`, "--event=tool.before", `--project-root=${opts.projectRoot}`], {
-    readStdin: () =>
-      JSON.stringify({
-        tool_name: "Write",
-        tool_input: { file_path: opts.target, contents: "x" },
-        workspace_roots: [opts.projectRoot],
-      }),
-    writeOut: (text) => out.push(text),
-    writeErr: () => undefined,
-    cwd: () => opts.projectRoot,
-    stdinEmptyRetryMs: 0,
-    ...(opts.launchingCheckoutRoot !== undefined
-      ? { launchingCheckoutRoot: () => opts.launchingCheckoutRoot ?? null }
-      : {}),
-    ...(opts.cheapInSync !== undefined ? { cheapInSync: opts.cheapInSync } : {}),
-  });
+  const exit = run(
+    [`--host=${host}`, "--event=tool.before", `--project-root=${opts.projectRoot}`],
+    {
+      readStdin: () =>
+        JSON.stringify({
+          tool_name: "Write",
+          tool_input: { file_path: opts.target, contents: "x" },
+          workspace_roots: [opts.projectRoot],
+        }),
+      writeOut: (text) => out.push(text),
+      writeErr: () => undefined,
+      cwd: () => opts.projectRoot,
+      stdinEmptyRetryMs: 0,
+      ...(opts.launchingCheckoutRoot !== undefined
+        ? { launchingCheckoutRoot: () => opts.launchingCheckoutRoot ?? null }
+        : {}),
+      ...(opts.cheapInSync !== undefined ? { cheapInSync: opts.cheapInSync } : {}),
+    },
+  );
   const raw = out.join("").trim();
   const body = raw.length === 0 ? {} : (JSON.parse(raw) as Record<string, unknown>);
   return { code: exit, body, raw };

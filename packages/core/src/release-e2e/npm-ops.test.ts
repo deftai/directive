@@ -124,7 +124,11 @@ function simulateOvprPackArtifacts(
         : join(cloneDir, ".deft-e2e-packs"));
     mkdirSync(packDir, { recursive: true });
     if (joined.includes("pack-staged-runtime")) {
-      writeFileSync(join(packDir, `deftai-directive-runtime-${version}.tgz`), "runtime-tgz\n", "utf8");
+      writeFileSync(
+        join(packDir, `deftai-directive-runtime-${version}.tgz`),
+        "runtime-tgz\n",
+        "utf8",
+      );
     }
     if (joined.includes("pack --pack-destination") || joined.includes("npm pack")) {
       writeFileSync(join(packDir, `deftai-directive-${version}.tgz`), "launcher-tgz\n", "utf8");
@@ -447,9 +451,7 @@ describe("rehearseNpmPublish", () => {
     expect(okFlag).toBe(false);
     expect(reason).toContain("deftai-directive-runtime-");
     expect(
-      publishArgs.some((args) =>
-        args.some((part) => part.endsWith("deftai-directive-0.0.1.tgz")),
-      ),
+      publishArgs.some((args) => args.some((part) => part.endsWith("deftai-directive-0.0.1.tgz"))),
     ).toBe(false);
   });
 });

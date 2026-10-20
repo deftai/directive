@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  readAgentsMd,
-  readAgentsPreamble,
-  returningSessionsSection,
-} from "./helpers.js";
+import { readAgentsMd, readAgentsPreamble, returningSessionsSection } from "./helpers.js";
 
 /** Port of tests/content/test_agents_md.py (#1838 #1530). Product SoT = agents-entry (+ preamble). */
 

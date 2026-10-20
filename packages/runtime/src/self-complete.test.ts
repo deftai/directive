@@ -2,25 +2,18 @@
  * Wave 2d self-completing setup owner tests (AC8.6 / AC2.5 / AC9.10).
  */
 import { execFileSync } from "node:child_process";
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
 import { RUNTIME_PIN_PACKAGE } from "@deftai/directive-core/dist/install-health/constants.js";
-import { runSetup } from "./setup.js";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   DEFT_DOCTOR_HOOK_DIAGNOSTIC,
   isDoctorDiagnosticEnv,
   isEligibleSelfCompleteCommand,
   maybeSelfCompleteSetup,
 } from "./self-complete.js";
+import { runSetup } from "./setup.js";
 
 const TEMPS: string[] = [];
 

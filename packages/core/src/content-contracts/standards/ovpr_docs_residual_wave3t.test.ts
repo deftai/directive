@@ -88,20 +88,15 @@ function currentGuidanceHits(text: string): string[] {
 }
 
 describe("OVPR residual docs wave3t (AC10.10 DEFT-INSTALL-RESIDUAL)", () => {
-  it.each(WAVE3T_SURFACES)(
-    "%s does not prescribe deft-install / Go installer as current guidance",
-    (rel) => {
-      const text = readText(rel);
-      expect(
-        currentGuidanceHits(text),
-        `${rel} still teaches deft-install as current`,
-      ).toEqual([]);
-    },
-  );
+  it.each(
+    WAVE3T_SURFACES,
+  )("%s does not prescribe deft-install / Go installer as current guidance", (rel) => {
+    const text = readText(rel);
+    expect(currentGuidanceHits(text), `${rel} still teaches deft-install as current`).toEqual([]);
+  });
 
   it("rejects a line containing Not deleted even when archaeology words appear", () => {
-    const line =
-      "The Go installer path is Not deleted — historical archaeology note only.";
+    const line = "The Go installer path is Not deleted — historical archaeology note only.";
     const found = currentGuidanceHits(`${line}\n`);
     expect(found.some((h) => h.includes("Not deleted"))).toBe(true);
     // Direct exemption must not cancel the Not deleted prohibition.
@@ -136,15 +131,9 @@ describe("OVPR residual docs wave3t (AC10.10 DEFT-INSTALL-RESIDUAL)", () => {
     expect(text).not.toMatch(/no-Node bootstrap bridge/i);
     expect(text).not.toMatch(/directive update` \(or `deft update`\) to refresh `\.deft\/core\//);
     // Phase 6a/6c: template/skills checks use runtime package paths (not .deft/core deposit).
-    expect(text).toContain(
-      "node_modules/@deftai/directive-runtime/templates/",
-    );
-    expect(text).toContain(
-      "node_modules/@deftai/directive-runtime/.agents/skills/",
-    );
-    expect(text).not.toMatch(
-      /template exists in the updated deposit \/ `\.deft\/core\/`/,
-    );
+    expect(text).toContain("node_modules/@deftai/directive-runtime/templates/");
+    expect(text).toContain("node_modules/@deftai/directive-runtime/.agents/skills/");
+    expect(text).not.toMatch(/template exists in the updated deposit \/ `\.deft\/core\/`/);
     expect(text).not.toMatch(/deposited `\.deft\/core\/` skills/);
     // Staging: pin/lock/GENERATION/tracked wiring — not ignored wiring-ready.*.
     expect(text).toMatch(/tracked wiring \/ `\.deft\/GENERATION\.json`/);

@@ -275,4 +275,3 @@ describe("legacy-layout refusal (end-to-end via the CLI, #1912)", () => {
     expect(parsed.command).toBe("update");
   });
 });
-

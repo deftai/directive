@@ -6,12 +6,14 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
 import { RUNTIME_PIN_PACKAGE } from "@deftai/directive-core/dist/install-health/constants.js";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 const productDoctorRun = vi.fn(async (_argv: string[]): Promise<number> => {
   process.stdout.write("Pre-cutover: none -- current vBRIEF document model.\n");
-  process.stdout.write("Deposit hygiene: none -- package-based layout (no copied .deft/core tree; expected).\n");
+  process.stdout.write(
+    "Deposit hygiene: none -- package-based layout (no copied .deft/core tree; expected).\n",
+  );
   return 0;
 });
 
@@ -125,7 +127,9 @@ afterEach(() => {
   productDoctorRun.mockClear();
   productDoctorRun.mockImplementation(async () => {
     process.stdout.write("Pre-cutover: none -- current vBRIEF document model.\n");
-    process.stdout.write("Deposit hygiene: none -- package-based layout (no copied .deft/core tree; expected).\n");
+    process.stdout.write(
+      "Deposit hygiene: none -- package-based layout (no copied .deft/core tree; expected).\n",
+    );
     return 0;
   });
   while (TEMPS.length > 0) {
