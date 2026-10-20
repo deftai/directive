@@ -220,9 +220,32 @@ export function classifyLegacyMigrationFile(srcPath: string, raw: string): Migra
   return { kind: "migrate", body: `${JSON.stringify(result.artifact, null, 2)}\n` };
 }
 
+/** True when the legacy relative path already lives under `vbrief/archive/`. */
+function legacyRelUnderArchive(legacyRel: string): boolean {
+  return legacyRel === ARCHIVE_REL_DIR || legacyRel.startsWith(`${ARCHIVE_REL_DIR}/`);
+}
+
+/**
+ * Destination under staged `xbrief/` for a legacy relative path.
+ * Files already under `vbrief/archive/` land in `archive/from-vbrief/…` so they
+ * cannot collide with newly archived active/completed envelopes (which use
+ * `archive/<mapped-rel>`).
+ */
+function destRelForLegacy(legacyRel: string): string {
+  if (legacyRelUnderArchive(legacyRel)) {
+    const rest = legacyRel.slice(ARCHIVE_REL_DIR.length).replace(/^\//, "");
+    const mappedRest = rest.length > 0 ? mapRelativePath(rest) : "root";
+    return `${ARCHIVE_REL_DIR}/from-vbrief/${mappedRest}`;
+  }
+  return mapRelativePath(legacyRel);
+}
+
+/** Where to place an unknowable envelope that must be archived (not migrated). */
 function archiveDestRelative(legacyRel: string): string {
-  const mapped = mapRelativePath(legacyRel);
-  return `${ARCHIVE_REL_DIR}/${mapped}`;
+  if (legacyRelUnderArchive(legacyRel)) {
+    return destRelForLegacy(legacyRel);
+  }
+  return `${ARCHIVE_REL_DIR}/${mapRelativePath(legacyRel)}`;
 }
 
 function ensureArchiveReadme(projectRoot: string, stagedOrMigratedDir: string): void {
@@ -689,14 +712,25 @@ function migrateLegacyTree(
   const files = collectFiles(legacyDir);
   const migratedPaths: string[] = [];
   const archivedPaths: string[] = [];
+  /** Fail closed if two legacy sources would write the same staged path. */
+  const claimedTargets = new Map<string, string>();
   try {
     for (const srcPath of files) {
       const rel = relative(legacyDir, srcPath).replace(/\\/g, "/");
       if (shouldOmitLegacyMigrationFile(rel)) continue;
-      const destRel = mapRelativePath(rel);
+      const destRel = destRelForLegacy(rel);
       const destPath = join(stagedDir, destRel);
       const archiveRel = archiveDestRelative(rel);
       const archivePath = join(stagedDir, archiveRel);
+      for (const target of new Set([destRel, archiveRel])) {
+        const prior = claimedTargets.get(target);
+        if (prior !== undefined && prior !== rel) {
+          throw new Error(
+            `migration destination collision: '${MIGRATED_ARTIFACT_DIR}/${target}' claimed by both '${prior}' and '${rel}'`,
+          );
+        }
+        claimedTargets.set(target, rel);
+      }
       const disposition = writeMigratedFile(projectRoot, srcPath, destPath, archivePath);
       if (disposition === "archived") {
         archivedPaths.push(`${MIGRATED_ARTIFACT_DIR}/${archiveRel}`);

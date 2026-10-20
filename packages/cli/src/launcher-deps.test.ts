@@ -58,4 +58,3 @@ describe("launcher package collapse (AC3.1 / AC13.4)", () => {
     });
   });
 });
-

@@ -161,7 +161,10 @@ export function assertLegacyFixturesDetectedAndRefused(workRoot: string): [boole
     for (const command of ["init", "update"] as const) {
       const refusal = buildLegacyRefusalMessage(command, detection);
       // AC10.10: Go installer deleted; refusal signposts launcher + directive upgrade.
-      if (!refusal.includes("directive upgrade") || !refusal.includes("npm i -g @deftai/directive")) {
+      if (
+        !refusal.includes("directive upgrade") ||
+        !refusal.includes("npm i -g @deftai/directive")
+      ) {
         return [
           false,
           `npm ${command} refusal for ${spec.kind} did not signpost directive upgrade`,

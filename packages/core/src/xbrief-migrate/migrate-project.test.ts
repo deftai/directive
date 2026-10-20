@@ -298,14 +298,57 @@ describe("runXbriefMigration", () => {
     );
     expect(outcome.kind).toBe("migrated");
     expect(
-      existsSync(join(project, MIGRATED_ARTIFACT_DIR, "archive", "active", "kept-note.txt")),
+      existsSync(
+        join(project, MIGRATED_ARTIFACT_DIR, "archive", "from-vbrief", "active", "kept-note.txt"),
+      ),
     ).toBe(true);
     expect(
       readFileSync(
-        join(project, MIGRATED_ARTIFACT_DIR, "archive", "active", "kept-note.txt"),
+        join(project, MIGRATED_ARTIFACT_DIR, "archive", "from-vbrief", "active", "kept-note.txt"),
         "utf8",
       ),
     ).toBe("operator archive note\n");
+  });
+
+  it("keeps newly archived actives and legacy archive sources on distinct paths", () => {
+    const project = mkdtempSync(join(tmpdir(), "xbrief-migrate-archive-collision-"));
+    temps.push(project);
+    mkdirSync(join(project, LEGACY_ARTIFACT_DIR, "active"), { recursive: true });
+    mkdirSync(join(project, LEGACY_ARTIFACT_DIR, "archive", "active"), { recursive: true });
+    writeFileSync(
+      join(project, LEGACY_ARTIFACT_DIR, "active", "foo.vbrief.json"),
+      "{ not json !!!\n",
+      "utf8",
+    );
+    writeFileSync(
+      join(project, LEGACY_ARTIFACT_DIR, "archive", "active", "foo.vbrief.json"),
+      `${JSON.stringify({
+        vBRIEFInfo: { version: "0.6", description: "legacy archive" },
+        plan: { title: "Archived", status: "running", items: [] },
+      })}\n`,
+      "utf8",
+    );
+    execFileSync("git", ["init"], { cwd: project });
+
+    const outcome = runXbriefMigration(
+      { projectRoot: project, force: true },
+      { writeOut: () => {}, writeErr: () => {} },
+    );
+    expect(outcome.kind).toBe("migrated");
+    expect(
+      readFileSync(
+        join(project, MIGRATED_ARTIFACT_DIR, "archive", "active", "foo.xbrief.json"),
+        "utf8",
+      ),
+    ).toBe("{ not json !!!\n");
+    const preserved = JSON.parse(
+      readFileSync(
+        join(project, MIGRATED_ARTIFACT_DIR, "archive", "from-vbrief", "active", "foo.xbrief.json"),
+        "utf8",
+      ),
+    );
+    expect(preserved.xBRIEFInfo.version).toBe("0.8");
+    expect(preserved.plan.title).toBe("Archived");
   });
 
   itSymlink("refuses migration when vbrief/ is a symlink outside the project (#2601)", () => {
