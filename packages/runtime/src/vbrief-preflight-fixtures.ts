@@ -103,7 +103,7 @@ export function buildFixtures(root: string): Map<string, string> {
 /** Render a human-readable parity report (exported for unit tests). */
 export function renderReport(result: ParityResult): string {
   if (result.ok) {
-    return `vbrief_preflight parity: CLEAN -- Python and TS agree on ${result.cases.length} fixture(s).`;
+    return `vbrief_preflight parity: CLEAN -- Python and TS agree on ${result.cases.length} fixtures.`;
   }
   const lines = ["vbrief_preflight parity: DIVERGENCE"];
   for (const c of result.cases.filter((x) => !x.ok)) {

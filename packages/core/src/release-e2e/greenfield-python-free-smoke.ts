@@ -124,7 +124,7 @@ export function runConsumerDocsImpactSmoke(
     [["checkout", "-B", "feat/docs-impact-smoke"], "feature branch"],
   ] as const) {
     const [ok, reason] = runGitStep(spawn, gitBin, args, projectDir, gitEnv);
-    if (!ok) return [false, `docs-impact git fixture (${label}): ${reason}`];
+    if (!ok) return [false, `docs-impact git fixture for ${label}: ${reason}`];
   }
 
   writeFileSync(validBody, VALID_DOCS_IMPACT_BODY, "utf8");
@@ -168,14 +168,14 @@ function seedMinimalProjectDefinition(projectDir: string): void {
     join(projectDir, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
     `${JSON.stringify(
       {
-        xBRIEFInfo: { version: "0.8", description: "greenfield smoke fixture (#2022 Phase 3)" },
+        xBRIEFInfo: { version: "0.8", description: "greenfield smoke fixture #2022 Phase 3" },
         plan: {
           title: "PROJECT-DEFINITION",
           status: "running",
           items: [],
           policy: {},
           narratives: {
-            Overview: "Greenfield smoke fixture (#2022 Phase 3).",
+            Overview: "Greenfield smoke fixture #2022 Phase 3.",
             "tech stack": "Node.js",
           },
         },

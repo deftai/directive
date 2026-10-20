@@ -226,13 +226,13 @@ function pruneEvaluatorWorktreeAdmin(
     const recordedWorktree = recorded.replace(/\\/g, "/").replace(/\/\.git$/u, "");
     const recordedBase = basename(recordedWorktree);
     const targetBase = basename(worktreePath.replace(/\\/g, "/").replace(/\/\.git$/u, ""));
+    // Case-only basename difference ⇒ distinct worktree identity on a
+    // case-sensitive directory. Do not require existsSync: force-delete of the
+    // target must not let a fold unregister a sibling admin entry (#5519).
     if (
-      existsSync(recordedWorktree) &&
       recordedBase !== targetBase &&
       recordedBase.toLowerCase() === targetBase.toLowerCase()
     ) {
-      // Recorded worktree still on disk as a case-distinct sibling — never unregister,
-      // even when a probe/cache would fold (#5519 Bound).
       continue;
     }
     if (worktreePathsReferToSame(recordedWorktree, worktreePath)) {
