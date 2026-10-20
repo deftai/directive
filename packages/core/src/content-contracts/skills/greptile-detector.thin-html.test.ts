@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { parseGreptileBody } from "../../pr-merge-readiness/parse.js";
 import {
+  BODY_AC4_INLINE_SHA_CLEAN,
   BODY_AC4_MARKDOWN_LINK_CLEAN,
+  BODY_ESCAPED_BRACKET_LINK_TEXT,
   BODY_PR4287_THIN_HTML,
   BODY_PR4292_INLINE_P1,
   BODY_PR4292_THIN_HTML,
@@ -18,6 +20,44 @@ import {
 } from "./greptile-detector.js";
 
 const HEAD = "73f6e732aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+const ESCAPED_BRACKET_SHA = "a1b2c3d4e5f60718293a4b5c6d7e8f9001122334";
+const HEAD_SHA_AC4 = "abcdef1234567";
+const MALFORMED_THEN_VALID_SHA = "feedface0123456";
+
+describe("Last-reviewed markdown-link SHA parse bound (#5742 / CodeQL #112)", () => {
+  it("returns null quickly on repeated Last reviewed commit:[ with no terminator", () => {
+    const adversarial = "Last reviewed commit:[".repeat(8000);
+    const started = Date.now();
+    expect(parseLastReviewedShaMarkdownLink(adversarial)).toBeNull();
+    expect(Date.now() - started).toBeLessThan(500);
+  });
+
+  it("skips a malformed candidate then extracts a later valid markdown-link SHA", () => {
+    const body =
+      "Last reviewed commit:[broken no close\n" +
+      `Last reviewed commit: [fix: later](https://github.com/deftai/directive/commit/${MALFORMED_THEN_VALID_SHA})\n`;
+    expect(parseLastReviewedShaMarkdownLink(body)).toBe(MALFORMED_THEN_VALID_SHA);
+  });
+
+  it("reads a full 40-hex SHA when owner+repo nearly exhaust the 200-char URL prefix budget", () => {
+    const owner = "o".repeat(39);
+    const repo = "r".repeat(100);
+    const sha = "a".repeat(40);
+    // https://github.com/ = 19; owner 39; /; repo 100; /commit/ = 8 → 167 chars before SHA.
+    // Under a shared 200-char scan the SHA would truncate to 33 hex; reserved SHA window keeps all 40.
+    const body = `Last reviewed commit: [fix: long](https://github.com/${owner}/${repo}/commit/${sha})\n`;
+    expect(parseLastReviewedShaMarkdownLink(body)).toBe(sha);
+  });
+
+  it("keeps escaped-bracket link text and AC4 inline/markdown contracts separate", () => {
+    expect(parseLastReviewedShaMarkdownLink(BODY_ESCAPED_BRACKET_LINK_TEXT)).toBe(
+      ESCAPED_BRACKET_SHA,
+    );
+    expect(parseLastReviewedShaMarkdownLink(BODY_AC4_MARKDOWN_LINK_CLEAN)).toBe(HEAD_SHA_AC4);
+    expect(parseLastReviewedShaMarkdownLink(BODY_AC4_INLINE_SHA_CLEAN)).toBeNull();
+    expect(parseLastReviewedShaNaiveInline(BODY_AC4_INLINE_SHA_CLEAN)).toBe(HEAD_SHA_AC4);
+  });
+});
 
 describe("thin HTML greptile_summary (#4289)", () => {
   it("names PR 4287 HTML: confidence present, no Last reviewed, not informal-clean", () => {
