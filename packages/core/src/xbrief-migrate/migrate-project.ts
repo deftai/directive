@@ -12,6 +12,7 @@ import {
 import { validateVbriefSchema } from "../vbrief-validate/schema.js";
 import { patchAgentsMdHeader, renderHeaderPatchSummary } from "./agents-header.js";
 import {
+  ARCHIVE_FROM_VBRIEF_REL_DIR,
   ARCHIVE_README_BODY,
   ARCHIVE_README_FILENAME,
   ARCHIVE_REL_DIR,
@@ -235,7 +236,7 @@ function destRelForLegacy(legacyRel: string): string {
   if (legacyRelUnderArchive(legacyRel)) {
     const rest = legacyRel.slice(ARCHIVE_REL_DIR.length).replace(/^\//, "");
     const mappedRest = rest.length > 0 ? mapRelativePath(rest) : "root";
-    return `${ARCHIVE_REL_DIR}/from-vbrief/${mappedRest}`;
+    return `${ARCHIVE_REL_DIR}/${ARCHIVE_FROM_VBRIEF_REL_DIR}/${mappedRest}`;
   }
   return mapRelativePath(legacyRel);
 }

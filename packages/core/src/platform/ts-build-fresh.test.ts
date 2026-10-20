@@ -34,7 +34,7 @@ describe("ts-build-fresh.cjs (#2563)", () => {
   it("exits 1 when dist/bin.js is missing", () => {
     const root = mkdtempSync(join(tmpdir(), "ts-build-fresh-"));
     try {
-      mkdirSync(join(root, "packages", "cli", "src"), { recursive: true });
+      mkdirSync(join(root, "packages", "runtime", "src"), { recursive: true });
       writeFileSync(join(root, "package.json"), "{}");
       expect(runFresh(root).status).toBe(1);
     } finally {
@@ -45,8 +45,9 @@ describe("ts-build-fresh.cjs (#2563)", () => {
   it("exits 0 when the post-build stamp is newer than sources", () => {
     const root = mkdtempSync(join(tmpdir(), "ts-build-fresh-"));
     try {
-      const src = join(root, "packages", "cli", "src");
-      const dist = join(root, "packages", "cli", "dist");
+      // Helper SoT is packages/runtime/dist (OVPR engine entry), not packages/cli.
+      const src = join(root, "packages", "runtime", "src");
+      const dist = join(root, "packages", "runtime", "dist");
       const pkgJson = join(root, "package.json");
       mkdirSync(src, { recursive: true });
       mkdirSync(dist, { recursive: true });
@@ -70,8 +71,8 @@ describe("ts-build-fresh.cjs (#2563)", () => {
   it("exits 1 when a source file is newer than dist", () => {
     const root = mkdtempSync(join(tmpdir(), "ts-build-fresh-"));
     try {
-      const src = join(root, "packages", "cli", "src");
-      const dist = join(root, "packages", "cli", "dist");
+      const src = join(root, "packages", "runtime", "src");
+      const dist = join(root, "packages", "runtime", "dist");
       mkdirSync(src, { recursive: true });
       mkdirSync(dist, { recursive: true });
       writeFileSync(join(root, "package.json"), "{}");

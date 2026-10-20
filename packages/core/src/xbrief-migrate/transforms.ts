@@ -1,4 +1,6 @@
 import {
+  ARCHIVE_FROM_VBRIEF_REL_DIR,
+  ARCHIVE_REL_DIR,
   LEGACY_ARTIFACT_DIR,
   LEGACY_ARTIFACT_SUFFIX,
   LEGACY_INFO_ROOT_KEY,
@@ -70,6 +72,13 @@ export function rewriteEmbeddedTokens(value: string): string {
   }
   if (next.includes(LEGACY_ARTIFACT_SUFFIX)) {
     next = next.replaceAll(LEGACY_ARTIFACT_SUFFIX, MIGRATED_ARTIFACT_SUFFIX);
+  }
+  // Before the generic vbrief/→xbrief/ replace: map legacy archive links onto the
+  // from-vbrief destination so they track destRelForLegacy (Greptile P1).
+  const legacyArchivePrefix = `${LEGACY_ARTIFACT_DIR}/${ARCHIVE_REL_DIR}/`;
+  const migratedFromVbriefArchivePrefix = `${MIGRATED_ARTIFACT_DIR}/${ARCHIVE_REL_DIR}/${ARCHIVE_FROM_VBRIEF_REL_DIR}/`;
+  if (next.includes(legacyArchivePrefix)) {
+    next = next.replaceAll(legacyArchivePrefix, migratedFromVbriefArchivePrefix);
   }
   if (next.includes(`${LEGACY_ARTIFACT_DIR}/`)) {
     next = next.replaceAll(`${LEGACY_ARTIFACT_DIR}/`, `${MIGRATED_ARTIFACT_DIR}/`);

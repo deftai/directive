@@ -23,6 +23,14 @@ export const PRE_LEGACY_VBRIEF_VERSION = "0.5" as const;
 /** Relative archive root under `xbrief/` for unknowable / corrupt envelopes (F-017). */
 export const ARCHIVE_REL_DIR = "archive" as const;
 
+/**
+ * Under `xbrief/archive/`, preserved files that already lived in `vbrief/archive/`
+ * land here so they do not collide with newly archived active/completed envelopes.
+ * Name must not contain the substring `vbrief/` — rewriteEmbeddedTokens replaces
+ * that token globally.
+ */
+export const ARCHIVE_FROM_VBRIEF_REL_DIR = "from-legacy" as const;
+
 /** README written once under `xbrief/archive/` when any file is archived. */
 export const ARCHIVE_README_FILENAME = "README.md" as const;
 

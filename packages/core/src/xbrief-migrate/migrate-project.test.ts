@@ -299,12 +299,12 @@ describe("runXbriefMigration", () => {
     expect(outcome.kind).toBe("migrated");
     expect(
       existsSync(
-        join(project, MIGRATED_ARTIFACT_DIR, "archive", "from-vbrief", "active", "kept-note.txt"),
+        join(project, MIGRATED_ARTIFACT_DIR, "archive", "from-legacy", "active", "kept-note.txt"),
       ),
     ).toBe(true);
     expect(
       readFileSync(
-        join(project, MIGRATED_ARTIFACT_DIR, "archive", "from-vbrief", "active", "kept-note.txt"),
+        join(project, MIGRATED_ARTIFACT_DIR, "archive", "from-legacy", "active", "kept-note.txt"),
         "utf8",
       ),
     ).toBe("operator archive note\n");
@@ -343,7 +343,7 @@ describe("runXbriefMigration", () => {
     ).toBe("{ not json !!!\n");
     const preserved = JSON.parse(
       readFileSync(
-        join(project, MIGRATED_ARTIFACT_DIR, "archive", "from-vbrief", "active", "foo.xbrief.json"),
+        join(project, MIGRATED_ARTIFACT_DIR, "archive", "from-legacy", "active", "foo.xbrief.json"),
         "utf8",
       ),
     );

@@ -145,6 +145,14 @@ describe("transformArtifactV06ToV08", () => {
     expect(rewriteEmbeddedTokens(rewriteEmbeddedTokens(input))).toBe(rewriteEmbeddedTokens(input));
   });
 
+  it("rewrites vbrief/archive links onto archive/from-legacy (Greptile P1)", () => {
+    const input = "see vbrief/archive/active/foo.vbrief.json";
+    expect(rewriteEmbeddedTokens(input)).toBe(
+      "see xbrief/archive/from-legacy/active/foo.xbrief.json",
+    );
+    expect(rewriteEmbeddedTokens(rewriteEmbeddedTokens(input))).toBe(rewriteEmbeddedTokens(input));
+  });
+
   it("does not rewrite external http(s) uri strings", () => {
     const uri = "https://github.com/deftai/xbrief/blob/main/spec.md";
     expect(rewriteEmbeddedTokens(uri)).toBe(uri);
