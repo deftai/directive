@@ -3,7 +3,7 @@
  * Bumps the committed schema marker and runs supported vbrief→xbrief migration.
  */
 import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import {
   ContainedWriteError,
   containedWrite,
@@ -81,16 +81,26 @@ export function projectNeedsXbriefMigration(projectRoot: string): boolean {
   }
   // Marked vbrief/ retention is intentional; still migrate residual legacy
   // envelopes under xbrief/ (detectLegacyVbriefLayout would otherwise stay true
-  // forever from the mere presence of vbrief/). Reasons embed absolute paths, so
-  // ignore any reason that points at the retained legacy tree.
+  // forever from the mere presence of vbrief/). Reasons embed absolute paths —
+  // ignore only files under THIS project's retained vbrief/ tree (not a parent
+  // folder that happens to be named vbrief/).
   if (convergence.state === "xbrief-marker") {
     const legacy = detectLegacyVbriefLayout(projectRoot);
+    const retainedRoot = resolve(projectRoot, "vbrief").replace(/\\/g, "/");
+    const retainedPrefix = retainedRoot.endsWith("/") ? retainedRoot : `${retainedRoot}/`;
     return legacy.reasons.some((reason) => {
       if (reason === "vbrief/ directory present" || reason.startsWith("vbrief/")) {
         return false;
       }
       const normalized = reason.replace(/\\/g, "/");
-      return !/(^|\/)vbrief\//.test(normalized);
+      const pathMatch = normalized.match(/ in (.+)$/) ?? normalized.match(/filename: (.+)$/);
+      if (pathMatch) {
+        const filePath = pathMatch[1] ?? "";
+        if (filePath === retainedRoot || filePath.startsWith(retainedPrefix)) {
+          return false;
+        }
+      }
+      return true;
     });
   }
   return detectLegacyVbriefLayout(projectRoot).legacyLayout;
