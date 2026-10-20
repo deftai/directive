@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed — Retire the Go installer module from authored `codeStructure` and document OVPR as the install architecture in PROJECT-DEFINITION. Refs #5490.
 
 ### Fixed
-- Fixed — Launcher accepts `--repo-root` as an alias of `--root` so greenfield smoke and historical init argv resolve the project root. Refs #5490.
+- Fixed — Launcher accepts `--repo-root` as an alias of `--root` and creates a missing install/init destination so greenfield `directive init --repo-root <new-dir>` works. Refs #5490.
 - Fixed — Reject unrecognized uninstall flags (e.g. `--dryrun`) instead of performing a live uninstall. Refs #5490.
 - Fixed — Doctor bookend forwards supported diagnosis flags to the runtime. Refs #5490.
 - Fixed — Swarm worktree PM install launches Windows `.cmd` shims and keeps development dependencies so a runtime pin in `devDependencies` materializes. Refs #5490.

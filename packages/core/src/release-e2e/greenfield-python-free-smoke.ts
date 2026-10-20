@@ -347,6 +347,9 @@ export function rehearseGreenfieldPythonFreeSmoke(
       ...pyFree,
       PATH: `${installedBin}:${pyFree.PATH ?? ""}`,
     };
+    // Ensure the greenfield dest exists before init (launcher also mkdir's for
+    // install/init --root, but the harness keeps an explicit empty project dir).
+    mkdirSync(projectDir, { recursive: true });
     [ok, reason] = runStep(
       spawn,
       "directive init",

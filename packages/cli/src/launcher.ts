@@ -3,6 +3,7 @@
  * Zero dependency on runtime/core/content (AC3.1).
  */
 
+import { mkdirSync } from "node:fs";
 import { runDoctorStub, runInstall, runUninstall, runUpgrade } from "./bookends.js";
 import {
   EXIT_CODES,
@@ -150,10 +151,31 @@ export function runLauncher(argv: readonly string[], io: LauncherIo = defaultIo(
   const wantsLauncherHelp =
     rest.length === 0 || (rawCmd === undefined && (rest.includes("--help") || rest.includes("-h")));
 
-  const discovered = discoverProject({
+  let discovered = discoverProject({
     rootFlag,
     cwd: process.cwd(),
   });
+
+  // Greenfield install/init: create a missing --root / --repo-root directory so
+  // `directive init --repo-root ./new-app` matches historical init-cli behavior.
+  if (
+    !discovered.ok &&
+    discovered.kind === "missing_root" &&
+    rootFlag !== null &&
+    resolveCommand(rawCmd) === "install"
+  ) {
+    try {
+      mkdirSync(rootFlag, { recursive: true });
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err);
+      io.writeErr(`Cannot create --root ${rootFlag}: ${detail}\n`);
+      return EXIT_CODES.USAGE;
+    }
+    discovered = discoverProject({
+      rootFlag,
+      cwd: process.cwd(),
+    });
+  }
 
   let projectRoot: string | null = null;
   let state: ProjectInstallState | null = null;
