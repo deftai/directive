@@ -1420,7 +1420,8 @@
           "xbrief/evaluator-surface-disposition.json"
         ],
         "cohesion_exemption": "CHANGELOG shared Unreleased; commands.md and scm/github.md docs for #5782 plan-id adopter"
-      }
+      },
+      "productPullRequest": 5785
     },
     "id": "github.issue.5931637634",
     "updated": "2026-10-19T23:34:43Z"
