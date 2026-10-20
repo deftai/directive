@@ -141,7 +141,9 @@ function resolvePlan(facts: ResolutionFacts, options: PlanOptions): ResolutionPl
   }
 
   // Row 2: no usable deposit — deposit / reconstitute one.
-  if (!facts.hasDeftCore) {
+  // OVPR (#5490): an exact package pin (runtime or legacy launcher) is the
+  // deposit; `.deft/core/` is no longer required. Fall through to engine rows.
+  if (!facts.hasDeftCore && facts.pinVersion === null) {
     if (options.linkedWorktree && facts.hasManagedSection) {
       return makePlan(
         "update",
@@ -206,7 +208,7 @@ function resolvePlan(facts: ResolutionFacts, options: PlanOptions): ResolutionPl
   // 3c: no committed pin — cannot reconcile; proceed but warn.
   if (facts.pinVersion === null) {
     warnings.push(
-      "no committed package.json pin on @deftai/directive; skipping engine/pin reconciliation",
+      "no committed package.json pin on @deftai/directive-runtime (or legacy @deftai/directive); skipping engine/pin reconciliation",
     );
     return makePlan(
       "proceed",

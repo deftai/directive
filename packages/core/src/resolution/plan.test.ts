@@ -80,7 +80,13 @@ describe("resolution/plan precedence table (#2264 a1)", () => {
 
   it("greenfield without deposit -> init", () => {
     const p = plan(
-      facts({ hasDeftCore: false, hasManagedSection: false, hasAppCode: false, hasGit: false }),
+      facts({
+        hasDeftCore: false,
+        hasManagedSection: false,
+        hasAppCode: false,
+        hasGit: false,
+        pinVersion: null,
+      }),
     );
     expect(p.mode).toBe("init");
     expect(p.nextAction.rootCause).toContain("greenfield");
@@ -88,20 +94,34 @@ describe("resolution/plan precedence table (#2264 a1)", () => {
   });
 
   it("brownfield without deposit -> init", () => {
-    const p = plan(facts({ hasDeftCore: false, hasManagedSection: false }));
+    const p = plan(facts({ hasDeftCore: false, hasManagedSection: false, pinVersion: null }));
     expect(p.mode).toBe("init");
     expect(p.nextAction.rootCause).toContain("brownfield");
   });
 
   it("managed section present but payload absent -> init (reconstitute)", () => {
-    const p = plan(facts({ hasDeftCore: false, hasManagedSection: true }));
+    const p = plan(facts({ hasDeftCore: false, hasManagedSection: true, pinVersion: null }));
     expect(p.mode).toBe("init");
     expect(p.nextAction.rootCause).toContain("payload is absent");
   });
 
+  it("OVPR exact pin without .deft/core -> proceed (#5490)", () => {
+    const p = plan(
+      facts({
+        hasDeftCore: false,
+        deftCorePayloadVersion: null,
+        hasManagedSection: true,
+        pinVersion: "9.9.9-smoke",
+        engineVersion: "9.9.9-smoke",
+      }),
+    );
+    expect(p.mode).toBe("proceed");
+    expect(p.nextAction.rootCause).not.toContain("payload is absent");
+  });
+
   it("linked worktree + managed section + missing payload -> local update (#4443)", () => {
     const p = plan(
-      facts({ hasDeftCore: false, hasManagedSection: true }),
+      facts({ hasDeftCore: false, hasManagedSection: true, pinVersion: null }),
       {},
       {
         linkedWorktree: true,

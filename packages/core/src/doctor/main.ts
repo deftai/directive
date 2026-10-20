@@ -2266,6 +2266,12 @@ export function resolveOperatingMode(
     return "pre-cutover (pre-v0.20 document model -- migrate first)";
   }
   if (!facts.hasDeftCore) {
+    // OVPR (#5490): exact package pin is the deposit; no .deft/core required.
+    if (facts.pinVersion !== null) {
+      return facts.hasManagedSection
+        ? "ovpr (exact package pin + managed AGENTS.md; no .deft/core deposit)"
+        : "ovpr (exact package pin; no .deft/core deposit)";
+    }
     if (extras.linkedWorktree && facts.hasManagedSection) {
       return "linked-worktree (managed AGENTS.md present; .deft/core/ payload not reconstituted; run directive update)";
     }

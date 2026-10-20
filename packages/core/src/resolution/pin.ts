@@ -14,8 +14,14 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-/** The canonical committed dependency the pin lives on. */
-export const PIN_DEPENDENCY_NAME = "@deftai/directive";
+/**
+ * Canonical committed dependency the pin lives on.
+ * OVPR (#5490) prefers `@deftai/directive-runtime`; legacy fat installs used
+ * `@deftai/directive`. Readers try runtime first, then the launcher name.
+ */
+export const PIN_DEPENDENCY_NAME = "@deftai/directive-runtime";
+export const LEGACY_PIN_DEPENDENCY_NAME = "@deftai/directive";
+const PIN_DEPENDENCY_CANDIDATES = [PIN_DEPENDENCY_NAME, LEGACY_PIN_DEPENDENCY_NAME] as const;
 
 /** A parsed semver triple (prerelease / build metadata dropped). */
 export type SemverTriple = readonly [number, number, number];
@@ -91,12 +97,14 @@ function defaultReadText(p: string): string | null {
 }
 
 function readDependencySpec(pkg: Record<string, unknown>): string | null {
-  for (const block of ["devDependencies", "dependencies"] as const) {
-    const deps = pkg[block];
-    if (typeof deps === "object" && deps !== null && !Array.isArray(deps)) {
-      const spec = (deps as Record<string, unknown>)[PIN_DEPENDENCY_NAME];
-      if (typeof spec === "string" && spec.trim().length > 0) {
-        return spec.trim();
+  for (const name of PIN_DEPENDENCY_CANDIDATES) {
+    for (const block of ["devDependencies", "dependencies"] as const) {
+      const deps = pkg[block];
+      if (typeof deps === "object" && deps !== null && !Array.isArray(deps)) {
+        const spec = (deps as Record<string, unknown>)[name];
+        if (typeof spec === "string" && spec.trim().length > 0) {
+          return spec.trim();
+        }
       }
     }
   }
@@ -104,9 +112,10 @@ function readDependencySpec(pkg: Record<string, unknown>): string | null {
 }
 
 /**
- * Read the committed `package.json` pin on `@deftai/directive`. The pin is
- * canonical only when it is an EXACT version; a range spec is reported via
- * `nonExact` so callers can warn rather than silently trusting a floating range.
+ * Read the committed `package.json` pin on `@deftai/directive-runtime` (OVPR)
+ * or legacy `@deftai/directive`. The pin is canonical only when it is an EXACT
+ * version; a range spec is reported via `nonExact` so callers can warn rather
+ * than silently trusting a floating range.
  */
 export function readPin(projectRoot: string, seams: PinReadSeams = {}): PinReadResult {
   const isFile = seams.isFile ?? defaultIsFile;
