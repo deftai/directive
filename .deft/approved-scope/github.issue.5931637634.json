@@ -2,12 +2,13 @@
   "schemaVersion": 1,
   "xbriefRelPath": "xbrief/active/2026-10-19-5782-designverify-merge-gate-adopts-plan-id-from-pr-deft-story-fo.xbrief.json",
   "planId": "github.issue.5931637634",
-  "approvedAt": "2026-10-20T02:11:47Z",
+  "approvedAt": "2026-10-20T03:11:46Z",
   "fileScope": [
     "CHANGELOG.md",
     "content/docs/intent-constraint.md",
     "content/docs/observable-scope.md",
     "content/scm/github.md",
+    "docs/RULE-MAP.md",
     "packages/cli/src/verify-intent-constraint.ts",
     "packages/cli/src/verify-observable-scope.ts",
     "packages/core/src/docs/docs-impact.ts",
@@ -21,13 +22,13 @@
     "packages/core/src/pr-closing-keywords/main.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "fileScopeDigest": "05b294e6653893bf0e2936dd4898afb6aab72ae4550fbf75a4c0cb172c79f86a",
+  "fileScopeDigest": "a9216f4a634b6e16838670209112443292b349331c39ba062c13bb5223100e01",
   "humanApproval": {
     "kind": "operator",
     "actor": "Scott",
-    "mintedAt": "2026-10-20T02:11:47Z",
+    "mintedAt": "2026-10-20T03:11:46Z",
     "mintedVia": "scope:record-approved-scope"
   },
-  "intentDigest": "8f10dad035a8fd3f1a44aa36a28027a6b63331e5be06e8bd706611be45227de1",
+  "intentDigest": "199c0032e34ff2c1d59a6cc6e8665ada7a86e2e2e7737b31396acc23308abc05",
   "digestAlgo": "intent-extract-v1"
 }
