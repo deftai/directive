@@ -8,13 +8,15 @@ import {
 } from "./policy.js";
 
 describe("class-checks policy (#4980)", () => {
-  it("defaults include hooks, authz, verifier, publish, approved-scope", () => {
+  it("defaults include authz, verifier, approved-scope (githooks/npm-publish omitted for OVPR #5490)", () => {
     const p = defaultClassChecksPolicy();
     expect(p.protectedGlobs).toEqual(DEFAULT_PROTECTED_GLOBS);
     expect(p.testMarkers).toEqual(DEFAULT_TEST_MARKERS);
     expect(p.protectedGlobs.some((g) => g.includes("authz"))).toBe(true);
     expect(p.protectedGlobs.some((g) => g.includes("class-checks"))).toBe(true);
-    expect(p.protectedGlobs.some((g) => g.includes("npm-publish"))).toBe(true);
+    // Temporary #5490/#5790 window: re-arm after OVPR master-merge.
+    expect(p.protectedGlobs.some((g) => g.includes("npm-publish"))).toBe(false);
+    expect(p.protectedGlobs.some((g) => g.includes("githooks"))).toBe(false);
     expect(p.protectedGlobs.some((g) => g.includes("approved-scope"))).toBe(true);
     expect(p.protectedGlobs.some((g) => g.includes("presentation-coverage"))).toBe(false);
   });

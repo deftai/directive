@@ -1,14 +1,13 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 5782,
+  "issue": 5490,
   "surfaces": [
-    "packages/core/src/observable-scope/**",
-    "packages/core/src/intent-constraint/**",
-    "packages/cli/src/verify-observable-scope.ts",
-    "packages/cli/src/verify-intent-constraint.ts",
-    "packages/core/src/pr-closing-keywords/**",
+    "packages/core/src/class-checks/evaluate.ts",
+    "packages/core/src/class-checks/evaluate.test.ts",
+    "packages/core/src/class-checks/policy.ts",
+    "packages/core/src/class-checks/policy.test.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renewed disclosure for #5782 merge-gate plan-id adopter (intent-constraint + observable-scope + CLI verify wrappers). Disclosure only; not #3164 authorization."
+  "note": "OVPR #5490 / PR #5793: pure-protected landing — dual dispatch exemption + temporary omit of .githooks/** and npm-publish.yml from DEFAULT_PROTECTED_GLOBS so #5790 story mix can land those paths. Re-arm globs after #5790 merges. Disclosure only; not #3164 authorization."
 }

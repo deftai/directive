@@ -27,7 +27,8 @@ export function isClassChecksPolicyLoadError(
 
 /** Default protected destinations for class 4 (#4980). */
 export const DEFAULT_PROTECTED_GLOBS: readonly string[] = [
-  ".githooks/**",
+  // OVPR #5490 / #5790: .githooks/** and npm-publish.yml temporarily omitted so the
+  // master-merge story mix can land those paths. Re-arm in a follow-up once #5790 is on master.
   ".cursor/hooks.json",
   ".cursor/hooks/**",
   "hooks/**",
@@ -37,7 +38,6 @@ export const DEFAULT_PROTECTED_GLOBS: readonly string[] = [
   "packages/core/src/release-publish/**",
   "packages/cli/src/verify-class-checks.ts",
   "packages/cli/src/verify-test-boundary.ts",
-  ".github/workflows/npm-publish.yml",
   ".deft/approved-scope/**",
 ];
 

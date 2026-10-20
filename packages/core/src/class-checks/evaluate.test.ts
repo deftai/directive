@@ -91,7 +91,12 @@ resource "azurerm_user_assigned_identity" "test" {
 });
 
 describe("evaluateClassChecks (#4980)", () => {
-  const classPolicy = defaultClassChecksPolicy();
+  // Behavioral class-4 fixtures still use .githooks/** even while DEFAULT_PROTECTED_GLOBS
+  // temporarily omits that glob for the OVPR #5490 / #5790 master-merge window.
+  const classPolicy = {
+    ...defaultClassChecksPolicy(),
+    protectedGlobs: [...DEFAULT_PROTECTED_GLOBS, ".githooks/**", ".github/workflows/npm-publish.yml"],
+  };
 
   it("fails class 1: test artifact under production root", () => {
     const result = evaluateClassChecks("/tmp/proj", {

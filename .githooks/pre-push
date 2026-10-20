@@ -4,7 +4,7 @@
 # Pre-push does NOT invoke verify:branch (#747). HEAD-only default-branch
 # protection remains on pre-commit; pre-push relies on preflight-gh for
 # refspec-aware protection (#1814 Option A). Pure POSIX shell; prefers global
-# `deft` on PATH, falls back to local packages/runtime/dist/bin.js (#2067).
+# `deft` on PATH, falls back to local packages/cli/dist/bin.js (#2067).
 
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
 if [ -z "$REPO_ROOT" ]; then

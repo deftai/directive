@@ -3,7 +3,7 @@
 #
 # Activated by `git config core.hooksPath .githooks` via `task setup` or the
 # deft installer (#1463). Pure POSIX shell; prefers global `deft` on PATH,
-# falls back to local packages/runtime/dist/bin.js in the maintainer monorepo (#2067).
+# falls back to local packages/cli/dist/bin.js in the maintainer monorepo (#2067).
 
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
 if [ -z "$REPO_ROOT" ]; then
