@@ -257,12 +257,8 @@
       "activationPullRequest": 5806,
       "productPullRequest": 5811,
       "lifecycleWrite": {
-        "schema": "deft.scope.lifecycle-write.v1",
-        "kind": "leftover-complete",
-        "actor": "Scott",
-        "recorded_at": "2026-10-21T23:48:42.142Z",
-        "productPullRequest": 5811,
-        "leftoverPullRequest": 5815
+        "action": "complete",
+        "writtenAt": "2026-10-21T23:57:08.375Z"
       },
       "completionProvenance": {
         "repository": "deftai/directive",
