@@ -23,7 +23,7 @@
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
-          "recorded_at": "2026-10-21T23:34:54.490Z",
+          "recorded_at": "2026-10-21T23:35:31.494Z",
           "recorded_by": "parent-retained-closer/5815"
         }
       },
@@ -34,9 +34,9 @@
         "effort": "S",
         "x-directive/artifact_path": "content/templates/design-critique-brief.md",
         "x-directive/evidence": {
-          "kind": "test",
+          "kind": "review",
           "pointer": "content/templates/design-critique-brief.md",
-          "recorded_at": "2026-10-21T23:34:54.490Z",
+          "recorded_at": "2026-10-21T23:35:31.494Z",
           "recorded_by": "parent-retained-closer/5815"
         }
       },
@@ -47,9 +47,9 @@
         "effort": "S",
         "x-directive/artifact_path": "content/contracts/design-critique.md",
         "x-directive/evidence": {
-          "kind": "test",
+          "kind": "review",
           "pointer": "content/contracts/design-critique.md",
-          "recorded_at": "2026-10-21T23:34:54.490Z",
+          "recorded_at": "2026-10-21T23:35:31.494Z",
           "recorded_by": "parent-retained-closer/5815"
         }
       },
@@ -61,8 +61,8 @@
         "x-directive/artifact_path": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
         "x-directive/evidence": {
           "kind": "test",
-          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts#REQUIRED_*_POINTERS + CHANGELOG Unreleased",
-          "recorded_at": "2026-10-21T23:34:54.490Z",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-10-21T23:35:31.494Z",
           "recorded_by": "parent-retained-closer/5815"
         }
       }
