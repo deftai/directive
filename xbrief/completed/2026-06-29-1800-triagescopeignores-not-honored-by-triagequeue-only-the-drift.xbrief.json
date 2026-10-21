@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #1800 — triage:queue honors triageScopeIgnores"
-  },
   "plan": {
     "id": "1800-queue-ignores",
     "title": "triage:queue honors plan.policy.triageScopeIgnores",
@@ -76,7 +72,12 @@
         "missing_traces_justification": "Queue/policy mismatch from issue #1800."
       },
       "capacityBucket": "bugfix",
-      "completedAt": "2026-06-29T23:58:19Z"
+      "completedAt": "2026-06-29T23:58:19Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.362Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -86,5 +87,9 @@
       }
     ],
     "updated": "2026-06-29T23:58:19Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #1800 — triage:queue honors triageScopeIgnores"
   }
 }

@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-25-1972-wave-5-finalization-freeze-the-go-bridge-retire-go-purge-pyt.xbrief.json"
-  },
   "plan": {
     "id": "1972-s1a-freeze-gate-version-source",
     "title": "Reconcile verify:go-freeze version source to a release-tag check",
@@ -66,7 +62,12 @@
         "model_tier": "high"
       },
       "completedAt": "2026-06-25T13:14:08Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.358Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -87,5 +88,9 @@
       }
     ],
     "updated": "2026-06-25T13:14:08Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-25-1972-wave-5-finalization-freeze-the-go-bridge-retire-go-purge-pyt.xbrief.json"
   }
 }

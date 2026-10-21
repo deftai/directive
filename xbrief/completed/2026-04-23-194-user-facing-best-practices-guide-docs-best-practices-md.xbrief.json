@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for #194: User-facing best practices guide (`docs/best-practices.md`) -- Directive contract hierarchy usage, Warp swarming patterns, and user-oriented skill documentation; in-repo successor to premature PDF guide (#112); depends on #147 and #188 for stable content (xrefs #112, #84, #114)",
-    "updated": "2026-08-03T02:51:05Z"
-  },
   "plan": {
     "title": "User-facing best practices guide (`docs/best-practices.md`) -- Directive contract hierarchy usage, Warp swarming patterns, and user-oriented skill documentation; in-repo successor to premature PDF guide (#112); depends on #147 and #188 for stable content (xrefs #112, #84, #114)",
     "status": "completed",
@@ -21,6 +16,11 @@
         "Status_source": "orphan: proposed default",
         "SourceConflict": "missing-from-spec",
         "Phase_source": "pre-migration ROADMAP (commit 3925468)"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.285Z",
+        "migration": true
       }
     },
     "references": [
@@ -30,6 +30,11 @@
         "title": "Issue #194: User-facing best practices guide (`docs/best-practices.md`) -- Directive contract hierarchy usage, Warp swarming patterns, and user-oriented skill documentation; in-repo successor to premature PDF guide (#112); depends on #147 and #188 for stable content (xrefs #112, #84, #114)"
       }
     ],
+    "updated": "2026-08-03T02:51:05Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #194: User-facing best practices guide (`docs/best-practices.md`) -- Directive contract hierarchy usage, Warp swarming patterns, and user-oriented skill documentation; in-repo successor to premature PDF guide (#112); depends on #147 and #188 for stable content (xrefs #112, #84, #114)",
     "updated": "2026-08-03T02:51:05Z"
   }
 }

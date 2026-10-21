@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF (#635 child): wire 5 detection-bound framework events whose detectors largely already exist into a uniform event surface. Split out from PR #401 per canonical #642 workflow comment so the trimmed PR lands hygiene only and events become enforceable structural artifacts.",
-    "created": "2026-04-27T22:25:52Z",
-    "updated": "2026-09-29T16:13:09Z"
-  },
   "plan": {
     "id": "635-events-detection-bound",
     "title": "Events: detection-bound wiring (5 events with existing detectors)",
@@ -92,5 +86,11 @@
     ],
     "updated": "2026-09-29T16:13:09Z",
     "x-directive/completedNote": "Product already shipped via PR #707 (2026-04-28): content/events/registry.json detection-bound events. Tip proposed copy was leftover lifecycle debt; completing clears finalize-owed unmarked compose against historical PR #401. Epic #635 stays open."
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF (#635 child): wire 5 detection-bound framework events whose detectors largely already exist into a uniform event surface. Split out from PR #401 per canonical #642 workflow comment so the trimmed PR lands hygiene only and events become enforceable structural artifacts.",
+    "created": "2026-04-27T22:25:52Z",
+    "updated": "2026-09-29T16:13:09Z"
   }
 }

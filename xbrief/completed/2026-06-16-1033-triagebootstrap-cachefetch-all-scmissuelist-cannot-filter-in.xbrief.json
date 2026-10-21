@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1033"
-  },
   "plan": {
     "title": "triage:bootstrap / cache:fetch-all / scm:issue:list cannot filter ingest by label",
     "status": "completed",
@@ -99,7 +95,16 @@
         "depends_on": []
       },
       "completedAt": "2026-06-17T01:41:11Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.339Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1033"
   }
 }

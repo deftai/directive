@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #988",
-    "updated": "2026-05-08T17:53:59Z"
-  },
   "plan": {
     "title": "bug(refinement,ingest): `task issue:ingest` produces stub vBRIEFs without `plan.narratives.Overview` or `plan.items` -- ingested items are not swarm-ready",
     "status": "completed",
@@ -51,6 +46,18 @@
         "title": "Issue #988: bug(refinement,ingest): `task issue:ingest` produces stub vBRIEFs without `plan.narratives.Overview` or `plan.items` -- ingested items are not swarm-ready"
       }
     ],
-    "updated": "2026-05-08T19:43:42Z"
+    "updated": "2026-05-08T19:43:42Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.307Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #988",
+    "updated": "2026-05-08T17:53:59Z"
   }
 }

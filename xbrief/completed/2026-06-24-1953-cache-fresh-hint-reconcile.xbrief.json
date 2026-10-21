@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1953"
-  },
   "plan": {
     "title": "fix(cache): branch-aware verify:cache-fresh recovery hint (Option 3 of threshold reconciliation)",
     "status": "completed",
@@ -88,8 +84,17 @@
         "model_tier": "leaf-implementation",
         "missing_traces_justification": "Traced to GitHub issue #1953 (decision record + Option 3) and #1949, not a spec section."
       },
-      "completedAt": "2026-06-24T19:47:07Z"
+      "completedAt": "2026-06-24T19:47:07Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.356Z",
+        "migration": true
+      }
     },
     "updated": "2026-06-24T19:47:07Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1953"
   }
 }

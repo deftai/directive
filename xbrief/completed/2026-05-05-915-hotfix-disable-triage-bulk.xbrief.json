@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Hot-fix: gate the user-facing `task triage:bulk-*` surface at the Taskfile layer pending the v0.25.2 cache-walk rewrite of scripts/triage_bulk.py (#915). Bulk operations as shipped in v0.25.0 / v0.25.1 bypass the .deft-cache contract and silently poison xbrief/.eval/candidates.jsonl; gating the four bulk-* tasks (bulk-accept / bulk-reject / bulk-defer / bulk-needs-ac) is a low-cost protective measure until the proper fix ships.",
-    "created": "2026-05-05T14:35:06Z",
-    "updated": "2026-05-05T18:14:38Z"
-  },
   "plan": {
     "title": "fix(triage): disable bulk-* tasks pending v0.25.2 (#915 hot-fix)",
     "status": "completed",
@@ -47,6 +41,19 @@
         "title": "Issue #915: scripts/triage_bulk.py bypasses .deft-cache contract and poisons xbrief/.eval/candidates.jsonl"
       }
     ],
+    "updated": "2026-05-05T18:14:38Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.305Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Hot-fix: gate the user-facing `task triage:bulk-*` surface at the Taskfile layer pending the v0.25.2 cache-walk rewrite of scripts/triage_bulk.py (#915). Bulk operations as shipped in v0.25.0 / v0.25.1 bypass the .deft-cache contract and silently poison xbrief/.eval/candidates.jsonl; gating the four bulk-* tasks (bulk-accept / bulk-reject / bulk-defer / bulk-needs-ac) is a low-cost protective measure until the proper fix ships.",
+    "created": "2026-05-05T14:35:06Z",
     "updated": "2026-05-05T18:14:38Z"
   }
 }

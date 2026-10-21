@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Populate Overview narrative on PROJECT-DEFINITION.xbrief.json so task migrate:vbrief output satisfies the D3 validator on v0.19 fixtures.",
-    "created": "2026-04-17T00:00:00Z",
-    "updated": "2026-04-17T00:00:00Z"
-  },
   "plan": {
     "id": "fix-417-migrate-overview-narrative",
     "title": "fix(scripts): migrate_vbrief produces PROJECT-DEFINITION without required 'overview' narrative key",
@@ -59,6 +53,19 @@
         "id": "#402"
       }
     ],
-    "updated": "2026-04-20T17:08:02Z"
+    "updated": "2026-04-20T17:08:02Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.276Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Populate Overview narrative on PROJECT-DEFINITION.xbrief.json so task migrate:vbrief output satisfies the D3 validator on v0.19 fixtures.",
+    "created": "2026-04-17T00:00:00Z",
+    "updated": "2026-04-17T00:00:00Z"
   }
 }

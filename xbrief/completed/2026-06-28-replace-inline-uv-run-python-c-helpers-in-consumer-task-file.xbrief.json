@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 3 decomposed from completed/2026-06-26-rewire-the-consumer-task-surface-to-deft-verbs-with-zero-pyt.xbrief.json"
-  },
   "plan": {
     "id": "story-task-surface-inline-python-cleanup",
     "title": "Replace inline uv run python -c helpers in consumer task files",
@@ -67,7 +63,12 @@
         "model_tier": "high"
       },
       "completedAt": "2026-06-28T16:12:44Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.361Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -78,5 +79,9 @@
       }
     ],
     "updated": "2026-06-28T16:12:44Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 3 decomposed from completed/2026-06-26-rewire-the-consumer-task-surface-to-deft-verbs-with-zero-pyt.xbrief.json"
   }
 }

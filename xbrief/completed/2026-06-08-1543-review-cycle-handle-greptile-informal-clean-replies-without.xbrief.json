@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1543"
-  },
   "plan": {
     "id": "1543-review-cycle-greptile-informal-clean-fields",
     "title": "review-cycle: handle Greptile informal clean replies without canonical fields",
@@ -96,8 +92,17 @@
       },
       "completedAt": "2026-06-08T14:25:10Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.330Z",
+        "migration": true
+      }
     },
     "updated": "2026-06-08T14:25:10Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1543"
   }
 }

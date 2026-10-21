@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for reframing install paths around webinstaller + npm/pip; demote Go binary to legacy"
-  },
   "plan": {
     "title": "docs: reframe install paths around webinstaller + npm/pip; demote Go binary to legacy",
     "status": "completed",
@@ -18,7 +14,12 @@
         "Status_source": "filed-during-cleanup"
       },
       "completedAt": "2026-06-23T23:47:49Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.300Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -33,5 +34,9 @@
       }
     ],
     "updated": "2026-06-23T23:47:49Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for reframing install paths around webinstaller + npm/pip; demote Go binary to legacy"
   }
 }

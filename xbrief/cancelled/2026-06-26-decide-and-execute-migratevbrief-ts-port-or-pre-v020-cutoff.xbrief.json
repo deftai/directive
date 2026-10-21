@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 3 decomposed from proposed/2026-06-26-2001-wave-5-python-purge-readiness-gate-before-1860.xbrief.json"
-  },
   "plan": {
     "id": "migrate-vbrief-decision",
     "title": "Decide and execute migrate:vbrief -- TS port or pre-v0.20 cutoff",
@@ -76,5 +72,9 @@
       }
     ],
     "updated": "2026-06-26T17:22:52Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 3 decomposed from proposed/2026-06-26-2001-wave-5-python-purge-readiness-gate-before-1860.xbrief.json"
   }
 }

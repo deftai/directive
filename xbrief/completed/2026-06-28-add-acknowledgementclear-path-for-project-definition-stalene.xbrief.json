@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-28-640-projectrender-staleness-flags-need-an-acknowledgementclear-p.xbrief.json"
-  },
   "plan": {
     "id": "story-640-project-render-staleness-ack",
     "title": "Add acknowledgement/clear path for PROJECT-DEFINITION staleness flags",
@@ -76,7 +72,12 @@
         "model_tier": "high"
       },
       "completedAt": "2026-06-28T15:10:26Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.361Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -87,5 +88,9 @@
       }
     ],
     "updated": "2026-06-28T15:10:26Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-28-640-projectrender-staleness-flags-need-an-acknowledgementclear-p.xbrief.json"
   }
 }

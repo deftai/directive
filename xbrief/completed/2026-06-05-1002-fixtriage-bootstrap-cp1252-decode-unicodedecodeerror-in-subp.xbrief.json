@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1002"
-  },
   "plan": {
     "title": "fix(triage_bootstrap): cp1252 decode UnicodeDecodeError in subprocess._readerthread on Windows (#798 chain at new surface)",
     "status": "completed",
@@ -81,7 +77,16 @@
       },
       "completedAt": "2026-06-05T17:49:35Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "default"
+      "capacityBucketSource": "default",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.329Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1002"
   }
 }

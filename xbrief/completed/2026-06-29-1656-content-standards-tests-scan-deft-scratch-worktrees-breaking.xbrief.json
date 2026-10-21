@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #1656 — skip .deft-scratch in content standards scans",
-    "updated": "2026-06-30T00:41:10Z"
-  },
   "plan": {
     "id": "1656-skip-deft-scratch",
     "title": "Content-standards tests must skip .deft-scratch swarm worktrees",
@@ -78,7 +73,12 @@
         "model_tier": "default",
         "missing_traces_justification": "Swarm/release blocker from ingested issue #1656."
       },
-      "capacityBucket": "bugfix"
+      "capacityBucket": "bugfix",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.362Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -87,6 +87,11 @@
         "title": "Issue #1656"
       }
     ],
+    "updated": "2026-06-30T00:41:10Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #1656 — skip .deft-scratch in content standards scans",
     "updated": "2026-06-30T00:41:10Z"
   }
 }

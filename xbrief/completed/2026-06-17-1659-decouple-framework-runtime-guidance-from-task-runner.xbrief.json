@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for #1659: decouple framework runtime and guidance from the task runner"
-  },
   "plan": {
     "title": "Decouple framework runtime and guidance from the task runner",
     "status": "completed",
@@ -52,7 +48,16 @@
     "updated": "2026-06-18T14:37:54Z",
     "metadata": {
       "completedAt": "2026-06-18T14:37:54Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.341Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #1659: decouple framework runtime and guidance from the task runner"
   }
 }

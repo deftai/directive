@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1326"
-  },
   "plan": {
     "title": "fix(templates,skills,tests): templates/swarm-greptile-poller-prompt.md \\Last reviewed commit:\\ regex breaks on markdown-escaped brackets in link text (PR #1267 recurrence)",
     "status": "cancelled",
@@ -58,5 +54,9 @@
       }
     ],
     "updated": "2026-06-17T00:07:42Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1326"
   }
 }

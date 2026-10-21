@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "README frames the Go installer as a no-Node bootstrap and omits the project-directory requirement for setup."
-  },
   "plan": {
     "title": "docs: reframe Go installer across consumer docs (Node always required) + project-directory note",
     "status": "completed",
@@ -16,7 +12,12 @@
     "metadata": {
       "kind": "story",
       "completedAt": "2026-06-24T12:54:38Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.356Z",
+        "migration": true
+      }
     },
     "items": [
       {
@@ -47,5 +48,9 @@
       }
     ],
     "updated": "2026-06-24T12:54:38Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "README frames the Go installer as a no-Node bootstrap and omits the project-directory requirement for setup."
   }
 }

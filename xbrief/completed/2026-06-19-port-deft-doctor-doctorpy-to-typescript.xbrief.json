@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 2 decomposed from proposed/2026-06-19-1728-featts-migration-port-cache-deft-doctor-to-ts-wave-3.xbrief.json"
-  },
   "plan": {
     "id": "1728-s2-doctor",
     "title": "Port deft doctor (doctor.py) to TypeScript",
@@ -76,7 +72,12 @@
         "missing_traces_justification": "#1530 Wave-3 framework-internal TS port traced to GitHub issue #1728 and umbrella epic #1530; no specification.xbrief.json spec-section applies to maintainer tooling."
       },
       "completedAt": "2026-06-19T07:00:36Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.343Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -92,5 +93,9 @@
       }
     ],
     "updated": "2026-06-19T07:00:36Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 2 decomposed from proposed/2026-06-19-1728-featts-migration-port-cache-deft-doctor-to-ts-wave-3.xbrief.json"
   }
 }

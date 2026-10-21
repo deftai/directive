@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for #622 (narrowed): communication bridge filter for deft-directive-review-cycle. Improvement 1 (clean-context reviewer) is split out to deftai/slizard#124.",
-    "updated": "2026-05-01T02:22:00Z"
-  },
   "plan": {
     "title": "feat(skills): communication bridge filter for deft-directive-review-cycle (intent-aware finding triage)",
     "status": "completed",
@@ -19,6 +14,11 @@
         "Description": "Communication bridge filter for deft-directive-review-cycle (Improvement 2 from #622).",
         "Description_source": "deftai/directive#622 (narrowed)",
         "Status_source": "filed-during-cleanup"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.296Z",
+        "migration": true
       }
     },
     "references": [
@@ -33,6 +33,11 @@
         "title": "deftai/slizard#124: review: clean-context reviewer principle (Improvement 1 of #622, split out to slizard repo)"
       }
     ],
+    "updated": "2026-05-01T02:22:00Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #622 (narrowed): communication bridge filter for deft-directive-review-cycle. Improvement 1 (clean-context reviewer) is split out to deftai/slizard#124.",
     "updated": "2026-05-01T02:22:00Z"
   }
 }

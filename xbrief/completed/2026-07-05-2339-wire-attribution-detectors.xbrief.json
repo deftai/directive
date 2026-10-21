@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Wire adoption/bypass/friction attribution detectors (#2339) — production emitters gated on valueFeedback.emitEvents.",
-    "created": "2026-07-05T23:15:00Z",
-    "updated": "2026-07-06T00:55:56Z"
-  },
   "plan": {
     "id": "2339-wire-attribution-detectors",
     "title": "Wire adoption/bypass/friction attribution detectors (#2339)",
@@ -44,6 +38,11 @@
           "#2330",
           "#2332"
         ]
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.373Z",
+        "migration": true
       }
     },
     "references": [
@@ -53,6 +52,12 @@
         "title": "Issue #2339: Wire adoption/bypass/friction attribution detectors"
       }
     ],
+    "updated": "2026-07-06T00:55:56Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Wire adoption/bypass/friction attribution detectors (#2339) — production emitters gated on valueFeedback.emitEvents.",
+    "created": "2026-07-05T23:15:00Z",
     "updated": "2026-07-06T00:55:56Z"
   }
 }

@@ -1,11 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "author": "agent:deft-directive-swarm",
-    "description": "Auto-generated from GitHub issue #384",
-    "created": "2026-04-15T17:34:00Z",
-    "updated": "2026-04-15T18:49:00Z"
-  },
   "plan": {
     "title": "spec_render: status gate rejects 'completed' specs -- overly strict for post-implementation projects",
     "status": "completed",
@@ -18,6 +11,20 @@
         "type": "github-issue",
         "id": "#384"
       }
-    ]
+    ],
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.275Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "author": "agent:deft-directive-swarm",
+    "description": "Auto-generated from GitHub issue #384",
+    "created": "2026-04-15T17:34:00Z",
+    "updated": "2026-04-15T18:49:00Z"
   }
 }

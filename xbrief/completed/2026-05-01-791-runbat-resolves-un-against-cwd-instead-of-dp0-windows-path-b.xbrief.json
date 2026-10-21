@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Adoption blocker: run.bat resolves the `run` Python entry point against the caller's CWD instead of %~dp0, breaking the documented `..\\deft\\run upgrade` flow on Windows.",
-    "created": "2026-05-01T00:00:00Z",
-    "updated": "2026-05-03T03:02:05Z"
-  },
   "plan": {
     "id": "791-runbat-cwd-resolution-bug",
     "title": "run.bat: resolve `run` against %~dp0 instead of CWD (Windows)",
@@ -86,6 +80,11 @@
       "x-migrator": {
         "Phase": "Phase 1 -- Fix Now",
         "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.301Z",
+        "migration": true
       }
     },
     "references": [
@@ -101,5 +100,11 @@
       }
     ],
     "updated": "2026-05-03T04:38:15Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Adoption blocker: run.bat resolves the `run` Python entry point against the caller's CWD instead of %~dp0, breaking the documented `..\\deft\\run upgrade` flow on Windows.",
+    "created": "2026-05-01T00:00:00Z",
+    "updated": "2026-05-03T03:02:05Z"
   }
 }

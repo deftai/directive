@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for #1910 (Wave 4): teach the release skill about npm -- pre-flight token gate, post-publish registry verification, tag->npm coupling docs, and an npm dry-run rehearsal in release_e2e.py."
-  },
   "plan": {
     "id": "1910-release-skill-npm-aware",
     "title": "Teach the release skill about npm",
@@ -71,7 +67,12 @@
         "missing_traces_justification": "Maintainer-only release/CI tooling under #1669 Wave 4; closes the npm-awareness gap left by #11 S1-S7, with no spec-section trace."
       },
       "capacityBucket": "new-capability",
-      "completedAt": "2026-06-23T16:19:16Z"
+      "completedAt": "2026-06-23T16:19:16Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.352Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -88,5 +89,9 @@
       }
     ],
     "updated": "2026-06-23T16:19:16Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #1910 (Wave 4): teach the release skill about npm -- pre-flight token gate, post-publish registry verification, tag->npm coupling docs, and an npm dry-run rehearsal in release_e2e.py."
   }
 }

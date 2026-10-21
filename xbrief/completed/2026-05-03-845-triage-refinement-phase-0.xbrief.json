@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story 5 of #845 triage v1: extend the deft-directive-refinement skill with a new Phase 0 (cache + triage). Owner: Agent A5 (independent track; single-file owner).",
-    "created": "2026-05-03T16:15:00Z",
-    "updated": "2026-05-03T16:15:00Z"
-  },
   "plan": {
     "id": "845-story-5-triage-refinement-phase-0",
     "title": "feat(skills): extend deft-directive-refinement with Phase 0 (cache + triage)",
@@ -62,6 +56,11 @@
           "docs/quarantine-spec.md (Agent A6)",
           "docs/privacy-nfr.md (Agent A6)"
         ]
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.303Z",
+        "migration": true
       }
     },
     "references": [
@@ -82,5 +81,11 @@
       }
     ],
     "updated": "2026-05-03T20:47:57Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story 5 of #845 triage v1: extend the deft-directive-refinement skill with a new Phase 0 (cache + triage). Owner: Agent A5 (independent track; single-file owner).",
+    "created": "2026-05-03T16:15:00Z",
+    "updated": "2026-05-03T16:15:00Z"
   }
 }

@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Sync skill canonical bootstrap/update blurb still describes the Go installer as canonical, contradicting the #761 npm cutover."
-  },
   "plan": {
     "title": "Sync skill canonical-path blurb still Go-installer-canonical (post-#761 leftover)",
     "status": "completed",
@@ -21,7 +17,16 @@
     "updated": "2026-06-24T01:10:07Z",
     "metadata": {
       "completedAt": "2026-06-24T01:10:07Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.354Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Sync skill canonical bootstrap/update blurb still describes the Go installer as canonical, contradicting the #761 npm cutover."
   }
 }

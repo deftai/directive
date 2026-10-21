@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF: D13 child of #1119 -- slices.jsonl writer + orphan/cohort surfaces.",
-    "updated": "2026-05-19T21:22:20Z"
-  },
   "plan": {
     "title": "feat(triage): slices.jsonl writer + orphan/slice-coverage audit flags + D3 slice-wave-ready atomic (#1132)",
     "status": "completed",
@@ -39,7 +34,17 @@
     "metadata": {
       "completedAt": "2026-05-19T21:23:39Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.313Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF: D13 child of #1119 -- slices.jsonl writer + orphan/cohort surfaces.",
+    "updated": "2026-05-19T21:22:20Z"
   }
 }

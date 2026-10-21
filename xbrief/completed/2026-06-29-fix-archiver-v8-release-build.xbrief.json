@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Release-blocker fix: adapt build-dist to archiver v8 class API so the dist artifact builds"
-  },
   "plan": {
     "id": "fix-archiver-v8-release-build",
     "title": "Fix release dist build under archiver v8 (factory API removed)",
@@ -36,7 +32,12 @@
     "metadata": {
       "kind": "story",
       "capacityBucket": "tech-debt",
-      "completedAt": "2026-06-29T17:53:50Z"
+      "completedAt": "2026-06-29T17:53:50Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.363Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -47,5 +48,9 @@
       }
     ],
     "updated": "2026-06-29T17:53:50Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Release-blocker fix: adapt build-dist to archiver v8 class API so the dist artifact builds"
   }
 }

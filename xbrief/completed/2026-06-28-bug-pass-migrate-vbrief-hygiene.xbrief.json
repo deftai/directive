@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Bug-pass story: migrate:vbrief version marker and lifecycle folder hygiene (#1157, #1159).",
-    "created": "2026-06-28T23:00:00Z",
-    "updated": "2026-06-28T23:00:00Z"
-  },
   "plan": {
     "id": "bug-pass-migrate-vbrief-hygiene",
     "title": "migrate:vbrief: stamp .deft-version and track lifecycle folders in git",
@@ -69,7 +63,12 @@
         "model_tier": "standard"
       },
       "completedAt": "2026-06-28T22:35:30Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.361Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -84,5 +83,11 @@
       }
     ],
     "updated": "2026-06-28T22:35:30Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Bug-pass story: migrate:vbrief version marker and lifecycle folder hygiene (#1157, #1159).",
+    "created": "2026-06-28T23:00:00Z",
+    "updated": "2026-06-28T23:00:00Z"
   }
 }

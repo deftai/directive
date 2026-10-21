@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for #258: Inventory Warp Drive global rules used for deft development and document in `CONTRIBUTING.md` under a Warp-specific section (spinoff of #114; blocked on #89 positioning resolution; with #136)",
-    "updated": "2026-08-03T02:51:05Z"
-  },
   "plan": {
     "title": "Inventory Warp Drive global rules used for deft development and document in `CONTRIBUTING.md` under a Warp-specific section (spinoff of #114; blocked on #89 positioning resolution; with #136)",
     "status": "cancelled",
@@ -30,6 +25,11 @@
         "title": "Issue #258: Inventory Warp Drive global rules used for deft development and document in `CONTRIBUTING.md` under a Warp-specific section (spinoff of #114; blocked on #89 positioning resolution; with #136)"
       }
     ],
+    "updated": "2026-08-03T02:51:05Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #258: Inventory Warp Drive global rules used for deft development and document in `CONTRIBUTING.md` under a Warp-specific section (spinoff of #114; blocked on #89 positioning resolution; with #136)",
     "updated": "2026-08-03T02:51:05Z"
   }
 }

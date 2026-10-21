@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1723"
-  },
   "plan": {
     "title": "feat(ts-migration): port verify:wip-cap to TS (Wave 2)",
     "status": "completed",
@@ -79,8 +75,17 @@
         "missing_traces_justification": "Traced to the Python oracle scripts/preflight_wip_cap.py via cache-off golden-diff parity fixtures, not a spec section."
       },
       "capacityBucket": "new-capability",
-      "completedAt": "2026-06-18T23:01:15Z"
+      "completedAt": "2026-06-18T23:01:15Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.342Z",
+        "migration": true
+      }
     },
     "updated": "2026-06-18T23:01:15Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1723"
   }
 }

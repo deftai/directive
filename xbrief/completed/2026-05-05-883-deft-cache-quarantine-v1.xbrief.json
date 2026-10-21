@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Epic vBRIEF for #883 v1: minimum viable unified content cache + quarantine layer for triage v1 migration. Decomposes into 4 linear-dependency stories shipping as v0.26.0. Trimmed scope (1 source type, 5 cache commands, 3 scanner categories) explicit; full design surface deferred to v2.",
-    "created": "2026-05-05T21:24:00Z",
-    "updated": "2026-05-06T15:11:23Z"
-  },
   "plan": {
     "id": "883-deft-cache-quarantine-v1",
     "title": "feat(cache,quarantine): unified content cache + quarantine layer (v1 / triage migration)",
@@ -129,6 +123,11 @@
           "M3: task triage:bootstrap rewrite scope explicitly pinned in Story 3 narrative -- prevents agent ambiguity on the orchestration sequence.",
           "M4: meta.json JSON schema at xbrief/schemas/cache-meta.schema.json with read-and-write validation -- prevents corrupt or version-incompatible meta.json from propagating undetected."
         ]
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.304Z",
+        "migration": true
       }
     },
     "references": [
@@ -193,6 +192,12 @@
         "title": "PR #925 (merged): docs: import unsynced documentation -- landed visionik's design doc and 11 reference docs"
       }
     ],
+    "updated": "2026-05-06T15:11:23Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Epic vBRIEF for #883 v1: minimum viable unified content cache + quarantine layer for triage v1 migration. Decomposes into 4 linear-dependency stories shipping as v0.26.0. Trimmed scope (1 source type, 5 cache commands, 3 scanner categories) explicit; full design surface deferred to v2.",
+    "created": "2026-05-05T21:24:00Z",
     "updated": "2026-05-06T15:11:23Z"
   }
 }

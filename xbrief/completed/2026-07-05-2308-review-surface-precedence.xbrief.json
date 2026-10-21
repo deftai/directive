@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #2308",
-    "updated": "2026-07-05T16:30:00Z"
-  },
   "plan": {
     "title": "orchestrator reaches for Cursor bugbot/security-review subagents instead of deft-directive-review-cycle (review-surface precedence)",
     "status": "completed",
@@ -74,7 +69,17 @@
       "kind": "story",
       "capacityBucket": "technical-debt",
       "capacityBucketSource": "match",
-      "completedAt": "2026-07-05T16:38:26Z"
+      "completedAt": "2026-07-05T16:38:26Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.372Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #2308",
+    "updated": "2026-07-05T16:30:00Z"
   }
 }

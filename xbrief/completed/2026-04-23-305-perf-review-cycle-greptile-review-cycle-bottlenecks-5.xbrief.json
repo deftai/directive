@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for #305: perf(review-cycle): Greptile review cycle bottlenecks -- 5-change optimization bundle (mandate deft-pre-pr, PR scope gate, adaptive poll cadence, parallel swarm cascade monitoring, .greptile/rules.md template)",
-    "updated": "2026-04-23T14:30:07Z"
-  },
   "plan": {
     "title": "perf(review-cycle): Greptile review cycle bottlenecks -- 5-change optimization bundle (mandate deft-pre-pr, PR scope gate, adaptive poll cadence, parallel swarm cascade monitoring, .greptile/rules.md template)",
     "status": "completed",
@@ -18,6 +13,11 @@
         "Description_source": "ROADMAP.md",
         "Status_source": "orphan: ROADMAP Completed section (#593)",
         "SourceConflict": "missing-from-spec"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.290Z",
+        "migration": true
       }
     },
     "references": [
@@ -27,5 +27,10 @@
         "title": "Issue #305: perf(review-cycle): Greptile review cycle bottlenecks -- 5-change optimization bundle (mandate deft-pre-pr, PR scope gate, adaptive poll cadence, parallel swarm cascade monitoring, .greptile/rules.md template)"
       }
     ]
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #305: perf(review-cycle): Greptile review cycle bottlenecks -- 5-change optimization bundle (mandate deft-pre-pr, PR scope gate, adaptive poll cadence, parallel swarm cascade monitoring, .greptile/rules.md template)",
+    "updated": "2026-04-23T14:30:07Z"
   }
 }

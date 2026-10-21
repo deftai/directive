@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story A of #1378 -- first-class ## Allocation context dispatch-envelope schema (foundation).",
-    "updated": "2026-06-01T02:30:00Z"
-  },
   "plan": {
     "title": "feat(preamble): first-class ## Allocation context dispatch-envelope schema (#1378 Story A)",
     "status": "completed",
@@ -72,8 +67,18 @@
       },
       "completedAt": "2026-06-01T02:53:57Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.322Z",
+        "migration": true
+      }
     },
     "updated": "2026-06-01T02:48:16Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story A of #1378 -- first-class ## Allocation context dispatch-envelope schema (foundation).",
+    "updated": "2026-06-01T02:30:00Z"
   }
 }

@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Implementation iteration vBRIEF for #1348 after the original story artifact was found in completed/ while the GitHub issue remained open.",
-    "created": "2026-06-09T00:56:40Z",
-    "updated": "2026-06-11T18:08:00Z"
-  },
   "plan": {
     "id": "1348-session-ritual-verifier-implementation",
     "title": "Implement fail-closed session ritual verifier",
@@ -101,7 +95,12 @@
         "missing_traces_justification": "Issue #1348 already carries the detailed trace set; this active iteration exists to satisfy the current implementation gate after stale completed lifecycle metadata was discovered."
       },
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.331Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -115,6 +114,12 @@
         "title": "Prior #1348 artifact cancelled after this implementation became canonical"
       }
     ],
+    "updated": "2026-06-11T18:08:00Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Implementation iteration vBRIEF for #1348 after the original story artifact was found in completed/ while the GitHub issue remained open.",
+    "created": "2026-06-09T00:56:40Z",
     "updated": "2026-06-11T18:08:00Z"
   }
 }

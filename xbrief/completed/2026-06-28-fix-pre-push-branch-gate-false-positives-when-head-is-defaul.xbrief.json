@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-28-1814-pre-push-branch-gate-preflight-branchpy-false-positives-on-b.xbrief.json"
-  },
   "plan": {
     "id": "story-1814-pre-push-refspec-gate",
     "title": "Fix pre-push branch gate false positives when HEAD is default branch",
@@ -80,7 +76,12 @@
         "model_tier": "high"
       },
       "completedAt": "2026-06-28T18:02:51Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.361Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -91,5 +92,9 @@
       }
     ],
     "updated": "2026-06-28T18:02:51Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-28-1814-pre-push-branch-gate-preflight-branchpy-false-positives-on-b.xbrief.json"
   }
 }

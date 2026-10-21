@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for #228: Bring run CLI into test coverage measurement -- refactor run/run.py to separate pure logic from terminal I/O, add unit tests, remove pyproject.toml omit entries (confirm #160 disposition before implementing)",
-    "updated": "2026-08-03T02:51:05Z"
-  },
   "plan": {
     "title": "Bring run CLI into test coverage measurement -- refactor run/run.py to separate pure logic from terminal I/O, add unit tests, remove pyproject.toml omit entries (confirm #160 disposition before implementing)",
     "status": "completed",
@@ -19,6 +14,11 @@
         "Status_source": "orphan: proposed default",
         "SourceConflict": "missing-from-spec",
         "Phase_source": "pre-migration ROADMAP (commit 3925468)"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.286Z",
+        "migration": true
       }
     },
     "references": [
@@ -28,6 +28,11 @@
         "title": "Issue #228: Bring run CLI into test coverage measurement -- refactor run/run.py to separate pure logic from terminal I/O, add unit tests, remove pyproject.toml omit entries (confirm #160 disposition before implementing)"
       }
     ],
+    "updated": "2026-08-03T02:51:05Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #228: Bring run CLI into test coverage measurement -- refactor run/run.py to separate pure logic from terminal I/O, add unit tests, remove pyproject.toml omit entries (confirm #160 disposition before implementing)",
     "updated": "2026-08-03T02:51:05Z"
   }
 }

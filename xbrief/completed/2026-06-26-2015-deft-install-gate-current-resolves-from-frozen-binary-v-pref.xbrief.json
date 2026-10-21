@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #2015"
-  },
   "plan": {
     "title": "deft-install gate: `current` resolves from frozen binary (v-prefixed), not installed payload — healthy installs report NEEDS-UPGRADE",
     "status": "completed",
@@ -31,7 +27,16 @@
     "updated": "2026-06-26T12:54:25Z",
     "metadata": {
       "completedAt": "2026-06-26T12:54:25Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.358Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #2015"
   }
 }

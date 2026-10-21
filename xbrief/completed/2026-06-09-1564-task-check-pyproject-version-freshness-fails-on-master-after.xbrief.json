@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1564"
-  },
   "plan": {
     "title": "task check: pyproject version freshness fails on master after v0.43.0",
     "status": "completed",
@@ -81,8 +77,17 @@
       },
       "completedAt": "2026-06-09T19:43:22Z",
       "capacityBucket": "technical-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.335Z",
+        "migration": true
+      }
     },
     "updated": "2026-06-09T19:43:22Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1564"
   }
 }

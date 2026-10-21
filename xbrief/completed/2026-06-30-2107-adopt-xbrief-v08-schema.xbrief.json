@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #2107 (adopt xBRIEF v0.8 schema); part of the #2034 decomposition.",
-    "created": "2026-06-30T14:30:00Z",
-    "updated": "2026-06-30T14:30:00Z"
-  },
   "plan": {
     "id": "2107-adopt-xbrief-v08-schema",
     "title": "Adopt xBRIEF v0.8 schema; pin types and validator",
@@ -12,7 +6,7 @@
     "planRef": "https://github.com/deftai/directive/issues/2034",
     "narratives": {
       "Description": "Vendor the xBRIEF v0.8 core schema into directive and pin the engine constants to it so the validator accepts the new contract. This story is independently buildable because it only changes the vendored schema file and two constants modules without touching migration or rename logic.",
-      "ImplementationPlan": "1. Add the vendored schema file content/vbrief/schemas/xbrief-core-0.8.schema.json and point the validator constants module at it. 2. Update packages/types/src/constants.ts (VBRIEF_VERSION 0.6->0.8, reference prefix x-xbrief/->x-xbrief/, schema $id) and packages/core/src/vbrief-validate/constants.ts to accept the xBRIEFInfo root key and the auto status; add unit tests that assert a v0.8 document validates and new optional fields are accepted.",
+      "ImplementationPlan": "1. Add the vendored schema file content/xbrief/schemas/xbrief-core-0.8.schema.json and point the validator constants module at it. 2. Update packages/types/src/constants.ts (VBRIEF_VERSION 0.6->0.8, reference prefix x-xbrief/->x-xbrief/, schema $id) and packages/core/src/vbrief-validate/constants.ts to accept the xBRIEFInfo root key and the auto status; add unit tests that assert a v0.8 document validates and new optional fields are accepted.",
       "UserStory": "As a directive maintainer, I want the engine pinned to the xBRIEF v0.8 schema, so that the validator accepts xBRIEFInfo, version 0.8, and x-xbrief/ references.",
       "Traces": "#2107, #2034"
     },
@@ -52,7 +46,7 @@
         "readiness": "ready",
         "parallel_safe": true,
         "file_scope": [
-          "content/vbrief/schemas/xbrief-core-0.8.schema.json",
+          "content/xbrief/schemas/xbrief-core-0.8.schema.json",
           "packages/types/src/constants.ts",
           "packages/core/src/vbrief-validate/constants.ts"
         ],
@@ -70,7 +64,12 @@
         "model_tier": "medium"
       },
       "completedAt": "2026-06-30T14:44:08Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.364Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -85,5 +84,11 @@
       }
     ],
     "updated": "2026-06-30T14:44:08Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #2107 (adopt xBRIEF v0.8 schema); part of the #2034 decomposition.",
+    "created": "2026-06-30T14:30:00Z",
+    "updated": "2026-06-30T14:30:00Z"
   }
 }

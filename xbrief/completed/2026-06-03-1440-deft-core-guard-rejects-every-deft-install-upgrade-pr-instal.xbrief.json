@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1440"
-  },
   "plan": {
     "title": "deft-core-guard rejects every deft-install --upgrade PR: installer-managed root files (AGENTS.md, .agents/, vbrief scaffolding, ...) counted as 'app'",
     "status": "completed",
@@ -10,7 +6,12 @@
       "kind": "story",
       "completedAt": "2026-06-03T01:11:52Z",
       "capacityBucket": "technical-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.325Z",
+        "migration": true
+      }
     },
     "narratives": {
       "Description": "deft-core-guard rejects every deft-install --upgrade PR: installer-managed root files (AGENTS.md, .agents/, vbrief scaffolding, ...) counted as 'app'",
@@ -52,5 +53,9 @@
       }
     ],
     "updated": "2026-06-03T01:11:28Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1440"
   }
 }

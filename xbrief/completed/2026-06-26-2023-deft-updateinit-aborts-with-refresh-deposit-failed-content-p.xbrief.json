@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #2023"
-  },
   "plan": {
     "id": "fix-2023-content-resolve",
     "title": "Fix deft update/init refresh_deposit_failed by resolving the content package via its package.json subpath",
@@ -68,7 +64,12 @@
         "model_tier": "medium"
       },
       "completedAt": "2026-06-26T18:28:23Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.358Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -78,5 +79,9 @@
       }
     ],
     "updated": "2026-06-26T18:28:23Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #2023"
   }
 }

@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Add a size cap, entry cap, LRU eviction, and disk quota to the v1 unified content cache (#883 follow-up). Caps are configurable via DEFT_CACHE_MAX_BYTES / DEFT_CACHE_MAX_ENTRIES with sensible defaults (100 MB / 10,000 entries) sized from the v0.26.0 smoke evidence (320 entries = 3.03 MB on disk, ~10 KB/entry avg). LRU is tracked via meta.json mtime touched on cache:get -- zero schema change, zero migration burden for v0.26.0-era cache trees, no edit to the FROZEN cache-meta.schema.json. cache:put refuses-with-eviction on cap breach, and a new cache:prune --to-cap mode lets operators drain the cache on demand. Eviction events are written as cache:evict records to the existing quarantine-audit.jsonl so operators can trace why an entry vanished. Audit retention/rotation (#948) is explicitly out of scope.",
-    "created": "2026-05-07T14:43:23Z",
-    "updated": "2026-05-07T14:46:53Z"
-  },
   "plan": {
     "id": "947-cache-cap-lru-quota",
     "title": "feat(cache): size cap + LRU eviction + disk quota (#947)",
@@ -133,6 +127,11 @@
           "In-memory cache layer (deferred per #947 issue body)"
         ],
         "schema_decision": "mtime-touch (no schema bump). Trade-offs documented in narratives.DesignChoice."
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.305Z",
+        "migration": true
       }
     },
     "references": [
@@ -153,5 +152,11 @@
       }
     ],
     "updated": "2026-05-07T15:13:27Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Add a size cap, entry cap, LRU eviction, and disk quota to the v1 unified content cache (#883 follow-up). Caps are configurable via DEFT_CACHE_MAX_BYTES / DEFT_CACHE_MAX_ENTRIES with sensible defaults (100 MB / 10,000 entries) sized from the v0.26.0 smoke evidence (320 entries = 3.03 MB on disk, ~10 KB/entry avg). LRU is tracked via meta.json mtime touched on cache:get -- zero schema change, zero migration burden for v0.26.0-era cache trees, no edit to the FROZEN cache-meta.schema.json. cache:put refuses-with-eviction on cap breach, and a new cache:prune --to-cap mode lets operators drain the cache on demand. Eviction events are written as cache:evict records to the existing quarantine-audit.jsonl so operators can trace why an entry vanished. Audit retention/rotation (#948) is explicitly out of scope.",
+    "created": "2026-05-07T14:43:23Z",
+    "updated": "2026-05-07T14:46:53Z"
   }
 }

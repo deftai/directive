@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #736"
-  },
   "plan": {
     "title": "fix(tasks/core.yml): task build cross-platform artifact parity defect (Windows zip lacks excludes; vestigial-vs-internal purpose unclear)",
     "status": "completed",
@@ -52,8 +48,17 @@
       "x-migrator": {
         "Phase": "Phase 1 -- Fix Now",
         "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.299Z",
+        "migration": true
       }
     },
     "updated": "2026-05-01T02:02:51Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #736"
   }
 }

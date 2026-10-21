@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1875"
-  },
   "plan": {
     "title": "Execute the content/ move — manifest-driven relocation + source-side cross-reference rewrite",
     "status": "completed",
@@ -52,7 +48,16 @@
     "updated": "2026-06-22T21:19:44Z",
     "metadata": {
       "completedAt": "2026-06-22T21:19:44Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.351Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1875"
   }
 }

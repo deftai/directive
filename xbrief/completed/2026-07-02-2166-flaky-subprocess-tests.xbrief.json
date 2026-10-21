@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Remove real subprocess/network dependence from mocked unit tests that flake with 5s vitest timeouts (main-branches, framework-commands, intake-coverage-boost) by stubbing/injecting the subprocess seams (#2166).",
-    "created": "2026-07-02T00:00:00Z",
-    "updated": "2026-07-02T00:00:00Z"
-  },
   "plan": {
     "id": "2166-flaky-subprocess-tests",
     "title": "test: remove real subprocess/network calls from mocked unit tests (flaky 5s timeouts)",
@@ -47,7 +41,12 @@
       "x-tracking": {
         "child_issue": "#2166"
       },
-      "completedAt": "2026-07-02T17:14:30Z"
+      "completedAt": "2026-07-02T17:14:30Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.367Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -57,5 +56,11 @@
       }
     ],
     "updated": "2026-07-02T17:14:30Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Remove real subprocess/network dependence from mocked unit tests that flake with 5s vitest timeouts (main-branches, framework-commands, intake-coverage-boost) by stubbing/injecting the subprocess seams (#2166).",
+    "created": "2026-07-02T00:00:00Z",
+    "updated": "2026-07-02T00:00:00Z"
   }
 }

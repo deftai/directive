@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Adoption blocker: PowerShell 5.1 silently corrupts non-ASCII content during read+write round-trips. Four prior recurrences without deterministic enforcement. Encode the rule at the deterministic tier per main.md Rule Authority [AXIOM]: new task verify:encoding + pre-commit hook + AGENTS.md root-cause rule.",
-    "created": "2026-05-01T00:00:00Z",
-    "updated": "2026-05-03T03:03:31Z"
-  },
   "plan": {
     "id": "798-ps51-encoding-gate",
     "title": "Detect PS 5.1 non-ASCII round-trip corruption in pre-commit + task check (deterministic tier per [AXIOM])",
@@ -131,6 +125,11 @@
         ],
         "branch_name_suggestion": "feat/798-ps51-encoding-gate",
         "pr_title_suggestion": "feat(scripts,tasks,hooks): deterministic gate against PS 5.1 non-ASCII round-trip corruption (#798)"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.301Z",
+        "migration": true
       }
     },
     "references": [
@@ -161,5 +160,11 @@
       }
     ],
     "updated": "2026-05-03T04:38:17Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Adoption blocker: PowerShell 5.1 silently corrupts non-ASCII content during read+write round-trips. Four prior recurrences without deterministic enforcement. Encode the rule at the deterministic tier per main.md Rule Authority [AXIOM]: new task verify:encoding + pre-commit hook + AGENTS.md root-cause rule.",
+    "created": "2026-05-01T00:00:00Z",
+    "updated": "2026-05-03T03:03:31Z"
   }
 }

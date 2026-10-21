@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Bug in skills/deft-directive-swarm/SKILL.md Phase 6 Step 3 (Update Master) and #727 orchestrator role-separation guidance: post-merge cleanup implicitly assumes the merging agent owns the worktree where `git pull origin <base>` runs. In multi-worktree swarm patterns, this lets the merger detach HEAD on a sibling worktree another agent is actively using.",
-    "created": "2026-05-03T01:53:52Z",
-    "updated": "2026-05-03T03:04:13Z"
-  },
   "plan": {
     "title": "swarm SKILL: prohibit `git checkout` in a worktree another agent owns (post-merge cleanup overreach)",
     "status": "completed",
@@ -123,9 +117,20 @@
         ],
         "branch_name_suggestion": "fix/800-swarm-no-checkout-in-others-worktree",
         "pr_title_suggestion": "fix(skills/swarm): prohibit git checkout in another agent's worktree during post-merge cleanup (#800)"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.302Z",
+        "migration": true
       }
     },
     "updated": "2026-05-03T04:38:15Z",
     "id": "800-swarm-no-checkout-in-others-worktree"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Bug in skills/deft-directive-swarm/SKILL.md Phase 6 Step 3 (Update Master) and #727 orchestrator role-separation guidance: post-merge cleanup implicitly assumes the merging agent owns the worktree where `git pull origin <base>` runs. In multi-worktree swarm patterns, this lets the merger detach HEAD on a sibling worktree another agent is actively using.",
+    "created": "2026-05-03T01:53:52Z",
+    "updated": "2026-05-03T03:04:13Z"
   }
 }

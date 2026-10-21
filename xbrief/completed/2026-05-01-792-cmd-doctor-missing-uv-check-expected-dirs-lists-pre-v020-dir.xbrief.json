@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Adoption blocker: deft/run doctor passes green on a machine without uv installed, then every subsequent task command fails with `uv: command not found`. Plus expected_dirs hardcodes pre-v0.20 dirs that no longer exist, producing spurious 'Missing directory' warnings on every clean checkout.",
-    "created": "2026-05-01T00:00:00Z",
-    "updated": "2026-05-03T03:01:38Z"
-  },
   "plan": {
     "id": "792-cmd-doctor-uv-and-stale-dirs",
     "title": "cmd_doctor: add uv check; replace pre-v0.20 expected_dirs with v0.20+ layout",
@@ -112,6 +106,11 @@
       "x-migrator": {
         "Phase": "Phase 1 -- Fix Now",
         "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.301Z",
+        "migration": true
       }
     },
     "references": [
@@ -132,5 +131,11 @@
       }
     ],
     "updated": "2026-05-03T04:38:17Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Adoption blocker: deft/run doctor passes green on a machine without uv installed, then every subsequent task command fails with `uv: command not found`. Plus expected_dirs hardcodes pre-v0.20 dirs that no longer exist, producing spurious 'Missing directory' warnings on every clean checkout.",
+    "created": "2026-05-01T00:00:00Z",
+    "updated": "2026-05-03T03:01:38Z"
   }
 }

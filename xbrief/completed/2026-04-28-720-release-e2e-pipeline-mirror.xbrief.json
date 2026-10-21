@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for #720: scripts/release_e2e.py::run_rehearsal is currently a thin existence check (`gh repo view`); it does not actually exercise the release pipeline. Deepen it to a full pipeline mirror -- clone the directive repo into a temp dir, set the temp repo as origin, push --mirror, run `task release -- 0.0.1 --repo deftai/<temp-slug> --skip-ci --skip-build`, verify the draft release + tag exist, run `task release:rollback -- 0.0.1`, then cleanup. Adds --skip-ci / --skip-build flags to scripts/release.py so the rehearsal can exercise the pipeline end-to-end without burning minutes on `task ci:local` / `task build` (covered separately by unit tests).",
-    "created": "2026-04-28T22:32:00Z",
-    "updated": "2026-04-29T18:18:17Z"
-  },
   "plan": {
     "id": "720-release-e2e-pipeline-mirror",
     "title": "Deepen release_e2e rehearsal to a full task release + rollback mirror against an auto-created+destroyed temp repo",
@@ -54,6 +48,11 @@
         "blocks": null,
         "blocked_by": null,
         "scope_authority": "deft-720-fix sub-agent dispatch (swarm Agent 1; parent monitor's plan stages 1-4)"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.297Z",
+        "migration": true
       }
     },
     "references": [
@@ -78,5 +77,11 @@
         "title": "Issue #74: task release foundation"
       }
     ]
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #720: scripts/release_e2e.py::run_rehearsal is currently a thin existence check (`gh repo view`); it does not actually exercise the release pipeline. Deepen it to a full pipeline mirror -- clone the directive repo into a temp dir, set the temp repo as origin, push --mirror, run `task release -- 0.0.1 --repo deftai/<temp-slug> --skip-ci --skip-build`, verify the draft release + tag exist, run `task release:rollback -- 0.0.1`, then cleanup. Adds --skip-ci / --skip-build flags to scripts/release.py so the rehearsal can exercise the pipeline end-to-end without burning minutes on `task ci:local` / `task build` (covered separately by unit tests).",
+    "created": "2026-04-28T22:32:00Z",
+    "updated": "2026-04-29T18:18:17Z"
   }
 }

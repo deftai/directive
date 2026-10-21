@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Bug-pass story: doctor and agents:refresh hygiene after upgrade (#1404, #1408).",
-    "created": "2026-06-28T23:00:00Z",
-    "updated": "2026-06-28T23:00:00Z"
-  },
   "plan": {
     "id": "bug-pass-doctor-agents-refresh",
     "title": "doctor and agents:refresh: fix legacy skill paths and false-positive checks",
@@ -74,7 +68,12 @@
         "model_tier": "standard"
       },
       "completedAt": "2026-06-28T23:24:36Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.361Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -89,5 +88,11 @@
       }
     ],
     "updated": "2026-06-28T23:24:36Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Bug-pass story: doctor and agents:refresh hygiene after upgrade (#1404, #1408).",
+    "created": "2026-06-28T23:00:00Z",
+    "updated": "2026-06-28T23:00:00Z"
   }
 }

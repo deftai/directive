@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #689"
-  },
   "plan": {
     "id": "689-installer-version-currency",
     "title": "feat(installer): version-currency self-check at startup",
@@ -93,7 +89,12 @@
       },
       "completedAt": "2026-06-12T14:50:28Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.337Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -103,5 +104,9 @@
       }
     ],
     "updated": "2026-06-12T14:50:28Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #689"
   }
 }

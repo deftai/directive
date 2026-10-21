@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Tune the scanner v2 injection-heading detector to drive the false-positive rate from ~85% to <20% on legitimate organic GitHub issue bodies (#949 detector-tuning subset). Tightens the suspicious-token list curated for cache_scanner, adds an allowlist of common legitimate template heading patterns, and gates flagging on a structural-injection signal so bare ## STEP / ## Action / ## Important: headings no longer wrap. NEW scanner categories (shell-cmd-injection, exfiltration-patterns) are explicitly out of scope; tracked separately under #949.",
-    "created": "2026-05-07T01:43:39Z",
-    "updated": "2026-05-07T02:29:13Z"
-  },
   "plan": {
     "id": "949-injection-heading-tuning",
     "title": "fix(scanner): tune injection-heading detector to reduce false-positives on legitimate template markdown (#949)",
@@ -110,6 +104,11 @@
           "shell-cmd-injection scanner category (separate #949 deliverable)",
           "exfiltration-patterns scanner category (separate #949 deliverable)"
         ]
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.305Z",
+        "migration": true
       }
     },
     "references": [
@@ -139,6 +138,12 @@
         "title": "Quarantine spec (#583) -- the original injection heuristic this PR refines"
       }
     ],
+    "updated": "2026-05-07T02:29:13Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Tune the scanner v2 injection-heading detector to drive the false-positive rate from ~85% to <20% on legitimate organic GitHub issue bodies (#949 detector-tuning subset). Tightens the suspicious-token list curated for cache_scanner, adds an allowlist of common legitimate template heading patterns, and gates flagging on a structural-injection signal so bare ## STEP / ## Action / ## Important: headings no longer wrap. NEW scanner categories (shell-cmd-injection, exfiltration-patterns) are explicitly out of scope; tracked separately under #949.",
+    "created": "2026-05-07T01:43:39Z",
     "updated": "2026-05-07T02:29:13Z"
   }
 }

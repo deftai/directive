@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for #250: fix(skill): deft-review-cycle batch-fix enforcement -- ! pre-commit gate + 2 anti-patterns against per-finding commits",
-    "updated": "2026-04-23T14:30:07Z"
-  },
   "plan": {
     "title": "fix(skill): deft-review-cycle batch-fix enforcement -- ! pre-commit gate + 2 anti-patterns against per-finding commits",
     "status": "completed",
@@ -18,6 +13,11 @@
         "Description_source": "ROADMAP.md",
         "Status_source": "orphan: ROADMAP Completed section (#593)",
         "SourceConflict": "missing-from-spec"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.288Z",
+        "migration": true
       }
     },
     "references": [
@@ -27,5 +27,10 @@
         "title": "Issue #250: fix(skill): deft-review-cycle batch-fix enforcement -- ! pre-commit gate + 2 anti-patterns against per-finding commits"
       }
     ]
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #250: fix(skill): deft-review-cycle batch-fix enforcement -- ! pre-commit gate + 2 anti-patterns against per-finding commits",
+    "updated": "2026-04-23T14:30:07Z"
   }
 }

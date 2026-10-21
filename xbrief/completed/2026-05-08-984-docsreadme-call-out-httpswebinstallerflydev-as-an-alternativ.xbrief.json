@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #984",
-    "updated": "2026-05-08T21:02:26Z"
-  },
   "plan": {
     "title": "docs(readme): call out https://webinstaller.fly.dev/ as an alternative installer in README",
     "status": "completed",
@@ -25,6 +20,18 @@
         "title": "Issue #984: docs(readme): call out https://webinstaller.fly.dev/ as an alternative installer in README"
       }
     ],
-    "updated": "2026-05-08T21:50:28Z"
+    "updated": "2026-05-08T21:50:28Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.307Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #984",
+    "updated": "2026-05-08T21:02:26Z"
   }
 }

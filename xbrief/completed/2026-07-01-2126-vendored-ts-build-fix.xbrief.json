@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #2126 (v0.65.0 adoption-blocker): route straggler task fragments through the guarded :engine:_ts-build / :engine:invoke pattern so `task check` and every `task <verb>` work on a vendored .deft/core consumer deposit.",
-    "created": "2026-07-01T15:00:00Z",
-    "updated": "2026-07-01T15:00:00Z"
-  },
   "plan": {
     "id": "2126-vendored-ts-build-fix",
     "title": "Vendored task dispatch: route straggler _ts-build + direct node calls through :engine:* (fix #2126)",
@@ -84,7 +78,12 @@
         "file_scope_confidence": "high",
         "model_tier": "medium"
       },
-      "completedAt": "2026-07-01T15:53:49Z"
+      "completedAt": "2026-07-01T15:53:49Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.365Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -99,5 +98,11 @@
       }
     ],
     "updated": "2026-07-01T15:53:49Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #2126 (v0.65.0 adoption-blocker): route straggler task fragments through the guarded :engine:_ts-build / :engine:invoke pattern so `task check` and every `task <verb>` work on a vendored .deft/core consumer deposit.",
+    "created": "2026-07-01T15:00:00Z",
+    "updated": "2026-07-01T15:00:00Z"
   }
 }

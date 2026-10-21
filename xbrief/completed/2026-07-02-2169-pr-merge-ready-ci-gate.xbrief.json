@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Harden pr:merge-ready to gate on GitHub CI check-run conclusions on the primary/fallback1 paths, not just Greptile (#2169).",
-    "created": "2026-07-02T00:00:00Z",
-    "updated": "2026-07-02T00:00:00Z"
-  },
   "plan": {
     "id": "2169-pr-merge-ready-ci-gate",
     "title": "harden(pr:merge-ready): gate on CI check-run conclusions",
@@ -63,7 +57,12 @@
       "x-tracking": {
         "child_issue": "#2169"
       },
-      "completedAt": "2026-07-02T17:17:05Z"
+      "completedAt": "2026-07-02T17:17:05Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.367Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -73,5 +72,11 @@
       }
     ],
     "updated": "2026-07-02T17:17:05Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Harden pr:merge-ready to gate on GitHub CI check-run conclusions on the primary/fallback1 paths, not just Greptile (#2169).",
+    "created": "2026-07-02T00:00:00Z",
+    "updated": "2026-07-02T00:00:00Z"
   }
 }

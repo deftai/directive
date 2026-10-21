@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Adoption blocker: directive has zero awareness of upstream releases. Add a periodic, read-only remote-version probe that runs `git ls-remote --tags` against the deft submodule's upstream, throttled to 24h per remote tag, and surfaces a single warn line when the local checkout is behind. Never auto-mutates project state -- write paths stay in cmd_upgrade / sync skill / task migrate:vbrief.",
-    "created": "2026-05-01T19:04:00Z",
-    "updated": "2026-05-01T23:35:54Z"
-  },
   "plan": {
     "id": "801-periodic-remote-version-probe",
     "title": "Periodic remote-version probe: occasionally check upstream for new directive tags and prompt the user to update",
@@ -147,6 +141,11 @@
       "x-migrator": {
         "Phase": "Phase 1 -- Fix Now",
         "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.301Z",
+        "migration": true
       }
     },
     "references": [
@@ -176,6 +175,12 @@
         "title": "Sync skill Phase 2 -- the existing user-triggered remote refresh that this probe complements"
       }
     ],
+    "updated": "2026-05-01T23:35:54Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Adoption blocker: directive has zero awareness of upstream releases. Add a periodic, read-only remote-version probe that runs `git ls-remote --tags` against the deft submodule's upstream, throttled to 24h per remote tag, and surfaces a single warn line when the local checkout is behind. Never auto-mutates project state -- write paths stay in cmd_upgrade / sync skill / task migrate:vbrief.",
+    "created": "2026-05-01T19:04:00Z",
     "updated": "2026-05-01T23:35:54Z"
   }
 }

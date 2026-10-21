@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #754 (release-blocker).",
-    "updated": "2026-04-30T13:58:20Z"
-  },
   "plan": {
     "title": "fix(scripts/reconcile_issues.py, scripts/release.py): vBRIEF-lifecycle-sync gate false-positives on repos with >200 open issues",
     "status": "completed",
@@ -96,6 +91,18 @@
         "title": "Issue #720: e2e harness deepening (surfaced this defect during Decision A pre-release validation)"
       }
     ],
+    "updated": "2026-04-30T13:58:20Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.300Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #754 (release-blocker).",
     "updated": "2026-04-30T13:58:20Z"
   }
 }

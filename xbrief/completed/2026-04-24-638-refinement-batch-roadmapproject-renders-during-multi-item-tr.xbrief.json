@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for GitHub issue #638 (swarm Phase 1)",
-    "updated": "2026-04-24T14:30:00Z"
-  },
   "plan": {
     "title": "refinement: batch roadmap/project renders during multi-item triage instead of rerendering after every promotion",
     "status": "completed",
@@ -50,6 +45,11 @@
       "x-migrator": {
         "Phase": "Phase 1 -- Fix Now",
         "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work."
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.296Z",
+        "migration": true
       }
     },
     "references": [
@@ -60,5 +60,10 @@
       }
     ],
     "updated": "2026-04-24T15:49:34Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for GitHub issue #638 (swarm Phase 1)",
+    "updated": "2026-04-24T14:30:00Z"
   }
 }

@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1525"
-  },
   "plan": {
     "title": "fix(install): adopt CodeQL-recognized zip-slip barrier in extractCoreTarball (clears go/zipslip alert #6)",
     "status": "completed",
@@ -40,7 +36,16 @@
     "metadata": {
       "completedAt": "2026-06-05T21:26:44Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "default"
+      "capacityBucketSource": "default",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.330Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1525"
   }
 }

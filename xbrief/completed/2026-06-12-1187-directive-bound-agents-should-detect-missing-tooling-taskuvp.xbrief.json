@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1187"
-  },
   "plan": {
     "id": "1187-missing-tooling-bootstrap",
     "title": "Directive-bound agents should detect missing tooling (task/uv/python/gh) and offer to install on first encounter",
@@ -97,7 +93,12 @@
       },
       "completedAt": "2026-06-12T15:33:18Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.336Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -107,5 +108,9 @@
       }
     ],
     "updated": "2026-06-12T15:33:18Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1187"
   }
 }

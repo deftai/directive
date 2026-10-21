@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1251"
-  },
   "plan": {
     "title": "bug(triage,policy): task triage:bootstrap blanket-ignores xbrief/.eval/, violating #1144 hybrid policy",
     "status": "completed",
@@ -86,7 +82,16 @@
     "metadata": {
       "completedAt": "2026-05-20T19:35:34Z",
       "capacityBucket": "technical-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.316Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1251"
   }
 }

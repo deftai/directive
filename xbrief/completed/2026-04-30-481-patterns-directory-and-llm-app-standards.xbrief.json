@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for #481: add patterns/ directory and patterns/llm-app.md (LLM application standards). Structural unblocker for the patterns/ category."
-  },
   "plan": {
     "title": "feat(patterns): add patterns/ directory and patterns/llm-app.md for LLM application standards",
     "status": "completed",
@@ -21,6 +17,11 @@
         "Description_source": "deftai/directive#481",
         "Status_source": "filed-during-cleanup",
         "Rationale": "Promoted to Phase 2 (rather than Phase 3) because 22 open issues in the patterns/ category are blocked on this; placement in Phase 2 reflects structural priority rather than the kind of work."
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.299Z",
+        "migration": true
       }
     },
     "references": [
@@ -36,5 +37,9 @@
       }
     ],
     "updated": "2026-05-12T23:25:59Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #481: add patterns/ directory and patterns/llm-app.md (LLM application standards). Structural unblocker for the patterns/ category."
   }
 }

@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #1667 — reconcile lifecycle fixes update child planRefs"
-  },
   "plan": {
     "id": "1667-reconcile-planref",
     "title": "reconcile:issues lifecycle fix rewrites child planRefs when parent moves",
@@ -67,7 +63,12 @@
         "missing_traces_justification": "Release blocker from issue #1667."
       },
       "capacityBucket": "bugfix",
-      "completedAt": "2026-06-30T00:19:10Z"
+      "completedAt": "2026-06-30T00:19:10Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.364Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -76,5 +77,9 @@
       }
     ],
     "updated": "2026-06-30T00:19:10Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #1667 — reconcile lifecycle fixes update child planRefs"
   }
 }

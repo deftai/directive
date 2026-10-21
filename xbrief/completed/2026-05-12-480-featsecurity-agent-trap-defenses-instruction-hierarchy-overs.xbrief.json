@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #480",
-    "updated": "2026-05-12T23:51:01Z"
-  },
   "plan": {
     "title": "feat(security): agent trap defenses — instruction hierarchy, oversight evasion, external content trust",
     "status": "completed",
@@ -32,6 +27,18 @@
         "TrustLevel": "internal"
       }
     ],
-    "updated": "2026-05-13T01:29:21Z"
+    "updated": "2026-05-13T01:29:21Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.310Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #480",
+    "updated": "2026-05-12T23:51:01Z"
   }
 }

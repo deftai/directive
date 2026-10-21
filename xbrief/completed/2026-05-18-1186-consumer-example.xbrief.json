@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF: #1186 -- deft consumer-example of #1119. Lands deft's actual plan.policy.* values on PROJECT-DEFINITION.xbrief.json + a docs/example-project-definition.md reference doc for future consumers. NO framework code edits per umbrella section 12 framework-vs-consumer boundary.",
-    "updated": "2026-05-19T21:22:21Z"
-  },
   "plan": {
     "title": "feat(consumer-example): deft's triage config + reference doc (#1186)",
     "status": "completed",
@@ -29,7 +24,17 @@
     "metadata": {
       "completedAt": "2026-05-19T21:23:39Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.314Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF: #1186 -- deft consumer-example of #1119. Lands deft's actual plan.policy.* values on PROJECT-DEFINITION.xbrief.json + a docs/example-project-definition.md reference doc for future consumers. NO framework code edits per umbrella section 12 framework-vs-consumer boundary.",
+    "updated": "2026-05-19T21:22:21Z"
   }
 }

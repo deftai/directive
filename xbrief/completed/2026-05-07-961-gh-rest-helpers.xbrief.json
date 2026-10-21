@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Ship the canonical gh-mutation/read REST-fallback module per issue #961 -- scripts/gh_rest.py with seven typed helpers (5 mutations: rest_create_issue, rest_post_comment, rest_close_issue, rest_open_pr, rest_merge_pr; 2 reads: rest_issue_view, rest_pr_view) wrapping `gh api` REST endpoints, returning structured dicts, raising typed GhRestError on failure, building all JSON payloads via Python pathlib UTF-8 (closes the recurring PS 5.1 mojibake hazard at gh-mutation call sites). Sibling deliverable per maintainer Path (C) authorization: refactor scripts/release_publish.py to replace its two `gh release view --json ...` (line 144, GraphQL) and `gh release edit ... --draft=false` (line 182, GraphQL) calls with inline `gh api` REST equivalents (NOT routed through gh_rest.py because issue #961 explicitly carves releases out as #74's concern). The motivating incident is the v0.26.1 publish failure today -- the GraphQL bucket was exhausted and both GraphQL surfaces failed. Predecessor agent (e1215873) correctly identified a scope conflict in the prior envelope and BLOCKED with analysis (releases were initially proposed for inclusion in gh_rest.py, contradicting the issue body's explicit out-of-scope list); this dispatch carves releases out of gh_rest.py and ships them as a sibling refactor. Single PR, DRAFT only, closes #961, targets v0.26.2 quick-follow. PowerShell 5.1 non-ASCII rule (#798) governs all file edits.",
-    "created": "2026-05-07T22:30:00Z",
-    "updated": "2026-05-07T22:31:32Z"
-  },
   "plan": {
     "id": "961-gh-rest-helpers",
     "title": "feat(scripts): gh_rest.py REST-fallback helpers for gh mutations and reads (#961)",
@@ -101,6 +95,11 @@
           "rest_pr_checks (CI check-runs polling) -- candidate for v2 per issue #961 body",
           "rest_reopen_issue / label / assignee / reviewer mutations -- deferred per issue #961 body"
         ]
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.306Z",
+        "migration": true
       }
     },
     "references": [
@@ -136,5 +135,11 @@
       }
     ],
     "updated": "2026-05-08T01:46:32Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Ship the canonical gh-mutation/read REST-fallback module per issue #961 -- scripts/gh_rest.py with seven typed helpers (5 mutations: rest_create_issue, rest_post_comment, rest_close_issue, rest_open_pr, rest_merge_pr; 2 reads: rest_issue_view, rest_pr_view) wrapping `gh api` REST endpoints, returning structured dicts, raising typed GhRestError on failure, building all JSON payloads via Python pathlib UTF-8 (closes the recurring PS 5.1 mojibake hazard at gh-mutation call sites). Sibling deliverable per maintainer Path (C) authorization: refactor scripts/release_publish.py to replace its two `gh release view --json ...` (line 144, GraphQL) and `gh release edit ... --draft=false` (line 182, GraphQL) calls with inline `gh api` REST equivalents (NOT routed through gh_rest.py because issue #961 explicitly carves releases out as #74's concern). The motivating incident is the v0.26.1 publish failure today -- the GraphQL bucket was exhausted and both GraphQL surfaces failed. Predecessor agent (e1215873) correctly identified a scope conflict in the prior envelope and BLOCKED with analysis (releases were initially proposed for inclusion in gh_rest.py, contradicting the issue body's explicit out-of-scope list); this dispatch carves releases out of gh_rest.py and ships them as a sibling refactor. Single PR, DRAFT only, closes #961, targets v0.26.2 quick-follow. PowerShell 5.1 non-ASCII rule (#798) governs all file edits.",
+    "created": "2026-05-07T22:30:00Z",
+    "updated": "2026-05-07T22:31:32Z"
   }
 }

@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Guard merge cascade so spine-dependent PRs are semantically green on post-merge master, not only merge-tree-clean.",
-    "created": "2026-07-22T06:15:00Z",
-    "updated": "2026-07-22T06:15:00Z"
-  },
   "plan": {
     "id": "2385-merge-cascade-semantic-green",
     "title": "Merge cascade: semantic-green gate beyond merge-tree-clean",
@@ -75,7 +69,12 @@
         "model_tier": "medium",
         "missing_traces_justification": "Bug-fix from GitHub issue #2385; no FR trace registry for hotfix cohort."
       },
-      "completedAt": "2026-07-22T10:23:18Z"
+      "completedAt": "2026-07-22T10:23:18Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.382Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -85,5 +84,11 @@
       }
     ],
     "updated": "2026-07-22T10:23:18Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Guard merge cascade so spine-dependent PRs are semantically green on post-merge master, not only merge-tree-clean.",
+    "created": "2026-07-22T06:15:00Z",
+    "updated": "2026-07-22T06:15:00Z"
   }
 }

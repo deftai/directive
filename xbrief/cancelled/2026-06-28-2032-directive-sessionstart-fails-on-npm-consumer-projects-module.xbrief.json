@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #2032"
-  },
   "plan": {
     "title": "directive session:start fails on npm consumer projects: ModuleNotFoundError: No module named 'session_start'",
     "status": "cancelled",
@@ -29,5 +25,9 @@
       "kind": "epic"
     },
     "updated": "2026-06-28T18:03:10Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #2032"
   }
 }

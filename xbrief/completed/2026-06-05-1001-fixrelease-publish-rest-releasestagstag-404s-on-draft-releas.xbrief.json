@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1001",
-    "updated": "2026-06-08T17:35:57Z"
-  },
   "plan": {
     "title": "fix(release_publish): REST `/releases/tags/{tag}` 404s on draft releases (post-#961 regression)",
     "status": "completed",
@@ -81,7 +76,17 @@
       },
       "completedAt": "2026-06-08T17:41:02Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "default"
+      "capacityBucketSource": "default",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.329Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1001",
+    "updated": "2026-06-08T17:35:57Z"
   }
 }

@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF batching four independent AGENTS.md quick-wins (#2158 Commands drift, #2159 personal-rule-ID leak, #2160 reserved placeholders, #2161 inlined field-list) into one PR; child of the #1882 map-not-manual umbrella. Batched because all four are small edits to the same hot files (AGENTS.md + content/templates/agents-entry.md + the #645 ratchet), so serializing into one PR avoids self-conflict.",
-    "created": "2026-07-02T00:00:00Z",
-    "updated": "2026-07-02T13:42:40Z"
-  },
   "plan": {
     "id": "2158-2161-agents-md-quick-wins",
     "title": "AGENTS.md quick-wins batch: Commands drift + personal-rule leak + reserved placeholders + inlined field-list",
@@ -86,7 +80,12 @@
         "file_scope_confidence": "high",
         "model_tier": "high"
       },
-      "completedAt": "2026-07-02T13:42:40Z"
+      "completedAt": "2026-07-02T13:42:40Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.367Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -100,6 +99,12 @@
         "title": "Issue #1882: AGENTS.md map-not-manual umbrella"
       }
     ],
+    "updated": "2026-07-02T13:42:40Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF batching four independent AGENTS.md quick-wins (#2158 Commands drift, #2159 personal-rule-ID leak, #2160 reserved placeholders, #2161 inlined field-list) into one PR; child of the #1882 map-not-manual umbrella. Batched because all four are small edits to the same hot files (AGENTS.md + content/templates/agents-entry.md + the #645 ratchet), so serializing into one PR avoids self-conflict.",
+    "created": "2026-07-02T00:00:00Z",
     "updated": "2026-07-02T13:42:40Z"
   }
 }

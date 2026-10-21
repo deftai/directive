@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for #128: CI vBRIEF schema sync check: fetch upstream `vbrief-core.schema.json` from `deftai/vBRIEF`, diff against vendored copy, fail on divergence (depends on #57)",
-    "updated": "2026-08-03T02:51:05Z"
-  },
   "plan": {
     "title": "CI vBRIEF schema sync check: fetch upstream `vbrief-core.schema.json` from `deftai/vBRIEF`, diff against vendored copy, fail on divergence (depends on #57)",
     "status": "completed",
@@ -19,6 +14,11 @@
         "Status_source": "orphan: proposed default",
         "SourceConflict": "missing-from-spec",
         "Phase_source": "pre-migration ROADMAP (commit 3925468)"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.282Z",
+        "migration": true
       }
     },
     "references": [
@@ -28,6 +28,11 @@
         "title": "Issue #128: CI vBRIEF schema sync check: fetch upstream `vbrief-core.schema.json` from `deftai/vBRIEF`, diff against vendored copy, fail on divergence (depends on #57)"
       }
     ],
+    "updated": "2026-08-03T02:51:05Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #128: CI vBRIEF schema sync check: fetch upstream `vbrief-core.schema.json` from `deftai/vBRIEF`, diff against vendored copy, fail on divergence (depends on #57)",
     "updated": "2026-08-03T02:51:05Z"
   }
 }

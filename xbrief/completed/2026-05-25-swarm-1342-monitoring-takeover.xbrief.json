@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for swarm work targeting #1342",
-    "updated": "2026-05-25T17:52:06.659198+00:00"
-  },
   "plan": {
     "title": "swarm: add monitoring and takeover support for spawn_subagent agents (slice 3 of #1342)",
     "status": "completed",
@@ -53,7 +48,17 @@
     "metadata": {
       "completedAt": "2026-05-25T22:42:12Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "default"
+      "capacityBucketSource": "default",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.319Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for swarm work targeting #1342",
+    "updated": "2026-05-25T17:52:06.659198+00:00"
   }
 }

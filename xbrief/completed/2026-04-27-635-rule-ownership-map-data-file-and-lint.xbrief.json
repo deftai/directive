@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF (#635 child): replace the descriptive Rule Ownership Map prose section being removed from REFERENCES.md by Unit B with a structural data file + lint enforcement. Per canonical #642 workflow comment locked decision: Rule Ownership Map respawns as enforceable structural artifact, not prose.",
-    "created": "2026-04-27T22:25:52Z",
-    "updated": "2026-09-29T16:13:09Z"
-  },
   "plan": {
     "id": "635-rule-ownership-map",
     "title": "Rule Ownership Map: data file + lint enforcement (replaces REFERENCES.md prose section)",
@@ -92,5 +86,11 @@
     ],
     "updated": "2026-09-29T16:13:09Z",
     "x-directive/completedNote": "Product already shipped via PR #705 (2026-04-28): content/conventions/rule-ownership.json + verify:rule-ownership. This tip proposed copy was leftover lifecycle debt after the land; completing clears finalize-owed unmarked compose against historical PR #401. Epic #635 stays open for remaining members."
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF (#635 child): replace the descriptive Rule Ownership Map prose section being removed from REFERENCES.md by Unit B with a structural data file + lint enforcement. Per canonical #642 workflow comment locked decision: Rule Ownership Map respawns as enforceable structural artifact, not prose.",
+    "created": "2026-04-27T22:25:52Z",
+    "updated": "2026-09-29T16:13:09Z"
   }
 }

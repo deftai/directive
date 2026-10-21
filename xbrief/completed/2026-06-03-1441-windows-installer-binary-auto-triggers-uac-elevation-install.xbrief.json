@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1441"
-  },
   "plan": {
     "title": "Windows installer binary auto-triggers UAC elevation (install-* filename heuristic + no asInvoker manifest); breaks headless --yes installs/upgrades",
     "status": "completed",
@@ -10,7 +6,12 @@
       "kind": "story",
       "completedAt": "2026-06-03T01:11:52Z",
       "capacityBucket": "technical-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.325Z",
+        "migration": true
+      }
     },
     "narratives": {
       "Description": "Windows installer binary auto-triggers UAC elevation (install-* filename heuristic + no asInvoker manifest); breaks headless --yes installs/upgrades",
@@ -52,5 +53,9 @@
       }
     ],
     "updated": "2026-06-03T01:11:29Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1441"
   }
 }

@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 1 decomposed from pending/2026-06-03-1475-task-check-type-check-parity-with-ci-run-mypy-over-tests-not.xbrief.json"
-  },
   "plan": {
     "id": "story-1475-mypy-parity",
     "title": "Bring task check mypy scope to parity with CI (cover tests/)",
@@ -70,7 +66,12 @@
       },
       "completedAt": "2026-06-03T22:21:16Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.327Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -81,5 +82,9 @@
       }
     ],
     "updated": "2026-06-03T21:37:43Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 1 decomposed from pending/2026-06-03-1475-task-check-type-check-parity-with-ci-run-mypy-over-tests-not.xbrief.json"
   }
 }

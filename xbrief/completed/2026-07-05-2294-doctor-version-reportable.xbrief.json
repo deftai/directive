@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #2294: make the doctor report an actionable signal when the install manifest carries an empty tag/ref (sha only), instead of leaving the framework version silently unreportable.",
-    "created": "2026-07-05T12:00:00Z",
-    "updated": "2026-07-05T12:00:00Z"
-  },
   "plan": {
     "id": "2294-doctor-version-reportable",
     "title": "Doctor-harden version reporting when VERSION manifest tag/ref is empty",
@@ -70,7 +64,12 @@
         "model_tier": "medium"
       },
       "completedAt": "2026-07-05T12:25:02Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.372Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -80,5 +79,11 @@
       }
     ],
     "updated": "2026-07-05T12:25:02Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #2294: make the doctor report an actionable signal when the install manifest carries an empty tag/ref (sha only), instead of leaving the framework version silently unreportable.",
+    "created": "2026-07-05T12:00:00Z",
+    "updated": "2026-07-05T12:00:00Z"
   }
 }

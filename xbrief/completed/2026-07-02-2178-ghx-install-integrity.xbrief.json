@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #2178: the native `setup:ghx` handler pipes remote install scripts straight into a shell from a mutable git tag with no integrity check, which trips Socket Security's AI-malware heuristic and blocks every consumer PR that bumps @deftai/directive. Fix: download to a temp file, verify against a vendored SHA-256, pin an immutable commit SHA instead of the mutable tag, and drop -ExecutionPolicy Bypass on the verified local file.",
-    "created": "2026-07-02T00:00:00Z",
-    "updated": "2026-07-02T00:00:00Z"
-  },
   "plan": {
     "id": "2178-ghx-install-integrity",
     "title": "Download-verify-execute the ghx installer instead of piping remote scripts into a shell",
@@ -76,7 +70,12 @@
         "file_scope_confidence": "high",
         "model_tier": "medium"
       },
-      "completedAt": "2026-07-02T18:56:57Z"
+      "completedAt": "2026-07-02T18:56:57Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.367Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -86,5 +85,11 @@
       }
     ],
     "updated": "2026-07-02T18:56:57Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #2178: the native `setup:ghx` handler pipes remote install scripts straight into a shell from a mutable git tag with no integrity check, which trips Socket Security's AI-malware heuristic and blocks every consumer PR that bumps @deftai/directive. Fix: download to a temp file, verify against a vendored SHA-256, pin an immutable commit SHA instead of the mutable tag, and drop -ExecutionPolicy Bypass on the verified local file.",
+    "created": "2026-07-02T00:00:00Z",
+    "updated": "2026-07-02T00:00:00Z"
   }
 }

@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Assign scope:complete ownership for stop-at:pr-open and add orphaned active/running xBRIEF guard.",
-    "created": "2026-07-22T05:00:00Z",
-    "updated": "2026-07-22T05:00:00Z"
-  },
   "plan": {
     "id": "2321-stop-at-pr-open-orphan-active",
     "title": "stop-at:pr-open must not leave orphaned active/running xBRIEFs on master",
@@ -76,7 +70,12 @@
         "model_tier": "medium",
         "missing_traces_justification": "Bug-fix from GitHub issue #2321; no FR trace registry for hotfix cohort."
       },
-      "completedAt": "2026-07-22T05:22:49Z"
+      "completedAt": "2026-07-22T05:22:49Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.382Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -91,5 +90,11 @@
       }
     ],
     "updated": "2026-07-22T05:22:49Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Assign scope:complete ownership for stop-at:pr-open and add orphaned active/running xBRIEF guard.",
+    "created": "2026-07-22T05:00:00Z",
+    "updated": "2026-07-22T05:00:00Z"
   }
 }

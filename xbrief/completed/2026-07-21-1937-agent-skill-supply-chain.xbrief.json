@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Inbound agent-skill supply-chain security pattern complementing Agent Trap Defenses (#480).",
-    "created": "2026-07-22T08:00:00Z",
-    "updated": "2026-07-22T08:00:00Z"
-  },
   "plan": {
     "id": "1937-agent-skill-supply-chain",
     "title": "feat(security,patterns): agent-skill supply-chain security (inbound)",
@@ -64,7 +58,12 @@
         "model_tier": "medium",
         "missing_traces_justification": "Patterns RFC from GitHub issue #1937; no FR trace registry for hotfix cohort."
       },
-      "completedAt": "2026-07-22T10:22:45Z"
+      "completedAt": "2026-07-22T10:22:45Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.382Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -79,5 +78,11 @@
       }
     ],
     "updated": "2026-07-22T10:22:45Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Inbound agent-skill supply-chain security pattern complementing Agent Trap Defenses (#480).",
+    "created": "2026-07-22T08:00:00Z",
+    "updated": "2026-07-22T08:00:00Z"
   }
 }

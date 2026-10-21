@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Bug in skills/deft-directive-review-cycle/SKILL.md Phase 2 Step 1: the dual-source fetch rule does not cover the cold-start case where the agent's first fetch lands before the bot reviewer (Greptile) has posted, leading to false-clean exit declarations on freshly-opened PRs.",
-    "created": "2026-05-03T01:53:52Z",
-    "updated": "2026-05-03T03:03:27Z"
-  },
   "plan": {
     "title": "Review-cycle dual-source fetch can miss late-arriving bot reviews",
     "status": "completed",
@@ -124,9 +118,20 @@
         ],
         "branch_name_suggestion": "fix/796-review-cycle-late-bot-reviews",
         "pr_title_suggestion": "fix(skills/review-cycle): re-fetch on cold-start to catch late-arriving bot reviews (#796)"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.302Z",
+        "migration": true
       }
     },
     "updated": "2026-05-03T04:38:16Z",
     "id": "796-review-cycle-late-arriving-bot-reviews"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Bug in skills/deft-directive-review-cycle/SKILL.md Phase 2 Step 1: the dual-source fetch rule does not cover the cold-start case where the agent's first fetch lands before the bot reviewer (Greptile) has posted, leading to false-clean exit declarations on freshly-opened PRs.",
+    "created": "2026-05-03T01:53:52Z",
+    "updated": "2026-05-03T03:03:27Z"
   }
 }

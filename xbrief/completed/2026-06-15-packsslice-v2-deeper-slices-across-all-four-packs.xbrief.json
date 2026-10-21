@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-15-1637-featpacks-packsslice-v2-remaining-lessons-slices-skillsrules.xbrief.json"
-  },
   "plan": {
     "id": "1637-s1-deeper-slices",
     "title": "packs:slice v2 -- deeper slices across all four packs",
@@ -77,7 +73,12 @@
         "missing_traces_justification": "Framework-internal packs:slice v2 work traced to GitHub issue #1637 and design RFC #1283; no specification.xbrief.json spec-section applies to maintainer tooling."
       },
       "completedAt": "2026-06-16T00:02:37Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.338Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -93,5 +94,9 @@
       }
     ],
     "updated": "2026-06-16T00:02:37Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-15-1637-featpacks-packsslice-v2-remaining-lessons-slices-skillsrules.xbrief.json"
   }
 }

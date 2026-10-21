@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #2111 (docs/skills/templates xbrief alignment); part of the #2034 decomposition.",
-    "created": "2026-06-30T14:30:00Z",
-    "updated": "2026-06-30T14:30:00Z"
-  },
   "plan": {
     "id": "2111-docs-skills-xbrief",
     "title": "Align docs, skills, and templates to xbrief naming and commands",
@@ -72,7 +66,12 @@
         "file_scope_confidence": "medium",
         "model_tier": "medium"
       },
-      "completedAt": "2026-07-01T19:12:57Z"
+      "completedAt": "2026-07-01T19:12:57Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.364Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -87,5 +86,11 @@
       }
     ],
     "updated": "2026-07-01T19:12:57Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #2111 (docs/skills/templates xbrief alignment); part of the #2034 decomposition.",
+    "created": "2026-06-30T14:30:00Z",
+    "updated": "2026-06-30T14:30:00Z"
   }
 }

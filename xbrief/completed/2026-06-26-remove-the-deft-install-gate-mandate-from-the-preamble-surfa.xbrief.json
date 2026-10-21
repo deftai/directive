@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 1 decomposed from completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.xbrief.json"
-  },
   "plan": {
     "id": "py-purge-gate-mandate-cleanup",
     "title": "Remove the deft-install gate mandate from the preamble surfaces (Phase 0)",
@@ -78,7 +74,12 @@
         "model_tier": "medium"
       },
       "completedAt": "2026-06-26T18:27:23Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.359Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -89,5 +90,9 @@
       }
     ],
     "updated": "2026-06-26T18:27:23Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 1 decomposed from completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.xbrief.json"
   }
 }

@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 1 decomposed from pending/2026-07-05-1703-version-eval-tiered-framework.xbrief.json"
-  },
   "plan": {
     "id": "1703-tier0-health",
     "title": "Tier 0 static self-consistency aggregation (eval:health)",
@@ -62,7 +58,12 @@
         "model_tier": "standard"
       },
       "completedAt": "2026-07-05T18:39:07Z",
-      "capacityBucket": "cognitive-debt"
+      "capacityBucket": "cognitive-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.371Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -79,5 +80,9 @@
       }
     ],
     "updated": "2026-07-05T18:39:07Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 1 decomposed from pending/2026-07-05-1703-version-eval-tiered-framework.xbrief.json"
   }
 }

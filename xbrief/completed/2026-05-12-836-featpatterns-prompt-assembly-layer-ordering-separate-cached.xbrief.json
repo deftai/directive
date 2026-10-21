@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #836",
-    "updated": "2026-05-12T23:50:41Z"
-  },
   "plan": {
     "title": "feat(patterns): prompt-assembly-layer-ordering — separate cached system prompt layers from ephemeral per-turn injections",
     "status": "completed",
@@ -30,6 +25,18 @@
         "title": "Structural dependency: #481 creates the patterns/ directory this story writes into"
       }
     ],
-    "updated": "2026-05-13T01:29:23Z"
+    "updated": "2026-05-13T01:29:23Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.311Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #836",
+    "updated": "2026-05-12T23:50:41Z"
   }
 }

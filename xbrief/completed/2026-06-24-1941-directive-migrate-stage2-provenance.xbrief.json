@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1941"
-  },
   "plan": {
     "title": "feat(cli): directive migrate (stage-2 canonical-vendored -> npm-hybrid) -- thin provenance verb",
     "status": "completed",
@@ -124,8 +120,17 @@
         "model_tier": "leaf-implementation",
         "missing_traces_justification": "Traced to GitHub issue #1941 (scope) + #1912 / #1933 / #1670 locked decisions and the existing doctor/manifest.ts + content-root.ts surfaces, not a spec section."
       },
-      "completedAt": "2026-06-24T21:33:21Z"
+      "completedAt": "2026-06-24T21:33:21Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.355Z",
+        "migration": true
+      }
     },
     "updated": "2026-06-24T21:33:21Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1941"
   }
 }

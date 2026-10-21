@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #1595 closeout and tracker reconciliation after #1871 merged.",
-    "created": "2026-06-22T19:18:30Z",
-    "updated": "2026-06-24T17:58:00Z"
-  },
   "plan": {
     "id": "1595-closeout-reconciliation",
     "title": "docs: reconcile codebase MAP rollout closeout",
@@ -152,8 +146,19 @@
         "file_scope_confidence": "medium",
         "model_tier": "standard"
       },
-      "completedAt": "2026-06-22T19:25:01Z"
+      "completedAt": "2026-06-22T19:25:01Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.351Z",
+        "migration": true
+      }
     },
+    "updated": "2026-06-24T17:58:00Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #1595 closeout and tracker reconciliation after #1871 merged.",
+    "created": "2026-06-22T19:18:30Z",
     "updated": "2026-06-24T17:58:00Z"
   }
 }

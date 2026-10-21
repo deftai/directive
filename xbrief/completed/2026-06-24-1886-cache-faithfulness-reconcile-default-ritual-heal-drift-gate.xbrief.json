@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1886"
-  },
   "plan": {
     "title": "fix(triage,cache): make the triage cache faithful to upstream state (reconcile-default + self-healing ritual + drift-aware freshness gate)",
     "status": "completed",
@@ -89,7 +85,16 @@
         "missing_traces_justification": "Traced to the evidence-closed forensic investigation in issue #1886 (root-cause facts 1-4 + proposed fix) rather than a spec section."
       },
       "capacityBucket": "bug-fix",
-      "completedAt": "2026-06-24T18:24:47Z"
+      "completedAt": "2026-06-24T18:24:47Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.354Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1886"
   }
 }

@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1413"
-  },
   "plan": {
     "title": "Always include upgrade guidance section at the top of directive release notes",
     "status": "completed",
@@ -10,7 +6,12 @@
       "kind": "story",
       "completedAt": "2026-06-02T23:30:27Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "default"
+      "capacityBucketSource": "default",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.323Z",
+        "migration": true
+      }
     },
     "narratives": {
       "Description": "Always include upgrade guidance section at the top of directive release notes",
@@ -50,5 +51,9 @@
       }
     ],
     "updated": "2026-06-02T23:30:14Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1413"
   }
 }

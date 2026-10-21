@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Inform users about human-readable exports during greenfield speckit runs via Artifacts Summary + end-of-Phase-3 prompt + optional task check nudge.",
-    "created": "2026-04-20T00:00:00Z",
-    "updated": "2026-04-20T00:00:00Z"
-  },
   "plan": {
     "id": "ga-433-greenfield-prd-spec-export-prompt",
     "title": "Greenfield projects can complete speckit with no PRD/SPECIFICATION export and no prompt",
@@ -54,6 +48,19 @@
         "id": "#403"
       }
     ],
-    "updated": "2026-04-20T18:44:13Z"
+    "updated": "2026-04-20T18:44:13Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.276Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Inform users about human-readable exports during greenfield speckit runs via Artifacts Summary + end-of-Phase-3 prompt + optional task check nudge.",
+    "created": "2026-04-20T00:00:00Z",
+    "updated": "2026-04-20T00:00:00Z"
   }
 }

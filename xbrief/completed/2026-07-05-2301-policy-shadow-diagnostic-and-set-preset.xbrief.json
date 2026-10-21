@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #2301",
-    "updated": "2026-07-05T14:04:57Z"
-  },
   "plan": {
     "title": "stray bare plan.policy silently ignored when x-directive/policy exists (triageScope not applied, no warning)",
     "status": "completed",
@@ -57,7 +52,17 @@
       "kind": "story",
       "capacityBucket": "technical-debt",
       "capacityBucketSource": "match",
-      "completedAt": "2026-07-05T14:12:28Z"
+      "completedAt": "2026-07-05T14:12:28Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.372Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #2301",
+    "updated": "2026-07-05T14:04:57Z"
   }
 }

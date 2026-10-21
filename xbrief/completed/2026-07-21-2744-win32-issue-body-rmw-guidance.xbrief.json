@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Always-load win32 issue-body RMW footgun guidance pointing at #2607 scm:body:issue:fetch + postcondition verify.",
-    "created": "2026-07-22T01:35:00Z",
-    "updated": "2026-07-22T02:55:00Z"
-  },
   "plan": {
     "id": "2744-win32-issue-body-rmw-guidance",
     "title": "docs/process: always-load win32 issue-body RMW footgun (PS string[]/OFS)",
@@ -72,7 +66,12 @@
         "model_tier": "medium",
         "missing_traces_justification": "Documentation/process gap from GitHub issue #2744 after #2607 helper landed; no FR trace registry for hotfix cohort."
       },
-      "completedAt": "2026-07-22T05:11:29Z"
+      "completedAt": "2026-07-22T05:11:29Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.383Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -87,5 +86,11 @@
       }
     ],
     "updated": "2026-07-22T05:11:29Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Always-load win32 issue-body RMW footgun guidance pointing at #2607 scm:body:issue:fetch + postcondition verify.",
+    "created": "2026-07-22T01:35:00Z",
+    "updated": "2026-07-22T02:55:00Z"
   }
 }

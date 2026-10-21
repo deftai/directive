@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story 1 of #845 triage v1: cache infra + #583 injection quarantine. Implements `.deft-cache/issues/<repo>/<N>.{json,md}` local mirror, `task triage:cache` (populate), `task triage:show` (inspect), gitcrawl install/wrapper. Owner: Agent A1 (wave 1, parallel with A2).",
-    "created": "2026-05-03T16:15:00Z",
-    "updated": "2026-05-03T16:15:00Z"
-  },
   "plan": {
     "id": "845-story-1-triage-cache-infra",
     "title": "feat(scripts,tasks): triage cache infra + #583 quarantine on cache path",
@@ -75,6 +69,11 @@
           "docs/quarantine-spec.md (Agent A6)",
           "docs/privacy-nfr.md (Agent A6)"
         ]
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.303Z",
+        "migration": true
       }
     },
     "references": [
@@ -95,5 +94,11 @@
       }
     ],
     "updated": "2026-05-03T20:47:55Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story 1 of #845 triage v1: cache infra + #583 injection quarantine. Implements `.deft-cache/issues/<repo>/<N>.{json,md}` local mirror, `task triage:cache` (populate), `task triage:show` (inspect), gitcrawl install/wrapper. Owner: Agent A1 (wave 1, parallel with A2).",
+    "created": "2026-05-03T16:15:00Z",
+    "updated": "2026-05-03T16:15:00Z"
   }
 }

@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Epic scope vBRIEF for issue #1387 -- low-ceremony / headless swarm launch for pre-approved cohorts (builds on the merged #1378 allocation-context token)",
-    "updated": "2026-06-01T05:00:00Z"
-  },
   "plan": {
     "id": "1387-headless-swarm-launch",
     "title": "Low-ceremony / headless swarm launch for pre-approved cohorts",
@@ -50,8 +45,18 @@
       "kind": "epic",
       "completedAt": "2026-06-01T05:00:49Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.322Z",
+        "migration": true
+      }
     },
+    "updated": "2026-06-01T05:00:00Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Epic scope vBRIEF for issue #1387 -- low-ceremony / headless swarm launch for pre-approved cohorts (builds on the merged #1378 allocation-context token)",
     "updated": "2026-06-01T05:00:00Z"
   }
 }

@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #2069 — port framework:check-updates off legacy run/Python",
-    "updated": "2026-06-29T01:05:25Z"
-  },
   "plan": {
     "id": "story-framework-check-updates-ts",
     "title": "Port framework:check-updates to the TypeScript engine",
@@ -59,7 +54,12 @@
         "model_tier": "fast"
       },
       "capacityBucket": "maintenance",
-      "completedAt": "2026-06-29T01:18:02Z"
+      "completedAt": "2026-06-29T01:18:02Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.361Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -70,5 +70,10 @@
       }
     ],
     "updated": "2026-06-29T01:18:02Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #2069 — port framework:check-updates off legacy run/Python",
+    "updated": "2026-06-29T01:05:25Z"
   }
 }

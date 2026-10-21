@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for preparing PR #441 (deft-glossary skill) for merge"
-  },
   "plan": {
     "title": "feat(skills): prepare PR #441 deft-glossary for merge -- rename to deft-directive-glossary + .agents stub + AGENTS.md routing + CHANGELOG + rebase",
     "status": "completed",
@@ -90,8 +86,17 @@
         "pr_author": "visionik",
         "greptile_findings": "1xP1 (missing AGENTS.md routing entry), 1xP2 (missing CHANGELOG entry); cleared by acceptance items 5 + 6",
         "test_contracts_unblocked": "test_skills_dir_only_deft_directive_prefixed, test_skills_dir_has_no_bare_deft_prefix, test_agents_md_routing_path_exists, test_agents_md_routing_uses_directive_prefix"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.309Z",
+        "migration": true
       }
     },
     "updated": "2026-05-11T03:29:19Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for preparing PR #441 (deft-glossary skill) for merge"
   }
 }

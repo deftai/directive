@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF: D1 (#1121) -- scope:demote + --batch + demote_meta audit instrumentation.",
-    "updated": "2026-05-19T21:22:20Z"
-  },
   "plan": {
     "title": "feat(scope): scope:demote + --batch + demote_meta audit instrumentation (#1121)",
     "status": "completed",
@@ -29,7 +24,17 @@
     "metadata": {
       "completedAt": "2026-05-19T21:23:39Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.311Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF: D1 (#1121) -- scope:demote + --batch + demote_meta audit instrumentation.",
+    "updated": "2026-05-19T21:22:20Z"
   }
 }

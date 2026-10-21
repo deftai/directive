@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1419"
-  },
   "plan": {
     "title": "RFC: Agentic Prioritization & Coordination Model for Deft Directive",
     "status": "completed",
@@ -78,8 +74,17 @@
       "kind": "epic",
       "completedAt": "2026-06-05T01:04:27Z",
       "capacityBucket": "cognitive-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.328Z",
+        "migration": true
+      }
     },
     "updated": "2026-06-05T01:04:27Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1419"
   }
 }

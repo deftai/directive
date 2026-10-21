@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 1 decomposed from pending/2026-06-08-1531-swarm-opt-in-tiered-heterogeneous-dispatch-strong-model-orch.xbrief.json"
-  },
   "plan": {
     "id": "1531a-subagent-backend-policy-and-probe",
     "title": "Add persistent sub-agent backend policy and availability gate",
@@ -71,7 +67,12 @@
       },
       "completedAt": "2026-06-08T01:15:37Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.331Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -88,5 +89,9 @@
       }
     ],
     "updated": "2026-06-08T01:15:37Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 1 decomposed from pending/2026-06-08-1531-swarm-opt-in-tiered-heterogeneous-dispatch-strong-model-orch.xbrief.json"
   }
 }

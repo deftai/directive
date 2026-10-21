@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF (#757): Add `strategies/probe.md` adversarial-stress-test strategy and two new gh-backed skills (`deft-directive-gh-slice` for SPEC->issue slicing, `deft-directive-gh-triage` for bug-report investigation). Re-author of closed PR #440 on top of current master with proper vBRIEF coverage, stub-pattern compliance for skill discoverability, and a CHANGELOG entry. Skills use the canonical `deft-directive-*` prefix per `tests/content/test_vbrief_model.py::test_skills_dir_only_deft_directive_prefixed`.",
-    "created": "2026-05-11T01:25:00Z",
-    "updated": "2026-05-11T01:29:18Z"
-  },
   "plan": {
     "id": "757-probe-strategy-and-deft-gh-skills",
     "title": "Add probe strategy + deft-gh-slice/triage skills (re-author of #440)",
@@ -126,7 +120,12 @@
         "depends_on": [],
         "blocks": []
       },
-      "x-skills-pattern-note": "Each new skill ships in two locations: `skills/<name>/SKILL.md` (canonical body) and `.agents/skills/<name>/SKILL.md` (agent-discoverable stub with frontmatter description). PR #440's original placement (canonical-only) would have left the new skills invisible to the agent runtime."
+      "x-skills-pattern-note": "Each new skill ships in two locations: `skills/<name>/SKILL.md` (canonical body) and `.agents/skills/<name>/SKILL.md` (agent-discoverable stub with frontmatter description). PR #440's original placement (canonical-only) would have left the new skills invisible to the agent runtime.",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.309Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -146,5 +145,11 @@
       }
     ],
     "updated": "2026-05-11T01:58:59Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF (#757): Add `strategies/probe.md` adversarial-stress-test strategy and two new gh-backed skills (`deft-directive-gh-slice` for SPEC->issue slicing, `deft-directive-gh-triage` for bug-report investigation). Re-author of closed PR #440 on top of current master with proper vBRIEF coverage, stub-pattern compliance for skill discoverability, and a CHANGELOG entry. Skills use the canonical `deft-directive-*` prefix per `tests/content/test_vbrief_model.py::test_skills_dir_only_deft_directive_prefixed`.",
+    "created": "2026-05-11T01:25:00Z",
+    "updated": "2026-05-11T01:29:18Z"
   }
 }

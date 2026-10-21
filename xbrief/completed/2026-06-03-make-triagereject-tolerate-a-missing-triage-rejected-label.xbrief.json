@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 1 decomposed from pending/2026-06-03-1420-triagereject-fails-when-triage-rejected-label-does-not-exist.xbrief.json"
-  },
   "plan": {
     "id": "story-1420-triage-reject-missing-label",
     "title": "Make triage:reject tolerate a missing triage-rejected label",
@@ -69,7 +65,12 @@
       },
       "completedAt": "2026-06-03T22:21:16Z",
       "capacityBucket": "technical-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.328Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -80,5 +81,9 @@
       }
     ],
     "updated": "2026-06-03T21:37:44Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 1 decomposed from pending/2026-06-03-1420-triagereject-fails-when-triage-rejected-label-does-not-exist.xbrief.json"
   }
 }

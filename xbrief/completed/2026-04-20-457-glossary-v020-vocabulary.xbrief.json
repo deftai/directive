@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Single canonical vocabulary surface for v0.20 terms, 13 required entries, cross-refs from vbrief.md/README/UPGRADING, content test, strict scope cap.",
-    "created": "2026-04-20T00:00:00Z",
-    "updated": "2026-04-20T00:00:00Z"
-  },
   "plan": {
     "id": "ga-457-glossary-v020-vocabulary",
     "title": "v0.20.0 GA blocker: add deft/glossary.md with v0.20 canonical vocabulary",
@@ -59,6 +53,19 @@
         "id": "#403"
       }
     ],
-    "updated": "2026-04-20T18:44:14Z"
+    "updated": "2026-04-20T18:44:14Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.276Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Single canonical vocabulary surface for v0.20 terms, 13 required entries, cross-refs from vbrief.md/README/UPGRADING, content test, strict scope cap.",
+    "created": "2026-04-20T00:00:00Z",
+    "updated": "2026-04-20T00:00:00Z"
   }
 }

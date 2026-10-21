@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #1889 terminal epic render/validation agreement.",
-    "created": "2026-06-22T20:37:33Z",
-    "updated": "2026-06-22T20:43:35Z"
-  },
   "plan": {
     "id": "1889-terminal-epic-render-validation",
     "title": "fix(vbrief): allow terminal epic child links to validate",
@@ -78,8 +72,8 @@
           "git diff --check"
         ],
         "expected_outputs": [
-        "registry items may reference child scopes with independent lifecycle statuses",
-        "source_path status mismatches still fail registry-status"
+          "registry items may reference child scopes with independent lifecycle statuses",
+          "source_path status mismatches still fail registry-status"
         ],
         "depends_on": [
           "https://github.com/deftai/directive/pull/1885"
@@ -89,8 +83,19 @@
         "file_scope_confidence": "medium",
         "model_tier": "standard"
       },
-      "completedAt": "2026-06-22T20:41:33Z"
+      "completedAt": "2026-06-22T20:41:33Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.352Z",
+        "migration": true
+      }
     },
+    "updated": "2026-06-22T20:43:35Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #1889 terminal epic render/validation agreement.",
+    "created": "2026-06-22T20:37:33Z",
     "updated": "2026-06-22T20:43:35Z"
   }
 }

@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1096"
-  },
   "plan": {
     "title": "fix(scripts): task issue:ingest dedup is too broad -- non-provenance references trigger false-positive blocks",
     "status": "completed",
@@ -34,6 +30,17 @@
         "title": "Deferred consumer: #949 (scanner v3 categories) was blocked by this dedup false positive during the 2026-05-12 refinement; ingest once #1096 lands"
       }
     ],
-    "updated": "2026-05-12T23:25:59Z"
+    "updated": "2026-05-12T23:25:59Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.310Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1096"
   }
 }

@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #2295 (P1 slice): implement `deft triage:welcome --onboard` in the TypeScript CLI so the command every welcome nudge points at actually completes onboarding instead of exiting 2. P2 (set-preset writer + stray-plan.policy warn) and P3 (papercuts) are deferred to separate stories.",
-    "created": "2026-07-05T13:00:00Z",
-    "updated": "2026-07-05T13:00:00Z"
-  },
   "plan": {
     "id": "2295-triage-welcome-onboard",
     "title": "Implement triage:welcome --onboard in the TS CLI (kill the dead-end nudge loop)",
@@ -73,7 +67,12 @@
         "model_tier": "medium"
       },
       "completedAt": "2026-07-05T13:33:26Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.372Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -83,5 +82,11 @@
       }
     ],
     "updated": "2026-07-05T13:33:26Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #2295 (P1 slice): implement `deft triage:welcome --onboard` in the TypeScript CLI so the command every welcome nudge points at actually completes onboarding instead of exiting 2. P2 (set-preset writer + stray-plan.policy warn) and P3 (papercuts) are deferred to separate stories.",
+    "created": "2026-07-05T13:00:00Z",
+    "updated": "2026-07-05T13:00:00Z"
   }
 }

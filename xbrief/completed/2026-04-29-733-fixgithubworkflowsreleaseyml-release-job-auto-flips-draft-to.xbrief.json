@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #733",
-    "updated": "2026-04-30T13:58:20Z"
-  },
   "plan": {
     "title": "fix(.github/workflows/release.yml): release job auto-flips draft to public, bypassing #716 / Phase 5 user-only authority gate",
     "status": "completed",
@@ -48,6 +43,18 @@
         "title": "Issue #733: fix(.github/workflows/release.yml): release job auto-flips draft to public, bypassing #716 / Phase 5 user-only authority gate"
       }
     ],
+    "updated": "2026-04-30T13:58:20Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.298Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #733",
     "updated": "2026-04-30T13:58:20Z"
   }
 }

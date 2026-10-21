@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF: D5 (#1127) -- task verify:cache-fresh pre-start_agent gate (subscription-aware).",
-    "updated": "2026-05-19T21:22:20Z"
-  },
   "plan": {
     "title": "feat(verify): verify:cache-fresh pre-start_agent gate (subscription-aware) (#1127)",
     "status": "completed",
@@ -35,7 +30,17 @@
     "metadata": {
       "completedAt": "2026-05-19T21:23:39Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.312Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF: D5 (#1127) -- task verify:cache-fresh pre-start_agent gate (subscription-aware).",
+    "updated": "2026-05-19T21:22:20Z"
   }
 }

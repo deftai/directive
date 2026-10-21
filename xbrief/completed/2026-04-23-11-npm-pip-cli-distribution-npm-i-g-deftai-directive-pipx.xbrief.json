@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for #11: NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)",
-    "updated": "2026-06-24T10:59:36Z"
-  },
   "plan": {
     "title": "NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)",
     "status": "completed",
@@ -21,7 +16,12 @@
         "SourceConflict": "missing-from-spec",
         "Phase_source": "pre-migration ROADMAP (commit 3925468)"
       },
-      "kind": "epic"
+      "kind": "epic",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.281Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -72,6 +72,11 @@
         "TrustLevel": "internal"
       }
     ],
+    "updated": "2026-06-24T10:59:36Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #11: NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)",
     "updated": "2026-06-24T10:59:36Z"
   }
 }

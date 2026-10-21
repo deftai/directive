@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1637",
-    "updated": "2026-06-16T13:15:41Z"
-  },
   "plan": {
     "title": "feat(packs): packs:slice v2 -- remaining lessons slices + skills/rules/strategies pack surfaces",
     "status": "completed",
@@ -15,7 +10,12 @@
       "Labels": "enhancement"
     },
     "metadata": {
-      "kind": "epic"
+      "kind": "epic",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.338Z",
+        "migration": true
+      }
     },
     "items": [
       {
@@ -110,6 +110,11 @@
         "TrustLevel": "internal"
       }
     ],
+    "updated": "2026-06-16T13:15:41Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1637",
     "updated": "2026-06-16T13:15:41Z"
   }
 }

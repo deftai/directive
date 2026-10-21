@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #2128 (canonicalize emit-site reference tokens to x-xbrief/ and make non-validate reader matchers dual-namespace); follow-up to #2109.",
-    "created": "2026-07-01T13:00:00Z",
-    "updated": "2026-07-01T13:00:00Z"
-  },
   "plan": {
     "id": "2128-canonicalize-emit-tokens",
     "title": "Canonicalize emit-site reference tokens to x-xbrief/ and dual-namespace reader matchers",
@@ -79,7 +73,12 @@
         "file_scope_confidence": "medium",
         "model_tier": "medium"
       },
-      "completedAt": "2026-07-01T19:12:58Z"
+      "completedAt": "2026-07-01T19:12:58Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.365Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -94,5 +93,11 @@
       }
     ],
     "updated": "2026-07-01T19:12:58Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #2128 (canonicalize emit-site reference tokens to x-xbrief/ and make non-validate reader matchers dual-namespace); follow-up to #2109.",
+    "created": "2026-07-01T13:00:00Z",
+    "updated": "2026-07-01T13:00:00Z"
   }
 }

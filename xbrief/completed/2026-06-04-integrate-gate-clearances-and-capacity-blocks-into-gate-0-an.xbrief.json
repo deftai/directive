@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 7 decomposed from proposed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.xbrief.json"
-  },
   "plan": {
     "id": "enforcement-and-launch-integration",
     "title": "Integrate gate clearances and capacity blocks into Gate 0 and swarm:launch",
@@ -73,7 +69,12 @@
       },
       "completedAt": "2026-06-05T01:04:06Z",
       "capacityBucket": "cognitive-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.329Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -89,5 +90,9 @@
       }
     ],
     "updated": "2026-06-05T01:04:06Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 7 decomposed from proposed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.xbrief.json"
   }
 }

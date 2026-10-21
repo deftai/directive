@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 2 decomposed from proposed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.xbrief.json"
-  },
   "plan": {
     "id": "continuation-precedence-selection",
     "title": "Add continuation precedence and deficit-biased selection to the queue",
@@ -72,7 +68,12 @@
       },
       "completedAt": "2026-06-05T00:18:24Z",
       "capacityBucket": "cognitive-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.329Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -88,5 +89,9 @@
       }
     ],
     "updated": "2026-06-05T00:18:24Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 2 decomposed from proposed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.xbrief.json"
   }
 }

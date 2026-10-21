@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #900",
-    "updated": "2026-05-05T01:36:03Z"
-  },
   "plan": {
     "title": "task triage:bootstrap and task triage:cache populate cannot scope or filter the issue cache",
     "status": "completed",
@@ -46,7 +41,17 @@
         ],
         "branch": "fix/triage-cache-filters",
         "pr_title_prefix": "feat(triage):"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.303Z",
+        "migration": true
       }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #900",
+    "updated": "2026-05-05T01:36:03Z"
   }
 }

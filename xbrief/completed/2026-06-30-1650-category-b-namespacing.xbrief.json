@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #1650 (Category B corpus namespacing + allow-list removal); part of the #2034 decomposition.",
-    "created": "2026-06-30T14:30:00Z",
-    "updated": "2026-06-30T14:30:00Z"
-  },
   "plan": {
     "id": "1650-category-b-namespacing",
     "title": "Category B corpus namespacing and conformance allow-list removal",
@@ -73,7 +67,12 @@
         "model_tier": "high"
       },
       "completedAt": "2026-06-30T17:35:31Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.363Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -88,5 +87,11 @@
       }
     ],
     "updated": "2026-06-30T17:35:31Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #1650 (Category B corpus namespacing + allow-list removal); part of the #2034 decomposition.",
+    "created": "2026-06-30T14:30:00Z",
+    "updated": "2026-06-30T14:30:00Z"
   }
 }

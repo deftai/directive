@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #686",
-    "updated": "2026-05-12T23:51:42Z"
-  },
   "plan": {
     "title": "feat(coding): tool-call safety is independent of text-level safety — add as named security rule",
     "status": "completed",
@@ -30,6 +25,18 @@
         "title": "Structural dependency: #661 creates coding/security.md which this story extends with the tool-call-safety rule"
       }
     ],
-    "updated": "2026-05-13T01:29:22Z"
+    "updated": "2026-05-13T01:29:22Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.310Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #686",
+    "updated": "2026-05-12T23:51:42Z"
   }
 }

@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 6 decomposed from completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.xbrief.json"
-  },
   "plan": {
     "id": "py-purge-setup-ghx-ts-or-drop",
     "title": "Port setup:ghx to a native TypeScript verb and mark ghx a supported consumer capability (Phase 1)",
@@ -83,7 +79,12 @@
         "model_tier": "high"
       },
       "completedAt": "2026-06-28T18:02:49Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.359Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -94,5 +95,9 @@
       }
     ],
     "updated": "2026-06-28T18:02:49Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 6 decomposed from completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.xbrief.json"
   }
 }

@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Adoption blocker: scripts/release.py only checks tag availability at Step 9 of a 12-step pipeline, after Steps 1-8 have already promoted CHANGELOG, rendered ROADMAP, built dist artifacts, and made a release commit locally. A duplicate-tag failure at Step 9 strands the operator with manual recovery via git reset --hard.",
-    "created": "2026-05-03T01:53:52Z",
-    "updated": "2026-05-03T03:00:45Z"
-  },
   "plan": {
     "title": "fix(scripts/release.py): pre-flight should verify release tag is available before state mutation",
     "status": "completed",
@@ -135,9 +129,20 @@
         ],
         "branch_name_suggestion": "fix/784-release-preflight-tag-availability",
         "pr_title_suggestion": "fix(scripts/release.py): verify release tag is available before state mutation (#784)"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.302Z",
+        "migration": true
       }
     },
     "updated": "2026-05-03T04:38:18Z",
     "id": "784-release-preflight-tag-availability"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Adoption blocker: scripts/release.py only checks tag availability at Step 9 of a 12-step pipeline, after Steps 1-8 have already promoted CHANGELOG, rendered ROADMAP, built dist artifacts, and made a release commit locally. A duplicate-tag failure at Step 9 strands the operator with manual recovery via git reset --hard.",
+    "created": "2026-05-03T01:53:52Z",
+    "updated": "2026-05-03T03:00:45Z"
   }
 }

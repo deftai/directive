@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Fix project_render.py SKELETON_NARRATIVES to use the lowercase-space 'tech stack' key so task project:render skeletons pass task vbrief:validate.",
-    "created": "2026-04-16T00:00:00Z",
-    "updated": "2026-04-16T00:00:00Z"
-  },
   "plan": {
     "id": "fix-405-project-render-tech-stack-key",
     "title": "fix(scripts): project_render.py SKELETON_NARRATIVES TechStack key breaks vbrief:validate",
@@ -44,6 +38,19 @@
         "id": "#402"
       }
     ],
-    "updated": "2026-04-20T17:07:59Z"
+    "updated": "2026-04-20T17:07:59Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.275Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Fix project_render.py SKELETON_NARRATIVES to use the lowercase-space 'tech stack' key so task project:render skeletons pass task vbrief:validate.",
+    "created": "2026-04-16T00:00:00Z",
+    "updated": "2026-04-16T00:00:00Z"
   }
 }

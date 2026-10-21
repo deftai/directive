@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #1295 (feat(packs): skills-pack-0.1 -- second tier-3 pack); scope finalized after the #1294 lessons pilot proved the pattern and #1637/#1643 landed pack discovery. Part of the #742 / #1284 decomposition.",
-    "created": "2026-05-21T16:32:24Z",
-    "updated": "2026-06-15T15:00:00Z"
-  },
   "plan": {
     "id": "1295-skills-pack",
     "title": "skills-pack-0.1 -- second tier-3 pack (generalizes the #1294 machinery)",
@@ -79,7 +73,12 @@
         "model_tier": "standard"
       },
       "completedAt": "2026-06-15T15:54:33Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.318Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -104,5 +103,11 @@
       }
     ],
     "updated": "2026-06-15T15:54:33Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #1295 (feat(packs): skills-pack-0.1 -- second tier-3 pack); scope finalized after the #1294 lessons pilot proved the pattern and #1637/#1643 landed pack discovery. Part of the #742 / #1284 decomposition.",
+    "created": "2026-05-21T16:32:24Z",
+    "updated": "2026-06-15T15:00:00Z"
   }
 }

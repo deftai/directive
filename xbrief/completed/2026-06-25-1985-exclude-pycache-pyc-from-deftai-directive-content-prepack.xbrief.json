@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1985"
-  },
   "plan": {
     "title": "Exclude __pycache__/*.pyc from @deftai/directive-content prepack",
     "status": "completed",
@@ -32,7 +28,16 @@
     "updated": "2026-06-25T14:53:08Z",
     "metadata": {
       "capacityBucket": "maintenance",
-      "completedAt": "2026-06-25T14:53:08Z"
+      "completedAt": "2026-06-25T14:53:08Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.357Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1985"
   }
 }

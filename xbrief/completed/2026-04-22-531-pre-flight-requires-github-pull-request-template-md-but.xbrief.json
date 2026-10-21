@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "updated": "2026-04-22T17:08:14Z"
-  },
   "plan": {
     "title": "refinement: Pre-Flight requires .github/PULL_REQUEST_TEMPLATE.md but deft does not scaffold one",
     "status": "completed",
@@ -16,6 +12,17 @@
         "id": "#531"
       }
     ],
+    "updated": "2026-04-22T17:08:14Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.278Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
     "updated": "2026-04-22T17:08:14Z"
   }
 }

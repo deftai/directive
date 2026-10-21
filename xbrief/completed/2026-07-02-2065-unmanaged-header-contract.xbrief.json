@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #2065: retire the rot-prone unmanaged AGENTS.md project-header pattern (Status/Next/Known Issues) for consumer scaffolds and document canonical session-orientation sources. Option A (recommended). Child of #1882.",
-    "created": "2026-07-02T00:00:00Z",
-    "updated": "2026-07-02T00:00:00Z"
-  },
   "plan": {
     "id": "2065-unmanaged-header-contract",
     "title": "Retire the rot-prone unmanaged AGENTS.md header pattern (Option A) + document canonical orientation sources",
@@ -79,7 +73,12 @@
         "file_scope_confidence": "medium",
         "model_tier": "high"
       },
-      "completedAt": "2026-07-02T14:46:08Z"
+      "completedAt": "2026-07-02T14:46:08Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.366Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -94,5 +93,11 @@
       }
     ],
     "updated": "2026-07-02T14:46:08Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #2065: retire the rot-prone unmanaged AGENTS.md project-header pattern (Status/Next/Known Issues) for consumer scaffolds and document canonical session-orientation sources. Option A (recommended). Child of #1882.",
+    "created": "2026-07-02T00:00:00Z",
+    "updated": "2026-07-02T00:00:00Z"
   }
 }

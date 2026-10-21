@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for #236: fix(docs): Get-Content -Raw UTF-8 footgun + BOM-safe round-trip rules for PS 5.1 -- scm/github.md PS 5.1 section updated with ! rules",
-    "updated": "2026-04-23T14:30:07Z"
-  },
   "plan": {
     "title": "fix(docs): Get-Content -Raw UTF-8 footgun + BOM-safe round-trip rules for PS 5.1 -- scm/github.md PS 5.1 section updated with ! rules",
     "status": "completed",
@@ -18,6 +13,11 @@
         "Description_source": "ROADMAP.md",
         "Status_source": "orphan: ROADMAP Completed section (#593)",
         "SourceConflict": "missing-from-spec"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.287Z",
+        "migration": true
       }
     },
     "references": [
@@ -27,5 +27,10 @@
         "title": "Issue #236: fix(docs): Get-Content -Raw UTF-8 footgun + BOM-safe round-trip rules for PS 5.1 -- scm/github.md PS 5.1 section updated with ! rules"
       }
     ]
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #236: fix(docs): Get-Content -Raw UTF-8 footgun + BOM-safe round-trip rules for PS 5.1 -- scm/github.md PS 5.1 section updated with ! rules",
+    "updated": "2026-04-23T14:30:07Z"
   }
 }

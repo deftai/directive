@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #1290 (feat(vbrief): reconcile_issues.py honors stateReason); part of the #742 decomposition.",
-    "created": "2026-05-21T16:32:24Z",
-    "updated": "2026-06-14T23:55:00Z"
-  },
   "plan": {
     "id": "1290-reconcile-state-reason",
     "title": "reconcile_issues.py honors stateReason + primary-reference filter (NOT_PLANNED -> cancelled/, Axis B canonical-issue resolution)",
@@ -80,7 +74,12 @@
         "model_tier": "standard"
       },
       "completedAt": "2026-06-15T00:41:03Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.318Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -95,5 +94,11 @@
       }
     ],
     "updated": "2026-06-15T00:41:03Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #1290 (feat(vbrief): reconcile_issues.py honors stateReason); part of the #742 decomposition.",
+    "created": "2026-05-21T16:32:24Z",
+    "updated": "2026-06-14T23:55:00Z"
   }
 }

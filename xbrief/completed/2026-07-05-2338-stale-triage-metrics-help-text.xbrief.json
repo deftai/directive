@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for #2338: update stale triage:metrics help registry entry",
-    "updated": "2026-07-06T00:55:56Z"
-  },
   "plan": {
     "title": "#2338: Fix stale triage:metrics help text",
     "status": "completed",
@@ -41,8 +36,18 @@
       }
     ],
     "metadata": {
-      "capacityBucket": "maintenance"
+      "capacityBucket": "maintenance",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.373Z",
+        "migration": true
+      }
     },
+    "updated": "2026-07-06T00:55:56Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #2338: update stale triage:metrics help registry entry",
     "updated": "2026-07-06T00:55:56Z"
   }
 }

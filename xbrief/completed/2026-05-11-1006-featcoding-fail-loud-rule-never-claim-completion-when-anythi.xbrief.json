@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1006",
-    "updated": "2026-05-11T22:23:07Z"
-  },
   "plan": {
     "title": "feat(coding): fail-loud rule — never claim completion when anything was skipped silently",
     "status": "completed",
@@ -24,6 +19,18 @@
         "title": "Issue #1006: feat(coding): fail-loud rule — never claim completion when anything was skipped silently"
       }
     ],
+    "updated": "2026-05-11T22:23:07Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.307Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1006",
     "updated": "2026-05-11T22:23:07Z"
   }
 }

@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1528"
-  },
   "plan": {
     "title": "fix(install): strengthen zip-slip barrier at source + sink to clear go/zipslip alert #6 (follow-up to #1525)",
     "status": "completed",
@@ -45,7 +41,16 @@
     "metadata": {
       "completedAt": "2026-06-05T22:40:18Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "default"
+      "capacityBucketSource": "default",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.330Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1528"
   }
 }

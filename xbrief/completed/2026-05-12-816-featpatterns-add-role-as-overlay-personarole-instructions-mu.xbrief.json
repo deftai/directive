@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #816",
-    "updated": "2026-05-12T23:50:25Z"
-  },
   "plan": {
     "title": "feat(patterns): add role-as-overlay — persona/role instructions must be system-prompt overlays, never injected into message history",
     "status": "completed",
@@ -30,6 +25,18 @@
         "title": "Structural dependency: #481 creates the patterns/ directory this story writes into"
       }
     ],
-    "updated": "2026-05-13T01:29:22Z"
+    "updated": "2026-05-13T01:29:22Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.311Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #816",
+    "updated": "2026-05-12T23:50:25Z"
   }
 }

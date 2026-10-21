@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #645 (encode + enforce the AGENTS.md line-budget ceiling with a deterministic gate); child of the #1882 map-not-manual umbrella.",
-    "created": "2026-07-01T00:00:00Z",
-    "updated": "2026-07-01T00:00:00Z"
-  },
   "plan": {
     "id": "645-agents-md-size-budget-gate",
     "title": "Encode and enforce an AGENTS.md line-budget ceiling with a deterministic gate",
@@ -78,7 +72,12 @@
         "file_scope_confidence": "medium",
         "model_tier": "medium"
       },
-      "completedAt": "2026-07-02T00:42:59Z"
+      "completedAt": "2026-07-02T00:42:59Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.366Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -93,5 +92,11 @@
       }
     ],
     "updated": "2026-07-02T00:42:59Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #645 (encode + enforce the AGENTS.md line-budget ceiling with a deterministic gate); child of the #1882 map-not-manual umbrella.",
+    "created": "2026-07-01T00:00:00Z",
+    "updated": "2026-07-01T00:00:00Z"
   }
 }

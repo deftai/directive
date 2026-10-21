@@ -1,11 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "author": "agent-doctor",
-    "description": "Scope vBRIEF for #1427 (doctor half): make scripts/doctor.py a tolerant manifest reader via a centralized canonical-first _locate_manifest helper so webinstaller-vendored installs whose manifest is at .deft/VERSION are detected.",
-    "created": "2026-06-02T22:00:00Z",
-    "updated": "2026-06-02T22:05:00Z"
-  },
   "plan": {
     "title": "v0.39.2 doctor manifest tolerant-read (canonical-first _locate_manifest)",
     "status": "completed",
@@ -14,7 +7,12 @@
       "swarm": true,
       "completedAt": "2026-06-02T22:57:47Z",
       "capacityBucket": "technical-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.323Z",
+        "migration": true
+      }
     },
     "narratives": {
       "Problem": "The install provenance manifest is written to two different paths by two install rails. The Go installer writes the canonical <install>/VERSION (.deft/core/VERSION, #1062); the webinstaller writes .deft/VERSION (omitting install_root). scripts/doctor.py only reads .deft/core/VERSION and legacy deft/VERSION, so a webinstaller-vendored install is invisible to manifest-agreement, install-path-consistency, and the #1339 payload-staleness handoff.",
@@ -58,5 +56,12 @@
     ],
     "created": "2026-06-02T22:00:00Z",
     "updated": "2026-06-02T22:57:46Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "author": "agent-doctor",
+    "description": "Scope vBRIEF for #1427 (doctor half): make scripts/doctor.py a tolerant manifest reader via a centralized canonical-first _locate_manifest helper so webinstaller-vendored installs whose manifest is at .deft/VERSION are detected.",
+    "created": "2026-06-02T22:00:00Z",
+    "updated": "2026-06-02T22:05:00Z"
   }
 }

@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #573"
-  },
   "plan": {
     "title": "prd:render: task -- --force silently no-ops because go-task cache layer wins before script --force reaches the code",
     "status": "completed",
@@ -48,8 +44,17 @@
       "x-migrator": {
         "Phase": "Phase 1 -- Fix Now",
         "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.299Z",
+        "migration": true
       }
     },
     "updated": "2026-05-01T02:02:50Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #573"
   }
 }

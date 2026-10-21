@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1465"
-  },
   "plan": {
     "title": "fix(events): relocate default event log out of the no-longer-gitignored .deft/ so it stops leaking untracked in consumers (#1465)",
     "status": "completed",
@@ -45,7 +41,16 @@
     "metadata": {
       "completedAt": "2026-06-03T17:08:13Z",
       "capacityBucket": "technical-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.326Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1465"
   }
 }

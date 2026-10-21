@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #1287 (feat(vbrief): task vbrief:reconcile:graph); part of the #742 decomposition.",
-    "created": "2026-05-21T16:32:24Z",
-    "updated": "2026-06-14T23:55:00Z"
-  },
   "plan": {
     "id": "1287-vbrief-reconcile-graph",
     "title": "task vbrief:reconcile:graph -- cascade-unblock walker",
@@ -67,7 +61,12 @@
         "model_tier": "standard"
       },
       "completedAt": "2026-06-15T00:34:27Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.317Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -82,5 +81,11 @@
       }
     ],
     "updated": "2026-06-15T00:34:27Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #1287 (feat(vbrief): task vbrief:reconcile:graph); part of the #742 decomposition.",
+    "created": "2026-05-21T16:32:24Z",
+    "updated": "2026-06-14T23:55:00Z"
   }
 }

@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for #1595 PR 1 decision record"
-  },
   "plan": {
     "title": "docs: record #1595 PR 1 codebase MAP source-of-truth decision",
     "status": "completed",
@@ -63,7 +59,16 @@
     ],
     "updated": "2026-06-12T20:09:35Z",
     "metadata": {
-      "completedAt": "2026-06-12T20:09:35Z"
+      "completedAt": "2026-06-12T20:09:35Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.336Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #1595 PR 1 decision record"
   }
 }

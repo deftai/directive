@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-19-1788-featts-migration-port-swarm-orchestration-verbs-to-ts-wave-7.xbrief.json"
-  },
   "plan": {
     "id": "1788-s1-swarm-cohort-verbs",
     "title": "Port swarm cohort CLI verbs to TS",
@@ -65,7 +61,12 @@
         "model_tier": "medium"
       },
       "completedAt": "2026-06-19T23:18:27Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.345Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -81,5 +82,9 @@
       }
     ],
     "updated": "2026-06-19T23:18:27Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-19-1788-featts-migration-port-swarm-orchestration-verbs-to-ts-wave-7.xbrief.json"
   }
 }

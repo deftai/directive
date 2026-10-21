@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1884"
-  },
   "plan": {
     "title": "bug(verify-session-ritual): gated tier fails with 'unknown session ritual command: doctor'",
     "status": "completed",
@@ -39,7 +35,16 @@
     "updated": "2026-06-22T23:08:38Z",
     "metadata": {
       "completedAt": "2026-06-22T23:08:38Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.352Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1884"
   }
 }

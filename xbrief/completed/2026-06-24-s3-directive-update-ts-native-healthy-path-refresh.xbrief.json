@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 3 decomposed from proposed/2026-06-24-1942-ts-native-init-update-deposit.xbrief.json"
-  },
   "plan": {
     "id": "s3-directive-update-ts-native",
     "title": "S3: directive update TS-native healthy-path refresh",
@@ -87,7 +83,12 @@
         "missing_traces_justification": "Traced to cmd/deft-install/setup.go (WriteAgentsMD rewrite branch, refresh side-effects) and #1942 scope, not a spec section."
       },
       "completedAt": "2026-06-24T20:34:01Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.356Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -118,5 +119,9 @@
       }
     ],
     "updated": "2026-06-24T20:34:01Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 3 decomposed from proposed/2026-06-24-1942-ts-native-init-update-deposit.xbrief.json"
   }
 }

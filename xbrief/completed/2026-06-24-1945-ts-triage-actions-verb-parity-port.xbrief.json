@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1945"
-  },
   "plan": {
     "title": "fix(triage,ts): port the missing triage-actions verbs to TS (needs-ac/mark-duplicate/status/reset/history)",
     "status": "completed",
@@ -92,7 +88,16 @@
         "missing_traces_justification": "Traced to the Python oracle scripts/triage_actions.py via parity fixtures, not a spec section."
       },
       "capacityBucket": "new-capability",
-      "completedAt": "2026-06-24T18:24:48Z"
+      "completedAt": "2026-06-24T18:24:48Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.355Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1945"
   }
 }

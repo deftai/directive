@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Revived from cancelled/2026-06-26-decide-and-execute-migratevbrief-ts-port-or-pre-v020-cutoff.xbrief.json after parent gate #2001 was superseded by #2022; now tracked live as #2068."
-  },
   "plan": {
     "id": "migrate-vbrief-decision-2068",
     "title": "Decide and execute migrate:vbrief -- TS port or pre-v0.20 cutoff (retires #1860 carve-out)",
@@ -67,7 +63,12 @@
         "model_tier": "high"
       },
       "completedAt": "2026-06-29T12:41:00Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.361Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -78,5 +79,9 @@
       }
     ],
     "updated": "2026-06-29T12:41:00Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Revived from cancelled/2026-06-26-decide-and-execute-migratevbrief-ts-port-or-pre-v020-cutoff.xbrief.json after parent gate #2001 was superseded by #2022; now tracked live as #2068."
   }
 }

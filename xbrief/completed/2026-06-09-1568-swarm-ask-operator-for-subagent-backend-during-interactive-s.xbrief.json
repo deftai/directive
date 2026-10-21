@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1568",
-    "updated": "2026-06-09T22:09:39Z"
-  },
   "plan": {
     "title": "swarm: ask operator for subagent backend during interactive setup",
     "status": "completed",
@@ -93,8 +88,18 @@
       },
       "completedAt": "2026-06-09T22:10:47Z",
       "capacityBucket": "agentic-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.335Z",
+        "migration": true
+      }
     },
+    "updated": "2026-06-09T22:09:39Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1568",
     "updated": "2026-06-09T22:09:39Z"
   }
 }

@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1036"
-  },
   "plan": {
     "id": "1036-issue-ingest-escape-preservation",
     "title": "Guard issue ingest/cache against escape-sequence and control-character corruption",
@@ -75,7 +71,12 @@
       },
       "completedAt": "2026-06-12T14:45:52Z",
       "capacityBucket": "technical-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.336Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -85,5 +86,9 @@
       }
     ],
     "updated": "2026-06-12T14:45:52Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1036"
   }
 }

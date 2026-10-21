@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Adoption blocker (docs): the AGENTS.md managed-section legacy migration contract (one-time append for pre-marker files; sentinel-only rewrites thereafter) is implemented in run.py but not documented anywhere in UPGRADING.md. Risk-averse consumers cannot review the contract before running deft/run upgrade.",
-    "created": "2026-05-01T00:00:00Z",
-    "updated": "2026-05-03T03:03:24Z"
-  },
   "plan": {
     "id": "794-upgrading-md-agents-md-legacy-contract",
     "title": "Document AGENTS.md managed-section legacy migration in UPGRADING.md",
@@ -104,6 +98,11 @@
       "x-migrator": {
         "Phase": "Phase 1 -- Fix Now",
         "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.301Z",
+        "migration": true
       }
     },
     "references": [
@@ -124,5 +123,11 @@
       }
     ],
     "updated": "2026-05-03T04:38:15Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Adoption blocker (docs): the AGENTS.md managed-section legacy migration contract (one-time append for pre-marker files; sentinel-only rewrites thereafter) is implemented in run.py but not documented anywhere in UPGRADING.md. Risk-averse consumers cannot review the contract before running deft/run upgrade.",
+    "created": "2026-05-01T00:00:00Z",
+    "updated": "2026-05-03T03:03:24Z"
   }
 }

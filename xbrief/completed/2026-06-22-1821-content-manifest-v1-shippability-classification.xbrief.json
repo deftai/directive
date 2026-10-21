@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #1821 (content-manifest v1 + verify:content-manifest gate -- Wave-1 shippability classification); first input to #1669 Wave 1 (distributable Deft).",
-    "created": "2026-06-22T14:40:00Z",
-    "updated": "2026-06-22T14:40:00Z"
-  },
   "plan": {
     "id": "1821-content-manifest-v1",
     "title": "Content-manifest v1 + verify:content-manifest gate -- Wave-1 shippability classification",
@@ -56,7 +50,12 @@
         "depends_on": []
       },
       "completedAt": "2026-06-22T14:56:07Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.351Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -76,5 +75,11 @@
       }
     ],
     "updated": "2026-06-22T14:56:07Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #1821 (content-manifest v1 + verify:content-manifest gate -- Wave-1 shippability classification); first input to #1669 Wave 1 (distributable Deft).",
+    "created": "2026-06-22T14:40:00Z",
+    "updated": "2026-06-22T14:40:00Z"
   }
 }

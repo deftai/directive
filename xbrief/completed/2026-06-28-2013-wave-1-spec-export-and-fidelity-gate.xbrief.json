@@ -1,11 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "author": "Scott",
-    "description": "Wave 1 coordinated implementation for #2013 (#1502 + #2005) plus urgent #2049 consumer githooks TS-native fix",
-    "created": "2026-06-28T20:00:00Z",
-    "updated": "2026-06-28T20:00:00Z"
-  },
   "plan": {
     "id": "story-2013-wave-1-export-fidelity",
     "title": "#2013 Wave 1 — PROJECT-DEFINITION export + migration fidelity gate",
@@ -93,7 +86,12 @@
         "size": "L"
       },
       "completedAt": "2026-06-28T20:23:09Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.360Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -114,5 +112,12 @@
       }
     ],
     "updated": "2026-06-28T20:23:09Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "author": "Scott",
+    "description": "Wave 1 coordinated implementation for #2013 (#1502 + #2005) plus urgent #2049 consumer githooks TS-native fix",
+    "created": "2026-06-28T20:00:00Z",
+    "updated": "2026-06-28T20:00:00Z"
   }
 }

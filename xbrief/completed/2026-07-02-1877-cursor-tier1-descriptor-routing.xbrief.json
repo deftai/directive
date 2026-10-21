@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for the #1877 residual: add Cursor as an explicit Tier-1 descriptor in the swarm Phase 3 + review-cycle monitoring matrices, resolve verify:routing as 'cursor' (not cloud-headless) in Cursor, wire verify:routing into the single-dispatch pre-dispatch gate stack, and extend the #1166 heartbeat to Cursor pollers >3min. Parent #935.",
-    "created": "2026-07-02T00:00:00Z",
-    "updated": "2026-07-02T00:00:00Z"
-  },
   "plan": {
     "id": "1877-cursor-tier1-descriptor-routing",
     "title": "Cursor Tier-1 descriptor + single-dispatch routing enforcement + cursor provider resolution",
@@ -89,7 +83,12 @@
         "file_scope_confidence": "medium",
         "model_tier": "high"
       },
-      "completedAt": "2026-07-02T14:15:58Z"
+      "completedAt": "2026-07-02T14:15:58Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.366Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -104,5 +103,11 @@
       }
     ],
     "updated": "2026-07-02T14:15:58Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for the #1877 residual: add Cursor as an explicit Tier-1 descriptor in the swarm Phase 3 + review-cycle monitoring matrices, resolve verify:routing as 'cursor' (not cloud-headless) in Cursor, wire verify:routing into the single-dispatch pre-dispatch gate stack, and extend the #1166 heartbeat to Cursor pollers >3min. Parent #935.",
+    "created": "2026-07-02T00:00:00Z",
+    "updated": "2026-07-02T00:00:00Z"
   }
 }

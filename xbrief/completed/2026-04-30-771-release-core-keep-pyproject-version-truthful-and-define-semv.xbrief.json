@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #771"
-  },
   "plan": {
     "title": "release-core: keep pyproject version truthful and define semver -> PEP 440 normalization",
     "status": "completed",
@@ -65,8 +61,17 @@
         "Phase": "Phase 1 -- Fix Now",
         "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX.",
         "PhaseOverride": "GitHub label says Phase 4; absorbed into Phase 1 per swarm planning 2026-04-30 to land alongside related release-core work"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.300Z",
+        "migration": true
       }
     },
     "updated": "2026-05-01T02:02:52Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #771"
   }
 }

@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1877, refined 2026-06-29 to the downscoped residual after AC2/AC4 were delivered by #1880 and #1531/#1739."
-  },
   "plan": {
     "title": "platform: add Cursor as a Tier-1 descriptor in the swarm + review-cycle monitoring matrices (residual)",
     "status": "completed",
@@ -79,7 +75,16 @@
     "updated": "2026-06-29T19:32:24Z",
     "metadata": {
       "completedAt": "2026-06-29T19:32:24Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.363Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1877, refined 2026-06-29 to the downscoped residual after AC2/AC4 were delivered by #1880 and #1531/#1739."
   }
 }

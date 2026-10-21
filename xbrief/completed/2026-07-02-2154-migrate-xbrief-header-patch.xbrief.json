@@ -1,19 +1,13 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #2154: migrate:xbrief leaves stale vbrief/ paths in the consumer AGENTS.md unmanaged header; doctor cannot see it. Child of #1882 (specific xbrief-crossover instance of the #2065 unmanaged-header-rot umbrella).",
-    "created": "2026-07-02T00:00:00Z",
-    "updated": "2026-07-02T00:00:00Z"
-  },
   "plan": {
     "id": "2154-migrate-xbrief-header-patch",
-    "title": "migrate:xbrief mechanically patches stale vbrief/ path literals in the AGENTS.md unmanaged header",
+    "title": "migrate:xbrief mechanically patches stale xbrief/ path literals in the AGENTS.md unmanaged header",
     "status": "completed",
     "planRef": "https://github.com/deftai/directive/issues/2154",
     "narratives": {
-      "Description": "After a successful `deft migrate:xbrief` crossover, the consumer AGENTS.md UNMANAGED header can still reference the legacy vbrief/ layout (Session orientation, Lifecycle task examples, Local dev artifact names) while the lifecycle tree and managed section are already on xbrief/. Agents read AGENTS.md every session and get wrong path orientation, yet `deft doctor` reports healthy (managed-section byte compare passes, #1308). This story implements Option A from the issue (recommended minimum): after lifecycle migration + agents:refresh, apply a bounded, idempotent rewrite pass over the UNMANAGED header only, for known crossover tokens, preserving freeform prose and never touching the managed section. It also adds a detection signpost so the regression is catchable (Option B, lightweight).",
-      "ImplementationPlan": "1. In the migrate:xbrief implementation (packages/core migration module; find the migrate verb and the agents:refresh call site), add a bounded, idempotent header-rewrite pass scoped to the UNMANAGED region only (everything OUTSIDE the deft:managed-section markers). Replace known crossover tokens: 'vbrief/' path literals -> 'xbrief/', '*.vbrief.json' example artifacts -> '*.xbrief.json', 'vbrief:preflight' -> 'xbrief:preflight' (current canonical verb). Preserve prose; do not touch the managed section. 2. Emit a summary of replacements (LEGACY-REPORT.md-style or migration log) so the operator sees what changed. 3. Add a lightweight detection: when xbrief/ exists and the managed section is fresh but the unmanaged header still matches legacy patterns (vbrief/proposed, vbrief:preflight, test-single.vbrief.json), warn (doctor signpost or a verify gate) pointing at the fix. 4. Add tests: a fixture consumer AGENTS.md with a typical stale header; assert post-migrate the header lifecycle/path examples reference xbrief/, and the idempotency (running twice is a no-op), and that the managed section is untouched. 5. Document in UPGRADING.md (xBRIEF rename section) the managed vs unmanaged header expectations. 6. CHANGELOG [Unreleased] entry (user-visible: migrate:xbrief now fixes stale vbrief paths in your AGENTS.md header). Run `task check` green.",
-      "UserStory": "As an operator who ran `deft migrate:xbrief`, I want the migration to also fix the stale vbrief/ path literals in my AGENTS.md session-orientation header (or at least warn me), so that agents are not misdirected at session start while doctor reports healthy.",
+      "Description": "After a successful `deft migrate:xbrief` crossover, the consumer AGENTS.md UNMANAGED header can still reference the legacy xbrief/ layout (Session orientation, Lifecycle task examples, Local dev artifact names) while the lifecycle tree and managed section are already on xbrief/. Agents read AGENTS.md every session and get wrong path orientation, yet `deft doctor` reports healthy (managed-section byte compare passes, #1308). This story implements Option A from the issue (recommended minimum): after lifecycle migration + agents:refresh, apply a bounded, idempotent rewrite pass over the UNMANAGED header only, for known crossover tokens, preserving freeform prose and never touching the managed section. It also adds a detection signpost so the regression is catchable (Option B, lightweight).",
+      "ImplementationPlan": "1. In the migrate:xbrief implementation (packages/core migration module; find the migrate verb and the agents:refresh call site), add a bounded, idempotent header-rewrite pass scoped to the UNMANAGED region only (everything OUTSIDE the deft:managed-section markers). Replace known crossover tokens: 'xbrief/' path literals -> 'xbrief/', '*.xbrief.json' example artifacts -> '*.xbrief.json', 'vbrief:preflight' -> 'xbrief:preflight' (current canonical verb). Preserve prose; do not touch the managed section. 2. Emit a summary of replacements (LEGACY-REPORT.md-style or migration log) so the operator sees what changed. 3. Add a lightweight detection: when xbrief/ exists and the managed section is fresh but the unmanaged header still matches legacy patterns (xbrief/proposed, vbrief:preflight, test-single.xbrief.json), warn (doctor signpost or a verify gate) pointing at the fix. 4. Add tests: a fixture consumer AGENTS.md with a typical stale header; assert post-migrate the header lifecycle/path examples reference xbrief/, and the idempotency (running twice is a no-op), and that the managed section is untouched. 5. Document in UPGRADING.md (xBRIEF rename section) the managed vs unmanaged header expectations. 6. CHANGELOG [Unreleased] entry (user-visible: migrate:xbrief now fixes stale vbrief paths in your AGENTS.md header). Run `task check` green.",
+      "UserStory": "As an operator who ran `deft migrate:xbrief`, I want the migration to also fix the stale xbrief/ path literals in my AGENTS.md session-orientation header (or at least warn me), so that agents are not misdirected at session start while doctor reports healthy.",
       "Traces": "#2154, #2034, #2065, #2110, #1882"
     },
     "items": [
@@ -22,7 +16,7 @@
         "title": "migrate:xbrief rewrites known vbrief tokens in the unmanaged header",
         "status": "proposed",
         "narrative": {
-          "Acceptance": "Given a fixture consumer AGENTS.md with a typical stale unmanaged header, when `deft migrate:xbrief` runs, then header lifecycle/path examples reference xbrief/ (vbrief/ -> xbrief/, *.vbrief.json -> *.xbrief.json, vbrief:preflight -> xbrief:preflight), freeform prose is preserved, and the managed section is untouched."
+          "Acceptance": "Given a fixture consumer AGENTS.md with a typical stale unmanaged header, when `deft migrate:xbrief` runs, then header lifecycle/path examples reference xbrief/ (xbrief/ -> xbrief/, *.xbrief.json -> *.xbrief.json, vbrief:preflight -> xbrief:preflight), freeform prose is preserved, and the managed section is untouched."
         }
       },
       {
@@ -70,7 +64,7 @@
           "task check"
         ],
         "expected_outputs": [
-          "migrate:xbrief patches stale vbrief/ tokens in the unmanaged AGENTS.md header (idempotent, managed section untouched) + detection signpost + tests + docs"
+          "migrate:xbrief patches stale xbrief/ tokens in the unmanaged AGENTS.md header (idempotent, managed section untouched) + detection signpost + tests + docs"
         ],
         "depends_on": [],
         "conflict_group": "migrate-xbrief",
@@ -78,7 +72,12 @@
         "file_scope_confidence": "medium",
         "model_tier": "high"
       },
-      "completedAt": "2026-07-02T13:46:30Z"
+      "completedAt": "2026-07-02T13:46:30Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.366Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -93,5 +92,11 @@
       }
     ],
     "updated": "2026-07-02T13:46:30Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #2154: migrate:xbrief leaves stale xbrief/ paths in the consumer AGENTS.md unmanaged header; doctor cannot see it. Child of #1882 (specific xbrief-crossover instance of the #2065 unmanaged-header-rot umbrella).",
+    "created": "2026-07-02T00:00:00Z",
+    "updated": "2026-07-02T00:00:00Z"
   }
 }

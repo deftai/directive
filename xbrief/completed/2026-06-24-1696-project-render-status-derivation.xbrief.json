@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1696"
-  },
   "plan": {
     "title": "fix(render): project:render must emit registry items that pass vbrief:validate for mixed-status decompose groups",
     "status": "completed",
@@ -82,8 +78,17 @@
         "model_tier": "leaf-implementation",
         "missing_traces_justification": "Traced to GitHub issue #1696 (repro + root cause) under umbrella #1699, not a spec section."
       },
-      "completedAt": "2026-06-24T20:05:21Z"
+      "completedAt": "2026-06-24T20:05:21Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.354Z",
+        "migration": true
+      }
     },
     "updated": "2026-06-24T20:05:21Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1696"
   }
 }

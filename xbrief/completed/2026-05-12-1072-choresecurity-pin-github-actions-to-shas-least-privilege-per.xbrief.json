@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1072"
-  },
   "plan": {
     "title": "chore(security): pin GitHub Actions to SHAs + least-privilege permissions + PyPI OIDC (parent #1069)",
     "status": "completed",
@@ -19,6 +15,17 @@
         "title": "Issue #1072: chore(security): pin GitHub Actions to SHAs + least-privilege permissions + PyPI OIDC (parent #1069)"
       }
     ],
-    "updated": "2026-05-12T17:22:26Z"
+    "updated": "2026-05-12T17:22:26Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.310Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1072"
   }
 }

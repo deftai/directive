@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Create scripts/issue_ingest.py with single-issue and bulk modes, dedup against existing references, Taskfile wiring, doc cross-refs, tests.",
-    "created": "2026-04-20T00:00:00Z",
-    "updated": "2026-04-20T00:00:00Z"
-  },
   "plan": {
     "id": "ga-454-task-issue-ingest",
     "title": "v0.20.0 GA blocker: add task issue:ingest for GitHub issue -> vBRIEF ingestion",
@@ -69,6 +63,19 @@
         "id": "#403"
       }
     ],
-    "updated": "2026-04-20T18:44:14Z"
+    "updated": "2026-04-20T18:44:14Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.276Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Create scripts/issue_ingest.py with single-issue and bulk modes, dedup against existing references, Taskfile wiring, doc cross-refs, tests.",
+    "created": "2026-04-20T00:00:00Z",
+    "updated": "2026-04-20T00:00:00Z"
   }
 }

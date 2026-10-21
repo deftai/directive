@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #1274 Change 1 (discoverable issue-emit hints across all vBRIEF-producing strategies); split-B of the #1274 decomposition under epic #1284.",
-    "created": "2026-06-15T12:00:00Z",
-    "updated": "2026-06-15T12:00:00Z"
-  },
   "plan": {
     "id": "1274b-strategy-emit-hints",
     "title": "Strategy emit-hints: discoverable issue:emit across vBRIEF-producing strategies",
@@ -76,7 +70,12 @@
         "model_tier": "standard"
       },
       "completedAt": "2026-06-15T12:44:23Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.337Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -91,5 +90,11 @@
       }
     ],
     "updated": "2026-06-15T12:44:23Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #1274 Change 1 (discoverable issue-emit hints across all vBRIEF-producing strategies); split-B of the #1274 decomposition under epic #1284.",
+    "created": "2026-06-15T12:00:00Z",
+    "updated": "2026-06-15T12:00:00Z"
   }
 }

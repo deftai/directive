@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1458"
-  },
   "plan": {
     "title": "fix(deft-install): fail loudly on a dirty working tree by default for --upgrade (--force to bypass) + structured --json signals (#1458)",
     "status": "completed",
@@ -49,7 +45,16 @@
     "metadata": {
       "completedAt": "2026-06-03T16:42:46Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "default"
+      "capacityBucketSource": "default",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.326Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1458"
   }
 }

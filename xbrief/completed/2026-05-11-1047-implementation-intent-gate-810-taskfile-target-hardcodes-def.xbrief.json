@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1047",
-    "updated": "2026-05-11T22:23:07Z"
-  },
   "plan": {
     "title": "Implementation Intent Gate (#810): Taskfile target hardcodes deft/scripts/preflight_implementation.py; safety gate fails open in v0.27 install layout",
     "status": "completed",
@@ -27,6 +22,18 @@
         "title": "Issue #1047: Implementation Intent Gate (#810): Taskfile target hardcodes deft/scripts/preflight_implementation.py; safety gate fails open in v0.27 install layout"
       }
     ],
+    "updated": "2026-05-11T22:23:07Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.309Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1047",
     "updated": "2026-05-11T22:23:07Z"
   }
 }

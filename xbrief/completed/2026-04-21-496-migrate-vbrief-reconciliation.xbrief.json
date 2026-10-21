@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "author": "agent:deft-directive-swarm",
-    "description": "Define role-based SPEC/ROADMAP reconciliation for migrate:vbrief; emit RECONCILIATION.md; add --strict; honor xbrief/migration-overrides.yaml; add per-field provenance.",
-    "created": "2026-04-21T17:18:00Z"
-  },
   "plan": {
     "id": "rc3-496-reconciliation",
     "title": "migrate:vbrief reconciliation strategy when SPEC and ROADMAP disagree (#496)",
@@ -86,6 +80,19 @@
         "id": "#506"
       }
     ],
-    "updated": "2026-04-23T02:28:02Z"
+    "updated": "2026-04-23T02:28:02Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.277Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "author": "agent:deft-directive-swarm",
+    "description": "Define role-based SPEC/ROADMAP reconciliation for migrate:vbrief; emit RECONCILIATION.md; add --strict; honor xbrief/migration-overrides.yaml; add per-field provenance.",
+    "created": "2026-04-21T17:18:00Z"
   }
 }

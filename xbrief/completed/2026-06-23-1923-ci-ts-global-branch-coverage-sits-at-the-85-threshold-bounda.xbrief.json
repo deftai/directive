@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1923"
-  },
   "plan": {
     "title": "CI: TS global branch-coverage sits at the 85% threshold boundary (84.99%) and fails intermittently",
     "status": "completed",
@@ -27,7 +23,16 @@
     "updated": "2026-06-23T19:18:31Z",
     "metadata": {
       "completedAt": "2026-06-23T19:18:31Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.353Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1923"
   }
 }

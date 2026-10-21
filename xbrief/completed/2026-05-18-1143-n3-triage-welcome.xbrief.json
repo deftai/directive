@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF: N3 child of #1119 Wave-2a -- task triage:welcome single-entry onboarding ritual.",
-    "updated": "2026-05-19T21:22:21Z"
-  },
   "plan": {
     "title": "feat(triage): task triage:welcome 6-phase onboarding ritual (#1143)",
     "status": "completed",
@@ -29,7 +24,17 @@
     "metadata": {
       "completedAt": "2026-05-19T21:23:39Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.313Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF: N3 child of #1119 Wave-2a -- task triage:welcome single-entry onboarding ritual.",
+    "updated": "2026-05-19T21:22:21Z"
   }
 }

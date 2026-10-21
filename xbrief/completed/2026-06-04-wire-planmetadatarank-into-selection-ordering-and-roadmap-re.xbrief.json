@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.xbrief.json"
-  },
   "plan": {
     "id": "rank-intra-bucket-ordering",
     "title": "Wire plan.metadata.rank into selection ordering and roadmap render",
@@ -79,7 +75,12 @@
       },
       "completedAt": "2026-06-05T01:19:29Z",
       "capacityBucket": "cognitive-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.329Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -95,5 +96,9 @@
       }
     ],
     "updated": "2026-06-04T21:37:58Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.xbrief.json"
   }
 }

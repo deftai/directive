@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for #723: task build artifact filename must match the release version, not the stale Taskfile.yml literal.",
-    "updated": "2026-04-29T18:18:17Z"
-  },
   "plan": {
     "title": "release: task build uses the actual release version (#723)",
     "status": "completed",
@@ -59,6 +54,18 @@
         "type": "x-xbrief/github-issue",
         "title": "Issue #721: canonical recovery anchor for the v0.21.0 cut session"
       }
-    ]
+    ],
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.297Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #723: task build artifact filename must match the release version, not the stale Taskfile.yml literal.",
+    "updated": "2026-04-29T18:18:17Z"
   }
 }

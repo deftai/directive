@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 4 decomposed from proposed/2026-06-12-1053-consumer-swarm-fails-on-greenfield-projects-no-dispatch-mech.xbrief.json"
-  },
   "plan": {
     "id": "1053-swarm-worktree-placement",
     "title": "Interactive swarm worktrees should default to deterministic non-cluttering scratch paths",
@@ -68,7 +64,12 @@
       },
       "completedAt": "2026-06-12T14:43:26Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "default"
+      "capacityBucketSource": "default",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.337Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -79,5 +80,9 @@
       }
     ],
     "updated": "2026-06-12T14:43:26Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 4 decomposed from proposed/2026-06-12-1053-consumer-swarm-fails-on-greenfield-projects-no-dispatch-mech.xbrief.json"
   }
 }

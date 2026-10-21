@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1115"
-  },
   "plan": {
     "title": "docs(UPGRADING): add big-jump triage / entry point for multi-version upgrades",
     "status": "completed",
@@ -61,7 +57,16 @@
       "kind": "epic",
       "completedAt": "2026-06-03T22:21:16Z",
       "capacityBucket": "cognitive-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.324Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1115"
   }
 }

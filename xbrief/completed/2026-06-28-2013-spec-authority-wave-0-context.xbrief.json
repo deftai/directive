@@ -1,11 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "author": "Scott + agent:deft-directive-release-session",
-    "description": "Wave 0 authority-model locked decisions for umbrella #2013. Wave 1 (#1502 + #2005) completed in PR #2051; residual track is #2068.",
-    "created": "2026-06-28T19:00:00Z",
-    "updated": "2026-06-29T12:00:00Z"
-  },
   "plan": {
     "title": "#2013 Wave 0 — spec-authority model locked decisions",
     "status": "completed",
@@ -37,6 +30,20 @@
         "uri": "completed/2026-06-28-2013-wave-1-spec-export-and-fidelity-gate.xbrief.json",
         "title": "#2013 Wave 1 — export + fidelity gate"
       }
-    ]
+    ],
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.360Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "author": "Scott + agent:deft-directive-release-session",
+    "description": "Wave 0 authority-model locked decisions for umbrella #2013. Wave 1 (#1502 + #2005) completed in PR #2051; residual track is #2068.",
+    "created": "2026-06-28T19:00:00Z",
+    "updated": "2026-06-29T12:00:00Z"
   }
 }

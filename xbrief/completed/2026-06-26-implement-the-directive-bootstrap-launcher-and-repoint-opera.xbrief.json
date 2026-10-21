@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 10 decomposed from completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.xbrief.json"
-  },
   "plan": {
     "id": "py-purge-directive-bootstrap",
     "title": "Implement the directive bootstrap launcher and repoint operator docs (Phase 4)",
@@ -68,7 +64,12 @@
         "model_tier": "high"
       },
       "completedAt": "2026-06-28T15:24:35Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.359Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -79,5 +80,9 @@
       }
     ],
     "updated": "2026-06-28T15:24:35Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 10 decomposed from completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.xbrief.json"
   }
 }

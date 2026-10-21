@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 7 decomposed from completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.xbrief.json"
-  },
   "plan": {
     "id": "py-purge-ci-local-ts",
     "title": "Promote TypeScript task check as the release pre-flight and drop the Python bridge (Phase 1)",
@@ -63,7 +59,12 @@
         "model_tier": "high"
       },
       "completedAt": "2026-06-26T18:32:01Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.359Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -74,5 +75,9 @@
       }
     ],
     "updated": "2026-06-26T18:32:01Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 7 decomposed from completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.xbrief.json"
   }
 }

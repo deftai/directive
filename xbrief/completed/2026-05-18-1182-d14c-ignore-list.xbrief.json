@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF: D14c (#1182) -- triageScopeIgnores[] author rule type + task triage:scope wrapper-verb flag set (--add-label / --add-milestone / --ignore-label / --list (extended) / --diff-from-upstream) on top of D14's foundation.",
-    "updated": "2026-05-19T21:22:21Z"
-  },
   "plan": {
     "title": "feat(triage-scope): triageScopeIgnores[] author rules + triage:scope wrapper verbs (#1182)",
     "status": "completed",
@@ -29,7 +24,17 @@
     "metadata": {
       "completedAt": "2026-05-19T21:23:39Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.314Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF: D14c (#1182) -- triageScopeIgnores[] author rule type + task triage:scope wrapper-verb flag set (--add-label / --add-milestone / --ignore-label / --list (extended) / --diff-from-upstream) on top of D14's foundation.",
+    "updated": "2026-05-19T21:22:21Z"
   }
 }

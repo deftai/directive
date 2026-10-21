@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Rename triage v1 fragment-include task names so the documented task triage:* surface is reachable verbatim from task -l (#913). Skill docs and CHANGELOG advertise task triage:cache / task triage:show / task triage:accept|reject|defer|needs-ac|mark-duplicate|status|reset|history / task triage:bulk-accept|bulk-reject|bulk-defer|bulk-needs-ac|refresh-active / task triage:bootstrap, but go-task installs them under fragment-include prefixes (triage-cache:cache, triage-actions:triage:accept with a doubled prefix, triage-bulk:bulk-accept, etc.). Pick option (1) from #913: hide the include-namespace forms via internal: true and add root-level alias tasks that delegate verbatim. scripts/triage_bulk.py / scripts/triage_cache.py / scripts/triage_bootstrap.py are intentionally untouched (Agents B/C scope).",
-    "created": "2026-05-05T15:15:00Z",
-    "updated": "2026-05-05T15:21:05Z"
-  },
   "plan": {
     "title": "task: triage v1 fragment-include task names don't match documented triage:* surface",
     "status": "completed",
@@ -58,6 +52,19 @@
         "title": "Issue #718: release task name doubled-prefix bug (precedent for inline-flatten pattern)"
       }
     ],
-    "updated": "2026-05-05T15:45:34Z"
+    "updated": "2026-05-05T15:45:34Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.305Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Rename triage v1 fragment-include task names so the documented task triage:* surface is reachable verbatim from task -l (#913). Skill docs and CHANGELOG advertise task triage:cache / task triage:show / task triage:accept|reject|defer|needs-ac|mark-duplicate|status|reset|history / task triage:bulk-accept|bulk-reject|bulk-defer|bulk-needs-ac|refresh-active / task triage:bootstrap, but go-task installs them under fragment-include prefixes (triage-cache:cache, triage-actions:triage:accept with a doubled prefix, triage-bulk:bulk-accept, etc.). Pick option (1) from #913: hide the include-namespace forms via internal: true and add root-level alias tasks that delegate verbatim. scripts/triage_bulk.py / scripts/triage_cache.py / scripts/triage_bootstrap.py are intentionally untouched (Agents B/C scope).",
+    "created": "2026-05-05T15:15:00Z",
+    "updated": "2026-05-05T15:21:05Z"
   }
 }

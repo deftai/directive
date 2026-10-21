@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Extend spec_render.py to walk lifecycle folders and render scope vBRIEFs under an Implementation Plan section.",
-    "created": "2026-04-20T00:00:00Z",
-    "updated": "2026-04-20T00:00:00Z"
-  },
   "plan": {
     "id": "ga-435-spec-render-lifecycle-aggregator",
     "title": "spec rendering does not aggregate scope vBRIEFs from lifecycle folders (v0.20 model)",
@@ -59,6 +53,19 @@
         "id": "#403"
       }
     ],
-    "updated": "2026-04-20T18:44:13Z"
+    "updated": "2026-04-20T18:44:13Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.276Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Extend spec_render.py to walk lifecycle folders and render scope vBRIEFs under an Implementation Plan section.",
+    "created": "2026-04-20T00:00:00Z",
+    "updated": "2026-04-20T00:00:00Z"
   }
 }

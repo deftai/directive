@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #764"
-  },
   "plan": {
     "title": "fix(scripts/reconcile_issues.py): bump ISSUE_FETCH_LIMIT 200 -> 1000 to clear truncation warning on 232-issue corpus",
     "status": "completed",
@@ -19,6 +15,17 @@
         "title": "Issue #764: fix(scripts/reconcile_issues.py): bump ISSUE_FETCH_LIMIT 200 -> 1000 to clear truncation warning on 232-issue corpus"
       }
     ],
-    "updated": "2026-04-30T18:25:33Z"
+    "updated": "2026-04-30T18:25:33Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.300Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #764"
   }
 }

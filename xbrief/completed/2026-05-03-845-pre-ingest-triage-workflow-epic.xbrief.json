@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Epic vBRIEF for issue #845: pre-ingest triage workflow with sidecar issue cache + decision audit log + accept/reject/defer/needs-AC state machine. Decomposed into 6 story-level vBRIEFs for parallel swarm implementation.",
-    "created": "2026-05-03T16:15:00Z",
-    "updated": "2026-05-03T20:48:27Z"
-  },
   "plan": {
     "id": "845-pre-ingest-triage-workflow-epic",
     "title": "feat(triage,cache,refinement): pre-ingest triage workflow with sidecar issue cache",
@@ -83,6 +77,11 @@
           "#868 lock-comment protocol (consumes Story 4 freshness primitive)",
           "Triage v1 ship under v0.25.0"
         ]
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.302Z",
+        "migration": true
       }
     },
     "references": [
@@ -117,5 +116,11 @@
         "title": "Issue #868: bidirectional implementation-lock comment protocol (stacks on top of this work)"
       }
     ]
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Epic vBRIEF for issue #845: pre-ingest triage workflow with sidecar issue cache + decision audit log + accept/reject/defer/needs-AC state machine. Decomposed into 6 story-level vBRIEFs for parallel swarm implementation.",
+    "created": "2026-05-03T16:15:00Z",
+    "updated": "2026-05-03T20:48:27Z"
   }
 }

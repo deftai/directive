@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1725"
-  },
   "plan": {
     "title": "feat(ts-migration): port the triage:* family to TS (Wave 3)",
     "status": "completed",
@@ -99,8 +95,17 @@
     "metadata": {
       "kind": "epic",
       "completedAt": "2026-06-19T10:32:54Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.342Z",
+        "migration": true
+      }
     },
     "updated": "2026-06-19T10:32:54Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1725"
   }
 }

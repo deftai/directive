@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #2022",
-    "updated": "2026-06-29T14:00:00Z"
-  },
   "plan": {
     "title": "Python purge readiness — execution tracker (supersedes #2001)",
     "status": "completed",
@@ -153,7 +148,17 @@
       }
     ],
     "metadata": {
-      "kind": "epic"
+      "kind": "epic",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.358Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #2022",
+    "updated": "2026-06-29T14:00:00Z"
   }
 }
