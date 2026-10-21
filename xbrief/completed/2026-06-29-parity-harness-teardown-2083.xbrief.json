@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for #2083: tear down orphaned TS-vs-Python parity harnesses after the #1860 Python purge"
-  },
   "plan": {
     "id": "parity-harness-teardown-2083",
     "title": "Tear down orphaned TS-vs-Python parity harnesses (#2083)",
@@ -66,7 +62,12 @@
         "model_tier": "medium"
       },
       "capacityBucket": "tech-debt",
-      "completedAt": "2026-06-29T16:28:35Z"
+      "completedAt": "2026-06-29T16:28:35Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.363Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -83,5 +84,9 @@
       }
     ],
     "updated": "2026-06-29T16:28:35Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #2083: tear down orphaned TS-vs-Python parity harnesses after the #1860 Python purge"
   }
 }

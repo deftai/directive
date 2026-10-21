@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story C of #1378 -- deterministic Gate 0: scripts/preflight_story_start.py + task verify:story-ready.",
-    "updated": "2026-06-01T02:30:00Z"
-  },
   "plan": {
     "title": "feat(scripts): scripts/preflight_story_start.py Gate 0 + verify:story-ready (#1378 Story C)",
     "status": "completed",
@@ -88,8 +83,18 @@
       },
       "completedAt": "2026-06-01T02:55:25Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.322Z",
+        "migration": true
+      }
     },
     "updated": "2026-06-01T02:47:54Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story C of #1378 -- deterministic Gate 0: scripts/preflight_story_start.py + task verify:story-ready.",
+    "updated": "2026-06-01T02:30:00Z"
   }
 }

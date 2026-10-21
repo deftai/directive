@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 4 decomposed from completed/2026-06-21-1828-featts-migration-wave-8-flip-live-gates-to-the-ts-engine-pyt.xbrief.json"
-  },
   "plan": {
     "id": "1828-s3-flip-triage-surface",
     "title": "Flip the triage task surface to the TS engine",
@@ -78,7 +74,12 @@
         "model_tier": "medium"
       },
       "completedAt": "2026-06-21T01:55:02Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.349Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -89,5 +90,9 @@
       }
     ],
     "updated": "2026-06-21T01:55:02Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 4 decomposed from completed/2026-06-21-1828-featts-migration-wave-8-flip-live-gates-to-the-ts-engine-pyt.xbrief.json"
   }
 }

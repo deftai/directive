@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Freeze-prep story P decomposed from GitHub issue #1912 (Tier-2 npm CLI legacy-layout refuse-preflight + signposts)"
-  },
   "plan": {
     "title": "feat(#1912 P): npm CLI legacy-layout refuse-preflight (two-step) + signpost-only stable-URL surfaces",
     "status": "completed",
@@ -98,8 +94,17 @@
         "model_tier": "leaf-implementation",
         "missing_traces_justification": "Traced to #1912 Tier-2 corrected-design checklist + operator scaffold-now decision."
       },
-      "completedAt": "2026-06-24T22:22:37Z"
+      "completedAt": "2026-06-24T22:22:37Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.355Z",
+        "migration": true
+      }
     },
     "updated": "2026-06-24T22:22:37Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Freeze-prep story P decomposed from GitHub issue #1912 (Tier-2 npm CLI legacy-layout refuse-preflight + signposts)"
   }
 }

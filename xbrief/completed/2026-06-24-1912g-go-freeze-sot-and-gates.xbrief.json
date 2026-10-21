@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Freeze-prep story G decomposed from GitHub issue #1912 (Tier-0 SoT + Tier-1 freeze/drift gates)"
-  },
   "plan": {
     "title": "feat(#1912 G): Tier-0 lastGoInstaller SoT (null-until-frozen) + Tier-1 freeze gate + cross-surface drift gate",
     "status": "completed",
@@ -110,8 +106,17 @@
         "model_tier": "leaf-implementation",
         "missing_traces_justification": "Traced to #1912 Durability Tier-0/Tier-1 checklist + operator scaffold-now decision; design latitude on gate mechanics is intentional."
       },
-      "completedAt": "2026-06-24T22:21:54Z"
+      "completedAt": "2026-06-24T22:21:54Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.355Z",
+        "migration": true
+      }
     },
     "updated": "2026-06-24T22:21:54Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Freeze-prep story G decomposed from GitHub issue #1912 (Tier-0 SoT + Tier-1 freeze/drift gates)"
   }
 }

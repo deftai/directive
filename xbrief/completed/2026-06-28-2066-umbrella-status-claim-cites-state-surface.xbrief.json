@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF: #2066 cheap layer — codify claim-cites-state-surface umbrella status rule (preamble + AGENTS.md + agents-entry + skills).",
-    "updated": "2026-06-29T01:05:41Z"
-  },
   "plan": {
     "title": "docs(agents): umbrella status claim-cites-state-surface (#2066)",
     "status": "completed",
@@ -29,7 +24,17 @@
     "metadata": {
       "capacityBucket": "new-capability",
       "capacityBucketSource": "match",
-      "completedAt": "2026-06-29T01:19:07Z"
+      "completedAt": "2026-06-29T01:19:07Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.360Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF: #2066 cheap layer — codify claim-cites-state-surface umbrella status rule (preamble + AGENTS.md + agents-entry + skills).",
+    "updated": "2026-06-29T01:05:41Z"
   }
 }

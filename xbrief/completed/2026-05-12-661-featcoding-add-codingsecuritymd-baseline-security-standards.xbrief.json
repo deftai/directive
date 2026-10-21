@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #661"
-  },
   "plan": {
     "title": "feat(coding): add coding/security.md — baseline security standards for every project",
     "status": "completed",
@@ -23,6 +19,17 @@
         "title": "Issue #661: feat(coding): add coding/security.md — baseline security standards for every project"
       }
     ],
-    "updated": "2026-05-12T23:25:59Z"
+    "updated": "2026-05-12T23:25:59Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.310Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #661"
   }
 }

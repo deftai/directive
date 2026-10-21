@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1922"
-  },
   "plan": {
     "title": "CI: Windows task-dispatch job fails on corepack pnpm version drift (11.8.0 vs 11.9.0)",
     "status": "completed",
@@ -27,7 +23,16 @@
     "updated": "2026-06-23T19:18:30Z",
     "metadata": {
       "completedAt": "2026-06-23T19:18:30Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.353Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1922"
   }
 }

@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1996"
-  },
   "plan": {
     "title": "Add doc<->CLI parity gate (UPGRADING npm verbs subset of registered verbs) + install+run smoke in release-e2e",
     "status": "completed",
@@ -32,7 +28,16 @@
     "updated": "2026-06-25T20:18:47Z",
     "metadata": {
       "completedAt": "2026-06-25T20:18:47Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.357Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1996"
   }
 }

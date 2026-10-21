@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 2 decomposed from proposed/2026-06-24-1942-ts-native-init-update-deposit.xbrief.json"
-  },
   "plan": {
     "id": "s2-directive-init-ts-native",
     "title": "S2: directive init TS-native greenfield deposit",
@@ -88,7 +84,12 @@
         "missing_traces_justification": "Traced to cmd/deft-install/setup.go (WriteAgentsMD, WriteConsumerVbrief, EnsureTaskfile, WriteAgentsSkills) and #1942 scope, not a spec section."
       },
       "completedAt": "2026-06-24T20:14:07Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.356Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -119,5 +120,9 @@
       }
     ],
     "updated": "2026-06-24T20:14:07Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 2 decomposed from proposed/2026-06-24-1942-ts-native-init-update-deposit.xbrief.json"
   }
 }

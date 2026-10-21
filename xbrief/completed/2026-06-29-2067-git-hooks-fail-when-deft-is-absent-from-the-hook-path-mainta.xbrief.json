@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #2067 — git hooks resolve local deft CLI"
-  },
   "plan": {
     "id": "2067-hooks-deft-path",
     "title": "Git hooks resolve local deft CLI when not on PATH",
@@ -76,7 +72,12 @@
         "missing_traces_justification": "Release-blocker from ingested issue #2067."
       },
       "capacityBucket": "bugfix",
-      "completedAt": "2026-06-29T23:59:58Z"
+      "completedAt": "2026-06-29T23:59:58Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.363Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -86,5 +87,9 @@
       }
     ],
     "updated": "2026-06-29T23:59:58Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #2067 — git hooks resolve local deft CLI"
   }
 }

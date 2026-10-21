@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #902",
-    "updated": "2026-05-05T01:36:03Z"
-  },
   "plan": {
     "title": "Fresh Windows maintainer setup has no scripted toolchain bootstrap or PATH-refresh helper",
     "status": "completed",
@@ -46,7 +41,17 @@
         ],
         "branch": "feat/windows-maintainer-onboarding",
         "pr_title_prefix": "feat(setup):"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.304Z",
+        "migration": true
       }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #902",
+    "updated": "2026-05-05T01:36:03Z"
   }
 }

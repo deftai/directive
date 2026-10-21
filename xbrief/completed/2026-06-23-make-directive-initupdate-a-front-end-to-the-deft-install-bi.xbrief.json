@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 4 decomposed from completed/2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx.xbrief.json"
-  },
   "plan": {
     "id": "11-s4-init-update-frontend",
     "title": "Make directive init/update a front-end to the deft-install binary",
@@ -65,7 +61,12 @@
         "missing_traces_justification": "Implements #1670 Decision-3 (front-end to deft-install) under #11/#1669 Wave 2; maintainer tooling with no spec-section trace."
       },
       "completedAt": "2026-06-23T03:53:19Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.353Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -76,5 +77,9 @@
       }
     ],
     "updated": "2026-06-23T03:53:19Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 4 decomposed from completed/2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx.xbrief.json"
   }
 }

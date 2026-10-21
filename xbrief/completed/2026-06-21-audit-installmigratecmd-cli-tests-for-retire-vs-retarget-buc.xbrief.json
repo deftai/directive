@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 7 decomposed from completed/2026-06-21-1838-featts-migration-wave-85-port-the-maintainer-test-suites-to.xbrief.json"
-  },
   "plan": {
     "id": "1838-s7-cli-install-migrate-tail",
     "title": "Audit install/migrate/cmd CLI tests for retire-vs-retarget (Bucket C)",
@@ -66,7 +62,12 @@
         "model_tier": "medium"
       },
       "completedAt": "2026-06-21T12:22:35Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.349Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -77,5 +78,9 @@
       }
     ],
     "updated": "2026-06-21T12:22:35Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 7 decomposed from completed/2026-06-21-1838-featts-migration-wave-85-port-the-maintainer-test-suites-to.xbrief.json"
   }
 }

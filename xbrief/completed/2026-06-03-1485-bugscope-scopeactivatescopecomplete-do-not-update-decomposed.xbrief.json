@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1485"
-  },
   "plan": {
     "title": "bug(scope): scope:activate/scope:complete do not update decomposed-parent back-references (D4 linkage breaks)",
     "status": "completed",
@@ -61,7 +57,16 @@
       },
       "completedAt": "2026-06-03T23:01:11Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "default"
+      "capacityBucketSource": "default",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.327Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1485"
   }
 }

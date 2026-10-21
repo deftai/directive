@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF #1046 -- Install/refresh contract self-healing cohort (ADR Choice C). Refined 2026-05-11; absorbs #1045 (PR-A) and #1047 (PR-C); PR-B ships task framework:doctor + canonical manifest + v3 sentinel.",
-    "updated": "2026-05-11T22:23:07Z"
-  },
   "plan": {
     "title": "Install/refresh contract has no self-healing path (#1046 cohort) -- canonical-path enforcement + framework:doctor + vbrief:preflight resolver",
     "status": "completed",
@@ -220,7 +215,17 @@
           "templates/agents-entry.md (PR-A flips literals; PR-B updates managed-section marker; PR-C rewrites Implementation Intent Gate copy) -- strict sequential rebase-cascade required",
           "run (PR-A adds Case K classifier; PR-B wires doctor probe into _check_upgrade_gate + v3 sentinel parser) -- PR-B rebases on PR-A"
         ]
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.308Z",
+        "migration": true
       }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF #1046 -- Install/refresh contract self-healing cohort (ADR Choice C). Refined 2026-05-11; absorbs #1045 (PR-A) and #1047 (PR-C); PR-B ships task framework:doctor + canonical manifest + v3 sentinel.",
+    "updated": "2026-05-11T22:23:07Z"
   }
 }

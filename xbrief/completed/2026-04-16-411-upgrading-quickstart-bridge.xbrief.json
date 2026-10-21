@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Create UPGRADING.md, make QUICK-START.md the universal onboarding / upgrade funnel, and build the v0.19 -> v0.20 bridge (skill redirect stubs + template fallback rule + README banner).",
-    "created": "2026-04-16T00:00:00Z",
-    "updated": "2026-04-16T00:00:00Z"
-  },
   "plan": {
     "id": "fix-411-upgrading-quickstart-bridge",
     "title": "docs: create UPGRADING.md + make QUICK-START.md the universal onboarding funnel",
@@ -65,6 +59,19 @@
         "id": "#402"
       }
     ],
-    "updated": "2026-04-20T17:08:02Z"
+    "updated": "2026-04-20T17:08:02Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.275Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Create UPGRADING.md, make QUICK-START.md the universal onboarding / upgrade funnel, and build the v0.19 -> v0.20 bridge (skill redirect stubs + template fallback rule + README banner).",
+    "created": "2026-04-16T00:00:00Z",
+    "updated": "2026-04-16T00:00:00Z"
   }
 }

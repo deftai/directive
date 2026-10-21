@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #1887 — fix verify:cache-fresh --for-issue audit field",
-    "updated": "2026-06-30T00:41:10Z"
-  },
   "plan": {
     "id": "1887-cache-fresh-for-issue",
     "title": "verify:cache-fresh --for-issue reads issue_number from audit log",
@@ -78,7 +73,12 @@
         "model_tier": "default",
         "missing_traces_justification": "TS-port regression from ingested issue #1887."
       },
-      "capacityBucket": "bugfix"
+      "capacityBucket": "bugfix",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.363Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -87,6 +87,11 @@
         "title": "Issue #1887"
       }
     ],
+    "updated": "2026-06-30T00:41:10Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #1887 — fix verify:cache-fresh --for-issue audit field",
     "updated": "2026-06-30T00:41:10Z"
   }
 }

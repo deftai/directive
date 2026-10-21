@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1437"
-  },
   "plan": {
     "title": "v0.39.3 vendored upgrade leaves root artifacts stale: duplicate AGENTS.md managed-section (attributed v3 marker not matched) + bare .deft-version not regenerated",
     "status": "completed",
@@ -10,7 +6,12 @@
       "kind": "story",
       "completedAt": "2026-06-03T00:14:24Z",
       "capacityBucket": "technical-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.325Z",
+        "migration": true
+      }
     },
     "narratives": {
       "Description": "v0.39.3 vendored upgrade leaves root artifacts stale: duplicate AGENTS.md managed-section (attributed v3 marker not matched) + bare .deft-version not regenerated",
@@ -56,5 +57,9 @@
       }
     ],
     "updated": "2026-06-03T00:14:17Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1437"
   }
 }

@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Strengthen scm:body issue-edit with fail-closed postcondition verify + safe body fetch-to-file for win32 RMW.",
-    "created": "2026-07-22T01:35:00Z",
-    "updated": "2026-07-22T02:20:00Z"
-  },
   "plan": {
     "id": "2607-safe-issue-body-patch-helper",
     "title": "feat(scm): issue-body postcondition verify + safe fetch-to-file (#2607)",
@@ -74,7 +68,12 @@
         "model_tier": "medium",
         "missing_traces_justification": "Enhancement from GitHub issue #2607 extending #1555; no FR trace registry for hotfix cohort."
       },
-      "completedAt": "2026-07-22T05:11:28Z"
+      "completedAt": "2026-07-22T05:11:28Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.382Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -89,5 +88,11 @@
       }
     ],
     "updated": "2026-07-22T05:11:28Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Strengthen scm:body issue-edit with fail-closed postcondition verify + safe body fetch-to-file for win32 RMW.",
+    "created": "2026-07-22T01:35:00Z",
+    "updated": "2026-07-22T02:20:00Z"
   }
 }

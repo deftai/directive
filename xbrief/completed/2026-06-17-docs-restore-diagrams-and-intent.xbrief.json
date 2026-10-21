@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Restore diagrams and early design intent in the refreshed project docs.",
-    "created": "2026-06-17T15:53:39Z",
-    "updated": "2026-06-17T15:58:01Z"
-  },
   "plan": {
     "title": "docs: restore diagrams and early intent",
     "status": "completed",
@@ -17,7 +11,12 @@
     "metadata": {
       "kind": "story",
       "capacityBucket": "new-capability",
-      "completedAt": "2026-06-17T15:58:25Z"
+      "completedAt": "2026-06-17T15:58:25Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.341Z",
+        "migration": true
+      }
     },
     "items": [
       {
@@ -56,5 +55,11 @@
       }
     ],
     "updated": "2026-06-17T15:58:25Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Restore diagrams and early design intent in the refreshed project docs.",
+    "created": "2026-06-17T15:53:39Z",
+    "updated": "2026-06-17T15:58:01Z"
   }
 }

@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for #163: Enforce USER.md gate in CLI path -- parity with agentic (skills) path",
-    "updated": "2026-04-30T13:58:20Z"
-  },
   "plan": {
     "title": "Enforce USER.md gate in CLI path -- parity with agentic (skills) path",
     "status": "completed",
@@ -47,6 +42,11 @@
         "Status_source": "orphan: proposed default",
         "SourceConflict": "missing-from-spec",
         "Phase_source": "pre-migration ROADMAP (commit 3925468)"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.284Z",
+        "migration": true
       }
     },
     "references": [
@@ -56,6 +56,11 @@
         "title": "Issue #163: Enforce USER.md gate in CLI path -- parity with agentic (skills) path"
       }
     ],
+    "updated": "2026-04-30T13:58:20Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #163: Enforce USER.md gate in CLI path -- parity with agentic (skills) path",
     "updated": "2026-04-30T13:58:20Z"
   }
 }

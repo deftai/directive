@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story B of #1378 -- build skill recognizes the structured consent token; swarm skill populates it.",
-    "updated": "2026-06-01T02:30:00Z"
-  },
   "plan": {
     "title": "feat(skills): recognize + populate ## Allocation context consent token (#1378 Story B)",
     "status": "completed",
@@ -84,8 +79,18 @@
       },
       "completedAt": "2026-06-01T02:54:49Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.322Z",
+        "migration": true
+      }
     },
     "updated": "2026-06-01T02:39:41Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story B of #1378 -- build skill recognizes the structured consent token; swarm skill populates it.",
+    "updated": "2026-06-01T02:30:00Z"
   }
 }

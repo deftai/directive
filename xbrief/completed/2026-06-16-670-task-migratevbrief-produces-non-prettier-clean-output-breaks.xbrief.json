@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #670"
-  },
   "plan": {
     "title": "task migrate:vbrief produces non-prettier-clean output, breaks downstream task check",
     "id": "670-migrate-prettier-breadcrumb",
@@ -65,7 +61,12 @@
         "missing_traces_justification": "Bug fix ingested from GitHub issue #670; no spec-section requirement trace applies. Generator byte-matching (option 1) and auto-running prettier (option 2) are intentionally out of scope."
       },
       "completedAt": "2026-06-16T20:28:09Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.340Z",
+        "migration": true
+      }
     },
     "tags": [
       "bug",
@@ -79,5 +80,9 @@
       }
     ],
     "updated": "2026-06-16T20:28:09Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #670"
   }
 }

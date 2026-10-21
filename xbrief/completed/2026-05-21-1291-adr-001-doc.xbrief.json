@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #1291 (doc(adr): ADR-001 -- vBRIEF-as-canonical); part of the #742 decomposition.",
-    "created": "2026-05-21T16:32:24Z",
-    "updated": "2026-06-12T16:08:11Z"
-  },
   "plan": {
     "id": "1291-adr-001-doc",
     "title": "ADR-001 doc deliverable: vBRIEF-as-canonical (write the doc)",
@@ -48,7 +42,12 @@
       },
       "completedAt": "2026-06-12T16:08:11Z",
       "capacityBucket": "agentic-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.318Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -77,6 +76,12 @@
         "title": "Issue #401: AXIOM ship-PR"
       }
     ],
+    "updated": "2026-06-12T16:08:11Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #1291 (doc(adr): ADR-001 -- vBRIEF-as-canonical); part of the #742 decomposition.",
+    "created": "2026-05-21T16:32:24Z",
     "updated": "2026-06-12T16:08:11Z"
   }
 }

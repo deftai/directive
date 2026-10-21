@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #715 (extension round-trip conformance, Phase B); part of the #2034 decomposition.",
-    "created": "2026-06-30T14:30:00Z",
-    "updated": "2026-06-30T14:30:00Z"
-  },
   "plan": {
     "id": "715-extension-roundtrip-conformance",
     "title": "Extension round-trip conformance fixtures and validator preservation",
@@ -12,7 +6,7 @@
     "planRef": "https://github.com/deftai/directive/issues/2034",
     "narratives": {
       "Description": "Prove directive preserves x-consumer extension keys verbatim across a read and write, on the authority of xBRIEF v0.8 section 7. This story is independently buildable as a fixture set plus a round-trip test that does not depend on the rename or the corpus migration.",
-      "ImplementationPlan": "1. Add extension fixtures under content/vbrief/conformance/extensions and a round-trip test in packages/core/src/vbrief-validate that loads each fixture, re-emits it, and asserts x-* keys are JSON-structurally equal. 2. Wire the round-trip test into the conformance gate so a dropped extension key fails the verify suite; assert the EXTENSION_KEY_PATTERN module is the single source for the namespace.",
+      "ImplementationPlan": "1. Add extension fixtures under content/xbrief/conformance/extensions and a round-trip test in packages/core/src/vbrief-validate that loads each fixture, re-emits it, and asserts x-* keys are JSON-structurally equal. 2. Wire the round-trip test into the conformance gate so a dropped extension key fails the verify suite; assert the EXTENSION_KEY_PATTERN module is the single source for the namespace.",
       "UserStory": "As an xBRIEF reference consumer, I want a round-trip conformance test, so that directive provably never drops x-consumer extension keys when reading and rewriting an artifact.",
       "Traces": "#715, #2034"
     },
@@ -53,7 +47,7 @@
         "parallel_safe": true,
         "file_scope": [
           "packages/core/src/vbrief-validate/roundtrip.test.ts",
-          "content/vbrief/conformance/extensions/valid/extension-at-root.vbrief.json"
+          "content/xbrief/conformance/extensions/valid/extension-at-root.xbrief.json"
         ],
         "verify_commands": [
           "pnpm -C packages/core vitest run src/vbrief-validate/roundtrip.test.ts",
@@ -71,7 +65,12 @@
         "model_tier": "medium"
       },
       "completedAt": "2026-06-30T15:48:04Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.365Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -86,5 +85,11 @@
       }
     ],
     "updated": "2026-06-30T15:48:04Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #715 (extension round-trip conformance, Phase B); part of the #2034 decomposition.",
+    "created": "2026-06-30T14:30:00Z",
+    "updated": "2026-06-30T14:30:00Z"
   }
 }

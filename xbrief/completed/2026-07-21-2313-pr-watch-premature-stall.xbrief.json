@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Stop pr:watch from premature STALL on stale-SHA confidence while re-review is in flight.",
-    "created": "2026-07-22T01:25:00Z",
-    "updated": "2026-07-22T01:30:00Z"
-  },
   "plan": {
     "id": "2313-pr-watch-premature-stall",
     "title": "bug(pr:watch): no premature STALL on stale-SHA confidence during re-review",
@@ -71,7 +65,12 @@
         "model_tier": "medium",
         "missing_traces_justification": "Bug-fix from GitHub issue #2313; no FR trace registry for hotfix cohort."
       },
-      "completedAt": "2026-07-22T05:11:26Z"
+      "completedAt": "2026-07-22T05:11:26Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.382Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -81,5 +80,11 @@
       }
     ],
     "updated": "2026-07-22T05:11:26Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Stop pr:watch from premature STALL on stale-SHA confidence while re-review is in flight.",
+    "created": "2026-07-22T01:25:00Z",
+    "updated": "2026-07-22T01:30:00Z"
   }
 }

@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1035",
-    "updated": "2026-05-11T22:23:07Z"
-  },
   "plan": {
     "title": "swarm-greptile-poller-prompt detector misses confidence-heading form AND SLizard ### P1 · heading form -- false-negatives on PR #1034",
     "status": "completed",
@@ -24,6 +19,18 @@
         "title": "Issue #1035: swarm-greptile-poller-prompt detector misses confidence-heading form AND SLizard ### P1 · heading form -- false-negatives on PR #1034"
       }
     ],
+    "updated": "2026-05-11T22:23:07Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.308Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1035",
     "updated": "2026-05-11T22:23:07Z"
   }
 }

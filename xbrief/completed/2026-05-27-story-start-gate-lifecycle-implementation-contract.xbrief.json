@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for tightening story implementation start and completion gates",
-    "created": "2026-05-27T00:00:00Z",
-    "updated": "2026-05-27T00:00:00Z"
-  },
   "plan": {
     "id": "story-start-gate-lifecycle-implementation-contract",
     "title": "fix(skills): add story start gate and lifecycle checkpoint contract",
@@ -86,8 +80,19 @@
       },
       "completedAt": "2026-06-01T02:18:20Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "default"
+      "capacityBucketSource": "default",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.321Z",
+        "migration": true
+      }
     },
     "updated": "2026-05-27T02:50:46Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for tightening story implementation start and completion gates",
+    "created": "2026-05-27T00:00:00Z",
+    "updated": "2026-05-27T00:00:00Z"
   }
 }

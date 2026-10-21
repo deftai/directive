@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1739"
-  },
   "plan": {
     "title": "swarm: operator-specifiable coding sub-agent model per role via gitignored route file (supersedes #1531/#1735 backend-enum approach)",
     "status": "completed",
@@ -33,7 +29,16 @@
     "updated": "2026-06-21T20:37:59Z",
     "metadata": {
       "completedAt": "2026-06-21T20:37:59Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.348Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1739"
   }
 }

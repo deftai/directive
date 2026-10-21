@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 4 decomposed from pending/2026-07-05-1709-value-attribution-adoption-loop.xbrief.json"
-  },
   "plan": {
     "id": "1709-awareness-readbacks",
     "title": "Budgeted awareness readbacks (session line + value:show)",
@@ -65,7 +61,12 @@
         "model_tier": "standard"
       },
       "completedAt": "2026-07-05T21:52:41Z",
-      "capacityBucket": "agentic-debt"
+      "capacityBucket": "agentic-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.371Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -82,5 +83,9 @@
       }
     ],
     "updated": "2026-07-05T21:52:41Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 4 decomposed from pending/2026-07-05-1709-value-attribution-adoption-loop.xbrief.json"
   }
 }

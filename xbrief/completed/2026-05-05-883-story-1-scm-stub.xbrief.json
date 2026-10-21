@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story 1 of #883 v1: minimal scm:* stub (4 commands) with strong forward-compat marker pointing at #881. Wave 1 of the linear cohort; ships first; provides the scm:issue:view interface that Story 2 cache:fetch-all consumes.",
-    "created": "2026-05-05T23:20:00Z",
-    "updated": "2026-05-06T00:56:42Z"
-  },
   "plan": {
     "id": "883-story-1-scm-stub",
     "title": "feat(scm): minimal stub (4 commands) for #883 v1 cache layer",
@@ -93,6 +87,11 @@
         ],
         "branch": "feat/883-story-1-scm-stub",
         "pr_title_prefix": "feat(scm): minimal stub for #883 v1 cache layer (#883 Story 1)"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.304Z",
+        "migration": true
       }
     },
     "references": [
@@ -118,5 +117,11 @@
       }
     ],
     "updated": "2026-05-06T15:11:52Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story 1 of #883 v1: minimal scm:* stub (4 commands) with strong forward-compat marker pointing at #881. Wave 1 of the linear cohort; ships first; provides the scm:issue:view interface that Story 2 cache:fetch-all consumes.",
+    "created": "2026-05-05T23:20:00Z",
+    "updated": "2026-05-06T00:56:42Z"
   }
 }

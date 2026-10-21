@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for the 2026-07-03 application-security review omnibus (#2279 / #2305 / #2306 / #2307)",
-    "updated": "2026-07-05T15:18:27Z"
-  },
   "plan": {
     "title": "Security omnibus: close four Medium findings from the 2026-07-03 app-sec review",
     "status": "completed",
@@ -54,7 +49,17 @@
     "updated": "2026-07-05T17:33:20Z",
     "metadata": {
       "completedAt": "2026-07-05T17:33:20Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.373Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for the 2026-07-03 application-security review omnibus (#2279 / #2305 / #2306 / #2307)",
+    "updated": "2026-07-05T15:18:27Z"
   }
 }

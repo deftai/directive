@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 5 decomposed from proposed/2026-06-19-1782-featts-migration-port-the-vbrief-spine-build-validation-reco.xbrief.json"
-  },
   "plan": {
     "id": "1782-s3-vbrief-validate",
     "title": "Port the vbrief:validate CLI + verify:vbrief-conformance gate to TypeScript (composer)",
@@ -69,7 +65,12 @@
         "missing_traces_justification": "#1530 Wave-5 framework-internal TS port traced to GitHub issue #1782 and umbrella epic #1530; no specification.xbrief.json spec-section applies to maintainer tooling."
       },
       "completedAt": "2026-06-19T19:26:37Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.347Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -85,5 +86,9 @@
       }
     ],
     "updated": "2026-06-19T19:26:37Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 5 decomposed from proposed/2026-06-19-1782-featts-migration-port-the-vbrief-spine-build-validation-reco.xbrief.json"
   }
 }

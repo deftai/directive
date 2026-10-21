@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1005",
-    "updated": "2026-05-11T22:23:07Z"
-  },
   "plan": {
     "title": "feat(coding): surface-conflicts-rule — when two codebase patterns contradict, pick one and explain; never average them",
     "status": "completed",
@@ -24,6 +19,18 @@
         "title": "Issue #1005: feat(coding): surface-conflicts-rule — when two codebase patterns contradict, pick one and explain; never average them"
       }
     ],
+    "updated": "2026-05-11T22:23:07Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.307Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1005",
     "updated": "2026-05-11T22:23:07Z"
   }
 }

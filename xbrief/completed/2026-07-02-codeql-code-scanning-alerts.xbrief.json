@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF: remediate the 3 open CodeQL code-scanning alerts on deftai/directive — #51 incomplete URL substring sanitization (preflight-cache/evaluate.ts), #50 incomplete string escaping (codebase/map.ts), #52 prototype-polluting assignment (swarm/routing.ts). Security hardening; test-backed.",
-    "created": "2026-07-02T00:00:00Z",
-    "updated": "2026-07-02T00:00:00Z"
-  },
   "plan": {
     "id": "codeql-code-scanning-alerts",
     "title": "Remediate 3 open CodeQL code-scanning alerts (#50 / #51 / #52)",
@@ -83,7 +77,12 @@
         "file_scope_confidence": "high",
         "model_tier": "high"
       },
-      "completedAt": "2026-07-02T16:29:01Z"
+      "completedAt": "2026-07-02T16:29:01Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.369Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -93,5 +92,11 @@
       }
     ],
     "updated": "2026-07-02T16:29:01Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF: remediate the 3 open CodeQL code-scanning alerts on deftai/directive — #51 incomplete URL substring sanitization (preflight-cache/evaluate.ts), #50 incomplete string escaping (codebase/map.ts), #52 prototype-polluting assignment (swarm/routing.ts). Security hardening; test-backed.",
+    "created": "2026-07-02T00:00:00Z",
+    "updated": "2026-07-02T00:00:00Z"
   }
 }

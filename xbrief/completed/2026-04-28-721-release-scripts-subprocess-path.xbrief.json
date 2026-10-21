@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for #721: release scripts (release.py / release_publish.py / release_rollback.py / release_e2e.py) cannot find the `gh` CLI on Windows because Python's subprocess.run does not honor PATHEXT for `gh.cmd` -- resolve to an absolute path via shutil.which once and pass that as argv[0], plus env=os.environ.copy() defense-in-depth.",
-    "created": "2026-04-28T21:50:29Z",
-    "updated": "2026-04-29T18:18:17Z"
-  },
   "plan": {
     "id": "721-release-subprocess-path",
     "title": "Resolve gh absolute path before subprocess.run in release scripts (Windows PATHEXT fix)",
@@ -54,6 +48,11 @@
         "blocks": null,
         "blocked_by": null,
         "scope_authority": "deft-721-fix sub-agent dispatch (parent orchestrator's plan stages 1-4)"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.297Z",
+        "migration": true
       }
     },
     "references": [
@@ -73,5 +72,11 @@
         "title": "Issue #716: release safety hardening (added scripts/release_publish.py / release_rollback.py / release_e2e.py companion scripts which inherited the same subprocess PATH defect)"
       }
     ]
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #721: release scripts (release.py / release_publish.py / release_rollback.py / release_e2e.py) cannot find the `gh` CLI on Windows because Python's subprocess.run does not honor PATHEXT for `gh.cmd` -- resolve to an absolute path via shutil.which once and pass that as argv[0], plus env=os.environ.copy() defense-in-depth.",
+    "created": "2026-04-28T21:50:29Z",
+    "updated": "2026-04-29T18:18:17Z"
   }
 }

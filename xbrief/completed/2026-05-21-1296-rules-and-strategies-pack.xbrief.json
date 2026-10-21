@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #1296 (feat(packs): rules-pack-0.1 + strategies-pack-0.1); Phase 3 / last open child of epic #1284. Generalizes the #1294 lessons + #1295 skills pack machinery to two further pack types as 0.1 pilots (metadata-complete + one drift-checked projection proof per pack).",
-    "created": "2026-05-21T16:32:24Z",
-    "updated": "2026-06-15T17:25:00Z"
-  },
   "plan": {
     "id": "1296-rules-and-strategies-pack",
     "title": "rules-pack-0.1 + strategies-pack-0.1",
@@ -82,7 +76,12 @@
         "model_tier": "standard"
       },
       "completedAt": "2026-06-15T17:49:02Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.318Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -102,5 +101,11 @@
       }
     ],
     "updated": "2026-06-15T17:49:02Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #1296 (feat(packs): rules-pack-0.1 + strategies-pack-0.1); Phase 3 / last open child of epic #1284. Generalizes the #1294 lessons + #1295 skills pack machinery to two further pack types as 0.1 pilots (metadata-complete + one drift-checked projection proof per pack).",
+    "created": "2026-05-21T16:32:24Z",
+    "updated": "2026-06-15T17:25:00Z"
   }
 }

@@ -1,7 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6"
-  },
   "plan": {
     "title": "migrate: .premigrate.* not gitignored by default; post-commit recovery path undocumented",
     "status": "completed",
@@ -15,6 +12,16 @@
         "id": "#530"
       }
     ],
-    "updated": "2026-04-22T14:30:51Z"
+    "updated": "2026-04-22T14:30:51Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.278Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8"
   }
 }

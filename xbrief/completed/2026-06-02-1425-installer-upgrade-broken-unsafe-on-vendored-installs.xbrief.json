@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1425"
-  },
   "plan": {
     "title": "fix(installer): deft-install --upgrade safe + working on vendored (no-.git) webinstaller installs (#1425)",
     "status": "completed",
@@ -43,7 +39,16 @@
     "metadata": {
       "completedAt": "2026-06-02T19:11:23Z",
       "capacityBucket": "technical-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.323Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1425"
   }
 }

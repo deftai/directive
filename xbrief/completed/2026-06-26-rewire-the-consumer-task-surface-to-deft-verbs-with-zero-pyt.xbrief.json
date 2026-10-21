@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 8 decomposed from completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.xbrief.json Completed in v0.60.0 (#2022 Phase 2); lifecycle reconciled 2026-06-29.",
-    "updated": "2026-06-29T14:00:00Z"
-  },
   "plan": {
     "id": "py-purge-consumer-task-surface",
     "title": "Rewire the consumer task surface to deft verbs with zero Python entrypoints (Phase 2)",
@@ -70,6 +65,11 @@
         "size": "L",
         "file_scope_confidence": "medium",
         "model_tier": "high"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.359Z",
+        "migration": true
       }
     },
     "references": [
@@ -99,5 +99,10 @@
       }
     ],
     "updated": "2026-06-26T18:08:35Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 8 decomposed from completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.xbrief.json Completed in v0.60.0 (#2022 Phase 2); lifecycle reconciled 2026-06-29.",
+    "updated": "2026-06-29T14:00:00Z"
   }
 }

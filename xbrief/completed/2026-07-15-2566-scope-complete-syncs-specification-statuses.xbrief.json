@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope xBRIEF from GitHub issue #2566 (swarm cohort afk-wave2-2566-2581)"
-  },
   "plan": {
     "title": "scope:complete syncs specification.xbrief.json item statuses",
     "status": "completed",
@@ -65,8 +61,17 @@
         "size": "medium"
       },
       "completedAt": "2026-07-16T16:54:13Z",
-      "capacityBucket": "technical-debt"
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.378Z",
+        "migration": true
+      }
     },
     "updated": "2026-07-16T16:54:13Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF from GitHub issue #2566 (swarm cohort afk-wave2-2566-2581)"
   }
 }

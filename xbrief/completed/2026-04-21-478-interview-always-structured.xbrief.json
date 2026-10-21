@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "author": "agent:deft-directive-swarm",
-    "description": "Adopt Option A (always-structured) for every user-facing question; mode-restore after Rule 6 gate; preamble guidance; setup SKILL.md phase-transition prose fix.",
-    "created": "2026-04-21T17:18:00Z"
-  },
   "plan": {
     "id": "rc3-478-always-structured",
     "title": "Interview skill: always-structured rendering (Option A) + mode-restore + preamble guidance (#478)",
@@ -81,6 +75,19 @@
         "id": "#506"
       }
     ],
-    "updated": "2026-04-23T02:28:02Z"
+    "updated": "2026-04-23T02:28:02Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.277Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "author": "agent:deft-directive-swarm",
+    "description": "Adopt Option A (always-structured) for every user-facing question; mode-restore after Rule 6 gate; preamble guidance; setup SKILL.md phase-transition prose fix.",
+    "created": "2026-04-21T17:18:00Z"
   }
 }

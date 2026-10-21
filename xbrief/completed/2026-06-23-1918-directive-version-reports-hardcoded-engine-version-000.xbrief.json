@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1918"
-  },
   "plan": {
     "title": "directive version reports hardcoded engine version 0.0.0",
     "status": "completed",
@@ -27,7 +23,16 @@
     "updated": "2026-06-23T23:47:49Z",
     "metadata": {
       "completedAt": "2026-06-23T23:47:49Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.352Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1918"
   }
 }

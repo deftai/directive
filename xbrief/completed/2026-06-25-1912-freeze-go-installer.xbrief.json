@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for the operator freeze action of epic #1912"
-  },
   "plan": {
     "title": "Freeze the Go installer at v0.56.0 (pin LAST_GO_INSTALLER)",
     "status": "completed",
@@ -27,7 +23,16 @@
     "updated": "2026-06-25T16:46:21Z",
     "metadata": {
       "capacityBucket": "maintenance",
-      "completedAt": "2026-06-25T16:46:21Z"
+      "completedAt": "2026-06-25T16:46:21Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.356Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for the operator freeze action of epic #1912"
   }
 }

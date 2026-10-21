@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story 3 of #883 v1: rebind triage v1 surface onto cache:*. Delete task triage:cache + triage:show (hard cutover, no shims). Rewrite 4 triage scripts to consume cache:get. Rewrite refinement skill Phase 0 prose. External surface unchanged for kept tasks. Wave 3; depends on Story 2's cache:get + meta.json schema.",
-    "created": "2026-05-05T23:20:00Z",
-    "updated": "2026-05-06T15:11:23Z"
-  },
   "plan": {
     "id": "883-story-3-triage-rebind",
     "title": "refactor(triage): rebind v1 surface onto cache:* (#883 Story 3)",
@@ -118,6 +112,11 @@
         ],
         "branch": "refactor/883-story-3-triage-rebind",
         "pr_title_prefix": "refactor(triage): rebind v1 surface onto cache:* (#883 Story 3)"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.304Z",
+        "migration": true
       }
     },
     "references": [
@@ -142,6 +141,12 @@
         "title": "Issue #915 (P0): triage_bulk.py bypasses Tier-1 cache (root-cause for the rebind; this story removes the drift surface entirely)"
       }
     ],
+    "updated": "2026-05-06T15:11:23Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story 3 of #883 v1: rebind triage v1 surface onto cache:*. Delete task triage:cache + triage:show (hard cutover, no shims). Rewrite 4 triage scripts to consume cache:get. Rewrite refinement skill Phase 0 prose. External surface unchanged for kept tasks. Wave 3; depends on Story 2's cache:get + meta.json schema.",
+    "created": "2026-05-05T23:20:00Z",
     "updated": "2026-05-06T15:11:23Z"
   }
 }

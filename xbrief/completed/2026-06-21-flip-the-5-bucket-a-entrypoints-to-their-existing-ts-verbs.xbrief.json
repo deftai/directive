@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 1 decomposed from completed/2026-06-21-1854-featts-migration-wave-86-finish-the-partial-python-ts-live-f.xbrief.json"
-  },
   "plan": {
     "id": "1854-s1-bucketA-flip",
     "title": "Flip the 5 Bucket-A entrypoints to their existing TS verbs",
@@ -71,7 +67,12 @@
         "model_tier": "composer-2.5-fast"
       },
       "completedAt": "2026-06-21T17:27:59Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.349Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -82,5 +83,9 @@
       }
     ],
     "updated": "2026-06-21T17:27:59Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 1 decomposed from completed/2026-06-21-1854-featts-migration-wave-86-finish-the-partial-python-ts-live-f.xbrief.json"
   }
 }

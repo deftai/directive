@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for #207: Greptile re-review latency on force-push after rebase -- documented in swarm Phase 6 with time estimates and annotation guidance",
-    "updated": "2026-04-23T14:30:07Z"
-  },
   "plan": {
     "title": "Greptile re-review latency on force-push after rebase -- documented in swarm Phase 6 with time estimates and annotation guidance",
     "status": "completed",
@@ -18,6 +13,11 @@
         "Description_source": "ROADMAP.md",
         "Status_source": "orphan: ROADMAP Completed section (#593)",
         "SourceConflict": "missing-from-spec"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.286Z",
+        "migration": true
       }
     },
     "references": [
@@ -27,5 +27,10 @@
         "title": "Issue #207: Greptile re-review latency on force-push after rebase -- documented in swarm Phase 6 with time estimates and annotation guidance"
       }
     ]
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #207: Greptile re-review latency on force-push after rebase -- documented in swarm Phase 6 with time estimates and annotation guidance",
+    "updated": "2026-04-23T14:30:07Z"
   }
 }

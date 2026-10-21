@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 3 decomposed from proposed/2026-06-15-1637-featpacks-packsslice-v2-remaining-lessons-slices-skillsrules.xbrief.json"
-  },
   "plan": {
     "id": "1637-s3-strategies-bodies",
     "title": "packs:slice v2 -- capture full body for every strategy",
@@ -67,7 +63,12 @@
         "missing_traces_justification": "Framework-internal packs:slice v2 work traced to GitHub issue #1637; no specification.xbrief.json spec-section applies to maintainer tooling."
       },
       "completedAt": "2026-06-16T01:59:39Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.338Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -83,5 +84,9 @@
       }
     ],
     "updated": "2026-06-16T01:59:39Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 3 decomposed from proposed/2026-06-15-1637-featpacks-packsslice-v2-remaining-lessons-slices-skillsrules.xbrief.json"
   }
 }

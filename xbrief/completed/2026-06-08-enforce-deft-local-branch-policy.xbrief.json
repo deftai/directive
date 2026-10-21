@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for re-enabling Deft local branch-protection policy in the directive framework repo.",
-    "created": "2026-06-08T19:23:00Z",
-    "updated": "2026-06-11T18:08:00Z"
-  },
   "plan": {
     "id": "enforce-deft-local-branch-policy",
     "title": "Enforce Deft local branch policy",
@@ -55,7 +49,12 @@
       },
       "completedAt": "2026-06-11T18:04:30Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "default"
+      "capacityBucketSource": "default",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.331Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -65,6 +64,12 @@
         "TrustLevel": "internal"
       }
     ],
+    "updated": "2026-06-11T18:08:00Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for re-enabling Deft local branch-protection policy in the directive framework repo.",
+    "created": "2026-06-08T19:23:00Z",
     "updated": "2026-06-11T18:08:00Z"
   }
 }

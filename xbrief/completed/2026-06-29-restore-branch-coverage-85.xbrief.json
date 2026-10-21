@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Follow-up to #2083: add branch-coverage tests and restore the vitest branches threshold to 85"
-  },
   "plan": {
     "id": "restore-branch-coverage-85",
     "title": "Restore vitest branch-coverage threshold to 85 (post-#2083 follow-up)",
@@ -36,7 +32,12 @@
     "metadata": {
       "kind": "story",
       "capacityBucket": "tech-debt",
-      "completedAt": "2026-06-29T17:34:21Z"
+      "completedAt": "2026-06-29T17:34:21Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.363Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -47,5 +48,9 @@
       }
     ],
     "updated": "2026-06-29T17:34:21Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Follow-up to #2083: add branch-coverage tests and restore the vitest branches threshold to 85"
   }
 }

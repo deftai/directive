@@ -1,19 +1,13 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #644: audit directive's surrounding-docs footprint, encode the empirical documentation-discovery principle as a named design rule in REFERENCES.md, and correct reference-chain drift so the lazy-loading spine is trustworthy. Child of #1882.",
-    "created": "2026-07-02T00:00:00Z",
-    "updated": "2026-07-02T00:00:00Z"
-  },
   "plan": {
     "id": "644-surrounding-docs-footprint-audit",
     "title": "Audit surrounding-docs footprint + encode the reference-chain discovery principle in REFERENCES.md",
     "status": "completed",
     "planRef": "https://github.com/deftai/directive/issues/644",
     "narratives": {
-      "Description": "Augment Code's empirical AGENTS.md study (content/docs/good-agents-md.md) measured documentation-discovery rates: AGENTS.md hierarchy 100%, directly-referenced files 90%+, directory READMEs 80%+, nested READMEs elsewhere ~40%, orphan docs <10%. The corollary: a good AGENTS.md sitting on top of a large reachable doc corpus does NOT protect an agent from overexploration -- reachable-but-unreferenced docs are still found, and referenced-but-stale docs are followed wrongly. Directive's own reachable footprint is large: 359 tracked .md files / ~81.5K lines, with content/ alone at 226 files / ~38K lines; the biggest agent-visible clusters are content/deployments/ (52 files / ~12.4K lines), docs/ (56 files / ~9K lines), content/skills/ (27 / ~5.7K, trigger-gated), and content/languages/ (26 / ~4.9K). REFERENCES.md is the lazy-loading spine (Level 0/1/2 + Skills Index + task-based loading) and is structurally sound, but it carries stale reference-chain drift: it still points at vbrief/ paths and content/vbrief/ docs throughout even though the framework moved to xbrief/ (#2034/#2110). Because those references sit in the 90%+-discovery chain, agents follow them to wrong/renamed paths -- the exact failure the study warns about. This story does the audit and encodes the finding as a durable named principle; the mechanical doc-sprawl health-check gate is OUT OF SCOPE (that is #647).",
-      "ImplementationPlan": "1. Record the footprint audit (reachable .md counts + per-cluster line volumes + the biggest clusters) in a durable analysis doc under docs/analysis/2026-07-02-644-surrounding-docs-footprint-audit.md, including the discovery-rate table and the de-referencing assessment (deployments/ and languages/ are already reference-gated in REFERENCES.md; confirm no always-loaded doc pulls them in). 2. Encode a NAMED design principle in REFERENCES.md near the map-not-manual section: 'The reference-chain contract' -- state the discovery-rate table and the rule: (a) if a doc must be followed, it MUST be reachable in the reference chain; (b) orphan docs (<10% discovery) are effectively invisible -- do not rely on them for required behavior; (c) reachable-but-unreferenced docs will still be found and cost context, so large clusters must stay behind explicit task-gated pointers, not ambient reachability; (d) a stale/wrong reference is worse than no reference because it is followed at 90%+. 3. Correct the reference-chain drift in REFERENCES.md: replace vbrief/ -> xbrief/ paths and content/vbrief/ -> content/xbrief/ references (PROJECT-DEFINITION.vbrief.json -> .xbrief.json, plan.vbrief.json, continue.vbrief.json, the vbrief.md / schema references, and the .vbrief.json naming rule) so the spine points at real, current paths. Verify targets resolve. 4. CHANGELOG [Unreleased] entry (user-visible: the framework's reference guide now encodes the documentation-discovery principle and points at current xbrief/ paths). 5. Run task check GREEN. Explicitly note that wiring an enforcement/health-check gate is #647 and NOT part of this story.",
-      "UserStory": "As an agent orienting in the deft framework repo, I want REFERENCES.md to state the empirical documentation-discovery principle and point only at current, resolvable paths, so that I load the right small set of files instead of overexploring a large reachable corpus or following stale vbrief/ references to renamed locations.",
+      "Description": "Augment Code's empirical AGENTS.md study (content/docs/good-agents-md.md) measured documentation-discovery rates: AGENTS.md hierarchy 100%, directly-referenced files 90%+, directory READMEs 80%+, nested READMEs elsewhere ~40%, orphan docs <10%. The corollary: a good AGENTS.md sitting on top of a large reachable doc corpus does NOT protect an agent from overexploration -- reachable-but-unreferenced docs are still found, and referenced-but-stale docs are followed wrongly. Directive's own reachable footprint is large: 359 tracked .md files / ~81.5K lines, with content/ alone at 226 files / ~38K lines; the biggest agent-visible clusters are content/deployments/ (52 files / ~12.4K lines), docs/ (56 files / ~9K lines), content/skills/ (27 / ~5.7K, trigger-gated), and content/languages/ (26 / ~4.9K). REFERENCES.md is the lazy-loading spine (Level 0/1/2 + Skills Index + task-based loading) and is structurally sound, but it carries stale reference-chain drift: it still points at xbrief/ paths and content/xbrief/ docs throughout even though the framework moved to xbrief/ (#2034/#2110). Because those references sit in the 90%+-discovery chain, agents follow them to wrong/renamed paths -- the exact failure the study warns about. This story does the audit and encodes the finding as a durable named principle; the mechanical doc-sprawl health-check gate is OUT OF SCOPE (that is #647).",
+      "ImplementationPlan": "1. Record the footprint audit (reachable .md counts + per-cluster line volumes + the biggest clusters) in a durable analysis doc under docs/analysis/2026-07-02-644-surrounding-docs-footprint-audit.md, including the discovery-rate table and the de-referencing assessment (deployments/ and languages/ are already reference-gated in REFERENCES.md; confirm no always-loaded doc pulls them in). 2. Encode a NAMED design principle in REFERENCES.md near the map-not-manual section: 'The reference-chain contract' -- state the discovery-rate table and the rule: (a) if a doc must be followed, it MUST be reachable in the reference chain; (b) orphan docs (<10% discovery) are effectively invisible -- do not rely on them for required behavior; (c) reachable-but-unreferenced docs will still be found and cost context, so large clusters must stay behind explicit task-gated pointers, not ambient reachability; (d) a stale/wrong reference is worse than no reference because it is followed at 90%+. 3. Correct the reference-chain drift in REFERENCES.md: replace xbrief/ -> xbrief/ paths and content/xbrief/ -> content/xbrief/ references (PROJECT-DEFINITION.xbrief.json -> .xbrief.json, plan.xbrief.json, continue.xbrief.json, the vbrief.md / schema references, and the .xbrief.json naming rule) so the spine points at real, current paths. Verify targets resolve. 4. CHANGELOG [Unreleased] entry (user-visible: the framework's reference guide now encodes the documentation-discovery principle and points at current xbrief/ paths). 5. Run task check GREEN. Explicitly note that wiring an enforcement/health-check gate is #647 and NOT part of this story.",
+      "UserStory": "As an agent orienting in the deft framework repo, I want REFERENCES.md to state the empirical documentation-discovery principle and point only at current, resolvable paths, so that I load the right small set of files instead of overexploring a large reachable corpus or following stale xbrief/ references to renamed locations.",
       "Traces": "#644, #1882, #2034, #2110, #647"
     },
     "items": [
@@ -38,7 +32,7 @@
         "title": "Reference-chain drift corrected (vbrief -> xbrief)",
         "status": "proposed",
         "narrative": {
-          "Acceptance": "Given REFERENCES.md, when scanned for reference paths, then vbrief/ and content/vbrief/ references are updated to the current xbrief/ / content/xbrief/ equivalents (PROJECT-DEFINITION.xbrief.json, plan.xbrief.json, continue.xbrief.json, xbrief.md/schema, .xbrief.json naming) and each cited target resolves."
+          "Acceptance": "Given REFERENCES.md, when scanned for reference paths, then xbrief/ and content/xbrief/ references are updated to the current xbrief/ / content/xbrief/ equivalents (PROJECT-DEFINITION.xbrief.json, plan.xbrief.json, continue.xbrief.json, xbrief.md/schema, .xbrief.json naming) and each cited target resolves."
         }
       },
       {
@@ -76,7 +70,12 @@
         "file_scope_confidence": "high",
         "model_tier": "medium"
       },
-      "completedAt": "2026-07-02T15:36:09Z"
+      "completedAt": "2026-07-02T15:36:09Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.368Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -91,5 +90,11 @@
       }
     ],
     "updated": "2026-07-02T15:36:09Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #644: audit directive's surrounding-docs footprint, encode the empirical documentation-discovery principle as a named design rule in REFERENCES.md, and correct reference-chain drift so the lazy-loading spine is trustworthy. Child of #1882.",
+    "created": "2026-07-02T00:00:00Z",
+    "updated": "2026-07-02T00:00:00Z"
   }
 }

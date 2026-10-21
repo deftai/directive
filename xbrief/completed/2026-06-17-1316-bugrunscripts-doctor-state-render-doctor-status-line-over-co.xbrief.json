@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1316"
-  },
   "plan": {
     "title": "bug(run,scripts/_doctor_state): _render_doctor_status_line over-counts warnings by 1 on dirty throttle-skip when AGENTS.md freshness check emits severity=skip",
     "status": "completed",
@@ -91,7 +87,16 @@
         "depends_on": []
       },
       "completedAt": "2026-06-17T01:41:12Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.340Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1316"
   }
 }

@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for #623: name and encode Context Rot as a first-class concept in context/context.md with mitigations.",
-    "updated": "2026-05-01T02:22:00Z"
-  },
   "plan": {
     "title": "feat(context): name and encode Context Rot as a first-class concept with mitigations",
     "status": "completed",
@@ -19,6 +14,11 @@
         "Description": "Encode Context Rot in context/context.md (companion to #622 / slizard#124).",
         "Description_source": "deftai/directive#623",
         "Status_source": "filed-during-cleanup"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.296Z",
+        "migration": true
       }
     },
     "references": [
@@ -38,6 +38,11 @@
         "title": "Companion: deftai/slizard#124 (clean-context reviewer)"
       }
     ],
+    "updated": "2026-05-01T02:22:00Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #623: name and encode Context Rot as a first-class concept in context/context.md with mitigations.",
     "updated": "2026-05-01T02:22:00Z"
   }
 }

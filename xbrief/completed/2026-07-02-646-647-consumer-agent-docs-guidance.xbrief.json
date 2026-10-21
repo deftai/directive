@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #646 + #647 (consumer-facing, #1882): encode the empirically-grounded AGENTS.md structure pattern into content/docs/agent-docs.md (#646) and add an advisory doc-sprawl health-check step to the deft-sync skill (plus a pointer in deft-pre-pr) (#647). Both derive from the Augment Code good-agents-md study.",
-    "created": "2026-07-02T00:00:00Z",
-    "updated": "2026-07-02T00:00:00Z"
-  },
   "plan": {
     "id": "646-647-consumer-agent-docs-guidance",
     "title": "Consumer-facing agent-docs guidance: structure pattern (#646) + doc-sprawl health check (#647)",
@@ -64,7 +58,12 @@
         "parent_issue": "#1882",
         "child_issue": "#646 + #647"
       },
-      "completedAt": "2026-07-02T16:43:43Z"
+      "completedAt": "2026-07-02T16:43:43Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.369Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -84,5 +83,11 @@
       }
     ],
     "updated": "2026-07-02T16:43:43Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #646 + #647 (consumer-facing, #1882): encode the empirically-grounded AGENTS.md structure pattern into content/docs/agent-docs.md (#646) and add an advisory doc-sprawl health-check step to the deft-sync skill (plus a pointer in deft-pre-pr) (#647). Both derive from the Augment Code good-agents-md study.",
+    "created": "2026-07-02T00:00:00Z",
+    "updated": "2026-07-02T00:00:00Z"
   }
 }

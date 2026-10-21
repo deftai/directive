@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 3 decomposed from pending/2026-07-05-1709-value-attribution-adoption-loop.xbrief.json"
-  },
   "plan": {
     "id": "1709-adoption-registry",
     "title": "Capability adoption registry with applicability heuristics",
@@ -64,7 +60,12 @@
         "model_tier": "standard"
       },
       "completedAt": "2026-07-05T20:54:45Z",
-      "capacityBucket": "agentic-debt"
+      "capacityBucket": "agentic-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.371Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -81,5 +82,9 @@
       }
     ],
     "updated": "2026-07-05T20:54:45Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 3 decomposed from pending/2026-07-05-1709-value-attribution-adoption-loop.xbrief.json"
   }
 }

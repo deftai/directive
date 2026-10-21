@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for #78: Bootstrap: offer to update user preferences when USER.md already exists",
-    "updated": "2026-06-18T15:05:29Z"
-  },
   "plan": {
     "title": "Bootstrap: offer to update user preferences when USER.md already exists",
     "status": "completed",
@@ -20,6 +15,11 @@
         "Status_source": "orphan: proposed default",
         "SourceConflict": "missing-from-spec",
         "Phase_source": "pre-migration ROADMAP (commit 3925468)"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.294Z",
+        "migration": true
       }
     },
     "references": [
@@ -29,6 +29,11 @@
         "title": "Issue #78: Bootstrap: offer to update user preferences when USER.md already exists"
       }
     ],
+    "updated": "2026-06-18T15:05:29Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #78: Bootstrap: offer to update user preferences when USER.md already exists",
     "updated": "2026-06-18T15:05:29Z"
   }
 }

@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #1292 (chore: reframe #336); part of the #742 decomposition.",
-    "created": "2026-05-21T16:32:24Z",
-    "updated": "2026-05-21T16:32:24Z"
-  },
   "plan": {
     "id": "1292-issue-336-reframe",
     "title": "Reframe #336: documentation-tier AXIOM application (drop 5 new core content types)",
@@ -40,7 +34,12 @@
         "readiness": "not-ready"
       },
       "completedAt": "2026-06-15T00:25:15Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.318Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -60,5 +59,11 @@
       }
     ],
     "updated": "2026-06-15T00:25:15Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #1292 (chore: reframe #336); part of the #742 decomposition.",
+    "created": "2026-05-21T16:32:24Z",
+    "updated": "2026-05-21T16:32:24Z"
   }
 }

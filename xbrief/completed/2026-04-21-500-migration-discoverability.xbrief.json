@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "author": "agent:deft-directive-swarm",
-    "description": "Pre-cutover migration discoverability per #506 D6: standard deft/Taskfile.yml include + actionable fallback message + AGENTS.md branch + docs entry.",
-    "created": "2026-04-21T17:18:00Z"
-  },
   "plan": {
     "id": "rc3-500-discoverability",
     "title": "Pre-cutover migration discoverability from project root and AGENTS.md (#500)",
@@ -82,6 +76,19 @@
         "id": "#506"
       }
     ],
-    "updated": "2026-04-23T02:28:03Z"
+    "updated": "2026-04-23T02:28:03Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.277Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "author": "agent:deft-directive-swarm",
+    "description": "Pre-cutover migration discoverability per #506 D6: standard deft/Taskfile.yml include + actionable fallback message + AGENTS.md branch + docs entry.",
+    "created": "2026-04-21T17:18:00Z"
   }
 }

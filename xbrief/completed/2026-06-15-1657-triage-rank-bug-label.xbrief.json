@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #1657: rank bug-labeled issues in the triage queue by adding 'bug' to triageRankingLabels (deft's PROJECT-DEFINITION + the consumer-example default).",
-    "created": "2026-06-15T19:15:00Z",
-    "updated": "2026-06-15T19:15:00Z"
-  },
   "plan": {
     "id": "1657-triage-rank-bug-label",
     "title": "Rank bug-labeled issues above feature/RFC work in the triage queue",
@@ -67,7 +61,12 @@
         "model_tier": "standard"
       },
       "completedAt": "2026-06-15T19:25:59Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.338Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -77,5 +76,11 @@
       }
     ],
     "updated": "2026-06-15T19:25:59Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #1657: rank bug-labeled issues in the triage queue by adding 'bug' to triageRankingLabels (deft's PROJECT-DEFINITION + the consumer-example default).",
+    "created": "2026-06-15T19:15:00Z",
+    "updated": "2026-06-15T19:15:00Z"
   }
 }

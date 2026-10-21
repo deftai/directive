@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Fix #952 (triage:bootstrap hangs after cache:fetch-all at backlog scale, post-#883 v1) and #951 (--skip-gitcrawl flag scrub from triage:bootstrap task description). Single PR closing both. Adds per-step structured progress output and a hermetic regression test simulating a 50+ issue backlog.",
-    "created": "2026-05-06T19:45:24Z",
-    "updated": "2026-05-06T19:50:31Z"
-  },
   "plan": {
     "id": "952-triage-bootstrap-hang-fix",
     "title": "fix(triage): bootstrap orchestrator hang post-cache:fetch-all (#952) + scrub --skip-gitcrawl (#951)",
@@ -91,6 +85,11 @@
         "branch": "fix/952-triage-bootstrap-hang",
         "pr_title_prefix": "fix(triage): bootstrap orchestrator hang post-cache:fetch-all (#952, #951)",
         "draft_pr_only": true
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.305Z",
+        "migration": true
       }
     },
     "references": [
@@ -121,5 +120,11 @@
       }
     ],
     "updated": "2026-05-06T20:53:38Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Fix #952 (triage:bootstrap hangs after cache:fetch-all at backlog scale, post-#883 v1) and #951 (--skip-gitcrawl flag scrub from triage:bootstrap task description). Single PR closing both. Adds per-step structured progress output and a hermetic regression test simulating a 50+ issue backlog.",
+    "created": "2026-05-06T19:45:24Z",
+    "updated": "2026-05-06T19:50:31Z"
   }
 }

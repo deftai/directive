@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1454"
-  },
   "plan": {
     "title": "Harden vendored version resolution: guard git to the payload's own root + never persist 0.0.0-dev (salvaged from #1447, credit @dbcall2)",
     "status": "completed",
@@ -50,7 +46,16 @@
     "metadata": {
       "completedAt": "2026-06-03T14:38:10Z",
       "capacityBucket": "technical-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.325Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1454"
   }
 }

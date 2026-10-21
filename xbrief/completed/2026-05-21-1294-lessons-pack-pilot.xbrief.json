@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #1294 (feat(packs): lessons-pack-0.1 pilot -- first tier-3 extension pack); scope finalized after #1283 design convergence and #1274 landing. Part of the #742 / #1284 decomposition.",
-    "created": "2026-05-21T16:32:24Z",
-    "updated": "2026-06-15T13:00:00Z"
-  },
   "plan": {
     "id": "1294-lessons-pack-pilot",
     "title": "lessons-pack-0.1 pilot -- first tier-3 extension pack",
@@ -81,7 +75,12 @@
         "model_tier": "standard"
       },
       "completedAt": "2026-06-15T13:30:55Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.318Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -111,5 +110,11 @@
       }
     ],
     "updated": "2026-06-15T13:30:55Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #1294 (feat(packs): lessons-pack-0.1 pilot -- first tier-3 extension pack); scope finalized after #1283 design convergence and #1274 landing. Part of the #742 / #1284 decomposition.",
+    "created": "2026-05-21T16:32:24Z",
+    "updated": "2026-06-15T13:00:00Z"
   }
 }

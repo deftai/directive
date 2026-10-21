@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #985",
-    "updated": "2026-05-08T17:53:59Z"
-  },
   "plan": {
     "title": "bug(triage,refinement): `task triage:accept` skips `issue:ingest` delegation -- Phase 0 accepted candidates never reach `xbrief/proposed/`",
     "status": "completed",
@@ -51,6 +46,18 @@
         "title": "Issue #985: bug(triage,refinement): `task triage:accept` skips `issue:ingest` delegation -- Phase 0 accepted candidates never reach `xbrief/proposed/`"
       }
     ],
-    "updated": "2026-05-08T19:43:38Z"
+    "updated": "2026-05-08T19:43:38Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.307Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #985",
+    "updated": "2026-05-08T17:53:59Z"
   }
 }

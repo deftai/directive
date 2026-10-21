@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #1274 Change 2 (task issue:emit -- the vBRIEF -> GitHub issue write path); split-A of the #1274 decomposition under epic #1284.",
-    "created": "2026-06-15T12:00:00Z",
-    "updated": "2026-06-15T12:00:00Z"
-  },
   "plan": {
     "id": "1274a-issue-emit-tool",
     "title": "task issue:emit -- vBRIEF -> GitHub issue write path",
@@ -67,7 +61,12 @@
         "model_tier": "standard"
       },
       "completedAt": "2026-06-15T12:44:22Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.337Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -82,5 +81,11 @@
       }
     ],
     "updated": "2026-06-15T12:44:22Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #1274 Change 2 (task issue:emit -- the vBRIEF -> GitHub issue write path); split-A of the #1274 decomposition under epic #1284.",
+    "created": "2026-06-15T12:00:00Z",
+    "updated": "2026-06-15T12:00:00Z"
   }
 }

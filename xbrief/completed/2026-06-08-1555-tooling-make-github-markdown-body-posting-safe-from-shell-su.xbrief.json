@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1555"
-  },
   "plan": {
     "title": "tooling: make GitHub Markdown body posting safe from shell substitution",
     "status": "completed",
@@ -80,7 +76,12 @@
       },
       "completedAt": "2026-06-08T19:53:17Z",
       "capacityBucket": "technical-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.331Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -95,5 +96,9 @@
       }
     ],
     "updated": "2026-06-08T19:53:17Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1555"
   }
 }

@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "author": "agent:deft-directive-swarm",
-    "description": "migrate:vbrief routes scope vBRIEFs to correct lifecycle folder based on reconciled status per #506 conventions.",
-    "created": "2026-04-21T17:18:00Z"
-  },
   "plan": {
     "id": "rc3-499-lifecycle-routing",
     "title": "migrate:vbrief lifecycle folder routing per reconciled status (#499)",
@@ -91,6 +85,19 @@
         "id": "#506"
       }
     ],
-    "updated": "2026-04-23T02:28:03Z"
+    "updated": "2026-04-23T02:28:03Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.277Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "author": "agent:deft-directive-swarm",
+    "description": "migrate:vbrief routes scope vBRIEFs to correct lifecycle folder based on reconciled status per #506 conventions.",
+    "created": "2026-04-21T17:18:00Z"
   }
 }

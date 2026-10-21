@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 4 decomposed from completed/2026-06-21-1854-featts-migration-wave-86-finish-the-partial-python-ts-live-f.xbrief.json"
-  },
   "plan": {
     "id": "1854-s4-scope-changelog-arch",
     "title": "Wire/port + flip scope:undo, scope:demote, scope:decompose, changelog:resolve, architecture:sor",
@@ -74,7 +70,12 @@
         "model_tier": "claude-4.6-sonnet-medium-thinking"
       },
       "completedAt": "2026-06-21T17:28:01Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.351Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -85,5 +86,9 @@
       }
     ],
     "updated": "2026-06-21T17:28:01Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 4 decomposed from completed/2026-06-21-1854-featts-migration-wave-86-finish-the-partial-python-ts-live-f.xbrief.json"
   }
 }

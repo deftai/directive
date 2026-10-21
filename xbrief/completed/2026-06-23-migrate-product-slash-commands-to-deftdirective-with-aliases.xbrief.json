@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 5 decomposed from completed/2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx.xbrief.json"
-  },
   "plan": {
     "id": "11-s5-slash-command-namespace",
     "title": "Migrate product slash commands to /deft:directive:* with aliases",
@@ -66,7 +62,12 @@
         "missing_traces_justification": "Resolves #418 (command namespace tail) under the #1670 model / #1669 Wave 2; documentation+template surface with no spec-section trace."
       },
       "completedAt": "2026-06-23T02:19:29Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.354Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -77,5 +78,9 @@
       }
     ],
     "updated": "2026-06-23T02:19:29Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 5 decomposed from completed/2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx.xbrief.json"
   }
 }

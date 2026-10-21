@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #640"
-  },
   "plan": {
     "title": "project:render staleness flags need an acknowledgement/clear path after PROJECT-DEFINITION review",
     "status": "cancelled",
@@ -69,5 +65,9 @@
       "kind": "epic"
     },
     "updated": "2026-06-28T18:03:08Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #640"
   }
 }

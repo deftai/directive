@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1989"
-  },
   "plan": {
     "title": "Bump esbuild to >=0.28.1 in framework pnpm-lock (low-sev dev advisory)",
     "status": "completed",
@@ -22,7 +18,16 @@
     "updated": "2026-06-25T17:40:30Z",
     "metadata": {
       "capacityBucket": "maintenance",
-      "completedAt": "2026-06-25T17:40:30Z"
+      "completedAt": "2026-06-25T17:40:30Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.357Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1989"
   }
 }

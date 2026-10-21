@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for #642: tracking umbrella narrowed to PR #401 trim tracker -- anchors only the trimmed hygiene merge; remains open until split children land under #635.",
-    "updated": "2026-04-27T22:25:52Z"
-  },
   "plan": {
     "title": "PR #401 trim tracker (hygiene merge anchor)",
     "status": "completed",
@@ -54,6 +49,11 @@
         "anchored_pr": "#401",
         "split_policy": "PR #401 references this issue with Refs (not Closes); #642 stays open after PR #401 merges until the 4 split children under #635 (events detection-bound, events behavioral, rule-ownership-map data-file + lint, Phase 0 spec scaffolding RFC) and the 6 pending #233 items have landed or been split further. Canonical workflow: github.com/deftai/directive/issues/642#issuecomment-4330742436.",
         "narrowed_from": "Original #642 umbrella anchored 5 sub-arcs (hygiene codification, language hygiene, framework structure / rule ownership, review-fix cleanup, determinism design); narrowed to PR #401 trim tracker only -- the other arcs route to #635 children + #233 refinement."
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.296Z",
+        "migration": true
       }
     },
     "references": [
@@ -90,5 +90,10 @@
     ],
     "updated": "2026-04-30T17:42:12Z",
     "x-directive/completedNote": "PR #401 merged 2026-04-28T01:31:25Z with `Refs #642` per the canonical workflow (not `Closes`). Issue #642 remains intentionally OPEN as the umbrella anchor for the four #635 split children (events-detection-bound, events-behavioral, rule-ownership-map, Phase 0 RFC) until they themselves land. The brief moves to completed/ because the trim-execution items (this brief's defined scope) are done; the umbrella role of #642 is tracked by the children's references and the GitHub issue's open state, not by keeping this brief in active/."
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #642: tracking umbrella narrowed to PR #401 trim tracker -- anchors only the trimmed hygiene merge; remains open until split children land under #635.",
+    "updated": "2026-04-27T22:25:52Z"
   }
 }

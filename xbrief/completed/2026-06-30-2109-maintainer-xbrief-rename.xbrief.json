@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #2109 (maintainer-repo mechanical rename + gate); part of the #2034 decomposition.",
-    "created": "2026-06-30T14:30:00Z",
-    "updated": "2026-06-30T14:30:00Z"
-  },
   "plan": {
     "id": "2109-maintainer-xbrief-rename",
     "title": "Maintainer-repo mechanical vbrief->xbrief rename plus drift gate",
@@ -73,7 +67,12 @@
         "file_scope_confidence": "medium",
         "model_tier": "high"
       },
-      "completedAt": "2026-07-01T13:45:50Z"
+      "completedAt": "2026-07-01T13:45:50Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.364Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -88,5 +87,11 @@
       }
     ],
     "updated": "2026-07-01T13:45:50Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #2109 (maintainer-repo mechanical rename + gate); part of the #2034 decomposition.",
+    "created": "2026-06-30T14:30:00Z",
+    "updated": "2026-06-30T14:30:00Z"
   }
 }

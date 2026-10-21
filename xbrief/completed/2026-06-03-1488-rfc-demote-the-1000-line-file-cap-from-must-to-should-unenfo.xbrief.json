@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1488"
-  },
   "plan": {
     "title": "RFC: demote the 1000-line file cap from MUST to SHOULD (unenforced, self-violated, anti-deep-modules)",
     "status": "completed",
@@ -42,7 +38,16 @@
     "metadata": {
       "completedAt": "2026-06-03T22:21:16Z",
       "capacityBucket": "agentic-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.327Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1488"
   }
 }

@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Research vBRIEF for #1283 (pack-slicing RFC); part of the #742 decomposition.",
-    "created": "2026-05-21T16:32:24Z",
-    "updated": "2026-05-25T22:35:08Z"
-  },
   "plan": {
     "id": "1283-pack-slicing-rfc",
     "title": "Pack-aware slice API -- surface, semantics, mechanisms (design RFC)",
@@ -38,7 +32,12 @@
       },
       "completedAt": "2026-05-25T22:36:03Z",
       "capacityBucket": "cognitive-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.317Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -67,6 +66,12 @@
         "title": "Issue #1290: feat(vbrief): reconcile_issues honors stateReason"
       }
     ],
+    "updated": "2026-05-25T22:35:08Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Research vBRIEF for #1283 (pack-slicing RFC); part of the #742 decomposition.",
+    "created": "2026-05-21T16:32:24Z",
     "updated": "2026-05-25T22:35:08Z"
   }
 }

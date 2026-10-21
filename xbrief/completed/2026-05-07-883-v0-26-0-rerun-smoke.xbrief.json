@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF (#883 child): re-run v0.26.0 cache+triage scale smoke after #952 bootstrap-hang fix landed in PR #955 (master @ e51f35d). Validate fix at full backlog scale + capture full Phase 2 metrics + idempotency check.",
-    "created": "2026-05-07T00:08:44Z",
-    "updated": "2026-05-07T00:11:58Z"
-  },
   "plan": {
     "id": "883-v0.26.0-rerun-smoke",
     "title": "v0.26.0 cache-layer scale smoke re-run after #952 bootstrap-hang fix (#883)",
@@ -60,6 +54,11 @@
           "#948 audit-log growth follow-up",
           "#949 detector tuning follow-up"
         ]
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.305Z",
+        "migration": true
       }
     },
     "references": [
@@ -105,5 +104,11 @@
       }
     ],
     "updated": "2026-05-07T01:19:26Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF (#883 child): re-run v0.26.0 cache+triage scale smoke after #952 bootstrap-hang fix landed in PR #955 (master @ e51f35d). Validate fix at full backlog scale + capture full Phase 2 metrics + idempotency check.",
+    "created": "2026-05-07T00:08:44Z",
+    "updated": "2026-05-07T00:11:58Z"
   }
 }

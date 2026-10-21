@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 5 decomposed from proposed/2026-06-15-1637-featpacks-packsslice-v2-remaining-lessons-slices-skillsrules.xbrief.json"
-  },
   "plan": {
     "id": "1637-s5-patterns-pack",
     "title": "packs:slice v2 -- new patterns pack surface",
@@ -68,7 +64,12 @@
         "missing_traces_justification": "Framework-internal packs:slice v2 work traced to GitHub issue #1637 and RFC #1283 Q-list; no specification.xbrief.json spec-section applies."
       },
       "completedAt": "2026-06-15T23:54:40Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.339Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -84,5 +85,9 @@
       }
     ],
     "updated": "2026-06-15T23:54:40Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 5 decomposed from proposed/2026-06-15-1637-featpacks-packsslice-v2-remaining-lessons-slices-skillsrules.xbrief.json"
   }
 }

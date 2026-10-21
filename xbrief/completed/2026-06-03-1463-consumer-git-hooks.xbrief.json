@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1463"
-  },
   "plan": {
     "title": "fix(installer): wire git hooks in vendored consumer projects (#1463)",
     "status": "completed",
@@ -47,7 +43,16 @@
     "metadata": {
       "completedAt": "2026-06-03T17:52:12Z",
       "capacityBucket": "technical-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.326Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1463"
   }
 }

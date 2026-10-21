@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF (#742 child): Empirical validation of ADR-001 (vBRIEF-as-master). Two-gate evidence pack (comprehension parity + CRUD determinism) addressing Visionik's Apr-30 review concerns. Bench infrastructure lives in deftai/deft-agent-bench (internal); production CRUD tooling lives in deft-directive.",
-    "created": "2026-05-01T16:00:00Z",
-    "updated": "2026-05-22T19:15:22Z"
-  },
   "plan": {
     "id": "742-adr-001-empirical-validation",
     "title": "ADR-001 empirical validation: comprehension parity + CRUD determinism gates",
@@ -109,7 +103,12 @@
       },
       "completedAt": "2026-05-22T19:16:28Z",
       "capacityBucket": "agentic-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.300Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -153,6 +152,12 @@
         "title": "deft-agent-bench (internal): bench infrastructure for this validation effort"
       }
     ],
+    "updated": "2026-05-22T19:15:22Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF (#742 child): Empirical validation of ADR-001 (vBRIEF-as-master). Two-gate evidence pack (comprehension parity + CRUD determinism) addressing Visionik's Apr-30 review concerns. Bench infrastructure lives in deftai/deft-agent-bench (internal); production CRUD tooling lives in deft-directive.",
+    "created": "2026-05-01T16:00:00Z",
     "updated": "2026-05-22T19:15:22Z"
   }
 }

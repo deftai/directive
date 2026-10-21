@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1270",
-    "updated": "2026-05-21T16:33:43Z"
-  },
   "plan": {
     "title": "fix(triage): triage:summary in-flight count should be filesystem-truth with conditional scope-discrepancy line",
     "status": "completed",
@@ -65,7 +60,17 @@
     "metadata": {
       "completedAt": "2026-05-21T17:15:08Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "default"
+      "capacityBucketSource": "default",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.316Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1270",
+    "updated": "2026-05-21T16:33:43Z"
   }
 }

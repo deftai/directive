@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1987"
-  },
   "plan": {
     "title": "Freeze gate should skip Go build gracefully (green) instead of hard-failing release.yml post-freeze",
     "status": "completed",
@@ -32,7 +28,16 @@
     "updated": "2026-06-25T16:29:59Z",
     "metadata": {
       "capacityBucket": "maintenance",
-      "completedAt": "2026-06-25T16:29:59Z"
+      "completedAt": "2026-06-25T16:29:59Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.357Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1987"
   }
 }

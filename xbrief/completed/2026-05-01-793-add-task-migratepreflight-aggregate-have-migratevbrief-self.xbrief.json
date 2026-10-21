@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Adoption blocker: a user running `task migrate:vbrief` directly (not via the agent setup skill) gets no preflight checks and hits raw subprocess failures when uv / migrator script / Taskfile include is missing. Add `task migrate:preflight` and have `migrate:vbrief` self-invoke it.",
-    "created": "2026-05-01T00:00:00Z",
-    "updated": "2026-05-03T03:02:48Z"
-  },
   "plan": {
     "id": "793-task-migrate-preflight-aggregate",
     "title": "Add task migrate:preflight; have migrate:vbrief self-invoke it",
@@ -122,6 +116,11 @@
       "x-migrator": {
         "Phase": "Phase 1 -- Fix Now",
         "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.301Z",
+        "migration": true
       }
     },
     "references": [
@@ -147,5 +146,11 @@
       }
     ],
     "updated": "2026-05-03T04:38:17Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Adoption blocker: a user running `task migrate:vbrief` directly (not via the agent setup skill) gets no preflight checks and hits raw subprocess failures when uv / migrator script / Taskfile include is missing. Add `task migrate:preflight` and have `migrate:vbrief` self-invoke it.",
+    "created": "2026-05-01T00:00:00Z",
+    "updated": "2026-05-03T03:02:48Z"
   }
 }

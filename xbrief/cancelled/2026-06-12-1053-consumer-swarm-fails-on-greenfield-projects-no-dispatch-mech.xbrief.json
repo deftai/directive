@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1053"
-  },
   "plan": {
     "title": "Consumer swarm fails on greenfield projects — no dispatch mechanism, bootstrap gap, PS 5.1 exit codes",
     "status": "cancelled",
@@ -51,5 +47,9 @@
       "kind": "epic"
     },
     "updated": "2026-06-28T18:03:10Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1053"
   }
 }

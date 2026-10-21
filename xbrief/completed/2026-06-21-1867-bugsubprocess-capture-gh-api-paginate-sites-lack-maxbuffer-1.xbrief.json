@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1867"
-  },
   "plan": {
     "title": "bug(subprocess-capture): gh api --paginate sites lack maxBuffer; >1MB responses fail (release publish/rollback + consumer triage:scope)",
     "status": "completed",
@@ -31,7 +27,16 @@
     "updated": "2026-06-21T23:59:42Z",
     "metadata": {
       "completedAt": "2026-06-21T23:59:42Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.348Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1867"
   }
 }

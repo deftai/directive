@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #2108 (TS-native semantic transforms + detectLegacyVbriefLayout); part of the #2034 decomposition.",
-    "created": "2026-06-30T14:30:00Z",
-    "updated": "2026-06-30T14:30:00Z"
-  },
   "plan": {
     "id": "2108-xbrief-semantic-transforms",
     "title": "TS-native semantic transforms and legacy-layout detector",
@@ -72,7 +66,12 @@
         "model_tier": "high"
       },
       "completedAt": "2026-06-30T15:22:35Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.364Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -87,5 +86,11 @@
       }
     ],
     "updated": "2026-06-30T15:22:35Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #2108 (TS-native semantic transforms + detectLegacyVbriefLayout); part of the #2034 decomposition.",
+    "created": "2026-06-30T14:30:00Z",
+    "updated": "2026-06-30T14:30:00Z"
   }
 }

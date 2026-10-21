@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Chore vBRIEF: post-merge follow-up for #1125 -- complete the gh-arch scope vBRIEF and catch up SPECIFICATION.md drift.",
-    "updated": "2026-05-13T17:09:09Z"
-  },
   "plan": {
     "title": "chore: complete #1125 scope vBRIEF and catch up SPECIFICATION.md",
     "status": "completed",
@@ -24,7 +19,17 @@
     "metadata": {
       "completedAt": "2026-06-01T17:17:44Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "default"
+      "capacityBucketSource": "default",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.311Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Chore vBRIEF: post-merge follow-up for #1125 -- complete the gh-arch scope vBRIEF and catch up SPECIFICATION.md drift.",
+    "updated": "2026-05-13T17:09:09Z"
   }
 }

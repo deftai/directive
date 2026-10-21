@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 3 decomposed from completed/2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx.xbrief.json"
-  },
   "plan": {
     "id": "11-s3-directive-verb-router",
     "title": "Implement the directive verb router and top-level UX verbs",
@@ -68,7 +64,12 @@
         "missing_traces_justification": "Implements the #1670 unified verb vocabulary under #11/#1669 Wave 2; maintainer CLI tooling with no spec-section trace."
       },
       "completedAt": "2026-06-23T03:36:58Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.353Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -79,5 +80,9 @@
       }
     ],
     "updated": "2026-06-23T03:36:58Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 3 decomposed from completed/2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx.xbrief.json"
   }
 }

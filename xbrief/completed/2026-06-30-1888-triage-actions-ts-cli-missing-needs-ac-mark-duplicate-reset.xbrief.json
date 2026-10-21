@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #1888 — task/deft triage colon verbs route to triage-actions"
-  },
   "plan": {
     "id": "1888-triage-actions-verbs",
     "title": "Wire task triage:* colon verbs to triage-actions subcommands",
@@ -68,7 +64,12 @@
         "missing_traces_justification": "Dispatch gap from issue #1888 evidence."
       },
       "capacityBucket": "bugfix",
-      "completedAt": "2026-06-30T00:27:27Z"
+      "completedAt": "2026-06-30T00:27:27Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.364Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -77,5 +78,9 @@
       }
     ],
     "updated": "2026-06-30T00:27:27Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #1888 — task/deft triage colon verbs route to triage-actions"
   }
 }

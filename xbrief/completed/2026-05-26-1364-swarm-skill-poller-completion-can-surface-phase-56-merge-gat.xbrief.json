@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1364",
-    "updated": "2026-05-28T16:08:39Z"
-  },
   "plan": {
     "title": "swarm skill: poller completion can surface Phase 5→6 merge gate while PRs remain unclean (confidence=3 holdouts)",
     "status": "completed",
@@ -103,7 +98,17 @@
       },
       "completedAt": "2026-05-28T18:46:12Z",
       "capacityBucket": "agentic-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.320Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1364",
+    "updated": "2026-05-28T16:08:39Z"
   }
 }

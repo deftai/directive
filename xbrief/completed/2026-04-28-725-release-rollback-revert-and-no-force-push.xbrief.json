@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for #725: scripts/release_rollback.py uses an unsafe `git reset --hard HEAD~1` (unwinds whatever happens to be at HEAD when commits land between release-prep and rollback) AND `git push --force-with-lease origin master` (rejected by GitHub branch protection rules disallowing force-push). Replace with a resolved-SHA forward `git revert` flow and a normal (non-force) push so rollback works end-to-end on a protected default branch.",
-    "created": "2026-04-28T22:30:00Z",
-    "updated": "2026-04-29T18:18:17Z"
-  },
   "plan": {
     "id": "725-release-rollback-revert-and-no-force-push",
     "title": "Replace HEAD~1 reset + force-push with resolved-SHA forward-revert + normal push in scripts/release_rollback.py",
@@ -54,6 +48,11 @@
         "blocks": null,
         "blocked_by": null,
         "scope_authority": "deft-725-fix sub-agent dispatch (swarm Agent 1; parent monitor's plan stages 1-4)"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.298Z",
+        "migration": true
       }
     },
     "references": [
@@ -83,5 +82,11 @@
         "title": "Issue #74: task release foundation"
       }
     ]
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #725: scripts/release_rollback.py uses an unsafe `git reset --hard HEAD~1` (unwinds whatever happens to be at HEAD when commits land between release-prep and rollback) AND `git push --force-with-lease origin master` (rejected by GitHub branch protection rules disallowing force-push). Replace with a resolved-SHA forward `git revert` flow and a normal (non-force) push so rollback works end-to-end on a protected default branch.",
+    "created": "2026-04-28T22:30:00Z",
+    "updated": "2026-04-29T18:18:17Z"
   }
 }

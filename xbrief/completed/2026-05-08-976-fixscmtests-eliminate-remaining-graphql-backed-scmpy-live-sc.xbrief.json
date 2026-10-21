@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #976",
-    "updated": "2026-05-08T21:02:18Z"
-  },
   "plan": {
     "title": "fix(scm,tests): eliminate remaining GraphQL-backed scm.py / live SCM smoke bucket drain after #961",
     "status": "completed",
@@ -24,6 +19,18 @@
         "title": "Issue #976: fix(scm,tests): eliminate remaining GraphQL-backed scm.py / live SCM smoke bucket drain after #961"
       }
     ],
-    "updated": "2026-05-08T22:25:15Z"
+    "updated": "2026-05-08T22:25:15Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.306Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #976",
+    "updated": "2026-05-08T21:02:18Z"
   }
 }

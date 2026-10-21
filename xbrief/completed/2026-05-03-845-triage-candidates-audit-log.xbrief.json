@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story 2 of #845 triage v1: append-only audit log at `xbrief/.eval/candidates.jsonl` + frozen JSON schema. Owner: Agent A2 (wave 1, parallel with A1). Independent of cache content; consumed by Story 3 (triage actions) and Story 4 (bulk + freshness).",
-    "created": "2026-05-03T16:15:00Z",
-    "updated": "2026-05-03T16:15:00Z"
-  },
   "plan": {
     "id": "845-story-2-triage-candidates-audit-log",
     "title": "feat(scripts,xbrief/schemas): triage candidates.jsonl audit log + JSON schema",
@@ -66,6 +60,11 @@
           "skills/deft-directive-refinement/SKILL.md (Agent A5)",
           "tasks/* (no Taskfile changes in this story)"
         ]
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.303Z",
+        "migration": true
       }
     },
     "references": [
@@ -81,5 +80,11 @@
       }
     ],
     "updated": "2026-05-03T20:47:56Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story 2 of #845 triage v1: append-only audit log at `xbrief/.eval/candidates.jsonl` + frozen JSON schema. Owner: Agent A2 (wave 1, parallel with A1). Independent of cache content; consumed by Story 3 (triage actions) and Story 4 (bulk + freshness).",
+    "created": "2026-05-03T16:15:00Z",
+    "updated": "2026-05-03T16:15:00Z"
   }
 }

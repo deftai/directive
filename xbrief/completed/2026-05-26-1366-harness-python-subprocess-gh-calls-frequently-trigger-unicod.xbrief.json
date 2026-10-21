@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1366",
-    "updated": "2026-05-28T16:08:39Z"
-  },
   "plan": {
     "title": "harness: Python subprocess + gh calls frequently trigger UnicodeDecodeError in reader threads on Windows, breaking monitoring and readiness tools",
     "status": "completed",
@@ -99,7 +94,17 @@
       },
       "completedAt": "2026-05-28T18:46:12Z",
       "capacityBucket": "agentic-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.320Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1366",
+    "updated": "2026-05-28T16:08:39Z"
   }
 }

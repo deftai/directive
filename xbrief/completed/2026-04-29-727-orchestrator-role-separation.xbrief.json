@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for #727: codify orchestrator role-separation (implementation agent vs Phase 6 polling sub-agent) plus a canonical poller-prompt template artifact carrying the proven prompt body and parsing fixes. Stops the recurring orchestrator failure where post-PR work is bundled into an implementation-agent prompt that exits at PR-open via succeeded lifecycle, AND the recurring poll-script parsing bugs (markdown-link `Last reviewed commit:` + raw `\\b(P0|P1)\\b` substring scan with negation false-positive). Per-[AXIOM] encoding stack: Tier 4 RFC2119 rules in skills/deft-directive-swarm/SKILL.md Phase 6 Step 1, Tier 1 deterministic template at templates/swarm-greptile-poller-prompt.md, Tier 1 content tests in tests/content/test_skills.py, Tier 5 cross-reference in meta/lessons.md.",
-    "created": "2026-04-29T03:50:00Z",
-    "updated": "2026-04-29T18:18:17Z"
-  },
   "plan": {
     "id": "727-orchestrator-role-separation",
     "title": "Codify orchestrator role-separation + canonical poller-prompt template (per [AXIOM])",
@@ -72,6 +66,11 @@
         "blocks": null,
         "blocked_by": null,
         "scope_authority": "deft-727-fix orchestrator-skill agent (parent monitor's plan stages 1-10)"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.298Z",
+        "migration": true
       }
     },
     "references": [
@@ -101,5 +100,11 @@
         "title": "Issue #726: PR sub-agent exited at succeeded lifecycle ~30s before Greptile posted; second occurrence"
       }
     ]
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #727: codify orchestrator role-separation (implementation agent vs Phase 6 polling sub-agent) plus a canonical poller-prompt template artifact carrying the proven prompt body and parsing fixes. Stops the recurring orchestrator failure where post-PR work is bundled into an implementation-agent prompt that exits at PR-open via succeeded lifecycle, AND the recurring poll-script parsing bugs (markdown-link `Last reviewed commit:` + raw `\\b(P0|P1)\\b` substring scan with negation false-positive). Per-[AXIOM] encoding stack: Tier 4 RFC2119 rules in skills/deft-directive-swarm/SKILL.md Phase 6 Step 1, Tier 1 deterministic template at templates/swarm-greptile-poller-prompt.md, Tier 1 content tests in tests/content/test_skills.py, Tier 5 cross-reference in meta/lessons.md.",
+    "created": "2026-04-29T03:50:00Z",
+    "updated": "2026-04-29T18:18:17Z"
   }
 }

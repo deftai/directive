@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1365",
-    "updated": "2026-05-28T16:08:39Z"
-  },
   "plan": {
     "title": "swarm: spawn_subagent review-cycle sub-agents can go completely dark with no visibility or monitoring from the parent",
     "status": "completed",
@@ -108,7 +103,17 @@
       },
       "completedAt": "2026-05-28T20:57:23Z",
       "capacityBucket": "agentic-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.320Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1365",
+    "updated": "2026-05-28T16:08:39Z"
   }
 }

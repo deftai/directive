@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "P0 cache-bypass + audit-log poisoning fix for scripts/triage_bulk.py (#915). Replaces the live `gh issue list` candidate source with a Tier-1 cache walk, intersects with Tier-2 audit log to skip already-actioned candidates, hard-fails on empty cache, removes the live-gh fallback path, and re-enables the four task triage:bulk-* surfaces gated by PR #916.",
-    "created": "2026-05-05T15:58:23Z",
-    "updated": "2026-05-05T16:01:35Z"
-  },
   "plan": {
     "title": "P0: triage_bulk.py bypasses Tier-1 cache and Tier-2 audit log -- iterates live gh issue list (#845 Story 4)",
     "status": "completed",
@@ -60,6 +54,19 @@
         "title": "Issue #915: P0 -- bulk operations bypass cache"
       }
     ],
-    "updated": "2026-05-05T16:44:49Z"
+    "updated": "2026-05-05T16:44:49Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.305Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "P0 cache-bypass + audit-log poisoning fix for scripts/triage_bulk.py (#915). Replaces the live `gh issue list` candidate source with a Tier-1 cache walk, intersects with Tier-2 audit log to skip already-actioned candidates, hard-fails on empty cache, removes the live-gh fallback path, and re-enables the four task triage:bulk-* surfaces gated by PR #916.",
+    "created": "2026-05-05T15:58:23Z",
+    "updated": "2026-05-05T16:01:35Z"
   }
 }

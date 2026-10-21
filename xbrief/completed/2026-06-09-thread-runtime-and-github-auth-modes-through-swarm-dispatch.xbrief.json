@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 3 decomposed from proposed/2026-06-09-1557-swarm-make-github-credential-policy-runtime-aware-for-local.xbrief.json"
-  },
   "plan": {
     "id": "1557c-thread-runtime-auth-contracts",
     "title": "Thread runtime and GitHub auth modes through swarm dispatch contracts",
@@ -71,7 +67,12 @@
       },
       "completedAt": "2026-06-09T15:38:49Z",
       "capacityBucket": "technical-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.335Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -87,5 +88,9 @@
       }
     ],
     "updated": "2026-06-09T15:38:49Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 3 decomposed from proposed/2026-06-09-1557-swarm-make-github-credential-policy-runtime-aware-for-local.xbrief.json"
   }
 }

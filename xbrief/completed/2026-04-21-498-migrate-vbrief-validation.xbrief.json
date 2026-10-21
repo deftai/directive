@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "author": "agent:deft-directive-swarm",
-    "description": "migrate:vbrief self-validation + slug-safe IDs + golden-file tests; hard-block on schema-invalid output per #506 D8.",
-    "created": "2026-04-21T17:18:00Z"
-  },
   "plan": {
     "id": "rc3-498-validation",
     "title": "migrate:vbrief self-validation + slug-safe IDs + golden tests (#498)",
@@ -66,6 +60,19 @@
         "id": "#506"
       }
     ],
-    "updated": "2026-04-23T02:28:03Z"
+    "updated": "2026-04-23T02:28:03Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.277Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "author": "agent:deft-directive-swarm",
+    "description": "migrate:vbrief self-validation + slug-safe IDs + golden-file tests; hard-block on schema-invalid output per #506 D8.",
+    "created": "2026-04-21T17:18:00Z"
   }
 }

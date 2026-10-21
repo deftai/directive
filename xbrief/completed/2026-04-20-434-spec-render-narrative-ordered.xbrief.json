@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Mirror prd_render.py in spec_render.py so speckit narratives render in SPECIFICATION.md instead of being silently dropped.",
-    "created": "2026-04-20T00:00:00Z",
-    "updated": "2026-04-20T00:00:00Z"
-  },
   "plan": {
     "id": "ga-434-spec-render-narrative-ordered",
     "title": "spec_render.py is item-centric and silently drops all speckit narratives",
@@ -54,6 +48,19 @@
         "id": "#403"
       }
     ],
-    "updated": "2026-04-20T18:44:13Z"
+    "updated": "2026-04-20T18:44:13Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.276Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Mirror prd_render.py in spec_render.py so speckit narratives render in SPECIFICATION.md instead of being silently dropped.",
+    "created": "2026-04-20T00:00:00Z",
+    "updated": "2026-04-20T00:00:00Z"
   }
 }

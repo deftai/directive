@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #2142 — harden :engine:_ts-build guard for stray packages/ deposits",
-    "created": "2026-07-01T20:07:41Z",
-    "updated": "2026-07-01T20:15:00Z"
-  },
   "plan": {
     "id": "2142-ts-build-guard",
     "title": "v0.66.0 `_ts-build` guard breaks `task deft:*` on deposits containing a stray `packages/` tree (#2126 regression for git-vendored-payload repos)",
@@ -84,7 +78,12 @@
         "file_scope_confidence": "high",
         "model_tier": "medium"
       },
-      "completedAt": "2026-07-01T20:34:08Z"
+      "completedAt": "2026-07-01T20:34:08Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.365Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -99,5 +98,11 @@
       }
     ],
     "updated": "2026-07-01T20:34:08Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #2142 — harden :engine:_ts-build guard for stray packages/ deposits",
+    "created": "2026-07-01T20:07:41Z",
+    "updated": "2026-07-01T20:15:00Z"
   }
 }

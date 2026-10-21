@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1000"
-  },
   "plan": {
     "title": "docs(agents): wire refinement skill's full trigger-word set into AGENTS.md Skill Routing (#995 follow-up)",
     "status": "completed",
@@ -56,7 +52,16 @@
       },
       "completedAt": "2026-06-03T23:23:54Z",
       "capacityBucket": "cognitive-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.322Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1000"
   }
 }

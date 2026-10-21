@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 1 decomposed from pending/2026-07-05-1709-value-attribution-adoption-loop.xbrief.json"
-  },
   "plan": {
     "id": "1709-optin-gate",
     "title": "Opt-in typed policy gate for value feedback (default OFF)",
@@ -62,7 +58,12 @@
         "model_tier": "standard"
       },
       "completedAt": "2026-07-05T18:33:34Z",
-      "capacityBucket": "agentic-debt"
+      "capacityBucket": "agentic-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.372Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -79,5 +80,9 @@
       }
     ],
     "updated": "2026-07-05T18:33:34Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 1 decomposed from pending/2026-07-05-1709-value-attribution-adoption-loop.xbrief.json"
   }
 }

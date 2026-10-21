@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-19-1787-featts-migration-port-session-ritual-lifecycle-packs-surface.xbrief.json"
-  },
   "plan": {
     "id": "1787-s1-session-ritual-core",
     "title": "Port session-start + ritual-sentinel core to TS",
@@ -65,7 +61,12 @@
         "model_tier": "medium"
       },
       "completedAt": "2026-06-19T23:09:58Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.344Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -81,5 +82,9 @@
       }
     ],
     "updated": "2026-06-19T23:09:58Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-19-1787-featts-migration-port-session-ritual-lifecycle-packs-surface.xbrief.json"
   }
 }

@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #975",
-    "updated": "2026-05-08T21:02:58Z"
-  },
   "plan": {
     "title": "perf(tests): triage_bootstrap watchdog tests dominate triage suite (top 5 = 68% of triage time)",
     "status": "completed",
@@ -24,6 +19,18 @@
         "title": "Issue #975: perf(tests): triage_bootstrap watchdog tests dominate triage suite (top 5 = 68% of triage time)"
       }
     ],
-    "updated": "2026-05-08T21:45:24Z"
+    "updated": "2026-05-08T21:45:24Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.306Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #975",
+    "updated": "2026-05-08T21:02:58Z"
   }
 }

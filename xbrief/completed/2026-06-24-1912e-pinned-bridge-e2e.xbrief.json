@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Freeze-prep story E decomposed from GitHub issue #1912 (pinned legacy->bridge->npm e2e leg)"
-  },
   "plan": {
     "title": "feat(#1912 E): pinned legacy->bridge->npm-hybrid e2e leg (reads Tier-0 SoT, pending-pin until frozen)",
     "status": "completed",
@@ -92,8 +88,17 @@
         "model_tier": "leaf-implementation",
         "missing_traces_justification": "Traced to #1912 Tier-1 'pinned migration e2e' checkbox + freeze-on-real-handoff sequencing; depends on the now-merged story G SoT module."
       },
-      "completedAt": "2026-06-24T23:10:28Z"
+      "completedAt": "2026-06-24T23:10:28Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.354Z",
+        "migration": true
+      }
     },
     "updated": "2026-06-24T23:10:28Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Freeze-prep story E decomposed from GitHub issue #1912 (pinned legacy->bridge->npm e2e leg)"
   }
 }

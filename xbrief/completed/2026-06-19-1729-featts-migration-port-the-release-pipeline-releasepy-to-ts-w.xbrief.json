@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1729",
-    "updated": "2026-06-21T23:10:16Z"
-  },
   "plan": {
     "title": "feat(ts-migration): port the release pipeline (release*.py) to TS (Wave 4)",
     "status": "completed",
@@ -93,8 +88,18 @@
       }
     ],
     "metadata": {
-      "kind": "epic"
+      "kind": "epic",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.342Z",
+        "migration": true
+      }
     },
+    "updated": "2026-06-21T23:10:16Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1729",
     "updated": "2026-06-21T23:10:16Z"
   }
 }

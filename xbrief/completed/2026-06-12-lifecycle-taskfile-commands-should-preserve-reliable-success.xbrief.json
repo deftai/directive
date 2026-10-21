@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 3 decomposed from proposed/2026-06-12-1053-consumer-swarm-fails-on-greenfield-projects-no-dispatch-mech.xbrief.json"
-  },
   "plan": {
     "id": "1053-powershell-lifecycle-exit-semantics",
     "title": "Lifecycle Taskfile commands should preserve reliable success semantics under Windows PowerShell 5.1",
@@ -71,7 +67,12 @@
       },
       "completedAt": "2026-06-12T15:33:26Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "default"
+      "capacityBucketSource": "default",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.337Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -82,5 +83,9 @@
       }
     ],
     "updated": "2026-06-12T15:33:26Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 3 decomposed from proposed/2026-06-12-1053-consumer-swarm-fails-on-greenfield-projects-no-dispatch-mech.xbrief.json"
   }
 }

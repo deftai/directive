@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for #302: fix(skill): deft-interview invocation contract -- clarify embedded vs delegation usage modes",
-    "updated": "2026-04-23T14:30:07Z"
-  },
   "plan": {
     "title": "fix(skill): deft-interview invocation contract -- clarify embedded vs delegation usage modes",
     "status": "completed",
@@ -18,6 +13,11 @@
         "Description_source": "ROADMAP.md",
         "Status_source": "orphan: ROADMAP Completed section (#593)",
         "SourceConflict": "missing-from-spec"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.289Z",
+        "migration": true
       }
     },
     "references": [
@@ -27,5 +27,10 @@
         "title": "Issue #302: fix(skill): deft-interview invocation contract -- clarify embedded vs delegation usage modes"
       }
     ]
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #302: fix(skill): deft-interview invocation contract -- clarify embedded vs delegation usage modes",
+    "updated": "2026-04-23T14:30:07Z"
   }
 }

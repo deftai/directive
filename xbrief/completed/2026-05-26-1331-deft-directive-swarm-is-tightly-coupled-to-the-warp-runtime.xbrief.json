@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1331",
-    "updated": "2026-05-26T13:30:00Z"
-  },
   "plan": {
     "title": "deft-directive-swarm is tightly coupled to the Warp runtime, making it hard to use in other agent environments (Grok Build, etc.)",
     "status": "completed",
@@ -65,7 +60,17 @@
     "metadata": {
       "completedAt": "2026-05-26T14:13:16Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.320Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1331",
+    "updated": "2026-05-26T13:30:00Z"
   }
 }

@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1814"
-  },
   "plan": {
     "title": "pre-push branch gate (preflight_branch.py) false-positives on branch deletions / feature-branch pushes when HEAD is the default branch",
     "status": "cancelled",
@@ -35,5 +31,9 @@
       "kind": "epic"
     },
     "updated": "2026-06-28T18:03:09Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1814"
   }
 }

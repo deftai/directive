@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story 6 of #845 triage v1: idempotent bootstrap + UPGRADING.md migration section + quarantine spec + privacy NFR + parent Taskfile.yml `includes:` wiring for the four fragment files. Owner: Agent A6 (LAST in cascade).",
-    "created": "2026-05-03T16:15:00Z",
-    "updated": "2026-05-03T16:15:00Z"
-  },
   "plan": {
     "id": "845-story-6-triage-bootstrap-and-docs",
     "title": "feat(scripts,tasks,docs): triage bootstrap + UPGRADING.md + parent Taskfile wiring + quarantine spec + privacy NFR",
@@ -95,6 +89,11 @@
           "tasks/triage-actions.yml (Agent A3)",
           "tasks/triage-bulk.yml (Agent A4)"
         ]
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.303Z",
+        "migration": true
       }
     },
     "references": [
@@ -115,5 +114,11 @@
       }
     ],
     "updated": "2026-05-03T20:47:54Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story 6 of #845 triage v1: idempotent bootstrap + UPGRADING.md migration section + quarantine spec + privacy NFR + parent Taskfile.yml `includes:` wiring for the four fragment files. Owner: Agent A6 (LAST in cascade).",
+    "created": "2026-05-03T16:15:00Z",
+    "updated": "2026-05-03T16:15:00Z"
   }
 }

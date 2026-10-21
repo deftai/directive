@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Restore global TypeScript branch coverage to >= 85% by adding targeted unit tests for uncovered branches in xbrief-migrate and related modules.",
-    "created": "2026-07-01T16:35:00Z",
-    "updated": "2026-07-01T16:35:00Z"
-  },
   "plan": {
     "id": "2135-branch-coverage",
     "title": "Restore branch coverage above 85% threshold",
@@ -35,7 +29,18 @@
     ],
     "updated": "2026-07-01T16:49:58Z",
     "metadata": {
-      "completedAt": "2026-07-01T16:49:58Z"
+      "completedAt": "2026-07-01T16:49:58Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.365Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Restore global TypeScript branch coverage to >= 85% by adding targeted unit tests for uncovered branches in xbrief-migrate and related modules.",
+    "created": "2026-07-01T16:35:00Z",
+    "updated": "2026-07-01T16:35:00Z"
   }
 }

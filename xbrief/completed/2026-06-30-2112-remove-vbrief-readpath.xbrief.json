@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #2112 (deferred back-compat removal of the vbrief read path); part of the #2034 decomposition.",
-    "created": "2026-06-30T14:30:00Z",
-    "updated": "2026-06-30T14:30:00Z"
-  },
   "plan": {
     "id": "2112-remove-vbrief-readpath",
     "title": "Remove the legacy vbrief read path after the back-compat window",
@@ -12,7 +6,7 @@
     "planRef": "https://github.com/deftai/directive/issues/2034",
     "narratives": {
       "Description": "After at least one minor release of signposting, drop the legacy vbrief layout read path so xbrief becomes the sole supported layout. This story is independently buildable as a small resolver change plus tests, deferred behind the locked one-minor back-compat window and conditional on signposting having shipped.",
-      "ImplementationPlan": "1. The layout resolver is packages/core/src/layout/resolve.ts (NOT the previously-cited xbrief-migrate/resolve-layout.ts, which does not exist). Change resolveLifecycleLayout to stop falling back to the legacy vbrief tree (the `return { artifactDir: LEGACY_ARTIFACT_DIR, ... }` branch) and instead hard-stop with a clear error pointing at migrate:xbrief when no xbrief/ layout is present. 2. Remove the legacy-tree deprecation warning path in packages/core/src/xbrief-migrate/signpost.ts / renderXbriefMigrationLine (the 'legacy vbrief layout detected' branch) and any doctor/session-ritual wiring that emits it. 3. Update packages/core/src/layout/resolve.test.ts to assert the legacy tree now fails resolution with the migration hint and the xbrief tree resolves cleanly. 4. BLAST RADIUS: resolveLifecycleLayout/resolveLifecycleRoot/resolveLifecycleFolder are consumed by ~50 modules across packages/core; all inherit the removed fallback. Acceptance a3 requires a codebase-wide audit that no source silently reads the legacy layout (grep for LEGACY_ARTIFACT_DIR / vbrief hardcoded paths). Reconcile hardcoded 'vbrief/' display constants (e.g. SUMMARY_HISTORY_REL_PATH in triage/summary/index.ts + triage/welcome/constants.ts, AUDIT_LOG_RELPATH, scope/queue constants) to the layout-neutral form here (#2378 owns the Taskfile + help-string display text, a disjoint file set). 5. Keep deft migrate:xbrief fully functional as the remediation. This MUST ship on the 0.73.0 MINOR bump (locked policy: never a patch).",
+      "ImplementationPlan": "1. The layout resolver is packages/core/src/layout/resolve.ts (NOT the previously-cited xbrief-migrate/resolve-layout.ts, which does not exist). Change resolveLifecycleLayout to stop falling back to the legacy vbrief tree (the `return { artifactDir: LEGACY_ARTIFACT_DIR, ... }` branch) and instead hard-stop with a clear error pointing at migrate:xbrief when no xbrief/ layout is present. 2. Remove the legacy-tree deprecation warning path in packages/core/src/xbrief-migrate/signpost.ts / renderXbriefMigrationLine (the 'legacy vbrief layout detected' branch) and any doctor/session-ritual wiring that emits it. 3. Update packages/core/src/layout/resolve.test.ts to assert the legacy tree now fails resolution with the migration hint and the xbrief tree resolves cleanly. 4. BLAST RADIUS: resolveLifecycleLayout/resolveLifecycleRoot/resolveLifecycleFolder are consumed by ~50 modules across packages/core; all inherit the removed fallback. Acceptance a3 requires a codebase-wide audit that no source silently reads the legacy layout (grep for LEGACY_ARTIFACT_DIR / vbrief hardcoded paths). Reconcile hardcoded 'xbrief/' display constants (e.g. SUMMARY_HISTORY_REL_PATH in triage/summary/index.ts + triage/welcome/constants.ts, AUDIT_LOG_RELPATH, scope/queue constants) to the layout-neutral form here (#2378 owns the Taskfile + help-string display text, a disjoint file set). 5. Keep deft migrate:xbrief fully functional as the remediation. This MUST ship on the 0.73.0 MINOR bump (locked policy: never a patch).",
       "UserStory": "As a directive maintainer, I want the legacy vbrief read path removed after the deprecation window, so that the engine resolves only the xbrief layout and unmigrated projects get a clear migration error.",
       "Traces": "#2112, #2034"
     },
@@ -73,6 +67,11 @@
         "file_scope_confidence": "medium",
         "model_tier": "high",
         "notes": "NOT parallel-safe: resolveLifecycleLayout is the central layout resolver inherited by ~50 modules. Run as the cohort spine (first / alone within conflict_group xbrief-cleanup), before #2378 and any other layout-touching story. Release-gated to the 0.73.0 minor bump."
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.365Z",
+        "migration": true
       }
     },
     "references": [
@@ -88,5 +87,11 @@
       }
     ],
     "updated": "2026-07-07T13:42:13Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #2112 (deferred back-compat removal of the vbrief read path); part of the #2034 decomposition.",
+    "created": "2026-06-30T14:30:00Z",
+    "updated": "2026-06-30T14:30:00Z"
   }
 }

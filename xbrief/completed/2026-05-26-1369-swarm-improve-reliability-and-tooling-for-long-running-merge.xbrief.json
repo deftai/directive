@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1369",
-    "updated": "2026-05-28T16:08:39Z"
-  },
   "plan": {
     "title": "swarm: Improve reliability and tooling for long-running merge/review cascade automation in Grok Build hybrid path",
     "status": "completed",
@@ -109,7 +104,17 @@
       },
       "completedAt": "2026-05-28T22:32:18Z",
       "capacityBucket": "agentic-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.321Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1369",
+    "updated": "2026-05-28T16:08:39Z"
   }
 }

@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1433"
-  },
   "plan": {
     "title": "v0.39.2 vendored refresh aborts: extractor treats GitHub tarball pax_global_header as content root; README still says installer clones",
     "status": "completed",
@@ -10,7 +6,12 @@
       "kind": "story",
       "completedAt": "2026-06-02T23:30:27Z",
       "capacityBucket": "technical-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.323Z",
+        "migration": true
+      }
     },
     "narratives": {
       "Description": "v0.39.2 vendored refresh aborts: extractor treats GitHub tarball pax_global_header as content root; README still says installer clones",
@@ -52,5 +53,9 @@
       }
     ],
     "updated": "2026-06-02T23:30:14Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1433"
   }
 }

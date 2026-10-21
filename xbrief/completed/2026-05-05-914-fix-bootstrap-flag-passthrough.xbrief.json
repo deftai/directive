@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "updated": "2026-05-05T18:14:38Z"
-  },
   "plan": {
     "title": "task: triage:bootstrap doesn't pass --limit / --state / --label through to populate (#900)",
     "status": "completed",
@@ -48,6 +44,17 @@
         "title": "Issue #914: task: triage:bootstrap doesn't pass --limit / --state / --label through to populate (#900)"
       }
     ],
+    "updated": "2026-05-05T18:14:38Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.305Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
     "updated": "2026-05-05T18:14:38Z"
   }
 }

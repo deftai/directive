@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #696"
-  },
   "plan": {
     "title": "fix(harness): enforce USER.md content-read on Returning Sessions; alignment confirmation must echo addressing-name",
     "id": "696-usermd-content-read",
@@ -66,7 +62,12 @@
         "missing_traces_justification": "Bug fix ingested from GitHub issue #696; no spec-section requirement trace applies. (Previously serialized after #584, but #584 was closed won't-fix on 2026-06-16 and its vBRIEF cancelled, so this scope is now independently buildable.)"
       },
       "completedAt": "2026-06-16T20:20:00Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.340Z",
+        "migration": true
+      }
     },
     "tags": [
       "bug",
@@ -80,5 +81,9 @@
       }
     ],
     "updated": "2026-06-16T20:20:00Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #696"
   }
 }

@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #425"
-  },
   "plan": {
     "title": "ci(release): explicitly flag pre-release tags -- auto-detection not working for -rc.N suffix",
     "id": "425-prerelease-tag-flag",
@@ -66,7 +62,12 @@
         "missing_traces_justification": "Bug fix ingested from GitHub issue #425; no spec-section requirement trace applies."
       },
       "completedAt": "2026-06-16T20:12:33Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.339Z",
+        "migration": true
+      }
     },
     "tags": [
       "bug",
@@ -80,5 +81,9 @@
       }
     ],
     "updated": "2026-06-16T20:12:33Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #425"
   }
 }

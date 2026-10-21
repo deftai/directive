@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1269",
-    "updated": "2026-05-22T16:43:56Z"
-  },
   "plan": {
     "title": "feat(ritual): session sentinel + version-aware welcome-back banner for returning users",
     "status": "completed",
@@ -97,7 +92,17 @@
       },
       "completedAt": "2026-05-22T19:13:17Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "default"
+      "capacityBucketSource": "default",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.316Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1269",
+    "updated": "2026-05-22T16:43:56Z"
   }
 }

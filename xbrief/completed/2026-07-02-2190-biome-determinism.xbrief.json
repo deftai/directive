@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #2190: make `biome check .` (the `pnpm run lint` step) diagnostic severity deterministic and config-owned, so the same pinned biome 2.5.0 cannot flip `noUnusedVariables` / `noNonNullAssertion` between warning and error across runs.",
-    "created": "2026-07-02T00:00:00Z",
-    "updated": "2026-07-02T00:00:00Z"
-  },
   "plan": {
     "id": "2190-biome-determinism",
     "title": "Make biome lint severity deterministic and config-owned (noUnusedVariables / noNonNullAssertion)",
@@ -80,7 +74,12 @@
         "file_scope_confidence": "high",
         "model_tier": "medium"
       },
-      "completedAt": "2026-07-02T18:55:56Z"
+      "completedAt": "2026-07-02T18:55:56Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.368Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -95,5 +94,11 @@
       }
     ],
     "updated": "2026-07-02T18:55:56Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #2190: make `biome check .` (the `pnpm run lint` step) diagnostic severity deterministic and config-owned, so the same pinned biome 2.5.0 cannot flip `noUnusedVariables` / `noNonNullAssertion` between warning and error across runs.",
+    "created": "2026-07-02T00:00:00Z",
+    "updated": "2026-07-02T00:00:00Z"
   }
 }

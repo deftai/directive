@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF: N8 child of #1119 Wave-2d-1 -- task policy:show consolidated typed-policy inspector.",
-    "updated": "2026-05-19T21:22:21Z"
-  },
   "plan": {
     "title": "feat(policy): task policy:show consolidated typed-policy inspector (#1148 / N8)",
     "status": "completed",
@@ -29,7 +24,17 @@
     "metadata": {
       "completedAt": "2026-05-19T21:23:39Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.313Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF: N8 child of #1119 Wave-2d-1 -- task policy:show consolidated typed-policy inspector.",
+    "updated": "2026-05-19T21:22:21Z"
   }
 }

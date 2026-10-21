@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #911",
-    "updated": "2026-05-08T20:59:40Z"
-  },
   "plan": {
     "title": "swarm cascade: CHANGELOG.md [Unreleased] conflict resolution should union-merge, not HEAD-take",
     "status": "completed",
@@ -25,6 +20,18 @@
         "title": "Issue #911: swarm cascade: CHANGELOG.md [Unreleased] conflict resolution should union-merge, not HEAD-take"
       }
     ],
-    "updated": "2026-05-08T22:06:54Z"
+    "updated": "2026-05-08T22:06:54Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.306Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #911",
+    "updated": "2026-05-08T20:59:40Z"
   }
 }

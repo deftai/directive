@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #2066 — deterministic umbrella:current-shape render",
-    "updated": "2026-06-29T01:58:36Z"
-  },
   "plan": {
     "id": "story-umbrella-current-shape-2066",
     "title": "Deterministic umbrella:current-shape render (#2066)",
@@ -61,7 +56,12 @@
         "model_tier": "fast"
       },
       "capacityBucket": "maintenance",
-      "completedAt": "2026-06-29T02:43:57Z"
+      "completedAt": "2026-06-29T02:43:57Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.360Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -72,5 +72,10 @@
       }
     ],
     "updated": "2026-06-29T02:43:57Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #2066 — deterministic umbrella:current-shape render",
+    "updated": "2026-06-29T01:58:36Z"
   }
 }

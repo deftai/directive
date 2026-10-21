@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #2189: gate pr:merge-ready / swarm:verify-review-clean on the SLizard check-run's structured verdict (Decision / Merge impact / severity counts), not just the Greptile rolling-summary. Fixes the gap where a PR merged through the cascade with an unresolved SLizard blocking finding.",
-    "created": "2026-07-02T00:00:00Z",
-    "updated": "2026-07-02T00:00:00Z"
-  },
   "plan": {
     "id": "2189-slizard-merge-gate",
     "title": "Gate merge-readiness on the SLizard structured review verdict (mirror the Greptile + CI gates)",
@@ -83,7 +77,12 @@
         "file_scope_confidence": "high",
         "model_tier": "medium"
       },
-      "completedAt": "2026-07-02T18:29:17Z"
+      "completedAt": "2026-07-02T18:29:17Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.368Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -98,5 +97,11 @@
       }
     ],
     "updated": "2026-07-02T18:29:17Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #2189: gate pr:merge-ready / swarm:verify-review-clean on the SLizard check-run's structured verdict (Decision / Merge impact / severity counts), not just the Greptile rolling-summary. Fixes the gap where a PR merged through the cascade with an unresolved SLizard blocking finding.",
+    "created": "2026-07-02T00:00:00Z",
+    "updated": "2026-07-02T00:00:00Z"
   }
 }

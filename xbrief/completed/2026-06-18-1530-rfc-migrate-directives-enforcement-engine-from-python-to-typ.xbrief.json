@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1530",
-    "updated": "2026-06-22T00:25:01Z"
-  },
   "plan": {
     "title": "RFC: Migrate directive's enforcement engine from Python to TypeScript/Node.js (Part 1 of 2)",
     "status": "completed",
@@ -51,6 +46,18 @@
         "title": "Issue #1530: RFC: Migrate directive's enforcement engine from Python to TypeScript/Node.js (Part 1 of 2)"
       }
     ],
+    "updated": "2026-06-22T00:25:01Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.341Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1530",
     "updated": "2026-06-22T00:25:01Z"
   }
 }

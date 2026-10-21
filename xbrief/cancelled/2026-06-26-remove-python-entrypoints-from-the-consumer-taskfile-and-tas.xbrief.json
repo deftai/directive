@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 5 decomposed from proposed/2026-06-26-2001-wave-5-python-purge-readiness-gate-before-1860.xbrief.json"
-  },
   "plan": {
     "id": "consumer-task-surface-audit",
     "title": "Remove Python entrypoints from the consumer Taskfile and tasks surface",
@@ -80,5 +76,9 @@
       }
     ],
     "updated": "2026-06-26T17:22:53Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 5 decomposed from proposed/2026-06-26-2001-wave-5-python-purge-readiness-gate-before-1860.xbrief.json"
   }
 }

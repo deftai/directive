@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 7 decomposed from completed/2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx.xbrief.json"
-  },
   "plan": {
     "id": "11-s7-identity-docs",
     "title": "Document the Deft-company / Directive-product model and npm install paths",
@@ -64,7 +60,12 @@
         "missing_traces_justification": "Resolves #423 (identity-model doc tail) + Wave-2 install-path surface under #11/#1669; documentation with no spec-section trace."
       },
       "completedAt": "2026-06-23T02:22:11Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.353Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -75,5 +76,9 @@
       }
     ],
     "updated": "2026-06-23T02:22:11Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 7 decomposed from completed/2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx.xbrief.json"
   }
 }

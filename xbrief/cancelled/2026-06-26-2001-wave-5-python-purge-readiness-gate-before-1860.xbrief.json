@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #2001"
-  },
   "plan": {
     "title": "Wave 5: Python purge readiness (gate before #1860)",
     "status": "cancelled",
@@ -124,5 +120,9 @@
       "kind": "epic"
     },
     "updated": "2026-06-26T17:22:55Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #2001"
   }
 }

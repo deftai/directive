@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1062"
-  },
   "plan": {
     "title": "Add install_root field to <install>/VERSION manifest -- single source of truth for install-layout contract",
     "status": "completed",
@@ -23,6 +19,17 @@
         "title": "Issue #1062: Add install_root field to <install>/VERSION manifest -- single source of truth for install-layout contract"
       }
     ],
-    "updated": "2026-05-12T02:42:09Z"
+    "updated": "2026-05-12T02:42:09Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.309Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1062"
   }
 }

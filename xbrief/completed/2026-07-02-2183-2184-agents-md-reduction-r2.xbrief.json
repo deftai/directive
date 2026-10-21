@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "AGENTS.md reduction round 2: de-duplicate the maintainer half against the managed section (#2183) and reduce verbose managed-section-template rationale/duplication (#2184), then ratchet the #645 budget down.",
-    "created": "2026-07-02T00:00:00Z",
-    "updated": "2026-07-02T00:00:00Z"
-  },
   "plan": {
     "id": "2183-2184-agents-md-reduction-r2",
     "title": "refactor(agents-md): de-duplicate maintainer half + reduce managed-section template",
@@ -47,7 +41,12 @@
       "x-tracking": {
         "child_issue": "#2183, #2184"
       },
-      "completedAt": "2026-07-02T17:27:12Z"
+      "completedAt": "2026-07-02T17:27:12Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.367Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -62,5 +61,11 @@
       }
     ],
     "updated": "2026-07-02T17:27:12Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "AGENTS.md reduction round 2: de-duplicate the maintainer half against the managed section (#2183) and reduce verbose managed-section-template rationale/duplication (#2184), then ratchet the #645 budget down.",
+    "created": "2026-07-02T00:00:00Z",
+    "updated": "2026-07-02T00:00:00Z"
   }
 }

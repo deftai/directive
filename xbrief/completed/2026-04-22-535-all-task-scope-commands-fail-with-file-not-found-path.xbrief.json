@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "updated": "2026-04-22T17:08:14Z"
-  },
   "plan": {
     "title": "scope: all `task scope:*` commands fail with file-not-found (path resolved from deft/ CWD, not project root)",
     "status": "completed",
@@ -16,6 +12,17 @@
         "id": "#535"
       }
     ],
+    "updated": "2026-04-22T17:08:14Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.279Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
     "updated": "2026-04-22T17:08:14Z"
   }
 }

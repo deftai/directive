@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for #74: Automate release process",
-    "updated": "2026-04-29T18:06:43Z"
-  },
   "plan": {
     "title": "Automate release process",
     "status": "completed",
@@ -19,6 +14,11 @@
         "Status_source": "orphan: proposed default",
         "SourceConflict": "missing-from-spec",
         "Phase_source": "pre-migration ROADMAP (commit 3925468)"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.294Z",
+        "migration": true
       }
     },
     "references": [
@@ -29,5 +29,10 @@
       }
     ],
     "updated": "2026-04-23T18:53:13Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #74: Automate release process",
+    "updated": "2026-04-29T18:06:43Z"
   }
 }

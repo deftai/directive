@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF: fix scripts/release.py::create_github_release so it materialises promoted CHANGELOG notes to a temp UTF-8 file and invokes `gh release create --notes-file <path>` instead of `--notes \"<text>\"`. Closes #731. Surfaced by the deepened `task release:e2e` harness (#720) during the v0.21.0 (#721) Phase 3 gate as `[10/11] FAIL (gh CLI not found on PATH)` -- the misleading message is the existing FileNotFoundError handler mapping Windows error code 206 (`ERROR_FILENAME_EXCED_RANGE`, command-line buffer overflow) to the canonical `\"gh CLI not found on PATH\"` reason. Per the `## Rule Authority [AXIOM]` block in `main.md` the deterministic tier (script + tests) is the canonical encoding; no skill prose change is required because `skills/deft-directive-release/SKILL.md` already documents the gh release create step at the abstract level.",
-    "created": "2026-04-29T16:45:00Z",
-    "updated": "2026-04-29T18:18:17Z"
-  },
   "plan": {
     "id": "release-notes-file-windows-cmdline",
     "title": "release.py uses --notes-file for gh release create; fixes Windows ERROR_FILENAME_EXCED_RANGE blocking v0.21.0 (#731)",
@@ -63,6 +57,11 @@
         "blocks": null,
         "blocked_by": null,
         "scope_authority": "v0.21.0 cut session prerequisite -- direct implementation"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.298Z",
+        "migration": true
       }
     },
     "references": [
@@ -92,5 +91,11 @@
         "title": "Issue #716: release safety hardening (default-draft + Phase 8 template surface this PR integrates with)"
       }
     ]
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF: fix scripts/release.py::create_github_release so it materialises promoted CHANGELOG notes to a temp UTF-8 file and invokes `gh release create --notes-file <path>` instead of `--notes \"<text>\"`. Closes #731. Surfaced by the deepened `task release:e2e` harness (#720) during the v0.21.0 (#721) Phase 3 gate as `[10/11] FAIL (gh CLI not found on PATH)` -- the misleading message is the existing FileNotFoundError handler mapping Windows error code 206 (`ERROR_FILENAME_EXCED_RANGE`, command-line buffer overflow) to the canonical `\"gh CLI not found on PATH\"` reason. Per the `## Rule Authority [AXIOM]` block in `main.md` the deterministic tier (script + tests) is the canonical encoding; no skill prose change is required because `skills/deft-directive-release/SKILL.md` already documents the gh release create step at the abstract level.",
+    "created": "2026-04-29T16:45:00Z",
+    "updated": "2026-04-29T18:18:17Z"
   }
 }

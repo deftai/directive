@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "author": "agent:deft-directive-swarm",
-    "description": "Issue #593 scaffold: migrator routes ROADMAP.md ## Completed items to xbrief/completed/ (not proposed/).",
-    "created": "2026-04-23T01:34:01Z"
-  },
   "plan": {
     "id": "rc3-593-migrator-completed-routing",
     "title": "migrator: ROADMAP.md Completed section items routed to xbrief/proposed/ instead of xbrief/completed/",
@@ -67,6 +61,19 @@
         "title": "Issue #593: migrator: ROADMAP.md Completed section items routed to xbrief/proposed/ instead of xbrief/completed/"
       }
     ],
-    "updated": "2026-04-23T02:22:16Z"
+    "updated": "2026-04-23T02:22:16Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.293Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "author": "agent:deft-directive-swarm",
+    "description": "Issue #593 scaffold: migrator routes ROADMAP.md ## Completed items to xbrief/completed/ (not proposed/).",
+    "created": "2026-04-23T01:34:01Z"
   }
 }

@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1069",
-    "updated": "2026-05-12T17:26:46Z"
-  },
   "plan": {
     "title": "chore(security): supply-chain & CI hygiene — gitleaks PEM fixture, curl|bash in CI, 40 OSV advisories, no Dependabot",
     "status": "completed",
@@ -20,6 +15,18 @@
         "title": "Issue #1069: chore(security): supply-chain & CI hygiene — gitleaks PEM fixture, curl|bash in CI, 40 OSV advisories, no Dependabot"
       }
     ],
+    "updated": "2026-05-12T17:26:46Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.310Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1069",
     "updated": "2026-05-12T17:26:46Z"
   }
 }

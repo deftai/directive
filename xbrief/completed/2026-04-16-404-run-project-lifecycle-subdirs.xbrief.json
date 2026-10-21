@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scaffold xbrief/ lifecycle subdirectories during `run project` so the CLI path matches the skill-driven greenfield path.",
-    "created": "2026-04-16T00:00:00Z",
-    "updated": "2026-04-16T00:00:00Z"
-  },
   "plan": {
     "id": "fix-404-run-project-lifecycle-subdirs",
     "title": "fix(cli): run project should create vbrief lifecycle subdirectories",
@@ -44,6 +38,19 @@
         "id": "#402"
       }
     ],
-    "updated": "2026-04-20T17:07:51Z"
+    "updated": "2026-04-20T17:07:51Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.275Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scaffold xbrief/ lifecycle subdirectories during `run project` so the CLI path matches the skill-driven greenfield path.",
+    "created": "2026-04-16T00:00:00Z",
+    "updated": "2026-04-16T00:00:00Z"
   }
 }

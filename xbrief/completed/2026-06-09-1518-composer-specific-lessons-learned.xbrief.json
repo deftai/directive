@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1518"
-  },
   "plan": {
     "title": "Composer specific lessons learned",
     "status": "completed",
@@ -41,8 +37,17 @@
       "kind": "epic",
       "completedAt": "2026-06-09T18:42:29Z",
       "capacityBucket": "technical-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.332Z",
+        "migration": true
+      }
     },
     "updated": "2026-06-09T18:42:29Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1518"
   }
 }

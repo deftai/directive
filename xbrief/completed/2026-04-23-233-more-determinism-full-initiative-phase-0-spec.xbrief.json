@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for #233 (remaining): More Determinism -- the 6 deterministic-enforcement tasks still open after v0.17.0 (Phase 0 generated per-phase gates, task doctor, build:verify, change:archive, task ci:local, task release). 8 v0.17.0-completed items (tasks/ restructure, toolchain:check, verify:stubs, verify:links, changelog:check, change:init, commit:lint, enhanced task check) are split out into xbrief/completed/2026-04-23-233-partial-... -- this vBRIEF only tracks remaining work.",
-    "updated": "2026-08-03T02:51:05Z"
-  },
   "plan": {
     "title": "More Determinism (remaining): Phase 0 spec scaffolding, task doctor, build:verify, change:archive, task ci:local, task release",
     "status": "completed",
@@ -102,6 +97,11 @@
         ],
         "remaining_count": 6,
         "split_authority": "https://github.com/deftai/directive/issues/642#issuecomment-4330742436"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.287Z",
+        "migration": true
       }
     },
     "references": [
@@ -126,6 +126,11 @@
         "title": "Issue #642: tracking umbrella for PR #401 trim arc (canonical workflow comment authorizes this done/pending split + lifecycle move)"
       }
     ],
+    "updated": "2026-08-03T02:51:05Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #233 (remaining): More Determinism -- the 6 deterministic-enforcement tasks still open after v0.17.0 (Phase 0 generated per-phase gates, task doctor, build:verify, change:archive, task ci:local, task release). 8 v0.17.0-completed items (tasks/ restructure, toolchain:check, verify:stubs, verify:links, changelog:check, change:init, commit:lint, enhanced task check) are split out into xbrief/completed/2026-04-23-233-partial-... -- this vBRIEF only tracks remaining work.",
     "updated": "2026-08-03T02:51:05Z"
   }
 }

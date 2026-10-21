@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1786"
-  },
   "plan": {
     "title": "feat(ts-migration): port codebase mapping + capacity to TS (Wave 6)",
     "status": "completed",
@@ -40,7 +36,16 @@
     "updated": "2026-06-19T20:59:15Z",
     "metadata": {
       "completedAt": "2026-06-19T20:59:15Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.343Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1786"
   }
 }

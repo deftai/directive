@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for #1595 PR 2 codeStructure schema/profile and validator"
-  },
   "plan": {
     "title": "feat(codebase): define codeStructure profile and validator",
     "status": "completed",
@@ -84,7 +80,16 @@
     "updated": "2026-06-15T13:25:48Z",
     "metadata": {
       "completedAt": "2026-06-15T13:25:48Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.338Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #1595 PR 2 codeStructure schema/profile and validator"
   }
 }

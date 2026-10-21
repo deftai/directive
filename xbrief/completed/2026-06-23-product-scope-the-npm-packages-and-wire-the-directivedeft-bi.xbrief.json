@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 1 decomposed from completed/2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx.xbrief.json"
-  },
   "plan": {
     "id": "11-s1-package-rename",
     "title": "Product-scope the npm packages and wire the directive/deft bins",
@@ -70,7 +66,12 @@
         "missing_traces_justification": "Distribution/packaging story for #11 (npm CLI channel) implementing the #1670 identity model under umbrella #1669 Wave 2; no specification.xbrief.json spec-section applies to maintainer distribution tooling."
       },
       "completedAt": "2026-06-23T02:24:47Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.354Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -81,5 +82,9 @@
       }
     ],
     "updated": "2026-06-23T02:24:47Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 1 decomposed from completed/2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx.xbrief.json"
   }
 }

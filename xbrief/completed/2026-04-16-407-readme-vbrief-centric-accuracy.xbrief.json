@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Update README.md to describe the vBRIEF-centric flow: scope vBRIEFs are the source of truth; SPECIFICATION.md is a rendered view.",
-    "created": "2026-04-16T00:00:00Z",
-    "updated": "2026-04-16T00:00:00Z"
-  },
   "plan": {
     "id": "fix-407-readme-vbrief-centric-accuracy",
     "title": "docs(readme): README still describes SPECIFICATION.md as primary output instead of vBRIEF",
@@ -64,6 +58,19 @@
         "id": "#402"
       }
     ],
-    "updated": "2026-04-20T17:07:59Z"
+    "updated": "2026-04-20T17:07:59Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.275Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Update README.md to describe the vBRIEF-centric flow: scope vBRIEFs are the source of truth; SPECIFICATION.md is a rendered view.",
+    "created": "2026-04-16T00:00:00Z",
+    "updated": "2026-04-16T00:00:00Z"
   }
 }

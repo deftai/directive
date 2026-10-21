@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #1648 / #1659: remove task-runner coupling from the gated session ritual.",
-    "created": "2026-06-16T00:00:00Z",
-    "updated": "2026-06-16T00:00:00Z"
-  },
   "plan": {
     "id": "1648-in-process-session-ritual-entrypoints",
     "title": "fix(ritual): call gated session ritual entrypoints in-process",
@@ -52,7 +46,12 @@
         "pull_request": "#1655"
       },
       "completedAt": "2026-06-16T00:42:02Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.339Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -72,5 +71,11 @@
       }
     ],
     "updated": "2026-06-16T00:42:02Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #1648 / #1659: remove task-runner coupling from the gated session ritual.",
+    "created": "2026-06-16T00:00:00Z",
+    "updated": "2026-06-16T00:00:00Z"
   }
 }

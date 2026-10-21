@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #1288 (feat(vbrief,scm): task vbrief:reconcile:labels); part of the #742 decomposition.",
-    "created": "2026-05-21T16:32:24Z",
-    "updated": "2026-06-14T23:55:00Z"
-  },
   "plan": {
     "id": "1288-vbrief-reconcile-labels",
     "title": "task vbrief:reconcile:labels -- SCM label reconciliation",
@@ -69,7 +63,12 @@
         "model_tier": "standard"
       },
       "completedAt": "2026-06-15T00:49:36Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.318Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -84,5 +83,11 @@
       }
     ],
     "updated": "2026-06-15T00:49:36Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #1288 (feat(vbrief,scm): task vbrief:reconcile:labels); part of the #742 decomposition.",
+    "created": "2026-05-21T16:32:24Z",
+    "updated": "2026-06-14T23:55:00Z"
   }
 }

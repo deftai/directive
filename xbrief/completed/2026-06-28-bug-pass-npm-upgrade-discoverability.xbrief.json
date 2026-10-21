@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Bug-pass story: npm consumer upgrade discoverability (#2059, #2012, #1995). Closes #2057 cluster discoverability gap.",
-    "created": "2026-06-28T23:00:00Z",
-    "updated": "2026-06-28T23:00:00Z"
-  },
   "plan": {
     "id": "bug-pass-npm-upgrade-discoverability",
     "title": "npm upgrade happy path: surface deft migrate in docs and CLI output",
@@ -85,7 +79,12 @@
         "model_tier": "standard"
       },
       "completedAt": "2026-06-28T22:31:32Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.361Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -110,5 +109,11 @@
       }
     ],
     "updated": "2026-06-28T22:31:32Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Bug-pass story: npm consumer upgrade discoverability (#2059, #2012, #1995). Closes #2057 cluster discoverability gap.",
+    "created": "2026-06-28T23:00:00Z",
+    "updated": "2026-06-28T23:00:00Z"
   }
 }

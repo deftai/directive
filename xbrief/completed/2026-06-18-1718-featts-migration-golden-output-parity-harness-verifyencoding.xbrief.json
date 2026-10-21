@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1718"
-  },
   "plan": {
     "title": "feat(ts-migration): golden-output parity harness + verify:encoding tracer-bullet port (Wave 1)",
     "status": "completed",
@@ -55,7 +51,16 @@
     "updated": "2026-06-18T19:05:04Z",
     "metadata": {
       "completedAt": "2026-06-18T19:05:04Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.341Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1718"
   }
 }

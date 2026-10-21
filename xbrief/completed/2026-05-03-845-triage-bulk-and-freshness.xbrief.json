@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story 4 of #845 triage v1: bulk filter operations + pre-swarm freshness gate. Owner: Agent A4 (wave 3, depends on A3 actions).",
-    "created": "2026-05-03T16:15:00Z",
-    "updated": "2026-05-03T16:15:00Z"
-  },
   "plan": {
     "id": "845-story-4-triage-bulk-and-freshness",
     "title": "feat(scripts,tasks): triage bulk ops + pre-swarm freshness gate",
@@ -69,6 +63,11 @@
           "skills/deft-directive-refinement/SKILL.md (Agent A5)",
           "tasks/Taskfile.yml (Agent A6)"
         ]
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.303Z",
+        "migration": true
       }
     },
     "references": [
@@ -89,5 +88,11 @@
       }
     ],
     "updated": "2026-05-03T20:47:54Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story 4 of #845 triage v1: bulk filter operations + pre-swarm freshness gate. Owner: Agent A4 (wave 3, depends on A3 actions).",
+    "created": "2026-05-03T16:15:00Z",
+    "updated": "2026-05-03T16:15:00Z"
   }
 }

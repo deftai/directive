@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #1878 (upgrade-blocker: vendored .deft/core/packages/**/*.test.ts break consumer vitest). Near-term deposit-hygiene hotfix, decoupled from the #1669 engine/content-split waves.",
-    "created": "2026-06-22T16:45:00Z",
-    "updated": "2026-06-22T16:45:00Z"
-  },
   "plan": {
     "id": "1878-prune-vendored-ts-tests",
     "title": "Prune vendored TypeScript test files from the consumer .deft/core deposit",
@@ -56,7 +50,12 @@
         "depends_on": []
       },
       "completedAt": "2026-06-22T17:08:36Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.351Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -76,5 +75,11 @@
       }
     ],
     "updated": "2026-06-22T17:08:36Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #1878 (upgrade-blocker: vendored .deft/core/packages/**/*.test.ts break consumer vitest). Near-term deposit-hygiene hotfix, decoupled from the #1669 engine/content-split waves.",
+    "created": "2026-06-22T16:45:00Z",
+    "updated": "2026-06-22T16:45:00Z"
   }
 }

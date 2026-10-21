@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for the v0.39.2 Go-installer vendoring + neutralization deposit (Closes #1429, #1430; Refs #1428, #1427). Part of the #1428 vendored-done-right cohort.",
-    "created": "2026-06-02T22:05:00Z",
-    "updated": "2026-06-02T22:05:00Z"
-  },
   "plan": {
     "id": "v0-39-2-installer-vendoring-neutralization-deposit",
     "title": "v0.39.2 Go-installer vendoring + neutralization deposit",
@@ -59,7 +53,12 @@
       },
       "completedAt": "2026-06-02T22:57:47Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.323Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -84,5 +83,11 @@
       }
     ],
     "updated": "2026-06-02T22:57:46Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for the v0.39.2 Go-installer vendoring + neutralization deposit (Closes #1429, #1430; Refs #1428, #1427). Part of the #1428 vendored-done-right cohort.",
+    "created": "2026-06-02T22:05:00Z",
+    "updated": "2026-06-02T22:05:00Z"
   }
 }

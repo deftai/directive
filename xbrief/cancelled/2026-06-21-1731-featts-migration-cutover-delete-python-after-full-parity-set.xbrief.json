@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1731"
-  },
   "plan": {
     "title": "feat(ts-migration): cutover -- delete Python after full parity + settle installer question (Wave 4)",
     "status": "cancelled",
@@ -109,5 +105,9 @@
       }
     ],
     "updated": "2026-06-21T19:22:41Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1731"
   }
 }

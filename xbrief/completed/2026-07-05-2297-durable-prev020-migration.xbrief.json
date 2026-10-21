@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #2297: make the frozen pre-v0.20 migration path durable and self-documenting (git-tag anchor, best-effort horizon, two-hop chain, manual fresh-start fallback) without vendoring the migrator bundle.",
-    "created": "2026-07-05T12:30:00Z",
-    "updated": "2026-07-05T12:30:00Z"
-  },
   "plan": {
     "id": "2297-durable-prev020-migration",
     "title": "Durable, self-documenting frozen pre-v0.20 migration path (cheap-durable variant)",
@@ -61,7 +55,12 @@
         "model_tier": "medium"
       },
       "completedAt": "2026-07-05T12:29:40Z",
-      "capacityBucket": "technical-debt"
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.372Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -71,5 +70,11 @@
       }
     ],
     "updated": "2026-07-05T12:29:40Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #2297: make the frozen pre-v0.20 migration path durable and self-documenting (git-tag anchor, best-effort horizon, two-hop chain, manual fresh-start fallback) without vendoring the migrator bundle.",
+    "created": "2026-07-05T12:30:00Z",
+    "updated": "2026-07-05T12:30:00Z"
   }
 }

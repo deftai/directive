@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #1595 PR2 current-shape alignment after the 2026-06-15 override.",
-    "created": "2026-06-16T00:00:00Z",
-    "updated": "2026-06-16T00:00:00Z"
-  },
   "plan": {
     "id": "1595-pr2-current-shape-alignment",
     "title": "Align codeStructure PR2 with the #1595 current-shape override",
@@ -97,8 +91,19 @@
         "model_tier": "standard"
       },
       "completedAt": "2026-06-16T01:19:48Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.339Z",
+        "migration": true
+      }
     },
     "updated": "2026-06-16T01:19:48Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #1595 PR2 current-shape alignment after the 2026-06-15 override.",
+    "created": "2026-06-16T00:00:00Z",
+    "updated": "2026-06-16T00:00:00Z"
   }
 }

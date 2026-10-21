@@ -1,7 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6"
-  },
   "plan": {
     "title": "rollback: orphaned `LEGACY-REPORT.reviewed.md` after Phase 6c rename (companion to #527)",
     "status": "completed",
@@ -15,6 +12,16 @@
         "id": "#528"
       }
     ],
-    "updated": "2026-04-22T14:30:51Z"
+    "updated": "2026-04-22T14:30:51Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.278Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8"
   }
 }

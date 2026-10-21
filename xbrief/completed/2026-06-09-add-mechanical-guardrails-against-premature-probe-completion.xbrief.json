@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 3 decomposed from proposed/2026-06-09-1518-composer-specific-lessons-learned.xbrief.json"
-  },
   "plan": {
     "id": "1518c-probe-session-guardrails",
     "title": "Add mechanical guardrails against premature probe completion",
@@ -79,7 +75,12 @@
       },
       "completedAt": "2026-06-09T15:30:51Z",
       "capacityBucket": "technical-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.335Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -90,5 +91,9 @@
       }
     ],
     "updated": "2026-06-09T15:30:51Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 3 decomposed from proposed/2026-06-09-1518-composer-specific-lessons-learned.xbrief.json"
   }
 }

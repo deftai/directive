@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1949"
-  },
   "plan": {
     "title": "fix(cache): make cache:fetch-all actually satisfy the freshness gate (force + drift-aware refresh)",
     "status": "completed",
@@ -91,8 +87,17 @@
         "model_tier": "leaf-implementation",
         "missing_traces_justification": "Traced to GitHub issue #1949 (repro + root cause) and the #1886 drift-aware gate, not a spec section."
       },
-      "completedAt": "2026-06-24T19:28:10Z"
+      "completedAt": "2026-06-24T19:28:10Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.355Z",
+        "migration": true
+      }
     },
     "updated": "2026-06-24T19:28:10Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1949"
   }
 }

@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1353",
-    "updated": "2026-05-26T12:56:04Z"
-  },
   "plan": {
     "title": "grok-build (Windows): run_terminal_command leaks Get-Content / wrapper noise on any pipeline or redirection (pwsh 7+)",
     "status": "completed",
@@ -72,7 +67,17 @@
     "metadata": {
       "completedAt": "2026-05-26T14:13:16Z",
       "capacityBucket": "agentic-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.320Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1353",
+    "updated": "2026-05-26T12:56:04Z"
   }
 }

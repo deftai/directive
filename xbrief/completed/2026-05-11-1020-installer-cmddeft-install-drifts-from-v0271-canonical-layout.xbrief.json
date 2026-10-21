@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1020",
-    "updated": "2026-05-11T22:23:07Z"
-  },
   "plan": {
     "title": "installer: cmd/deft-install drifts from v0.27.1 canonical layout (F2)",
     "status": "completed",
@@ -25,6 +20,18 @@
         "title": "Issue #1020: installer: cmd/deft-install drifts from v0.27.1 canonical layout (F2)"
       }
     ],
+    "updated": "2026-05-11T22:23:07Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.307Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1020",
     "updated": "2026-05-11T22:23:07Z"
   }
 }

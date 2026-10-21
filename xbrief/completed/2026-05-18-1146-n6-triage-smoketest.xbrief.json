@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF: N6 child of #1119 Wave-2d-1 -- task triage:smoketest end-to-end synthetic test of the cache-as-operator-working-set surface.",
-    "updated": "2026-05-19T21:22:20Z"
-  },
   "plan": {
     "title": "feat(triage): task triage:smoketest end-to-end synthetic test (#1146 / N6)",
     "status": "completed",
@@ -64,7 +59,17 @@
     "metadata": {
       "completedAt": "2026-05-19T21:23:39Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.313Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF: N6 child of #1119 Wave-2d-1 -- task triage:smoketest end-to-end synthetic test of the cache-as-operator-working-set surface.",
+    "updated": "2026-05-19T21:22:20Z"
   }
 }

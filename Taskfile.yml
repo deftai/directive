@@ -652,7 +652,7 @@ tasks:
   # User-facing upgrade entrypoint (#1061). Aliases the install:upgrade
   # wrapper. As of #2064 the native deft-ts install-upgrade handler is a thin
   # redirect onto `directive update` -- the single canonical upgrade verb that
-  # file-swaps the vendored .deft/core payload, rewrites the install manifest,
+  # file-swaps the vendored runtime payload, rewrites the install manifest,
   # and regenerates .deft-version. Prefer `deft update` directly; this alias is
   # retained for compatibility. Cited by the doctor's failure prose and
   # docs/install-manifest.md as the post-drift repair entrypoint.
@@ -662,7 +662,7 @@ tasks:
       - task: install:upgrade
 
   # #1272: canonical doctor surface -- thin shim that forwards to
-  # ``.deft/core/run doctor``. The ``run`` CLI owns the diagnostic
+  # the runtime doctor entry. The doctor CLI owns the diagnostic
   # logic (system deps, framework layout, root Taskfile.yml include
   # health) and the optional interactive repair path. The task
   # accepts user-facing flags (``--session`` / ``--fix`` / ``--json``

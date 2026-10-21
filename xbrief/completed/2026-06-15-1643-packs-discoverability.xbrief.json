@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #1643 (consumer discoverability for task packs:slice) plus the #1637 --list-packs pack-discovery affordance it depends on; delivered as one coherent story under epic #1284.",
-    "created": "2026-06-15T14:30:00Z",
-    "updated": "2026-06-15T14:30:00Z"
-  },
   "plan": {
     "id": "1643-packs-discoverability",
     "title": "Pack discovery (--list-packs) + consumer discoverability wiring for packs:slice",
@@ -78,7 +72,12 @@
         "model_tier": "standard"
       },
       "completedAt": "2026-06-15T15:06:09Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.338Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -103,5 +102,11 @@
       }
     ],
     "updated": "2026-06-15T15:06:09Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #1643 (consumer discoverability for task packs:slice) plus the #1637 --list-packs pack-discovery affordance it depends on; delivered as one coherent story under epic #1284.",
+    "created": "2026-06-15T14:30:00Z",
+    "updated": "2026-06-15T14:30:00Z"
   }
 }

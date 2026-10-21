@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for #1860: TS migration Wave 9 — full Python removal (Bucket B delete)"
-  },
   "plan": {
     "id": "wave-9-python-removal-1860",
     "title": "TS migration Wave 9: full Python removal (#1860 Bucket B delete)",
@@ -69,7 +65,12 @@
         "model_tier": "high"
       },
       "capacityBucket": "new-capability",
-      "completedAt": "2026-06-29T15:43:48Z"
+      "completedAt": "2026-06-29T15:43:48Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.363Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -85,5 +86,9 @@
       }
     ],
     "updated": "2026-06-29T15:43:48Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #1860: TS migration Wave 9 — full Python removal (Bucket B delete)"
   }
 }

@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #2152: the skills-pack builder dispatch.ts::parseRouting still reads the removed '## Skill Routing' heading (removed by #838) and now yields an empty trigger map; re-source triggers from SKILL.md frontmatter / the REFERENCES.md Skills Index. Child of #1882; latent regression spun off from #838.",
-    "created": "2026-07-02T00:00:00Z",
-    "updated": "2026-07-02T00:00:00Z"
-  },
   "plan": {
     "id": "2152-parserouting-skill-routing-source",
     "title": "parseRouting no longer depends on the removed AGENTS.md '## Skill Routing' heading",
@@ -68,7 +62,12 @@
         "file_scope_confidence": "medium",
         "model_tier": "high"
       },
-      "completedAt": "2026-07-02T13:48:40Z"
+      "completedAt": "2026-07-02T13:48:40Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.366Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -83,5 +82,11 @@
       }
     ],
     "updated": "2026-07-02T13:48:40Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #2152: the skills-pack builder dispatch.ts::parseRouting still reads the removed '## Skill Routing' heading (removed by #838) and now yields an empty trigger map; re-source triggers from SKILL.md frontmatter / the REFERENCES.md Skills Index. Child of #1882; latent regression spun off from #838.",
+    "created": "2026-07-02T00:00:00Z",
+    "updated": "2026-07-02T00:00:00Z"
   }
 }

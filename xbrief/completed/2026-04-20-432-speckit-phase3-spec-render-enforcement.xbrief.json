@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Gate speckit Phase 3 -> Phase 4 transition on SPECIFICATION.md existence and hash match. Also restructure Post-Phase 3 section as a numbered transition gate.",
-    "created": "2026-04-20T00:00:00Z",
-    "updated": "2026-04-20T00:00:00Z"
-  },
   "plan": {
     "id": "ga-432-speckit-phase3-spec-render-enforcement",
     "title": "speckit Phase 3 -> Phase 4 advances without enforcing ! task spec:render",
@@ -54,6 +48,19 @@
         "id": "#403"
       }
     ],
-    "updated": "2026-04-20T18:44:13Z"
+    "updated": "2026-04-20T18:44:13Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.276Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Gate speckit Phase 3 -> Phase 4 transition on SPECIFICATION.md existence and hash match. Also restructure Post-Phase 3 section as a numbered transition gate.",
+    "created": "2026-04-20T00:00:00Z",
+    "updated": "2026-04-20T00:00:00Z"
   }
 }

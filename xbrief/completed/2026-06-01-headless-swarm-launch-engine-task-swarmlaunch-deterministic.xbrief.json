@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-01-1387-headless-swarm-launch.xbrief.json"
-  },
   "plan": {
     "id": "swarm-launch-cli",
     "title": "Headless swarm launch engine: task swarm:launch deterministic prep CLI",
@@ -80,7 +76,12 @@
       },
       "completedAt": "2026-06-01T05:00:49Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.323Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -97,5 +98,9 @@
       }
     ],
     "updated": "2026-06-01T04:37:32Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-01-1387-headless-swarm-launch.xbrief.json"
   }
 }

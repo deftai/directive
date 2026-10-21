@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 3 decomposed from completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.xbrief.json"
-  },
   "plan": {
     "id": "py-purge-pack-migrate-ts",
     "title": "Convert the five pack-migrate dispatch routes to native TypeScript (Phase 1)",
@@ -63,7 +59,12 @@
         "model_tier": "high"
       },
       "completedAt": "2026-06-26T18:47:42Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.358Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -74,5 +75,9 @@
       }
     ],
     "updated": "2026-06-26T18:47:42Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 3 decomposed from completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.xbrief.json"
   }
 }

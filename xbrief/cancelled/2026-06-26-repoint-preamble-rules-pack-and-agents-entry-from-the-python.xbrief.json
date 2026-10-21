@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 2 decomposed from proposed/2026-06-26-2001-wave-5-python-purge-readiness-gate-before-1860.xbrief.json"
-  },
   "plan": {
     "id": "preamble-pack-migration",
     "title": "Repoint preamble, rules pack, and agents-entry from the Python gate to the Go gate",
@@ -90,5 +86,9 @@
       }
     ],
     "updated": "2026-06-26T17:22:51Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 2 decomposed from proposed/2026-06-26-2001-wave-5-python-purge-readiness-gate-before-1860.xbrief.json"
   }
 }

@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #910",
-    "updated": "2026-05-08T21:00:16Z"
-  },
   "plan": {
     "title": "templates/swarm-greptile-poller-prompt.md detector misses Greptile findings rendered as markdown bullets or inline prose",
     "status": "completed",
@@ -25,6 +20,18 @@
         "title": "Issue #910: templates/swarm-greptile-poller-prompt.md detector misses Greptile findings rendered as markdown bullets or inline prose"
       }
     ],
-    "updated": "2026-05-08T22:16:10Z"
+    "updated": "2026-05-08T22:16:10Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.306Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #910",
+    "updated": "2026-05-08T21:00:16Z"
   }
 }

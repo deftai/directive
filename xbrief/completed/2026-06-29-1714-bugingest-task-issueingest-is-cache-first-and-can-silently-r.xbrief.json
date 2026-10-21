@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #1714 — issue ingest must not silently use stale cache"
-  },
   "plan": {
     "id": "1714-ingest-fresh",
     "title": "issue:ingest must not silently replay stale cached issue bodies",
@@ -75,7 +71,12 @@
         "missing_traces_justification": "Ingest authority bug from issue #1714."
       },
       "capacityBucket": "bugfix",
-      "completedAt": "2026-06-29T23:46:55Z"
+      "completedAt": "2026-06-29T23:46:55Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.362Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -85,5 +86,9 @@
       }
     ],
     "updated": "2026-06-29T23:46:55Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #1714 — issue ingest must not silently use stale cache"
   }
 }

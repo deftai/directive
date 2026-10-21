@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for #195: deft-review-cycle: replace blocking polling with tiered start_agent monitoring -- Approach 1 (sub-agent + send_message), Approach 2 (tool-call + yield fallback)",
-    "updated": "2026-04-23T14:30:07Z"
-  },
   "plan": {
     "title": "deft-review-cycle: replace blocking polling with tiered start_agent monitoring -- Approach 1 (sub-agent + send_message), Approach 2 (tool-call + yield fallback)",
     "status": "completed",
@@ -18,6 +13,11 @@
         "Description_source": "ROADMAP.md",
         "Status_source": "orphan: ROADMAP Completed section (#593)",
         "SourceConflict": "missing-from-spec"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.285Z",
+        "migration": true
       }
     },
     "references": [
@@ -27,5 +27,10 @@
         "title": "Issue #195: deft-review-cycle: replace blocking polling with tiered start_agent monitoring -- Approach 1 (sub-agent + send_message), Approach 2 (tool-call + yield fallback)"
       }
     ]
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #195: deft-review-cycle: replace blocking polling with tiered start_agent monitoring -- Approach 1 (sub-agent + send_message), Approach 2 (tool-call + yield fallback)",
+    "updated": "2026-04-23T14:30:07Z"
   }
 }

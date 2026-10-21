@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #584"
-  },
   "plan": {
     "title": "Agents potentially not \"respecting\" commented out code",
     "id": "584-respect-disabled-code",
@@ -78,5 +74,9 @@
       }
     ],
     "updated": "2026-06-16T18:54:31Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #584"
   }
 }

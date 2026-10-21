@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-09-1518-composer-specific-lessons-learned.xbrief.json"
-  },
   "plan": {
     "id": "1518a-probe-skill-routing",
     "title": "Add a discoverable Composer-facing probe skill",
@@ -78,7 +74,12 @@
       },
       "completedAt": "2026-06-09T15:22:54Z",
       "capacityBucket": "technical-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.335Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -89,5 +90,9 @@
       }
     ],
     "updated": "2026-06-09T15:22:54Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-09-1518-composer-specific-lessons-learned.xbrief.json"
   }
 }

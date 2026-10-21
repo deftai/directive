@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #1595 PR3 deterministic extractor, provider contract, and discipline gate.",
-    "created": "2026-06-16T19:03:00Z",
-    "updated": "2026-06-16T20:20:00Z"
-  },
   "plan": {
     "id": "1595-pr3-extractor-provider-discipline-gate",
     "title": "Add codebase extractor provider contract and discipline gate",
@@ -119,5 +113,11 @@
       "capacityBucket": "new-capability"
     },
     "updated": "2026-06-18T14:37:55Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #1595 PR3 deterministic extractor, provider contract, and discipline gate.",
+    "created": "2026-06-16T19:03:00Z",
+    "updated": "2026-06-16T20:20:00Z"
   }
 }

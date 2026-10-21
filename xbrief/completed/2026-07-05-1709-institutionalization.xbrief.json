@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 6 decomposed from pending/2026-07-05-1709-value-attribution-adoption-loop.xbrief.json"
-  },
   "plan": {
     "id": "1709-institutionalization",
     "title": "Institutionalization and propagation of value-feedback rules",
@@ -69,7 +65,12 @@
         "model_tier": "standard"
       },
       "completedAt": "2026-07-05T22:28:26Z",
-      "capacityBucket": "agentic-debt"
+      "capacityBucket": "agentic-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.372Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -86,5 +87,9 @@
       }
     ],
     "updated": "2026-07-05T22:28:26Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 6 decomposed from pending/2026-07-05-1709-value-attribution-adoption-loop.xbrief.json"
   }
 }

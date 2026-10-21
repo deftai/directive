@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-28-2032-directive-sessionstart-fails-on-npm-consumer-projects-module.xbrief.json"
-  },
   "plan": {
     "id": "story-2032-session-start-ts-native",
     "title": "Route directive session:start through native TS runSessionStart on npm installs",
@@ -78,7 +74,12 @@
         "model_tier": "high"
       },
       "completedAt": "2026-06-28T18:02:53Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.362Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -89,5 +90,9 @@
       }
     ],
     "updated": "2026-06-28T18:02:53Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-28-2032-directive-sessionstart-fails-on-npm-consumer-projects-module.xbrief.json"
   }
 }

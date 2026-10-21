@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 5 decomposed from proposed/2026-06-19-1730-featts-migration-port-pr-monitors-cascade-automation-to-ts-w.xbrief.json"
-  },
   "plan": {
     "id": "1730-s5-pr-wait-mergeable",
     "title": "Port pr_wait_mergeable.py (cascade composer) to TypeScript",
@@ -70,7 +66,12 @@
         "missing_traces_justification": "#1530 Wave-4b framework-internal TS port traced to GitHub issue #1730 and umbrella epic #1530; no specification.xbrief.json spec-section applies to maintainer tooling."
       },
       "completedAt": "2026-06-19T14:56:03Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.344Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -101,5 +102,9 @@
       }
     ],
     "updated": "2026-06-19T14:56:03Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 5 decomposed from proposed/2026-06-19-1730-featts-migration-port-pr-monitors-cascade-automation-to-ts-w.xbrief.json"
   }
 }

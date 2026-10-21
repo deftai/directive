@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1916"
-  },
   "plan": {
     "title": "npm publish workflow uses self-hosted (Blacksmith) runner — incompatible with --provenance",
     "status": "completed",
@@ -27,7 +23,16 @@
     "updated": "2026-06-23T18:24:24Z",
     "metadata": {
       "completedAt": "2026-06-23T18:24:24Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.352Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1916"
   }
 }

@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1838",
-    "updated": "2026-06-21T23:10:16Z"
-  },
   "plan": {
     "title": "feat(ts-migration): Wave 8.5 -- port the maintainer test suites to vitest (content + CLI + integration; additive, no deletions)",
     "status": "completed",
@@ -101,8 +96,18 @@
       }
     ],
     "metadata": {
-      "kind": "epic"
+      "kind": "epic",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.348Z",
+        "migration": true
+      }
     },
+    "updated": "2026-06-21T23:10:16Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1838",
     "updated": "2026-06-21T23:10:16Z"
   }
 }

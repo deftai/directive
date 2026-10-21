@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Document feature slicing (tracer-bullet vertical slices) in the root README"
-  },
   "plan": {
     "title": "docs(readme): document feature slicing and complete the gh-dependent skill list",
     "status": "completed",
@@ -17,7 +13,12 @@
     "metadata": {
       "kind": "story",
       "completedAt": "2026-06-28T18:08:01Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.340Z",
+        "migration": true
+      }
     },
     "items": [
       {
@@ -38,5 +39,9 @@
     ],
     "references": [],
     "updated": "2026-06-28T18:08:01Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Document feature slicing (tracer-bullet vertical slices) in the root README"
   }
 }

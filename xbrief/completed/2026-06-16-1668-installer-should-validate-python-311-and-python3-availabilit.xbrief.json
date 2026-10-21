@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1668"
-  },
   "plan": {
     "title": "Installer should validate Python 3.11+ and python3 availability before install (Windows)",
     "id": "1668-installer-python-preflight",
@@ -82,7 +78,12 @@
         "missing_traces_justification": "Enhancement ingested from GitHub issue #1668; no spec-section requirement trace applies."
       },
       "completedAt": "2026-06-16T20:19:16Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.339Z",
+        "migration": true
+      }
     },
     "tags": [
       "enhancement",
@@ -97,5 +98,9 @@
       }
     ],
     "updated": "2026-06-16T20:19:16Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1668"
   }
 }

@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF: D11 (#1128) -- triage:queue + triage:audit + triage:show; group-by-state + updated_at desc within-group; consumer-configurable triageRankingLabels[].",
-    "updated": "2026-05-19T21:22:20Z"
-  },
   "plan": {
     "title": "feat(triage): triage:queue + audit + show with group-by-state and updated_at within-group (#1128)",
     "status": "completed",
@@ -29,7 +24,17 @@
     "metadata": {
       "completedAt": "2026-05-19T21:23:39Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.312Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF: D11 (#1128) -- triage:queue + triage:audit + triage:show; group-by-state + updated_at desc within-group; consumer-configurable triageRankingLabels[].",
+    "updated": "2026-05-19T21:22:20Z"
   }
 }

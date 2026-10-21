@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 7 decomposed from completed/2026-06-21-1828-featts-migration-wave-8-flip-live-gates-to-the-ts-engine-pyt.xbrief.json"
-  },
   "plan": {
     "id": "1828-s6-flip-scm-cache-policy-misc",
     "title": "Flip scm/cache/policy and remaining gates to the TS engine",
@@ -73,7 +69,12 @@
         "model_tier": "medium"
       },
       "completedAt": "2026-06-21T02:01:27Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.349Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -84,5 +85,9 @@
       }
     ],
     "updated": "2026-06-21T02:01:27Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 7 decomposed from completed/2026-06-21-1828-featts-migration-wave-8-flip-live-gates-to-the-ts-engine-pyt.xbrief.json"
   }
 }

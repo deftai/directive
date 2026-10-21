@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Make package-manager (npm/pnpm) network access explicit and security-scoped: read-only/session/ritual flows perform no registry access; doctor separates offline from network tiers; network-enabled checks are explicit and disclosed (#2182).",
-    "created": "2026-07-02T00:00:00Z",
-    "updated": "2026-07-02T00:00:00Z"
-  },
   "plan": {
     "id": "2182-pkg-manager-network-scope",
     "title": "Make package-manager network access explicit and security-scoped",
@@ -63,7 +57,12 @@
       "x-tracking": {
         "child_issue": "#2182"
       },
-      "completedAt": "2026-07-02T17:22:36Z"
+      "completedAt": "2026-07-02T17:22:36Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.367Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -73,5 +72,11 @@
       }
     ],
     "updated": "2026-07-02T17:22:36Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Make package-manager (npm/pnpm) network access explicit and security-scoped: read-only/session/ritual flows perform no registry access; doctor separates offline from network tiers; network-enabled checks are explicit and disclosed (#2182).",
+    "created": "2026-07-02T00:00:00Z",
+    "updated": "2026-07-02T00:00:00Z"
   }
 }

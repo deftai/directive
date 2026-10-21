@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1059"
-  },
   "plan": {
     "title": "framework:doctor (and check-updates) fail on Windows -- tasks/framework.yml hardcodes python3, hits Store stub",
     "status": "completed",
@@ -23,6 +19,17 @@
         "title": "Issue #1059: framework:doctor (and check-updates) fail on Windows -- tasks/framework.yml hardcodes python3, hits Store stub"
       }
     ],
-    "updated": "2026-05-12T04:39:23Z"
+    "updated": "2026-05-12T04:39:23Z",
+    "metadata": {
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.309Z",
+        "migration": true
+      }
+    }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1059"
   }
 }

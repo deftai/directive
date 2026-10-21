@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-19-1724-featts-migration-port-the-scmpy-scm-boundary-to-a-ts-adapter.xbrief.json"
-  },
   "plan": {
     "id": "1724-s1-scm-adapter",
     "title": "Port the scm.py SCM boundary to a TypeScript adapter",
@@ -65,7 +61,12 @@
         "missing_traces_justification": "#1530 Wave-3 framework-internal TS port traced to GitHub issue #1724 and umbrella epic #1530; no specification.xbrief.json spec-section applies to maintainer tooling."
       },
       "completedAt": "2026-06-19T01:44:15Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.345Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -81,5 +82,9 @@
       }
     ],
     "updated": "2026-06-19T01:44:15Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-19-1724-featts-migration-port-the-scmpy-scm-boundary-to-a-ts-adapter.xbrief.json"
   }
 }

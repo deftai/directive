@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "HOT adoption blocker: scripts/preflight_branch.py prints a U+2713 check mark on its success path. On Windows where Python's stdout defaults to cp1252, this raises UnicodeEncodeError after the gate has already approved the commit, blocking every commit on a default Windows install. Fix: force UTF-8 stdout reconfigure at script entry; audit every hook-invoked deft script for the same shape; warn at task setup time when cp1252 is detected.",
-    "created": "2026-05-03T01:53:52Z",
-    "updated": "2026-05-03T02:37:44Z"
-  },
   "plan": {
     "title": "scripts/preflight_branch.py crashes with UnicodeEncodeError on Windows (cp1252) -- blocks every commit",
     "status": "completed",
@@ -138,9 +132,20 @@
         ],
         "branch_name_suggestion": "fix/814-preflight-branch-cp1252-glyph",
         "pr_title_suggestion": "fix(scripts/preflight_branch.py): UTF-8 self-reconfigure at hook entry to unblock Windows cp1252 commits (#814)"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.302Z",
+        "migration": true
       }
     },
     "updated": "2026-05-03T04:38:15Z",
     "id": "814-preflight-branch-cp1252-glyph"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "HOT adoption blocker: scripts/preflight_branch.py prints a U+2713 check mark on its success path. On Windows where Python's stdout defaults to cp1252, this raises UnicodeEncodeError after the gate has already approved the commit, blocking every commit on a default Windows install. Fix: force UTF-8 stdout reconfigure at script entry; audit every hook-invoked deft script for the same shape; warn at task setup time when cp1252 is detected.",
+    "created": "2026-05-03T01:53:52Z",
+    "updated": "2026-05-03T02:37:44Z"
   }
 }

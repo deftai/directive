@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for #2319: raise framework DEFAULT_WIP_CAP from 10 to 20",
-    "updated": "2026-07-05T17:30:00Z"
-  },
   "plan": {
     "title": "Raise framework default WIP cap from 10 to 20",
     "status": "completed",
@@ -27,7 +22,17 @@
     "updated": "2026-07-05T17:44:03Z",
     "metadata": {
       "completedAt": "2026-07-05T17:44:03Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.373Z",
+        "migration": true
+      }
     }
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #2319: raise framework DEFAULT_WIP_CAP from 10 to 20",
+    "updated": "2026-07-05T17:30:00Z"
   }
 }

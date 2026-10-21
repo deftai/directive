@@ -1,9 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for Directive story decomposition and swarm readiness.",
-    "created": "2026-05-12T00:00:00Z"
-  },
   "plan": {
     "id": "directive-decomposition-readiness",
     "title": "Directive story decomposition and swarm readiness",
@@ -84,7 +79,12 @@
       },
       "completedAt": "2026-05-17T17:06:42Z",
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "default"
+      "capacityBucketSource": "default",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T15:10:07.311Z",
+        "migration": true
+      }
     },
     "references": [
       {
@@ -95,5 +95,10 @@
       }
     ],
     "updated": "2026-05-12T18:50:52Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for Directive story decomposition and swarm readiness.",
+    "created": "2026-05-12T00:00:00Z"
   }
 }
