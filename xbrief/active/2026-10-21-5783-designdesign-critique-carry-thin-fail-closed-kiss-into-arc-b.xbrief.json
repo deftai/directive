@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5783",
-    "updated": "2026-10-21T20:42:00Z"
+    "updated": "2026-10-21T21:22:16Z"
   },
   "plan": {
     "title": "design(design-critique): carry Thin Fail-Closed / KISS into arc Bound + pain-audit harvest",
@@ -151,10 +151,10 @@
           "Prefer-A Bound 6280270826"
         ],
         "parallel_safe": true
-      }
+      },
+      "activationPullRequest": 5806
     },
     "id": "github.issue.5933087592",
-    "overview": "Carry Thin Fail-Closed (#3265) and writing bar (#3368) into design-critique Prefer-A Bound size and PA harvest posture via pointer-sufficient contract lines, brief Pointers rows, Recut discipline, and fixture locks.",
-    "updated": "2026-10-21T20:42:00Z"
+    "updated": "2026-10-21T21:22:16Z"
   }
 }
