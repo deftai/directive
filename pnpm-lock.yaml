@@ -19,6 +19,9 @@ importers:
       '@biomejs/biome':
         specifier: 2.5.0
         version: 2.5.0
+      '@deftai/directive-runtime':
+        specifier: 0.127.0
+        version: 0.127.0
       '@types/node':
         specifier: ^24
         version: 24.13.2
@@ -155,6 +158,11 @@ packages:
     engines: {node: '>=14.21.3'}
     cpu: [x64]
     os: [win32]
+
+  '@deftai/directive-runtime@0.127.0':
+    resolution: {integrity: sha512-77ry9KDF3p3hDAzBndvjwfrO7+Q57F6x3c0B0WWa89TdETZuOBqm48fQWauQv4WtnxdMzFzu7aaKbEsFHjDhzg==}
+    engines: {node: '>=20'}
+    hasBin: true
 
   '@esbuild/aix-ppc64@0.28.1':
     resolution: {integrity: sha512-Svl7tq8k/08+p6CXPpRjQ1fKX+1odH/BQbb48fV6fj3CWHhsoIOoY87w1oHXm0qEpkIK3ZfVgp0hed3XBXzXMQ==}
@@ -993,6 +1001,16 @@ snapshots:
 
   '@biomejs/cli-win32-x64@2.5.0':
     optional: true
+
+  '@deftai/directive-runtime@0.127.0':
+    dependencies:
+      archiver: 8.0.0
+      parse5: 7.3.0
+      typescript: 5.9.3
+    transitivePeerDependencies:
+      - bare-abort-controller
+      - bare-buffer
+      - react-native-b4a
 
   '@esbuild/aix-ppc64@0.28.1':
     optional: true

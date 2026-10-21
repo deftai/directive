@@ -214,3 +214,4 @@ xbrief/.triage-cache/scm-label-mirror-discovery-state.json
 # inherit CANONICAL_GITIGNORE_BASELINE reconciliation.
 .claude/worktrees/
 .claude/settings.local.json
+.deft/directive/wiring-ready.*.json
