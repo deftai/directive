@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- Changed — Activate running xBRIEF for chore PR #5799 so merge-base file_scope admits Approach 1 babysit spawn. Refs #5795 #5796 #5797.
 - Changed — Allow `@deftai/directive-runtime` build scripts via `pnpm-workspace.yaml` `allowBuilds` (clears ERR_PNPM_IGNORED_BUILDS). Refs #5797.
 
 ### Fixed
