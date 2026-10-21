@@ -1,0 +1,69 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Chore PR #5799 babysit: corpus hygiene + Taskfile comment + allowBuilds CI unblock. Refs #5795 #5796 #5797.",
+    "created": "2026-10-21T15:49:21.889Z",
+    "updated": "2026-10-21T18:31:49.510Z"
+  },
+  "plan": {
+    "id": "chore-5799-xbrief-hygiene-allowbuilds",
+    "title": "chore(xbrief,taskfile,ci): OVPR corpus hygiene + doctor wiring comment + allowBuilds",
+    "status": "running",
+    "metadata": {
+      "github": {
+        "issue": 5799
+      },
+      "swarm": {
+        "file_scope": [
+          "xbrief/active/2026-10-21-5799-chore-xbrief-hygiene-taskfile-allowbuilds.xbrief.json",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "high"
+      },
+      "intended_placement": {
+        "files": [
+          "xbrief/active/2026-10-21-5799-chore-xbrief-hygiene-taskfile-allowbuilds.xbrief.json",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "path-b-activation-5799",
+        "cohesion_exemption": "CHANGELOG.md already exceeds the review trigger; activation only adds one Unreleased bullet and lands the running brief."
+      },
+      "origin_divergence": "intentional: activation/babysit brief for chore PR #5799; GitHub issue #5799 is the PR number used as deft-story bind, not a product-issue ingest."
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "Land hygiene + allowBuilds and babysit PR #5799 to merge",
+        "narrative": {
+          "Overview": "Commit residual xBRIEF envelope rewrite, strip hybrid vBRIEFInfo keys, reword Taskfile .deft/core/ comments, allowBuilds for @deftai/directive-runtime, babysit CI/Greptile to CLEAN, squash-merge.",
+          "Acceptance": "PR #5799 merges; local doctor wiring+schema green on tip; allowBuilds true present; product issues #5795/#5796/#5797/#5798 remain open for remaining product work."
+        },
+        "status": "proposed"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 1 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "PR #5799 merges; local doctor wiring+schema green on tip; allowBuilds true present; product issues #5795/#5796/#5797/#5798 remain open for remaining product work.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-10-21T15:49:40Z",
+    "references": [
+      {
+        "type": "x-xbrief/github-issue",
+        "uri": "https://github.com/deftai/directive/issues/5799",
+        "title": "Tracking #5799 hygiene chore (activation Path B)"
+      }
+    ]
+  }
+}
