@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed — Allow `@deftai/directive-runtime` build scripts via `pnpm-workspace.yaml` `allowBuilds` so CI `pnpm install` exits 0 after OVPR GA (clears ERR_PNPM_IGNORED_BUILDS). Refs #5797.
 
 ### Fixed
+- Fixed — Restore `.githooks/_deft-run.sh` compat helper and pre-OVPR pre-commit/pre-push gate text so tip CI unit suites stop ENOENT / branch_gate failing after OVPR `_directive-run` rename. Temporary tip relief; complete cutover tracked in #5802. Refs #5802 #5797.
 
 ### Removed
 

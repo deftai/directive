@@ -1,5 +1,18 @@
 #!/usr/bin/env sh
-REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 1
-# shellcheck source=/dev/null
-. "$REPO_ROOT/.githooks/_directive-run.sh"
-run_directive verify:branch --project-root "$REPO_ROOT" || exit $?
+# .githooks/pre-push -- refspec-aware default-branch push gate (#2049 / #1019 / #1814).
+#
+# Pre-push does NOT invoke verify:branch (#747). HEAD-only default-branch
+# protection remains on pre-commit; pre-push relies on preflight-gh for
+# refspec-aware protection (#1814 Option A). Pure POSIX shell; prefers global
+# `deft` on PATH, falls back to local packages/runtime/dist/bin.js (#2067).
+
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+if [ -z "$REPO_ROOT" ]; then
+    echo "deft pre-push: unable to resolve repo root via 'git rev-parse'." >&2
+    exit 1
+fi
+
+. "$REPO_ROOT/.githooks/_deft-run.sh"
+
+run_deft preflight-gh --pre-push-stdin --project-root "$REPO_ROOT"
+exit $?
