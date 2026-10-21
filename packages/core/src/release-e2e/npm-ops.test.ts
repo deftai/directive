@@ -64,7 +64,11 @@ function installFakeContentPackage(projectRoot: string, version = "0.53.0"): str
   chmodSync(join(pkgDir, ".githooks", "pre-commit"), 0o755);
   writeFileSync(join(pkgDir, ".githooks", "pre-push"), "#!/bin/sh\nexit 0\n", "utf8");
   chmodSync(join(pkgDir, ".githooks", "pre-push"), 0o755);
-  writeFileSync(join(pkgDir, ".githooks", "_directive-run.sh"), 'run_directive() { deft "$@"; }\n', "utf8");
+  writeFileSync(
+    join(pkgDir, ".githooks", "_directive-run.sh"),
+    'run_directive() { deft "$@"; }\n',
+    "utf8",
+  );
   writeFileSync(join(pkgDir, "Taskfile.yml"), "version: '3'\n", "utf8");
   writeFileSync(join(pkgDir, "tasks", "swarm.yml"), "version: '3'\n", "utf8");
   return pkgDir;

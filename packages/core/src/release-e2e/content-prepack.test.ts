@@ -53,7 +53,11 @@ function buildFakeRepo(options: { withScripts?: boolean } = {}): { root: string;
   mkdirSync(join(root, ".githooks"), { recursive: true });
   writeFileSync(join(root, ".githooks", "pre-commit"), "#!/bin/sh\nexit 0\n", "utf8");
   writeFileSync(join(root, ".githooks", "pre-push"), "#!/bin/sh\nexit 0\n", "utf8");
-  writeFileSync(join(root, ".githooks", "_directive-run.sh"), 'run_directive() { deft "$@"; }\n', "utf8");
+  writeFileSync(
+    join(root, ".githooks", "_directive-run.sh"),
+    'run_directive() { deft "$@"; }\n',
+    "utf8",
+  );
   writeFileSync(join(root, "Taskfile.yml"), "version: '3'\n", "utf8");
   mkdirSync(join(root, "tasks"), { recursive: true });
   writeFileSync(join(root, "tasks", "swarm.yml"), "version: '3'\n", "utf8");

@@ -112,7 +112,7 @@ describe("evaluate", () => {
     mkdirSync(hooks, { recursive: true });
     writeFileSync(join(hooks, "pre-commit"), "echo noop\n", "utf8");
     writeFileSync(join(hooks, "pre-push"), DEFT_PRE_PUSH, "utf8");
-    writeFileSync(join(hooks, "_directive-run.sh"), 'run_directive() { :; }\n', "utf8");
+    writeFileSync(join(hooks, "_directive-run.sh"), "run_directive() { :; }\n", "utf8");
     chmodSync(join(hooks, "pre-commit"), 0o755);
     chmodSync(join(hooks, "pre-push"), 0o755);
     const result = evaluate(root, {
@@ -128,7 +128,7 @@ describe("evaluate", () => {
     mkdirSync(hooks, { recursive: true });
     writeFileSync(join(hooks, "pre-commit"), DEFT_PRE_COMMIT, "utf8");
     writeFileSync(join(hooks, "pre-push"), "echo noop\n", "utf8");
-    writeFileSync(join(hooks, "_directive-run.sh"), 'run_directive() { :; }\n', "utf8");
+    writeFileSync(join(hooks, "_directive-run.sh"), "run_directive() { :; }\n", "utf8");
     chmodSync(join(hooks, "pre-commit"), 0o755);
     chmodSync(join(hooks, "pre-push"), 0o755);
     const result = evaluate(root, {
@@ -171,7 +171,7 @@ describe("evaluate", () => {
     mkdirSync(hooks, { recursive: true });
     writeFileSync(join(hooks, "pre-commit"), "echo noop\n", "utf8");
     writeFileSync(join(hooks, "pre-push"), DEFT_PRE_PUSH, "utf8");
-    writeFileSync(join(hooks, "_directive-run.sh"), 'run_directive() { :; }\n', "utf8");
+    writeFileSync(join(hooks, "_directive-run.sh"), "run_directive() { :; }\n", "utf8");
     chmodSync(join(hooks, "pre-commit"), 0o755);
     chmodSync(join(hooks, "pre-push"), 0o755);
     const result = evaluate(root, {
