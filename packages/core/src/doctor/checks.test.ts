@@ -1376,7 +1376,7 @@ describe("checkDanglingNodeModulesLinks (#3749)", () => {
     }
   });
 
-  it("advisory-fails bounded truncation with zero dangling (not silent clean pass)", () => {
+  it("passes bounded truncation with zero dangling (incomplete note, not doctor warning) (#5802)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-dangling-incomplete-"));
     try {
       const nm = join(root, "node_modules");
@@ -1403,13 +1403,12 @@ describe("checkDanglingNodeModulesLinks (#3749)", () => {
           return [];
         },
       });
-      expect(result.status).toBe("fail");
+      expect(result.status).toBe("pass");
       expect(result.detail).toMatch(/truncated|entry\/depth bound/i);
       expect(result.detail).not.toMatch(/^No dangling/i);
       expect(result.data?.incomplete).toBe(true);
       expect(result.data?.incomplete_reason).toBe("bounded");
-      expect(result.data?.advisory).toBe(true);
-      expect(isDoctorAdvisoryFail(result.name, result.data)).toBe(true);
+      expect(isDoctorAdvisoryFail(result.name, result.data)).toBe(false);
       expect(deriveExitCode([result], [])).toBe(0);
     } finally {
       rmSync(root, { recursive: true, force: true });
