@@ -3,7 +3,7 @@
     "version": "0.8",
     "description": "Chore PR #5799 babysit: corpus hygiene + Taskfile comment + allowBuilds CI unblock. Refs #5795 #5796 #5797.",
     "created": "2026-10-21T15:49:21.889Z",
-    "updated": "2026-10-21T18:16:31.177Z"
+    "updated": "2026-10-21T18:22:14.727Z"
   },
   "plan": {
     "id": "chore-5799-xbrief-hygiene-allowbuilds",
