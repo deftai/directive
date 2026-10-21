@@ -114,8 +114,15 @@ export function contentRoot(frameworkRoot: string): string {
   const hasInRepoContent = directoryExists(candidate);
 
   if (packageRoot !== null) {
+    const isHoistedRuntime = /[@/\\]directive-runtime$/.test(packageRoot.replace(/\\/g, "/"));
     if (contentPackageHasAgentContent(packageRoot)) {
-      return packageRoot;
+      // Source checkout (#5802): in-repo content/ wins over a hoisted published
+      // @deftai/directive-runtime that also ships skills/templates — otherwise
+      // packs:verify-drift compares against stale npm projections on tip CI.
+      // Staged @deftai/directive-content still wins (vendored / hybrid modes).
+      if (!(isHoistedRuntime && hasInRepoContent)) {
+        return packageRoot;
+      }
     }
     // Schemas-only npm root: prefer only when there is no competing content/.
     if (contentPackageHasVbrief(packageRoot) && !hasInRepoContent) {

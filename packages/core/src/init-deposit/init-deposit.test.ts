@@ -154,8 +154,8 @@ describe("runInitDeposit", destContentionItTimeout(), () => {
     );
     chmodSync(join(pkgDir, ".githooks", "pre-push"), 0o755);
     writeFileSync(
-      join(pkgDir, ".githooks", "_deft-run.sh"),
-      readFileSync(join(process.cwd(), ".githooks/_deft-run.sh"), "utf8"),
+      join(pkgDir, ".githooks", "_directive-run.sh"),
+      readFileSync(join(process.cwd(), ".githooks/_directive-run.sh"), "utf8"),
       "utf8",
     );
     writeFileSync(join(pkgDir, "Taskfile.yml"), "version: '3'\n", "utf8");
@@ -188,10 +188,10 @@ describe("runInitDeposit", destContentionItTimeout(), () => {
     expect(existsSync(join(project, ".agents/skills/deft-directive-sync/SKILL.md"))).toBe(true);
     expect(existsSync(join(project, ".githooks", "pre-commit"))).toBe(true);
     expect(readFileSync(join(project, ".githooks", "pre-commit"), "utf8")).toContain(
-      "deft verify:branch",
+      "run_directive verify:encoding",
     );
-    expect(readFileSync(join(project, ".githooks", "_deft-run.sh"), "utf8")).toContain(
-      "run_deft()",
+    expect(readFileSync(join(project, ".githooks", "_directive-run.sh"), "utf8")).toContain(
+      "run_directive()",
     );
     expect(readFileSync(join(project, "Taskfile.yml"), "utf8")).toContain(
       "./.deft/core/Taskfile.yml",

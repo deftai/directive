@@ -148,6 +148,28 @@ describe("contentRoot three operating modes (#11 S2 / @deftai/directive-content)
     expect(contentRoot(frameworkRoot)).toBe(runtimeDir);
   });
 
+  it("source checkout: in-repo content/ wins over hoisted runtime with agent content (#5802)", () => {
+    const project = freshProject();
+    const frameworkRoot = join(project, "directive-source");
+    mkdirSync(join(frameworkRoot, CONTENT_DIRNAME, "templates"), { recursive: true });
+    writeFileSync(
+      join(frameworkRoot, CONTENT_DIRNAME, "templates", "agents-entry.md"),
+      "# source",
+      "utf-8",
+    );
+    const runtimeDir = join(project, "node_modules", "@deftai", "directive-runtime");
+    mkdirSync(join(runtimeDir, "skills"), { recursive: true });
+    writeFileSync(
+      join(runtimeDir, "package.json"),
+      JSON.stringify({ name: "@deftai/directive-runtime", version: "0.0.0" }),
+      "utf-8",
+    );
+    writeFileSync(join(runtimeDir, "skills", "keep.md"), "# runtime", "utf-8");
+
+    expect(resolveContentPackageRoot(frameworkRoot)).toBe(runtimeDir);
+    expect(contentRoot(frameworkRoot)).toBe(join(frameworkRoot, CONTENT_DIRNAME));
+  });
+
   it("hybrid npm-engine: resolves the npm package over a flattened vendored deposit", () => {
     const project = freshProject();
     const frameworkRoot = join(project, ".deft", "core");

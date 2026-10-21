@@ -70,8 +70,8 @@ function installFakeContentPackage(projectRoot: string): string {
   );
   chmodSync(join(pkgDir, ".githooks", "pre-push"), 0o755);
   writeFileSync(
-    join(pkgDir, ".githooks", "_deft-run.sh"),
-    readFileSync(join(process.cwd(), ".githooks/_deft-run.sh"), "utf8"),
+    join(pkgDir, ".githooks", "_directive-run.sh"),
+    readFileSync(join(process.cwd(), ".githooks/_directive-run.sh"), "utf8"),
     "utf8",
   );
   writeFileSync(join(pkgDir, "Taskfile.yml"), "version: '3'\n", "utf8");

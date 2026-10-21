@@ -268,7 +268,7 @@ describe("classifyChangedPath", () => {
     expect(classifyChangedPath(".githooks/pre-commit", "M", null)).toBe("inert");
     expect(classifyChangedPath(".githooks/pre-push", "A", null)).toBe("inert");
     // HOOK_SUPPORT + adapters/wrapper stay coverable under coverable-first.
-    expect(classifyChangedPath(".githooks/_deft-run.sh", "M", null)).toBe("coverable");
+    expect(classifyChangedPath(".githooks/_directive-run.sh", "M", null)).toBe("coverable");
     expect(classifyChangedPath(".cursor/hooks/deft-cursor-hook-adapter.mjs", "M", null)).toBe(
       "coverable",
     );
@@ -1401,7 +1401,7 @@ describe("evaluateCoverageApplicability #5551 Prefer-A Bound", () => {
 });
 
 describe("evaluateCoverageApplicability #5677 Prefer-A Bound Recut-1", () => {
-  it("marks CODEQL + official githooks inert N/A and keeps _deft-run.sh applicable", () => {
+  it("marks CODEQL + official githooks inert N/A and keeps _directive-run.sh applicable", () => {
     const root = gitRepo({ "README.md": "# base\n" });
     const baseSha = childProcess
       .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
@@ -1423,13 +1423,13 @@ describe("evaluateCoverageApplicability #5677 Prefer-A Bound Recut-1", () => {
       .execFileSync("git", ["rev-parse", "HEAD"], { cwd: supportRoot, encoding: "utf8" })
       .trim();
     mkdirSync(join(supportRoot, ".githooks"), { recursive: true });
-    writeFileSync(join(supportRoot, ".githooks/_deft-run.sh"), "#!/bin/sh\necho run\n");
+    writeFileSync(join(supportRoot, ".githooks/_directive-run.sh"), "#!/bin/sh\necho run\n");
     childProcess.execFileSync("git", ["add", "-A"], { cwd: supportRoot });
     childProcess.execFileSync("git", ["commit", "-q", "-m", "support-sh"], { cwd: supportRoot });
     const applicable = evaluateCoverageApplicability(bindingFor(supportRoot, supportBase));
     expect(applicable.outcome).toBe("applicable");
     if (applicable.outcome === "applicable") {
-      expect(applicable.coverablePaths).toContain(".githooks/_deft-run.sh");
+      expect(applicable.coverablePaths).toContain(".githooks/_directive-run.sh");
     }
   });
 

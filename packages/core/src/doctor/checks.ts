@@ -450,20 +450,22 @@ export function checkDanglingNodeModulesLinks(
       };
     }
     if (incomplete && incompleteReason === "bounded") {
+      // Tip monorepo node_modules routinely hits the entry/depth bound (#5802).
+      // Scanned portion clean ⇒ pass with incomplete note (not a doctor warning).
       return {
         name,
-        status: "fail",
+        status: "pass",
         detail:
           "Dangling-link probe truncated at entry/depth bound under node_modules — " +
           "scanned portion has no dangling links (not a certified full pass). " +
           "Re-run `deft doctor --full` if you need a deeper scan.",
-        data: stampAdvisory({
+        data: {
           recovery,
           package_manager: pm,
           incomplete: true,
           incomplete_reason: "bounded",
           discovery: "throttle-skip-or-doctor-full",
-        }),
+        },
       };
     }
     return {

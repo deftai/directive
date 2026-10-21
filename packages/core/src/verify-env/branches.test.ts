@@ -147,11 +147,10 @@ describe("verify-tools branches", () => {
 
 describe("verify-hooks-installed branches", () => {
   const deftPreCommit = `#!/usr/bin/env sh
-deft verify:branch --project-root "$REPO_ROOT"
-deft verify:encoding --staged --project-root "$REPO_ROOT"
+run_directive verify:encoding --staged --project-root "$REPO_ROOT"
 `;
   const deftPrePush = `#!/usr/bin/env sh
-deft preflight-gh --pre-push-stdin
+run_directive verify:branch --project-root "$REPO_ROOT"
 `;
 
   function writeDeftHooks(hooksDir: string, mode = 0o755): void {
@@ -163,7 +162,7 @@ deft preflight-gh --pre-push-stdin
       writeFileSync(hook, body, "utf8");
       chmodSync(hook, mode);
     }
-    writeFileSync(join(hooksDir, "_deft-run.sh"), 'run_deft() { deft "$@"; }\n', "utf8");
+    writeFileSync(join(hooksDir, "_directive-run.sh"), 'run_directive() { deft "$@"; }\n', "utf8");
   }
 
   it("covers missing hooks dir and hook files", () => {
@@ -200,6 +199,7 @@ deft preflight-gh --pre-push-stdin
     mkdirSync(hooks, { recursive: true });
     writeFileSync(join(hooks, "pre-commit"), "python3 scripts/preflight_branch.py\n", "utf8");
     writeFileSync(join(hooks, "pre-push"), deftPrePush, "utf8");
+    writeFileSync(join(hooks, "_directive-run.sh"), 'run_directive() { deft "$@"; }\n', "utf8");
     chmodSync(join(hooks, "pre-commit"), 0o755);
     chmodSync(join(hooks, "pre-push"), 0o755);
     const legacy = evaluate(root, {
@@ -207,7 +207,8 @@ deft preflight-gh --pre-push-stdin
     });
     expect(legacy.message).toContain("Python scripts");
 
-    writeFileSync(join(hooks, "pre-commit"), "deft verify:encoding\n", "utf8");
+    writeFileSync(join(hooks, "pre-commit"), "run_directive verify:encoding\n", "utf8");
+    writeFileSync(join(hooks, "pre-push"), "echo noop\n", "utf8");
     const partial = evaluate(root, {
       gitConfigReader: () => ({ hooksPath: ".githooks", error: null }),
     });

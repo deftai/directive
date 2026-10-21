@@ -33,6 +33,7 @@ overrides:
 # prebuilt platform binary via a postinstall step, so it must be allowed for
 # a clean `pnpm install` to exit 0 locally and in CI (#1717).
 allowBuilds:
+  '@deftai/directive-runtime': true
   esbuild: true
 
 minimumReleaseAgeExclude:

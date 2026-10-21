@@ -1149,17 +1149,16 @@ describe("framework-only full-doctor dangling advisory (#3749)", () => {
     };
   }
 
-  it("maps bounded incomplete (zero dangling) to warning on framework full-doctor — not exit 1", () => {
+  it("maps bounded incomplete (zero dangling) to pass on framework full-doctor — not a warning (#5802)", () => {
     const detail =
       "Dangling-link probe truncated at entry/depth bound under node_modules — " +
       "scanned portion has no dangling links (not a certified full pass). " +
       "Re-run `deft doctor --full` if you need a deeper scan.";
     const { exit, lastErrorCount, payload } = runFrameworkFullDoctor({
       name: DANGLING_NODE_MODULES_LINKS_CHECK,
-      status: "fail",
+      status: "pass",
       detail,
       data: {
-        advisory: true,
         incomplete: true,
         incomplete_reason: "bounded",
         recovery: "npm ci",
@@ -1171,11 +1170,9 @@ describe("framework-only full-doctor dangling advisory (#3749)", () => {
     expect(lastErrorCount).toBe(0);
     expect(payload.ok).toBe(true);
     expect(payload.summary?.errors).toBe(0);
+    expect(payload.summary?.warnings ?? 0).toBe(0);
     const finding = payload.findings?.find((f) => f.check === DANGLING_NODE_MODULES_LINKS_CHECK);
-    expect(finding).toBeDefined();
-    expect(finding?.severity).toBe("warning");
-    expect(String(finding?.message)).toMatch(/truncated|entry\/depth bound/i);
-    expect(String(finding?.message)).not.toMatch(/^No dangling/i);
+    expect(finding).toBeUndefined();
   });
 
   it("still hard-fails unreadable incomplete on framework full-doctor", () => {

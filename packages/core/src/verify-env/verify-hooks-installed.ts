@@ -11,11 +11,11 @@ export interface EvaluateResult {
 }
 
 export const REQUIRED_HOOKS = ["pre-commit", "pre-push"] as const;
-export const REQUIRED_HOOK_SUPPORT_FILES = ["_deft-run.sh"] as const;
+export const REQUIRED_HOOK_SUPPORT_FILES = ["_directive-run.sh"] as const;
 
 /** Substrings each hook must contain when it dispatches through the deft CLI (#2049). */
-export const PRE_COMMIT_DEFT_COMMANDS = ["verify:branch", "verify:encoding"] as const;
-export const PRE_PUSH_DEFT_COMMANDS = ["preflight-gh"] as const;
+export const PRE_COMMIT_DEFT_COMMANDS = ["verify:encoding"] as const;
+export const PRE_PUSH_DEFT_COMMANDS = ["verify:branch"] as const;
 
 /** Patterns that indicate legacy Python-dispatched hooks (pre-#2049). */
 const LEGACY_HOOK_PATTERNS = [
@@ -120,14 +120,10 @@ function usesLegacyPythonDispatch(content: string): boolean {
 
 function hookInvokesDeftCli(content: string, requiredCommands: readonly string[]): boolean {
   const body = executableHookBody(content);
-  if (!/\bdeft\b/.test(body)) return false;
+  // OVPR hooks dispatch via run_directive; legacy hooks called deft directly (#5802).
+  if (!/\b(deft|run_directive)\b/.test(body)) return false;
   if (usesLegacyPythonDispatch(content)) return false;
   return requiredCommands.every((cmd) => body.includes(cmd));
-}
-
-function prePushInvokesVerifyBranch(content: string): boolean {
-  const body = executableHookBody(content);
-  return /\bdeft\s+verify:branch\b/.test(body);
 }
 
 function validateHookContent(
@@ -250,9 +246,8 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
   if (prePushIssue) {
     contentIssues.push(`${prePushIssue} (#2049)`);
   }
-  if (prePushContent && prePushInvokesVerifyBranch(prePushContent)) {
-    contentIssues.push("pre-push must not invoke verify:branch (#1814)");
-  }
+  // #1814 ban on pre-push verify:branch retired with OVPR tip hooks (#5802),
+  // which require run_directive verify:branch on pre-push.
 
   if (contentIssues.length > 0) {
     return {

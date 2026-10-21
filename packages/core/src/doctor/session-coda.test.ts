@@ -299,6 +299,12 @@ describe("cmdDoctor session coda wiring (#2712)", () => {
     now: () => new Date("2026-08-12T12:00:00Z"),
     loadSessionCodas: () => SEED_CODAS,
     openclawHomeDir: () => openclawHome,
+    // Isolate from live monorepo node_modules size (#5802 tip CI).
+    checkDanglingNodeModulesLinks: () => ({
+      name: "dangling-node-modules-links",
+      status: "pass" as const,
+      detail: "No dangling junctions/symlinks under node_modules.",
+    }),
   };
 
   it("default unset: interactive success ⇒ off-hint, no star", () => {
