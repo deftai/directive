@@ -175,6 +175,11 @@ const REQUIRED_CONTRACT_POINTERS = [
   "set membership",
   "## Plain-language summary",
   "## In plain English",
+  "Thin Fail-Closed (#3265)",
+  "short mechanism list",
+  "Writing-bar (#3368) footnote-class pain-audit posture",
+  "harvest-changed: false",
+  "Remint solely to absorb footnote-class pain-audit text",
 ];
 
 const REQUIRED_TEMPLATE_POINTERS = [
@@ -200,6 +205,9 @@ const REQUIRED_TEMPLATE_POINTERS = [
   "Run posture (`arc-mode: no-ingest`",
   "Seat families (N≥3",
   "Launcher (spawn_subagent | grok | claude | codex | paste-ready)",
+  "Bound remedy thinness (Thin Fail-Closed #3265)",
+  "Writing-bar footnote PA posture (#3368)",
+  "Remint Bound remedy for mechanism change only",
 ];
 
 const METHOD_RECONCILIATION =

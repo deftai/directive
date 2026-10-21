@@ -208,6 +208,7 @@ Strengths are not one level. Token presence is not behavioral evidence. Classifi
 
 - ! Re-verify the triage's anchors by running checks. Line cites are claims, not evidence. On a process-only dest, use the recorded `verification-path:` (default pin-read `git show <dispatch-sha>:`; provisioned runnable path only when a check must execute fixtures/tests). Launch-probe is not that path.
 - ! Inventory existing mechanisms before proposing new ones.
+- ! Prefer-A Bound / Bound-remedy size obeys Thin Fail-Closed (#3265): keep `## Bound remedy` a short mechanism list. Optional complexity is leftover-pain, footnote, or an implementation note — not a second design essay.
 - ! Classify every finding with the exact three tokens: `blocks-the-design`, `sharpens-framing`, or `footnote`.
 - ! Every classified finding names evidence, a concrete failure mode, and the disposition consequence — or it is a footnote.
 
@@ -369,6 +370,8 @@ After this round's same-round siblings are posted, parent posts a successor `**L
 - ! When the next-build contract is not this body, stamp a Lean-family line-start `Spec-path:` on that successor lean. Nine spellings: zero to two asterisks counted independently on each side, the same wrapping as `Lean:`. `Spec-path:` is a lean token, not a chip. `resolveAutoStampCatalogChip` remaining-set-replaces `ingest-ready` after the completed-arc record exists. It does not parse lean English and does not map Spec-path to a chip.
 - ! Spec-path token plus a completed-arc record means harvest that closed Bound-remedy heading slice on the cited successor lean. Missing heading or empty list refuses, nothing written. No token stays the #4237 Outcome:ready body-is-normative path. ⊗ Let Spec-path mean both a later arc and a harvest path.
 - ! Bound-remedy harvest is a Lean-family heading token (`## Bound remedy`, same class as `## In plain English`) plus parseListItems on that slice of the cited successor lean only. ⊗ Bind that harvest as reuse extractPlanItems. Empty on that lean refuses. A numbered list without that heading is not enough.
+- ! `## Bound remedy` stays Thin Fail-Closed (#3265): short mechanism list only. Optional complexity is leftover-pain, footnote, or an implementation note. ⊗ Grow Bound remedy into a second design essay.
+- ! Remint a `## Bound remedy` (new Spec-path / Recut lean) when the mechanism or fail-closed association changes. ⊗ Remint solely to absorb footnote-class pain-audit text (writing bar #3368). Reuse existing leftover-pain / footnote / non-remint branches; do not invent parallel H2 names Prefer-A Bound or pain-audit harvest.
 - ! Point that harvest source at plan.items, literal capture, derived-clause taskStatement, and Overview. When Spec-path harvest is present, Overview MUST NOT contain the refused GitHub body. Omit Overview, or replace it with a framework-authored remainder (harvest sourceText). Persist the refused body under plan.metadata on a sibling of issueCommentThread. ⊗ Close with an items-only patch. ⊗ Keep the refused GitHub body in Overview as historical described content.
 - ⊗ Classify the path selector by NLP of the lean.
 
@@ -726,6 +729,8 @@ The `unshaped-table-cite` detail names the heading because the diagnostics rule 
 ### Pain coverage (#4496)
 
 Named Stop 1 warrant pains are a bind conjunct on `evaluateCompletedArcRecord`. Critic-heading all-accept is not coverage. Catalog chip `design-critique:ingest-ready` is list state, not clearance. Do not grow `resolveAutoStampCatalogChip` as this gate. Do not restore `design-critique:recut-needed`.
+
+- ! Writing-bar (#3368) footnote-class pain-audit posture: naming, docs, alias, and dispose-wording default to `footnote` with `harvest-changed: false` unless the `## Bound remedy` mechanism changes. Reuse existing footnote / non-remint / leftover-pain branches. ⊗ Invent parallel H2 names Prefer-A Bound or pain-audit harvest for that posture.
 
 #### Yolo leftover-pain (#4593)
 
