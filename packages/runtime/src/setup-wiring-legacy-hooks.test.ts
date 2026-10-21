@@ -1,6 +1,7 @@
 /**
- * Wave4e RED: Autonomicon-like `_deft-run.sh` / `run_deft` hooks must rewrite to OVPR
- * (zero conflicts, remove obsolete helper). Foreign hooks still refuse overwrite.
+ * Wave4e: Autonomicon-like `_deft-run.sh` / `run_deft` hooks must rewrite to OVPR
+ * (zero conflicts). Tip dual-ship (#5802) retains `_deft-run.sh` beside `_directive-run.sh`.
+ * Foreign hooks still refuse overwrite.
  */
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -89,7 +90,8 @@ describe("ensureGitHooks legacy _deft-run / run_deft (wave4e)", () => {
     expect(prePush).not.toContain("_deft-run.sh");
 
     expect(existsSync(join(root, ".githooks", "_directive-run.sh"))).toBe(true);
-    expect(existsSync(join(root, ".githooks", "_deft-run.sh"))).toBe(false);
+    // Tip dual-ship (#5801 / #5802): legacy helper is retained while OVPR helper exists.
+    expect(existsSync(join(root, ".githooks", "_deft-run.sh"))).toBe(true);
   });
 
   it("refuses to overwrite a foreign pre-commit (prettier-only)", () => {
