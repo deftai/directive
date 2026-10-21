@@ -324,9 +324,7 @@ function parseDisplayedCliPackageVersion(versionStdout: string): string | null {
   const semver = String.raw`(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?)`;
   const ovpr = versionStdout.match(new RegExp(`launcher\\s+${semver}`));
   if (ovpr?.[1]) return ovpr[1];
-  const legacy = versionStdout.match(
-    new RegExp(`package:\\s+@deftai\\/directive@${semver}`),
-  );
+  const legacy = versionStdout.match(new RegExp(`package:\\s+@deftai\\/directive@${semver}`));
   return legacy?.[1] ?? null;
 }
 
