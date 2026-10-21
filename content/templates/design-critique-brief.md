@@ -58,8 +58,11 @@ Read, do not restate:
 | Variant selection | Stop 2 — Variant selection |
 | Parent-facing dispatch rules | Parent-facing dispatch rules |
 | Critic method | Critic method |
+| Bound remedy thinness (Thin Fail-Closed #3265) | Critic method / Successor lean |
 | Envelope and ceiling | Envelope and ceiling |
 | Pain-audit targeting | Pain coverage / Yolo leftover-pain |
+| Writing-bar footnote PA posture (#3368) | Pain coverage (#4496) |
+| Remint Bound remedy for mechanism change only | Successor lean |
 | Seat families / Grok Build launcher | Envelope and ceiling |
 | Comment lead (model then role) | Stop 3 — Critic envelope |
 | Fresh reiteration | Stop 4 — Residual reiteration |
