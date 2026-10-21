@@ -1,0 +1,160 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5783",
+    "updated": "2026-10-21T20:42:00Z"
+  },
+  "plan": {
+    "title": "design(design-critique): carry Thin Fail-Closed / KISS into arc Bound + pain-audit harvest",
+    "status": "running",
+    "narratives": {
+      "Description": "design(design-critique): carry Thin Fail-Closed / KISS into arc Bound + pain-audit harvest",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5783",
+      "Overview": "\n\n- relieves: P1 — Contract pointers under real headings: add MUST lines in content/contracts/design-critique.md at Critic method and Successor lean (## Bound remedy thinness via Thin Fail-Closed #3265: short mechanism list; optional complexity leftover/footnote/implementation note) and at Pain coverage (#4496) for writing-bar (#3368) footnote-class posture (naming/docs/alias/dispose-wording default footnote + harvest-changed: false unless ## Bound remedy mechanism changes). Reuse existing footnote / non-remint / leftover-pain branches; do not invent parallel H2 names Prefer-A Bound or pain-audit harvest.\n- relieves: P2 — Brief Pointers-table only: add Pointers rows in content/templates/design-critique-brief.md that point at those contract headings. Do not copy classification rule bodies into the envelope; do not pre-author critic harvest-changed: false in the brief.\n- relieves: P3 — Parent Recut discipline: remint ## Bound remedy titles for mechanism or fail-closed association change; do not remint solely to absorb footnote-class PA text. Prose discipline attached to existing Successor lean / leftover-pain paths.\n- relieves: P4 — Fixture + CHANGELOG: extend existing design_critique_contract.test REQUIRED_CONTRACT_POINTERS / REQUIRED_TEMPLATE_POINTERS (or adjacent) so the new pointer strings cannot silently drop; CHANGELOG Unreleased.\n\n\n",
+      "Labels": "agent-experience, process, urgent, design-critique:ingest-ready, framework-gap, core-capabilities, promise:planning"
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "Contract MUST pointers for Thin Fail-Closed Bound thinness and writing-bar footnote PA posture under Critic method, Successor lean, and Pain coverage",
+        "status": "pending",
+        "effort": "M",
+        "x-directive/artifact_path": "content/contracts/design-critique.md"
+      },
+      {
+        "id": "2",
+        "title": "Brief Pointers-table rows that cite those contract headings without embedding classification rule bodies or harvest-changed defaults",
+        "status": "pending",
+        "effort": "S",
+        "x-directive/artifact_path": "content/templates/design-critique-brief.md"
+      },
+      {
+        "id": "3",
+        "title": "Parent Recut discipline: remint Bound remedy for mechanism change only, not footnote-class PA absorption",
+        "status": "pending",
+        "effort": "S",
+        "x-directive/artifact_path": "content/contracts/design-critique.md"
+      },
+      {
+        "id": "4",
+        "title": "Fixture locks new contract and template pointer strings; CHANGELOG Unreleased notes the carry-over",
+        "status": "pending",
+        "effort": "S",
+        "x-directive/artifact_path": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts"
+      }
+    ],
+    "tags": [
+      "agent-experience",
+      "process",
+      "urgent",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:planning"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5783",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5783: design(design-critique): carry Thin Fail-Closed / KISS into arc Bound + pain-audit harvest"
+      }
+    ],
+    "acceptance": {
+      "none_stated": true,
+      "commands": [],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Contract MUST pointers for Thin Fail-Closed Bound thinness and writing-bar footnote PA posture under Critic method, Successor lean, and Pain coverage",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Brief Pointers-table rows that cite those contract headings without embedding classification rule bodies or harvest-changed defaults",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Parent Recut discipline: remint Bound remedy for mechanism change only, not footnote-class PA absorption",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Fixture locks new contract and template pointer strings; CHANGELOG Unreleased notes the carry-over",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "criteria": [],
+      "confessions": [],
+      "ambiguity_attestation": "none_found",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "source_rung": "derived"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/contracts/design-critique.md",
+          "content/templates/design-critique-brief.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "content/contracts/design-critique.md",
+        "cohesion_exemption": "CHANGELOG shared Unreleased; design-critique contract+template+fixture are one Bound carry unit"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5933087592,
+        "origin": "deftai/directive#5783",
+        "id": "github.issue.5933087592"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "4aa7158635c8626c268b73e010fbc2e46ef350d128f8a27b4d92eb5db653772b"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "design-critique-thin-fail-closed-kiss-bound-pa-harvest",
+        "expected_outputs": [
+          "contract pointers",
+          "brief Pointers rows",
+          "fixture locks",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "node --test packages/core/src/content-contracts/standards/design_critique_contract.test.ts"
+        ],
+        "file_scope": [
+          "content/contracts/design-critique.md",
+          "content/templates/design-critique-brief.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "CHANGELOG.md"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5783",
+          "#3265",
+          "#3368",
+          "Prefer-A Bound 6280270826"
+        ],
+        "parallel_safe": true
+      }
+    },
+    "id": "github.issue.5933087592",
+    "overview": "Carry Thin Fail-Closed (#3265) and writing bar (#3368) into design-critique Prefer-A Bound size and PA harvest posture via pointer-sufficient contract lines, brief Pointers rows, Recut discipline, and fixture locks.",
+    "updated": "2026-10-21T20:42:00Z"
+  }
+}
