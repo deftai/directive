@@ -140,9 +140,9 @@ function ok(): SpawnResult {
   return { status: 0, stdout: "", stderr: "" };
 }
 
-/** Display-both --version line with engine first (#4766). */
+/** OVPR launcher --version line (#4766 / OVPR cutover). */
 function stampedVersionBanner(version: string): string {
-  return `@deftai/directive (engine: @deftai/directive-core@${version}; package: @deftai/directive@${version})\n`;
+  return `launcher ${version} · project pins (none) (no pin)\n`;
 }
 
 describe("deposit journey e2e legs (#1942 S5)", () => {

@@ -314,12 +314,20 @@ function moduleResolutionFailure(output: string): string | null {
   return null;
 }
 
-/** Displayed CLI package identity from `directive --version` stdout (#4766). */
+/**
+ * Displayed launcher version from `directive --version` stdout (#4766 / OVPR).
+ * OVPR prints `launcher <semver> · …`; legacy fat CLI printed
+ * `package: @deftai/directive@<semver>` — accept either so smoke stays green
+ * across the cutover window.
+ */
 function parseDisplayedCliPackageVersion(versionStdout: string): string | null {
-  const match = versionStdout.match(
-    /package:\s+@deftai\/directive@(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?)/,
+  const semver = String.raw`(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?)`;
+  const ovpr = versionStdout.match(new RegExp(`launcher\\s+${semver}`));
+  if (ovpr?.[1]) return ovpr[1];
+  const legacy = versionStdout.match(
+    new RegExp(`package:\\s+@deftai\\/directive@${semver}`),
   );
-  return match?.[1] ?? null;
+  return legacy?.[1] ?? null;
 }
 
 function installedCliPackageVersion(consumerDir: string): string | null {
