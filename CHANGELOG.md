@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Tracked completion record for #5783 after product PR #5811.
+
+
 ### Added
 
 ### Changed
