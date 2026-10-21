@@ -931,9 +931,12 @@ export function ensureGitHooks(projectRoot: string): {
 
   // Drop obsolete latest-legacy helper once OVPR hooks are in place (wave4e).
   // Greptile: keep helper if any other .githooks file still sources it.
+  // Tip dual-ship (#5802 / #5801): keep _deft-run.sh while _directive-run.sh also exists.
   const legacyHelperRel = ".githooks/_deft-run.sh";
   const legacyHelperAbs = join(projectRoot, legacyHelperRel);
-  if (existsSync(legacyHelperAbs)) {
+  if (existsSync(join(projectRoot, ".githooks/_directive-run.sh")) && existsSync(legacyHelperAbs)) {
+    // intentional dual-ship during cutover — do not remove legacy helper
+  } else if (existsSync(legacyHelperAbs)) {
     const legacyBody = readText(legacyHelperAbs);
     if (legacyBody !== null && isOurGitHookBody(legacyHelperRel, legacyBody)) {
       let stillReferenced = false;
