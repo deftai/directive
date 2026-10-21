@@ -33,8 +33,14 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 1851 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1857 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#5490** -- #5514 OVPR methodology — integration branch, soak, consumer-only self-host -- `[completed]`
+- **#5490** -- #5490 upgrade + legacy convert — migrate eras into OVPR L0 -- `[completed]`
+- **#5490** -- #5490 release tooling 1e + installer-refactor docs cutover -- `[completed]`
+- **#5490** -- #5490 One Version Per Repo — product delivery (installer + runtime pin) -- `[completed]`
+- **#5490** -- #5490 installer core — install, repair, doctor, uninstall happy path -- `[completed]`
+- **#5490** -- #5490 human-test automation acceptance — ht-auto + harness home -- `[completed]`
 - **#5745** -- sec(codeql): HIGH clear polynomial-redos in pr-closing-keywords/detect.ts (alert #121) -- `[completed]`
 - **#5782** -- design(verify): merge-gate adopts plan-id from PR deft-story for intent-constraint -- `[completed]`
 - **#5743** -- sec(codeql): HIGH clear polynomial-redos in docs-impact.ts (alert #114) -- `[completed]`
@@ -54,10 +60,4 @@ _Showing 25 of 1851 completed scopes (newest first). Full history: lifecycle `co
 - **#5715** -- [framework-gap] BLOCKER Grok PreToolUse wrapper command uses repo-root path; Grok resolves relative to .grok/hooks/ and doubles it -- `[completed]`
 - **#4229** -- Consumer process: deposit-only vs full lifecycle; go-task absent treated as impact=none (#3335) -- `[completed]`
 - **#5693** -- feat(strategies): rapid names a hypothesis and audience; findings recorded before experiment_archived -- `[completed]`
-- **#5692** -- feat(interview): capture ProblemStatement before the Sizing Gate as a SHOULD (Light and Full) -- `[completed]`
-- **#1178** -- feat(scm,swarm): require search of existing closed issues and PRs before filing — pre-filing duplicate check -- `[completed]`
-- **#5099** -- [framework-gap] Extend feedback filing to comment on open issues and account for closed issues -- `[completed]`
-- **#5486** -- feat(design-critique): run an arc on an xBRIEF when no GitHub issue exists (analysis first) -- `[completed]`
-- **#5694** -- feat(skills): article-review runs one critic pass before filing issues -- `[completed]`
-- **#5690** -- recurrence(#4882): Approach1 mint-gate exit leaves product PR merge-path unarmed -- `[completed]`
 

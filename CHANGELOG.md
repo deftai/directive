@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [0.127.0] - 2026-10-21
+
+> One Version Per Repo GA: thin @deftai/directive launcher + exact @deftai/directive-runtime pin replace the fat CLI and Go installer on @latest.
+
+### Added
 - Added — OVPR installer path as the supported install/upgrade/uninstall/doctor surface (`@deftai/directive` launcher + exact `@deftai/directive-runtime` pin). Public publish is the two-package set only. Refs #5490 #5514.
 
 ### Changed
@@ -7378,7 +7390,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.126.2...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.127.0...HEAD
+[0.127.0]: https://github.com/deftai/directive/compare/v0.126.2...v0.127.0
 [0.126.2]: https://github.com/deftai/directive/compare/v0.126.1...v0.126.2
 [0.126.1]: https://github.com/deftai/directive/compare/v0.126.0...v0.126.1
 [0.126.0]: https://github.com/deftai/directive/compare/v0.125.2...v0.126.0
