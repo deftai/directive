@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed — Doctor bookend forwards supported diagnosis flags to the runtime. Refs #5490.
 - Fixed — Swarm worktree PM install launches Windows `.cmd` shims and keeps development dependencies so a runtime pin in `devDependencies` materializes. Refs #5490.
 - Fixed — xbrief migrate hybrid/leftover scans skip `xbrief/archive/` so archived unknowables do not block later upgrades. Refs #5490.
+- Fixed — `release:e2e` install+run smoke accepts the OVPR `launcher <ver> · …` `--version` banner (legacy fat-CLI `package: @deftai/directive@…` still accepted). Refs #5490.
 
 ### Removed
 - Removed — Go installer (`cmd/deft-install`) and four-package publish artifacts from the supported product path; master ships OVPR two-package only. Refs #5490.
