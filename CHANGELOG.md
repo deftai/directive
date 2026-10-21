@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- Changed — Allow `@deftai/directive-runtime` build scripts via `pnpm-workspace.yaml` `allowBuilds` so CI `pnpm install` exits 0 after OVPR GA (clears ERR_PNPM_IGNORED_BUILDS). Refs #5797.
 
 ### Fixed
 
