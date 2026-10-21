@@ -124,7 +124,7 @@ describe("docs orientation current-tense (#4087 Wave 1a) — FAIL-CLOSED", () =>
     expect(arch).toMatch(/installed consumer CLI/i);
     expect(arch).toMatch(/deft-hook/);
     expect(arch).toMatch(/Git-hook/i);
-    expect(arch).toMatch(/_deft-run\.sh/);
+    expect(arch).toMatch(/_directive-run\.sh/);
     expect(arch).toMatch(/agent-host/i);
   });
 });

@@ -10,8 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- Changed — Allow `@deftai/directive-runtime` build scripts via `pnpm-workspace.yaml` `allowBuilds` (clears ERR_PNPM_IGNORED_BUILDS). Refs #5797.
 
 ### Fixed
+- Fixed — Tip CI unblock (#5802): prefer in-repo `content/` over hoisted `@deftai/directive-runtime` for pack-drift; cut deposit/tests to `_directive-run.sh` / `run_directive` to match OVPR hooks.
 
 ### Removed
 

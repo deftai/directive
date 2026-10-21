@@ -30,7 +30,7 @@ task xbrief:preflight
 task codebase:validate-structure
 ```
 
-The root `Taskfile.yml` includes focused task files under `tasks/`. TypeScript packages implement the behavior behind those targets. The task names are the stable maintainer and CI surface. Installed consumers use `deft` / `directive`. Tracked Git hooks invoke those same native CLI verbs through `.githooks/_deft-run.sh`. Agent-host integrations use `deft-hook`.
+The root `Taskfile.yml` includes focused task files under `tasks/`. TypeScript packages implement the behavior behind those targets. The task names are the stable maintainer and CI surface. Installed consumers use `deft` / `directive`. Tracked Git hooks invoke those same native CLI verbs through `.githooks/_directive-run.sh` (`run_directive`). Agent-host integrations use `deft-hook`.
 
 > **Historical (Python/run era):** `run`, `run.py`, and `run.bat` were compatibility launchers. They are not in the current tree. New deterministic work is exposed through Taskfile (repo) or `deft` / `directive` (consumer).
 

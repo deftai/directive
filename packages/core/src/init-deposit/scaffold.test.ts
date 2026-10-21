@@ -105,8 +105,8 @@ describe("init-deposit scaffold", () => {
     );
     chmodSync(join(deftDir, ".githooks", "pre-push"), 0o755);
     writeFileSync(
-      join(deftDir, ".githooks", "_deft-run.sh"),
-      readFileSync(join(process.cwd(), ".githooks/_deft-run.sh"), "utf8"),
+      join(deftDir, ".githooks", "_directive-run.sh"),
+      readFileSync(join(process.cwd(), ".githooks/_directive-run.sh"), "utf8"),
       "utf8",
     );
   }
@@ -181,10 +181,10 @@ describe("init-deposit scaffold", () => {
       }),
     ).toBe(true);
     expect(readFileSync(join(project, ".githooks", "pre-commit"), "utf8")).toContain(
-      "deft verify:branch",
+      "run_directive verify:encoding",
     );
-    expect(readFileSync(join(project, ".githooks", "_deft-run.sh"), "utf8")).toContain(
-      "run_deft()",
+    expect(readFileSync(join(project, ".githooks", "_directive-run.sh"), "utf8")).toContain(
+      "run_directive()",
     );
   });
 

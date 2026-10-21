@@ -86,7 +86,7 @@ describe("directive update record-mode payload-root (#4446)", () => {
       "utf8",
     );
     writeFileSync(join(pkgDir, "templates", "agents-entry.md"), templateText, "utf8");
-    for (const name of ["pre-commit", "pre-push", "_deft-run.sh"] as const) {
+    for (const name of ["pre-commit", "pre-push", "_directive-run.sh"] as const) {
       copyFileSync(join(process.cwd(), ".githooks", name), join(pkgDir, ".githooks", name));
     }
     writeFileSync(join(pkgDir, "main.md"), "# Deft\n", "utf8");

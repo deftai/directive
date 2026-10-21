@@ -23,13 +23,11 @@ afterEach(() => {
 });
 
 const DEFT_PRE_COMMIT = `#!/usr/bin/env sh
-deft verify:branch --project-root "$REPO_ROOT"
-deft verify:encoding --staged --project-root "$REPO_ROOT"
-deft verify:vbrief-conformance --staged --project-root "$REPO_ROOT"
+run_directive verify:encoding --staged --project-root "$REPO_ROOT"
 `;
 
 const DEFT_PRE_PUSH = `#!/usr/bin/env sh
-deft preflight-gh --pre-push-stdin
+run_directive verify:branch --project-root "$REPO_ROOT"
 `;
 
 const LEGACY_PYTHON_PRE_COMMIT = `#!/usr/bin/env sh
@@ -49,7 +47,7 @@ function makeDeftHooks(root: string, rel = ".githooks"): string {
   const prePush = join(hooks, "pre-push");
   writeFileSync(preCommit, DEFT_PRE_COMMIT, "utf8");
   writeFileSync(prePush, DEFT_PRE_PUSH, "utf8");
-  writeFileSync(join(hooks, "_deft-run.sh"), 'run_deft() { deft "$@"; }\n', "utf8");
+  writeFileSync(join(hooks, "_directive-run.sh"), 'run_directive() { deft "$@"; }\n', "utf8");
   chmodSync(preCommit, 0o755);
   chmodSync(prePush, 0o755);
   return hooks;
@@ -112,8 +110,25 @@ describe("evaluate", () => {
     const root = makeRepo();
     const hooks = join(root, ".githooks");
     mkdirSync(hooks, { recursive: true });
-    writeFileSync(join(hooks, "pre-commit"), "deft verify:encoding --staged\n", "utf8");
+    writeFileSync(join(hooks, "pre-commit"), "echo noop\n", "utf8");
     writeFileSync(join(hooks, "pre-push"), DEFT_PRE_PUSH, "utf8");
+    writeFileSync(join(hooks, "_directive-run.sh"), 'run_directive() { :; }\n', "utf8");
+    chmodSync(join(hooks, "pre-commit"), 0o755);
+    chmodSync(join(hooks, "pre-push"), 0o755);
+    const result = evaluate(root, {
+      gitConfigReader: () => ({ hooksPath: ".githooks", error: null }),
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("verify:encoding");
+  });
+
+  it("fails when pre-push omits verify:branch", () => {
+    const root = makeRepo();
+    const hooks = join(root, ".githooks");
+    mkdirSync(hooks, { recursive: true });
+    writeFileSync(join(hooks, "pre-commit"), DEFT_PRE_COMMIT, "utf8");
+    writeFileSync(join(hooks, "pre-push"), "echo noop\n", "utf8");
+    writeFileSync(join(hooks, "_directive-run.sh"), 'run_directive() { :; }\n', "utf8");
     chmodSync(join(hooks, "pre-commit"), 0o755);
     chmodSync(join(hooks, "pre-push"), 0o755);
     const result = evaluate(root, {
@@ -121,21 +136,6 @@ describe("evaluate", () => {
     });
     expect(result.code).toBe(1);
     expect(result.message).toContain("verify:branch");
-  });
-
-  it("fails when pre-push omits preflight-gh", () => {
-    const root = makeRepo();
-    const hooks = join(root, ".githooks");
-    mkdirSync(hooks, { recursive: true });
-    writeFileSync(join(hooks, "pre-commit"), DEFT_PRE_COMMIT, "utf8");
-    writeFileSync(join(hooks, "pre-push"), "deft verify:encoding\n", "utf8");
-    chmodSync(join(hooks, "pre-commit"), 0o755);
-    chmodSync(join(hooks, "pre-push"), 0o755);
-    const result = evaluate(root, {
-      gitConfigReader: () => ({ hooksPath: ".githooks", error: null }),
-    });
-    expect(result.code).toBe(1);
-    expect(result.message).toContain("preflight-gh");
   });
 
   it("fails when hooks wired but directory missing", () => {
@@ -153,7 +153,7 @@ describe("evaluate", () => {
     mkdirSync(hooks, { recursive: true });
     writeFileSync(join(hooks, "pre-commit"), DEFT_PRE_COMMIT, "utf8");
     writeFileSync(join(hooks, "pre-push"), DEFT_PRE_PUSH, "utf8");
-    writeFileSync(join(hooks, "_deft-run.sh"), 'run_deft() { deft "$@"; }\n', "utf8");
+    writeFileSync(join(hooks, "_directive-run.sh"), 'run_directive() { deft "$@"; }\n', "utf8");
     chmodSync(join(hooks, "pre-commit"), 0o644);
     chmodSync(join(hooks, "pre-push"), 0o644);
     const result = evaluate(root, {
@@ -171,13 +171,14 @@ describe("evaluate", () => {
     mkdirSync(hooks, { recursive: true });
     writeFileSync(join(hooks, "pre-commit"), "echo noop\n", "utf8");
     writeFileSync(join(hooks, "pre-push"), DEFT_PRE_PUSH, "utf8");
+    writeFileSync(join(hooks, "_directive-run.sh"), 'run_directive() { :; }\n', "utf8");
     chmodSync(join(hooks, "pre-commit"), 0o755);
     chmodSync(join(hooks, "pre-push"), 0o755);
     const result = evaluate(root, {
       gitConfigReader: () => ({ hooksPath: ".githooks", error: null }),
     });
     expect(result.code).toBe(1);
-    expect(result.message).toContain("verify:branch");
+    expect(result.message).toContain("verify:encoding");
   });
 
   it("fails when hook references legacy SCRIPTS_DIR dispatch", () => {
@@ -241,23 +242,13 @@ describe("evaluate", () => {
     expect(result.message).toContain("Python scripts");
   });
 
-  it("fails when pre-push invokes verify:branch (#1814)", () => {
+  it("allows pre-push verify:branch under OVPR tip hooks (#5802 / retires #1814 ban)", () => {
     const root = makeRepo();
-    const hooks = join(root, ".githooks");
-    mkdirSync(hooks, { recursive: true });
-    writeFileSync(join(hooks, "pre-commit"), DEFT_PRE_COMMIT, "utf8");
-    writeFileSync(
-      join(hooks, "pre-push"),
-      "deft verify:branch --project-root x\ndeft preflight-gh --pre-push-stdin\n",
-      "utf8",
-    );
-    chmodSync(join(hooks, "pre-commit"), 0o755);
-    chmodSync(join(hooks, "pre-push"), 0o755);
+    makeDeftHooks(root);
     const result = evaluate(root, {
       gitConfigReader: () => ({ hooksPath: ".githooks", error: null }),
     });
-    expect(result.code).toBe(1);
-    expect(result.message).toContain("pre-push must not invoke verify:branch");
+    expect(result.code).toBe(0);
   });
 
   it("fails when the shared hook helper is missing", () => {
@@ -274,7 +265,7 @@ describe("evaluate", () => {
       hookExecutable: () => true,
     });
     expect(result.code).toBe(1);
-    expect(result.message).toContain("_deft-run.sh");
+    expect(result.message).toContain("_directive-run.sh");
   });
 
   it("reports a missing shared hook helper before stale hook content", () => {
@@ -289,7 +280,7 @@ describe("evaluate", () => {
       hookExecutable: () => true,
     });
     expect(result.code).toBe(1);
-    expect(result.message).toContain("_deft-run.sh");
+    expect(result.message).toContain("_directive-run.sh");
     expect(result.message).toContain("Python scripts");
   });
 
@@ -324,8 +315,8 @@ describe("evaluate", () => {
       "utf8",
     );
     writeFileSync(
-      join(hooks, "_deft-run.sh"),
-      readFileSync(join(REPO_ROOT, ".githooks/_deft-run.sh"), "utf8"),
+      join(hooks, "_directive-run.sh"),
+      readFileSync(join(REPO_ROOT, ".githooks/_directive-run.sh"), "utf8"),
       "utf8",
     );
     chmodSync(join(hooks, "pre-commit"), 0o755);

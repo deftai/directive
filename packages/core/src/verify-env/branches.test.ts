@@ -163,7 +163,7 @@ deft preflight-gh --pre-push-stdin
       writeFileSync(hook, body, "utf8");
       chmodSync(hook, mode);
     }
-    writeFileSync(join(hooksDir, "_deft-run.sh"), 'run_deft() { deft "$@"; }\n', "utf8");
+    writeFileSync(join(hooksDir, "_directive-run.sh"), 'run_directive() { deft "$@"; }\n', "utf8");
   }
 
   it("covers missing hooks dir and hook files", () => {

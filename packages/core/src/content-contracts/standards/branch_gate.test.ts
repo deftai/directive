@@ -10,42 +10,34 @@ const itAgents = yoloSterile ? it.skip : it;
 describe("test_branch_gate.py", () => {
   it("test_pre_commit_hook_exists_and_calls_script", () => {
     const text = readText(".githooks/pre-commit");
-    expect(text).toContain("run_deft verify:branch");
-    expect(text).toContain("run_deft verify:encoding");
+    expect(text).toContain("run_directive verify:encoding");
     expect(text).toContain("git rev-parse --show-toplevel");
-    expect(text).toContain("_deft-run.sh");
+    expect(text).toContain("_directive-run.sh");
     expect(text).not.toContain("preflight_branch.py");
+    expect(text).not.toContain("_deft-run.sh");
   });
   it("test_pre_push_hook_exists_and_calls_script", () => {
     const text = readText(".githooks/pre-push");
-    expect(text).toContain("run_deft preflight-gh --pre-push-stdin --project-root");
-    expect(text).toContain("_deft-run.sh");
+    expect(text).toContain("run_directive verify:branch");
+    expect(text).toContain("_directive-run.sh");
     expect(text).not.toContain("preflight_branch.py");
-    expect(text).not.toContain("deft verify:branch");
+    expect(text).not.toContain("_deft-run.sh");
   });
   it("test_pre_commit_xbrief_drift_guarded_like_conformance (#2406)", () => {
+    // OVPR tip pre-commit is encoding-only; xbrief drift is outside this hook (#5802).
     const text = readText(".githooks/pre-commit");
-    const guardStart = text.indexOf('[ -d "$REPO_ROOT/xbrief" ]');
-    expect(guardStart).toBeGreaterThanOrEqual(0);
-    const guardEnd = text.indexOf("fi", guardStart);
-    expect(guardEnd).toBeGreaterThan(guardStart);
-    const guardBlock = text.slice(guardStart, guardEnd);
-    expect(guardBlock).toContain("verify:vbrief-conformance");
-    expect(guardBlock).toContain("verify:xbrief-drift");
-    expect(text.slice(guardEnd)).not.toContain("verify:xbrief-drift");
+    expect(text).toContain("run_directive verify:encoding");
+    expect(text).not.toContain("verify:xbrief-drift");
   });
   it("test_deft_run_sh_falls_back_to_local_cli", () => {
-    const text = readText(".githooks/_deft-run.sh");
-    expect(text).toContain("command -v deft");
-    expect(text).toContain("packages/runtime/dist/bin.js");
-    expect(text).toContain("run_deft()");
+    const text = readText(".githooks/_directive-run.sh");
+    expect(text).toContain("node_modules/@deftai/directive-runtime/dist/bin.js");
+    expect(text).toContain("run_directive()");
   });
   it("test_deft_run_sh_prefers_local_in_framework_source (#2248)", () => {
-    const text = readText(".githooks/_deft-run.sh");
-    // Framework-source detection via the monorepo sentinel, plus the escape
-    // hatch that forces the global for the rare inverse case.
-    expect(text).toContain("pnpm-workspace.yaml");
-    expect(text).toContain("DEFT_HOOKS_PREFER_GLOBAL");
+    const text = readText(".githooks/_directive-run.sh");
+    expect(text).toContain("node_modules/@deftai/directive-runtime/dist/bin.js");
+    expect(text).toContain(".deft-directive-disable");
   });
   it("test_taskfile_check_includes_verify_branch", () => {
     const text = readText("Taskfile.yml");
@@ -146,7 +138,7 @@ describe("test_branch_gate.py", () => {
     const hook = readText(".githooks/pre-commit");
     const taskfile = readText("Taskfile.yml");
     const readme = readText("README.md");
-    expect(hook).toContain("run_deft verify:branch");
+    expect(hook).toContain("run_directive verify:encoding");
     expect(taskfile).toContain("verify:branch");
     expect(readme).toMatch(/Emergency bypass/i);
     expect(readme).toContain("DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1");

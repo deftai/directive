@@ -272,9 +272,9 @@ describe("runRefreshDeposit", () => {
       join(pkgDir, "templates/agents-entry.md"),
     );
     // Real @deftai/directive-content ships .githooks/ (see packages/content prepack).
-    for (const name of ["pre-commit", "pre-push", "_deft-run.sh"] as const) {
+    for (const name of ["pre-commit", "pre-push", "_directive-run.sh"] as const) {
       copyFileSync(join(process.cwd(), ".githooks", name), join(pkgDir, ".githooks", name));
-      if (name !== "_deft-run.sh") {
+      if (name !== "_directive-run.sh") {
         chmodSync(join(pkgDir, ".githooks", name), 0o755);
       }
     }
@@ -444,9 +444,9 @@ describe("runRefreshDeposit", () => {
       "current\n",
       "utf8",
     );
-    for (const name of ["pre-commit", "pre-push", "_deft-run.sh"] as const) {
+    for (const name of ["pre-commit", "pre-push", "_directive-run.sh"] as const) {
       copyFileSync(join(process.cwd(), ".githooks", name), join(engineRoot, ".githooks", name));
-      if (name !== "_deft-run.sh") {
+      if (name !== "_directive-run.sh") {
         chmodSync(join(engineRoot, ".githooks", name), 0o755);
       }
     }
@@ -554,9 +554,9 @@ describe("runRefreshDeposit", () => {
 
   function seedDepositGithooks(deftDir: string): void {
     mkdirSync(join(deftDir, ".githooks"), { recursive: true });
-    for (const name of ["pre-commit", "pre-push", "_deft-run.sh"] as const) {
+    for (const name of ["pre-commit", "pre-push", "_directive-run.sh"] as const) {
       copyFileSync(join(process.cwd(), ".githooks", name), join(deftDir, ".githooks", name));
-      if (name !== "_deft-run.sh") {
+      if (name !== "_directive-run.sh") {
         chmodSync(join(deftDir, ".githooks", name), 0o755);
       }
     }
@@ -597,7 +597,7 @@ describe("runRefreshDeposit", () => {
     expect(copyContent).not.toHaveBeenCalled();
     expect(existsSync(join(project, ".githooks", "pre-commit"))).toBe(true);
     expect(existsSync(join(project, ".githooks", "pre-push"))).toBe(true);
-    expect(existsSync(join(project, ".githooks", "_deft-run.sh"))).toBe(true);
+    expect(existsSync(join(project, ".githooks", "_directive-run.sh"))).toBe(true);
 
     const hooksCheck = evaluateHooksInstalled(project, {
       gitConfigReader: () => ({ hooksPath: ".githooks", error: null }),
@@ -1650,9 +1650,9 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
       join(process.cwd(), "content/templates/agents-entry.md"),
       join(pkgDir, "templates/agents-entry.md"),
     );
-    for (const name of ["pre-commit", "pre-push", "_deft-run.sh"] as const) {
+    for (const name of ["pre-commit", "pre-push", "_directive-run.sh"] as const) {
       copyFileSync(join(process.cwd(), ".githooks", name), join(pkgDir, ".githooks", name));
-      if (name !== "_deft-run.sh") {
+      if (name !== "_directive-run.sh") {
         chmodSync(join(pkgDir, ".githooks", name), 0o755);
       }
     }
