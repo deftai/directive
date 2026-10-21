@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed — Maintainer xBRIEF corpus hygiene after OVPR equal-version upgrade: rewrite residual 0.6 envelopes to xBRIEFInfo 0.8, strip leftover hybrid vBRIEFInfo keys on completed briefs, and reword Taskfile doctor/upgrade comments so they no longer embed `.deft/core/` (doctor wiring false positive on this repo). Refs #5795 #5796.
 
 ### Fixed
+- Lifecycle closeout for #5783 after Tracking-only product PR #5811 (forge closer for scope:complete).
 - Fixed — Tip CI unblock (#5802): prefer in-repo `content/` over hoisted `@deftai/directive-runtime` for pack-drift; cut deposit/tests to `_directive-run.sh` / `run_directive` to match OVPR hooks.
 
 ### Removed

@@ -17,30 +17,54 @@
       {
         "id": "1",
         "title": "Contract MUST pointers for Thin Fail-Closed Bound thinness and writing-bar footnote PA posture under Critic method, Successor lean, and Pain coverage",
-        "status": "pending",
+        "status": "completed",
         "effort": "M",
-        "x-directive/artifact_path": "content/contracts/design-critique.md"
+        "x-directive/artifact_path": "content/contracts/design-critique.md",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-10-21T23:35:31.494Z",
+          "recorded_by": "parent-retained-closer/5815"
+        }
       },
       {
         "id": "2",
         "title": "Brief Pointers-table rows that cite those contract headings without embedding classification rule bodies or harvest-changed defaults",
-        "status": "pending",
+        "status": "completed",
         "effort": "S",
-        "x-directive/artifact_path": "content/templates/design-critique-brief.md"
+        "x-directive/artifact_path": "content/templates/design-critique-brief.md",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/templates/design-critique-brief.md",
+          "recorded_at": "2026-10-21T23:35:31.494Z",
+          "recorded_by": "parent-retained-closer/5815"
+        }
       },
       {
         "id": "3",
         "title": "Parent Recut discipline: remint Bound remedy for mechanism change only, not footnote-class PA absorption",
-        "status": "pending",
+        "status": "completed",
         "effort": "S",
-        "x-directive/artifact_path": "content/contracts/design-critique.md"
+        "x-directive/artifact_path": "content/contracts/design-critique.md",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/contracts/design-critique.md",
+          "recorded_at": "2026-10-21T23:35:31.494Z",
+          "recorded_by": "parent-retained-closer/5815"
+        }
       },
       {
         "id": "4",
         "title": "Fixture locks new contract and template pointer strings; CHANGELOG Unreleased notes the carry-over",
-        "status": "pending",
+        "status": "completed",
         "effort": "S",
-        "x-directive/artifact_path": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts"
+        "x-directive/artifact_path": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-10-21T23:35:31.494Z",
+          "recorded_by": "parent-retained-closer/5815"
+        }
       }
     ],
     "tags": [
