@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- Changed - Activate running xBRIEF for #5814 (pre-PR lint_iteration mode-aware Vitest hardcode leftover) so merge-base file_scope admits product spawn. Refs Prefer-A Bound 6329108664.
 - Changed - Prepare coverageMode so framework-only Directive pin upgrades can pass pre-PR without inventing Istanbul coverage. Refs #5791 Prefer-A Bound 6327849654.
 - Changed — Carry Thin Fail-Closed (#3265) Bound-remedy thinness and writing-bar (#3368) footnote-class pain-audit posture into design-critique contract pointers, brief Pointers rows, and fixture locks. Refs #5783 Prefer-A Bound 6280270826 #3265 #3368 #5806.
 - Changed - Activate running xBRIEF for #5783 (Thin Fail-Closed / writing-bar carry into design-critique Bound + PA harvest) so merge-base file_scope admits product spawn. Refs Prefer-A Bound 6280270826.

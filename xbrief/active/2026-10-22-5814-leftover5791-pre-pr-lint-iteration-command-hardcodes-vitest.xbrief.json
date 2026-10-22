@@ -1,0 +1,190 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5814",
+    "updated": "2026-10-22T04:37:10Z"
+  },
+  "plan": {
+    "title": "leftover(#5791): pre-PR lint_iteration command hardcodes vitest coverage",
+    "status": "running",
+    "narratives": {
+      "Description": "leftover(#5791): pre-PR lint_iteration command hardcodes vitest coverage",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5814",
+      "Overview": "\n\n- relieves: P1 — Recut1 exit-5 + distinct lint_iteration mode-skip token under coverageMode initial|disabled (never exit 0; never bare any-nonzero)\n- relieves: P2 — Recut1 shared coverageMode via readPlanPolicy plus report-present guard; commandSatisfied re-reads mode and refuses skip when coverage/coverage-final.json exists\n- relieves: P1 — Recut1 mode skip discharges Vitest-shaped lint_iteration observation only; static verify:* prose + merge_chokepoint phase remain\n- relieves: P3 — Recut1 same mode skip covers non-Vitest under initial|disabled; adapters remain #5813\n- relieves: P1 — Recut1 specialized observe/commandSatisfied arms (not ALLOWED_SKIP_REASONS map alone); runtime+skill/pack admit exact pair; retire deferred-skip sentence\n\n\n",
+      "Labels": "adoption-blocker, agent-experience, status:child, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "title": "relieves: P1 — Recut1 lint_iteration exit-5 + distinct mode-skip token under coverageMode initial|disabled (never exit 0; never bare any-nonzero)",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "relieves: P2 — Recut1 shared coverageMode via readPlanPolicy plus report-present guard; commandSatisfied re-reads mode and refuses skip when coverage report present",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "relieves: P1 — Recut1 mode skip discharges Vitest-shaped lint_iteration observation only; static verify prose + merge_chokepoint phase remain",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "relieves: P3 — Recut1 same mode skip covers non-Vitest under initial|disabled; adapters remain issue 5813",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "relieves: P1 — Recut1 specialized observe/commandSatisfied arms (not ALLOWED_SKIP_REASONS map alone); runtime+skill/pack admit exact pair; retire deferred-skip sentence",
+        "status": "proposed",
+        "id": "clause.5"
+      }
+    ],
+    "tags": [
+      "adoption-blocker",
+      "agent-experience",
+      "status:child",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5814",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5814: leftover(#5791): pre-PR lint_iteration command hardcodes vitest coverage"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "leftover(#5791): pre-PR lint_iteration command hardcodes vitest coverage",
+        "relieves: P1 — Recut1 lint_iteration exit-5 + distinct mode-skip token under coverageMode initial|disabled (never exit 0; never bare any-nonzero)",
+        "relieves: P2 — Recut1 shared coverageMode via readPlanPolicy plus report-present guard; commandSatisfied re-reads mode and refuses skip when coverage report present",
+        "relieves: P1 — Recut1 mode skip discharges Vitest-shaped lint_iteration observation only; static verify prose + merge_chokepoint phase remain",
+        "relieves: P3 — Recut1 same mode skip covers non-Vitest under initial|disabled; adapters remain issue 5813",
+        "relieves: P1 — Recut1 specialized observe/commandSatisfied arms (not ALLOWED_SKIP_REASONS map alone); runtime+skill/pack admit exact pair; retire deferred-skip sentence"
+      ],
+      "admitted_source_sentences": [
+        "relieves: P1 — Recut1 lint_iteration exit-5 + distinct mode-skip token under coverageMode initial|disabled (never exit 0; never bare any-nonzero)",
+        "relieves: P2 — Recut1 shared coverageMode via readPlanPolicy plus report-present guard; commandSatisfied re-reads mode and refuses skip when coverage report present",
+        "relieves: P1 — Recut1 mode skip discharges Vitest-shaped lint_iteration observation only; static verify prose + merge_chokepoint phase remain",
+        "relieves: P3 — Recut1 same mode skip covers non-Vitest under initial|disabled; adapters remain issue 5813",
+        "relieves: P1 — Recut1 specialized observe/commandSatisfied arms (not ALLOWED_SKIP_REASONS map alone); runtime+skill/pack admit exact pair; retire deferred-skip sentence"
+      ],
+      "admitted_source_digest": "becc8939c7d0ece9c136863cfcfe86a0e4c5d9ba626a9243dff901990e6d75e7",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "relieves: P1 — Recut1 lint_iteration exit-5 + distinct mode-skip token under coverageMode initial|disabled (never exit 0; never bare any-nonzero)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "relieves: P2 — Recut1 shared coverageMode via readPlanPolicy plus report-present guard; commandSatisfied re-reads mode and refuses skip when coverage report present",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "relieves: P1 — Recut1 mode skip discharges Vitest-shaped lint_iteration observation only; static verify prose + merge_chokepoint phase remain",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "relieves: P3 — Recut1 same mode skip covers non-Vitest under initial|disabled; adapters remain issue 5813",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "relieves: P1 — Recut1 specialized observe/commandSatisfied arms (not ALLOWED_SKIP_REASONS map alone); runtime+skill/pack admit exact pair; retire deferred-skip sentence",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/pre-pr-controller/phases.ts",
+          "packages/core/src/pre-pr-controller/controller.ts",
+          "packages/core/src/pre-pr-controller/controller.test.ts",
+          "packages/runtime/src/pre-pr-run.ts",
+          "packages/runtime/src/pre-pr-run.test.ts",
+          "content/skills/deft-directive-pre-pr/SKILL.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/pre-pr-controller/controller.ts",
+        "cohesion_exemption": "CHANGELOG + skill pack; lint_iteration mode-skip shares #5791 coverageMode"
+      },
+      "issueBody": "## Summary\n\nleftover(#5791): pre-PR lint_iteration command hardcodes vitest coverage\n\n## Problem\n\nEven after #5791 `coverageMode` lets `coverage_headroom` / `coverage:hotspots` take authorized mode-based N/A, the prescribed pre-PR phase `lint_iteration` is pinned to `vitest run --coverage <changed-paths>` (`packages/core/src/pre-pr-controller/phases.ts`).\n\nNo-suite and non-Vitest consumers (including xUnit) still cannot complete the full prescribed pre-PR controller pass: hotspots may N/A while lint_iteration remains a Vitest-shaped required observation.\n\nCalled out in Round-1 Codex on #5791 (comment 6327448171): a hotspots-only unit test cannot establish end-to-end relief for the OVPR pin/lock fixture.\n\n## What to build\n\n- Mode- or toolchain-aware disposition for `lint_iteration` when coverage enforcement is not `full` / when no Vitest suite exists — authorized skip with closed reason, or provider-shaped command observation.\n- Align with #5791 `coverageMode` and any future coverage provider leftover; do not invent a second unrelated posture enum if one shared resolver suffices.\n\n## Acceptance\n\n- [ ] Framework-only / no-suite pin upgrade can complete full `deft pre-pr:run` under `coverageMode: initial|disabled` without inventing a Vitest suite.\n- [ ] `full` + Vitest path unchanged.\n- [ ] Skip/admission stays Prefer-A honest (non-zero + closed reason; controller re-derive/re-read).\n\n## Keep-outs\n\n- Do not absorb non-Istanbul measurement adapters here (sibling leftover).\n- Do not remove lint_iteration as a required phase without a Bound.\n\n## Refs\n\nParent: deftai/directive#5791 Prefer-A Bound 6327510671. Round-1 Codex 6327448171.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5969572712,
+        "origin": "deftai/directive#5814",
+        "id": "github.issue.5969572712"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "0d6cf6a756aa9864d305719daedcc753bc337ec9dbf35fc5ef14c5c7ca1ec787"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "pre-pr-lint-iteration-mode-aware-vitest-hardcode",
+        "expected_outputs": [
+          "lint_iteration exit5 mode-skip token",
+          "shared coverageMode + report-present guard",
+          "observe/commandSatisfied specialized arms",
+          "runtime+skill/pack exact pair admit",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [
+          "github.issue.5947668764"
+        ],
+        "model_tier": "standard",
+        "verify_commands": [
+          "npx vitest run packages/core/src/pre-pr-controller/controller.test.ts packages/runtime/src/pre-pr-run.test.ts"
+        ],
+        "file_scope": [
+          "packages/core/src/pre-pr-controller/phases.ts",
+          "packages/core/src/pre-pr-controller/controller.ts",
+          "packages/core/src/pre-pr-controller/controller.test.ts",
+          "packages/runtime/src/pre-pr-run.ts",
+          "packages/runtime/src/pre-pr-run.test.ts",
+          "content/skills/deft-directive-pre-pr/SKILL.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "CHANGELOG.md"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5814",
+          "Prefer-A Bound 6329108664",
+          "#5791",
+          "#5813",
+          "#5804"
+        ],
+        "parallel_safe": false
+      }
+    },
+    "id": "github.issue.5969572712",
+    "updated": "2026-10-22T04:37:10Z"
+  }
+}
