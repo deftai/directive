@@ -14,9 +14,11 @@ import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
 import { resolveAllowDestructiveGhVerbs } from "../policy/destructive-gh-verbs.js";
 import { readPlanPolicy } from "../policy/plan-extensions.js";
 import { policyColonInvocation } from "../policy/policy-invocation.js";
-import { computeControllerObservedHash } from "../pre-pr-controller/controller.js";
 import { getDefaultPrePrStore } from "../pre-pr-controller/store.js";
-import { PRE_PR_PUSH_STAGE_MARKER } from "../pre-pr-controller/types.js";
+import {
+  PRE_PR_PUSH_STAGE_MARKER,
+  sha256Hex,
+} from "../pre-pr-controller/types.js";
 import { DEFAULT_BRANCHES, ENV_BYPASS } from "./classifier.js";
 
 export interface PrePushRef {
@@ -29,9 +31,17 @@ export interface PrePushRef {
 const ZERO_OID_RE = /^0+$/;
 const TRUTHY = new Set(["1", "true", "yes", "on"]);
 
-/** Docs/inert path prefixes for enrolled push skip (#5804 P2). */
-const DOCS_ONLY_RE =
-  /^(docs\/|content\/docs\/|.*\.(md|mdx|txt|rst)$|CHANGELOG\.md$|LICENSE(\..+)?$)/i;
+/** Inert path extensions / known inert filenames for enrolled docs-only skip. */
+const INERT_EXT_RE = /\.(md|mdx|txt|rst)$/i;
+const INERT_NAME_RE = /^(CHANGELOG\.md|LICENSE(\..+)?)$/i;
+
+type GitPathsResult =
+  | { readonly ok: true; readonly paths: readonly string[] }
+  | { readonly ok: false; readonly error: string };
+
+type GitRevResult =
+  | { readonly ok: true; readonly sha: string }
+  | { readonly ok: false; readonly error: string };
 
 export function parsePrePushStdin(text: string): PrePushRef[] {
   return text
@@ -146,38 +156,99 @@ export function resolveRequireBoundPrePrPush(
   }
 }
 
-function gitLines(projectRoot: string, args: readonly string[]): string[] {
+function parseGitZPaths(out: string): string[] {
+  return out.split("\0").filter((p) => p.length > 0);
+}
+
+function gitNameOnlyZ(projectRoot: string, args: readonly string[]): GitPathsResult {
   try {
     const out = execFileSync("git", [...args], {
       cwd: projectRoot,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
     });
-    return out
-      .split("\n")
-      .map((l) => l.trim())
-      .filter((l) => l.length > 0);
-  } catch {
-    return [];
+    return { ok: true, paths: parseGitZPaths(out) };
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: detail };
   }
 }
 
-/** Outgoing in-scope changed paths for one update (path containment set). */
+function gitRevParse(projectRoot: string, args: readonly string[]): GitRevResult {
+  try {
+    const out = execFileSync("git", [...args], {
+      cwd: projectRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    const sha = out.trim();
+    if (sha.length === 0) return { ok: false, error: "empty rev-parse" };
+    return { ok: true, sha };
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: detail };
+  }
+}
+
+/**
+ * Outgoing in-scope changed paths for one update (path containment set).
+ * New-branch (zero remote OID) diffs against merge-base with delivery tip.
+ * Git failures are distinct from a successful empty path list.
+ */
 export function outgoingChangedPaths(
   projectRoot: string,
   remoteOid: string,
   localOid: string,
-): string[] {
-  if (ZERO_OID_RE.test(localOid)) return [];
-  if (ZERO_OID_RE.test(remoteOid)) {
-    return gitLines(projectRoot, ["diff-tree", "--no-commit-id", "--name-only", "-r", localOid]);
+): GitPathsResult {
+  if (ZERO_OID_RE.test(localOid)) return { ok: true, paths: [] };
+  if (!ZERO_OID_RE.test(remoteOid)) {
+    return gitNameOnlyZ(projectRoot, [
+      "diff",
+      "-z",
+      "--name-only",
+      `${remoteOid}..${localOid}`,
+    ]);
   }
-  return gitLines(projectRoot, ["diff", "--name-only", `${remoteOid}..${localOid}`]);
+
+  const delivery = resolveDeliveryBranch(projectRoot);
+  const candidates: string[] = [];
+  if (delivery.error === null && delivery.branch.trim().length > 0) {
+    candidates.push(`refs/remotes/origin/${delivery.branch}`, delivery.branch);
+  }
+  candidates.push(
+    "refs/remotes/origin/master",
+    "refs/remotes/origin/main",
+    "master",
+    "main",
+  );
+
+  for (const tip of candidates) {
+    const mb = gitRevParse(projectRoot, ["merge-base", localOid, tip]);
+    if (!mb.ok) continue;
+    return gitNameOnlyZ(projectRoot, [
+      "diff",
+      "-z",
+      "--name-only",
+      `${mb.sha}..${localOid}`,
+    ]);
+  }
+
+  return {
+    ok: false,
+    error: `cannot resolve merge-base for new-branch push ${localOid.slice(0, 12)}`,
+  };
+}
+
+export function isDocsOnlyPath(path: string): boolean {
+  const n = path.replaceAll("\\", "/");
+  if (INERT_NAME_RE.test(n)) return true;
+  if (INERT_EXT_RE.test(n)) return true;
+  return false;
 }
 
 export function isDocsOnlyOutgoing(paths: readonly string[]): boolean {
   if (paths.length === 0) return true;
-  return paths.every((p) => DOCS_ONLY_RE.test(p.replaceAll("\\", "/")));
+  return paths.every((p) => isDocsOnlyPath(p));
 }
 
 function blobHashAtOid(projectRoot: string, oid: string, relPath: string): string | null {
@@ -195,6 +266,26 @@ function blobHashAtOid(projectRoot: string, oid: string, relPath: string): strin
 }
 
 /**
+ * Same row format as computeControllerObservedHash, from committed blobs at oid.
+ */
+export function computeCommittedObservedHash(
+  projectRoot: string,
+  oid: string,
+  reviewedFiles: readonly string[],
+): string | null {
+  const files = [...reviewedFiles];
+  if (files.length === 0) return null;
+  const rows: string[] = [];
+  for (const rel of [...files].sort()) {
+    const norm = rel.replaceAll("\\", "/");
+    const digest = blobHashAtOid(projectRoot, oid, norm);
+    if (digest === null) return null;
+    rows.push(`${norm}:${digest}`);
+  }
+  return sha256Hex(JSON.stringify(rows));
+}
+
+/**
  * Enrolled push admission: outgoing ⊆ reviewed with matching committed content (#5804 P1).
  */
 export function evaluateEnrolledBoundPrePrPush(
@@ -205,18 +296,57 @@ export function evaluateEnrolledBoundPrePrPush(
   },
 ): [number, string] {
   const projectRoot = options.projectRoot;
-  const store = getDefaultPrePrStore(projectRoot);
-  const headOid =
-    refs.find((r) => !ZERO_OID_RE.test(r.localOid))?.localOid ??
-    gitLines(projectRoot, ["rev-parse", "HEAD"])[0] ??
-    "";
-  if (headOid.length === 0) {
+  const liveRefs = refs.filter((r) => !ZERO_OID_RE.test(r.localOid));
+  if (liveRefs.length > 1) {
+    return [
+      1,
+      [
+        "❌ deft bound pre-PR push gate: multi-ref push refused when enrolled.",
+        "  Push one feature ref per invocation so each tip binds its own pre-PR pass (#5804).",
+      ].join("\n"),
+    ];
+  }
+
+  const resolvedHead =
+    liveRefs[0]?.localOid ??
+    (() => {
+      const h = gitRevParse(projectRoot, ["rev-parse", "HEAD"]);
+      return h.ok ? h.sha : "";
+    })();
+  if (resolvedHead.length === 0) {
     return [
       1,
       "❌ deft bound pre-PR push gate: cannot resolve local OID.\n  Recovery: deft pre-pr:run then retry push.",
     ];
   }
 
+  const outgoing: string[] = [];
+  for (const ref of refs) {
+    if (ZERO_OID_RE.test(ref.localOid)) continue;
+    const listed = outgoingChangedPaths(projectRoot, ref.remoteOid, ref.localOid);
+    if (!listed.ok) {
+      return [
+        1,
+        [
+          "❌ deft bound pre-PR push gate: cannot derive outgoing changed paths.",
+          `  Detail: ${listed.error}`,
+          "  Recovery: fetch the remote tip / delivery branch, then retry push (#5804).",
+        ].join("\n"),
+      ];
+    }
+    for (const p of listed.paths) {
+      outgoing.push(p.replaceAll("\\", "/"));
+    }
+  }
+  const uniqOutgoing = [...new Set(outgoing)];
+  if (isDocsOnlyOutgoing(uniqOutgoing)) {
+    return [
+      0,
+      "✓ deft bound pre-PR push gate: docs-only/inert outgoing paths — enrolled skip (#5804).",
+    ];
+  }
+
+  const store = getDefaultPrePrStore(projectRoot);
   const records = store
     .list()
     .filter(
@@ -224,7 +354,7 @@ export function evaluateEnrolledBoundPrePrPush(
         r.outcome === "pass" &&
         r.state === "complete" &&
         r.publishedAt !== null &&
-        r.headSha === headOid &&
+        r.headSha === resolvedHead &&
         r.pushBinding != null &&
         (r.pushBinding.pushStageMarker?.length ?? 0) > 0,
     )
@@ -243,55 +373,57 @@ export function evaluateEnrolledBoundPrePrPush(
   const reviewed = new Set(
     record.pushBinding.reviewedFileManifest.map((p) => p.replaceAll("\\", "/")),
   );
-  const outgoing: string[] = [];
-  for (const ref of refs) {
-    if (ZERO_OID_RE.test(ref.localOid)) continue;
-    for (const p of outgoingChangedPaths(projectRoot, ref.remoteOid, ref.localOid)) {
-      outgoing.push(p.replaceAll("\\", "/"));
+  const reviewedDeleted = new Set(
+    (record.pushBinding.reviewedDeletedPaths ?? []).map((p) => p.replaceAll("\\", "/")),
+  );
+
+  const deletedOutgoing: string[] = [];
+  const presentOutgoing: string[] = [];
+  for (const p of uniqOutgoing) {
+    if (blobHashAtOid(projectRoot, resolvedHead, p) === null) {
+      deletedOutgoing.push(p);
+    } else {
+      presentOutgoing.push(p);
     }
   }
-  const uniqOutgoing = [...new Set(outgoing)];
-  if (isDocsOnlyOutgoing(uniqOutgoing)) {
-    return [
-      0,
-      "✓ deft bound pre-PR push gate: docs-only/inert outgoing paths — enrolled skip (#5804).",
-    ];
-  }
 
-  const uncovered = uniqOutgoing.filter((p) => !reviewed.has(p));
-  if (uncovered.length > 0) {
+  const uncoveredPresent = presentOutgoing.filter((p) => !reviewed.has(p));
+  if (uncoveredPresent.length > 0) {
     return [
       1,
       [
         "❌ deft bound pre-PR push gate: outgoing paths not covered by reviewed pushBinding.",
-        `  Unreviewed: ${uncovered.join(", ")}`,
+        `  Unreviewed: ${uncoveredPresent.join(", ")}`,
         "  Recovery: deft pre-pr:run (review those paths) then retry push (#5804).",
       ].join("\n"),
     ];
   }
 
-  const observed = computeControllerObservedHash({
-    reviewedFiles: [...reviewed],
-    cwd: projectRoot,
-  });
-  if (observed !== null && observed === record.pushBinding.controllerObservedHash) {
+  const uncoveredDeleted = deletedOutgoing.filter((p) => !reviewedDeleted.has(p));
+  if (uncoveredDeleted.length > 0) {
     return [
-      0,
-      `✓ deft bound pre-PR push gate: outgoing ⊆ reviewed pushBinding for ${headOid.slice(0, 12)} (#5804).`,
+      1,
+      [
+        "❌ deft bound pre-PR push gate: deleted outgoing paths not in reviewedDeletedPaths.",
+        `  Unreviewed deletions: ${uncoveredDeleted.join(", ")}`,
+        "  Recovery: deft pre-pr:run (include deletions) then retry push (#5804).",
+      ].join("\n"),
     ];
   }
 
-  for (const rel of uniqOutgoing) {
-    if (!reviewed.has(rel)) continue;
-    if (blobHashAtOid(projectRoot, headOid, rel) === null) {
-      return [
-        1,
-        [
-          `❌ deft bound pre-PR push gate: cannot hash reviewed outgoing path ${rel} at HEAD.`,
-          "  Recovery: deft pre-pr:run then retry push (#5804).",
-        ].join("\n"),
-      ];
-    }
+  const committed = computeCommittedObservedHash(
+    projectRoot,
+    resolvedHead,
+    record.pushBinding.reviewedFileManifest,
+  );
+  if (committed === null || committed !== record.pushBinding.controllerObservedHash) {
+    return [
+      1,
+      [
+        "❌ deft bound pre-PR push gate: committed content does not match pushBinding.controllerObservedHash.",
+        "  Recovery: deft pre-pr:run on the exact bytes being pushed, then retry (#5804).",
+      ].join("\n"),
+    ];
   }
 
   if (record.pushBinding.pushStageMarker !== PRE_PR_PUSH_STAGE_MARKER) {
@@ -303,7 +435,7 @@ export function evaluateEnrolledBoundPrePrPush(
 
   return [
     0,
-    `✓ deft bound pre-PR push gate: outgoing ⊆ reviewed pushBinding for ${headOid.slice(0, 12)} (#5804).`,
+    `✓ deft bound pre-PR push gate: outgoing ⊆ reviewed pushBinding for ${resolvedHead.slice(0, 12)} (#5804).`,
   ];
 }
 
@@ -323,7 +455,8 @@ export function evaluatePrePush(
   );
   const env = options.env ?? process.env;
   const enrolledFlag = options.enrolledBoundPrePr === true;
-  const enrolled = enrolledFlag || resolveRequireBoundPrePrPush(options.projectRoot, enrolledFlag);
+  // Policy boolean wins; missing policy falls back to hook default (#5804 Greptile).
+  const enrolled = resolveRequireBoundPrePrPush(options.projectRoot, enrolledFlag);
 
   if (enrolled) {
     const raw = options.rawStdin;
@@ -353,6 +486,7 @@ export function evaluatePrePush(
   }
 
   const blocked = blockedDefaultBranchTouches(refs, branches);
+  let defaultBranchAllowed = false;
   if (blocked.length > 0) {
     if (envBypassActive(env)) {
       return [
@@ -373,13 +507,13 @@ export function evaluatePrePush(
         ];
       }
       if (policy.allowDestructiveGhVerbs) {
-        return [
-          0,
-          `⚠ deft destructive-gh-verb gate (pre-push): default-branch push detected (${blocked.join("; ")}) but plan.policy.allowDestructiveGhVerbs=true -- policy allowed for this invocation.`,
-        ];
+        defaultBranchAllowed = true;
+      } else {
+        return [1, refuseMessage(blocked)];
       }
+    } else {
+      return [1, refuseMessage(blocked)];
     }
-    return [1, refuseMessage(blocked)];
   }
 
   if (enrolled && options.projectRoot !== undefined && options.projectRoot.length > 0) {
@@ -387,6 +521,13 @@ export function evaluatePrePush(
       projectRoot: options.projectRoot,
       env,
     });
+  }
+
+  if (defaultBranchAllowed) {
+    return [
+      0,
+      `⚠ deft destructive-gh-verb gate (pre-push): default-branch push detected (${blocked.join("; ")}) but plan.policy.allowDestructiveGhVerbs=true -- policy allowed for this invocation.`,
+    ];
   }
 
   return [

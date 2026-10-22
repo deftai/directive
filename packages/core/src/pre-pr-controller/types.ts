@@ -93,6 +93,11 @@ export interface PrePrPushBinding {
   readonly controllerObservedHash: string;
   /** Non-empty sentinel: PR-stage --evaluate denies records carrying this marker. */
   readonly pushStageMarker: string;
+  /**
+   * Product paths reviewed as deletions (absent at head). Optional on pre-fix
+   * records; push requires deleted outgoing ⊆ this set (#5804 Greptile).
+   */
+  readonly reviewedDeletedPaths?: readonly string[];
 }
 
 /** Push-stage body-hash sentinel stamped onto enrolled passes (#5804 P4). */
