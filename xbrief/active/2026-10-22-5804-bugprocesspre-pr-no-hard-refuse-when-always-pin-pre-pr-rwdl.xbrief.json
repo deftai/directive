@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5804",
-    "updated": "2026-10-22T05:54:55.576Z"
+    "updated": "2026-10-22T06:06:33.849Z"
   },
   "plan": {
     "title": "bug(process,pre-pr): no hard refuse when always-pin pre-PR / RWDL is skipped before push",
@@ -124,20 +124,20 @@
         "files": [
           "packages/core/src/pre-pr-controller/controller.ts",
           "packages/core/src/pre-pr-controller/controller.test.ts",
-          "packages/core/src/pre-pr-controller/store.ts",
+          "packages/core/src/pre-pr-controller/types.ts",
+          "packages/core/src/pre-pr-controller/evaluate.ts",
           "packages/core/src/preflight-gh/pre-push.ts",
           "packages/core/src/preflight-gh/pre-push.test.ts",
           "packages/runtime/src/setup-wiring.ts",
           "packages/runtime/src/dispatch.ts",
           "packages/runtime/src/pre-pr-run.ts",
-          "packages/runtime/src/verify-hooks-installed.ts",
           ".githooks/pre-push",
           "content/skills/deft-directive-pre-pr/SKILL.md",
           "content/packs/skills/skills-pack-0.1.json",
           "CHANGELOG.md"
         ],
         "module_boundary": "packages/core/src/pre-pr-controller/controller.ts",
-        "cohesion_exemption": "CHANGELOG + enrolled push refuse unit; pre-push/setup-wiring/skill pack cohere with controller pushBinding"
+        "cohesion_exemption": "CHANGELOG + enrolled push refuse unit; types/evaluate cohere with controller pushBinding"
       },
       "issueBody": "## Problem\nDuring tip-unblock work on #5802 / PR #5803, the implement leaf pushed the first tip-unblock commit **without** running the always-pin `deft-directive-pre-pr` Read-Write-Lint-Diff-Loop (formerly RWDL).\n\nThat skip let failures reach CI / Greptile that local pre-PR would have caught:\n- Biome **format** errors on deposit/verify-hooks test files we edited\n- `branches.test.ts` shared fixture still on legacy `preflight-gh` after `verify-hooks-installed` required OVPR `verify:branch`\n\nOperator had to ask explicitly whether pre-PR/RWDL ran. Second push fixed after a proper iteration-lane pass (biome + pack-drift + affected vitest).\n\n## Why this is a framework gap\n`deft-directive-pre-pr` is an **always-pin** process skill (AGENTS.md / skill-pin-policy #2508) specifically because false-negatives here are expensive. A leaf can still open/push a product PR while only narrating \"pre-PR\" or skipping the loop entirely — there is no hard local refuse before `git push` / `gh pr create` that proves a controller `deft pre-pr:run` pass (#4912).\n\nRelated surfaces already exist but did not stop this session:\n- Skill pin + SKILL.md obligation\n- `deft pre-pr:run` controller (#4912) — not invoked\n- Pre-push hooks on tip OVPR are encoding/branch only — they do **not** require pre-PR attestation\n\n## What to build\nMake skipped pre-PR fail closed for product pushes on this repo (or a policy-gated set of repos):\n- Require a fresh `deft pre-pr:run` pass (or equivalent attested merge-chokepoint) before `git push` / first `gh pr create` on feature branches carrying product/test/doc changes.\n- Or a pre-push / verify verb that refuses when no bound pre-PR record exists for `HEAD` (Limb enrollment / #4976 class).\n- Agent-facing: short recovery line when refuse fires (`deft pre-pr:run` then retry push).\n- Eval / dogfood: a case where narrating pre-PR without controller run is scored fail.\n\n## Acceptance\n- [ ] A feature-branch push of product/test changes without a bound pre-PR pass for that HEAD fails closed with a remediation pointing at `deft pre-pr:run`.\n- [ ] A completed `deft pre-pr:run` for the same HEAD allows push.\n- [ ] Docs/skill pin cite the hard gate (not only prose obligation).\n- [ ] Recurrence of \"biome/format fixture reaches Greptile because RWDL was skipped\" is prevented by the gate, not by operator memory.\n\n## Evidence\n- PR https://github.com/deftai/directive/pull/5803 first tip `9851e2e9a` — CI biome format red + Greptile P1 on `branches.test.ts` fixture.\n- Operator question: \"are you doing rwldl skill on pre-pr? that should have caught some of this\".\n- Follow-up fix commit `383da7f91` after local RWDL: biome 0, pack-drift 55/55 sync, affected vitest 225 passed.\n\n## Keep-outs\n- Do not weaken tip OVPR hook gates to compensate for missing pre-PR.\n- Do not treat reading SKILL.md or claiming \"I ran lint\" as a pre-PR pass (#4912).\n- Docs-only / explicit process-only pushes may keep a narrow attested skip — product/test/doc-code changes must not.",
       "x-directive/plan-id": {
@@ -170,13 +170,13 @@
         "file_scope": [
           "packages/core/src/pre-pr-controller/controller.ts",
           "packages/core/src/pre-pr-controller/controller.test.ts",
-          "packages/core/src/pre-pr-controller/store.ts",
+          "packages/core/src/pre-pr-controller/types.ts",
+          "packages/core/src/pre-pr-controller/evaluate.ts",
           "packages/core/src/preflight-gh/pre-push.ts",
           "packages/core/src/preflight-gh/pre-push.test.ts",
           "packages/runtime/src/setup-wiring.ts",
           "packages/runtime/src/dispatch.ts",
           "packages/runtime/src/pre-pr-run.ts",
-          "packages/runtime/src/verify-hooks-installed.ts",
           ".githooks/pre-push",
           "content/skills/deft-directive-pre-pr/SKILL.md",
           "content/packs/skills/skills-pack-0.1.json",
