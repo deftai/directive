@@ -197,6 +197,8 @@
           "packages/core/src/pre-pr-controller/controller.ts",
           "packages/core/src/pre-pr-controller/phases.ts",
           "packages/core/src/policy/plan-extensions.ts",
+          "packages/core/src/coverage-hotspots/evaluate.test.ts",
+          "packages/core/src/pre-pr-controller/controller.test.ts",
           "CHANGELOG.md"
         ],
         "module_boundary": "packages/core/src/coverage-hotspots/evaluate.ts",
@@ -236,6 +238,8 @@
           "packages/core/src/pre-pr-controller/controller.ts",
           "packages/core/src/pre-pr-controller/phases.ts",
           "packages/core/src/policy/plan-extensions.ts",
+          "packages/core/src/coverage-hotspots/evaluate.test.ts",
+          "packages/core/src/pre-pr-controller/controller.test.ts",
           "CHANGELOG.md"
         ],
         "size": "L",
