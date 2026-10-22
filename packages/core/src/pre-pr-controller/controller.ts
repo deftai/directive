@@ -86,11 +86,7 @@ export function computeControllerObservedHash(input: {
 }
 
 /** Deleted paths between base..head for pushBinding.reviewedDeletedPaths (#5804). */
-function listDeletedPathsBetween(
-  projectRoot: string,
-  baseSha: string,
-  headSha: string,
-): string[] {
+function listDeletedPathsBetween(projectRoot: string, baseSha: string, headSha: string): string[] {
   try {
     const out = execFileSync(
       "git",

@@ -15,10 +15,7 @@ import { resolveAllowDestructiveGhVerbs } from "../policy/destructive-gh-verbs.j
 import { readPlanPolicy } from "../policy/plan-extensions.js";
 import { policyColonInvocation } from "../policy/policy-invocation.js";
 import { getDefaultPrePrStore } from "../pre-pr-controller/store.js";
-import {
-  PRE_PR_PUSH_STAGE_MARKER,
-  sha256Hex,
-} from "../pre-pr-controller/types.js";
+import { PRE_PR_PUSH_STAGE_MARKER, sha256Hex } from "../pre-pr-controller/types.js";
 import { DEFAULT_BRANCHES, ENV_BYPASS } from "./classifier.js";
 
 export interface PrePushRef {
@@ -202,12 +199,7 @@ export function outgoingChangedPaths(
 ): GitPathsResult {
   if (ZERO_OID_RE.test(localOid)) return { ok: true, paths: [] };
   if (!ZERO_OID_RE.test(remoteOid)) {
-    return gitNameOnlyZ(projectRoot, [
-      "diff",
-      "-z",
-      "--name-only",
-      `${remoteOid}..${localOid}`,
-    ]);
+    return gitNameOnlyZ(projectRoot, ["diff", "-z", "--name-only", `${remoteOid}..${localOid}`]);
   }
 
   const delivery = resolveDeliveryBranch(projectRoot);
@@ -215,22 +207,12 @@ export function outgoingChangedPaths(
   if (delivery.error === null && delivery.branch.trim().length > 0) {
     candidates.push(`refs/remotes/origin/${delivery.branch}`, delivery.branch);
   }
-  candidates.push(
-    "refs/remotes/origin/master",
-    "refs/remotes/origin/main",
-    "master",
-    "main",
-  );
+  candidates.push("refs/remotes/origin/master", "refs/remotes/origin/main", "master", "main");
 
   for (const tip of candidates) {
     const mb = gitRevParse(projectRoot, ["merge-base", localOid, tip]);
     if (!mb.ok) continue;
-    return gitNameOnlyZ(projectRoot, [
-      "diff",
-      "-z",
-      "--name-only",
-      `${mb.sha}..${localOid}`,
-    ]);
+    return gitNameOnlyZ(projectRoot, ["diff", "-z", "--name-only", `${mb.sha}..${localOid}`]);
   }
 
   return {
