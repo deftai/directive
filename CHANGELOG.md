@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- Changed - Activate running xBRIEF for #5791 (coverageMode for framework-only pin upgrades / pre-PR coverage_headroom) so merge-base file_scope admits product spawn. Refs Prefer-A Bound 6327849654.
 - Changed — Carry Thin Fail-Closed (#3265) Bound-remedy thinness and writing-bar (#3368) footnote-class pain-audit posture into design-critique contract pointers, brief Pointers rows, and fixture locks. Refs #5783 Prefer-A Bound 6280270826 #3265 #3368 #5806.
 - Changed - Activate running xBRIEF for #5783 (Thin Fail-Closed / writing-bar carry into design-critique Bound + PA harvest) so merge-base file_scope admits product spawn. Refs Prefer-A Bound 6280270826.
 - Changed — Activate running xBRIEF for chore PR #5799 so merge-base file_scope admits Approach 1 babysit spawn. Refs #5795 #5796 #5797.
