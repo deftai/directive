@@ -82,4 +82,20 @@ describe("coverageMode (#5791)", () => {
     expect(typeof mod.setCoverageMode).toBe("function");
     expect(mod.FIELD_COVERAGE_MODE_CLI_ALIAS).toBe("coverageMode");
   });
+
+  it("damaged policy block resolves to full (never initial)", () => {
+    const r = root();
+    writeProjectDef(
+      r,
+      null,
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { title: "T", status: "running", items: [], "x-directive/policy": [] },
+      }),
+    );
+    const resolved = resolveCoverageMode(r);
+    expect(resolved.mode).toBe("full");
+    expect(resolved.source).toBe("default-on-error");
+    expect(resolved.error).toMatch(/must be an object/i);
+  });
 });

@@ -1,10 +1,11 @@
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   computeControllerObservedHash,
   deny,
   FileBackedPrePrStore,
+  LINT_ITERATION_MODE_SKIP,
   MARK_COMPLETE_NOT_AUTHORITY,
   PRE_PR_PHASES,
   resetDefaultPrePrStore,
@@ -209,6 +210,67 @@ describe("deft pre-pr:run", () => {
       ]),
     ).toBe(1);
     expect(err.join("")).toMatch(/criteria digest|invalidat/i);
+  });
+
+  it("parseArgs accepts lint_iteration exit-5 mode-skip pair (#5814)", () => {
+    const parsed = parseArgs([
+      "--observe-command",
+      "--run-id",
+      "ppr_lint_mode",
+      "--phase",
+      "lint_iteration",
+      "--exit-code",
+      "5",
+      "--skip-reason",
+      LINT_ITERATION_MODE_SKIP,
+      "--command",
+      "vitest run --coverage <changed-paths>",
+    ]);
+    expect(parsed.error).toBeFalsy();
+    expect(parsed.observeCommand).toBe(true);
+    expect(parsed.exitCode).toBe(5);
+    expect(parsed.skipReason).toBe(LINT_ITERATION_MODE_SKIP);
+    expect(parsed.phase).toBe("lint_iteration");
+  });
+
+  it("admits lint_iteration exit-5 mode skip when cwd coverageMode authorizes (#5814)", () => {
+    const projectRoot = mkdtempSync(join(tmpdir(), "pre-pr-lint-cli-"));
+    const prevCwd = process.cwd();
+    try {
+      mkdirSync(join(projectRoot, "xbrief"), { recursive: true });
+      writeFileSync(
+        join(projectRoot, "xbrief/PROJECT-DEFINITION.xbrief.json"),
+        JSON.stringify({
+          xBRIEFInfo: { version: "0.8", description: "t", updated: "2026-01-01T00:00:00Z" },
+          plan: {
+            title: "t",
+            status: "running",
+            "x-directive/policy": { coverageMode: "initial" },
+          },
+        }),
+      );
+      process.chdir(projectRoot);
+      expect(run([...START, "--run-id", "ppr_lint_mode_cli", "--json"])).toBe(0);
+      expect(
+        run([
+          "--observe-command",
+          "--run-id",
+          "ppr_lint_mode_cli",
+          "--phase",
+          "lint_iteration",
+          "--exit-code",
+          "5",
+          "--skip-reason",
+          LINT_ITERATION_MODE_SKIP,
+          "--command",
+          "vitest run --coverage <changed-paths>",
+          "--json",
+        ]),
+      ).toBe(0);
+    } finally {
+      process.chdir(prevCwd);
+      rmSync(projectRoot, { recursive: true, force: true });
+    }
   });
 
   it("omitting --exit-code on --observe-command fails closed", () => {

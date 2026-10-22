@@ -24,6 +24,7 @@ import {
   COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP,
   COVERAGE_HEADROOM_WAIVED_SKIP,
   isAllowedSkip,
+  LINT_ITERATION_MODE_SKIP,
   PRE_PR_CONTROLLER_VERSION,
   PRE_PR_PHASES,
   PRE_PR_WORKFLOW_VERSION,
@@ -211,7 +212,12 @@ export function observeCommandPhase(
           (observation.exitCode === 5 &&
             observation.skipReason === COVERAGE_HEADROOM_MODE_SKIP &&
             isCoverageModeSkipAuthorized(resolveCoverageMode(projectRoot).mode))
-        : isAllowedSkip(observation.phaseId, observation.skipReason);
+        : observation.phaseId === "lint_iteration"
+          ? observation.exitCode === 5 &&
+            observation.skipReason === LINT_ITERATION_MODE_SKIP &&
+            isCoverageModeSkipAuthorized(resolveCoverageMode(projectRoot).mode) &&
+            observation.command.toLowerCase().includes("vitest")
+          : isAllowedSkip(observation.phaseId, observation.skipReason);
     // Exit 4 waived must not mark the run failed (#5674); exit 0 alone is measured pass.
     const failed = observation.exitCode !== 0 && !skipOk;
     const row: CommandObservation = {
@@ -470,13 +476,25 @@ function commandSatisfied(
 
     // #5791 mode arm: exit 5 + distinct mode token; re-read policy (not inert re-derive).
     // Report-present guard keeps the measured path — refuse mode skip when report exists.
+    // Refuse outcomes stay on exit 2 / exit-4 waived — never launder through exit 5.
     if (row.exitCode === 5) {
       if (row.skipReason !== COVERAGE_HEADROOM_MODE_SKIP) return false;
       if (spec.command === null || !coverageHotspotsCommandMatches(row.command, spec.command)) {
         return false;
       }
       if (existsSync(join(projectRoot, "coverage", "coverage-final.json"))) return false;
-      return isCoverageModeSkipAuthorized(resolveCoverageMode(projectRoot).mode);
+      if (!isCoverageModeSkipAuthorized(resolveCoverageMode(projectRoot).mode)) return false;
+      const derived = evaluateCoverageApplicability(
+        {
+          projectRoot,
+          baseSha: record.baseSha,
+          headSha: record.headSha,
+          treeHash: record.treeHash,
+        },
+        options?.applicabilityDeps,
+      );
+      if (derived.outcome === "refuse") return false;
+      return true;
     }
 
     // Authorized N/A is exit 3 only (hotspots emits 3 when inert + no report).
@@ -495,6 +513,18 @@ function commandSatisfied(
       options?.applicabilityDeps,
     );
     return derived.outcome === "not-applicable";
+  }
+
+  // #5814 lint_iteration mode arm: exit 5 + distinct token; re-read coverageMode;
+  // report-present guard refuses skip when coverage/coverage-final.json exists.
+  if (phaseId === "lint_iteration") {
+    if (row.exitCode === 0) return true;
+    if (row.exitCode !== 5) return false;
+    if (row.skipReason !== LINT_ITERATION_MODE_SKIP) return false;
+    if (!row.command.toLowerCase().includes("vitest")) return false;
+    const projectRoot = options?.projectRoot ?? process.cwd();
+    if (existsSync(join(projectRoot, "coverage", "coverage-final.json"))) return false;
+    return isCoverageModeSkipAuthorized(resolveCoverageMode(projectRoot).mode);
   }
 
   if (row.exitCode === 0) return true;

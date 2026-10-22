@@ -107,12 +107,14 @@ export function resolveCoverageMode(projectRoot: string): CoverageModeResolved {
 /** Resolve from an already-loaded plan object (namespaced-first). */
 export function resolveCoverageModeFromPlan(plan: unknown): CoverageModeResolved {
   const policyBlock = readPlanPolicy(plan);
-  if (
-    typeof policyBlock !== "object" ||
-    policyBlock === null ||
-    Array.isArray(policyBlock) ||
-    !("coverageMode" in (policyBlock as Record<string, unknown>))
-  ) {
+  // Absent policy block → install default (initial). Damaged block → full (never initial).
+  if (policyBlock === undefined) {
+    return defaultResolved("default");
+  }
+  if (typeof policyBlock !== "object" || policyBlock === null || Array.isArray(policyBlock)) {
+    return defaultResolved("default-on-error", "x-directive/policy must be an object", "full");
+  }
+  if (!("coverageMode" in (policyBlock as Record<string, unknown>))) {
     return defaultResolved("default");
   }
   return resolveCoverageModeFromValue((policyBlock as Record<string, unknown>).coverageMode);
@@ -166,6 +168,10 @@ export function inspectCoverageMode(
   projectRoot?: string,
 ): CoverageModePolicyField {
   if (data === null) {
+    // Match resolveCoverageMode enforcement: unreadable/missing file paths through projectRoot.
+    if (projectRoot !== undefined) {
+      return fieldFromResolved(resolveCoverageMode(projectRoot));
+    }
     return fieldFromResolved(defaultResolved("default"));
   }
   const resolved = resolveCoverageModeFromPlan(data.plan);

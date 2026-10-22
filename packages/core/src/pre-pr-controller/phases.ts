@@ -111,6 +111,13 @@ export const COVERAGE_HEADROOM_WAIVED_SKIP =
  */
 export const COVERAGE_HEADROOM_MODE_SKIP = "coverageMode posture skip (initial|disabled)" as const;
 
+/**
+ * Distinct closed skip token for lint_iteration coverageMode posture (#5814 Prefer-A Recut-1).
+ * Never reuse coverage_headroom tokens; never treat as measured pass / exit 0.
+ */
+export const LINT_ITERATION_MODE_SKIP =
+  "lint_iteration coverageMode posture skip (initial|disabled)" as const;
+
 export const ALLOWED_SKIP_REASONS: Partial<Record<PrePrPhaseId, string>> = {
   plan_sequence: "no active ordered-plan sequence",
   render_export: "no existing export files to refresh",
@@ -126,6 +133,9 @@ export function isAllowedSkip(phaseId: PrePrPhaseId, skipReason: string | null):
       skipReason === COVERAGE_HEADROOM_WAIVED_SKIP ||
       skipReason === COVERAGE_HEADROOM_MODE_SKIP)
   ) {
+    return true;
+  }
+  if (phaseId === "lint_iteration" && skipReason === LINT_ITERATION_MODE_SKIP) {
     return true;
   }
   const allowed = ALLOWED_SKIP_REASONS[phaseId];
