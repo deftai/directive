@@ -2,18 +2,18 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5805",
-    "updated": "2026-10-22T05:03:27Z"
+    "updated": "2026-10-22T05:07:55Z"
   },
   "plan": {
     "title": "bug(dogfood,ovpr): maintainer must run pinned runtime — close task auto-compile tip bypass",
     "status": "running",
     "narratives": {
-      "Description": "bug(dogfood,ovpr): maintainer must run pinned runtime — close task auto-compile tip bypass",
+      "Description": "Ordinary maintainer task verbs must execute the pinned runtime under node_modules/@deftai/directive-runtime, matching Git hooks. Tip without a public release requires an explicit staged-runtime materialize into that pin; packages/runtime/dist is not a silent ordinary-verb fallback.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5805",
       "Overview": "Prefer-A Bound 6326249868: pin-exclusive ordinary invoke (fail-closed missing pin; no packages/runtime/dist fallthrough); demote engine:_ts-build off ordinary verb deps; thin stage-bundle/pack-staged-runtime materialize into checkout node_modules/@deftai/directive-runtime; per-checkout replace isolation. Reject Approach B/C and soft tip-dist fallthrough.",
       "Labels": "bug, agent-experience, urgent, design-critique:ingest-ready, core-capabilities",
-      "UserStory": "As a Directive maintainer, I want ordinary task verbs to run the same pinned node_modules/@deftai/directive-runtime binary that Git hooks already use, so FF alone cannot silently tip-execute workspace dist and tip dogfood requires an explicit local materialize.",
-      "ImplementationPlan": "1. Make framework-source engine:invoke pin-exclusive to node_modules/@deftai/directive-runtime/dist/bin.js and fail closed when missing (no packages/runtime/dist fallthrough).\n2. Demote engine:_ts-build off ordinary product-verb deps; keep it only on explicit build/pack/materialize.\n3. Add thin materialize Task/CLI reusing stage-bundle + pack-staged-runtime into this checkout pin only with honest overlay recording and checkout-owned replace isolation.\n4. Document FF then optional materialize then tip; add pin-invoke / no-tip-fallthrough / checkout-local materialize regressions; CHANGELOG.",
+      "UserStory": "As a Directive maintainer, I want ordinary task verbs to run the same pinned node_modules/@deftai/directive-runtime binary that Git hooks already use, so that fast-forward alone cannot silently tip-execute workspace dist.",
+      "ImplementationPlan": "1. Edit tasks/engine.yml and tasks/engine-invoke.cjs so framework-source ordinary invoke selects only node_modules/@deftai/directive-runtime/dist/bin.js and fails closed when missing (no packages/runtime/dist fallthrough); cover with tasks/engine-invoke.test.cjs.\n2. Remove :engine:_ts-build deps from ordinary verbs across Taskfile.yml and the listed tasks/*.yml files; keep _ts-build only on explicit build/pack/materialize tasks.\n3. Add tasks/materialize.yml + tasks/materialize.cjs wrapping packages/runtime/scripts/stage-bundle.mjs and pack-staged-runtime.mjs into this checkout pin with overlay recording, checkout-owned replace, and writer serialization; cover with tasks/materialize.test.cjs.\n4. Update content/docs/getting-started.md, launcher.md, and known-limitations.md for FF then optional materialize then tip; add CHANGELOG Unreleased; verify with node --test tasks/engine-invoke.test.cjs tasks/materialize.test.cjs.",
       "Traces": "#5805 Prefer-A Bound 6326249868"
     },
     "items": [
@@ -686,6 +686,6 @@
       "kind": "story"
     },
     "id": "github.issue.5967205564",
-    "updated": "2026-10-22T05:03:27Z"
+    "updated": "2026-10-22T05:07:55Z"
   }
 }
