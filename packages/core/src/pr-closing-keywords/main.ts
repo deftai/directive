@@ -150,6 +150,62 @@ export function isSkipActiveDeliveryShape(files: readonly PrDiffPath[]): boolean
   return removedProposedOrPending && addedCompleted && !removedActive;
 }
 
+/** Offline --body-file: name-status vs upstream merge-base (or HEAD~ when unbound). */
+function collectLocalDiffFiles(projectRoot: string, runGit: RunGhFn): PrDiffPath[] | null {
+  const prev = process.cwd();
+  try {
+    process.chdir(projectRoot);
+  } catch {
+    return null;
+  }
+  try {
+    let base = "HEAD";
+    const mb = runGit(["merge-base", "HEAD", "origin/master"]);
+    if (mb.returncode === 0 && mb.stdout.trim().length > 0) {
+      base = mb.stdout.trim();
+    }
+    const diff = runGit(["diff", "-z", "--name-status", "--find-renames", base, "HEAD"]);
+    if (diff.returncode !== 0) {
+      return [];
+    }
+    const out: PrDiffPath[] = [];
+    const tokens = diff.stdout.split("\0");
+    let i = 0;
+    while (i < tokens.length) {
+      const status = (tokens[i] ?? "").trim();
+      if (status.length === 0) {
+        i += 1;
+        continue;
+      }
+      if (status.startsWith("R") || status.startsWith("C")) {
+        const previousFilename = tokens[i + 1] ?? "";
+        const path = tokens[i + 2] ?? "";
+        if (path.length > 0) {
+          out.push({
+            status: status[0] ?? status,
+            path,
+            ...(previousFilename.length > 0 ? { previousFilename } : {}),
+          });
+        }
+        i += 3;
+        continue;
+      }
+      const path = tokens[i + 1] ?? "";
+      if (path.length > 0) {
+        out.push({ status: status[0] ?? status, path });
+      }
+      i += 2;
+    }
+    return out;
+  } finally {
+    try {
+      process.chdir(prev);
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
 function fetchPrFiles(pr: number, repo: string, runGh: RunGhFn): PrDiffPath[] | null {
   const out: PrDiffPath[] = [];
   // Paginate beyond page 1 so later nonterminal briefs cannot bypass admission (#4919).
@@ -1053,7 +1109,7 @@ export function run(argv: readonly string[], options: RunOptions = {}): number {
   const intentFiltered =
     args.pr !== null && closeAllow.size === 0 ? [] : filterHits(intentHits, closeAllow);
 
-  // #4919 / #4864: full-story mark admission on live PR diffs (leftover exception).
+  // #4919 / #4864 / #5736: full-story mark admission on live PR diffs and offline --body-file.
   if (args.pr !== null) {
     const liveRepo = resolveLiveRepo(args, envBag);
     if (liveRepo === null) {
@@ -1076,6 +1132,24 @@ export function run(argv: readonly string[], options: RunOptions = {}): number {
         process.stderr.write(`${message}\n`);
       }
       return EXIT_HITS_FOUND;
+    }
+  } else if (args.bodyFile !== null) {
+    const projectRoot = args.projectRoot ?? ".";
+    const files = collectLocalDiffFiles(projectRoot, options.runGit ?? defaultRunGit);
+    if (files !== null) {
+      const admission = evaluateFullStoryMarkAdmission({
+        bodyText,
+        prNumber: null,
+        projectRoot,
+        repo: args.repo ?? "local",
+        files,
+      });
+      if (!admission.ok) {
+        for (const message of admission.messages) {
+          process.stderr.write(`${message}\n`);
+        }
+        return EXIT_HITS_FOUND;
+      }
     }
   }
 

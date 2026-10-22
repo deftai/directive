@@ -1698,15 +1698,16 @@ export function swarmLaunch(args: LaunchArgs): {
   }
 
   // Thin leftover-before-activation refuse at launch prepare/open (#5736 Recut-1).
-  if (args.leftoverBeforeActivation != null) {
-    const leftoverGate = evaluateLeftoverBeforeActivation(args.leftoverBeforeActivation);
-    if (!leftoverGate.ok) {
-      return {
-        exitCode: EXIT_GATE_FAILED,
-        stdout: "",
-        stderr: `Error: ${leftoverGate.detail}\n`,
-      };
-    }
+  // Always evaluate (default clear evidence) so ordinary swarm:launch cannot skip the gate.
+  const leftoverGate = evaluateLeftoverBeforeActivation(
+    args.leftoverBeforeActivation ?? { openLeftoverPrNumbers: [] },
+  );
+  if (!leftoverGate.ok) {
+    return {
+      exitCode: EXIT_GATE_FAILED,
+      stdout: "",
+      stderr: `Error: ${leftoverGate.detail}\n`,
+    };
   }
 
   // Explicit environ is a replacement bag for host/credential markers (#3703):
