@@ -926,6 +926,10 @@ describe("controller observations", () => {
       });
       expect(admitted.ok).toBe(true);
 
+      // Exit-4 waived satisfaction requires coverage-final.json (fp:c76cd7fc).
+      mkdirSync(join(projectRoot, "coverage"), { recursive: true });
+      writeFileSync(join(projectRoot, "coverage", "coverage-final.json"), "{}");
+
       fillPhasesExceptCoverage(store, rec, {
         command: `deft coverage:hotspots --attempt-id default --attempt-id ${attemptId}`,
         exitCode: 4,
