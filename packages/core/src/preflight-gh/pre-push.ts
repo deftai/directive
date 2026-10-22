@@ -6,17 +6,17 @@
  * unreadable / malformed stdin denies when the enrolled arm is active.
  */
 
-import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { computeControllerObservedHash } from "../pre-pr-controller/controller.js";
-import { getDefaultPrePrStore } from "../pre-pr-controller/store.js";
-import { PRE_PR_PUSH_STAGE_MARKER } from "../pre-pr-controller/types.js";
 import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
 import { resolveAllowDestructiveGhVerbs } from "../policy/destructive-gh-verbs.js";
 import { readPlanPolicy } from "../policy/plan-extensions.js";
 import { policyColonInvocation } from "../policy/policy-invocation.js";
+import { computeControllerObservedHash } from "../pre-pr-controller/controller.js";
+import { getDefaultPrePrStore } from "../pre-pr-controller/store.js";
+import { PRE_PR_PUSH_STAGE_MARKER } from "../pre-pr-controller/types.js";
 import { DEFAULT_BRANCHES, ENV_BYPASS } from "./classifier.js";
 
 export interface PrePushRef {
@@ -323,8 +323,7 @@ export function evaluatePrePush(
   );
   const env = options.env ?? process.env;
   const enrolledFlag = options.enrolledBoundPrePr === true;
-  const enrolled =
-    enrolledFlag || resolveRequireBoundPrePrPush(options.projectRoot, enrolledFlag);
+  const enrolled = enrolledFlag || resolveRequireBoundPrePrPush(options.projectRoot, enrolledFlag);
 
   if (enrolled) {
     const raw = options.rawStdin;
