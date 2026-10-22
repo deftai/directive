@@ -121,9 +121,9 @@ describe("task surface routes through the guarded :engine:* pattern (#2126)", ()
     expect(engine).toMatch(/DEFT_ENGINE_CMD_JSON/);
     expect(engine).toMatch(/engine-invoke\.cjs/);
     expect(engine).not.toMatch(/deft \{\{\.ENGINE_CMD\}\}/);
-    // #2409: runtime verbs may fall back to global deft; build-gated verbs fail closed.
-    expect(engine).toMatch(/CLI artifact missing/);
-    expect(engine).toMatch(/is_runtime_verb/);
+    // #5805: framework-source ordinary invoke is pin-exclusive (no tip auto-compile).
+    expect(engine).toMatch(/pin-bin/);
+    expect(engine).toMatch(/pin-exclusive|No packages\/runtime\/dist fallthrough/);
     expect(engine).toMatch(/process\.versions\.node/);
   });
 

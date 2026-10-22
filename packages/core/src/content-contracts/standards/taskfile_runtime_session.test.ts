@@ -83,19 +83,18 @@ describe("runtime/session task dispatch (#2181)", () => {
   const engine = readTask("engine.yml");
   const invokeBlock = engine.slice(engine.indexOf("invoke:"));
 
-  it("engine:invoke allowlists runtime/session verbs for global fallback (#2409)", () => {
-    for (const token of RUNTIME_VERB_TOKENS) {
-      expect(invokeBlock, `missing runtime verb token ${token}`).toContain(`" ${token} "`);
-    }
-    expect(invokeBlock).toMatch(/DEFT_USE_GLOBAL_CLI/);
+  it("engine:invoke pin-exclusive on framework-source; OVPR keeps global fallback (#5805)", () => {
+    // Framework-source path uses pin-bin (no tip auto-compile / is_runtime_verb list).
+    expect(invokeBlock).toMatch(/pin-bin/);
+    expect(invokeBlock).toMatch(/is_buildable_source/);
+    // OVPR / deposit branch still falls back to global deft|directive.
     expect(invokeBlock).toMatch(/command -v directive/);
-    expect(invokeBlock).toMatch(/using global/);
+    expect(invokeBlock).toMatch(/command -v deft/);
   });
 
-  it("engine:invoke still fail-closes build-gated verbs when dist is missing", () => {
-    expect(invokeBlock).toMatch(/CLI artifact missing/);
-    expect(invokeBlock).toMatch(/task build/);
-    expect(invokeBlock).toMatch(/is_runtime_verb=1/);
+  it("engine:invoke fail-closes when framework-source pin is missing (#5805)", () => {
+    expect(invokeBlock).toMatch(/pin-bin/);
+    expect(invokeBlock).toMatch(/No packages\/runtime\/dist fallthrough|missing checkout pin|pin-exclusive/);
   });
 
   it("engine:invoke runs vendored bin.js when the artifact is present", () => {

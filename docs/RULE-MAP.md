@@ -9,7 +9,7 @@ Maintainer-facing map of how Directive's rules are layered and grouped. This is 
 ## Overview
 
 - **Rules:** 25 groupings, 291 documents
-- **Tasks:** 65 namespaces, 287 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
+- **Tasks:** 66 namespaces, 288 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
 - **Packs:** 6 source-of-truth packs (720 entries from rules|lessons|patterns|skills|strategies|entries)
 
 Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the Taskfile gates that enforce them), and the **Lifecycle** that ties them together.
@@ -428,6 +428,7 @@ _How agents prove work is done: gates, validators, coverage, review._
 | install | Installer / bootstrap tasks for consumer projects. | 3 |
 | issue | Ingest GitHub issues as scope vBRIEFs (single <N> or --all [--label L] [--status S] [--dry-run]) | 2 |
 | lifecycle | Emit behavioral framework events (review-cycle plan:approved recorder). -- task lifecycle:event -- emit plan:approved --plan-ref <url>… | 2 |
+| materialize | Build tip staged-runtime and replace this checkout node_modules/@deftai/directive-runtime only (#5805). No lockfile/location-spec mutation. | 1 |
 | migrate | Migration tasks for moving projects between framework versions. | 3 |
 | occupancy | Lease-only confirmed steal (#3433/#3611). Flags: --confirm --occupant <reported-session-id>; manual/Grok owner: --session-id… | 4 |
 | ownership | WSL root-runtime ownership doctor/fix (#1617). | 2 |

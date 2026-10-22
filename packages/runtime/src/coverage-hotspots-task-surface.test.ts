@@ -9,10 +9,10 @@ describe("coverage:hotspots consumer task surface (#2683)", () => {
     expect(resolveCanonicalVerb("coverage:hotspots")).toBe("coverage-hotspots");
   });
 
-  it("coverage.yml uses engine:invoke with guarded build dep", () => {
+  it("coverage.yml uses engine:invoke (pin-exclusive; no tip _ts-build) (#5805)", () => {
     const text = readFileSync(join(repoRoot(), "tasks", "coverage.yml"), "utf8");
     expect(text).toContain(":engine:invoke");
-    expect(text).toContain(":engine:_ts-build");
+    expect(text).not.toContain(":engine:_ts-build");
     expect(text).toContain("coverage:hotspots");
     expect(text).not.toContain("uv run python");
   });
