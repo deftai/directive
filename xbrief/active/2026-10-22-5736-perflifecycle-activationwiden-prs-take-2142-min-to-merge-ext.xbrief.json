@@ -11,48 +11,74 @@
       "Description": "perf(lifecycle): activation/widen PRs take 21–42 min to merge; extra heads and re-runs cost more than CI speed",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5736",
       "Overview": "Prefer-A Recut-1 Bound 6256466667 (Target-digest sha256:d93daf97137f2c194fd5862e486f0885000b5ebae72835d00c7b090006939ffb): cut activation/widen merge latency via narrow pre-push trio, offline deft-story admission, advisory file_scope coverage warn, docs-impact branch-gate relocation, drop CI closing-keywords duplicate, leftover-before-activation order + thin executable refuse. Reject list binding. allocation_plan_id through-merge-5791-5814-5736-5804-5805-2026-10-22.",
-      "Labels": "ci-cd, process, urgent, design-critique:ingest-ready, core-capabilities"
+      "Labels": "ci-cd, process, urgent, design-critique:ingest-ready, core-capabilities",
+      "UserStory": "As a Directive through-merge operator, I want activation and thin file_scope-widen PRs to merge in about one CI round, so Prefer-A Bound stories are not blocked 21-42 minutes by extra heads, body-fix re-runs, and leftover/activation races.",
+      "ImplementationPlan": "1) Add narrow pre-push trio guidance for activation/widen (docs-impact --body-file --base-ref, pr:check-closing-keywords --body-file, CHANGELOG check) in swarm skill; not full pre-pr. 2) Offline deft-story identity admission in pr-closing-keywords when prNumber is null (canonical parse + brief/diff identity; forbid token-presence-only). 3) Advisory in-brief file_scope coverage warn from durable brief fields only (never write file_scope; never lift from issue prose). 4) Move docs-impact off merge-gate-primary/failover onto branch-gate job types opened+synchronize+reopened+edited. 5) Drop verify:closing-keywords from check:framework-source/check:merge; keep local + branch-gate. 6) Swarm leftover-before-activation order text + thin executable refuse when cohort leftover-complete is outstanding. 7) Review-cycle names gh run rerun --failed for body-only fixes. 8) CHANGELOG Unreleased for #5736."
     },
     "items": [
       {
         "id": "1",
         "title": "Activation-widen narrow pre-push trio: docs-impact --body-file --base-ref, pr:check-closing-keywords --body-file, CHANGELOG check (not full pre-pr)",
-        "status": "pending"
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Activation-widen narrow pre-push trio: docs-impact --body-file --base-ref, pr:check-closing-keywords --body-file, CHANGELOG check (not full pre-pr)"
+        }
       },
       {
         "id": "2",
         "title": "Offline deft-story identity admission without PR number (canonical parse + diff/brief identity; forbid token-presence-only green)",
-        "status": "pending"
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Offline deft-story identity admission without PR number (canonical parse + diff/brief identity; forbid token-presence-only green)"
+        }
       },
       {
         "id": "3",
         "title": "Advisory in-brief file_scope coverage warn from durable brief fields only (never write file_scope; never lift from issue prose #3835)",
-        "status": "pending"
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Advisory in-brief file_scope coverage warn from durable brief fields only (never write file_scope; never lift from issue prose #3835)"
+        }
       },
       {
         "id": "4",
         "title": "Docs-impact branch-gate relocation: remove from merge-gate-primary/failover; job types opened+synchronize+reopened+edited",
-        "status": "pending"
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Docs-impact branch-gate relocation: remove from merge-gate-primary/failover; job types opened+synchronize+reopened+edited"
+        }
       },
       {
         "id": "5",
         "title": "Drop CI duplicate closing-keywords from check:framework-source/check:merge; keep local + branch-gate signal",
-        "status": "pending"
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Drop CI duplicate closing-keywords from check:framework-source/check:merge; keep local + branch-gate signal"
+        }
       },
       {
         "id": "6",
         "title": "Leftover-before-activation order text: leftover-complete land -> refresh base -> prepare activation -> land -> dispatch",
-        "status": "pending"
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Leftover-before-activation order text: leftover-complete land -> refresh base -> prepare activation -> land -> dispatch"
+        }
       },
       {
         "id": "7",
         "title": "Thin executable leftover-land refuse at cohort activation prepare/open when preceding leftover-complete is outstanding",
-        "status": "pending"
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Thin executable leftover-land refuse at cohort activation prepare/open when preceding leftover-complete is outstanding"
+        }
       },
       {
         "id": "8",
         "title": "CHANGELOG Unreleased line for lifecycle latency #5736",
-        "status": "pending"
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "CHANGELOG Unreleased line for lifecycle latency #5736"
+        }
       }
     ],
     "tags": [
@@ -588,7 +614,8 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "d93daf97137f2c194fd5862e486f0885000b5ebae72835d00c7b090006939ffb"
-      }
+      },
+      "kind": "story"
     },
     "acceptance": {
       "commands": [],
