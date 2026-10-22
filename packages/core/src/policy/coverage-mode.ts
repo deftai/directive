@@ -218,13 +218,16 @@ export function setCoverageMode(
 
   void projectDefinitionPath(projectRoot);
   try {
-    const { changed } = withProjectDefinitionMutation(projectRoot, (mutation) => {
+    const mutationResult = withProjectDefinitionMutation(projectRoot, (mutation) => {
       const data = mutation.load();
       if (typeof data.plan !== "object" || data.plan === null || Array.isArray(data.plan)) {
         if (data.plan === undefined) {
           data.plan = {};
         } else {
-          throw new Error("PROJECT-DEFINITION 'plan' is not an object");
+          return {
+            changed: false,
+            error: "PROJECT-DEFINITION 'plan' is not an object",
+          };
         }
       }
       const plan = data.plan as Record<string, unknown>;
@@ -238,7 +241,7 @@ export function setCoverageMode(
         if (existingPolicy === undefined) {
           plan[PLAN_POLICY_KEY] = {};
         } else {
-          throw new Error("plan.policy is not an object");
+          return { changed: false, error: "plan.policy is not an object" };
         }
       }
       const policyBlock = plan[PLAN_POLICY_KEY] as Record<string, unknown>;
@@ -259,8 +262,17 @@ export function setCoverageMode(
         parts.push("note=" + note.replace(/\n/g, " ").replace(/\r/g, " "));
       }
       appendAuditLog(projectRoot, parts.join(" "), changedFlag);
-      return { changed: changedFlag };
+      return { changed: changedFlag, error: null as string | null };
     });
+
+    if (mutationResult.error !== null && mutationResult.error !== undefined) {
+      return {
+        exitCode: 2,
+        stdout: "✗ Config error: " + mutationResult.error + "\n",
+        changed: false,
+      };
+    }
+    const changed = mutationResult.changed;
 
     const resolved = resolveCoverageMode(projectRoot);
     const lines = [
