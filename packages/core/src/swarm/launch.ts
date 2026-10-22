@@ -47,6 +47,10 @@ import {
   GATE_ENFORCE,
   LEAF_CODING_WORKER_ROLE,
 } from "./constants.js";
+import {
+  evaluateLeftoverBeforeActivation,
+  type LeftoverLandEvidence,
+} from "./leftover-before-activation.js";
 import { originActiveBriefPresent } from "./origin-active-brief.js";
 import { readinessReport } from "./readiness.js";
 import {
@@ -1496,6 +1500,11 @@ export interface LaunchArgs {
   sessionId?: string | null;
   preflightGate?: PreflightGateFn;
   readinessGate?: ReadinessGateFn;
+  /**
+   * Cohort leftover-complete open-PR evidence for leftover-before-activation
+   * refuse at launch prepare/open (#5736). Omit or pass empty open set to admit.
+   */
+  leftoverBeforeActivation?: LeftoverLandEvidence | null;
   worktreeResolver?: WorktreeResolverFn;
   runtimeAuthProbe?: RuntimeAuthProbeFn;
   /** Test seam: override occupancy release after a newly minted claim fails. */
@@ -1685,6 +1694,19 @@ export function swarmLaunch(args: LaunchArgs): {
       stderr:
         `Error: story '${gateFailure.story.story_id}' (${gateFailure.story.relpath}) ` +
         `is not launch-ready -- ${gateFailure.reason}\n`,
+    };
+  }
+
+  // Thin leftover-before-activation refuse at launch prepare/open (#5736 Recut-1).
+  // Always evaluate (default clear evidence) so ordinary swarm:launch cannot skip the gate.
+  const leftoverGate = evaluateLeftoverBeforeActivation(
+    args.leftoverBeforeActivation ?? { openLeftoverPrNumbers: [] },
+  );
+  if (!leftoverGate.ok) {
+    return {
+      exitCode: EXIT_GATE_FAILED,
+      stdout: "",
+      stderr: `Error: ${leftoverGate.detail}\n`,
     };
   }
 

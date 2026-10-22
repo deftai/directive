@@ -23,6 +23,7 @@ export function parseLaunchArgv(argv: readonly string[]): Parameters<typeof swar
   let workerGithubAuthMode: string | null = null;
   let expectedWorkerLogin: string | null = null;
   let skipRouting = false;
+  const leftoverOpenPrNumbers: number[] = [];
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -89,6 +90,14 @@ export function parseLaunchArgv(argv: readonly string[]): Parameters<typeof swar
       expectedWorkerLogin = arg.slice("--expected-worker-login=".length);
     } else if (arg === "--skip-routing") {
       skipRouting = true;
+    } else if (arg === "--leftover-open-prs") {
+      const value = takeValue();
+      if (value !== null) {
+        for (const part of value.split(",")) {
+          const n = Number(part.trim());
+          if (Number.isInteger(n) && n > 0) leftoverOpenPrNumbers.push(n);
+        }
+      }
     }
   }
 
@@ -112,6 +121,7 @@ export function parseLaunchArgv(argv: readonly string[]): Parameters<typeof swar
     sessionId,
     workerGithubAuthMode,
     skipRouting,
+    leftoverBeforeActivation: { openLeftoverPrNumbers: leftoverOpenPrNumbers },
     expectedPrincipal:
       expectedWorkerLogin !== null && expectedWorkerLogin.trim().length > 0
         ? { kind: "user", login: expectedWorkerLogin.trim() }

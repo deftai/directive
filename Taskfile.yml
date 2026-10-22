@@ -457,6 +457,8 @@ tasks:
       - verify:bridge-drift
       - verify:branch
       - verify:encoding
+      # Keep local uncached closing-keyword checks (#5736 Greptile); CI branch-gate
+      # still owns --mode both for merge-base / commit-range.
       - verify:closing-keywords
       - verify:forward-coverage
       - verify:changelog-unreleased

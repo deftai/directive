@@ -150,6 +150,79 @@ export function isSkipActiveDeliveryShape(files: readonly PrDiffPath[]): boolean
   return removedProposedOrPending && addedCompleted && !removedActive;
 }
 
+function mapGitNameStatus(letter: string): string {
+  const ch = (letter[0] ?? "").toUpperCase();
+  if (ch === "A") return "added";
+  if (ch === "M") return "modified";
+  if (ch === "D") return "removed";
+  if (ch === "R") return "renamed";
+  if (ch === "C") return "copied";
+  return letter.toLowerCase();
+}
+
+/** Offline --body-file: name-status vs upstream merge-base (master|main). */
+function collectLocalDiffFiles(projectRoot: string, runGit: RunGhFn): PrDiffPath[] | null {
+  const prev = process.cwd();
+  try {
+    process.chdir(projectRoot);
+  } catch {
+    return null;
+  }
+  try {
+    let base: string | null = null;
+    for (const upstream of ["origin/master", "origin/main", "master", "main"] as const) {
+      const mb = runGit(["merge-base", "HEAD", upstream]);
+      if (mb.returncode === 0 && mb.stdout.trim().length > 0) {
+        base = mb.stdout.trim();
+        break;
+      }
+    }
+    if (base === null) {
+      // No delivery base — skip offline admission rather than diff HEAD..HEAD.
+      return null;
+    }
+    const diff = runGit(["diff", "-z", "--name-status", "--find-renames", base, "HEAD"]);
+    if (diff.returncode !== 0) {
+      return [];
+    }
+    const out: PrDiffPath[] = [];
+    const tokens = diff.stdout.split("\0");
+    let i = 0;
+    while (i < tokens.length) {
+      const status = (tokens[i] ?? "").trim();
+      if (status.length === 0) {
+        i += 1;
+        continue;
+      }
+      if (status.startsWith("R") || status.startsWith("C")) {
+        const previousFilename = tokens[i + 1] ?? "";
+        const path = tokens[i + 2] ?? "";
+        if (path.length > 0) {
+          out.push({
+            status: mapGitNameStatus(status),
+            path,
+            ...(previousFilename.length > 0 ? { previousFilename } : {}),
+          });
+        }
+        i += 3;
+        continue;
+      }
+      const path = tokens[i + 1] ?? "";
+      if (path.length > 0) {
+        out.push({ status: mapGitNameStatus(status), path });
+      }
+      i += 2;
+    }
+    return out;
+  } finally {
+    try {
+      process.chdir(prev);
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
 function fetchPrFiles(pr: number, repo: string, runGh: RunGhFn): PrDiffPath[] | null {
   const out: PrDiffPath[] = [];
   // Paginate beyond page 1 so later nonterminal briefs cannot bypass admission (#4919).
@@ -357,7 +430,10 @@ function evaluatePathBActivationAdmit(args: {
   readonly repo: string;
   readonly files: readonly PrDiffPath[];
 }): { ok: boolean; detail: string } {
-  if (!isBriefLandShapedDiff(args.files) || args.prNumber === null) {
+  // Offline (#5736): brief-land identity (marks ↔ changed-brief issue refs +
+  // unset productPullRequest) runs with prNumber null. Live stamp binding still
+  // needs a PR number on the product path below.
+  if (!isBriefLandShapedDiff(args.files)) {
     return { ok: false, detail: "not brief-land shaped" };
   }
   const removedNonterminal = removedNonterminalBriefPaths(args.files);
@@ -433,7 +509,11 @@ function evaluatePathBActivationAdmit(args: {
       };
     }
   }
-  return { ok: true, detail: "Path B brief-land activation admitted (#5387)" };
+  const offlineNote = args.prNumber === null ? " (offline identity #5736)" : "";
+  return {
+    ok: true,
+    detail: `Path B brief-land activation admitted (#5387)${offlineNote}`,
+  };
 }
 
 /**
@@ -465,16 +545,23 @@ export function evaluateFullStoryMarkAdmission(args: {
   if (activation.ok) {
     return { ok: true, messages: [activation.detail] };
   }
-  // Hard-fail unbound deft-story on an otherwise activation-shaped unset land.
-  // Deletion refusal stays inside evaluatePathBActivationAdmit only — stamped
-  // product PRs that also delete a brief must reach product stamp gates (#5388).
+  // Offline brief-land (#5736): hard-fail missing/wrong/partial marks and other
+  // activation identity refuses. Live stamped product PRs that also delete a
+  // brief still fall through to product stamp gates (#5388).
+  if (args.prNumber === null && isBriefLandShapedDiff(args.files)) {
+    return { ok: false, messages: [`FAIL: ${activation.detail}`] };
+  }
   if (
     activation.detail.includes("has no matching changed nonterminal brief on Path B activation")
   ) {
     return { ok: false, messages: [`FAIL: ${activation.detail}`] };
   }
   const changedNonterminal = changedNonterminalBriefPaths(args.files);
-  if (changedNonterminal.length === 0 || args.prNumber === null) {
+  if (changedNonterminal.length === 0) {
+    return { ok: true, messages };
+  }
+  // Product stamp binding needs a live PR number (#5736 leaves that to live admission).
+  if (args.prNumber === null) {
     return { ok: true, messages };
   }
   const marks = parseAllDeftStoryMarks(args.bodyText ?? "");
@@ -1039,7 +1126,7 @@ export function run(argv: readonly string[], options: RunOptions = {}): number {
   const intentFiltered =
     args.pr !== null && closeAllow.size === 0 ? [] : filterHits(intentHits, closeAllow);
 
-  // #4919 / #4864: full-story mark admission on live PR diffs (leftover exception).
+  // #4919 / #4864 / #5736: full-story mark admission on live PR diffs and offline --body-file.
   if (args.pr !== null) {
     const liveRepo = resolveLiveRepo(args, envBag);
     if (liveRepo === null) {
@@ -1062,6 +1149,44 @@ export function run(argv: readonly string[], options: RunOptions = {}): number {
         process.stderr.write(`${message}\n`);
       }
       return EXIT_HITS_FOUND;
+    }
+  } else if (args.bodyFile !== null) {
+    const projectRoot = args.projectRoot ?? ".";
+    const files = collectLocalDiffFiles(projectRoot, options.runGit ?? defaultRunGit);
+    if (files !== null) {
+      // Prefer explicit --repo; else origin remote owner/name; never invent "local"
+      // (Path B URL identity compares against the forge repo string).
+      let offlineRepo = args.repo;
+      if (offlineRepo === null || offlineRepo.trim().length === 0) {
+        const origin = (options.runGit ?? defaultRunGit)([
+          "-C",
+          projectRoot,
+          "remote",
+          "get-url",
+          "origin",
+        ]);
+        const m = origin.stdout.match(/github\.com[:/]([^/]+\/[^/.]+)/i);
+        offlineRepo = m?.[1]?.replace(/\.git$/i, "") ?? null;
+      }
+      if (offlineRepo === null || offlineRepo.trim().length === 0) {
+        process.stderr.write(
+          "FAIL: offline --body-file story admission needs --repo OWNER/REPO (or a github.com origin remote).\n",
+        );
+        return EXIT_CONFIG_ERROR;
+      }
+      const admission = evaluateFullStoryMarkAdmission({
+        bodyText,
+        prNumber: null,
+        projectRoot,
+        repo: offlineRepo.trim(),
+        files,
+      });
+      if (!admission.ok) {
+        for (const message of admission.messages) {
+          process.stderr.write(`${message}\n`);
+        }
+        return EXIT_HITS_FOUND;
+      }
     }
   }
 
