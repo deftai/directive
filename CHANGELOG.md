@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed — Maintainer xBRIEF corpus hygiene after OVPR equal-version upgrade: rewrite residual 0.6 envelopes to xBRIEFInfo 0.8, strip leftover hybrid vBRIEFInfo keys on completed briefs, and reword Taskfile doctor/upgrade comments so they no longer embed `.deft/core/` (doctor wiring false positive on this repo). Refs #5795 #5796.
 
 ### Fixed
+- Fixed - Land tracked completion record for coverageMode framework-only pin-upgrade posture after product #5819. Refs #5791.
 - Fixed - Exit-4 waived coverage_headroom requires a passing coverage report when one exists; with no report, initial|disabled still allow the skip. Refs #5791.
 - Fixed - Damaged coverageMode policy no longer disables coverage checks; typed graduation and policy:show coverageMode work. Refs #5791.
 - Landed completed xBRIEF for #5783 after forge-closer leftover #5815.
