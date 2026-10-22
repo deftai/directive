@@ -322,9 +322,9 @@ export function evaluatePrePush(
     options.branches ?? DEFAULT_BRANCHES,
   );
   const env = options.env ?? process.env;
+  const enrolledFlag = options.enrolledBoundPrePr === true;
   const enrolled =
-    options.enrolledBoundPrePr === true ||
-    resolveRequireBoundPrePrPush(options.projectRoot, options.enrolledBoundPrePr === true);
+    enrolledFlag || resolveRequireBoundPrePrPush(options.projectRoot, enrolledFlag);
 
   if (enrolled) {
     const raw = options.rawStdin;
