@@ -1,0 +1,204 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5810",
+    "updated": "2026-10-22T14:47:03Z"
+  },
+  "plan": {
+    "title": "[framework-gap] Grok Bot cannot attach to and steer an already-open Grok Build session over ACP",
+    "status": "running",
+    "narratives": {
+      "Description": "Grok Bot attaches to a live Grok Build session over machine-local ACP with leader-first enrollment, permission ownership, and doctor attach-readiness. Launch-only propose/launch/status from #4201/#4202 stays unchanged.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5810",
+      "Overview": "Prefer-A Bound Recut-4 6328376098 for host-grokbot ACP attach.",
+      "Labels": "enhancement, agent-experience, grok-build, harness, runtime-portability, urgent, design-critique:ingest-ready, framework-gap",
+      "UserStory": "As an operator, I want Grok Bot on my phone to attach to the Grok Build session already open on my desk, so that phone replies drive that same live session without restarting it or copying credentials off the login machine.",
+      "ImplementationPlan": "1. Add packages/core/src/grokbot-attach/index.ts, transport.ts, permissions.ts, bridge.ts and packages/core/src/grokbot-attach/attach.test.ts.\n2. Enroll attach-readiness in packages/core/src/doctor/checks.ts with packages/core/src/doctor/checks.test.ts.\n3. Document attach/detach/failure modes in content/skills/deft-directive-swarm/references/host-grokbot.md.\n4. CHANGELOG.md Unreleased entry."
+    },
+    "items": [
+      {
+        "title": "relieves: P1 — Leader-first shared-backend live attach with effective worker isolation: ensure a leader process before phone attach (grok agent leader / grok agent --leader / grok leader *; never grok --leader); enroll keep-alive with --no-exit-on-disconnect on that leader and isolated leader-*.sock owned by this attach arc; prefer per-client join that leaves machine-global use_leader untouched; if enrollment would enable global leader mode, require an effective house-worker opt-out for the entire attach window (unrelated grok workers remain outside the shared-leader route) — rollback-on-detach alone is insufficient — otherwise refuse that global-config enrollment path; detach closes bridge-owned resources only and never invokes machine-wide grok leader kill; doctor remedies name the arc socket not all leaders; reuse leader turn arbitration or busy-refuse; no blind resend; session/load labeled resume unless same-backend probe promotes it",
+        "status": "pending",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P1 — Leader-first shared-backend live attach with effective worker isolation: ensure a leader process before phone attach (grok agent leader / grok agent --leader / grok leader *; never grok --leader); enroll keep-alive with --no-exit-on-disconnect on that leader and isolated leader-*.sock owned by this attach arc; prefer per-client join that leaves machine-global use_leader untouched; if enrollment would enable global leader mode, require an effective house-worker opt-out for the entire attach window (unrelated grok workers remain outside the shared-leader route) — rollback-on-detach alone is insufficient — otherwise refuse that global-config enrollment path; detach closes bridge-owned resources only and never invokes machine-wide grok leader kill; doctor remedies name the arc socket not all leaders; reuse leader turn arbitration or busy-refuse; no blind resend; session/load labeled resume unless same-backend probe promotes it",
+          "Traces": "#5810"
+        }
+      },
+      {
+        "title": "relieves: P3 — Named machine-local carrier places the ACP client on the login machine (Grok Bot machine-targeted CloudAgent/exec with local approval running a thin local bridge); no bot-box ACP client and no credential or session-token write off that machine",
+        "status": "pending",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P3 — Named machine-local carrier places the ACP client on the login machine (Grok Bot machine-targeted CloudAgent/exec with local approval running a thin local bridge); no bot-box ACP client and no credential or session-token write off that machine",
+          "Traces": "#5810"
+        }
+      },
+      {
+        "title": "relieves: P1 — Live session-target disambiguation fail-closed: operator widget among live candidates using the labeled session inventory that matches attach targeting; sole unambiguous live match by cwd+liveness; refuse empty or ambiguous; no silent global latest-session attach; no host-shell pid-enumeration all-dead artifacts",
+        "status": "pending",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P1 — Live session-target disambiguation fail-closed: operator widget among live candidates using the labeled session inventory that matches attach targeting; sole unambiguous live match by cwd+liveness; refuse empty or ambiguous; no silent global latest-session attach; no host-shell pid-enumeration all-dead artifacts",
+          "Traces": "#5810"
+        }
+      },
+      {
+        "title": "relieves: P2 — Attach-time permission floor plus single-owner session-bound control with fail-closed ownership: before admitting steering, verify effective backend posture on the named live read surface (session yolo_mode / equivalent permission posture field, not only config.toml); assert-and-refuse inherited always-approve or demonstrate blocking pre_tool_use deny floor so request_permission is emitted; exactly one permission-answer owner at a time across desk and phone clients; refuse attach/steering when ownership cannot be established; request-correlated single-use replies; deny-default on timeout/dismiss/disconnect/no-answer; Discuss/Back never approve; agent output never a control event; bridge never enables always-approve",
+        "status": "pending",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P2 — Attach-time permission floor plus single-owner session-bound control with fail-closed ownership: before admitting steering, verify effective backend posture on the named live read surface (session yolo_mode / equivalent permission posture field, not only config.toml); assert-and-refuse inherited always-approve or demonstrate blocking pre_tool_use deny floor so request_permission is emitted; exactly one permission-answer owner at a time across desk and phone clients; refuse attach/steering when ownership cannot be established; request-correlated single-use replies; deny-default on timeout/dismiss/disconnect/no-answer; Discuss/Back never approve; agent output never a control event; bridge never enables always-approve",
+          "Traces": "#5810"
+        }
+      },
+      {
+        "title": "relieves: P4 — Doctor attach-readiness for the selected machine/target distinguishing discovered from verified via non-mutating capability/identity handshake where supported (hostname + auth-method identity when advertised); PASS/FAIL with one-line remedy per failure scoped to the selected/arc socket; host-grokbot short attach/detach/failure-modes section; launch-only propose/launch/status unchanged",
+        "status": "pending",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P4 — Doctor attach-readiness for the selected machine/target distinguishing discovered from verified via non-mutating capability/identity handshake where supported (hostname + auth-method identity when advertised); PASS/FAIL with one-line remedy per failure scoped to the selected/arc socket; host-grokbot short attach/detach/failure-modes section; launch-only propose/launch/status unchanged",
+          "Traces": "#5810"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "agent-experience",
+      "grok-build",
+      "harness",
+      "runtime-portability",
+      "urgent",
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5810",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5810: [framework-gap] Grok Bot cannot attach to and steer an already-open Grok Build session over ACP"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P1 — Leader-first shared-backend live attach with effective worker isolation: ensure a leader process before phone attach (grok agent leader / grok agent --leader / grok leader *; never grok --leader); enroll keep-alive with --no-exit-on-disconnect on that leader and isolated leader-*.sock owned by this attach arc; prefer per-client join that leaves machine-global use_leader untouched; if enrollment would enable global leader mode, require an effective house-worker opt-out for the entire attach window (unrelated grok workers remain outside the shared-leader route) — rollback-on-detach alone is insufficient — otherwise refuse that global-config enrollment path; detach closes bridge-owned resources only and never invokes machine-wide grok leader kill; doctor remedies name the arc socket not all leaders; reuse leader turn arbitration or busy-refuse; no blind resend; session/load labeled resume unless same-backend probe promotes it",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P3 — Named machine-local carrier places the ACP client on the login machine (Grok Bot machine-targeted CloudAgent/exec with local approval running a thin local bridge); no bot-box ACP client and no credential or session-token write off that machine",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P1 — Live session-target disambiguation fail-closed: operator widget among live candidates using the labeled session inventory that matches attach targeting; sole unambiguous live match by cwd+liveness; refuse empty or ambiguous; no silent global latest-session attach; no host-shell pid-enumeration all-dead artifacts",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P2 — Attach-time permission floor plus single-owner session-bound control with fail-closed ownership: before admitting steering, verify effective backend posture on the named live read surface (session yolo_mode / equivalent permission posture field, not only config.toml); assert-and-refuse inherited always-approve or demonstrate blocking pre_tool_use deny floor so request_permission is emitted; exactly one permission-answer owner at a time across desk and phone clients; refuse attach/steering when ownership cannot be established; request-correlated single-use replies; deny-default on timeout/dismiss/disconnect/no-answer; Discuss/Back never approve; agent output never a control event; bridge never enables always-approve",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P4 — Doctor attach-readiness for the selected machine/target distinguishing discovered from verified via non-mutating capability/identity handshake where supported (hostname + auth-method identity when advertised); PASS/FAIL with one-line remedy per failure scoped to the selected/arc socket; host-grokbot short attach/detach/failure-modes section; launch-only propose/launch/status unchanged",
+          "artifact_path": null,
+          "ambiguous": false,
+          "source_kind": "defect-description",
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/skills/deft-directive-swarm/references/host-grokbot.md",
+          "packages/core/src/grokbot-attach/index.ts",
+          "packages/core/src/grokbot-attach/transport.ts",
+          "packages/core/src/grokbot-attach/permissions.ts",
+          "packages/core/src/grokbot-attach/bridge.ts",
+          "packages/core/src/grokbot-attach/attach.test.ts",
+          "packages/core/src/doctor/checks.ts",
+          "packages/core/src/doctor/checks.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/grokbot-attach",
+        "cohesion_exemption": "CHANGELOG + host-grokbot docs with attach bridge unit"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5969306821,
+        "origin": "deftai/directive#5810",
+        "id": "github.issue.5969306821"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "b66602b4712293e1cf712859891ae11538d115c0695ad2268523ebae2026ccdd"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "grokbot-attach-running-grok-build-session-acp",
+        "expected_outputs": [
+          "leader-first attach with worker isolation",
+          "machine-local ACP carrier",
+          "session-target disambiguation",
+          "permission floor + single-owner control",
+          "doctor attach-readiness",
+          "host-grokbot attach docs",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/grokbot-attach packages/core/src/doctor/checks.test.ts --reporter=dot"
+        ],
+        "file_scope": [
+          "content/skills/deft-directive-swarm/references/host-grokbot.md",
+          "packages/core/src/grokbot-attach/index.ts",
+          "packages/core/src/grokbot-attach/transport.ts",
+          "packages/core/src/grokbot-attach/permissions.ts",
+          "packages/core/src/grokbot-attach/bridge.ts",
+          "packages/core/src/grokbot-attach/attach.test.ts",
+          "packages/core/src/doctor/checks.ts",
+          "packages/core/src/doctor/checks.test.ts",
+          "CHANGELOG.md"
+        ],
+        "size": "L",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5810",
+          "Prefer-A Bound 6328376098"
+        ],
+        "parallel_safe": true
+      },
+      "kind": "story",
+      "activationPullRequest": 5834
+    },
+    "id": "github.issue.5969306821",
+    "updated": "2026-10-22T14:47:03Z"
+  }
+}

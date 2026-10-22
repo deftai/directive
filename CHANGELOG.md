@@ -12,6 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added - Projects without a coverage suite can finish pre-PR for framework-only Directive pin upgrades without inventing Istanbul results (coverageMode: initial|disabled|full). Refs #5791 Prefer-A Bound 6327849654.
 
 ### Changed
+- Changed - Prepare session:start so success prints one trusted ready line by default, with routine ceremony behind --verbose. Refs #4966 Prefer-A Bound 6255757053.
+- Changed - Prepare review-cycle babysit so merge-ready SLizard blocks force tip-body fingerprint work before re-arming wait-mergeable. Refs #5102 Prefer-A Bound 5872632888.
+- Changed - Prepare host/deft-hook refuse-before-execution for undeclared forge-poll and path-only TEMP babysit shells when Tier-1 spawn_subagent is available. Refs #5732 Prefer-A Bound 6256155031.
+- Changed - Prepare worktrees-probe unregister to keep operation-scoped admin ownership across both prune passes so a case-distinct sibling is never fold-matched away. Refs #5735 Prefer-A Bound 6256420554.
+- Changed - Prepare Grok Bot to attach to a live desk Grok Build session from the phone over machine-local ACP, with leader-first enrollment, permission ownership, and doctor attach-readiness. Refs #5810 Prefer-A Bound 6328376098.
+- Changed - Prepare a query-first gate so parent Class A push/PR-open waits on a live stop-at:pr-open leaf tip-schema admit before publishing. Refs #5812 Prefer-A Bound 6328905032.
 - Changed - Prepare a hard local refuse so feature-branch pushes of product changes require a bound pre-PR pass before they leave the machine (activation for follow-up product fix). Refs #5804 Prefer-A Bound 6323623922.
 - Changed - Cut activation and thin widen PR merge latency: narrow offline pre-push checks, docs-impact on branch-gate (not merge-gate), drop CI closing-keywords duplicate, leftover-before-activation refuse. Refs #5736 Prefer-A Bound 6256466667.
 - Changed - Prepare the follow-up fix that will make maintainer commands use the same pinned runtime as Git hooks. This preparation does not change which runtime commands execute. Refs #5805 Prefer-A Bound 6326249868.
@@ -7685,6 +7691,7 @@ If you have custom scripts or references to deft files, update these paths:
 [0.2.0]: https://github.com/visionik/warping/releases/tag/v0.2.0
 
 [0.1.0]: https://github.com/visionik/warping/releases/tag/v0.1.0
+
 
 
 
