@@ -173,9 +173,9 @@ export function run(argv: string[]): number {
     evaluatorId: args.evaluatorId,
   });
 
-  // Exit 3 = authorized coverage N/A (#5421); exit 4 = gate-override waived (#5674).
+  // Exit 3 = authorized coverage N/A (#5421); exit 4 = gate-override waived (#5674); exit 5 = coverageMode posture (#5791).
   // Keep machine-readable artifact on stdout for --json. Never map waived to exit 0.
-  if (result.exitCode === 3 || result.exitCode === 4) {
+  if (result.exitCode === 3 || result.exitCode === 4 || result.exitCode === 5) {
     if (args.json && result.applicability) {
       process.stdout.write(`${JSON.stringify(result.applicability, null, 2)}\n`);
     } else if (!args.quiet) {

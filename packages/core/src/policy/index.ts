@@ -34,6 +34,11 @@ import {
   inspectCoverageDebt,
 } from "./coverage-debt.js";
 import {
+  FIELD_COVERAGE_MODE,
+  FIELD_COVERAGE_MODE_CLI_ALIAS,
+  inspectCoverageMode,
+} from "./coverage-mode.js";
+import {
   FIELD_DELIVERY_BRANCH,
   FIELD_DELIVERY_BRANCH_CLI_ALIAS,
   inspectDeliveryBranch,
@@ -471,6 +476,20 @@ function inspectCoverageDebtField(
   };
 }
 
+
+function inspectCoverageModeField(
+  data: Record<string, unknown> | null,
+  projectRoot?: string,
+): PolicyField {
+  const field = inspectCoverageMode(data, projectRoot);
+  return {
+    name: field.name,
+    current: field.current,
+    default: field.default,
+    source: field.source,
+  };
+}
+
 function inspectCheckResumeField(
   data: Record<string, unknown> | null,
   projectRoot?: string,
@@ -743,6 +762,7 @@ const REGISTERED_POLICIES: readonly Inspector[] = [
   inspectProductSignalField,
   inspectValueFeedbackField,
   inspectCoverageDebtField,
+  inspectCoverageModeField,
   inspectCheckResumeField,
   inspectRequireHumanMergeField,
   inspectHotfixCriteriaField,

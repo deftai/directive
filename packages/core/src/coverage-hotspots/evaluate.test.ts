@@ -4,7 +4,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { mintGateOverrideTemplateGrant } from "../authz/gate-override.js";
-import { COVERAGE_HEADROOM_WAIVED_SKIP } from "../pre-pr-controller/phases.js";
+import {
+  COVERAGE_HEADROOM_MODE_SKIP,
+  COVERAGE_HEADROOM_WAIVED_SKIP,
+} from "../pre-pr-controller/phases.js";
 import {
   DEFAULT_MIN_HEADROOM_PP,
   evaluateCoverageHotspots,
@@ -13,6 +16,26 @@ import {
   summarizeCoverageFinal,
 } from "./evaluate.js";
 import { readProjectCoverageThresholds } from "./thresholds.js";
+
+function writeCoverageMode(root: string, mode: string): void {
+  mkdirSync(join(root, "xbrief"), { recursive: true });
+  writeFileSync(
+    join(root, "xbrief/PROJECT-DEFINITION.xbrief.json"),
+    JSON.stringify(
+      {
+        xBRIEFInfo: { version: "0.8", description: "test", updated: "2026-01-01T00:00:00Z" },
+        plan: {
+          title: "t",
+          status: "running",
+          "x-directive/policy": { coverageMode: mode },
+        },
+      },
+      null,
+      2,
+    ),
+    "utf8",
+  );
+}
 
 const temps: string[] = [];
 afterAll(() => {
@@ -127,8 +150,9 @@ describe("readProjectCoverageThresholds", () => {
 });
 
 describe("evaluateCoverageHotspots", () => {
-  it("returns config error when coverage report is missing", () => {
+  it("returns config error when coverage report is missing under coverageMode=full", () => {
     const root = makeProject({});
+    writeCoverageMode(root, "full");
     const result = evaluateCoverageHotspots({ projectRoot: root, useDiffPaths: false });
     expect(result.exitCode).toBe(2);
     expect(result.message).toContain("coverage report missing");
@@ -779,8 +803,9 @@ describe("evaluateCoverageHotspots", () => {
     expect(result.message).toContain("dirty working tree");
   });
 
-  it("keeps exit 2 when applicable work is missing a coverage report", () => {
+  it("keeps exit 2 when applicable work is missing a coverage report under coverageMode=full", () => {
     const root = gitRepo({ "README.md": "# base\n" });
+    writeCoverageMode(root, "full");
     const baseSha = childProcess
       .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
       .trim();
@@ -788,6 +813,115 @@ describe("evaluateCoverageHotspots", () => {
     writeFileSync(join(root, "src/app.ts"), "export const x = 1;\n");
     childProcess.execFileSync("git", ["add", "-A"], { cwd: root });
     childProcess.execFileSync("git", ["commit", "-q", "-m", "code"], { cwd: root });
+    const headSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    const treeHash = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD^{tree}"], { cwd: root, encoding: "utf8" })
+      .trim();
+    const result = evaluateCoverageHotspots({
+      projectRoot: root,
+      inputBinding: { baseSha, headSha, treeHash },
+    });
+    expect(result.exitCode).toBe(2);
+    expect(result.message).toContain("coverage report missing");
+  });
+
+  it("exits 5 with distinct mode token under initial when report is missing (#5791)", () => {
+    const root = gitRepo({ "README.md": "# base\n" });
+    // PD present but coverageMode key missing → initial
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief/PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8", description: "test", updated: "2026-01-01T00:00:00Z" },
+        plan: { title: "t", status: "running", "x-directive/policy": {} },
+      }),
+    );
+    const baseSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    writeFileSync(join(root, "package.json"), JSON.stringify({ name: "c", version: "1.0.0" }));
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: root });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "pin"], { cwd: root });
+    const headSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    const treeHash = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD^{tree}"], { cwd: root, encoding: "utf8" })
+      .trim();
+    const result = evaluateCoverageHotspots({
+      projectRoot: root,
+      inputBinding: { baseSha, headSha, treeHash },
+    });
+    expect(result.exitCode).toBe(5);
+    expect(result.applicability?.outcome).toBe("mode-skip");
+    expect(result.applicability?.skipReason).toBe(COVERAGE_HEADROOM_MODE_SKIP);
+    expect(result.applicability?.skipReason).not.toBe("reviewed diff has no coverable paths");
+    expect(result.message).toContain(COVERAGE_HEADROOM_MODE_SKIP);
+    expect(result.message).toContain("exit 5");
+    expect(result.applicability?.coverageMode?.mode).toBe("initial");
+    expect(result.applicability?.coverageMode?.reminder).toContain("choose full");
+  });
+
+  it("exits 5 under disabled without initial reminder (#5791)", () => {
+    const root = gitRepo({ "README.md": "# base\n" });
+    writeCoverageMode(root, "disabled");
+    const baseSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    writeFileSync(join(root, "package.json"), JSON.stringify({ name: "c", version: "1.0.0" }));
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: root });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "pin"], { cwd: root });
+    const headSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    const treeHash = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD^{tree}"], { cwd: root, encoding: "utf8" })
+      .trim();
+    const result = evaluateCoverageHotspots({
+      projectRoot: root,
+      inputBinding: { baseSha, headSha, treeHash },
+    });
+    expect(result.exitCode).toBe(5);
+    expect(result.applicability?.coverageMode?.mode).toBe("disabled");
+    expect(result.applicability?.coverageMode?.reminder).toBeNull();
+  });
+
+  it("report-present guard keeps measured path even when mode is initial (#5791)", () => {
+    const root = gitRepo({
+      "README.md": "# base\n",
+      "coverage/coverage-final.json": JSON.stringify({
+        "src/a.ts": {
+          s: { "0": 1, "1": 1, "2": 1, "3": 1, "4": 1, "5": 1, "6": 1, "7": 1, "8": 1, "9": 1 },
+          f: { "0": 1 },
+          b: {
+            "0": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+          },
+        },
+      }),
+      "vitest.config.ts":
+        "export default { test: { coverage: { thresholds: { branches: 50 } } } };",
+    });
+    writeCoverageMode(root, "initial");
+    const result = evaluateCoverageHotspots({
+      projectRoot: root,
+      checkApplicability: false,
+      useDiffPaths: false,
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.report).not.toBeNull();
+  });
+
+  it("malformed coverageMode does not authorize initial skip (#5791)", () => {
+    const root = gitRepo({ "README.md": "# base\n" });
+    writeCoverageMode(root, "nope");
+    const baseSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    writeFileSync(join(root, "package.json"), JSON.stringify({ name: "c", version: "1.0.0" }));
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: root });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "pin"], { cwd: root });
     const headSha = childProcess
       .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
       .trim();

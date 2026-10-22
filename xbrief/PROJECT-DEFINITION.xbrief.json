@@ -23885,7 +23885,8 @@
       },
       "review": {
         "minGreptileConfidence": 4
-      }
+      },
+      "coverageMode": "full"
     },
     "updated": "2026-07-02T14:32:31Z",
     "x-directive/onboarding": {

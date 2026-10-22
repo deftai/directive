@@ -248,6 +248,7 @@ export function createSkeleton(
       narratives: { ...SKELETON_NARRATIVES },
       items,
       metadata: { staleness_flags: stalenessFlags },
+      "x-directive/policy": { coverageMode: "initial" },
     },
   };
 }

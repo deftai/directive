@@ -105,6 +105,13 @@ export const COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP =
 export const COVERAGE_HEADROOM_WAIVED_SKIP =
   "coverage-applicability refuse waived by gate-override admission" as const;
 
+/**
+ * Distinct closed skip token for coverageMode posture N/A (#5791 Prefer-A Recut-2).
+ * Never reuse the inert N/A string; never treat as measured pass / exit 0.
+ */
+export const COVERAGE_HEADROOM_MODE_SKIP =
+  "coverageMode posture skip (initial|disabled)" as const;
+
 export const ALLOWED_SKIP_REASONS: Partial<Record<PrePrPhaseId, string>> = {
   plan_sequence: "no active ordered-plan sequence",
   render_export: "no existing export files to refresh",
@@ -117,7 +124,8 @@ export function isAllowedSkip(phaseId: PrePrPhaseId, skipReason: string | null):
   if (
     phaseId === "coverage_headroom" &&
     (skipReason === COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP ||
-      skipReason === COVERAGE_HEADROOM_WAIVED_SKIP)
+      skipReason === COVERAGE_HEADROOM_WAIVED_SKIP ||
+      skipReason === COVERAGE_HEADROOM_MODE_SKIP)
   ) {
     return true;
   }

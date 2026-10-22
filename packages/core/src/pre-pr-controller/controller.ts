@@ -19,6 +19,11 @@ import {
 } from "../coverage-applicability/index.js";
 import { evaluateCoverageHotspots } from "../coverage-hotspots/evaluate.js";
 import {
+  isCoverageModeSkipAuthorized,
+  resolveCoverageMode,
+} from "../policy/coverage-mode.js";
+import {
+  COVERAGE_HEADROOM_MODE_SKIP,
   COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP,
   COVERAGE_HEADROOM_WAIVED_SKIP,
   isAllowedSkip,
@@ -183,6 +188,7 @@ export function observeCommandPhase(
   store: PrePrExecutionStore,
   runId: string,
   observation: Omit<CommandObservation, "completedAt"> & { readonly now?: Date },
+  options?: { readonly projectRoot?: string },
 ): PrePrDecision {
   const spec = phaseSpec(observation.phaseId);
   if (spec.kind !== "command-observable") {
@@ -191,6 +197,7 @@ export function observeCommandPhase(
       `phase ${observation.phaseId} is semantic, not command-observable`,
     );
   }
+  const projectRoot = options?.projectRoot ?? process.cwd();
   const { decision } = mutate(store, runId, (record) => {
     if (observation.inputHash !== record.inputHash) {
       return deny(
@@ -202,7 +209,10 @@ export function observeCommandPhase(
       observation.phaseId === "coverage_headroom"
         ? (observation.exitCode === 3 &&
             observation.skipReason === COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP) ||
-          (observation.exitCode === 4 && observation.skipReason === COVERAGE_HEADROOM_WAIVED_SKIP)
+          (observation.exitCode === 4 && observation.skipReason === COVERAGE_HEADROOM_WAIVED_SKIP) ||
+          (observation.exitCode === 5 &&
+            observation.skipReason === COVERAGE_HEADROOM_MODE_SKIP &&
+            isCoverageModeSkipAuthorized(resolveCoverageMode(projectRoot).mode))
         : isAllowedSkip(observation.phaseId, observation.skipReason);
     // Exit 4 waived must not mark the run failed (#5674); exit 0 alone is measured pass.
     const failed = observation.exitCode !== 0 && !skipOk;
@@ -454,6 +464,17 @@ function commandSatisfied(
         if (measured.exitCode !== 0) return false;
       }
       return true;
+    }
+
+    // #5791 mode arm: exit 5 + distinct mode token; re-read policy (not inert re-derive).
+    // Report-present guard keeps the measured path — refuse mode skip when report exists.
+    if (row.exitCode === 5) {
+      if (row.skipReason !== COVERAGE_HEADROOM_MODE_SKIP) return false;
+      if (spec.command === null || !coverageHotspotsCommandMatches(row.command, spec.command)) {
+        return false;
+      }
+      if (existsSync(join(projectRoot, "coverage", "coverage-final.json"))) return false;
+      return isCoverageModeSkipAuthorized(resolveCoverageMode(projectRoot).mode);
     }
 
     // Authorized N/A is exit 3 only (hotspots emits 3 when inert + no report).

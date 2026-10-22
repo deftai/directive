@@ -11,6 +11,13 @@ import {
   evaluateCoverageApplicability,
 } from "../coverage-applicability/index.js";
 import {
+  COVERAGE_MODE_INITIAL_REMINDER,
+  type CoverageMode,
+  isCoverageModeSkipAuthorized,
+  resolveCoverageMode,
+} from "../policy/coverage-mode.js";
+import {
+  COVERAGE_HEADROOM_MODE_SKIP,
   COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP,
   COVERAGE_HEADROOM_WAIVED_SKIP,
 } from "../pre-pr-controller/phases.js";
@@ -72,10 +79,11 @@ export interface CoverageHotspotsReport {
 
 export interface CoverageApplicabilityArtifact {
   readonly schema: "deft.coverage-applicability.v1";
-  readonly outcome: CoverageApplicabilityResult["outcome"] | "waived";
+  readonly outcome: CoverageApplicabilityResult["outcome"] | "waived" | "mode-skip";
   readonly skipReason:
     | typeof COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP
     | typeof COVERAGE_HEADROOM_WAIVED_SKIP
+    | typeof COVERAGE_HEADROOM_MODE_SKIP
     | null;
   readonly reason: string;
   readonly binding: {
@@ -92,14 +100,21 @@ export interface CoverageApplicabilityArtifact {
     readonly admittedAt: string;
     readonly reused: boolean;
   } | null;
+  /** Present when outcome is mode-skip (#5791); carries effective mode + standing reminder. */
+  readonly coverageMode?: {
+    readonly mode: CoverageMode;
+    readonly source: string;
+    readonly reminder: string | null;
+  } | null;
 }
 
 export interface CoverageHotspotsResult {
   /**
    * 0 = measured pass; 1 = floor/headroom fail; 2 = config/refuse;
-   * 3 = authorized N/A; 4 = gate-override waived refuse (never pass).
+   * 3 = authorized N/A; 4 = gate-override waived refuse (never pass);
+   * 5 = coverageMode posture skip (never pass / never exit-0 N/A).
    */
-  readonly exitCode: 0 | 1 | 2 | 3 | 4;
+  readonly exitCode: 0 | 1 | 2 | 3 | 4 | 5;
   readonly report: CoverageHotspotsReport | null;
   readonly message: string;
   readonly applicability?: CoverageApplicabilityArtifact | null;
@@ -362,6 +377,57 @@ function waivedResult(artifact: CoverageApplicabilityArtifact): CoverageHotspots
   };
 }
 
+function buildModeSkipArtifact(
+  mode: CoverageMode,
+  source: string,
+  binding: { readonly baseSha: string; readonly headSha: string; readonly treeHash: string },
+  coverablePaths: readonly string[],
+): CoverageApplicabilityArtifact {
+  const reminder = mode === "initial" ? COVERAGE_MODE_INITIAL_REMINDER : null;
+  const strengthen =
+    reminder !== null && coverablePaths.length > 0
+      ? ` (coverable paths present: ${coverablePaths.slice(0, 8).join(", ")}${coverablePaths.length > 8 ? ", …" : ""})`
+      : "";
+  return {
+    schema: "deft.coverage-applicability.v1",
+    outcome: "mode-skip",
+    skipReason: COVERAGE_HEADROOM_MODE_SKIP,
+    reason:
+      `coverage-hotspots: mode-skip (${COVERAGE_HEADROOM_MODE_SKIP}); coverageMode=${mode}` +
+      (reminder !== null ? `; reminder=${reminder}${strengthen}` : ""),
+    binding: {
+      baseSha: binding.baseSha,
+      headSha: binding.headSha,
+      treeHash: binding.treeHash,
+    },
+    admission: null,
+    coverageMode: {
+      mode,
+      source,
+      reminder: reminder !== null ? `${reminder}${strengthen}` : null,
+    },
+  };
+}
+
+function modeSkipResult(artifact: CoverageApplicabilityArtifact): CoverageHotspotsResult {
+  const payload = `${JSON.stringify(artifact, null, 2)}\n`;
+  const reminderLine =
+    artifact.coverageMode?.reminder !== null && artifact.coverageMode?.reminder !== undefined
+      ? `  Reminder: ${artifact.coverageMode.reminder}\n`
+      : "";
+  return {
+    exitCode: 5,
+    report: null,
+    message:
+      `coverage-hotspots: mode-skip (${COVERAGE_HEADROOM_MODE_SKIP})\n` +
+      `  Record coverage_headroom via exit 5 + skip reason "${COVERAGE_HEADROOM_MODE_SKIP}".\n` +
+      `  Never treat mode-skip as measured pass / exit 0; distinct from inert N/A.\n` +
+      reminderLine +
+      payload,
+    applicability: artifact,
+  };
+}
+
 function resolveApplicabilityBinding(
   projectRoot: string,
   options: CoverageHotspotsOptions,
@@ -397,6 +463,7 @@ export function evaluateCoverageHotspots(options: CoverageHotspotsOptions): Cove
   const reportPath = join(coverageDir, "coverage-final.json");
   const reportExists = existsSync(reportPath);
   let pendingWaived: CoverageApplicabilityArtifact | null = null;
+  let classifiedCoverablePaths: readonly string[] = [];
 
   // Prefer-A Bound limb 4: classify before requiring Istanbul when applicability is in scope.
   // Caller pathFilter never authorizes N/A. Diff-level inert alone does not delete the
@@ -408,6 +475,9 @@ export function evaluateCoverageHotspots(options: CoverageHotspotsOptions): Cove
       headSha: binding.headSha,
       treeHash: binding.treeHash,
     });
+    if (applicability.outcome === "applicable") {
+      classifiedCoverablePaths = applicability.coverablePaths;
+    }
     const artifact = buildApplicabilityArtifact(applicability, binding);
 
     if (applicability.outcome === "not-applicable" && !reportExists) {
@@ -487,10 +557,31 @@ export function evaluateCoverageHotspots(options: CoverageHotspotsOptions): Cove
     }
 
     // applicable, or not-applicable with an available report → continue to measured path.
-    // Report-missing for applicable work keeps today's exit 2 below.
+    // Report-missing for applicable work: mode gate (#5791) may authorize exit 5 below.
   }
 
   if (!reportExists) {
+    // #5791: coverageMode initial|disabled → exit 5 + mode artifact before Istanbul demand.
+    // Report-present guard above keeps measured path when coverage-final.json exists.
+    // Never exit 0; distinct token from inert N/A.
+    const modeResolved = resolveCoverageMode(projectRoot);
+    if (isCoverageModeSkipAuthorized(modeResolved.mode)) {
+      const modeBinding =
+        binding ??
+        resolveApplicabilityBinding(projectRoot, { ...options, checkApplicability: true }) ?? {
+          baseSha: "unknown",
+          headSha: "unknown",
+          treeHash: "unknown",
+        };
+      return modeSkipResult(
+        buildModeSkipArtifact(
+          modeResolved.mode,
+          modeResolved.source,
+          modeBinding,
+          classifiedCoverablePaths,
+        ),
+      );
+    }
     return configError(
       `coverage-hotspots: coverage report missing at ${reportPath}\n` +
         "  Run tests with coverage first (e.g. vitest run --coverage or task test:coverage).",

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added - Project `coverageMode` (`initial`|`disabled`|`full`): hotspots exit 5 + distinct mode skip token when initial/disabled and no Istanbul report; controller admits the mode arm; `policy:show`/typed graduation; install seeds initial; self-host lands full. Refs #5791 Prefer-A Bound 6327849654.
 
 ### Changed
 - Changed - Prepare pre-PR lint iteration so framework-only and no-suite pin upgrades can finish without inventing a Vitest suite (activation for follow-up product fix). Refs #5814 Prefer-A Bound 6329108664.
