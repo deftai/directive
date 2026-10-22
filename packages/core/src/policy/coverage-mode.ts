@@ -90,7 +90,7 @@ export function resolveCoverageMode(projectRoot: string): CoverageModeResolved {
   const [data, err] = loadProjectDefinition(projectRoot);
   if (data === null) {
     // Absent file → initial. Invalid JSON / read errors → full (never initial).
-    if (err?.includes("not found")) {
+    if (err?.includes("PROJECT-DEFINITION not found")) {
       return defaultResolved("default");
     }
     return defaultResolved("default-on-error", err ?? "PROJECT-DEFINITION unreadable", "full");
