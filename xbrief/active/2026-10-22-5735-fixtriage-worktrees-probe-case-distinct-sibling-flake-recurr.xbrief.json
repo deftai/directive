@@ -13,7 +13,7 @@
       "Overview": "Prefer-A Bound Recut-2 6256420554 for worktrees-probe case-distinct sibling ownership.",
       "Labels": "bug, test-debt, urgent, design-critique:ingest-ready, core-capabilities, promise:swarm",
       "UserStory": "As a CI maintainer, I want worktrees-probe unregister to keep its selected admin registration across both prune passes, so that a case-distinct sibling is never deleted by fold-match after the first pass.",
-      "ImplementationPlan": "1. Select intended admin from initial inventory and retain across both passes.\n2. Confirm Git remove argv and fallback deletion only target the selected registration.\n3. Dual-to-single transition regression; suite-local probe cache reset.\n4. CHANGELOG Unreleased Fixed for #5735."
+      "ImplementationPlan": "1. Keep operation-scoped registration ownership in packages/core/src/triage/evaluate/worktrees.ts across both removeEvaluatorWorktree prune passes.\n2. Confirm Git remove argv and fallback deletion only target the selected registration.\n3. Dual-to-single transition regression in packages/core/src/triage/evaluate/worktrees-probe.test.ts and packages/core/src/triage/evaluate/worktrees.test.ts; suite-local probe cache reset.\n4. CHANGELOG.md Unreleased Fixed for #5735."
     },
     "items": [
       {

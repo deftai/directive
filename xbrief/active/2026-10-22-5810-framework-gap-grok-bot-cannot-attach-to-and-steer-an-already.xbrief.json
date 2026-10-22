@@ -13,7 +13,7 @@
       "Overview": "Prefer-A Bound Recut-4 6328376098 for host-grokbot ACP attach.",
       "Labels": "enhancement, agent-experience, grok-build, harness, runtime-portability, urgent, design-critique:ingest-ready, framework-gap",
       "UserStory": "As an operator, I want Grok Bot on my phone to attach to the Grok Build session already open on my desk, so that phone replies drive that same live session without restarting it or copying credentials off the login machine.",
-      "ImplementationPlan": "1. Add packages/core/src/grokbot-attach transport/permissions/bridge with tests.\n2. Enroll doctor attach-readiness checks.\n3. Document attach/detach/failure modes in host-grokbot.md.\n4. CHANGELOG Unreleased entry."
+      "ImplementationPlan": "1. Add packages/core/src/grokbot-attach/index.ts, transport.ts, permissions.ts, bridge.ts and packages/core/src/grokbot-attach/attach.test.ts.\n2. Enroll attach-readiness in packages/core/src/doctor/checks.ts with packages/core/src/doctor/checks.test.ts.\n3. Document attach/detach/failure modes in content/skills/deft-directive-swarm/references/host-grokbot.md.\n4. CHANGELOG.md Unreleased entry."
     },
     "items": [
       {

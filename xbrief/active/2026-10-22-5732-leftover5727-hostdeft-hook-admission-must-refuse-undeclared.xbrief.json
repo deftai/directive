@@ -13,7 +13,7 @@
       "Overview": "Prefer-A Bound Recut-1 6256155031 for undeclared forge-poll refuse-before-execution.",
       "Labels": "bug, adoption-blocker, agent-experience, review-cycle, process, area:skills, design-critique:ingest-ready, framework-gap, core-capabilities",
       "UserStory": "As a through-merge parent on a Tier-1 host, I want undeclared forge-poll and path-only TEMP babysit shells refused before execution, so that only Approach 1 child-bound pr:watch is the lawful pre-CLEAN wait.",
-      "ImplementationPlan": "1. Wire PreToolUse/deft-hook refuse-before-execution on SHELL_TOOL_NAMES.\n2. Keep remediation on formatApproach1CheapestAdmissionCard.\n3. Add corpus regressions asserting executor not reached.\n4. CHANGELOG Unreleased for #5732."
+      "ImplementationPlan": "1. Wire PreToolUse refuse-before-execution in packages/core/src/hooks/dispatcher.ts on SHELL_TOOL_NAMES from packages/core/src/hooks/tools.ts.\n2. Keep remediation on formatApproach1CheapestAdmissionCard in packages/core/src/swarm/approach1-babysitter.ts (+ approach1-babysitter.test.ts); do not widen packages/core/src/review-monitor/bounded-pr-watch-deny.ts.\n3. Add corpus regressions in packages/core/src/swarm/approach1-babysitter.test.ts and packages/core/src/review-monitor/bounded-pr-watch-deny.test.ts asserting executor not reached.\n4. CHANGELOG.md Unreleased for #5732."
     },
     "items": [
       {

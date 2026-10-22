@@ -13,7 +13,7 @@
       "Overview": "Prefer-A Bound Recut-3 6328905032 for query-before Class A publication.",
       "Labels": "bug, swarm, agent-experience, process, urgent, design-critique:ingest-ready, framework-gap, promise:swarm",
       "UserStory": "As a through-merge parent, I want Class A push and gh pr create to refuse until a live stop-at:pr-open leaf tip-schema admit is green, so that I cannot publish while the leaf is still mid-work.",
-      "ImplementationPlan": "1. Add runParentClassAPublication with unit coverage.\n2. Add evaluatePreClassA + subagent:pre-class-a sibling verb.\n3. Wire swarm:pre-dispatch --action class-a; thin docs next to #5278.\n4. CHANGELOG Unreleased entry."
+      "ImplementationPlan": "1. Add packages/core/src/swarm/class-a-publication.ts runParentClassAPublication (probe-then-publish) with packages/core/src/swarm/class-a-publication.test.ts covering admit/deny/stale/force.\n2. Add evaluatePreClassA in packages/core/src/orchestration/subagent-steer.ts (+ subagent-steer.test.ts) and packages/runtime/src/subagent-pre-class-a.ts (+ subagent-pre-class-a.test.ts).\n3. Wire swarm:pre-dispatch --action class-a via packages/core/src/swarm/pre-dispatch-cli.ts and packages/runtime/src/dispatch.ts; thin docs in content/templates/agents-entry.md and content/skills/deft-directive-swarm/references/host-grok-build.md.\n4. CHANGELOG.md Unreleased entry."
     },
     "items": [
       {
