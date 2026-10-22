@@ -8,10 +8,12 @@
     "title": "[framework-gap] Grok Bot cannot attach to and steer an already-open Grok Build session over ACP",
     "status": "running",
     "narratives": {
-      "Description": "[framework-gap] Grok Bot cannot attach to and steer an already-open Grok Build session over ACP",
+      "Description": "Grok Bot attaches to a live Grok Build session over machine-local ACP with leader-first enrollment, permission ownership, and doctor attach-readiness.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5810",
-      "Overview": "\n\n- relieves: P1 — Leader-first shared-backend live attach with effective worker isolation: ensure a leader process before phone attach (grok agent leader / grok agent --leader / grok leader *; never grok --leader); enroll keep-alive with --no-exit-on-disconnect on that leader and isolated leader-*.sock owned by this attach arc; prefer per-client join that leaves machine-global use_leader untouched; if enrollment would enable global leader mode, require an effective house-worker opt-out for the entire attach window (unrelated grok workers remain outside the shared-leader route) — rollback-on-detach alone is insufficient — otherwise refuse that global-config enrollment path; detach closes bridge-owned resources only and never invokes machine-wide grok leader kill; doctor remedies name the arc socket not all leaders; reuse leader turn arbitration or busy-refuse; no blind resend; session/load labeled resume unless same-backend probe promotes it\n- relieves: P3 — Named machine-local carrier places the ACP client on the login machine (Grok Bot machine-targeted CloudAgent/exec with local approval running a thin local bridge); no bot-box ACP client and no credential or session-token write off that machine\n- relieves: P1 — Live session-target disambiguation fail-closed: operator widget among live candidates using the labeled session inventory that matches attach targeting; sole unambiguous live match by cwd+liveness; refuse empty or ambiguous; no silent global latest-session attach; no host-shell pid-enumeration all-dead artifacts\n- relieves: P2 — Attach-time permission floor plus single-owner session-bound control with fail-closed ownership: before admitting steering, verify effective backend posture on the named live read surface (session yolo_mode / equivalent permission posture field, not only config.toml); assert-and-refuse inherited always-approve or demonstrate blocking pre_tool_use deny floor so request_permission is emitted; exactly one permission-answer owner at a time across desk and phone clients; refuse attach/steering when ownership cannot be established; request-correlated single-use replies; deny-default on timeout/dismiss/disconnect/no-answer; Discuss/Back never approve; agent output never a control event; bridge never enables always-approve\n- relieves: P4 — Doctor attach-readiness for the selected machine/target distinguishing discovered from verified via non-mutating capability/identity handshake where supported (hostname + auth-method identity when advertised); PASS/FAIL with one-line remedy per failure scoped to the selected/arc socket; host-grokbot short attach/detach/failure-modes section; launch-only propose/launch/status unchanged\n\n\n",
-      "Labels": "enhancement, agent-experience, grok-build, harness, runtime-portability, urgent, design-critique:ingest-ready, framework-gap"
+      "Overview": "Prefer-A Bound Recut-4 6328376098: leader-first shared-backend attach with effective worker isolation; machine-local ACP carrier; session-target disambiguation; permission floor + single-owner control; doctor attach-readiness; host-grokbot attach docs.",
+      "Labels": "enhancement, agent-experience, grok-build, harness, runtime-portability, urgent, design-critique:ingest-ready, framework-gap",
+      "UserStory": "As an operator, I want Grok Bot on my phone to attach to the Grok Build session already open on my desk so that phone replies drive that same live session without restarting it or copying credentials off the login machine.",
+      "ImplementationPlan": "1. Add packages/core/src/grokbot-attach transport/permissions/bridge with tests for leader-first enrollment, session disambiguation, and permission ownership.\n2. Enroll doctor attach-readiness checks in packages/core/src/doctor/checks.ts with PASS/FAIL remedies scoped to the arc socket.\n3. Document attach/detach/failure modes in content/skills/deft-directive-swarm/references/host-grokbot.md; leave launch-only propose/launch/status unchanged.\n4. CHANGELOG Unreleased entry."
     },
     "items": [
       {
@@ -192,7 +194,8 @@
           "Prefer-A Bound 6328376098"
         ],
         "parallel_safe": true
-      }
+      },
+      "kind": "story"
     },
     "id": "github.issue.5969306821",
     "overview": "Grok Bot attaches to a live Grok Build session over machine-local ACP with leader-first enrollment, permission ownership, and doctor attach-readiness.",
