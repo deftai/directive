@@ -11,6 +11,8 @@ import {
   ALLOW_DESTRUCTIVE_GH_VERBS_CAPABILITY_COST,
   CEREMONY_DEPTHS,
   type CeremonyDepth,
+  COVERAGE_MODES,
+  type CoverageMode,
   clearValueFeedback,
   createNoDeftDirectiveFlag,
   describeShadowedPlanExtension,
@@ -48,6 +50,7 @@ import {
   type SpecGuardEnforcement,
   setAllowDestructiveGhVerbs,
   setCeremonyDial,
+  setCoverageMode,
   setPolicy,
   setRequireHumanMerge,
 } from "@deftai/directive-core/policy";
@@ -85,6 +88,7 @@ interface SetArgs {
     | "enable-value-feedback"
     | "clear-value-feedback"
     | "set-ceremony-dial"
+    | "set-coverage-mode"
     | "set-spec-guard-enforcement"
     | "disable-host-hooks"
     | "disable-directive"
@@ -102,6 +106,8 @@ interface SetArgs {
   ceremonyOverride?: CeremonyDepth | null;
   /** #3214 ceremony dial enabled flag for set-ceremony-dial. */
   ceremonyEnabled?: boolean;
+  /** #5791 coverageMode target for set-coverage-mode. */
+  coverageMode?: CoverageMode;
   /** #5350 driftGuard.enforcement target for set-spec-guard-enforcement. */
   specGuardEnforcement?: SpecGuardEnforcement;
   /** #4375 audited setter for valueFeedback.upstreamPrompt. */
@@ -199,11 +205,79 @@ export function parseShowArgs(argv: string[]): ShowArgs {
 export function parseArgs(argv: string[]): SetArgs {
   if (argv.length === 0) {
     const usage =
-      "usage: policy [show|enforce-branches|allow-direct-commits|allow-destructive-gh-verbs|enforce-destructive-gh-verbs|allow-bot-merge|enable-value-feedback|clear-value-feedback|set-ceremony-dial|set-spec-guard-enforcement|disable-host-hooks|disable-directive|enable-directive|resolve] ...";
+      "usage: policy [show|enforce-branches|allow-direct-commits|allow-destructive-gh-verbs|enforce-destructive-gh-verbs|allow-bot-merge|enable-value-feedback|clear-value-feedback|set-ceremony-dial|set-coverage-mode|set-spec-guard-enforcement|disable-host-hooks|disable-directive|enable-directive|resolve] ...";
     return makeSetError(usage);
   }
 
   const cmd = argv[0];
+  if (cmd === "set-coverage-mode") {
+    let confirm = false;
+    let actor = policyColonInvocation("set-coverage-mode");
+    let note = "";
+    let projectRoot = ".";
+    let coverageMode: CoverageMode | undefined;
+    for (let i = 1; i < argv.length; i += 1) {
+      const arg = argv[i];
+      if (arg === "--confirm") {
+        confirm = true;
+      } else if (arg === "--actor") {
+        const v = argv[i + 1];
+        if (v === undefined) return makeSetError("argument --actor: expected one argument");
+        actor = v;
+        i += 1;
+      } else if (arg?.startsWith("--actor=")) {
+        actor = arg.slice("--actor=".length);
+      } else if (arg === "--note") {
+        const v = argv[i + 1];
+        if (v === undefined) return makeSetError("argument --note: expected one argument");
+        note = v;
+        i += 1;
+      } else if (arg?.startsWith("--note=")) {
+        note = arg.slice("--note=".length);
+      } else if (arg === "--mode") {
+        const v = argv[i + 1];
+        if (v === undefined) {
+          return makeSetError("argument --mode: expected initial|disabled|full");
+        }
+        if (!(COVERAGE_MODES as readonly string[]).includes(v)) {
+          return makeSetError(
+            "argument --mode: expected initial|disabled|full, got " + JSON.stringify(v),
+          );
+        }
+        coverageMode = v as CoverageMode;
+        i += 1;
+      } else if (arg?.startsWith("--mode=")) {
+        const v = arg.slice("--mode=".length);
+        if (!(COVERAGE_MODES as readonly string[]).includes(v)) {
+          return makeSetError(
+            "argument --mode: expected initial|disabled|full, got " + JSON.stringify(v),
+          );
+        }
+        coverageMode = v as CoverageMode;
+      } else if (arg === "--project-root") {
+        const v = argv[i + 1];
+        if (v === undefined) return makeSetError("argument --project-root: expected one argument");
+        projectRoot = v;
+        i += 1;
+      } else if (arg?.startsWith("--project-root=")) {
+        projectRoot = arg.slice("--project-root=".length);
+      } else if (arg === "--") {
+      } else {
+        return makeSetError("unrecognized argument: " + arg);
+      }
+    }
+    return {
+      cmd: "set-coverage-mode",
+      confirm,
+      actor,
+      note,
+      projectRoot,
+      format: "text",
+      changedOnly: false,
+      field: null,
+      coverageMode,
+    };
+  }
   if (cmd === "set-spec-guard-enforcement") {
     let confirm = false;
     let actor = policyColonInvocation("set-spec-guard-enforcement");
@@ -787,6 +861,9 @@ export function run(argv: string[]): number {
   if (args.cmd === "set-ceremony-dial") {
     return runSetCeremonyDial(args);
   }
+  if (args.cmd === "set-coverage-mode") {
+    return runSetCoverageMode(args);
+  }
   if (args.cmd === "set-spec-guard-enforcement") {
     return runSetSpecGuardEnforcement(args);
   }
@@ -812,6 +889,28 @@ function runSetSpecGuardEnforcement(args: SetArgs): number {
   }
   const result = promoteSpecGuardDriftEnforcement(root, {
     to: args.specGuardEnforcement,
+    confirm: args.confirm,
+    actor: args.actor,
+    note: args.note,
+  });
+  process.stdout.write(result.stdout);
+  return result.exitCode;
+}
+
+/** Persist plan.policy.coverageMode (#5791). */
+function runSetCoverageMode(args: SetArgs): number {
+  const root = pathResolve(args.projectRoot);
+  if (args.coverageMode === undefined) {
+    process.stdout.write(
+      "usage: policy set-coverage-mode -- --mode initial|disabled|full [--confirm] [--project-root PATH]\n" +
+        "  Inspect: " +
+        policyColonInvocation("show", " --field=coverageMode") +
+        "\n",
+    );
+    return 1;
+  }
+  const result = setCoverageMode(root, {
+    mode: args.coverageMode,
     confirm: args.confirm,
     actor: args.actor,
     note: args.note,

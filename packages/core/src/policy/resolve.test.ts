@@ -569,8 +569,8 @@ describe("inspectAllPolicies", () => {
     // + coverageDebt + checkResume (#3189) + ceremonyDial (#3214) + acPassBanking (#3285)
     // + baseBranch (#3388) + syncMaxFiles (#3390) + forgeOutageRetryMinutes (#3422)
     // + projectInvariants (#3425) + allowDestructiveGhVerbs (#4384)
-    // + specGuard (#1589).
-    expect(inspectAllPolicies(r)).toHaveLength(33);
+    // + specGuard (#1589) + coverageMode (#5791).
+    expect(inspectAllPolicies(r)).toHaveLength(34);
   });
 
   it("surfaces typed allowDirectCommits", () => {

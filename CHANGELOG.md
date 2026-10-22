@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added - Projects without a coverage suite can finish pre-PR for framework-only Directive pin upgrades without inventing Istanbul results (coverageMode: initial|disabled|full). Refs #5791 Prefer-A Bound 6327849654.
 
 ### Changed
 - Changed - Prepare pre-PR lint iteration so framework-only and no-suite pin upgrades can finish without inventing a Vitest suite (activation for follow-up product fix). Refs #5814 Prefer-A Bound 6329108664.
@@ -19,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed — Maintainer xBRIEF corpus hygiene after OVPR equal-version upgrade: rewrite residual 0.6 envelopes to xBRIEFInfo 0.8, strip leftover hybrid vBRIEFInfo keys on completed briefs, and reword Taskfile doctor/upgrade comments so they no longer embed `.deft/core/` (doctor wiring false positive on this repo). Refs #5795 #5796.
 
 ### Fixed
+- Fixed - Exit-4 waived coverage_headroom requires a passing coverage report when one exists; with no report, initial|disabled still allow the skip. Refs #5791.
+- Fixed - Damaged coverageMode policy no longer disables coverage checks; typed graduation and policy:show coverageMode work. Refs #5791.
 - Landed completed xBRIEF for #5783 after forge-closer leftover #5815.
 - Lifecycle closeout for #5783 after Tracking-only product PR #5811 (forge closer for scope:complete).
 - Fixed — Tip CI unblock (#5802): prefer in-repo `content/` over hoisted `@deftai/directive-runtime` for pack-drift; cut deposit/tests to `_directive-run.sh` / `run_directive` to match OVPR hooks.

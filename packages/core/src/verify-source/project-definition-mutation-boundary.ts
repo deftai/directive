@@ -157,6 +157,7 @@ function skipStringLiteral(text: string, startIndex: number): number {
 export const PRODUCTION_MUTATION_INVENTORY: Readonly<Record<string, number>> = Object.freeze({
   "packages/runtime/src/dispatch.ts": 2,
   "packages/core/src/policy/ceremony-dial.ts": 1,
+  "packages/core/src/policy/coverage-mode.ts": 1,
   "packages/core/src/policy/destructive-gh-verbs.ts": 1,
   "packages/core/src/policy/host-hooks.ts": 1,
   "packages/core/src/policy/org-force-on-migration.ts": 1,
