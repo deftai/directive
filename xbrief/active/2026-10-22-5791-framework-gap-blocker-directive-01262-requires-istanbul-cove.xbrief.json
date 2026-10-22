@@ -268,7 +268,8 @@
         ],
         "parallel_safe": true
       },
-      "activationPullRequest": 5818
+      "activationPullRequest": 5818,
+      "productPullRequest": 5819
     },
     "id": "github.issue.5947668764",
     "updated": "2026-10-22T00:09:15Z"
