@@ -386,7 +386,7 @@ export function run(argv: string[]): number {
         return 2;
       }
       // #5814 / #5791: mode-skip pairs use non-zero exit (lint_iteration exit 5 + LINT_ITERATION_MODE_SKIP).
-if (args.skipReason !== null && args.skipReason.length > 0 && args.exitCode === 0) {
+      if (args.skipReason !== null && args.skipReason.length > 0 && args.exitCode === 0) {
         process.stderr.write(
           "pre_pr_run: skip requires a non-zero --exit-code plus --skip-reason\n",
         );

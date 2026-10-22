@@ -212,7 +212,6 @@ describe("deft pre-pr:run", () => {
     expect(err.join("")).toMatch(/criteria digest|invalidat/i);
   });
 
-
   it("parseArgs accepts lint_iteration exit-5 mode-skip pair (#5814)", () => {
     const parsed = parseArgs([
       "--observe-command",

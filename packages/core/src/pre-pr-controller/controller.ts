@@ -23,8 +23,8 @@ import {
   COVERAGE_HEADROOM_MODE_SKIP,
   COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP,
   COVERAGE_HEADROOM_WAIVED_SKIP,
-  LINT_ITERATION_MODE_SKIP,
   isAllowedSkip,
+  LINT_ITERATION_MODE_SKIP,
   PRE_PR_CONTROLLER_VERSION,
   PRE_PR_PHASES,
   PRE_PR_WORKFLOW_VERSION,
@@ -476,13 +476,25 @@ function commandSatisfied(
 
     // #5791 mode arm: exit 5 + distinct mode token; re-read policy (not inert re-derive).
     // Report-present guard keeps the measured path — refuse mode skip when report exists.
+    // Refuse outcomes stay on exit 2 / exit-4 waived — never launder through exit 5.
     if (row.exitCode === 5) {
       if (row.skipReason !== COVERAGE_HEADROOM_MODE_SKIP) return false;
       if (spec.command === null || !coverageHotspotsCommandMatches(row.command, spec.command)) {
         return false;
       }
       if (existsSync(join(projectRoot, "coverage", "coverage-final.json"))) return false;
-      return isCoverageModeSkipAuthorized(resolveCoverageMode(projectRoot).mode);
+      if (!isCoverageModeSkipAuthorized(resolveCoverageMode(projectRoot).mode)) return false;
+      const derived = evaluateCoverageApplicability(
+        {
+          projectRoot,
+          baseSha: record.baseSha,
+          headSha: record.headSha,
+          treeHash: record.treeHash,
+        },
+        options?.applicabilityDeps,
+      );
+      if (derived.outcome === "refuse") return false;
+      return true;
     }
 
     // Authorized N/A is exit 3 only (hotspots emits 3 when inert + no report).

@@ -95,7 +95,6 @@ function fillPhasesExceptCoverage(
   }
 }
 
-
 function fillPhasesWithLintModeSkip(
   store: InProcessPrePrStore,
   rec: PrePrExecutionRecord,
@@ -1118,6 +1117,59 @@ describe("controller observations", () => {
     }
   });
 
+  it("coverage_headroom rejects exit 5 mode skip when applicability refuses", () => {
+    const projectRoot = mkdtempSync(join(tmpdir(), "pre-pr-cov-mode-refuse-"));
+    try {
+      mkdirSync(join(projectRoot, "xbrief"), { recursive: true });
+      writeFileSync(
+        join(projectRoot, "xbrief/PROJECT-DEFINITION.xbrief.json"),
+        JSON.stringify({
+          xBRIEFInfo: { version: "0.8", description: "t", updated: "2026-01-01T00:00:00Z" },
+          plan: {
+            title: "t",
+            status: "running",
+            "x-directive/policy": { coverageMode: "initial" },
+          },
+        }),
+      );
+      const store = new InProcessPrePrStore();
+      const rec = start(store, "ppr_cov_mode_refuse");
+      fillPhasesExceptCoverage(
+        store,
+        rec,
+        {
+          command: "deft coverage:hotspots",
+          exitCode: 5,
+          skipReason: COVERAGE_HEADROOM_MODE_SKIP,
+        },
+        { projectRoot },
+      );
+      expect(
+        runObservablesComplete(store.getById(rec.id) as PrePrExecutionRecord, {
+          projectRoot,
+          applicabilityDeps: {
+            runGit: (args) => {
+              const joined = args.join(" ");
+              if (joined.includes("rev-parse") && joined.includes("^{tree}")) {
+                return { ok: true as const, stdout: "tree" };
+              }
+              if (joined.includes("rev-parse")) {
+                return { ok: true as const, stdout: args.includes("base") ? "base" : "head" };
+              }
+              if (joined.includes("name-status")) {
+                return { ok: true as const, stdout: "A\tunknown/outside.md\n" };
+              }
+              return { ok: true as const, stdout: "" };
+            },
+            classifyPath: () => "unknown",
+          },
+        }).ok,
+      ).toBe(false);
+    } finally {
+      rmSync(projectRoot, { recursive: true, force: true });
+    }
+  });
+
   it("coverage_headroom rejects exit 5 after graduation to full (#5791)", () => {
     const projectRoot = mkdtempSync(join(tmpdir(), "pre-pr-cov-mode-full-"));
     try {
@@ -1330,5 +1382,4 @@ describe("controller observations", () => {
       rmSync(projectRoot, { recursive: true, force: true });
     }
   });
-
 });
