@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5804",
-    "updated": "2026-10-22T05:36:14.489Z"
+    "updated": "2026-10-22T05:54:55.576Z"
   },
   "plan": {
     "title": "bug(process,pre-pr): no hard refuse when always-pin pre-PR / RWDL is skipped before push",
@@ -65,7 +65,6 @@
       "source_rung": "derived",
       "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
       "sentences": [
-        "bug(process,pre-pr): no hard refuse when always-pin pre-PR / RWDL is skipped before push",
         "relieves: P1 — Mint-time pushBinding from loop-row reviewedFileManifest + controllerObservedHash (excluded from inputBindingHash); push independently derives each outgoing update in-scope changed-path set and requires outgoing ⊆ reviewed with matching committed content (path containment of outgoing, not whole-tree and not reviewed-only rehash)",
         "relieves: P3 — Sole-stdin enrolled pre-PR arm via parsePrePushStdin; empty/unreadable/malformed stdin denies; other in-hook spawns redirect at call sites in the hook body",
         "relieves: P4 — Non-empty push-stage body-hash sentinel plus record-carried push-stage marker; PR-stage --evaluate actively denies on that marker",
