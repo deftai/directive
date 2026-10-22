@@ -109,8 +109,7 @@ export const COVERAGE_HEADROOM_WAIVED_SKIP =
  * Distinct closed skip token for coverageMode posture N/A (#5791 Prefer-A Recut-2).
  * Never reuse the inert N/A string; never treat as measured pass / exit 0.
  */
-export const COVERAGE_HEADROOM_MODE_SKIP =
-  "coverageMode posture skip (initial|disabled)" as const;
+export const COVERAGE_HEADROOM_MODE_SKIP = "coverageMode posture skip (initial|disabled)" as const;
 
 export const ALLOWED_SKIP_REASONS: Partial<Record<PrePrPhaseId, string>> = {
   plan_sequence: "no active ordered-plan sequence",

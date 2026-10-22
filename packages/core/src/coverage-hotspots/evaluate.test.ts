@@ -913,6 +913,31 @@ describe("evaluateCoverageHotspots", () => {
     expect(result.report).not.toBeNull();
   });
 
+  it("invalid JSON PROJECT-DEFINITION does not authorize initial skip (#5791)", () => {
+    const root = gitRepo({ "README.md": "# base\n" });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief/PROJECT-DEFINITION.xbrief.json"), "{not-json");
+    const baseSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    writeFileSync(join(root, "package.json"), JSON.stringify({ name: "c", version: "1.0.0" }));
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: root });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "pin"], { cwd: root });
+    const headSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    const treeHash = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD^{tree}"], { cwd: root, encoding: "utf8" })
+      .trim();
+    const result = evaluateCoverageHotspots({
+      projectRoot: root,
+      inputBinding: { baseSha, headSha, treeHash },
+    });
+    expect(result.exitCode).toBe(2);
+    expect(result.message).toContain("coverage report missing");
+    expect(result.applicability?.outcome).not.toBe("mode-skip");
+  });
+
   it("malformed coverageMode does not authorize initial skip (#5791)", () => {
     const root = gitRepo({ "README.md": "# base\n" });
     writeCoverageMode(root, "nope");

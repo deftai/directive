@@ -18,10 +18,7 @@ import {
   evaluateCoverageApplicability,
 } from "../coverage-applicability/index.js";
 import { evaluateCoverageHotspots } from "../coverage-hotspots/evaluate.js";
-import {
-  isCoverageModeSkipAuthorized,
-  resolveCoverageMode,
-} from "../policy/coverage-mode.js";
+import { isCoverageModeSkipAuthorized, resolveCoverageMode } from "../policy/coverage-mode.js";
 import {
   COVERAGE_HEADROOM_MODE_SKIP,
   COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP,
@@ -209,7 +206,8 @@ export function observeCommandPhase(
       observation.phaseId === "coverage_headroom"
         ? (observation.exitCode === 3 &&
             observation.skipReason === COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP) ||
-          (observation.exitCode === 4 && observation.skipReason === COVERAGE_HEADROOM_WAIVED_SKIP) ||
+          (observation.exitCode === 4 &&
+            observation.skipReason === COVERAGE_HEADROOM_WAIVED_SKIP) ||
           (observation.exitCode === 5 &&
             observation.skipReason === COVERAGE_HEADROOM_MODE_SKIP &&
             isCoverageModeSkipAuthorized(resolveCoverageMode(projectRoot).mode))

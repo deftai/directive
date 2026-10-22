@@ -566,8 +566,7 @@ export function evaluateCoverageHotspots(options: CoverageHotspotsOptions): Cove
     // Never exit 0; distinct token from inert N/A.
     const modeResolved = resolveCoverageMode(projectRoot);
     if (isCoverageModeSkipAuthorized(modeResolved.mode)) {
-      const modeBinding =
-        binding ??
+      const modeBinding = binding ??
         resolveApplicabilityBinding(projectRoot, { ...options, checkApplicability: true }) ?? {
           baseSha: "unknown",
           headSha: "unknown",

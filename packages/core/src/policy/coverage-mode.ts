@@ -87,10 +87,13 @@ export function resolveCoverageModeFromValue(raw: unknown): CoverageModeResolved
 
 /** Resolve plan.policy.coverageMode via readPlanPolicy (#5791). */
 export function resolveCoverageMode(projectRoot: string): CoverageModeResolved {
-  const [data] = loadProjectDefinition(projectRoot);
+  const [data, err] = loadProjectDefinition(projectRoot);
   if (data === null) {
-    // Absent PROJECT-DEFINITION is missing posture → initial (not malformed).
-    return defaultResolved("default");
+    // Absent file → initial. Invalid JSON / read errors → full (never initial).
+    if (err?.includes("not found")) {
+      return defaultResolved("default");
+    }
+    return defaultResolved("default-on-error", err ?? "PROJECT-DEFINITION unreadable", "full");
   }
   return resolveCoverageModeFromPlan(data.plan);
 }
@@ -113,9 +116,10 @@ export function resolveCoverageModeFromPlan(plan: unknown): CoverageModeResolved
  * Seed helper: write initial only when the key is absent.
  * Repair / re-render must call {@link preserveExplicitCoverageMode} instead.
  */
-export function seedCoverageModeIntoPolicyBlock(
-  policyBlock: Record<string, unknown>,
-): { readonly wrote: boolean; readonly mode: CoverageMode } {
+export function seedCoverageModeIntoPolicyBlock(policyBlock: Record<string, unknown>): {
+  readonly wrote: boolean;
+  readonly mode: CoverageMode;
+} {
   if ("coverageMode" in policyBlock && isCoverageMode(policyBlock.coverageMode)) {
     return { wrote: false, mode: policyBlock.coverageMode };
   }
