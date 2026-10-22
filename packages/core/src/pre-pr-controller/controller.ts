@@ -451,11 +451,15 @@ function commandSatisfied(
       if (!inspected.ok) return false;
       if (inspected.admission === null) return false;
       if (inspected.grant.id !== admission.grantId) return false;
-      // Exit-4 waived requires an available Istanbul report before satisfied
-      // (SLizard fp:c76cd7fc / #5674). Missing report → unsatisfied; present
-      // failing report still dominates the saved waiver receipt.
+      // Exit-4 waived: present report must measure pass (SLizard fp:c76cd7fc /
+      // #5674 — failing report must not hide behind the saved waiver). Missing
+      // report under initial|disabled reaches mode-skip posture (#5791) because
+      // hotspots returns exit 4 before exit 5 when a waiver admits; under full,
+      // missing report stays unsatisfied.
       const reportPath = join(projectRoot, "coverage", "coverage-final.json");
-      if (!existsSync(reportPath)) return false;
+      if (!existsSync(reportPath)) {
+        return isCoverageModeSkipAuthorized(resolveCoverageMode(projectRoot).mode);
+      }
       const measured = evaluateCoverageHotspots({
         projectRoot,
         checkApplicability: false,

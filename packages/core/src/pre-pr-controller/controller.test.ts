@@ -717,9 +717,21 @@ describe("controller observations", () => {
     }
   });
 
-  it("coverage_headroom rejects exit 4 waived when coverage-final.json is missing (SLizard fp:c76cd7fc)", () => {
+  it("coverage_headroom rejects exit 4 waived when coverage-final.json is missing under full (SLizard fp:c76cd7fc)", () => {
     const projectRoot = mkdtempSync(join(tmpdir(), "pre-pr-cov-waive-noreport-"));
     try {
+      mkdirSync(join(projectRoot, "xbrief"), { recursive: true });
+      writeFileSync(
+        join(projectRoot, "xbrief/PROJECT-DEFINITION.xbrief.json"),
+        JSON.stringify({
+          xBRIEFInfo: { version: "0.8", description: "t", updated: "2026-01-01T00:00:00Z" },
+          plan: {
+            title: "t",
+            status: "running",
+            "x-directive/policy": { coverageMode: "full" },
+          },
+        }),
+      );
       const store = new InProcessPrePrStore();
       const rec = start(store, "ppr_cov_waive_noreport");
       const attemptId = rec.id;
@@ -752,6 +764,58 @@ describe("controller observations", () => {
           projectRoot,
         }).ok,
       ).toBe(false);
+    } finally {
+      rmSync(projectRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("coverage_headroom accepts exit 4 waived with no report under initial (#5791)", () => {
+    const projectRoot = mkdtempSync(join(tmpdir(), "pre-pr-cov-waive-initial-"));
+    try {
+      mkdirSync(join(projectRoot, "xbrief"), { recursive: true });
+      writeFileSync(
+        join(projectRoot, "xbrief/PROJECT-DEFINITION.xbrief.json"),
+        JSON.stringify({
+          xBRIEFInfo: { version: "0.8", description: "t", updated: "2026-01-01T00:00:00Z" },
+          plan: {
+            title: "t",
+            status: "running",
+            "x-directive/policy": { coverageMode: "initial" },
+          },
+        }),
+      );
+      const store = new InProcessPrePrStore();
+      const rec = start(store, "ppr_cov_waive_initial");
+      const attemptId = rec.id;
+      const minted = mintGateOverrideTemplateGrant({
+        projectRoot,
+        target: "unknown-path",
+        planRef: attemptId,
+        baseSha: rec.baseSha,
+        headSha: rec.headSha,
+        treeHash: rec.treeHash,
+      });
+      expect(minted.ok).toBe(true);
+      const admitted = admitGateOverrideForAttempt(projectRoot, {
+        refuseCode: "unknown-path",
+        baseSha: rec.baseSha,
+        headSha: rec.headSha,
+        treeHash: rec.treeHash,
+        attemptId,
+        observedRefuseReason: "coverage-applicability: unknown path",
+      });
+      expect(admitted.ok).toBe(true);
+
+      fillPhasesExceptCoverage(store, rec, {
+        command: `deft coverage:hotspots --attempt-id ${attemptId}`,
+        exitCode: 4,
+        skipReason: COVERAGE_HEADROOM_WAIVED_SKIP,
+      });
+      expect(
+        runObservablesComplete(store.getById(rec.id) as PrePrExecutionRecord, {
+          projectRoot,
+        }).ok,
+      ).toBe(true);
     } finally {
       rmSync(projectRoot, { recursive: true, force: true });
     }
