@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added - Projects without a coverage suite can finish pre-PR for framework-only Directive pin upgrades without inventing Istanbul results (coverageMode: initial|disabled|full). Refs #5791 Prefer-A Bound 6327849654.
 
 ### Changed
+- Changed - Prepare the follow-up fix that will make maintainer commands use the same pinned runtime as Git hooks. This preparation does not change which runtime commands execute. Refs #5805 Prefer-A Bound 6326249868.
 - Changed - Prepare pre-PR lint iteration so framework-only and no-suite pin upgrades can finish without inventing a Vitest suite (activation for follow-up product fix). Refs #5814 Prefer-A Bound 6329108664.
 - Changed - Prepare coverageMode so framework-only Directive pin upgrades can pass pre-PR without inventing Istanbul coverage. Refs #5791 Prefer-A Bound 6327849654.
 - Changed — Carry Thin Fail-Closed (#3265) Bound-remedy thinness and writing-bar (#3368) footnote-class pain-audit posture into design-critique contract pointers, brief Pointers rows, and fixture locks. Refs #5783 Prefer-A Bound 6280270826 #3265 #3368 #5806.
