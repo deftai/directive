@@ -136,7 +136,8 @@
           "ambiguous": false,
           "provenance": "statement"
         }
-      ]
+      ],
+      "ambiguity_attestation": "none_found"
     },
     "metadata": {
       "intended_placement": {
