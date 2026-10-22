@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added - Enrolled feature-branch pushes require a bound `deft pre-pr:run` pass (outgoing ⊆ reviewed pushBinding); empty pre-push stdin and unreviewed product paths refuse with a short recovery line. Refs #5804 Prefer-A Bound 6323623922.
 - Added - Projects without a coverage suite can finish pre-PR for framework-only Directive pin upgrades without inventing Istanbul results (coverageMode: initial|disabled|full). Refs #5791 Prefer-A Bound 6327849654.
 
 ### Changed

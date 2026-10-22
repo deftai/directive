@@ -4,6 +4,7 @@
  * `deft pre-pr:run` starts the prescribed workflow. Opening the skill file
  * is not completion. Generic mark-complete cannot mint a pass.
  */
+import { readFileSync } from "node:fs";
 import {
   completeRun,
   computeControllerObservedHash,
@@ -21,6 +22,7 @@ import {
   startControllerRun,
   submitReviewerReport,
 } from "@deftai/directive-core/pre-pr-controller";
+import { evaluatePrePush, parsePrePushStdin } from "@deftai/directive-core/preflight";
 import { isDirectEntrypoint } from "./entrypoint.js";
 
 const USAGE = `Usage: deft pre-pr:run [options]
@@ -59,6 +61,8 @@ Options:
   --mark-complete         always refuses; cannot mint a pass
   --skill-open            always refuses; opening the skill is not completion
   --evaluate              evaluate live binding against the private store
+  --push-admit            enrolled push admission (#5804); reads pre-push stdin
+  --project-root <path>   project root for --push-admit / store resolution
   --json
   --help
 `;
@@ -93,6 +97,8 @@ interface ParsedArgs {
   markComplete: boolean;
   skillOpen: boolean;
   evaluate: boolean;
+  pushAdmit: boolean;
+  projectRoot: string | null;
   json: boolean;
   help: boolean;
   error?: string;
@@ -129,6 +135,8 @@ export function parseArgs(argv: string[]): ParsedArgs {
     markComplete: false,
     skillOpen: false,
     evaluate: false,
+    pushAdmit: false,
+    projectRoot: null,
     json: false,
     help: false,
   };
@@ -236,6 +244,15 @@ export function parseArgs(argv: string[]): ParsedArgs {
       parsed.skillOpen = true;
     } else if (arg === "--evaluate") {
       parsed.evaluate = true;
+    } else if (arg === "--push-admit") {
+      parsed.pushAdmit = true;
+    } else if (arg === "--project-root" || arg?.startsWith("--project-root=")) {
+      const value = arg === "--project-root" ? argv[i + 1] : arg.slice("--project-root=".length);
+      if (value === undefined) {
+        return { ...parsed, error: "argument --project-root: expected one argument" };
+      }
+      parsed.projectRoot = value;
+      if (arg === "--project-root") i += 1;
     } else if (arg === "--repo" || arg?.startsWith("--repo=")) {
       const value = arg === "--repo" ? argv[i + 1] : arg.slice("--repo=".length);
       if (value === undefined)
@@ -353,6 +370,24 @@ export function run(argv: string[]): number {
   if (args.error !== undefined) {
     process.stderr.write(`pre_pr_run: ${args.error}\n`);
     return 2;
+  }
+  if (args.pushAdmit) {
+    const projectRoot = args.projectRoot?.trim() || process.cwd();
+    let rawStdin = "";
+    try {
+      rawStdin = readFileSync(0, "utf8");
+    } catch {
+      rawStdin = "";
+    }
+    const refs = parsePrePushStdin(rawStdin);
+    const [code, msg] = evaluatePrePush(refs, {
+      projectRoot,
+      enrolledBoundPrePr: true,
+      rawStdin,
+    });
+    if (code === 0) process.stdout.write(`${msg}\n`);
+    else process.stderr.write(`${msg}\n`);
+    return code;
   }
   if (args.skillOpen) {
     const d = noteSkillFileOpen();

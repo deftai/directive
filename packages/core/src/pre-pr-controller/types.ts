@@ -84,6 +84,20 @@ export interface ApprovedCriteria {
   readonly acceptanceDigest: string;
 }
 
+/**
+ * Mint-time push admission binding (#5804). Distinct from treeHash / inputBindingHash.
+ * Stamped only after observables complete; push re-derives outgoing ⊆ reviewed coverage.
+ */
+export interface PrePrPushBinding {
+  readonly reviewedFileManifest: readonly string[];
+  readonly controllerObservedHash: string;
+  /** Non-empty sentinel: PR-stage --evaluate denies records carrying this marker. */
+  readonly pushStageMarker: string;
+}
+
+/** Push-stage body-hash sentinel stamped onto enrolled passes (#5804 P4). */
+export const PRE_PR_PUSH_STAGE_MARKER = "deft.pre-pr.push-stage.v1" as const;
+
 /** Canonical private-store claim. `id` is a lookup key, not a bearer. */
 export interface PrePrExecutionRecord {
   readonly schema: typeof PRE_PR_EXECUTION_SCHEMA;
@@ -108,6 +122,8 @@ export interface PrePrExecutionRecord {
   readonly reviewedFileManifest: readonly string[];
   readonly reviewReportRef: string | null;
   readonly finalNoChange: boolean;
+  /** Absent on pre-#5804 records; required on new passes for enrolled push. */
+  readonly pushBinding?: PrePrPushBinding | null;
   readonly startedAt: string;
   readonly completedAt: string | null;
   readonly interruptedAt: string | null;
@@ -137,7 +153,11 @@ export type PrePrDecisionCode =
   | "deny-checkbox-not-authority"
   | "deny-author-token"
   | "deny-publisher-required"
-  | "deny-reuse-mismatch";
+  | "deny-reuse-mismatch"
+  | "deny-push-stage-marker"
+  | "deny-push-unreviewed-outgoing"
+  | "deny-push-missing-binding"
+  | "deny-push-stdin";
 
 export interface PrePrDecision {
   readonly ok: boolean;

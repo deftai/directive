@@ -49,6 +49,8 @@ import {
   type PrePrDecision,
   type PrePrExecutionRecord,
   type PrePrInputBinding,
+  type PrePrPushBinding,
+  PRE_PR_PUSH_STAGE_MARKER,
   PUBLISHER_REQUIRED,
   type SemanticEvidence,
   SKILL_FILE_OPEN_NOT_COMPLETION,
@@ -143,6 +145,7 @@ export function startControllerRun(
     reviewedFileManifest: [],
     reviewReportRef: null,
     finalNoChange: false,
+    pushBinding: null,
     startedAt: utcIso(input.now),
     completedAt: null,
     interruptedAt: null,
@@ -623,10 +626,28 @@ export function completeRun(
   }
   const observables = runObservablesComplete(current, options);
   if (!observables.ok) return observables;
+  const manifest = [...current.reviewedFileManifest];
+  const observed =
+    options?.projectRoot !== undefined && options.projectRoot.length > 0
+      ? computeControllerObservedHash({
+          reviewedFiles: manifest,
+          cwd: options.projectRoot,
+        })
+      : current.phaseEvidence.semantic.find((s) => s.phaseId === "loop")?.controllerObservedHash ??
+        null;
+  const pushBinding: PrePrPushBinding | null =
+    observed !== null && observed.length > 0 && manifest.length > 0
+      ? {
+          reviewedFileManifest: manifest,
+          controllerObservedHash: observed,
+          pushStageMarker: PRE_PR_PUSH_STAGE_MARKER,
+        }
+      : null;
   const published: PrePrExecutionRecord = {
     ...current,
     state: "complete",
     outcome: "pass",
+    pushBinding,
     completedAt: utcIso(now),
     publishedAt: utcIso(now),
   };

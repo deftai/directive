@@ -41,6 +41,34 @@ describe("parsePrePushStdin", () => {
   });
 });
 
+describe("evaluatePrePush enrolled bound pre-PR (#5804)", () => {
+  it("denies empty stdin when enrolled", () => {
+    const [code, msg] = evaluatePrePush([], {
+      enrolledBoundPrePr: true,
+      rawStdin: "",
+      projectRoot: tempRoot(),
+    });
+    expect(code).toBe(1);
+    expect(msg).toContain("empty or malformed");
+  });
+
+  it("denies junk-only stdin when enrolled", () => {
+    const [code, msg] = evaluatePrePush([], {
+      enrolledBoundPrePr: true,
+      rawStdin: "not-a-ref-line\n",
+      projectRoot: tempRoot(),
+    });
+    expect(code).toBe(1);
+    expect(msg.toLowerCase()).toMatch(/empty or malformed|no parseable/);
+  });
+
+  it("docs-only helper admits markdown paths", async () => {
+    const { isDocsOnlyOutgoing } = await import("./pre-push.js");
+    expect(isDocsOnlyOutgoing(["docs/a.md", "CHANGELOG.md"])).toBe(true);
+    expect(isDocsOnlyOutgoing(["packages/core/src/x.ts"])).toBe(false);
+  });
+});
+
 describe("evaluatePrePush stdin policy fixtures", () => {
   it("allows empty stdin", () => {
     const [code, msg] = evaluatePrePush([]);
