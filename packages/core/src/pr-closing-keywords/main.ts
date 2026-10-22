@@ -150,7 +150,17 @@ export function isSkipActiveDeliveryShape(files: readonly PrDiffPath[]): boolean
   return removedProposedOrPending && addedCompleted && !removedActive;
 }
 
-/** Offline --body-file: name-status vs upstream merge-base (or HEAD~ when unbound). */
+function mapGitNameStatus(letter: string): string {
+  const ch = (letter[0] ?? "").toUpperCase();
+  if (ch === "A") return "added";
+  if (ch === "M") return "modified";
+  if (ch === "D") return "removed";
+  if (ch === "R") return "renamed";
+  if (ch === "C") return "copied";
+  return letter.toLowerCase();
+}
+
+/** Offline --body-file: name-status vs upstream merge-base (master|main). */
 function collectLocalDiffFiles(projectRoot: string, runGit: RunGhFn): PrDiffPath[] | null {
   const prev = process.cwd();
   try {
@@ -159,10 +169,17 @@ function collectLocalDiffFiles(projectRoot: string, runGit: RunGhFn): PrDiffPath
     return null;
   }
   try {
-    let base = "HEAD";
-    const mb = runGit(["merge-base", "HEAD", "origin/master"]);
-    if (mb.returncode === 0 && mb.stdout.trim().length > 0) {
-      base = mb.stdout.trim();
+    let base: string | null = null;
+    for (const upstream of ["origin/master", "origin/main", "master", "main"] as const) {
+      const mb = runGit(["merge-base", "HEAD", upstream]);
+      if (mb.returncode === 0 && mb.stdout.trim().length > 0) {
+        base = mb.stdout.trim();
+        break;
+      }
+    }
+    if (base === null) {
+      // No delivery base — skip offline admission rather than diff HEAD..HEAD.
+      return null;
     }
     const diff = runGit(["diff", "-z", "--name-status", "--find-renames", base, "HEAD"]);
     if (diff.returncode !== 0) {
@@ -182,7 +199,7 @@ function collectLocalDiffFiles(projectRoot: string, runGit: RunGhFn): PrDiffPath
         const path = tokens[i + 2] ?? "";
         if (path.length > 0) {
           out.push({
-            status: status[0] ?? status,
+            status: mapGitNameStatus(status),
             path,
             ...(previousFilename.length > 0 ? { previousFilename } : {}),
           });
@@ -192,7 +209,7 @@ function collectLocalDiffFiles(projectRoot: string, runGit: RunGhFn): PrDiffPath
       }
       const path = tokens[i + 1] ?? "";
       if (path.length > 0) {
-        out.push({ status: status[0] ?? status, path });
+        out.push({ status: mapGitNameStatus(status), path });
       }
       i += 2;
     }
@@ -1137,11 +1154,31 @@ export function run(argv: readonly string[], options: RunOptions = {}): number {
     const projectRoot = args.projectRoot ?? ".";
     const files = collectLocalDiffFiles(projectRoot, options.runGit ?? defaultRunGit);
     if (files !== null) {
+      // Prefer explicit --repo; else origin remote owner/name; never invent "local"
+      // (Path B URL identity compares against the forge repo string).
+      let offlineRepo = args.repo;
+      if (offlineRepo === null || offlineRepo.trim().length === 0) {
+        const origin = (options.runGit ?? defaultRunGit)([
+          "-C",
+          projectRoot,
+          "remote",
+          "get-url",
+          "origin",
+        ]);
+        const m = origin.stdout.match(/github\.com[:/]([^/]+\/[^/.]+)/i);
+        offlineRepo = m?.[1]?.replace(/\.git$/i, "") ?? null;
+      }
+      if (offlineRepo === null || offlineRepo.trim().length === 0) {
+        process.stderr.write(
+          "FAIL: offline --body-file story admission needs --repo OWNER/REPO (or a github.com origin remote).\n",
+        );
+        return EXIT_CONFIG_ERROR;
+      }
       const admission = evaluateFullStoryMarkAdmission({
         bodyText,
         prNumber: null,
         projectRoot,
-        repo: args.repo ?? "local",
+        repo: offlineRepo.trim(),
         files,
       });
       if (!admission.ok) {
