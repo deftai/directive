@@ -203,7 +203,8 @@
           "content/skills/deft-directive-pre-pr/SKILL.md",
           "xbrief/PROJECT-DEFINITION.xbrief.json",
           "CHANGELOG.md",
-          "packages/core/src/index.ts"
+          "packages/core/src/index.ts",
+          "packages/core/src/verify-source/project-definition-mutation-boundary.ts"
         ],
         "module_boundary": "packages/core/src/coverage-hotspots/evaluate.ts",
         "cohesion_exemption": "CHANGELOG + rendered skill pack + PROJECT-DEFINITION seed; coverageMode Bound unit spans hotspots/applicability/pre-pr/policy/runtime CLI"
@@ -257,7 +258,8 @@
           "content/skills/deft-directive-pre-pr/SKILL.md",
           "xbrief/PROJECT-DEFINITION.xbrief.json",
           "CHANGELOG.md",
-          "packages/core/src/index.ts"
+          "packages/core/src/index.ts",
+          "packages/core/src/verify-source/project-definition-mutation-boundary.ts"
         ],
         "size": "L",
         "file_scope_confidence": "high",
