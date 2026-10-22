@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added - Projects without a coverage suite can finish pre-PR for framework-only Directive pin upgrades without inventing Istanbul results (coverageMode: initial|disabled|full). Refs #5791 Prefer-A Bound 6327849654.
 
 ### Changed
+- Changed - Prepare session:start so success prints one trusted ready line by default, with routine ceremony behind --verbose. Refs #4966 Prefer-A Bound 6255757053.
 - Changed - Prepare review-cycle babysit so merge-ready SLizard blocks force tip-body fingerprint work before re-arming wait-mergeable. Refs #5102 Prefer-A Bound 5872632888.
 - Changed - Prepare host/deft-hook refuse-before-execution for undeclared forge-poll and path-only TEMP babysit shells when Tier-1 spawn_subagent is available. Refs #5732 Prefer-A Bound 6256155031.
 - Changed - Prepare worktrees-probe unregister to keep operation-scoped admin ownership across both prune passes so a case-distinct sibling is never fold-matched away. Refs #5735 Prefer-A Bound 6256420554.
