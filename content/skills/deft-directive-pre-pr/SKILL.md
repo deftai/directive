@@ -103,11 +103,12 @@ Live skip detection on deftai/directive additionally requires Limb 5 enrollment 
 
 ## Hard local refuse before push (#5804)
 
-! On enrolled tip OVPR, feature-branch `git push` of product/test changes fails closed unless a private-store `deft pre-pr:run` pass bound to HEAD covers outgoing paths (outgoing ⊆ reviewed pushBinding). Empty pre-push stdin denies.
+! On enrolled tip OVPR, feature-branch git push of product/test changes fails closed unless a private-store deft pre-pr:run pass bound to HEAD covers outgoing paths (outgoing ⊆ reviewed pushBinding). Empty pre-push stdin denies.
 
-- ! Recovery when refuse fires: `deft pre-pr:run` then retry push.
+- ! Recovery when refuse fires: deft pre-pr:run then retry push.
 - ⊗ Treat reading this SKILL.md or narrating pre-PR as a push pass.
 - ⊗ Inherit evaluatePrePush empty-stdin allow for the enrolled arm.
+
 
 ## Loop Phases
 
