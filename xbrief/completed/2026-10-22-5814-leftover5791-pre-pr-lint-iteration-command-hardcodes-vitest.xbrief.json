@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5814",
-    "updated": "2026-10-22T04:37:10Z"
+    "updated": "2026-10-22T06:36:23.268Z"
   },
   "plan": {
     "title": "leftover(#5791): pre-PR lint_iteration command hardcodes vitest coverage",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "leftover(#5791): pre-PR lint_iteration command hardcodes vitest coverage",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5814",
@@ -16,28 +16,88 @@
     "items": [
       {
         "title": "relieves: P1 — Recut1 lint_iteration exit-5 + distinct mode-skip token under coverageMode initial|disabled (never exit 0; never bare any-nonzero)",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "1",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5823 squash-merge (Tracking #5814).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5823",
+            "mintedAt": "2026-10-22T06:36:23.268Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-22T06:36:23.268Z"
+        }
       },
       {
         "title": "relieves: P2 — Recut1 shared coverageMode via readPlanPolicy plus report-present guard; commandSatisfied re-reads mode and refuses skip when coverage report present",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "2",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5823 squash-merge (Tracking #5814).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5823",
+            "mintedAt": "2026-10-22T06:36:23.268Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-22T06:36:23.268Z"
+        }
       },
       {
         "title": "relieves: P1 — Recut1 mode skip discharges Vitest-shaped lint_iteration observation only; static verify prose + merge_chokepoint phase remain",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "3",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5823 squash-merge (Tracking #5814).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5823",
+            "mintedAt": "2026-10-22T06:36:23.268Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-22T06:36:23.268Z"
+        }
       },
       {
         "title": "relieves: P3 — Recut1 same mode skip covers non-Vitest under initial|disabled; adapters remain issue 5813",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "4",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5823 squash-merge (Tracking #5814).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5823",
+            "mintedAt": "2026-10-22T06:36:23.268Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-22T06:36:23.268Z"
+        }
       },
       {
         "title": "relieves: P1 — Recut1 specialized observe/commandSatisfied arms (not ALLOWED_SKIP_REASONS map alone); runtime+skill/pack admit exact pair; retire deferred-skip sentence",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "5",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5823 squash-merge (Tracking #5814).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5823",
+            "mintedAt": "2026-10-22T06:36:23.268Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-22T06:36:23.268Z"
+        }
       }
     ],
     "tags": [
@@ -81,35 +141,30 @@
         {
           "id": 1,
           "text": "relieves: P1 — Recut1 lint_iteration exit-5 + distinct mode-skip token under coverageMode initial|disabled (never exit 0; never bare any-nonzero)",
-          "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 2,
           "text": "relieves: P2 — Recut1 shared coverageMode via readPlanPolicy plus report-present guard; commandSatisfied re-reads mode and refuses skip when coverage report present",
-          "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 3,
           "text": "relieves: P1 — Recut1 mode skip discharges Vitest-shaped lint_iteration observation only; static verify prose + merge_chokepoint phase remain",
-          "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 4,
           "text": "relieves: P3 — Recut1 same mode skip covers non-Vitest under initial|disabled; adapters remain issue 5813",
-          "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 5,
           "text": "relieves: P1 — Recut1 specialized observe/commandSatisfied arms (not ALLOWED_SKIP_REASONS map alone); runtime+skill/pack admit exact pair; retire deferred-skip sentence",
-          "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         }
@@ -132,7 +187,6 @@
         "module_boundary": "packages/core/src/pre-pr-controller/controller.ts",
         "cohesion_exemption": "CHANGELOG + skill pack; lint_iteration mode-skip shares #5791 coverageMode"
       },
-      "issueBody": "## Summary\n\nleftover(#5791): pre-PR lint_iteration command hardcodes vitest coverage\n\n## Problem\n\nEven after #5791 `coverageMode` lets `coverage_headroom` / `coverage:hotspots` take authorized mode-based N/A, the prescribed pre-PR phase `lint_iteration` is pinned to `vitest run --coverage <changed-paths>` (`packages/core/src/pre-pr-controller/phases.ts`).\n\nNo-suite and non-Vitest consumers (including xUnit) still cannot complete the full prescribed pre-PR controller pass: hotspots may N/A while lint_iteration remains a Vitest-shaped required observation.\n\nCalled out in Round-1 Codex on #5791 (comment 6327448171): a hotspots-only unit test cannot establish end-to-end relief for the OVPR pin/lock fixture.\n\n## What to build\n\n- Mode- or toolchain-aware disposition for `lint_iteration` when coverage enforcement is not `full` / when no Vitest suite exists — authorized skip with closed reason, or provider-shaped command observation.\n- Align with #5791 `coverageMode` and any future coverage provider leftover; do not invent a second unrelated posture enum if one shared resolver suffices.\n\n## Acceptance\n\n- [ ] Framework-only / no-suite pin upgrade can complete full `deft pre-pr:run` under `coverageMode: initial|disabled` without inventing a Vitest suite.\n- [ ] `full` + Vitest path unchanged.\n- [ ] Skip/admission stays Prefer-A honest (non-zero + closed reason; controller re-derive/re-read).\n\n## Keep-outs\n\n- Do not absorb non-Istanbul measurement adapters here (sibling leftover).\n- Do not remove lint_iteration as a required phase without a Bound.\n\n## Refs\n\nParent: deftai/directive#5791 Prefer-A Bound 6327510671. Round-1 Codex 6327448171.\n\n",
       "x-directive/plan-id": {
         "version": 1,
         "source": "github-rest-id",
@@ -182,9 +236,40 @@
           "#5804"
         ],
         "parallel_safe": false
+      },
+      "productPullRequest": 5823,
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "mergeCommit": "31733bad70434281d5c5945a3be0857c8ee01dc4",
+      "deliveryProvenance": {
+        "productPullRequest": 5823,
+        "mergeCommit": "31733bad70434281d5c5945a3be0857c8ee01dc4",
+        "deliveryBranch": "master"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 5823,
+        "prBase": "master",
+        "mergeCommit": "31733bad70434281d5c5945a3be0857c8ee01dc4",
+        "deliveryBranch": "master",
+        "deliveryCommit": "31733bad70434281d5c5945a3be0857c8ee01dc4",
+        "verifiedAt": "2026-10-22T06:36:23.268Z",
+        "verifier": "parent-retained-closer/leftover-5814",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTYyNDgtNWRiZC03ZmUzLTk4YzQtZTJkMDY3M2ZlOWZk"
+      },
+      "completedAt": "2026-10-22T06:36:23.268Z",
+      "completedSessionId": "host:grok:v1:MDFhMTYyNDgtNWRiZC03ZmUzLTk4YzQtZTJkMDY3M2ZlOWZk",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-22T06:36:23.268Z"
       }
     },
     "id": "github.issue.5969572712",
-    "updated": "2026-10-22T04:37:10Z"
+    "updated": "2026-10-22T06:36:23.268Z"
   }
 }
