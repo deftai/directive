@@ -6,8 +6,6 @@ vars:
 tasks:
   health:
     desc: "Tier 0 static self-consistency aggregation -- versioned framework health score (#1703). -- task eval:health [-- --json] [--no-persist] [--project-root PATH]"
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -15,8 +13,6 @@ tasks:
 
   run:
     desc: "Tier 2 golden corpus champion-challenger eval (#1703). -- task eval:run -- --model MODEL [--seed N] [--directive-version V] [--harness NAME] [--json] [--no-persist] [--project-root PATH]"
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -24,8 +20,6 @@ tasks:
 
   report:
     desc: "Tier 2 version-diff report with significance (#1703). -- task eval:report -- --champion V --challenger V --model MODEL [--json] [--project-root PATH]"
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -33,8 +27,6 @@ tasks:
 
   triggers:
     desc: "Trigger routing coverage for AGENTS.md / Skills Index (#1586). Offline skill-pi-trigger-eval compatible eval over evals/trigger-cases.jsonl vs REFERENCES.md. -- task eval:triggers [-- --json] [--project-root PATH]"
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:

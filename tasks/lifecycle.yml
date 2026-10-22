@@ -27,7 +27,6 @@ tasks:
   stats:
     desc: "Local xBRIEF lifecycle folder counts for process rollups (#2995). -- task lifecycle:stats -- --since=7d [--json] [--project-root <path>]"
     dir: '{{.USER_WORKING_DIR}}'
-    deps: [':engine:_ts-build']
     env:
       PYTHONUTF8: "1"
     cmds:

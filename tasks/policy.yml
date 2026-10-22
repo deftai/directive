@@ -25,8 +25,6 @@ tasks:
     # retired `python -m scripts.policy` launcher is gone.
     desc: "Inspect every registered typed-policy field on vbrief/PROJECT-DEFINITION.vbrief.json (#1148 / N8). -- task policy:show [-- --format=json] [--changed-only] [--field=<name>]"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -35,8 +33,6 @@ tasks:
   enforce-branches:
     desc: "Set plan.policy.allowDirectCommitsToMaster=false (enforce feature branches). Audits to meta/policy-changes.log. (#746)"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -45,8 +41,6 @@ tasks:
   allow-direct-commits:
     desc: "Set plan.policy.allowDirectCommitsToMaster=true (capability-cost: branch-protection OFF). Requires --confirm to apply. (#746)"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -55,8 +49,6 @@ tasks:
   allow-destructive-gh-verbs:
     desc: "Set plan.policy.allowDestructiveGhVerbs=true (capability-cost: #1019 preflight-gh OFF). Requires --confirm to apply. (#4384)"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -65,8 +57,6 @@ tasks:
   enforce-destructive-gh-verbs:
     desc: "Set plan.policy.allowDestructiveGhVerbs=false (enforce #1019 preflight-gh). Audits to meta/policy-changes.log. (#4384)"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -75,8 +65,6 @@ tasks:
   enable-value-feedback:
     desc: "Opt in to value-feedback surfaces (#1709). Requires --confirm after the capability-cost disclosure prints. -- task policy:enable-value-feedback -- [--confirm] [--json]"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -85,8 +73,6 @@ tasks:
   disable-host-hooks:
     desc: "Disable plan.policy.hostHooks.<host> (capability-cost: deft-hook guardrails removed; tracked). Requires --host and --confirm. -- task policy:disable-host-hooks -- --host <claude|cursor|grok|codex> --confirm"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -95,8 +81,6 @@ tasks:
   clear-value-feedback:
     desc: "Remove typed plan.policy.valueFeedback so trusted-org repos return to org-auto resolution (#2822). -- task policy:clear-value-feedback"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -105,8 +89,6 @@ tasks:
   set-spec-guard-enforcement:
     desc: "Promote plan.policy.specGuard.driftGuard.enforcement advise|shadow|enforce (#5350). Requires --set and --confirm. Refuse advise→enforce skip without shadow attestation. -- task policy:set-spec-guard-enforcement -- --set shadow|enforce --confirm"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -115,8 +97,6 @@ tasks:
   wip-cap:
     desc: "Set plan.policy.wipCap=N (#1124 / D4 of #1119). Requires --set N --confirm. Default cap is 20 (#2319; raised from the original 10 per umbrella #1119 Current Shape v3)."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -125,8 +105,6 @@ tasks:
   subagent-backend:
     desc: "DEPRECATED (superseded by `task swarm:routing-set`, #1739). Was: Set plan.policy.swarmSubagentBackend (#1531a). -- task policy:subagent-backend -- --set composer|grok-build|cursor-cloud"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - cmd: echo "[deft deprecation] task policy:subagent-backend is superseded by 'task swarm:routing-set' (#1739). The swarmSubagentBackend enum is no longer the active routing surface." 1>&2
         silent: true
@@ -137,8 +115,6 @@ tasks:
   subagent-backends:
     desc: "DEPRECATED (superseded by `task swarm:routing-set` / `task verify:routing`, #1739). Was: Probe sub-agent backend ids, role capabilities, and availability (#1531a). -- task policy:subagent-backends [-- --format=json]"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - cmd: echo "[deft deprecation] task policy:subagent-backends is superseded by 'task verify:routing -- --advise' and 'task swarm:routing-set' (#1739). The swarmSubagentBackend enum is no longer the active routing surface." 1>&2
         silent: true

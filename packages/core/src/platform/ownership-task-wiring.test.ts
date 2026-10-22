@@ -30,10 +30,12 @@ describe("ownership task Prefer-B wiring (#1617)", () => {
     expect(cmds).not.toMatch(/deps:|ownership-run\.cjs|ownership-ensure-cli/);
   });
 
-  it("keeps ownership verbs on the engine runtime-verb allowlist", () => {
-    expect(engineYml).toMatch(/ownership:doctor/);
-    expect(engineYml).toMatch(/ownership:fix/);
-    expect(engineYml).toMatch(/verify:ownership/);
+  it("routes ownership verbs through pin-exclusive engine:invoke (#5805)", () => {
+    // Tip auto-compile / is_runtime_verb allowlist withdrawn; pin-bin owns dispatch.
+    expect(engineYml).toMatch(/pin-bin/);
+    expect(ownershipYml).toMatch(/task:\s*:engine:invoke/);
+    expect(ownershipYml).toContain("ownership:doctor");
+    expect(ownershipYml).toContain("ownership:fix");
   });
 
   it("does not ship ownership-ensure-cli.cjs or ownership-run.cjs", () => {

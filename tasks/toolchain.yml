@@ -6,8 +6,6 @@ vars:
 tasks:
   check:
     desc: Verify required maintainer toolchain is installed (go, uv, git, gh, node, pnpm)
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -15,8 +13,6 @@ tasks:
 
   check-consumer:
     desc: Verify git, gh, node, and the consumer's selected npm or pnpm; this gate does not probe go-task/Python/go/uv (#3610/#3335).
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:

@@ -22,8 +22,6 @@ tasks:
   rule-map:
     desc: "Build the maintainer Rule Map (docs/RULE-MAP.md + gitignored docs/rule-map/index.html)"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -32,8 +30,6 @@ tasks:
   rule-map:check:
     desc: "Fail if committed docs/RULE-MAP.md is out of date (for CI / pre-commit gating)"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -42,15 +38,15 @@ tasks:
   capability-map:
     desc: "Generate content/docs/capabilities.md from the capability overlay (#4099)"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/core/dist/docs/capability-map.js" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'capability-map --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   capability-map:check:
     desc: "Fail if committed content/docs/capabilities.md is stale or the overlay disagrees with registries (#4099)"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/core/dist/docs/capability-map.js" --project-root "{{.USER_WORKING_DIR}}" --check
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'capability-map --project-root "{{.USER_WORKING_DIR}}" --check'

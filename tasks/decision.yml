@@ -12,8 +12,6 @@ tasks:
   write:
     desc: "Write a lightweight structured decision record (#1396). -- task decision:write -- [--decision TEXT] [--governing-rule ...] [--alternative ...] [--why-winner ...] [--confidence low|medium|high] [--revisit-trigger ...] [--scope PATH] [--body-file PATH] [--json] [--dry-run]"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -22,8 +20,6 @@ tasks:
   list:
     desc: "List structured decision records under xbrief/decisions/ (#1396). -- task decision:list -- [--query TEXT] [--scope PATH] [--issue N] [--limit N] [--json]"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:

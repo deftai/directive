@@ -20,8 +20,6 @@ tasks:
   uninstall:
     desc: Remove deft entry from AGENTS.md
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -62,8 +60,6 @@ tasks:
     # `task upgrade` failed on the primary npm consumer workflow. Framework-root is
     # intentionally omitted: install-upgrade auto-detects the consumer's
     # `.deft/core/VERSION` (#2053) when run from the global engine.
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:

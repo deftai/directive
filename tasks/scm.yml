@@ -57,8 +57,6 @@ tasks:
   issue:list:
     desc: "[#883 stub] List issues -- task scm:issue:list -- [--rest] --repo OWNER/NAME --json number,title,state,updatedAt [--state ...] (#976 --rest routes via REST helpers; default forwards to ghx|gh)"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -67,8 +65,6 @@ tasks:
   issue:view:
     desc: "[#883 stub] View an issue -- task scm:issue:view -- [--rest] <N> --repo OWNER/NAME --json number,title,body,state,author,createdAt,updatedAt,labels,comments (#976 --rest routes via REST helpers and emits REST shape; default forwards to ghx|gh GraphQL shape)"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -77,8 +73,6 @@ tasks:
   issue:close:
     desc: "[#883 stub] Close an issue -- task scm:issue:close -- <N> --repo OWNER/NAME [--comment ...]"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -87,8 +81,6 @@ tasks:
   issue:edit:
     desc: "[#883 stub] Edit an issue -- task scm:issue:edit -- <N> --repo OWNER/NAME [--add-label ...] [--body ...]"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -97,8 +89,6 @@ tasks:
   issue:design-critique-chip:
     desc: "[#3642] Exclusive design-critique catalog chip -- task scm:issue:design-critique-chip -- --issue N --chip mechanism-shaped|in-progress|ingest-ready [--repo OWNER/NAME]"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -107,8 +97,6 @@ tasks:
   issue:design-critique-stale-ready:
     desc: "[#4970] Read-only stale ingest-ready scan -- task scm:issue:design-critique-stale-ready -- [--repo OWNER/NAME] [--json]"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -117,8 +105,6 @@ tasks:
   issue:work-claim:
     desc: "[#4200] Same-issue busy flag -- task scm:issue:work-claim -- claim|show|release --issue N [--repo OWNER/NAME] [--json]"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -127,8 +113,6 @@ tasks:
   body:issue:create:
     desc: "[#1555] Safely create an issue body from --body-file without shell Markdown interpolation"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -137,8 +121,6 @@ tasks:
   body:issue:edit:
     desc: "[#1555] Safely edit an issue body from --body-file and live gh read-back"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -147,8 +129,6 @@ tasks:
   body:issue:fetch:
     desc: "[#2607] Fetch live issue body to UTF-8 --out-file for safe read-modify-write"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -157,8 +137,6 @@ tasks:
   body:issue:lint:
     desc: "[#2960] Lint live issue body for CP1252/CP437-as-UTF-8 mojibake (same patterns as verify:encoding)"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -167,8 +145,6 @@ tasks:
   body:pr:lint:
     desc: "[#2960] Lint live PR body for CP1252/CP437-as-UTF-8 mojibake (same patterns as verify:encoding)"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -177,8 +153,6 @@ tasks:
   body:comment:create:
     desc: "[#1555] Safely create an issue/PR comment body from --body-file and live gh read-back"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -187,8 +161,6 @@ tasks:
   body:comment:edit:
     desc: "[#1555] Safely edit an issue comment body from --body-file and live gh read-back"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -197,8 +169,6 @@ tasks:
   sync-default:
     desc: "[#3391] Open dest-targeted sync PRs under syncMaxFiles -- new PR per staged leg"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -207,8 +177,6 @@ tasks:
   body:pr:edit:
     desc: "[#1555] Safely edit a PR body from --body-file and live gh read-back"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:

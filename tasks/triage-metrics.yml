@@ -16,8 +16,6 @@ tasks:
     desc: "Trend lines from summary-history.jsonl (#1709 / D17). -- task triage:metrics -- [--window=7d|30d] [--format=text|json]"
     internal: true
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:

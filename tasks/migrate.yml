@@ -15,8 +15,6 @@ tasks:
     # run the in-product migrator (retired from current npm deposits).
     desc: "Detect pre-v0.20 document model and report the frozen-release migration path (#2068). Three-state exit (#793)."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -27,8 +25,6 @@ tasks:
     # v0.59.0 tag only — current deposits must not ship that target.
     desc: "Migrate consumer vbrief/ layout to xbrief/ with semantic v0.6->v0.8 transforms (#2110 / #2034). Hop 2 of the frozen two-hop path (#4092)."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -37,8 +33,6 @@ tasks:
   category-b:
     desc: "Namespace Category B bare plan keys (policy / completedNote) under x-directive/ across the corpus (#1650 / #2034)."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:

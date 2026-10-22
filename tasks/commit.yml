@@ -11,8 +11,6 @@ tasks:
   commit:lint:
     desc: Validate HEAD commit message against conventional commit format
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:

@@ -19,8 +19,6 @@ tasks:
     # resolve. Refs #1487 (the recurrence the cohort-close gate prevents).
     desc: "Validate xBRIEF lifecycle folder structure and cross-file consistency. Alias of vbrief:validate with xbrief-first naming (#3483)."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       # Layout-aware (#2109 part 2a): pass --project-root and let the engine
       # resolve the lifecycle dir (xbrief when migrated, else vbrief).
@@ -35,8 +33,6 @@ tasks:
     # Legacy `task vbrief:preflight -- <path>` remains accepted for the same gate.
     desc: "Preflight an implementation-intent gate (#810): exits 0 only when the xBRIEF is in xbrief/active/ AND plan.status == 'running'. Alias of vbrief:preflight with xbrief-first help."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -55,8 +51,6 @@ tasks:
     # skip would silently swallow it.
     desc: "Activate an xBRIEF: pending/ -> active/ (status: running). Idempotent. Alias of vbrief:activate with xbrief-first naming (#810 / #3483)."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:

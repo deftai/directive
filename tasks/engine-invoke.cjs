@@ -23,6 +23,11 @@ const CONTENT_PACKAGE_NAME = "@deftai/directive-content";
 /** Single remediation when a deposit has no global CLI (#3324 / #3265). */
 const DEPOSIT_REMEDIATION = "npm i -g @deftai/directive";
 const SOURCE_BUILD_REMEDIATION = "task build";
+/** Missing checkout pin remediation (#5805 Prefer-A Bound P1). */
+const PIN_INSTALL_REMEDIATION =
+  "npm i -g @deftai/directive, then directive install --repair (or package-manager install of @deftai/directive-runtime)";
+const PIN_MATERIALIZE_REMEDIATION = "task materialize:runtime";
+const PIN_BIN_REL = path.join("node_modules", "@deftai", "directive-runtime", "dist", "bin.js");
 
 /**
  * cmd.exe command separators / metacharacters. Free-text DEFT_ENGINE_CMD_JSON
@@ -156,6 +161,63 @@ function hasConsumerDepositMarker(root, opts = {}) {
  * @param {string} root
  * @param {{ fs?: typeof fs, path?: typeof path }} [opts]
  */
+
+/**
+ * Absolute path of the checkout-local pin binary (AC9.9 / #5805).
+ * @param {string} projectRoot
+ * @param {{ fs?: typeof fs, path?: typeof path }} [opts]
+ */
+function resolveFrameworkPinBin(projectRoot, opts = {}) {
+  const pathMod = opts.path || path;
+  if (!projectRoot) return "";
+  return pathMod.join(projectRoot, "node_modules", "@deftai", "directive-runtime", "dist", "bin.js");
+}
+
+/**
+ * True when the checkout-local pin binary exists.
+ * @param {string} projectRoot
+ * @param {{ fs?: typeof fs, path?: typeof path }} [opts]
+ */
+function hasFrameworkPinBin(projectRoot, opts = {}) {
+  const io = opts.fs || fs;
+  const pin = resolveFrameworkPinBin(projectRoot, opts);
+  if (!pin) return false;
+  try {
+    return io.existsSync(pin);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Framework-source ordinary invoke: pin exclusive, fail closed when missing (#5805).
+ * Deposit / non-buildable keep prior hasBin → vendored / global behavior.
+ * @param {{
+ *   hasBin: boolean,
+ *   isBuildableSource: boolean,
+ *   hasPinBin: boolean,
+ *   isRuntimeVerb?: boolean,
+ *   hasGlobalCli?: boolean,
+ * }} input
+ */
+function resolveFrameworkSourceInvoke(input) {
+  if (!input.isBuildableSource) {
+    return resolveInvokeDispatch({
+      hasBin: input.hasBin,
+      isBuildableSource: false,
+      isRuntimeVerb: Boolean(input.isRuntimeVerb),
+      hasGlobalCli: Boolean(input.hasGlobalCli),
+    });
+  }
+  if (input.hasPinBin) {
+    return { action: "vendored", binKind: "pin" };
+  }
+  return {
+    action: "fail-closed",
+    remediations: [PIN_INSTALL_REMEDIATION, PIN_MATERIALIZE_REMEDIATION],
+    exitCode: 2,
+  };
+}
 function isBuildableSource(root, opts = {}) {
   if (hasConsumerDepositMarker(root, opts)) {
     return false;
@@ -337,6 +399,18 @@ if (require.main === module) {
   if (mode === "is-buildable-source") {
     process.exit(isBuildableSource(process.argv[3] || "") ? 0 : 1);
   }
+  if (mode === "pin-bin") {
+    const root = process.argv[3] || "";
+    const pin = resolveFrameworkPinBin(root);
+    if (hasFrameworkPinBin(root)) {
+      process.stdout.write(pin);
+      process.exit(0);
+    }
+    console.error("deft: missing checkout pin " + pin);
+    console.error("  Recovery: " + PIN_INSTALL_REMEDIATION);
+    console.error("  Or tip dogfood: " + PIN_MATERIALIZE_REMEDIATION);
+    process.exit(2);
+  }
   main();
 }
 
@@ -349,9 +423,14 @@ module.exports = {
   isVendoredCoreRoot,
   isBuildableSource,
   resolveInvokeDispatch,
+  resolveFrameworkPinBin,
+  hasFrameworkPinBin,
+  resolveFrameworkSourceInvoke,
   CONSUMER_DEPOSIT_FIELD,
   CONSUMER_DEPOSIT_MARKER_FILE,
   CONTENT_PACKAGE_NAME,
   DEPOSIT_REMEDIATION,
   SOURCE_BUILD_REMEDIATION,
+  PIN_INSTALL_REMEDIATION,
+  PIN_MATERIALIZE_REMEDIATION,
 };

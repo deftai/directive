@@ -9,8 +9,6 @@ tasks:
     dir: '{{.USER_WORKING_DIR}}'
     # Per conventions/task-caching.md: no sources/generates because this task
     # forwards user-supplied paths and project-root flags via CLI_ARGS.
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -19,8 +17,6 @@ tasks:
   extract-default:
     desc: "Emit the dependency-free default codebase-map artifact to stdout (#1595 PR3)."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -29,8 +25,6 @@ tasks:
   provider-map:
     desc: "Select an external codebase-map provider or fall back to the default artifact (#1595 PR3)."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -39,8 +33,6 @@ tasks:
   map:
     desc: "Generate .planning/codebase/MAP.md from the selected codebase-map artifact (#1595 PR4)."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -49,8 +41,6 @@ tasks:
   projection-registry:
     desc: "Inspect registered codebase projection kinds (#1595 PR3)."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:

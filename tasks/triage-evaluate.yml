@@ -14,7 +14,6 @@ tasks:
   evaluate:
     desc: "Evaluate issues off origin/master (validity + parent WIP + value). -- task triage:evaluate -- <N...> [--concurrency N] [--repo OWNER/NAME] [--json]"
     internal: true
-    deps: [":engine:_ts-build"]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - task: :engine:invoke
