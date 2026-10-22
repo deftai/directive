@@ -4,6 +4,12 @@
  * initial|disabled authorize an honest non-zero coverage_headroom skip when no
  * Istanbul report is present. full keeps today's measured path. missing/null
  * reads as initial; malformed does not (fail-closed to full).
+ *
+ * Public graduation path (do not hand-edit PROJECT-DEFINITION for mode changes):
+ * - setCoverageMode re-exported from packages/core policy barrel + packages/core/src/index.ts;
+ *   package export ./policy.
+ * - CLI: deft policy:set-coverage-mode -- --mode full|disabled|initial --confirm.
+ * Damaged/unreadable PROJECT-DEFINITION resolves to full (never initial) — see resolveCoverageMode.
  */
 
 import { withProjectDefinitionMutation } from "../vbrief-build/project-definition-mutation.js";
