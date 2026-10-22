@@ -24,7 +24,6 @@ tasks:
   classify:
     desc: "Inspect / validate triageAutoClassify + triageLabelMirror. --mirror is withdrawn (#4070)."
     internal: true
-    deps: [":engine:_ts-build"]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - task: :engine:invoke
@@ -34,7 +33,6 @@ tasks:
   strip-withdrawn-chips:
     desc: "Remaining-set strip of withdrawn triaged / triage:* chips (#4070). Dry-run default; --apply writes. --emit-digest prints shadowed vs faithful classify rows for #4071."
     internal: true
-    deps: [":engine:_ts-build"]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - task: :engine:invoke

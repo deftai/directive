@@ -32,8 +32,6 @@ tasks:
     #                deft scope:promote -- --batch path1 path2 [--force]
     desc: "Promote a vBRIEF scope: proposed/ -> pending/ (status: pending). Batch: --batch [paths...] (#3011)."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -42,8 +40,6 @@ tasks:
   activate:
     desc: "Activate a vBRIEF scope: pending/ -> active/ (status: running)"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -52,8 +48,6 @@ tasks:
   complete:
     desc: "Complete a vBRIEF scope: active/ -> completed/ (status: completed)"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -72,8 +66,6 @@ tasks:
     # vbrief/schemas/vbrief-core.schema.json).
     desc: "Fail a vBRIEF scope: active/ -> completed/ (status: failed)"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -82,8 +74,6 @@ tasks:
   cancel:
     desc: "Cancel a vBRIEF scope: any folder -> cancelled/ (status: cancelled)"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -92,8 +82,6 @@ tasks:
   restore:
     desc: "Restore a cancelled vBRIEF scope: cancelled/ -> proposed/ (status: proposed)"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -102,8 +90,6 @@ tasks:
   block:
     desc: "Block a vBRIEF scope: stays in active/ (status: blocked)"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -112,8 +98,6 @@ tasks:
   unblock:
     desc: "Unblock a vBRIEF scope: stays in active/ (status: running)"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -122,8 +106,6 @@ tasks:
   stamp-evidence:
     desc: "Stamp kind:test evidence for non-glob matchAny files (#4840). Evidence-only; no --pr/--merge-commit."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -132,8 +114,6 @@ tasks:
   bind-clause:
     desc: "Bind pathless derived clauses onto an approved file_scope matchAny path (#4986). Empty file_scope is a silent no-op."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -142,8 +122,6 @@ tasks:
   decompose:
     desc: "Apply/check an approved epic/phase -> story decomposition draft"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -161,8 +139,6 @@ tasks:
   demote:
     desc: "Demote a vBRIEF scope: pending/ -> proposed/ (#1121). Single-file or --batch --older-than-days N (default 45)."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -178,8 +154,6 @@ tasks:
   record-approved-scope:
     desc: "Record human-approved file_scope digest under .deft/approved-scope/<plan-id>.json (#3205). Requires --actor <human>. Refuses agent stamps. Path-binds pending→active. Commit on merge base before activation/expansion PR."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -188,8 +162,6 @@ tasks:
   record-observable-scope:
     desc: "Record human-minted observable UI contract under .deft/observable-scope/<plan-id>.json (#4495 / #3110). Requires --actor <human> --confirm. Refuses agent stamps and worker-declared baselineRef. Commit on merge base before the UI change PR."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -198,8 +170,6 @@ tasks:
   record-intent-constraint:
     desc: "Record human-minted intent-constraint contract under .deft/intent-constraint/<plan-id>.json (#4541 / #3110). Requires --actor <human> --confirm. Refuses agent stamps and worker-declared baselineRef. Commit on merge base before the implementation change PR."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:

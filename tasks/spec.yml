@@ -15,8 +15,6 @@ tasks:
   validate:
     desc: Validate that the specification artifact exists and is well-formed JSON
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -30,8 +28,6 @@ tasks:
       --include-scopes=current|all, --include-legacy-artifacts=on, and
       --item-depth=N after --.
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -44,8 +40,6 @@ tasks:
       specification.xbrief.json. Consumes #1595 codebase MAP as code oracle.
       Consumer alias: task deft:spec:reconstruct.
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:

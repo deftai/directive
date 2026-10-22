@@ -7,8 +7,6 @@ tasks:
   status:
     desc: "Show product-signal enable/consent/sink status (#2693). -- task product-signal:status"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -17,8 +15,6 @@ tasks:
   enable:
     desc: "Enable plan.policy.productSignal after capability-cost disclosure (#2693). -- task product-signal:enable -- [--confirm]"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -27,8 +23,6 @@ tasks:
   consent:
     desc: "Grant or revoke install-level product-signal consent (#2693). -- task product-signal:consent -- --grant|--revoke"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -37,8 +31,6 @@ tasks:
   submit:
     desc: "Submit pulse/portrait payload to private sink when gated (#2693). -- task product-signal:submit -- [--surface pulse|portrait] [--dry-run] [--json]"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -47,8 +39,6 @@ tasks:
   bootstrap-sink:
     desc: "Create private deftai/product-signal repo and bootstrap D20 labels (#2693). -- task product-signal:bootstrap-sink [-- --dry-run]"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:

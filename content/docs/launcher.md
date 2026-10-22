@@ -32,6 +32,16 @@ npm i -g @deftai/directive
 directive install --repair
 ```
 
+## Maintainer dogfood (this repository)
+
+On the Directive monorepo, ordinary unprefixed `task <verb>` paths and Git hooks both execute the **checkout pin** at `node_modules/@deftai/directive-runtime/dist/bin.js` (#5805 / AC9.9). Fast-forwarding `master` alone does not run tip source. Tip without a public publish:
+
+```bash
+task materialize:runtime
+```
+
+That stages and packs tip via `packages/runtime/scripts/stage-bundle.mjs` + `pack-staged-runtime.mjs`, then replaces **this checkout's** pin only (no `package.json` / lockfile location-spec rewrite; primary materialize does not update dest worktree pins). CI tip probes that call `packages/runtime/dist/bin.js` directly stay carved out.
+
 ## Related
 
 - [Known limitations](./known-limitations.md)

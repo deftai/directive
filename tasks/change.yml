@@ -11,8 +11,6 @@ tasks:
   changelog:check:
     desc: Verify CHANGELOG.md has an [Unreleased] section with at least one entry
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -21,8 +19,6 @@ tasks:
   change:init:
     desc: Create a new change proposal directory structure in history/changes/<name>/
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:

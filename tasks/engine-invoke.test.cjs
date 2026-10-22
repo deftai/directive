@@ -533,3 +533,87 @@ describe("buildSpawnPlan — CodeQL absolute-path isolation (#3175 / alert #74)"
     assert.deepEqual(plan.args, [String.raw`C:\repo\packages\cli\dist\bin.js`, "session:start"]);
   });
 });
+
+describe("framework pin exclusive invoke (#5805)", () => {
+  const {
+    resolveFrameworkPinBin,
+    hasFrameworkPinBin,
+    resolveFrameworkSourceInvoke,
+    PIN_INSTALL_REMEDIATION,
+    PIN_MATERIALIZE_REMEDIATION,
+  } = require("./engine-invoke.cjs");
+  const pinRoots = [];
+  function pinTempRoot() {
+    const root = mkdtempSync(join(tmpdir(), "pin-inv-"));
+    pinRoots.push(root);
+    return root;
+  }
+  after(() => {
+    for (const root of pinRoots) {
+      try {
+        rmSync(root, { recursive: true, force: true });
+      } catch {
+        /* ignore */
+      }
+    }
+  });
+
+  it("resolveFrameworkPinBin joins checkout pin path", () => {
+    const pin = resolveFrameworkPinBin(join("C:", "repo"));
+    assert.match(pin.replace(/\\/g, "/"), /node_modules\/@deftai\/directive-runtime\/dist\/bin\.js$/);
+  });
+
+  it("hasFrameworkPinBin is false when missing", () => {
+    const root = pinTempRoot();
+    assert.equal(hasFrameworkPinBin(root), false);
+  });
+
+  it("hasFrameworkPinBin is true when pin bin exists", () => {
+    const root = pinTempRoot();
+    const pin = resolveFrameworkPinBin(root);
+    mkdirSync(require("node:path").dirname(pin), { recursive: true });
+    writeFileSync(pin, "module.exports={}\n");
+    assert.equal(hasFrameworkPinBin(root), true);
+  });
+
+  it("framework-source with pin selects vendored pin (not tip dist)", () => {
+    const plan = resolveFrameworkSourceInvoke({
+      hasBin: true,
+      isBuildableSource: true,
+      hasPinBin: true,
+    });
+    assert.deepEqual(plan, { action: "vendored", binKind: "pin" });
+  });
+
+  it("framework-source missing pin fails closed even when tip dist / global exist", () => {
+    const plan = resolveFrameworkSourceInvoke({
+      hasBin: true,
+      isBuildableSource: true,
+      hasPinBin: false,
+      hasGlobalCli: true,
+      isRuntimeVerb: true,
+    });
+    assert.equal(plan.action, "fail-closed");
+    assert.equal(plan.exitCode, 2);
+    assert.deepEqual(plan.remediations, [PIN_INSTALL_REMEDIATION, PIN_MATERIALIZE_REMEDIATION]);
+  });
+
+  it("deposit path keeps prior resolveInvokeDispatch behavior", () => {
+    const plan = resolveFrameworkSourceInvoke({
+      hasBin: false,
+      isBuildableSource: false,
+      hasPinBin: false,
+      hasGlobalCli: true,
+      isRuntimeVerb: false,
+    });
+    assert.deepEqual(plan, { action: "global" });
+  });
+
+  it("pin-bin CLI exits 2 when missing", () => {
+    const root = pinTempRoot();
+    const script = join(__dirname, "engine-invoke.cjs");
+    const r = spawnSync(process.execPath, [script, "pin-bin", root], { encoding: "utf8" });
+    assert.equal(r.status, 2);
+    assert.match(r.stderr, /missing checkout pin/);
+  });
+});

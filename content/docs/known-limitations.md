@@ -20,6 +20,7 @@ Accepted product decisions for the launcher + pinned-runtime install model. Docu
 | **Only package/readiness ignore entries change** | Ignore updates cover `node_modules` and `.deft/directive/wiring-ready.*.json`; `GENERATION.json` stays committed | Broader housekeeping stays where it is |
 | **Node 20 is best-effort** | Warning on Node 20; gates test 22 and 24 | Broad compatibility without blocking |
 | **`@deftai/directive` is the launcher** | Adding it locally does not activate a project; meaning changes from “the product” to “the launcher” at the split | Pin `@deftai/directive-runtime` via `directive install` |
+| **FF alone is not tip dogfood** | On the maintainer monorepo, ordinary `task` and hooks stay on the checkout pin; workspace `packages/runtime/dist` is not a silent ordinary-verb fallback (#5805) | Run `task materialize:runtime` in the checkout that should dogfood tip; dest worktrees do not inherit primary materialize |
 | **Hooks cannot run while their runtime package is absent** | Host may block edits until packages are restored | No fallback to another version; recover with `npm i -g @deftai/directive`, then `directive install --repair` |
 | **No `--force`** | Conflicts are named and left | Destructive bypass is out of scope |
 | **Three private packages are not consumable** | `directive-core`, `directive-content`, and `directive-types` are not on npm for external use | Bundled into the runtime; loose ranges were part of the bug |

@@ -396,6 +396,10 @@ includes:
   engine:
     taskfile: ./tasks/engine.yml
     optional: true
+  # #5805: tip-without-publish materialize into checkout pin.
+  materialize:
+    taskfile: ./tasks/materialize.yml
+    optional: true
 
 tasks:
   default:
@@ -408,8 +412,7 @@ tasks:
   check:
     desc: "Run the context-appropriate pre-commit gate: full framework self-check in this repo, consumer-safe gate from vendored installs (#1519)."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: engine:_ts-build
+    # #5805: no engine:_ts-build — pin-exclusive ordinary invoke.
     cmds:
       - task: engine:invoke
         vars:
@@ -422,8 +425,7 @@ tasks:
 
   check:merge:
     desc: "Merge chokepoint gate — explicit alias for check:framework-source (#1704). CI and PR gates SHOULD invoke this (or task check) as the single SoT so discrete workflow steps cannot drift."
-    deps:
-      - task: engine:_ts-build
+    # #5805: no engine:_ts-build here — ordinary/merge invoke uses the checkout pin, not tip dist.
     cmds:
       - task: check:framework-source
 
@@ -598,8 +600,6 @@ tasks:
   verify-strategy-output:
     desc: "Deterministic v0.20 strategy output shape gate (#1166 s2). Fails on non-date-prefixed vBRIEFs in lifecycle dirs, missing PROJECT-DEFINITION.vbrief.json, or legacy specification.vbrief.json in user projects."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: engine:_ts-build
     cmds:
       - task: engine:invoke
         vars:
@@ -621,8 +621,6 @@ tasks:
 
   verify:no-task-runtime:
     desc: "Fail when runtime Python code hard-depends on go-task (#1659)."
-    deps:
-      - task: engine:_ts-build
     cmds:
       # Oracle/fallback (parity): scripts/verify_no_task_runtime.py (#1854 s3).
       - task: engine:invoke
@@ -683,8 +681,6 @@ tasks:
   setup:
     desc: "Idempotent local-dev setup: configure git hooks (#747); detect-and-prompt ghx (#884). Sets core.hooksPath=.githooks so .githooks/pre-commit + .githooks/pre-push run."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: engine:_ts-build
     env:
       PYTHONUTF8: "1"
     cmds:
@@ -761,8 +757,6 @@ tasks:
   setup:ghx:
     desc: "Consent-gated ghx (brunoborges/ghx) installer (#884) -- task setup:ghx [-- --yes]"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: engine:_ts-build
     # Per `conventions/task-caching.md` (#574): no `sources:` / `generates:`
     # because the script forwards user-facing flags via {{.CLI_ARGS}}
     # (notably --yes for non-interactive CI / scripted approval).

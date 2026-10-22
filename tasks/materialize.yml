@@ -1,0 +1,13 @@
+version: "3"
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+tasks:
+  runtime:
+    desc: "Build tip staged-runtime and replace this checkout node_modules/@deftai/directive-runtime only (#5805). No lockfile/location-spec mutation."
+    dir: "{{.USER_WORKING_DIR}}"
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - node "{{.TASKFILE_DIR}}/materialize.cjs" "{{.USER_WORKING_DIR}}"

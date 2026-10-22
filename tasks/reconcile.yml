@@ -20,8 +20,6 @@ tasks:
   issues:
     desc: "Reconcile GitHub issues against vBRIEF references -- report linked, unlinked, and resolved"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:

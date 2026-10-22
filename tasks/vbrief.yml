@@ -8,8 +8,6 @@ tasks:
   validate:
     desc: Validate vBRIEF lifecycle folder structure and cross-file consistency
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       # Layout-aware (#2109 part 2a): pass --project-root and let the engine
       # resolve the lifecycle dir (xbrief when migrated, else vbrief). The prior
@@ -70,8 +68,6 @@ tasks:
     # {{.CLI_ARGS}} and a cached cmds skip would silently swallow it.
     desc: "Preflight an implementation-intent gate (#810): exits 0 only when the scope xBRIEF is in xbrief/active/ (or legacy vbrief/active/) AND plan.status == 'running'. Prefer `task xbrief:preflight -- <path>`; this task remains for backward compatibility."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       # Oracle/fallback (parity): scripts/preflight_implementation.py (#1828 Wave 8).
       - task: :engine:invoke
@@ -100,8 +96,6 @@ tasks:
     # track, so a cached skip would silently swallow real promotions.
     desc: "Reconcile dep graph: promote proposed/ vBRIEFs whose swarm.depends_on[] all resolve to completed/ or cancelled/ (#1287). Flags: --force --dry-run --json."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       # Oracle/fallback (parity): scripts/vbrief_reconcile_graph.py (#1828 Wave 8).
       - task: :engine:invoke
@@ -133,8 +127,6 @@ tasks:
     # swallow real label changes.
     desc: "Reconcile SCM labels to mirror vBRIEF state: status:blocked / epic+status:tracker / rfc (#1288). Routes through scripts/scm.py. Flags: --repo --dry-run --json."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       # Oracle/fallback (parity): scripts/vbrief_reconcile_labels.py (#1828 Wave 8).
       - task: :engine:invoke
@@ -171,8 +163,6 @@ tasks:
     # swallow real comment updates.
     desc: "Reconcile epic umbrella current-shape comments to vBRIEF state per AGENTS.md #1152: edit in place (preserve permalink). Routes through scripts/scm.py. Flags: --repo --dry-run --json."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       # Oracle/fallback (parity): scripts/vbrief_reconcile_umbrellas.py (#1828 Wave 8).
       - task: :engine:invoke
@@ -209,8 +199,6 @@ tasks:
     # {{.CLI_ARGS}} and a cached cmds skip would silently swallow it.
     desc: "Activate a vBRIEF: pending/ -> active/ (status: running). Idempotent. (#810)"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       # Oracle/fallback (parity): scripts/vbrief_activate.py (#1828 Wave 8).
       # #1782 byte-identical parity holds except for the oracle's

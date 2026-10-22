@@ -39,6 +39,8 @@ Two published packages: global **`@deftai/directive`** (launcher) and project-pi
 
 Framework maintainers of this repository use a separate Node 24 pin; see [CONTRIBUTING.md](../../CONTRIBUTING.md).
 
+Maintainer execution on this repo: after `git pull` / FF, hooks and ordinary `task <verb>` use the pin under `node_modules/@deftai/directive-runtime`. Tip dogfood without publishing is an explicit `task materialize:runtime` into **this** checkout only (each worktree installs/materializes its own pin). See [launcher.md](./launcher.md).
+
 ---
 
 ## Installation

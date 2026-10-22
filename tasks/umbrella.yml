@@ -14,8 +14,6 @@ tasks:
   current-shape:
     desc: "Fetch umbrella ## Current shape comment (#1152) — task umbrella:current-shape <N> [-- --repo OWNER/REPO | --json | --strict]. Does NOT read the issue body."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:

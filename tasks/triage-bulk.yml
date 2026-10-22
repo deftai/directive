@@ -36,7 +36,6 @@ tasks:
   bulk-accept:
     desc: "Bulk accept candidates (#845 Story 4) -- task triage:bulk-accept -- --repo OWNER/NAME [--label L] [--author A] [--age-days N] [--cluster C] [--re-action]"
     internal: true
-    deps: [":engine:_ts-build"]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - task: :engine:invoke
@@ -46,7 +45,6 @@ tasks:
   bulk-reject:
     desc: "Bulk reject candidates (#845 Story 4) -- task triage:bulk-reject -- --repo OWNER/NAME --reason 'why' [--label L] [--author A] [--age-days N] [--cluster C] [--re-action]"
     internal: true
-    deps: [":engine:_ts-build"]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - task: :engine:invoke
@@ -56,7 +54,6 @@ tasks:
   bulk-defer:
     desc: "Bulk defer candidates (#845 Story 4) -- task triage:bulk-defer -- --repo OWNER/NAME [--label L] [--author A] [--age-days N] [--cluster C] [--re-action]"
     internal: true
-    deps: [":engine:_ts-build"]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - task: :engine:invoke
@@ -66,7 +63,6 @@ tasks:
   bulk-needs-ac:
     desc: "Bulk needs-ac candidates (#845 Story 4) -- task triage:bulk-needs-ac -- --repo OWNER/NAME [--label L] [--author A] [--age-days N] [--cluster C] [--re-action]"
     internal: true
-    deps: [":engine:_ts-build"]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - task: :engine:invoke
@@ -76,7 +72,6 @@ tasks:
   refresh-active:
     desc: "Pre-swarm freshness gate (#845 Story 4) -- detects drift between cached and live `gh issue view` for every issue referenced in vbrief/active/*.vbrief.json"
     internal: true
-    deps: [":engine:_ts-build"]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - task: :engine:invoke

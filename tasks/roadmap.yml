@@ -14,8 +14,6 @@ tasks:
   render:
     desc: Render ROADMAP.md from pending/ proposed/ active/ (forward) and capped completed/
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -24,8 +22,6 @@ tasks:
   check:
     desc: Verify ROADMAP.md matches what roadmap:render would produce
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:

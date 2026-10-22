@@ -9,8 +9,6 @@ tasks:
   set:
     desc: "Set the active ordered-plan sequence from --file JSON (#2402)"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -19,8 +17,6 @@ tasks:
   current:
     desc: "Show the current ordered-plan entry (#2402)"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -29,8 +25,6 @@ tasks:
   clear:
     desc: "Clear the active ordered-plan sequence (#2402)"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -39,8 +33,6 @@ tasks:
   advance:
     desc: "Mark current entry complete and advance the ordered-plan index (#2402)"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:

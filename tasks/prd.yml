@@ -27,8 +27,6 @@ tasks:
       stakeholder-safe narratives into a human-readable PRD.md. Explicit --spec remains
       supported. PRD.md is never authoritative -- the resolved xBRIEF is the source of truth.
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:

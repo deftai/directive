@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed - Prepare a hard local refuse so feature-branch pushes of product changes require a bound pre-PR pass before they leave the machine (activation for follow-up product fix). Refs #5804 Prefer-A Bound 6323623922.
 - Changed - Prepare the follow-up fix that will make maintainer commands use the same pinned runtime as Git hooks. This preparation does not change which runtime commands execute. Refs #5805 Prefer-A Bound 6326249868.
 - Changed - Allow pre-PR lint iteration to finish under coverageMode initial|disabled with exit 5 and a distinct mode-skip token (no invented Vitest suite). Refs #5814 Prefer-A Bound 6329108664.
+- Changed - Maintainer ordinary `task` verbs now run the same checkout pin as Git hooks (`node_modules/@deftai/directive-runtime`); tip dogfood without publish is explicit `task materialize:runtime`. Refs #5805 Prefer-A Bound 6326249868.
 - Changed - Prepare pre-PR lint iteration so framework-only and no-suite pin upgrades can finish without inventing a Vitest suite (activation for follow-up product fix). Refs #5814 Prefer-A Bound 6329108664.
 - Changed - Prepare approved work so activation and thin widen PRs merge after about one CI round instead of 21-42 minutes of extra heads and re-runs. Refs #5736.
 - Changed - Prepare coverageMode so framework-only Directive pin upgrades can pass pre-PR without inventing Istanbul coverage. Refs #5791 Prefer-A Bound 6327849654.

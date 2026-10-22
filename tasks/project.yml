@@ -21,8 +21,6 @@ tasks:
   render:
     desc: Regenerate PROJECT-DEFINITION artifact items registry from lifecycle folders
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -33,8 +31,6 @@ tasks:
       Store Phase 2 narrative strings in PROJECT-DEFINITION without setting policy keys (#4663).
       -- task project:write-narratives -- --narratives-file <path> [--title <text>]
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -45,8 +41,6 @@ tasks:
       Acknowledge reviewed PROJECT-DEFINITION artifact narrative staleness (#640).
       Distinct from task reconcile:issues (scope origin freshness).
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -57,8 +51,6 @@ tasks:
       Export SPECIFICATION.md from PROJECT-DEFINITION (+ lifecycle scopes).
       Use --audience=internal to include proposed scopes (#2013 / #1502).
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:

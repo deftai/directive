@@ -12,8 +12,6 @@ tasks:
   show:
     desc: "Pull-based attributed-value trend readout (#1709). -- task value:show -- [--window=7d|30d] [--format=text|json]"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:

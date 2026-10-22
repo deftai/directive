@@ -9,8 +9,6 @@ tasks:
   offer:
     desc: "Record the one Directive Tutorial offer, or say it must not be repeated (#4981)"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -19,8 +17,6 @@ tasks:
   start:
     desc: "Start Signal, Postcard, or Echo in a disposable local Git repository (#4981)"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -29,8 +25,6 @@ tasks:
   inspect:
     desc: "Show Directive Tutorial progress and the current beat (#4981)"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -39,8 +33,6 @@ tasks:
   advance:
     desc: "Move to the next tutorial beat after the person's action is recorded (#4981)"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -49,8 +41,6 @@ tasks:
   resume:
     desc: "Print the current tutorial beat for a later session (#4981)"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -59,8 +49,6 @@ tasks:
   skip:
     desc: "Skip the current beat when the person asks. Does not verify the line or finish the work (#4981)"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -69,8 +57,6 @@ tasks:
   leave:
     desc: "Leave the Directive Tutorial sitting; explicit start still works (#4981)"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -79,8 +65,6 @@ tasks:
   reset:
     desc: "Clear tutorial progress without offering again (#4981)"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -89,8 +73,6 @@ tasks:
   decline:
     desc: "Record no. Do not offer the Directive Tutorial again (#4981)"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -99,8 +81,6 @@ tasks:
   defer:
     desc: "Record not now. Do not offer the Directive Tutorial again (#4981)"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:

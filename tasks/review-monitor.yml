@@ -7,8 +7,6 @@ tasks:
   register:
     desc: "Claim PR-anchored review-owner lease via sticky GitHub comment (#2814). Does not write local JSON."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -17,8 +15,6 @@ tasks:
   release:
     desc: "Release PR-anchored review-owner lease by editing the sticky GitHub comment (#2814)."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:

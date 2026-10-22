@@ -14,7 +14,6 @@ vars:
 tasks:
   finish-loop:
     desc: "Outer walk-away cascade: finish-loop grant gate + queue scan + progress JSONL + optional pr:finish-loop; agent owns implement steps (#871)"
-    deps: [":engine:_ts-build"]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - task: :engine:invoke

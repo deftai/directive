@@ -7,8 +7,6 @@ tasks:
 
   stubs:
     desc: Scan source files for stub patterns (TODO, FIXME, HACK, return null, bare pass)
-    deps:
-      - task: :engine:_ts-build
     cmds:
       # Oracle/fallback (parity): scripts/verify-stubs.py (#1828 Wave 8 / #1854 s3).
       - task: :engine:invoke
@@ -17,8 +15,6 @@ tasks:
 
   links:
     desc: Validate internal links in markdown files
-    deps:
-      - task: :engine:_ts-build
     cmds:
       # Oracle/fallback (parity): scripts/validate-links.py (#1828 Wave 8 / #1854 s3).
       - task: :engine:invoke
@@ -27,8 +23,6 @@ tasks:
 
   rule-ownership:
     desc: "Verify the Rule Ownership Map (conventions/rule-ownership.json) is in sync with its owner files (#635)"
-    deps:
-      - task: :engine:_ts-build
     cmds:
       # Oracle/fallback (parity): scripts/rule_ownership_lint.py (#1828 Wave 8 / #1854 s3).
       - task: :engine:invoke
@@ -37,8 +31,6 @@ tasks:
 
   rule-to-verb-parity:
     desc: "[#5521] Fail closed when agents-entry.md / agent-prompt-preamble.md name unregistered deft/task verbs (family globs expand). Framework-source only."
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -46,8 +38,6 @@ tasks:
 
   biome-config:
     desc: "Guard against #2190 (biome check . flipping recommended-preset diagnostic severity between warning and error non-deterministically): asserts biome.json declares an explicit non-error severity for noUnusedVariables and noNonNullAssertion. Three-state exit (0 clean / 1 missing/error severity / 2 config error)."
-    deps:
-      - task: :engine:_ts-build
     # Framework-source-only gate: it reads THIS repo's own biome.json, so it
     # targets DEFT_ROOT (not USER_WORKING_DIR) -- a consumer deposit has no
     # TS engine / biome.json to guard. Mirrors verify:content-manifest.
@@ -58,8 +48,6 @@ tasks:
 
   telemetry-coverage:
     desc: "Dead-surface detector for run-summary event kinds (#3362). Every RUN_SUMMARY_EVENT_KINDS member needs a production caller and a field-shaped fixture. Default is warn-only; pass --enforce to fail closed. -- task verify:telemetry-coverage [-- --enforce]"
-    deps:
-      - task: :engine:_ts-build
     # Framework-source-only gate: scans THIS repo's packages/core/src emitters.
     cmds:
       - task: :engine:invoke
@@ -68,8 +56,6 @@ tasks:
 
   contained-writes:
     desc: "Inventory raw product write sinks outside the contained-write allowlist (#2951 / #2980). Default CLI remains fail-open; task check wires --enforce fail-closed. -- task verify:contained-writes [-- --enforce]"
-    deps:
-      - task: :engine:_ts-build
     # Framework-source-only gate: scans packages/core/src in THIS repo.
     cmds:
       - task: :engine:invoke
@@ -78,8 +64,6 @@ tasks:
 
   content-manifest:
     desc: "Verify the Content Manifest (conventions/content-manifest.json) classifies every git-tracked top-level entry (#1821). Fails on an unclassified entry, a stale classified path, an invalid bucket, or a duplicate path. Wave-1 shippability audit for the engine/content split (#1669)."
-    deps:
-      - task: :engine:_ts-build
     # Framework-source-only gate: it classifies THIS repo's top-level tree, so it
     # targets DEFT_ROOT (not USER_WORKING_DIR) -- a consumer install has no
     # content/ + engine/ top-level split to audit. Mirrors verify:rule-ownership.
@@ -90,8 +74,6 @@ tasks:
 
   deposit-closure:
     desc: "C1 declared deposit closure against a staged pack root (#3900 / #3601). Resolves contracts/deposit-required-paths.json; does not infer paths from AGENTS.md. Three-state (0 clean / 1 missing / 2 config)."
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -99,8 +81,6 @@ tasks:
 
   consumer-hard-stops:
     desc: "Enumerate open consumer hard-stops by privileged labels (adoption-blocker, blocks-release-tag) only (#3900 / #3713 / #3969). Does not read issue bodies. Fail-closed at release."
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -108,8 +88,6 @@ tasks:
 
   closing-keywords:
     desc: "Wire task pr:check-closing-keywords into the check graph (#737 / #3969). FP mode against the merge-base, or --pr when GITHUB_PR_NUMBER is set."
-    deps:
-      - task: :engine:_ts-build
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - task: :engine:invoke
@@ -118,8 +96,6 @@ tasks:
 
   docs-impact:
     desc: "Declared-versus-touched documentation-impact check (#4099). --pr uses REST; --body-file for local. Fork PRs stay read-only."
-    deps:
-      - task: :engine:_ts-build
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - task: :engine:invoke
@@ -135,8 +111,6 @@ tasks:
 
   skill-external-fetch-gate:
     desc: "Verify shipped skills do not pair external fetch/follow-through with execute/install without Security context mitigation (#1936 / #1532)."
-    deps:
-      - task: :engine:_ts-build
     # Framework-source-only gate: scans THIS repo's content/skills tree.
     cmds:
       - task: :engine:invoke
@@ -145,8 +119,6 @@ tasks:
 
   semantic-single-source:
     desc: "C2 semantic single-source conformance (#3600 / #3899): shipped authoring MUST lines name exactly one xBRIEF write version, the version setup writes. Fails on a mutated staged pack. Three-state (0 clean / 1 drift / 2 config). -- task verify:semantic-single-source [-- --project-root <pack-or-source>]"
-    deps:
-      - task: :engine:_ts-build
     # Framework-source-only gate: scans shipped authoring surfaces in THIS repo
     # (or a staged pack root via --project-root / --pack-root).
     cmds:
@@ -156,8 +128,6 @@ tasks:
 
   contract-drift:
     desc: "Drift gate for the public contract layer (#1799). Asserts packages/types/schemas/vbrief-core-0.6.schema.json matches content/vbrief/schemas/vbrief-core.schema.json and that @deftai/directive-types Status/version constants align with the schema. Three-state exit (0 clean / 1 drift / 2 config error)."
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -165,8 +135,6 @@ tasks:
 
   cursor-tier1:
     desc: "Framework-source content gate (#1877): assert Cursor (cursor-composer / cursor-cloud-agent, Task-tool primitive) is enumerated as a Tier-1 descriptor in the swarm Phase 3 capability matrix AND the review-cycle monitoring tier table. Fails when a doc edit drops the Cursor descriptor and silently re-opens the Tier-3 blocking-poll misclassification. Three-state exit (0 clean / 1 missing marker / 2 config error)."
-    deps:
-      - task: :engine:_ts-build
     # Framework-source-only gate: it scans THIS repo's two skill docs, so it
     # targets DEFT_ROOT (not USER_WORKING_DIR) -- a consumer install renders
     # these skills under .deft/core and does not author them. Mirrors
@@ -178,8 +146,6 @@ tasks:
 
   openclaw-tier1:
     desc: "Framework-source content gate (#2875): assert OpenClaw (openclaw descriptor, sessions_spawn primitive) is enumerated as Tier 1 in the swarm Phase 3 capability matrix AND routing accepts openclaw as a dispatch_provider. Fails when a doc/code edit drops the OpenClaw descriptor and silently re-opens grok-build / generic-terminal misclassification. Three-state exit (0 clean / 1 missing marker / 2 config error)."
-    deps:
-      - task: :engine:_ts-build
     # Framework-source-only gate: it scans THIS repo's swarm skill + routing
     # module, so it targets DEFT_ROOT (not USER_WORKING_DIR). Mirrors
     # verify:cursor-tier1 / verify:content-manifest.
@@ -190,8 +156,6 @@ tasks:
 
   go-freeze:
     desc: "Tier-1 freeze gate for the legacy Go-installer bridge (#1912). Advisory while the Tier-0 SoT (lastGoInstaller) is null; once the operator pins it, fails when cmd/deft-install is bumped above the frozen tag. Three-state exit (0 ok / 1 violation / 2 config error). Emergency bypass: DEFT_ALLOW_GO_INSTALLER_BUMP=1."
-    deps:
-      - task: :engine:_ts-build
     # Framework-source-only gate: it inspects THIS repo's cmd/deft-install
     # version constant + the Tier-0 SoT, so it targets DEFT_ROOT (not
     # USER_WORKING_DIR) -- a consumer install has no Go-installer source to
@@ -203,8 +167,6 @@ tasks:
 
   bridge-drift:
     desc: "Tier-1 cross-surface drift gate for the legacy Go-installer bridge (#1912). Asserts no surface marked with the bridge sentinel hardcodes a Go-installer version instead of reading the Tier-0 SoT (lastGoInstaller). Three-state exit (0 clean / 1 drift / 2 config error). Passes whether or not the UPGRADING/doctor surfaces exist yet."
-    deps:
-      - task: :engine:_ts-build
     # Framework-source-only gate: it scans THIS repo's bridge-version surfaces
     # against the Tier-0 SoT, so it targets DEFT_ROOT. Mirrors
     # verify:content-manifest / verify:scm-boundary.
@@ -216,8 +178,6 @@ tasks:
   branch:
     desc: "Detection-bound branch-protection gate (#747). Reads plan.policy.allowDirectCommitsToMaster from PROJECT-DEFINITION."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -244,8 +204,6 @@ tasks:
     # cached skip would return a stale verdict.
     desc: "Validate GitHub auth from the worker envelope (#1557): host-gh vs injected-token mode, gh auth status, and API reachability. Fails closed on missing_injected_token in cloud-headless. -- task verify:gh-auth [-- --json] [--repo OWNER/NAME] [--github-auth-mode host-gh|injected-token]"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       # Bare CLI_ARGS per the verify:encoding convention -- go-task shell-escapes pass-through args.
       - task: :engine:invoke
@@ -255,8 +213,6 @@ tasks:
   routing:
     desc: "Operator coding sub-agent model routing gate (#1739). Pre-dispatch (default): fails when a dispatched worker role has no decision in .deft/routing.local.json. Pass --advise for the non-blocking session-start disclosure; --roles a,b to widen the gated set; --provider to override the runtime."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       # Bare CLI_ARGS per the verify:encoding convention -- go-task shell-escapes pass-through args.
       - task: :engine:invoke
@@ -266,8 +222,6 @@ tasks:
   hooks-installed:
     desc: "Assert the deft git hooks are installed AND functional -- core.hooksPath set, hooks dir + pre-commit/pre-push present, and the gate scripts resolve in this layout (own-repo or vendored). Fails loud on the #1463 false-green (wired but non-functional). Run `task setup` / re-run the installer if this fails (#747, #1463)."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     # No sources:/generates: -- a cached cmds skip would mask a hooks dir /
     # gate-script that was deleted after the last run.
     cmds:
@@ -279,8 +233,6 @@ tasks:
   encoding:
     desc: "Detect PS 5.1 non-ASCII round-trip corruption (#798). Scans tracked text files for U+FFFD, CP1252/CP437-as-UTF-8 mojibake, and unexpected BOM. Defaults to --all; pass --staged for the pre-commit invocation."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     # Per `conventions/task-caching.md`: NO `sources:` / `generates:` because
     # user-facing flags (--staged / --all / --allow-list <path>) MUST NOT be
     # silently swallowed by go-task's incremental-build cache. The same
@@ -296,8 +248,6 @@ tasks:
   forward-coverage:
     desc: "Forward-coverage gate (#1310 / #3514): fail-closed when a NEW source file is added without a corresponding test in the SAME diff; also report uncovered added/modified branches by intersecting coverage-final.json with the diff (warn-first; --enforce fail-closes). The 90% per-diff threshold is not the 75 global floor. Defaults to the HEAD-relative diff; pass --staged for pre-commit. Three-state exit (0 clean or warn / 1 missing existence or enforced diff findings / 2 config error)."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     # Per `conventions/task-caching.md`: NO `sources:` / `generates:` because
     # user-facing flags (--staged / --head / --allow-list <path> / --quiet / --enforce) MUST
     # NOT be silently swallowed by go-task's incremental-build cache (same
@@ -310,8 +260,6 @@ tasks:
   changelog-unreleased:
     desc: "Fail-closed CHANGELOG.md [Unreleased] has at least one `- ` entry (#633). Alias of changelog-check --against-merge-base; same Unreleased language as task change:changelog:check. Framework-source merge-chokepoint only. Fails when the Unreleased `- ` set is unchanged versus merge-base."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -320,8 +268,6 @@ tasks:
   test-boundary:
     desc: "Test/source boundary gate (#3145): reject recognized test artifacts under production roots and production references to test/fixture roots unless allowlisted or classified production-liveness. Policy from .deft/test-boundary.policy.json or plan.policy.testBoundary; defaults are warn-only (migration). Flags: --enforce / --warn / --policy <path> / --quiet. Three-state exit (0 clean or warn / 1 violation / 2 config)."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -330,8 +276,6 @@ tasks:
   class-checks:
     desc: "Fail-closed class checks (#4980 / #3145 class): diff-scoped vs merge base for test-under-source, production→test-root refs, test identity in infra, and protected-glob story mixes. Independent of file_scope digests and verify:test-boundary warn mode. No approve/skip/phrase. Flags: --base-ref / --quiet. Three-state exit (0 clean / 1 violation / 2 config)."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -340,8 +284,6 @@ tasks:
   scope-provenance:
     desc: "Scope provenance gate (#3145 / #4956 / #4774 / #5057): merge-base file_scope is the production fence; membership fail-closes undeclared product paths. Soft findings are advisory intent-pin drift on a brief with no intent pin (#3385). --enforce is parsed for compatibility and does not change the exit code. Flags: --base-ref / --enforce / --quiet. Three-state exit (0 clean or advisory WARN / 1 fence or membership / 2 config)."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -350,8 +292,6 @@ tasks:
   observable-scope:
     desc: "Fail-closed observable UI scope contract (#4495): minted allowedChanges versus parse5+typescript oracle on base-pinned surfaces. Unset policy plus UI file types is inferred-defaults-warn (exit 0 with findings). Flags: --origin-ref / --staged / --quiet. Three-state exit (0 skip/warn/pass / 1 unlisted delta or missing mint / 2 config). Does not accept --base-ref."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -360,8 +300,6 @@ tasks:
   presentation-coverage:
     desc: "Fail-closed presentation-coverage compositor (#5079): under a recorded presentation ceiling, cannot-evaluate on a composed required gate is refuse or escalate, never pass. Arms from any add-only or tightening head restriction. Flags: --origin-ref / --staged / --plan-id / --json / --quiet. Three-state exit (0 off-ceiling or continue / 1 refuse / 2 config). Does not accept --base-ref."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -370,8 +308,6 @@ tasks:
   intent-constraint:
     desc: "Fail-closed intent-constraint snapshot (#4541): throw/reject/abort sites and new numeric consts in changed production .ts/.js versus merge-base pin. Human mint for value/unit/rejectionScope. Tests and in-scope paths are not authority. Flags: --origin-ref / --staged / --quiet. Three-state exit (0 skip/pass / 1 unapproved fact or missing mint / 2 config). Does not accept --base-ref."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -380,8 +316,6 @@ tasks:
   presentation-ceiling:
     desc: "Fail-closed presentation ceiling (#5056): under a recorded changeClass: presentation restriction, changed paths outside the built-in presentation extension set refuse. Arms from merge-base ceiling artifacts; first-PR add-only restrictions compose. Flags: --base-ref / --quiet. Three-state exit (0 skip or pass / 1 refuse / 2 config)."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -390,8 +324,6 @@ tasks:
   durable-effect-acquisition:
     desc: "Fail-closed in-class durable-effect acquisition under a presentation ceiling (#5080). Consumes the #5056 ceiling artifact. Refuses storage, cookies, non-GET or non-sentinel network, and markup submission in changed .tsx/.jsx/.html. skipped/N/A is not an exit under an armed ceiling. Flags: --origin-ref / --quiet. Three-state exit (0 off-ceiling or pass / 1 refuse / 2 config)."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -400,8 +332,6 @@ tasks:
   evaluator-surface:
     desc: "Declared evaluator-surface diff gate (#4386 / #3156): fail when Taskfile.yml, tasks/verify.yml, gate-lists, coverage config, or the detector itself changes without xbrief/evaluator-surface-disposition.json covering those paths. Disclosure only -- a commit-body issue/PR URL is not #3164 authorization. Prior color is unobserved. Flags: --base-ref / --staged / --path / --quiet. Three-state exit (0 skip or disclosed / 1 missing disposition / 2 config)."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -410,8 +340,6 @@ tasks:
   consumer-test-lane:
     desc: "Consumer declared-test-command lane (#4386): run plan.policy.testCommand or package.json scripts.test. Skip when undeclared -- do not invent go test ./... or a shipped-library default. Does not replace verify:ac (PRODUCT_FIRST_AC_GATE). Flags: --quiet. Three-state exit (0 skip or pass / 1 declared command failed / 2 config)."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -420,8 +348,6 @@ tasks:
   consumer-check-contract:
     desc: "Consumer check-composition contract (#3145): fail when tasks/verify.yml or check aggregate omit required enforcement gates (verify:test-boundary, verify:class-checks, verify:scope-provenance, verify:consumer-check-contract, verify:evaluator-surface, verify:observable-scope, verify:intent-constraint, verify:presentation-ceiling, verify:durable-effect-acquisition). CI omissions warn by default. Flags: --framework-source / --enforce / --warn / --quiet. Three-state exit (0 clean or warn / 1 missing / 2 config)."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -430,8 +356,6 @@ tasks:
   vbrief-conformance:
     desc: "Detect bare non-conformant vBRIEF keys (#1620). Scans tracked vbrief/**/*.vbrief.json and flags any document/plan/item key that is not 0.6 spec-core, x-directive/-namespaced, or x-vbrief/-namespaced. plan.policy + plan.completedNote carry a TEMPORARY allow-list pending vBRIEF #12. Defaults to --all; pass --staged for the pre-commit invocation."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     # Per `conventions/task-caching.md`: NO `sources:` / `generates:` because
     # user-facing flags (--staged / --all / --allow-list <path>) MUST NOT be
     # silently swallowed by go-task's incremental-build cache (same rationale
@@ -445,8 +369,6 @@ tasks:
   destructive-gh-verbs:
     desc: "Detection-bound gate for destructive gh verbs (#1019). Runs preflight-gh --self-test so the fixture-vs-classifier contract fails CI on drift. Override via DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1 (per-shell emergency bypass)."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     # No sources:/generates: -- the self-test fixture table is the
     # invariant under test; we want the gate to re-run on every
     # `task check` invocation regardless of whether the classifier file
@@ -478,8 +400,6 @@ tasks:
   codebase-map-fresh:
     desc: "Drift gate for the generated .planning/codebase/MAP.md projection (#1595 PR4)."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     # Per conventions/task-caching.md: no sources/generates because this gate
     # forwards output/artifact overrides through CLI_ARGS.
     cmds:
@@ -491,8 +411,6 @@ tasks:
   spec-prd-fresh:
     desc: "Fail-closed SPECIFICATION.md / PRD.md render-freshness gate (#4086). Re-renders to a buffer and fails on banner or projection diff. Banner canon and full projection freshness are separate assertions. Modeled on verify:codebase-map-fresh."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     # Per conventions/task-caching.md: no sources/generates because this gate
     # forwards project-root through CLI_ARGS.
     cmds:
@@ -510,8 +428,6 @@ tasks:
       Distinct from fail-closed verify:spec-prd-fresh. Consumer alias:
       task deft:verify:spec-drift.
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -520,8 +436,6 @@ tasks:
   rule-map-fresh:
     desc: "Fail-closed docs/RULE-MAP.md renderer freshness (#4095). Alias for docs:rule-map:check. Asserts byte-identical renderer output, filled grouping purposes, pack entries from named arrays, and Taskfile declaration counts. Not a consumer gate."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :docs:rule-map:check
 
@@ -539,8 +453,6 @@ tasks:
   plan-sequence:
     desc: "Fail-closed ordered-plan target check (#2402). Flags: --target-kind <kind> --target <id> / --json. Skips (exit 0) when no active sequence."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -559,8 +471,6 @@ tasks:
   scm-boundary:
     desc: "Detection-bound gate against raw `gh` / `ghx` subprocess calls (#1145 / N5). TypeScript verbs route through packages/core/src/scm/call.ts. The scanner still globs retired scripts/triage_*.py paths (vacuous; owner packages/core/src/verify-source/scm-boundary.ts SCOPE_GLOBS). Three-state exit (0 clean / 1 violations / 2 config error). Document an exception via `--allow-list <path>`."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     # Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
     # because the gate forwards user-facing flags via {{.CLI_ARGS}}
     # (`--allow-list <path>` / `--quiet`) that go-task's incremental-build
@@ -574,8 +484,6 @@ tasks:
   xbrief-drift:
     desc: "Data-plane drift gate for the #2109 vbrief->xbrief rename. FAILS when a NEW legacy-layout token is reintroduced: a tracked `*.vbrief.json` artifact, a tracked file under a top-level `vbrief/` lifecycle dir, or a bare `x-vbrief/` reference type inside a canonical `xbrief/**/*.xbrief.json` corpus artifact. Sanctioned back-compat shims (the Part 1 layout-resolver fallback, the EXTENSION_PREFIXES legacy entry, the #2110 migrate path, the #1650 policy fallback) are TS source -- outside the scanned data plane -- and the legacy fixture trees (tests/, content/vbrief/, docs/, history/, xbrief/migration/) are allowlisted. Three-state exit (0 clean / 1 drift / 2 config error). Document an exception via `--allow-list <path>`."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     # Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
     # because the gate forwards user-facing flags via {{.CLI_ARGS}}
     # (`--allow-list <path>` / `--staged` / `--quiet`) that go-task's
@@ -588,8 +496,6 @@ tasks:
   story-ready:
     desc: "Deterministic story-start Gate 0 (#1378 Story C). Inspects working-tree cleanliness, the target vBRIEF lifecycle (active/ + plan.status==running), and the dispatch envelope's `## Allocation context` consent token (Story A schema). Three-state exit (0 ready / 1 not ready / 2 config error). -- task verify:story-ready -- --vbrief-path <active-story-path> [--allocation-context <dispatch-envelope-file>] [--allow-dirty] [--json]"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     # Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
     # because the gate forwards user-facing flags via {{.CLI_ARGS}}
     # (--vbrief-path / --allocation-context / --allow-dirty / --json) that
@@ -606,8 +512,6 @@ tasks:
   investigation:
     desc: "Validate a forensic investigation ledger (#1621). Promotes the forensic-research validator into a deterministic gate: the close check before Wave 5 / any causal chat. Three-state exit (0 close-ready / 1 hard failures / 2 config error). Intentionally NOT in the `task check` aggregate -- it requires a concrete --ledger path. -- task verify:investigation -- --ledger .tmp/investigations/<id>/investigation.xbrief.json [--json]"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     # Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
     # because the gate forwards user-facing flags via {{.CLI_ARGS}}
     # (--ledger / --json) that go-task's incremental-build cache would
@@ -621,8 +525,6 @@ tasks:
   architecture-sor:
     desc: "Diff-time system-of-record architecture gate. Scans stateful persistence signals and requires a matching architecture.systemOfRecord record. Example: task verify:architecture-sor -- --base-ref origin/main [--story-path <path>]"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     # Per conventions/task-caching.md: no sources/generates because this gate
     # forwards --base-ref, --story-path, and --json through CLI_ARGS.
     cmds:
@@ -634,8 +536,6 @@ tasks:
   capacity:
     desc: "Three-state ADVISORY capacity gate (#1419 Slice 4). Reports trailing-window target-vs-actual bucket mix from plan.policy.capacityAllocation; exits 0 in the default advise posture (and on insufficient sample / unconfigured policy), 1 only under an explicit enforce posture with a sampled deficit, 2 on config error. DELIBERATELY NOT in the `task check` aggregate -- capacity must never fail-closed on the framework tree."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     # Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
     # because the gate forwards user-facing flags via {{.CLI_ARGS}}
     # (--project-root / --quiet) that go-task's incremental-build cache would
@@ -651,8 +551,6 @@ tasks:
   judgment-gates:
     desc: "Three-state ADVISORY judgment-gate engine (#1419 Slice 3). Evaluates a candidate change (diff paths / labels / body) against plan.policy.judgmentGates + four default-on universal safety gates (secrets / infra / AGENTS.md+skills / installer). Advisory by default (always exits 0); opt-in --enforce fails closed (exit 1) when a mechanical block-tier gate fires without a recorded clearance; exit 2 on config error. -- task verify:judgment-gates [-- --base-ref <ref>] [--path P] [--label L] [--enforce] [--json]. DELIBERATELY NOT in the `task check` aggregate -- judgment gates must never fail-closed on the framework tree (advise -> observe -> block rollout, #1419)."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     # Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
     # because the gate forwards user-facing flags via {{.CLI_ARGS}}
     # (--base-ref / --path / --label / --body / --state / --enforce / --json /
@@ -670,8 +568,6 @@ tasks:
   wip-cap:
     desc: "Pre-merge re-validation that pending/+active/ count is within plan.policy.wipCap (#1124 / D4 of #1119). Catches stale-branch merges + --force overrides. Default cap is 20 (#2319; raised from the original 10 per umbrella #1119 Current Shape v3). The framework's own task check passes --allow-over-cap during landing-day overage; consumer projects MUST NOT pass that flag."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     # Per `conventions/task-caching.md` (#574): NO `sources:` /
     # `generates:` because the gate forwards user-facing flags via
     # {{.CLI_ARGS}} (--allow-over-cap / --quiet) that go-task's
@@ -690,8 +586,6 @@ tasks:
   lifecycle-visible:
     desc: "Warn when git ignore/exclude/skip-worktree hides xbrief/vbrief lifecycle roots (#3505), including file-only and date-range globs. Per-clone, not per-commit — not on task check. Default warn-only; pass --enforce to fail closed. -- task verify:lifecycle-visible [-- --enforce]"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -700,8 +594,6 @@ tasks:
   orphan-active:
     desc: "Fail-closed orphan-active guard (#2321 / #3429). Detects xbrief/active/ briefs with plan.status==running whose referenced GitHub issues are all closed and/or whose linked PR is merged — the stop-at:pr-open lifecycle leak. Confirmed shipped remediates with task scope:complete / scope:cancel or swarm finalize. Unresolved GitHub lookup still exits 1 but prints a retry, not scope:complete. Three-state exit (0 clean / 1 orphan / 2 config). Pass --issue N to scan one origin after merge; --changed-only [--base-ref <ref>] for the merge-chokepoint form that evaluates only briefs the candidate's own diff touches (#3893; falls back to the repo-wide sweep at the delivery tip or on an unresolvable base ref); --skip-gh to rely on triage cache only. Issue state resolves by query shape (#3767): scoped --issue N takes an authoritative read and stays fail-closed on unknown; the unscoped sweep uses one complete open-issue inventory and stays fail-open on unknown. A cache hit counts only within 15 minutes, and every run prints the basis of its verdict — see content/docs/orphan-active-verdict-basis.md."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -710,8 +602,6 @@ tasks:
   pr-closeout-attestable:
     desc: "Fail-closed merge-time closeout gate (#3781). Refuses a merge when the PR's structured closing references name an issue whose brief is still running in xbrief/active/ with acceptance criteria carrying neither x-directive/evidence nor x-directive/disposition. The trigger is the closing reference, not the branch diff — CI runs before the merge and the issue closes on it, so a diff-keyed gate can never fail the PR that creates the orphan. Reuses evaluateAcceptanceEvidenceGate, the same rule scope:complete enforces. A PR that leaves an unattested brief WITHOUT closing its issue is unaffected. Three-state exit (0 attestable or closes nothing / 1 unattested closeout / 2 config or closing-reference lookup error). -- task verify:pr-closeout-attestable -- --pr N [--repo OWNER/REPO]"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -720,8 +610,6 @@ tasks:
   completed-write-guard:
     desc: "Fail-closed completed/ write guard (#3679). Newly added xbrief/completed/ (or vbrief/completed/) artifacts must have been written by scope:complete / scope:fail. Historical corpus is advisory via doctor. Remediation names the leftover land PR (#3476). Three-state exit (0 clean / 1 unguarded add / 2 config). Does not change verify:completed-tracked."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -730,8 +618,6 @@ tasks:
   persisted-planning-narratives:
     desc: "Fail-closed PROJECT-DEFINITION planning narratives gate (#5176 Prefer-A). Default = unconditional setup Phase 2 bar (empty Overview+tech stack → exit 1; missing PD → exit 2). --check-conjunct = Taskfile/check Prefer-A mirror (marker present/unreadable + empty → refuse; missing PD / scaffold-empty without marker → pass) for check:merge / check:consumer. Mid-setup parse may still accept empty strings. Remedy: deft project:write-narratives. Three-state exit (0 pass / 1 refuse / 2 config)."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -740,8 +626,6 @@ tasks:
   consumer-header-placeholder:
     desc: "Fail-closed first-ship AGENTS header placeholder gate (#4544 Prefer-A). Refuses when product-mutation completion still leaves the unmanaged header on the exact scaffold edit-me one-liner; Process-only and custom headers pass. Three-state exit (0 pass / 1 refuse / 2 config)."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -750,8 +634,6 @@ tasks:
   completed-tracked:
     desc: "Fail-closed completed-tracked land guard (#3264 / #1358 / #3476). Closed scoped GitHub issues with a known lifecycle xBRIEF origin must have a tracked xbrief/completed/ or xbrief/cancelled/ artifact on the delivery tip. --issue N is the drive-to DONE form. Remediation: task swarm:finalize-cohort or a lifecycle PR. Three-state exit (0 clean / 1 missing land / 2 config). Pass --skip-gh to rely on triage cache only; --tip to override delivery tip."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -760,8 +642,6 @@ tasks:
   literal-ac:
     desc: "Literal acceptance-command verification (#3267). Run stated acceptance commands from the active (or --xbrief) scope artifact VERBATIM before done — same flags/cwd. Capture-only audit: --capture-only. Three-state exit (0 pass or none stated / 1 command failed / 2 config). Extends #973; required on ceremony dial rapid/minimal (#3214). Prefer verify:ac (#3284) as the product-first primary name."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -770,8 +650,6 @@ tasks:
   ac:
     desc: "Product-first acceptance gate (#3284). Runs plan.acceptance.commands (or #3267 literal ledger) FIRST and never skippable when commands exist. Check composition uses --soft-missing-xbrief. Rapid ceremony = AC-only; pressure/degraded makes hygiene advisory. Capture-only: --capture-only. Three-state exit (0 pass or none / 1 fail / 2 config). Architecture for #3267."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -780,8 +658,6 @@ tasks:
   agents-md-budget:
     desc: "Layered AGENTS.md budget instrument (#645 + #2450). Fail-closed relative ratchet: counts the managed section and the unmanaged region separately (the #1309 propagation duplicates content across the marker) and fails when either region grows past plan.policy.agentsMdBudget. Seeded at current size, so it ships green; growth past the ratchet fails. ADVISORY absolute north-star: also reports managed-section size vs ≤8 KB / ~2k tok (#2372 layered instrument) without affecting exit codes in Wave 1. Three-state exit (0 within / 1 over ratchet / 2 config error)."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     # Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
     # because the gate forwards user-facing flags via {{.CLI_ARGS}} (--quiet).
     cmds:
@@ -792,8 +668,6 @@ tasks:
   eval-health-relocation:
     desc: "Fail-closed eval:health no-regression gate for epic #2369 rule-relocation PRs (#2373). Classifies diffs touching AGENTS.md, content/templates/agents-entry.md, content/skills/**/SKILL.md, or content/packs/** and requires eval:health to not regress against the committed baseline at xbrief/.eval/results/eval-health-baseline.json. Skips (exit 0) when no relocation paths are in the diff. Seed baseline once with --seed-baseline after master is healthy. Three-state exit (0 pass or skip / 1 regression / 2 config error). -- task verify:eval-health-relocation [-- --base-ref <ref> | --staged] [--quiet] [--seed-baseline]"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -802,8 +676,6 @@ tasks:
   eval-triggers-relocation:
     desc: "Fail-closed eval:triggers gate when AGENTS.md / REFERENCES.md / trigger cases change (#1586). Skips (exit 0) when the diff does not touch trigger-routing homes. -- task verify:eval-triggers-relocation [-- --base-ref <ref> | --staged] [--quiet]"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -812,8 +684,6 @@ tasks:
   agents-md-advisory:
     desc: "ADVISORY (never fail-closing) consumer AGENTS.md legibility signal (#2155). Counts the UNMANAGED (project-authored) region only -- the framework-owned managed section is excluded -- and compares it against the SOFT, operator-adjustable budget plan.policy.agentsMdAdvisory.unmanagedSoftMaxLines (generous default when unset). Consumer companion to the maintainer-only #645 ratchet; deliberately NOT a check:consumer dependency (advise->observe->enforce per #1419). Default posture ALWAYS exits 0; the opt-in --enforce flag promotes an over-budget region to a hard cap (exit 1). Raising the field is the documented, no-friction way to accept growth and silence the nudge."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     # Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
     # because the gate forwards user-facing flags via {{.CLI_ARGS}} (--quiet / --enforce).
     cmds:
@@ -824,8 +694,6 @@ tasks:
   review-monitor:
     desc: "Fail-closed review-monitor gate (#2655): when Tier 1 sub-agent primitive is available, require a recorded active review-monitor before yield / Approach 3 / review ownership. Three-state exit (0 ready / 1 not ready / 2 config error)."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -834,8 +702,6 @@ tasks:
   cohort-review-monitors:
     desc: "Fail-closed cohort babysit inventory (#5318): classify each listed PR armed-live / halted-explicit / unarmed via per-PR merge-path-arm --live-wait. Exit 0 only when all listed are armed-live or halted-explicit; empty/malformed PR set exit 2. swarm:verify-review-clean CLEAN does not satisfy this inventory."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -844,8 +710,6 @@ tasks:
   l4-owner:
     desc: "Owner Continuity / L4 owner gate (#3090): exit 0 only if sticky review-owner lease is fresh or --review-cycle done (forbid freeform started/pending). Three-state exit (0 ready / 1 silent hold / 2 config)."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -854,8 +718,6 @@ tasks:
   subagent-alive:
     desc: "Fail-closed worker liveness gate (#2824): missing/STALE heartbeats for in-flight drive-to:merge* workers exit 1 with REDISPATCH_OK. Three-state exit (0 alive / 1 stale-or-missing / 2 config error)."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
@@ -864,8 +726,6 @@ tasks:
   subagent-steer:
     desc: "Parent-visible unread steer flag (#4286): exit 1 is STEER_PENDING, not REDISPATCH_OK. Three-state exit (0 none / 1 unread / 2 config)."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
