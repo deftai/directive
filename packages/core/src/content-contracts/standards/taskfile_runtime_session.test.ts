@@ -94,7 +94,9 @@ describe("runtime/session task dispatch (#2181)", () => {
 
   it("engine:invoke fail-closes when framework-source pin is missing (#5805)", () => {
     expect(invokeBlock).toMatch(/pin-bin/);
-    expect(invokeBlock).toMatch(/No packages\/runtime\/dist fallthrough|missing checkout pin|pin-exclusive/);
+    expect(invokeBlock).toMatch(
+      /No packages\/runtime\/dist fallthrough|missing checkout pin|pin-exclusive/,
+    );
   });
 
   it("engine:invoke runs vendored bin.js when the artifact is present", () => {
