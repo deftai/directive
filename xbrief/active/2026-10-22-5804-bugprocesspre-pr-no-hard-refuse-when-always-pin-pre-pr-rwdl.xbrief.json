@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5804",
-    "updated": "2026-10-22T05:13:33Z"
+    "updated": "2026-10-22T05:36:14.489Z"
   },
   "plan": {
     "title": "bug(process,pre-pr): no hard refuse when always-pin pre-PR / RWDL is skipped before push",
@@ -163,9 +163,7 @@
           "setup-wiring PRE_PUSH parity + refuse-to-downgrade",
           "CHANGELOG Unreleased"
         ],
-        "depends_on": [
-          "github.issue.5947668764"
-        ],
+        "depends_on": [],
         "model_tier": "standard",
         "verify_commands": [
           "npx vitest run packages/core/src/pre-pr-controller/controller.test.ts packages/core/src/preflight-gh/pre-push.test.ts"
