@@ -186,7 +186,6 @@
       "kind": "story"
     },
     "id": "github.issue.5969495243",
-    "overview": "Parent Class A push/PR-open goes through runParentClassAPublication after green subagent:pre-class-a tip-schema admit while a stop-at:pr-open leaf is live.",
     "updated": "2026-10-22T14:47:10Z"
   }
 }

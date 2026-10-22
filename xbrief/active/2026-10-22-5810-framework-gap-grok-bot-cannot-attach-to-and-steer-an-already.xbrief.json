@@ -198,7 +198,6 @@
       "kind": "story"
     },
     "id": "github.issue.5969306821",
-    "overview": "Grok Bot attaches to a live Grok Build session over machine-local ACP with leader-first enrollment, permission ownership, and doctor attach-readiness.",
     "updated": "2026-10-22T14:47:03Z"
   }
 }

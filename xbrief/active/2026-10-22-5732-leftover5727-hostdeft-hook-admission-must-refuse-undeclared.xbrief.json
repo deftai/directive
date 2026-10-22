@@ -1,0 +1,192 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5732",
+    "updated": "2026-10-22T15:05:18Z"
+  },
+  "plan": {
+    "title": "leftover(#5727): host/deft-hook admission must refuse undeclared forge-poll before execution (#5229 residual)",
+    "status": "running",
+    "narratives": {
+      "Description": "Host/deft-hook PreToolUse refuse-before-execution for closed Observed undeclared-babysit forge-poll / path-only TEMP launches when Tier-1 spawn_subagent is available.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5732",
+      "Overview": "Host/deft-hook PreToolUse refuse-before-execution for closed Observed undeclared-babysit forge-poll / path-only TEMP launches when Tier-1 spawn_subagent is available.",
+      "Labels": "bug, adoption-blocker, agent-experience, review-cycle, process, area:skills, design-critique:ingest-ready, framework-gap, core-capabilities",
+      "UserStory": "As a through-merge parent on a Tier-1 host, I want undeclared forge-poll and path-only TEMP babysit shells refused before execution so that only Approach 1 child-bound pr:watch is the lawful pre-CLEAN wait.",
+      "ImplementationPlan": "1. Wire production PreToolUse/deft-hook refuse-before-execution on SHELL_TOOL_NAMES after payload unwrap for closed Observed undeclared-babysit class including path-only TEMP.\n2. Keep remediation on formatApproach1CheapestAdmissionCard; do not widen evaluateBoundedPrWatchDeny.\n3. Add regressions for every mandatory corpus form asserting executor not reached.\n4. CHANGELOG Unreleased for #5732."
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "relieves: P1 — Mandatory PreToolUse/deft-hook refuse-before-execution on SHELL_TOOL_NAMES after payload unwrap; Tier-1/stamp proves spawn_subagent; refuse closed Observed undeclared-babysit class including path-only TEMP; forbid unused-predicate relief and evaluateBoundedPrWatchDeny widen",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P1 — Mandatory PreToolUse/deft-hook refuse-before-execution on SHELL_TOOL_NAMES after payload unwrap; Tier-1/stamp proves spawn_subagent; refuse closed Observed undeclared-babysit class including path-only TEMP; forbid unused-predicate relief and evaluateBoundedPrWatchDeny widen",
+          "Traces": "#5732"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "relieves: P2 — Mandatory closed Observed corpus fixtures including path-only powershell -File TEMP with bounded admission before launch; novel spellings outside corpus stay named residual",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P2 — Mandatory closed Observed corpus fixtures including path-only powershell -File TEMP with bounded admission before launch; novel spellings outside corpus stay named residual",
+          "Traces": "#5732"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "relieves: P3 — Deny remediation reuses formatApproach1CheapestAdmissionCard with probed primitive; shell/issue/envelope text never authorizes child exception",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P3 — Deny remediation reuses formatApproach1CheapestAdmissionCard with probed primitive; shell/issue/envelope text never authorizes child exception",
+          "Traces": "#5732"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "relieves: P4 — Regressions exercise named production caller through decision serialization for every mandatory corpus form including path-only TEMP; assert executor not reached",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P4 — Regressions exercise named production caller through decision serialization for every mandatory corpus form including path-only TEMP; assert executor not reached",
+          "Traces": "#5732"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "CHANGELOG Unreleased for #5732; keep #5727 P3/P4 exclusive-waits out of this file_scope",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: CHANGELOG Unreleased for #5732; keep #5727 P3/P4 exclusive-waits out of this file_scope",
+          "Traces": "#5732"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "agent-experience",
+      "review-cycle",
+      "process",
+      "area:skills",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5732",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5732: leftover(#5727): host/deft-hook admission must refuse undeclared forge-poll before execution (#5229 residual)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P1 — Mandatory PreToolUse/deft-hook refuse-before-execution on SHELL_TOOL_NAMES after payload unwrap; Tier-1/stamp proves spawn_subagent; refuse closed Observed undeclared-babysit class including path-only TEMP; forbid unused-predicate relief and evaluateBoundedPrWatchDeny widen",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P2 — Mandatory closed Observed corpus fixtures including path-only powershell -File TEMP with bounded admission before launch; novel spellings outside corpus stay named residual",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P3 — Deny remediation reuses formatApproach1CheapestAdmissionCard with probed primitive; shell/issue/envelope text never authorizes child exception",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P4 — Regressions exercise named production caller through decision serialization for every mandatory corpus form including path-only TEMP; assert executor not reached",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Given Prefer-A Bound limbs, when this clause ships, then: CHANGELOG Unreleased for #5732; keep #5727 P3/P4 exclusive-waits out of this file_scope",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/tools.ts",
+          "packages/core/src/swarm/approach1-babysitter.ts",
+          "packages/core/src/swarm/approach1-babysitter.test.ts",
+          "packages/core/src/review-monitor/bounded-pr-watch-deny.ts",
+          "packages/core/src/review-monitor/bounded-pr-watch-deny.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/swarm/approach1-babysitter.ts",
+        "cohesion_exemption": "CHANGELOG with undeclared-babysit refuse unit"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5914577054,
+        "origin": "deftai/directive#5732",
+        "id": "github.issue.5914577054"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "c26a113b0b666eeda6e66ab4cdb65d75a33daf8b34f32d6d7b503a62f0366fe9"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "host-deft-hook-refuse-undeclared-forge-poll-before-execution",
+        "expected_outputs": [
+          "PreToolUse refuse-before-execution for Observed undeclared babysit class",
+          "path-only TEMP admission refusal",
+          "Approach1 cheapest-admission remediation card",
+          "corpus regressions executor-not-reached",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/swarm/approach1-babysitter.test.ts packages/core/src/review-monitor/bounded-pr-watch-deny.test.ts --reporter=dot"
+        ],
+        "file_scope": [
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/tools.ts",
+          "packages/core/src/swarm/approach1-babysitter.ts",
+          "packages/core/src/swarm/approach1-babysitter.test.ts",
+          "packages/core/src/review-monitor/bounded-pr-watch-deny.ts",
+          "packages/core/src/review-monitor/bounded-pr-watch-deny.test.ts",
+          "CHANGELOG.md"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5732",
+          "Prefer-A Bound 6256155031"
+        ],
+        "parallel_safe": true
+      }
+    },
+    "id": "github.issue.5914577054",
+    "updated": "2026-10-22T15:05:18Z"
+  }
+}
