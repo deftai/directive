@@ -1,0 +1,189 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5812",
+    "updated": "2026-10-22T14:47:10Z"
+  },
+  "plan": {
+    "title": "recurrence(#5278): query-before Class A push/PR-open while stop-at:pr-open leaf still live",
+    "status": "running",
+    "narratives": {
+      "Description": "recurrence(#5278): query-before Class A push/PR-open while stop-at:pr-open leaf still live",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5812",
+      "Overview": "\n\n- relieves: P1 — Tip-schema Class A admit only (terminal+terminal_state or structured handoff ack; stale/grace; or force; no DONE/PR-OPEN; no generic status-ack alone for fresh active leaf)\n- relieves: P2 — Sibling verb subagent:pre-class-a shares #5278 helpers via evaluatePreClassA (no forked twin matrix; Approach B rejected)\n- relieves: P3 — Publication-owning runParentClassAPublication in packages/core/src/swarm/class-a-publication.ts owns parent/non-leaf push and gh pr create after green pre-class-a (swarm:pre-dispatch --action class-a wiring; red/config never reaches publish; no leaf self-probe)\n- relieves: P4 — Current-attempt worker+requester identity bind; refuse wrong worker/old attempt/resumed-edit handoff reuse; unread finish-steer is not Class A admit\n\n\n",
+      "Labels": "bug, swarm, agent-experience, process, urgent, design-critique:ingest-ready, framework-gap, promise:swarm"
+    },
+    "items": [
+      {
+        "title": "relieves: P1 — Tip-schema Class A admit only (terminal+terminal_state or structured handoff ack; stale/grace; or force; no DONE/PR-OPEN; no generic status-ack alone for fresh active leaf)",
+        "status": "pending",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P1 — Tip-schema Class A admit only (terminal+terminal_state or structured handoff ack; stale/grace; or force; no DONE/PR-OPEN; no generic status-ack alone for fresh active leaf)",
+          "Traces": "#5812"
+        }
+      },
+      {
+        "title": "relieves: P2 — Sibling verb subagent:pre-class-a shares #5278 helpers via evaluatePreClassA (no forked twin matrix; Approach B rejected)",
+        "status": "pending",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P2 — Sibling verb subagent:pre-class-a shares #5278 helpers via evaluatePreClassA (no forked twin matrix; Approach B rejected)",
+          "Traces": "#5812"
+        }
+      },
+      {
+        "title": "relieves: P3 — Publication-owning runParentClassAPublication in packages/core/src/swarm/class-a-publication.ts owns parent/non-leaf push and gh pr create after green pre-class-a (swarm:pre-dispatch --action class-a wiring; red/config never reaches publish; no leaf self-probe)",
+        "status": "pending",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P3 — Publication-owning runParentClassAPublication in packages/core/src/swarm/class-a-publication.ts owns parent/non-leaf push and gh pr create after green pre-class-a (swarm:pre-dispatch --action class-a wiring; red/config never reaches publish; no leaf self-probe)",
+          "Traces": "#5812"
+        }
+      },
+      {
+        "title": "relieves: P4 — Current-attempt worker+requester identity bind; refuse wrong worker/old attempt/resumed-edit handoff reuse; unread finish-steer is not Class A admit",
+        "status": "pending",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P4 — Current-attempt worker+requester identity bind; refuse wrong worker/old attempt/resumed-edit handoff reuse; unread finish-steer is not Class A admit",
+          "Traces": "#5812"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "swarm",
+      "agent-experience",
+      "process",
+      "urgent",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "promise:swarm"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5812",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5812: recurrence(#5278): query-before Class A push/PR-open while stop-at:pr-open leaf still live"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5278",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5278"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P1 — Tip-schema Class A admit only (terminal+terminal_state or structured handoff ack; stale/grace; or force; no DONE/PR-OPEN; no generic status-ack alone for fresh active leaf)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P2 — Sibling verb subagent:pre-class-a shares #5278 helpers via evaluatePreClassA (no forked twin matrix; Approach B rejected)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P3 — Publication-owning runParentClassAPublication in packages/core/src/swarm/class-a-publication.ts owns parent/non-leaf push and gh pr create after green pre-class-a (swarm:pre-dispatch --action class-a wiring; red/config never reaches publish; no leaf self-probe)",
+          "artifact_path": "packages/core/src/swarm/class-a-publication.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P4 — Current-attempt worker+requester identity bind; refuse wrong worker/old attempt/resumed-edit handoff reuse; unread finish-steer is not Class A admit",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/swarm/class-a-publication.ts",
+          "packages/core/src/swarm/class-a-publication.test.ts",
+          "packages/core/src/swarm/pre-dispatch-cli.ts",
+          "packages/core/src/orchestration/subagent-steer.ts",
+          "packages/core/src/orchestration/subagent-steer.test.ts",
+          "packages/runtime/src/subagent-pre-class-a.ts",
+          "packages/runtime/src/subagent-pre-class-a.test.ts",
+          "packages/runtime/src/dispatch.ts",
+          "content/templates/agents-entry.md",
+          "content/skills/deft-directive-swarm/SKILL.md",
+          "content/skills/deft-directive-swarm/references/host-grok-build.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/swarm/class-a-publication.ts",
+        "cohesion_exemption": "CHANGELOG + thin docs next to #5278 with class-a publication unit"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5969495243,
+        "origin": "deftai/directive#5812",
+        "id": "github.issue.5969495243"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "d6ab79410ae2396fc3d5e4170d22ac74750d098ad7a40cb5e083e58a6eba38e8"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "query-before-class-a-push-pr-open-live-leaf",
+        "expected_outputs": [
+          "runParentClassAPublication owns probe-then-publish",
+          "subagent:pre-class-a sibling verb",
+          "evaluatePreClassA tip-schema admit",
+          "swarm:pre-dispatch --action class-a wiring",
+          "thin docs pointer next to #5278",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/swarm/class-a-publication.test.ts packages/core/src/orchestration/subagent-steer.test.ts packages/runtime/src/subagent-pre-class-a.test.ts --reporter=dot"
+        ],
+        "file_scope": [
+          "packages/core/src/swarm/class-a-publication.ts",
+          "packages/core/src/swarm/class-a-publication.test.ts",
+          "packages/core/src/swarm/pre-dispatch-cli.ts",
+          "packages/core/src/orchestration/subagent-steer.ts",
+          "packages/core/src/orchestration/subagent-steer.test.ts",
+          "packages/runtime/src/subagent-pre-class-a.ts",
+          "packages/runtime/src/subagent-pre-class-a.test.ts",
+          "packages/runtime/src/dispatch.ts",
+          "content/templates/agents-entry.md",
+          "content/skills/deft-directive-swarm/SKILL.md",
+          "content/skills/deft-directive-swarm/references/host-grok-build.md",
+          "CHANGELOG.md"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5812",
+          "Prefer-A Bound 6328905032"
+        ],
+        "parallel_safe": true
+      }
+    },
+    "id": "github.issue.5969495243",
+    "overview": "Parent Class A push/PR-open goes through runParentClassAPublication after green subagent:pre-class-a tip-schema admit while a stop-at:pr-open leaf is live.",
+    "updated": "2026-10-22T14:47:10Z"
+  }
+}
