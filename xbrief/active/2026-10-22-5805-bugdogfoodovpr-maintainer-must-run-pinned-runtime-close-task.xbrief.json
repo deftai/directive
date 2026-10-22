@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5805",
-    "updated": "2026-10-22T04:44:26Z"
+    "updated": "2026-10-22T05:03:27Z"
   },
   "plan": {
     "title": "bug(dogfood,ovpr): maintainer must run pinned runtime — close task auto-compile tip bypass",
@@ -11,28 +11,47 @@
       "Description": "bug(dogfood,ovpr): maintainer must run pinned runtime — close task auto-compile tip bypass",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5805",
       "Overview": "Prefer-A Bound 6326249868: pin-exclusive ordinary invoke (fail-closed missing pin; no packages/runtime/dist fallthrough); demote engine:_ts-build off ordinary verb deps; thin stage-bundle/pack-staged-runtime materialize into checkout node_modules/@deftai/directive-runtime; per-checkout replace isolation. Reject Approach B/C and soft tip-dist fallthrough.",
-      "Labels": "bug, agent-experience, urgent, design-critique:ingest-ready, core-capabilities"
+      "Labels": "bug, agent-experience, urgent, design-critique:ingest-ready, core-capabilities",
+      "UserStory": "As a Directive maintainer, I want ordinary task verbs to run the same pinned node_modules/@deftai/directive-runtime binary that Git hooks already use, so FF alone cannot silently tip-execute workspace dist and tip dogfood requires an explicit local materialize.",
+      "ImplementationPlan": "1. Make framework-source engine:invoke pin-exclusive to node_modules/@deftai/directive-runtime/dist/bin.js and fail closed when missing (no packages/runtime/dist fallthrough).\n2. Demote engine:_ts-build off ordinary product-verb deps; keep it only on explicit build/pack/materialize.\n3. Add thin materialize Task/CLI reusing stage-bundle + pack-staged-runtime into this checkout pin only with honest overlay recording and checkout-owned replace isolation.\n4. Document FF then optional materialize then tip; add pin-invoke / no-tip-fallthrough / checkout-local materialize regressions; CHANGELOG.",
+      "Traces": "#5805 Prefer-A Bound 6326249868"
     },
     "items": [
       {
         "title": "relieves: P1 — Pin-exclusive ordinary invoke fail-closed missing pin (no packages/runtime/dist fallthrough for ordinary framework-source verbs; remediation PM install and/or explicit materialize; launcher handoff only if same checkout pin)",
         "status": "proposed",
-        "id": "clause.1"
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P1 — Pin-exclusive ordinary invoke fail-closed missing pin (no packages/runtime/dist fallthrough for ordinary framework-source verbs; remediation PM install and/or explicit materialize; launcher handoff only if same checkout pin)",
+          "Traces": "#5805"
+        }
       },
       {
         "title": "relieves: P2 — Demote engine:_ts-build off ordinary product-verb deps; keep only on explicit build/pack/materialize so rebuild cannot change which binary ordinary task runs",
         "status": "proposed",
-        "id": "clause.2"
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P2 — Demote engine:_ts-build off ordinary product-verb deps; keep only on explicit build/pack/materialize so rebuild cannot change which binary ordinary task runs",
+          "Traces": "#5805"
+        }
       },
       {
         "title": "relieves: P3 — Thin materialize reuses stage-bundle/pack-staged-runtime into this checkout node_modules/@deftai/directive-runtime only; no committed location-spec; no public publish; honest overlay/skew recording; failed stage leaves prior pin usable",
         "status": "proposed",
-        "id": "clause.3"
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P3 — Thin materialize reuses stage-bundle/pack-staged-runtime into this checkout node_modules/@deftai/directive-runtime only; no committed location-spec; no public publish; honest overlay/skew recording; failed stage leaves prior pin usable",
+          "Traces": "#5805"
+        }
       },
       {
         "title": "relieves: P4 — Materialize replaces checkout-owned install (no mutate linked/shared backing); serialize or reject second writer; docs + regression that primary materialize does not update dest pin",
         "status": "proposed",
-        "id": "clause.4"
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P4 — Materialize replaces checkout-owned install (no mutate linked/shared backing); serialize or reject second writer; docs + regression that primary materialize does not update dest pin",
+          "Traces": "#5805"
+        }
       }
     ],
     "tags": [
@@ -269,7 +288,8 @@
           "Prefer-A Bound 6326249868",
           "allocation through-merge-5791-5814-5736-5804-5805-2026-10-22"
         ],
-        "parallel_safe": true
+        "parallel_safe": true,
+        "missing_traces_justification": []
       },
       "issueCommentThread": [
         {
@@ -662,9 +682,10 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "d5c646e2716b596e5c18148c350f9499b1c3540006c002128a9e8062e3158207"
-      }
+      },
+      "kind": "story"
     },
     "id": "github.issue.5967205564",
-    "updated": "2026-10-22T04:44:26Z"
+    "updated": "2026-10-22T05:03:27Z"
   }
 }
