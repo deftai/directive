@@ -125,6 +125,13 @@ export * from "./ceremony-dial-escalation.js";
 export * from "./check-resume.js";
 export * from "./coverage-debt.js";
 export * from "./coverage-mode.js";
+export {
+  FIELD_COVERAGE_MODE,
+  FIELD_COVERAGE_MODE_CLI_ALIAS,
+  setCoverageMode,
+  resolveCoverageMode,
+  inspectCoverageMode,
+} from "./coverage-mode.js";
 export * from "./decisions.js";
 export * from "./deft-directive-disable.js";
 export * from "./delivery-branch.js";

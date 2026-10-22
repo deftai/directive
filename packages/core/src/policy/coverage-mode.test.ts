@@ -76,4 +76,10 @@ describe("coverageMode (#5791)", () => {
     expect(applied.changed).toBe(true);
     expect(resolveCoverageMode(r).mode).toBe("full");
   });
+
+  it("setCoverageMode is importable from policy index barrel (#5791)", async () => {
+    const mod = await import("./index.js");
+    expect(typeof mod.setCoverageMode).toBe("function");
+    expect(mod.FIELD_COVERAGE_MODE_CLI_ALIAS).toBe("coverageMode");
+  });
 });
