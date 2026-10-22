@@ -13,7 +13,7 @@
       "Overview": "Prefer-A Recut-1 6255757053: quiet-default one-line ready; non-exhaustive always-on allowlist; deprecate tip --compact as volume gate; print-less execute-still keep-outs.",
       "Labels": "enhancement, agent-experience, urgent, area:cli, design-critique:ingest-ready, core-capabilities, promise:continuity",
       "UserStory": "As an agent or operator, I want session:start success to print one ready line by default, so that ceremony noise does not bury the go-signal while --verbose still restores the full dump when I need it.",
-      "ImplementationPlan": "1. Edit packages/core/src/session/session-start.ts and packages/cli/src/session-start.ts for quiet-default one-line ready + --verbose/DEFT_SESSION_VERBOSE ceremony dump; cover with packages/core/src/session/session-start.test.ts and packages/cli/src/session-start.test.ts.\n2. Adjust packages/core/src/session/orientation-compression.ts (+ orientation-compression.test.ts) for the non-exhaustive always-on allowlist at the final human-output selection point.\n3. Deprecate tip #3286 --compact/DEFT_SESSION_COMPACT as no-ops or remint whole-stdout with CHANGELOG in the same PR.\n4. Update content/commands.md / session:start help; CHANGELOG.md Unreleased."
+      "ImplementationPlan": "1. Edit packages/core/src/session/session-start.ts and packages/runtime/src/session-start.ts for quiet-default one-line ready + --verbose/DEFT_SESSION_VERBOSE ceremony dump; cover with packages/core/src/session/session-start.test.ts and packages/runtime/src/session-start.test.ts.\n2. Adjust packages/core/src/session/orientation-compression.ts (+ orientation-compression.test.ts) for the non-exhaustive always-on allowlist at the final human-output selection point.\n3. Deprecate tip #3286 --compact/DEFT_SESSION_COMPACT as no-ops or remint whole-stdout with CHANGELOG.md in the same PR.\n4. Update content/commands.md session:start help; CHANGELOG.md Unreleased."
     },
     "items": [
       {
@@ -22,6 +22,15 @@
         "status": "pending",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P1 — Primary go-signal quiet-default: one trusted-state line ready+branch/HEAD+occupancy with stable [deft session] ready=… prefix; routine dial/host-surface/effort/orientation prose verbose-only via --verbose and DEFT_SESSION_VERBOSE=1",
+          "Traces": "#4966"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "relieves: P2 — Separate whole-stdout volume gate: deprecate tip #3286 --compact/DEFT_SESSION_COMPACT as no-ops (or remint whole-stdout with CHANGELOG); --verbose/DEFT_SESSION_VERBOSE is the ceremony dump escape",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P2 — Separate whole-stdout volume gate: deprecate tip #3286 --compact/DEFT_SESSION_COMPACT as no-ops (or remint whole-stdout with CHANGELOG); --verbose/DEFT_SESSION_VERBOSE is the ceremony dump escape",
           "Traces": "#4966"
         }
       },
@@ -44,7 +53,7 @@
         }
       },
       {
-        "id": "clause.4",
+        "id": "clause.5",
         "title": "CHANGELOG.md Unreleased for #4966",
         "status": "pending",
         "narrative": {
@@ -53,7 +62,7 @@
         }
       },
       {
-        "id": "clause.5",
+        "id": "clause.6",
         "title": "Update content/commands.md session:start help for quiet-default and --verbose",
         "status": "pending",
         "narrative": {
@@ -82,7 +91,7 @@
       "commands": [],
       "none_stated": true,
       "source_rung": "derived",
-      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "derived_reason": "Prefer-A Bound limbs hand-stamped after Prefer-A Bound harvest (#4374)",
       "sentences": [],
       "clauses": [
         {
@@ -94,34 +103,40 @@
         },
         {
           "id": 2,
-          "text": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P3 — Non-exhaustive always-on allowlist at one final human-output selection point: primary go-signal; actionable zero-exit exceptions; non-default policy/bypass and human-merge disclosures; finalize-owed unknown/deferred; actionable lifecycle-visible and work-claim notices; clean inventories and routine ceremony verbose-only; fail/deny/steal/non-zero stay loud",
+          "text": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P2 — Separate whole-stdout volume gate: deprecate tip #3286 --compact/DEFT_SESSION_COMPACT as no-ops (or remint whole-stdout with CHANGELOG); --verbose/DEFT_SESSION_VERBOSE is the ceremony dump escape",
           "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 3,
-          "text": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P4 — Print-less execute-still keep-outs: dial/orientation/occupancy/ritual still run; render from structured state; ceremonyDial is not volume; keep out #3813, ritual gate semantics, --json/run-summary shape, AGENTS managed-section rewrite",
+          "text": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P3 — Non-exhaustive always-on allowlist at one final human-output selection point: primary go-signal; actionable zero-exit exceptions; non-default policy/bypass and human-merge disclosures; finalize-owed unknown/deferred; actionable lifecycle-visible and work-claim notices; clean inventories and routine ceremony verbose-only; fail/deny/steal/non-zero stay loud",
           "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 4,
+          "text": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P4 — Print-less execute-still keep-outs: dial/orientation/occupancy/ritual still run; render from structured state; ceremonyDial is not volume; keep out #3813, ritual gate semantics, --json/run-summary shape, AGENTS managed-section rewrite",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
           "text": "Given Prefer-A Bound limbs, when this clause ships, then: CHANGELOG.md Unreleased for #4966",
           "artifact_path": "CHANGELOG.md",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
-          "id": 5,
+          "id": 6,
           "text": "Given Prefer-A Bound limbs, when this clause ships, then: Update content/commands.md session:start help for quiet-default and --verbose",
           "artifact_path": "content/commands.md",
           "ambiguous": false,
           "provenance": "statement"
         }
-      ],
-      "ambiguity_attestation": "none_found"
+      ]
     },
     "metadata": {
       "intended_placement": {
@@ -129,10 +144,10 @@
         "files": [
           "packages/core/src/session/session-start.ts",
           "packages/core/src/session/orientation-compression.ts",
-          "packages/cli/src/session-start.ts",
+          "packages/runtime/src/session-start.ts",
           "packages/core/src/session/session-start.test.ts",
           "packages/core/src/session/orientation-compression.test.ts",
-          "packages/cli/src/session-start.test.ts",
+          "packages/runtime/src/session-start.test.ts",
           "content/commands.md",
           "CHANGELOG.md"
         ],
@@ -165,15 +180,15 @@
         "depends_on": [],
         "model_tier": "standard",
         "verify_commands": [
-          "pnpm exec vitest run packages/core/src/session/session-start.test.ts packages/core/src/session/orientation-compression.test.ts packages/cli/src/session-start.test.ts --reporter=dot"
+          "pnpm exec vitest run packages/core/src/session/session-start.test.ts packages/core/src/session/orientation-compression.test.ts packages/runtime/src/session-start.test.ts --reporter=dot"
         ],
         "file_scope": [
           "packages/core/src/session/session-start.ts",
           "packages/core/src/session/orientation-compression.ts",
-          "packages/cli/src/session-start.ts",
+          "packages/runtime/src/session-start.ts",
           "packages/core/src/session/session-start.test.ts",
           "packages/core/src/session/orientation-compression.test.ts",
-          "packages/cli/src/session-start.test.ts",
+          "packages/runtime/src/session-start.test.ts",
           "content/commands.md",
           "CHANGELOG.md"
         ],
