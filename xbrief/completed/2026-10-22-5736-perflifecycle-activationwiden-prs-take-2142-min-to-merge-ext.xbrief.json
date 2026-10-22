@@ -1,0 +1,440 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5736",
+    "updated": "2026-10-22T07:29:08.404Z"
+  },
+  "plan": {
+    "title": "perf(lifecycle): activation/widen PRs take 21–42 min to merge; extra heads and re-runs cost more than CI speed",
+    "status": "completed",
+    "narratives": {
+      "Description": "Activation and thin file_scope-widen PRs currently take 21-42 minutes to merge because of extra heads, body-fix merge-gate re-runs, and leftover/activation races. This story cuts that latency with narrow offline pre-push checks, docs-impact relocation off the merge gate, dropping the CI closing-keywords duplicate, and a leftover-before-activation refuse.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5736",
+      "Overview": "Prefer-A Recut-1 Bound 6256466667 (Target-digest sha256:d93daf97137f2c194fd5862e486f0885000b5ebae72835d00c7b090006939ffb): cut activation/widen merge latency via narrow pre-push trio, offline deft-story admission, advisory file_scope coverage warn, docs-impact branch-gate relocation, drop CI closing-keywords duplicate, leftover-before-activation order + thin executable refuse. Reject list binding. allocation_plan_id through-merge-5791-5814-5736-5804-5805-2026-10-22.",
+      "Labels": "ci-cd, process, urgent, design-critique:ingest-ready, core-capabilities",
+      "UserStory": "As a Directive through-merge operator, I want activation and thin file_scope-widen PRs to merge in about one CI round, so that Prefer-A Bound stories are not blocked for 21-42 minutes by extra heads, body-fix re-runs, and leftover/activation races.",
+      "ImplementationPlan": "1) Add narrow pre-push trio guidance for activation/widen (docs-impact --body-file --base-ref, pr:check-closing-keywords --body-file, CHANGELOG check) in swarm skill; not full pre-pr. 2) Offline deft-story identity admission in pr-closing-keywords when prNumber is null (canonical parse + brief/diff identity; forbid token-presence-only). 3) Advisory in-brief file_scope coverage warn from durable brief fields only (never write file_scope; never lift from issue prose). 4) Move docs-impact off merge-gate-primary/failover onto branch-gate job types opened+synchronize+reopened+edited. 5) Drop verify:closing-keywords from check:framework-source/check:merge; keep local + branch-gate. 6) Swarm leftover-before-activation order text + thin executable refuse when cohort leftover-complete is outstanding. 7) Review-cycle names gh run rerun --failed for body-only fixes. 8) CHANGELOG Unreleased for #5736.",
+      "Traces": "#5736 Prefer-A Bound 6256466667",
+      "AcceptanceJustification": "Eight Prefer-A Recut-1 Bound remedy limbs (P1-P4) are independently testable acceptance criteria; collapsing them would hide the executable leftover-land refuse that reminted Stop 1 P4."
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "Activation-widen narrow pre-push trio: docs-impact --body-file --base-ref, pr:check-closing-keywords --body-file, CHANGELOG check (not full pre-pr)",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given an activation or thin widen PR body file, when the narrow pre-push trio runs before first push, then docs-impact, closing-keywords, and CHANGELOG checks execute without invoking full pre-pr.",
+          "Traces": "#5736"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5827 squash-merge (Tracking #5736).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5827",
+            "mintedAt": "2026-10-22T07:29:08.404Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-22T07:29:08.404Z"
+        }
+      },
+      {
+        "id": "2",
+        "title": "Offline deft-story identity admission without PR number (canonical parse + diff/brief identity; forbid token-presence-only green)",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a brief-land shaped diff and a body with or without deft-story marks and prNumber null, when offline identity admission runs, then missing/wrong/partial marks hard-fail and token-presence-only cannot pass.",
+          "Traces": "#5736"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5827 squash-merge (Tracking #5736).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5827",
+            "mintedAt": "2026-10-22T07:29:08.404Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-22T07:29:08.404Z"
+        }
+      },
+      {
+        "id": "3",
+        "title": "Advisory in-brief file_scope coverage warn from durable brief fields only (never write file_scope; never lift from issue prose #3835)",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given an activation/widen brief with durable path fields, when the advisory coverage warn runs, then it warns on uncovered named paths without writing file_scope or reading issue prose.",
+          "Traces": "#5736"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5827 squash-merge (Tracking #5736).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5827",
+            "mintedAt": "2026-10-22T07:29:08.404Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-22T07:29:08.404Z"
+        }
+      },
+      {
+        "id": "4",
+        "title": "Docs-impact branch-gate relocation: remove from merge-gate-primary/failover; job types opened+synchronize+reopened+edited",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given ci.yml and branch-gate.yml, when docs-impact is relocated, then merge-gate-primary/failover no longer run it and branch-gate runs it on opened, synchronize, reopened, and edited.",
+          "Traces": "#5736"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5827 squash-merge (Tracking #5736).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5827",
+            "mintedAt": "2026-10-22T07:29:08.404Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-22T07:29:08.404Z"
+        }
+      },
+      {
+        "id": "5",
+        "title": "Drop CI duplicate closing-keywords from check:framework-source/check:merge; keep local + branch-gate signal",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given Taskfile check:framework-source deps, when the CI duplicate is dropped, then verify:closing-keywords is absent from that graph while local and branch-gate checks remain.",
+          "Traces": "#5736"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5827 squash-merge (Tracking #5736).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5827",
+            "mintedAt": "2026-10-22T07:29:08.404Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-22T07:29:08.404Z"
+        }
+      },
+      {
+        "id": "6",
+        "title": "Leftover-before-activation order text: leftover-complete land -> refresh base -> prepare activation -> land -> dispatch",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given through-merge/swarm skill prose, when operators prepare the next cohort activation, then the ordered leftover-complete land then refresh then activate sequence is stated without claiming core-phase-5-6 already covered it.",
+          "Traces": "#5736"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5827 squash-merge (Tracking #5736).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5827",
+            "mintedAt": "2026-10-22T07:29:08.404Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-22T07:29:08.404Z"
+        }
+      },
+      {
+        "id": "7",
+        "title": "Thin executable leftover-land refuse at cohort activation prepare/open when preceding leftover-complete is outstanding",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given an outstanding cohort leftover-complete land, when activation prepare/open runs, then the thin leftover-land gate refuses with remediation to land leftover first; after merge/fetch it admits.",
+          "Traces": "#5736"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5827 squash-merge (Tracking #5736).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5827",
+            "mintedAt": "2026-10-22T07:29:08.404Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-22T07:29:08.404Z"
+        }
+      },
+      {
+        "id": "8",
+        "title": "CHANGELOG Unreleased line for lifecycle latency #5736",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given CHANGELOG Unreleased, when the story lands, then a plain-English entry references #5736.",
+          "Traces": "#5736"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5827 squash-merge (Tracking #5736).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5827",
+            "mintedAt": "2026-10-22T07:29:08.404Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-22T07:29:08.404Z"
+        }
+      }
+    ],
+    "tags": [
+      "ci-cd",
+      "process",
+      "urgent",
+      "design-critique:ingest-ready",
+      "core-capabilities"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5736",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5736: perf(lifecycle): activation/widen PRs take 21–42 min to merge; extra heads and re-runs cost more than CI speed"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4956",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4956"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "deft-story: N",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L16"
+        },
+        {
+          "command": "deft verify:docs-impact -- --body-file --base-ref",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L29"
+        },
+        {
+          "command": "task pr:check-closing-keywords --body-file",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L29"
+        },
+        {
+          "command": "gh run rerun <id> --failed",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L32"
+        },
+        {
+          "command": "deft-story",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L45"
+        },
+        {
+          "command": "gh run rerun --failed",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L46"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "lifecycle-activation-widen-pr-merge-latency-extra-heads",
+        "expected_outputs": [
+          "narrow pre-push trio on activation/widen",
+          "offline deft-story admission",
+          "advisory file_scope coverage warn",
+          "docs-impact on branch-gate types",
+          "no CI closing-keywords duplicate",
+          "leftover-before-activation refuse",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "npx vitest run packages/core/src/pr-closing-keywords/main.test.ts packages/core/src/swarm/leftover-before-activation.test.ts packages/core/src/scope/file-scope-coverage-warn.test.ts"
+        ],
+        "file_scope": [
+          ".github/workflows/ci.yml",
+          ".github/workflows/branch-gate.yml",
+          "Taskfile.yml",
+          "packages/core/src/pr-closing-keywords/main.ts",
+          "packages/core/src/pr-closing-keywords/main.test.ts",
+          "packages/core/src/swarm/leftover-before-activation.ts",
+          "packages/core/src/swarm/leftover-before-activation.test.ts",
+          "packages/core/src/swarm/launch.ts",
+          "packages/core/src/scope/file-scope-coverage-warn.ts",
+          "packages/core/src/scope/file-scope-coverage-warn.test.ts",
+          "content/skills/deft-directive-swarm/SKILL.md",
+          "content/skills/deft-directive-review-cycle/SKILL.md",
+          "CHANGELOG.md"
+        ],
+        "size": "L",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5736",
+          "Prefer-A Bound 6256466667",
+          "allocation_plan_id through-merge-5791-5814-5736-5804-5805-2026-10-22"
+        ],
+        "parallel_safe": true,
+        "acceptance_criteria_justification": "Eight Prefer-A Recut-1 Bound remedy limbs (narrow pre-push trio, offline deft-story, advisory file_scope warn, docs-impact branch-gate, drop CI closing-keywords duplicate, leftover order text, leftover-land refuse, CHANGELOG) must stay distinct."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          ".github/workflows/ci.yml",
+          ".github/workflows/branch-gate.yml",
+          "Taskfile.yml",
+          "packages/core/src/pr-closing-keywords/main.ts",
+          "packages/core/src/pr-closing-keywords/main.test.ts",
+          "packages/core/src/swarm/leftover-before-activation.ts",
+          "packages/core/src/swarm/leftover-before-activation.test.ts",
+          "packages/core/src/swarm/launch.ts",
+          "packages/core/src/scope/file-scope-coverage-warn.ts",
+          "packages/core/src/scope/file-scope-coverage-warn.test.ts",
+          "content/skills/deft-directive-swarm/SKILL.md",
+          "content/skills/deft-directive-review-cycle/SKILL.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/swarm/leftover-before-activation.ts",
+        "cohesion_exemption": "CHANGELOG + lifecycle latency unit"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5915031002,
+        "origin": "deftai/directive#5736",
+        "id": "github.issue.5915031002"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "d93daf97137f2c194fd5862e486f0885000b5ebae72835d00c7b090006939ffb"
+      },
+      "kind": "story",
+      "productPullRequest": 5827,
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "mergeCommit": "02ac5ede16cd3ebc39d49540d33b1efed9a0e6fd",
+      "deliveryProvenance": {
+        "productPullRequest": 5827,
+        "mergeCommit": "02ac5ede16cd3ebc39d49540d33b1efed9a0e6fd",
+        "deliveryBranch": "master"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 5827,
+        "prBase": "master",
+        "mergeCommit": "02ac5ede16cd3ebc39d49540d33b1efed9a0e6fd",
+        "deliveryBranch": "master",
+        "deliveryCommit": "02ac5ede16cd3ebc39d49540d33b1efed9a0e6fd",
+        "verifiedAt": "2026-10-22T07:29:08.404Z",
+        "verifier": "parent-retained-closer/leftover-5736",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:leftover-5736-closer"
+      },
+      "completedAt": "2026-10-22T07:29:08.404Z",
+      "completedSessionId": "host:grok:v1:leftover-5736-closer",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-22T07:29:08.404Z"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 8 independently testable clauses from Prefer-A Recut-1 Bound remedy before product edit (#3323)",
+      "sentences": [
+        "perf(lifecycle): activation/widen PRs take 21–42 min to merge; extra heads and re-runs cost more than CI speed",
+        "relieves: P1 — Activation-widen narrow pre-push trio: docs-impact --body-file --base-ref, pr:check-closing-keywords --body-file, CHANGELOG check (not full pre-pr)",
+        "relieves: P1 — Offline deft-story identity admission without PR number (canonical parse + diff/brief identity; forbid token-presence-only green)",
+        "relieves: P1 — Advisory in-brief file_scope coverage warn from durable brief fields only (never write file_scope; never lift from issue prose #3835)",
+        "relieves: P2 — Docs-impact branch-gate relocation: remove from merge-gate-primary/failover; job types opened+synchronize+reopened+edited",
+        "relieves: P3 — Drop CI duplicate closing-keywords from check:framework-source/check:merge; keep local + branch-gate signal",
+        "relieves: P4 — Leftover-before-activation order text: leftover-complete land -> refresh base -> prepare activation -> land -> dispatch",
+        "relieves: P4 — Thin executable leftover-land refuse at cohort activation prepare/open when preceding leftover-complete is outstanding",
+        "relieves: P4 — CHANGELOG Unreleased line for lifecycle latency #5736"
+      ],
+      "admitted_source_sentences": [
+        "relieves: P1 — Activation-widen narrow pre-push trio: docs-impact --body-file --base-ref, pr:check-closing-keywords --body-file, CHANGELOG check (not full pre-pr)",
+        "relieves: P1 — Offline deft-story identity admission without PR number (canonical parse + diff/brief identity; forbid token-presence-only green)",
+        "relieves: P1 — Advisory in-brief file_scope coverage warn from durable brief fields only (never write file_scope; never lift from issue prose #3835)",
+        "relieves: P2 — Docs-impact branch-gate relocation: remove from merge-gate-primary/failover; job types opened+synchronize+reopened+edited",
+        "relieves: P3 — Drop CI duplicate closing-keywords from check:framework-source/check:merge; keep local + branch-gate signal",
+        "relieves: P4 — Leftover-before-activation order text: leftover-complete land -> refresh base -> prepare activation -> land -> dispatch",
+        "relieves: P4 — Thin executable leftover-land refuse at cohort activation prepare/open when preceding leftover-complete is outstanding",
+        "relieves: P4 — CHANGELOG Unreleased line for lifecycle latency #5736"
+      ],
+      "admitted_source_digest": "11cf93d7514b5dc5cd3af5d5455ac054fdc7673bcdf8050e659e405150ef0a28",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "relieves: P1 — Activation-widen narrow pre-push trio: docs-impact --body-file --base-ref, pr:check-closing-keywords --body-file, CHANGELOG check (not full pre-pr)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "relieves: P1 — Offline deft-story identity admission without PR number (canonical parse + diff/brief identity; forbid token-presence-only green)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "relieves: P1 — Advisory in-brief file_scope coverage warn from durable brief fields only (never write file_scope; never lift from issue prose #3835)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "relieves: P2 — Docs-impact branch-gate relocation: remove from merge-gate-primary/failover; job types opened+synchronize+reopened+edited",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "relieves: P3 — Drop CI duplicate closing-keywords from check:framework-source/check:merge; keep local + branch-gate signal",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "relieves: P4 — Leftover-before-activation order text: leftover-complete land -> refresh base -> prepare activation -> land -> dispatch",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "relieves: P4 — Thin executable leftover-land refuse at cohort activation prepare/open when preceding leftover-complete is outstanding",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "relieves: P4 — CHANGELOG Unreleased line for lifecycle latency #5736",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5915031002",
+    "updated": "2026-10-22T07:29:08.404Z"
+  }
+}
