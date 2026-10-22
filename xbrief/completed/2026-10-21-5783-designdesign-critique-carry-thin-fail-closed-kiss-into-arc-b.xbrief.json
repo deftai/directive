@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "design(design-critique): carry Thin Fail-Closed / KISS into arc Bound + pain-audit harvest",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "design(design-critique): carry Thin Fail-Closed / KISS into arc Bound + pain-audit harvest",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5783",
@@ -25,6 +25,15 @@
           "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
           "recorded_at": "2026-10-21T23:35:31.494Z",
           "recorded_by": "parent-retained-closer/5815"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after Tracking product #5811 + forge-closer leftover #5815; pathless behavioral clauses attested via product merge + vitest fixture locks",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-10-21T23:48:42.142Z"
         }
       },
       {
@@ -38,6 +47,15 @@
           "pointer": "content/templates/design-critique-brief.md",
           "recorded_at": "2026-10-21T23:35:31.494Z",
           "recorded_by": "parent-retained-closer/5815"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after Tracking product #5811 + forge-closer leftover #5815; pathless behavioral clauses attested via product merge + vitest fixture locks",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-10-21T23:48:42.142Z"
         }
       },
       {
@@ -51,6 +69,15 @@
           "pointer": "content/contracts/design-critique.md",
           "recorded_at": "2026-10-21T23:35:31.494Z",
           "recorded_by": "parent-retained-closer/5815"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after Tracking product #5811 + forge-closer leftover #5815; pathless behavioral clauses attested via product merge + vitest fixture locks",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-10-21T23:48:42.142Z"
         }
       },
       {
@@ -64,6 +91,15 @@
           "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
           "recorded_at": "2026-10-21T23:35:31.494Z",
           "recorded_by": "parent-retained-closer/5815"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after Tracking product #5811 + forge-closer leftover #5815; pathless behavioral clauses attested via product merge + vitest fixture locks",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-10-21T23:48:42.142Z"
         }
       }
     ],
@@ -84,40 +120,82 @@
       }
     ],
     "acceptance": {
-      "none_stated": true,
+      "none_stated": false,
       "commands": [],
       "clauses": [
         {
           "id": 1,
           "text": "Contract MUST pointers for Thin Fail-Closed Bound thinness and writing-bar footnote PA posture under Critic method, Successor lean, and Pain coverage",
-          "artifact_path": null,
+          "artifact_path": "content/contracts/design-critique.md",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after Tracking product #5811 + forge-closer leftover #5815; pathless behavioral clauses attested via product merge + vitest fixture locks",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott"
+            },
+            "recorded_at": "2026-10-21T23:48:42.142Z"
+          }
         },
         {
           "id": 2,
           "text": "Brief Pointers-table rows that cite those contract headings without embedding classification rule bodies or harvest-changed defaults",
-          "artifact_path": null,
+          "artifact_path": "content/templates/design-critique-brief.md",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after Tracking product #5811 + forge-closer leftover #5815; pathless behavioral clauses attested via product merge + vitest fixture locks",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott"
+            },
+            "recorded_at": "2026-10-21T23:48:42.142Z"
+          }
         },
         {
           "id": 3,
           "text": "Parent Recut discipline: remint Bound remedy for mechanism change only, not footnote-class PA absorption",
-          "artifact_path": null,
+          "artifact_path": "content/contracts/design-critique.md",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after Tracking product #5811 + forge-closer leftover #5815; pathless behavioral clauses attested via product merge + vitest fixture locks",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott"
+            },
+            "recorded_at": "2026-10-21T23:48:42.142Z"
+          }
         },
         {
           "id": 4,
           "text": "Fixture locks new contract and template pointer strings; CHANGELOG Unreleased notes the carry-over",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after Tracking product #5811 + forge-closer leftover #5815; pathless behavioral clauses attested via product merge + vitest fixture locks",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott"
+            },
+            "recorded_at": "2026-10-21T23:48:42.142Z"
+          }
         }
       ],
       "criteria": [],
-      "confessions": [],
+      "confessions": [
+        "design(design-critique): carry Thin Fail-Closed / KISS into arc Bound + pain-audit harvest",
+        "relieves: P1 — Contract pointers under real headings: add MUST lines in content/contracts/design-critique.md at Critic method and Successor lean (## Bound remedy thinness via Thin Fail-Closed #3265: short mechanism list; optional complexity leftover/footnote/implementation note) and at Pain coverage (#4496) for writing-bar (#3368) footnote-class posture (naming/docs/alias/dispose-wording default footnote + harvest-changed: false unless ## Bound remedy mechanism changes). Reuse existing footnote / non-remint / leftover-pain branches; do not invent parallel H2 names Prefer-A Bound or pain-audit harvest.",
+        "relieves: P2 — Brief Pointers-table only: add Pointers rows in content/templates/design-critique-brief.md that point at those contract headings. Do not copy classification rule bodies into the envelope; do not pre-author critic harvest-changed: false in the brief.",
+        "relieves: P3 — Parent Recut discipline: remint ## Bound remedy titles for mechanism or fail-closed association change; do not remint solely to absorb footnote-class PA text. Prose discipline attached to existing Successor lean / leftover-pain paths.",
+        "relieves: P4 — Fixture + CHANGELOG: extend existing design_critique_contract.test REQUIRED_CONTRACT_POINTERS / REQUIRED_TEMPLATE_POINTERS (or adjacent) so the new pointer strings cannot silently drop; CHANGELOG Unreleased."
+      ],
       "ambiguity_attestation": "none_found",
       "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
       "source_rung": "derived"
@@ -158,7 +236,7 @@
         "depends_on": [],
         "model_tier": "standard",
         "verify_commands": [
-          "node --test packages/core/src/content-contracts/standards/design_critique_contract.test.ts"
+          "npx vitest run packages/core/src/content-contracts/standards/design_critique_contract.test.ts"
         ],
         "file_scope": [
           "content/contracts/design-critique.md",
@@ -176,9 +254,31 @@
         ],
         "parallel_safe": true
       },
-      "activationPullRequest": 5806
+      "activationPullRequest": 5806,
+      "productPullRequest": 5811,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-21T23:57:08.375Z"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "8866f20cfa13d7a2594aa4727f79b87fa41cd297",
+        "prNumber": 5811,
+        "prBase": "master",
+        "mergeCommit": "3baf2e75f9ca6391a05ed6f5339d0fa11078b310",
+        "deliveryBranch": "master",
+        "deliveryCommit": "3baf2e75f9ca6391a05ed6f5339d0fa11078b310",
+        "verifiedAt": "2026-10-21T23:48:42.142Z",
+        "verifier": "parent-retained-closer/5815",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered"
     },
     "id": "github.issue.5933087592",
-    "updated": "2026-10-21T21:22:16Z"
+    "updated": "2026-10-21T23:48:42.142Z"
   }
 }
