@@ -1,0 +1,721 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5736",
+    "updated": "2026-10-22T04:37:55Z"
+  },
+  "plan": {
+    "title": "perf(lifecycle): activation/widen PRs take 21–42 min to merge; extra heads and re-runs cost more than CI speed",
+    "status": "running",
+    "narratives": {
+      "Description": "Activation and thin file_scope-widen PRs currently take 21-42 minutes to merge because of extra heads, body-fix merge-gate re-runs, and leftover/activation races. This story cuts that latency with narrow offline pre-push checks, docs-impact relocation off the merge gate, dropping the CI closing-keywords duplicate, and a leftover-before-activation refuse.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5736",
+      "Overview": "Prefer-A Recut-1 Bound 6256466667 (Target-digest sha256:d93daf97137f2c194fd5862e486f0885000b5ebae72835d00c7b090006939ffb): cut activation/widen merge latency via narrow pre-push trio, offline deft-story admission, advisory file_scope coverage warn, docs-impact branch-gate relocation, drop CI closing-keywords duplicate, leftover-before-activation order + thin executable refuse. Reject list binding. allocation_plan_id through-merge-5791-5814-5736-5804-5805-2026-10-22.",
+      "Labels": "ci-cd, process, urgent, design-critique:ingest-ready, core-capabilities",
+      "UserStory": "As a Directive through-merge operator, I want activation and thin file_scope-widen PRs to merge in about one CI round, so that Prefer-A Bound stories are not blocked for 21-42 minutes by extra heads, body-fix re-runs, and leftover/activation races.",
+      "ImplementationPlan": "1) Add narrow pre-push trio guidance for activation/widen (docs-impact --body-file --base-ref, pr:check-closing-keywords --body-file, CHANGELOG check) in swarm skill; not full pre-pr. 2) Offline deft-story identity admission in pr-closing-keywords when prNumber is null (canonical parse + brief/diff identity; forbid token-presence-only). 3) Advisory in-brief file_scope coverage warn from durable brief fields only (never write file_scope; never lift from issue prose). 4) Move docs-impact off merge-gate-primary/failover onto branch-gate job types opened+synchronize+reopened+edited. 5) Drop verify:closing-keywords from check:framework-source/check:merge; keep local + branch-gate. 6) Swarm leftover-before-activation order text + thin executable refuse when cohort leftover-complete is outstanding. 7) Review-cycle names gh run rerun --failed for body-only fixes. 8) CHANGELOG Unreleased for #5736.",
+      "Traces": "#5736 Prefer-A Bound 6256466667",
+      "AcceptanceJustification": "Eight Prefer-A Recut-1 Bound remedy limbs (P1-P4) are independently testable acceptance criteria; collapsing them would hide the executable leftover-land refuse that reminted Stop 1 P4."
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "Activation-widen narrow pre-push trio: docs-impact --body-file --base-ref, pr:check-closing-keywords --body-file, CHANGELOG check (not full pre-pr)",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given an activation or thin widen PR body file, when the narrow pre-push trio runs before first push, then docs-impact, closing-keywords, and CHANGELOG checks execute without invoking full pre-pr.",
+          "Traces": "#5736"
+        }
+      },
+      {
+        "id": "2",
+        "title": "Offline deft-story identity admission without PR number (canonical parse + diff/brief identity; forbid token-presence-only green)",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a brief-land shaped diff and a body with or without deft-story marks and prNumber null, when offline identity admission runs, then missing/wrong/partial marks hard-fail and token-presence-only cannot pass.",
+          "Traces": "#5736"
+        }
+      },
+      {
+        "id": "3",
+        "title": "Advisory in-brief file_scope coverage warn from durable brief fields only (never write file_scope; never lift from issue prose #3835)",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given an activation/widen brief with durable path fields, when the advisory coverage warn runs, then it warns on uncovered named paths without writing file_scope or reading issue prose.",
+          "Traces": "#5736"
+        }
+      },
+      {
+        "id": "4",
+        "title": "Docs-impact branch-gate relocation: remove from merge-gate-primary/failover; job types opened+synchronize+reopened+edited",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given ci.yml and branch-gate.yml, when docs-impact is relocated, then merge-gate-primary/failover no longer run it and branch-gate runs it on opened, synchronize, reopened, and edited.",
+          "Traces": "#5736"
+        }
+      },
+      {
+        "id": "5",
+        "title": "Drop CI duplicate closing-keywords from check:framework-source/check:merge; keep local + branch-gate signal",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Taskfile check:framework-source deps, when the CI duplicate is dropped, then verify:closing-keywords is absent from that graph while local and branch-gate checks remain.",
+          "Traces": "#5736"
+        }
+      },
+      {
+        "id": "6",
+        "title": "Leftover-before-activation order text: leftover-complete land -> refresh base -> prepare activation -> land -> dispatch",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given through-merge/swarm skill prose, when operators prepare the next cohort activation, then the ordered leftover-complete land then refresh then activate sequence is stated without claiming core-phase-5-6 already covered it.",
+          "Traces": "#5736"
+        }
+      },
+      {
+        "id": "7",
+        "title": "Thin executable leftover-land refuse at cohort activation prepare/open when preceding leftover-complete is outstanding",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given an outstanding cohort leftover-complete land, when activation prepare/open runs, then the thin leftover-land gate refuses with remediation to land leftover first; after merge/fetch it admits.",
+          "Traces": "#5736"
+        }
+      },
+      {
+        "id": "8",
+        "title": "CHANGELOG Unreleased line for lifecycle latency #5736",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given CHANGELOG Unreleased, when the story lands, then a plain-English entry references #5736.",
+          "Traces": "#5736"
+        }
+      }
+    ],
+    "tags": [
+      "ci-cd",
+      "process",
+      "urgent",
+      "design-critique:ingest-ready",
+      "core-capabilities"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5736",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5736: perf(lifecycle): activation/widen PRs take 21–42 min to merge; extra heads and re-runs cost more than CI speed"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4956",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4956"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "deft-story: N",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L16"
+        },
+        {
+          "command": "deft verify:docs-impact -- --body-file --base-ref",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L29"
+        },
+        {
+          "command": "task pr:check-closing-keywords --body-file",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L29"
+        },
+        {
+          "command": "gh run rerun <id> --failed",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L32"
+        },
+        {
+          "command": "deft-story",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L45"
+        },
+        {
+          "command": "gh run rerun --failed",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L46"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "lifecycle-activation-widen-pr-merge-latency-extra-heads",
+        "expected_outputs": [
+          "narrow pre-push trio on activation/widen",
+          "offline deft-story admission",
+          "advisory file_scope coverage warn",
+          "docs-impact on branch-gate types",
+          "no CI closing-keywords duplicate",
+          "leftover-before-activation refuse",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "npx vitest run packages/core/src/pr-closing-keywords/main.test.ts packages/core/src/swarm/leftover-before-activation.test.ts packages/core/src/scope/file-scope-coverage-warn.test.ts"
+        ],
+        "file_scope": [
+          ".github/workflows/ci.yml",
+          ".github/workflows/branch-gate.yml",
+          "Taskfile.yml",
+          "packages/core/src/pr-closing-keywords/main.ts",
+          "packages/core/src/pr-closing-keywords/main.test.ts",
+          "packages/core/src/swarm/leftover-before-activation.ts",
+          "packages/core/src/swarm/leftover-before-activation.test.ts",
+          "packages/core/src/swarm/launch.ts",
+          "packages/core/src/scope/file-scope-coverage-warn.ts",
+          "packages/core/src/scope/file-scope-coverage-warn.test.ts",
+          "content/skills/deft-directive-swarm/SKILL.md",
+          "content/skills/deft-directive-review-cycle/SKILL.md",
+          "CHANGELOG.md"
+        ],
+        "size": "L",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5736",
+          "Prefer-A Bound 6256466667",
+          "allocation_plan_id through-merge-5791-5814-5736-5804-5805-2026-10-22"
+        ],
+        "parallel_safe": true,
+        "acceptance_criteria_justification": "Eight Prefer-A Recut-1 Bound remedy limbs (narrow pre-push trio, offline deft-story, advisory file_scope warn, docs-impact branch-gate, drop CI closing-keywords duplicate, leftover order text, leftover-land refuse, CHANGELOG) must stay distinct."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          ".github/workflows/ci.yml",
+          ".github/workflows/branch-gate.yml",
+          "Taskfile.yml",
+          "packages/core/src/pr-closing-keywords/main.ts",
+          "packages/core/src/pr-closing-keywords/main.test.ts",
+          "packages/core/src/swarm/leftover-before-activation.ts",
+          "packages/core/src/swarm/leftover-before-activation.test.ts",
+          "packages/core/src/swarm/launch.ts",
+          "packages/core/src/scope/file-scope-coverage-warn.ts",
+          "packages/core/src/scope/file-scope-coverage-warn.test.ts",
+          "content/skills/deft-directive-swarm/SKILL.md",
+          "content/skills/deft-directive-review-cycle/SKILL.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/swarm/leftover-before-activation.ts",
+        "cohesion_exemption": "CHANGELOG + lifecycle latency unit"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A (draft)\nTarget-digest: sha256:f32ead8c4a5f9760e0835db588ac60bdd030308ba503ccf5562f568ee123c215\nconflict_group: lifecycle-activation-widen-pr-merge-latency-extra-heads\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\ndest: .deft-scratch/worktrees/arc-5736\ndispatch-sha: e463c92d2eac0bbbf7c85f2eb2df0eb4462a914c\n\n## In plain English\nActivation and thin file_scope-widen PRs are gating the first implement spawn correctly, but merging them took 21-42 minutes on 2026-10-18 when a CI round is about 5 minutes. Most of the gap was extra heads and re-runs: lifecycle PR rebase races under strict=true, fix pushes for misses that offline checks would catch, and body-only fixes that re-run the full merge gate. Prefer-A binds the issue A/B/C package: run the narrow existing checks before first push on those PR classes, move body-only checks off the merge gate, and order cohort lifecycle PRs to cut rebases — without touching merge authority, file_scope SoT, Greptile carve-outs, or the worktrees-probe flake (#5735).\n\n## Proposed Bound remedy (draft — critics refute before bind)\nrelieves: P1\n- Before first push on activation and thin file_scope-widen PRs, run the narrow existing checks: deft verify:docs-impact -- --body-file --base-ref (#4293), task pr:check-closing-keywords --body-file, and the CHANGELOG check. This is not the full pre-pr envelope. Leftover-complete / lifecycle-only lands keep the commands.md drive-to envelope exemption (tip line that refuses pre-pr+review-cycle+suite for file-copy lands).\nrelieves: P1\n- Add an offline deft-story check that catches a missing deft-story: N token with no PR number. Today evaluateFullStoryMarkAdmission / Path B activation admit short-circuit or skip hard-fail when prNumber is null (tip packages/core/src/pr-closing-keywords/main.ts).\nrelieves: P1\n- Add an advisory-only check that file_scope covers the files the brief plan names. Warn only; never write file_scope; paths are never taken from issue text (#3835).\nrelieves: P2\n- Move docs-impact into an edited-triggered job the way branch-gate.yml already handles closing-keywords. Keep ci.yml required-check surface unchanged for TypeScript and Greptile.\nrelieves: P2\n- Remove the duplicate closing-keywords run from check:merge (Taskfile.yml verify:closing-keywords dep). Until that lands, review-cycle guidance must name gh run rerun <id> --failed for body-only fixes; forbid empty commits without approval (existing SKILL rule).\nrelieves: P3\n- Through-merge / swarm guidance orders cohort lifecycle PRs: land leftover-complete before opening the next activation PR, and batch activations per cohort. Cite and tighten existing pointers (core-phase-5-6). Mid-story widen racing another story activation stays named residual where order cannot prevent it.\nrelieves: P4\n- CHANGELOG [Unreleased] for #5736.\n\n## Reject\n- Changing green-to-merge hand-off or absorbing #5727 / #4889 merge-finisher work\n- Widening the #3678 artifact-only allowlist to xbrief/active/**\n- Any stand-in for the story own landed file_scope (working-tree brief, locally minted scope, another story merge-base brief)\n- A Greptile carve-out (#3680)\n- Fixing the worktrees-probe flake here (#5735 owns it)\n- Full pre-pr envelope on activation/widen (narrow checks only)\n- Making the file_scope-coverage check write or invent paths from issue text\n- Changing branch-protection required checks (TypeScript / Greptile) as the latency fix\n- Treating leftover-complete lands as newly subject to pre-pr\n\n## file_scope lean (post-bind)\ncontent/skills/deft-directive-swarm/** (lifecycle PR order guidance), content/skills/deft-directive-review-cycle/SKILL.md (gh run rerun --failed for body-only), .github/workflows/branch-gate.yml and/or ci.yml (edited docs-impact job; required checks unchanged), Taskfile.yml (drop duplicate closing-keywords from check:merge), packages/core/src/pr-closing-keywords/** (offline deft-story), verify:docs-impact / pre-push wiring for activation+widen, content/commands.md if exemption/pointer needs clarity, tests, CHANGELOG.md.\n\n## Keep-outs\n#5735 flake; #3680 Greptile carve-out; #5727/#4889 merge authority; #3678 allowlist widen; #4956 write-fence SoT; #3835 no paths from issue text.\n\nForward: Stop 1 + panel-deposit, then N≥3 Round-1 open critique.",
+          "id": 6256283254,
+          "html_url": "https://github.com/deftai/directive/issues/5736#issuecomment-6256283254",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:04:43Z",
+          "updated_at": "2026-10-18T23:04:43Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because this changes named lifecycle-PR merge latency mechanisms (pre-push narrow checks on activation/widen, docs-impact placement vs merge gate, check:merge duplicate closing-keywords, cohort lifecycle PR order) with irreversible blast on every Prefer-A Bound story first-spawn gate and CI/merge-path wall-clock; judgment is whether A+B+C binds without widening file_scope authority, absorbing leftover-complete exemption, or touching merge authority / Greptile carve-outs / #5735.\nrefutation-target: that the measured 21-42 min activation/widen merge cost is dominated by avoidable extra heads and re-runs (skip of narrow offline checks, body-only checks inside merge gate, lifecycle PR rebase races under strict=true), so Prefer-A A+B+C is the right cut while the write-fence gate and required TS/Greptile checks stay.\ncharter: open critique\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nspend-why: Stop 2 panel permission — genuinely open solution space among independent A/B/C limbs and high blast on CI workflows, merge gate, and through-merge guidance\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\ndest: .deft-scratch/worktrees/arc-5736\ndispatch-sha: e463c92d2eac0bbbf7c85f2eb2df0eb4462a914c\nTarget-digest: sha256:f32ead8c4a5f9760e0835db588ac60bdd030308ba503ccf5562f568ee123c215\nPrefer-A draft cite: 6256283254\ndual-stop-reserved: 1\n\npain: P1, P2, P3, P4\n- P1: Activation and thin file_scope-widen PRs skip the narrow offline checks before first push (docs-impact body-file, closing-keywords body-file, CHANGELOG, offline deft-story without PR number, advisory file_scope-coverage), so under-declared scope / missing tokens / wording become fix or body heads after open.\n- P2: docs-impact runs only inside the merge gate; a body-only fix re-runs check:merge (~5 min) even when product code is unchanged, while closing-keywords already re-runs on edited via branch-gate.yml.\n- P3: check:merge still depends on verify:closing-keywords, duplicating the branch-gate edited path and adding cost on body-only fixes.\n- P4: Cohort lifecycle PR order (leftover-complete before next activation; batch activations) is guidance-only, so strict=true races force rebase heads (measured on #5712).\n\nclosed-findings: none\nverification-path: pin-read git show e463c92d2eac0bbbf7c85f2eb2df0eb4462a914c: against dest cwd-without-occupy (.deft-scratch/worktrees/arc-5736)\n\nPre-issue critic verdict under #5694 (process-only, not an arc stamp) already cleared blocks-the-design on pass 2; this arc is the mechanism-shaped judgment gate over Prefer-A draft 6256283254.",
+          "id": 6256286688,
+          "html_url": "https://github.com/deftai/directive/issues/5736#issuecomment-6256286688",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:05:04Z",
+          "updated_at": "2026-10-18T23:05:04Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 6256342707\nfamilies: grok, claude, codex\nseat: grok launcher: grok\nseat: claude launcher: claude\nseat: codex launcher: codex\nissue: 5736\ncharter: open critique\nspend: N≥3\nspend-ask: resolved\nconsent: Prefer-A Bound #5466 spend-recommend recorded; bare arc yolo; launch-probe pong-ok claude/codex/grok under critic argv\nSHA at dispatch: e463c92d2eac0bbbf7c85f2eb2df0eb4462a914c\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\ndest: .deft-scratch/worktrees/arc-5736\nverification-path: pin-read git show e463c92d2eac0bbbf7c85f2eb2df0eb4462a914c: against dest cwd-without-occupy\nPrefer-A draft cite: 6256283254\nStop 1 cite: 6256286688\nclosed-findings: none\naudit-targets: none\n\n",
+          "id": 6256342707,
+          "html_url": "https://github.com/deftai/directive/issues/5736#issuecomment-6256342707",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:11:02Z",
+          "updated_at": "2026-10-18T23:11:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nRound 1 fresh critic. Inputs: Prefer-A draft 6256283254, Stop 1 6256286688, panel-deposit 6256342707 and issue body. No sibling posts. Verification: pin-read git show e463c92d2eac0bbbf7c85f2eb2df0eb4462a914c: against dest cwd-without-occupy. No implementation or ingest.\n\nVerdict: no blocks-the-design; four sharpens-framing findings. A+B+C is a reasonable bounded cut. I did not reproduce the historical timing measurements and do not claim to refute them.\n\nExisting mechanisms re-verified:\n- content/commands.md, verify:completed-tracked: file-copy exemption covers completed/cancelled briefs plus optional CHANGELOG, not arbitrary active-brief changes.\n- branch-gate.yml: closing-keywords runs on opened/synchronize/reopened/edited with live PR body and commit inputs, mode both.\n- ci.yml: docs-impact exists in BOTH primary and failover merge lanes; CI uses default pull_request activity types. Its map identifies TypeScript as the required branch-protection aggregator. Greptile's org-ruleset requirement is envelope evidence, not something this YAML proves.\n- Taskfile.yml: check:merge aliases check:framework-source, which owns verify:closing-keywords. tasks/verify.yml documents local merge-base and live-PR modes.\n- pr-closing-keywords/main.ts: live-only invocation, Path B null-PR rejection, subsequent null-PR success return, canonical mark parser, per-brief issue binding, leftover admission and skip-active refusal all exist.\n- Review-cycle already forbids unapproved Greptile retriggers including empty commits, but does not name gh run rerun <id> --failed. Swarm core-phase-5-6 already assigns post-merge completion/finalization, durable lifecycle landing and merger-owned synchronization.\n\n1. **sharpens-framing — docs-impact is body-sensitive, not body-only.**\nEvidence: packages/core/src/docs/docs-impact.ts compares declarations with detected closed-surface changes; live mode obtains body and intended base from REST and evaluates the checkout diff. Existing branch-gate has four activity types, not edited alone.\nFailure mode: an edited-only replacement misses freshly opened PRs and code pushes invalidating unchanged declarations. Copying branch-gate's shallow checkout without supplying the comparison base can cause configuration failures. Leaving docs-impact in the failover lane preserves an expensive rerun path.\nDisposition: specify relocation to opened/synchronize/reopened/edited coverage outside BOTH merge lanes, with the intended base available and unchanged fail-closed declaration-versus-diff semantics. Test open-invalid, body-fix and synchronize-invalidates-body cases. Keep CI triggers and required-check names unchanged.\n\n2. **sharpens-framing — remove the CI duplicate without silently deleting local coverage.**\nEvidence: the dependency is in shared check:framework-source, not a check:merge-only dependency list; the verify task explicitly supports local merge-base mode.\nFailure mode: deleting that line also removes an existing local check path for ordinary product work, while the new activation/widen pre-push path covers only two PR classes. A body-file-only call also omits commit-message inspection unless those inputs are supplied.\nDisposition: state which invocation is redundant and preserve local closing-keyword/commit-range validation outside that CI invocation. Verify that the live CI duplicate is absent while local validation still catches invalid commit messages. This sharpens B's scope without requiring a new gate or branch-protection change.\n\n3. **sharpens-framing — offline admission should reuse identity checks, not become a token-presence green light.**\nEvidence: Path B already verifies changed nonterminal briefs' issue references, rejects unmatched marks and malformed/set productPullRequest metadata, and distinguishes removals. General admission separately handles leftovers and skip-active delivery.\nFailure mode: a batch activation with a missing or wrong story mark passes a simple “contains deft-story: N” check but still needs a post-open fix. Blanket enforcement on lifecycle diffs instead breaks the preserved leftover exemption.\nDisposition: cover checks possible without a PR number: canonical parsing, diff classification and changed-brief identity coverage. Leave PR-number-bound product stamp checks to live admission. Test missing/wrong/partial batch marks, malformed metadata, valid activation/widen and leftover exemption. Body text remains data: deft-story cannot grant closing consent or substitute for landed file_scope.\n\n4. **sharpens-framing — specify the ordering boundary and limits of prevention.**\nEvidence: core-phase-5-6 distinguishes worktree completion, opening a finalize PR, durable landing and updating the merger's base. The draft correctly leaves cross-story mid-flight widen races residual. Its narrow checks plus advisory path comparison do not establish complete story-schema validation or catch CHANGELOG wording quality.\nFailure mode: the next activation is built on a stale base even after the leftover PR merges, causing another strict-base rerun. Alternatively, batching is read as permission to include unapproved stories or dispatch against unlanded scope. Overstating A's coverage makes recurring semantic fix pushes appear to violate its promise.\nDisposition: specify merged leftover land -> fetch/refresh activation base -> prepare the approved cohort activation batch -> land -> dispatch against landed authority. Keep batching subordinate to cohort consent and story gates. Describe A as catching the specified deterministic misses; advisory file_scope findings remain warnings, never write authorization or a guarantee against all review-fix heads.\n\nInjection/swarm lens: preserve read-only pull_request execution and REST/env/argument handling for untrusted PR text. Do not interpolate body text into shell code or switch to privileged pull_request_target execution of candidate code. Reuse declaration parsing and closing-intent authority separation. C needs no new global lifecycle lock and grants no authority over sibling worktrees.\n\nRoad not taken: retaining body checks in the merge lane minimizes workflow drift but preserves full-job reruns for metadata repair. I prefer relocation with the event/input coverage above; inability to preserve declaration-versus-diff validation without changing required-check contracts would flip that choice. A full pre-pr mandate would catch more schema/semantic misses, but contradicts this narrow latency intervention and is not justified by this pin-read review.\n\nCritic complete; returning to parent synthesis. No ingest.\n\n",
+          "id": 6256378689,
+          "html_url": "https://github.com/deftai/directive/issues/5736#issuecomment-6256378689",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:14:54Z",
+          "updated_at": "2026-10-18T23:14:54Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nRound-1 open critique of Prefer-A draft 6256283254 and Stop 1 6256286688 on deftai/directive#5736.\nPin-read verification-path: git show e463c92d2eac0bbbf7c85f2eb2df0eb4462a914c: against dest cwd-without-occupy. No product mutation. No sibling critic reads.\n\n## Inventory (existing mechanisms before new ones)\n\n- content/commands.md near verify:completed-tracked: lifecycle-only / file-copy lands refuse the drive-to pre-pr+review-cycle+suite envelope. Prefer-A correctly keeps leftover-complete on that exemption.\n- .github/workflows/branch-gate.yml: closing-keywords job on types [opened, synchronize, reopened, edited].\n- .github/workflows/ci.yml: bare pull_request: (GitHub default types exclude edited). docs-impact steps live inside merge-gate-primary (~L191-197) and merge-gate-failover (~L487-493) after task check:merge. Required aggregator surface stays TypeScript yes; merge-gate aggregator not branch-protection required.\n- Taskfile.yml L455: check:framework-source / check:merge deps still include verify:closing-keywords (duplicate of branch-gate path).\n- packages/core/src/pr-closing-keywords/main.ts: evaluateFullStoryMarkAdmission only invoked when args.pr !== null (~L1045); inside the function, changedNonterminal.length === 0 || args.prNumber === null returns ok:true (~L477). Offline --body-file never hard-fails missing deft-story.\n- content/skills/deft-directive-review-cycle/SKILL.md: empty-commit / empty-commit-thrash forbids exist; gh run rerun --failed is not named for body-only docs-impact recovery.\n- content/skills/deft-directive-swarm/references/core-phase-5-6.md: strong leftover-complete / finalize-cohort / cascade-rebase prose; the issue/Prefer-A cites at :215 and :272 are Phase 6 post-merge cascade/finalize text, not leftover-before-next-activation or batch-activations order.\n\nPrefer-A A+B+C inventory is mostly accurate. Findings below change how limbs must be stated before bind.\n\n## Finding 1 — Limb C mis-cites core-phase-5-6 as existing activation-order pointers\n\nclassification: sharpens-framing\n\nevidence: Issue body and Prefer-A draft claim existing guidance already points to leftover-complete-before-next-activation and batch activations via core-phase-5-6.md:215 and :272. Pin-read of those regions at e463c92d shows Greptile-errored / cascade-rebase / complete-cohort / finalize-cohort post-merge closeout, not pre-spawn lifecycle PR order.\n\nfailure mode: Binding C as cite-and-tighten of those lines lets implementers invent order from cascade prose, or land a no-op doc edit that claims the pointer already existed.\n\ndisposition consequence: Prefer-A Bound must state C as new MUST/SHOULD guidance with concrete order text (leftover-complete land before opening the next activation; batch activations per cohort; mid-story widen vs other-story activation remains named residual). Drop or replace the :215/:272 cite-and-tighten claim.\n\n## Finding 2 — Limb B edited-triggered wording vs branch-gate-shaped types; P2 causal path\n\nclassification: sharpens-framing\n\nevidence: Tip ci.yml on.pull_request has no types: list, so defaults omit edited. docs-impact therefore does not re-run on pure body edits today; it runs only when merge-gate-primary/failover runs (opened/synchronize/reopened, or a manual/job rerun). branch-gate.yml already lists edited among its types. Prefer-A draft says move docs-impact into an edited-triggered job the way branch-gate handles closing-keywords.\n\nfailure mode: Reading edited-triggered as edited-only drops docs-impact from first-open/synchronize CI until someone edits the body. Separately, Stop 1 P2 overstates a direct body-edit to merge-gate link that tip ci.yml does not implement; measured re-runs after body fixes more likely came from synchronize/empty-commit or gh run rerun of the failed merge-gate job.\n\ndisposition consequence: Prefer-A B must name a branch-gate-shaped job types list including opened, synchronize, reopened, and edited (not edited-only), remove docs-impact steps from merge-gate-primary/failover, and keep required TypeScript/Greptile surface unchanged. Interim review-cycle naming of gh run rerun <id> --failed remains correct and additive (confirmed absent on tip SKILL).\n\n## Finding 3 — Dropping closing-keywords from check:merge needs remaining agent-visible enforcement\n\nclassification: sharpens-framing\n\nevidence: verify:closing-keywords is in Taskfile.yml check:framework-source deps at L455 and therefore inside non-required merge-gate. branch-gate.yml still runs closing-keywords, also outside the issue-stated required TypeScript + Greptile surface. Issue notes agents wait on merge-gate before merging; that informal wait is what makes the merge-gate duplicate agent-visible today.\n\nfailure mode: Binding remove duplicate from check:merge as written, without naming the remaining wait surface, lets merge-path owners treat merge-gate green as enough while closing-keywords failed only on branch-gate.\n\ndisposition consequence: Prefer-A B must state remaining enforcement after the drop: branch-gate closing-keywords stays the CI signal agents honor for that check, plus limb A offline pr:check-closing-keywords --body-file on activation/widen before first push. Do not imply check:merge green still covers closing-keywords.\n\n## Finding 4 — Advisory file_scope-coverage oracle underspecified\n\nclassification: sharpens-framing\n\nevidence: Prefer-A adds warn-only coverage that file_scope covers the files the brief plan names, with Reject/Keep-outs forbidding writes and paths from issue text (#3835 / #4956). Tip has no such advisory checker yet; plan names is not a closed field set.\n\nfailure mode: Implementers invent path extraction from issue/comment prose or from unbounded narrative text, colliding with #3835, or warn on noise that agents treat as soft authority to widen file_scope.\n\ndisposition consequence: Bound limb must name the in-brief oracle (durable brief fields already on the activation/widen artifact only) and keep warn-only / never-write / never-lift-from-issue-text as hard keep-outs.\n\n## Finding 5 — Offline deft-story gap confirmed (supports limb A)\n\nclassification: footnote\n\nevidence: main.ts ~L1045 admission gated on args.pr !== null; ~L477 null prNumber short-circuits to ok:true. Matches Prefer-A / Stop 1 P1 claim. No disposition change beyond keeping the offline deft-story hard-fail in limb A.\n\n## Finding 6 — Leftover exemption and empty-commit forbid confirmed\n\nclassification: footnote\n\nevidence: commands.md file-copy / lifecycle-only exemption and review-cycle empty-commit forbids match Prefer-A keep-outs and interim B guidance. No reopen.\n\n## Injection / swarm lens\n\nTarget changes shared CI merge-gate composition, workflow triggers, and through-merge / swarm lifecycle envelopes. Lens applies.\n\n- Authority: moving docs-impact and dropping check:merge closing-keywords changes which non-required jobs encode body/keyword policy. Bound must keep branch-protection required checks unchanged (already in Reject) and name agent-visible substitutes (Findings 2–3).\n- Concurrency / shared state: Limb C ordering leftover-complete before next activation serializes cohort lifecycle heads under strict=true. Guidance-only without a gate still races mid-story widen vs other-story activation (Prefer-A already names that residual). Do not silently promote C into a hard pre-dispatch deny without a separate limb.\n- Envelopes: Limb A narrow pre-push on activation/widen must name the PR-class classifier (activation / thin widen / leftover-shaped) so swarm leaves do not apply or skip the wrong set. Reuse existing brief-land / leftover shape helpers rather than a new NLP class.\n\n## Road not taken\n\nRejected as co-equal v1 latency fix: widen #3678 artifact-only allowlist to xbrief/active/**. That would skip merge-gate for activation lands and also skip write-fence-adjacent checks; Prefer-A Reject correctly keeps it out. Would flip only with a separate design that proves active-brief lands cannot weaken #4956 fence authority.\n\n## Steelman\n\nStrongest rejected lean: keep docs-impact inside merge-gate and ship only gh run rerun --failed + limb A offline checks (no workflow move, no check:merge drop). That avoids Findings 2–3 placement risk and still cuts empty-commit thrash. Flip Prefer-A B toward that narrower cut if a branch-gate-shaped docs-impact job cannot preserve first-open/synchronize coverage without touching required-check names, or if dropping closing-keywords from check:merge cannot name a remaining agent-visible signal.\n\n## Census\n\nfinding-classes: sharpens-framing, footnote\nblocks-the-design: none\nPrefer-A A+B+C can bind after Findings 1–4 are folded into Bound wording; no blocks-the-design on this seat.\n\n",
+          "id": 6256397552,
+          "html_url": "https://github.com/deftai/directive/issues/5736#issuecomment-6256397552",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:16:56Z",
+          "updated_at": "2026-10-18T23:16:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nspend-amend: N=2\nspend-ask: resolved\nreason: Claude Round-1 seat hung 0-byte stdout after launch-probe pong-ok (same class as #5478 first-byte-timeout / post-pointer hang). Kill hung claude.exe; amend N≥3→N=2; bind from Codex 6256378689 + Grok 6256397552.\nseat-families: codex, grok\nPrefer-A draft cite: 6256283254\nStop 1 cite: 6256286688\npanel-deposit cite: 6256342707\nprevention: deftai/directive#5478",
+          "id": 6256426641,
+          "html_url": "https://github.com/deftai/directive/issues/5736#issuecomment-6256426641",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:20:04Z",
+          "updated_at": "2026-10-18T23:20:04Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A Bound\nTarget-digest: sha256:f32ead8c4a5f9760e0835db588ac60bdd030308ba503ccf5562f568ee123c215\nconflict_group: lifecycle-activation-widen-pr-merge-latency-extra-heads\nspend-recommend: N≥3\nspend: N=2\nspend-ask: resolved\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\ndest: .deft-scratch/worktrees/arc-5736\ndispatch-sha: e463c92d2eac0bbbf7c85f2eb2df0eb4462a914c\nCiting Round-1: Codex 6256378689; Grok 6256397552\nspend-amend cite: 6256426641 (Claude #5478 hang)\n\n## In plain English\nActivation and thin file_scope-widen PRs stay the write-fence gate for Prefer-A Bound first-spawn, but their merge wall-clock is dominated by avoidable extra heads. Prefer-A ships three limbs: run the narrow offline checks before first push on those PR classes (including offline deft-story with real identity checks and an advisory in-brief file_scope coverage warn), move docs-impact onto a branch-gate-shaped workflow outside both merge-gate lanes, and add new leftover-before-next-activation / batch-activations guidance — without touching required checks, leftover exemption, merge authority, or the worktrees-probe flake.\n\n## Bound remedy\nrelieves: P1\n- Narrow pre-push checks on activation and thin file_scope-widen: before first push run deft verify:docs-impact -- --body-file --base-ref (#4293), task pr:check-closing-keywords --body-file (with commit-range inputs when available), and the CHANGELOG check. Not the full pre-pr envelope. Leftover-complete / lifecycle-only file-copy lands keep the commands.md drive-to envelope exemption.\nrelieves: P1\n- Offline deft-story admission without a PR number: reuse Path B / full-story identity checks that are possible offline (canonical deft-story parse, diff classification, changed-brief issue identity coverage). Hard-fail missing/wrong/partial batch marks. Do not green-light on token presence alone. Leave PR-number-bound product stamp checks to live admission. Body text remains data — deft-story never grants closing consent or substitutes for landed file_scope.\nrelieves: P1\n- Advisory file_scope-coverage: warn-only check that file_scope covers paths named by durable in-brief fields already on the activation/widen artifact. Never write file_scope. Never lift paths from issue/comment prose (#3835). Never treat the warn as soft authority to widen. Name the oracle fields in implementation; do not invent an unbounded narrative scrape.\nrelieves: P2\n- Relocate docs-impact out of merge-gate-primary and merge-gate-failover onto a branch-gate-shaped job with types opened, synchronize, reopened, and edited (not edited-only). Preserve intended base availability and fail-closed declaration-versus-diff semantics. Keep ci.yml required TypeScript / Greptile surface unchanged. Until that lands, review-cycle MUST name gh run rerun <id> --failed for body-only / docs-impact recovery and keep the empty-commit forbid.\nrelieves: P3\n- Drop the CI duplicate verify:closing-keywords dependency from check:framework-source / check:merge. Preserve local merge-base / commit-range closing-keyword validation outside that CI invocation. After the drop, agent-visible closing-keywords signal is branch-gate plus limb-A offline --body-file on activation/widen — do not imply check:merge green still covers closing-keywords.\nrelieves: P4\n- New through-merge / swarm MUST/SHOULD order for cohort lifecycle PRs (not a cite-and-tighten of core-phase-5-6:215/:272 cascade/finalize prose): merged leftover-complete land, then fetch/refresh activation base, then prepare the approved cohort activation batch, then land, then dispatch against landed authority. Batch activations per cohort subordinate to cohort consent and story gates. Mid-story widen racing another story activation stays named residual. Limb A catches the named deterministic misses only; it does not promise zero review-fix heads.\nrelieves: P4\n- CHANGELOG [Unreleased] for #5736.\n\n## Reject\n- Changing green-to-merge hand-off or absorbing #5727 / #4889\n- Widening #3678 artifact-only allowlist to xbrief/active/**\n- Any stand-in for the story own landed file_scope\n- Greptile carve-out (#3680)\n- Fixing worktrees-probe flake here (#5735)\n- Full pre-pr envelope on activation/widen\n- Making file_scope-coverage write or invent paths from issue text\n- Changing branch-protection required checks as the latency fix\n- Treating leftover-complete lands as newly subject to pre-pr\n- edited-only docs-impact job that drops first-open/synchronize coverage\n- Deleting local closing-keyword validation when removing the CI duplicate\n- Token-presence-only offline deft-story green light\n- Claiming core-phase-5-6:215/:272 already stated leftover-before-activation order\n\n## Takes\n- Codex F1 / Grok F2 docs-impact placement: accept — branch-gate-shaped opened/synchronize/reopened/edited outside both merge lanes; keep base + declaration-vs-diff; correct P2 causal path\n- Codex F2 / Grok F3 closing-keywords drop: accept — drop CI duplicate; preserve local validation; name remaining agent-visible signal (branch-gate + limb A)\n- Codex F3 offline deft-story identity: accept into P1\n- Grok F4 advisory file_scope oracle: accept into P1\n- Codex F4 / Grok F1 ordering boundary: accept into P4 — new MUST/SHOULD text; drop false :215/:272 cite-and-tighten; name residual races\n- Codex / Grok footnotes (offline gap, leftover exemption, empty-commit): footnote — confirm Prefer-A keep-outs\n\nForward verdict: accept-into-contract. Next under yolo: pain-audit of Prefer-A Bound against pain-P1..P4.",
+          "id": 6256430710,
+          "html_url": "https://github.com/deftai/directive/issues/5736#issuecomment-6256430710",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:20:30Z",
+          "updated_at": "2026-10-18T23:20:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\nfinding-classes: blocking, footnote\nharvest-changed: true\n\nPass-4 fresh pain-audit of Prefer-A Bound [6256430710](https://github.com/deftai/directive/issues/5736#issuecomment-6256430710) against Stop 1 [6256286688](https://github.com/deftai/directive/issues/5736#issuecomment-6256286688). Ceiling: 6256430710 inclusive. Verification: pin-read git show e463c92d2eac0bbbf7c85f2eb2df0eb4462a914c: against dest cwd-without-occupy. Round-1 posts and spend amendment were read for disposition only; no sibling pain-audit read. No implementation or ingest. Historical elapsed times were not independently reproduced.\n\nVerdict: P1-P3 are honestly relieved within the expressly bounded scope. P4 has useful procedural relief, but its guidance-only failure mode remains. The current all-pains-relieved harvest cannot bind as written.\n\n## F1 — blocks-the-design — P4 still relies on the mechanism Stop 1 identifies as insufficient\n\nEvidence: Stop 1 P4 explicitly says cohort lifecycle order is “guidance-only.” Bound's P4 limb supplies “New through-merge / swarm MUST/SHOULD order” and a concrete merged-leftover -> refreshed-base -> activation-batch -> land -> dispatch sequence. It names no executable check of that sequence. At the pinned SHA, core-phase-5-6.md already has cohort completion/finalization, delivery-tip verification and cascade-rebase mechanisms; its Step 1.5 also says finalize opens a sweep PR. Those mechanisms establish completion/landing obligations, but the cited material does not establish a pre-activation refusal when the preceding leftover land is outstanding. The Bound correctly stops claiming the old cascade lines already contain its new sequence.\n\nConcrete failure: an agent prepares or opens the next activation while the preceding cohort's leftover PR is still open. It can still reach the same strict-base rebase/review cycle after that leftover lands. Stronger ordering prose tells the agent what it should have done, but supplies no observation/refusal that changes this guidance-only failure mode. This is distinct from the already acknowledged mid-story-widen race. The CHANGELOG limb does not relieve either race.\n\nDisposition consequence: change the harvested P4 claim before bind. If P4 retains the Stop 1 meaning, specify a thin executable ordering check at the cohort activation preparation/open boundary, using the existing lifecycle/delivery evidence, with a named refusal/remediation and a case proving outstanding leftover land cannot pass. This need not become a global lock or change first-spawn file_scope authority. Alternatively, retain this guidance-only delivery and honestly mark the unmet P4 coverage residual for an operator-approved disposition. Do not silently narrow the Stop 1 denominator to “missing clear ordering prose.” Either correction changes the Bound-remedy harvest; the current relieves claim is insufficient.\n\n## F2 — footnote — P1 relief is bounded and credible\n\nPinned pr-closing-keywords/main.ts invokes full-story admission only for live --pr and retains a null-prNumber success path; Path B already has changed-brief identity checks to reuse. docs/docs-impact.ts supports body-file plus base-ref and declaration-versus-diff evaluation. Bound adds the missing offline identity behavior, specifies pre-first-push checks, and constrains the advisory oracle to durable in-brief fields. These address the named deterministic misses. Warn-only scope coverage and CHANGELOG checks do not guarantee complete scope or editorial correctness, and Bound expressly disclaims zero review-fix heads. No additional harvest change for P1.\n\n## F3 — footnote — P2 relocation covers the actual rerun path\n\nPinned ci.yml contains docs-impact after check:merge in both primary and failover lanes; branch-gate.yml lists opened, synchronize, reopened and edited. Bound removes both expensive placements, preserves diff/base semantics and includes all four events. This relieves the need to rerun the full merge job solely to re-evaluate a repaired docs-impact declaration. Interim failed-job reruns are recovery, not the final latency remedy. No additional harvest change for P2.\n\n## F4 — footnote — P3 removes the duplicate while preserving the remaining signal\n\nPinned Taskfile.yml places verify:closing-keywords in the shared framework-source check graph; tasks/verify.yml documents local merge-base versus live-PR modes. Bound explicitly limits removal to the CI invocation, preserves local validation and names branch-gate plus limb-A offline checking as the remaining signals. That honestly covers P3 without claiming check:merge green still proves keyword validity. No additional harvest change for P3.\n\nInjection/concurrency lens: PR bodies remain untrusted data and cannot mint closing consent or file_scope authority. The proposed P4 correction must observe cohort-specific landed evidence, not mutate sibling worktrees or infer consent from batching. A global lifecycle lock is unnecessary for the narrow ordering case and would exceed this finding.\n\nStrongest contrary reading: P4 seeks only clearer guidance, so the concrete sequence is enough to reduce avoidable races when followed. That would support relief under a differently stated warrant. It does not discharge this warrant's explicit guidance-only defect. Evidence of an existing executable boundary actually enforcing the proposed sequence would also change this verdict.\n\nCritic audit complete; returned to parent disposition. No ingest clearance.\n\n",
+          "id": 6256448716,
+          "html_url": "https://github.com/deftai/directive/issues/5736#issuecomment-6256448716",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:22:30Z",
+          "updated_at": "2026-10-18T23:22:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\n\nPain-audit of Prefer-A Bound 6256430710 against Stop 1 6256286688 (P1-P4).\nverification-path: pin-read git show e463c92d2eac0bbbf7c85f2eb2df0eb4462a914c: against dest cwd-without-occupy (.deft-scratch/worktrees/arc-5736).\nId ceiling honored: 6256430710 inclusive. Round-1 Codex 6256378689 / Grok 6256397552 / spend-amend 6256426641 used for disposition context only. No sibling pain-audit read. No product mutation.\n\n## Method\nRe-verified Stop 1 anchors on the dispatch SHA. Inventory matches Bound Takes fold of Round-1 sharpenings. Injection/swarm lens applies (CI merge-gate composition, workflow triggers, through-merge lifecycle envelopes) and Bound keep-outs already hold required-check / leftover-exemption / merge-authority boundaries.\n\n## pain-P1 — relieved\nStop 1: activation/thin file_scope-widen skip narrow offline checks before first push.\nBound limbs: (1) narrow pre-push docs-impact --body-file, pr:check-closing-keywords --body-file, CHANGELOG — not full pre-pr; leftover exemption kept; (2) offline deft-story with Path B / full-story identity checks, hard-fail missing/wrong/partial marks, no token-presence green light, PR-number stamp checks stay live; (3) advisory file_scope-coverage from durable in-brief fields only, warn-only, never-write, never-lift from issue/comment prose (#3835).\nPin-read: evaluateFullStoryMarkAdmission short-circuits ok:true when prNumber === null (~main.ts); commands.md lifecycle-only / file-copy drive-to envelope exemption present. Round-1 Codex F3 / Grok F4 / footnote offline-gap folded into these limbs. Honest relief.\n\n## pain-P2 — relieved\nStop 1: docs-impact only inside merge gate; body fixes re-cost merge-gate.\nBound limb: relocate docs-impact out of merge-gate-primary/failover onto branch-gate-shaped job types opened, synchronize, reopened, and edited (not edited-only); preserve base availability + declaration-vs-diff; keep ci.yml required TypeScript/Greptile unchanged; interim review-cycle MUST name gh run rerun <id> --failed and keep empty-commit forbid.\nPin-read: docs-impact only at ci.yml merge-gate-primary and merge-gate-failover; branch-gate already has closing-keywords on opened/synchronize/reopened/edited; default pull_request types omit edited. Round-1 Codex F1 / Grok F2 placement + causal-path sharpening folded. Honest relief of the mechanism (docs-impact merge-gate placement / recovery cost).\n\n## pain-P3 — relieved\nStop 1: check:merge still depends on verify:closing-keywords, duplicating branch-gate edited path.\nBound limb: drop CI duplicate from check:framework-source / check:merge; preserve local merge-base / commit-range validation; after drop, agent-visible signal is branch-gate plus limb-A offline --body-file — do not imply check:merge green still covers closing-keywords.\nPin-read: Taskfile.yml check:framework-source deps include verify:closing-keywords (L455); check:merge aliases that path; branch-gate closing-keywords job remains. Round-1 Codex F2 / Grok F3 folded. Honest relief.\n\n## pain-P4 — relieved\nStop 1: cohort lifecycle PR order (leftover-complete before next activation; batch activations) is guidance-only; strict=true races force rebase heads.\nBound limbs: new through-merge / swarm MUST/SHOULD order — merged leftover-complete land, then fetch/refresh activation base, then prepare approved cohort activation batch, then land, then dispatch against landed authority; batch subordinate to cohort consent and story gates; mid-story widen racing another story activation named residual; Limb A does not promise zero review-fix heads. Explicitly not a cite-and-tighten of core-phase-5-6:215/:272. CHANGELOG [Unreleased] bookkeeping for #5736.\nPin-read: core-phase-5-6 near :215/:272 is cascade/finalize/leftover-owner post-merge prose, not leftover-before-next-activation order. Round-1 Codex F4 / Grok F1 ordering-boundary sharpening folded. Honest relief with named residual.\n\n## Census\nNo blocks-the-design. No sharpens-framing that changes harvested Bound-remedy limb titles or scope. Residuals and Reject list already name offline stamp gap, leftover exemption, empty-commit forbid, required-check keep-out, and mid-story widen race.\n\nfinding-classes: none\nharvest-changed: false\n\nBound 6256430710 can stay bindable for VCT / synthesis under yolo. Pain-audit seat EXIT.",
+          "id": 6256455683,
+          "html_url": "https://github.com/deftai/directive/issues/5736#issuecomment-6256455683",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:23:14Z",
+          "updated_at": "2026-10-18T23:23:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A Recut-1\nTarget-digest: sha256:d93daf97137f2c194fd5862e486f0885000b5ebae72835d00c7b090006939ffb\nconflict_group: lifecycle-activation-widen-pr-merge-latency-extra-heads\nspend: N=2\nspend-ask: resolved\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\ndest: .deft-scratch/worktrees/arc-5736\ndispatch-sha: e463c92d2eac0bbbf7c85f2eb2df0eb4462a914c\ndual-stop-raise: +1\nRecut-supersedes: Prefer-A Bound 6256430710\nCiting PA-1: Codex 6256448716 (blocking P4); Grok 6256455683 (clear)\nCiting Round-1: Codex 6256378689; Grok 6256397552\n\n## In plain English\nSame A+B+C latency cut as Prefer-A Bound, plus one Recut: Stop 1 P4 named guidance-only as the defect, so Recut-1 adds a thin executable leftover-before-next-activation refuse at the cohort activation prepare/open boundary — not more prose alone, and not a global lifecycle lock.\n\n## Bound remedy\nrelieves: P1\n- Activation-widen narrow pre-push trio: before first push on activation and thin file_scope-widen PRs run deft verify:docs-impact -- --body-file --base-ref, task pr:check-closing-keywords --body-file (commit-range when available), and CHANGELOG check. Not full pre-pr. Leftover-complete / lifecycle-only file-copy lands keep commands.md drive-to envelope exemption.\nrelieves: P1\n- Offline deft-story identity admission: without a PR number, reuse Path B / full-story identity checks possible offline (canonical parse, diff classification, changed-brief issue identity). Hard-fail missing/wrong/partial batch marks. Forbid token-presence-only green. Leave PR-number-bound product stamp checks to live admission. Body text is data only.\nrelieves: P1\n- Advisory in-brief file_scope coverage warn: warn-only that file_scope covers paths named by durable fields already on the activation/widen brief artifact. Never write file_scope. Never lift paths from issue/comment prose (#3835). Never treat warn as soft widen authority.\nrelieves: P2\n- Docs-impact branch-gate-shaped relocation: remove docs-impact from merge-gate-primary and merge-gate-failover; place on a job with types opened, synchronize, reopened, and edited (not edited-only). Preserve intended base and fail-closed declaration-versus-diff. Keep required TypeScript/Greptile unchanged. Interim: review-cycle names gh run rerun <id> --failed and keeps empty-commit forbid.\nrelieves: P3\n- Drop CI duplicate closing-keywords keep local signal: remove verify:closing-keywords from check:framework-source / check:merge CI graph only; preserve local merge-base / commit-range validation. After drop, agent-visible signal is branch-gate plus limb-A offline --body-file — check:merge green does not prove keyword validity.\nrelieves: P4\n- New leftover-before-activation order text: through-merge / swarm MUST/SHOULD sequence is merged leftover-complete land, then fetch/refresh activation base, then prepare approved cohort activation batch, then land, then dispatch against landed authority. Batch subordinate to cohort consent and story gates. Mid-story widen vs other-story activation stays named residual. Not a cite-and-tighten of core-phase-5-6 cascade/finalize lines.\nrelieves: P4\n- Thin executable leftover-land gate at activation open: at the cohort activation prepare/open boundary, refuse when the preceding cohort leftover-complete land for that cohort is still outstanding (open/unmerged), using existing lifecycle/delivery evidence. Named remediation: land leftover first, then refresh base. Cohort-specific observation only — no global lifecycle lock, no sibling worktree mutation, no change to first-spawn file_scope authority. Fixture: outstanding leftover cannot pass the boundary; cleared leftover after merge/fetch can.\nrelieves: P4\n- CHANGELOG Unreleased line for lifecycle latency #5736.\n\n## Reject\n- Changing green-to-merge hand-off or absorbing #5727 / #4889\n- Widening #3678 artifact-only allowlist to xbrief/active/**\n- Any stand-in for the story own landed file_scope\n- Greptile carve-out (#3680)\n- Fixing worktrees-probe flake here (#5735)\n- Full pre-pr envelope on activation/widen\n- Making file_scope-coverage write or invent paths from issue text\n- Changing branch-protection required checks as the latency fix\n- Treating leftover-complete lands as newly subject to pre-pr\n- edited-only docs-impact job that drops first-open/synchronize coverage\n- Deleting local closing-keyword validation when removing the CI duplicate\n- Token-presence-only offline deft-story green light\n- Claiming core-phase-5-6 already stated leftover-before-activation order\n- Silently narrowing Stop 1 P4 to prose-only after PA named the guidance-only defect\n- Global lifecycle lock or cross-cohort serialization beyond the thin leftover-land gate\n\n## Takes\n- Codex PA-1 F1 P4 guidance-only: accept — remint P4 with thin executable leftover-land refuse + keep order text; dual-stop-raise:+1\n- Codex PA-1 F2-F4 / Grok PA-1 clear on P1-P3: accept — no harvest change for those pains\n\nForward: PA-2 against Recut-1 under raised Dual-stop.",
+          "id": 6256466667,
+          "html_url": "https://github.com/deftai/directive/issues/5736#issuecomment-6256466667",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:24:25Z",
+          "updated_at": "2026-10-18T23:28:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\nfinding-classes: footnote\nharvest-changed: false\n\nPA-2, Round 4 Pass-4 fresh pain-audit of [Prefer-A Recut-1 6256466667](https://github.com/deftai/directive/issues/5736#issuecomment-6256466667) against [Stop 1 6256286688](https://github.com/deftai/directive/issues/5736#issuecomment-6256286688). Inclusive ceiling: 6256466667. PA-1 posts were disposition context only; no sibling PA-2 read. Verification: pin-read git show e463c92d2eac0bbbf7c85f2eb2df0eb4462a914c: in the dispatched dest, without occupancy, implementation or ingest. Historical timings were not independently reproduced.\n\nVerdict: no blocks-the-design and no harvest-changing sharpening. Recut-1 honestly addresses P1-P4 at design level. The added executable P4 boundary resolves the specific PA-1 blocking finding; this does not claim the proposed gate already exists or has passed executable tests.\n\n1. **footnote - pain-P4: the guidance-only defect is addressed.** Pinned swarm core-phase-5-6.md Step 1.5 separates local completion, finalize opening a sweep PR, and proof of terminal artifacts on the delivery tip. commands.md gives verify:completed-tracked a delivery-tip contract and fails on an unresolvable tip. Those mechanisms offer evidence sources but do not themselves demonstrate pre-activation ordering. Recut-1 now explicitly adds executable refusal at cohort activation prepare/open, names outstanding leftover land as the refusal condition, gives \"land leftover first, then refresh base\" as remediation, and requires outstanding-versus-merged/fetched fixtures. This changes the operative mechanism beyond MUST/SHOULD prose and matches PA-1 F1's requested correction. Read \"preceding cohort\" as the predecessor whose leftover must land before the next approved activation batch; the cohort restriction does not turn the predicate into a search only for leftovers of the not-yet-activated stories. The stated mid-story widen race remains residual. CHANGELOG is bookkeeping, not causal P4 relief.\n\n2. **footnote - pain-P1: bounded relief remains credible.** Pinned pr-closing-keywords/main.ts gates full-story admission behind live --pr and contains null-prNumber early paths; changed-brief identity and canonical story-mark parsing already exist. Recut-1 adds offline missing/wrong/partial-batch identity admission and narrow pre-first-push checks, while retaining live-only product-stamp checks and the lifecycle file-copy exemption documented in commands.md. Durable in-brief path comparison remains advisory and cannot authorize a widen. This reduces the named deterministic misses; it does not promise complete file_scope discovery or editorial correctness.\n\n3. **footnote - pain-P2: both expensive placements and all relevant events are covered.** Pinned ci.yml has docs-impact in primary and failover merge lanes. branch-gate.yml uses opened/synchronize/reopened/edited. Recut-1 removes both placements and preserves intended-base, declaration-versus-diff validation on all four events. That removes the full merge-job rerun dependency for repaired docs declarations. Interim failed-job reruns are recovery until relocation lands.\n\n4. **footnote - pain-P3: CI duplication is removed without deleting local validation.** Pinned Taskfile.yml places verify:closing-keywords in the shared check:framework-source dependency graph. Recut-1 scopes removal to the CI graph, retains local merge-base/commit-range validation, and names branch-gate plus offline checking as remaining agent-visible signals. It does not misrepresent check:merge green as proof of keyword validity.\n\nInjection/concurrency lens: the gate observes cohort-specific lifecycle/delivery evidence; it grants neither sibling-worktree mutation nor new closing/file_scope authority. PR body text remains data. Local completion or a merely opened sweep PR cannot stand in for landed evidence under the stated sequence.\n\nStrongest alternative: a global lifecycle lock could prevent more cross-cohort races, but would serialize unrelated work and exceed this remedy. The thin predecessor-land check is sufficient for the named ordering defect. A later implementation that merely supplies optional prose, treats an open sweep as landed, or fails to wire refusal before activation preparation/open would fail this design's own contract.\n\nCritic audit complete; exiting deft-directive-design-critique and returning to parent disposition/synthesis. No ingest clearance and no panel-completeness attestation.\n\n",
+          "id": 6256485581,
+          "html_url": "https://github.com/deftai/directive/issues/5736#issuecomment-6256485581",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:26:31Z",
+          "updated_at": "2026-10-18T23:26:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\nfinding-classes: none\nharvest-changed: false\n\nPass-4 PA-2 fresh pain-audit of Prefer-A Recut-1 [6256466667](https://github.com/deftai/directive/issues/5736#issuecomment-6256466667) against Stop 1 [6256286688](https://github.com/deftai/directive/issues/5736#issuecomment-6256286688) (P1-P4).\nverification-path: pin-read git show e463c92d2eac0bbbf7c85f2eb2df0eb4462a914c: against dest cwd-without-occupy (.deft-scratch/worktrees/arc-5736).\nId ceiling honored: 6256466667 inclusive (Prefer-A Recut-1). Prior Bound 6256430710 superseded; PA-1 Codex 6256448716 / Grok 6256455683 used for disposition context only. No sibling PA-2 read. No product mutation. No ingest.\n\n## Method\nRe-verified Stop 1 anchors on the dispatch SHA. Recut-1 Takes fold Codex PA-1 F1 (P4 guidance-only block) into a reminted thin executable leftover-land gate and keep P1-P3 harvest unchanged. Injection/swarm lens applies (CI merge-gate composition, workflow triggers, through-merge lifecycle envelopes). Reject list already holds required-check / leftover-exemption / merge-authority / global-lock keep-outs.\n\n## pain-P1 — relieved\nStop 1: activation/thin file_scope-widen skip narrow offline checks before first push.\nRecut limbs (unchanged harvest from Bound): (1) narrow pre-push docs-impact --body-file, pr:check-closing-keywords --body-file, CHANGELOG — not full pre-pr; leftover exemption kept; (2) offline deft-story with Path B / full-story identity checks, hard-fail missing/wrong/partial marks, no token-presence green light, PR-number stamp checks stay live; (3) advisory file_scope-coverage from durable in-brief fields only, warn-only, never-write, never-lift from issue/comment prose (#3835).\nPin-read: evaluateFullStoryMarkAdmission short-circuits ok:true when changedNonterminal.length === 0 || prNumber === null (packages/core/src/pr-closing-keywords/main.ts); docs-impact body-file + base-ref exist; leftover / lifecycle drive-to envelope exemption present in commands.md. Honest relief of the named deterministic misses.\n\n## pain-P2 — relieved\nStop 1: docs-impact only inside the merge gate; body fixes re-cost merge-gate.\nRecut limb: relocate docs-impact out of merge-gate-primary/failover onto branch-gate-shaped job types opened, synchronize, reopened, and edited (not edited-only); preserve base availability + declaration-vs-diff; keep ci.yml required TypeScript/Greptile unchanged; interim review-cycle MUST name gh run rerun <id> --failed and keep empty-commit forbid.\nPin-read: docs-impact only at ci.yml merge-gate-primary and merge-gate-failover; branch-gate.yml already lists opened/synchronize/reopened/edited for closing-keywords; default pull_request types omit edited. Honest relief of merge-gate placement / recovery cost.\n\n## pain-P3 — relieved\nStop 1: check:merge still depends on verify:closing-keywords, duplicating branch-gate edited path.\nRecut limb: drop CI duplicate from check:framework-source / check:merge; preserve local merge-base / commit-range validation; after drop, agent-visible signal is branch-gate plus limb-A offline --body-file — do not imply check:merge green still covers closing-keywords.\nPin-read: Taskfile.yml check:framework-source deps include verify:closing-keywords; check:merge aliases that path; branch-gate closing-keywords job remains. Honest relief.\n\n## pain-P4 — relieved\nStop 1: cohort lifecycle PR order (leftover-complete before next activation; batch activations) is guidance-only; strict=true races force rebase heads.\nRecut limbs: (1) keep new through-merge / swarm MUST/SHOULD order — merged leftover-complete land, then fetch/refresh activation base, then prepare approved cohort activation batch, then land, then dispatch; batch subordinate to cohort consent/story gates; mid-story widen residual named; explicitly not a cite-and-tighten of core-phase-5-6 cascade/finalize; (2) NEW thin executable leftover-land gate at the cohort activation prepare/open boundary — refuse when preceding cohort leftover-complete land is still outstanding (open/unmerged), using existing lifecycle/delivery evidence; named remediation land-leftover-then-refresh-base; cohort-specific observation only; fixture outstanding leftover cannot pass / cleared leftover after merge+fetch can; no global lifecycle lock, no sibling worktree mutation, no first-spawn file_scope authority change; (3) CHANGELOG Unreleased for #5736.\nDisposition: Codex PA-1 F1 blocked Bound P4 as guidance-only and prescribed exactly this thin executable refuse + remediation + fixture. Recut-1 Takes accept that finding and remint P4 harvest. Pin-read: core-phase-5-6 Step 1.5 / finalize still post-merge leftover-owner prose, not a pre-activation refuse. The new gate limb changes the mechanism class from guidance-only to an executable observation/refusal at the named boundary while keeping batching/order text and the mid-story widen residual honest. Honest relief of the Stop 1 guidance-only defect without exceeding Reject keep-outs.\n\n## Census\nNo blocks-the-design. No sharpens-framing that changes harvested Bound-remedy limb titles or scope. Residuals and Reject already name mid-story widen race, leftover exemption, empty-commit forbid, required-check keep-out, and no global lock.\n\nfinding-classes: none\nharvest-changed: false\n\nPrefer-A Recut-1 6256466667 can stay bindable for VCT / synthesis under yolo. Pain-audit seat EXIT.\n\n",
+          "id": 6256489114,
+          "html_url": "https://github.com/deftai/directive/issues/5736#issuecomment-6256489114",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:26:54Z",
+          "updated_at": "2026-10-18T23:26:54Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\nCites Prefer-A Recut-1 successor lean 6256466667. No Target-digest on this table.\n\n| Claim | Method | Result |\n|---|---|---|\n| Stop 1 P1: narrow offline pre-push + offline deft-story identity + advisory in-brief file_scope warn | pin-read tip + Round-1/PA disposition | Covered by Recut-1 relieves:P1 limbs |\n| Stop 1 P2: docs-impact out of both merge-gate lanes onto branch-gate-shaped types | pin-read ci.yml + branch-gate.yml + PA-2 | Covered by Recut-1 relieves:P2 |\n| Stop 1 P3: drop CI duplicate closing-keywords; keep local + branch-gate signal | pin-read Taskfile.yml + PA-2 | Covered by Recut-1 relieves:P3 |\n| Stop 1 P4: guidance-only defect closed by order text + thin leftover-land executable refuse | Codex PA-1 block 6256448716 then Recut-1; PA-2 Codex 6256485581 / Grok 6256489114 harvest-changed false | Covered by Recut-1 relieves:P4 limbs |\n| Round-1 sharpenings folded (docs-impact types, local CK keep, deft-story identity, file_scope oracle, no false core-phase cite) | Round-1 Codex 6256378689 / Grok 6256397552 Takes on Bound then Recut | Accepted into Recut-1 |\n| Claude Round-1 unavailable | spend-amend 6256426641 #5478 | N=2 bind from Codex+Grok |\n| Keep-outs intact (#5735/#3680/#5727/#4889/#3678/required checks/leftover exemption) | Reject list + PA footnotes | Held |",
+          "id": 6256507283,
+          "html_url": "https://github.com/deftai/directive/issues/5736#issuecomment-6256507283",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:28:58Z",
+          "updated_at": "2026-10-18T23:28:58Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set after PA-2 clear) citing Prefer-A Recut-1 successor lean 6256466667\n\n## In plain English\nActivation and thin file_scope-widen PRs will get narrow offline checks before first push, docs-impact will move off the merge gate onto a branch-gate-shaped job, the CI closing-keywords duplicate will drop while local and branch-gate signals stay, and cohort leftover-complete must land before the next activation opens — with a thin executable refuse when that leftover is still outstanding. Required checks, leftover exemption, merge authority, and the worktrees-probe flake stay out of scope.\n\nVerified-claims table cite: 6256507283\nPA-2 clear: Codex 6256485581 (finding-classes: footnote; harvest-changed: false); Grok 6256489114 (finding-classes: none; harvest-changed: false).\n\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\ndest: .deft-scratch/worktrees/arc-5736\ndispatch-sha: e463c92d2eac0bbbf7c85f2eb2df0eb4462a914c",
+          "id": 6256509052,
+          "html_url": "https://github.com/deftai/directive/issues/5736#issuecomment-6256509052",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-18T23:29:10Z",
+          "updated_at": "2026-10-18T23:29:10Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5915031002,
+        "origin": "deftai/directive#5736",
+        "id": "github.issue.5915031002"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "d93daf97137f2c194fd5862e486f0885000b5ebae72835d00c7b090006939ffb"
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 8 independently testable clauses from Prefer-A Recut-1 Bound remedy before product edit (#3323)",
+      "sentences": [
+        "perf(lifecycle): activation/widen PRs take 21–42 min to merge; extra heads and re-runs cost more than CI speed",
+        "relieves: P1 — Activation-widen narrow pre-push trio: docs-impact --body-file --base-ref, pr:check-closing-keywords --body-file, CHANGELOG check (not full pre-pr)",
+        "relieves: P1 — Offline deft-story identity admission without PR number (canonical parse + diff/brief identity; forbid token-presence-only green)",
+        "relieves: P1 — Advisory in-brief file_scope coverage warn from durable brief fields only (never write file_scope; never lift from issue prose #3835)",
+        "relieves: P2 — Docs-impact branch-gate relocation: remove from merge-gate-primary/failover; job types opened+synchronize+reopened+edited",
+        "relieves: P3 — Drop CI duplicate closing-keywords from check:framework-source/check:merge; keep local + branch-gate signal",
+        "relieves: P4 — Leftover-before-activation order text: leftover-complete land -> refresh base -> prepare activation -> land -> dispatch",
+        "relieves: P4 — Thin executable leftover-land refuse at cohort activation prepare/open when preceding leftover-complete is outstanding",
+        "relieves: P4 — CHANGELOG Unreleased line for lifecycle latency #5736"
+      ],
+      "admitted_source_sentences": [
+        "relieves: P1 — Activation-widen narrow pre-push trio: docs-impact --body-file --base-ref, pr:check-closing-keywords --body-file, CHANGELOG check (not full pre-pr)",
+        "relieves: P1 — Offline deft-story identity admission without PR number (canonical parse + diff/brief identity; forbid token-presence-only green)",
+        "relieves: P1 — Advisory in-brief file_scope coverage warn from durable brief fields only (never write file_scope; never lift from issue prose #3835)",
+        "relieves: P2 — Docs-impact branch-gate relocation: remove from merge-gate-primary/failover; job types opened+synchronize+reopened+edited",
+        "relieves: P3 — Drop CI duplicate closing-keywords from check:framework-source/check:merge; keep local + branch-gate signal",
+        "relieves: P4 — Leftover-before-activation order text: leftover-complete land -> refresh base -> prepare activation -> land -> dispatch",
+        "relieves: P4 — Thin executable leftover-land refuse at cohort activation prepare/open when preceding leftover-complete is outstanding",
+        "relieves: P4 — CHANGELOG Unreleased line for lifecycle latency #5736"
+      ],
+      "admitted_source_digest": "11cf93d7514b5dc5cd3af5d5455ac054fdc7673bcdf8050e659e405150ef0a28",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "relieves: P1 — Activation-widen narrow pre-push trio: docs-impact --body-file --base-ref, pr:check-closing-keywords --body-file, CHANGELOG check (not full pre-pr)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "relieves: P1 — Offline deft-story identity admission without PR number (canonical parse + diff/brief identity; forbid token-presence-only green)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "relieves: P1 — Advisory in-brief file_scope coverage warn from durable brief fields only (never write file_scope; never lift from issue prose #3835)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "relieves: P2 — Docs-impact branch-gate relocation: remove from merge-gate-primary/failover; job types opened+synchronize+reopened+edited",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "relieves: P3 — Drop CI duplicate closing-keywords from check:framework-source/check:merge; keep local + branch-gate signal",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "relieves: P4 — Leftover-before-activation order text: leftover-complete land -> refresh base -> prepare activation -> land -> dispatch",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "relieves: P4 — Thin executable leftover-land refuse at cohort activation prepare/open when preceding leftover-complete is outstanding",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "relieves: P4 — CHANGELOG Unreleased line for lifecycle latency #5736",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5915031002",
+    "updated": "2026-10-22T04:37:55Z"
+  }
+}
