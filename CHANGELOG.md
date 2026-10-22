@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed — Maintainer xBRIEF corpus hygiene after OVPR equal-version upgrade: rewrite residual 0.6 envelopes to xBRIEFInfo 0.8, strip leftover hybrid vBRIEFInfo keys on completed briefs, and reword Taskfile doctor/upgrade comments so they no longer embed `.deft/core/` (doctor wiring false positive on this repo). Refs #5795 #5796.
 
 ### Fixed
+- Fixed - Land tracked completion record for pin-exclusive ordinary maintainer invoke after product #5826. Refs #5805.
 - Fixed - Land tracked completion record for activation/widen merge-latency Prefer-A Recut-1 after product #5827. Refs #5736.
 - Fixed - Maintainer tip materialize replaces the checkout pin safely (lock release, in-tree symlink, EXDEV copy) and subdirectory tasks resolve the pin from DEFT_ROOT. Refs #5805.
 - Fixed - Land tracked completion record for lint_iteration coverageMode exit-5 mode skip after product #5823. Refs #5814.

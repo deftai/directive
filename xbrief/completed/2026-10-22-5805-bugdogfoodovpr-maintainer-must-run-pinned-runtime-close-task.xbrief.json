@@ -1,0 +1,391 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5805",
+    "updated": "2026-10-22T07:40:22.493Z"
+  },
+  "plan": {
+    "title": "bug(dogfood,ovpr): maintainer must run pinned runtime — close task auto-compile tip bypass",
+    "status": "completed",
+    "narratives": {
+      "Description": "Ordinary maintainer task verbs must execute the pinned runtime under node_modules/@deftai/directive-runtime, matching Git hooks. Tip without a public release requires an explicit staged-runtime materialize into that pin; packages/runtime/dist is not a silent ordinary-verb fallback.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5805",
+      "Overview": "Prefer-A Bound 6326249868: pin-exclusive ordinary invoke (fail-closed missing pin; no packages/runtime/dist fallthrough); demote engine:_ts-build off ordinary verb deps; thin stage-bundle/pack-staged-runtime materialize into checkout node_modules/@deftai/directive-runtime; per-checkout replace isolation. Reject Approach B/C and soft tip-dist fallthrough.",
+      "Labels": "bug, agent-experience, urgent, design-critique:ingest-ready, core-capabilities",
+      "UserStory": "As a Directive maintainer, I want ordinary task verbs to run the same pinned node_modules/@deftai/directive-runtime binary that Git hooks already use, so that fast-forward alone cannot silently tip-execute workspace dist.",
+      "ImplementationPlan": "1. Edit tasks/engine.yml and tasks/engine-invoke.cjs so framework-source ordinary invoke selects only node_modules/@deftai/directive-runtime/dist/bin.js and fails closed when missing (no packages/runtime/dist fallthrough); cover with tasks/engine-invoke.test.cjs.\n2. Remove :engine:_ts-build deps from ordinary verbs across Taskfile.yml and the listed tasks/*.yml files; keep _ts-build only on explicit build/pack/materialize tasks.\n3. Add tasks/materialize.yml + tasks/materialize.cjs wrapping packages/runtime/scripts/stage-bundle.mjs and pack-staged-runtime.mjs into this checkout pin with overlay recording, checkout-owned replace, and writer serialization; cover with tasks/materialize.test.cjs.\n4. Update content/docs/getting-started.md, launcher.md, and known-limitations.md for FF then optional materialize then tip; add CHANGELOG Unreleased; verify with node --test tasks/engine-invoke.test.cjs tasks/materialize.test.cjs.",
+      "Traces": "#5805 Prefer-A Bound 6326249868"
+    },
+    "items": [
+      {
+        "title": "relieves: P1 — Pin-exclusive ordinary invoke fail-closed missing pin (no packages/runtime/dist fallthrough for ordinary framework-source verbs; remediation PM install and/or explicit materialize; launcher handoff only if same checkout pin)",
+        "status": "completed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P1 — Pin-exclusive ordinary invoke fail-closed missing pin (no packages/runtime/dist fallthrough for ordinary framework-source verbs; remediation PM install and/or explicit materialize; launcher handoff only if same checkout pin)",
+          "Traces": "#5805"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5826 squash-merge (Tracking #5805).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5826",
+            "mintedAt": "2026-10-22T07:40:22.493Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-22T07:40:22.493Z"
+        }
+      },
+      {
+        "title": "relieves: P2 — Demote engine:_ts-build off ordinary product-verb deps; keep only on explicit build/pack/materialize so rebuild cannot change which binary ordinary task runs",
+        "status": "completed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P2 — Demote engine:_ts-build off ordinary product-verb deps; keep only on explicit build/pack/materialize so rebuild cannot change which binary ordinary task runs",
+          "Traces": "#5805"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5826 squash-merge (Tracking #5805).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5826",
+            "mintedAt": "2026-10-22T07:40:22.493Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-22T07:40:22.493Z"
+        }
+      },
+      {
+        "title": "relieves: P3 — Thin materialize reuses stage-bundle/pack-staged-runtime into this checkout node_modules/@deftai/directive-runtime only; no committed location-spec; no public publish; honest overlay/skew recording; failed stage leaves prior pin usable",
+        "status": "completed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P3 — Thin materialize reuses stage-bundle/pack-staged-runtime into this checkout node_modules/@deftai/directive-runtime only; no committed location-spec; no public publish; honest overlay/skew recording; failed stage leaves prior pin usable",
+          "Traces": "#5805"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5826 squash-merge (Tracking #5805).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5826",
+            "mintedAt": "2026-10-22T07:40:22.493Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-22T07:40:22.493Z"
+        }
+      },
+      {
+        "title": "relieves: P4 — Materialize replaces checkout-owned install (no mutate linked/shared backing); serialize or reject second writer; docs + regression that primary materialize does not update dest pin",
+        "status": "completed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P4 — Materialize replaces checkout-owned install (no mutate linked/shared backing); serialize or reject second writer; docs + regression that primary materialize does not update dest pin",
+          "Traces": "#5805"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5826 squash-merge (Tracking #5805).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5826",
+            "mintedAt": "2026-10-22T07:40:22.493Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-22T07:40:22.493Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "urgent",
+      "design-critique:ingest-ready",
+      "core-capabilities"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5805",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5805: bug(dogfood,ovpr): maintainer must run pinned runtime — close task auto-compile tip bypass"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "bug(dogfood,ovpr): maintainer must run pinned runtime — close task auto-compile tip bypass",
+        "relieves: P1 — Pin-exclusive ordinary invoke fail-closed missing pin (no packages/runtime/dist fallthrough for ordinary framework-source verbs; remediation PM install and/or explicit materialize; launcher handoff only if same checkout pin)",
+        "relieves: P2 — Demote engine:_ts-build off ordinary product-verb deps; keep only on explicit build/pack/materialize so rebuild cannot change which binary ordinary task runs",
+        "relieves: P3 — Thin materialize reuses stage-bundle/pack-staged-runtime into this checkout node_modules/@deftai/directive-runtime only; no committed location-spec; no public publish; honest overlay/skew recording; failed stage leaves prior pin usable",
+        "relieves: P4 — Materialize replaces checkout-owned install (no mutate linked/shared backing); serialize or reject second writer; docs + regression that primary materialize does not update dest pin"
+      ],
+      "admitted_source_sentences": [
+        "relieves: P1 — Pin-exclusive ordinary invoke fail-closed missing pin (no packages/runtime/dist fallthrough for ordinary framework-source verbs; remediation PM install and/or explicit materialize; launcher handoff only if same checkout pin)",
+        "relieves: P2 — Demote engine:_ts-build off ordinary product-verb deps; keep only on explicit build/pack/materialize so rebuild cannot change which binary ordinary task runs",
+        "relieves: P3 — Thin materialize reuses stage-bundle/pack-staged-runtime into this checkout node_modules/@deftai/directive-runtime only; no committed location-spec; no public publish; honest overlay/skew recording; failed stage leaves prior pin usable",
+        "relieves: P4 — Materialize replaces checkout-owned install (no mutate linked/shared backing); serialize or reject second writer; docs + regression that primary materialize does not update dest pin"
+      ],
+      "admitted_source_digest": "a90f0a160445b464b08a3699ca41f4ee0187316d82fc9e6b76abb62376fe1b26",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "relieves: P1 — Pin-exclusive ordinary invoke fail-closed missing pin (no packages/runtime/dist fallthrough for ordinary framework-source verbs; remediation PM install and/or explicit materialize; launcher handoff only if same checkout pin)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "relieves: P2 — Demote engine:_ts-build off ordinary product-verb deps; keep only on explicit build/pack/materialize so rebuild cannot change which binary ordinary task runs",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "relieves: P3 — Thin materialize reuses stage-bundle/pack-staged-runtime into this checkout node_modules/@deftai/directive-runtime only; no committed location-spec; no public publish; honest overlay/skew recording; failed stage leaves prior pin usable",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "relieves: P4 — Materialize replaces checkout-owned install (no mutate linked/shared backing); serialize or reject second writer; docs + regression that primary materialize does not update dest pin",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "tasks/engine.yml",
+          "tasks/engine-invoke.cjs",
+          "tasks/engine-invoke.test.cjs",
+          "Taskfile.yml",
+          "tasks/agent.yml",
+          "tasks/cache.yml",
+          "tasks/capacity.yml",
+          "tasks/change.yml",
+          "tasks/codebase.yml",
+          "tasks/commit.yml",
+          "tasks/coverage.yml",
+          "tasks/decision.yml",
+          "tasks/directive.yml",
+          "tasks/docs.yml",
+          "tasks/eval.yml",
+          "tasks/feedback.yml",
+          "tasks/install.yml",
+          "tasks/issue.yml",
+          "tasks/lifecycle.yml",
+          "tasks/migrate.yml",
+          "tasks/occupancy.yml",
+          "tasks/packs.yml",
+          "tasks/plan-sequence.yml",
+          "tasks/policy.yml",
+          "tasks/pr.yml",
+          "tasks/prd.yml",
+          "tasks/product-signal.yml",
+          "tasks/project.yml",
+          "tasks/reconcile.yml",
+          "tasks/review-monitor.yml",
+          "tasks/roadmap.yml",
+          "tasks/scm.yml",
+          "tasks/scope.yml",
+          "tasks/session.yml",
+          "tasks/slice.yml",
+          "tasks/spec.yml",
+          "tasks/subagent.yml",
+          "tasks/swarm.yml",
+          "tasks/toolchain.yml",
+          "tasks/triage-actions.yml",
+          "tasks/triage-bootstrap.yml",
+          "tasks/triage-bulk.yml",
+          "tasks/triage-classify.yml",
+          "tasks/triage-evaluate.yml",
+          "tasks/triage-metrics.yml",
+          "tasks/triage-queue.yml",
+          "tasks/triage-reconcile.yml",
+          "tasks/triage-scope-drift.yml",
+          "tasks/triage-scope.yml",
+          "tasks/triage-smoketest.yml",
+          "tasks/triage-subscribe.yml",
+          "tasks/triage-summary.yml",
+          "tasks/triage-welcome.yml",
+          "tasks/tutorial.yml",
+          "tasks/umbrella.yml",
+          "tasks/value.yml",
+          "tasks/vbrief.yml",
+          "tasks/verify.yml",
+          "tasks/xbrief.yml",
+          "tasks/materialize.yml",
+          "tasks/materialize.cjs",
+          "tasks/materialize.test.cjs",
+          "packages/runtime/scripts/stage-bundle.mjs",
+          "packages/runtime/scripts/pack-staged-runtime.mjs",
+          "content/docs/getting-started.md",
+          "content/docs/launcher.md",
+          "content/docs/known-limitations.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "tasks/engine-invoke.cjs",
+        "cohesion_exemption": "CHANGELOG + engine pin-only unit"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "maintainer-pin-only-execution-close-task-auto-compile-tip-bypass",
+        "expected_outputs": [
+          "pin-exclusive ordinary invoke",
+          "fail-closed missing pin",
+          "_ts-build demotion off ordinary verbs",
+          "thin materialize into checkout pin",
+          "per-checkout materialize isolation",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "node --test tasks/engine-invoke.test.cjs"
+        ],
+        "file_scope": [
+          "tasks/engine.yml",
+          "tasks/engine-invoke.cjs",
+          "tasks/engine-invoke.test.cjs",
+          "Taskfile.yml",
+          "tasks/agent.yml",
+          "tasks/cache.yml",
+          "tasks/capacity.yml",
+          "tasks/change.yml",
+          "tasks/codebase.yml",
+          "tasks/commit.yml",
+          "tasks/coverage.yml",
+          "tasks/decision.yml",
+          "tasks/directive.yml",
+          "tasks/docs.yml",
+          "tasks/eval.yml",
+          "tasks/feedback.yml",
+          "tasks/install.yml",
+          "tasks/issue.yml",
+          "tasks/lifecycle.yml",
+          "tasks/migrate.yml",
+          "tasks/occupancy.yml",
+          "tasks/packs.yml",
+          "tasks/plan-sequence.yml",
+          "tasks/policy.yml",
+          "tasks/pr.yml",
+          "tasks/prd.yml",
+          "tasks/product-signal.yml",
+          "tasks/project.yml",
+          "tasks/reconcile.yml",
+          "tasks/review-monitor.yml",
+          "tasks/roadmap.yml",
+          "tasks/scm.yml",
+          "tasks/scope.yml",
+          "tasks/session.yml",
+          "tasks/slice.yml",
+          "tasks/spec.yml",
+          "tasks/subagent.yml",
+          "tasks/swarm.yml",
+          "tasks/toolchain.yml",
+          "tasks/triage-actions.yml",
+          "tasks/triage-bootstrap.yml",
+          "tasks/triage-bulk.yml",
+          "tasks/triage-classify.yml",
+          "tasks/triage-evaluate.yml",
+          "tasks/triage-metrics.yml",
+          "tasks/triage-queue.yml",
+          "tasks/triage-reconcile.yml",
+          "tasks/triage-scope-drift.yml",
+          "tasks/triage-scope.yml",
+          "tasks/triage-smoketest.yml",
+          "tasks/triage-subscribe.yml",
+          "tasks/triage-summary.yml",
+          "tasks/triage-welcome.yml",
+          "tasks/tutorial.yml",
+          "tasks/umbrella.yml",
+          "tasks/value.yml",
+          "tasks/vbrief.yml",
+          "tasks/verify.yml",
+          "tasks/xbrief.yml",
+          "tasks/materialize.yml",
+          "tasks/materialize.cjs",
+          "tasks/materialize.test.cjs",
+          "packages/runtime/scripts/stage-bundle.mjs",
+          "packages/runtime/scripts/pack-staged-runtime.mjs",
+          "content/docs/getting-started.md",
+          "content/docs/launcher.md",
+          "content/docs/known-limitations.md",
+          "CHANGELOG.md"
+        ],
+        "size": "L",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5805",
+          "Prefer-A Bound 6326249868",
+          "allocation through-merge-5791-5814-5736-5804-5805-2026-10-22"
+        ],
+        "parallel_safe": true,
+        "missing_traces_justification": []
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5967205564,
+        "origin": "deftai/directive#5805",
+        "id": "github.issue.5967205564"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "d5c646e2716b596e5c18148c350f9499b1c3540006c002128a9e8062e3158207"
+      },
+      "kind": "story",
+      "activationPullRequest": 5820,
+      "productPullRequest": 5826,
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "mergeCommit": "268432e88f16ba14651f76f19ea8e47d62ce94e1",
+      "deliveryProvenance": {
+        "productPullRequest": 5826,
+        "mergeCommit": "268432e88f16ba14651f76f19ea8e47d62ce94e1",
+        "deliveryBranch": "master"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 5826,
+        "prBase": "master",
+        "mergeCommit": "268432e88f16ba14651f76f19ea8e47d62ce94e1",
+        "deliveryBranch": "master",
+        "deliveryCommit": "268432e88f16ba14651f76f19ea8e47d62ce94e1",
+        "verifiedAt": "2026-10-22T07:40:22.493Z",
+        "verifier": "parent-retained-closer/leftover-5805",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTYyODItMzgxYi03MTcwLThkMmEtYmJiNzQ4MmY1YjBk"
+      },
+      "completedAt": "2026-10-22T07:40:22.493Z",
+      "completedSessionId": "host:grok:v1:MDFhMTYyODItMzgxYi03MTcwLThkMmEtYmJiNzQ4MmY1YjBk",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-22T07:40:22.493Z"
+      }
+    },
+    "id": "github.issue.5967205564",
+    "updated": "2026-10-22T07:40:22.493Z"
+  }
+}
