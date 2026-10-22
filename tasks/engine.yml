@@ -81,8 +81,9 @@ tasks:
         if [ "$is_buildable_source" = 1 ]; then
           # #5805 Prefer-A Bound: framework-source ordinary invoke is pin-exclusive.
           # No packages/runtime/dist fallthrough; missing pin fails closed.
-          pin_bin=$(node "{{.TASKFILE_DIR}}/engine-invoke.cjs" pin-bin "{{.USER_WORKING_DIR}}" ) || exit $?
-          root_pkg="{{.USER_WORKING_DIR}}/package.json"
+          # Resolve pin from DEFT_ROOT so subdirectory cwd still finds the checkout pin (#5805).
+          pin_bin=$(node "{{.TASKFILE_DIR}}/engine-invoke.cjs" pin-bin "{{.DEFT_ROOT}}" ) || exit $?
+          root_pkg="{{.DEFT_ROOT}}/package.json"
           if [ -f "$root_pkg" ]; then
             node -e "
               const fs=require('fs');

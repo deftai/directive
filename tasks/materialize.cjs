@@ -30,10 +30,11 @@ function runNode(script, args, opts = {}) {
     env: process.env,
   });
   if (r.status !== 0) {
-    fail(
+    const err = new Error(
       `${path.basename(script)} failed (exit ${r.status}): ${r.stderr || r.stdout || ""}`.trim(),
-      r.status || 2,
     );
+    err.code = r.status || 2;
+    throw err;
   }
   return (r.stdout || "").trim();
 }
@@ -66,11 +67,34 @@ function releaseLock(lockPath) {
   }
 }
 
-function isCheckoutOwnedDir(dir) {
+/** True when dir is safe to replace: missing, or a real directory whose realpath is under checkoutRoot. */
+function isCheckoutOwnedDir(dir, checkoutRoot) {
   try {
     const st = fs.lstatSync(dir);
-    if (st.isSymbolicLink()) return false;
-    return st.isDirectory();
+    if (st.isSymbolicLink()) {
+      // pnpm pin is often a symlink into the checkout store — allow when realpath stays in-tree.
+      if (!checkoutRoot) return false;
+      let real;
+      try {
+        real = fs.realpathSync(dir);
+      } catch {
+        return false;
+      }
+      const rootReal = fs.realpathSync(checkoutRoot);
+      const rel = path.relative(rootReal, real);
+      return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
+    }
+    if (!st.isDirectory()) return false;
+    if (!checkoutRoot) return true;
+    let real;
+    try {
+      real = fs.realpathSync(dir);
+    } catch {
+      return false;
+    }
+    const rootReal = fs.realpathSync(checkoutRoot);
+    const rel = path.relative(rootReal, real);
+    return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
   } catch {
     return true; // missing is fine; we will create
   }
@@ -80,23 +104,38 @@ function rmrf(target) {
   fs.rmSync(target, { recursive: true, force: true });
 }
 
+function movePath(src, dest) {
+  try {
+    fs.renameSync(src, dest);
+  } catch (err) {
+    if (err && err.code === "EXDEV") {
+      fs.cpSync(src, dest, { recursive: true, force: true });
+      rmrf(src);
+      return;
+    }
+    throw err;
+  }
+}
+
 function materialize(projectRoot, opts = {}) {
   const root = path.resolve(projectRoot);
   const stageScript = path.join(root, "packages", "runtime", "scripts", "stage-bundle.mjs");
   const packScript = path.join(root, "packages", "runtime", "scripts", "pack-staged-runtime.mjs");
   if (!fs.existsSync(stageScript) || !fs.existsSync(packScript)) {
-    fail("stage-bundle/pack-staged-runtime scripts missing; run from framework-source checkout");
+    throw new Error("stage-bundle/pack-staged-runtime scripts missing; run from framework-source checkout");
   }
 
   const pinDir = path.join(root, PIN_PKG);
-  if (fs.existsSync(pinDir) && !isCheckoutOwnedDir(pinDir)) {
-    fail(`refusing to mutate linked/shared pin at ${pinDir}`);
+  if (fs.existsSync(pinDir) && !isCheckoutOwnedDir(pinDir, root)) {
+    throw new Error(`refusing to mutate linked/shared pin at ${pinDir}`);
   }
 
   const lockPath = acquireLock(root);
   const priorPinUsable = fs.existsSync(path.join(pinDir, "dist", "bin.js"));
+  let priorBackup = null;
   let stageDir;
   let packDir;
+  let extractDir;
   try {
     stageDir = fs.mkdtempSync(path.join(os.tmpdir(), "deft-materialize-stage-"));
     packDir = fs.mkdtempSync(path.join(os.tmpdir(), "deft-materialize-pack-"));
@@ -104,27 +143,50 @@ function materialize(projectRoot, opts = {}) {
     const tgz = runNode(packScript, [stageDir, packDir], { cwd: root });
     if (!tgz || !fs.existsSync(tgz)) fail(`pack did not emit tgz (got ${JSON.stringify(tgz)})`);
 
-    const extractDir = fs.mkdtempSync(path.join(os.tmpdir(), "deft-materialize-extract-"));
+    extractDir = fs.mkdtempSync(path.join(os.tmpdir(), "deft-materialize-extract-"));
     const tar = spawnSync(
       process.platform === "win32" ? "tar.exe" : "tar",
       ["-xzf", tgz, "-C", extractDir],
       { encoding: "utf8" },
     );
     if (tar.status !== 0) {
-      fail(`tar extract failed: ${tar.stderr || tar.stdout || ""}`.trim(), tar.status || 2);
+      throw Object.assign(new Error(`tar extract failed: ${tar.stderr || tar.stdout || ""}`.trim()), { code: tar.status || 2 });
     }
     const entries = fs.readdirSync(extractDir);
-    if (entries.length !== 1) fail(`expected one package folder in tgz, got ${entries.join(",")}`);
+    if (entries.length !== 1) throw new Error(`expected one package folder in tgz, got ${entries.join(",")}`);
     const extracted = path.join(extractDir, entries[0]);
 
     const parent = path.dirname(pinDir);
     fs.mkdirSync(parent, { recursive: true });
     const stagingPin = path.join(parent, `.directive-runtime-next-${process.pid}`);
     rmrf(stagingPin);
-    fs.renameSync(extracted, stagingPin);
-    // Replace only after staged package is ready (P3: failed stage leaves prior pin).
-    if (fs.existsSync(pinDir)) rmrf(pinDir);
-    fs.renameSync(stagingPin, pinDir);
+    movePath(extracted, stagingPin);
+    if (!fs.existsSync(path.join(stagingPin, "dist", "bin.js"))) {
+      throw new Error("staged pin bin missing before replacement");
+    }
+    // Keep recoverable backup until replacement succeeds.
+    if (fs.existsSync(pinDir)) {
+      priorBackup = path.join(parent, `.directive-runtime-prev-${process.pid}`);
+      rmrf(priorBackup);
+      movePath(pinDir, priorBackup);
+    }
+    try {
+      movePath(stagingPin, pinDir);
+    } catch (err) {
+      if (priorBackup && fs.existsSync(priorBackup)) {
+        try {
+          movePath(priorBackup, pinDir);
+          priorBackup = null;
+        } catch {
+          /* best-effort restore */
+        }
+      }
+      throw err;
+    }
+    if (priorBackup) {
+      rmrf(priorBackup);
+      priorBackup = null;
+    }
 
     let head = "unknown";
     try {
@@ -144,7 +206,7 @@ function materialize(projectRoot, opts = {}) {
     };
     fs.writeFileSync(path.join(root, OVERLAY_REL), `${JSON.stringify(overlay, null, 2)}\n`);
     if (!fs.existsSync(path.join(pinDir, "dist", "bin.js"))) {
-      fail("materialize completed but pin bin missing");
+      throw new Error("materialize completed but pin bin missing");
     }
     process.stdout.write(`materialize:runtime: installed tip into ${pinDir}\n`);
     process.stdout.write(`materialize:runtime: overlay ${path.join(root, OVERLAY_REL)}\n`);
@@ -158,6 +220,8 @@ function materialize(projectRoot, opts = {}) {
     releaseLock(lockPath);
     if (stageDir) rmrf(stageDir);
     if (packDir) rmrf(packDir);
+    if (extractDir) rmrf(extractDir);
+    if (priorBackup) rmrf(priorBackup);
   }
 }
 
@@ -166,7 +230,7 @@ if (require.main === module) {
   try {
     materialize(root);
   } catch (err) {
-    fail(err && err.message ? err.message : String(err), 2);
+    fail(err && err.message ? err.message : String(err), err && err.code ? Number(err.code) || 2 : 2);
   }
 }
 
@@ -175,6 +239,7 @@ module.exports = {
   acquireLock,
   releaseLock,
   isCheckoutOwnedDir,
+  movePath,
   PIN_PKG,
   LOCK_REL,
   OVERLAY_REL,
