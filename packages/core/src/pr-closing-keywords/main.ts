@@ -357,7 +357,10 @@ function evaluatePathBActivationAdmit(args: {
   readonly repo: string;
   readonly files: readonly PrDiffPath[];
 }): { ok: boolean; detail: string } {
-  if (!isBriefLandShapedDiff(args.files) || args.prNumber === null) {
+  // Offline (#5736): brief-land identity (marks ↔ changed-brief issue refs +
+  // unset productPullRequest) runs with prNumber null. Live stamp binding still
+  // needs a PR number on the product path below.
+  if (!isBriefLandShapedDiff(args.files)) {
     return { ok: false, detail: "not brief-land shaped" };
   }
   const removedNonterminal = removedNonterminalBriefPaths(args.files);
@@ -433,7 +436,11 @@ function evaluatePathBActivationAdmit(args: {
       };
     }
   }
-  return { ok: true, detail: "Path B brief-land activation admitted (#5387)" };
+  const offlineNote = args.prNumber === null ? " (offline identity #5736)" : "";
+  return {
+    ok: true,
+    detail: `Path B brief-land activation admitted (#5387)${offlineNote}`,
+  };
 }
 
 /**
@@ -465,16 +472,23 @@ export function evaluateFullStoryMarkAdmission(args: {
   if (activation.ok) {
     return { ok: true, messages: [activation.detail] };
   }
-  // Hard-fail unbound deft-story on an otherwise activation-shaped unset land.
-  // Deletion refusal stays inside evaluatePathBActivationAdmit only — stamped
-  // product PRs that also delete a brief must reach product stamp gates (#5388).
+  // Offline brief-land (#5736): hard-fail missing/wrong/partial marks and other
+  // activation identity refuses. Live stamped product PRs that also delete a
+  // brief still fall through to product stamp gates (#5388).
+  if (args.prNumber === null && isBriefLandShapedDiff(args.files)) {
+    return { ok: false, messages: [`FAIL: ${activation.detail}`] };
+  }
   if (
     activation.detail.includes("has no matching changed nonterminal brief on Path B activation")
   ) {
     return { ok: false, messages: [`FAIL: ${activation.detail}`] };
   }
   const changedNonterminal = changedNonterminalBriefPaths(args.files);
-  if (changedNonterminal.length === 0 || args.prNumber === null) {
+  if (changedNonterminal.length === 0) {
+    return { ok: true, messages };
+  }
+  // Product stamp binding needs a live PR number (#5736 leaves that to live admission).
+  if (args.prNumber === null) {
     return { ok: true, messages };
   }
   const marks = parseAllDeftStoryMarks(args.bodyText ?? "");

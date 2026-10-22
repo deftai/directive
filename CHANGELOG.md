@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Changed - Prepare a hard local refuse so feature-branch pushes of product changes require a bound pre-PR pass before they leave the machine (activation for follow-up product fix). Refs #5804 Prefer-A Bound 6323623922.
+- Changed - Cut activation and thin widen PR merge latency: narrow offline pre-push checks, docs-impact on branch-gate (not merge-gate), drop CI closing-keywords duplicate, leftover-before-activation refuse. Refs #5736 Prefer-A Bound 6256466667.
 - Changed - Prepare the follow-up fix that will make maintainer commands use the same pinned runtime as Git hooks. This preparation does not change which runtime commands execute. Refs #5805 Prefer-A Bound 6326249868.
 - Changed - Allow pre-PR lint iteration to finish under coverageMode initial|disabled with exit 5 and a distinct mode-skip token (no invented Vitest suite). Refs #5814 Prefer-A Bound 6329108664.
 - Changed - Prepare pre-PR lint iteration so framework-only and no-suite pin upgrades can finish without inventing a Vitest suite (activation for follow-up product fix). Refs #5814 Prefer-A Bound 6329108664.

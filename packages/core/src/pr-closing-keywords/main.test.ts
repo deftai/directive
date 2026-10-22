@@ -773,6 +773,76 @@ describe("full-story mark admission shapes (#4919)", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
+  it("offline brief-land hard-fails missing deft-story with prNumber null (#5736)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-offline-brief-land-missing-"));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "story-5736.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          title: "offline",
+          status: "running",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/5736",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const files = [
+      { status: "modified", path: "xbrief/active/story-5736.xbrief.json" },
+      { status: "modified", path: "CHANGELOG.md" },
+    ];
+    expect(isBriefLandShapedDiff(files)).toBe(true);
+    const result = evaluateFullStoryMarkAdmission({
+      bodyText: "Tracking #5736\n",
+      prNumber: null,
+      projectRoot: root,
+      repo: "deftai/directive",
+      files,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.messages.join("\n")).toMatch(/missing deft-story|FAIL/i);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("offline brief-land admits matching deft-story with prNumber null (#5736)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-offline-brief-land-ok-"));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "story-5736.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          title: "offline",
+          status: "running",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/5736",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const result = evaluateFullStoryMarkAdmission({
+      bodyText: "Tracking #5736\n\ndeft-story: 5736\n",
+      prNumber: null,
+      projectRoot: root,
+      repo: "deftai/directive",
+      files: [
+        { status: "modified", path: "xbrief/active/story-5736.xbrief.json" },
+        { status: "modified", path: "CHANGELOG.md" },
+      ],
+    });
+    expect(result.ok).toBe(true);
+    expect(result.messages.join("\n")).toMatch(/offline identity #5736/);
+    rmSync(root, { recursive: true, force: true });
+  });
+
   it("admits Path B activation: unset productPullRequest + brief-land + deft-story (#5387)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-path-b-activation-"));
     mkdirSync(join(root, "xbrief", "active"), { recursive: true });

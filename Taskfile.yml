@@ -457,7 +457,8 @@ tasks:
       - verify:bridge-drift
       - verify:branch
       - verify:encoding
-      - verify:closing-keywords
+      # verify:closing-keywords dropped from check:merge CI graph (#5736): keep
+      # local merge-base / commit-range validation + branch-gate.yml --mode both.
       - verify:forward-coverage
       - verify:changelog-unreleased
       - verify:test-boundary

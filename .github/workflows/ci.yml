@@ -188,13 +188,8 @@ jobs:
           # hooks stay fail-closed on master.
           DEFT_ALLOW_DEFAULT_BRANCH_COMMIT: "1"
 
-      - name: Documentation-impact declaration (#4099)
-        if: github.event_name == 'pull_request'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: task verify:docs-impact -- --pr "$GITHUB_PR_NUMBER" --repo "$GITHUB_REPOSITORY"
+      # docs-impact relocated to branch-gate.yml (opened/synchronize/reopened/edited)
+      # so body-only fixes do not re-run the full merge gate (#5736).
 
   # -------------------------------------------------------------------------
   # Capacity watchdog: GH-hosted, independent of primary job cancellation
@@ -484,13 +479,8 @@ jobs:
           # hooks stay fail-closed on master.
           DEFT_ALLOW_DEFAULT_BRANCH_COMMIT: "1"
 
-      - name: Documentation-impact declaration (#4099)
-        if: github.event_name == 'pull_request'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: task verify:docs-impact -- --pr "$GITHUB_PR_NUMBER" --repo "$GITHUB_REPOSITORY"
+      # docs-impact relocated to branch-gate.yml (opened/synchronize/reopened/edited)
+      # so body-only fixes do not re-run the full merge gate (#5736).
 
   # -------------------------------------------------------------------------
   # Authoritative aggregators — ONLY these jobs use the branch-protection

@@ -35,6 +35,10 @@ import type { PlanSequenceVerifyResult } from "../plan-sequence/types.js";
 import { DEFT_ALLOW_JUDGMENT_GATE_ENFORCE } from "../policy/capacity.js";
 import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
 import { evaluate as preflightEvaluate } from "../preflight/evaluate.js";
+import {
+  evaluateLeftoverBeforeActivation,
+  type LeftoverLandEvidence,
+} from "./leftover-before-activation.js";
 import { applyWorktreeOccupancy, liveOccupant, releaseOccupancy } from "../session/occupancy.js";
 import { issueNumbersFromPlan, scopeMetadataRank } from "../triage/queue/scope-walk.js";
 import { selectionOrderingKey } from "../triage/queue/selection.js";
@@ -1496,6 +1500,11 @@ export interface LaunchArgs {
   sessionId?: string | null;
   preflightGate?: PreflightGateFn;
   readinessGate?: ReadinessGateFn;
+  /**
+   * Cohort leftover-complete open-PR evidence for leftover-before-activation
+   * refuse at launch prepare/open (#5736). Omit or pass empty open set to admit.
+   */
+  leftoverBeforeActivation?: LeftoverLandEvidence | null;
   worktreeResolver?: WorktreeResolverFn;
   runtimeAuthProbe?: RuntimeAuthProbeFn;
   /** Test seam: override occupancy release after a newly minted claim fails. */
@@ -1686,6 +1695,18 @@ export function swarmLaunch(args: LaunchArgs): {
         `Error: story '${gateFailure.story.story_id}' (${gateFailure.story.relpath}) ` +
         `is not launch-ready -- ${gateFailure.reason}\n`,
     };
+  }
+
+  // Thin leftover-before-activation refuse at launch prepare/open (#5736 Recut-1).
+  if (args.leftoverBeforeActivation != null) {
+    const leftoverGate = evaluateLeftoverBeforeActivation(args.leftoverBeforeActivation);
+    if (!leftoverGate.ok) {
+      return {
+        exitCode: EXIT_GATE_FAILED,
+        stdout: "",
+        stderr: `Error: ${leftoverGate.detail}\n`,
+      };
+    }
   }
 
   // Explicit environ is a replacement bag for host/credential markers (#3703):
