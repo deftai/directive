@@ -17,56 +17,47 @@
       {
         "id": "1",
         "title": "Recut2 hotspots initial|disabled before Istanbul (exit 5 + mode artifact; never exit 0)",
-        "status": "pending",
-        "description": "Recut2 hotspots initial|disabled before Istanbul (exit 5 + mode artifact; never exit 0)"
+        "status": "pending"
       },
       {
         "id": "2",
         "title": "Recut2 distinct coverageMode skip token not the inert N/A string",
-        "status": "pending",
-        "description": "Recut2 distinct coverageMode skip token not the inert N/A string"
+        "status": "pending"
       },
       {
         "id": "3",
         "title": "Recut2 controller mode arm re-reads policy at observe and commandSatisfied",
-        "status": "pending",
-        "description": "Recut2 controller mode arm re-reads policy at observe and commandSatisfied"
+        "status": "pending"
       },
       {
         "id": "4",
         "title": "Recut2 coverageMode via readPlanPolicy; missing/null→initial; malformed≠initial",
-        "status": "pending",
-        "description": "Recut2 coverageMode via readPlanPolicy; missing/null→initial; malformed≠initial"
+        "status": "pending"
       },
       {
         "id": "5",
         "title": "Recut2 install seed initial; repair preserves explicit; self-host lands full",
-        "status": "pending",
-        "description": "Recut2 install seed initial; repair preserves explicit; self-host lands full"
+        "status": "pending"
       },
       {
         "id": "6",
         "title": "Recut2 report-present guard keeps measured path when report exists",
-        "status": "pending",
-        "description": "Recut2 report-present guard keeps measured path when report exists"
+        "status": "pending"
       },
       {
         "id": "7",
         "title": "Recut2 standing initial reminder on every mode-skip (choose full|disabled; extension may strengthen)",
-        "status": "pending",
-        "description": "Recut2 standing initial reminder on every mode-skip (choose full|disabled; extension may strengthen)"
+        "status": "pending"
       },
       {
         "id": "8",
         "title": "Recut2 coverageMode policy:show plus typed graduation write path",
-        "status": "pending",
-        "description": "Recut2 coverageMode policy:show plus typed graduation write path"
+        "status": "pending"
       },
       {
         "id": "9",
         "title": "Recut2 pre-PR recording contract admits mode posture skip; exit5 self-instructs exact token",
-        "status": "pending",
-        "description": "Recut2 pre-PR recording contract admits mode posture skip; exit5 self-instructs exact token"
+        "status": "pending"
       }
     ],
     "tags": [
