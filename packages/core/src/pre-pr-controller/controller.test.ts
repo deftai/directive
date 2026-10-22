@@ -688,6 +688,11 @@ describe("controller observations", () => {
       });
       expect(admitted.ok).toBe(true);
 
+      // Exit-4 waived satisfaction requires an available Istanbul report
+      // (SLizard fp:c76cd7fc); empty object measures as hotspots exit 0.
+      mkdirSync(join(projectRoot, "coverage"), { recursive: true });
+      writeFileSync(join(projectRoot, "coverage", "coverage-final.json"), "{}");
+
       const observed = observeCommandPhase(store, rec.id, {
         phaseId: "coverage_headroom",
         command: `deft coverage:hotspots --attempt-id ${attemptId}`,
@@ -707,6 +712,46 @@ describe("controller observations", () => {
         projectRoot,
       });
       expect(decided.ok).toBe(true);
+    } finally {
+      rmSync(projectRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("coverage_headroom rejects exit 4 waived when coverage-final.json is missing (SLizard fp:c76cd7fc)", () => {
+    const projectRoot = mkdtempSync(join(tmpdir(), "pre-pr-cov-waive-noreport-"));
+    try {
+      const store = new InProcessPrePrStore();
+      const rec = start(store, "ppr_cov_waive_noreport");
+      const attemptId = rec.id;
+      const minted = mintGateOverrideTemplateGrant({
+        projectRoot,
+        target: "unknown-path",
+        planRef: attemptId,
+        baseSha: rec.baseSha,
+        headSha: rec.headSha,
+        treeHash: rec.treeHash,
+      });
+      expect(minted.ok).toBe(true);
+      const admitted = admitGateOverrideForAttempt(projectRoot, {
+        refuseCode: "unknown-path",
+        baseSha: rec.baseSha,
+        headSha: rec.headSha,
+        treeHash: rec.treeHash,
+        attemptId,
+        observedRefuseReason: "coverage-applicability: unknown path",
+      });
+      expect(admitted.ok).toBe(true);
+
+      fillPhasesExceptCoverage(store, rec, {
+        command: `deft coverage:hotspots --attempt-id ${attemptId}`,
+        exitCode: 4,
+        skipReason: COVERAGE_HEADROOM_WAIVED_SKIP,
+      });
+      expect(
+        runObservablesComplete(store.getById(rec.id) as PrePrExecutionRecord, {
+          projectRoot,
+        }).ok,
+      ).toBe(false);
     } finally {
       rmSync(projectRoot, { recursive: true, force: true });
     }

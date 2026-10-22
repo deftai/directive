@@ -451,17 +451,17 @@ function commandSatisfied(
       if (!inspected.ok) return false;
       if (inspected.admission === null) return false;
       if (inspected.grant.id !== admission.grantId) return false;
-      // Saved exit-4 must not hide a later failing coverage report (#5674 Greptile P1).
+      // Exit-4 waived requires an available Istanbul report before satisfied
+      // (SLizard fp:c76cd7fc / #5674). Missing report → unsatisfied; present
+      // failing report still dominates the saved waiver receipt.
       const reportPath = join(projectRoot, "coverage", "coverage-final.json");
-      if (existsSync(reportPath)) {
-        const measured = evaluateCoverageHotspots({
-          projectRoot,
-          checkApplicability: false,
-          useDiffPaths: false,
-        });
-        if (measured.exitCode !== 0) return false;
-      }
-      return true;
+      if (!existsSync(reportPath)) return false;
+      const measured = evaluateCoverageHotspots({
+        projectRoot,
+        checkApplicability: false,
+        useDiffPaths: false,
+      });
+      return measured.exitCode === 0;
     }
 
     // #5791 mode arm: exit 5 + distinct mode token; re-read policy (not inert re-derive).
