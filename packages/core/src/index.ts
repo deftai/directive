@@ -74,6 +74,11 @@ export * as orchestration from "./orchestration/index.js";
 export * as packs from "./packs/index.js";
 export * as parentTurnShape from "./parent-turn-shape/index.js";
 export * as platform from "./platform/index.js";
+export {
+  FIELD_COVERAGE_MODE,
+  FIELD_COVERAGE_MODE_CLI_ALIAS,
+  setCoverageMode,
+} from "./policy/coverage-mode.js";
 export * as policy from "./policy/index.js";
 export * as prClosingKeywords from "./pr-closing-keywords/index.js";
 export * as prMergeReadiness from "./pr-merge-readiness/index.js";

@@ -789,6 +789,11 @@ export function inspectAllPolicies(projectRoot: string): PolicyField[] {
 
 /** Look up a single registered field by canonical dotted-path name (or CLI alias). */
 export function inspectOnePolicy(name: string, projectRoot: string): PolicyField | null {
+  // Fast-path coverageMode alias (#5791) — keep ahead of the nested ternary.
+  if (name === FIELD_COVERAGE_MODE_CLI_ALIAS || name === FIELD_COVERAGE_MODE) {
+    const [data] = loadProjectDefinition(projectRoot);
+    return inspectCoverageModeField(data, projectRoot);
+  }
   const normalized =
     name === FIELD_ALLOW_DESTRUCTIVE_GH_VERBS_CLI_ALIAS || name === FIELD_ALLOW_DESTRUCTIVE_GH_VERBS
       ? FIELD_ALLOW_DESTRUCTIVE_GH_VERBS
