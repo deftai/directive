@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   ALLOWED_SKIP_REASONS,
+  COVERAGE_HEADROOM_MODE_SKIP,
   COVERAGE_HEADROOM_WAIVED_SKIP,
+  LINT_ITERATION_MODE_SKIP,
   isAllowedSkip,
   PRE_PR_PHASES,
   RENDER_EXPORT_RULE,
@@ -51,5 +53,14 @@ describe("pre-pr-controller phases (Limb 2)", () => {
     expect(isAllowedSkip("coverage_headroom", "changed-file audit")).toBe(false);
     expect(COVERAGE_HEADROOM_WAIVED_SKIP).not.toBe(ALLOWED_SKIP_REASONS.coverage_headroom);
     expect(requiredPhases().every((p) => p.required)).toBe(true);
+  });
+});
+
+describe("lint_iteration mode skip token (#5814)", () => {
+  it("is distinct from coverage_headroom mode skip and isAllowedSkip admits it", () => {
+    expect(LINT_ITERATION_MODE_SKIP).not.toBe(COVERAGE_HEADROOM_MODE_SKIP);
+    expect(isAllowedSkip("lint_iteration", LINT_ITERATION_MODE_SKIP)).toBe(true);
+    expect(isAllowedSkip("lint_iteration", COVERAGE_HEADROOM_MODE_SKIP)).toBe(false);
+    expect(isAllowedSkip("coverage_headroom", LINT_ITERATION_MODE_SKIP)).toBe(false);
   });
 });

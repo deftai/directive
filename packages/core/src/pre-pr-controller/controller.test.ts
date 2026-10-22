@@ -22,6 +22,7 @@ import {
   ALLOWED_SKIP_REASONS,
   COVERAGE_HEADROOM_MODE_SKIP,
   COVERAGE_HEADROOM_WAIVED_SKIP,
+  LINT_ITERATION_MODE_SKIP,
   PRE_PR_PHASES,
 } from "./phases.js";
 import { InProcessPrePrStore, mintPublisher, type PrePrExecutionStore } from "./store.js";
@@ -69,6 +70,62 @@ function fillPhasesExceptCoverage(
           exitCode: coverage.exitCode,
           inputHash: rec.inputHash,
           skipReason: coverage.skipReason,
+        },
+        options,
+      );
+    } else {
+      observeCommandPhase(store, rec.id, {
+        phaseId: spec.id,
+        command: spec.command ?? "",
+        exitCode: 0,
+        inputHash: rec.inputHash,
+        skipReason: null,
+      });
+    }
+  }
+  for (const phase of ["read", "write", "diff", "loop"] as const) {
+    submitReviewerReport(store, rec.id, {
+      phaseId: phase,
+      reviewedFileManifest: ["docs/design.md"],
+      suppliedContentsHash: "h",
+      criteriaDigest: approved.digest,
+      reviewerReportRef: "r",
+      controllerObservedHash: "h",
+    });
+  }
+}
+
+
+function fillPhasesWithLintModeSkip(
+  store: InProcessPrePrStore,
+  rec: PrePrExecutionRecord,
+  options?: { readonly projectRoot?: string },
+): void {
+  for (const spec of PRE_PR_PHASES) {
+    if (spec.kind !== "command-observable") continue;
+    if (spec.id === "lint_iteration") {
+      observeCommandPhase(
+        store,
+        rec.id,
+        {
+          phaseId: spec.id,
+          command: "vitest run --coverage <changed-paths>",
+          exitCode: 5,
+          inputHash: rec.inputHash,
+          skipReason: LINT_ITERATION_MODE_SKIP,
+        },
+        options,
+      );
+    } else if (spec.id === "coverage_headroom") {
+      observeCommandPhase(
+        store,
+        rec.id,
+        {
+          phaseId: spec.id,
+          command: "deft coverage:hotspots",
+          exitCode: 5,
+          inputHash: rec.inputHash,
+          skipReason: COVERAGE_HEADROOM_MODE_SKIP,
         },
         options,
       );
@@ -1136,4 +1193,142 @@ describe("controller observations", () => {
       rmSync(projectRoot, { recursive: true, force: true });
     }
   });
+
+  it("lint_iteration accepts exit 5 mode skip when policy re-read authorizes (#5814)", () => {
+    const projectRoot = mkdtempSync(join(tmpdir(), "pre-pr-lint-mode-"));
+    try {
+      mkdirSync(join(projectRoot, "xbrief"), { recursive: true });
+      writeFileSync(
+        join(projectRoot, "xbrief/PROJECT-DEFINITION.xbrief.json"),
+        JSON.stringify({
+          xBRIEFInfo: { version: "0.8", description: "t", updated: "2026-01-01T00:00:00Z" },
+          plan: {
+            title: "t",
+            status: "running",
+            "x-directive/policy": { coverageMode: "initial" },
+          },
+        }),
+      );
+      const store = new InProcessPrePrStore();
+      const rec = start(store, "ppr_lint_mode");
+      const observed = observeCommandPhase(
+        store,
+        rec.id,
+        {
+          phaseId: "lint_iteration",
+          command: "vitest run --coverage <changed-paths>",
+          exitCode: 5,
+          inputHash: rec.inputHash,
+          skipReason: LINT_ITERATION_MODE_SKIP,
+        },
+        { projectRoot },
+      );
+      expect(observed.ok).toBe(true);
+      expect(store.getById(rec.id)?.state).toBe("running");
+
+      fillPhasesWithLintModeSkip(store, rec, { projectRoot });
+      expect(
+        runObservablesComplete(store.getById(rec.id) as PrePrExecutionRecord, {
+          projectRoot,
+        }).ok,
+      ).toBe(true);
+    } finally {
+      rmSync(projectRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("lint_iteration rejects exit 5 after graduation to full (#5814)", () => {
+    const projectRoot = mkdtempSync(join(tmpdir(), "pre-pr-lint-mode-full-"));
+    try {
+      mkdirSync(join(projectRoot, "xbrief"), { recursive: true });
+      writeFileSync(
+        join(projectRoot, "xbrief/PROJECT-DEFINITION.xbrief.json"),
+        JSON.stringify({
+          xBRIEFInfo: { version: "0.8", description: "t", updated: "2026-01-01T00:00:00Z" },
+          plan: {
+            title: "t",
+            status: "running",
+            "x-directive/policy": { coverageMode: "full" },
+          },
+        }),
+      );
+      const store = new InProcessPrePrStore();
+      const rec = start(store, "ppr_lint_mode_full");
+      fillPhasesWithLintModeSkip(store, rec, { projectRoot });
+      expect(
+        runObservablesComplete(store.getById(rec.id) as PrePrExecutionRecord, {
+          projectRoot,
+        }).ok,
+      ).toBe(false);
+    } finally {
+      rmSync(projectRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("lint_iteration rejects exit 5 when a coverage report is present (#5814)", () => {
+    const projectRoot = mkdtempSync(join(tmpdir(), "pre-pr-lint-mode-report-"));
+    try {
+      mkdirSync(join(projectRoot, "xbrief"), { recursive: true });
+      writeFileSync(
+        join(projectRoot, "xbrief/PROJECT-DEFINITION.xbrief.json"),
+        JSON.stringify({
+          xBRIEFInfo: { version: "0.8", description: "t", updated: "2026-01-01T00:00:00Z" },
+          plan: {
+            title: "t",
+            status: "running",
+            "x-directive/policy": { coverageMode: "disabled" },
+          },
+        }),
+      );
+      mkdirSync(join(projectRoot, "coverage"), { recursive: true });
+      writeFileSync(join(projectRoot, "coverage/coverage-final.json"), "{}");
+      const store = new InProcessPrePrStore();
+      const rec = start(store, "ppr_lint_mode_report");
+      fillPhasesWithLintModeSkip(store, rec, { projectRoot });
+      expect(
+        runObservablesComplete(store.getById(rec.id) as PrePrExecutionRecord, {
+          projectRoot,
+        }).ok,
+      ).toBe(false);
+    } finally {
+      rmSync(projectRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("lint_iteration refuses bare non-zero without pinned exit 5 token (#5814)", () => {
+    const projectRoot = mkdtempSync(join(tmpdir(), "pre-pr-lint-bare-"));
+    try {
+      mkdirSync(join(projectRoot, "xbrief"), { recursive: true });
+      writeFileSync(
+        join(projectRoot, "xbrief/PROJECT-DEFINITION.xbrief.json"),
+        JSON.stringify({
+          xBRIEFInfo: { version: "0.8", description: "t", updated: "2026-01-01T00:00:00Z" },
+          plan: {
+            title: "t",
+            status: "running",
+            "x-directive/policy": { coverageMode: "initial" },
+          },
+        }),
+      );
+      const store = new InProcessPrePrStore();
+      const rec = start(store, "ppr_lint_bare");
+      const observed = observeCommandPhase(
+        store,
+        rec.id,
+        {
+          phaseId: "lint_iteration",
+          command: "vitest run --coverage <changed-paths>",
+          exitCode: 1,
+          inputHash: rec.inputHash,
+          skipReason: LINT_ITERATION_MODE_SKIP,
+        },
+        { projectRoot },
+      );
+      expect(observed.ok).toBe(true);
+      expect(store.getById(rec.id)?.state).toBe("failed");
+    } finally {
+      rmSync(projectRoot, { recursive: true, force: true });
+    }
+  });
+
 });

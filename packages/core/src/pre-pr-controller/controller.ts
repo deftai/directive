@@ -23,6 +23,7 @@ import {
   COVERAGE_HEADROOM_MODE_SKIP,
   COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP,
   COVERAGE_HEADROOM_WAIVED_SKIP,
+  LINT_ITERATION_MODE_SKIP,
   isAllowedSkip,
   PRE_PR_CONTROLLER_VERSION,
   PRE_PR_PHASES,
@@ -211,7 +212,12 @@ export function observeCommandPhase(
           (observation.exitCode === 5 &&
             observation.skipReason === COVERAGE_HEADROOM_MODE_SKIP &&
             isCoverageModeSkipAuthorized(resolveCoverageMode(projectRoot).mode))
-        : isAllowedSkip(observation.phaseId, observation.skipReason);
+        : observation.phaseId === "lint_iteration"
+          ? observation.exitCode === 5 &&
+            observation.skipReason === LINT_ITERATION_MODE_SKIP &&
+            isCoverageModeSkipAuthorized(resolveCoverageMode(projectRoot).mode) &&
+            observation.command.toLowerCase().includes("vitest")
+          : isAllowedSkip(observation.phaseId, observation.skipReason);
     // Exit 4 waived must not mark the run failed (#5674); exit 0 alone is measured pass.
     const failed = observation.exitCode !== 0 && !skipOk;
     const row: CommandObservation = {
@@ -495,6 +501,18 @@ function commandSatisfied(
       options?.applicabilityDeps,
     );
     return derived.outcome === "not-applicable";
+  }
+
+  // #5814 lint_iteration mode arm: exit 5 + distinct token; re-read coverageMode;
+  // report-present guard refuses skip when coverage/coverage-final.json exists.
+  if (phaseId === "lint_iteration") {
+    if (row.exitCode === 0) return true;
+    if (row.exitCode !== 5) return false;
+    if (row.skipReason !== LINT_ITERATION_MODE_SKIP) return false;
+    if (!row.command.toLowerCase().includes("vitest")) return false;
+    const projectRoot = options?.projectRoot ?? process.cwd();
+    if (existsSync(join(projectRoot, "coverage", "coverage-final.json"))) return false;
+    return isCoverageModeSkipAuthorized(resolveCoverageMode(projectRoot).mode);
   }
 
   if (row.exitCode === 0) return true;
