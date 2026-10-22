@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added - Enrolled feature-branch pushes require a bound `deft pre-pr:run` pass (outgoing ⊆ reviewed pushBinding); empty pre-push stdin and unreviewed product paths refuse with a short recovery line. Refs #5804 Prefer-A Bound 6323623922.
 - Added - Projects without a coverage suite can finish pre-PR for framework-only Directive pin upgrades without inventing Istanbul results (coverageMode: initial|disabled|full). Refs #5791 Prefer-A Bound 6327849654.
 
 ### Changed
@@ -25,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed — Maintainer xBRIEF corpus hygiene after OVPR equal-version upgrade: rewrite residual 0.6 envelopes to xBRIEFInfo 0.8, strip leftover hybrid vBRIEFInfo keys on completed briefs, and reword Taskfile doctor/upgrade comments so they no longer embed `.deft/core/` (doctor wiring false positive on this repo). Refs #5795 #5796.
 
 ### Fixed
+- Fixed - Enrolled pre-push admission hashes committed blobs (not working tree), derives new-branch outgoing via merge-base, keeps git path errors distinct from empty diffs, skips docs-only before requiring a pass, honors `requireBoundPrePrPush: false`, refuses multi-ref enrolled pushes, tracks reviewed deletions, and still runs enrolled checks after allowDestructiveGhVerbs. Refs #5804.
 - Fixed - Land tracked completion record for pin-exclusive ordinary maintainer invoke after product #5826. Refs #5805.
 - Fixed - Land tracked completion record for activation/widen merge-latency Prefer-A Recut-1 after product #5827. Refs #5736.
 - Fixed - Maintainer tip materialize replaces the checkout pin safely (lock release, in-tree symlink, EXDEV copy) and subdirectory tasks resolve the pin from DEFT_ROOT. Refs #5805.

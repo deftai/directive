@@ -5,6 +5,7 @@
  * Opening the skill file and generic mark-complete cannot mint a pass.
  */
 
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
@@ -46,9 +47,11 @@ import {
   deny,
   inputBindingHash,
   MARK_COMPLETE_NOT_AUTHORITY,
+  PRE_PR_PUSH_STAGE_MARKER,
   type PrePrDecision,
   type PrePrExecutionRecord,
   type PrePrInputBinding,
+  type PrePrPushBinding,
   PUBLISHER_REQUIRED,
   type SemanticEvidence,
   SKILL_FILE_OPEN_NOT_COMPLETION,
@@ -80,6 +83,27 @@ export function computeControllerObservedHash(input: {
     }
   }
   return sha256Hex(JSON.stringify(rows));
+}
+
+/** Deleted paths between base..head for pushBinding.reviewedDeletedPaths (#5804). */
+function listDeletedPathsBetween(projectRoot: string, baseSha: string, headSha: string): string[] {
+  try {
+    const out = execFileSync(
+      "git",
+      ["diff", "-z", "--name-only", "--diff-filter=D", `${baseSha}..${headSha}`],
+      {
+        cwd: projectRoot,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
+    return out
+      .split("\0")
+      .filter((p) => p.length > 0)
+      .map((p) => p.replaceAll("\\", "/"));
+  } catch {
+    return [];
+  }
 }
 
 export interface StartControllerRunInput {
@@ -143,6 +167,7 @@ export function startControllerRun(
     reviewedFileManifest: [],
     reviewReportRef: null,
     finalNoChange: false,
+    pushBinding: null,
     startedAt: utcIso(input.now),
     completedAt: null,
     interruptedAt: null,
@@ -623,10 +648,36 @@ export function completeRun(
   }
   const observables = runObservablesComplete(current, options);
   if (!observables.ok) return observables;
+  const manifest = [...current.reviewedFileManifest];
+  const observed =
+    options?.projectRoot !== undefined && options.projectRoot.length > 0
+      ? computeControllerObservedHash({
+          reviewedFiles: manifest,
+          cwd: options.projectRoot,
+        })
+      : (current.phaseEvidence.semantic.find((s) => s.phaseId === "loop")?.controllerObservedHash ??
+        null);
+  const reviewedDeletedPaths =
+    options?.projectRoot !== undefined &&
+    options.projectRoot.length > 0 &&
+    current.baseSha.length > 0 &&
+    current.headSha.length > 0
+      ? listDeletedPathsBetween(options.projectRoot, current.baseSha, current.headSha)
+      : [];
+  const pushBinding: PrePrPushBinding | null =
+    observed !== null && observed.length > 0 && manifest.length > 0
+      ? {
+          reviewedFileManifest: manifest,
+          controllerObservedHash: observed,
+          pushStageMarker: PRE_PR_PUSH_STAGE_MARKER,
+          reviewedDeletedPaths,
+        }
+      : null;
   const published: PrePrExecutionRecord = {
     ...current,
     state: "complete",
     outcome: "pass",
+    pushBinding,
     completedAt: utcIso(now),
     publishedAt: utcIso(now),
   };

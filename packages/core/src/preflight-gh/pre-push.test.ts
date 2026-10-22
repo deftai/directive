@@ -41,6 +41,55 @@ describe("parsePrePushStdin", () => {
   });
 });
 
+describe("evaluatePrePush enrolled bound pre-PR (#5804)", () => {
+  it("denies empty stdin when enrolled", () => {
+    const [code, msg] = evaluatePrePush([], {
+      enrolledBoundPrePr: true,
+      rawStdin: "",
+      projectRoot: tempRoot(),
+    });
+    expect(code).toBe(1);
+    expect(msg).toContain("empty or malformed");
+  });
+
+  it("denies junk-only stdin when enrolled", () => {
+    const [code, msg] = evaluatePrePush([], {
+      enrolledBoundPrePr: true,
+      rawStdin: "not-a-ref-line\n",
+      projectRoot: tempRoot(),
+    });
+    expect(code).toBe(1);
+    expect(msg.toLowerCase()).toMatch(/empty or malformed|no parseable/);
+  });
+
+  it("docs-only helper admits markdown paths", async () => {
+    const { isDocsOnlyOutgoing } = await import("./pre-push.js");
+    expect(isDocsOnlyOutgoing(["docs/a.md", "CHANGELOG.md"])).toBe(true);
+    expect(isDocsOnlyOutgoing(["packages/core/src/x.ts"])).toBe(false);
+  });
+
+  it("docs-only helper refuses executable docs paths (#5804 Greptile)", async () => {
+    const { isDocsOnlyOutgoing, isDocsOnlyPath } = await import("./pre-push.js");
+    expect(isDocsOnlyPath("docs/conf.py")).toBe(false);
+    expect(isDocsOnlyOutgoing(["docs/conf.py"])).toBe(false);
+    expect(isDocsOnlyOutgoing(["docs/guide.md", "content/docs/a.md"])).toBe(true);
+  });
+
+  it("honors requireBoundPrePrPush:false over enrolled hook default (#5804)", () => {
+    const r = tempRoot();
+    writePd(r, { requireBoundPrePrPush: false });
+    const refs = parsePrePushStdin(
+      `refs/heads/feat/core-engine ${LIVE} refs/heads/feat/core-engine ${ZERO}`,
+    );
+    const [code] = evaluatePrePush(refs, {
+      enrolledBoundPrePr: true,
+      projectRoot: r,
+      rawStdin: `refs/heads/feat/core-engine ${LIVE} refs/heads/feat/core-engine ${ZERO}\n`,
+    });
+    expect(code).toBe(0);
+  });
+});
+
 describe("evaluatePrePush stdin policy fixtures", () => {
   it("allows empty stdin", () => {
     const [code, msg] = evaluatePrePush([]);

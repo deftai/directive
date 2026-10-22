@@ -13,11 +13,16 @@ import {
   DISK_STORE_NOT_SOT,
   deny,
   ONE_PR_UNIT_NOT_PRE_PR,
+  PRE_PR_PUSH_STAGE_MARKER,
   type PrePrDecision,
   type PrePrExecutionRecord,
   type PrePrLiveBinding,
   RUN_ID_LOOKUP_HINT,
+  sha256Hex,
 } from "./types.js";
+
+/** Non-empty push-stage body-hash sentinel (#5804 P4). */
+export const PRE_PR_PUSH_STAGE_BODY_HASH = sha256Hex(PRE_PR_PUSH_STAGE_MARKER);
 
 export interface EvaluatePrePrEvidenceInput {
   /** Record resolved from the private store. Null means no store hit. */
@@ -90,6 +95,22 @@ function evaluateStoredRecord(
       return deny("deny-interrupted", "interrupted pre-PR run mints no pass");
     }
     return deny("deny-incomplete", "incomplete pre-PR run mints no pass");
+  }
+  // PR-stage --evaluate refuses push-stage-only body-hash sentinel (#5804 P4).
+  if (live.prBodyHash === PRE_PR_PUSH_STAGE_BODY_HASH) {
+    return deny(
+      "deny-push-stage-marker",
+      `PR-stage --evaluate refuses push-stage body-hash sentinel; run deft pre-pr:run for a PR-bound pass (#5804)`,
+    );
+  }
+  if (
+    record.pushBinding?.pushStageMarker === PRE_PR_PUSH_STAGE_MARKER &&
+    live.prBodyHash === PRE_PR_PUSH_STAGE_BODY_HASH
+  ) {
+    return deny(
+      "deny-push-stage-marker",
+      `pre-PR record ${record.id} is push-stage-marked under push-stage body hash; PR-stage --evaluate refuses (#5804)`,
+    );
   }
   const observables = runObservablesComplete(record);
   if (!observables.ok) return observables;

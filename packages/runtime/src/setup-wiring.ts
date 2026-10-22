@@ -852,11 +852,17 @@ run_directive verify:encoding --staged --project-root "$REPO_ROOT" || exit $?
 `;
 
 const PRE_PUSH = `#!/usr/bin/env sh
+# deft:pre-pr-bound-push-v1 — refuse-to-downgrade marker (#5804); marker-aware ensureGitHooks only
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 1
 # shellcheck source=/dev/null
 . "$REPO_ROOT/.githooks/_directive-run.sh"
 run_directive verify:branch --project-root "$REPO_ROOT" || exit $?
+# Enrolled bound pre-PR arm: sole-stdin (do not redirect shared run_directive to /dev/null)
+run_directive pre-pr:run --push-admit --project-root "$REPO_ROOT" || exit $?
 `;
+
+/** Monotonic refuse-to-downgrade marker for marker-aware ensureGitHooks (#5804). */
+export const PRE_PUSH_BOUND_PRE_PR_MARKER = "deft:pre-pr-bound-push-v1";
 
 /**
  * Current OVPR helpers plus supported latest-legacy Directive git hooks
@@ -914,6 +920,19 @@ export function ensureGitHooks(projectRoot: string): {
     if (prior !== null && prior !== next && !isOurGitHookBody(file.rel, prior)) {
       conflicts.push(
         `${file.rel}: existing hook is not Directive-managed; refusing to overwrite (chain or remove manually)`,
+      );
+      continue;
+    }
+    // Refuse-to-downgrade: marker-aware installer will not replace a newer enrolled
+    // pre-push arm with an older body that lacks the monotonic marker (#5804).
+    if (
+      file.rel === ".githooks/pre-push" &&
+      prior !== null &&
+      prior.includes(PRE_PUSH_BOUND_PRE_PR_MARKER) &&
+      !next.includes(PRE_PUSH_BOUND_PRE_PR_MARKER)
+    ) {
+      conflicts.push(
+        `${file.rel}: refuse-to-downgrade enrolled bound pre-PR arm (${PRE_PUSH_BOUND_PRE_PR_MARKER}); keeping newer hook`,
       );
       continue;
     }
