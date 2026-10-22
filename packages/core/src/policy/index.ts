@@ -128,9 +128,9 @@ export * from "./coverage-mode.js";
 export {
   FIELD_COVERAGE_MODE,
   FIELD_COVERAGE_MODE_CLI_ALIAS,
-  setCoverageMode,
-  resolveCoverageMode,
   inspectCoverageMode,
+  resolveCoverageMode,
+  setCoverageMode,
 } from "./coverage-mode.js";
 export * from "./decisions.js";
 export * from "./deft-directive-disable.js";
