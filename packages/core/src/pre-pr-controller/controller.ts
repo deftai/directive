@@ -46,11 +46,11 @@ import {
   deny,
   inputBindingHash,
   MARK_COMPLETE_NOT_AUTHORITY,
+  PRE_PR_PUSH_STAGE_MARKER,
   type PrePrDecision,
   type PrePrExecutionRecord,
   type PrePrInputBinding,
   type PrePrPushBinding,
-  PRE_PR_PUSH_STAGE_MARKER,
   PUBLISHER_REQUIRED,
   type SemanticEvidence,
   SKILL_FILE_OPEN_NOT_COMPLETION,
@@ -633,8 +633,8 @@ export function completeRun(
           reviewedFiles: manifest,
           cwd: options.projectRoot,
         })
-      : current.phaseEvidence.semantic.find((s) => s.phaseId === "loop")?.controllerObservedHash ??
-        null;
+      : (current.phaseEvidence.semantic.find((s) => s.phaseId === "loop")?.controllerObservedHash ??
+        null);
   const pushBinding: PrePrPushBinding | null =
     observed !== null && observed.length > 0 && manifest.length > 0
       ? {
