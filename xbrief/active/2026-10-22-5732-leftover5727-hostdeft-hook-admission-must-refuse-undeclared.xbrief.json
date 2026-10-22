@@ -8,12 +8,12 @@
     "title": "leftover(#5727): host/deft-hook admission must refuse undeclared forge-poll before execution (#5229 residual)",
     "status": "running",
     "narratives": {
-      "Description": "Host/deft-hook PreToolUse refuse-before-execution for closed Observed undeclared-babysit forge-poll / path-only TEMP launches when Tier-1 spawn_subagent is available.",
+      "Description": "Host/deft-hook PreToolUse refuse-before-execution covers the closed Observed undeclared-babysit class, including path-only TEMP launches, when Tier-1 spawn_subagent is available. Novel spellings outside that corpus stay a named residual.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5732",
-      "Overview": "Host/deft-hook PreToolUse refuse-before-execution for closed Observed undeclared-babysit forge-poll / path-only TEMP launches when Tier-1 spawn_subagent is available.",
+      "Overview": "Prefer-A Bound Recut-1 6256155031 for undeclared forge-poll refuse-before-execution.",
       "Labels": "bug, adoption-blocker, agent-experience, review-cycle, process, area:skills, design-critique:ingest-ready, framework-gap, core-capabilities",
-      "UserStory": "As a through-merge parent on a Tier-1 host, I want undeclared forge-poll and path-only TEMP babysit shells refused before execution so that only Approach 1 child-bound pr:watch is the lawful pre-CLEAN wait.",
-      "ImplementationPlan": "1. Wire production PreToolUse/deft-hook refuse-before-execution on SHELL_TOOL_NAMES after payload unwrap for closed Observed undeclared-babysit class including path-only TEMP.\n2. Keep remediation on formatApproach1CheapestAdmissionCard; do not widen evaluateBoundedPrWatchDeny.\n3. Add regressions for every mandatory corpus form asserting executor not reached.\n4. CHANGELOG Unreleased for #5732."
+      "UserStory": "As a through-merge parent on a Tier-1 host, I want undeclared forge-poll and path-only TEMP babysit shells refused before execution, so that only Approach 1 child-bound pr:watch is the lawful pre-CLEAN wait.",
+      "ImplementationPlan": "1. Wire PreToolUse/deft-hook refuse-before-execution on SHELL_TOOL_NAMES.\n2. Keep remediation on formatApproach1CheapestAdmissionCard.\n3. Add corpus regressions asserting executor not reached.\n4. CHANGELOG Unreleased for #5732."
     },
     "items": [
       {
@@ -184,7 +184,8 @@
           "Prefer-A Bound 6256155031"
         ],
         "parallel_safe": true
-      }
+      },
+      "activationPullRequest": 5834
     },
     "id": "github.issue.5914577054",
     "updated": "2026-10-22T15:05:18Z"

@@ -8,12 +8,12 @@
     "title": "recurrence(#5278): query-before Class A push/PR-open while stop-at:pr-open leaf still live",
     "status": "running",
     "narratives": {
-      "Description": "Parent Class A push/PR-open goes through runParentClassAPublication after green subagent:pre-class-a tip-schema admit while a stop-at:pr-open leaf is live.",
+      "Description": "Parent Class A push/PR-open goes through runParentClassAPublication after green subagent:pre-class-a tip-schema admit while a stop-at:pr-open leaf is live. Probe-only routing is not enough.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5812",
-      "Overview": "Prefer-A Bound Recut-3 6328905032: tip-schema Class A admit; sibling subagent:pre-class-a via evaluatePreClassA; publication-owning runParentClassAPublication; current-attempt identity bind; thin docs next to #5278.",
+      "Overview": "Prefer-A Bound Recut-3 6328905032 for query-before Class A publication.",
       "Labels": "bug, swarm, agent-experience, process, urgent, design-critique:ingest-ready, framework-gap, promise:swarm",
-      "UserStory": "As a through-merge parent, I want Class A push and gh pr create to refuse until a live stop-at:pr-open leaf tip-schema admit is green so that I cannot publish while the leaf is still mid-work.",
-      "ImplementationPlan": "1. Add packages/core/src/swarm/class-a-publication.ts runParentClassAPublication (probe-then-publish) with unit coverage for admit/deny/stale/force and red/config blocking publish.\n2. Add evaluatePreClassA helpers in packages/core/src/orchestration/subagent-steer.ts and packages/runtime/src/subagent-pre-class-a.ts sibling verb mirroring pre-cancel.\n3. Wire swarm:pre-dispatch --action class-a and dispatch.ts verb map into the owning publish function; thin docs next to #5278.\n4. CHANGELOG Unreleased entry."
+      "UserStory": "As a through-merge parent, I want Class A push and gh pr create to refuse until a live stop-at:pr-open leaf tip-schema admit is green, so that I cannot publish while the leaf is still mid-work.",
+      "ImplementationPlan": "1. Add runParentClassAPublication with unit coverage.\n2. Add evaluatePreClassA + subagent:pre-class-a sibling verb.\n3. Wire swarm:pre-dispatch --action class-a; thin docs next to #5278.\n4. CHANGELOG Unreleased entry."
     },
     "items": [
       {
@@ -183,7 +183,8 @@
         ],
         "parallel_safe": true
       },
-      "kind": "story"
+      "kind": "story",
+      "activationPullRequest": 5834
     },
     "id": "github.issue.5969495243",
     "updated": "2026-10-22T14:47:10Z"

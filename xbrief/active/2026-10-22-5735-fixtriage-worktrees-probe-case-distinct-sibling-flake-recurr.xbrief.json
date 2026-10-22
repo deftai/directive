@@ -8,12 +8,12 @@
     "title": "fix(triage): worktrees-probe case-distinct sibling flake recurred a third time (post-#5519)",
     "status": "running",
     "narratives": {
-      "Description": "removeEvaluatorWorktree keeps operation-scoped registration ownership across both prune passes so a previously excluded case-distinct sibling is never promoted into the target.",
+      "Description": "removeEvaluatorWorktree keeps operation-scoped registration ownership across both prune passes. A previously excluded case-distinct sibling is never promoted into the target after the first pass deletes the selected registration.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5735",
-      "Overview": "removeEvaluatorWorktree keeps operation-scoped registration ownership across both prune passes so a previously excluded case-distinct sibling is never promoted into the target.",
+      "Overview": "Prefer-A Bound Recut-2 6256420554 for worktrees-probe case-distinct sibling ownership.",
       "Labels": "bug, test-debt, urgent, design-critique:ingest-ready, core-capabilities, promise:swarm",
-      "UserStory": "As a CI maintainer, I want worktrees-probe unregister to keep its selected admin registration across both prune passes so a case-distinct sibling is never deleted by fold-match after the first pass.",
-      "ImplementationPlan": "1. Select intended admin from initial inventory before any destructive work and retain across both removeEvaluatorWorktree passes.\n2. Confirm Git remove argv and fallback deletion only target the selected registration.\n3. Dual-to-single transition regression through second fallback; suite-local probe cache reset.\n4. CHANGELOG Unreleased Fixed for #5735."
+      "UserStory": "As a CI maintainer, I want worktrees-probe unregister to keep its selected admin registration across both prune passes, so that a case-distinct sibling is never deleted by fold-match after the first pass.",
+      "ImplementationPlan": "1. Select intended admin from initial inventory and retain across both passes.\n2. Confirm Git remove argv and fallback deletion only target the selected registration.\n3. Dual-to-single transition regression; suite-local probe cache reset.\n4. CHANGELOG Unreleased Fixed for #5735."
     },
     "items": [
       {
@@ -180,7 +180,8 @@
           "Prefer-A Bound 6256420554"
         ],
         "parallel_safe": true
-      }
+      },
+      "activationPullRequest": 5834
     },
     "id": "github.issue.5915030058",
     "updated": "2026-10-22T15:05:25Z"
