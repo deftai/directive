@@ -28,9 +28,7 @@ export type LeftoverBeforeActivationResult =
 export function evaluateLeftoverBeforeActivation(
   evidence: LeftoverLandEvidence,
 ): LeftoverBeforeActivationResult {
-  const open = evidence.openLeftoverPrNumbers.filter(
-    (n) => Number.isInteger(n) && n > 0,
-  );
+  const open = evidence.openLeftoverPrNumbers.filter((n) => Number.isInteger(n) && n > 0);
   if (open.length === 0) {
     return {
       ok: true,

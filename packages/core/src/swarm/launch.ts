@@ -35,10 +35,6 @@ import type { PlanSequenceVerifyResult } from "../plan-sequence/types.js";
 import { DEFT_ALLOW_JUDGMENT_GATE_ENFORCE } from "../policy/capacity.js";
 import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
 import { evaluate as preflightEvaluate } from "../preflight/evaluate.js";
-import {
-  evaluateLeftoverBeforeActivation,
-  type LeftoverLandEvidence,
-} from "./leftover-before-activation.js";
 import { applyWorktreeOccupancy, liveOccupant, releaseOccupancy } from "../session/occupancy.js";
 import { issueNumbersFromPlan, scopeMetadataRank } from "../triage/queue/scope-walk.js";
 import { selectionOrderingKey } from "../triage/queue/selection.js";
@@ -51,6 +47,10 @@ import {
   GATE_ENFORCE,
   LEAF_CODING_WORKER_ROLE,
 } from "./constants.js";
+import {
+  evaluateLeftoverBeforeActivation,
+  type LeftoverLandEvidence,
+} from "./leftover-before-activation.js";
 import { originActiveBriefPresent } from "./origin-active-brief.js";
 import { readinessReport } from "./readiness.js";
 import {
