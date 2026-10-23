@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed - Committed pre-push hook feature-detects `pre-pr:run --push-admit` and falls back to the pre-#5804 verify:branch-only push on runtime pins that lack it (published 0.127.0 refused every push with `unrecognized argument: --push-admit`). Refs #5804 #5837.
+- Fixed - `deft check` gate `docs:capability-map:check` now reaches a registered `capability-map` verb (plus `docs:capability-map` alias), and a fail-closed regression requires every Taskfile `ENGINE_CMD` verb to resolve in runtime dispatch. Installed runtimes stay on the old verb set until the next release and re-pin. Refs #5841 Prefer-A Bound 6352741120.
 - Fixed - Land tracked completion record for enrolled pre-push hard-refuse after product #5829. Refs #5804.
 - Fixed - Enrolled pre-push admission hashes committed blobs (not working tree), derives new-branch outgoing via merge-base, keeps git path errors distinct from empty diffs, skips docs-only before requiring a pass, honors `requireBoundPrePrPush: false`, refuses multi-ref enrolled pushes, tracks reviewed deletions, and still runs enrolled checks after allowDestructiveGhVerbs. Refs #5804.
 - Fixed - Land tracked completion record for pin-exclusive ordinary maintainer invoke after product #5826. Refs #5805.
