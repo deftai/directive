@@ -36,8 +36,14 @@ export interface ResolvePacksRootOptions {
   readonly moduleUrl: string;
 }
 
-/** Thrown when an explicit pack root (flag or env) does not exist. */
-export class PacksRootError extends Error {}
+/**
+ * Outcome of {@link resolvePacksRoot}: a bound root, or a refusal message when an
+ * explicit root (flag or env) is empty or does not exist. Operational deny is a
+ * returned failure, not a throw (#5853); the CLI prints it and exits 1.
+ */
+export type PacksRootResult =
+  | { readonly ok: true; readonly root: PacksRoot }
+  | { readonly ok: false; readonly error: string };
 
 function isDirectory(path: string): boolean {
   try {
@@ -85,12 +91,12 @@ export function defaultPacksRoot(moduleUrl: string, cwd: string = process.cwd())
   return bindPacksRoot(found ?? moduleRepoRoot(moduleUrl));
 }
 
-/** Full resolution for CLI entry points; explicit roots that fail to stat refuse closed. */
-export function resolvePacksRoot(options: ResolvePacksRootOptions): PacksRoot {
+/** Full resolution for CLI entry points; explicit roots that fail to stat refuse closed (returned failure). */
+export function resolvePacksRoot(options: ResolvePacksRootOptions): PacksRootResult {
   const env = options.env ?? process.env;
   const fromFlag = options.projectRoot ?? null;
   if (fromFlag !== null && fromFlag.length === 0) {
-    throw new PacksRootError("--project-root requires a value (refusing package fallback)");
+    return { ok: false, error: "--project-root requires a value (refusing package fallback)" };
   }
   const fromEnv = env.DEFT_PROJECT_ROOT ?? "";
   const explicit = fromFlag !== null && fromFlag.length > 0 ? fromFlag : fromEnv;
@@ -99,9 +105,12 @@ export function resolvePacksRoot(options: ResolvePacksRootOptions): PacksRoot {
       fromFlag !== null && fromFlag.length > 0 ? "--project-root" : "DEFT_PROJECT_ROOT";
     const abs = resolve(explicit);
     if (!isDirectory(abs)) {
-      throw new PacksRootError(`${source} ${abs} is not a directory (refusing package fallback)`);
+      return {
+        ok: false,
+        error: `${source} ${abs} is not a directory (refusing package fallback)`,
+      };
     }
-    return bindPacksRoot(abs);
+    return { ok: true, root: bindPacksRoot(abs) };
   }
-  return defaultPacksRoot(options.moduleUrl, options.cwd ?? process.cwd());
+  return { ok: true, root: defaultPacksRoot(options.moduleUrl, options.cwd ?? process.cwd()) };
 }

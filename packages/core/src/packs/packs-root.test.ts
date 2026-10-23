@@ -8,7 +8,6 @@ import {
   bindPacksRoot,
   defaultPacksRoot,
   findFrameworkSourceRoot,
-  PacksRootError,
   resolvePacksRoot,
 } from "./packs-root.js";
 
@@ -78,24 +77,31 @@ describe("packs-root resolution (#5853)", () => {
     const b = fixture();
     const env = { DEFT_PROJECT_ROOT: b };
     expect(
-      resolvePacksRoot({ projectRoot: a, env, cwd: REPO_ROOT, moduleUrl: FOREIGN_MODULE }).repoRoot,
-    ).toBe(resolve(a));
-    expect(resolvePacksRoot({ env, cwd: REPO_ROOT, moduleUrl: FOREIGN_MODULE }).repoRoot).toBe(
-      resolve(b),
-    );
+      resolvePacksRoot({ projectRoot: a, env, cwd: REPO_ROOT, moduleUrl: FOREIGN_MODULE }),
+    ).toMatchObject({ ok: true, root: { repoRoot: resolve(a) } });
+    expect(resolvePacksRoot({ env, cwd: REPO_ROOT, moduleUrl: FOREIGN_MODULE })).toMatchObject({
+      ok: true,
+      root: { repoRoot: resolve(b) },
+    });
   });
 
   it("refuses closed when an explicit root does not exist", () => {
     const missing = join(tmpdir(), "packs-root-5853-missing-does-not-exist");
-    expect(() =>
-      resolvePacksRoot({ projectRoot: missing, env: {}, moduleUrl: FOREIGN_MODULE }),
-    ).toThrow(PacksRootError);
-    expect(() =>
+    // Returned failure, not a throw (#5853): same refusal text the CLI prints.
+    expect(resolvePacksRoot({ projectRoot: missing, env: {}, moduleUrl: FOREIGN_MODULE })).toEqual({
+      ok: false,
+      error: `--project-root ${resolve(missing)} is not a directory (refusing package fallback)`,
+    });
+    expect(
       resolvePacksRoot({ env: { DEFT_PROJECT_ROOT: missing }, moduleUrl: FOREIGN_MODULE }),
-    ).toThrow(/DEFT_PROJECT_ROOT .* is not a directory/);
-    expect(() => resolvePacksRoot({ projectRoot: "", env: {}, moduleUrl: FOREIGN_MODULE })).toThrow(
-      /requires a value/,
-    );
+    ).toEqual({
+      ok: false,
+      error: `DEFT_PROJECT_ROOT ${resolve(missing)} is not a directory (refusing package fallback)`,
+    });
+    expect(resolvePacksRoot({ projectRoot: "", env: {}, moduleUrl: FOREIGN_MODULE })).toEqual({
+      ok: false,
+      error: "--project-root requires a value (refusing package fallback)",
+    });
   });
 });
 
@@ -141,6 +147,13 @@ describe("pack-render main binds to the resolved checkout (#5853)", () => {
     expect(main(["--pack", "lessons", "--project-root", root])).toBe(0);
     expect(readFileSync(join(root, "meta", "lessons.md"), "utf8")).toContain("Fixture lesson");
     expect(main(["--check", `--project-root=${join(root, "nope")}`])).toBe(1);
-    expect(err.join("")).toMatch(/--project-root .* is not a directory/);
+    expect(err.join("")).toContain(
+      `error: --project-root ${resolve(join(root, "nope"))} is not a directory (refusing package fallback)\n`,
+    );
+    err.length = 0;
+    expect(main(["--check", "--project-root="])).toBe(1);
+    expect(err.join("")).toBe(
+      "error: --project-root requires a value (refusing package fallback)\n",
+    );
   });
 });

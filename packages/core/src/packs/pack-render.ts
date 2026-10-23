@@ -642,9 +642,15 @@ export function main(argv?: string[]): number {
   const args = parseArgs(argv ?? process.argv.slice(2));
   try {
     // #5853: flag -> env -> cwd walk-up; explicit roots that fail to stat refuse closed.
-    const registry = buildRenderRegistry(
-      resolvePacksRoot({ projectRoot: args.projectRoot, moduleUrl: import.meta.url }),
-    );
+    const resolved = resolvePacksRoot({
+      projectRoot: args.projectRoot,
+      moduleUrl: import.meta.url,
+    });
+    if (!resolved.ok) {
+      process.stderr.write(`error: ${resolved.error}\n`);
+      return 1;
+    }
+    const registry = buildRenderRegistry(resolved.root);
     if (args.source !== null || args.output !== null) {
       const source = args.source ?? (registry.lessons as RenderRegistryEntry).source;
       const output =
