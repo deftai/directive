@@ -1,0 +1,139 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Sealed installer/OVPR hooks lane: #5807 dual PreToolUse, #5808 brief+refspec gates, #5809 disable-before-bin + project PM hatch, #5869 OVPR bot-visible hatch messaging (same files).",
+    "created": "2026-10-23T23:30:00.000Z",
+    "updated": "2026-10-23T23:04:21.207Z"
+  },
+  "plan": {
+    "id": "ovpr-hooks-5807-5808-5809-5869",
+    "title": "fix(hooks,ovpr): dual PreToolUse + brief/refspec gates + disable-before-bin + project PM hatch",
+    "status": "running",
+    "metadata": {
+      "kind": "story",
+      "github": {
+        "issues": [
+          5807,
+          5808,
+          5809,
+          5869
+        ]
+      },
+      "swarm": {
+        "file_scope": [
+          ".githooks/_directive-run.sh",
+          ".githooks/pre-commit",
+          ".githooks/pre-push",
+          "CHANGELOG.md",
+          "packages/core/src/content-contracts/standards/branch_gate.test.ts",
+          "packages/core/src/install-health/constants.ts",
+          "packages/core/src/init-deposit/agent-hooks.ts",
+          "packages/core/src/init-deposit/agent-hooks.test.ts",
+          "packages/runtime/src/doctor-remedy-inventory.test.ts",
+          "packages/runtime/src/setup-wiring-ovpr-hooks-red.test.ts",
+          "packages/runtime/src/setup-wiring.ts",
+          "content/docs/hook-runtime-unavailable.md",
+          "content/docs/deft-directive-disable.md"
+        ],
+        "file_scope_confidence": "high"
+      }
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "#5807 One healthy Grok PreToolUse per matcher after upgrade; pin-relative hook-bin only",
+        "effort": "M",
+        "status": "proposed",
+        "narrative": {
+          "Overview": "Implement Locked disposition on #5807: upgrade/repair leaves one PreToolUse per matcher; wrapper rewritten or direct pin-relative hook-bin.js; never leftover deft-hook deny path.",
+          "Acceptance": "Upgrade from 0.126-style Grok deposit to current pin ends with one healthy PreToolUse per matcher; edits/shell not denied by stale wrapper."
+        }
+      },
+      {
+        "id": "2",
+        "title": "#5808 Restore brief gates at pre-commit and refspec-aware pre-push",
+        "effort": "M",
+        "status": "proposed",
+        "narrative": {
+          "Overview": "Implement Locked disposition on #5808: restore forward-coverage/vbrief-conformance/xbrief-drift class gates under pin-relative helper; pre-push uses preflight-gh/refspec-aware protection.",
+          "Acceptance": "Consumers on current pin get brief gates at pre-commit and refspec-aware pre-push matching 0.126 feature points with pin-relative paths."
+        }
+      },
+      {
+        "id": "3",
+        "title": "#5809 Evaluate .deft-directive-disable before missing RUNTIME_BIN; project PM install hatch",
+        "effort": "S",
+        "status": "proposed",
+        "narrative": {
+          "Overview": "Implement Locked disposition on #5809: kill-switch readable before missing dist/bin.js hard-fail; missing pin prints project pnpm/npm install remediation (aligned with #5869).",
+          "Acceptance": "With untracked .deft-directive-disable present, hooks skip even when runtime pin absent; missing pin without disable prints project PM install hatch."
+        }
+      },
+      {
+        "id": "4",
+        "title": "#5869 OVPR bot-visible split + consistent project PM hatch wording on touched surfaces",
+        "effort": "S",
+        "status": "proposed",
+        "narrative": {
+          "Overview": "Where Lane A already changes recovery/constants/docs, apply #5869 hatch messaging; do not fake directive/deft bins on runtime package.",
+          "Acceptance": "Relative node_modules/@deftai/directive-runtime paths fail closed with project PM install hatch text; no fake local CLI bins added."
+        }
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        "echo none_stated_commands_placeholder"
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "derived from Locked disposition Done-when on #5807 #5808 #5809 #5869",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Grok upgrade ends with one healthy PreToolUse per matcher; no deft-hook deny leftover.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Pre-commit restores brief gates; pre-push is refspec-aware (preflight-gh class).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Untracked .deft-directive-disable is honored before missing RUNTIME_BIN hard-fail; missing pin prints project PM install hatch.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-10-23T22:56:39.787Z",
+    "references": [
+      {
+        "type": "x-xbrief/github-issue",
+        "uri": "https://github.com/deftai/directive/issues/5807",
+        "title": "#5807 dual PreToolUse / deft-hook deny wrapper"
+      },
+      {
+        "type": "x-xbrief/github-issue",
+        "uri": "https://github.com/deftai/directive/issues/5808",
+        "title": "#5808 brief gates + refspec-aware pre-push"
+      },
+      {
+        "type": "x-xbrief/github-issue",
+        "uri": "https://github.com/deftai/directive/issues/5809",
+        "title": "#5809 disable before missing bin + PM hatch"
+      },
+      {
+        "type": "x-xbrief/github-issue",
+        "uri": "https://github.com/deftai/directive/issues/5869",
+        "title": "#5869 OVPR bot-visible hatch messaging"
+      }
+    ]
+  }
+}

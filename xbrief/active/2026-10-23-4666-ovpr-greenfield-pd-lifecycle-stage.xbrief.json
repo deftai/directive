@@ -1,0 +1,80 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Sealed installer/OVPR lane: #4666 greenfield PD seed + lifecycle dirs + staging; no xbrief/schemas copy.",
+    "created": "2026-10-23T23:30:00.000Z",
+    "updated": "2026-10-23T22:56:39.789Z"
+  },
+  "plan": {
+    "id": "ovpr-greenfield-4666",
+    "title": "fix(install): OVPR greenfield seed PROJECT-DEFINITION + lifecycle + stage (no schemas copy)",
+    "status": "running",
+    "metadata": {
+      "kind": "story",
+      "github": {
+        "issue": 4666
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/runtime/src/setup.ts",
+          "packages/runtime/src/setup-ovpr-greenfield-4666.test.ts",
+          "CHANGELOG.md",
+          "content/skills/deft-directive-setup/SKILL.md",
+          "content/skills/deft-directive-refinement/SKILL.md",
+          "content/skills/deft-directive-swarm/references/core-phase-0.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/UPGRADING.md"
+        ],
+        "file_scope_confidence": "high"
+      }
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "First-time install seeds minimal PD idempotently and creates lifecycle dirs + gitkeeps",
+        "effort": "M",
+        "status": "proposed",
+        "narrative": {
+          "Overview": "Implement Locked disposition on #4666 items 1–2: seed xbrief/PROJECT-DEFINITION.xbrief.json once; create five lifecycle dirs with .gitkeeps.",
+          "Acceptance": "Isolated greenfield directive install creates PD + lifecycle dirs without overwriting an existing PD."
+        }
+      },
+      {
+        "id": "2",
+        "title": "Stage managed paths including PD + lifecycle after install/upgrade setup writes; no schemas copy",
+        "effort": "M",
+        "status": "proposed",
+        "narrative": {
+          "Overview": "Implement Locked disposition on #4666 items 3–5: restore staging of PD + lifecycle; do not re-deposit xbrief/schemas; update teaching content that still points at project-local schemas.",
+          "Acceptance": "Greenfield install stages PD with peers; no xbrief/schemas copy; pin remains schema SoT."
+        }
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        "echo none_stated_commands_placeholder"
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "derived from Locked disposition Done-when on #4666",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Isolated greenfield directive install matches 0.126 feature points for PD + lifecycle + staging, with OVPR pin as version source and no xbrief/schemas copy.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-10-23T22:56:39.789Z",
+    "references": [
+      {
+        "type": "x-xbrief/github-issue",
+        "uri": "https://github.com/deftai/directive/issues/4666",
+        "title": "#4666 OVPR greenfield PD + lifecycle + stage"
+      }
+    ]
+  }
+}
