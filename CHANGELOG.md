@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed - `directive upgrade` / `install` / `install --repair` on pnpm projects now replace the prior exact `@deftai/directive-runtime@<old>` row in `pnpm-workspace.yaml` `minimumReleaseAgeExclude` with one quoted `@<target>` row (before and after the package-manager add, so a pnpm-appended duplicate collapses) instead of leaving old and new side by side; repair heals a stranded stale row even when no PM restore runs, plan/dry-run output discloses the replace, and workspaces without an exact runtime row stay byte-identical. Refs #5854 Prefer-A Recut-1 6357598598.
+
 ### Removed
 
 ## [0.128.0] - 2026-10-23
