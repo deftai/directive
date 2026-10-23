@@ -3,7 +3,7 @@
     "version": "0.8",
     "description": "Sealed installer/OVPR lane: #4666 greenfield PD seed + lifecycle dirs + staging; no xbrief/schemas copy.",
     "created": "2026-10-23T23:30:00.000Z",
-    "updated": "2026-10-23T22:56:39.789Z"
+    "updated": "2026-10-23T23:08:43.532Z"
   },
   "plan": {
     "id": "ovpr-greenfield-4666",
@@ -51,12 +51,10 @@
       }
     ],
     "acceptance": {
-      "commands": [
-        "echo none_stated_commands_placeholder"
-      ],
-      "none_stated": false,
+      "commands": [],
+      "none_stated": true,
       "source_rung": "derived",
-      "derived_reason": "derived from Locked disposition Done-when on #4666",
+      "derived_reason": "derived from Locked disposition Done-when on #4666 Path B activation: none_stated until product PR stamps proof cmds.",
       "clauses": [
         {
           "id": 1,
@@ -68,7 +66,7 @@
       ],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-10-23T22:56:39.789Z",
+    "updated": "2026-10-23T23:08:43.532Z",
     "references": [
       {
         "type": "x-xbrief/github-issue",

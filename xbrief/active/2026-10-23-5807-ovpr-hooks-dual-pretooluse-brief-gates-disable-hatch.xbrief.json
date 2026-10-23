@@ -3,7 +3,7 @@
     "version": "0.8",
     "description": "Sealed installer/OVPR hooks lane: #5807 dual PreToolUse, #5808 brief+refspec gates, #5809 disable-before-bin + project PM hatch, #5869 OVPR bot-visible hatch messaging (same files).",
     "created": "2026-10-23T23:30:00.000Z",
-    "updated": "2026-10-23T23:04:21.207Z"
+    "updated": "2026-10-23T23:08:43.530Z"
   },
   "plan": {
     "id": "ovpr-hooks-5807-5808-5809-5869",
@@ -81,12 +81,10 @@
       }
     ],
     "acceptance": {
-      "commands": [
-        "echo none_stated_commands_placeholder"
-      ],
-      "none_stated": false,
+      "commands": [],
+      "none_stated": true,
       "source_rung": "derived",
-      "derived_reason": "derived from Locked disposition Done-when on #5807 #5808 #5809 #5869",
+      "derived_reason": "derived from Locked disposition Done-when on #5807 #5808 #5809 #5869 Path B activation: none_stated until product PR stamps proof cmds.",
       "clauses": [
         {
           "id": 1,
@@ -112,7 +110,7 @@
       ],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-10-23T22:56:39.787Z",
+    "updated": "2026-10-23T23:08:43.530Z",
     "references": [
       {
         "type": "x-xbrief/github-issue",
