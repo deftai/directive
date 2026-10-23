@@ -99,9 +99,9 @@ describe("verify-presentation-coverage CLI (#5079)", () => {
   });
 });
 
-it("parses a real cold Task build followed by the source CLI report", { timeout: 20000 }, ({
-  skip,
-}) => {
+it("parses a real Task pin invoke of the source CLI report without a cold build (#5805)", {
+  timeout: 20000,
+}, ({ skip }) => {
   // The TS-only lane does not install Task; the mandatory merge gate does.
   // Only an absent executable skips this integration. A broken install fails.
   const probe = spawnSync("task", ["--version"], { encoding: "utf8", timeout: 3000 });
@@ -122,10 +122,14 @@ it("parses a real cold Task build followed by the source CLI report", { timeout:
   const put = (path: string, text: string) => writeFileSync(join(root, path), text);
   try {
     mkdirSync(join(root, "tasks"));
-    // OVPR: engine:invoke resolves packages/runtime/dist/bin.js. packages/cli
-    // package.json remains the is-buildable-source marker (engine-invoke.cjs).
+    // #5805: framework-source engine:invoke runs only the checkout pin
+    // node_modules/@deftai/directive-runtime/dist/bin.js; it must not cold-build
+    // or run packages/runtime/dist. packages/cli package.json remains the
+    // is-buildable-source marker (engine-invoke.cjs), and build.cjs is armed so a
+    // regression back to auto-compile is observable.
     mkdirSync(join(root, "packages/cli"), { recursive: true });
     mkdirSync(join(root, "packages/runtime"), { recursive: true });
+    mkdirSync(join(root, "node_modules/@deftai/directive-runtime/dist"), { recursive: true });
     for (const file of [
       "engine.yml",
       "verify.yml",
@@ -164,6 +168,8 @@ it("parses a real cold Task build followed by the source CLI report", { timeout:
     const loader = pathToFileURL(createRequire(import.meta.url).resolve("tsx/esm")).href;
     const cli = join(repo, "packages/runtime/src/verify-presentation-coverage.ts");
     const shim = `const {spawnSync}=require('node:child_process'); const r=spawnSync(process.execPath, ${JSON.stringify(["--import", loader, cli])}.concat(process.argv.slice(3)), {stdio:'inherit'}); process.exit(r.status ?? 2);`;
+    const pinBin = join(root, "node_modules/@deftai/directive-runtime/dist/bin.js");
+    writeFileSync(pinBin, shim);
     put(
       "build.cjs",
       `const fs=require('node:fs'); console.log('cold build diagnostic'); fs.mkdirSync('packages/runtime/dist',{recursive:true}); fs.writeFileSync('packages/runtime/dist/bin.js',${JSON.stringify(shim)});`,
@@ -209,9 +215,9 @@ it("parses a real cold Task build followed by the source CLI report", { timeout:
     });
     expect(child.error, diagnostic).toBeUndefined();
     expect(child.status, diagnostic).toBe(0);
-    expect(child.stdout).toContain("cold build diagnostic");
-    expect(existsSync(join(root, "packages/runtime/dist/bin.js"))).toBe(true);
-    expect(readFileSync(join(root, "packages/runtime/dist/bin.js"), "utf8")).toBe(shim);
+    expect(child.stdout).not.toContain("cold build diagnostic");
+    expect(existsSync(join(root, "packages/runtime/dist/bin.js"))).toBe(false);
+    expect(readFileSync(pinBin, "utf8")).toBe(shim);
     expect(parseCoverageReport(child.stdout, child.status ?? 0)).toEqual({
       armed: false,
       coverage: [],
