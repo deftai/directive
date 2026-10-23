@@ -805,7 +805,9 @@ tasks:
     cmds:
       - task: engine:invoke
         vars:
-          ENGINE_CMD: 'release {{.CLI_ARGS}}'
+          # #5805: the pin's default project root is its own package dir, so pass the
+          # operator root explicitly (an operator --project-root in CLI_ARGS still wins).
+          ENGINE_CMD: 'release --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   release:publish:
     desc: "Flip a draft GitHub release to public (#716) -- task release:publish -- <version> [--dry-run] [--repo OWNER/REPO]"
