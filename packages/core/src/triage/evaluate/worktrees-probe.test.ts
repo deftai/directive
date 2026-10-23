@@ -63,6 +63,7 @@ describe("evaluator worktree probe failure", () => {
       return;
     }
     execFileSync("git", ["init", "-q"], { cwd: root });
+    execFileSync("git", ["config", "maintenance.auto", "false"], { cwd: root });
     execFileSync("git", ["config", "user.email", "t@t.local"], { cwd: root });
     execFileSync("git", ["config", "user.name", "T"], { cwd: root });
     execFileSync("git", ["commit", "-q", "--allow-empty", "-m", "init"], {
@@ -111,6 +112,7 @@ describe("evaluator worktree probe failure", () => {
       return;
     }
     execFileSync("git", ["init", "-q"], { cwd: root });
+    execFileSync("git", ["config", "maintenance.auto", "false"], { cwd: root });
     execFileSync("git", ["config", "user.email", "t@t.local"], { cwd: root });
     execFileSync("git", ["config", "user.name", "T"], { cwd: root });
     execFileSync("git", ["commit", "-q", "--allow-empty", "-m", "init"], {
