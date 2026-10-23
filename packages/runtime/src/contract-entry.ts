@@ -66,6 +66,8 @@ export async function handleContractEntrypoint(argv: readonly string[]): Promise
       operation: operation as "install" | "repair" | "upgrade",
       from,
       root,
+      // Explicit pre-write operator force only (#5837); self-complete never forces.
+      forceGitHooks: hasFlag(argv, "--force-githooks"),
     });
     process.stdout.write(`${JSON.stringify(result)}\n`);
     if (result.conflicts.length > 0) return 1;
