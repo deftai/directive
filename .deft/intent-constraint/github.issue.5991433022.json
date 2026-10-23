@@ -1,0 +1,20 @@
+{
+  "schema": "deft.intent-constraint.v1",
+  "planId": "github.issue.5991433022",
+  "xbriefRelPath": "xbrief/active/2026-10-23-5852-featrelease-let-the-release-skill-choose-the-npm-dist-tag-la.xbrief.json",
+  "approvedAt": "2026-10-23T17:13:54Z",
+  "constraints": [
+    {
+      "value": "release version that is neither X.Y.Z nor X.Y.Z-(alpha|beta|rc).N, where X, Y, Z and N are digit-only integers",
+      "unit": "release version string",
+      "rejectionScope": "invocation"
+    }
+  ],
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "MScottAdams",
+    "mintedAt": "2026-10-23T17:13:54Z",
+    "mintedVia": "in-harness-ask"
+  },
+  "contractDigest": "e1c47a2c0160a6ddeac25c3165ecce35b8005e99a7c221c2338b4129c4518fb2"
+}
