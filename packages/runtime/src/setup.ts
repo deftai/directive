@@ -13,6 +13,12 @@ import {
   containedRemove,
   containedWrite,
 } from "@deftai/directive-core/dist/fs/contained-write.js";
+import { CANONICAL_INSTALL_ROOT } from "@deftai/directive-core/dist/init-deposit/constants.js";
+import {
+  frameworkStagePaths,
+  stageFrameworkPaths,
+} from "@deftai/directive-core/dist/init-deposit/hygiene.js";
+import { seedMinimalProjectDefinition } from "@deftai/directive-core/dist/init-deposit/init-deposit.js";
 import {
   buildOwnershipRecord,
   fingerprintContent,
@@ -59,8 +65,19 @@ export interface SetupResult {
 }
 
 const SEED_PLACEHOLDER_REL = "xbrief/.directive-seed-placeholder";
+const PD_REL = "xbrief/PROJECT-DEFINITION.xbrief.json";
 const GEN_REL = ".deft/GENERATION.json";
 const WIRING_READY_DIR_REL = ".deft/directive";
+const XBRIEF_LIFECYCLE_DIRS = [
+  "proposed",
+  "pending",
+  "active",
+  "completed",
+  "cancelled",
+] as const;
+const XBRIEF_LIFECYCLE_GITKEEP =
+  "# Keeps this xbrief/ lifecycle directory present in version control so the\n" +
+  "# deft-directive-setup pre-cutover guard does not fire on a fresh install (#4666).\n";
 
 function readOwnRuntimeVersion(): string {
   try {
@@ -204,6 +221,33 @@ function createSeedPlaceholder(projectRoot: string): string | null {
   return SEED_PLACEHOLDER_REL;
 }
 
+/** Install-only: five xbrief lifecycle dirs + .gitkeeps (#4666 / AC8.4). */
+function ensureXbriefLifecycleGitkeeps(projectRoot: string): string[] {
+  const created: string[] = [];
+  for (const sub of XBRIEF_LIFECYCLE_DIRS) {
+    const rel = relPosix("xbrief", sub, ".gitkeep");
+    if (existsSync(join(projectRoot, rel))) continue;
+    writeContained(projectRoot, rel, XBRIEF_LIFECYCLE_GITKEEP);
+    created.push(rel);
+  }
+  return created;
+}
+
+/**
+ * Stage managed deposit paths after install/upgrade writes (#4666).
+ * Includes PROJECT-DEFINITION even though the consumer-guard denylist keeps it
+ * out of installerManagedMatchers (create ≠ allowlist; fix the 0.126 hole).
+ */
+function stageSetupManagedPaths(projectRoot: string): void {
+  const paths = frameworkStagePaths(projectRoot, join(projectRoot, CANONICAL_INSTALL_ROOT), {
+    includeCore: false,
+  });
+  if (existsSync(join(projectRoot, PD_REL)) && !paths.includes(PD_REL)) {
+    paths.push(PD_REL);
+  }
+  stageFrameworkPaths(projectRoot, paths);
+}
+
 /** Shared host settings / Taskfile: only Directive entries are owned (structured-entry). */
 const STRUCTURED_ENTRY_RELS: ReadonlyArray<{ path: string; entryKey: string }> = [
   { path: ".claude/settings.json", entryKey: "hooks" },
@@ -267,7 +311,11 @@ function buildOwnershipArtifacts(projectRoot: string): OwnedArtifact[] {
     });
   }
   const seedAbs = join(projectRoot, SEED_PLACEHOLDER_REL);
-  if (existsSync(seedAbs)) {
+  const pdAbs = join(projectRoot, PD_REL);
+  const hasLifecycle = XBRIEF_LIFECYCLE_DIRS.some((sub) =>
+    existsSync(join(projectRoot, "xbrief", sub, ".gitkeep")),
+  );
+  if (existsSync(seedAbs) || existsSync(pdAbs) || hasLifecycle) {
     artifacts.push({
       path: "xbrief",
       kind: "retained",
@@ -392,9 +440,14 @@ export function runSetup(options: {
     // Seeds only on first-time install (AC8.4); repair/upgrade never create them.
     // AC6.2: leave data-schema current for empty/seeded install. Repair may write a
     // missing marker (not a migration); upgrade still migrates when data is behind.
+    // #4666: greenfield retain — PD + lifecycle dirs (not placeholder-only); no schemas.
     if (operation === "install" && conflicts.length === 0) {
       const seed = createSeedPlaceholder(root);
       if (seed !== null) created.push(seed);
+      created.push(...ensureXbriefLifecycleGitkeeps(root));
+      if (seedMinimalProjectDefinition(root, { printf: () => undefined })) {
+        created.push(PD_REL);
+      }
     }
     if (
       (operation === "install" || operation === "repair") &&
@@ -429,6 +482,16 @@ export function runSetup(options: {
     );
     if (!genExisted) created.push(GEN_REL);
     else if (!unchanged || legacyConversion || convertViaRemovals) modified.push(GEN_REL);
+
+    // #4666: stage managed peers including PD + lifecycle after install/upgrade writes.
+    // Still no auto-commit. Repair does not stage (seeds are install-only; upgrade stages
+    // existing PD/lifecycle with refreshed wiring).
+    if (
+      conflicts.length === 0 &&
+      (operation === "install" || operation === "upgrade")
+    ) {
+      stageSetupManagedPaths(root);
+    }
 
     if (conflicts.length > 0) {
       // Never publish readiness after conflict; invalidate any existing marker (AC8.6).
