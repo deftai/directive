@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Changed - `task release` validates the version through a channel-aware gate that admits publishable prereleases (`X.Y.Z-(alpha|beta|rc).N`) and refuses other spellings, and a new `releaseDistTag` helper maps stable to `maintainer` and a prerelease to its id, never `latest`; `validateVersion` stays strict for other callers. Part 1 of 2; the publish workflow and promote verb follow separately. Refs #5852.
+
 ### Fixed
 
 ### Removed
