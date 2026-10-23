@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Changed - The npm publish workflow now maps a stable `vX.Y.Z` tag to the `maintainer` dist-tag instead of `latest`, for tag pushes and manual re-publish alike, and refuses any version that would resolve to `latest`; prerelease mapping is unchanged and `latest` moves only by a separate, explicit promote. Part 2 (minimal) of #5852. Refs #5852.
+- Changed - `task release` validates the version through a channel-aware gate that admits publishable prereleases (`X.Y.Z-(alpha|beta|rc).N`) and refuses other spellings, and a new `releaseDistTag` helper maps stable to `maintainer` and a prerelease to its id, never `latest`; `validateVersion` stays strict for other callers. Part 1 of 2; the publish workflow and promote verb follow separately. Refs #5852.
+
 ### Fixed
 - Fixed - Pack drift checks on a framework source checkout now compare the checkout's own content/ projections (found by walking up from the working directory) instead of the installed runtime package's rewritten copies; a missing --project-root or DEFT_PROJECT_ROOT refuses instead of falling back. Refs #5853 Prefer-A Recut-1 6357491124.
 

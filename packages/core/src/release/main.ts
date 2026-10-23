@@ -4,7 +4,7 @@ import { resolveProjectRoot, resolveRepo } from "./paths.js";
 import { runPipeline } from "./pipeline.js";
 import { validateSkipCiIncident } from "./skip-ci-incident.js";
 import type { ReleaseConfig, ReleaseSeams } from "./types.js";
-import { validateVersion } from "./version.js";
+import { validateReleaseChannelVersion } from "./version.js";
 
 export function cmdRelease(args: readonly string[], seams: ReleaseSeams = {}): number {
   const flags = parseReleaseFlags(args);
@@ -25,7 +25,8 @@ export function cmdRelease(args: readonly string[], seams: ReleaseSeams = {}): n
   }
 
   try {
-    validateVersion(flags.version);
+    // Channel-aware gate (#5852 P3): publishable prereleases reach the non-latest resolver.
+    validateReleaseChannelVersion(flags.version);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     process.stderr.write(`Error: ${msg}\n`);

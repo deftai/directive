@@ -76,6 +76,35 @@ export function validateVersion(version: string): void {
   }
 }
 
+/**
+ * Channel-aware sibling of {@link validateVersion} for release cut and
+ * release-publish only (#5852 Recut-4 P3). Admits strict X.Y.Z plus publishable
+ * prereleases X.Y.Z-(alpha|beta|rc).N; `test` stays non-publishable. Every admitted
+ * version maps to a non-latest dist-tag ({@link releaseDistTag}), so a prerelease
+ * can never reach npm latest. Unrelated callers keep strict {@link validateVersion}.
+ */
+export function validateReleaseChannelVersion(version: string): void {
+  if (/^\d+\.\d+\.\d+$/.test(version)) return;
+  if (/^\d+\.\d+\.\d+-(alpha|beta|rc)\.\d+$/.test(version)) return;
+  throw new Error(
+    `Invalid version '${version}'. Expected X.Y.Z or a publishable prerelease ` +
+      "X.Y.Z-(alpha|beta|rc).N (no leading 'v'). Prereleases publish to their own " +
+      "dist-tag; npm latest moves only via the explicit promote-latest verb (#5852).",
+  );
+}
+
+/**
+ * Version-derived npm dist-tag for a channel-validated release version (#5852).
+ * Mirrors .github/scripts/resolve-npm-dist-tag.mjs: stable -> maintainer,
+ * prerelease -> its id. Never returns "latest".
+ */
+export function releaseDistTag(version: string): string {
+  validateReleaseChannelVersion(version);
+  const dash = version.indexOf("-");
+  if (dash < 0) return "maintainer";
+  return version.slice(dash + 1).split(".")[0] ?? "next";
+}
+
 /** Return true when version carries a SemVer pre-release suffix (#425). */
 export function isPrereleaseTag(version: string): boolean {
   let candidate = version.trim();
