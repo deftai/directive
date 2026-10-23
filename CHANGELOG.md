@@ -46,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Landed completed xBRIEF for #5783 after forge-closer leftover #5815.
 - Lifecycle closeout for #5783 after Tracking-only product PR #5811 (forge closer for scope:complete).
 - Fixed — Tip CI unblock (#5802): prefer in-repo `content/` over hoisted `@deftai/directive-runtime` for pack-drift; cut deposit/tests to `_directive-run.sh` / `run_directive` to match OVPR hooks.
+- Fixed - Restore green merge-gate vitest after pin-exclusive invoke: `task release` passes the operator `--project-root` so the pinned runtime reads this checkout (not its own package dir), and the presentation-coverage Task integration now runs the checkout pin and asserts no cold build of `packages/runtime/dist`. Refs #5805.
 
 ### Removed
 
