@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- xbrief: land the activated #5855, #5837, #5852 and #5854 briefs; each names its ingest-stamped title line in plan.acceptance.confessions (one-off exception, expires when the #5856 ingest fix ships) (#3550)
+
 ### Changed
 
 ### Fixed

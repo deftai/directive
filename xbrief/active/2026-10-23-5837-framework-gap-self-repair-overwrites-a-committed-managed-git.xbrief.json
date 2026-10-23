@@ -1,0 +1,557 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5837",
+    "updated": "2026-10-23T06:17:55Z"
+  },
+  "plan": {
+    "title": "[framework-gap] Self-repair overwrites a committed managed git hook during check, then class-checks blame the story PR",
+    "status": "running",
+    "narratives": {
+      "Description": "[framework-gap] Self-repair overwrites a committed managed git hook during check, then class-checks blame the story PR",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5837",
+      "Overview": "\n\n- relieves: P1 — Tracked-divergent preserve in ensureGitHooks: git-tracked prior≠next keeps prior + discloses, even when isOurGitHookBody is true; same preserve covers tracked legacy-helper cleanup\n- relieves: P2 — Preservation is a distinct non-failure outcome that does not invalidate readiness or re-trigger self-complete repair; ordinary check inherits the gate so CI does not dirty tracked .githooks\n- relieves: P3 — Install/upgrade honor the same gate; lawful replace only via untracked path or explicit pre-write operator force — never write-then-list or historical-equality-alone carve-out\n- operator-deferred: P4 #5848 — older-pin marker-unaware skew / pin-master rewrite stripping enrolled arms\n\n\n",
+      "Labels": "bug, blocks-release-tag, adoption-blocker, process, urgent, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "title": "relieves: P1 — Tracked-divergent preserve in ensureGitHooks: git-tracked prior≠next keeps prior + discloses, even when isOurGitHookBody is true; same preserve covers tracked legacy-helper cleanup",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "relieves: P2 — Preservation is a distinct non-failure outcome that does not invalidate readiness or re-trigger self-complete repair; ordinary check inherits the gate so CI does not dirty tracked .githooks",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "relieves: P3 — Install/upgrade honor the same gate; lawful replace only via untracked path or explicit pre-write operator force — never write-then-list or historical-equality-alone carve-out",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "operator-deferred: P4 #5848 — older-pin marker-unaware skew / pin-master rewrite stripping enrolled arms",
+        "status": "proposed",
+        "id": "clause.4"
+      }
+    ],
+    "tags": [
+      "bug",
+      "blocks-release-tag",
+      "adoption-blocker",
+      "process",
+      "urgent",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5837",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5837: [framework-gap] Self-repair overwrites a committed managed git hook during check, then class-checks blame the story PR"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "[framework-gap] Self-repair overwrites a committed managed git hook during check, then class-checks blame the story PR",
+        "relieves: P1 — Tracked-divergent preserve in ensureGitHooks: git-tracked prior≠next keeps prior + discloses, even when isOurGitHookBody is true; same preserve covers tracked legacy-helper cleanup",
+        "relieves: P2 — Preservation is a distinct non-failure outcome that does not invalidate readiness or re-trigger self-complete repair; ordinary check inherits the gate so CI does not dirty tracked .githooks",
+        "relieves: P3 — Install/upgrade honor the same gate; lawful replace only via untracked path or explicit pre-write operator force — never write-then-list or historical-equality-alone carve-out",
+        "operator-deferred: P4 #5848 — older-pin marker-unaware skew / pin-master rewrite stripping enrolled arms"
+      ],
+      "confessions": [
+        "[framework-gap] Self-repair overwrites a committed managed git hook during check, then class-checks blame the story PR"
+      ],
+      "admitted_source_sentences": [
+        "relieves: P1 — Tracked-divergent preserve in ensureGitHooks: git-tracked prior≠next keeps prior + discloses, even when isOurGitHookBody is true; same preserve covers tracked legacy-helper cleanup",
+        "relieves: P2 — Preservation is a distinct non-failure outcome that does not invalidate readiness or re-trigger self-complete repair; ordinary check inherits the gate so CI does not dirty tracked .githooks",
+        "relieves: P3 — Install/upgrade honor the same gate; lawful replace only via untracked path or explicit pre-write operator force — never write-then-list or historical-equality-alone carve-out",
+        "operator-deferred: P4 #5848 — older-pin marker-unaware skew / pin-master rewrite stripping enrolled arms"
+      ],
+      "admitted_source_digest": "aea9967ce16fa5d9a0c66bbdc8e47b6103e735f1d20398005024ac00981b17c1",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "relieves: P1 — Tracked-divergent preserve in ensureGitHooks: git-tracked prior≠next keeps prior + discloses, even when isOurGitHookBody is true; same preserve covers tracked legacy-helper cleanup",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "relieves: P2 — Preservation is a distinct non-failure outcome that does not invalidate readiness or re-trigger self-complete repair; ordinary check inherits the gate so CI does not dirty tracked .githooks",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "relieves: P3 — Install/upgrade honor the same gate; lawful replace only via untracked path or explicit pre-write operator force — never write-then-list or historical-equality-alone carve-out",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "operator-deferred: P4 #5848 — older-pin marker-unaware skew / pin-master rewrite stripping enrolled arms",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/runtime/src/setup-wiring.ts",
+          "packages/runtime/src/setup.ts",
+          "packages/runtime/src/contract-entry.ts",
+          "packages/runtime/src/setup-wiring-tracked-hooks.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/runtime/src/setup-wiring.ts",
+        "cohesion_exemption": "CHANGELOG + setup result/flag plumbing for the ensureGitHooks preserve gate"
+      },
+      "issueCommentThread": [
+        {
+          "body": "0.128.0 repro (fresh worktree of master `f0b2a3623`, pnpm 11.8.0). Both managed-hook rewrites below happened without a prompt:\n\n**1. `directive upgrade --target-version 0.128.0` rewrote `.githooks/pre-push`.** It replaced the #5847 fallback with an unconditional push-admit line:\n\n```diff\n run_directive verify:branch --project-root \"$REPO_ROOT\" || exit $?\n # Enrolled bound pre-PR arm: sole-stdin (do not redirect shared run_directive to /dev/null)\n-# Pins older than #5804 lack --push-admit: keep the pre-#5804 hook there (verify:branch only).\n-_pre_pr_help=\"$(run_directive pre-pr:run --help </dev/null 2>&1)\" || exit $?\n-case \"$_pre_pr_help\" in\n-  *--push-admit*) run_directive pre-pr:run --push-admit --project-root \"$REPO_ROOT\" || exit $? ;;\n-esac\n+run_directive pre-pr:run --push-admit --project-root \"$REPO_ROOT\" || exit $?\n```\n\nThe upgrade's \"Review and commit\" list didn't mention `.githooks/pre-push`, so the rewrite would ride along in a pin-bump commit unless someone spots it in `git status`.\n\n**2. `pnpm install` on the 0.127.0 pin cut the hook down to verify:branch only.** In a second fresh worktree of the same commit, the install's setup step (no upgrade involved) rewrote `.githooks/pre-push` to the pre-#5804 body. That dropped the refuse-to-downgrade marker and the whole #5847 fallback block:\n\n```diff\n #!/usr/bin/env sh\n-# deft:pre-pr-bound-push-v1 — refuse-to-downgrade marker (#5804); marker-aware ensureGitHooks only\n REPO_ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\" || exit 1\n ...\n run_directive verify:branch --project-root \"$REPO_ROOT\" || exit $?\n-# Enrolled bound pre-PR arm: sole-stdin (do not redirect shared run_directive to /dev/null)\n-# Pins older than #5804 lack --push-admit: keep the pre-#5804 hook there (verify:branch only).\n-_pre_pr_help=\"$(run_directive pre-pr:run --help </dev/null 2>&1)\" || exit $?\n-case \"$_pre_pr_help\" in\n-  *--push-admit*) run_directive pre-pr:run --push-admit --project-root \"$REPO_ROOT\" || exit $? ;;\n-esac\n```\n\nSo the 0.127.0 runtime ignores the marker it is meant to honour. Both hooks were restored from `origin/master` by hand. Related skew: #5848.\n\n_Filed by Grok Bot (Engineering) for @MScottAdams_\n\n",
+          "id": 6357244670,
+          "html_url": "https://github.com/deftai/directive/issues/5837#issuecomment-6357244670",
+          "user": {
+            "login": "ape-deft",
+            "id": 309468868,
+            "node_id": "U_kgDOEnIexA",
+            "avatar_url": "https://avatars.githubusercontent.com/u/309468868?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/ape-deft",
+            "html_url": "https://github.com/ape-deft",
+            "followers_url": "https://api.github.com/users/ape-deft/followers",
+            "following_url": "https://api.github.com/users/ape-deft/following{/other_user}",
+            "gists_url": "https://api.github.com/users/ape-deft/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/ape-deft/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/ape-deft/subscriptions",
+            "organizations_url": "https://api.github.com/users/ape-deft/orgs",
+            "repos_url": "https://api.github.com/users/ape-deft/repos",
+            "events_url": "https://api.github.com/users/ape-deft/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/ape-deft/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:16:32Z",
+          "updated_at": "2026-10-23T04:16:32Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## Prefer-A draft\n\nconflict_group: self-repair-overwrite-tracked-managed-githook-class-checks\nSpec-path: ensureGitHooks tracked divergent preserve + self-complete/check\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nmove-forward: yes\ndispatch-sha: f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\ndest: .deft-scratch/worktrees/arc-5837\nTarget-digest: sha256:2df0ee3ea356402517fa24767bfe36f48d81881786f2b38acfc48ceef11c3b83\nKISS: #5783 Prefer-A Bound 6280270826 — short mechanism limbs only; docs/naming/alias/dispose-wording footnotes; Recut for mechanism or fail-closed change\nrelease-blocker: 0.129.0 (blocks-release-tag)\n\n## In plain English\n\nIn a fresh CI checkout the first ordinary runtime head (including check) self-repairs because the ignored wiring-ready marker is absent. ensureGitHooks treats any hook that sources _directive-run.sh as Directive-owned and overwrites the committed pre-push (often a stronger consumer gate such as preflight-gh, or the #5847 fallback). verify:class-checks then fails class 4 on .githooks/pre-push even though the story PR never touched it. Local runs hide this because the marker already exists. The same overwrite shows up on upgrade/install without landing on the Review-and-commit list. Prefer-A keeps tracked divergent managed hooks in place so check stays clean; class-checks exclusion of self-repair dirt is Approach B only.\n\n## Approaches\n\n### Approach A (Prefer-A lean)\n- ensureGitHooks: when a managed hook path is git-tracked and on-disk body differs from the template being written, keep prior and disclose conflict — even if isOurGitHookBody is true.\n- Self-complete repair and install/upgrade all go through that gate; ordinary check no longer dirties tracked hooks.\n- Intentional template bumps require an explicit operator path (untracked file, exact historical-template match eligible for rewrite, or disclosed install/upgrade commit).\n- Footnote: Review-and-commit list must name any hook rewrite that does occur; PRE_PUSH template #5847 fallback vs unconditional --push-admit stays footnote unless Round-1 binds fail-closed association.\n\n### Approach B\n- Leave rewrite in place; teach verify:class-checks to ignore paths this process self-repaired. Still weakens committed consumer gates in CI and on upgrade.\n\n### Approach C\n- Only change PRE_PUSH template body (e.g. preflight-gh). Does not stop overwrite of other committed Directive-shaped hooks.\n\n## Proposed Bound remedy (draft — bind after Round-1)\n\n- relieves: P1 — Tracked divergent managed-hook preserve in ensureGitHooks (keep prior + disclose when tracked body ≠ template, including isOurGitHookBody true)\n- relieves: P2 — Self-complete repair / check inherits that preserve so ordinary CI check does not dirty tracked .githooks\n- relieves: P3 — Install/upgrade honor the same tracked-divergent preserve (no silent managed-hook clobber)\n- Footnote: Review-and-commit disclosure for any hook rewrite that still occurs; PRE_PUSH #5847 fallback template content; class-checks self-repair exclusion only if residual after preserve\n\n## Reject\n\n- Approach B class-checks exclusion as the primary close (rewrite still ships)\n- Approach C template-only change as the primary close\n- Softening class 4 / adding approve-skip solely so check goes green while hooks still rewrite\n- Dropping refuse-to-downgrade (#5804) or treating marker-unaware older pins as out of scope without a leftover cite\n- Widening isOurGitHookBody recognition further\n\n## file_scope (lean)\n\n- packages/runtime/src/setup-wiring.ts (+ ensureGitHooks / isOurGitHookBody tests)\n- packages/runtime/src/self-complete.ts and setup.ts only if call-site proof requires it\n- packages/runtime/src/setup-wiring-legacy-hooks.test.ts and adjacent hook tests as needed\n- CHANGELOG.md\n- class-checks evaluate path only if Round-1 proves a residual after tracked preserve\n\n## Keep-outs\n\n- #5848 pin/master skew umbrella (related cite; not this close)\n- #5804 Prefer-A Bound product already shipped (marker); this arc preserves tracked divergence around it\n- #5847 closed fallback product (cite only)\n- Softening verify:class-checks class 4 policy defaults as the v1 primary\n- Auto-committing rewritten hooks from CI",
+          "id": 6357391387,
+          "html_url": "https://github.com/deftai/directive/issues/5837#issuecomment-6357391387",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:28:36Z",
+          "updated_at": "2026-10-23T04:28:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: triage\n```\n\n## Stop 1 — Gate\n\nIssue: #5837\nCharter: open critique\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nspend-why: open remedy space (tracked preserve vs class-checks exclusion vs template-only); blast across self-complete, ensureGitHooks, check CI, upgrade/install; panel permission; 0.129.0 release blocker\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\ndual-stop-reserved: yes\nverification-path: pin-read .deft-scratch/worktrees/arc-5837 @ f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\ndispatch-sha: f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\ndest: .deft-scratch/worktrees/arc-5837\nTarget-digest: sha256:2df0ee3ea356402517fa24767bfe36f48d81881786f2b38acfc48ceef11c3b83\nPrefer-A draft: 6357391387\nKISS ceiling: #5783 Prefer-A Bound 6280270826 — Bound stays short mechanism limbs; docs/naming/alias/dispose-wording footnotes; Recut only for mechanism/fail-closed association\nrelease-blocker: 0.129.0 (blocks-release-tag applied)\n\npain: P1, P2, P3, P4\n- P1 Fresh-CI self-complete/repair on ordinary heads (including check) overwrites tracked committed managed .githooks (e.g. pre-push) because wiring-ready marker is absent\n- P2 verify:class-checks then fails class 4 on that runtime-dirtied protected path and blames the story PR even when the PR never touched hooks\n- P3 isOurGitHookBody treats any hook that sources _directive-run.sh as Directive-owned, so consumer-customized stronger gates (preflight-gh, #5847 fallback) are clobbered as if they were stock templates\n- P4 upgrade/install also rewrite managed hooks without Review-and-commit disclosure; refuse-to-downgrade / marker skew leaves older pins stripping enrolled arms (#5848 related)\n\nGate: mechanism-shaped — tracked managed-hook clobber during check is a fail-closed wiring/CI control, not docs polish.\nmove-forward: yes",
+          "id": 6357403610,
+          "html_url": "https://github.com/deftai/directive/issues/5837#issuecomment-6357403610",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:29:38Z",
+          "updated_at": "2026-10-23T04:29:38Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## Panel-deposit\n\ninput-ceiling: 6357403868\nseat-families: claude,codex,grok\nspend: N≥3\nround: 1 critic\ncharter: open critique\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\ndual-stop-reserved: yes\nverification-path: pin-read .deft-scratch/worktrees/arc-5837 @ f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\ndispatch-sha: f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\ndest: .deft-scratch/worktrees/arc-5837\nTarget-digest: sha256:2df0ee3ea356402517fa24767bfe36f48d81881786f2b38acfc48ceef11c3b83\nPrefer-A draft: 6357391387\nStop 1: 6357403610\nKISS: #5783 — critics propose short mechanism limbs; footnote docs/messaging unless fail-closed association changes\nrelease-blocker: 0.129.0\n\nPanel seats three families against Prefer-A draft 6357391387 and Stop 1 pains P1–P4. Critic envelopes pin id ceiling to this panel-deposit comment after PATCH.",
+          "id": 6357403868,
+          "html_url": "https://github.com/deftai/directive/issues/5837#issuecomment-6357403868",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:29:39Z",
+          "updated_at": "2026-10-23T04:29:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## Spend-amend\n\nspend: N=2\nspend-recommend was: N≥3\nspend-ask: resolved (parent amend)\nseat-families: codex, grok\nlaunch-probe: codex=pong@0 (Node single-argv) grok=pong@0 claude=TIMEOUT/#5478-class 0-byte hang after Start-Process probe\ndispatch-sha: f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\ndest: .deft-scratch/worktrees/arc-5837\nPrefer-A draft: 6357391387\nStop 1: 6357403610\npanel-deposit: 6357403868\nKISS: #5783 — N=2 containment same class as family-unavailable / Claude PA thrash\n\nClaude launch-probe timed out with hung claude.exe PIDs left running (operator kill-confirm standing rule). Amending panel to Codex+Grok only; bind Prefer-A from remaining posted families. Cite deftai/directive#5478.",
+          "id": 6357443938,
+          "html_url": "https://github.com/deftai/directive/issues/5837#issuecomment-6357443938",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:33:03Z",
+          "updated_at": "2026-10-23T04:33:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-5.1-codex\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nRound-1 open critique; input ceiling: 6357403868. Pin-read verification at f0b2a3623a6be6ab2952bcafca0c8114b2b058cf; no product edits or issue:ingest.\n\nPrefer A, but do not bind the draft unchanged. Preserve committed hook policy at the shared writer; do not exempt runtime dirt from class 4.\n\n### F1 — blocks-the-design — Preservation needs a distinct outcome\n\nEvidence: setup.ts feeds ensureGitHooks.conflicts into setup conflicts and invalidates readiness on any conflict. self-complete.ts consequently retries repair when readiness is absent. bin.ts calls maybeSelfCompleteSetup and discards its result before dispatching the ordinary command. Thus simply pushing the new preserve into conflicts neither discloses it on this entry point nor settles readiness: every subsequent eligible invocation can repair again. This is a concrete gap in the proposed keep-prior + disclose mechanism for P1–P3, not wording polish.\n\nRemedy: represent intentional tracked preservation separately from installation failure, surface that result through ordinary self-completion and install/upgrade, and allow readiness only when the other existing activation conditions pass. Preserve real conflicts and #5804 downgrade refusal. Verify a second ordinary invocation does not repeat repair solely because a committed divergent hook was retained.\n\n### F2 — blocks-the-design — Historical-template match is not operator consent\n\nEvidence: draft 6357391387 calls an exact historical-template match an explicit operator path. At the pin, ensureGitHooks has no operation/consent argument; self-complete repair calls runSetup, which uses the same writer as installation. A committed old stock hook differs from the new template just as a customized hook does. Permitting automatic migration by historical equality reintroduces tracked dirt on a fresh check and therefore P2; retaining the marker in both bodies does not trigger the existing downgrade guard.\n\nRemedy: ordinary repair and ordinary install/upgrade preserve tracked divergence even for historical stock bodies. Intentional replacement must be a distinct operator-authorized action; historical equality alone is insufficient. Manual reviewed replacement is enough for the first ship; no new migration subsystem is needed.\n\n### F3 — sharpens-framing — Cover the cleanup write, not only trackChange\n\nEvidence: ensureGitHooks iterates over the current helper and two hooks, then separately removes recognized .githooks/_deft-run.sh when no other hook references it. A committed orphan legacy helper is therefore deleted even after a tracked-divergent guard is added to the three-file loop. class-checks/policy.ts protects .githooks/** and evaluate.ts class 4 combines protected hits with story-product paths. The fresh-CI protected-path failure survives in this case.\n\nRemedy: apply the same tracked-preserve rule to legacy-helper removal. Include a tracked orphan helper in the fresh-check fixture. This sharpens the shared-writer boundary; no class-checks exclusion is warranted.\n\n### F4 — sharpens-framing — State the actual P4 remainder\n\nEvidence: field comment 6357244670 reports the 0.127.0 install removing both marker and fallback. Tip PRE_PUSH carries the marker and unconditionally invokes pre-pr:run --push-admit; its guard only rejects prior-marker/next-no-marker. New preservation code cannot change an already-published marker-unaware runtime selected by an old pin.\n\nConsequence: the fix can prevent current-runtime upgrade/install clobber, but cannot claim all of P4 is relieved. Retain #5804 and carry the older-pin remainder through the contract's explicit leftover disposition with a concrete cite (the field report links #5848); do not silently absorb that umbrella or declare the old-runtime behavior repaired. I have not audited #5848's current shape.\n\n### F5 — footnote — Pain labels and disclosure presentation\n\nThe draft labels install/upgrade as P3, while Stop 1 assigns customized ownership to P3 and upgrade/install plus skew to P4. Align the labels and name actual hook changes in Review-and-commit output. Keep this presentation work and PRE_PUSH fallback wording outside additional Bound limbs. F1 concerns delivery of an outcome, not merely its wording.\n\nSuggested short mechanism shape: (1) preserve tracked hook divergence and tracked legacy-helper cleanup across shared setup paths, retaining existing downgrade protection; (2) disclose preservation as a distinct non-repair-failure outcome, without bypassing activation checks. Keep explicit replacement and the older-runtime remainder as scoped notes/dispositions.\n\nVerification inventory: self-complete eligibility excludes management/help heads, not check; missing readiness reaches repair; ownership accepts either helper name; PRE_PUSH has marker plus unconditional push-admit; class 4 is protected-path/story-product mixing. These were source-verified at the pinned SHA, not reproduced by executing consumer CI. Acceptance should exercise fresh checkout without readiness, tracked custom and historical-stock hooks, legacy cleanup, install/upgrade, and a repeated ordinary invocation.\n\nAuthority/worktree lens: recognizing a helper source is provenance, not permission to replace committed gate policy. Determine tracked status in the supplied project root (including linked worktrees); a Git query error must not become permission to overwrite.\n\nRoad not taken: class-check exclusion is the strongest smaller alternative because it could distinguish runtime-authored dirt, but it leaves consumer gate replacement intact. I would reconsider it only for a separately demonstrated residual after preservation. Template-only repair cannot protect other customized bodies.\n\n",
+          "id": 6357470611,
+          "html_url": "https://github.com/deftai/directive/issues/5837#issuecomment-6357470611",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:35:17Z",
+          "updated_at": "2026-10-23T04:35:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nCharter: open critique. Round 1, fresh critic. Id ceiling 6357403868 (panel-deposit). Pin-read verification-path at f0b2a3623a6be6ab2952bcafca0c8114b2b058cf via dest .deft-scratch/worktrees/arc-5837. KISS #5783 Prefer-A Bound 6280270826.\n\n## Tip evidence (re-verified)\n\n- self-complete.ts: INELIGIBLE_HEADS omits check; maybeSelfCompleteSetup runs repair when wiring-ready/GENERATION cheap path misses.\n- setup-wiring.ts isOurGitHookBody: any body including _directive-run.sh / _deft-run.sh counts as ours; ensureGitHooks overwrites unless third-party conflict or refuse-to-downgrade (prior has PRE_PUSH_BOUND_PRE_PR_MARKER and next lacks it). No tracked-divergent preserve today; trackChange always writes.\n- PRE_PUSH at tip: marker + unconditional pre-pr:run --push-admit (no #5847 help-probe fallback).\n- class-checks policy DEFAULT_PROTECTED_GLOBS includes .githooks/**; evaluate.ts class 4 fires protected-glob when protected hits mix with story product (fixture .githooks/pre-commit + src/feature.ts).\n- Field issue body + comment 6357244670: fresh-CI check rewrite → class 4; upgrade 0.128.0 rewrote pre-push without Review-and-commit list; 0.127.0 pin install stripped marker/#5847 fallback.\n\n## Verdict on Prefer-A draft 6357391387\n\nApproach A (tracked-divergent preserve in ensureGitHooks) is the right primary against B/C. Tip evidence confirms P1→P2 chain and P3 recognition→clobber. Prefer-A as written cannot bind until F1 is fixed; F2–F3 remint limb/pain disposition under KISS.\n\n## Findings\n\n### F1 — blocks-the-design\nIntentional-bump path \"disclosed install/upgrade commit\" as a preserve exception reopens P3/P4 clobber on upgrade.\n- Evidence: tip ensureGitHooks has no pre-write force gate; field 6357244670 shows directive upgrade 0.128.0 already rewrote .githooks/pre-push while Review-and-commit omitted the path. Draft Approaches A lists disclosed install/upgrade commit alongside untracked and historical-template match as bump paths, while also saying install/upgrade honor preserve — write-then-list is the field failure mode, not a gate.\n- Failure mode: shipping runtime still clobbers tracked consumer preflight-gh / #5847 fallback on upgrade whenever disclosure is post-hoc; CI check preserve alone does not stop upgrade/install.\n- Disposition: Prefer-A Bound must admit only pre-write lawful replace: (1) untracked path, (2) prior body in a closed historical-template allowlist, or (3) explicit pre-write force flag/argv. Drop post-write Review-and-commit listing as a preserve carve-out. Disclosure stays footnote for rewrites that already passed a lawful gate.\n\n### F2 — sharpens-framing\n\"Exact historical-template match\" is underspecified mechanism.\n- Evidence: tip ships one PRE_PUSH / PRE_COMMIT / helper body; no prior-template allowlist or hash table in setup-wiring.ts. Stock committed hooks must still receive #5804 marker / push-admit bumps somehow.\n- Failure mode: implementers either freeze all tracked stock upgrades (no match ever) or invent loose matchers that recreate isOurGitHookBody clobber.\n- Disposition: name a closed allowlist (exact prior template bytes or content hashes for managed hook paths Directive has shipped). Unlisted divergent tracked bodies always preserve. Footnote naming of the table is fine; the allowlist itself is mechanism.\n\n### F3 — sharpens-framing\nDraft Bound remedy cites relieves P1–P3 only; Stop 1 names P4; limb titles mis-map Stop 1 P3 vs install/upgrade.\n- Evidence: Stop 1 P3 is isOurGitHookBody→consumer-gate clobber; Stop 1 P4 is upgrade/install rewrite without disclosure plus older-pin marker skew (#5848 related). Draft puts install/upgrade preserve under relieves P3 and never cites P4. Keep-outs park #5848 without operator-deferred cite.\n- Failure mode: bind with unrelieved P4, or relieves P4 while older-pin skew remains unmet (honesty hole on the second Stop 1 P4 clause).\n- Disposition under KISS: remint short limbs so P1=tracked-divergent preserve (incl. isOurGitHookBody true), P2=self-complete/check inherits, P3=install/upgrade same pre-write gate; dispose P4 as operator-deferred: P4 #5848 for older-pin marker-unaware skew (field pnpm install on 0.127.0). Do not dual-cite relieves+deferred on P4. Review-and-commit / PRE_PUSH #5847 body / class-checks residual exclusion stay footnotes.\n\n### F4 — footnote\nReject list is correct: B class-checks exclusion primary, C template-only, soften class 4, drop refuse-to-downgrade, widen isOurGitHookBody, absorb #5848. Keep refuse-to-downgrade (#5804) as a separate continue-before-write alongside tracked preserve. file_scope centered on setup-wiring.ts (+tests) is enough; class-checks evaluate only if preserve residual remains.\n\n## Proposed Bound remedy (short mechanism limbs)\n\n- relieves: P1 — Tracked-divergent preserve in ensureGitHooks: if git-tracked and prior≠next, keep prior + disclose conflict even when isOurGitHookBody is true\n- relieves: P2 — Self-complete repair and ordinary check inherit that gate so CI does not dirty tracked .githooks\n- relieves: P3 — Install/upgrade call the same gate; lawful replace only via untracked OR closed historical-template allowlist OR explicit pre-write force — never write-then-list carve-out\n- operator-deferred: P4 #5848 — older-pin marker-unaware skew / pin-master rewrite stripping enrolled arms\n- Keep refuse-to-downgrade (#5804) continue path; do not widen isOurGitHookBody\n- Footnotes: Review-and-commit names any lawful rewrite; PRE_PUSH #5847 fallback vs unconditional --push-admit; class-checks self-repair exclusion only as residual after preserve\n\n## Road-not-taken\n\nApproach B (class-checks ignore self-repair dirt) greens CI without stopping weaker-template overwrite of preflight-gh — tip PRE_PUSH is verify:branch + unconditional push-admit, weaker than committed preflight-gh. Steelman: B is smaller diff and avoids historical-allowlist work; flip = field+tip show the lost gate is the consumer harm, not the class-4 message. Approach C template-only leaves other Directive-shaped hooks clobberable via isOurGitHookBody.\n\n## Injection / swarm lens\n\nTarget mutates shared .githooks during ordinary check (CI concurrency / worktree shared state). Preserve reduces surprise authority change. Explicit pre-write force must be operator intent, not an auto CI env.\n\n",
+          "id": 6357482169,
+          "html_url": "https://github.com/deftai/directive/issues/5837#issuecomment-6357482169",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:36:16Z",
+          "updated_at": "2026-10-23T04:36:16Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nCharter: open critique. Round 1, fresh critic. Id ceiling 6357403868 (panel-deposit). Pin-read verification-path at f0b2a3623a6be6ab2952bcafca0c8114b2b058cf via dest .deft-scratch/worktrees/arc-5837. KISS #5783 Prefer-A Bound 6280270826.\n\n## Tip evidence (re-verified)\n\n- self-complete.ts: INELIGIBLE_HEADS omits check; maybeSelfCompleteSetup runs repair when wiring-ready/GENERATION cheap path misses.\n- setup-wiring.ts isOurGitHookBody: any body including _directive-run.sh / _deft-run.sh counts as ours; ensureGitHooks overwrites unless third-party conflict or refuse-to-downgrade (prior has PRE_PUSH_BOUND_PRE_PR_MARKER and next lacks it). No tracked-divergent preserve today; trackChange always writes.\n- PRE_PUSH at tip: marker + unconditional pre-pr:run --push-admit (no #5847 help-probe fallback).\n- class-checks policy DEFAULT_PROTECTED_GLOBS includes .githooks/**; evaluate.ts class 4 fires protected-glob when protected hits mix with story product (fixture .githooks/pre-commit + src/feature.ts).\n- Field issue body + comment 6357244670: fresh-CI check rewrite → class 4; upgrade 0.128.0 rewrote pre-push without Review-and-commit list; 0.127.0 pin install stripped marker/#5847 fallback.\n\n## Verdict on Prefer-A draft 6357391387\n\nApproach A (tracked-divergent preserve in ensureGitHooks) is the right primary against B/C. Tip evidence confirms P1→P2 chain and P3 recognition→clobber. Prefer-A as written cannot bind until F1 is fixed; F2–F3 remint limb/pain disposition under KISS.\n\n## Findings\n\n### F1 — blocks-the-design\nIntentional-bump path \"disclosed install/upgrade commit\" as a preserve exception reopens P3/P4 clobber on upgrade.\n- Evidence: tip ensureGitHooks has no pre-write force gate; field 6357244670 shows directive upgrade 0.128.0 already rewrote .githooks/pre-push while Review-and-commit omitted the path. Draft Approaches A lists disclosed install/upgrade commit alongside untracked and historical-template match as bump paths, while also saying install/upgrade honor preserve — write-then-list is the field failure mode, not a gate.\n- Failure mode: shipping runtime still clobbers tracked consumer preflight-gh / #5847 fallback on upgrade whenever disclosure is post-hoc; CI check preserve alone does not stop upgrade/install.\n- Disposition: Prefer-A Bound must admit only pre-write lawful replace: (1) untracked path, (2) prior body in a closed historical-template allowlist, or (3) explicit pre-write force flag/argv. Drop post-write Review-and-commit listing as a preserve carve-out. Disclosure stays footnote for rewrites that already passed a lawful gate.\n\n### F2 — sharpens-framing\n\"Exact historical-template match\" is underspecified mechanism.\n- Evidence: tip ships one PRE_PUSH / PRE_COMMIT / helper body; no prior-template allowlist or hash table in setup-wiring.ts. Stock committed hooks must still receive #5804 marker / push-admit bumps somehow.\n- Failure mode: implementers either freeze all tracked stock upgrades (no match ever) or invent loose matchers that recreate isOurGitHookBody clobber.\n- Disposition: name a closed allowlist (exact prior template bytes or content hashes for managed hook paths Directive has shipped). Unlisted divergent tracked bodies always preserve. Footnote naming of the table is fine; the allowlist itself is mechanism.\n\n### F3 — sharpens-framing\nDraft Bound remedy cites relieves P1–P3 only; Stop 1 names P4; limb titles mis-map Stop 1 P3 vs install/upgrade.\n- Evidence: Stop 1 P3 is isOurGitHookBody→consumer-gate clobber; Stop 1 P4 is upgrade/install rewrite without disclosure plus older-pin marker skew (#5848 related). Draft puts install/upgrade preserve under relieves P3 and never cites P4. Keep-outs park #5848 without operator-deferred cite.\n- Failure mode: bind with unrelieved P4, or relieves P4 while older-pin skew remains unmet (honesty hole on the second Stop 1 P4 clause).\n- Disposition under KISS: remint short limbs so P1=tracked-divergent preserve (incl. isOurGitHookBody true), P2=self-complete/check inherits, P3=install/upgrade same pre-write gate; dispose P4 as operator-deferred: P4 #5848 for older-pin marker-unaware skew (field pnpm install on 0.127.0). Do not dual-cite relieves+deferred on P4. Review-and-commit / PRE_PUSH #5847 body / class-checks residual exclusion stay footnotes.\n\n### F4 — footnote\nReject list is correct: B class-checks exclusion primary, C template-only, soften class 4, drop refuse-to-downgrade, widen isOurGitHookBody, absorb #5848. Keep refuse-to-downgrade (#5804) as a separate continue-before-write alongside tracked preserve. file_scope centered on setup-wiring.ts (+tests) is enough; class-checks evaluate only if preserve residual remains.\n\n## Proposed Bound remedy (short mechanism limbs)\n\n- relieves: P1 — Tracked-divergent preserve in ensureGitHooks: if git-tracked and prior≠next, keep prior + disclose conflict even when isOurGitHookBody is true\n- relieves: P2 — Self-complete repair and ordinary check inherit that gate so CI does not dirty tracked .githooks\n- relieves: P3 — Install/upgrade call the same gate; lawful replace only via untracked OR closed historical-template allowlist OR explicit pre-write force — never write-then-list carve-out\n- operator-deferred: P4 #5848 — older-pin marker-unaware skew / pin-master rewrite stripping enrolled arms\n- Keep refuse-to-downgrade (#5804) continue path; do not widen isOurGitHookBody\n- Footnotes: Review-and-commit names any lawful rewrite; PRE_PUSH #5847 fallback vs unconditional --push-admit; class-checks self-repair exclusion only as residual after preserve\n\n## Road-not-taken\n\nApproach B (class-checks ignore self-repair dirt) greens CI without stopping weaker-template overwrite of preflight-gh — tip PRE_PUSH is verify:branch + unconditional push-admit, weaker than committed preflight-gh. Steelman: B is smaller diff and avoids historical-allowlist work; flip = field+tip show the lost gate is the consumer harm, not the class-4 message. Approach C template-only leaves other Directive-shaped hooks clobberable via isOurGitHookBody.\n\n## Injection / swarm lens\n\nTarget mutates shared .githooks during ordinary check (CI concurrency / worktree shared state). Preserve reduces surprise authority change. Explicit pre-write force must be operator intent, not an auto CI env.\n\n",
+          "id": 6357484961,
+          "html_url": "https://github.com/deftai/directive/issues/5837#issuecomment-6357484961",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:36:29Z",
+          "updated_at": "2026-10-23T04:36:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## Prefer-A Bound\n\nconflict_group: self-repair-overwrite-tracked-managed-githook-class-checks\nSpec-path: ensureGitHooks tracked divergent preserve + self-complete/check\nLean: Prefer-A\nSupersedes: 6357391387\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N=2\nmove-forward: yes\ndispatch-sha: f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\ndest: .deft-scratch/worktrees/arc-5837\nTarget-digest: sha256:d5641989646b9ea362e186971dd37fa02274d33c685c0dce12430b322788f486\nKISS: #5783 Prefer-A Bound 6280270826 — short mechanism limbs only; docs/naming/alias/dispose-wording footnotes; Recut for mechanism or fail-closed change\nrelease-blocker: 0.129.0 (blocks-release-tag)\nRound-1: Codex 6357470611; Grok 6357484961 (duplicate 6357482169 ignored); Claude #5478 hang → spend-amend 6357443938 N=2\n\n## In plain English\n\nFresh CI self-repair was overwriting committed managed hooks, then class-checks blamed the story PR. Prefer-A keeps every tracked divergent managed hook (and tracked legacy helper cleanup) in place, treats that preserve as a settled non-failure so readiness does not loop, and allows replace only when the path is untracked or the operator passes an explicit pre-write force. Older-pin marker-unaware skew stays on #5848. Class-checks exclusion and template-only edits stay rejected as the primary close.\n\n## Bound remedy\n\n- relieves: P1 — Tracked-divergent preserve in ensureGitHooks: git-tracked prior≠next keeps prior + discloses, even when isOurGitHookBody is true; same preserve covers tracked legacy-helper cleanup\n- relieves: P2 — Preservation is a distinct non-failure outcome that does not invalidate readiness or re-trigger self-complete repair; ordinary check inherits the gate so CI does not dirty tracked .githooks\n- relieves: P3 — Install/upgrade honor the same gate; lawful replace only via untracked path or explicit pre-write operator force — never write-then-list or historical-equality-alone carve-out\n- operator-deferred: P4 #5848 — older-pin marker-unaware skew / pin-master rewrite stripping enrolled arms\n\n## Reject\n\n- Approach B class-checks exclusion as the primary close\n- Approach C PRE_PUSH template-only as the primary close\n- Softening class 4 / approve-skip while hooks still rewrite\n- Automatic rewrite of tracked stock hooks by historical-template equality alone\n- Dropping refuse-to-downgrade (#5804)\n- Widening isOurGitHookBody recognition\n- Absorbing #5848 umbrella as this ticket primary without leftover disposition\n\n## file_scope (lean)\n\n- packages/runtime/src/setup-wiring.ts (+ ensureGitHooks / isOurGitHookBody / legacy-helper cleanup tests)\n- packages/runtime/src/self-complete.ts and setup.ts for preserve-as-non-failure / readiness wiring\n- packages/runtime/src/setup-wiring-legacy-hooks.test.ts and adjacent hook/self-complete tests\n- CHANGELOG.md\n- class-checks evaluate path only if residual after preserve\n\n## Keep-outs\n\n- #5848 pin/master skew umbrella (operator-deferred P4 cite only)\n- #5804 Prefer-A Bound product already shipped (marker keep)\n- #5847 closed fallback product (cite only)\n- Softening verify:class-checks class 4 policy defaults as v1 primary\n- Auto-committing rewritten hooks from CI\n- New historical-template migration subsystem (manual reviewed force is enough for first ship)\n\n## Footnotes\n\n- Review-and-commit names any rewrite that already passed a lawful replace gate\n- PRE_PUSH #5847 fallback vs unconditional --push-admit template body\n- class-checks self-repair exclusion only as residual after preserve\n- Closed historical allowlist naming deferred; Codex F2 blocked equality-alone as consent",
+          "id": 6357500125,
+          "html_url": "https://github.com/deftai/directive/issues/5837#issuecomment-6357500125",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:37:47Z",
+          "updated_at": "2026-10-23T04:40:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\n\nfinding-classes: none\nharvest-changed: false\n\nRound: 4 Pass-4 pain-audit (PA-1). Fresh critic. Id ceiling 6357500125 (Prefer-A Bound). Pin-read verification-path at f0b2a3623a6be6ab2952bcafca0c8114b2b058cf via dest .deft-scratch/worktrees/arc-5837. KISS #5783 Prefer-A Bound 6280270826.\n\n## Verdict\n\nPrefer-A Bound 6357500125 clears Stop 1 pains P1–P4 against Round-1 Codex 6357470611 and Grok 6357484961. No Recut. Mechanism limbs stay short; footnote-class naming/docs/alias/dispose-wording do not change fail-closed association.\n\n## Pain coverage\n\n### pain-P1 — Tracked-divergent preserve\nBound limb relieves: P1 matches tip hole: ensureGitHooks overwrites when isOurGitHookBody is true; trackChange always writes; legacy _deft-run.sh removal is outside the three-file loop. Bound keeps prior when git-tracked and prior≠next even for recognized bodies, and applies the same preserve to tracked legacy-helper cleanup. Round-1 Codex F3 / Grok tip evidence absorbed.\n\n### pain-P2 — Distinct non-failure / check inherits\nBound limb relieves: P2 closes Codex F1: tip setup.ts pushes ensureGitHooks.conflicts into conflicts and invalidates readiness when conflicts.length > 0; self-complete retries repair; INELIGIBLE_HEADS omits check. Preservation as a distinct non-failure that does not invalidate readiness stops the repair loop; ordinary check inherits via the shared ensureGitHooks gate. Class-checks class 4 is relieved by not dirtying tracked .githooks — Approach B exclusion stays Reject.\n\n### pain-P3 — Install/upgrade pre-write gate\nBound limb relieves: P3 closes Grok F1 (write-then-list carve-out) and Codex F2 (historical-template equality is not consent). Lawful replace is only untracked path or explicit pre-write operator force. Refuse-to-downgrade (#5804) retained. Automatic historical-equality rewrite stays Reject; closed allowlist naming stays Bound footnote (Codex F2 over Grok F2 allowlist).\n\n### pain-P4 — Older-pin skew deferred\noperator-deferred: P4 #5848 correctly disposes the Stop 1 remainder Codex F4 / Grok F3 named: current-runtime upgrade/install clobber is covered by P3; marker-unaware older-pin / pin-master stripping enrolled arms cannot be claimed relieved by this Bound. Cite is different-issue; no dual relieves+deferred on P4.\n\n## Footnotes (non-harvest)\n\n- Git query error on tracked-status should fail closed toward preserve, not treat as untracked — naming of the error path, not a new limb.\n- Preserve-result channel must not reuse the conflicts[] that invalidate readiness; exact field alias is #3368 footnote.\n- Review-and-commit / PRE_PUSH #5847 vs unconditional --push-admit / class-checks residual exclusion already Bound footnotes.\n\n## Authority lens\n\nRecognizing a helper source is provenance, not permission to replace committed gate policy. Bound P1 preserves even when isOurGitHookBody is true — that association holds.\n\nNo product. No issue:ingest. EXIT.",
+          "id": 6357521945,
+          "html_url": "https://github.com/deftai/directive/issues/5837#issuecomment-6357521945",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:39:35Z",
+          "updated_at": "2026-10-23T04:39:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-5.1-codex\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\nfinding-classes: footnote\nharvest-changed: false\n\n## PA-1 verdict\n\nPrefer-A Bound 6357500125 covers the deliverable pains and explicitly defers the older-pin remainder. No mechanism blocker and no Recut required.\n\nInput ceiling: 6357500125 inclusive; no later thread comments read. Independently pin-read at f0b2a3623a6be6ab2952bcafca0c8114b2b058cf. Compared Stop 1 (6357403610), both Round-1 critiques (6357470611 / 6357484961), and KISS Bound 6280270826. This is a design audit, not evidence that the proposed fix has shipped or passed CI.\n\n## Pain coverage\n\n- **P1:** Covered. The shared writer preserves tracked divergent managed hooks even when ownership recognition succeeds, and covers tracked legacy-helper removal. At the pin, ensureGitHooks otherwise reaches trackChange for recognized bodies and separately deletes an unreferenced recognized legacy helper. The Bound closes both write paths.\n- **P2:** Covered. Preservation is a distinct non-failure result that settles readiness instead of entering conflicts. At the pin, setup propagates hook conflicts and clears readiness; ordinary self-completion calls repair. The proposed result distinction closes Codex F1's retry loop while leaving actual conflicts, activation checks, and class 4 intact. Preserving the protected paths removes this reported source of class-4 dirt; it is not a promise that unrelated protected-path changes will pass.\n- **P3:** Covered by the shared preserve rule, including its explicit isOurGitHookBody=true case. Customized stronger hooks retain their committed body across repair, install, and upgrade. Historical-template equality alone is expressly rejected, and replacement requires an untracked path or explicit pre-write operator force. This resolves Codex F2 and Grok F1 without adding Grok's historical allowlist.\n- **P4:** Current-runtime install/upgrade clobber is addressed by that same pre-write gate; lawful-rewrite disclosure remains the Review-and-commit footnote. Older-pin marker-unaware skew is honestly left unmet and cited to different issue #5848. Keeping #5804 does not pretend that new code can repair an already-published older runtime. I have not audited #5848's current shape or independently established operator approval of its deferral; this verdict assesses the stated technical split, not consent.\n\n## F1 — footnote — Preserve the Stop 1 pain meanings\n\nThe Bound's P3 limb describes install/upgrade, whereas Stop 1 P3 names customized-hook ownership and P4 includes install/upgrade plus skew. Read coverage across the existing limbs: P1's explicit recognized-body preserve covers Stop 1 P3; the shared install/upgrade gate covers the deliverable portion of P4; only older-pin skew remains deferred. This is label/disposition wording, not missing protection. Carry that explanation in the audit disposition; do not remint the Bound solely to relabel it.\n\nImplementation verification should exercise fresh check without readiness, tracked customized and historical-stock hooks, tracked orphan legacy-helper cleanup, ordinary install/upgrade, explicit force, and a second ordinary invocation. Determine Git tracking in the supplied project root, including linked worktrees; a failed tracking query is not proof that a path is untracked. Preserve real conflicts and downgrade refusal. These checks realize the existing mechanism rather than add another Bound limb.\n\ndeft-directive-design-critique complete -- exiting critic dispatch. Parent retains synthesis/disposition; issue:ingest remains a separate operator action.\n\n",
+          "id": 6357523531,
+          "html_url": "https://github.com/deftai/directive/issues/5837#issuecomment-6357523531",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:39:43Z",
+          "updated_at": "2026-10-23T04:39:43Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nIssue: #5837\nSuccessor lean: Prefer-A Bound 6357500125\narc-mode: no-ingest\nyolo-standing: on\nspend: N=2 (amended from N≥3 after Claude #5478 launch-probe hang)\ndispatch-sha: f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\ndest: .deft-scratch/worktrees/arc-5837\nKISS: #5783 Prefer-A Bound 6280270826\nrelease-blocker: 0.129.0 (blocks-release-tag)\n\n| Claim | Evidence | Status |\n|---|---|---|\n| Stop 1 P1–P4 named | Stop 1 6357403610 | verified |\n| Round-1 Prefer-A with blockers absorbed | Codex 6357470611; Grok 6357484961 | verified |\n| Prefer-A Bound remints preserve-as-non-failure + pre-write force; defers P4 | Bound 6357500125 | verified |\n| PA-1 clear harvest-changed:false | Grok 6357521945; Codex 6357523531 | verified |\n| Tracked divergent preserve + readiness non-failure + lawful replace gate | Bound remedy P1–P3 | verified (contract) |\n| Older-pin skew deferred | operator-deferred: P4 #5848 | verified (disposition) |\n| Approach B/C rejected | Bound Reject | verified |\n\nMaterial findings after PA-1: none.\nmove-forward: yes",
+          "id": 6357531858,
+          "html_url": "https://github.com/deftai/directive/issues/5837#issuecomment-6357531858",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:40:25Z",
+          "updated_at": "2026-10-23T04:40:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because Prefer-A Bound 6357500125 relieves Stop 1 P1–P3 under tip evidence, operator-deferred P4 #5848 is recorded, PA-1 returned harvest-changed:false across Codex/Grok, and the KISS (#5783) short Bound holds without Recut.\n\nBound contract: successor lean 6357500125, confirmed by operator (yolo-standing), verified-claims table 6357531858.\n\n## In plain English\n\nNo-ingest YOLO arc on #5837 (0.129.0 release blocker) locked Prefer-A: ensureGitHooks keeps tracked divergent managed hooks (and tracked legacy-helper cleanup), treats that preserve as a settled non-failure so self-complete/check does not loop or dirty CI, and allows replace only for untracked paths or an explicit pre-write operator force. Older-pin marker-unaware skew stays deferred to #5848. Class-checks exclusion and template-only edits are rejected as the primary close. Ingest remains a separate operator verb.\n\nconflict_group: self-repair-overwrite-tracked-managed-githook-class-checks\narc-mode: no-ingest\nyolo-standing: on\nspend: N=2 (from N≥3)\ndispatch-sha: f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\ndest: .deft-scratch/worktrees/arc-5837\nrelease-blocker: 0.129.0\nTrail: Prefer-A draft 6357391387; Stop 1 6357403610; panel 6357403868; spend-amend 6357443938; Round-1 Codex 6357470611 / Grok 6357484961; Bound 6357500125; PA-1 Grok 6357521945 / Codex 6357523531; VCT 6357531858.",
+          "id": 6357532036,
+          "html_url": "https://github.com/deftai/directive/issues/5837#issuecomment-6357532036",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:40:26Z",
+          "updated_at": "2026-10-23T04:40:26Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nIn a fresh CI checkout, the first runtime invocation's self-repair overwrites a committed, consumer-customized `.githooks/pre-push`. `verify:class-checks` then reports that rewrite as a protected-path change by the story PR. Every product story PR fails hosted CI, even when its diff does not touch the hook.\n\n## Context\n\n- Consumer repo on `@deftai/directive-runtime` 0.127.0.\n- Hosted CI runs `deft check` from a fresh checkout. The ignored readiness marker `.deft/directive/wiring-ready.<V>.json` does not exist there.\n- The consumer committed a pre-push hook that runs `run_directive preflight-gh --pre-push-stdin`. This is the gate the runtime's managed AGENTS.md section on destructive gh verbs routes default-branch pushes through.\n\n## Expected behavior\n\n- `deft check` in CI does not rewrite tracked, committed wiring files.\n- Or `verify:class-checks` does not count working-tree changes made by the runtime's own self-repair as part of the story change set.\n\n## Actual behavior\n\n1. `dist/bin.js` calls `maybeSelfCompleteSetup` for every head except install/doctor/setup/update/help-style heads. Repair is skipped only once the readiness marker exists and the pin matches (`install-health/cheap.js`).\n2. `ensureGitHooks` (`dist/setup-wiring.js`) overwrites any hook that `isOurGitHookBody` recognizes. A hook that sources `_directive-run.sh` counts as Directive-owned, so the committed `preflight-gh --pre-push-stdin` hook is replaced with the built-in `PRE_PUSH` template (`run_directive verify:branch`). That template is a weaker gate.\n3. The same repair also rewrites `.grok/hooks/deft.json` and `.deft/GENERATION.json`.\n4. `verify:class-checks` then fails with `protected path touched by a story change set (class 4)` on `.githooks/pre-push`. There is no approve or skip path.\n5. Docs-only PRs pass. Local runs pass because the marker already exists, so local rehearsal hides the failure.\n\n## Reproduction\n\n1. Commit a pre-push hook that sources `.githooks/_directive-run.sh` and runs `run_directive preflight-gh --pre-push-stdin`.\n2. Open a PR with any product change outside `.githooks/`.\n3. In a fresh clone of the PR merge ref, with CI env vars set, run `deft check`.\n4. `git status` shows `.githooks/pre-push` modified, and `verify:class-checks` exits non-zero (class 4).\n\n## Suggested fixes (any one)\n\n1. Self-repair should not overwrite tracked files during `check`, or should keep a committed managed hook that differs from the template.\n2. `verify:class-checks` should exclude paths the runtime's own self-repair wrote in this process.\n3. Make the `PRE_PUSH` template use `preflight-gh --pre-push-stdin`, matching the runtime's own guidance.\n\n## Consumer workaround\n\nA CI step before `check` runs one read-only runtime head to trigger the repair, for example `policy:show --field=plan.policy.allowDirectCommitsToMaster`. It then restores only the tracked wiring files that changed, with `git checkout --`, and runs `check`. Verified: class checks are then clean, and `check` does not repair again.\n\n---\nFiled from a Directive consumer project. Refs #1709\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5986452634,
+        "origin": "deftai/directive#5837",
+        "id": "github.issue.5986452634"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "d5641989646b9ea362e186971dd37fa02274d33c685c0dce12430b322788f486"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "self-repair-overwrite-tracked-managed-githook-class-checks",
+        "expected_outputs": [
+          "ensureGitHooks keeps git-tracked divergent managed hooks and tracked legacy helper (preserve disclosure)",
+          "preserve is a non-failure setup outcome; readiness still published so self-complete does not loop",
+          "lawful replace only when untracked or explicit setup --force-githooks; refuse-to-downgrade kept",
+          "regression tests",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "npx vitest run packages/runtime/src/setup-wiring-tracked-hooks.test.ts packages/runtime/src/setup-wiring-legacy-hooks.test.ts"
+        ],
+        "file_scope": [
+          "packages/runtime/src/setup-wiring.ts",
+          "packages/runtime/src/setup.ts",
+          "packages/runtime/src/contract-entry.ts",
+          "packages/runtime/src/setup-wiring-tracked-hooks.test.ts",
+          "CHANGELOG.md"
+        ],
+        "size": "S",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5837",
+          "Prefer-A Bound 6357500125",
+          "#5804",
+          "#5848",
+          "#5783"
+        ],
+        "parallel_safe": false
+      }
+    },
+    "id": "github.issue.5986452634",
+    "updated": "2026-10-23T06:17:55Z"
+  }
+}
