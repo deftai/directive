@@ -3,7 +3,7 @@
     "version": "0.8",
     "description": "Sealed installer/OVPR lane: #5796 Taskfile wiring probe via comment-aware YAML AST owning only includes.deft.",
     "created": "2026-10-23T23:30:00.000Z",
-    "updated": "2026-10-23T23:08:43.532Z"
+    "updated": "2026-10-23T22:47:43.183Z"
   },
   "plan": {
     "id": "doctor-taskfile-ast-5796",
@@ -17,8 +17,8 @@
       "swarm": {
         "file_scope": [
           "packages/core/src/install-health/wiring.ts",
-          "packages/core/src/install-health/wiring.test.ts",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "packages/core/src/install-health/wiring.test.ts"
         ],
         "file_scope_confidence": "high"
       }
@@ -36,10 +36,12 @@
       }
     ],
     "acceptance": {
-      "commands": [],
-      "none_stated": true,
+      "commands": [
+        "pnpm exec vitest run packages/core/src/install-health/wiring.test.ts"
+      ],
+      "none_stated": false,
       "source_rung": "derived",
-      "derived_reason": "derived from Locked disposition Done-when on #5796 Path B activation: none_stated until product PR stamps proof cmds.",
+      "derived_reason": "derived from Locked disposition Done-when on #5796",
       "clauses": [
         {
           "id": 1,
@@ -51,13 +53,14 @@
       ],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-10-23T23:08:43.532Z",
+    "updated": "2026-10-23T22:47:43.183Z",
     "references": [
       {
         "type": "x-xbrief/github-issue",
         "uri": "https://github.com/deftai/directive/issues/5796",
         "title": "#5796 Taskfile wiring probe comment false positive"
       }
-    ]
+    ],
+    "x-directive": {}
   }
 }
