@@ -1,0 +1,818 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5853",
+    "updated": "2026-10-23T05:34:24Z"
+  },
+  "plan": {
+    "title": "verify:pack-drift compares against the installed runtime package's rewritten copies instead of repo content/ (still in 0.128.0)",
+    "status": "running",
+    "narratives": {
+      "Description": "verify:pack-drift compares against the installed runtime package's rewritten copies instead of repo content/ (still in 0.128.0)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5853",
+      "Overview": "\n\n- relieves: P1 — Walk-up render root: resolve once via --project-root → DEFT_PROJECT_ROOT → ancestor walk from cwd for <dir>/content/packs/ (portable parent===dir stop; reuse resolveProjectRoot shape). Explicit flag/env that fails to stat refuses closed (no silent package fallback). Only after walk miss keep module-location import.meta.url fallback. Same root for pack-render --check and non-check packs:render. One shared helper for pack-render and packs-slice.\n- relieves: P2 — Framework-source checkout bind: RENDER_REGISTRY / collectTargets / DEFAULT_SOURCE / DEFAULT_OUTPUT / #2914 containment are functions of that resolved root. In framework-source mode, pack inputs and projection outputs bind to checkout content/ and meta/lessons.md and bypass staged @deftai/directive-content preference so deposit-rewritten package trees never enter compare or write.\n- relieves: P3 — Framework-source contentRoot bypass: after checkout root is selected, do not route framework-source pack I/O through contentRoot consumer-package preference; keep #5802 in-repo-over-hoisted as consumer-mode secondary only.\n- relieves: P4 — Subdir+fixture regression: drive main from a subdirectory cwd without pre-set root override and from a tmp fixture outside module ancestry; assert sources/outputs under checkout/fixture; framework-source --check reports checkout projection paths only. Reject tip-tsx verify bypass, warn-only gate, rewrite-strip compare, and #5805 pin-exclusivity remint.\n\n\n",
+      "Labels": "bug, ci-cd, area:release, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "relieves: P1 — Walk-up render root: resolve once via --project-root → DEFT_PROJECT_ROOT → ancestor walk from cwd for <dir>/content/packs/ (portable parent===dir stop; reuse resolveProjectRoot shape).",
+        "status": "proposed",
+        "narrative": {
+          "Recut-2 (6360062572)": "n1: relieves: P1 — Resolve the render root once via --project-root → DEFT_PROJECT_ROOT → ancestor walk from cwd for <dir>/content/packs/ with a portable parent===dir stop reusing the resolveProjectRoot shape."
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Explicit flag/env that fails to stat refuses closed (no silent package fallback).",
+        "status": "proposed",
+        "narrative": {
+          "Recut-2 (6360062572)": "n2: relieves: P1 — Explicit --project-root or DEFT_PROJECT_ROOT that fails to stat refuses closed with no silent package fallback."
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Only after walk miss keep module-location import.meta.url fallback.",
+        "status": "proposed",
+        "narrative": {
+          "Recut-2 (6360062572)": "n3: relieves: P1 — Only after the content/packs walk misses, keep the module-location import.meta.url fallback."
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Same root for pack-render --check and non-check packs:render.",
+        "status": "proposed",
+        "narrative": {
+          "Recut-2 (6360062572)": "n4: relieves: P1 — Use that same resolved root for pack-render --check and non-check packs:render."
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "One shared helper for pack-render and packs-slice.",
+        "status": "proposed",
+        "narrative": {
+          "Recut-2 (6360062572)": "n5: relieves: P1 — Share one root helper between pack-render and packs-slice with no third copy."
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "relieves: P2 — Framework-source checkout bind: RENDER_REGISTRY / collectTargets / DEFAULT_SOURCE / DEFAULT_OUTPUT / #2914 containment are functions of that resolved root.",
+        "status": "proposed",
+        "narrative": {
+          "Recut-2 (6360062572)": "n6: relieves: P2 — Make RENDER_REGISTRY, collectTargets, DEFAULT_SOURCE, DEFAULT_OUTPUT, and the #2914 containment anchor functions of that resolved root with no import-time consts frozen to the package."
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "In framework-source mode, pack inputs and projection outputs bind to checkout content/ and meta/lessons.md and bypass staged @deftai/directive-content preference so deposit-rewritten package trees never enter compare or write.",
+        "status": "proposed",
+        "narrative": {
+          "Recut-2 (6360062572)": "n7: relieves: P2 — In framework-source mode, bind pack inputs and projection outputs to checkout content/ and meta/lessons.md and bypass staged @deftai/directive-content preference so deposit-rewritten package trees never enter compare or write."
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "relieves: P3 — Framework-source contentRoot bypass: after checkout root is selected, do not route framework-source pack I/O through contentRoot consumer-package preference; keep #5802 in-repo-over-hoisted as consumer-mode secondary only.",
+        "status": "proposed",
+        "narrative": {
+          "Recut-2 (6360062572)": "n8: relieves: P3 — After the checkout root is selected, do not route framework-source pack I/O through contentRoot consumer-package preference. n9: relieves: P3 — Keep #5802 in-repo-over-hoisted as a consumer-mode secondary guard only."
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "relieves: P4 — Subdir+fixture regression: drive main from a subdirectory cwd without pre-set root override and from a tmp fixture outside module ancestry; assert sources/outputs under checkout/fixture; framework-source --check reports checkout projection paths only.",
+        "status": "proposed",
+        "narrative": {
+          "Recut-2 (6360062572)": "n10: relieves: P4 — Drive main from a subdirectory cwd without a pre-set root override and from a tmp fixture outside the module ancestry. n11: relieves: P4 — Assert that sources and outputs resolve under the checkout or fixture root. n12: relieves: P4 — Assert that framework-source --check reports checkout projection paths only."
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "Reject tip-tsx verify bypass, warn-only gate, rewrite-strip compare, and #5805 pin-exclusivity remint.",
+        "status": "proposed",
+        "narrative": {
+          "Recut-2 (6360062572)": "n13: relieves: P4 — Reject tip-tsx verify bypass, warn-only gate softening, rewrite-strip compare special cases, and reminting #5805 pin-exclusivity for this verb."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "ci-cd",
+      "area:release",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5853",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5853: verify:pack-drift compares against the installed runtime package's rewritten copies instead of repo content/ (still in 0.128.0)"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "pack-drift compares against the installed runtime package's rewritten copies instead of repo content/ (still in 0.128.0)",
+          "reason": "shell metacharacter \"(\" is not allowed in literal AC commands",
+          "sourceSpan": "labeled@L1"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "pack-drift-module-location-vs-project-root-source-checkout",
+        "expected_outputs": [
+          "shared packs-root helper (flag/env/walk-up/module fallback)",
+          "framework-source content/ bind for pack-render + packs-slice",
+          "subdir + tmp-fixture regression tests",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "npx vitest run packages/core/src/packs"
+        ],
+        "file_scope": [
+          "packages/core/src/packs/pack-render.ts",
+          "packages/core/src/packs/packs-slice.ts",
+          "packages/core/src/packs/packs-root.ts",
+          "packages/core/src/packs/packs-root.test.ts",
+          "packages/core/src/packs/pack-render.test.ts",
+          "packages/core/src/packs/packs-slice.test.ts",
+          "packages/core/src/packs/coverage-branches.test.ts",
+          "CHANGELOG.md"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5853",
+          "Prefer-A Recut-1 6357491124",
+          "#5848",
+          "#5783"
+        ],
+        "parallel_safe": false
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/packs/pack-render.ts",
+          "packages/core/src/packs/packs-slice.ts",
+          "packages/core/src/packs/packs-root.ts",
+          "packages/core/src/packs/packs-root.test.ts",
+          "packages/core/src/packs/pack-render.test.ts",
+          "packages/core/src/packs/packs-slice.test.ts",
+          "packages/core/src/packs/coverage-branches.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/packs/packs-root.ts",
+        "cohesion_exemption": "CHANGELOG + pack root resolution unit; pack-render/packs-slice share one helper"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## Prefer-A draft\n\nconflict_group: pack-drift-module-location-vs-project-root-source-checkout\nSpec-path: Prefer-A draft — verify:pack-drift project-root for framework source\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N≥3\nspend-recommend: N≥3\nspend-ask: resolved\nmove-forward: yes\ndispatch-sha: f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\ndest: .deft-scratch/worktrees/arc-5853\nTarget-digest: sha256:f12cf1c5f4175bb4277810ec287fdde67c37c23c6abd007681b35740a5bc6c67\nKISS ceiling: #5783 Prefer-A Bound 6280270826 (short mechanism limbs; docs/naming footnotes)\n\n## In plain English\n\nMaster CI fails verify:pack-drift because the pin-compiled pack-render resolves REPO_ROOT from import.meta.url inside @deftai/directive-runtime. That makes both pack sources and projection targets live inside the installed package, where deposit-link-rewrite has already rewritten relative links. The gate never looks at the checkout content/. Fix: on a framework source checkout, pack-render --check must use the project root (cwd / --project-root), so it compares repo projections to repo pack sources.\n\n## Approaches\n\n### Approach A (Prefer-A lean)\nMake pack-render resolve REPO_ROOT/CONTENT_ROOT from an explicit project root (cwd default, optional --project-root) when that root is a framework source checkout (content/packs present). Module-location remains the fallback for consumer/OVPR layouts where the package IS the content root. Engine invoke / verify:pack-drift then checks tip content/ without waiting on a runtime release. Keep #5802 contentRoot precedence as a secondary guard once frameworkRoot is correct.\n\n### Approach B\nBypass pin for verify:pack-drift only: Taskfile/engine tip-source tsx of packages/core/src/packs/pack-render.ts on framework check. Leaves the compiled pin broken for the same verb everywhere else.\n\n### Approach C\nStrip deposit-link-rewrite markers / rewrite deltas before compare, or special-case package-internal paths as non-drift. Treats the symptom; still never audits tip content/.\n\n## Reject candidates (pre-panel)\n- Softening verify:pack-drift to warn-only on master\n- Shipping a runtime release solely so pin copies match tip (does not fix module-location root)\n- Teaching contentRoot alone to fix this when frameworkRoot is already the package (#5802 already landed and still fails)\n\n## Draft file_scope lean\n- packages/core/src/packs/pack-render.ts (and shared root helper if packs-slice shares the same hole)\n- packages/core/src/packs/pack-render.test.ts (+ adjacent packs-slice tests if shared)\n- CHANGELOG.md\n- tasks/packs.yml or engine invoke docs only as footnote if argv/--project-root needs a one-line discoverability note",
+          "id": 6357325832,
+          "html_url": "https://github.com/deftai/directive/issues/5853#issuecomment-6357325832",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:23:10Z",
+          "updated_at": "2026-10-23T04:23:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: triage\n```\n\n## Stop 1 — Gate\n\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N≥3\nspend-recommend: N≥3\nspend-ask: resolved\ncharter: open critique\ndual-stop-reserved: yes\nverification-path: pin-read .deft-scratch/worktrees/arc-5853 @ f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\nTarget-digest: sha256:f12cf1c5f4175bb4277810ec287fdde67c37c23c6abd007681b35740a5bc6c67\nKISS: #5783 Prefer-A Bound 6280270826 — Bound stays short mechanism limbs; docs/naming/alias footnotes\n\npain: P1, P2, P3, P4\n\n- P1 — Module-location REPO_ROOT: pin-compiled pack-render resolves root from import.meta.url, so framework verify:pack-drift audits @deftai/directive-runtime copies instead of checkout content/.\n- P2 — Deposit-rewrite false red: package projections carry deft:deposit-link-rewrite and rewritten relative links, so --check is permanently red on source checkouts even when tip content/ is clean.\n- P3 — #5802 incomplete association: contentRoot in-repo-over-hoisted only helps when frameworkRoot is already the checkout; when resolveRepoRoot returns the package, precedence never sees tip content/.\n- P4 — Gate blocks green tip: master CI / task check fail solely on verify:pack-drift while vitest and other gates are green, coupling tip mergeability to pin-internal rewritten trees.\n\nGate: mechanism-shaped; panel permission N≥3; Prefer-A draft posted for Round-1.",
+          "id": 6357326066,
+          "html_url": "https://github.com/deftai/directive/issues/5853#issuecomment-6357326066",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:23:11Z",
+          "updated_at": "2026-10-23T04:23:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## Panel deposit\n\ninput-ceiling: 6357326269\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N≥3\nseat-families: claude,codex,grok\ndual-stop-reserved: yes\nverification-path: pin-read .deft-scratch/worktrees/arc-5853 @ f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\nPrefer-A draft: 6357325832\nStop 1: 6357326066\nTarget-digest: sha256:f12cf1c5f4175bb4277810ec287fdde67c37c23c6abd007681b35740a5bc6c67\nKISS ceiling: #5783 Prefer-A Bound 6280270826\n\nRound-1 charter: open critique of Prefer-A draft 6357325832 for conflict_group pack-drift-module-location-vs-project-root-source-checkout. Pain bind P1–P4 from Stop 1 6357326066. Critics propose remedies; parent will bind Prefer-A Bound under Thin Fail-Closed / KISS (#5783 / #3265 / #3368).",
+          "id": 6357326269,
+          "html_url": "https://github.com/deftai/directive/issues/5853#issuecomment-6357326269",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:23:12Z",
+          "updated_at": "2026-10-23T04:23:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole:critic\n```\naudit-targets: none\n\nRound-1 critique of Prefer-A draft 6357325832; input ceiling 6357326269. Envelope seat: gpt-5-codex; actual model: GPT-6.\n\nPrefer A's root correction, but it cannot bind with its current no-release delivery claim.\n\n### F1 — The changed renderer must reach the invoked pin\nblocks-the-design\n\nEvidence: pin-read at f0b2a3623a6be6ab2952bcafca0c8114b2b058cf confirms `tasks/packs.yml` dispatches through `:engine:invoke`; `tasks/engine.yml` explicitly selects the installed checkout pin under #5805, forbids tip-dist fallback, and names `task materialize:runtime` as tip dogfood without publish. Editing `packages/core/src/packs/pack-render.ts` alone leaves that invoked binary unchanged. Its existing parser also does not recognize `--project-root`.\n\nFailure: A can fix the source implementation while the actual gate remains red, leaving P4 unmet. Task/engine delivery is a mechanism concern, not a documentation footnote.\n\nRemedy: retain pin-exclusive dispatch and make the corrected runtime available through the existing materialization path before the gate, with a clean-checkout integration check of the actual task. If that path cannot serve CI, explicitly choose a corrected published pin or seek an authorized dispatch-contract change; do not claim source-only edits remove the release dependency.\n\n### F2 — Correct frameworkRoot still does not guarantee checkout content\nblocks-the-design\n\nEvidence: `packages/core/src/content-root.ts` at the dispatch SHA deliberately lets a staged `@deftai/directive-content` package win over in-repo `content/`; #5802 changes precedence only for hoisted `directive-runtime`. A retains this helper as its secondary guard.\n\nFailure: a source checkout with a staged content package still audits package sources/projections despite selecting the right project root. For lessons, the renderer can even pair package pack input with checkout `meta/lessons.md`. P1/P3 are not fully relieved by correcting REPO_ROOT alone.\n\nRemedy: after positively identifying framework-source mode, bind pack inputs and document outputs directly to that checkout's `content/`, and lessons output to its `meta/lessons.md`. Preserve the existing content resolver for consumer mode. Verify with competing staged package content and a deliberately stale checkout projection; the latter must fail.\n\n### F3 — Invocation cwd is not the framework checkout identity\nsharpens-framing\n\nEvidence: `tasks/packs.yml` preserves `USER_WORKING_DIR`; `tasks/engine.yml` separately resolves the source pin from `DEFT_ROOT` specifically to support subdirectory invocation. The draft identifies source mode by `content/packs` under cwd and otherwise falls back to module location.\n\nFailure: invoking from a checkout subdirectory can select the package again. Conversely, an unrelated consumer's `content/packs` directory can be mistaken for framework source. Existing deposit-marker/source-buildability discrimination in `tasks/engine-invoke.cjs` is relevant prior art.\n\nRemedy: pass the known framework root explicitly from the task, distinguish source from deposit using existing identity rules, and refuse an invalid explicit root rather than silently falling back. Resolve registry/default/containment paths from the same per-invocation root; import-time globals must not retain another worktree's root. Test subdirectory invocation and two successive explicit roots, while preserving traversal/symlink containment checks. This sharpens A's root contract without requiring a new general resolver framework.\n\n### F4 — Panel metadata repair\nfootnote\n\nThe ceiling deposit 6357326269 names seat families and N≥3 but lacks operative `round:` and `siblings:` fields required by Envelope and ceiling. Parent should repair the protocol record without changing this round's input ceiling. This does not change the product remedy.\n\nRoad not taken: B is attractive because tip-source execution immediately exercises the fix, but it conflicts with the explicit #5805 pin-exclusive dispatch contract. An authorized exception would change that assessment. C cannot prove checkout projection freshness and should remain rejected.\n\nVerification scope: HEAD equals the dispatch SHA; source and dispatch anchors were checked with `git show` and local searches. This was the envelope's pin-read path, not a rerun of CI or the issue's 55-projection/7-drift measurements; those counts remain reported evidence. No product edits or ingest.",
+          "id": 6357360450,
+          "html_url": "https://github.com/deftai/directive/issues/5853#issuecomment-6357360450",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:26:01Z",
+          "updated_at": "2026-10-23T04:26:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## Open critique — Prefer-A draft 6357325832 vs Stop 1 P1–P4\n\nTarget: Prefer-A draft 6357325832\nStop 1: 6357326066\nPanel-deposit / id ceiling: 6357326269\nverification-path: pin-read C:/Repos/deft/directive/.deft-scratch/worktrees/arc-5853 @ f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\nconflict_group: pack-drift-module-location-vs-project-root-source-checkout\nKISS ceiling: #5783 Prefer-A Bound 6280270826\n\n### Tip re-verify (envelope checklist)\n- packages/core/src/packs/pack-render.ts resolveRepoRoot() walks import.meta.url four parents; module-level const REPO_ROOT = resolveRepoRoot(); const CONTENT_ROOT = contentRoot(REPO_ROOT).\n- RENDER_REGISTRY / DEFAULT_SOURCE / DEFAULT_OUTPUT close over those load-time constants; parseArgs has --check/--source/--output/--pack only (no --project-root).\n- packages/core/src/content-root.ts #5802: in-repo content/ wins over hoisted @deftai/directive-runtime only when frameworkRoot already points at the checkout.\n- packages/core/src/packs/packs-slice.ts duplicates the same import.meta.url resolveRepoRoot hole; tasks/packs.yml verify-drift ENGINE_CMD is pack-render --check only (dir USER_WORKING_DIR).\n- Issue body evidence: tip-source tsx pack-render --check reports all 55 projections in sync; pin path lists 7 paths under @deftai/directive-runtime with deft:deposit-link-rewrite deltas.\n\n### Verdict\nPrefer-A Approach A can bind. Module-location REPO_ROOT is the real fail-closed hole; B (tip-tsx bypass) and C (strip rewrite / special-case package paths) correctly stay Reject. Two sharpenings so Bound limbs name call-time root observation and keep packs-slice out of the short mechanism list unless a verify path uses it.\n\n### Pain coverage\n- P1 — Prefer-A project-root (cwd / --project-root) when content/packs present closes module-location REPO_ROOT. Tip confirms import.meta.url → package root under pin. relieves P1 (mechanism).\n- P2 — Same root for sources and projections removes deposit-rewrite package trees from --check. Consequence of honest P1; Bound must make RENDER_REGISTRY observe that root, not only rename resolveRepoRoot. relieves P2.\n- P3 — Prefer-A keeps #5802 contentRoot precedence as secondary once frameworkRoot is the checkout. Tip content-root.ts matches that association. relieves P3.\n- P4 — Tip CI red solely on verify:pack-drift while vitest green; fixing P1/P2 on the pin path greens the gate without a runtime release. relieves P4.\n\n### Findings\n\n#### sharpens-framing: Bound must rebind registry paths, not only resolveRepoRoot formula\n- Evidence: tip freezes REPO_ROOT/CONTENT_ROOT at module load; RENDER_REGISTRY source/output strings are built once from those consts before main()/parseArgs run.\n- Failure mode: implementer changes resolveRepoRoot() (or adds --project-root) but leaves RENDER_REGISTRY/DEFAULT_* on the load-time package root; --check still diffs package-internal rewritten projections.\n- Disposition consequence: Prefer-A Bound limb must say collectTargets / RENDER_REGISTRY / DEFAULT paths observe the chosen project root (lazy getters or rebuild after argv/cwd resolution) before --check compare. Do not treat a resolveRepoRoot string change alone as P1/P2 relief.\n\n#### sharpens-framing: packs-slice twin hole is leftover unless a gate invokes it\n- Evidence: packs-slice.ts has the identical import.meta.url resolveRepoRoot; verify-drift Taskfile invokes only pack-render --check.\n- Failure mode: co-equal packs-slice rewrite grows Bound / file_scope without a failing gate on this conflict_group.\n- Disposition consequence: keep packs-slice as leftover-pain or footnote in file_scope; short Bound owns pack-render (+ tests + CHANGELOG). Remint only if a later gate proves packs-slice on the verify path.\n\n#### footnote: Taskfile dir USER_WORKING_DIR already supplies cwd\n- packs.yml verify-drift/render set dir: USER_WORKING_DIR. Prefer-A cwd default matches that path; optional --project-root + one-line Taskfile discoverability stay footnote (#3368), not a fifth mechanism limb.\n\n#### footnote: Reject B/C hold on tip evidence\n- Tip-source tsx --check already green (issue body). B leaves every pin pack-render caller wrong. C still never audits tip content/. Prefer-A Reject list is correct.\n\n### Road-not-taken\n- Approach B (engine tip-source tsx of packages/core/src/packs/pack-render.ts for verify:pack-drift only): greens master immediately; leaves module-location root broken for packs:render and any other pin caller. Flip condition would be pin never running pack-render on framework CI — falsified by tasks/packs.yml ENGINE_CMD pack-render --check.\n- Approach C (strip deposit-link-rewrite / ignore package-internal drift): clears red by ignoring rewritten markers; never compares checkout content/. Flip only if the gate's job were pin self-consistency rather than tip projection fidelity — issue Expected rejects that.\n\n### Steelmanning the rejected B\n- Strongest B claim: zero root-resolution design, reuse already-green tip-source path, unblock merge-gate today. Flip condition: maintainer-pin-only / ordinary ENGINE_CMD must stay on pin (#5805-class) and tip-tsx is an allowed permanent dual path. Even then P1 remains for packs:render on pin. Prefer-A correctly fixes the shared root once.\n\n### Injection / swarm lens\n- N/A. Target is pack-render root resolution for a local drift gate; no untrusted input, authority, envelope, or cross-agent shared-state change.\n\n### Proposed Prefer-A Bound limbs (mechanism-only; for parent lean)\n1. relieves: P1 — On framework source (content/packs present), resolve REPO_ROOT from cwd default or --project-root; module-location import.meta.url remains consumer/OVPR fallback.\n2. relieves: P2 — RENDER_REGISTRY / collectTargets / DEFAULT paths observe that same root before --check so deposit-rewritten package projections never enter the compare pair.\n3. relieves: P3 — Pass checkout as frameworkRoot into contentRoot; keep #5802 in-repo-over-hoisted as secondary guard only.\n4. relieves: P4 — Regression: framework-source pack-render --check reports checkout projection paths only; Reject tip-tsx verify bypass, warn-only gate, and rewrite-strip special cases.\n\nblocks-the-design: none",
+          "id": 6357374317,
+          "html_url": "https://github.com/deftai/directive/issues/5853#issuecomment-6357374317",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:27:11Z",
+          "updated_at": "2026-10-23T04:27:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5[1m] (seat label: claude-opus-4-1)\n```quarantined\nrole: critic\n```\n\n## Round-1 critique — Prefer-A draft 6357325832\n\nconflict_group: pack-drift-module-location-vs-project-root-source-checkout\narc-mode: no-ingest\nmateriality-bar: open\nspend: N≥3\nround: 1 critic\ncritic-role: fresh\naudit-targets: none\ninput-ceiling: 6357326269 (honored; no thread read past it)\nverification-path: pin-read C:/Repos/deft/directive/.deft-scratch/worktrees/arc-5853 @ f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\nTarget-digest: sha256:f12cf1c5f4175bb4277810ec287fdde67c37c23c6abd007681b35740a5bc6c67\nKISS ceiling: #5783 Prefer-A Bound 6280270826\n\n## Verdict\n\nApproach A is the right axis and the reject list is sound. But as drafted it is **under-limbed in two places and over-claims in one**. C1 makes the drafted flag inert; C3 shows the pain bind P1–P4 is scoped to the read path while the write path is the worse hazard; C7 shows A alone cannot deliver the issue's stated Expected. All three are mechanism-shaped, not wording.\n\n## Findings\n\n**C1 — load-bearing. The drafted flag cannot reach the roots it names.**\n`REPO_ROOT`/`CONTENT_ROOT` are import-time module consts (`pack-render.ts:26-27`) and are already baked into `DEFAULT_SOURCE`/`DEFAULT_OUTPUT` (`:29-30`), every `RENDER_REGISTRY` entry (`:282-335`), and the containment realpath anchor (`:238`). An argv `--project-root` parsed in `parseArgs` (`:584`) reaches none of them. \"Resolve REPO_ROOT/CONTENT_ROOT from an explicit project root\" is one sentence hiding a de-constification limb. Without it A lands as a no-op flag that still reads the package.\nLimb: `buildRenderRegistry(root)` as a function of the resolved root; thread the root into the containment resolver; `resolveRepoRoot()` survives only as the fallback branch.\n\n**C2 — fail-closed association. Containment anchor becomes caller-controlled.**\nToday the #2914 escape check anchors to a module-derived root no caller can move. A project-root input makes that anchor caller-supplied — this is the one place the Bound must speak rather than footnote. Keep the shape fail-closed: take the source-checkout branch only on a positive probe (`<root>/content/packs/` present), never on a bare `content/` directory a consumer project may legitimately own; containment re-anchors to the *resolved* root; unprobeable root falls back to module-location rather than widening the write surface.\n\n**C3 — the pain bind is scoped to `--check`; the write path is worse.**\n`packs:render` routes through the same pinned binary with no `--check` (`tasks/packs.yml:39-44`), and registry `output` is `join(REPO_ROOT, \"meta/lessons.md\")`. On a source checkout the pin therefore **writes projections into `node_modules/.../@deftai/directive-runtime/`** and leaves tip `content/` untouched. The gate's own failure text says \"Run task packs:render to regenerate\" — i.e. the prescribed remedy is a silent mutation of the installed package. P1–P4 read as \"false red\"; this is \"prescribed wrong write.\" Widen P1 or add P5; the remedy must cover render, not only check.\n\n**C4 — scope: `packs-slice` is the same hole, already seamed.**\n`packs-slice.ts:9-18` duplicates `resolveRepoRoot` verbatim and derives its own `CONTENT_ROOT`; `effectiveRepoRoot(repoRoot?)` (`:20-22`) is an existing override seam. From the pin, `task packs:slice` serves agents pack content out of the installed package, not tip. Promote the draft's conditional footnote (\"if packs-slice shares the same hole\") to a named limb on one shared helper — do not land a third copy of the resolver.\n\n**C5 — prior art; A needs no new surface.**\nThe repo already has this convention: `--project-root` flag (`architecture/sor-preflight.ts:1290-1294`, `cache/main.ts:50-57`) plus `DEFT_PROJECT_ROOT` env (`capacity/backfill.ts:467`), and `dir: '{{.USER_WORKING_DIR}}'` already sets per-invocation cwd (`tasks/packs.yml:41`). Reuse flag → env → cwd precedence as-is. This also deletes the draft's Taskfile/engine-docs footnote from file_scope — nothing new to make discoverable.\n\n**C6 — the hole is currently untestable, which is why #5802 repeated.**\n`pack-render.test.ts:27` recomputes `contentRoot(REPO_ROOT)` from the same module location, so every existing test runs in the single layout where the defect cannot appear. That is the structural reason a landed precedence fix still failed. Regression limb: one test driving `main` against a tmp fixture root that is **not** an ancestor of the module, asserting sources and outputs resolve under the fixture.\n\n**C7 — A over-claims release-independence.**\n`engine:invoke` is pin-exclusive on framework source by #5805 Prefer-A Bound — \"no packages/runtime/dist fallthrough; missing pin fails closed\" (`tasks/engine.yml:76-85`). So `verify:pack-drift` runs the pin's compiled `pack-render` regardless. A's \"checks tip content/ without waiting on a runtime release,\" and the issue's \"Master CI goes green without depending on a runtime release,\" are both unmet: A greens master only once a runtime release carrying A is pinned. State the sequencing in the Bound instead of inheriting the claim.\n\nCorollary on Approach B: the draft's objection (\"leaves the compiled pin broken\") understates it. A tip-source `tsx` escape hatch for this verb reopens a Bound #5805 deliberately closed — that is a mechanism/fail-closed association change requiring a remint of #5805, not a Taskfile footnote. Reject B on that ground, which is stronger and cheaper than the draft's.\n\nApproach C reject stands and can be sharpened: stripping deposit-rewrite deltas before compare makes the gate blind to genuine link-shape drift, trading a false red for a false green.\n\n## Proposed Bound shape (short mechanism limbs)\n\n1. Resolve the render root once per invocation — flag → `DEFT_PROJECT_ROOT` → cwd — taking the source-checkout branch only on a positive `content/packs/` probe; module-location is the fallback.\n2. Make the render registry and containment anchor functions of that resolved root (removes the import-time consts).\n3. Apply to render and check alike — the write path is in scope.\n4. Share one root helper with `packs-slice`; no third copy.\n5. One regression test exercising a root outside the module's ancestry.\n6. Bound records that greening master requires a runtime release carrying this; no pin-exclusivity exception.\n\nFootnotes only: CHANGELOG wording, `--project-root` help text. No Taskfile surface change needed (C5).\n\n## file_scope delta vs draft\n\n- add: `packages/core/src/packs/packs-slice.ts` (+ its test) — promoted from conditional\n- add: shared root helper location (C4)\n- drop: `tasks/packs.yml` / engine invoke docs (C5)\n- keep: `pack-render.ts`, `pack-render.test.ts`, `CHANGELOG.md`\n\n## Pointers\n\n| Topic | Contract heading |\n|---|---|\n| Critic method | Critic method |\n| Bound remedy thinness (#3265) | Critic method / Successor lean |\n| Writing-bar footnote PA (#3368) | Pain coverage |\n| Envelope and ceiling | Envelope and ceiling |\n| Successor lean | Successor lean |\n\n",
+          "id": 6357376845,
+          "html_url": "https://github.com/deftai/directive/issues/5853#issuecomment-6357376845",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:27:24Z",
+          "updated_at": "2026-10-23T04:27:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## Open critique — Prefer-A draft 6357325832 vs Stop 1 P1–P4\n\nTarget: Prefer-A draft 6357325832\nStop 1: 6357326066\nPanel-deposit / id ceiling: 6357326269\nverification-path: pin-read C:/Repos/deft/directive/.deft-scratch/worktrees/arc-5853 @ f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\nconflict_group: pack-drift-module-location-vs-project-root-source-checkout\nKISS ceiling: #5783 Prefer-A Bound 6280270826\n\n### Tip re-verify (envelope checklist)\n- packages/core/src/packs/pack-render.ts resolveRepoRoot() walks import.meta.url four parents; module-level const REPO_ROOT = resolveRepoRoot(); const CONTENT_ROOT = contentRoot(REPO_ROOT).\n- RENDER_REGISTRY / DEFAULT_SOURCE / DEFAULT_OUTPUT close over those load-time constants; parseArgs has --check/--source/--output/--pack only (no --project-root).\n- packages/core/src/content-root.ts #5802: in-repo content/ wins over hoisted @deftai/directive-runtime only when frameworkRoot already points at the checkout.\n- packages/core/src/packs/packs-slice.ts duplicates the same import.meta.url resolveRepoRoot hole; tasks/packs.yml verify-drift ENGINE_CMD is pack-render --check only (dir USER_WORKING_DIR).\n- Issue body evidence: tip-source tsx pack-render --check reports all 55 projections in sync; pin path lists 7 paths under @deftai/directive-runtime with deft:deposit-link-rewrite deltas.\n\n### Verdict\nPrefer-A Approach A can bind. Module-location REPO_ROOT is the real fail-closed hole; B (tip-tsx bypass) and C (strip rewrite / special-case package paths) correctly stay Reject. Two sharpenings so Bound limbs name call-time root observation and keep packs-slice out of the short mechanism list unless a verify path uses it.\n\n### Pain coverage\n- P1 — Prefer-A project-root (cwd / --project-root) when content/packs present closes module-location REPO_ROOT. Tip confirms import.meta.url → package root under pin. relieves P1 (mechanism).\n- P2 — Same root for sources and projections removes deposit-rewrite package trees from --check. Consequence of honest P1; Bound must make RENDER_REGISTRY observe that root, not only rename resolveRepoRoot. relieves P2.\n- P3 — Prefer-A keeps #5802 contentRoot precedence as secondary once frameworkRoot is the checkout. Tip content-root.ts matches that association. relieves P3.\n- P4 — Tip CI red solely on verify:pack-drift while vitest green; fixing P1/P2 on the pin path greens the gate without a runtime release. relieves P4.\n\n### Findings\n\n#### sharpens-framing: Bound must rebind registry paths, not only resolveRepoRoot formula\n- Evidence: tip freezes REPO_ROOT/CONTENT_ROOT at module load; RENDER_REGISTRY source/output strings are built once from those consts before main()/parseArgs run.\n- Failure mode: implementer changes resolveRepoRoot() (or adds --project-root) but leaves RENDER_REGISTRY/DEFAULT_* on the load-time package root; --check still diffs package-internal rewritten projections.\n- Disposition consequence: Prefer-A Bound limb must say collectTargets / RENDER_REGISTRY / DEFAULT paths observe the chosen project root (lazy getters or rebuild after argv/cwd resolution) before --check compare. Do not treat a resolveRepoRoot string change alone as P1/P2 relief.\n\n#### sharpens-framing: packs-slice twin hole is leftover unless a gate invokes it\n- Evidence: packs-slice.ts has the identical import.meta.url resolveRepoRoot; verify-drift Taskfile invokes only pack-render --check.\n- Failure mode: co-equal packs-slice rewrite grows Bound / file_scope without a failing gate on this conflict_group.\n- Disposition consequence: keep packs-slice as leftover-pain or footnote in file_scope; short Bound owns pack-render (+ tests + CHANGELOG). Remint only if a later gate proves packs-slice on the verify path.\n\n#### footnote: Taskfile dir USER_WORKING_DIR already supplies cwd\n- packs.yml verify-drift/render set dir: USER_WORKING_DIR. Prefer-A cwd default matches that path; optional --project-root + one-line Taskfile discoverability stay footnote (#3368), not a fifth mechanism limb.\n\n#### footnote: Reject B/C hold on tip evidence\n- Tip-source tsx --check already green (issue body). B leaves every pin pack-render caller wrong. C still never audits tip content/. Prefer-A Reject list is correct.\n\n### Road-not-taken\n- Approach B (engine tip-source tsx of packages/core/src/packs/pack-render.ts for verify:pack-drift only): greens master immediately; leaves module-location root broken for packs:render and any other pin caller. Flip condition would be pin never running pack-render on framework CI — falsified by tasks/packs.yml ENGINE_CMD pack-render --check.\n- Approach C (strip deposit-link-rewrite / ignore package-internal drift): clears red by ignoring rewritten markers; never compares checkout content/. Flip only if the gate's job were pin self-consistency rather than tip projection fidelity — issue Expected rejects that.\n\n### Steelmanning the rejected B\n- Strongest B claim: zero root-resolution design, reuse already-green tip-source path, unblock merge-gate today. Flip condition: maintainer-pin-only / ordinary ENGINE_CMD must stay on pin (#5805-class) and tip-tsx is an allowed permanent dual path. Even then P1 remains for packs:render on pin. Prefer-A correctly fixes the shared root once.\n\n### Injection / swarm lens\n- N/A. Target is pack-render root resolution for a local drift gate; no untrusted input, authority, envelope, or cross-agent shared-state change.\n\n### Proposed Prefer-A Bound limbs (mechanism-only; for parent lean)\n1. relieves: P1 — On framework source (content/packs present), resolve REPO_ROOT from cwd default or --project-root; module-location import.meta.url remains consumer/OVPR fallback.\n2. relieves: P2 — RENDER_REGISTRY / collectTargets / DEFAULT paths observe that same root before --check so deposit-rewritten package projections never enter the compare pair.\n3. relieves: P3 — Pass checkout as frameworkRoot into contentRoot; keep #5802 in-repo-over-hoisted as secondary guard only.\n4. relieves: P4 — Regression: framework-source pack-render --check reports checkout projection paths only; Reject tip-tsx verify bypass, warn-only gate, and rewrite-strip special cases.\n\nblocks-the-design: none",
+          "id": 6357383051,
+          "html_url": "https://github.com/deftai/directive/issues/5853#issuecomment-6357383051",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:27:55Z",
+          "updated_at": "2026-10-23T04:27:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## Prefer-A Bound\n\nconflict_group: pack-drift-module-location-vs-project-root-source-checkout\nSpec-path: Prefer-A Bound — pack-render project-root for framework source checkout\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N≥3\nmove-forward: yes\ndispatch-sha: f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\ndest: .deft-scratch/worktrees/arc-5853\nTarget-digest: sha256:f12cf1c5f4175bb4277810ec287fdde67c37c23c6abd007681b35740a5bc6c67\nRound-1: Codex 6357360450; Claude 6357376845; Grok 6357383051\nPrefer-A draft superseded for bind: 6357325832\nStop 1: 6357326066\nKISS ceiling: #5783 Prefer-A Bound 6280270826 (#3265 Bound size; #3368 footnote posture)\n\n## In plain English\n\nPin-compiled pack-render freezes REPO_ROOT from import.meta.url, so verify:pack-drift audits deposit-rewritten copies inside @deftai/directive-runtime instead of tip content/. Prefer-A resolves a per-invocation project root (flag → env → cwd) when content/packs is present, rebuilds registry/containment from that root for both check and render, and keeps module-location as the consumer fallback. Master goes green once a pin carrying this lands; no tip-tsx exception to #5805.\n\n## Bound remedy\n\n- relieves: P1 — Per-invocation render root: resolve once via --project-root → DEFT_PROJECT_ROOT → cwd; take the framework-source branch only on a positive <root>/content/packs/ probe; otherwise keep module-location import.meta.url fallback. Same root for pack-render --check and non-check packs:render. One shared helper consumed by pack-render and packs-slice (no third copy).\n- relieves: P2 — RENDER_REGISTRY / collectTargets / DEFAULT_SOURCE / DEFAULT_OUTPUT / #2914 containment anchor are functions of that resolved root (no import-time consts frozen to the package). In framework-source mode, pack inputs and projection outputs bind to that checkout content/ and meta/lessons.md — not staged @deftai/directive-content or package-internal trees — so deposit-link-rewrite package projections never enter the compare or write pair.\n- relieves: P3 — Pass the checkout as frameworkRoot into contentRoot; keep #5802 in-repo-over-hoisted as a secondary guard only after the root is correct.\n- relieves: P4 — Regression: drive main against a tmp fixture root outside the module ancestry; assert sources/outputs resolve under the fixture; framework-source --check reports checkout projection paths only. Reject tip-tsx verify bypass, warn-only gate softening, rewrite-strip compare special cases, and reminting #5805 pin-exclusivity for this verb.\n\n## Accept-into-contract (Round-1)\n\n- Claude C1 / Grok registry sharpen: de-constify registry + containment as functions of resolved root (flag alone is a no-op).\n- Claude C2 / Codex F3: content/packs positive probe; refuse bare content/; invalid explicit root fails closed rather than silent package fallback when probe expected.\n- Claude C3: render write path in scope with --check (prescribed packs:render must not mutate node_modules runtime).\n- Claude C4 / Grok packs-slice: one shared helper; packs-slice consumes it (Grok leftover absorbed as shared-helper limb, not a second product).\n- Claude C5: reuse existing --project-root / DEFT_PROJECT_ROOT / USER_WORKING_DIR precedence; no Taskfile surface change.\n- Claude C6: fixture outside module ancestry (why #5802 repeated).\n- Codex F2: framework-source mode binds checkout content/ over staged content package.\n- Codex F1 / Claude C7: sequencing honesty — greening master requires a pin (or materialize:runtime dogfood) carrying this; no #5805 remint. Footnote under Reject / Keep-outs.\n- Grok / all: Reject B and C.\n\n## Reject\n\n- Approach B tip-source tsx / Taskfile bypass of pin pack-render (reopens #5805 pin-exclusivity without remint)\n- Approach C strip deposit-link-rewrite or ignore package-internal paths before compare\n- Softening verify:pack-drift to warn-only on master\n- Claiming source-only tip edits green master CI without a pin that carries the fix\n- Third copy of resolveRepoRoot in packs-slice\n\n## file_scope\n\n- packages/core/src/packs/pack-render.ts\n- packages/core/src/packs/packs-slice.ts\n- shared packs root helper (new or adjacent under packages/core/src/packs/)\n- packages/core/src/packs/pack-render.test.ts (+ packs-slice tests as needed)\n- CHANGELOG.md\n\n## Keep-outs\n\n- Reminting #5805 pin-exclusive engine:invoke\n- #5848 umbrella rule/checklist (sibling pin/master skew; this issue is one instance)\n- Softening contentRoot consumer modes outside framework-source bind\n- Historical rewrite of already-shipped package projections",
+          "id": 6357397530,
+          "html_url": "https://github.com/deftai/directive/issues/5853#issuecomment-6357397530",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:29:07Z",
+          "updated_at": "2026-10-23T04:29:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole:critic\n```\naudit-targets: pain-P1,pain-P2,pain-P3,pain-P4\nfinding-classes: blocking\nharvest-changed: true\n\nPass-4 pain audit of [Prefer-A Bound 6357397530](https://github.com/deftai/directive/issues/5853#issuecomment-6357397530), against [Stop 1](https://github.com/deftai/directive/issues/5853#issuecomment-6357326066). Input ceiling: 6357397530, honored. Envelope seat: gpt-5-codex; actual model: GPT-6. Verification: pin-read at f0b2a3623a6be6ab2952bcafca0c8114b2b058cf; local HEAD matches.\n\n**F1 — blocks-the-design: subdirectory invocation still falls back to the installed package.**\n\nEvidence: at the dispatch SHA, `tasks/packs.yml` runs render and verify-drift in `USER_WORKING_DIR`, passing only `pack-render {{.CLI_ARGS}}` / `pack-render --check {{.CLI_ARGS}}`. `tasks/engine.yml` deliberately resolves the checkout pin from `DEFT_ROOT` to support subdirectory cwd. Neither those tasks nor `tasks/engine-invoke.cjs` supplies `DEFT_PROJECT_ROOT`; the latter inherits the environment and cwd. The checkout has `content/packs`, but `packages/content/packs` is absent.\n\nCounterexample: with no root override, invoke the root Taskfile from the checkout's `packages/` directory. The corrected pin still receives that subdirectory as cwd. Bound P1 probes `<cwd>/content/packs`, misses, and explicitly falls back to module location. P2 then correctly rebuilds every registry/containment path around the wrong package root. `--check` again compares deposit-rewritten projections; non-check render again targets the installed package. This survives installation of a pin carrying the proposed fix.\n\nDisposition: change the root-association limb so framework-source task dispatch supplies the known checkout root, or the shared resolver reliably recovers that identity from subdirectory invocation. Preserve consumer fallback and explicit-root rejection. The existing Taskfile `DEFT_ROOT` is the smallest available association; expand file_scope if using that transport. Add a subdirectory task-path regression without a pre-set root override, checking both drift detection and render destination. A fixture invoked with an already-correct explicit root does not exercise this failure. This changes mechanism/fail-closed association, so it requires a revised Bound and another audit, not a wording footnote.\n\nPain coverage:\n\n- P1: partial; root-level invocation is corrected, but the supported subdirectory task path still selects package identity.\n- P2: partial; checkout binding eliminates rewrite false reds once source mode is selected, but F1 still selects package mode.\n- P3: covered in design by P2's explicit checkout-content binding plus P3's corrected frameworkRoot. The accepted staged-content exclusion resolves the earlier precedence objection; do not reopen it.\n- P4: partial; the corrected-pin sequencing is now honest, but F1 leaves the actual gate red for subdirectory callers. No renewed demand for a tip-tsx bypass or release-independent source-only fix.\n\nThe shared helper, per-invocation registry/containment, and coverage of both check and write paths are sound. The remaining objection is checkout identity transport, not additional resolver machinery. Pin-read only: no CI rerun, implementation, or ingest.",
+          "id": 6357417688,
+          "html_url": "https://github.com/deftai/directive/issues/5853#issuecomment-6357417688",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:30:49Z",
+          "updated_at": "2026-10-23T04:30:49Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1,pain-P2,pain-P3,pain-P4\nfinding-classes: none\nharvest-changed: false\n\n## Pain-audit Prefer-A Bound 6357397530 (Pass-4)\n\nCeiling: 6357397530 inclusive. Pin-read tip f0b2a3623a6be6ab2952bcafca0c8114b2b058cf. Process-only. KISS #5783 Prefer-A Bound 6280270826. Fresh critic seat. Stop 1: 6357326066. Round-1: Codex 6357360450; Claude 6357376845; Grok 6357383051.\n\n## Tip re-verify (envelope pin-read)\n\n- pack-render.ts: resolveRepoRoot() walks import.meta.url four parents; module-level REPO_ROOT/CONTENT_ROOT; DEFAULT_SOURCE/DEFAULT_OUTPUT and RENDER_REGISTRY close over those load-time consts; parseArgs has --check/--source/--output/--pack only (no --project-root).\n- packs-slice.ts duplicates the same import.meta.url resolveRepoRoot + CONTENT_ROOT consts.\n- content-root.ts #5802: in-repo content/ wins over hoisted directive-runtime only when frameworkRoot already points at the checkout; staged @deftai/directive-content still wins when packageRoot is set and not that hoisted-runtime case.\n- tasks/packs.yml: packs:render and verify-drift both ENGINE_CMD pack-render (with/without --check) under dir USER_WORKING_DIR.\n\n## Pain coverage vs Bound remedy\n\n- P1 — relieved. Per-invocation root via --project-root → DEFT_PROJECT_ROOT → cwd; framework-source branch only on positive <root>/content/packs/ probe; module-location fallback otherwise; same root for --check and non-check packs:render; one shared helper for pack-render and packs-slice. Matches tip import.meta.url freeze and Claude C1/C4 / Grok packs-slice Accept.\n- P2 — relieved. RENDER_REGISTRY / collectTargets / DEFAULT_* / #2914 containment are functions of that resolved root (no import-time package freeze). Framework-source mode binds checkout content/ and meta/lessons.md — not staged @deftai/directive-content or package-internal trees — so deposit-link-rewrite projections never enter compare or write. Absorbs Claude C1 registry de-constify, Claude C3 write-path scope, and Codex F2 checkout-over-staged bind.\n- P3 — relieved. Pass checkout as frameworkRoot into contentRoot; keep #5802 in-repo-over-hoisted as secondary only after root is correct. Tip content-root.ts matches that association.\n- P4 — relieved. Regression: drive main against a tmp fixture root outside module ancestry; assert sources/outputs under the fixture; framework-source --check reports checkout projection paths only. Reject tip-tsx verify bypass, warn-only softening, rewrite-strip special cases, and reminting #5805 pin-exclusivity. Accept-into-contract / Reject record sequencing honesty: greening master needs a pin (or materialize:runtime dogfood) carrying this — Codex F1 / Claude C7 demoted from draft overclaim to footnote, not left as unmet P4 mechanism.\n\n## Findings\n\nNone. Round-1 blocking sharpens (registry as function of root; checkout bind over staged content; write path in scope; shared packs-slice helper; fixture outside ancestry; pin-delivery honesty) are already Bound remedy limbs or Accept-into-contract / Reject footnotes. Invalid-explicit-root fail-closed (Claude C2 / Codex F3) is locked in Accept-into-contract beside the positive content/packs probe; limb fallback covers no-probe consumer mode. Under KISS #5783 / #3368, no further fail-closed association change from this seat.\n\n## Harvest\n\nharvest-changed: false — Bound remedy list already carries the mechanism limbs that close P1–P4; this audit adds no Bound-remedy remint.\n\n## Net\n\nPrefer-A Bound 6357397530 clears pain-P1..P4 for bind. No Remint Bound required from this seat. No ingest or implementation performed; exiting after this post.",
+          "id": 6357423693,
+          "html_url": "https://github.com/deftai/directive/issues/5853#issuecomment-6357423693",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:31:19Z",
+          "updated_at": "2026-10-23T04:31:19Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5[1m] (seat label: claude-opus-4-1)\n```quarantined\nrole: critic\n```\n\n## Pass-4 pain audit — Prefer-A Bound 6357397530 vs Stop 1 P1–P4\n\nconflict_group: pack-drift-module-location-vs-project-root-source-checkout\narc-mode: no-ingest\nmateriality-bar: open\nspend: N≥3\nround: 4 pain-audit\ncritic-role: fresh\naudit-targets: pain-P1,pain-P2,pain-P3,pain-P4\nfinding-classes: sharpening, footnote\nharvest-changed: true\ninput-ceiling: 6357397530 (honored; nothing on the thread read past it)\nverification-path: pin-read C:/Repos/deft/directive/.deft-scratch/worktrees/arc-5853 @ f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\nTarget-digest: sha256:f12cf1c5f4175bb4277810ec287fdde67c37c23c6abd007681b35740a5bc6c67\nKISS ceiling: #5783 Prefer-A Bound 6280270826\n\n## Verdict\n\nNothing blocks. The Bound picked the right axis, its reject list holds on tip evidence, and the P2 limb is the strongest thing on this thread — binding framework-source pack inputs and projection outputs to the checkout, rather than only correcting the root formula, is what actually closes the compare pair.\n\nTwo sharpenings are mechanism-shaped and land inside the harvested `## Bound remedy` slice, so this audit is harvest-changing. Both are cheap: one clause each, no new limb, no new product.\n\n## Pain coverage\n\n| Pain | Disposition | Basis |\n|---|---|---|\n| P1 | relieved on the gate path; residual on subdirectory invocation | per-invocation root + positive probe is correct for a root-cwd invoke; see S1 |\n| P2 | relieved | strongest limb — de-constified registry/containment plus the explicit \"not staged `@deftai/directive-content`\" bind |\n| P3 | relieved, but ambiguous against P2 | see S2 |\n| P4 | relieved as decoupling, contingent on delivery — stated honestly | mechanism is P1+P2; the Bound names the pin dependency in plain English and rejects the source-only-greens-master claim |\n\nOn P4 specifically: the limb body is a regression test plus a reject list, which reads thin against a pain phrased as \"master CI is red\". I checked whether that is an over-claim and concluded it is not. The decoupling of tip mergeability from pin-internal rewritten trees is accomplished by P1+P2; carrying it to the running gate is a release step, and the Bound already refuses to pretend otherwise (`Claiming source-only tip edits green master CI without a pin that carries the fix` sits in Reject). Codex F1 / Claude C7 were absorbed correctly. No finding.\n\n## Findings\n\n### S1 — sharpening, harvest-changing. Bare cwd reintroduces P1, and #5805 already solved this\n\nThe P1 limb resolves `--project-root` → `DEFT_PROJECT_ROOT` → **cwd**, probing `<root>/content/packs/` with no walk. Four pin-read facts make that default unsafe:\n\n1. `tasks/engine.yml:71-73` — `engine:invoke` exports exactly one env var, `DEFT_ENGINE_CMD_JSON`. Neither `DEFT_PROJECT_ROOT` nor `DEFT_ROOT` reaches the spawned binary. The env tier of the Bound's precedence receives nothing from the dispatch, so on the real path the chain collapses to cwd.\n2. `tasks/packs.yml:88` — `verify-drift` runs `dir: '{{.USER_WORKING_DIR}}'`, i.e. wherever the operator typed `task`. `verify:pack-drift` is wired into `task check` (`Taskfile.yml:488`). In this monorepo `task check` from `packages/core/` is ordinary. cwd then has no `content/packs/`, the probe fails, and the limb's own `otherwise` clause routes straight back to `import.meta.url` — P1 verbatim, silently, with the identical red and no new diagnostic.\n3. `tasks/packs.yml:18-21` states the opposite contract for these scripts: *\"The slice / render scripts resolve their own pack source / output paths relative to the framework root, so they are CWD-independent; `dir: '{{.USER_WORKING_DIR}}'` keeps parity with the other Taskfile-dispatched scripts.\"* `dir:` is there for parity **because** the scripts were CWD-independent, not as a per-invocation root signal. Round-1 C5 read that line as prior art for a cwd default and the Bound inherited the reading along with the file_scope drop of `tasks/packs.yml`; the comment three lines above it says what it was for.\n4. `tasks/engine.yml:84` — *\"Resolve pin from DEFT_ROOT so subdirectory cwd still finds the checkout pin (#5805).\"* The Bound this arc defers to hit this exact failure and refused cwd as the identity source. The Bound now makes cwd the default for the same dispatch and, having accepted C5's no-Taskfile-surface-change, has no way to reach `DEFT_ROOT`.\n\nFailure: `cd packages/core && task check` red on `verify:pack-drift` again, post-fix, for the original reason. The gate's own remedy text still says \"Run task packs:render to regenerate\", which from that cwd writes into the installed package — C3's prescribed-wrong-write, un-relieved for the subdirectory case.\n\nDisposition consequence — pick one clause, not a limb:\n- **(a)** walk up from cwd for the `content/packs/` probe, matching the repo's own `resolveProjectRoot` (`packages/core/src/scope/project-context.ts:27-60`: flag → env → sentinel walk from cwd, with a portable `parent === dir` stop). This keeps file_scope as drafted and C5's no-new-surface intact, since the flag and env tiers are unchanged; or\n- **(b)** add `DEFT_PROJECT_ROOT: '{{.DEFT_ROOT}}'` to the `env:` of `packs:render` / `packs:verify-drift`. `DEFT_ROOT` is already a local var at `tasks/packs.yml:27`. This is a one-line env add, not a user-facing surface, so it is narrower than what C5 rejected — but it does reopen `tasks/packs.yml` in file_scope.\n\n(a) is the thinner read of C5 and I would take it. Either way the P1 limb must stop saying bare `cwd`.\n\n### S2 — sharpening, harvest-changing. P2 and P3 prescribe different resolvers for the same invocation\n\nP2 binds framework-source pack inputs and outputs to the checkout `content/` and `meta/lessons.md`, *\"not staged `@deftai/directive-content`\"* — the correct absorption of Codex F2. P3 says pass the checkout as `frameworkRoot` into `contentRoot` and keep #5802 as the secondary guard.\n\nThose do not compose. `contentRoot` (`packages/core/src/content-root.ts:118-141`) prefers an installed content-package root whenever `contentPackageHasAgentContent` is true, and the #5802 in-repo-over-hoisted carve-out is gated on `isHoistedRuntime`, whose test is `/[@/\\]directive-runtime$/`. A staged `@deftai/directive-content` with `templates/` or `skills/` does not match that regex, so `contentRoot(<correct checkout root>)` returns the package root — defeating P2 while literally satisfying P3. The repo publishes that package (`packages/content`), so this is reachable, not theoretical; only `directive-runtime` happens to be installed in the checkout I read.\n\nFailure: an implementer satisfies P3, calls `contentRoot(checkout)` once, and ships a fix that still audits package trees in vendored/hybrid installs. The symptom is P1/P2's symptom and the root is now correct, which makes it harder to diagnose than today's version.\n\nDisposition consequence: say which limb wins. P3 should read that in framework-source mode the content-package preference is bypassed — `contentRoot` is the consumer-mode resolver and #5802 is a guard for that mode, not a step on the framework-source path.\n\n### F1 — footnote. Fail-closed qualifier sits outside the harvested slice\n\nAccept-into-contract carries *\"invalid explicit root fails closed rather than silent package fallback when probe expected\"* (C2 / F3). The P1 limb carries an unqualified *\"otherwise keep module-location import.meta.url fallback\"*. Read together they are coherent; read as a limb they are not, and the harvest digest is the `## Bound remedy` slice alone. Prior art agrees with the Accept line: `scope/project-context.ts:28-51` returns `null` — never a fallback — when an explicit flag or env root fails to stat.\n\nThis is dispose-wording, so footnote-class under #3368 and not on its own a reason to remint. Since S1 already reopens that sentence, fold the qualifier in at zero extra cost.\n\n### F2 — footnote. file_scope misses one test that imports the de-constified surface\n\nP2 removes the import-time consts. `packages/core/src/packs/coverage-branches.test.ts:5-13` imports `RENDER_REGISTRY` and `collectTargets` from `./pack-render.js` and is not covered by file_scope's `pack-render.test.ts (+ packs-slice tests as needed)`. Mechanical, no mechanism change; naming it avoids a surprise red at implementation time.\n\nSecondary, same class: both `resolveRepoRoot` copies are **exported** (`pack-render.ts:22`, `packs-slice.ts:9`), so collapsing to one shared helper touches `packages/core`'s public surface. The Bound's Reject already bars a third copy; the dedupe direction is right, the export shape is a footnote for the implementer. `effectiveRepoRoot(repoRoot?)` (`packs-slice.ts:20-22`) defaults to `CONTENT_ROOT` despite its name — worth not carrying that trap into the shared helper.\n\n## Confirmed as sound\n\n- Reject B and C hold. B reopens #5805 pin-exclusivity (`tasks/engine.yml:76-85`) and is a remint, not a Taskfile footnote; C trades a false red for a false green by blinding the gate to genuine link-shape drift.\n- The positive `content/packs/` probe, rather than bare `content/`, is the right discriminator — a consumer project may legitimately own `content/`, and a flattened deposit has no `content/` at all, so the consumer fallback is preserved.\n- The write path is in scope. `parseArgs` (`pack-render.ts:584-612`) has no `--project-root` today, and the lessons registry `output` is `join(REPO_ROOT, \"meta/lessons.md\")` (`:287`), so the prescribed `packs:render` really does write into the installed package from a pin. Covering render and check under one root is correct and belongs in the slice, where it is.\n- One shared helper with `packs-slice`, and the regression fixture rooted outside the module ancestry, are the right two closers. `pack-render.test.ts:27` recomputing `contentRoot(REPO_ROOT)` from the same module location is the structural reason a landed #5802 fix still failed.\n\n## Scope discipline\n\nNo product edits, no ingest, no dest placement. Nothing here touches the #5848 umbrella or asks for a #5805 remint. The two sharpenings are clause edits inside limbs that already exist; the Bound stays short.\n\n## Pointers\n\n| Topic | Contract heading |\n|---|---|\n| Pain-audit targeting and carrier fields | Pain coverage / Yolo leftover-pain |\n| Harvest identity and the follow-through walk | Pain coverage / Yolo leftover-pain |\n| Bound remedy thinness (#3265) | Critic method / Successor lean |\n| Writing-bar footnote posture (#3368) | Pain coverage (#4496) |\n\n",
+          "id": 6357478735,
+          "html_url": "https://github.com/deftai/directive/issues/5853#issuecomment-6357478735",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:35:58Z",
+          "updated_at": "2026-10-23T04:35:58Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## Spend amend — N≥3 → N=2 (seat-families: codex,grok)\n\nPA-1 Claude 6357478735 returned harvest-changed:true (sharpening S1/S2; no blocking). Same containment class as #5478 / #5783 KISS thrash: drop Claude for PA-2; seat Codex+Grok only against Recut-1.\nPA-1 Codex 6357417688 blocked (subdirectory identity). PA-1 Grok 6357423693 clear.\nspend: N=2 (Codex+Grok)\nseat-families: codex,grok\ndual-stop-raise:+1\narc-mode: no-ingest\nyolo-standing: on",
+          "id": 6357490848,
+          "html_url": "https://github.com/deftai/directive/issues/5853#issuecomment-6357490848",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:36:59Z",
+          "updated_at": "2026-10-23T04:36:59Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## Prefer-A Bound\n\nRecut: Prefer-A Recut-1 — subdirectory walk-up + framework-source content bind\nSupersedes: 6357397530\nconflict_group: pack-drift-module-location-vs-project-root-source-checkout\nSpec-path: Prefer-A Recut-1 — pack-render project-root walk-up for framework source\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N=2\nseat-families: codex,grok\nmove-forward: yes\ndispatch-sha: f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\ndest: .deft-scratch/worktrees/arc-5853\nTarget-digest: sha256:c2bdf9c5396f5f6d88b746d9ae288361037d0360b0126e8da32132d92d512914\nRound-1: Codex 6357360450; Claude 6357376845; Grok 6357383051\nPA-1: Codex 6357417688 (blocking); Grok 6357423693 (clear); Claude 6357478735 (harvest-changed sharpening)\nPrefer-A Bound superseded: 6357397530\ndual-stop-raise:+1\nKISS ceiling: #5783 Prefer-A Bound 6280270826 — remint for mechanism/fail-closed only; Claude seat dropped for PA-2\n\n## In plain English\n\nSame Prefer-A as Bound 6357397530, with two mechanism fixes from PA-1: (1) recover framework-source identity by walking up from cwd for content/packs (subdirectory task check no longer falls back to the package); (2) in framework-source mode bind content to checkout content/ and bypass content-package preference so P2 and P3 do not fight. Greening master still needs a pin that carries this; no #5805 remint.\n\n## Bound remedy\n\n- relieves: P1 — Walk-up render root: resolve once via --project-root → DEFT_PROJECT_ROOT → ancestor walk from cwd for <dir>/content/packs/ (portable parent===dir stop; reuse resolveProjectRoot shape). Explicit flag/env that fails to stat refuses closed (no silent package fallback). Only after walk miss keep module-location import.meta.url fallback. Same root for pack-render --check and non-check packs:render. One shared helper for pack-render and packs-slice.\n- relieves: P2 — Framework-source checkout bind: RENDER_REGISTRY / collectTargets / DEFAULT_SOURCE / DEFAULT_OUTPUT / #2914 containment are functions of that resolved root. In framework-source mode, pack inputs and projection outputs bind to checkout content/ and meta/lessons.md and bypass staged @deftai/directive-content preference so deposit-rewritten package trees never enter compare or write.\n- relieves: P3 — Framework-source contentRoot bypass: after checkout root is selected, do not route framework-source pack I/O through contentRoot consumer-package preference; keep #5802 in-repo-over-hoisted as consumer-mode secondary only.\n- relieves: P4 — Subdir+fixture regression: drive main from a subdirectory cwd without pre-set root override and from a tmp fixture outside module ancestry; assert sources/outputs under checkout/fixture; framework-source --check reports checkout projection paths only. Reject tip-tsx verify bypass, warn-only gate, rewrite-strip compare, and #5805 pin-exclusivity remint.\n\n## Accept-into-contract (PA-1)\n\n- Codex F1 / Claude S1: walk-up content/packs (option a) — no Taskfile DEFT_PROJECT_ROOT surface; reminted P1+P4 titles.\n- Claude S2: P2 wins — framework-source bypass of content-package preference; reminted P2+P3.\n- Claude F1 fold: explicit root fail-closed into P1 limb.\n- Claude F2 footnote: coverage-branches.test.ts / export shape — implementer note, not a fifth limb.\n- Grok PA-1 clear retained.\n\n## Reject\n\n- Approach B tip-source tsx / Taskfile bypass of pin pack-render\n- Approach C strip deposit-link-rewrite or ignore package-internal paths\n- Softening verify:pack-drift to warn-only\n- Claiming source-only tip edits green master CI without a pin carrying the fix\n- Third copy of resolveRepoRoot\n- Bare cwd probe without ancestor walk as the sole identity source\n\n## file_scope\n\n- packages/core/src/packs/pack-render.ts\n- packages/core/src/packs/packs-slice.ts\n- shared packs root helper under packages/core/src/packs/\n- packages/core/src/packs/pack-render.test.ts (+ packs-slice / coverage-branches tests as needed)\n- CHANGELOG.md\n\n## Keep-outs\n\n- Reminting #5805 pin-exclusive engine:invoke\n- #5848 umbrella rule/checklist\n- Softening contentRoot consumer modes outside framework-source bind\n\n",
+          "id": 6357491124,
+          "html_url": "https://github.com/deftai/directive/issues/5853#issuecomment-6357491124",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:37:01Z",
+          "updated_at": "2026-10-23T04:41:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole:critic\n```\naudit-targets: pain-P1,pain-P2,pain-P3,pain-P4\nfinding-classes: none\nharvest-changed: false\n\nPA-2 pain audit of [Prefer-A Recut-1](https://github.com/deftai/directive/issues/5853#issuecomment-6357491124) against [Stop 1 P1-P4](https://github.com/deftai/directive/issues/5853#issuecomment-6357326066). Input ceiling: 6357491124 inclusive, honored. Envelope seat: gpt-5-codex; actual model: GPT-6. Pin-read at f0b2a3623a6be6ab2952bcafca0c8114b2b058cf; local HEAD matches. arc-mode: no-ingest.\n\n**Verdict: clear for bind. No remaining blocking finding or mechanism/fail-closed change requested.**\n\nDisposition of [prior blocking PA 6357417688](https://github.com/deftai/directive/issues/5853#issuecomment-6357417688), by Recut limb:\n\n- **P1 - Walk-up render root:** closes F1's subdirectory counterexample. At the pinned source, tasks/packs.yml preserves USER_WORKING_DIR and engine:invoke does not supply DEFT_PROJECT_ROOT. Walking ancestors for content/packs now recovers the checkout from packages/ before module-location fallback. Explicit-root refusal, one shared helper, and the same root for check and render preserve the intended association.\n- **P2 - Framework-source checkout bind:** closes the false-red and wrong-write consequences of F1. pack-render.ts currently freezes defaults, registry entries, and containment around import-time roots; making those depend on the selected root binds both comparison and regeneration to checkout content/ and meta/lessons.md. Staged package projections are explicitly excluded.\n- **P3 - Framework-source contentRoot bypass:** makes the P2 association unambiguous. At the pin, contentRoot can prefer staged directive-content even with a correct checkout argument. Bypassing that preference for framework-source pack I/O closes this route back into package content without changing consumer precedence.\n- **P4 - Subdir+fixture regression:** directly covers the missing no-override subdirectory case plus a fixture outside module ancestry. Together with P1's check/render parity, this addresses the prior audit's regression demand. The reject clause correctly retains the need for a pin carrying the fix; this is design clearance, not a claim that today's master gate is green.\n\nThe prior objection was checkout identity recovery; Recut now supplies that mechanism. Existing export/test adaptation notes remain implementation details, not grounds to remint. Under the envelope's KISS #5783 constraint, no additional limb or harvest change is warranted.\n\nPin-read only; no implementation, CI rerun, or ingest. PA-2 complete; exiting after this comment.",
+          "id": 6357507545,
+          "html_url": "https://github.com/deftai/directive/issues/5853#issuecomment-6357507545",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:38:24Z",
+          "updated_at": "2026-10-23T04:38:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1,pain-P2,pain-P3,pain-P4\nfinding-classes: none\nharvest-changed: false\n\n## Pain-audit Prefer-A Recut-1 6357491124 (PA-2 / Pass-4)\n\nCeiling: 6357491124 inclusive. Pin-read tip f0b2a3623a6be6ab2952bcafca0c8114b2b058cf (HEAD matches). Process-only. KISS #5783 Prefer-A Bound 6280270826. Fresh critic seat. Stop 1: 6357326066. Prior blocking PA: Codex 6357417688. Prior clear PA: Grok 6357423693. Spend-amend: 6357490848 (N=2 codex,grok). Supersedes Prefer-A Bound 6357397530.\n\n## Tip re-verify (envelope pin-read)\n\n- pack-render.ts / packs-slice.ts still freeze REPO_ROOT/CONTENT_ROOT via import.meta.url four-parent walk; RENDER_REGISTRY and DEFAULT_* close over load-time consts; parseArgs has --check/--source/--output/--pack only (no --project-root). Expected pre-implement tip; Recut is next-build contract.\n- content-root.ts #5802: in-repo content/ wins over hoisted directive-runtime only when frameworkRoot already points at the checkout; staged @deftai/directive-content still wins otherwise.\n- tasks/packs.yml: packs:render and verify-drift invoke pack-render (with/without --check) under dir USER_WORKING_DIR; DEFT_ROOT is Taskfile-local joinPath only and is not passed as DEFT_PROJECT_ROOT / --project-root to pack-render. Codex F1 counterexample (invoke from packages/ subdirectory) remains live on tip until Recut lands.\n- resolveProjectRoot (scope/project-context.ts): --project-root → DEFT_PROJECT_ROOT → sentinel walk with portable parent===dir stop — the shape Recut P1 reuses for content/packs probe.\n\n## Codex 6357417688 disposition via Recut limb titles\n\nBlocking F1: subdirectory task cwd probes only <cwd>/content/packs, misses, falls back to module-location package identity; P2 then binds registry/containment around the wrong root.\nRecut Accept-into-contract: Codex F1 / Claude S1 → walk-up content/packs (option a); no Taskfile DEFT_PROJECT_ROOT surface; reminted P1+P4 titles.\n- reminted P1 — Walk-up render root: ancestor walk from cwd for <dir>/content/packs/ recovers checkout identity under packages/ (and deeper) without a pre-set root override; explicit flag/env that fails to stat refuses closed; module-location only after walk miss; shared helper for pack-render and packs-slice; same root for --check and non-check.\n- reminted P4 — Subdir+fixture regression: drive main from a subdirectory cwd without pre-set root override (exact F1 path) and from a tmp fixture outside module ancestry; assert sources/outputs under checkout/fixture.\nF1 mechanism/fail-closed association is retired by those reminted titles. Option-a walk-up is sufficient; Taskfile DEFT_ROOT transport stays Reject/keep-out of this Recut.\n\n## Pain coverage vs Recut Bound remedy\n\n- P1 — relieved. Walk-up + explicit-root fail-closed + post-miss module fallback closes module-location REPO_ROOT for framework-source task paths, including subdirectory USER_WORKING_DIR. Shared helper covers packs-slice parity.\n- P2 — relieved. RENDER_REGISTRY / collectTargets / DEFAULT_* / #2914 containment are functions of the resolved root. Framework-source mode binds checkout content/ and meta/lessons.md and bypasses staged @deftai/directive-content preference so deposit-link-rewrite projections never enter compare or write (Claude S2 / reminted P2 title).\n- P3 — relieved. After checkout root is selected, framework-source pack I/O does not route through contentRoot consumer-package preference; #5802 in-repo-over-hoisted stays consumer-mode secondary only. Reminted P3 title ends the P2/P3 fight.\n- P4 — relieved. Subdir+fixture regressions lock the F1 path and out-of-ancestry fixture. Reject tip-tsx verify bypass, warn-only gate, rewrite-strip compare, and #5805 pin-exclusivity remint. Accept-into-contract keeps pin-delivery honesty: greening master needs a pin carrying this fix.\n\n## Findings\n\nNone. Codex F1 is disposed by reminted Walk-up render root + Subdir+fixture regression limbs. Claude PA-1 S1/S2 sharpenings are folded into reminted P1–P3 titles; Claude F1 explicit-root fail-closed is inside P1; Claude F2 coverage-branches/export shape stays Accept-into-contract footnote (not a fifth limb) under KISS #5783 / #3368. No further mechanism or fail-closed association change from this seat.\n\n## Harvest\n\nharvest-changed: false — Recut-1 Bound remedy list already carries the reminted mechanism limbs that close P1–P4 and retire blocking PA 6357417688; this audit adds no Bound-remedy remint.\n\n## Net\n\nPrefer-A Recut-1 6357491124 clears pain-P1..P4 for bind. No Remint Bound required from this seat. No ingest or implementation performed; exiting after this post.",
+          "id": 6357518251,
+          "html_url": "https://github.com/deftai/directive/issues/5853#issuecomment-6357518251",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:39:17Z",
+          "updated_at": "2026-10-23T04:39:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1,pain-P2,pain-P3,pain-P4\nfinding-classes: none\nharvest-changed: false\n\n## Pain-audit Prefer-A Recut-1 6357491124 (PA-2 / Pass-4)\n\nCeiling: 6357491124 inclusive. Pin-read tip f0b2a3623a6be6ab2952bcafca0c8114b2b058cf (HEAD matches). Process-only. KISS #5783 Prefer-A Bound 6280270826. Fresh critic seat. Stop 1: 6357326066. Prior blocking PA: Codex 6357417688. Prior clear PA: Grok 6357423693. Spend-amend: 6357490848 (N=2 codex,grok). Supersedes Prefer-A Bound 6357397530.\n\n## Tip re-verify (envelope pin-read)\n\n- pack-render.ts / packs-slice.ts still freeze REPO_ROOT/CONTENT_ROOT via import.meta.url four-parent walk; RENDER_REGISTRY and DEFAULT_* close over load-time consts; parseArgs has --check/--source/--output/--pack only (no --project-root). Expected pre-implement tip; Recut is next-build contract.\n- content-root.ts #5802: in-repo content/ wins over hoisted directive-runtime only when frameworkRoot already points at the checkout; staged @deftai/directive-content still wins otherwise.\n- tasks/packs.yml: packs:render and verify-drift invoke pack-render (with/without --check) under dir USER_WORKING_DIR; DEFT_ROOT is Taskfile-local joinPath only and is not passed as DEFT_PROJECT_ROOT / --project-root to pack-render. Codex F1 counterexample (invoke from packages/ subdirectory) remains live on tip until Recut lands.\n- resolveProjectRoot (scope/project-context.ts): --project-root → DEFT_PROJECT_ROOT → sentinel walk with portable parent===dir stop — the shape Recut P1 reuses for content/packs probe.\n\n## Codex 6357417688 disposition via Recut limb titles\n\nBlocking F1: subdirectory task cwd probes only <cwd>/content/packs, misses, falls back to module-location package identity; P2 then binds registry/containment around the wrong root.\nRecut Accept-into-contract: Codex F1 / Claude S1 → walk-up content/packs (option a); no Taskfile DEFT_PROJECT_ROOT surface; reminted P1+P4 titles.\n- reminted P1 — Walk-up render root: ancestor walk from cwd for <dir>/content/packs/ recovers checkout identity under packages/ (and deeper) without a pre-set root override; explicit flag/env that fails to stat refuses closed; module-location only after walk miss; shared helper for pack-render and packs-slice; same root for --check and non-check.\n- reminted P4 — Subdir+fixture regression: drive main from a subdirectory cwd without pre-set root override (exact F1 path) and from a tmp fixture outside module ancestry; assert sources/outputs under checkout/fixture.\nF1 mechanism/fail-closed association is retired by those reminted titles. Option-a walk-up is sufficient; Taskfile DEFT_ROOT transport stays Reject/keep-out of this Recut.\n\n## Pain coverage vs Recut Bound remedy\n\n- P1 — relieved. Walk-up + explicit-root fail-closed + post-miss module fallback closes module-location REPO_ROOT for framework-source task paths, including subdirectory USER_WORKING_DIR. Shared helper covers packs-slice parity.\n- P2 — relieved. RENDER_REGISTRY / collectTargets / DEFAULT_* / #2914 containment are functions of the resolved root. Framework-source mode binds checkout content/ and meta/lessons.md and bypasses staged @deftai/directive-content preference so deposit-link-rewrite projections never enter compare or write (Claude S2 / reminted P2 title).\n- P3 — relieved. After checkout root is selected, framework-source pack I/O does not route through contentRoot consumer-package preference; #5802 in-repo-over-hoisted stays consumer-mode secondary only. Reminted P3 title ends the P2/P3 fight.\n- P4 — relieved. Subdir+fixture regressions lock the F1 path and out-of-ancestry fixture. Reject tip-tsx verify bypass, warn-only gate, rewrite-strip compare, and #5805 pin-exclusivity remint. Accept-into-contract keeps pin-delivery honesty: greening master needs a pin carrying this fix.\n\n## Findings\n\nNone. Codex F1 is disposed by reminted Walk-up render root + Subdir+fixture regression limbs. Claude PA-1 S1/S2 sharpenings are folded into reminted P1–P3 titles; Claude F1 explicit-root fail-closed is inside P1; Claude F2 coverage-branches/export shape stays Accept-into-contract footnote (not a fifth limb) under KISS #5783 / #3368. No further mechanism or fail-closed association change from this seat.\n\n## Harvest\n\nharvest-changed: false — Recut-1 Bound remedy list already carries the reminted mechanism limbs that close P1–P4 and retire blocking PA 6357417688; this audit adds no Bound-remedy remint.\n\n## Net\n\nPrefer-A Recut-1 6357491124 clears pain-P1..P4 for bind. No Remint Bound required from this seat. No ingest or implementation performed; exiting after this post.",
+          "id": 6357519313,
+          "html_url": "https://github.com/deftai/directive/issues/5853#issuecomment-6357519313",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:39:22Z",
+          "updated_at": "2026-10-23T04:39:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\narc-mode: no-ingest\nyolo-standing: on\nPrefer-A successor lean: 6357491124\ndispatch-sha: f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\ndest: .deft-scratch/worktrees/arc-5853\n\n| Claim | Evidence | Status |\n|---|---|---|\n| Module-location REPO_ROOT makes pin pack-render audit package trees | Round-1 tip re-verify; issue body tip-tsx green vs pin 7-path red | verified |\n| Prefer-A project-root + walk-up + registry rebind is the Bound axis | Round-1 Codex/Claude/Grok; Reject B/C held | verified |\n| PA-1 Codex blocked on subdirectory bare-cwd fallback | 6357417688 | verified |\n| Recut-1 reminted walk-up + framework-source content bind + contentRoot bypass | lean 6357491124 Supersedes 6357397530 | verified |\n| PA-2 Codex+Grok clear harvest-changed:false | 6357507545; 6357519313 | verified |\n| KISS #5783 ceiling applied (short limbs; Claude PA thrash → N=2) | spend-amend 6357490848; Bound cites 6280270826 | verified |\n\nNo Target-digest on this table (lean-only).",
+          "id": 6357532313,
+          "html_url": "https://github.com/deftai/directive/issues/5853#issuecomment-6357532313",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:40:27Z",
+          "updated_at": "2026-10-23T04:40:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because Prefer-A Recut-1 6357491124 relieves Stop 1 P1–P4 under KISS #5783, PA-2 Codex 6357507545 and Grok 6357519313 returned finding-classes: none with harvest-changed: false, and Reject B/C plus #5805 keep-outs held.\n\nBound contract: successor lean 6357491124, confirmed by operator (yolo-standing), verified-claims table 6357532313\n\n## In plain English\n\nArc 5853 is ingest-ready on Prefer-A Recut-1: pack-render must recover the framework checkout via walk-up content/packs (not bare cwd), rebuild registry/containment from that root for check and render, and in framework-source mode bind to checkout content/ rather than staged package trees. Master greens after a pin carrying this lands. Ingest stays a separate operator verb.\n\narc-mode: no-ingest\nyolo-standing: on\nconflict_group: pack-drift-module-location-vs-project-root-source-checkout\ndispatch-sha: f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\ndest: .deft-scratch/worktrees/arc-5853\n\nTrail: draft 6357325832; Stop1 6357326066; panel 6357326269; R1 6357360450/6357376845/6357383051; Bound 6357397530; PA-1 6357417688/6357423693/6357478735; spend-amend 6357490848; Recut-1 6357491124; PA-2 6357507545/6357519313; VCT 6357532313.\n\n",
+          "id": 6357532509,
+          "html_url": "https://github.com/deftai/directive/issues/5853#issuecomment-6357532509",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:40:28Z",
+          "updated_at": "2026-10-23T04:40:56Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\n`task verify:pack-drift` (`packs:verify-drift` → `engine:invoke` → `pack-render --check`) runs the **pinned runtime's** compiled `pack-render`. It never checks the repo's own `content/` projections. Instead it compares a fresh render against the copies shipped inside the installed `@deftai/directive-runtime` package, and those copies are deposit-link-rewritten, so the gate is always red on a source checkout. The problem is still present with the 0.128.0 pin.\n\n## Evidence\n\nThe gate fails identically on master at `f0b2a3623` (pin 0.127.0) and on the same commit bumped to the 0.128.0 pin:\n\n```\npack-drift: 7 projection(s) out of sync:\n  node_modules/.pnpm/@deftai+directive-runtime@<pin>/node_modules/@deftai/directive-runtime/meta/lessons.md\n  .../skills/deft-directive-setup/SKILL.md\n  .../coding/build-output.md\n  .../coding/coding.md\n  .../coding/testing.md\n  .../strategies/README.md\n  .../swarm/swarm.md\nRun `task packs:render` to regenerate.\n```\n\nAll 7 paths are inside the installed runtime package, not the repo tree.\n\nExample of why the package copy can never match a fresh render (`content/coding/testing.md` vs the package's `coding/testing.md`):\n\n```diff\n <!-- AUTO-GENERATED by task packs:render -- DO NOT EDIT MANUALLY -->\n+<!-- deft:deposit-link-rewrite v=1 source=\"content/coding/testing.md\" -->\n ...\n-**See also**: [main.md](../../main.md) | ...\n+**See also**: [main.md](../main.md) | ...\n```\n\nMaster CI run [39891549225](https://github.com/deftai/directive/actions/runs/39891549225) at `f0b2a3623` failed **only** on this gate. Its vitest run was fully green (1478 files / 22833 tests passed), and both merge-gate jobs ended with `Failed to run task \"verify:pack-drift\"`, listing the same 7 paths under `@deftai+directive-runtime@0.127.0`.\n\nRunning the repo-source renderer against the same tree is clean:\n\n```\ntsx -e \"import { main } from './packages/core/src/packs/pack-render.ts'; process.exit(main(['--check']))\"\npack-drift: all 55 projection(s) in sync.\n```\n\n## Likely cause (read-only analysis)\n\n`packages/core/src/packs/pack-render.ts`:\n\n```ts\nexport function resolveRepoRoot(): string {\n  return resolve(dirname(fileURLToPath(import.meta.url)), \"..\", \"..\", \"..\", \"..\");\n}\nconst REPO_ROOT = resolveRepoRoot();\nconst CONTENT_ROOT = contentRoot(REPO_ROOT);\n```\n\n`REPO_ROOT` comes from the module's own location. When the module runs from the installed runtime (`vendor/directive-core/dist/packs/pack-render.js`), that location is the package root, not the project being checked. `contentRoot()` then returns the flattened package, so both the pack sources and the projection targets resolve inside the package. The #5802 `contentRoot` precedence fix doesn't help, because the framework root passed in is already the package.\n\n## Expected\n\nOn a framework source checkout, `verify:pack-drift` checks the repo's own projections (`meta/lessons.md`, `content/**`) against the repo's pack sources, using the project root (cwd / `--project-root`) rather than the module location. Master CI goes green without depending on a runtime release.\n\nPart of the pin/master skew tracked in #5848.\n\n_Filed by Grok Bot (Engineering) for @MScottAdams_\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5991776868,
+        "origin": "deftai/directive#5853",
+        "id": "github.issue.5991776868"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "c2bdf9c5396f5f6d88b746d9ae288361037d0360b0126e8da32132d92d512914"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "verify:pack-drift compares against the installed runtime package's rewritten copies instead of repo content/ (still in 0.128.0)",
+        "relieves: P1 — Walk-up render root: resolve once via --project-root → DEFT_PROJECT_ROOT → ancestor walk from cwd for <dir>/content/packs/ (portable parent===dir stop; reuse resolveProjectRoot shape).",
+        "Explicit flag/env that fails to stat refuses closed (no silent package fallback).",
+        "Only after walk miss keep module-location import.meta.url fallback.",
+        "Same root for pack-render --check and non-check packs:render.",
+        "One shared helper for pack-render and packs-slice.",
+        "relieves: P2 — Framework-source checkout bind: RENDER_REGISTRY / collectTargets / DEFAULT_SOURCE / DEFAULT_OUTPUT / #2914 containment are functions of that resolved root.",
+        "In framework-source mode, pack inputs and projection outputs bind to checkout content/ and meta/lessons.md and bypass staged @deftai/directive-content preference so deposit-rewritten package trees never enter compare or write.",
+        "relieves: P3 — Framework-source contentRoot bypass: after checkout root is selected, do not route framework-source pack I/O through contentRoot consumer-package preference; keep #5802 in-repo-over-hoisted as consumer-mode secondary only.",
+        "relieves: P4 — Subdir+fixture regression: drive main from a subdirectory cwd without pre-set root override and from a tmp fixture outside module ancestry; assert sources/outputs under checkout/fixture; framework-source --check reports checkout projection paths only.",
+        "Reject tip-tsx verify bypass, warn-only gate, rewrite-strip compare, and #5805 pin-exclusivity remint."
+      ],
+      "admitted_source_sentences": [
+        "relieves: P1 — Walk-up render root: resolve once via --project-root → DEFT_PROJECT_ROOT → ancestor walk from cwd for <dir>/content/packs/ (portable parent===dir stop; reuse resolveProjectRoot shape).",
+        "Explicit flag/env that fails to stat refuses closed (no silent package fallback).",
+        "Only after walk miss keep module-location import.meta.url fallback.",
+        "Same root for pack-render --check and non-check packs:render.",
+        "One shared helper for pack-render and packs-slice.",
+        "relieves: P2 — Framework-source checkout bind: RENDER_REGISTRY / collectTargets / DEFAULT_SOURCE / DEFAULT_OUTPUT / #2914 containment are functions of that resolved root.",
+        "In framework-source mode, pack inputs and projection outputs bind to checkout content/ and meta/lessons.md and bypass staged @deftai/directive-content preference so deposit-rewritten package trees never enter compare or write.",
+        "relieves: P3 — Framework-source contentRoot bypass: after checkout root is selected, do not route framework-source pack I/O through contentRoot consumer-package preference; keep #5802 in-repo-over-hoisted as consumer-mode secondary only.",
+        "relieves: P4 — Subdir+fixture regression: drive main from a subdirectory cwd without pre-set root override and from a tmp fixture outside module ancestry; assert sources/outputs under checkout/fixture; framework-source --check reports checkout projection paths only.",
+        "Reject tip-tsx verify bypass, warn-only gate, rewrite-strip compare, and #5805 pin-exclusivity remint."
+      ],
+      "admitted_source_digest": "c35672829b36a04d291ed601e591359375e99e33d31e0c1b899b5d23b8812f39",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "relieves: P1 — Walk-up render root: resolve once via --project-root → DEFT_PROJECT_ROOT → ancestor walk from cwd for <dir>/content/packs/ (portable parent===dir stop; reuse resolveProjectRoot shape).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Explicit flag/env that fails to stat refuses closed (no silent package fallback).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Only after walk miss keep module-location import.meta.url fallback.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Same root for pack-render --check and non-check packs:render.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "One shared helper for pack-render and packs-slice.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "relieves: P2 — Framework-source checkout bind: RENDER_REGISTRY / collectTargets / DEFAULT_SOURCE / DEFAULT_OUTPUT / #2914 containment are functions of that resolved root.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "In framework-source mode, pack inputs and projection outputs bind to checkout content/ and meta/lessons.md and bypass staged @deftai/directive-content preference so deposit-rewritten package trees never enter compare or write.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "relieves: P3 — Framework-source contentRoot bypass: after checkout root is selected, do not route framework-source pack I/O through contentRoot consumer-package preference; keep #5802 in-repo-over-hoisted as consumer-mode secondary only.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "relieves: P4 — Subdir+fixture regression: drive main from a subdirectory cwd without pre-set root override and from a tmp fixture outside module ancestry; assert sources/outputs under checkout/fixture; framework-source --check reports checkout projection paths only.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Reject tip-tsx verify bypass, warn-only gate, rewrite-strip compare, and #5805 pin-exclusivity remint.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "verify:pack-drift compares against the installed runtime package's rewritten copies instead of repo content/ (still in 0.128.0)"
+      ]
+    },
+    "id": "github.issue.5991776868",
+    "updated": "2026-10-23T05:34:24Z"
+  }
+}
