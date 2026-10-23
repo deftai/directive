@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed — Maintainer xBRIEF corpus hygiene after OVPR equal-version upgrade: rewrite residual 0.6 envelopes to xBRIEFInfo 0.8, strip leftover hybrid vBRIEFInfo keys on completed briefs, and reword Taskfile doctor/upgrade comments so they no longer embed `.deft/core/` (doctor wiring false positive on this repo). Refs #5795 #5796.
 
 ### Fixed
+- Fixed - Committed pre-push hook feature-detects `pre-pr:run --push-admit` and falls back to the pre-#5804 verify:branch-only push on runtime pins that lack it (published 0.127.0 refused every push with `unrecognized argument: --push-admit`). Refs #5804 #5837.
 - Fixed - Land tracked completion record for enrolled pre-push hard-refuse after product #5829. Refs #5804.
 - Fixed - Enrolled pre-push admission hashes committed blobs (not working tree), derives new-branch outgoing via merge-base, keeps git path errors distinct from empty diffs, skips docs-only before requiring a pass, honors `requireBoundPrePrPush: false`, refuses multi-ref enrolled pushes, tracks reviewed deletions, and still runs enrolled checks after allowDestructiveGhVerbs. Refs #5804.
 - Fixed - Land tracked completion record for pin-exclusive ordinary maintainer invoke after product #5826. Refs #5805.
