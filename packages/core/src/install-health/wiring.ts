@@ -9,6 +9,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { parseTaskfileIncludes } from "../check/consumer-gate-integrity.js";
 import { RUNTIME_PACKAGE_PATH_PREFIX } from "./constants.js";
 import {
   MANAGED_SECTION_CLOSE,
@@ -95,6 +96,19 @@ function isGitHookShim(rel: string, text: string): boolean {
   return text.includes("_directive-run.sh");
 }
 
+/**
+ * Taskfile wiring owns only `includes.deft` (#5796). Comment-aware include parse
+ * (skips `#` lines); whole-file `.deft/core/` substring must not decide the probe.
+ */
+function inspectTaskfileIncludesDeft(text: string): boolean {
+  const deft = parseTaskfileIncludes(text).get("deft");
+  if (deft === undefined) return false;
+  const taskfile = deft.taskfile.replace(/\\/g, "/");
+  const prefix = RUNTIME_PACKAGE_PATH_PREFIX.replace(/\/$/, "");
+  if (taskfile.includes(".deft/core/")) return false;
+  return taskfile.includes(prefix);
+}
+
 function inspectProbe(rel: string, text: string): boolean {
   if (rel === "AGENTS.md") {
     const section = extractManagedSection(text);
@@ -103,6 +117,9 @@ function inspectProbe(rel: string, text: string): boolean {
       return true;
     }
     return targetsRuntime(section, { allowDeftHookProse: true });
+  }
+  if (rel === "Taskfile.yml") {
+    return inspectTaskfileIncludesDeft(text);
   }
   if (isGitHookShim(rel, text)) return true;
   return targetsRuntime(text);
@@ -124,6 +141,10 @@ export function hasDirectiveWiringEvidence(projectRoot: string, seams: FsSeams =
     if (rel === "AGENTS.md") {
       const section = extractManagedSection(text);
       if (section !== null && targetsRuntime(section)) return true;
+      continue;
+    }
+    if (rel === "Taskfile.yml") {
+      if (inspectTaskfileIncludesDeft(text)) return true;
       continue;
     }
     if (isGitHookShim(rel, text) || targetsRuntime(text)) return true;
