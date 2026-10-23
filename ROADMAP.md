@@ -5,6 +5,16 @@
 
 # Roadmap
 
+## Active
+
+- **#5799** -- chore(xbrief,taskfile,ci): OVPR corpus hygiene + doctor wiring comment + allowBuilds -- `[running]`
+- **#4966** -- feat(session): session:start should default to one-line ready output; put ceremony behind --verbose -- `[running]`
+- **#5102** -- process(review-cycle): SLizard babysit re-polls instead of resolving carried fingerprints -- `[running]`
+- **#5732** -- leftover(#5727): host/deft-hook admission must refuse undeclared forge-poll before execution (#5229 residual) -- `[running]`
+- **#5735** -- fix(triage): worktrees-probe case-distinct sibling flake recurred a third time (post-#5519) -- `[running]`
+- **#5810** -- [framework-gap] Grok Bot cannot attach to and steer an already-open Grok Build session over ACP -- `[running]`
+- **#5812** -- recurrence(#5278): query-before Class A push/PR-open while stop-at:pr-open leaf still live -- `[running]`
+
 ## Proposed
 
 _Scopes not yet promoted to pending. Orientation only — not a substitute for `task triage:queue`._
@@ -33,8 +43,14 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 1857 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1863 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#5804** -- bug(process,pre-pr): no hard refuse when always-pin pre-PR / RWDL is skipped before push -- `[completed]`
+- **#5805** -- bug(dogfood,ovpr): maintainer must run pinned runtime — close task auto-compile tip bypass -- `[completed]`
+- **#5736** -- perf(lifecycle): activation/widen PRs take 21–42 min to merge; extra heads and re-runs cost more than CI speed -- `[completed]`
+- **#5814** -- leftover(#5791): pre-PR lint_iteration command hardcodes vitest coverage -- `[completed]`
+- **#5791** -- [framework-gap] BLOCKER Directive 0.126.2 requires Istanbul coverage for a framework-only pin upgrade -- `[completed]`
+- **#5783** -- design(design-critique): carry Thin Fail-Closed / KISS into arc Bound + pain-audit harvest -- `[completed]`
 - **#5490** -- #5514 OVPR methodology — integration branch, soak, consumer-only self-host -- `[completed]`
 - **#5490** -- #5490 upgrade + legacy convert — migrate eras into OVPR L0 -- `[completed]`
 - **#5490** -- #5490 release tooling 1e + installer-refactor docs cutover -- `[completed]`
@@ -54,10 +70,4 @@ _Showing 25 of 1857 completed scopes (newest first). Full history: lifecycle `co
 - **#5742** -- sec(codeql): HIGH clear polynomial-redos in greptile-detector.ts (alert #112) -- `[completed]`
 - **#5746** -- sec(codeql): HIGH clear incomplete-url-substring-sanitization in github-auth-modes.provisioning.test.ts (alert #137) -- `[completed]`
 - **#5770** -- Cursor payload-host: allow auto-worktree Task spawns + Multitask parent read-only / occupancy -- `[completed]`
-- **#5744** -- sec(codeql): HIGH clear polynomial-redos in doctor/manifest.ts (alert #115) -- `[completed]`
-- **#5691** -- feat(strategies): design-thinking preparatory strategy with a uat Test phase -- `[completed]`
-- **#5716** -- feat(design-critique): the arc is the recommended step before ingest for every issue; skip only with a recorded not-warranted line -- `[completed]`
-- **#5715** -- [framework-gap] BLOCKER Grok PreToolUse wrapper command uses repo-root path; Grok resolves relative to .grok/hooks/ and doubles it -- `[completed]`
-- **#4229** -- Consumer process: deposit-only vs full lifecycle; go-task absent treated as impact=none (#3335) -- `[completed]`
-- **#5693** -- feat(strategies): rapid names a hypothesis and audience; findings recorded before experiment_archived -- `[completed]`
 
