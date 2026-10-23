@@ -4,6 +4,12 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  addWithRuntimeAgeExcludeHeal,
+  formatAgeExcludeHealLine,
+  healRuntimeAgeExclude,
+  previewRuntimeAgeExcludeHeal,
+} from "./age-exclude.js";
+import {
   CONTRACT_NUMBER,
   EXIT_CODES,
   LAUNCHER_MAX_SUPPORTED_CONTRACT,
@@ -602,6 +608,10 @@ function runFirstInstall(
     nodeWarning: checkNodeVersion(deps.nodeVersion).warning ?? null,
     verbosity: flags.verbosity,
   });
+  // #5854: disclose the runtime AgeExclude replace in plan / dry-run output.
+  const ageExcludeHeal =
+    pmDetect.pm === "pnpm" ? previewRuntimeAgeExcludeHeal(projectRoot, targetVersion) : null;
+  if (ageExcludeHeal !== null) io.writeOut(formatAgeExcludeHealLine(ageExcludeHeal, targetVersion));
   const planFp = fingerprintPlanCriticalFiles(projectRoot, pmDetect.pm);
 
   if (flags.dryRun) {
@@ -620,9 +630,15 @@ function runFirstInstall(
     io.writeOut('Created package.json { "private": true }\n');
   }
 
-  const add =
-    deps.runPmAdd?.({ projectRoot, pm: pmDetect.pm, version: targetVersion }) ??
-    runPmExactAdd({ projectRoot, pm: pmDetect.pm, version: targetVersion, env });
+  // #5854 P2: shared pre+post runtime AgeExclude upsert around the exact add.
+  const add = addWithRuntimeAgeExcludeHeal(
+    projectRoot,
+    pmDetect.pm,
+    targetVersion,
+    () =>
+      deps.runPmAdd?.({ projectRoot, pm: pmDetect.pm, version: targetVersion }) ??
+      runPmExactAdd({ projectRoot, pm: pmDetect.pm, version: targetVersion, env }),
+  );
   if (!add.ok) {
     return reportPmFailure(io, add);
   }
@@ -717,6 +733,10 @@ function runRepair(
     nodeWarning: checkNodeVersion(deps.nodeVersion).warning ?? null,
     verbosity: flags.verbosity,
   });
+  // #5854: disclose the runtime AgeExclude replace in plan / dry-run output.
+  const ageExcludeHeal =
+    pmDetect.pm === "pnpm" ? previewRuntimeAgeExcludeHeal(projectRoot, pinVersion) : null;
+  if (ageExcludeHeal !== null) io.writeOut(formatAgeExcludeHealLine(ageExcludeHeal, pinVersion));
   const planFp = fingerprintPlanCriticalFiles(projectRoot, pmDetect.pm);
 
   if (flags.dryRun) {
@@ -735,10 +755,19 @@ function runRepair(
   const stale = assertPlanStillValid(projectRoot, pmDetect.pm, planFp, io);
   if (stale !== null) return stale;
 
+  // #5854 P2: heal a stranded stale/dual runtime AgeExclude even when no PM restore runs.
+  if (pmDetect.pm === "pnpm") healRuntimeAgeExclude(projectRoot, pinVersion);
+
   if (needsPmRestore) {
-    const add =
-      deps.runPmAdd?.({ projectRoot, pm: pmDetect.pm, version: pinVersion }) ??
-      runPmExactAdd({ projectRoot, pm: pmDetect.pm, version: pinVersion, env });
+    // #5854 P2: shared pre+post runtime AgeExclude upsert around the exact add.
+    const add = addWithRuntimeAgeExcludeHeal(
+      projectRoot,
+      pmDetect.pm,
+      pinVersion,
+      () =>
+        deps.runPmAdd?.({ projectRoot, pm: pmDetect.pm, version: pinVersion }) ??
+        runPmExactAdd({ projectRoot, pm: pmDetect.pm, version: pinVersion, env }),
+    );
     if (!add.ok) {
       return reportPmFailure(io, add);
     }
@@ -1159,6 +1188,12 @@ export function runUpgrade(
     nodeWarning: checkNodeVersion(deps.nodeVersion).warning ?? null,
     verbosity: flags.verbosity,
   });
+  // #5854: disclose the runtime AgeExclude replace in plan / dry-run output.
+  const ageExcludeHeal =
+    pmDetect.pm === "pnpm" && versionChange
+      ? previewRuntimeAgeExcludeHeal(projectRoot, targetVersion)
+      : null;
+  if (ageExcludeHeal !== null) io.writeOut(formatAgeExcludeHealLine(ageExcludeHeal, targetVersion));
   const planFp = fingerprintPlanCriticalFiles(projectRoot, pmDetect.pm);
 
   if (flags.dryRun) {
@@ -1215,9 +1250,15 @@ export function runUpgrade(
     if (convertViaRemovals && !existsSync(join(projectRoot, "package.json"))) {
       ensurePackageJson(projectRoot);
     }
-    const add =
-      deps.runPmAdd?.({ projectRoot, pm: pmDetect.pm, version: targetVersion }) ??
-      runPmExactAdd({ projectRoot, pm: pmDetect.pm, version: targetVersion, env });
+    // #5854 P2: shared pre+post runtime AgeExclude upsert around the exact add.
+    const add = addWithRuntimeAgeExcludeHeal(
+      projectRoot,
+      pmDetect.pm,
+      targetVersion,
+      () =>
+        deps.runPmAdd?.({ projectRoot, pm: pmDetect.pm, version: targetVersion }) ??
+        runPmExactAdd({ projectRoot, pm: pmDetect.pm, version: targetVersion, env }),
+    );
     if (!add.ok) {
       return reportPmFailure(io, add);
     }
