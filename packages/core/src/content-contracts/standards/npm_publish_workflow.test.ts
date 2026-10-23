@@ -101,6 +101,18 @@ describe("npm_publish_workflow (#5365 Prefer-A Bound)", () => {
     expect(prepare).not.toMatch(/DIST_TAG="\$\{BASH_REMATCH\[1\]\}"/);
   });
 
+  it("maps stable X.Y.Z to dist-tag maintainer and never resolves latest (#5852)", () => {
+    expect(prepare).toMatch(
+      /if \[\[ "\$\{VERSION\}" =~ \^\[0-9\]\+\\\.\[0-9\]\+\\\.\[0-9\]\+\$ \]\]; then\s*\n\s*DIST_TAG=maintainer\s*$/m,
+    );
+    expect(prepare).not.toMatch(/DIST_TAG=latest/);
+    expect(prepare).toMatch(/if \[ "\$\{DIST_TAG\}" = "latest" \]; then[\s\S]*?exit 1/);
+    expect(code).not.toMatch(/dist_tag:\s*\n\s*description:/);
+    for (const cmd of publish.match(/npm publish[^\n]*/g) ?? []) {
+      expect(cmd).toContain('--tag "${DIST_TAG}"');
+    }
+  });
+
   it("runs post-publish from prepare-built runner artifact without source_sha checkout", () => {
     expect(prepare).toContain("post-publish-runner-");
     expect(postPublish).toContain("post-publish-runner-");

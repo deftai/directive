@@ -81,8 +81,11 @@ jobs:
             echo "::error::VERSION ${VERSION} is not SemVer"
             exit 1
           fi
+          # Stable X.Y.Z publishes to `maintainer`, never `latest` (#5852). The
+          # dist-tag comes from the version alone, for tag push and dispatch alike;
+          # `latest` moves only by an explicit, separate promote step.
           if [[ "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            DIST_TAG=latest
+            DIST_TAG=maintainer
           elif [[ "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+-([0-9A-Za-z]+) ]]; then
             PRE="${BASH_REMATCH[1]}"
             # npm rejects dist-tags that are valid version ranges (e.g. "1" from v1.2.3-1).
@@ -93,6 +96,10 @@ jobs:
             fi
           else
             DIST_TAG=next
+          fi
+          if [ "${DIST_TAG}" = "latest" ]; then
+            echo "::error::refusing to publish ${TAG} to dist-tag latest; promote latest separately (#5852)"
+            exit 1
           fi
           {
             echo "tag=${TAG}"
