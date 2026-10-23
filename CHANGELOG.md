@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+## [0.129.0] - 2026-10-23
+
+> 0.129.0 maintainer release
+
+### Added
+
 - xbrief: land the activated #5855, #5837, #5852 and #5854 briefs; each names its ingest-stamped title line in plan.acceptance.confessions (one-off exception, expires when the #5856 ingest fix ships) (#3550)
 - xbrief: land the activated #5853 brief; its ingest-stamped title line is named in plan.acceptance.confessions (one-off exception, expires when the #5856 ingest fix ships), and the 13 Recut-2 limbs map onto the 10 ingest-admitted acceptance ids without dropping any (#3550 / #5055)
 
@@ -7448,7 +7460,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.128.0...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.129.0...HEAD
+[0.129.0]: https://github.com/deftai/directive/compare/v0.128.0...v0.129.0
 [0.128.0]: https://github.com/deftai/directive/compare/v0.127.0...v0.128.0
 [0.127.0]: https://github.com/deftai/directive/compare/v0.126.2...v0.127.0
 [0.126.2]: https://github.com/deftai/directive/compare/v0.126.1...v0.126.2

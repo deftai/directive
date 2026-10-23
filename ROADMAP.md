@@ -14,6 +14,11 @@
 - **#5735** -- fix(triage): worktrees-probe case-distinct sibling flake recurred a third time (post-#5519) -- `[running]`
 - **#5810** -- [framework-gap] Grok Bot cannot attach to and steer an already-open Grok Build session over ACP -- `[running]`
 - **#5812** -- recurrence(#5278): query-before Class A push/PR-open while stop-at:pr-open leaf still live -- `[running]`
+- **#5837** -- [framework-gap] Self-repair overwrites a committed managed git hook during check, then class-checks blame the story PR -- `[running]`
+- **#5852** -- feat(release): let the release skill choose the npm dist-tag (latest / maintainer / beta) for both packages -- `[running]`
+- **#5853** -- verify:pack-drift compares against the installed runtime package's rewritten copies instead of repo content/ (still in 0.128.0) -- `[running]`
+- **#5854** -- directive upgrade appends a duplicate pnpm minimumReleaseAgeExclude entry for the runtime instead of replacing it (install fails for 24h after a release) -- `[running]`
+- **#5855** -- bug(pre-pr,check): with multiple active briefs, verify:ac refuses (no story selected), so no maintainer can pass the #5804 push gate -- `[running]`
 
 ## Proposed
 
