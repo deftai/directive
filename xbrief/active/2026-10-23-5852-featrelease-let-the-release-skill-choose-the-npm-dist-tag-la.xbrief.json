@@ -1232,6 +1232,15 @@
       }
     },
     "id": "github.issue.5991433022",
-    "updated": "2026-10-23T06:26:10Z"
+    "updated": "2026-10-23T06:26:10Z",
+    "x-directive/intentConstraint": {
+      "constraints": [
+        {
+          "value": "release version that is neither X.Y.Z nor X.Y.Z-(alpha|beta|rc).N, where X, Y, Z and N are digit-only integers",
+          "unit": "release version string",
+          "rejectionScope": "invocation"
+        }
+      ]
+    }
   }
 }
