@@ -93,6 +93,9 @@ describe("packs-root resolution (#5853)", () => {
     expect(() =>
       resolvePacksRoot({ env: { DEFT_PROJECT_ROOT: missing }, moduleUrl: FOREIGN_MODULE }),
     ).toThrow(/DEFT_PROJECT_ROOT .* is not a directory/);
+    expect(() => resolvePacksRoot({ projectRoot: "", env: {}, moduleUrl: FOREIGN_MODULE })).toThrow(
+      /requires a value/,
+    );
   });
 });
 

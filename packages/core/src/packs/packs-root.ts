@@ -89,6 +89,9 @@ export function defaultPacksRoot(moduleUrl: string, cwd: string = process.cwd())
 export function resolvePacksRoot(options: ResolvePacksRootOptions): PacksRoot {
   const env = options.env ?? process.env;
   const fromFlag = options.projectRoot ?? null;
+  if (fromFlag !== null && fromFlag.length === 0) {
+    throw new PacksRootError("--project-root requires a value (refusing package fallback)");
+  }
   const fromEnv = env.DEFT_PROJECT_ROOT ?? "";
   const explicit = fromFlag !== null && fromFlag.length > 0 ? fromFlag : fromEnv;
   if (explicit.length > 0) {
