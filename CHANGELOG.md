@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed - With several active briefs, `deft check` / `pre-pr:run` now bind to the branch's own brief (plan.id or a single issue token); an untied maintainer branch soft-skips verify:ac without claiming story AC ran, and push admission refuses an unresolved story selection. Refs #5855 Prefer-A Recut-2 6357639894.
 - Fixed - Setup/self-complete (including the repair inside `deft check`) no longer overwrites a git-tracked `.githooks` file that differs from the template, or deletes a tracked legacy `_deft-run.sh`; it keeps the committed body, reports it under `preserved` as a non-failure, and still publishes readiness so CI does not loop or dirty tracked hooks. Replace only when the path is untracked or the operator passes `setup --force-githooks`; refuse-to-downgrade (#5804) is unchanged. Refs #5837 Prefer-A Bound 6357500125; older-pin skew tracked in #5848.
 
 ### Removed

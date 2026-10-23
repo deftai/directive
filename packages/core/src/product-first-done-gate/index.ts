@@ -33,6 +33,7 @@ export {
   formatPassLeadClauseCounts,
   listActiveLifecycleArtifacts,
   type ResolveSoftMissingAcTargetsOptions,
+  readBranchBindContext,
   relabelVerifyAcPassLead,
   resolveAcceptanceGateProfile,
   resolveAcceptanceVerdict,
