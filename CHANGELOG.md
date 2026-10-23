@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Changed - Skills/UPGRADING that taught project-local `xbrief/schemas/…` now point at the OVPR pin schema SoT (`node_modules/@deftai/directive-runtime/vbrief/schemas/…`); install does not deposit that tree. Refs #4666.
+
 ### Fixed
 
 - Leftover-complete: move #5796 xBRIEF from active to completed after product PR #5877. Refs #5796.
