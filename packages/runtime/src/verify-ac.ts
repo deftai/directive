@@ -20,6 +20,7 @@ import {
   evaluateVerifyAcFromPath,
   readAdmittedSourceDigest,
   readAdmittedSourceSentences,
+  readBranchBindContext,
   readPlanAcceptance,
   resolveAcceptanceGateProfile,
   resolveSoftMissingAcTargets,
@@ -326,11 +327,37 @@ export function run(argv: string[]): number {
           );
         }
       } else if (args.softMissingXbrief) {
+        const bindContext = readBranchBindContext(projectRoot);
         const selected = resolveSoftMissingAcTargets(projectRoot, {
           env: process.env,
           scannedPaths: found.paths,
+          branchBind: { ...bindContext, env: process.env },
         });
-        if (selected.kind === "one") {
+        if (selected.kind === "untied") {
+          // #5855 P3: completed-target precedence, then soft-missing (no AC claimed).
+          const completed = resolveSessionCompletedVerifyAcTarget({
+            projectRoot,
+            env: process.env,
+          });
+          if (completed.kind === "target") {
+            paths = [completed.path];
+            if (!args.quiet) {
+              process.stdout.write(
+                `verify:ac targeting just-completed brief (#3357): ${completed.path}\n`,
+              );
+            }
+          } else if (completed.kind === "cannot") {
+            process.stderr.write(`${completed.message}\n`);
+            emitVerifyAcTerminalOutcome({ projectRoot, env: process.env, outcome: "config-error" });
+            return 1;
+          } else {
+            if (!args.quiet) {
+              process.stdout.write(`${selected.message}\n`);
+            }
+            emitVerifyAcTerminalOutcome({ projectRoot, env: process.env, outcome: "soft-missing" });
+            return 0;
+          }
+        } else if (selected.kind === "one") {
           paths = [selected.path];
           if (!args.quiet) {
             process.stdout.write(

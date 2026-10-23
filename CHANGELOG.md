@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed - With several active briefs, `deft check` / `pre-pr:run` now bind to the branch's own brief (plan.id or a single issue token); an untied maintainer branch soft-skips verify:ac without claiming story AC ran, and push admission refuses an unresolved story selection. Refs #5855 Prefer-A Recut-2 6357639894.
+
 ### Removed
 
 ## [0.128.0] - 2026-10-23

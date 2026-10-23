@@ -508,6 +508,7 @@ export type AcceptanceReaderProfile =
 export {
   listActiveLifecycleArtifacts,
   type ResolveSoftMissingAcTargetsOptions,
+  readBranchBindContext,
   resolveSoftMissingAcTargets,
   type SoftMissingAcTargetResolution,
 } from "../hooks/scope.js";
