@@ -2,20 +2,20 @@
 
 import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import { contentRoot } from "../content-root.js";
+import { join, relative, resolve } from "node:path";
+import { defaultPacksRoot } from "./packs-root.js";
+
+// #5853: shared resolver with pack-render (cwd walk-up for content/packs, then module location).
+const DEFAULT_ROOT = defaultPacksRoot(import.meta.url);
 
 export function resolveRepoRoot(): string {
-  return resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
+  return DEFAULT_ROOT.repoRoot;
 }
-
-const REPO_ROOT = resolveRepoRoot();
 // #1875: content packs + their schemas are shippable content (content/packs/,
 // content/vbrief/schemas/ in source; flattened to packs/, vbrief/schemas/ in a
 // consumer deposit). Resolve all pack/schema paths off the content root so the
 // same code works in both contexts.
-const CONTENT_ROOT = contentRoot(REPO_ROOT);
+const CONTENT_ROOT = DEFAULT_ROOT.contentRoot;
 
 function effectiveRepoRoot(repoRoot?: string): string {
   return repoRoot ?? CONTENT_ROOT;

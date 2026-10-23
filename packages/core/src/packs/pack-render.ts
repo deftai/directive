@@ -2,9 +2,8 @@
 
 import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import { contentRoot } from "../content-root.js";
 import { containedWrite } from "../fs/contained-write.js";
+import { defaultPacksRoot, type PacksRoot, resolvePacksRoot } from "./packs-root.js";
 
 /** Write under the parent directory as containment root (#2980 wave D). */
 function writeContainedFile(output: string, text: string): void {
@@ -19,12 +18,15 @@ function writeContainedFile(output: string, text: string): void {
   });
 }
 
+// #5853: one shared resolver (cwd walk-up for content/packs, then module location).
+const DEFAULT_ROOT = defaultPacksRoot(import.meta.url);
+
 export function resolveRepoRoot(): string {
-  return resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
+  return DEFAULT_ROOT.repoRoot;
 }
 
-const REPO_ROOT = resolveRepoRoot();
-const CONTENT_ROOT = contentRoot(REPO_ROOT);
+const REPO_ROOT = DEFAULT_ROOT.repoRoot;
+const CONTENT_ROOT = DEFAULT_ROOT.contentRoot;
 
 export const DEFAULT_SOURCE = join(CONTENT_ROOT, "packs", "lessons", "lessons-pack-0.1.json");
 export const DEFAULT_OUTPUT = join(REPO_ROOT, "meta", "lessons.md");
@@ -99,6 +101,8 @@ export interface RenderRegistryEntry {
    * cannot smuggle an off-shape projection path. Refs #2914 / #2904.
    */
   readonly path_pattern?: RegExp;
+  /** Containment root for document projections (#5853); defaults to CONTENT_ROOT. */
+  readonly content_root?: string;
 }
 
 /** Non-zero exit code for a pack-render containment / schema refusal. */
@@ -235,7 +239,7 @@ export function containedOutPath(
   // containment. `resolve` collapses `..`, so an escape lands outside rootReal
   // and is refused here even when it slipped past the schema pattern (where `.`
   // can match a path separator).
-  const rootReal = safeRealpath(CONTENT_ROOT);
+  const rootReal = safeRealpath(cfg.content_root ?? CONTENT_ROOT);
   const outPath = resolve(rootReal, rawPath);
   if (!isContained(rootReal, outPath)) {
     throw new PackRenderContainmentError(
@@ -276,70 +280,78 @@ function sanitizeSingleLineField(value: string, packName: string, field: string)
   return value;
 }
 
-export const RENDER_REGISTRY: Record<string, RenderRegistryEntry> = {
-  lessons: {
-    mode: "collection",
-    source: join(CONTENT_ROOT, "packs", "lessons", "lessons-pack-0.1.json"),
-    output: join(REPO_ROOT, "meta", "lessons.md"),
-    items_field: "lessons",
-    heading_field: "title",
-    body_field: "body",
-    title: DOC_TITLE,
-    banner: LESSONS_BANNER,
-  },
-  skills: {
-    mode: "documents",
-    doc_kind: "skill",
-    source: join(CONTENT_ROOT, "packs", "skills", "skills-pack-0.1.json"),
-    items_field: "skills",
-    name_field: "id",
-    description_field: "description",
-    path_field: "path",
-    path_pattern: /^skills\/.+\/SKILL\.md$/,
-    body_field: "body",
-    banner: SKILLS_BANNER,
-  },
-  rules: {
-    mode: "documents",
-    doc_kind: "markdown",
-    source: join(CONTENT_ROOT, "packs", "rules", "rules-pack-0.1.json"),
-    items_field: "rules",
-    path_field: "path",
-    path_pattern: /^(?:coding\/.+\.md|AGENTS\.md|main\.md)$/,
-    body_field: "body",
-    banner: RULES_BANNER,
-  },
-  strategies: {
-    mode: "documents",
-    doc_kind: "markdown",
-    source: join(CONTENT_ROOT, "packs", "strategies", "strategies-pack-0.1.json"),
-    items_field: "strategies",
-    path_field: "path",
-    path_pattern: /^strategies\/.+\.md$/,
-    body_field: "body",
-    banner: STRATEGIES_BANNER,
-  },
-  patterns: {
-    mode: "documents",
-    doc_kind: "markdown",
-    source: join(CONTENT_ROOT, "packs", "patterns", "patterns-pack-0.1.json"),
-    items_field: "patterns",
-    path_field: "path",
-    path_pattern: /^patterns\/.+\.md$/,
-    body_field: "body",
-    banner: PATTERNS_BANNER,
-  },
-  "swarm-spec": {
-    mode: "documents",
-    doc_kind: "markdown",
-    source: join(CONTENT_ROOT, "packs", "swarm-spec", "swarm-spec-pack-0.1.json"),
-    items_field: "entries",
-    path_field: "path",
-    path_pattern: /^swarm\/.+\.md$/,
-    body_field: "body",
-    banner: SWARM_SPEC_BANNER,
-  },
-};
+/** Render registry bound to one resolved root (#5853). */
+export function buildRenderRegistry(root: PacksRoot): Record<string, RenderRegistryEntry> {
+  const c = root.contentRoot;
+  const entry = (e: RenderRegistryEntry): RenderRegistryEntry => ({ ...e, content_root: c });
+  return {
+    lessons: entry({
+      mode: "collection",
+      source: join(c, "packs", "lessons", "lessons-pack-0.1.json"),
+      output: join(root.repoRoot, "meta", "lessons.md"),
+      items_field: "lessons",
+      heading_field: "title",
+      body_field: "body",
+      title: DOC_TITLE,
+      banner: LESSONS_BANNER,
+    }),
+    skills: entry({
+      mode: "documents",
+      doc_kind: "skill",
+      source: join(c, "packs", "skills", "skills-pack-0.1.json"),
+      items_field: "skills",
+      name_field: "id",
+      description_field: "description",
+      path_field: "path",
+      path_pattern: /^skills\/.+\/SKILL\.md$/,
+      body_field: "body",
+      banner: SKILLS_BANNER,
+    }),
+    rules: entry({
+      mode: "documents",
+      doc_kind: "markdown",
+      source: join(c, "packs", "rules", "rules-pack-0.1.json"),
+      items_field: "rules",
+      path_field: "path",
+      path_pattern: /^(?:coding\/.+\.md|AGENTS\.md|main\.md)$/,
+      body_field: "body",
+      banner: RULES_BANNER,
+    }),
+    strategies: entry({
+      mode: "documents",
+      doc_kind: "markdown",
+      source: join(c, "packs", "strategies", "strategies-pack-0.1.json"),
+      items_field: "strategies",
+      path_field: "path",
+      path_pattern: /^strategies\/.+\.md$/,
+      body_field: "body",
+      banner: STRATEGIES_BANNER,
+    }),
+    patterns: entry({
+      mode: "documents",
+      doc_kind: "markdown",
+      source: join(c, "packs", "patterns", "patterns-pack-0.1.json"),
+      items_field: "patterns",
+      path_field: "path",
+      path_pattern: /^patterns\/.+\.md$/,
+      body_field: "body",
+      banner: PATTERNS_BANNER,
+    }),
+    "swarm-spec": entry({
+      mode: "documents",
+      doc_kind: "markdown",
+      source: join(c, "packs", "swarm-spec", "swarm-spec-pack-0.1.json"),
+      items_field: "entries",
+      path_field: "path",
+      path_pattern: /^swarm\/.+\.md$/,
+      body_field: "body",
+      banner: SWARM_SPEC_BANNER,
+    }),
+  };
+}
+
+export const RENDER_REGISTRY: Record<string, RenderRegistryEntry> =
+  buildRenderRegistry(DEFAULT_ROOT);
 
 function bannerText(bannerLines: readonly string[]): string {
   return `${bannerLines.join("\n")}\n`;
@@ -466,9 +478,12 @@ export function targetsForPack(
   return targets;
 }
 
-export function collectTargets(packFilter?: string | null): Array<[string, string, string]> {
+export function collectTargets(
+  packFilter?: string | null,
+  registry: Record<string, RenderRegistryEntry> = RENDER_REGISTRY,
+): Array<[string, string, string]> {
   const targets: Array<[string, string, string]> = [];
-  for (const [name, cfg] of Object.entries(RENDER_REGISTRY)) {
+  for (const [name, cfg] of Object.entries(registry)) {
     if (packFilter !== undefined && packFilter !== null && name !== packFilter) {
       continue;
     }
@@ -543,8 +558,12 @@ function runLegacy(source: string, output: string, check: boolean): number {
   return 0;
 }
 
-function runMultipack(packFilter: string | null, check: boolean): number {
-  const targets = collectTargets(packFilter);
+function runMultipack(
+  packFilter: string | null,
+  check: boolean,
+  registry: Record<string, RenderRegistryEntry>,
+): number {
+  const targets = collectTargets(packFilter, registry);
   if (check) {
     const drifted: string[] = [];
     for (const [_name, outPath, text] of targets) {
@@ -569,7 +588,7 @@ function runMultipack(packFilter: string | null, check: boolean): number {
     writeContainedFile(outPath, text);
   }
   process.stdout.write(
-    `Rendered ${targets.length} projection(s) across ${Object.keys(RENDER_REGISTRY).length} pack(s).\n`,
+    `Rendered ${targets.length} projection(s) across ${Object.keys(registry).length} pack(s).\n`,
   );
   return 0;
 }
@@ -578,6 +597,7 @@ interface ParsedArgs {
   source: string | null;
   output: string | null;
   pack: string | null;
+  projectRoot: string | null;
   check: boolean;
 }
 
@@ -586,6 +606,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     source: null,
     output: null,
     pack: null,
+    projectRoot: null,
     check: false,
   };
   for (let i = 0; i < argv.length; i += 1) {
@@ -607,6 +628,11 @@ function parseArgs(argv: string[]): ParsedArgs {
       i += 1;
     } else if (arg.startsWith("--pack=")) {
       parsed.pack = arg.slice("--pack=".length);
+    } else if (arg === "--project-root") {
+      parsed.projectRoot = argv[i + 1] ?? "";
+      i += 1;
+    } else if (arg.startsWith("--project-root=")) {
+      parsed.projectRoot = arg.slice("--project-root=".length);
     }
   }
   return parsed;
@@ -615,12 +641,23 @@ function parseArgs(argv: string[]): ParsedArgs {
 export function main(argv?: string[]): number {
   const args = parseArgs(argv ?? process.argv.slice(2));
   try {
+    // #5853: flag -> env -> cwd walk-up; explicit roots that fail to stat refuse closed.
+    const resolved = resolvePacksRoot({
+      projectRoot: args.projectRoot,
+      moduleUrl: import.meta.url,
+    });
+    if (!resolved.ok) {
+      process.stderr.write(`error: ${resolved.error}\n`);
+      return 1;
+    }
+    const registry = buildRenderRegistry(resolved.root);
     if (args.source !== null || args.output !== null) {
-      const source = args.source ?? DEFAULT_SOURCE;
-      const output = args.output ?? DEFAULT_OUTPUT;
+      const source = args.source ?? (registry.lessons as RenderRegistryEntry).source;
+      const output =
+        args.output ?? (registry.lessons as RenderRegistryEntry).output ?? DEFAULT_OUTPUT;
       return runLegacy(source, output, args.check);
     }
-    return runMultipack(args.pack, args.check);
+    return runMultipack(args.pack, args.check, registry);
   } catch (exc) {
     const message = exc instanceof Error ? exc.message : String(exc);
     process.stderr.write(`error: ${message}\n`);
