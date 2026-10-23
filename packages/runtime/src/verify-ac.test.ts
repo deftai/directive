@@ -44,6 +44,7 @@ describe("verify:ac parseArgs (#3284)", () => {
 describe("verify:ac run (#3284)", () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
   });
 
   it("soft-missing exits 0 when no active xbrief", () => {
@@ -123,6 +124,9 @@ describe("verify:ac run (#3284)", () => {
   });
 
   it("fail-closes soft-missing multi-active without pin (#4285)", () => {
+    // #5855: a dispatched worker (spawn marker) with no pin still refuses.
+    vi.stubEnv("DEFT_ACTIVE_SCOPE", "");
+    vi.stubEnv("DEFT_AGENT_ID", "worker-under-test");
     const root = mkdtempSync(join(tmpdir(), "verify-ac-multi-"));
     const active = join(root, "xbrief", "active");
     mkdirSync(active, { recursive: true });
@@ -151,6 +155,34 @@ describe("verify:ac run (#3284)", () => {
     expect(err.join("")).toMatch(/DEFT_ACTIVE_SCOPE|#4285/);
     // Standalone without soft-missing still requires an explicit path.
     expect(run(["--project-root", root])).toBe(1);
+  });
+
+  it("untied maintainer multi-active soft-skips without claiming AC (#5855)", () => {
+    vi.stubEnv("DEFT_ACTIVE_SCOPE", "");
+    vi.stubEnv("DEFT_AGENT_ID", "");
+    vi.stubEnv("DEFT_WORKER_CREDENTIAL_DELIVERY_ID", "");
+    const root = mkdtempSync(join(tmpdir(), "verify-ac-untied-"));
+    const active = join(root, "xbrief", "active");
+    mkdirSync(active, { recursive: true });
+    const body = JSON.stringify({
+      plan: {
+        status: "running",
+        acceptance: { commands: ["exit 1"], none_stated: false, source_rung: "stated" },
+        items: [],
+      },
+    });
+    writeFileSync(join(active, "a.xbrief.json"), body, "utf8");
+    writeFileSync(join(active, "b.xbrief.json"), body, "utf8");
+    const out: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((c) => {
+      out.push(String(c));
+      return true;
+    });
+    // Not a git checkout: no branch story token, no dispatch marker -> untied.
+    expect(run(["--project-root", root, "--soft-missing-xbrief"])).toBe(0);
+    expect(out.join("")).toContain("#3284 soft-missing");
+    expect(out.join("")).toContain("no story AC executed");
+    expect(out.join("")).not.toContain("verify:ac PASS");
   });
 
   it("capture-only + soft-missing multi-active lists every artifact (#4285)", () => {
@@ -247,6 +279,8 @@ describe("verify:ac run (#3284)", () => {
   });
 
   it("scans both xbrief and vbrief active roots for multi-active pin ask (#4285)", () => {
+    vi.stubEnv("DEFT_ACTIVE_SCOPE", "");
+    vi.stubEnv("DEFT_AGENT_ID", "worker-under-test");
     const root = mkdtempSync(join(tmpdir(), "verify-ac-dual-root-"));
     const xa = join(root, "xbrief", "active");
     const va = join(root, "vbrief", "active");

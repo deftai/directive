@@ -1,5 +1,7 @@
+import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, isAbsolute, join, relative, resolve } from "node:path";
+import { briefOwnsIssue, issueOriginFromRepoSlug } from "../intake/residual-identity.js";
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import { matchAny } from "../orchestration/pathspec.js";
 import {
@@ -56,6 +58,8 @@ export interface ActiveScopeInspection {
 export type SoftMissingAcTargetResolution =
   | { readonly kind: "one"; readonly path: string }
   | { readonly kind: "none" }
+  /** Admitted untied maintainer branch (#5855): soft-missing, no story obligation. */
+  | { readonly kind: "untied"; readonly message: string; readonly scannedCount: number }
   | {
       readonly kind: "need-pin";
       readonly message: string;
@@ -530,6 +534,11 @@ function formatSoftMissingNeedPinMessage(count: number, inspectMessage: string):
 export interface ResolveSoftMissingAcTargetsOptions extends InspectActiveScopeOptions {
   /** Pre-scanned active artifact paths; when omitted, rescans active roots. */
   readonly scannedPaths?: readonly string[];
+  /**
+   * Opt-in branch-side story bind for check / pre-PR only (#5855 P2). Omitted
+   * (sor-preflight and other callers) keeps the need-pin default.
+   */
+  readonly branchBind?: BranchStoryBindOptions;
 }
 
 /**
@@ -579,6 +588,25 @@ export function resolveSoftMissingAcTargets(
       scannedCount: scanned.length,
     };
   }
+  if (options?.branchBind !== undefined) {
+    const bind = bindBranchToActiveStory(scanned, options.branchBind);
+    if (bind.kind === "bound") {
+      return { kind: "one", path: bind.path };
+    }
+    if (bind.kind === "untied") {
+      return {
+        kind: "untied",
+        message: formatUntiedSoftMissingMessage(scanned),
+        scannedCount: scanned.length,
+      };
+    }
+    return {
+      kind: "need-pin",
+      message: formatSoftMissingNeedPinMessage(scanned.length, bind.message),
+      denyKind: bind.denyKind,
+      scannedCount: scanned.length,
+    };
+  }
   return {
     kind: "need-pin",
     message: formatSoftMissingNeedPinMessage(
@@ -588,4 +616,197 @@ export function resolveSoftMissingAcTargets(
     denyKind: "multiple-eligible",
     scannedCount: scanned.length,
   };
+}
+
+/** Spawn / dispatch markers that expect a pinned story; never untied (#5855). */
+export const DISPATCH_EXPECTATION_ENV_KEYS = [
+  "DEFT_AGENT_ID",
+  "DEFT_WORKER_CREDENTIAL_DELIVERY_ID",
+] as const;
+
+const VERSION_SHAPED_SEGMENT = /^v?\d+(?:\.\d+)+(?:[-+][0-9A-Za-z.-]+)?$/;
+
+/** Story tokens a branch name carries (#5855). Text only; no network. */
+export interface BranchStoryTokens {
+  /** `/`-separated segments, compared to plan.id by equality. */
+  readonly segments: readonly string[];
+  /** Bare issue-number tokens; version-shaped and dotted parts never count. */
+  readonly issueNumbers: readonly number[];
+}
+
+export function branchStoryTokens(branch: string | null | undefined): BranchStoryTokens {
+  const trimmed = (branch ?? "").trim().replace(/^refs\/heads\//, "");
+  if (trimmed.length === 0 || trimmed === "HEAD") {
+    return { segments: [], issueNumbers: [] };
+  }
+  const segments = trimmed.split("/").filter((segment) => segment.length > 0);
+  const numbers = new Set<number>();
+  for (const segment of segments) {
+    if (VERSION_SHAPED_SEGMENT.test(segment)) continue;
+    for (const part of segment.split(/[-_]/)) {
+      if (!/^\d+$/.test(part)) continue;
+      const n = Number.parseInt(part, 10);
+      if (Number.isSafeInteger(n) && n > 0) numbers.add(n);
+    }
+  }
+  return { segments, issueNumbers: [...numbers] };
+}
+
+export interface BranchStoryBindOptions {
+  /** Branch name (or `refs/heads/...`); null / empty for detached HEAD. */
+  readonly branch: string | null;
+  readonly env?: NodeJS.ProcessEnv;
+  /** `owner/repo` for repo-scoped issue ownership; null keeps number-only. */
+  readonly repoSlug?: string | null;
+}
+
+export type BranchStoryBind =
+  | { readonly kind: "bound"; readonly path: string }
+  | { readonly kind: "untied" }
+  | { readonly kind: "refuse"; readonly message: string; readonly denyKind: ActiveScopeDenyKind };
+
+function readBriefRecord(path: string): Record<string, unknown> | null {
+  try {
+    const raw = JSON.parse(readFileSync(path, "utf8")) as unknown;
+    return typeof raw === "object" && raw !== null && !Array.isArray(raw)
+      ? (raw as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function briefPlanId(data: Record<string, unknown> | null): string | null {
+  const plan = data?.plan;
+  if (typeof plan !== "object" || plan === null || Array.isArray(plan)) return null;
+  const id = (plan as Record<string, unknown>).id;
+  return typeof id === "string" && id.trim().length > 0 ? id.trim() : null;
+}
+
+function fencedCandidates(paths: readonly string[]): string {
+  return paths.map((path) => fenceActiveScopeName(path)).join(", ");
+}
+
+/**
+ * Bind a check / pre-PR run to the branch's own active story (#5855 P1).
+ * plan.id equality first, then a single repo-scoped issue token. A branch with
+ * no story token is untied only when no dispatch expectation is present;
+ * ambiguous or missing matches refuse.
+ */
+export function bindBranchToActiveStory(
+  scanned: readonly string[],
+  options: BranchStoryBindOptions,
+): BranchStoryBind {
+  const tokens = branchStoryTokens(options.branch);
+  const briefs = scanned.map((path) => ({ path, data: readBriefRecord(path) }));
+  const byPlanId = briefs.filter((brief) => {
+    const id = briefPlanId(brief.data);
+    return id !== null && tokens.segments.includes(id);
+  });
+  const onlyPlanId = byPlanId[0];
+  if (byPlanId.length === 1 && onlyPlanId !== undefined) {
+    return { kind: "bound", path: onlyPlanId.path };
+  }
+  if (byPlanId.length > 1) {
+    return {
+      kind: "refuse",
+      message: `branch plan.id token matches ${byPlanId.length} active briefs: ${fencedCandidates(byPlanId.map((b) => b.path))}.`,
+      denyKind: "multiple-eligible",
+    };
+  }
+  if (tokens.issueNumbers.length > 1) {
+    return {
+      kind: "refuse",
+      message: `branch carries more than one issue token (${tokens.issueNumbers.map((n) => `#${n}`).join(", ")}); cannot bind one story.`,
+      denyKind: "multiple-eligible",
+    };
+  }
+  const issue = tokens.issueNumbers[0];
+  if (issue !== undefined) {
+    const target = issueOriginFromRepoSlug(options.repoSlug, issue) ?? issue;
+    const owners = briefs.filter(
+      (brief) => brief.data !== null && briefOwnsIssue(brief.data, target),
+    );
+    const onlyOwner = owners[0];
+    if (owners.length === 1 && onlyOwner !== undefined) {
+      return { kind: "bound", path: onlyOwner.path };
+    }
+    return {
+      kind: "refuse",
+      message:
+        owners.length > 1
+          ? `branch issue token #${issue} is owned by ${owners.length} active briefs: ${fencedCandidates(owners.map((b) => b.path))}.`
+          : `branch names #${issue} but no active brief owns it (lost pin?). Active: ${fencedCandidates(scanned)}.`,
+      denyKind: owners.length > 1 ? "multiple-eligible" : "pin-miss",
+    };
+  }
+  const env = options.env ?? process.env;
+  const markers = DISPATCH_EXPECTATION_ENV_KEYS.filter(
+    (key) => (env[key]?.trim() ?? "").length > 0,
+  );
+  if (markers.length > 0) {
+    return {
+      kind: "refuse",
+      message: `dispatch expectation (${markers.join(", ")}) without a story pin; dispatched workers must set ${ACTIVE_SCOPE_PIN_ENV}.`,
+      denyKind: "pin-miss",
+    };
+  }
+  return { kind: "untied" };
+}
+
+function formatUntiedSoftMissingMessage(scanned: readonly string[]): string {
+  return (
+    `verify:ac skipped (#3284 soft-missing): untied maintainer branch, no story AC executed (#5855). ` +
+    `Active (not evaluated): ${fencedCandidates(scanned)}.`
+  );
+}
+
+function gitOutput(projectRoot: string, args: readonly string[]): string | null {
+  try {
+    const out = execFileSync("git", [...args], {
+      cwd: projectRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+    return out.length > 0 ? out : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Local-only branch + origin slug for {@link bindBranchToActiveStory} (#5855). */
+export function readBranchBindContext(projectRoot: string): {
+  readonly branch: string | null;
+  readonly repoSlug: string | null;
+} {
+  const branch = gitOutput(projectRoot, ["symbolic-ref", "--quiet", "--short", "HEAD"]);
+  const url = gitOutput(projectRoot, ["config", "--get", "remote.origin.url"]) ?? "";
+  const match = /github\.com[:/]([^/\s]+)\/([^/\s]+?)(?:\.git)?\/?$/i.exec(url);
+  return { branch, repoSlug: match ? `${match[1]}/${match[2]}` : null };
+}
+
+/**
+ * Push-admit story disposition (#5855 P3): with several actives, a push is
+ * admitted only when the branch binds one story or is admitted untied
+ * (soft-missing, no obligation). Unresolved / required-story selection refuses.
+ * Returns the refusal text, or null when the push may proceed.
+ */
+export function pushStoryAdmissionRefusal(
+  projectRoot: string,
+  localRef: string | null | undefined,
+  env: NodeJS.ProcessEnv = process.env,
+): string | null {
+  const scanned = listActiveLifecycleArtifacts(projectRoot).paths;
+  if (scanned.length <= 1) return null;
+  const context = readBranchBindContext(projectRoot);
+  const branch =
+    localRef !== null && localRef !== undefined && localRef.startsWith("refs/heads/")
+      ? localRef.slice("refs/heads/".length)
+      : context.branch;
+  const resolved = resolveSoftMissingAcTargets(projectRoot, {
+    env,
+    scannedPaths: scanned,
+    branchBind: { branch, env, repoSlug: context.repoSlug },
+  });
+  return resolved.kind === "need-pin" ? resolved.message : null;
 }
