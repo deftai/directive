@@ -24,6 +24,9 @@ function gitAuthorEnv(): NodeJS.ProcessEnv {
 
 function initTempRepo(root: string): void {
   execFileSync("git", ["init", "-q"], { cwd: root });
+  // git's detached `maintenance run --auto` after commit can worktree-prune the
+  // index-less fake admin entries below mid-test. Pin it off per repo.
+  execFileSync("git", ["config", "maintenance.auto", "false"], { cwd: root });
   execFileSync("git", ["config", "user.email", "t@t.local"], { cwd: root });
   execFileSync("git", ["config", "user.name", "T"], { cwd: root });
   execFileSync("git", ["commit", "-q", "--allow-empty", "-m", "init"], {
