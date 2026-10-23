@@ -10,6 +10,7 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { pushStoryAdmissionRefusal } from "../hooks/scope.js";
 import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
 import { resolveAllowDestructiveGhVerbs } from "../policy/destructive-gh-verbs.js";
 import { readPlanPolicy } from "../policy/plan-extensions.js";
@@ -389,6 +390,19 @@ export function evaluateEnrolledBoundPrePrPush(
         "❌ deft bound pre-PR push gate: deleted outgoing paths not in reviewedDeletedPaths.",
         `  Unreviewed deletions: ${uncoveredDeleted.join(", ")}`,
         "  Recovery: deft pre-pr:run (include deletions) then retry push (#5804).",
+      ].join("\n"),
+    ];
+  }
+
+  // #5855 P3: untied soft-missing may push; unresolved / required-story skip may not.
+  const storyRefusal = pushStoryAdmissionRefusal(projectRoot, liveRefs[0]?.localRef, options.env);
+  if (storyRefusal !== null) {
+    return [
+      1,
+      [
+        "deft bound pre-PR push gate: multi-active story selection unresolved (#5855).",
+        `  Detail: ${storyRefusal}`,
+        "  Recovery: bind the branch to its brief (plan.id or issue token) or set DEFT_ACTIVE_SCOPE, then retry.",
       ].join("\n"),
     ];
   }
