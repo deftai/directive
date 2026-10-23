@@ -897,10 +897,40 @@ const EXECUTABLE_GITHOOKS = new Set([".githooks/pre-commit", ".githooks/pre-push
 export const GIT_HOOKS_INACTIVE_NO_GIT =
   "Git hooks inactive until git init + eligible repair/self-complete (core.hooksPath not set)";
 
-export function ensureGitHooks(projectRoot: string): {
+/**
+ * True when `rel` is tracked by git in `projectRoot` (#5837). Any git failure
+ * (no repo, no git binary) reads as untracked, which keeps the replace path lawful.
+ */
+export function isGitTrackedPath(projectRoot: string, rel: string): boolean {
+  try {
+    execFileSync("git", ["-C", projectRoot, "ls-files", "--error-unmatch", "--", rel], {
+      stdio: ["ignore", "ignore", "ignore"],
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Disclosure for a tracked divergent managed hook kept in place (#5837). */
+export function formatTrackedHookPreserved(rel: string): string {
+  return `${rel}: tracked managed hook differs from the template; kept (not a failure). Review and pass --force-githooks to setup to replace it (#5837)`;
+}
+
+export interface EnsureGitHooksOptions {
+  /** Explicit pre-write operator force: replace tracked divergent managed hooks (#5837). */
+  readonly forceTrackedReplace?: boolean;
+}
+
+export function ensureGitHooks(
+  projectRoot: string,
+  options: EnsureGitHooksOptions = {},
+): {
   created: string[];
   modified: string[];
   conflicts: string[];
+  /** Tracked divergent managed hooks kept in place; a non-failure outcome (#5837). */
+  preserved: string[];
   /** True only when core.hooksPath is relative .githooks (AC9.9). */
   hooksPathActive: boolean;
   /** Human disclosure when hooks are not live; null when active. */
@@ -909,6 +939,8 @@ export function ensureGitHooks(projectRoot: string): {
   const created: string[] = [];
   const modified: string[] = [];
   const conflicts: string[] = [];
+  const preserved: string[] = [];
+  const force = options.forceTrackedReplace === true;
   const files: Array<{ rel: string; body: string }> = [
     { rel: ".githooks/_directive-run.sh", body: GITHOOK_HELPER },
     { rel: ".githooks/pre-commit", body: PRE_COMMIT },
@@ -921,6 +953,12 @@ export function ensureGitHooks(projectRoot: string): {
       conflicts.push(
         `${file.rel}: existing hook is not Directive-managed; refusing to overwrite (chain or remove manually)`,
       );
+      continue;
+    }
+    // Tracked divergent preserve (#5837): never overwrite a committed hook body,
+    // even a Directive-managed one, unless the operator forced the replace.
+    if (prior !== null && prior !== next && !force && isGitTrackedPath(projectRoot, file.rel)) {
+      preserved.push(formatTrackedHookPreserved(file.rel));
       continue;
     }
     // Refuse-to-downgrade: marker-aware installer will not replace a newer enrolled
@@ -969,7 +1007,9 @@ export function ensureGitHooks(projectRoot: string): {
       } catch {
         stillReferenced = true;
       }
-      if (!stillReferenced) {
+      if (!stillReferenced && !force && isGitTrackedPath(projectRoot, legacyHelperRel)) {
+        preserved.push(formatTrackedHookPreserved(legacyHelperRel));
+      } else if (!stillReferenced) {
         try {
           const rem = containedRemove({ root: projectRoot, target: legacyHelperRel });
           if (rem.removed) modified.push(legacyHelperRel);
@@ -1011,7 +1051,7 @@ export function ensureGitHooks(projectRoot: string): {
       inactiveDisclosure = `Git hooks inactive: core.hooksPath is '${current}' (not .githooks)`;
     }
   }
-  return { created, modified, conflicts, hooksPathActive, inactiveDisclosure };
+  return { created, modified, conflicts, preserved, hooksPathActive, inactiveDisclosure };
 }
 
 const MINIMAL_TASKFILE = `version: '3'

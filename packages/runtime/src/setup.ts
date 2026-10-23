@@ -53,6 +53,8 @@ export interface SetupResult {
   readonly modified: string[];
   readonly removed: string[];
   readonly conflicts: string[];
+  /** Tracked divergent managed hooks kept in place; non-failure, present only when non-empty (#5837). */
+  readonly preserved?: string[];
   readonly message: string;
 }
 
@@ -284,8 +286,12 @@ export function runSetup(options: {
   readonly operation: SetupOperation;
   readonly from: string;
   readonly root: string;
+  /** Explicit pre-write operator force to replace tracked divergent managed hooks (#5837). */
+  readonly forceGitHooks?: boolean;
 }): SetupResult {
   const { operation, from, root } = options;
+  let preserved: string[] = [];
+  const withPreserved = (): { preserved?: string[] } => (preserved.length > 0 ? { preserved } : {});
   const created: string[] = [];
   const modified: string[] = [];
   const removed: string[] = [];
@@ -371,7 +377,8 @@ export function runSetup(options: {
     created.push(...hooks.created);
     modified.push(...hooks.modified);
 
-    const githooks = ensureGitHooks(root);
+    const githooks = ensureGitHooks(root, { forceTrackedReplace: options.forceGitHooks === true });
+    preserved = githooks.preserved;
     created.push(...githooks.created);
     modified.push(...githooks.modified);
     conflicts.push(...githooks.conflicts);
@@ -438,6 +445,7 @@ export function runSetup(options: {
         modified,
         removed,
         conflicts,
+        ...withPreserved(),
         message: "setup completed with conflicts",
       };
     }
@@ -461,6 +469,7 @@ export function runSetup(options: {
         modified,
         removed,
         conflicts,
+        ...withPreserved(),
         message: `setup ${operation} completed for ${runtimeVersion} (${RUNTIME_PREFIX}); ${disclosure}`,
       };
     }
@@ -480,6 +489,7 @@ export function runSetup(options: {
       modified,
       removed,
       conflicts,
+      ...withPreserved(),
       message: `setup ${operation} completed for ${runtimeVersion} (${RUNTIME_PREFIX})`,
     };
   } catch (err) {
