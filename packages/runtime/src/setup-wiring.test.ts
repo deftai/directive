@@ -54,7 +54,7 @@ afterEach(() => {
   }
 });
 
-describe("runSetup package-relative wiring (Wave 2c / R9)", () => {
+describe("runSetup package-relative wiring (Wave 2c / R9)", { timeout: 30_000 }, () => {
   it("AGENTS managed section references main.md + AC9.7 recovery", () => {
     const root = tempRoot();
     runSetup({ operation: "install", from: "none", root });

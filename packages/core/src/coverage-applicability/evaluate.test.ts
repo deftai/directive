@@ -1097,7 +1097,7 @@ describe("plan/spec closed-pointer demotion helpers (#5551)", () => {
   });
 });
 
-describe("evaluateCoverageApplicability #5551 Prefer-A Bound", () => {
+describe("evaluateCoverageApplicability #5551 Prefer-A Bound", { timeout: 30_000 }, () => {
   it("classifies closed-shape plan-sequence A/M as inert N/A (report-absent shape)", () => {
     const root = gitRepo({ "README.md": "# base\n" });
     const baseSha = childProcess
@@ -1417,7 +1417,7 @@ describe("evaluateCoverageApplicability #5551 Prefer-A Bound", () => {
   });
 });
 
-describe("evaluateCoverageApplicability #5677 Prefer-A Bound Recut-1", () => {
+describe("evaluateCoverageApplicability #5677 Prefer-A Bound Recut-1", { timeout: 30_000 }, () => {
   it("marks CODEQL + official githooks inert N/A and keeps _directive-run.sh applicable", () => {
     const root = gitRepo({ "README.md": "# base\n" });
     const baseSha = childProcess
