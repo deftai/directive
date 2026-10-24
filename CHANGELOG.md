@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Leftover-complete: move #5796 xBRIEF from active to completed after product PR #5877. Refs #5796.
 - Real-git leftover land (#4714) origin-active `it` timeout is platform-aware (240s on win32, 120s elsewhere) so LOCAL_GATE does not flake under suite load. Refs #4714 #5879.
 - Coverage-applicability limb-1 and Bun-lock aggregate `it` timeouts are platform-aware (240s on win32, 120s elsewhere) so LOCAL_GATE does not flake under suite load and Windows keeps the vitest unit 240s floor. Refs #5879.
 - test(runtime): stage-bundle AC1.3 first `it` timeout raised to 120s so LOCAL_GATE does not flake under suite load when spawnSync stage exceeds the 5s unit default.
