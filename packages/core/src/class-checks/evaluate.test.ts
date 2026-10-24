@@ -302,10 +302,7 @@ describe("evaluateClassChecks (#4980)", () => {
   it("fails when setup-wiring mixes with non-githooks protected (#4980 Lane A)", () => {
     const result = evaluateClassChecks("/tmp/proj", {
       baseRef: "origin/master",
-      changedFiles: [
-        "packages/core/src/authz/store.ts",
-        "packages/runtime/src/setup-wiring.ts",
-      ],
+      changedFiles: ["packages/core/src/authz/store.ts", "packages/runtime/src/setup-wiring.ts"],
       baseTestBoundaryPolicy: baseTb({
         sourceRoots: ["packages/*/src/**"],
         testRoots: ["packages/*/src/**/*.test.*"],
@@ -337,7 +334,6 @@ describe("evaluateClassChecks (#4980)", () => {
     expect(result.exitCode).toBe(1);
     expect(result.findings.some((f) => f.kind === "protected-glob")).toBe(true);
   });
-
 
   it("fails when githooks + setup-wiring mixes with unrelated story product (#4980 Lane A)", () => {
     const result = evaluateClassChecks("/tmp/proj", {
