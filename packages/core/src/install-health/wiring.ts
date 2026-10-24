@@ -9,6 +9,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { parseTaskfileIncludes } from "../check/consumer-gate-integrity.js";
 import { RUNTIME_PACKAGE_PATH_PREFIX } from "./constants.js";
 import {
   MANAGED_SECTION_CLOSE,
@@ -95,6 +96,102 @@ function isGitHookShim(rel: string, text: string): boolean {
   return text.includes("_directive-run.sh");
 }
 
+/**
+ * Indent-scoped `includes.deft` resolve (#5796).
+ * Owns only the direct `deft` child and its first-level `taskfile` property;
+ * deeper nested keys (e.g. `vars.taskfile`) are ignored. Also covers go-task
+ * short scalar and inline flow-map forms the shared parser skips.
+ */
+function resolveIncludesDeftTaskfileIndentScoped(text: string): string | null {
+  const lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+  let inIncludes = false;
+  let includesIndent = 0;
+  /** Indent of direct children under `includes:` (go-task allows 2- or 4-space). */
+  let directChildIndent: number | null = null;
+  let inDeftBody = false;
+  let deftBodyIndent: number | null = null;
+  for (const raw of lines) {
+    const stripped = raw.trim();
+    if (!stripped || stripped.startsWith("#")) continue;
+    const indent = raw.length - raw.trimStart().length;
+    if (!inIncludes) {
+      if (/^includes\s*:/.test(stripped) && indent === 0) {
+        inIncludes = true;
+        includesIndent = indent;
+        directChildIndent = null;
+        inDeftBody = false;
+        deftBodyIndent = null;
+      }
+      continue;
+    }
+    if (indent <= includesIndent) {
+      inIncludes = false;
+      directChildIndent = null;
+      inDeftBody = false;
+      deftBodyIndent = null;
+      if (/^includes\s*:/.test(stripped) && indent === 0) {
+        inIncludes = true;
+        includesIndent = indent;
+      }
+      continue;
+    }
+    if (directChildIndent === null) {
+      directChildIndent = indent;
+    }
+    if (indent === directChildIndent) {
+      inDeftBody = false;
+      deftBodyIndent = null;
+      // Exact lowercase deft / "deft" / 'deft' only (#5796 Greptile): /i would
+      // match DEFT first and mask a later exact includes.deft legacy path.
+      const entry = stripped.match(/^(?:["']deft["']|deft)\s*:\s*(.*?)(?:\s+#.*)?$/);
+      if (entry === null) continue;
+      const value = (entry[1] ?? "").trim();
+      if (value.startsWith("{")) {
+        const flow = value.match(/taskfile\s*:\s*["']?([^"',}\s]+)/i);
+        return flow?.[1]?.trim() ?? null;
+      }
+      if (value.length === 0) {
+        inDeftBody = true;
+        continue;
+      }
+      return value.replace(/^["']|["']$/g, "");
+    }
+    if (inDeftBody && indent > directChildIndent) {
+      if (deftBodyIndent === null) deftBodyIndent = indent;
+      if (indent !== deftBodyIndent) continue;
+      const taskfile = stripped.match(/^taskfile\s*:\s*["']?([^"'#]+?)["']?\s*(?:#.*)?$/i);
+      if (taskfile?.[1]) return taskfile[1].trim();
+    }
+  }
+  return null;
+}
+
+/**
+ * Resolve `includes.deft` taskfile path for wiring (#5796).
+ * Prefer indent-scoped ownership of `includes.deft` so nested `vars.taskfile`
+ * cannot mask a legacy include. Shared parser is last resort only.
+ */
+function resolveIncludesDeftTaskfile(text: string): string | null {
+  const fromIndent = resolveIncludesDeftTaskfileIndentScoped(text);
+  if (fromIndent !== null) return fromIndent;
+  const fromParser = parseTaskfileIncludes(text).get("deft");
+  if (fromParser !== undefined) return fromParser.taskfile;
+  return null;
+}
+
+/**
+ * Taskfile wiring owns only `includes.deft` (#5796). Comment-aware include parse
+ * (skips `#` lines); whole-file `.deft/core/` substring must not decide the probe.
+ */
+function inspectTaskfileIncludesDeft(text: string): boolean {
+  const taskfileRaw = resolveIncludesDeftTaskfile(text);
+  if (taskfileRaw === null) return false;
+  const taskfile = taskfileRaw.replace(/\\/g, "/");
+  const prefix = RUNTIME_PACKAGE_PATH_PREFIX.replace(/\/$/, "");
+  if (taskfile.includes(".deft/core/")) return false;
+  return taskfile.includes(prefix);
+}
+
 function inspectProbe(rel: string, text: string): boolean {
   if (rel === "AGENTS.md") {
     const section = extractManagedSection(text);
@@ -103,6 +200,9 @@ function inspectProbe(rel: string, text: string): boolean {
       return true;
     }
     return targetsRuntime(section, { allowDeftHookProse: true });
+  }
+  if (rel === "Taskfile.yml") {
+    return inspectTaskfileIncludesDeft(text);
   }
   if (isGitHookShim(rel, text)) return true;
   return targetsRuntime(text);
@@ -124,6 +224,10 @@ export function hasDirectiveWiringEvidence(projectRoot: string, seams: FsSeams =
     if (rel === "AGENTS.md") {
       const section = extractManagedSection(text);
       if (section !== null && targetsRuntime(section)) return true;
+      continue;
+    }
+    if (rel === "Taskfile.yml") {
+      if (inspectTaskfileIncludesDeft(text)) return true;
       continue;
     }
     if (isGitHookShim(rel, text) || targetsRuntime(text)) return true;
