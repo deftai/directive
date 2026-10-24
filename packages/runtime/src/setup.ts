@@ -223,45 +223,28 @@ function ensureXbriefLifecycleGitkeeps(projectRoot: string): string[] {
   return created;
 }
 
-/** Wholly-owned deposit prefixes compactable to one `git add` (#4666). */
-const STAGE_COMPACT_PREFIXES = [
-  ".agents/skills/",
-  ".claude/skills/",
-  ".github/skills/",
-  ".claude/commands/",
-  ".cursor/commands/",
-  ".grok/commands/",
-  ".codex/prompts/",
-] as const;
-
 /**
  * Stage this-run setup writes after install/upgrade (#4666).
  * Always includes PD + lifecycle gitkeeps when present (fix the 0.126 hole).
  * Does not `git add` every existing managed matcher path — that would stage
- * unrelated dirty peers (package.json / custom .githooks/*). Compacts
- * wholly-owned skill/command trees to one pathspec each for install speed.
+ * unrelated dirty peers (package.json / custom .githooks/*). Keeps exact
+ * this-run paths (no skill/command parent compaction) so sibling untracked
+ * skills stay unstaged. This-run removals may be missing on disk so tracked
+ * deletions can reach `git add`.
  */
 function stageSetupManagedPaths(projectRoot: string, thisRunPaths: readonly string[]): void {
   const paths: string[] = [];
   const seen = new Set<string>();
-  const add = (rel: string): void => {
+  const add = (rel: string, opts: { allowMissing?: boolean } = {}): void => {
     const normalized = rel.replace(/\\/g, "/");
     if (!normalized || seen.has(normalized)) return;
-    if (!existsSync(join(projectRoot, normalized))) return;
+    if (!opts.allowMissing && !existsSync(join(projectRoot, normalized))) return;
     seen.add(normalized);
     paths.push(normalized);
   };
-  const compactHit = new Set<string>();
   for (const rel of thisRunPaths) {
-    const normalized = rel.replace(/\\/g, "/");
-    const prefix = STAGE_COMPACT_PREFIXES.find((p) => normalized.startsWith(p));
-    if (prefix !== undefined) {
-      compactHit.add(prefix.replace(/\/$/, ""));
-      continue;
-    }
-    add(normalized);
+    add(rel, { allowMissing: true });
   }
-  for (const root of compactHit) add(root);
   add(PD_REL);
   for (const sub of XBRIEF_LIFECYCLE_DIRS) {
     add(relPosix("xbrief", sub, ".gitkeep"));
@@ -508,7 +491,7 @@ export function runSetup(options: {
     // Still no auto-commit. Repair does not stage (seeds are install-only; upgrade stages
     // existing PD/lifecycle with refreshed wiring).
     if (conflicts.length === 0 && (operation === "install" || operation === "upgrade")) {
-      stageSetupManagedPaths(root, [...created, ...modified]);
+      stageSetupManagedPaths(root, [...created, ...modified, ...removed]);
     }
 
     if (conflicts.length > 0) {

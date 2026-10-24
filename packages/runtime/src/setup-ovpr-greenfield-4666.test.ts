@@ -186,6 +186,36 @@ describe("OVPR greenfield #4666 — staging PD + lifecycle with peers (red)", {
     expect(cached).not.toContain(".agents/user-note.md");
   });
 
+  it("install stages exact skill paths, not the whole skills directory", () => {
+    const root = tempRoot();
+    initGit(root);
+    mkdirSync(join(root, ".agents", "skills", "my-skill"), { recursive: true });
+    writeFileSync(join(root, ".agents", "skills", "my-skill", "SKILL.md"), "# mine\n", "utf8");
+    const result = runSetup({ operation: "install", from: "none", root });
+    expect(result.conflicts).toEqual([]);
+    const cached = cachedNames(root);
+    expect(cached).toContain(".agents/skills/deft/SKILL.md");
+    expect(cached).not.toContain(".agents/skills");
+    expect(cached).not.toContain(".agents/skills/my-skill/SKILL.md");
+  });
+
+  it("old-style conversion stages removed .deft/core deletion", () => {
+    const root = tempRoot();
+    initGit(root);
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
+    writeFileSync(join(root, ".deft", "core", "legacy.txt"), "old\n", "utf8");
+    execFileSync("git", ["add", "-A"], { cwd: root });
+    execFileSync("git", ["commit", "-qm", "legacy core"], { cwd: root });
+    const result = runSetup({ operation: "install", from: "old-style", root });
+    expect(result.conflicts).toEqual([]);
+    expect(result.removed).toContain(".deft/core");
+    expect(existsSync(join(root, ".deft", "core"))).toBe(false);
+    const cached = cachedNames(root);
+    expect(cached.some((p) => p === ".deft/core" || p.startsWith(".deft/core/"))).toBe(true);
+    const status = porcelain(root);
+    expect(status).toMatch(/^D\s+\.deft\/core(\/|$)/m);
+  });
+
   it("install does not stage unrelated dirty package.json (this-run staging only)", () => {
     const root = tempRoot();
     initGit(root);
