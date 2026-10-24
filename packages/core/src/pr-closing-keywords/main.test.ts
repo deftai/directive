@@ -29,6 +29,9 @@ import {
 } from "./main.js";
 import type { RunGhFn } from "./types.js";
 
+/** Empty merge-base stdout → collectLocalDiffFiles returns null → skip offline admission (#5736). */
+const emptyGit: RunGhFn = () => ({ returncode: 0, stdout: "", stderr: "" });
+
 describe("parseAllowList", () => {
   it("parses comma-separated and hash-prefixed tokens", () => {
     expect(parseAllowList(["100,200", "#300"])).toEqual(new Set([100, 200, 300]));
@@ -124,13 +127,14 @@ describe("run CLI offline", () => {
     stderr.mockRestore();
   });
 
+  // #5736: isolate Refs-only body-file from Path B local merge-base..HEAD via empty runGit.
   it("exits zero for clean body with only Refs (both modes)", () => {
     const dir = mkdtempSync(join(tmpdir(), "deft-closing-keywords-"));
     try {
       const body = join(dir, "body.md");
       writeFileSync(body, "feat: lint introduction.\n\nRefs #1234\n", "utf8");
       const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-      expect(run(["--body-file", body])).toBe(EXIT_OK);
+      expect(run(["--body-file", body], { runGit: emptyGit })).toBe(EXIT_OK);
       stderr.mockRestore();
     } finally {
       rmSync(dir, { recursive: true, force: true });
@@ -142,7 +146,7 @@ describe("run CLI offline", () => {
     try {
       const body = join(dir, "body.md");
       writeFileSync(body, "feat: lint introduction.\n\nCloses #1234\n", "utf8");
-      expect(run(["--body-file", body, "--mode", "fp"])).toBe(EXIT_OK);
+      expect(run(["--body-file", body, "--mode", "fp"], { runGit: emptyGit })).toBe(EXIT_OK);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -154,7 +158,7 @@ describe("run CLI offline", () => {
       const body = join(dir, "body.md");
       writeFileSync(body, "feat: lint introduction.\n\nCloses #1234\n", "utf8");
       const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-      expect(run(["--body-file", body])).toBe(EXIT_HITS_FOUND);
+      expect(run(["--body-file", body], { runGit: emptyGit })).toBe(EXIT_HITS_FOUND);
       expect(stderr.mock.calls.join("")).toMatch(/intent mode|#3015/);
       stderr.mockRestore();
     } finally {
@@ -176,10 +180,12 @@ describe("run CLI offline", () => {
         ].join("\n"),
         "utf8",
       );
-      expect(run(["--body-file", body, "--mode", "fp"])).toBe(EXIT_OK);
+      expect(run(["--body-file", body, "--mode", "fp"], { runGit: emptyGit })).toBe(EXIT_OK);
       const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-      expect(run(["--body-file", body, "--mode", "intent"])).toBe(EXIT_HITS_FOUND);
-      expect(run(["--body-file", body])).toBe(EXIT_HITS_FOUND);
+      expect(run(["--body-file", body, "--mode", "intent"], { runGit: emptyGit })).toBe(
+        EXIT_HITS_FOUND,
+      );
+      expect(run(["--body-file", body], { runGit: emptyGit })).toBe(EXIT_HITS_FOUND);
       expect(stderr.mock.calls.join("")).toContain("29");
       stderr.mockRestore();
     } finally {
@@ -192,8 +198,10 @@ describe("run CLI offline", () => {
     try {
       const body = join(dir, "body.md");
       writeFileSync(body, "feat: done.\n\nCloses #55\n", "utf8");
-      expect(run(["--body-file", body])).toBe(EXIT_HITS_FOUND);
-      expect(run(["--body-file", body, "--allow-close", "55"])).toBe(EXIT_OK);
+      expect(run(["--body-file", body], { runGit: emptyGit })).toBe(EXIT_HITS_FOUND);
+      expect(run(["--body-file", body, "--allow-close", "55"], { runGit: emptyGit })).toBe(
+        EXIT_OK,
+      );
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -204,8 +212,10 @@ describe("run CLI offline", () => {
     try {
       const body = join(dir, "body.md");
       writeFileSync(body, "feat: done.\n\nCloses #55\n\ndeft-close-intent: full\n", "utf8");
-      expect(run(["--body-file", body])).toBe(EXIT_HITS_FOUND);
-      expect(run(["--body-file", body, "--allow-close", "55"])).toBe(EXIT_OK);
+      expect(run(["--body-file", body], { runGit: emptyGit })).toBe(EXIT_HITS_FOUND);
+      expect(run(["--body-file", body, "--allow-close", "55"], { runGit: emptyGit })).toBe(
+        EXIT_OK,
+      );
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -217,7 +227,7 @@ describe("run CLI offline", () => {
       const body = join(dir, "body.md");
       writeFileSync(body, "feat: gate.\n\nDOES NOT CLOSE #734 (umbrella).\n", "utf8");
       const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-      expect(run(["--body-file", body])).toBe(EXIT_HITS_FOUND);
+      expect(run(["--body-file", body], { runGit: emptyGit })).toBe(EXIT_HITS_FOUND);
       expect(stderr.mock.calls.join("")).toContain("FAIL:");
       stderr.mockRestore();
     } finally {
@@ -230,16 +240,18 @@ describe("run CLI offline", () => {
     try {
       const body = join(dir, "body.md");
       writeFileSync(body, "clean body", "utf8");
-      expect(run(["--body-file", body, "--allow-known-false-positives", "abc"])).toBe(
-        EXIT_CONFIG_ERROR,
-      );
+      expect(
+        run(["--body-file", body, "--allow-known-false-positives", "abc"], { runGit: emptyGit }),
+      ).toBe(EXIT_CONFIG_ERROR);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
   });
 
   it("exits two for missing body file", () => {
-    expect(run(["--body-file", join(tmpdir(), "does-not-exist.md")])).toBe(EXIT_CONFIG_ERROR);
+    expect(run(["--body-file", join(tmpdir(), "does-not-exist.md")], { runGit: emptyGit })).toBe(
+      EXIT_CONFIG_ERROR,
+    );
   });
 
   it("FP allow list suppresses class-A hits without --allow-close (both mode)", () => {
@@ -247,9 +259,11 @@ describe("run CLI offline", () => {
     try {
       const body = join(dir, "body.md");
       writeFileSync(body, "Body. Intentionally not `Closes #999` (test fixture).\n", "utf8");
-      expect(run(["--body-file", body])).toBe(EXIT_HITS_FOUND);
+      expect(run(["--body-file", body], { runGit: emptyGit })).toBe(EXIT_HITS_FOUND);
       // Class A stays exclusive to FP mode — no intent leak into --allow-close.
-      expect(run(["--body-file", body, "--allow-known-false-positives", "999"])).toBe(EXIT_OK);
+      expect(
+        run(["--body-file", body, "--allow-known-false-positives", "999"], { runGit: emptyGit }),
+      ).toBe(EXIT_OK);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -260,7 +274,7 @@ describe("run CLI offline", () => {
     try {
       const body = join(dir, "body.md");
       writeFileSync(body, "Refs #642 only.", "utf8");
-      expect(cmdPrCheckClosingKeywords(["--body-file", body])).toBe(EXIT_OK);
+      expect(cmdPrCheckClosingKeywords(["--body-file", body], { runGit: emptyGit })).toBe(EXIT_OK);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -340,23 +354,30 @@ describe("one-PR-unit closer-set (#4494)", () => {
   it("solo one Closes #N passes", () => {
     writeFileSync(body, "Closes #4494\n", "utf8");
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-    expect(run(["--mode", "intent", "--body-file", body, "--allow-close", "4494"])).toBe(EXIT_OK);
+    expect(
+      run(["--mode", "intent", "--body-file", body, "--allow-close", "4494"], {
+        runGit: emptyGit,
+      }),
+    ).toBe(EXIT_OK);
     stderr.mockRestore();
   });
 
   it("five-origin comma-list without one-PR-unit fails closed even with --allow-close", () => {
     writeFileSync(body, "Closes #4204, #4218, #4161, #3918, #3849\n", "utf8");
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-    const code = run([
-      "--mode",
-      "intent",
-      "--body-file",
-      body,
-      "--allow-close",
-      "4204,4218,4161,3918,3849",
-      "--repo",
-      "deftai/directive",
-    ]);
+    const code = run(
+      [
+        "--mode",
+        "intent",
+        "--body-file",
+        body,
+        "--allow-close",
+        "4204,4218,4161,3918,3849",
+        "--repo",
+        "deftai/directive",
+      ],
+      { runGit: emptyGit },
+    );
     expect(code).toBe(EXIT_HITS_FOUND);
     expect(stderr.mock.calls.join("")).toMatch(/missing one-PR-unit consent/);
     stderr.mockRestore();
@@ -365,16 +386,19 @@ describe("one-PR-unit closer-set (#4494)", () => {
   it("--allow-close 4204,4218 is not one-PR-unit consent", () => {
     writeFileSync(body, "Closes #4204, #4218\n", "utf8");
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-    const code = run([
-      "--mode",
-      "intent",
-      "--body-file",
-      body,
-      "--allow-close",
-      "4204,4218",
-      "--repo",
-      "deftai/directive",
-    ]);
+    const code = run(
+      [
+        "--mode",
+        "intent",
+        "--body-file",
+        body,
+        "--allow-close",
+        "4204,4218",
+        "--repo",
+        "deftai/directive",
+      ],
+      { runGit: emptyGit },
+    );
     expect(code).toBe(EXIT_HITS_FOUND);
     expect(stderr.mock.calls.join("")).toMatch(/missing one-PR-unit consent/);
     stderr.mockRestore();

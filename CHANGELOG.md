@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed - Offline `pr-closing-keywords --body-file` unit tests pass an empty `runGit` so Path B brief-land local diffs cannot poison keyword-lint fixtures; tip-master hermetic isolation for #5736. Refs #5736 #5807.
+
 ### Removed
 
 ## [0.129.0] - 2026-10-23
