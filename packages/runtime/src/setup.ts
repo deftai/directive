@@ -225,7 +225,8 @@ function ensureXbriefLifecycleGitkeeps(projectRoot: string): string[] {
 
 /** Wholly-owned deposit prefixes compactable to one `git add` (#4666). */
 const STAGE_COMPACT_PREFIXES = [
-  ".agents/",
+  ".agents/skills/",
+  ".claude/skills/",
   ".github/skills/",
   ".claude/commands/",
   ".cursor/commands/",

@@ -174,6 +174,18 @@ describe("OVPR greenfield #4666 — staging PD + lifecycle with peers (red)", {
     expect(hasCommit(root)).toBe(false);
   });
 
+  it("install does not stage unrelated files under .agents/ outside skills/", () => {
+    const root = tempRoot();
+    initGit(root);
+    mkdirSync(join(root, ".agents"), { recursive: true });
+    writeFileSync(join(root, ".agents", "user-note.md"), "# mine\n", "utf8");
+    const result = runSetup({ operation: "install", from: "none", root });
+    expect(result.conflicts).toEqual([]);
+    const cached = cachedNames(root);
+    expect(cached).toContain(".agents/skills/deft/SKILL.md");
+    expect(cached).not.toContain(".agents/user-note.md");
+  });
+
   it("install does not stage unrelated dirty package.json (this-run staging only)", () => {
     const root = tempRoot();
     initGit(root);
