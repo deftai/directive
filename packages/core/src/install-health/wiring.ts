@@ -141,7 +141,9 @@ function resolveIncludesDeftTaskfileIndentScoped(text: string): string | null {
     if (indent === directChildIndent) {
       inDeftBody = false;
       deftBodyIndent = null;
-      const entry = stripped.match(/^(?:["']deft["']|deft)\s*:\s*(.*?)(?:\s+#.*)?$/i);
+      // Exact lowercase deft / "deft" / 'deft' only (#5796 Greptile): /i would
+      // match DEFT first and mask a later exact includes.deft legacy path.
+      const entry = stripped.match(/^(?:["']deft["']|deft)\s*:\s*(.*?)(?:\s+#.*)?$/);
       if (entry === null) continue;
       const value = (entry[1] ?? "").trim();
       if (value.startsWith("{")) {

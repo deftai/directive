@@ -242,6 +242,29 @@ describe("checkWiringTargetsRuntime Taskfile.yml (#5796)", () => {
     expect(result.ok).toBe(false);
     expect(result.mismatched).toContain("Taskfile.yml");
   });
+
+  it("rejects includes.deft legacy path when a prior includes.DEFT points at runtime", () => {
+    // Greptile P1 on HEAD: indent parser /i matched DEFT before exact deft.
+    // Locked disposition owns only includes.deft — DEFT must not mask it.
+    const root = tempRoot();
+    writeTaskfile(
+      root,
+      [
+        "version: '3'",
+        "",
+        "includes:",
+        "  DEFT:",
+        `    taskfile: ${RUNTIME_INCLUDE}`,
+        "  deft:",
+        "    taskfile: ./.deft/core/Taskfile.yml",
+        "",
+      ].join("\n"),
+    );
+
+    const result = checkWiringTargetsRuntime(root);
+    expect(result.ok).toBe(false);
+    expect(result.mismatched).toContain("Taskfile.yml");
+  });
 });
 
 describe("checkWiringTargetsRuntime companion probes (coverage for #5796 headroom)", () => {
