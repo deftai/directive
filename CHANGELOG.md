@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Doctor no longer false-fails healthy Taskfiles on comment-only `.deft/core/` mentions (#5796).** Wiring checks `includes.deft` only (expanded, short-scalar, flow-map; 2- or 4-space indent; quoted `"deft"`/`'deft'` keys, case-sensitive). Missing or legacy `includes.deft` still fails. Nested `vars.taskfile` cannot mask a legacy `includes.deft` path. A prior `includes.DEFT` runtime path cannot mask a later exact `includes.deft` legacy path. Refs #5796.
 - Fixed - First-time `directive install` seeds minimal `xbrief/PROJECT-DEFINITION.xbrief.json` and five lifecycle `.gitkeep`s; install/upgrade stage this-run managed peers including PD + lifecycle (no blanket managed-path `git add`, no auto-commit, no `xbrief/schemas` copy). Refs #4666.
 - Fixed - Coverage applicability treats `content/packs/**` JSON/YAML as inert (skill-pack SoT; same family as `content/docs` / `content/meta`) so OVPR greenfield teaching-pack diffs do not refuse `coverage:hotspots`. Refs #4666.
+- Fixed - Install-heavy `setup.test` / `doctor-diagnose` describes use 30s timeout so LOCAL_GATE does not flake under suite load after OVPR greenfield install work. Refs #4666.
 
 ### Removed
 

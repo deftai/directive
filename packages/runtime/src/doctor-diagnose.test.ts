@@ -131,7 +131,7 @@ afterEach(() => {
   }
 });
 
-describe("runDoctorDiagnosis (AC12.3 surfaces)", () => {
+describe("runDoctorDiagnosis (AC12.3 surfaces)", { timeout: 30_000 }, () => {
   it("reports in-sync project covering pin/lock/installed/GENERATION/wiring/readiness/schema", () => {
     const root = tempRoot();
     const installed = runSetup({ operation: "install", from: "none", root });

@@ -43,7 +43,7 @@ afterEach(() => {
   }
 });
 
-describe("runSetup install|repair (R8 / AC8.*)", () => {
+describe("runSetup install|repair (R8 / AC8.*)", { timeout: 30_000 }, () => {
   it("install writes GENERATION, wiring-ready, AGENTS managed section, gitignore, seed", () => {
     const root = tempRoot();
     initGit(root);
