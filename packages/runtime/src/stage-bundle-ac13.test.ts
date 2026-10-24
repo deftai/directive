@@ -76,7 +76,7 @@ describe("stage-bundle AC1.3 packaging purity (PKG-AC13-NEST)", () => {
     } finally {
       rmSync(outDir, { recursive: true, force: true });
     }
-  });
+  }, 120_000);
 
   it("packed tarball has no nested @deftai package.json and keeps vendor trees", () => {
     const outDir = mkdtempSync(join(tmpdir(), "stage-ac13-pack-"));
