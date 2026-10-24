@@ -174,5 +174,4 @@ describe("checkWiringTargetsRuntime Taskfile.yml (#5796)", () => {
     expect(result.ok).toBe(false);
     expect(result.mismatched).toContain("Taskfile.yml");
   });
-
 });
