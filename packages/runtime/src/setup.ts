@@ -13,7 +13,11 @@ import {
   containedRemove,
   containedWrite,
 } from "@deftai/directive-core/dist/fs/contained-write.js";
-import { stageFrameworkPaths } from "@deftai/directive-core/dist/init-deposit/hygiene.js";
+import {
+  defaultTrackedNames,
+  isTrackedDeletePath,
+  stageFrameworkPaths,
+} from "@deftai/directive-core/dist/init-deposit/hygiene.js";
 import { seedMinimalProjectDefinition } from "@deftai/directive-core/dist/init-deposit/init-deposit.js";
 import {
   buildOwnershipRecord,
@@ -230,17 +234,21 @@ function ensureXbriefLifecycleGitkeeps(projectRoot: string): string[] {
  * unrelated dirty peers (package.json / custom .githooks/*). Keeps exact
  * this-run paths (no skill/command parent compaction) so sibling untracked
  * skills stay unstaged. This-run removals may be missing on disk so tracked
- * deletions can reach `git add`.
+ * deletions can reach `git add`; untracked missing paths are skipped so one
+ * unmatched pathspec cannot fail the whole staging batch (#5883 P1 / #3394).
  */
 function stageSetupManagedPaths(projectRoot: string, thisRunPaths: readonly string[]): void {
-  const paths: string[] = [];
+  const present: string[] = [];
+  const missingAllow: string[] = [];
   const seen = new Set<string>();
   const add = (rel: string, opts: { allowMissing?: boolean } = {}): void => {
     const normalized = rel.replace(/\\/g, "/");
     if (!normalized || seen.has(normalized)) return;
-    if (!opts.allowMissing && !existsSync(join(projectRoot, normalized))) return;
+    const onDisk = existsSync(join(projectRoot, normalized));
+    if (!onDisk && !opts.allowMissing) return;
     seen.add(normalized);
-    paths.push(normalized);
+    if (onDisk) present.push(normalized);
+    else missingAllow.push(normalized);
   };
   for (const rel of thisRunPaths) {
     add(rel, { allowMissing: true });
@@ -249,9 +257,13 @@ function stageSetupManagedPaths(projectRoot: string, thisRunPaths: readonly stri
   for (const sub of XBRIEF_LIFECYCLE_DIRS) {
     add(relPosix("xbrief", sub, ".gitkeep"));
   }
-  stageFrameworkPaths(projectRoot, paths);
+  const tracked = new Set(defaultTrackedNames(projectRoot, missingAllow));
+  const stagePaths = [
+    ...present,
+    ...missingAllow.filter((path) => isTrackedDeletePath(path, tracked)),
+  ];
+  stageFrameworkPaths(projectRoot, stagePaths);
 }
-
 /** Shared host settings / Taskfile: only Directive entries are owned (structured-entry). */
 const STRUCTURED_ENTRY_RELS: ReadonlyArray<{ path: string; entryKey: string }> = [
   { path: ".claude/settings.json", entryKey: "hooks" },

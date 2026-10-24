@@ -216,6 +216,26 @@ describe("OVPR greenfield #4666 — staging PD + lifecycle with peers (red)", {
     expect(status).toMatch(/^D\s+\.deft\/core(\/|$)/m);
   });
 
+  it("conversion removing untracked .deft/core still stages PD and peers (#5883 P1)", () => {
+    const root = tempRoot();
+    initGit(root);
+    // Untracked legacy tree: never added to the index.
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
+    writeFileSync(join(root, ".deft", "core", "legacy.txt"), "old\n", "utf8");
+    const result = runSetup({ operation: "install", from: "old-style", root });
+    expect(result.conflicts).toEqual([]);
+    expect(result.removed).toContain(".deft/core");
+    expect(existsSync(join(root, ".deft", "core"))).toBe(false);
+    const cached = cachedNames(root);
+    expect(cached).toContain(PD_REL);
+    expect(cached).toContain("AGENTS.md");
+    for (const sub of LIFECYCLE_DIRS) {
+      expect(cached).toContain(`xbrief/${sub}/.gitkeep`);
+    }
+    // Missing untracked path must not poison git add / appear staged.
+    expect(cached.some((p) => p === ".deft/core" || p.startsWith(".deft/core/"))).toBe(false);
+  });
+
   it("install does not stage unrelated dirty package.json (this-run staging only)", () => {
     const root = tempRoot();
     initGit(root);
