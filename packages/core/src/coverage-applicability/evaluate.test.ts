@@ -188,6 +188,9 @@ describe("classifyChangedPath", () => {
     expect(classifyChangedPath("xbrief/proposed/story.xbrief.json", "A", null)).toBe("inert");
     expect(classifyChangedPath("xbrief/decisions/d1.json", "A", null)).toBe("inert");
     expect(classifyChangedPath("CHANGELOG.md", "M", null)).toBe("inert");
+    expect(classifyChangedPath("content/packs/skills/skills-pack-0.1.json", "M", null)).toBe(
+      "inert",
+    );
   });
 
   it("keeps MDX/HTML coverable (executable embeds; never inert N/A)", () => {
