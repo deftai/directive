@@ -105,9 +105,16 @@ function resolveIncludesDeftTaskfile(text: string): string | null {
   const fromParser = parseTaskfileIncludes(text).get("deft");
   if (fromParser !== undefined) return fromParser.taskfile;
 
+  // Fallback when the shared parser misses (strict +2 indent / unquoted keys):
+  // accept any direct-child indent and quoted "deft"/'deft', including expanded
+  // block form (`deft:` / `"deft":` then a deeper `taskfile:` property).
   const lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
   let inIncludes = false;
   let includesIndent = 0;
+  /** Indent of direct children under `includes:` (go-task allows 2- or 4-space). */
+  let directChildIndent: number | null = null;
+  let inDeftBody = false;
+  let deftBodyIndent: number | null = null;
   for (const raw of lines) {
     const stripped = raw.trim();
     if (!stripped || stripped.startsWith("#")) continue;
@@ -116,27 +123,48 @@ function resolveIncludesDeftTaskfile(text: string): string | null {
       if (/^includes\s*:/.test(stripped) && indent === 0) {
         inIncludes = true;
         includesIndent = indent;
+        directChildIndent = null;
+        inDeftBody = false;
+        deftBodyIndent = null;
       }
       continue;
     }
     if (indent <= includesIndent) {
       inIncludes = false;
+      directChildIndent = null;
+      inDeftBody = false;
+      deftBodyIndent = null;
       if (/^includes\s*:/.test(stripped) && indent === 0) {
         inIncludes = true;
         includesIndent = indent;
       }
       continue;
     }
-    if (indent !== includesIndent + 2) continue;
-    const short = stripped.match(/^deft\s*:\s*(.+?)(?:\s+#.*)?$/i);
-    if (short?.[1] === undefined) continue;
-    const value = short[1].trim();
-    if (value.startsWith("{")) {
-      const flow = value.match(/taskfile\s*:\s*["']?([^"',}\s]+)/i);
-      return flow?.[1]?.trim() ?? null;
+    if (directChildIndent === null) {
+      directChildIndent = indent;
     }
-    if (value.length === 0) continue;
-    return value.replace(/^["']|["']$/g, "");
+    if (indent === directChildIndent) {
+      inDeftBody = false;
+      deftBodyIndent = null;
+      const entry = stripped.match(/^(?:["']deft["']|deft)\s*:\s*(.*?)(?:\s+#.*)?$/i);
+      if (entry === null) continue;
+      const value = (entry[1] ?? "").trim();
+      if (value.startsWith("{")) {
+        const flow = value.match(/taskfile\s*:\s*["']?([^"',}\s]+)/i);
+        return flow?.[1]?.trim() ?? null;
+      }
+      if (value.length === 0) {
+        inDeftBody = true;
+        continue;
+      }
+      return value.replace(/^["']|["']$/g, "");
+    }
+    if (inDeftBody && indent > directChildIndent) {
+      if (deftBodyIndent === null) deftBodyIndent = indent;
+      if (indent !== deftBodyIndent) continue;
+      const taskfile = stripped.match(/^taskfile\s*:\s*["']?([^"'#]+?)["']?\s*(?:#.*)?$/i);
+      if (taskfile?.[1]) return taskfile[1].trim();
+    }
   }
   return null;
 }

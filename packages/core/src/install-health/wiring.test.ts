@@ -175,6 +175,50 @@ describe("checkWiringTargetsRuntime Taskfile.yml (#5796)", () => {
     expect(result.ok).toBe(false);
     expect(result.mismatched).toContain("Taskfile.yml");
   });
+
+  it("accepts four-space-indented short scalar includes.deft targeting the runtime pin", () => {
+    const root = tempRoot();
+    writeTaskfile(
+      root,
+      ["version: '3'", "", "includes:", `    deft: ${RUNTIME_INCLUDE}`, ""].join("\n"),
+    );
+
+    const result = checkWiringTargetsRuntime(root);
+    expect(result.ok).toBe(true);
+    expect(result.mismatched).not.toContain("Taskfile.yml");
+  });
+
+  it("accepts quoted-key short scalar includes.deft targeting the runtime pin", () => {
+    const root = tempRoot();
+    writeTaskfile(
+      root,
+      ["version: '3'", "", "includes:", `  "deft": ${RUNTIME_INCLUDE}`, ""].join("\n"),
+    );
+
+    const result = checkWiringTargetsRuntime(root);
+    expect(result.ok).toBe(true);
+    expect(result.mismatched).not.toContain("Taskfile.yml");
+  });
+
+  it("accepts four-space quoted-key expanded includes.deft targeting the runtime pin", () => {
+    const root = tempRoot();
+    writeTaskfile(
+      root,
+      [
+        "version: '3'",
+        "",
+        "includes:",
+        '    "deft":',
+        `        taskfile: ${RUNTIME_INCLUDE}`,
+        "        optional: true",
+        "",
+      ].join("\n"),
+    );
+
+    const result = checkWiringTargetsRuntime(root);
+    expect(result.ok).toBe(true);
+    expect(result.mismatched).not.toContain("Taskfile.yml");
+  });
 });
 
 describe("checkWiringTargetsRuntime companion probes (coverage for #5796 headroom)", () => {
