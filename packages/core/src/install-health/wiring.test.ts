@@ -2,12 +2,13 @@
  * Red proofs for #5796: Taskfile wiring owns only includes.deft (comment-aware).
  * Whole-file `.deft/core/` substring must not fail a runtime-correct include.
  */
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { RUNTIME_PACKAGE_PATH_PREFIX } from "./constants.js";
-import { checkWiringTargetsRuntime } from "./wiring.js";
+import { MANAGED_SECTION_CLOSE, MANAGED_SECTION_OPEN_PREFIX } from "./ownership.js";
+import { checkWiringTargetsRuntime, hasDirectiveWiringEvidence } from "./wiring.js";
 
 const temps: string[] = [];
 
@@ -171,6 +172,123 @@ describe("checkWiringTargetsRuntime Taskfile.yml (#5796)", () => {
     );
 
     const result = checkWiringTargetsRuntime(root);
+    expect(result.ok).toBe(false);
+    expect(result.mismatched).toContain("Taskfile.yml");
+  });
+});
+
+describe("checkWiringTargetsRuntime companion probes (coverage for #5796 headroom)", () => {
+  it("accepts AGENTS managed section targeting runtime", () => {
+    const root = tempRoot("wiring-agents-");
+    writeFileSync(
+      join(root, "AGENTS.md"),
+      [
+        "# Agents",
+        `${MANAGED_SECTION_OPEN_PREFIX} v1 -->`,
+        `Use ${RUNTIME_PACKAGE_PATH_PREFIX} for Directive wiring.`,
+        MANAGED_SECTION_CLOSE,
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+    const result = checkWiringTargetsRuntime(root);
+    expect(result.ok).toBe(true);
+    expect(hasDirectiveWiringEvidence(root)).toBe(true);
+  });
+
+  it("allows deft-hook prose inside AGENTS managed section for checkWiring only", () => {
+    const root = tempRoot("wiring-agents-hook-");
+    writeFileSync(
+      join(root, "AGENTS.md"),
+      [
+        `${MANAGED_SECTION_OPEN_PREFIX} v1 -->`,
+        `Use ${RUNTIME_PACKAGE_PATH_PREFIX} and recover via deft-hook when needed.`,
+        MANAGED_SECTION_CLOSE,
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+    const result = checkWiringTargetsRuntime(root);
+    expect(result.ok).toBe(true);
+    expect(result.mismatched).not.toContain("AGENTS.md");
+  });
+
+  it("treats AGENTS without managed section as non-mismatched", () => {
+    const root = tempRoot("wiring-agents-bare-");
+    writeFileSync(join(root, "AGENTS.md"), "# no managed section\n", "utf8");
+    const result = checkWiringTargetsRuntime(root);
+    expect(result.mismatched).not.toContain("AGENTS.md");
+    expect(hasDirectiveWiringEvidence(root)).toBe(false);
+  });
+
+  it("rejects AGENTS managed section that still names .deft/core/", () => {
+    const root = tempRoot("wiring-agents-core-");
+    writeFileSync(
+      join(root, "AGENTS.md"),
+      [
+        `${MANAGED_SECTION_OPEN_PREFIX} v1 -->`,
+        "legacy .deft/core/run doctor",
+        MANAGED_SECTION_CLOSE,
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+    const result = checkWiringTargetsRuntime(root);
+    expect(result.ok).toBe(false);
+    expect(result.mismatched).toContain("AGENTS.md");
+  });
+
+  it("accepts pre-commit shim sourcing _directive-run.sh without bare deft-hook", () => {
+    const root = tempRoot("wiring-hook-");
+    mkdirSync(join(root, ".githooks"), { recursive: true });
+    writeFileSync(
+      join(root, ".githooks", "pre-commit"),
+      '#!/bin/sh\n. "$REPO_ROOT/.githooks/_directive-run.sh"\n',
+      "utf8",
+    );
+    writeFileSync(
+      join(root, ".githooks", "_directive-run.sh"),
+      `#!/bin/sh\nexec node ./${RUNTIME_PACKAGE_PATH_PREFIX}dist/bin.js "$@"\n`,
+      "utf8",
+    );
+    const result = checkWiringTargetsRuntime(root);
+    expect(result.mismatched).not.toContain(".githooks/pre-commit");
+    expect(hasDirectiveWiringEvidence(root)).toBe(true);
+  });
+
+  it("rejects hook JSON that still embeds .deft/core/", () => {
+    const root = tempRoot("wiring-cursor-");
+    mkdirSync(join(root, ".cursor"), { recursive: true });
+    writeFileSync(
+      join(root, ".cursor", "hooks.json"),
+      '{"hooks":{"preToolUse":["./.deft/core/hooks/run"]}}\n',
+      "utf8",
+    );
+    const result = checkWiringTargetsRuntime(root);
+    expect(result.ok).toBe(false);
+    expect(result.mismatched).toContain(".cursor/hooks.json");
+  });
+
+  it("accepts hook JSON targeting the runtime prefix", () => {
+    const root = tempRoot("wiring-cursor-ok-");
+    mkdirSync(join(root, ".cursor"), { recursive: true });
+    writeFileSync(
+      join(root, ".cursor", "hooks.json"),
+      `{"hooks":{"preToolUse":["./${RUNTIME_PACKAGE_PATH_PREFIX}hooks/run"]}}\n`,
+      "utf8",
+    );
+    const result = checkWiringTargetsRuntime(root);
+    expect(result.ok).toBe(true);
+    expect(hasDirectiveWiringEvidence(root)).toBe(true);
+  });
+
+  it("marks unreadable present probes as mismatched via seams", () => {
+    const root = tempRoot("wiring-unread-");
+    writeFileSync(join(root, "Taskfile.yml"), "version: '3'\n", "utf8");
+    const result = checkWiringTargetsRuntime(root, {
+      isFile: (p) => p.endsWith("Taskfile.yml"),
+      readText: () => null,
+    });
     expect(result.ok).toBe(false);
     expect(result.mismatched).toContain("Taskfile.yml");
   });
