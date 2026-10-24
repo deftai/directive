@@ -97,13 +97,58 @@ function isGitHookShim(rel: string, text: string): boolean {
 }
 
 /**
+ * Resolve `includes.deft` taskfile path for wiring (#5796).
+ * Expanded block form uses the shared comment-aware parser; go-task also
+ * accepts short scalar and inline flow-map forms the shared parser skips.
+ */
+function resolveIncludesDeftTaskfile(text: string): string | null {
+  const fromParser = parseTaskfileIncludes(text).get("deft");
+  if (fromParser !== undefined) return fromParser.taskfile;
+
+  const lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+  let inIncludes = false;
+  let includesIndent = 0;
+  for (const raw of lines) {
+    const stripped = raw.trim();
+    if (!stripped || stripped.startsWith("#")) continue;
+    const indent = raw.length - raw.trimStart().length;
+    if (!inIncludes) {
+      if (/^includes\s*:/.test(stripped) && indent === 0) {
+        inIncludes = true;
+        includesIndent = indent;
+      }
+      continue;
+    }
+    if (indent <= includesIndent) {
+      inIncludes = false;
+      if (/^includes\s*:/.test(stripped) && indent === 0) {
+        inIncludes = true;
+        includesIndent = indent;
+      }
+      continue;
+    }
+    if (indent !== includesIndent + 2) continue;
+    const short = stripped.match(/^deft\s*:\s*(.+?)(?:\s+#.*)?$/i);
+    if (short?.[1] === undefined) continue;
+    const value = short[1].trim();
+    if (value.startsWith("{")) {
+      const flow = value.match(/taskfile\s*:\s*["']?([^"',}\s]+)/i);
+      return flow?.[1]?.trim() ?? null;
+    }
+    if (value.length === 0) continue;
+    return value.replace(/^["']|["']$/g, "");
+  }
+  return null;
+}
+
+/**
  * Taskfile wiring owns only `includes.deft` (#5796). Comment-aware include parse
  * (skips `#` lines); whole-file `.deft/core/` substring must not decide the probe.
  */
 function inspectTaskfileIncludesDeft(text: string): boolean {
-  const deft = parseTaskfileIncludes(text).get("deft");
-  if (deft === undefined) return false;
-  const taskfile = deft.taskfile.replace(/\\/g, "/");
+  const taskfileRaw = resolveIncludesDeftTaskfile(text);
+  if (taskfileRaw === null) return false;
+  const taskfile = taskfileRaw.replace(/\\/g, "/");
   const prefix = RUNTIME_PACKAGE_PATH_PREFIX.replace(/\/$/, "");
   if (taskfile.includes(".deft/core/")) return false;
   return taskfile.includes(prefix);

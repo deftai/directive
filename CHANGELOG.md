@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fixed - `verify:class-checks` treats `packages/runtime/src/setup-wiring.ts` (± `init-deposit/agent-hooks.ts`, `install-health/constants.ts`) as composition companions when paired with `.githooks/**`, so Lane A ensureGitHooks SoT PRs are not class-4 storyMix; unrelated product beside githooks still fails. Refs #4980 #5808.
 - Fixed - Offline `pr-closing-keywords --body-file` unit tests pass an empty `runGit` so Path B brief-land local diffs cannot poison keyword-lint fixtures; tip-master hermetic isolation for #5736. Refs #5736 #5807.
-- **doctor Taskfile wiring owns only `includes.deft` (#5796).** `checkWiringTargetsRuntime` no longer fails on comment-only `.deft/core/` mentions in `Taskfile.yml`; missing or legacy `includes.deft` still fails. Uses the existing comment-aware include parse (not whole-file substring). Refs #5796.
+- **doctor Taskfile wiring owns only `includes.deft` (#5796).** `checkWiringTargetsRuntime` no longer fails on comment-only `.deft/core/` mentions in `Taskfile.yml`; missing or legacy `includes.deft` still fails. Uses comment-aware include parse for expanded, short-scalar, and flow-map `includes.deft` forms (not whole-file substring). Refs #5796.
 
 ### Removed
 
