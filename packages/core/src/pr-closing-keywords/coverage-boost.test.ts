@@ -8,6 +8,9 @@ import { readCommitsFile } from "./io.js";
 import { parseArgs, run } from "./main.js";
 import type { Hit, RunGhFn } from "./types.js";
 
+/** Empty merge-base stdout → collectLocalDiffFiles returns null → skip offline admission (#5736). */
+const emptyGit: RunGhFn = () => ({ returncode: 0, stdout: "", stderr: "" });
+
 describe("coverage boost branches", () => {
   it("renderHit formats diagnostic line", () => {
     const hit: Hit = {
@@ -125,7 +128,9 @@ describe("coverage boost branches", () => {
       writeFileSync(body, "Intentionally not Closes #100 and not Closes #200.\n", "utf8");
       const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
       expect(
-        run(["--body-file", body, "--mode", "fp", "--allow-known-false-positives", "100,200"]),
+        run(["--body-file", body, "--mode", "fp", "--allow-known-false-positives", "100,200"], {
+          runGit: emptyGit,
+        }),
       ).toBe(0);
       expect(stderr.mock.calls.join("")).toContain("suppressed");
       stderr.mockRestore();
@@ -140,7 +145,11 @@ describe("coverage boost branches", () => {
       const body = join(dir, "body.md");
       writeFileSync(body, "Closes #100\n", "utf8");
       const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-      expect(run(["--body-file", body, "--mode", "intent", "--allow-close", "100"])).toBe(0);
+      expect(
+        run(["--body-file", body, "--mode", "intent", "--allow-close", "100"], {
+          runGit: emptyGit,
+        }),
+      ).toBe(0);
       expect(stderr.mock.calls.join("")).toContain("suppressed");
       stderr.mockRestore();
     } finally {
