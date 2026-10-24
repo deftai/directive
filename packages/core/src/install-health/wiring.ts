@@ -97,17 +97,12 @@ function isGitHookShim(rel: string, text: string): boolean {
 }
 
 /**
- * Resolve `includes.deft` taskfile path for wiring (#5796).
- * Expanded block form uses the shared comment-aware parser; go-task also
- * accepts short scalar and inline flow-map forms the shared parser skips.
+ * Indent-scoped `includes.deft` resolve (#5796).
+ * Owns only the direct `deft` child and its first-level `taskfile` property;
+ * deeper nested keys (e.g. `vars.taskfile`) are ignored. Also covers go-task
+ * short scalar and inline flow-map forms the shared parser skips.
  */
-function resolveIncludesDeftTaskfile(text: string): string | null {
-  const fromParser = parseTaskfileIncludes(text).get("deft");
-  if (fromParser !== undefined) return fromParser.taskfile;
-
-  // Fallback when the shared parser misses (strict +2 indent / unquoted keys):
-  // accept any direct-child indent and quoted "deft"/'deft', including expanded
-  // block form (`deft:` / `"deft":` then a deeper `taskfile:` property).
+function resolveIncludesDeftTaskfileIndentScoped(text: string): string | null {
   const lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
   let inIncludes = false;
   let includesIndent = 0;
@@ -166,6 +161,19 @@ function resolveIncludesDeftTaskfile(text: string): string | null {
       if (taskfile?.[1]) return taskfile[1].trim();
     }
   }
+  return null;
+}
+
+/**
+ * Resolve `includes.deft` taskfile path for wiring (#5796).
+ * Prefer indent-scoped ownership of `includes.deft` so nested `vars.taskfile`
+ * cannot mask a legacy include. Shared parser is last resort only.
+ */
+function resolveIncludesDeftTaskfile(text: string): string | null {
+  const fromIndent = resolveIncludesDeftTaskfileIndentScoped(text);
+  if (fromIndent !== null) return fromIndent;
+  const fromParser = parseTaskfileIncludes(text).get("deft");
+  if (fromParser !== undefined) return fromParser.taskfile;
   return null;
 }
 
