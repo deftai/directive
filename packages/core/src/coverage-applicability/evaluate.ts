@@ -1301,6 +1301,7 @@ export function classifyChangedPath(
       "design",
       "content/docs",
       "content/meta",
+      "content/packs",
     ])
   ) {
     if (

@@ -672,7 +672,7 @@ omit = [
 
 ### Template
 
-! The output MUST conform to the canonical xBRIEF v0.8 schema (`xbrief/schemas/xbrief-core-0.8.schema.json`, strict `const: "0.8"`). See [`../../conventions/references.md`](../../conventions/references.md). Write-path default is **0.8 only** (#2971); legacy 0.6 remains read-accepted until `deft migrate:xbrief`.
+! The output MUST conform to the canonical xBRIEF v0.8 schema (`node_modules/@deftai/directive-runtime/vbrief/schemas/xbrief-core-0.8.schema.json`, strict `const: "0.8"`; OVPR pin is schema SoT — install does not deposit project-root `xbrief/schemas/`). See [`../../conventions/references.md`](../../conventions/references.md). Write-path default is **0.8 only** (#2971); legacy 0.6 remains read-accepted until `deft migrate:xbrief`.
 
 ! Do not write this document onto `xbrief/PROJECT-DEFINITION.xbrief.json` yourself. After confirmation, write it to a temporary narratives file that is not that artifact, then run `deft project:write-narratives --project-root <policy-project-root> --narratives-file <path>`. The command stores Overview, TechStack, Strategy, Quality, ProjectRules, and Branching while `xbrief/active/` is empty. Optional `--title` sets `plan.title` only. A policy block in the temporary file is ignored. Policy still goes through the public writer in the gate above.
 
@@ -892,7 +892,7 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 - ⊗ Create a separate PRD.md on the Light path
 - ⊗ Generate an authoritative PRD.md — if needed, users run `task prd:render`
 
-! The xBRIEF files MUST conform to `xbrief/schemas/xbrief-core-0.8.schema.json` (v0.8):
+! The xBRIEF files MUST conform to `node_modules/@deftai/directive-runtime/vbrief/schemas/xbrief-core-0.8.schema.json` (v0.8; pin schema SoT):
 
 - ! All `narratives` and `narrative` values MUST be plain strings — never objects or arrays
 - ! Nested children within a PlanItem use `items` (preferred field); `subItems` is the deprecated legacy alias kept for backward compatibility only

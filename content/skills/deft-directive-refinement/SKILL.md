@@ -173,7 +173,7 @@ The agent may suggest the next phase, but the user decides. Phases can be entere
 - **Batch**: `task issue:ingest -- --all [--label <L>] [--status <S>]` — ingests every open issue matching the filters, skipping duplicates by `references.uri` match.
 - **Preview**: add `--dry-run` to either form to preview without writing files.
 
-The task emits xBRIEFs conforming to the canonical v0.6 schema (`xbrief/schemas/xbrief-core.schema.json`) with origin references in the form documented in [`../../conventions/references.md`](../../conventions/references.md):
+The task emits xBRIEFs conforming to the canonical xBRIEF v0.8 schema (`node_modules/@deftai/directive-runtime/vbrief/schemas/xbrief-core-0.8.schema.json`; OVPR pin is schema SoT) with origin references in the form documented in [`../../conventions/references.md`](../../conventions/references.md):
 
 ```json
 "references": [
@@ -187,7 +187,7 @@ The task emits xBRIEFs conforming to the canonical v0.6 schema (`xbrief/schemas/
 
 - ! New scope xBRIEFs MUST target `"xBRIEFInfo": { "version": "0.8" }` (the task handles this automatically)
 - ! `plan.status` starts at `"proposed"`; the task sets this
-- ! Conform to `xbrief/schemas/xbrief-core.schema.json` (v0.6) -- the task validates before writing
+- ! Conform to `node_modules/@deftai/directive-runtime/vbrief/schemas/xbrief-core-0.8.schema.json` (v0.8; pin schema SoT) -- the task validates before writing
 - ~ After ingest, review the generated xBRIEFs with the user before promoting any of them to `pending/`
 
 ⊗ Hand-author scope xBRIEFs inside the skill when the ingest task exists — duplicating the narrative logic is how #534 (non-conformant references) and #537 (drift between skill and task) arise

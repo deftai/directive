@@ -153,7 +153,7 @@ Loop body, per candidate (top-of-queue first):
 ? When the operator explicitly opts out of the queue (e.g. a one-off ad-hoc cohort that has not been ingested into the triage cache yet, or a swarm batch driven from a hand-supplied list of issue numbers), the monitor MAY fall back to the legacy GitHub-issue path:
 
 1. ! Fetch issue data: `gh api repos/<owner>/<repo>/issues/<N>` (REST per `templates/agent-prompt-preamble.md` § 5; never the GraphQL `gh issue view --json` surface).
-2. ! Generate a minimal xBRIEF in `xbrief/proposed/` following the `YYYY-MM-DD-descriptive-slug.xbrief.json` naming convention (slug rules: [`../../conventions/vbrief-filenames.md`](../../conventions/vbrief-filenames.md)) and conforming to the canonical v0.6 schema (`xbrief/schemas/xbrief-core.schema.json`, strict `const: "0.6"`; see [`../../conventions/references.md`](../../conventions/references.md)).
+2. ! Generate a minimal xBRIEF in `xbrief/proposed/` following the `YYYY-MM-DD-descriptive-slug.xbrief.json` naming convention (slug rules: [`../../conventions/vbrief-filenames.md`](../../conventions/vbrief-filenames.md)) and conforming to the canonical xBRIEF v0.8 schema (`node_modules/@deftai/directive-runtime/vbrief/schemas/xbrief-core-0.8.schema.json`, strict `const: "0.8"`; OVPR pin is schema SoT — see [`../../conventions/references.md`](../../conventions/references.md)).
 3. ! Promote through the canonical lifecycle (`task scope:promote -- <path>` then `task scope:activate -- <path>`), respecting the WIP cap and the same `--force` audit-logged override semantics as the queue-driven loop.
 4. ! Surface the opt-out reason in the Step 4 (Present Analysis) summary so a reviewer can see WHY the queue was bypassed.
 

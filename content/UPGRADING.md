@@ -455,7 +455,7 @@ import schema from "@deftai/directive-types/schemas/xbrief-core-0.8.schema.json"
 
 **Supported public API:** `@deftai/directive-types` and its published schema subpaths only. **`@deftai/directive-core` is published for npm dependency resolution but is not a supported library surface** — use the `deft` / `directive` CLI for behavior.
 
-**Schema source of truth:** `content/vbrief/schemas/vbrief-core.schema.json` in the directive repo. The types package mirrors it to `packages/types/schemas/` at build time; `deft` install also deposits schemas under project-root `xbrief/schemas/`. When in doubt, treat the directive repo canonical file as authoritative and refresh mirrors with `deft update` (install) or `@deftai/directive-types` (npm).
+**Schema source of truth (OVPR):** the pinned runtime ships schemas under `node_modules/@deftai/directive-runtime/vbrief/schemas/` (current write schema: `xbrief-core-0.8.schema.json`). The types package publishes the same artifacts as `@deftai/directive-types/schemas/…`. Framework source authors at `content/vbrief/schemas/`. Install does **not** deposit project-root `xbrief/schemas/`. Refresh via `directive upgrade` (pin) or `@deftai/directive-types` (npm).
 
 ### `deft migrate` vs pre-v0.20 document-model migration
 

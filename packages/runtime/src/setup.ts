@@ -14,6 +14,12 @@ import {
   containedWrite,
 } from "@deftai/directive-core/dist/fs/contained-write.js";
 import {
+  defaultTrackedNames,
+  isTrackedDeletePath,
+  stageFrameworkPaths,
+} from "@deftai/directive-core/dist/init-deposit/hygiene.js";
+import { seedMinimalProjectDefinition } from "@deftai/directive-core/dist/init-deposit/init-deposit.js";
+import {
   buildOwnershipRecord,
   fingerprintContent,
   type OwnedArtifact,
@@ -59,8 +65,13 @@ export interface SetupResult {
 }
 
 const SEED_PLACEHOLDER_REL = "xbrief/.directive-seed-placeholder";
+const PD_REL = "xbrief/PROJECT-DEFINITION.xbrief.json";
 const GEN_REL = ".deft/GENERATION.json";
 const WIRING_READY_DIR_REL = ".deft/directive";
+const XBRIEF_LIFECYCLE_DIRS = ["proposed", "pending", "active", "completed", "cancelled"] as const;
+const XBRIEF_LIFECYCLE_GITKEEP =
+  "# Keeps this xbrief/ lifecycle directory present in version control so the\n" +
+  "# deft-directive-setup pre-cutover guard does not fire on a fresh install (#4666).\n";
 
 function readOwnRuntimeVersion(): string {
   try {
@@ -204,6 +215,55 @@ function createSeedPlaceholder(projectRoot: string): string | null {
   return SEED_PLACEHOLDER_REL;
 }
 
+/** Install-only: five xbrief lifecycle dirs + .gitkeeps (#4666 / AC8.4). */
+function ensureXbriefLifecycleGitkeeps(projectRoot: string): string[] {
+  const created: string[] = [];
+  for (const sub of XBRIEF_LIFECYCLE_DIRS) {
+    const rel = relPosix("xbrief", sub, ".gitkeep");
+    if (existsSync(join(projectRoot, rel))) continue;
+    writeContained(projectRoot, rel, XBRIEF_LIFECYCLE_GITKEEP);
+    created.push(rel);
+  }
+  return created;
+}
+
+/**
+ * Stage this-run setup writes after install/upgrade (#4666).
+ * Always includes PD + lifecycle gitkeeps when present (fix the 0.126 hole).
+ * Does not `git add` every existing managed matcher path — that would stage
+ * unrelated dirty peers (package.json / custom .githooks/*). Keeps exact
+ * this-run paths (no skill/command parent compaction) so sibling untracked
+ * skills stay unstaged. This-run removals may be missing on disk so tracked
+ * deletions can reach `git add`; untracked missing paths are skipped so one
+ * unmatched pathspec cannot fail the whole staging batch (#5883 P1 / #3394).
+ */
+function stageSetupManagedPaths(projectRoot: string, thisRunPaths: readonly string[]): void {
+  const present: string[] = [];
+  const missingAllow: string[] = [];
+  const seen = new Set<string>();
+  const add = (rel: string, opts: { allowMissing?: boolean } = {}): void => {
+    const normalized = rel.replace(/\\/g, "/");
+    if (!normalized || seen.has(normalized)) return;
+    const onDisk = existsSync(join(projectRoot, normalized));
+    if (!onDisk && !opts.allowMissing) return;
+    seen.add(normalized);
+    if (onDisk) present.push(normalized);
+    else missingAllow.push(normalized);
+  };
+  for (const rel of thisRunPaths) {
+    add(rel, { allowMissing: true });
+  }
+  add(PD_REL);
+  for (const sub of XBRIEF_LIFECYCLE_DIRS) {
+    add(relPosix("xbrief", sub, ".gitkeep"));
+  }
+  const tracked = new Set(defaultTrackedNames(projectRoot, missingAllow));
+  const stagePaths = [
+    ...present,
+    ...missingAllow.filter((path) => isTrackedDeletePath(path, tracked)),
+  ];
+  stageFrameworkPaths(projectRoot, stagePaths);
+}
 /** Shared host settings / Taskfile: only Directive entries are owned (structured-entry). */
 const STRUCTURED_ENTRY_RELS: ReadonlyArray<{ path: string; entryKey: string }> = [
   { path: ".claude/settings.json", entryKey: "hooks" },
@@ -267,7 +327,11 @@ function buildOwnershipArtifacts(projectRoot: string): OwnedArtifact[] {
     });
   }
   const seedAbs = join(projectRoot, SEED_PLACEHOLDER_REL);
-  if (existsSync(seedAbs)) {
+  const pdAbs = join(projectRoot, PD_REL);
+  const hasLifecycle = XBRIEF_LIFECYCLE_DIRS.some((sub) =>
+    existsSync(join(projectRoot, "xbrief", sub, ".gitkeep")),
+  );
+  if (existsSync(seedAbs) || existsSync(pdAbs) || hasLifecycle) {
     artifacts.push({
       path: "xbrief",
       kind: "retained",
@@ -392,9 +456,14 @@ export function runSetup(options: {
     // Seeds only on first-time install (AC8.4); repair/upgrade never create them.
     // AC6.2: leave data-schema current for empty/seeded install. Repair may write a
     // missing marker (not a migration); upgrade still migrates when data is behind.
+    // #4666: greenfield retain — PD + lifecycle dirs (not placeholder-only); no schemas.
     if (operation === "install" && conflicts.length === 0) {
       const seed = createSeedPlaceholder(root);
       if (seed !== null) created.push(seed);
+      created.push(...ensureXbriefLifecycleGitkeeps(root));
+      if (seedMinimalProjectDefinition(root, { printf: () => undefined })) {
+        created.push(PD_REL);
+      }
     }
     if (
       (operation === "install" || operation === "repair") &&
@@ -429,6 +498,13 @@ export function runSetup(options: {
     );
     if (!genExisted) created.push(GEN_REL);
     else if (!unchanged || legacyConversion || convertViaRemovals) modified.push(GEN_REL);
+
+    // #4666: stage this-run managed peers including PD + lifecycle after install/upgrade.
+    // Still no auto-commit. Repair does not stage (seeds are install-only; upgrade stages
+    // existing PD/lifecycle with refreshed wiring).
+    if (conflicts.length === 0 && (operation === "install" || operation === "upgrade")) {
+      stageSetupManagedPaths(root, [...created, ...modified, ...removed]);
+    }
 
     if (conflicts.length > 0) {
       // Never publish readiness after conflict; invalidate any existing marker (AC8.6).
