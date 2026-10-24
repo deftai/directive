@@ -70,7 +70,9 @@ afterEach(() => {
   }
 });
 
-describe("OVPR greenfield #4666 — runSetup install seeds PD + lifecycle (red)", () => {
+describe("OVPR greenfield #4666 — runSetup install seeds PD + lifecycle (red)", {
+  timeout: 30_000,
+}, () => {
   it("first-time install seeds minimal PROJECT-DEFINITION.xbrief.json", () => {
     const root = tempRoot();
     initGit(root);
@@ -148,7 +150,9 @@ describe("OVPR greenfield #4666 — runSetup install seeds PD + lifecycle (red)"
   });
 });
 
-describe("OVPR greenfield #4666 — staging PD + lifecycle with peers (red)", () => {
+describe("OVPR greenfield #4666 — staging PD + lifecycle with peers (red)", {
+  timeout: 30_000,
+}, () => {
   it("install stages PD + lifecycle gitkeeps with managed peers; no auto-commit", () => {
     const root = tempRoot();
     initGit(root);

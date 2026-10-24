@@ -223,11 +223,22 @@ function ensureXbriefLifecycleGitkeeps(projectRoot: string): string[] {
   return created;
 }
 
+/** Wholly-owned deposit prefixes compactable to one `git add` (#4666). */
+const STAGE_COMPACT_PREFIXES = [
+  ".agents/",
+  ".github/skills/",
+  ".claude/commands/",
+  ".cursor/commands/",
+  ".grok/commands/",
+  ".codex/prompts/",
+] as const;
+
 /**
  * Stage this-run setup writes after install/upgrade (#4666).
  * Always includes PD + lifecycle gitkeeps when present (fix the 0.126 hole).
  * Does not `git add` every existing managed matcher path — that would stage
- * unrelated dirty peers (package.json / custom .githooks/*).
+ * unrelated dirty peers (package.json / custom .githooks/*). Compacts
+ * wholly-owned skill/command trees to one pathspec each for install speed.
  */
 function stageSetupManagedPaths(projectRoot: string, thisRunPaths: readonly string[]): void {
   const paths: string[] = [];
@@ -239,7 +250,17 @@ function stageSetupManagedPaths(projectRoot: string, thisRunPaths: readonly stri
     seen.add(normalized);
     paths.push(normalized);
   };
-  for (const rel of thisRunPaths) add(rel);
+  const compactHit = new Set<string>();
+  for (const rel of thisRunPaths) {
+    const normalized = rel.replace(/\\/g, "/");
+    const prefix = STAGE_COMPACT_PREFIXES.find((p) => normalized.startsWith(p));
+    if (prefix !== undefined) {
+      compactHit.add(prefix.replace(/\/$/, ""));
+      continue;
+    }
+    add(normalized);
+  }
+  for (const root of compactHit) add(root);
   add(PD_REL);
   for (const sub of XBRIEF_LIFECYCLE_DIRS) {
     add(relPosix("xbrief", sub, ".gitkeep"));
