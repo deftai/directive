@@ -31,6 +31,8 @@ import {
   parseNameStatus,
 } from "./evaluate.js";
 
+const AGGREGATE_IT_TIMEOUT = process.platform === "win32" ? 240_000 : 120_000;
+
 const CURSOR_MATCHERS = [
   DIRECT_WRITE_HOOK_MATCHER,
   SPAWN_HOOK_MATCHER,
@@ -697,7 +699,7 @@ describe("evaluateCoverageApplicability", () => {
     const unknownResult = evaluateCoverageApplicability(bindingFor(unknownRoot, unknownBase));
     expect(unknownResult.outcome).toBe("refuse");
     if (unknownResult.outcome === "refuse") expect(unknownResult.code).toBe("unknown-path");
-  }, process.platform === "win32" ? 240_000 : 120_000);
+  }, AGGREGATE_IT_TIMEOUT);
 
   it("aggregates limb-1 stamp/ledger subsets N/A, coverable mix applicable, unknown peer refuse (#5665)", () => {
     const limb1Paths = [
@@ -810,7 +812,7 @@ describe("evaluateCoverageApplicability", () => {
     const refuseResult = evaluateCoverageApplicability(bindingFor(refuseRoot, refuseBase));
     expect(refuseResult.outcome).toBe("refuse");
     if (refuseResult.outcome === "refuse") expect(refuseResult.code).toBe("unknown-path");
-  }, process.platform === "win32" ? 240_000 : 120_000);
+  }, AGGREGATE_IT_TIMEOUT);
 
   it("aggregates VERSION + lifecycle gitkeep as N/A; run peer refuses (#5674)", () => {
     const residualRoot = gitRepo({ "README.md": "# base\n" });
