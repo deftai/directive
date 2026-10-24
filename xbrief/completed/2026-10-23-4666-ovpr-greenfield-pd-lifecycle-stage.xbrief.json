@@ -1,0 +1,120 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Sealed installer/OVPR lane: #4666 greenfield PD seed + lifecycle dirs + staging; no xbrief/schemas copy.",
+    "created": "2026-10-23T23:30:00.000Z",
+    "updated": "2026-10-24T23:04:19Z"
+  },
+  "plan": {
+    "id": "ovpr-greenfield-4666",
+    "title": "fix(install): OVPR greenfield seed PROJECT-DEFINITION + lifecycle + stage (no schemas copy)",
+    "status": "completed",
+    "metadata": {
+      "kind": "story",
+      "github": {
+        "issue": 4666
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/runtime/src/setup.ts",
+          "packages/runtime/src/setup-ovpr-greenfield-4666.test.ts",
+          "CHANGELOG.md",
+          "content/skills/deft-directive-setup/SKILL.md",
+          "content/skills/deft-directive-refinement/SKILL.md",
+          "content/skills/deft-directive-swarm/references/core-phase-0.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/UPGRADING.md"
+        ],
+        "file_scope_confidence": "high"
+      },
+      "productPullRequest": 5883,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "cf4699b5687fb2abd1db3a7572da10bce43ebc00",
+        "prNumber": 5883,
+        "prBase": "master",
+        "mergeCommit": "03a662a1029d3bd3ad48d8947c04fee043eb0a61",
+        "deliveryBranch": "master",
+        "deliveryCommit": "03a662a1029d3bd3ad48d8947c04fee043eb0a61",
+        "verifiedAt": "2026-10-24T23:04:19Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTZmNzctYTY3YS03MDYxLTliYTAtYTIzNDcwODBmNTlj"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-24T23:04:19Z",
+      "completedSessionId": "host:grok:v1:MDFhMTZmNzctYTY3YS03MDYxLTliYTAtYTIzNDcwODBmNTlj",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-24T23:04:19Z"
+      }
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "First-time install seeds minimal PD idempotently and creates lifecycle dirs + gitkeeps",
+        "effort": "M",
+        "status": "completed",
+        "narrative": {
+          "Overview": "Implement Locked disposition on #4666 items 1\u20132: seed xbrief/PROJECT-DEFINITION.xbrief.json once; create five lifecycle dirs with .gitkeeps.",
+          "Acceptance": "Isolated greenfield directive install creates PD + lifecycle dirs without overwriting an existing PD."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/runtime/src/setup-ovpr-greenfield-4666.test.ts",
+          "recorded_at": "2026-10-24T23:04:02Z",
+          "recorded_by": "host:grok:v1:MDFhMTZmNzctYTY3YS03MDYxLTliYTAtYTIzNDcwODBmNTlj"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "2",
+        "title": "Stage managed paths including PD + lifecycle after install/upgrade setup writes; no schemas copy",
+        "effort": "M",
+        "status": "completed",
+        "narrative": {
+          "Overview": "Implement Locked disposition on #4666 items 3\u20135: restore staging of PD + lifecycle; do not re-deposit xbrief/schemas; update teaching content that still points at project-local schemas.",
+          "Acceptance": "Greenfield install stages PD with peers; no xbrief/schemas copy; pin remains schema SoT."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/runtime/src/setup-ovpr-greenfield-4666.test.ts",
+          "recorded_at": "2026-10-24T23:04:02Z",
+          "recorded_by": "host:grok:v1:MDFhMTZmNzctYTY3YS03MDYxLTliYTAtYTIzNDcwODBmNTlj"
+        },
+        "x-directive/requires": "merge"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/runtime/src/setup-ovpr-greenfield-4666.test.ts"
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "derived from Locked disposition Done-when on #4666; product PR stamped proof cmds",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Isolated greenfield directive install matches 0.126 feature points for PD + lifecycle + staging, with OVPR pin as version source and no xbrief/schemas copy.",
+          "artifact_path": "packages/runtime/src/setup-ovpr-greenfield-4666.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-10-24T23:04:19Z",
+    "references": [
+      {
+        "type": "x-xbrief/github-issue",
+        "uri": "https://github.com/deftai/directive/issues/4666",
+        "title": "#4666 OVPR greenfield PD + lifecycle + stage"
+      }
+    ]
+  }
+}
