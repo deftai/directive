@@ -199,9 +199,7 @@ describe("run CLI offline", () => {
       const body = join(dir, "body.md");
       writeFileSync(body, "feat: done.\n\nCloses #55\n", "utf8");
       expect(run(["--body-file", body], { runGit: emptyGit })).toBe(EXIT_HITS_FOUND);
-      expect(run(["--body-file", body, "--allow-close", "55"], { runGit: emptyGit })).toBe(
-        EXIT_OK,
-      );
+      expect(run(["--body-file", body, "--allow-close", "55"], { runGit: emptyGit })).toBe(EXIT_OK);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -213,9 +211,7 @@ describe("run CLI offline", () => {
       const body = join(dir, "body.md");
       writeFileSync(body, "feat: done.\n\nCloses #55\n\ndeft-close-intent: full\n", "utf8");
       expect(run(["--body-file", body], { runGit: emptyGit })).toBe(EXIT_HITS_FOUND);
-      expect(run(["--body-file", body, "--allow-close", "55"], { runGit: emptyGit })).toBe(
-        EXIT_OK,
-      );
+      expect(run(["--body-file", body, "--allow-close", "55"], { runGit: emptyGit })).toBe(EXIT_OK);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
