@@ -869,9 +869,21 @@ export function evaluateClassChecks(
   // CLI authz is a composition companion only when paired with core authz
   // protected paths (#4233 / #4980) — not a blanket story-product exemption.
   const authzProtectedHit = protectedHits.some((p) => p.startsWith("packages/core/src/authz/"));
+  // ensureGitHooks SoT companions only when paired with .githooks/ (#4980 Lane A).
+  const githooksProtectedHit = protectedHits.some(
+    (p) => p === ".githooks" || p.startsWith(".githooks/"),
+  );
   const storyMix = changed.some((p) => {
     const posix = normalizeRepoRelPath(p);
     if (posix === "packages/cli/src/authz.ts" && authzProtectedHit) return false;
+    if (
+      githooksProtectedHit &&
+      (posix === "packages/runtime/src/setup-wiring.ts" ||
+        posix === "packages/core/src/init-deposit/agent-hooks.ts" ||
+        posix === "packages/core/src/install-health/constants.ts")
+    ) {
+      return false;
+    }
     return isStoryProductPath(posix, baseTb, classPolicy.protectedGlobs);
   });
   if (protectedHits.length > 0 && storyMix) {

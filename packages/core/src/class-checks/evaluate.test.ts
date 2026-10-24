@@ -270,6 +270,56 @@ describe("evaluateClassChecks (#4980)", () => {
     expect(result.findings.some((f) => f.kind === "protected-glob")).toBe(true);
   });
 
+  it("allows protected githooks + setup-wiring companions (#4980 Lane A)", () => {
+    const result = evaluateClassChecks("/tmp/proj", {
+      baseRef: "origin/master",
+      changedFiles: [
+        ".githooks/pre-commit",
+        ".githooks/pre-push",
+        "packages/runtime/src/setup-wiring.ts",
+        "packages/core/src/init-deposit/agent-hooks.ts",
+        "packages/core/src/install-health/constants.ts",
+        "CHANGELOG.md",
+      ],
+      baseTestBoundaryPolicy: baseTb({
+        sourceRoots: ["packages/*/src/**"],
+        testRoots: ["packages/*/src/**/*.test.*"],
+      }),
+      classChecksPolicy: classPolicy,
+      fileContents: new Map([
+        [".githooks/pre-commit", "#!/bin/sh\n"],
+        [".githooks/pre-push", "#!/bin/sh\n"],
+        ["packages/runtime/src/setup-wiring.ts", "export {}\n"],
+        ["packages/core/src/init-deposit/agent-hooks.ts", "export {}\n"],
+        ["packages/core/src/install-health/constants.ts", "export {}\n"],
+        ["CHANGELOG.md", "## Unreleased\n"],
+      ]),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.findings.filter((f) => f.kind === "protected-glob")).toHaveLength(0);
+  });
+
+  it("fails when setup-wiring mixes with non-githooks protected (#4980 Lane A)", () => {
+    const result = evaluateClassChecks("/tmp/proj", {
+      baseRef: "origin/master",
+      changedFiles: [
+        "packages/core/src/authz/store.ts",
+        "packages/runtime/src/setup-wiring.ts",
+      ],
+      baseTestBoundaryPolicy: baseTb({
+        sourceRoots: ["packages/*/src/**"],
+        testRoots: ["packages/*/src/**/*.test.*"],
+      }),
+      classChecksPolicy: classPolicy,
+      fileContents: new Map([
+        ["packages/core/src/authz/store.ts", "export {}\n"],
+        ["packages/runtime/src/setup-wiring.ts", "export {}\n"],
+      ]),
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.some((f) => f.kind === "protected-glob")).toBe(true);
+  });
+
   it("fails class 4 when protected mixes with check runtime outside registration", () => {
     const result = evaluateClassChecks("/tmp/proj", {
       baseRef: "origin/master",
@@ -281,6 +331,30 @@ describe("evaluateClassChecks (#4980)", () => {
       classChecksPolicy: classPolicy,
       fileContents: new Map([
         [".githooks/pre-commit", "#!/bin/sh\n"],
+        ["packages/core/src/check/orchestrator.ts", "export const run = () => 1;\n"],
+      ]),
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.some((f) => f.kind === "protected-glob")).toBe(true);
+  });
+
+
+  it("fails when githooks + setup-wiring mixes with unrelated story product (#4980 Lane A)", () => {
+    const result = evaluateClassChecks("/tmp/proj", {
+      baseRef: "origin/master",
+      changedFiles: [
+        ".githooks/pre-commit",
+        "packages/runtime/src/setup-wiring.ts",
+        "packages/core/src/check/orchestrator.ts",
+      ],
+      baseTestBoundaryPolicy: baseTb({
+        sourceRoots: ["packages/*/src/**"],
+        testRoots: ["packages/*/src/**/*.test.*"],
+      }),
+      classChecksPolicy: classPolicy,
+      fileContents: new Map([
+        [".githooks/pre-commit", "#!/bin/sh\n"],
+        ["packages/runtime/src/setup-wiring.ts", "export {}\n"],
         ["packages/core/src/check/orchestrator.ts", "export const run = () => 1;\n"],
       ]),
     });
