@@ -170,6 +170,26 @@ describe("OVPR greenfield #4666 — staging PD + lifecycle with peers (red)", ()
     expect(hasCommit(root)).toBe(false);
   });
 
+  it("install does not stage unrelated dirty package.json (this-run staging only)", () => {
+    const root = tempRoot();
+    initGit(root);
+    // Commit the initial package.json so a later edit is a dirty tracked peer.
+    execFileSync("git", ["add", "package.json"], { cwd: root });
+    execFileSync("git", ["commit", "-qm", "init"], { cwd: root });
+    writeFileSync(
+      join(root, "package.json"),
+      `${JSON.stringify({ name: "t", version: "9.9.9", private: true }, null, 2)}\n`,
+    );
+    const result = runSetup({ operation: "install", from: "none", root });
+    expect(result.conflicts).toEqual([]);
+    const cached = cachedNames(root);
+    expect(cached).toContain(PD_REL);
+    expect(cached).toContain("AGENTS.md");
+    expect(cached).not.toContain("package.json");
+    const status = porcelain(root);
+    expect(status).toMatch(/package\.json/);
+  });
+
   it("upgrade stages existing PD + lifecycle with managed peers; still no schemas copy", () => {
     const root = tempRoot();
     initGit(root);

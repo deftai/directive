@@ -13,11 +13,7 @@ import {
   containedRemove,
   containedWrite,
 } from "@deftai/directive-core/dist/fs/contained-write.js";
-import { CANONICAL_INSTALL_ROOT } from "@deftai/directive-core/dist/init-deposit/constants.js";
-import {
-  frameworkStagePaths,
-  stageFrameworkPaths,
-} from "@deftai/directive-core/dist/init-deposit/hygiene.js";
+import { stageFrameworkPaths } from "@deftai/directive-core/dist/init-deposit/hygiene.js";
 import { seedMinimalProjectDefinition } from "@deftai/directive-core/dist/init-deposit/init-deposit.js";
 import {
   buildOwnershipRecord,
@@ -228,16 +224,25 @@ function ensureXbriefLifecycleGitkeeps(projectRoot: string): string[] {
 }
 
 /**
- * Stage managed deposit paths after install/upgrade writes (#4666).
- * Includes PROJECT-DEFINITION even though the consumer-guard denylist keeps it
- * out of installerManagedMatchers (create ≠ allowlist; fix the 0.126 hole).
+ * Stage this-run setup writes after install/upgrade (#4666).
+ * Always includes PD + lifecycle gitkeeps when present (fix the 0.126 hole).
+ * Does not `git add` every existing managed matcher path — that would stage
+ * unrelated dirty peers (package.json / custom .githooks/*).
  */
-function stageSetupManagedPaths(projectRoot: string): void {
-  const paths = frameworkStagePaths(projectRoot, join(projectRoot, CANONICAL_INSTALL_ROOT), {
-    includeCore: false,
-  });
-  if (existsSync(join(projectRoot, PD_REL)) && !paths.includes(PD_REL)) {
-    paths.push(PD_REL);
+function stageSetupManagedPaths(projectRoot: string, thisRunPaths: readonly string[]): void {
+  const paths: string[] = [];
+  const seen = new Set<string>();
+  const add = (rel: string): void => {
+    const normalized = rel.replace(/\\/g, "/");
+    if (!normalized || seen.has(normalized)) return;
+    if (!existsSync(join(projectRoot, normalized))) return;
+    seen.add(normalized);
+    paths.push(normalized);
+  };
+  for (const rel of thisRunPaths) add(rel);
+  add(PD_REL);
+  for (const sub of XBRIEF_LIFECYCLE_DIRS) {
+    add(relPosix("xbrief", sub, ".gitkeep"));
   }
   stageFrameworkPaths(projectRoot, paths);
 }
@@ -477,11 +482,11 @@ export function runSetup(options: {
     if (!genExisted) created.push(GEN_REL);
     else if (!unchanged || legacyConversion || convertViaRemovals) modified.push(GEN_REL);
 
-    // #4666: stage managed peers including PD + lifecycle after install/upgrade writes.
+    // #4666: stage this-run managed peers including PD + lifecycle after install/upgrade.
     // Still no auto-commit. Repair does not stage (seeds are install-only; upgrade stages
     // existing PD/lifecycle with refreshed wiring).
     if (conflicts.length === 0 && (operation === "install" || operation === "upgrade")) {
-      stageSetupManagedPaths(root);
+      stageSetupManagedPaths(root, [...created, ...modified]);
     }
 
     if (conflicts.length > 0) {
