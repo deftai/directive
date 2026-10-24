@@ -68,13 +68,7 @@ const SEED_PLACEHOLDER_REL = "xbrief/.directive-seed-placeholder";
 const PD_REL = "xbrief/PROJECT-DEFINITION.xbrief.json";
 const GEN_REL = ".deft/GENERATION.json";
 const WIRING_READY_DIR_REL = ".deft/directive";
-const XBRIEF_LIFECYCLE_DIRS = [
-  "proposed",
-  "pending",
-  "active",
-  "completed",
-  "cancelled",
-] as const;
+const XBRIEF_LIFECYCLE_DIRS = ["proposed", "pending", "active", "completed", "cancelled"] as const;
 const XBRIEF_LIFECYCLE_GITKEEP =
   "# Keeps this xbrief/ lifecycle directory present in version control so the\n" +
   "# deft-directive-setup pre-cutover guard does not fire on a fresh install (#4666).\n";
@@ -486,10 +480,7 @@ export function runSetup(options: {
     // #4666: stage managed peers including PD + lifecycle after install/upgrade writes.
     // Still no auto-commit. Repair does not stage (seeds are install-only; upgrade stages
     // existing PD/lifecycle with refreshed wiring).
-    if (
-      conflicts.length === 0 &&
-      (operation === "install" || operation === "upgrade")
-    ) {
+    if (conflicts.length === 0 && (operation === "install" || operation === "upgrade")) {
       stageSetupManagedPaths(root);
     }
 
