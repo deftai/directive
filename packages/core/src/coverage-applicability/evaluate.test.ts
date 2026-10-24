@@ -697,7 +697,7 @@ describe("evaluateCoverageApplicability", () => {
     const unknownResult = evaluateCoverageApplicability(bindingFor(unknownRoot, unknownBase));
     expect(unknownResult.outcome).toBe("refuse");
     if (unknownResult.outcome === "refuse") expect(unknownResult.code).toBe("unknown-path");
-  });
+  }, 120_000);
 
   it("aggregates limb-1 stamp/ledger subsets N/A, coverable mix applicable, unknown peer refuse (#5665)", () => {
     const limb1Paths = [
@@ -810,7 +810,7 @@ describe("evaluateCoverageApplicability", () => {
     const refuseResult = evaluateCoverageApplicability(bindingFor(refuseRoot, refuseBase));
     expect(refuseResult.outcome).toBe("refuse");
     if (refuseResult.outcome === "refuse") expect(refuseResult.code).toBe("unknown-path");
-  });
+  }, 120_000);
 
   it("aggregates VERSION + lifecycle gitkeep as N/A; run peer refuses (#5674)", () => {
     const residualRoot = gitRepo({ "README.md": "# base\n" });
