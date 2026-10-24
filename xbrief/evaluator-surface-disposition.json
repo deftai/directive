@@ -1,7 +1,7 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 5490,
+  "issue": 4980,
   "surfaces": [
     "packages/core/src/observable-scope/**",
     "packages/core/src/intent-constraint/**",
@@ -14,5 +14,5 @@
     "vitest.config.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "OVPR master-merge (#5490 / PR #5790): renew disclosure for class-checks + consumer-check-contract evaluate surfaces and vitest.config.ts (install-bookend moved to spawn-heavy). Disclosure only; not #3164 authorization."
+  "note": "Renew disclosure for class-checks evaluate companion (#4980 Lane A githooks+setup-wiring). Disclosure only; not #3164 authorization."
 }
