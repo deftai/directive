@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Path B: land sealed OVPR cohort active xBRIEFs (#5807/#5808/#5809/#5869, #4666, #5796) with concrete `file_scope` precommitment.
+
 ### Added
 
 ### Changed
