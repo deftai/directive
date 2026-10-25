@@ -21,6 +21,12 @@ import {
   SPAWN_HOOK_MATCHER,
 } from "@deftai/directive-core/dist/hooks/tools.js";
 import {
+  GROK_PRETOOLUSE_WRAPPER_COMMAND,
+  GROK_PRETOOLUSE_WRAPPER_REL_PATH,
+  grokPretooluseWrapperScriptSource,
+  isGrokWrapperCommand,
+} from "@deftai/directive-core/dist/init-deposit/agent-hooks.js";
+import {
   INSTALLATION_RECOVERY_GUIDANCE,
   RUNTIME_PACKAGE_PATH_PREFIX,
 } from "@deftai/directive-core/dist/install-health/constants.js";
@@ -550,6 +556,7 @@ function rewriteCommandsInValue(value: unknown): { value: unknown; changed: bool
 function isManagedHookCommand(command: string): boolean {
   return (
     command.includes(HOOK_BIN_COMMAND) ||
+    isGrokWrapperCommand(command) ||
     /(^|[\s"`'])deft-hook([\s"`']|$)/.test(command) ||
     command.includes("deft hook:dispatch")
   );
@@ -575,13 +582,19 @@ function cursorManagedEntry(value: unknown): boolean {
   return typeof entry?.command === "string" && isManagedHookCommand(entry.command);
 }
 
+function nestedToolCommand(host: string, event: string): string {
+  // Grok PreToolUse deposits the outer-deny wrapper (#5807 / #5656 / #5715).
+  if (host === "grok" && event === "tool.before") return GROK_PRETOOLUSE_WRAPPER_COMMAND;
+  return hookCommand(host, event);
+}
+
 function nestedGroup(host: string, event: string, matcher?: string): Record<string, unknown> {
   return {
     ...(event === "tool.before" && matcher !== undefined ? { matcher } : {}),
     hooks: [
       {
         type: "command",
-        command: hookCommand(host, event),
+        command: nestedToolCommand(host, event),
         timeout: event === "tool.before" ? 30 : 5,
       },
     ],
@@ -612,10 +625,10 @@ function stripNestedManaged(
           if (group === null || !Array.isArray(group.hooks)) return true;
           return !group.hooks.some((h) => {
             const hook = object(h);
+            if (typeof hook?.command !== "string") return false;
+            if (host === "grok" && isGrokWrapperCommand(hook.command)) return true;
             return (
-              typeof hook?.command === "string" &&
-              isManagedHookCommand(hook.command) &&
-              hook.command.includes(`--host ${host}`)
+              isManagedHookCommand(hook.command) && hook.command.includes(`--host ${host}`)
             );
           });
         })
@@ -809,6 +822,35 @@ export function ensureHostHooks(
     if (prior === null) created.push(spec.rel);
     else modified.push(spec.rel);
   }
+
+  // #5807: rewrite/redeposit Grok outer-deny wrapper so leftover deft-hook deny
+  // bodies cannot sit beside a healthy PreToolUse registration.
+  const grokEnabled = isHostHookDepositEnabled("grok", hostHooksPolicy);
+  const wrapperRel = GROK_PRETOOLUSE_WRAPPER_REL_PATH;
+  if (grokEnabled) {
+    const wrapperBody = grokPretooluseWrapperScriptSource();
+    const wrapperPrior = readText(join(projectRoot, wrapperRel));
+    if (wrapperPrior !== wrapperBody) {
+      writeContained(projectRoot, wrapperRel, wrapperBody);
+      if (wrapperPrior === null) created.push(wrapperRel);
+      else modified.push(wrapperRel);
+    }
+    if (existsSync(join(projectRoot, wrapperRel))) {
+      try {
+        containedChmod({ root: projectRoot, target: wrapperRel, mode: 0o755 });
+      } catch {
+        /* best-effort on platforms without chmod */
+      }
+    }
+  } else if (existsSync(join(projectRoot, wrapperRel))) {
+    try {
+      containedRemove({ root: projectRoot, target: wrapperRel });
+      modified.push(wrapperRel);
+    } catch {
+      /* best-effort strip */
+    }
+  }
+
   return { created, modified };
 }
 
