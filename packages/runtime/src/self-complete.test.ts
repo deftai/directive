@@ -7,13 +7,16 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { RUNTIME_PIN_PACKAGE } from "@deftai/directive-core/dist/install-health/constants.js";
 import { afterEach, describe, expect, it } from "vitest";
+import { run as runHookDispatch } from "./hook-dispatch.js";
 import {
   DEFT_DOCTOR_HOOK_DIAGNOSTIC,
   isDoctorDiagnosticEnv,
   isEligibleSelfCompleteCommand,
   maybeSelfCompleteSetup,
+  resetSelfCompletePreservedDisclosureForTests,
 } from "./self-complete.js";
 import { runSetup } from "./setup.js";
+import { formatTrackedHookPreserved } from "./setup-wiring.js";
 
 const TEMPS: string[] = [];
 
@@ -47,7 +50,15 @@ function pinRuntime(root: string, version: string): void {
   );
 }
 
+/** Consumer-customized managed hook (sources the shared helper). */
+const CUSTOM_PRE_PUSH = `#!/usr/bin/env sh
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 1
+. "$REPO_ROOT/.githooks/_directive-run.sh"
+run_directive preflight-gh --pre-push-stdin --project-root "$REPO_ROOT" || exit $?
+`;
+
 afterEach(() => {
+  resetSelfCompletePreservedDisclosureForTests();
   while (TEMPS.length > 0) {
     const p = TEMPS.pop();
     if (p) rmSync(p, { recursive: true, force: true });
@@ -147,5 +158,127 @@ describe("maybeSelfCompleteSetup (AC8.6)", () => {
     const result = maybeSelfCompleteSetup(root, { argv: ["doctor"] });
     expect(result.ran).toBe(false);
     expect(result.skipReason).toBe("ineligible");
+  });
+
+  it("discloses preserved tracked hooks on writeErr once per process (#5885 P1)", () => {
+    const root = tempRoot();
+    const installed = runSetup({ operation: "install", from: "none", root });
+    pinRuntime(root, installed.runtimeVersion);
+    const hookRel = ".githooks/pre-push";
+    writeFileSync(join(root, hookRel), CUSTOM_PRE_PUSH, "utf8");
+    execFileSync("git", ["add", "--", hookRel], { cwd: root });
+    const readyRel = join(
+      root,
+      ".deft",
+      "directive",
+      `wiring-ready.${installed.runtimeVersion}.json`,
+    );
+    rmSync(readyRel, { force: true });
+    try {
+      execFileSync("git", ["-C", root, "config", "--unset", "core.hooksPath"]);
+    } catch {
+      /* may already be unset */
+    }
+
+    const err: string[] = [];
+    const out: string[] = [];
+    const expected = formatTrackedHookPreserved(hookRel);
+    const first = maybeSelfCompleteSetup(root, {
+      argv: ["verify:branch"],
+      writeErr: (text) => err.push(text),
+    });
+    expect(first.ran).toBe(true);
+    expect(first.skipReason).toBeNull();
+    expect(err.join("")).toContain(expected);
+    expect(out).toEqual([]);
+
+    rmSync(readyRel, { force: true });
+    const second = maybeSelfCompleteSetup(root, {
+      argv: ["verify:branch"],
+      writeErr: (text) => err.push(text),
+    });
+    expect(second.ran).toBe(true);
+    expect(err.filter((chunk) => chunk.includes(expected))).toHaveLength(1);
+  });
+
+  it("hook-dispatch run threads seams.writeErr for preserve disclosure (#5885 P1)", () => {
+    const root = tempRoot();
+    const installed = runSetup({ operation: "install", from: "none", root });
+    pinRuntime(root, installed.runtimeVersion);
+    const hookRel = ".githooks/pre-push";
+    writeFileSync(join(root, hookRel), CUSTOM_PRE_PUSH, "utf8");
+    execFileSync("git", ["add", "--", hookRel], { cwd: root });
+    const readyRel = join(
+      root,
+      ".deft",
+      "directive",
+      `wiring-ready.${installed.runtimeVersion}.json`,
+    );
+    rmSync(readyRel, { force: true });
+    try {
+      execFileSync("git", ["-C", root, "config", "--unset", "core.hooksPath"]);
+    } catch {
+      /* may already be unset */
+    }
+
+    const err: string[] = [];
+    const code = runHookDispatch(
+      ["--host", "grok", "--event", "tool.before", `--project-root=${root}`],
+      {
+        readStdin: () =>
+          JSON.stringify({ tool_name: "Read", tool_input: { path: join(root, "package.json") } }),
+        writeOut: () => undefined,
+        writeErr: (text) => err.push(text),
+        cwd: () => root,
+        cheapInSync: () => ({
+          ok: false,
+          failClosed: false,
+          pinVersion: installed.runtimeVersion,
+          installedVersion: installed.runtimeVersion,
+          identityMatch: true,
+          readinessValid: false,
+          allowSetup: true,
+          recoveryGuidance: null,
+        }),
+        launchingCheckoutRoot: () => root,
+        stdinEmptyRetryMs: 0,
+      },
+    );
+    expect(code).toBe(0);
+    expect(err.join("")).toContain(formatTrackedHookPreserved(hookRel));
+  });
+
+  it("e2e: preserve disclosure, empty conflicts, readiness, unchanged hook bytes (#5885 P3)", () => {
+    const root = tempRoot();
+    const installed = runSetup({ operation: "install", from: "none", root });
+    pinRuntime(root, installed.runtimeVersion);
+    const hookRel = ".githooks/pre-push";
+    writeFileSync(join(root, hookRel), CUSTOM_PRE_PUSH, "utf8");
+    execFileSync("git", ["add", "--", hookRel], { cwd: root });
+    const readyRel = join(
+      root,
+      ".deft",
+      "directive",
+      `wiring-ready.${installed.runtimeVersion}.json`,
+    );
+    rmSync(readyRel, { force: true });
+    expect(existsSync(readyRel)).toBe(false);
+    try {
+      execFileSync("git", ["-C", root, "config", "--unset", "core.hooksPath"]);
+    } catch {
+      /* may already be unset */
+    }
+
+    const err: string[] = [];
+    const result = maybeSelfCompleteSetup(root, {
+      argv: ["check"],
+      writeErr: (text) => err.push(text),
+    });
+    expect(result.ran).toBe(true);
+    expect(result.skipReason).toBeNull();
+    expect(err.join("")).toContain(formatTrackedHookPreserved(hookRel));
+    expect(result.setup?.conflicts ?? []).toEqual([]);
+    expect(existsSync(readyRel)).toBe(true);
+    expect(readFileSync(join(root, hookRel), "utf8")).toBe(CUSTOM_PRE_PUSH);
   });
 });

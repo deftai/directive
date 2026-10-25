@@ -982,6 +982,11 @@ export function formatTrackedHookPreserved(rel: string): string {
 export interface EnsureGitHooksOptions {
   /** Explicit pre-write operator force: replace tracked divergent managed hooks (#5837). */
   readonly forceTrackedReplace?: boolean;
+  /**
+   * Test-only: override the next body for named relative hook paths so fixtures
+   * can reach refuse-to-downgrade under forceTrackedReplace (#5885 / #5804).
+   */
+  readonly testOnlyNextBodyByRel?: Readonly<Record<string, string>>;
 }
 
 export function ensureGitHooks(
@@ -1009,7 +1014,9 @@ export function ensureGitHooks(
     { rel: ".githooks/pre-push", body: PRE_PUSH },
   ];
   for (const file of files) {
-    const next = file.body.endsWith("\n") ? file.body : `${file.body}\n`;
+    const override = options.testOnlyNextBodyByRel?.[file.rel];
+    const rawNext = override ?? file.body;
+    const next = rawNext.endsWith("\n") ? rawNext : `${rawNext}\n`;
     const prior = readText(join(projectRoot, file.rel));
     if (prior !== null && prior !== next && !isOurGitHookBody(file.rel, prior)) {
       conflicts.push(

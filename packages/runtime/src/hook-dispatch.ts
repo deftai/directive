@@ -330,7 +330,8 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
 
   // Wave 2d / AC8.6: registered hooks self-complete when readiness is missing/stale.
   // Suppressed when DEFT_DOCTOR_HOOK_DIAGNOSTIC is set (AC9.10).
-  maybeSelfCompleteSetup(projectRoot, { fromHook: true });
+  // #5885: thread seams.writeErr so preserved tracked hooks disclose on stderr.
+  maybeSelfCompleteSetup(projectRoot, { fromHook: true, writeErr });
   const environ = mergeHookDispatchEnviron(payload);
   let decision = decideHook({
     host: args.host,

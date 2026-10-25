@@ -25,6 +25,26 @@ import { runSetup, type SetupResult } from "./setup.js";
  */
 export const DEFT_DOCTOR_HOOK_DIAGNOSTIC = DOCTOR_DIAGNOSTIC_ENV;
 
+/** Process once-guard for preserved-hook stderr lines (#5885). */
+const emittedPreservedLines = new Set<string>();
+
+/** Test-only: clear the process once-guard for preserved disclosure. */
+export function resetSelfCompletePreservedDisclosureForTests(): void {
+  emittedPreservedLines.clear();
+}
+
+function disclosePreservedHooks(
+  preserved: readonly string[] | undefined,
+  writeErr: (text: string) => void,
+): void {
+  if (preserved === undefined || preserved.length === 0) return;
+  for (const line of preserved) {
+    if (emittedPreservedLines.has(line)) continue;
+    emittedPreservedLines.add(line);
+    writeErr(`${line}\n`);
+  }
+}
+
 /** Installation-management and help heads that never trigger self-complete. */
 const INELIGIBLE_HEADS = new Set([
   "install",
@@ -96,9 +116,12 @@ export function maybeSelfCompleteSetup(
     readonly environ?: NodeJS.ProcessEnv;
     /** Hooks are always eligible unless doctor-diagnostic. */
     readonly fromHook?: boolean;
+    /** Stderr sink for preserved tracked-hook disclosure (#5885); never stdout. */
+    readonly writeErr?: (text: string) => void;
   } = {},
 ): SelfCompleteResult {
   const environ = options.environ ?? process.env;
+  const writeErr = options.writeErr ?? ((text: string) => process.stderr.write(text));
   if (isDoctorDiagnosticEnv(environ)) {
     return { ran: false, skipReason: "doctor-diagnostic", setup: null };
   }
@@ -141,5 +164,6 @@ export function maybeSelfCompleteSetup(
     from: version,
     root: projectRoot,
   });
+  disclosePreservedHooks(setup.preserved, writeErr);
   return { ran: true, skipReason: null, setup };
 }
