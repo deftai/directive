@@ -87,7 +87,7 @@
         },
         "x-directive/disposition": {
           "disposition": "deferred",
-          "reason": "Parked pending operator disposition on pin 0.129 class-checks landmine (.githooks↔ensureGitHooks; tip #5876 companion not in pin). #5808 remains open for a later footprint-split lane.",
+          "reason": "Parked pending operator disposition on pin 0.129 class-checks landmine (.githooks\u2194ensureGitHooks; tip #5876 companion not in pin). #5808 remains open for a later footprint-split lane.",
           "provenance": {
             "kind": "operator-session",
             "actor": "polfer@users.noreply.github.com"
@@ -106,7 +106,7 @@
         },
         "x-directive/disposition": {
           "disposition": "deferred",
-          "reason": "Parked pending operator disposition on pin 0.129 class-checks landmine (.githooks↔ensureGitHooks; tip #5876 companion not in pin). #5809 remains open for a later footprint-split lane.",
+          "reason": "Parked pending operator disposition on pin 0.129 class-checks landmine (.githooks\u2194ensureGitHooks; tip #5876 companion not in pin). #5809 remains open for a later footprint-split lane.",
           "provenance": {
             "kind": "operator-session",
             "actor": "polfer@users.noreply.github.com"
@@ -125,7 +125,7 @@
         },
         "x-directive/disposition": {
           "disposition": "deferred",
-          "reason": "Parked pending operator disposition on pin 0.129 class-checks landmine (.githooks↔ensureGitHooks; tip #5876 companion not in pin). #5869 remains open for a later footprint-split lane.",
+          "reason": "Parked pending operator disposition on pin 0.129 class-checks landmine (.githooks\u2194ensureGitHooks; tip #5876 companion not in pin). #5869 remains open for a later footprint-split lane.",
           "provenance": {
             "kind": "operator-session",
             "actor": "polfer@users.noreply.github.com"
@@ -138,8 +138,30 @@
       "commands": [],
       "none_stated": true,
       "source_rung": "derived",
-      "derived_reason": "H7 leftover Prefer-A clause-less: #5807 test evidence; #5808/#5809/#5869 deferred dispositions.",
-      "clauses": [],
+      "derived_reason": "H7 leftover-complete #5807: restored derived acceptance.clauses (3) with item-1 evidence (product #5886 @ 5265ac1fa / merge 540810f0f); items 2-4 (#5808/#5809/#5869) deferred pending operator pin/class-checks disposition.",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Grok upgrade ends with one healthy PreToolUse per matcher; no deft-hook deny leftover.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Pre-commit restores brief gates; pre-push is refspec-aware (preflight-gh class).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Untracked .deft-directive-disable is honored before missing RUNTIME_BIN hard-fail; missing pin prints project PM install hatch.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
       "ambiguity_attestation": "none_found"
     },
     "updated": "2026-10-25T01:32:02Z",
