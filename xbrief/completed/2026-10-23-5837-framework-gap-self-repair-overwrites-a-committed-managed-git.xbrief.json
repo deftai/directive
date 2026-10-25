@@ -24,7 +24,7 @@
           "provenance": {
             "kind": "operator-session",
             "actor": "Scott",
-            "eventRef": "https://github.com/deftai/directive/issues/5885",
+            "eventRef": "https://github.com/deftai/directive/pull/5888#issuecomment-6392580771",
             "mintedVia": "operator-approved-split-p1-2026-10-24T20:29-05:00",
             "mintedAt": "2026-10-25T01:29:00Z"
           },
@@ -39,7 +39,7 @@
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "b21a0f43c735ac17f99ff60f2d59b960c8c1b932",
-          "recorded_at": "2026-10-25T00:28:26Z",
+          "recorded_at": "2026-10-25T02:43:23Z",
           "recorded_by": "host:grok:v1:YWM2MWViYTQtNTVjNS00ZjkwLTlkYTgtYjk2NzdjN2ZlOTg3"
         },
         "x-directive/requires": "merge"
@@ -51,7 +51,7 @@
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "b21a0f43c735ac17f99ff60f2d59b960c8c1b932",
-          "recorded_at": "2026-10-25T00:28:26Z",
+          "recorded_at": "2026-10-25T02:43:23Z",
           "recorded_by": "host:grok:v1:YWM2MWViYTQtNTVjNS00ZjkwLTlkYTgtYjk2NzdjN2ZlOTg3"
         },
         "x-directive/requires": "merge"
