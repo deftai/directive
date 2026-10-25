@@ -3,7 +3,7 @@
     "version": "0.8",
     "description": "Locked #5798: doctor recovery prose uses failure-shaped remedy map (schema/wiring residual != always npm i -g + repair).",
     "created": "2026-10-25T02:41:55.000Z",
-    "updated": "2026-10-25T12:00:00.000Z"
+    "updated": "2026-10-25T09:00:45.892Z"
   },
   "plan": {
     "id": "ovpr-locked-5798",
@@ -24,8 +24,12 @@
           "CHANGELOG.md"
         ],
         "file_scope_confidence": "high",
-        "file_scope_rationale": "Locked FINAL #5798 failure-shaped remedy map; include f010 compose fixtures beside diagnose tests."
-      }
+        "file_scope_rationale": "Locked FINAL #5798 failure-shaped remedy map; include f010 compose fixtures beside diagnose tests.",
+        "verify_commands": [
+          "pnpm exec vitest run packages/runtime/src/doctor-remedy-inventory.test.ts packages/runtime/src/doctor-diagnose.test.ts packages/runtime/src/doctor-diagnose-f010.test.ts"
+        ]
+      },
+      "productPullRequest": 5902
     },
     "items": [
       {
@@ -40,22 +44,15 @@
       }
     ],
     "acceptance": {
-      "commands": [],
-      "none_stated": true,
-      "source_rung": "derived",
-      "derived_reason": "derived from Locked disposition Done-when on #5798 Path B activation: none_stated until product PR stamps proof cmds.",
-      "clauses": [
-        {
-          "id": 1,
-          "text": "Each major doctor failure class prints the correct next command; leftover schema/wiring cases are not steered to irrelevant global install.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        }
+      "commands": [
+        "pnpm exec vitest run packages/runtime/src/doctor-remedy-inventory.test.ts packages/runtime/src/doctor-diagnose.test.ts packages/runtime/src/doctor-diagnose-f010.test.ts"
       ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "clauses": [],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-10-25T12:00:00.000Z",
+    "updated": "2026-10-25T09:00:45.892Z",
     "references": [
       {
         "type": "x-xbrief/github-issue",
