@@ -48,14 +48,18 @@
       "deliveryDisposition": "delivered",
       "handoffState": "delivered",
       "completedAt": "2026-10-25T05:26:27Z",
-      "completedSessionId": "host:grok:v1:MDFhMTZmNzctYTY3YS03MDYxLTliYTAtYTIzNDcwODBmNTlj"
+      "completedSessionId": "host:grok:v1:MDFhMTZmNzctYTY3YS03MDYxLTliYTAtYTIzNDcwODBmNTlj",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-25T05:26:27Z"
+      }
     },
     "items": [
       {
         "id": "1",
         "title": "Cover hybrid/mis-keyed vBRIEFInfo@0.8 in xbrief-migrate so equal-version upgrade clears migration_needed",
         "effort": "M",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Overview": "Implement Locked #5795: strengthen xbrief-migrate so equal-version upgrade clears hybrid/mis-keyed vBRIEFInfo@0.8 shapes that leave doctor migration_needed.",
           "Acceptance": "Equal-version upgrade/migrate on hybrid vBRIEFInfo@0.8 fixtures exits migrate-clean (doctor not stuck migration_needed); focused regression covers the stuck case."
