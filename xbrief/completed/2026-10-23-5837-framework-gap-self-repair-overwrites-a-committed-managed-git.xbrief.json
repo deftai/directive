@@ -25,7 +25,7 @@
             "kind": "operator-session",
             "actor": "Scott",
             "eventRef": "https://github.com/deftai/directive/pull/5888#issuecomment-6392580771",
-            "mintedVia": "operator-approved-split-p1-2026-10-24T20:29-05:00",
+            "mintedVia": "operator-approved-relayed-split-p1-2026-10-24T20:29-05:00",
             "mintedAt": "2026-10-25T01:29:00Z"
           },
           "resume_when": "https://github.com/deftai/directive/issues/5885",
