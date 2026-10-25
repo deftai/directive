@@ -18,21 +18,27 @@
         "title": "relieves: P1 — Tracked-divergent preserve in ensureGitHooks: git-tracked prior≠next keeps prior + discloses, even when isOurGitHookBody is true; same preserve covers tracked legacy-helper cleanup",
         "status": "completed",
         "id": "clause.1",
-        "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "packages/runtime/src/setup-wiring-tracked-hooks.test.ts",
-          "recorded_at": "2026-10-25T00:28:26Z",
-          "recorded_by": "host:grok:v1:YWM2MWViYTQtNTVjNS00ZjkwLTlkYTgtYjk2NzdjN2ZlOTg3"
-        },
-        "x-directive/requires": "merge"
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "Split: the preserve limb shipped in #5859 (b21a0f43c; setup-wiring-tracked-hooks.test.ts 'keeps a git-tracked managed pre-push and discloses it as preserved'). The disclose limb on the self-repair path during check did not ship (bin.ts discards setup.preserved) and is tracked on #5885.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "https://github.com/deftai/directive/issues/5885",
+            "mintedVia": "operator-approved-split-p1-2026-10-24T20:29-05:00",
+            "mintedAt": "2026-10-25T01:29:00Z"
+          },
+          "resume_when": "https://github.com/deftai/directive/issues/5885",
+          "recorded_at": "2026-10-25T01:29:00Z"
+        }
       },
       {
         "title": "relieves: P2 — Preservation is a distinct non-failure outcome that does not invalidate readiness or re-trigger self-complete repair; ordinary check inherits the gate so CI does not dirty tracked .githooks",
         "status": "completed",
         "id": "clause.2",
         "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "packages/runtime/src/setup-wiring-tracked-hooks.test.ts",
+          "kind": "merge",
+          "pointer": "b21a0f43c735ac17f99ff60f2d59b960c8c1b932",
           "recorded_at": "2026-10-25T00:28:26Z",
           "recorded_by": "host:grok:v1:YWM2MWViYTQtNTVjNS00ZjkwLTlkYTgtYjk2NzdjN2ZlOTg3"
         },
@@ -43,8 +49,8 @@
         "status": "completed",
         "id": "clause.3",
         "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "packages/runtime/src/setup-wiring-tracked-hooks.test.ts",
+          "kind": "merge",
+          "pointer": "b21a0f43c735ac17f99ff60f2d59b960c8c1b932",
           "recorded_at": "2026-10-25T00:28:26Z",
           "recorded_by": "host:grok:v1:YWM2MWViYTQtNTVjNS00ZjkwLTlkYTgtYjk2NzdjN2ZlOTg3"
         },
@@ -56,11 +62,11 @@
         "id": "clause.4",
         "x-directive/disposition": {
           "disposition": "deferred",
-          "reason": "operator-deferred P4: older-pin marker-unaware skew / pin-master rewrite stripping enrolled arms remains tracked on #5848 (Prefer-A Bound 6357500125; product PR #5859).",
+          "reason": "operator-deferred P4: older-pin marker-unaware skew / pin-master rewrite stripping enrolled arms remains tracked on #5848 (Prefer-A Bound 6357500125; product PR #5859). Copied from the ingest-time operator deferral; not a new operator grant.",
           "provenance": {
             "kind": "operator-session",
             "actor": "Scott",
-            "eventRef": "https://github.com/deftai/directive/issues/5848",
+            "eventRef": "https://github.com/deftai/directive/issues/5837#issuecomment-6357500125",
             "mintedVia": "leftover-complete-after-5859-empty-closer-set",
             "mintedAt": "2026-10-25T00:28:26Z"
           },

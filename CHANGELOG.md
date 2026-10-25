@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Fixed - Leftover-complete #5799 #5837: active→completed xBRIEFs after product merges #5799 / #5859 (lifecycle only; forge closer set empty / PR-only residual). Refs #5799 #5837.
+- Retired the shipped #5799 and #5837 work-tracking briefs so master's merge gate passes again. The #5837 self-repair disclosure gap stays open on #5885. Refs #5799 #5837 #5885.
 - Fixed - Leftover-complete #4666: active→completed xBRIEF after product merge #5883 (lifecycle only). Refs #4666.
 - Leftover-complete: move #5796 xBRIEF from active to completed after product PR #5877. Refs #5796.
 - Real-git leftover land (#4714) origin-active `it` timeout is platform-aware (240s on win32, 120s elsewhere) so LOCAL_GATE does not flake under suite load. Refs #4714 #5879.
