@@ -54,6 +54,14 @@
       }
     ],
     "status": "running",
-    "updated": "2026-10-25T02:37:27Z"
+    "updated": "2026-10-25T02:37:27Z",
+    "id": "ovpr-locked-5795",
+    "references": [
+      {
+        "type": "x-xbrief/github-issue",
+        "uri": "https://github.com/deftai/directive/issues/5795",
+        "title": "#5795"
+      }
+    ]
   }
 }
