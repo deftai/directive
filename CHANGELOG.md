@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- chore(xbrief): leftover-complete #5798 after product #5902.
+
 - chore(xbrief): leftover-complete #5797 after product #5900.
 
 - chore(xbrief): leftover-complete #5795 after product #5897.

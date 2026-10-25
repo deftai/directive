@@ -8,7 +8,7 @@
   "plan": {
     "id": "ovpr-locked-5798",
     "title": "bug(installer,doctor): failure-shaped remedy map for doctor recovery",
-    "status": "running",
+    "status": "completed",
     "metadata": {
       "kind": "story",
       "github": {
@@ -29,14 +29,39 @@
           "pnpm exec vitest run packages/runtime/src/doctor-remedy-inventory.test.ts packages/runtime/src/doctor-diagnose.test.ts packages/runtime/src/doctor-diagnose-f010.test.ts"
         ]
       },
-      "productPullRequest": 5902
+      "productPullRequest": 5902,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "80ad5303e8ed431de464866de46418ae593668f0",
+        "prNumber": 5902,
+        "prBase": "master",
+        "mergeCommit": "d3e4d9ae8174bae7b0cd94b6758688b6b3e22d65",
+        "deliveryBranch": "master",
+        "deliveryCommit": "d3e4d9ae8174bae7b0cd94b6758688b6b3e22d65",
+        "verifiedAt": "2026-10-25T09:09:23Z",
+        "verifier": "leftover-handcraft-refs-only",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTZmNzctYTY3YS03MDYxLTliYTAtYTIzNDcwODBmNTlj",
+        "note": "Product PR #5902 used Refs-only (empty forge closer set). Leftover stamped after merge ancestry on origin/master."
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-25T09:09:23Z",
+      "completedSessionId": "host:grok:v1:MDFhMTZmNzctYTY3YS03MDYxLTliYTAtYTIzNDcwODBmNTlj",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-25T09:09:23Z"
+      }
     },
     "items": [
       {
         "id": "1",
         "title": "Each major doctor failure class prints the correct next command; leftover schema",
         "effort": "M",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Overview": "Implement Locked #5798: Each major doctor failure class prints the correct next command; leftover schema",
           "Acceptance": "Each major doctor failure class prints the correct next command; leftover schema/wiring cases are not steered to irrelevant global install."
@@ -52,7 +77,7 @@
       "clauses": [],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-10-25T09:00:45.892Z",
+    "updated": "2026-10-25T09:09:23Z",
     "references": [
       {
         "type": "x-xbrief/github-issue",
