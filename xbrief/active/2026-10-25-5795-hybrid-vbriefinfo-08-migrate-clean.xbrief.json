@@ -1,0 +1,67 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Locked #5795: equal-version upgrade must clear hybrid vBRIEFInfo@0.8 so doctor is not stuck migration_needed.",
+    "created": "2026-10-25T02:34:38.000Z",
+    "updated": "2026-10-25T02:37:27Z"
+  },
+  "plan": {
+    "title": "bug(installer,migrate): hybrid vBRIEFInfo@0.8 equal-version migrate-clean",
+    "summary": "Strengthen xbrief-migrate so equal-version upgrade clears hybrid/mis-keyed vBRIEFInfo@0.8 shapes that leave doctor migration_needed.",
+    "Tracking": {
+      "github": {
+        "issue": 5795
+      }
+    },
+    "metadata": {
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/xbrief-migrate/migrate-project.ts",
+          "packages/core/src/xbrief-migrate/migrate-project.test.ts",
+          "packages/core/src/xbrief-migrate/transforms.ts",
+          "packages/core/src/xbrief-migrate/drift-gate.ts",
+          "packages/core/src/xbrief-migrate/detect.ts",
+          "packages/runtime/src/migrate.test.ts",
+          "packages/runtime/src/data-status.test.ts",
+          "CHANGELOG.md"
+        ]
+      },
+      "kind": "story",
+      "github": {
+        "issue": 5795,
+        "repo": "deftai/directive"
+      }
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/xbrief-migrate/migrate-project.test.ts -t '5795|hybrid|leftover vBRIEFInfo|0.8'"
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "derived from Locked disposition Done-when on #5795",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Equal-version upgrade/migrate on hybrid vBRIEFInfo@0.8 fixtures exits migrate-clean (doctor not stuck migration_needed); focused regression covers the stuck case."
+        }
+      ]
+    },
+    "items": [
+      {
+        "id": "5795-hybrid-migrate",
+        "text": "Cover hybrid/mis-keyed vBRIEFInfo@0.8 in xbrief-migrate so equal-version upgrade clears migration_needed.",
+        "disposition": "open",
+        "title": "Cover hybrid/mis-keyed vBRIEFInfo@0.8 in xbrief-migrate so equal-version upgrade",
+        "status": "running",
+        "description": "Cover hybrid/mis-keyed vBRIEFInfo@0.8 in xbrief-migrate so equal-version upgrade clears migration_needed.",
+        "effort": "M",
+        "narrative": {
+          "Overview": "Implement Locked #5795.",
+          "Acceptance": "Cover hybrid/mis-keyed vBRIEFInfo@0.8 in xbrief-migrate so equal-version upgrade clears migration_needed."
+        }
+      }
+    ],
+    "status": "running",
+    "updated": "2026-10-25T02:37:27Z"
+  }
+}

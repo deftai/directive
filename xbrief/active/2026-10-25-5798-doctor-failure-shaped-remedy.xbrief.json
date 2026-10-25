@@ -1,0 +1,59 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Locked #5798: doctor recovery prose uses failure-shaped remedy map (schema/wiring residual != always npm i -g + repair).",
+    "created": "2026-10-25T02:41:55.000Z",
+    "updated": "2026-10-25T02:42:05Z"
+  },
+  "plan": {
+    "title": "bug(installer,doctor): failure-shaped remedy map for doctor recovery",
+    "summary": "Locked #5798: doctor recovery prose uses failure-shaped remedy map (schema/wiring residual != always npm i -g + repair).",
+    "Tracking": {
+      "github": {
+        "issue": 5798
+      }
+    },
+    "metadata": {
+      "kind": "story",
+      "github": {
+        "issue": 5798,
+        "repo": "deftai/directive"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/runtime/src/doctor.ts",
+          "packages/runtime/src/doctor-diagnose.ts",
+          "packages/runtime/src/doctor-remedy-inventory.test.ts",
+          "packages/runtime/src/doctor-diagnose.test.ts",
+          "CHANGELOG.md"
+        ]
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "derived from Locked disposition Done-when on #5798",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Each major doctor failure class prints the correct next command; leftover schema/wiring cases are not steered to irrelevant global install."
+        }
+      ]
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "Each major doctor failure class prints the correct next command; leftover schema",
+        "effort": "M",
+        "status": "running",
+        "narrative": {
+          "Overview": "Implement Locked disposition on #5798.",
+          "Acceptance": "Each major doctor failure class prints the correct next command; leftover schema/wiring cases are not steered to irrelevant global install."
+        }
+      }
+    ],
+    "status": "pending",
+    "updated": "2026-10-25T02:42:05Z"
+  }
+}
