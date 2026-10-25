@@ -3,7 +3,7 @@
     "version": "0.8",
     "description": "Locked #5797: equal-version upgrade must not write placeholder/invalid allowBuilds for @deftai/directive-runtime; PM-owned.",
     "created": "2026-10-25T02:41:55.000Z",
-    "updated": "2026-10-25T12:00:00.000Z"
+    "updated": "2026-10-25T08:06:06.000Z"
   },
   "plan": {
     "id": "ovpr-locked-5797",
@@ -27,7 +27,8 @@
         ],
         "file_scope_confidence": "high",
         "file_scope_rationale": "Locked FINAL #5797: PM-owned allowBuilds; Directive must not write placeholders; IGNORED_BUILDS surfaces pnpm-shaped recovery; docs. Prior Path B guessed setup/hooks paths were wrong."
-      }
+      },
+      "productPullRequest": 5900
     },
     "items": [
       {
@@ -42,10 +43,11 @@
       }
     ],
     "acceptance": {
-      "commands": [],
-      "none_stated": true,
-      "source_rung": "derived",
-      "derived_reason": "derived from Locked disposition Done-when on #5797 Path B activation: none_stated until product PR stamps proof cmds.",
+      "commands": [
+        "pnpm exec vitest run packages/cli/src/pm-ignored-builds.test.ts"
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
       "clauses": [
         {
           "id": 1,
@@ -57,7 +59,7 @@
       ],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-10-25T12:00:00.000Z",
+    "updated": "2026-10-25T08:06:06.000Z",
     "references": [
       {
         "type": "x-xbrief/github-issue",

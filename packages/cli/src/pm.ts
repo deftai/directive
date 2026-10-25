@@ -426,6 +426,28 @@ export function formatMissingPmGuidance(
   );
 }
 
+/** pnpm interactive allowBuilds placeholder text — never instruct operators to commit this. */
+export const PNPM_IGNORED_BUILDS_PLACEHOLDER = "set this to true or false";
+
+/** True when PM stderr/message indicates pnpm ignored dependency builds. */
+export function isPnpmIgnoredBuildsFailure(text: string): boolean {
+  return /ERR_PNPM_IGNORED_BUILDS/i.test(text);
+}
+
+/**
+ * #5797 Locked: PM-shaped recovery when pnpm refuses ignored builds.
+ * Directive does not write allowBuilds; operators use pnpm approve-builds or a real boolean.
+ */
+export function formatPnpmIgnoredBuildsRecovery(): string {
+  return (
+    `pnpm refused dependency builds (ERR_PNPM_IGNORED_BUILDS).\n` +
+    `Recover with pnpm's own policy tools — Directive does not write allowBuilds:\n` +
+    `  - Run: pnpm approve-builds\n` +
+    `  - Or set a real true/false under allowBuilds in pnpm-workspace.yaml\n` +
+    `Do not commit pnpm's interactive placeholder text.`
+  );
+}
+
 /**
  * AC5.8 / INIT-10: verify the selected PM binary is spawnable.
  * Does not install or switch managers; Corepack is suggested, never assumed.
