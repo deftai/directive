@@ -21,7 +21,6 @@
         "title": "P1 optional writeErr stderr disclose once-guard for preserved managed hooks",
         "status": "pending",
         "id": "clause.1",
-        "artifact_path": "packages/runtime/src/self-complete.ts",
         "narrative": {
           "Acceptance": "Given Prefer-A Recut-2 Bound 6393572833, when this clause ships, then: relieves: P1 — Optional writeErr on maybeSelfCompleteSetup (default process.stderr.write; hook-path tests drive run() directly with seams.writeErr) emits each formatTrackedHookPreserved line at most once per process keyed on the emitted preserved lines, with an exported once-guard reset for tests; never writeOut/stdout",
           "Traces": "#5885"
@@ -31,7 +30,6 @@
         "title": "P2 rel-keyed next-body seam forceTrackedReplace refuse-to-downgrade fixture",
         "status": "pending",
         "id": "clause.2",
-        "artifact_path": "packages/runtime/src/setup-wiring.ts",
         "narrative": {
           "Acceptance": "Given Prefer-A Recut-2 Bound 6393572833, when this clause ships, then: relieves: P2 — Rel-keyed test-only next-body seam on EnsureGitHooksOptions drives ensureGitHooks under forceTrackedReplace with enrolled+marker prior and marker-free next for that rel, asserting downgrade conflict, no pre-push modify, and exact prior bytes; pure predicate alone is not a substitute",
           "Traces": "#5885"
@@ -41,7 +39,6 @@
         "title": "P3 maybeSelfCompleteSetup e2e preserve disclosure readiness and hook bytes",
         "status": "pending",
         "id": "clause.3",
-        "artifact_path": "packages/runtime/src/self-complete.test.ts",
         "narrative": {
           "Acceptance": "Given Prefer-A Recut-2 Bound 6393572833, when this clause ships, then: relieves: P3 — maybeSelfCompleteSetup e2e on its own git-init configured root requires ran:true and skipReason:null first, then preserve stderr disclosure, empty conflicts, readiness written, and unchanged CUSTOM_PRE_PUSH-shaped tracked hook bytes (git add the hook; readiness starts missing/stale; unset hooksPath so activation can succeed)",
           "Traces": "#5885"
@@ -86,7 +83,11 @@
       ],
       "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
       "source_rung": "derived",
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "Self-repair never discloses preserved managed git hooks (follow-up to #5837)",
+        "Prefer-A Recut-2 Bound 6393572833: maybeSelfCompleteSetup discloses preserved managed hooks on stderr once per process; force/refuse fixture reaches downgrade via rel-keyed next-body seam; e2e covers preserve, empty conflicts, readiness, unchanged hook bytes."
+      ]
     },
     "metadata": {
       "intended_placement": {
@@ -129,7 +130,7 @@
         "depends_on": [],
         "model_tier": "standard",
         "verify_commands": [
-          "pnpm --filter @deftai/directive-runtime exec vitest run src/self-complete.test.ts src/setup-wiring-tracked-hooks.test.ts"
+          "pnpm exec vitest run packages/runtime/src/self-complete.test.ts packages/runtime/src/setup-wiring-tracked-hooks.test.ts"
         ],
         "file_scope": [
           "packages/runtime/src/self-complete.ts",
@@ -153,7 +154,6 @@
       }
     },
     "id": "github.issue.6019092405",
-    "overview": "Prefer-A Recut-2 Bound 6393572833: maybeSelfCompleteSetup discloses preserved managed hooks on stderr once per process; force/refuse fixture reaches downgrade via rel-keyed next-body seam; e2e covers preserve, empty conflicts, readiness, unchanged hook bytes.",
     "updated": "2026-10-25T05:06:23Z"
   }
 }
