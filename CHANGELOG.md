@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed - Skills/UPGRADING that taught project-local `xbrief/schemas/…` now point at the OVPR pin schema SoT (`node_modules/@deftai/directive-runtime/vbrief/schemas/…`); install does not deposit that tree. Refs #4666.
 
 ### Fixed
+- Fixed - Doctor recovery is failure-shaped: schema-only → `directive upgrade`; wiring-only (e.g. Taskfile.yml) → wiring/probe + repair without `npm i -g`; install skew / missing readiness still get AC9.7. Refs #5798.
 - Fixed - On `ERR_PNPM_IGNORED_BUILDS`, install/upgrade fail closed with pnpm-shaped recovery (`pnpm approve-builds` / real `allowBuilds` boolean); Directive does not write `allowBuilds`. Refs #5797.
 
 - Fixed - `migrate:xbrief` skips strip-plan refuse for dual `vBRIEFInfo`+`xBRIEFInfo` both@0.6 so hybrid rewrite owns the file. Refs #5795.

@@ -381,7 +381,9 @@ describe("POST-CONV-DOC / AC12.3 header vs skill pointers (AC10.3)", () => {
 });
 
 describe("AC12.7 dual remedy exclusion", () => {
-  it("never emits Next:upgrade together with Recovery repair for the same report", () => {
+  it("never emits Next:upgrade together with AC9.7 global install for install-class red", () => {
+    // AC12.7 bans AC9.7 + upgrade co-prescription. Wiring-shaped repair + upgrade
+    // for distinct surfaces is allowed (#5798 multi-surface listing).
     const samples = [
       runDoctorDiagnosis("/tmp/definitely-not-a-directive-project-2o", { probeHooks: false }),
       (() => {
@@ -396,11 +398,9 @@ describe("AC12.7 dual remedy exclusion", () => {
     for (const diag of samples) {
       const text = formatDoctorReport(diag);
       const hasUpgrade = /Next:\s*directive upgrade/i.test(text);
-      const hasRepair =
-        text.includes(INSTALLATION_RECOVERY_GUIDANCE) || /install --repair/i.test(text);
-      expect(hasUpgrade && hasRepair, text).toBe(false);
-      if (diag.remedy) expect(diag.schemaRemedy).toBeNull();
-      if (diag.schemaRemedy) expect(diag.remedy).toBeNull();
+      const hasAc97 = text.includes(INSTALLATION_RECOVERY_GUIDANCE);
+      expect(hasUpgrade && hasAc97, text).toBe(false);
+      if (diag.remedy === INSTALLATION_RECOVERY_GUIDANCE) expect(diag.schemaRemedy).toBeNull();
     }
   });
 });
