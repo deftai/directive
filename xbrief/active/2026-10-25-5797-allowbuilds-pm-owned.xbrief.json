@@ -46,7 +46,7 @@
         "pnpm exec vitest run packages/cli/src/pm-ignored-builds.test.ts"
       ],
       "none_stated": false,
-      "source_rung": "stamped",
+      "source_rung": "stated",
       "clauses": [
         {
           "id": 1,
