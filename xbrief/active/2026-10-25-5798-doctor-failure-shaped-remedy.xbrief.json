@@ -3,7 +3,7 @@
     "version": "0.8",
     "description": "Locked #5798: doctor recovery prose uses failure-shaped remedy map (schema/wiring residual != always npm i -g + repair).",
     "created": "2026-10-25T02:41:55.000Z",
-    "updated": "2026-10-25T03:03:11Z"
+    "updated": "2026-10-25T12:00:00.000Z"
   },
   "plan": {
     "id": "ovpr-locked-5798",
@@ -20,9 +20,11 @@
           "packages/runtime/src/doctor-diagnose.ts",
           "packages/runtime/src/doctor-remedy-inventory.test.ts",
           "packages/runtime/src/doctor-diagnose.test.ts",
+          "packages/runtime/src/doctor-diagnose-f010.test.ts",
           "CHANGELOG.md"
         ],
-        "file_scope_confidence": "high"
+        "file_scope_confidence": "high",
+        "file_scope_rationale": "Locked FINAL #5798 failure-shaped remedy map; include f010 compose fixtures beside diagnose tests."
       }
     },
     "items": [
@@ -53,7 +55,7 @@
       ],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-10-25T03:03:11Z",
+    "updated": "2026-10-25T12:00:00.000Z",
     "references": [
       {
         "type": "x-xbrief/github-issue",

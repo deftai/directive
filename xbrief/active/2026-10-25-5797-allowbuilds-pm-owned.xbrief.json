@@ -3,7 +3,7 @@
     "version": "0.8",
     "description": "Locked #5797: equal-version upgrade must not write placeholder/invalid allowBuilds for @deftai/directive-runtime; PM-owned.",
     "created": "2026-10-25T02:41:55.000Z",
-    "updated": "2026-10-25T03:03:11Z"
+    "updated": "2026-10-25T12:00:00.000Z"
   },
   "plan": {
     "id": "ovpr-locked-5797",
@@ -16,13 +16,17 @@
       },
       "swarm": {
         "file_scope": [
-          "packages/runtime/src/setup.ts",
-          "packages/runtime/src/setup-wiring.ts",
+          "packages/cli/src/pm.ts",
+          "packages/cli/src/bookends.ts",
+          "packages/cli/src/age-exclude.ts",
+          "packages/cli/src/age-exclude.test.ts",
+          "packages/cli/src/pm-ignored-builds.test.ts",
           "packages/cli/src/upgrade-bookend.test.ts",
-          "packages/runtime/src/setup.test.ts",
+          "content/UPGRADING.md",
           "CHANGELOG.md"
         ],
-        "file_scope_confidence": "high"
+        "file_scope_confidence": "high",
+        "file_scope_rationale": "Locked FINAL #5797: PM-owned allowBuilds; Directive must not write placeholders; IGNORED_BUILDS surfaces pnpm-shaped recovery; docs. Prior Path B guessed setup/hooks paths were wrong."
       }
     },
     "items": [
@@ -53,7 +57,7 @@
       ],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-10-25T03:03:11Z",
+    "updated": "2026-10-25T12:00:00.000Z",
     "references": [
       {
         "type": "x-xbrief/github-issue",
