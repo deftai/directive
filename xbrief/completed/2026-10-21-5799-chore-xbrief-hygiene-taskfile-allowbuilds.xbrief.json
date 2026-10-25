@@ -8,7 +8,7 @@
   "plan": {
     "id": "chore-5799-xbrief-hygiene-allowbuilds",
     "title": "chore(xbrief,taskfile,ci): OVPR corpus hygiene + doctor wiring comment + allowBuilds",
-    "status": "running",
+    "status": "completed",
     "metadata": {
       "github": {
         "issue": 5799
@@ -28,7 +28,32 @@
         "module_boundary": "path-b-activation-5799",
         "cohesion_exemption": "CHANGELOG.md already exceeds the review trigger; activation only adds one Unreleased bullet and lands the running brief."
       },
-      "origin_divergence": "intentional: activation/babysit brief for chore PR #5799; GitHub issue #5799 is the PR number used as deft-story bind, not a product-issue ingest."
+      "origin_divergence": "intentional: activation/babysit brief for chore PR #5799; GitHub issue #5799 is the PR number used as deft-story bind, not a product-issue ingest.",
+      "productPullRequest": 5799,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "6134ad5cce49dc825ce961b509513bb801c4dad3",
+        "prNumber": 5799,
+        "prBase": "master",
+        "mergeCommit": "7b8c825c1932db586e6edb0883dc342d1ec58c43",
+        "deliveryBranch": "master",
+        "deliveryCommit": "7b8c825c1932db586e6edb0883dc342d1ec58c43",
+        "verifiedAt": "2026-10-25T00:28:26Z",
+        "verifier": "approach1-leftover-stamp-residual",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:YWM2MWViYTQtNTVjNS00ZjkwLTlkYTgtYjk2NzdjN2ZlOTg3"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-25T00:28:26Z",
+      "completedSessionId": "host:grok:v1:YWM2MWViYTQtNTVjNS00ZjkwLTlkYTgtYjk2NzdjN2ZlOTg3",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-25T00:28:26Z"
+      }
     },
     "items": [
       {
@@ -38,7 +63,14 @@
           "Overview": "Commit residual xBRIEF envelope rewrite, strip hybrid vBRIEFInfo keys, reword Taskfile .deft/core/ comments, allowBuilds for @deftai/directive-runtime, babysit CI/Greptile to CLEAN, squash-merge.",
           "Acceptance": "PR #5799 merges; local doctor wiring+schema green on tip; allowBuilds true present; product issues #5795/#5796/#5797/#5798 remain open for remaining product work."
         },
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7b8c825c1932db586e6edb0883dc342d1ec58c43",
+          "recorded_at": "2026-10-25T00:28:26Z",
+          "recorded_by": "host:grok:v1:YWM2MWViYTQtNTVjNS00ZjkwLTlkYTgtYjk2NzdjN2ZlOTg3"
+        },
+        "x-directive/requires": "merge"
       }
     ],
     "acceptance": {
@@ -57,7 +89,7 @@
       ],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-10-21T15:49:40Z",
+    "updated": "2026-10-25T00:28:26Z",
     "references": [
       {
         "type": "x-xbrief/github-issue",
