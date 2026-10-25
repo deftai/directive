@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "Self-repair never discloses preserved managed git hooks (follow-up to #5837)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Self-repair never discloses preserved managed git hooks (follow-up to #5837)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5885",
@@ -19,29 +19,65 @@
     "items": [
       {
         "title": "P1 optional writeErr stderr disclose once-guard for preserved managed hooks",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given Prefer-A Recut-2 Bound 6393572833, when this clause ships, then: relieves: P1 — Optional writeErr on maybeSelfCompleteSetup (default process.stderr.write; hook-path tests drive run() directly with seams.writeErr) emits each formatTrackedHookPreserved line at most once per process keyed on the emitted preserved lines, with an exported once-guard reset for tests; never writeOut/stdout",
           "Traces": "#5885"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5906 squash-merge (Tracking #5885).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5906",
+            "mintedAt": "2026-10-25T12:27:45.805Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-25T12:27:45.805Z"
         }
       },
       {
         "title": "P2 rel-keyed next-body seam forceTrackedReplace refuse-to-downgrade fixture",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given Prefer-A Recut-2 Bound 6393572833, when this clause ships, then: relieves: P2 — Rel-keyed test-only next-body seam on EnsureGitHooksOptions drives ensureGitHooks under forceTrackedReplace with enrolled+marker prior and marker-free next for that rel, asserting downgrade conflict, no pre-push modify, and exact prior bytes; pure predicate alone is not a substitute",
           "Traces": "#5885"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5906 squash-merge (Tracking #5885).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5906",
+            "mintedAt": "2026-10-25T12:27:45.805Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-25T12:27:45.805Z"
         }
       },
       {
         "title": "P3 maybeSelfCompleteSetup e2e preserve disclosure readiness and hook bytes",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given Prefer-A Recut-2 Bound 6393572833, when this clause ships, then: relieves: P3 — maybeSelfCompleteSetup e2e on its own git-init configured root requires ran:true and skipReason:null first, then preserve stderr disclosure, empty conflicts, readiness written, and unchanged CUSTOM_PRE_PUSH-shaped tracked hook bytes (git add the hook; readiness starts missing/stale; unset hooksPath so activation can succeed)",
           "Traces": "#5885"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5906 squash-merge (Tracking #5885).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5906",
+            "mintedAt": "2026-10-25T12:27:45.805Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-25T12:27:45.805Z"
         }
       }
     ],
@@ -151,6 +187,27 @@
         ],
         "parallel_safe": true,
         "missing_traces_justification": []
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-25T12:27:45.805Z"
+      },
+      "productPullRequest": 5906,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 5906,
+        "prBase": "master",
+        "mergeCommit": "4c33a9f406650f3be55b9cd4780403c01dd1bc73",
+        "deliveryBranch": "master",
+        "deliveryCommit": "4c33a9f406650f3be55b9cd4780403c01dd1bc73",
+        "verifiedAt": "2026-10-25T12:27:45.805Z",
+        "verifier": "parent-retained-closer/leftover-5885",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "2b1a4e19-0acb-44f7-997b-be72ade4d1be"
       }
     },
     "id": "github.issue.6019092405",
