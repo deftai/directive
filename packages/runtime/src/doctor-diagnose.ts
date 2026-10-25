@@ -28,6 +28,13 @@ export const GIT_PRECONDITION_RECOVERY_GUIDANCE = "git init, then directive inst
 export const GIT_PRECONDITION_READINESS_DETAIL =
   "incomplete install — wiring-ready withheld until git init (hooksPath not activatable)";
 
+/**
+ * #5798 — wiring-only residual (pin/install/readiness already ok).
+ * Names Taskfile/probe surface; owned wiring damage → repair, never npm i -g hammer.
+ */
+export const WIRING_RECOVERY_GUIDANCE =
+  "inspect Taskfile.yml / Directive wiring targets (or probe); for owned wiring damage: directive install --repair";
+
 /** Patterns that must never appear as doctor remedies (AC12.5–12.7 / AC9.11). */
 export const FORBIDDEN_DOCTOR_REMEDY_PATTERNS: readonly RegExp[] = [
   /\balign-pin\b/i,
@@ -71,11 +78,11 @@ export interface DoctorDiagnosis {
   readonly failClosed: boolean;
   readonly dataStatus: DataStatusValue;
   /**
-   * Install/wiring recovery guidance, or F-010 git-precondition recovery.
-   * Null when healthy or schema-only.
+   * Install-class (AC9.7), wiring-only (#5798 WIRING_RECOVERY_GUIDANCE), or
+   * F-010 git-precondition recovery. Null when healthy or schema-only.
    */
   readonly remedy: string | null;
-  /** Schema/data migration remedy; never `install --repair`. */
+  /** Schema/data migration remedy; never the AC9.7 global-install hammer. */
   readonly schemaRemedy: "directive upgrade" | null;
   /**
    * F-010: set when pin/lock/installed/GENERATION/wiring are ok but readiness is
@@ -297,15 +304,30 @@ function chooseRemedy(
     return { remedy: GIT_PRECONDITION_RECOVERY_GUIDANCE, schemaRemedy: null };
   }
 
-  const installBroken =
-    sync.failClosed || !sync.inSync || !sync.predicates.installed.ok || !sync.predicates.pin.ok;
+  const p = sync.predicates;
+  // Install-class faults only — do NOT fold wiring-only into AC9.7 via !inSync (#5798).
+  const pinInstallBroken =
+    sync.failClosed || !p.pin.ok || !p.installed.ok || !p.lockfile.ok || !p.generation.ok;
+  // Missing readiness (with .git) stays install/repair guidance (acceptance / F-010 peer).
+  const readinessBroken = !p.readiness.ok;
+  const wiringBroken = !p.wiring.ok;
+  const schemaBehind = dataStatus === "migration_needed" || dataStatus === "diagnosis_failed";
 
-  // AC12.7: never dual-prescribe upgrade + repair. Install/wiring recovery wins
-  // when both faults are present; schema-only behind → upgrade alone.
-  if (installBroken) {
+  // AC12.7: AC9.7 global install + schema upgrade must not co-prescribe for install-class red.
+  if (pinInstallBroken || readinessBroken) {
     return { remedy: INSTALLATION_RECOVERY_GUIDANCE, schemaRemedy: null };
   }
-  if (dataStatus === "migration_needed" || dataStatus === "diagnosis_failed") {
+
+  // Wiring-only (good pin/install/readiness): failure-shaped map — Taskfile/probe, not npm i -g.
+  if (wiringBroken) {
+    return {
+      remedy: WIRING_RECOVERY_GUIDANCE,
+      // Distinct surfaces may list both (#5798 multi-surface); not the AC9.7+upgrade dual ban.
+      schemaRemedy: schemaBehind ? "directive upgrade" : null,
+    };
+  }
+
+  if (schemaBehind) {
     return { remedy: null, schemaRemedy: "directive upgrade" };
   }
   return { remedy: null, schemaRemedy: null };
