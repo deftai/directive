@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed - After product merge #5886, record #5807 complete so operators can close the issue and active scope no longer lists it. Refs #5807.
 - Fixed - Grok upgrade/repair leaves one PreToolUse entry per matcher and rewrites the outer-deny wrapper to pin-relative hook-bin (no leftover deft-hook deny beside a healthy registration). Merge/strip now filter managed commands inside each nested group so custom hooks co-located with the wrapper are preserved. Refs #5807.
 - Retired the shipped #5799 and #5837 work-tracking briefs so master's merge gate passes again. The #5837 self-repair disclosure gap stays open on #5885. Refs #5799 #5837 #5885.
 - Fixed - Leftover-complete #4666: active→completed xBRIEF after product merge #5883 (lifecycle only). Refs #4666.
