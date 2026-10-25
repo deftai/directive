@@ -8,7 +8,7 @@
   "plan": {
     "id": "ovpr-locked-5797",
     "title": "bug(installer,upgrade): stop placeholder allowBuilds for directive-runtime",
-    "status": "running",
+    "status": "completed",
     "metadata": {
       "kind": "story",
       "github": {
@@ -28,14 +28,39 @@
         "file_scope_confidence": "high",
         "file_scope_rationale": "Locked FINAL #5797: PM-owned allowBuilds; Directive must not write placeholders; IGNORED_BUILDS surfaces pnpm-shaped recovery; docs. Prior Path B guessed setup/hooks paths were wrong."
       },
-      "productPullRequest": 5900
+      "productPullRequest": 5900,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "4892b4b7f232f3cecf8bf28208024feff6ae74e5",
+        "prNumber": 5900,
+        "prBase": "master",
+        "mergeCommit": "cdd587119e7b8a1ab39b987a4897cd36f408bb8d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "cdd587119e7b8a1ab39b987a4897cd36f408bb8d",
+        "verifiedAt": "2026-10-25T08:27:09Z",
+        "verifier": "leftover-handcraft-refs-only",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTZmNzctYTY3YS03MDYxLTliYTAtYTIzNDcwODBmNTlj",
+        "note": "Product PR #5900 used Refs-only (empty forge closer set). Leftover stamped after merge ancestry on origin/master."
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-25T08:27:09Z",
+      "completedSessionId": "host:grok:v1:MDFhMTZmNzctYTY3YS03MDYxLTliYTAtYTIzNDcwODBmNTlj",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-25T08:27:09Z"
+      }
     },
     "items": [
       {
         "id": "1",
         "title": "Equal-version upgrade never writes invalid allowBuilds; tests cover the regression",
         "effort": "M",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Overview": "Implement Locked #5797: equal-version upgrade never writes invalid/placeholder allowBuilds for @deftai/directive-runtime (PM-owned).",
           "Acceptance": "Equal-version upgrade never writes invalid allowBuilds; tests cover the regression."
@@ -59,7 +84,7 @@
       ],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-10-25T08:06:06.000Z",
+    "updated": "2026-10-25T08:27:09Z",
     "references": [
       {
         "type": "x-xbrief/github-issue",
