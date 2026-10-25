@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed - `migrate:xbrief` skips strip-plan refuse for dual `vBRIEFInfo`+`xBRIEFInfo` both@0.6 so hybrid rewrite owns the file. Refs #5795.
+- Fixed - Equal-version upgrade/migrate clears hybrid and mis-keyed `vBRIEFInfo@0.8` (including under `xbrief/completed/`) so doctor schema currency is not stuck `migration_needed`. Refs #5795.
 - Fixed - After product merge #5886, record #5807 complete so operators can close the issue and active scope no longer lists it. Refs #5807.
 - Fixed - Grok upgrade/repair leaves one PreToolUse entry per matcher and rewrites the outer-deny wrapper to pin-relative hook-bin (no leftover deft-hook deny beside a healthy registration). Merge/strip now filter managed commands inside each nested group so custom hooks co-located with the wrapper are preserved. Refs #5807.
 - Retired the shipped #5799 and #5837 work-tracking briefs so master's merge gate passes again. The #5837 self-repair disclosure gap stays open on #5885. Refs #5799 #5837 #5885.

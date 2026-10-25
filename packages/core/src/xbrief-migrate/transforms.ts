@@ -113,13 +113,14 @@ function isAlreadyV08Artifact(artifact: JsonObject): boolean {
 
 /**
  * True when declared version is a tip migrate source:
- * 0.5 (thin→0.6), 0.6, or orphan 0.7.
+ * 0.5 (thin→0.6), 0.6, orphan 0.7, or mis-keyed legacy @0.8 (#5795).
  */
 function isMigratableSourceVersion(version: unknown): boolean {
   return (
     version === PRE_LEGACY_VBRIEF_VERSION ||
     version === LEGACY_VBRIEF_VERSION ||
-    version === MIGRATE_THROUGH_VBRIEF_VERSION
+    version === MIGRATE_THROUGH_VBRIEF_VERSION ||
+    version === VBRIEF_VERSION
   );
 }
 
@@ -127,14 +128,16 @@ function unsupportedSourceVersionMessage(infoKey: string, declaredVersion: unkno
   return (
     `unsupported ${infoKey}.version ${String(declaredVersion)}; ` +
     `migrate accepts ${PRE_LEGACY_VBRIEF_VERSION}→${LEGACY_VBRIEF_VERSION}, ` +
-    `${LEGACY_VBRIEF_VERSION}, and orphan ${MIGRATE_THROUGH_VBRIEF_VERSION}→${VBRIEF_VERSION}`
+    `${LEGACY_VBRIEF_VERSION}, orphan ${MIGRATE_THROUGH_VBRIEF_VERSION}→${VBRIEF_VERSION}, ` +
+    `and mis-keyed ${LEGACY_INFO_ROOT_KEY}@${VBRIEF_VERSION}`
   );
 }
 
 /**
  * Resolve a migratable info block from classic `vBRIEFInfo` or hybrid `xBRIEFInfo`
- * at 0.5 / 0.6 / orphan rename-era 0.7. Prefer the classic key when both are present.
- * Layout rename ≠ envelope bump (#2970). 0.5/0.7 are migrate-through, not ACCEPTED forever.
+ * at 0.5 / 0.6 / orphan rename-era 0.7 / mis-keyed legacy @0.8 (#5795).
+ * Prefer the classic key when both are present. Layout rename ≠ envelope bump (#2970).
+ * 0.5/0.7 are migrate-through, not ACCEPTED forever.
  */
 function resolveMigratableInfoBlock(artifact: JsonObject): JsonObject {
   if (LEGACY_INFO_ROOT_KEY in artifact) {
@@ -157,7 +160,13 @@ function resolveMigratableInfoBlock(artifact: JsonObject): JsonObject {
       throw new TransformError(`'${MIGRATED_INFO_ROOT_KEY}' must be an object`);
     }
     const declaredVersion = hybridInfo.version;
-    if (!isMigratableSourceVersion(declaredVersion)) {
+    // Canonical xBRIEFInfo@0.8 is handled by isAlreadyV08Artifact; hybrid rewrite
+    // only accepts pre-0.8 residual versions here.
+    if (
+      declaredVersion !== PRE_LEGACY_VBRIEF_VERSION &&
+      declaredVersion !== LEGACY_VBRIEF_VERSION &&
+      declaredVersion !== MIGRATE_THROUGH_VBRIEF_VERSION
+    ) {
       throw new TransformError(
         `expected hybrid ${MIGRATED_INFO_ROOT_KEY}.version ${PRE_LEGACY_VBRIEF_VERSION}|${LEGACY_VBRIEF_VERSION}|${MIGRATE_THROUGH_VBRIEF_VERSION} (or ${VBRIEF_VERSION} for already-migrated), got ${String(declaredVersion)}`,
       );

@@ -21,7 +21,7 @@ import {
   VBRIEF_DEPRECATION_MARKER_FILENAME,
   VBRIEF_DEPRECATION_MARKER_SENTINEL,
 } from "./constants.js";
-import { detectXbriefConvergence } from "./detect.js";
+import { detectLegacyVbriefLayout, detectXbriefConvergence } from "./detect.js";
 import { evaluateXbriefDrift } from "./drift-gate.js";
 import {
   convergeLegacyVbriefRoot,
@@ -1077,7 +1077,7 @@ describe("runXbriefMigration hybrid in-place rewrite (#3236)", () => {
     );
     expect(code).toBe(0);
     expect(outs.join("")).toMatch(
-      /Rewrote 1 residual envelope\(s\) \(0\.5\/0\.6\/0\.7\).*xBRIEFInfo@0\.8/,
+      /Rewrote 1 residual envelope\(s\) \(0\.5\/0\.6\/0\.7\/mis-keyed@0\.8\).*xBRIEFInfo@0\.8/,
     );
   });
 
@@ -1321,7 +1321,7 @@ describe("planRedundantLegacyEnvelopeStrips (#4163)", () => {
     }
   });
 
-  it("does not plan a strip for xbrief/completed historical records", () => {
+  it("plans a strip for xbrief/completed dual envelopes (#5795)", () => {
     const base = mkdtempSync(join(tmpdir(), "xbrief-strip-completed-"));
     temps.push(base);
     const project = scaffoldCanonicalXbrief(base);
@@ -1334,7 +1334,11 @@ describe("planRedundantLegacyEnvelopeStrips (#4163)", () => {
     const plan = planRedundantLegacyEnvelopeStrips(project);
     expect(plan.ok).toBe(true);
     if (!plan.ok) return;
-    expect(plan.pending).toHaveLength(0);
+    expect(plan.pending).toHaveLength(1);
+    expect(plan.pending[0]?.path.replace(/\\/g, "/")).toMatch(
+      /xbrief\/completed\/2026-01-01-old\.xbrief\.json$/,
+    );
+    expect(JSON.parse(plan.pending[0]!.body)).not.toHaveProperty("vBRIEFInfo");
   });
 
   it("fails closed when leftover key cannot be deleted from original bytes", () => {
@@ -1398,7 +1402,7 @@ describe("runXbriefMigration redundant leftover strip (#4163)", () => {
     expect(outcome.kind).toBe("rewritten");
   });
 
-  it("leaves xbrief/completed dual envelopes historical", () => {
+  it("strips xbrief/completed dual envelopes so detect is clean (#5795)", () => {
     const base = mkdtempSync(join(tmpdir(), "xbrief-strip-hist-"));
     temps.push(base);
     const project = scaffoldDualEnvelopeXbriefOnly(base, { alsoCompleted: true });
@@ -1408,12 +1412,14 @@ describe("runXbriefMigration redundant leftover strip (#4163)", () => {
       "completed",
       "2026-01-01-old.xbrief.json",
     );
-    const before = readFileSync(completed, "utf8");
+    expect(JSON.parse(readFileSync(completed, "utf8"))).toHaveProperty("vBRIEFInfo");
+    // One rewritten pass clears specification + completed leftovers together.
     expect(runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO).kind).toBe(
       "rewritten",
     );
-    expect(readFileSync(completed, "utf8")).toBe(before);
-    expect(JSON.parse(before)).toHaveProperty("vBRIEFInfo");
+    expect(JSON.parse(readFileSync(completed, "utf8"))).not.toHaveProperty("vBRIEFInfo");
+    expect(detectLegacyVbriefLayout(project).legacyLayout).toBe(false);
+    expect(runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO).kind).toBe("noop");
   });
 
   it("refuses the whole migrate on a non-redundant dual envelope and does not write", () => {
@@ -1637,5 +1643,134 @@ describe("runXbriefMigration redundant leftover strip (#4163)", () => {
       expect(outcome.message).toMatch(/restore also failed/);
       expect(outcome.message).toMatch(/ENOSPC during restore/);
     }
+  });
+});
+
+describe("equal-version migrate clears hybrid vBRIEFInfo@0.8 (#5795)", () => {
+  // Keeper was red on 5e23e6c7d: strip plan refused dual both@0.6 (config) before hybrid rewrite.
+  it("migrates completed dual vBRIEFInfo+xBRIEFInfo both@0.6 via hybrid rewrite", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-5795-dual-06-"));
+    temps.push(base);
+    const project = join(base, "consumer");
+    mkdirSync(join(project, MIGRATED_ARTIFACT_DIR, "completed"), { recursive: true });
+    const dualPath = join(
+      project,
+      MIGRATED_ARTIFACT_DIR,
+      "completed",
+      "2026-06-15-dual-06.xbrief.json",
+    );
+    writeFileSync(
+      dualPath,
+      `${JSON.stringify(
+        {
+          vBRIEFInfo: {
+            version: "0.6",
+            description: "dual both@0.6 residual",
+            created: "2026-06-15T00:00:00Z",
+            updated: "2026-06-15T00:00:00Z",
+          },
+          xBRIEFInfo: {
+            version: "0.6",
+            description: "dual both@0.6 residual",
+            created: "2026-06-15T00:00:00Z",
+            updated: "2026-06-15T00:00:00Z",
+          },
+          plan: { title: "Dual both 0.6", status: "completed", items: [] },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+    execFileSync("git", ["init"], { cwd: project });
+
+    const stripPlan = planRedundantLegacyEnvelopeStrips(project);
+    expect(stripPlan.ok).toBe(true);
+    if (stripPlan.ok) {
+      expect(stripPlan.pending).toHaveLength(0);
+    }
+
+    const first = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    expect(first.kind).toBe("rewritten");
+
+    const after = JSON.parse(readFileSync(dualPath, "utf8")) as Record<string, unknown>;
+    expect(after).not.toHaveProperty("vBRIEFInfo");
+    expect(after).toMatchObject({ xBRIEFInfo: { version: "0.8" } });
+
+    expect(runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO).kind).toBe("noop");
+  });
+
+  it("rewrites sole mis-keyed vBRIEFInfo@0.8 and strips dual leftovers under completed/", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-5795-hybrid-08-"));
+    temps.push(base);
+    const project = join(base, "consumer");
+    mkdirSync(join(project, MIGRATED_ARTIFACT_DIR, "completed"), { recursive: true });
+    const solePath = join(
+      project,
+      MIGRATED_ARTIFACT_DIR,
+      "completed",
+      "2026-07-12-sole-miskey.xbrief.json",
+    );
+    const dualPath = join(
+      project,
+      MIGRATED_ARTIFACT_DIR,
+      "completed",
+      "2026-08-01-dual-08.xbrief.json",
+    );
+    writeFileSync(
+      solePath,
+      `${JSON.stringify(
+        {
+          vBRIEFInfo: {
+            version: "0.8",
+            description: "mis-keyed sole residual",
+            created: "2026-07-12T00:00:00Z",
+            updated: "2026-07-12T00:00:00Z",
+          },
+          plan: { title: "Sole mis-key", status: "completed", items: [] },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+    writeFileSync(
+      dualPath,
+      `${JSON.stringify(
+        {
+          vBRIEFInfo: { version: "0.8", description: "fixture" },
+          xBRIEFInfo: {
+            version: "0.8",
+            description: "fixture",
+            created: "2026-08-01T00:00:00Z",
+            updated: "2026-08-01T00:00:00Z",
+          },
+          plan: { title: "Dual 0.8", status: "completed", items: [] },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+    execFileSync("git", ["init"], { cwd: project });
+
+    expect(detectLegacyVbriefLayout(project).legacyLayout).toBe(true);
+
+    const first = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    expect(first.kind).toBe("rewritten");
+    if (first.kind === "rewritten") {
+      expect(first.files).toBeGreaterThanOrEqual(2);
+    }
+
+    const sole = JSON.parse(readFileSync(solePath, "utf8")) as Record<string, unknown>;
+    expect(sole).not.toHaveProperty("vBRIEFInfo");
+    expect(sole).toMatchObject({ xBRIEFInfo: { version: "0.8" } });
+
+    const dual = JSON.parse(readFileSync(dualPath, "utf8")) as Record<string, unknown>;
+    expect(dual).not.toHaveProperty("vBRIEFInfo");
+    expect(dual).toMatchObject({ xBRIEFInfo: { version: "0.8", description: "fixture" } });
+
+    expect(detectLegacyVbriefLayout(project).legacyLayout).toBe(false);
+    expect(runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO).kind).toBe("noop");
   });
 });
