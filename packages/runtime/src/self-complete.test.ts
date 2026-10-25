@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { RUNTIME_PIN_PACKAGE } from "@deftai/directive-core/dist/install-health/constants.js";
 import { afterEach, describe, expect, it } from "vitest";
+import { run as runHookDispatch } from "./hook-dispatch.js";
 import {
   DEFT_DOCTOR_HOOK_DIAGNOSTIC,
   isDoctorDiagnosticEnv,
@@ -16,7 +17,6 @@ import {
 } from "./self-complete.js";
 import { runSetup } from "./setup.js";
 import { formatTrackedHookPreserved } from "./setup-wiring.js";
-import { run as runHookDispatch } from "./hook-dispatch.js";
 
 const TEMPS: string[] = [];
 
