@@ -3,12 +3,17 @@
     "version": "0.8",
     "description": "Locked #5795: equal-version upgrade must clear hybrid vBRIEFInfo@0.8 so doctor is not stuck migration_needed.",
     "created": "2026-10-25T02:34:38.000Z",
-    "updated": "2026-10-25T02:37:27Z"
+    "updated": "2026-10-25T03:03:11Z"
   },
   "plan": {
+    "id": "ovpr-locked-5795",
     "title": "bug(installer,migrate): hybrid vBRIEFInfo@0.8 equal-version migrate-clean",
-    "summary": "Strengthen xbrief-migrate so equal-version upgrade clears hybrid/mis-keyed vBRIEFInfo@0.8 shapes that leave doctor migration_needed.",
+    "status": "running",
     "metadata": {
+      "kind": "story",
+      "github": {
+        "issue": 5795
+      },
       "swarm": {
         "file_scope": [
           "packages/core/src/xbrief-migrate/migrate-project.ts",
@@ -19,43 +24,39 @@
           "packages/runtime/src/migrate.test.ts",
           "packages/runtime/src/data-status.test.ts",
           "CHANGELOG.md"
-        ]
-      },
-      "kind": "story",
-      "github": {
-        "issue": 5795
+        ],
+        "file_scope_confidence": "high"
       }
     },
+    "items": [
+      {
+        "id": "1",
+        "title": "Cover hybrid/mis-keyed vBRIEFInfo@0.8 in xbrief-migrate so equal-version upgrade clears migration_needed",
+        "effort": "M",
+        "status": "proposed",
+        "narrative": {
+          "Overview": "Implement Locked #5795: strengthen xbrief-migrate so equal-version upgrade clears hybrid/mis-keyed vBRIEFInfo@0.8 shapes that leave doctor migration_needed.",
+          "Acceptance": "Equal-version upgrade/migrate on hybrid vBRIEFInfo@0.8 fixtures exits migrate-clean (doctor not stuck migration_needed); focused regression covers the stuck case."
+        }
+      }
+    ],
     "acceptance": {
       "commands": [],
       "none_stated": true,
       "source_rung": "derived",
-      "derived_reason": "derived from Locked disposition Done-when on #5795",
+      "derived_reason": "derived from Locked disposition Done-when on #5795 Path B activation: none_stated until product PR stamps proof cmds.",
       "clauses": [
         {
           "id": 1,
-          "text": "Equal-version upgrade/migrate on hybrid vBRIEFInfo@0.8 fixtures exits migrate-clean (doctor not stuck migration_needed); focused regression covers the stuck case."
+          "text": "Equal-version upgrade/migrate on hybrid vBRIEFInfo@0.8 fixtures exits migrate-clean (doctor not stuck migration_needed); focused regression covers the stuck case.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
         }
-      ]
+      ],
+      "ambiguity_attestation": "none_found"
     },
-    "items": [
-      {
-        "id": "5795-hybrid-migrate",
-        "text": "Cover hybrid/mis-keyed vBRIEFInfo@0.8 in xbrief-migrate so equal-version upgrade clears migration_needed.",
-        "disposition": "open",
-        "title": "Cover hybrid/mis-keyed vBRIEFInfo@0.8 in xbrief-migrate so equal-version upgrade",
-        "status": "running",
-        "description": "Cover hybrid/mis-keyed vBRIEFInfo@0.8 in xbrief-migrate so equal-version upgrade clears migration_needed.",
-        "effort": "M",
-        "narrative": {
-          "Overview": "Implement Locked #5795.",
-          "Acceptance": "Cover hybrid/mis-keyed vBRIEFInfo@0.8 in xbrief-migrate so equal-version upgrade clears migration_needed."
-        }
-      }
-    ],
-    "status": "running",
-    "updated": "2026-10-25T02:37:27Z",
-    "id": "ovpr-locked-5795",
+    "updated": "2026-10-25T03:03:11Z",
     "references": [
       {
         "type": "x-xbrief/github-issue",

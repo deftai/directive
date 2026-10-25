@@ -3,11 +3,12 @@
     "version": "0.8",
     "description": "Locked #5798: doctor recovery prose uses failure-shaped remedy map (schema/wiring residual != always npm i -g + repair).",
     "created": "2026-10-25T02:41:55.000Z",
-    "updated": "2026-10-25T02:42:05Z"
+    "updated": "2026-10-25T03:03:11Z"
   },
   "plan": {
+    "id": "ovpr-locked-5798",
     "title": "bug(installer,doctor): failure-shaped remedy map for doctor recovery",
-    "summary": "Locked #5798: doctor recovery prose uses failure-shaped remedy map (schema/wiring residual != always npm i -g + repair).",
+    "status": "running",
     "metadata": {
       "kind": "story",
       "github": {
@@ -20,36 +21,39 @@
           "packages/runtime/src/doctor-remedy-inventory.test.ts",
           "packages/runtime/src/doctor-diagnose.test.ts",
           "CHANGELOG.md"
-        ]
+        ],
+        "file_scope_confidence": "high"
       }
-    },
-    "acceptance": {
-      "commands": [],
-      "none_stated": true,
-      "source_rung": "derived",
-      "derived_reason": "derived from Locked disposition Done-when on #5798",
-      "clauses": [
-        {
-          "id": 1,
-          "text": "Each major doctor failure class prints the correct next command; leftover schema/wiring cases are not steered to irrelevant global install."
-        }
-      ]
     },
     "items": [
       {
         "id": "1",
         "title": "Each major doctor failure class prints the correct next command; leftover schema",
         "effort": "M",
-        "status": "running",
+        "status": "proposed",
         "narrative": {
-          "Overview": "Implement Locked disposition on #5798.",
+          "Overview": "Implement Locked #5798: Each major doctor failure class prints the correct next command; leftover schema",
           "Acceptance": "Each major doctor failure class prints the correct next command; leftover schema/wiring cases are not steered to irrelevant global install."
         }
       }
     ],
-    "status": "running",
-    "updated": "2026-10-25T02:42:05Z",
-    "id": "ovpr-locked-5798",
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived from Locked disposition Done-when on #5798 Path B activation: none_stated until product PR stamps proof cmds.",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Each major doctor failure class prints the correct next command; leftover schema/wiring cases are not steered to irrelevant global install.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-10-25T03:03:11Z",
     "references": [
       {
         "type": "x-xbrief/github-issue",
