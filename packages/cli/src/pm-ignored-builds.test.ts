@@ -80,9 +80,7 @@ afterEach(() => {
 
 describe("pnpm ignored-builds recovery (#5797)", () => {
   it("detects ERR_PNPM_IGNORED_BUILDS in stderr/message blobs", () => {
-    expect(isPnpmIgnoredBuildsFailure("ERR_PNPM_IGNORED_BUILDS: ignored build scripts")).toBe(
-      true,
-    );
+    expect(isPnpmIgnoredBuildsFailure("ERR_PNPM_IGNORED_BUILDS: ignored build scripts")).toBe(true);
     expect(isPnpmIgnoredBuildsFailure("something else")).toBe(false);
   });
 
@@ -172,10 +170,7 @@ describe("allowBuilds ownership invariant (#5797)", () => {
       const withoutNoise = src
         .replace(/\/\*[\s\S]*?\*\//g, "")
         .replace(/\/\/.*$/gm, "")
-        .replace(
-          /export const PNPM_IGNORED_BUILDS_PLACEHOLDER\s*=\s*["'`][^"'`]+["'`];?/,
-          "",
-        );
+        .replace(/export const PNPM_IGNORED_BUILDS_PLACEHOLDER\s*=\s*["'`][^"'`]+["'`];?/, "");
       expect(withoutNoise, rel).not.toContain(PNPM_IGNORED_BUILDS_PLACEHOLDER);
       expect(withoutNoise, rel).not.toMatch(
         /['"`]allowBuilds['"`]\s*[:=].{0,40}(true|false|set this)/s,
