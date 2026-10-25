@@ -1,0 +1,65 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Locked #5798: doctor recovery prose uses failure-shaped remedy map (schema/wiring residual != always npm i -g + repair).",
+    "created": "2026-10-25T02:41:55.000Z",
+    "updated": "2026-10-25T03:03:11Z"
+  },
+  "plan": {
+    "id": "ovpr-locked-5798",
+    "title": "bug(installer,doctor): failure-shaped remedy map for doctor recovery",
+    "status": "running",
+    "metadata": {
+      "kind": "story",
+      "github": {
+        "issue": 5798
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/runtime/src/doctor.ts",
+          "packages/runtime/src/doctor-diagnose.ts",
+          "packages/runtime/src/doctor-remedy-inventory.test.ts",
+          "packages/runtime/src/doctor-diagnose.test.ts",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "high"
+      }
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "Each major doctor failure class prints the correct next command; leftover schema",
+        "effort": "M",
+        "status": "proposed",
+        "narrative": {
+          "Overview": "Implement Locked #5798: Each major doctor failure class prints the correct next command; leftover schema",
+          "Acceptance": "Each major doctor failure class prints the correct next command; leftover schema/wiring cases are not steered to irrelevant global install."
+        }
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived from Locked disposition Done-when on #5798 Path B activation: none_stated until product PR stamps proof cmds.",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Each major doctor failure class prints the correct next command; leftover schema/wiring cases are not steered to irrelevant global install.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-10-25T03:03:11Z",
+    "references": [
+      {
+        "type": "x-xbrief/github-issue",
+        "uri": "https://github.com/deftai/directive/issues/5798",
+        "title": "#5798"
+      }
+    ]
+  }
+}

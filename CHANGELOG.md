@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Path B: land Locked installer active xBRIEFs (#5795/#5797/#5798) with concrete `file_scope` precommitment.
+
 - Path B: land sealed OVPR cohort active xBRIEFs (#5807/#5808/#5809/#5869, #4666, #5796) with concrete `file_scope` precommitment.
 
 ### Added
