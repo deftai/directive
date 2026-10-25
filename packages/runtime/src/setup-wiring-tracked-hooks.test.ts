@@ -103,16 +103,21 @@ describe("ensureGitHooks tracked divergent preserve (#5837)", () => {
     expect(existsSync(join(root, ".githooks/_deft-run.sh"))).toBe(false);
   });
 
-  it("force never bypasses refuse-to-downgrade (#5804)", () => {
+  it("force never bypasses refuse-to-downgrade (#5804 / #5885)", () => {
     const root = tempRepo();
     const enrolled = `${CUSTOM_PRE_PUSH}# ${PRE_PUSH_BOUND_PRE_PR_MARKER}\n`;
     writeHook(root, ".githooks/pre-push", enrolled);
     track(root, ".githooks/pre-push");
-    const out = ensureGitHooks(root, { forceTrackedReplace: true });
+    // Tip PRE_PUSH already carries the marker; inject a marker-free next body so
+    // forceTrackedReplace reaches the refuse-to-downgrade branch (#5885 P2).
+    const out = ensureGitHooks(root, {
+      forceTrackedReplace: true,
+      testOnlyNextBodyByRel: { ".githooks/pre-push": CUSTOM_PRE_PUSH },
+    });
     const body = readFileSync(join(root, ".githooks/pre-push"), "utf8");
-    // Either the template already carries the marker (replace is not a downgrade)
-    // or the enrolled arm is kept; the marker never disappears.
-    expect(body).toContain(PRE_PUSH_BOUND_PRE_PR_MARKER);
+    expect(body).toBe(enrolled);
+    expect(out.modified).not.toContain(".githooks/pre-push");
+    expect(out.conflicts.some((c) => c.includes("refuse-to-downgrade"))).toBe(true);
     expect(out.preserved).toEqual([]);
   });
 
