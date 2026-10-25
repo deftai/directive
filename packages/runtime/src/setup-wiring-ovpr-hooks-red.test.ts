@@ -21,6 +21,10 @@ import {
   SHELL_HOOK_MATCHER,
   SPAWN_HOOK_MATCHER,
 } from "@deftai/directive-core/dist/hooks/tools.js";
+import {
+  DEFAULT_HOST_HOOKS_POLICY,
+  type HostHooksPolicy,
+} from "@deftai/directive-core/dist/policy/host-hooks.js";
 import { afterEach, describe, expect, it } from "vitest";
 import { ensureHostHooks } from "./setup-wiring.js";
 
@@ -147,5 +151,102 @@ describe("OVPR hooks red #5807 dual PreToolUse / stale deft-hook wrapper", () =>
     expect(wrapperBody).toContain("node_modules/@deftai/directive-runtime/dist/hook-bin.js");
     expect(wrapperBody).not.toMatch(/\bcommand -v deft-hook\b/);
     expect(wrapperBody).not.toMatch(/\bexec deft-hook\b/);
+  });
+
+  it("preserves custom commands co-located with the Grok wrapper in one PreToolUse group (Greptile P1 #5886)", () => {
+    const root = tempRepo();
+    mkdirSync(join(root, ".grok", "hooks"), { recursive: true });
+    writeFileSync(join(root, ".grok/hooks/deft-pretooluse-wrapper.sh"), STALE_DEFT_HOOK_WRAPPER, {
+      encoding: "utf8",
+    });
+    chmodSync(join(root, ".grok/hooks/deft-pretooluse-wrapper.sh"), 0o755);
+
+    const wrapperCmd = "./deft-pretooluse-wrapper.sh";
+    const customCmd = "./custom-grok-check.sh";
+    const matcher = SHELL_HOOK_MATCHER;
+    writeFileSync(
+      join(root, ".grok/hooks/deft.json"),
+      `${JSON.stringify(
+        {
+          hooks: {
+            SessionStart: [
+              {
+                hooks: [
+                  {
+                    type: "command",
+                    command:
+                      "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host grok --event session.start",
+                    timeout: 5,
+                  },
+                ],
+              },
+            ],
+            PreToolUse: [
+              {
+                matcher,
+                hooks: [
+                  { type: "command", command: wrapperCmd, timeout: 30 },
+                  { type: "command", command: customCmd, timeout: 5 },
+                ],
+              },
+            ],
+          },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    ensureHostHooks(root);
+
+    const afterMerge = JSON.parse(readFileSync(join(root, ".grok/hooks/deft.json"), "utf8")) as {
+      hooks: {
+        PreToolUse: Array<{
+          matcher?: string;
+          hooks?: Array<{ command?: string }>;
+        }>;
+      };
+    };
+    const mergeCommands = (afterMerge.hooks.PreToolUse ?? []).flatMap((group) =>
+      (group.hooks ?? []).flatMap((hook) =>
+        typeof hook.command === "string" ? [hook.command] : [],
+      ),
+    );
+    expect(mergeCommands, "merge must keep custom command beside managed wrapper").toContain(
+      customCmd,
+    );
+    expect(
+      mergeCommands.some((cmd) => cmd.includes("deft-pretooluse-wrapper.sh")),
+      "merge must redeposit Grok wrapper",
+    ).toBe(true);
+
+    const disableGrok: HostHooksPolicy = { ...DEFAULT_HOST_HOOKS_POLICY, grok: false };
+    ensureHostHooks(root, disableGrok);
+
+    const afterStrip = JSON.parse(readFileSync(join(root, ".grok/hooks/deft.json"), "utf8")) as {
+      hooks: {
+        PreToolUse?: Array<{
+          matcher?: string;
+          hooks?: Array<{ command?: string }>;
+        }>;
+      };
+    };
+    const stripCommands = (afterStrip.hooks.PreToolUse ?? []).flatMap((group) =>
+      (group.hooks ?? []).flatMap((hook) =>
+        typeof hook.command === "string" ? [hook.command] : [],
+      ),
+    );
+    expect(stripCommands, "strip must keep custom command when disabling grok").toContain(
+      customCmd,
+    );
+    expect(
+      stripCommands.some((cmd) => cmd.includes("deft-pretooluse-wrapper.sh")),
+      "strip must remove managed Grok wrapper",
+    ).toBe(false);
+    const customGroup = (afterStrip.hooks.PreToolUse ?? []).find((group) =>
+      (group.hooks ?? []).some((hook) => hook.command === customCmd),
+    );
+    expect(customGroup?.matcher, "strip must preserve group matcher field").toBe(matcher);
   });
 });

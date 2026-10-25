@@ -568,13 +568,31 @@ function object(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
-function nestedManagedGroup(value: unknown): boolean {
+function isManagedNestedHookCommand(command: string, host: string): boolean {
+  if (host === "grok" && isGrokWrapperCommand(command)) return true;
+  return isManagedHookCommand(command) && command.includes(`--host ${host}`);
+}
+
+/**
+ * Drop managed commands inside a nested group; keep custom hooks and group fields.
+ * Returns null when the group is empty after filtering (or was fully managed).
+ * Non-group entries pass through unchanged.
+ */
+function filterManagedCommandsInNestedGroup(
+  value: unknown,
+  host: string,
+  options: { hostAgnostic?: boolean } = {},
+): unknown | null {
   const group = object(value);
-  if (group === null || !Array.isArray(group.hooks)) return false;
-  return group.hooks.some((h) => {
+  if (group === null || !Array.isArray(group.hooks)) return value;
+  const keptHooks = group.hooks.filter((h) => {
     const hook = object(h);
-    return typeof hook?.command === "string" && isManagedHookCommand(hook.command);
+    if (typeof hook?.command !== "string") return true;
+    if (options.hostAgnostic) return !isManagedHookCommand(hook.command);
+    return !isManagedNestedHookCommand(hook.command, host);
   });
+  if (keptHooks.length === 0) return null;
+  return { ...group, hooks: keptHooks };
 }
 
 function cursorManagedEntry(value: unknown): boolean {
@@ -620,16 +638,9 @@ function stripNestedManaged(
   for (const key of ["SessionStart", "PreToolUse", "PreCompact", "PostCompact"] as const) {
     if (!(key in hooks)) continue;
     const filtered = Array.isArray(hooks[key])
-      ? (hooks[key] as unknown[]).filter((e) => {
-          const group = object(e);
-          if (group === null || !Array.isArray(group.hooks)) return true;
-          return !group.hooks.some((h) => {
-            const hook = object(h);
-            if (typeof hook?.command !== "string") return false;
-            if (host === "grok" && isGrokWrapperCommand(hook.command)) return true;
-            return isManagedHookCommand(hook.command) && hook.command.includes(`--host ${host}`);
-          });
-        })
+      ? (hooks[key] as unknown[])
+          .map((e) => filterManagedCommandsInNestedGroup(e, host))
+          .filter((e): e is unknown => e !== null)
       : [];
     if (filtered.length > 0) nextHooks[key] = filtered;
   }
@@ -664,6 +675,17 @@ function stripCursorManaged(existing: Record<string, unknown>): Record<string, u
   return { ...existing, version: 1, hooks: nextHooks };
 }
 
+function keepCustomNestedGroups(entries: unknown[], host: string): unknown[] {
+  return entries
+    .map((e) =>
+      filterManagedCommandsInNestedGroup(e, host, {
+        // Merge clears any managed identity (incl. Grok wrapper) before redeposit.
+        hostAgnostic: true,
+      }),
+    )
+    .filter((e): e is unknown => e !== null);
+}
+
 function mergeNestedHost(
   existing: Record<string, unknown>,
   host: string,
@@ -671,10 +693,10 @@ function mergeNestedHost(
 ): Record<string, unknown> {
   const hooks = object(existing.hooks) ?? {};
   const session = Array.isArray(hooks.SessionStart)
-    ? hooks.SessionStart.filter((e) => !nestedManagedGroup(e))
+    ? keepCustomNestedGroups(hooks.SessionStart as unknown[], host)
     : [];
   const preTool = Array.isArray(hooks.PreToolUse)
-    ? hooks.PreToolUse.filter((e) => !nestedManagedGroup(e))
+    ? keepCustomNestedGroups(hooks.PreToolUse as unknown[], host)
     : [];
   const nextHooks: Record<string, unknown> = {
     ...hooks,
@@ -686,10 +708,10 @@ function mergeNestedHost(
   };
   if (options.compact) {
     const preCompact = Array.isArray(hooks.PreCompact)
-      ? hooks.PreCompact.filter((e) => !nestedManagedGroup(e))
+      ? keepCustomNestedGroups(hooks.PreCompact as unknown[], host)
       : [];
     const postCompact = Array.isArray(hooks.PostCompact)
-      ? hooks.PostCompact.filter((e) => !nestedManagedGroup(e))
+      ? keepCustomNestedGroups(hooks.PostCompact as unknown[], host)
       : [];
     nextHooks.PreCompact = [...preCompact, nestedGroup(host, "session.compact")];
     nextHooks.PostCompact = [...postCompact, nestedGroup(host, "session.compact")];
