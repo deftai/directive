@@ -84,12 +84,6 @@
       "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
       "specImpact": null,
       "completedAt": "2026-10-20T05:26:22Z"
-    },
-    {
-      "scopeId": "ovpr-hooks-5807-5808-5809-5869",
-      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
-      "specImpact": null,
-      "completedAt": "2026-10-25T01:32:04Z"
     }
   ],
   "coverage": [],
