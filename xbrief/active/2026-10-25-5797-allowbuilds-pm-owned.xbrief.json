@@ -8,16 +8,10 @@
   "plan": {
     "title": "bug(installer,upgrade): stop placeholder allowBuilds for directive-runtime",
     "summary": "Locked #5797: equal-version upgrade must not write placeholder/invalid allowBuilds for @deftai/directive-runtime; PM-owned.",
-    "Tracking": {
-      "github": {
-        "issue": 5797
-      }
-    },
     "metadata": {
       "kind": "story",
       "github": {
-        "issue": 5797,
-        "repo": "deftai/directive"
+        "issue": 5797
       },
       "swarm": {
         "file_scope": [
@@ -31,7 +25,7 @@
     },
     "acceptance": {
       "commands": [],
-      "none_stated": false,
+      "none_stated": true,
       "source_rung": "derived",
       "derived_reason": "derived from Locked disposition Done-when on #5797",
       "clauses": [
@@ -53,7 +47,7 @@
         }
       }
     ],
-    "status": "pending",
+    "status": "running",
     "updated": "2026-10-25T02:42:04Z"
   }
 }

@@ -8,16 +8,10 @@
   "plan": {
     "title": "bug(installer,doctor): failure-shaped remedy map for doctor recovery",
     "summary": "Locked #5798: doctor recovery prose uses failure-shaped remedy map (schema/wiring residual != always npm i -g + repair).",
-    "Tracking": {
-      "github": {
-        "issue": 5798
-      }
-    },
     "metadata": {
       "kind": "story",
       "github": {
-        "issue": 5798,
-        "repo": "deftai/directive"
+        "issue": 5798
       },
       "swarm": {
         "file_scope": [
@@ -31,7 +25,7 @@
     },
     "acceptance": {
       "commands": [],
-      "none_stated": false,
+      "none_stated": true,
       "source_rung": "derived",
       "derived_reason": "derived from Locked disposition Done-when on #5798",
       "clauses": [
@@ -53,7 +47,7 @@
         }
       }
     ],
-    "status": "pending",
+    "status": "running",
     "updated": "2026-10-25T02:42:05Z"
   }
 }

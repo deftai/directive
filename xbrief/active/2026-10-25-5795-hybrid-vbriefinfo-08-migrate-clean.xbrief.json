@@ -8,11 +8,6 @@
   "plan": {
     "title": "bug(installer,migrate): hybrid vBRIEFInfo@0.8 equal-version migrate-clean",
     "summary": "Strengthen xbrief-migrate so equal-version upgrade clears hybrid/mis-keyed vBRIEFInfo@0.8 shapes that leave doctor migration_needed.",
-    "Tracking": {
-      "github": {
-        "issue": 5795
-      }
-    },
     "metadata": {
       "swarm": {
         "file_scope": [
@@ -28,15 +23,12 @@
       },
       "kind": "story",
       "github": {
-        "issue": 5795,
-        "repo": "deftai/directive"
+        "issue": 5795
       }
     },
     "acceptance": {
-      "commands": [
-        "pnpm exec vitest run packages/core/src/xbrief-migrate/migrate-project.test.ts -t '5795|hybrid|leftover vBRIEFInfo|0.8'"
-      ],
-      "none_stated": false,
+      "commands": [],
+      "none_stated": true,
       "source_rung": "derived",
       "derived_reason": "derived from Locked disposition Done-when on #5795",
       "clauses": [
