@@ -145,6 +145,68 @@ describe("runMigrate (R7 / AC7.8)", () => {
     expect(readProjectDataStatus(root).dataStatus).toBe("current");
   });
 
+  it("F-017 / #5795: equal-version migrate clears hybrid vBRIEFInfo@0.8 under completed/", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, ".deft", "directive"), { recursive: true });
+    writeFileSync(
+      join(root, DATA_SCHEMA_MARKER_REL),
+      `${JSON.stringify({ schemaVersion: CURRENT_DATA_SCHEMA_VERSION }, null, 2)}\n`,
+    );
+    mkdirSync(join(root, "xbrief", "completed"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "completed", "2026-07-12-sole.xbrief.json"),
+      `${JSON.stringify({
+        vBRIEFInfo: {
+          version: "0.8",
+          description: "mis-keyed",
+          created: "2026-07-12T00:00:00Z",
+          updated: "2026-07-12T00:00:00Z",
+        },
+        plan: { title: "Sole", status: "completed", items: [] },
+      })}\n`,
+      "utf8",
+    );
+    writeFileSync(
+      join(root, "xbrief", "completed", "2026-08-01-dual.xbrief.json"),
+      `${JSON.stringify({
+        vBRIEFInfo: { version: "0.8", description: "fixture" },
+        xBRIEFInfo: {
+          version: "0.8",
+          description: "fixture",
+          created: "2026-08-01T00:00:00Z",
+          updated: "2026-08-01T00:00:00Z",
+        },
+        plan: { title: "Dual", status: "completed", items: [] },
+      })}\n`,
+      "utf8",
+    );
+    execFileSync("git", ["init"], { cwd: root });
+
+    expect(projectNeedsXbriefMigration(root)).toBe(true);
+    expect(readProjectDataStatus(root).dataStatus).toBe("migration_needed");
+
+    const result = runMigrate({ from: "0.129.0", root });
+    expect(result.message).not.toMatch(/^migrate failed/);
+    expect(projectNeedsXbriefMigration(root)).toBe(false);
+    expect(readProjectDataStatus(root).dataStatus).toBe("current");
+
+    const sole = JSON.parse(
+      readFileSync(join(root, "xbrief", "completed", "2026-07-12-sole.xbrief.json"), "utf8"),
+    );
+    expect(sole).not.toHaveProperty("vBRIEFInfo");
+    expect(sole.xBRIEFInfo.version).toBe("0.8");
+    const dual = JSON.parse(
+      readFileSync(join(root, "xbrief", "completed", "2026-08-01-dual.xbrief.json"), "utf8"),
+    );
+    expect(dual).not.toHaveProperty("vBRIEFInfo");
+    expect(dual.xBRIEFInfo.version).toBe("0.8");
+
+    const second = runMigrate({ from: "0.129.0", root });
+    expect(second.message).not.toMatch(/^migrate failed/);
+    expect(projectNeedsXbriefMigration(root)).toBe(false);
+    expect(readProjectDataStatus(root).dataStatus).toBe("current");
+  });
+
   it("F-017: marked vbrief retention still needs migrate for residual xbrief@0.6", () => {
     const root = tempRoot();
     mkdirSync(join(root, "vbrief"), { recursive: true });

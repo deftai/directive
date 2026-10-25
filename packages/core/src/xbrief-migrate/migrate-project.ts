@@ -32,11 +32,7 @@ import {
 } from "./constants.js";
 import { deleteTopLevelJsonKey } from "./delete-top-level-json-key.js";
 import { detectLegacyVbriefLayout, detectXbriefConvergence } from "./detect.js";
-import {
-  evaluateXbriefDrift,
-  inMemoryCorpusEnvelopeIsDirty,
-  isCorpusEnvelopeCandidatePath,
-} from "./drift-gate.js";
+import { evaluateXbriefDrift, inMemoryCorpusEnvelopeIsDirty } from "./drift-gate.js";
 import { hasVbriefDeprecationMarker, isDirectory, isEffectivelyEmptyDir } from "./fs-helpers.js";
 import { assertMigrationSourceSafe } from "./migration-containment.js";
 import { renderXbriefMigrationLine, xbriefMigrationGuidance } from "./signpost.js";
@@ -298,11 +294,23 @@ function isHybridRewriteSourceVersion(version: string | null): boolean {
   );
 }
 
+/** Sole mis-keyed `vBRIEFInfo@0.8` (no `xBRIEFInfo`) — Locked #5795 residual. */
+function isMisKeyedLegacyV08(parsed: JsonObject): boolean {
+  if (Object.hasOwn(parsed, MIGRATED_INFO_ROOT_KEY)) return false;
+  const legacy = parsed[LEGACY_INFO_ROOT_KEY];
+  return isPlainJsonObject(legacy) && legacy.version === VBRIEF_VERSION;
+}
+
+function needsResidualEnvelopeRewrite(parsed: JsonObject): boolean {
+  if (isMisKeyedLegacyV08(parsed)) return true;
+  return isHybridRewriteSourceVersion(readDeclaredArtifactVersion(parsed));
+}
+
 /**
  * Plan in-place hybrid envelope rewrites for xbrief lifecycle `.xbrief.json`
- * artifacts that still declare `xBRIEFInfo@0.6` (or orphan rename-era `@0.7`)
- * after the layout rename (#3236 / #2974 / wave3b L1). Pure probe — no writes.
- * Already-0.8 artifacts, schema deposits, and other versions are skipped so
+ * artifacts that still declare `xBRIEFInfo@0.6`, orphan rename-era `@0.7`, or
+ * mis-keyed sole `vBRIEFInfo@0.8` (#3236 / #2974 / #5795). Pure probe — no writes.
+ * Clean already-0.8 artifacts, schema deposits, and other versions are skipped so
  * residual #2368 schema-only markers still route to `directive update`.
  */
 function planHybridEnvelopeRewrites(
@@ -327,8 +335,8 @@ function planHybridEnvelopeRewrites(
         error: `failed to parse hybrid envelope candidate ${relative(projectRoot, filePath)}: ${detail}`,
       };
     }
-    // Residual 0.6 + orphan 0.7 only; skip 0.8 and unknown (0.7 is migrate-through).
-    if (!isHybridRewriteSourceVersion(readDeclaredArtifactVersion(parsed))) {
+    // Residual 0.5/0.6/0.7 + mis-keyed sole vBRIEFInfo@0.8 (#5795).
+    if (!needsResidualEnvelopeRewrite(parsed)) {
       continue;
     }
     const result = transformArtifactV06ToV08Transactional(parsed);
@@ -434,10 +442,11 @@ type StripRewrite = {
 };
 
 /**
- * Plan in-place leftover-`vBRIEFInfo` strips for the same candidate set as
- * `scanCorpusEnvelope` (#4163). Beside {@link planHybridEnvelopeRewrites}, not
- * through `transformArtifactV06ToV08`. Pure probe — no writes. Bodies are
- * original file bytes with only the leftover key deleted.
+ * Plan in-place leftover-`vBRIEFInfo` strips for every lifecycle `.xbrief.json`
+ * under `xbrief/` (including completed/; #4163 + #5795). Beside
+ * {@link planHybridEnvelopeRewrites}, not through `transformArtifactV06ToV08`.
+ * Pure probe — no writes. Bodies are original file bytes with only the leftover
+ * key deleted. Drift-gate corpus postconditions still apply at apply time.
  */
 export function planRedundantLegacyEnvelopeStrips(
   projectRoot: string,
@@ -450,7 +459,6 @@ export function planRedundantLegacyEnvelopeStrips(
 
   for (const filePath of artifactPaths) {
     const rel = relative(projectRoot, filePath).replace(/\\/g, "/");
-    if (!isCorpusEnvelopeCandidatePath(rel)) continue;
 
     let original: string;
     let parsed: JsonObject;
@@ -465,6 +473,10 @@ export function planRedundantLegacyEnvelopeStrips(
       };
     }
     if (!isPlainJsonObject(parsed) || !Object.hasOwn(parsed, LEGACY_INFO_ROOT_KEY)) {
+      continue;
+    }
+    // Sole mis-keyed legacy (no xBRIEFInfo) is owned by hybrid rewrite (#5795).
+    if (!Object.hasOwn(parsed, MIGRATED_INFO_ROOT_KEY)) {
       continue;
     }
 
@@ -848,8 +860,10 @@ function runAgentsRefresh(
 }
 
 /**
- * In-place residual envelope rewrites under xbrief/ (#3236 / wave3b L1).
- * Returns a terminal outcome when work was applied or refused; null when none pending.
+ * In-place residual envelope rewrites under xbrief/ (#3236 / wave3b L1 / #5795).
+ * Hybrid bumps and leftover-key strips share one pass so equal-version upgrade
+ * clears mis-keyed @0.8 and dual leftovers together. Returns a terminal outcome
+ * when work was applied or refused; null when none pending.
  */
 function rewriteResidualXbriefEnvelopes(
   projectRoot: string,
@@ -859,49 +873,52 @@ function rewriteResidualXbriefEnvelopes(
   if (!plan.ok) {
     return { kind: "config", message: plan.error };
   }
-  if (plan.pending.length > 0) {
-    if (!args.force) {
-      const git = checkGitClean(projectRoot);
-      if (git.status === "WARN") {
-        return {
-          kind: "refused",
-          message: `${git.message} ${xbriefMigrationGuidance()} Pass --force to override.`,
-        };
-      }
-    }
-    const files = applyHybridEnvelopeRewrites(projectRoot, plan.pending);
-    return {
-      kind: "rewritten",
-      files,
-      message: `Rewrote ${files} residual envelope(s) (${PRE_LEGACY_VBRIEF_VERSION}/${LEGACY_VBRIEF_VERSION}/${MIGRATE_THROUGH_VBRIEF_VERSION}) in place to xBRIEFInfo@${VBRIEF_VERSION} under '${MIGRATED_ARTIFACT_DIR}/'.`,
-    };
-  }
-
   const strip = planRedundantLegacyEnvelopeStrips(projectRoot);
   if (!strip.ok) {
     return { kind: "config", message: strip.error };
   }
-  if (strip.pending.length > 0) {
-    if (!args.force) {
-      const git = checkGitClean(projectRoot);
-      if (git.status === "WARN") {
-        return {
-          kind: "refused",
-          message: `${git.message} ${xbriefMigrationGuidance()} Pass --force to override.`,
-        };
-      }
+  if (plan.pending.length === 0 && strip.pending.length === 0) {
+    return null;
+  }
+  if (!args.force) {
+    const git = checkGitClean(projectRoot);
+    if (git.status === "WARN") {
+      return {
+        kind: "refused",
+        message: `${git.message} ${xbriefMigrationGuidance()} Pass --force to override.`,
+      };
     }
+  }
+
+  let hybridFiles = 0;
+  if (plan.pending.length > 0) {
+    hybridFiles = applyHybridEnvelopeRewrites(projectRoot, plan.pending);
+  }
+  let stripFiles = 0;
+  if (strip.pending.length > 0) {
     const applied = applyRedundantLegacyEnvelopeStrips(projectRoot, strip.pending);
     if (!applied.ok) {
       return { kind: "config", message: applied.error };
     }
-    return {
-      kind: "rewritten",
-      files: applied.files,
-      message: `Stripped ${applied.files} redundant leftover vBRIEFInfo envelope(s) beside xBRIEFInfo@0.8 under '${MIGRATED_ARTIFACT_DIR}/'.`,
-    };
+    stripFiles = applied.files;
   }
-  return null;
+
+  const parts: string[] = [];
+  if (hybridFiles > 0) {
+    parts.push(
+      `Rewrote ${hybridFiles} residual envelope(s) (${PRE_LEGACY_VBRIEF_VERSION}/${LEGACY_VBRIEF_VERSION}/${MIGRATE_THROUGH_VBRIEF_VERSION}/mis-keyed@${VBRIEF_VERSION}) in place to xBRIEFInfo@${VBRIEF_VERSION}`,
+    );
+  }
+  if (stripFiles > 0) {
+    parts.push(
+      `Stripped ${stripFiles} redundant leftover vBRIEFInfo envelope(s) beside xBRIEFInfo@${VBRIEF_VERSION}`,
+    );
+  }
+  return {
+    kind: "rewritten",
+    files: hybridFiles + stripFiles,
+    message: `${parts.join("; ")} under '${MIGRATED_ARTIFACT_DIR}/'.`,
+  };
 }
 
 /** Core orchestrator for the consumer xbrief rename (#2110) + convergence (#2270). */
