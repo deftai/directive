@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed - Grok upgrade/repair leaves one PreToolUse entry per matcher and rewrites the outer-deny wrapper to pin-relative hook-bin (no leftover deft-hook deny beside a healthy registration). Merge/strip now filter managed commands inside each nested group so custom hooks co-located with the wrapper are preserved. Refs #5807.
 - Fixed - Leftover-complete #4666: active→completed xBRIEF after product merge #5883 (lifecycle only). Refs #4666.
 - Leftover-complete: move #5796 xBRIEF from active to completed after product PR #5877. Refs #5796.
 - Real-git leftover land (#4714) origin-active `it` timeout is platform-aware (240s on win32, 120s elsewhere) so LOCAL_GATE does not flake under suite load. Refs #4714 #5879.
