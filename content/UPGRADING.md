@@ -78,7 +78,7 @@ npm install -g --allow-scripts=<pkg,...> <package>
 
 ### Framework monorepo contributors
 
-Install source of truth for this repo is **pnpm** (`packageManager` field; CI uses `pnpm install --frozen-lockfile`). Install-script builds are gated by `pnpm-workspace.yaml` **`allowBuilds`** (currently `esbuild: true`). Do **not** treat `npm approve-scripts` under the pnpm virtual store as monorepo SoT.
+Install source of truth for this repo is **pnpm** (`packageManager` field; CI uses `pnpm install --frozen-lockfile`). Install-script builds are gated by `pnpm-workspace.yaml` **`allowBuilds`** (currently `esbuild: true` where needed). **`allowBuilds` is PM-owned**: Directive install/upgrade uses the package manager for `package.json` / lockfile pin ops and does **not** hand-edit `allowBuilds`. If pnpm fails with `ERR_PNPM_IGNORED_BUILDS`, recover with `pnpm approve-builds` or set a real `true`/`false` under `allowBuilds` — do **not** commit pnpm's interactive placeholder text. Pin/add paths already pass `--ignore-scripts` so ordinary consumer upgrades should not need a runtime `allowBuilds` entry. Do **not** treat `npm approve-scripts` under the pnpm virtual store as monorepo SoT.
 
 ### Git / remote package sources and publish
 

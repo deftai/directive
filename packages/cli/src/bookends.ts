@@ -61,7 +61,9 @@ import {
   fingerprintPlanCriticalFiles,
   formatPmExactAddCommand,
   formatPmRemoveCommand,
+  formatPnpmIgnoredBuildsRecovery,
   INSTALL_SCRIPT_POLICY_PLAN_LINE,
+  isPnpmIgnoredBuildsFailure,
   lockfileRecordsExactPin,
   PARTIAL_CHANGES_MAY_REMAIN,
   type PackageManager,
@@ -329,6 +331,10 @@ function assertPlanStillValid(
 function reportPmFailure(io: BookendIo, add: Extract<PmAddResult, { ok: false }>): number {
   io.writeErr(`${add.message}\n`);
   if (add.stderr) io.writeErr(`${add.stderr}\n`);
+  const blob = `${add.message}\n${add.stderr ?? ""}`;
+  if (isPnpmIgnoredBuildsFailure(blob)) {
+    io.writeErr(`${formatPnpmIgnoredBuildsRecovery()}\n`);
+  }
   if (add.interrupted) {
     if (!/partial changes may remain/i.test(add.message)) {
       io.writeErr(`${PARTIAL_CHANGES_MAY_REMAIN}\n`);

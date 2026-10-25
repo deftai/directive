@@ -42,10 +42,11 @@
       }
     ],
     "acceptance": {
-      "commands": [],
-      "none_stated": true,
-      "source_rung": "derived",
-      "derived_reason": "derived from Locked disposition Done-when on #5797 Path B activation: none_stated until product PR stamps proof cmds.",
+      "commands": [
+        "pnpm exec vitest run packages/cli/src/pm-ignored-builds.test.ts"
+      ],
+      "none_stated": false,
+      "source_rung": "stamped",
       "clauses": [
         {
           "id": 1,
