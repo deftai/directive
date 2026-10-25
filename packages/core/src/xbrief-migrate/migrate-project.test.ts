@@ -1647,6 +1647,59 @@ describe("runXbriefMigration redundant leftover strip (#4163)", () => {
 });
 
 describe("equal-version migrate clears hybrid vBRIEFInfo@0.8 (#5795)", () => {
+  // Keeper was red on 5e23e6c7d: strip plan refused dual both@0.6 (config) before hybrid rewrite.
+  it("migrates completed dual vBRIEFInfo+xBRIEFInfo both@0.6 via hybrid rewrite", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-5795-dual-06-"));
+    temps.push(base);
+    const project = join(base, "consumer");
+    mkdirSync(join(project, MIGRATED_ARTIFACT_DIR, "completed"), { recursive: true });
+    const dualPath = join(
+      project,
+      MIGRATED_ARTIFACT_DIR,
+      "completed",
+      "2026-06-15-dual-06.xbrief.json",
+    );
+    writeFileSync(
+      dualPath,
+      `${JSON.stringify(
+        {
+          vBRIEFInfo: {
+            version: "0.6",
+            description: "dual both@0.6 residual",
+            created: "2026-06-15T00:00:00Z",
+            updated: "2026-06-15T00:00:00Z",
+          },
+          xBRIEFInfo: {
+            version: "0.6",
+            description: "dual both@0.6 residual",
+            created: "2026-06-15T00:00:00Z",
+            updated: "2026-06-15T00:00:00Z",
+          },
+          plan: { title: "Dual both 0.6", status: "completed", items: [] },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+    execFileSync("git", ["init"], { cwd: project });
+
+    const stripPlan = planRedundantLegacyEnvelopeStrips(project);
+    expect(stripPlan.ok).toBe(true);
+    if (stripPlan.ok) {
+      expect(stripPlan.pending).toHaveLength(0);
+    }
+
+    const first = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    expect(first.kind).toBe("rewritten");
+
+    const after = JSON.parse(readFileSync(dualPath, "utf8")) as Record<string, unknown>;
+    expect(after).not.toHaveProperty("vBRIEFInfo");
+    expect(after).toMatchObject({ xBRIEFInfo: { version: "0.8" } });
+
+    expect(runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO).kind).toBe("noop");
+  });
+
   it("rewrites sole mis-keyed vBRIEFInfo@0.8 and strips dual leftovers under completed/", () => {
     const base = mkdtempSync(join(tmpdir(), "xbrief-5795-hybrid-08-"));
     temps.push(base);

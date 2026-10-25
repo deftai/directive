@@ -482,6 +482,10 @@ export function planRedundantLegacyEnvelopeStrips(
 
     const canonical = parsed[MIGRATED_INFO_ROOT_KEY];
     if (!isPlainJsonObject(canonical) || canonical.version !== VBRIEF_VERSION) {
+      // Dual @0.5/@0.6/@0.7 is owned by hybrid rewrite (transform drops both keys).
+      if (needsResidualEnvelopeRewrite(parsed)) {
+        continue;
+      }
       return {
         ok: false,
         error:
