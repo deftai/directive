@@ -3,21 +3,16 @@
     "version": "0.8",
     "description": "Sealed installer/OVPR hooks lane: #5807 dual PreToolUse, #5808 brief+refspec gates, #5809 disable-before-bin + project PM hatch, #5869 OVPR bot-visible hatch messaging (same files).",
     "created": "2026-10-23T23:30:00.000Z",
-    "updated": "2026-10-23T23:08:43.530Z"
+    "updated": "2026-10-25T01:32:02Z"
   },
   "plan": {
     "id": "ovpr-hooks-5807-5808-5809-5869",
     "title": "fix(hooks,ovpr): dual PreToolUse + brief/refspec gates + disable-before-bin + project PM hatch",
-    "status": "running",
+    "status": "completed",
     "metadata": {
       "kind": "story",
       "github": {
-        "issues": [
-          5807,
-          5808,
-          5809,
-          5869
-        ]
+        "issue": 5807
       },
       "swarm": {
         "file_scope": [
@@ -36,6 +31,32 @@
           "content/docs/deft-directive-disable.md"
         ],
         "file_scope_confidence": "high"
+      },
+      "productPullRequest": 5886,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "5265ac1fa4b2c97dae42ce5b9e93fc3157598a51",
+        "prNumber": 5886,
+        "prBase": "master",
+        "mergeCommit": "540810f0f05fde997ec021bfe62f925434e705e5",
+        "deliveryBranch": "master",
+        "deliveryCommit": "540810f0f05fde997ec021bfe62f925434e705e5",
+        "verifiedAt": "2026-10-25T01:32:02Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTZmNzctYTY3YS03MDYxLTliYTAtYTIzNDcwODBmNTlj"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-25T01:32:02Z",
+      "completedSessionId": "host:grok:v1:MDFhMTZmNzctYTY3YS03MDYxLTliYTAtYTIzNDcwODBmNTlj",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-25T01:32:02Z"
       }
     },
     "items": [
@@ -43,40 +64,73 @@
         "id": "1",
         "title": "#5807 One healthy Grok PreToolUse per matcher after upgrade; pin-relative hook-bin only",
         "effort": "M",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Overview": "Implement Locked disposition on #5807: upgrade/repair leaves one PreToolUse per matcher; wrapper rewritten or direct pin-relative hook-bin.js; never leftover deft-hook deny path.",
           "Acceptance": "Upgrade from 0.126-style Grok deposit to current pin ends with one healthy PreToolUse per matcher; edits/shell not denied by stale wrapper."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/runtime/src/setup-wiring-ovpr-hooks-red.test.ts",
+          "recorded_at": "2026-10-25T01:32:01Z",
+          "recorded_by": "host:grok:v1:MDFhMTZmNzctYTY3YS03MDYxLTliYTAtYTIzNDcwODBmNTlj"
         }
       },
       {
         "id": "2",
         "title": "#5808 Restore brief gates at pre-commit and refspec-aware pre-push",
         "effort": "M",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Overview": "Implement Locked disposition on #5808: restore forward-coverage/vbrief-conformance/xbrief-drift class gates under pin-relative helper; pre-push uses preflight-gh/refspec-aware protection.",
           "Acceptance": "Consumers on current pin get brief gates at pre-commit and refspec-aware pre-push matching 0.126 feature points with pin-relative paths."
+        },
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "Parked pending operator disposition on pin 0.129 class-checks landmine (.githooks\u2194ensureGitHooks; tip #5876 companion not in pin). #5808 remains open for a later footprint-split lane.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "polfer@users.noreply.github.com"
+          },
+          "recorded_at": "2026-10-25T01:32:01Z"
         }
       },
       {
         "id": "3",
         "title": "#5809 Evaluate .deft-directive-disable before missing RUNTIME_BIN; project PM install hatch",
         "effort": "S",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Overview": "Implement Locked disposition on #5809: kill-switch readable before missing dist/bin.js hard-fail; missing pin prints project pnpm/npm install remediation (aligned with #5869).",
           "Acceptance": "With untracked .deft-directive-disable present, hooks skip even when runtime pin absent; missing pin without disable prints project PM install hatch."
+        },
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "Parked pending operator disposition on pin 0.129 class-checks landmine (.githooks\u2194ensureGitHooks; tip #5876 companion not in pin). #5809 remains open for a later footprint-split lane.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "polfer@users.noreply.github.com"
+          },
+          "recorded_at": "2026-10-25T01:32:01Z"
         }
       },
       {
         "id": "4",
         "title": "#5869 OVPR bot-visible split + consistent project PM hatch wording on touched surfaces",
         "effort": "S",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Overview": "Where Lane A already changes recovery/constants/docs, apply #5869 hatch messaging; do not fake directive/deft bins on runtime package.",
           "Acceptance": "Relative node_modules/@deftai/directive-runtime paths fail closed with project PM install hatch text; no fake local CLI bins added."
+        },
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "Parked pending operator disposition on pin 0.129 class-checks landmine (.githooks\u2194ensureGitHooks; tip #5876 companion not in pin). #5869 remains open for a later footprint-split lane.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "polfer@users.noreply.github.com"
+          },
+          "recorded_at": "2026-10-25T01:32:01Z"
         }
       }
     ],
@@ -84,7 +138,7 @@
       "commands": [],
       "none_stated": true,
       "source_rung": "derived",
-      "derived_reason": "derived from Locked disposition Done-when on #5807 #5808 #5809 #5869 Path B activation: none_stated until product PR stamps proof cmds.",
+      "derived_reason": "H7 leftover-complete #5807: restored derived acceptance.clauses (3) with item-1 evidence (product #5886 @ 5265ac1fa / merge 540810f0f); items 2-4 (#5808/#5809/#5869) deferred pending operator pin/class-checks disposition.",
       "clauses": [
         {
           "id": 1,
@@ -110,7 +164,7 @@
       ],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-10-23T23:08:43.530Z",
+    "updated": "2026-10-25T01:32:02Z",
     "references": [
       {
         "type": "x-xbrief/github-issue",
