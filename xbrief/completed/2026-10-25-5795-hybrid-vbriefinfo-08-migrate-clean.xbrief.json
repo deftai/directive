@@ -8,7 +8,7 @@
   "plan": {
     "id": "ovpr-locked-5795",
     "title": "bug(installer,migrate): hybrid vBRIEFInfo@0.8 equal-version migrate-clean",
-    "status": "running",
+    "status": "completed",
     "metadata": {
       "kind": "story",
       "github": {
@@ -26,6 +26,32 @@
           "CHANGELOG.md"
         ],
         "file_scope_confidence": "high"
+      },
+      "productPullRequest": 5897,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "712eafcf0bb654eebabc3207da1a44c492810b4e",
+        "prNumber": 5897,
+        "prBase": "master",
+        "mergeCommit": "eddd8aec287cfd8a126fa631b2621ea3c6b087fd",
+        "deliveryBranch": "master",
+        "deliveryCommit": "eddd8aec287cfd8a126fa631b2621ea3c6b087fd",
+        "verifiedAt": "2026-10-25T05:26:27Z",
+        "verifier": "leftover-handcraft-refs-only",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTZmNzctYTY3YS03MDYxLTliYTAtYTIzNDcwODBmNTlj",
+        "note": "Product PR #5897 used Refs-only (empty forge closer set). Leftover stamped after merge ancestry on origin/master."
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-25T05:26:27Z",
+      "completedSessionId": "host:grok:v1:MDFhMTZmNzctYTY3YS03MDYxLTliYTAtYTIzNDcwODBmNTlj",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-25T05:26:27Z"
       }
     },
     "items": [
@@ -33,7 +59,7 @@
         "id": "1",
         "title": "Cover hybrid/mis-keyed vBRIEFInfo@0.8 in xbrief-migrate so equal-version upgrade clears migration_needed",
         "effort": "M",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Overview": "Implement Locked #5795: strengthen xbrief-migrate so equal-version upgrade clears hybrid/mis-keyed vBRIEFInfo@0.8 shapes that leave doctor migration_needed.",
           "Acceptance": "Equal-version upgrade/migrate on hybrid vBRIEFInfo@0.8 fixtures exits migrate-clean (doctor not stuck migration_needed); focused regression covers the stuck case."
