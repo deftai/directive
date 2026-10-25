@@ -627,9 +627,7 @@ function stripNestedManaged(
             const hook = object(h);
             if (typeof hook?.command !== "string") return false;
             if (host === "grok" && isGrokWrapperCommand(hook.command)) return true;
-            return (
-              isManagedHookCommand(hook.command) && hook.command.includes(`--host ${host}`)
-            );
+            return isManagedHookCommand(hook.command) && hook.command.includes(`--host ${host}`);
           });
         })
       : [];
