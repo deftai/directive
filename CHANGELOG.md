@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed - Grok PreToolUse hooks run the package-relative `hook-bin.js` via `node` directly again: Grok execs hook commands without a shell and Windows cannot spawn a `.sh` file, so the wrapper silently failed open. Timeout unchanged. Refs #5945 #5920.
+
 ### Removed
 
 ## [0.129.1] - 2026-10-26
