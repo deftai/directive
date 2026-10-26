@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./deft-pretooluse-wrapper.sh",
+            "command": "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host grok --event tool.before",
             "timeout": 30
           }
         ]
@@ -27,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./deft-pretooluse-wrapper.sh",
+            "command": "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host grok --event tool.before",
             "timeout": 30
           }
         ]
@@ -37,7 +37,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./deft-pretooluse-wrapper.sh",
+            "command": "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host grok --event tool.before",
             "timeout": 30
           }
         ]
@@ -47,7 +47,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./deft-pretooluse-wrapper.sh",
+            "command": "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host grok --event tool.before",
             "timeout": 30
           }
         ]
@@ -57,7 +57,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./deft-pretooluse-wrapper.sh",
+            "command": "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host grok --event tool.before",
             "timeout": 30
           }
         ]
