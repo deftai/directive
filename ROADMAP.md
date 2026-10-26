@@ -7,14 +7,12 @@
 
 ## Active
 
-- **#5799** -- chore(xbrief,taskfile,ci): OVPR corpus hygiene + doctor wiring comment + allowBuilds -- `[running]`
 - **#4966** -- feat(session): session:start should default to one-line ready output; put ceremony behind --verbose -- `[running]`
 - **#5102** -- process(review-cycle): SLizard babysit re-polls instead of resolving carried fingerprints -- `[running]`
 - **#5732** -- leftover(#5727): host/deft-hook admission must refuse undeclared forge-poll before execution (#5229 residual) -- `[running]`
 - **#5735** -- fix(triage): worktrees-probe case-distinct sibling flake recurred a third time (post-#5519) -- `[running]`
 - **#5810** -- [framework-gap] Grok Bot cannot attach to and steer an already-open Grok Build session over ACP -- `[running]`
 - **#5812** -- recurrence(#5278): query-before Class A push/PR-open while stop-at:pr-open leaf still live -- `[running]`
-- **#5837** -- [framework-gap] Self-repair overwrites a committed managed git hook during check, then class-checks blame the story PR -- `[running]`
 - **#5852** -- feat(release): let the release skill choose the npm dist-tag (latest / maintainer / beta) for both packages -- `[running]`
 - **#5853** -- verify:pack-drift compares against the installed runtime package's rewritten copies instead of repo content/ (still in 0.128.0) -- `[running]`
 - **#5854** -- directive upgrade appends a duplicate pnpm minimumReleaseAgeExclude entry for the runtime instead of replacing it (install fails for 24h after a release) -- `[running]`
@@ -48,8 +46,17 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 1863 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1872 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#5798** -- bug(installer,doctor): failure-shaped remedy map for doctor recovery -- `[completed]`
+- **#5797** -- bug(installer,upgrade): stop placeholder allowBuilds for directive-runtime -- `[completed]`
+- **#5795** -- bug(installer,migrate): hybrid vBRIEFInfo@0.8 equal-version migrate-clean -- `[completed]`
+- **#5885** -- Self-repair never discloses preserved managed git hooks (follow-up to #5837) -- `[completed]`
+- **#5807** -- fix(hooks,ovpr): dual PreToolUse + brief/refspec gates + disable-before-bin + project PM hatch -- `[completed]`
+- **#5837** -- [framework-gap] Self-repair overwrites a committed managed git hook during check, then class-checks blame the story PR -- `[completed]`
+- **#5799** -- chore(xbrief,taskfile,ci): OVPR corpus hygiene + doctor wiring comment + allowBuilds -- `[completed]`
+- **#4666** -- fix(install): OVPR greenfield seed PROJECT-DEFINITION + lifecycle + stage (no schemas copy) -- `[completed]`
+- **#5796** -- fix(installer,doctor): Taskfile wiring probe uses YAML AST for includes.deft only -- `[completed]`
 - **#5804** -- bug(process,pre-pr): no hard refuse when always-pin pre-PR / RWDL is skipped before push -- `[completed]`
 - **#5805** -- bug(dogfood,ovpr): maintainer must run pinned runtime — close task auto-compile tip bypass -- `[completed]`
 - **#5736** -- perf(lifecycle): activation/widen PRs take 21–42 min to merge; extra heads and re-runs cost more than CI speed -- `[completed]`
@@ -66,13 +73,4 @@ _Showing 25 of 1863 completed scopes (newest first). Full history: lifecycle `co
 - **#5782** -- design(verify): merge-gate adopts plan-id from PR deft-story for intent-constraint -- `[completed]`
 - **#5743** -- sec(codeql): HIGH clear polynomial-redos in docs-impact.ts (alert #114) -- `[completed]`
 - **#5741** -- sec(codeql): HIGH clear bad-tag-filter in spec-authority.test.ts (alert #109) -- `[completed]`
-- **#5740** -- chore(security): HIGH bump source-map-js to 1.2.2 (Dependabot #19) -- `[completed]`
-- **#5747** -- sec(codeql): HIGH clear bad-tag-filter in presentation-ceiling/evaluate.ts (alert #143) -- `[completed]`
-- **#5748** -- sec(codeql): HIGH clear polynomial-redos in release/auto-hatch.ts (alert #144) -- `[completed]`
-- **#5737** -- chore(security): HIGH bump brace-expansion to 5.0.12 (Dependabot #16/#17/#18) -- `[completed]`
-- **#5677** -- leftover(#5674): residual deposit keep-unknowns (run/hooks/codeql/host-registration) -- `[completed]`
-- **#5727** -- [framework-gap] BLOCKER Grok through-merge parent forge-polls instead of Approach1 babysit when spawn_subagent is available -- `[completed]`
-- **#5742** -- sec(codeql): HIGH clear polynomial-redos in greptile-detector.ts (alert #112) -- `[completed]`
-- **#5746** -- sec(codeql): HIGH clear incomplete-url-substring-sanitization in github-auth-modes.provisioning.test.ts (alert #137) -- `[completed]`
-- **#5770** -- Cursor payload-host: allow auto-worktree Task spawns + Multitask parent read-only / occupancy -- `[completed]`
 

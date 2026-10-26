@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [0.129.1] - 2026-10-26
+
+> 0.129.1 maintainer build: Grok hook-wrapper, doctor, install and xBRIEF migrate fixes. npm latest stays on 0.127.0.
+
 - chore(xbrief): leftover-complete #5798 after product #5902.
 
 - chore(xbrief): leftover-complete #5797 after product #5900.
@@ -7499,7 +7512,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.129.0...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.129.1...HEAD
+[0.129.1]: https://github.com/deftai/directive/compare/v0.129.0...v0.129.1
 [0.129.0]: https://github.com/deftai/directive/compare/v0.128.0...v0.129.0
 [0.128.0]: https://github.com/deftai/directive/compare/v0.127.0...v0.128.0
 [0.127.0]: https://github.com/deftai/directive/compare/v0.126.2...v0.127.0
