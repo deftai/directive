@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #624"
-  },
   "plan": {
     "title": "feat(swarm): encode writes-single-threaded principle and named manager-child anti-patterns in deft-swarm",
     "status": "proposed",
@@ -26,5 +22,9 @@
       }
     ],
     "updated": "2026-05-20T12:38:34Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #624"
   }
 }

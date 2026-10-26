@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for **#84 Phase 3** -- Deft as teacher: teach strategy, lessons evolution"
-  },
   "plan": {
     "title": "**#84 Phase 3** -- Deft as teacher: teach strategy, lessons evolution",
     "status": "proposed",
@@ -28,5 +24,9 @@
       }
     ],
     "updated": "2026-05-20T12:38:34Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for **#84 Phase 3** -- Deft as teacher: teach strategy, lessons evolution"
   }
 }

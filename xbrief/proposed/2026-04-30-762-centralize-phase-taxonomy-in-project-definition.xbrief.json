@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for #762: centralize roadmap phase taxonomy in PROJECT-DEFINITION.xbrief.json; update roadmap_render.py to read from there."
-  },
   "plan": {
     "title": "feat(vbrief): centralize phase taxonomy in PROJECT-DEFINITION.xbrief.json; renderer reads from there",
     "status": "proposed",
@@ -30,5 +26,9 @@
       }
     ],
     "updated": "2026-05-20T12:38:34Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #762: centralize roadmap phase taxonomy in PROJECT-DEFINITION.xbrief.json; update roadmap_render.py to read from there."
   }
 }

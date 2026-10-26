@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1084"
-  },
   "plan": {
     "title": "chore(security): PyPI OIDC trusted-publishing workflow (blocked-by #11)",
     "status": "proposed",
@@ -19,5 +15,9 @@
         "title": "Issue #1084: chore(security): PyPI OIDC trusted-publishing workflow (blocked-by #11)"
       }
     ]
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF ingested from GitHub issue #1084"
   }
 }

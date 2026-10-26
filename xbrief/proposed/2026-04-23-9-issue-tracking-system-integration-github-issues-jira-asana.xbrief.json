@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for #9: Issue tracking system integration (GitHub Issues, Jira, Asana -- optional, via MCP)"
-  },
   "plan": {
     "title": "Issue tracking system integration (GitHub Issues, Jira, Asana -- optional, via MCP)",
     "status": "proposed",
@@ -29,5 +25,9 @@
       }
     ],
     "updated": "2026-05-20T12:38:34Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #9: Issue tracking system integration (GitHub Issues, Jira, Asana -- optional, via MCP)"
   }
 }
