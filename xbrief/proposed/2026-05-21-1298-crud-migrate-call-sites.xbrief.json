@@ -1,10 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Story vBRIEF for #1298 (chore: migrate existing free-form vBRIEF edit call sites to CRUD tool); part of the #742 decomposition.",
-    "created": "2026-05-21T16:32:24Z",
-    "updated": "2026-05-21T16:32:24Z"
-  },
   "plan": {
     "id": "1298-crud-migrate-call-sites",
     "title": "Migrate existing free-form vBRIEF edit call sites to CRUD tool",
@@ -62,5 +56,11 @@
         "title": "Issue #1285: epic(vbrief,crud): CRUD harness"
       }
     ]
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story vBRIEF for #1298 (chore: migrate existing free-form vBRIEF edit call sites to CRUD tool); part of the #742 decomposition.",
+    "created": "2026-05-21T16:32:24Z",
+    "updated": "2026-05-21T16:32:24Z"
   }
 }

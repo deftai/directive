@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for #627: add strategies/delegate.md plus wiring into interview.md / speckit.md exit conditions."
-  },
   "plan": {
     "title": "feat(strategies): add strategies/delegate.md -- controlled delegation framework for agent-driven implementation",
     "status": "proposed",
@@ -42,5 +38,9 @@
       }
     ],
     "updated": "2026-05-20T12:38:34Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #627: add strategies/delegate.md plus wiring into interview.md / speckit.md exit conditions."
   }
 }

@@ -1,8 +1,4 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
-    "description": "Scope vBRIEF for Low-end LLM compatibility testing"
-  },
   "plan": {
     "title": "Low-end LLM compatibility testing",
     "status": "proposed",
@@ -27,5 +23,9 @@
       }
     ],
     "updated": "2026-05-20T12:38:34Z"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for Low-end LLM compatibility testing"
   }
 }
