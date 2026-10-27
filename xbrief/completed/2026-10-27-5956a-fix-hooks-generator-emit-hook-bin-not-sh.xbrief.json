@@ -2,13 +2,13 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for #5956-A only \u2014 generator/deposit sync (stop emitting Grok PreToolUse .sh wrapper)",
-    "updated": "2026-10-27T14:58:04Z"
+    "updated": "2026-10-27T17:02:41Z"
   },
   "plan": {
     "id": "github.issue.6049602951",
     "title": "fix(hooks): #5956-A generator emit pin-local hook-bin.js for Grok PreToolUse (stop .sh rewrite)",
-    "status": "running",
-    "updated": "2026-10-27T14:58:04Z",
+    "status": "completed",
+    "updated": "2026-10-27T17:02:41Z",
     "tags": [
       "bug",
       "harness",
@@ -28,7 +28,7 @@
       {
         "id": "clause.1",
         "title": "Generator emits intentional hook-bin.js for Grok PreToolUse",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "packages/core/src/init-deposit/agent-hooks.ts nestedToolCommand emits pin-local hook-bin.js for Grok PreToolUse, never ./deft-pretooluse-wrapper.sh",
           "Traces": "#5956-A"
@@ -43,7 +43,7 @@
       {
         "id": "clause.2",
         "title": "Focused tests lock never-emit .sh PreToolUse for Grok",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "packages/core/src/init-deposit/agent-hooks.test.ts locks never-emit .sh PreToolUse for Grok",
           "Traces": "#5956-A"
@@ -58,7 +58,7 @@
       {
         "id": "clause.3",
         "title": "Regenerate does not dirty intentional deft.json to .sh",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Regenerate leaves .grok/hooks/deft.json on intentional hook-bin.js form (or commits matching deposit)",
           "Traces": "#5956-A #5958"
@@ -73,7 +73,7 @@
       {
         "id": "clause.4",
         "title": "CHANGELOG Unreleased notes generator/deposit sync",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "CHANGELOG.md Unreleased notes generator/deposit sync; PR stop-at pr-open",
           "Traces": "#5956-A"
@@ -186,7 +186,17 @@
         "file_scope_confidence": "high",
         "effort": "S"
       },
-      "productPullRequest": 5969
+      "productPullRequest": 5969,
+      "x-directive/delivery": {
+        "schema": "deft.scope.delivery.v1",
+        "disposition": "delivered",
+        "prNumber": 5969,
+        "mergeCommit": "61152d8fdf",
+        "deliveryBranch": "master",
+        "recorded_at": "2026-10-27T17:02:41Z",
+        "recorded_by": "operator-session:polfer-via-grok-leftover",
+        "note": "Hand-land leftover complete: Prefer-A verifyStoryPrMergeIdentity requires forge closingIssuesReferences, but #5969 intentionally did not Fixes-close open umbrella #5956 (slice A only). Delivery is merge 61152d8fd / PR #5969."
+      }
     }
   }
 }
