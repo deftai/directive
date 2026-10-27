@@ -510,7 +510,7 @@ Copy this shape into each test’s result fence. Agent/operator updates **only**
 - hooksPath set when `.git` exists; hook files executable enough to run.
 - Sanity GIT-READY notes/passes appropriately.
 
-**ACs covered:** AC2.1(6), AC8.6 (git activation), AC9.1 / AC9.12 (v261027: committed host `.mjs` outer + entry guards; not shell `.sh`), AC9.9; F-008 regression
+**ACs covered:** AC2.1(6), AC8.6 (git activation), AC9.9 (package-relative git helper / hooksPath); F-008 regression. **Not** a proof of host `.mjs` outer / AC9.12 entry guards — those need a separate host-hook HT when product lands.
 
 **Cumul. %:** ~52%
 
