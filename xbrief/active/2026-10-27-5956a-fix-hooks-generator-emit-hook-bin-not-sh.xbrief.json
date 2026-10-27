@@ -1,0 +1,167 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for #5956-A only \u2014 generator/deposit sync (stop emitting Grok PreToolUse .sh wrapper)",
+    "updated": "2026-10-27T14:58:04Z"
+  },
+  "plan": {
+    "id": "github.issue.6049602951",
+    "title": "fix(hooks): #5956-A generator emit pin-local hook-bin.js for Grok PreToolUse (stop .sh rewrite)",
+    "status": "running",
+    "updated": "2026-10-27T14:58:04Z",
+    "tags": [
+      "bug",
+      "harness",
+      "urgent",
+      "area:installer",
+      "slice:5956-A"
+    ],
+    "narratives": {
+      "Description": "Fix nestedToolCommand / init-deposit agent-hooks so setup/upgrade/install --repair/hook self-repair paths that rewrite host hooks stop emitting Grok PreToolUse as ./deft-pretooluse-wrapper.sh when that disagrees with the intentional checked-in deposit (node \u2026/hook-bin.js from #5955/#5945). Unblocks #5958-class check:merge / scope-provenance false dirties.",
+      "Origin": "https://github.com/deftai/directive/issues/5956 slice A; prompt ~/Projects/directive-failures/PROPOSAL-5956-A-prompt-only.md",
+      "Overview": "#5956-A only. Full #5956 (.mjs wrapper, deadlines, self-complete/D-9, allow-lists, AC8.6) out of scope.",
+      "Labels": "bug, harness, urgent, area:installer",
+      "UserStory": "As a maintainer or CI merge-gate, I want regenerate/setup/repair to leave .grok/hooks/deft.json on the intentional pin-local hook-bin.js form, so that #5958-class scope-provenance does not fail solely because hooks flipped back to .sh.",
+      "ImplementationPlan": "1) Change nestedToolCommand so Grok tool.before uses command(bin,host,event) pin-local hook-bin.js. 2) Update health/tests that locked .sh PreToolUse. 3) Confirm regenerate leaves deft.json matching intentional deposit (commit deposit only if required). 4) CHANGELOG Unreleased. 5) pre-pr + PR stop-at:pr-open. Do not expand into self-complete, deadlines, .mjs launcher, allow-lists."
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Generator emits intentional hook-bin.js for Grok PreToolUse",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "packages/core/src/init-deposit/agent-hooks.ts nestedToolCommand emits pin-local hook-bin.js for Grok PreToolUse, never ./deft-pretooluse-wrapper.sh",
+          "Traces": "#5956-A"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Focused tests lock never-emit .sh PreToolUse for Grok",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "packages/core/src/init-deposit/agent-hooks.test.ts locks never-emit .sh PreToolUse for Grok",
+          "Traces": "#5956-A"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Regenerate does not dirty intentional deft.json to .sh",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Regenerate leaves .grok/hooks/deft.json on intentional hook-bin.js form (or commits matching deposit)",
+          "Traces": "#5956-A #5958"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "CHANGELOG Unreleased notes generator/deposit sync",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "CHANGELOG.md Unreleased notes generator/deposit sync; PR stop-at pr-open",
+          "Traces": "#5956-A"
+        }
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/init-deposit/agent-hooks.test.ts"
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "derived from PROPOSAL-5956-A-prompt-only.md success criteria",
+      "sentences": [],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "packages/core/src/init-deposit/agent-hooks.ts nestedToolCommand emits pin-local hook-bin.js for Grok PreToolUse, never ./deft-pretooluse-wrapper.sh",
+          "artifact_path": "packages/core/src/init-deposit/agent-hooks.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "packages/core/src/init-deposit/agent-hooks.test.ts locks never-emit .sh PreToolUse for Grok",
+          "artifact_path": "packages/core/src/init-deposit/agent-hooks.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Regenerate leaves .grok/hooks/deft.json on intentional hook-bin.js form (or commits matching deposit)",
+          "artifact_path": ".grok/hooks/deft.json",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "CHANGELOG.md Unreleased notes generator/deposit sync; PR stop-at pr-open",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ]
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5956",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5956 (slice A only)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5955",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5955 interim hook-bin deposit"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5958",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5958 merge-gate dirtied by regenerate"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/init-deposit/agent-hooks.ts",
+          "packages/core/src/init-deposit/agent-hooks.test.ts",
+          "CHANGELOG.md",
+          ".grok/hooks/deft.json"
+        ],
+        "module_boundary": "packages/core/src/init-deposit/agent-hooks.ts",
+        "cohesion_exemption": "CHANGELOG + optional checked-in .grok/hooks/deft.json if regenerate-after-fix must match generator"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6049602951,
+        "origin": "deftai/directive#5956",
+        "id": "github.issue.6049602951"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "5956-A-generator-deposit-sync",
+        "expected_outputs": [
+          "nestedToolCommand emits hook-bin.js for Grok PreToolUse",
+          "tests lock never-emit .sh",
+          "regenerate leaves deft.json clean vs intentional form",
+          "CHANGELOG Unreleased",
+          "PR stop-at:pr-open"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/init-deposit/agent-hooks.test.ts"
+        ],
+        "file_scope": [
+          "packages/core/src/init-deposit/agent-hooks.ts",
+          "packages/core/src/init-deposit/agent-hooks.test.ts",
+          "CHANGELOG.md",
+          ".grok/hooks/deft.json"
+        ],
+        "file_scope_confidence": "high",
+        "effort": "S"
+      }
+    }
+  }
+}
