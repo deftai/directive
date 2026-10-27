@@ -10,7 +10,7 @@
     "narratives": {
       "Description": "feat(release): update the maintainer's local checkout to the new pin after every release",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5953",
-      "Overview": "\n\n- relieves: P1 — Require `--checkout <path>` naming the maintainer primary occupancy root and refuse ambient release-worktree-only success.\n- relieves: P2 — Refuse when the target checkout holds a live foreign occupancy lease before any write.\n- relieves: P1 — Define `release:local-update` as inline Taskfile `cmds:` without `engine:invoke` or `deps: [ts:build]`, re-resolving the upgrade binary after frozen install.\n- relieves: P1 — Require the version-matched agent-hook deposit already merged on tip before upgrade, and keep Phase 7 local closeout incomplete until that deposit evidence exists.\n- relieves: P1 — Run `directive upgrade --target-version <version> --yes` against the checkout (never registry-latest resolution).\n- relieves: P1 — After upgrade, any tracked-file diff keeps closeout non-zero and incomplete while printing deposit-merge recovery paths for expected managed deposit files.\n- relieves: P1 — After upgrade, run `deft verify:hooks-installed --project-root <checkout> --scope=all` from the checkout post-install runtime and re-assert installed runtime equals `<version>`.\n- relieves: P2 — Keep ff-only pull, frozen-lockfile install, pin assert, and never reset, force-push, commit, or run global `npm i -g`.\n- relieves: P3 — Keep the local-update step required for maintainer non-latest cuts where npm latest will not advance the checkout by accident.\n- relieves: P4 — Anchor the Phase 7 step on tip-pin-equals-released observable rather than a phantom existing pin-PR step.\n\n\n",
+      "Overview": "",
       "Labels": "enhancement, area:release, design-critique:ingest-ready",
       "UserStory": "As a maintainer, after a release pin merges I want my named primary checkout ff-only updated to the released pin with frozen install, version-matched upgrade, and hooks verified fail-closed so commits run the shipped runtime.",
       "ImplementationPlan": "Add release:local-update as inline Taskfile cmds (no pin-exclusive engine:invoke), require --checkout primary root, refuse foreign occupancy, require tip deposit evidence, run directive upgrade --target-version, treat any tracked diff as incomplete, verify hooks --project-root --scope=all; edit Phase 7 skill via pack render; unit-test refuse paths."
@@ -227,78 +227,128 @@
       "clauses": [
         {
           "id": 1,
-          "text": "Bound Recut-1: --checkout names maintainer primary occupancy root; ambient release-worktree-only success refused",
-          "artifact_path": null,
+          "text": "Given Prefer-A Recut-1 Bound 6430511888, when this clause ships, then: Bound Recut-1: --checkout names maintainer primary occupancy root; ambient release-worktree-only success refused",
+          "artifact_path": "Taskfile.yml",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 2,
-          "text": "Bound Recut-1: foreign occupancy lease refuses before any write",
-          "artifact_path": null,
+          "text": "Given Prefer-A Recut-1 Bound 6430511888, when this clause ships, then: Bound Recut-1: foreign occupancy lease refuses before any write",
+          "artifact_path": "packages/core/src/release/native-steps.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 3,
-          "text": "Bound Recut-1: inline cmds; re-resolve upgrade binary after frozen install",
-          "artifact_path": null,
+          "text": "Given Prefer-A Recut-1 Bound 6430511888, when this clause ships, then: Bound Recut-1: inline cmds; re-resolve upgrade binary after frozen install",
+          "artifact_path": "Taskfile.yml",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 4,
-          "text": "Bound Recut-1: deposit evidence on tip required; closeout incomplete without it",
-          "artifact_path": null,
+          "text": "Given Prefer-A Recut-1 Bound 6430511888, when this clause ships, then: Bound Recut-1: deposit evidence on tip required; closeout incomplete without it",
+          "artifact_path": "packages/core/src/release/native-steps.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 5,
-          "text": "Bound Recut-1: never registry-latest resolution",
-          "artifact_path": null,
+          "text": "Given Prefer-A Recut-1 Bound 6430511888, when this clause ships, then: Bound Recut-1: never registry-latest resolution",
+          "artifact_path": "packages/core/src/release/native-steps.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 6,
-          "text": "Bound Recut-1: never non-fatal green on managed deposit diffs",
-          "artifact_path": null,
+          "text": "Given Prefer-A Recut-1 Bound 6430511888, when this clause ships, then: Bound Recut-1: never non-fatal green on managed deposit diffs",
+          "artifact_path": "packages/core/src/release/native-steps.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 7,
-          "text": "Bound Recut-1: from checkout post-install runtime",
-          "artifact_path": null,
+          "text": "Given Prefer-A Recut-1 Bound 6430511888, when this clause ships, then: Bound Recut-1: from checkout post-install runtime",
+          "artifact_path": "packages/core/src/release/native-steps.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 8,
-          "text": "Bound Recut-1: fail-closed safety envelope",
-          "artifact_path": null,
+          "text": "Given Prefer-A Recut-1 Bound 6430511888, when this clause ships, then: Bound Recut-1: fail-closed safety envelope",
+          "artifact_path": "packages/core/src/release/native-steps.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 9,
-          "text": "Bound Recut-1: npm latest will not advance checkout by accident",
-          "artifact_path": null,
+          "text": "Given Prefer-A Recut-1 Bound 6430511888, when this clause ships, then: Bound Recut-1: npm latest will not advance checkout by accident",
+          "artifact_path": "content/skills/deft-directive-release/SKILL.md",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 10,
-          "text": "Bound Recut-1: not a phantom existing pin-PR step",
-          "artifact_path": null,
+          "text": "Given Prefer-A Recut-1 Bound 6430511888, when this clause ships, then: Bound Recut-1: not a phantom existing pin-PR step",
+          "artifact_path": "content/packs/skills/skills-pack-0.1.json",
           "ambiguous": false,
           "provenance": "statement"
         }
       ],
       "ambiguity_attestation": "none_found",
       "derived_reason": "derived 10 independently testable clauses from the task statement before product edit (#3323)",
-      "source_rung": "derived"
+      "source_rung": "derived",
+      "confessions": [
+        "feat(release): update the maintainer's local checkout to the new pin after every release",
+        "Fail-closed Phase 7 local checkout update after pin tip for every release, required for maintainer non-latest cuts.",
+        "Prefer-A Recut-1 Bound 6430511888: named primary --checkout local-update with deposit-merged precondition, target-version upgrade, hooks verify, and tracked-diff incomplete.",
+        "Ingested from https://github.com/deftai/directive/issues/5953",
+        "- relieves: P1 — Require `--checkout <path>` naming the maintainer primary occupancy root and refuse ambient release-worktree-only success.",
+        "- relieves: P2 — Refuse when the target checkout holds a live foreign occupancy lease before any write.",
+        "- relieves: P1 — Define `release:local-update` as inline Taskfile `cmds:` without `engine:invoke` or `deps: [ts:build]`, re-resolving the upgrade binary after frozen install.",
+        "- relieves: P1 — Require the version-matched agent-hook deposit already merged on tip before upgrade, and keep Phase 7 local closeout incomplete until that deposit evidence exists.",
+        "- relieves: P1 — Run `directive upgrade --target-version <version> --yes` against the checkout (never registry-latest resolution).",
+        "- relieves: P1 — After upgrade, any tracked-file diff keeps closeout non-zero and incomplete while printing deposit-merge recovery paths for expected managed deposit files.",
+        "- relieves: P1 — After upgrade, run `deft verify:hooks-installed --project-root <checkout> --scope=all` from the checkout post-install runtime and re-assert installed runtime equals `<version>`.",
+        "- relieves: P2 — Keep ff-only pull, frozen-lockfile install, pin assert, and never reset, force-push, commit, or run global `npm i -g`.",
+        "- relieves: P3 — Keep the local-update step required for maintainer non-latest cuts where npm latest will not advance the checkout by accident.",
+        "- relieves: P4 — Anchor the Phase 7 step on tip-pin-equals-released observable rather than a phantom existing pin-PR step.",
+        "- relieves: P1 — Require `--checkout <path>` naming the maintainer primary occupancy root and refuse ambient release-worktree-only success.\n- relieves: P2 — Refuse when the target checkout holds a live foreign occupancy lease before any write.\n- relieves: P1 — Define `release:local-update` as inline Taskfile `cmds:` without `engine:invoke` or `deps: [ts:build]`, re-resolving the upgrade binary after frozen install.\n- relieves: P1 — Require the version-matched agent-hook deposit already merged on tip before upgrade, and keep Phase 7 local closeout incomplete until that deposit evidence exists.\n- relieves: P1 — Run `directive upgrade --target-version <version> --yes` against the checkout (never registry-latest resolution).\n- relieves: P1 — After upgrade, any tracked-file diff keeps closeout non-zero and incomplete while printing deposit-merge recovery paths for expected managed deposit files.\n- relieves: P1 — After upgrade, run `deft verify:hooks-installed --project-root <checkout> --scope=all` from the checkout post-install runtime and re-assert installed runtime equals `<version>`.\n- relieves: P2 — Keep ff-only pull, frozen-lockfile install, pin assert, and never reset, force-push, commit, or run global `npm i -g`.\n- relieves: P3 — Keep the local-update step required for maintainer non-latest cuts where npm latest will not advance the checkout by accident.\n- relieves: P4 — Anchor the Phase 7 step on tip-pin-equals-released observable rather than a phantom existing pin-PR step.",
+        "enhancement, area:release, design-critique:ingest-ready",
+        "As a maintainer, after a release pin merges I want my named primary checkout ff-only updated to the released pin with frozen install, version-matched upgrade, and hooks verified fail-closed so commits run the shipped runtime.",
+        "Add release:local-update as inline Taskfile cmds (no pin-exclusive engine:invoke), require --checkout primary root, refuse foreign occupancy, require tip deposit evidence, run directive upgrade --target-version, treat any tracked diff as incomplete, verify hooks --project-root --scope=all; edit Phase 7 skill via pack render; unit-test refuse paths.",
+        "Require named primary --checkout path and refuse release-worktree-only success",
+        "Bound Recut-1: --checkout names maintainer primary occupancy root; ambient release-worktree-only success refused",
+        "Refuse live foreign occupancy lease on target checkout before writes",
+        "Bound Recut-1: foreign occupancy lease refuses before any write",
+        "Define release:local-update as inline Taskfile cmds without engine:invoke or ts:build dep",
+        "Bound Recut-1: inline cmds; re-resolve upgrade binary after frozen install",
+        "Require version-matched agent-hook deposit already merged before upgrade closeout",
+        "Bound Recut-1: deposit evidence on tip required; closeout incomplete without it",
+        "Run directive upgrade with explicit --target-version against the checkout",
+        "Bound Recut-1: never registry-latest resolution",
+        "Any post-upgrade tracked-file diff keeps closeout non-zero with deposit-merge recovery paths",
+        "Bound Recut-1: never non-fatal green on managed deposit diffs",
+        "Verify hooks via deft verify:hooks-installed --project-root --scope=all and re-assert runtime version",
+        "Bound Recut-1: from checkout post-install runtime",
+        "Keep ff-only pull, frozen-lockfile install, pin assert; never reset force-push commit or npm i -g",
+        "Bound Recut-1: fail-closed safety envelope",
+        "Keep local-update required for maintainer non-latest cuts",
+        "Bound Recut-1: npm latest will not advance checkout by accident",
+        "Anchor Phase 7 step on tip-pin-equals-released observable",
+        "Bound Recut-1: not a phantom existing pin-PR step",
+        "Given Prefer-A Recut-1 Bound 6430511888, when this clause ships, then: Bound Recut-1: --checkout names maintainer primary occupancy root; ambient release-worktree-only success refused",
+        "Given Prefer-A Recut-1 Bound 6430511888, when this clause ships, then: Bound Recut-1: foreign occupancy lease refuses before any write",
+        "Given Prefer-A Recut-1 Bound 6430511888, when this clause ships, then: Bound Recut-1: inline cmds; re-resolve upgrade binary after frozen install",
+        "Given Prefer-A Recut-1 Bound 6430511888, when this clause ships, then: Bound Recut-1: deposit evidence on tip required; closeout incomplete without it",
+        "Given Prefer-A Recut-1 Bound 6430511888, when this clause ships, then: Bound Recut-1: never registry-latest resolution",
+        "Given Prefer-A Recut-1 Bound 6430511888, when this clause ships, then: Bound Recut-1: never non-fatal green on managed deposit diffs",
+        "Given Prefer-A Recut-1 Bound 6430511888, when this clause ships, then: Bound Recut-1: from checkout post-install runtime",
+        "Given Prefer-A Recut-1 Bound 6430511888, when this clause ships, then: Bound Recut-1: fail-closed safety envelope",
+        "Given Prefer-A Recut-1 Bound 6430511888, when this clause ships, then: Bound Recut-1: npm latest will not advance checkout by accident",
+        "Given Prefer-A Recut-1 Bound 6430511888, when this clause ships, then: Bound Recut-1: not a phantom existing pin-PR step"
+      ]
     },
     "id": "github.issue.6048674564",
     "updated": "2026-10-27T00:48:05Z"
