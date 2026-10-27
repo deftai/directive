@@ -13,7 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+<<<<<<< HEAD
 - Complete #5956-A stopgap leftover xBRIEF after generator/deposit sync merge (#5984, #5969).
+=======
+- OVPR docs revision **v261027**: committed host `.mjs` outer + unified entry guards in requirements/architecture; persist 2026-10-23 problem ledger as decision record only under `docs/installer-refactor-ovpr/`.
+>>>>>>> f9e593edd (docs(ovpr): v261027 entry-guard host outer and problem ledger)
 
 - Changed - This repo now uses `@deftai/directive-runtime` 0.129.1 instead of 0.129.0 so its gates run the #5876 class-checks companion. This is the `maintainer` build; npm `latest` stays 0.127.0. Refs #5808 #5928.
 
