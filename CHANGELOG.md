@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Pin doctor unit tests to a temp HOME so host ~/.openclaw and GROK identity no longer redden unrelated task check runs (#5802 / #5930).
+
 - Fixed - Grok PreToolUse hooks run the package-relative `hook-bin.js` via `node` directly again: Grok execs hook commands without a shell and Windows cannot spawn a `.sh` file, so the wrapper silently failed open. Timeout unchanged. Refs #5945 #5920.
 
 ### Removed

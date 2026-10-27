@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ResolutionFacts } from "../resolution/index.js";
 import { DANGLING_NODE_MODULES_LINKS_CHECK } from "./checks.js";
 import { LAYOUT_TREE } from "./constants.js";
@@ -333,7 +333,26 @@ function makeRoot(): string {
   return root;
 }
 
+// Host-HOME isolation: cmdDoctor runs the OpenClaw checks against os.homedir()
+// unless seamed, so a real ~/.openclaw (or OPENCLAW* env) on the dev machine adds
+// warnings and `--fix` runs write pins into it. Pin every test to a temp HOME.
+beforeEach(() => {
+  const home = makeRoot();
+  vi.stubEnv("HOME", home);
+  vi.stubEnv("USERPROFILE", home);
+  for (const key of [
+    "DEFT_ROOT",
+    "OPENCLAW",
+    "OPENCLAW_STATE_DIR",
+    "DEFT_PROBE_OPENCLAW",
+    "DEFT_AGENT_RUNTIME",
+  ]) {
+    vi.stubEnv(key, undefined);
+  }
+});
+
 afterEach(() => {
+  vi.unstubAllEnvs();
   vi.clearAllMocks();
   while (createdRoots.length > 0) {
     const root = createdRoots.pop();
@@ -1125,6 +1144,8 @@ describe("framework-only full-doctor dangling advisory (#3749)", () => {
     let exit: number;
     try {
       exit = cmdDoctor(["--full", "--json"], {
+        // Pin framework == project so host DEFT_ROOT cannot flip consumer context.
+        frameworkRoot: process.cwd(),
         whichFn: () => "/usr/bin/x",
         checkDanglingNodeModulesLinks: () => dangling,
         writeState: (_projectRoot, payload) => {
@@ -1166,11 +1187,18 @@ describe("framework-only full-doctor dangling advisory (#3749)", () => {
         discovery: "throttle-skip-or-doctor-full",
       },
     });
-    expect(exit).toBe(0);
-    expect(lastErrorCount).toBe(0);
-    expect(payload.ok).toBe(true);
-    expect(payload.summary?.errors).toBe(0);
-    expect(payload.summary?.warnings ?? 0).toBe(0);
+    // Control: same host, certified-clean probe. Bounded-incomplete must add
+    // nothing on top, so host-state findings (real checkout, env) cancel out.
+    const control = runFrameworkFullDoctor({
+      name: DANGLING_NODE_MODULES_LINKS_CHECK,
+      status: "pass",
+      detail: "No dangling links under node_modules.",
+    });
+    expect(exit).toBe(control.exit);
+    expect(lastErrorCount).toBe(control.lastErrorCount);
+    expect(payload.ok).toBe(control.payload.ok);
+    expect(payload.summary?.errors).toBe(control.payload.summary?.errors);
+    expect(payload.summary?.warnings ?? 0).toBe(control.payload.summary?.warnings ?? 0);
     const finding = payload.findings?.find((f) => f.check === DANGLING_NODE_MODULES_LINKS_CHECK);
     expect(finding).toBeUndefined();
   });
