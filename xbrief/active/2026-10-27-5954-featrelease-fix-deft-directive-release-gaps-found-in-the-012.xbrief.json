@@ -12,8 +12,9 @@
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5954",
       "Overview": "",
       "Labels": "enhancement, area:release, design-critique:ingest-ready",
-      "UserStory": "As a release operator, I want the 0.129.1 hand-memory gaps fail-closed in the release skill and tasks so pin+deposit completion, channel verify, skip-CI ledger, Unreleased sentinel promote, publish-job success, and e2e cleanup are automated.",
-      "ImplementationPlan": "Add release:pin with provenance gate; Skill Completion fails closed without pin URL + upgrade deposit evidence; Phase 7 channel verify; skip-CI allow-skip-ci formatter at Step 7; version-aware unpaid ledger; cut-SHA coverage cite; FRESH_UNRELEASED sentinel + promote success path; Phase 5 Publish-job checks; release:e2e:cleanup --list/--confirm; two-pass try/finally; aborted-cut resume; maintainer banner template."
+      "UserStory": "As a maintainer, I want release closeout automation gaps, so that Prefer-A Bound product work can ship without activation/write-fence blocks.",
+      "ImplementationPlan": "Add release:pin with provenance gate; Skill Completion fails closed without pin URL + upgrade deposit evidence; Phase 7 channel verify; skip-CI allow-skip-ci formatter at Step 7; version-aware unpaid ledger; cut-SHA coverage cite; FRESH_UNRELEASED sentinel + promote success path; Phase 5 Publish-job checks; release:e2e:cleanup --list/--confirm; two-pass try/finally; aborted-cut resume; maintainer banner template.",
+      "AcceptanceJustification": "Thin activation only: product ACs remain soft-missing until product ships; 13 Bound limbs are confessed/unverifiable at activation. Prefer-A Bound stamp keeps >5 criteria with this justification so swarm:launch can admit the ready brief."
     },
     "items": [
       {
@@ -392,7 +393,8 @@
           "allocation through-merge-5953-5954-2026-10-27"
         ],
         "parallel_safe": true,
-        "missing_traces_justification": []
+        "missing_traces_justification": [],
+        "acceptance_criteria_justification": "Thin activation only: product ACs remain soft-missing until product ships; 13 Bound limbs are confessed/unverifiable at activation. Prefer-A Bound stamp keeps >5 criteria with this justification so swarm:launch can admit the ready brief."
       }
     },
     "id": "github.issue.6048676452",

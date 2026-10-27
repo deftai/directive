@@ -12,8 +12,9 @@
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5943",
       "Overview": "Windows ts:check-lane red from POSIX host assumptions and bare node_modules/.bin/tsx spawn; Prefer-A Bound hardens the four failing unit tests without raising timeout first.",
       "Labels": "bug, platform:windows, design-critique:ingest-ready",
-      "UserStory": "As a Windows maintainer, I want ts:check-lane green locally so POSIX-only test assumptions and bare .bin/tsx spawns do not fail the suite.",
-      "ImplementationPlan": "Split disable-flag into always-on source assert + win32-gated sh spawn; skipIf win32 on chmod +x; normalize npm-pack CRLF/tar listing; spawn wave2q via process.execPath + resolved tsx JS entry with child error listener; keep 30s timeout."
+      "UserStory": "As a maintainer, I want Windows ts:check-lane suite green, so that Prefer-A Bound product work can ship without activation/write-fence blocks.",
+      "ImplementationPlan": "Split disable-flag into always-on source assert + win32-gated sh spawn; skipIf win32 on chmod +x; normalize npm-pack CRLF/tar listing; spawn wave2q via process.execPath + resolved tsx JS entry with child error listener; keep 30s timeout.",
+      "AcceptanceJustification": "Thin activation only: product ACs remain soft-missing until product ships; 6 Bound limbs are confessed/unverifiable at activation. Prefer-A Bound stamp keeps >5 criteria with this justification so swarm:launch can admit the ready brief."
     },
     "items": [
       {
@@ -205,7 +206,8 @@
           "allocation through-merge-5953-5954-5943-2026-10-27"
         ],
         "parallel_safe": true,
-        "missing_traces_justification": []
+        "missing_traces_justification": [],
+        "acceptance_criteria_justification": "Thin activation only: product ACs remain soft-missing until product ships; 6 Bound limbs are confessed/unverifiable at activation. Prefer-A Bound stamp keeps >5 criteria with this justification so swarm:launch can admit the ready brief."
       }
     },
     "id": "github.issue.6046243602",

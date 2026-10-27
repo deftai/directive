@@ -14,9 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 
-- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+- Prepare reconcile-issues DELETED/HTTP 410 handling so one gone ticket cannot hard-fail a release cut (#5912).
 
-- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+- Prepare finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - Prepare Windows ts:check-lane so POSIX-only test assumptions and bare .bin/tsx spawns no longer fail the suite (#5943).
 

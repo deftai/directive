@@ -12,8 +12,9 @@
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5953",
       "Overview": "",
       "Labels": "enhancement, area:release, design-critique:ingest-ready",
-      "UserStory": "As a maintainer, after a release pin merges I want my named primary checkout ff-only updated to the released pin with frozen install, version-matched upgrade, and hooks verified fail-closed so commits run the shipped runtime.",
-      "ImplementationPlan": "Add release:local-update as inline Taskfile cmds (no pin-exclusive engine:invoke), require --checkout primary root, refuse foreign occupancy, require tip deposit evidence, run directive upgrade --target-version, treat any tracked diff as incomplete, verify hooks --project-root --scope=all; edit Phase 7 skill via pack render; unit-test refuse paths."
+      "UserStory": "As a maintainer, I want release local-checkout update after pin, so that Prefer-A Bound product work can ship without activation/write-fence blocks.",
+      "ImplementationPlan": "Add release:local-update as inline Taskfile cmds (no pin-exclusive engine:invoke), require --checkout primary root, refuse foreign occupancy, require tip deposit evidence, run directive upgrade --target-version, treat any tracked diff as incomplete, verify hooks --project-root --scope=all; edit Phase 7 skill via pack render; unit-test refuse paths.",
+      "AcceptanceJustification": "Thin activation only: product ACs remain soft-missing until product ships; 10 Bound limbs are confessed/unverifiable at activation. Prefer-A Bound stamp keeps >5 criteria with this justification so swarm:launch can admit the ready brief."
     },
     "items": [
       {
@@ -177,7 +178,8 @@
           "allocation through-merge-5953-5954-2026-10-27"
         ],
         "parallel_safe": true,
-        "missing_traces_justification": []
+        "missing_traces_justification": [],
+        "acceptance_criteria_justification": "Thin activation only: product ACs remain soft-missing until product ships; 10 Bound limbs are confessed/unverifiable at activation. Prefer-A Bound stamp keeps >5 criteria with this justification so swarm:launch can admit the ready brief."
       },
       "intended_placement": {
         "schema": "deft.scope.intended_placement.v1",
