@@ -1,14 +1,14 @@
 {
   "xBRIEFInfo": {
     "version": "0.8",
-    "description": "Scope xBRIEF for #5956-A only \u2014 generator/deposit sync (stop emitting Grok PreToolUse .sh wrapper)",
-    "updated": "2026-10-27T18:42:45Z"
+    "description": "Scope xBRIEF for #5956-A only — generator/deposit sync (stop emitting Grok PreToolUse .sh wrapper)",
+    "updated": "2026-10-27T18:43:33Z"
   },
   "plan": {
     "id": "github.issue.6065524564",
     "title": "fix(hooks): #5956-A generator emit pin-local hook-bin.js for Grok PreToolUse (stop .sh rewrite)",
-    "status": "running",
-    "updated": "2026-10-27T18:42:45Z",
+    "status": "completed",
+    "updated": "2026-10-27T18:43:33Z",
     "tags": [
       "bug",
       "harness",
@@ -17,7 +17,7 @@
       "slice:5956-A"
     ],
     "narratives": {
-      "Description": "Fix nestedToolCommand / init-deposit agent-hooks so setup/upgrade/install --repair/hook self-repair paths that rewrite host hooks stop emitting Grok PreToolUse as ./deft-pretooluse-wrapper.sh when that disagrees with the intentional checked-in deposit (node \u2026/hook-bin.js from #5955/#5945). Unblocks #5958-class check:merge / scope-provenance false dirties.",
+      "Description": "Fix nestedToolCommand / init-deposit agent-hooks so setup/upgrade/install --repair/hook self-repair paths that rewrite host hooks stop emitting Grok PreToolUse as ./deft-pretooluse-wrapper.sh when that disagrees with the intentional checked-in deposit (node …/hook-bin.js from #5955/#5945). Unblocks #5958-class check:merge / scope-provenance false dirties.",
       "Origin": "https://github.com/deftai/directive/issues/5956 slice A; prompt ~/Projects/directive-failures/PROPOSAL-5956-A-prompt-only.md",
       "Overview": "#5956-A only. Full #5956 (.mjs wrapper, deadlines, self-complete/D-9, allow-lists, AC8.6) out of scope.",
       "Labels": "bug, harness, urgent, area:installer",
@@ -28,7 +28,7 @@
       {
         "id": "clause.1",
         "title": "Generator emits intentional hook-bin.js for Grok PreToolUse",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "packages/core/src/init-deposit/agent-hooks.ts nestedToolCommand emits pin-local hook-bin.js for Grok PreToolUse, never ./deft-pretooluse-wrapper.sh",
           "Traces": "#5956-A"
@@ -43,7 +43,7 @@
       {
         "id": "clause.2",
         "title": "Focused tests lock never-emit .sh PreToolUse for Grok",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "packages/core/src/init-deposit/agent-hooks.test.ts locks never-emit .sh PreToolUse for Grok",
           "Traces": "#5956-A"
@@ -58,7 +58,7 @@
       {
         "id": "clause.3",
         "title": "Regenerate does not dirty intentional deft.json to .sh",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Regenerate leaves .grok/hooks/deft.json on intentional hook-bin.js form (or commits matching deposit)",
           "Traces": "#5956-A #5958"
@@ -73,7 +73,7 @@
       {
         "id": "clause.4",
         "title": "CHANGELOG Unreleased notes generator/deposit sync",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "CHANGELOG.md Unreleased notes generator/deposit sync; PR stop-at pr-open",
           "Traces": "#5956-A"
@@ -192,7 +192,30 @@
         "file_scope_confidence": "high",
         "effort": "S"
       },
-      "productPullRequest": 5969
+      "productPullRequest": 5969,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "a8f0c8c5c2103af58f4c0cdf14637b706b6ea9f7",
+        "prNumber": 5969,
+        "prBase": "master",
+        "mergeCommit": "61152d8fdf5b3d315d6e8ed48ecc5a70f2706fb2",
+        "deliveryBranch": "master",
+        "deliveryCommit": "61152d8fdf5b3d315d6e8ed48ecc5a70f2706fb2",
+        "verifiedAt": "2026-10-27T18:43:33Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-27T18:43:33Z",
+      "capacityBucket": "agentic-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-27T18:43:33Z"
+      }
     }
   }
 }
