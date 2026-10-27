@@ -32,6 +32,12 @@
         "narrative": {
           "Acceptance": "packages/core/src/init-deposit/agent-hooks.ts nestedToolCommand emits pin-local hook-bin.js for Grok PreToolUse, never ./deft-pretooluse-wrapper.sh",
           "Traces": "#5956-A"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/agent-hooks.ts",
+          "recorded_at": "2026-10-27T16:59:15Z",
+          "recorded_by": "scope:stamp-evidence"
         }
       },
       {
@@ -41,6 +47,12 @@
         "narrative": {
           "Acceptance": "packages/core/src/init-deposit/agent-hooks.test.ts locks never-emit .sh PreToolUse for Grok",
           "Traces": "#5956-A"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/agent-hooks.test.ts",
+          "recorded_at": "2026-10-27T16:59:15Z",
+          "recorded_by": "scope:stamp-evidence"
         }
       },
       {
@@ -50,6 +62,12 @@
         "narrative": {
           "Acceptance": "Regenerate leaves .grok/hooks/deft.json on intentional hook-bin.js form (or commits matching deposit)",
           "Traces": "#5956-A #5958"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": ".grok/hooks/deft.json",
+          "recorded_at": "2026-10-27T16:59:15Z",
+          "recorded_by": "scope:stamp-evidence"
         }
       },
       {
@@ -59,6 +77,12 @@
         "narrative": {
           "Acceptance": "CHANGELOG.md Unreleased notes generator/deposit sync; PR stop-at pr-open",
           "Traces": "#5956-A"
+        },
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "CHANGELOG.md",
+          "recorded_at": "2026-10-27T16:59:15Z",
+          "recorded_by": "scope:stamp-evidence"
         }
       }
     ],
@@ -161,7 +185,8 @@
         ],
         "file_scope_confidence": "high",
         "effort": "S"
-      }
+      },
+      "productPullRequest": 5969
     }
   }
 }
