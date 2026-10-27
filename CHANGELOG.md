@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Prepare Windows ts:check-lane so POSIX-only test assumptions and bare .bin/tsx spawns no longer fail the suite (#5943).
+
 - Prepare release local-checkout update so after a pin lands the maintainer primary checkout can fail-closed pull, install, upgrade, and verify hooks to the shipped version (#5953).
 - Prepare release closeout automation for provenance-gated pin+deposit, channel verify, skip-CI ledger, Unreleased sentinel promote, and e2e cleanup (#5954).
 
