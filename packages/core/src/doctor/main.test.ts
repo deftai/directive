@@ -1143,15 +1143,11 @@ describe("framework-only full-doctor dangling advisory (#3749)", () => {
     let lastErrorCount = -1;
     let exit: number;
     try {
-      // Isolate from host OpenClaw (~/.openclaw): framework-only full-doctor must not
-      // inherit ambient openclaw-skill-pins / openclaw-l2-product-commands warnings (#5802).
       exit = cmdDoctor(["--full", "--json"], {
         // Pin framework == project so host DEFT_ROOT cannot flip consumer context.
         frameworkRoot: process.cwd(),
         whichFn: () => "/usr/bin/x",
         checkDanglingNodeModulesLinks: () => dangling,
-        openclawEnv: {},
-        openclawHomeDir: () => join(tmpdir(), "deft-doctor-no-openclaw-home"),
         writeState: (_projectRoot, payload) => {
           lastErrorCount = payload.errorCount;
           return null;
