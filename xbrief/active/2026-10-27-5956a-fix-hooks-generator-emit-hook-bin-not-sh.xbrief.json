@@ -1,7 +1,7 @@
 {
   "xBRIEFInfo": {
     "version": "0.8",
-    "description": "Scope xBRIEF for #5956-A only — generator/deposit sync (stop emitting Grok PreToolUse .sh wrapper)",
+    "description": "Scope xBRIEF for #5956-A only \u2014 generator/deposit sync (stop emitting Grok PreToolUse .sh wrapper)",
     "updated": "2026-10-27T18:42:45Z"
   },
   "plan": {
@@ -17,7 +17,7 @@
       "slice:5956-A"
     ],
     "narratives": {
-      "Description": "Fix nestedToolCommand / init-deposit agent-hooks so setup/upgrade/install --repair/hook self-repair paths that rewrite host hooks stop emitting Grok PreToolUse as ./deft-pretooluse-wrapper.sh when that disagrees with the intentional checked-in deposit (node …/hook-bin.js from #5955/#5945). Unblocks #5958-class check:merge / scope-provenance false dirties.",
+      "Description": "Fix nestedToolCommand / init-deposit agent-hooks so setup/upgrade/install --repair/hook self-repair paths that rewrite host hooks stop emitting Grok PreToolUse as ./deft-pretooluse-wrapper.sh when that disagrees with the intentional checked-in deposit (node \u2026/hook-bin.js from #5955/#5945). Unblocks #5958-class check:merge / scope-provenance false dirties.",
       "Origin": "https://github.com/deftai/directive/issues/5956 slice A; prompt ~/Projects/directive-failures/PROPOSAL-5956-A-prompt-only.md",
       "Overview": "#5956-A only. Full #5956 (.mjs wrapper, deadlines, self-complete/D-9, allow-lists, AC8.6) out of scope.",
       "Labels": "bug, harness, urgent, area:installer",
@@ -123,7 +123,8 @@
           "ambiguous": false,
           "provenance": "statement"
         }
-      ]
+      ],
+      "ambiguity_attestation": "none_found"
     },
     "references": [
       {
