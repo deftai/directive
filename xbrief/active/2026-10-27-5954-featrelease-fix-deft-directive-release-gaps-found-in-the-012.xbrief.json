@@ -1,0 +1,403 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5954",
+    "updated": "2026-10-27T00:48:10Z"
+  },
+  "plan": {
+    "title": "feat(release): fix deft-directive-release gaps found in the 0.129.1 cut",
+    "status": "running",
+    "narratives": {
+      "Description": "feat(release): fix deft-directive-release gaps found in the 0.129.1 cut",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5954",
+      "Overview": "",
+      "Labels": "enhancement, area:release, design-critique:ingest-ready",
+      "UserStory": "As a maintainer, I want release closeout automation gaps, so that Prefer-A Bound product work can ship without activation/write-fence blocks.",
+      "ImplementationPlan": "Add release:pin with provenance gate; Skill Completion fails closed without pin URL + upgrade deposit evidence; Phase 7 channel verify; skip-CI allow-skip-ci formatter at Step 7; version-aware unpaid ledger; cut-SHA coverage cite; FRESH_UNRELEASED sentinel + promote success path; Phase 5 Publish-job checks; release:e2e:cleanup --list/--confirm; two-pass try/finally; aborted-cut resume; maintainer banner template.",
+      "AcceptanceJustification": "Thin activation only: product ACs remain soft-missing until product ships; 13 Bound limbs are confessed/unverifiable at activation. Prefer-A Bound stamp keeps >5 criteria with this justification so swarm:launch can admit the ready brief."
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Add provenance-gated release:pin that regenerates lockfile and AgeExclude after attestation passes",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Bound Recut-2 P1: chore pin PR; AgeExclude only after sha512+attestation",
+          "Traces": "#5954"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Fail Skill Completion closed until pin PR URL and version-matched upgrade deposit evidence exist",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Bound Recut-2 P1: same PR or named companion",
+          "Traces": "#5954"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Fail-closed Phase 7 npm maintainer channel verify with pre-publish sha512/provenance baselines",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Bound Recut-2 P2: maintainer=V unchanged latest; make_latest leftover #5852",
+          "Traces": "#5954"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Compose skip-CI spend into in-memory promote and write allow-skip-ci=#N at Step 7",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Bound Recut-2 P3: literal formatter/parser pair",
+          "Traces": "#5954"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Make unpaid-ledger validation version-aware for aborted-cut same-version resume",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Bound Recut-2 P3: same-version section citations do not refuse resume",
+          "Traces": "#5954"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "On production skip path resolve and validate cut-SHA GHA coverage-of-record before artifact prep",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Bound Recut-2 P3: notes carry that cite",
+          "Traces": "#5954"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "Seed FRESH_UNRELEASED_BLOCK with typed sentinel excluded from ordinary entry counts and stripped on promote",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Bound Recut-2 P4: extractUnreleasedDashEntries excludes; promoteChangelog strips",
+          "Traces": "#5954"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "Add verified release-promotion success path accepting sentinel-only Unreleased only for promote transition",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Bound Recut-2 P4: refuse ordinary sentinel-only; never copy sentinel into notes",
+          "Traces": "#5954"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "Require Phase 5 Publish job and both publish steps success; cite fixture red as leftover #5603",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Bound Recut-2 P5",
+          "Traces": "#5954"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "Add release:e2e:cleanup --list writing exact ids and --confirm deleting only those on operator TTY",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Bound Recut-2 P6",
+          "Traces": "#5954"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "Wrap two-pass deft-4271-two-pass temp creation in try/finally and print leftover list at Skill Completion",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Bound Recut-2 P6",
+          "Traces": "#5954"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "Add aborted-cut resume reconciling tag/release/package versions; Anti-Pattern materialize:runtime in cut tree",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Bound Recut-2 P6",
+          "Traces": "#5954"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "Add channel-aware maintainer banner template plus structured known-issue and deferred inputs",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Bound Recut-2 P6",
+          "Traces": "#5954"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "area:release",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5954",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5954: feat(release): fix deft-directive-release gaps found in the 0.129.1 cut"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5942",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5942"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Given Prefer-A Recut-2 Bound 6430642914, when this clause ships, then: Bound Recut-2 P1: chore pin PR; AgeExclude only after sha512+attestation",
+          "artifact_path": "Taskfile.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Given Prefer-A Recut-2 Bound 6430642914, when this clause ships, then: Bound Recut-2 P1: same PR or named companion",
+          "artifact_path": "content/skills/deft-directive-release/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Given Prefer-A Recut-2 Bound 6430642914, when this clause ships, then: Bound Recut-2 P2: maintainer=V unchanged latest; make_latest leftover #5852",
+          "artifact_path": "packages/core/src/release/native-steps.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Given Prefer-A Recut-2 Bound 6430642914, when this clause ships, then: Bound Recut-2 P3: literal formatter/parser pair",
+          "artifact_path": "packages/core/src/release/skip-ci-incident.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Given Prefer-A Recut-2 Bound 6430642914, when this clause ships, then: Bound Recut-2 P3: same-version section citations do not refuse resume",
+          "artifact_path": "packages/core/src/release/skip-ci-incident.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Given Prefer-A Recut-2 Bound 6430642914, when this clause ships, then: Bound Recut-2 P3: notes carry that cite",
+          "artifact_path": "packages/core/src/release/pipeline.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Given Prefer-A Recut-2 Bound 6430642914, when this clause ships, then: Bound Recut-2 P4: extractUnreleasedDashEntries excludes; promoteChangelog strips",
+          "artifact_path": "packages/core/src/release/changelog.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Given Prefer-A Recut-2 Bound 6430642914, when this clause ships, then: Bound Recut-2 P4: refuse ordinary sentinel-only; never copy sentinel into notes",
+          "artifact_path": "packages/core/src/release/changelog.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Given Prefer-A Recut-2 Bound 6430642914, when this clause ships, then: Bound Recut-2 P5",
+          "artifact_path": "content/skills/deft-directive-release/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Given Prefer-A Recut-2 Bound 6430642914, when this clause ships, then: Bound Recut-2 P6",
+          "artifact_path": "Taskfile.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Given Prefer-A Recut-2 Bound 6430642914, when this clause ships, then: Bound Recut-2 P6",
+          "artifact_path": "packages/core/src/release-e2e/npm-ops.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Given Prefer-A Recut-2 Bound 6430642914, when this clause ships, then: Bound Recut-2 P6",
+          "artifact_path": "packages/core/src/release/preflight.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Given Prefer-A Recut-2 Bound 6430642914, when this clause ships, then: Bound Recut-2 P6",
+          "artifact_path": ".github/release-notes/upgrade-banner.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "derived_reason": "Prefer-A Bound limbs hand-stamped after Prefer-A Bound harvest (#4374); residual clauses 11-13 stamped after #3323 10-clause cap",
+      "source_rung": "derived",
+      "confessions": [
+        "feat(release): fix deft-directive-release gaps found in the 0.129.1 cut",
+        "Fail-closed release-skill closeout and channel residue from the 0.129.1 cut; Gap 7 deferred to #5953; make_latest deferred to #5852.",
+        "Prefer-A Recut-2 Bound 6430642914: provenance-gated pin+deposit, channel verify, skip-CI ledger, Unreleased sentinel promote, Publish-job success, e2e cleanup.",
+        "Ingested from https://github.com/deftai/directive/issues/5954",
+        "- relieves: P1 — Add `task release:pin -- <V>` that opens `chore: pin Directive to <V>` with regenerated lockfile and writes AgeExclude only after provenance (artifact sha512 + attestation source commit equals peeled tag) passes.",
+        "- relieves: P1 — Fail Skill Completion closed until that pin PR URL exists and the version-matched `directive upgrade --target-version <V>` deposit evidence exists on the same PR or a named companion PR.",
+        "- relieves: P2 — Fail-closed Phase 7 channel verify for npm `maintainer=<V>` / unchanged `latest` plus sha512/provenance baselines captured before publish (`#5852` owns GitHub `make_latest` / `--latest=false` / promote-latest; retracted from this file_scope).",
+        "- relieves: P3 — Compose the skip-CI spend into in-memory promote and write it at Step 7 with a literal `allow-skip-ci=#N` formatter/parser pair.",
+        "- relieves: P3 — Make unpaid-ledger validation version-aware so same-version section citations do not refuse an aborted-cut resume of the same cut.",
+        "- relieves: P3 — On the production skip path, resolve and validate cut-SHA GHA coverage-of-record before artifact prep so notes carry that cite.",
+        "- relieves: P4 — Seed `FRESH_UNRELEASED_BLOCK` with a typed sentinel that `extractUnreleasedDashEntries` excludes from ordinary entry counts and that `promoteChangelog` strips on promote.",
+        "- relieves: P4 — Add a verified release-promotion success path in the changelog gate that accepts sentinel-only Unreleased only for the actual promote transition, refuses ordinary changes that inherit sentinel-only Unreleased, and never copies the sentinel into release notes.",
+        "- relieves: P5 — Require Phase 5 success of the Publish job and both publish steps, with fixture-job red cited as leftover `#5603`.",
+        "- relieves: P6 — Add `release:e2e:cleanup --list` that writes exact repo/dir ids to a file and `--confirm` that deletes only those ids on operator TTY.",
+        "- relieves: P6 — Wrap two-pass `deft-4271-two-pass-*` creation in try/finally like rehearsal, and print leftover list at Skill Completion.",
+        "- relieves: P6 — Add aborted-cut resume that reconciles existing tag/release/both package versions before reuse, and Anti-Pattern `materialize:runtime` in the cut tree.",
+        "- relieves: P6 — Add channel-aware maintainer banner template plus structured `--known-issue` / `--deferred` inputs.",
+        "- relieves: P1 — Add `task release:pin -- <V>` that opens `chore: pin Directive to <V>` with regenerated lockfile and writes AgeExclude only after provenance (artifact sha512 + attestation source commit equals peeled tag) passes.\n- relieves: P1 — Fail Skill Completion closed until that pin PR URL exists and the version-matched `directive upgrade --target-version <V>` deposit evidence exists on the same PR or a named companion PR.\n- relieves: P2 — Fail-closed Phase 7 channel verify for npm `maintainer=<V>` / unchanged `latest` plus sha512/provenance baselines captured before publish (`#5852` owns GitHub `make_latest` / `--latest=false` / promote-latest; retracted from this file_scope).\n- relieves: P3 — Compose the skip-CI spend into in-memory promote and write it at Step 7 with a literal `allow-skip-ci=#N` formatter/parser pair.\n- relieves: P3 — Make unpaid-ledger validation version-aware so same-version section citations do not refuse an aborted-cut resume of the same cut.\n- relieves: P3 — On the production skip path, resolve and validate cut-SHA GHA coverage-of-record before artifact prep so notes carry that cite.\n- relieves: P4 — Seed `FRESH_UNRELEASED_BLOCK` with a typed sentinel that `extractUnreleasedDashEntries` excludes from ordinary entry counts and that `promoteChangelog` strips on promote.\n- relieves: P4 — Add a verified release-promotion success path in the changelog gate that accepts sentinel-only Unreleased only for the actual promote transition, refuses ordinary changes that inherit sentinel-only Unreleased, and never copies the sentinel into release notes.\n- relieves: P5 — Require Phase 5 success of the Publish job and both publish steps, with fixture-job red cited as leftover `#5603`.\n- relieves: P6 — Add `release:e2e:cleanup --list` that writes exact repo/dir ids to a file and `--confirm` that deletes only those ids on operator TTY.\n- relieves: P6 — Wrap two-pass `deft-4271-two-pass-*` creation in try/finally like rehearsal, and print leftover list at Skill Completion.\n- relieves: P6 — Add aborted-cut resume that reconciles existing tag/release/both package versions before reuse, and Anti-Pattern `materialize:runtime` in the cut tree.\n- relieves: P6 — Add channel-aware maintainer banner template plus structured `--known-issue` / `--deferred` inputs.",
+        "enhancement, area:release, design-critique:ingest-ready",
+        "As a release operator, I want the 0.129.1 hand-memory gaps fail-closed in the release skill and tasks so pin+deposit completion, channel verify, skip-CI ledger, Unreleased sentinel promote, publish-job success, and e2e cleanup are automated.",
+        "Add release:pin with provenance gate; Skill Completion fails closed without pin URL + upgrade deposit evidence; Phase 7 channel verify; skip-CI allow-skip-ci formatter at Step 7; version-aware unpaid ledger; cut-SHA coverage cite; FRESH_UNRELEASED sentinel + promote success path; Phase 5 Publish-job checks; release:e2e:cleanup --list/--confirm; two-pass try/finally; aborted-cut resume; maintainer banner template.",
+        "Add provenance-gated release:pin that regenerates lockfile and AgeExclude after attestation passes",
+        "Bound Recut-2 P1: chore pin PR; AgeExclude only after sha512+attestation",
+        "Fail Skill Completion closed until pin PR URL and version-matched upgrade deposit evidence exist",
+        "Bound Recut-2 P1: same PR or named companion",
+        "Fail-closed Phase 7 npm maintainer channel verify with pre-publish sha512/provenance baselines",
+        "Bound Recut-2 P2: maintainer=V unchanged latest; make_latest leftover #5852",
+        "Compose skip-CI spend into in-memory promote and write allow-skip-ci=#N at Step 7",
+        "Bound Recut-2 P3: literal formatter/parser pair",
+        "Make unpaid-ledger validation version-aware for aborted-cut same-version resume",
+        "Bound Recut-2 P3: same-version section citations do not refuse resume",
+        "On production skip path resolve and validate cut-SHA GHA coverage-of-record before artifact prep",
+        "Bound Recut-2 P3: notes carry that cite",
+        "Seed FRESH_UNRELEASED_BLOCK with typed sentinel excluded from ordinary entry counts and stripped on promote",
+        "Bound Recut-2 P4: extractUnreleasedDashEntries excludes; promoteChangelog strips",
+        "Add verified release-promotion success path accepting sentinel-only Unreleased only for promote transition",
+        "Bound Recut-2 P4: refuse ordinary sentinel-only; never copy sentinel into notes",
+        "Require Phase 5 Publish job and both publish steps success; cite fixture red as leftover #5603",
+        "Bound Recut-2 P5",
+        "Add release:e2e:cleanup --list writing exact ids and --confirm deleting only those on operator TTY",
+        "Bound Recut-2 P6",
+        "Wrap two-pass deft-4271-two-pass temp creation in try/finally and print leftover list at Skill Completion",
+        "Add aborted-cut resume reconciling tag/release/package versions; Anti-Pattern materialize:runtime in cut tree",
+        "Add channel-aware maintainer banner template plus structured known-issue and deferred inputs",
+        "Given Prefer-A Recut-2 Bound 6430642914, when this clause ships, then: Bound Recut-2 P1: chore pin PR; AgeExclude only after sha512+attestation",
+        "Given Prefer-A Recut-2 Bound 6430642914, when this clause ships, then: Bound Recut-2 P1: same PR or named companion",
+        "Given Prefer-A Recut-2 Bound 6430642914, when this clause ships, then: Bound Recut-2 P2: maintainer=V unchanged latest; make_latest leftover #5852",
+        "Given Prefer-A Recut-2 Bound 6430642914, when this clause ships, then: Bound Recut-2 P3: literal formatter/parser pair",
+        "Given Prefer-A Recut-2 Bound 6430642914, when this clause ships, then: Bound Recut-2 P3: same-version section citations do not refuse resume",
+        "Given Prefer-A Recut-2 Bound 6430642914, when this clause ships, then: Bound Recut-2 P3: notes carry that cite",
+        "Given Prefer-A Recut-2 Bound 6430642914, when this clause ships, then: Bound Recut-2 P4: extractUnreleasedDashEntries excludes; promoteChangelog strips",
+        "Given Prefer-A Recut-2 Bound 6430642914, when this clause ships, then: Bound Recut-2 P4: refuse ordinary sentinel-only; never copy sentinel into notes",
+        "Given Prefer-A Recut-2 Bound 6430642914, when this clause ships, then: Bound Recut-2 P5",
+        "Given Prefer-A Recut-2 Bound 6430642914, when this clause ships, then: Bound Recut-2 P6"
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "Taskfile.yml",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-release/SKILL.md",
+          "docs/RELEASING.md",
+          "packages/core/src/release/changelog.ts",
+          "packages/core/src/release/changelog.test.ts",
+          "packages/core/src/release/skip-ci-incident.ts",
+          "packages/core/src/release/skip-ci-incident.test.ts",
+          "packages/core/src/release/gh.ts",
+          "packages/core/src/release/pipeline.ts",
+          "packages/core/src/release/preflight.ts",
+          "packages/core/src/release/native-steps.ts",
+          "packages/core/src/release/native-steps.test.ts",
+          "packages/core/src/release/version.ts",
+          "packages/core/src/release-e2e/npm-ops.ts",
+          "packages/core/src/release-e2e/flags.ts",
+          "packages/core/src/release-e2e/main.ts",
+          ".github/release-notes/upgrade-banner.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/release/pipeline.ts",
+        "cohesion_exemption": "CHANGELOG + release skill pack + pin/channel/skip-CI/e2e cleanup closeout"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6048676452,
+        "origin": "deftai/directive#5954",
+        "id": "github.issue.6048676452"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "ee9e9224ddbd94a36c8ad582908039e7806ef9e0ebe0e8f004f262972612bb52"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "release-skill-01291-closeout-channel-fail-closed",
+        "expected_outputs": [
+          "release:pin provenance-gated task",
+          "Phase 7 channel verify",
+          "skip-CI ledger formatter/parser",
+          "Unreleased sentinel promote path",
+          "release:e2e:cleanup list/confirm",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/release/flags.test.ts"
+        ],
+        "file_scope": [
+          "Taskfile.yml",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-release/SKILL.md",
+          "docs/RELEASING.md",
+          "packages/core/src/release/changelog.ts",
+          "packages/core/src/release/changelog.test.ts",
+          "packages/core/src/release/skip-ci-incident.ts",
+          "packages/core/src/release/skip-ci-incident.test.ts",
+          "packages/core/src/release/gh.ts",
+          "packages/core/src/release/pipeline.ts",
+          "packages/core/src/release/preflight.ts",
+          "packages/core/src/release/native-steps.ts",
+          "packages/core/src/release/native-steps.test.ts",
+          "packages/core/src/release/version.ts",
+          "packages/core/src/release-e2e/npm-ops.ts",
+          "packages/core/src/release-e2e/flags.ts",
+          "packages/core/src/release-e2e/main.ts",
+          ".github/release-notes/upgrade-banner.md",
+          "CHANGELOG.md"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5954",
+          "Prefer-A Recut-2 Bound 6430642914",
+          "allocation through-merge-5953-5954-2026-10-27"
+        ],
+        "parallel_safe": true,
+        "missing_traces_justification": [],
+        "acceptance_criteria_justification": "Thin activation only: product ACs remain soft-missing until product ships; 13 Bound limbs are confessed/unverifiable at activation. Prefer-A Bound stamp keeps >5 criteria with this justification so swarm:launch can admit the ready brief."
+      }
+    },
+    "id": "github.issue.6048676452",
+    "updated": "2026-10-27T00:48:10Z"
+  }
+}

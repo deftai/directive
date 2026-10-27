@@ -1,0 +1,216 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5943",
+    "updated": "2026-10-27T01:21:18Z"
+  },
+  "plan": {
+    "title": "test(windows): 4 unit tests and 2 unhandled errors fail on Windows in ts:check-lane",
+    "status": "running",
+    "narratives": {
+      "Description": "test(windows): 4 unit tests and 2 unhandled errors fail on Windows in ts:check-lane",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5943",
+      "Overview": "Windows ts:check-lane red from POSIX host assumptions and bare node_modules/.bin/tsx spawn; Prefer-A Bound hardens the four failing unit tests without raising timeout first.",
+      "Labels": "bug, platform:windows, design-critique:ingest-ready",
+      "UserStory": "As a maintainer, I want Windows ts:check-lane suite green, so that Prefer-A Bound product work can ship without activation/write-fence blocks.",
+      "ImplementationPlan": "Split disable-flag into always-on source assert + win32-gated sh spawn; skipIf win32 on chmod +x; normalize npm-pack CRLF/tar listing; spawn wave2q via process.execPath + resolved tsx JS entry with child error listener; keep 30s timeout.",
+      "AcceptanceJustification": "Thin activation only: product ACs remain soft-missing until product ships; 6 Bound limbs are confessed/unverifiable at activation. Prefer-A Bound stamp keeps >5 criteria with this justification so swarm:launch can admit the ready brief."
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Split disable-flag into always-on helper-source assert and win32-gated sh behavioral spawn",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Bound 6431020190 P1: portable source assert always runs; sh/chmod behavioral half gated on win32",
+          "Traces": "#5943"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Gate chmod execute-bit assertion with it.skipIf win32",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Bound 6431020190 P2: chmod +x assertion skipped on win32 only",
+          "Traces": "#5943"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Normalize npm-pack stdout CRLF and tar listing to forward-slash exact bin.js entry",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Bound 6431020190 P3: CRLF normalize; split /\\r?\\n/; listing.status===0 fail-closed; exact package/dist/bin.js",
+          "Traces": "#5943"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Spawn wave2q self-complete via process.execPath plus resolved tsx JavaScript CLI entry",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Bound 6431020190 P4: all platforms; fail clearly if unresolved; no .cmd-without-shell or shell:true",
+          "Traces": "#5943"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Attach child error listener so launch failures reject as ordinary test failures",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Bound 6431020190 P4: no unhandled spawn errors",
+          "Traces": "#5943"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "Keep concurrent self-complete timeout at 30s until measured residual after green spawn",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Bound 6431020190: do not raise timeout before ENOENT fix",
+          "Traces": "#5943"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "platform:windows",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5943",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5943: test(windows): 4 unit tests and 2 unhandled errors fail on Windows in ts:check-lane"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Given Prefer-A Bound 6431020190, when this clause ships, then: Bound 6431020190 P1: portable source assert always runs; sh/chmod behavioral half gated on win32",
+          "artifact_path": "packages/runtime/src/setup-wiring.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Given Prefer-A Bound 6431020190, when this clause ships, then: Bound 6431020190 P2: chmod +x assertion skipped on win32 only",
+          "artifact_path": "packages/runtime/src/setup-wiring.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Given Prefer-A Bound 6431020190, when this clause ships, then: Bound 6431020190 P3: CRLF normalize; split /\\r?\\n/; listing.status===0 fail-closed; exact package/dist/bin.js",
+          "artifact_path": "packages/cli/src/launcher-bundle-d43.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Given Prefer-A Bound 6431020190, when this clause ships, then: Bound 6431020190 P4: all platforms; fail clearly if unresolved; no .cmd-without-shell or shell:true",
+          "artifact_path": "packages/runtime/src/wave2q-gen-rebuild-session.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Given Prefer-A Bound 6431020190, when this clause ships, then: Bound 6431020190 P4: no unhandled spawn errors",
+          "artifact_path": "packages/runtime/src/wave2q-gen-rebuild-session.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Given Prefer-A Bound 6431020190, when this clause ships, then: Bound 6431020190: do not raise timeout before ENOENT fix",
+          "artifact_path": "packages/runtime/src/wave2q-gen-rebuild-session.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "derived_reason": "Prefer-A Bound limbs hand-stamped after Prefer-A Bound harvest (#4374)",
+      "source_rung": "derived",
+      "confessions": [
+        "test(windows): 4 unit tests and 2 unhandled errors fail on Windows in ts:check-lane",
+        "Windows ts:check-lane red from POSIX host assumptions and bare node_modules/.bin/tsx spawn; Prefer-A Bound hardens the four failing unit tests without raising timeout first.",
+        "As a Windows maintainer, I want ts:check-lane green locally so POSIX-only test assumptions and bare .bin/tsx spawns do not fail the suite.",
+        "Split disable-flag into always-on helper-source assert and win32-gated sh behavioral spawn",
+        "Gate chmod execute-bit assertion with it.skipIf win32",
+        "Normalize npm-pack stdout CRLF and tar listing to forward-slash exact bin.js entry",
+        "Spawn wave2q self-complete via process.execPath plus resolved tsx JavaScript CLI entry",
+        "Attach child error listener so launch failures reject as ordinary test failures",
+        "Keep concurrent self-complete timeout at 30s until measured residual after green spawn",
+        "Bound 6431020190 P1: portable source assert always runs; sh/chmod behavioral half gated on win32",
+        "Bound 6431020190 P2: chmod +x assertion skipped on win32 only",
+        "Bound 6431020190 P3: CRLF normalize; split /\\r?\\n/; listing.status===0 fail-closed; exact package/dist/bin.js",
+        "Bound 6431020190 P4: all platforms; fail clearly if unresolved; no .cmd-without-shell or shell:true",
+        "Bound 6431020190 P4: no unhandled spawn errors",
+        "Bound 6431020190: do not raise timeout before ENOENT fix",
+        "Prefer-A Bound 6431020190: Windows ts:check-lane POSIX assumptions and bare .bin/tsx spawn."
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/runtime/src/setup-wiring.test.ts",
+          "packages/runtime/src/wave2q-gen-rebuild-session.test.ts",
+          "packages/cli/src/launcher-bundle-d43.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/runtime/src/wave2q-gen-rebuild-session.test.ts",
+        "cohesion_exemption": "CHANGELOG + Windows ts:check-lane test hardening"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6046243602,
+        "origin": "deftai/directive#5943",
+        "id": "github.issue.6046243602"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "dd7cfd4a73ffe94be9042e06c5e00cc8e2cf5c44ba04b9f3887723a137cec941"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "windows-ts-check-lane-posix-assumptions-and-bin-shim",
+        "expected_outputs": [
+          "win32-gated setup-wiring POSIX halves",
+          "CRLF-safe npm-pack listing assert",
+          "wave2q spawn via execPath+tsx JS entry",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/cli/src/launcher-bundle-d43.test.ts"
+        ],
+        "file_scope": [
+          "packages/runtime/src/setup-wiring.test.ts",
+          "packages/runtime/src/wave2q-gen-rebuild-session.test.ts",
+          "packages/cli/src/launcher-bundle-d43.test.ts",
+          "CHANGELOG.md"
+        ],
+        "size": "S",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5943",
+          "Prefer-A Bound 6431020190",
+          "allocation through-merge-5953-5954-5943-2026-10-27"
+        ],
+        "parallel_safe": true,
+        "missing_traces_justification": [],
+        "acceptance_criteria_justification": "Thin activation only: product ACs remain soft-missing until product ships; 6 Bound limbs are confessed/unverifiable at activation. Prefer-A Bound stamp keeps >5 criteria with this justification so swarm:launch can admit the ready brief."
+      }
+    },
+    "id": "github.issue.6046243602",
+    "updated": "2026-10-27T01:21:18Z"
+  }
+}

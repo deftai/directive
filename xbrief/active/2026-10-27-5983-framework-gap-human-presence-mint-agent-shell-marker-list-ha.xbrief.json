@@ -1,0 +1,163 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5983",
+    "updated": "2026-10-27T21:15:54Z"
+  },
+  "plan": {
+    "title": "[framework-gap] Human-presence mint: agent-shell marker list has no Grok entry",
+    "status": "running",
+    "narratives": {
+      "Description": "[framework-gap] Human-presence mint: agent-shell marker list has no Grok entry",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5983",
+      "Overview": "Prefer-A Recut-2 Bound 6453002013 (+ T5 amend 6453463532): add GROK_AGENT then GROK_SESSION_ID to AUTHZ_AGENT_SHELL_ENV_MARKERS; export detectedAgentShellMarkers returning matching keys in list order; looksLikeAgentShell is length>0; shared refuseNonInteractiveMint names every matched key with unset hint and never prints values; blank/whitespace marker values return [].",
+      "Labels": "design-critique:ingest-ready",
+      "UserStory": "As an operator minting from a real console, I want Grok Build agent shells refused by the human-presence mint denylist with a named-key unset hint, so that a TTY-bearing Grok tool shell cannot slip past agent-shell detection.",
+      "ImplementationPlan": "1. After OPENAI_CODEX in AUTHZ_AGENT_SHELL_ENV_MARKERS add exact GROK_AGENT then GROK_SESSION_ID (non-empty-after-trim; no GROK_* prefix; both unconditional).\n2. Export detectedAgentShellMarkers(environ) returning every matching key in list order; looksLikeAgentShell = length>0; change shared refuseNonInteractiveMint to name every matched key, include unset hint, never print values.\n3. Keep GROK_AGENT on the denylist (P3 residual diagnosable via named-unset message).\n4. Tests T1–T6 per Bound + plan amend 6453463532: T5 blank/whitespace values return empty list [] not null; extend scope-record-approved-scope per-verb loop with GROK_AGENT and GROK_SESSION_ID.\n5. CHANGELOG Unreleased Fixed. Tracking/Refs only on product PR.",
+      "Traces": "#5983 Prefer-A Recut-2 Bound 6453002013; T5 amend 6453463532",
+      "AcceptanceJustification": "Prefer-A Recut-2 Bound 6453002013 + T5 amend 6453463532: membership, plural detectedAgentShellMarkers, named-unset refusal, blank to empty-list tests, and CHANGELOG Fixed are independently checkable against human-presence-mint.ts/tests."
+    },
+    "items": [
+      {
+        "title": "relieves: P1 — Add exact env names GROK_AGENT then GROK_SESSION_ID to AUTHZ_AGENT_SHELL_ENV_MARKERS after OPENAI_CODEX with non-empty-after-trim matching, no GROK_* prefix match, and both markers unconditional with the session-id-only fallback struck.",
+        "status": "proposed",
+        "id": "clause.1",
+        "effort": "S"
+      },
+      {
+        "title": "relieves: P2 — Export detectedAgentShellMarkers(environ) returning every matching key in list order, implement looksLikeAgentShell as length > 0, and change the single shared refuseNonInteractiveMint message so every mint caller names those keys, includes an unset hint, and never prints values.",
+        "status": "proposed",
+        "id": "clause.2",
+        "effort": "S"
+      },
+      {
+        "title": "relieves: P3 — Keep GROK_AGENT on the denylist so dual-use false refuses stay diagnosable and recoverable through the P2 named-unset message, knowingly carrying the residual that a human profile export is still refused rather than dropping the strong marker.",
+        "status": "proposed",
+        "id": "clause.3",
+        "effort": "S"
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5983",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5983: [framework-gap] Human-presence mint: agent-shell marker list has no Grok entry"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/runtime/src/human-presence-mint.test.ts packages/runtime/src/scope-record-approved-scope.test.ts",
+          "expected_exit": 0
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "relieves: P1 — Add exact env names GROK_AGENT then GROK_SESSION_ID to AUTHZ_AGENT_SHELL_ENV_MARKERS after OPENAI_CODEX with non-empty-after-trim matching, no GROK_* prefix match, and both markers unconditional with the session-id-only fallback struck.",
+        "relieves: P2 — Export detectedAgentShellMarkers(environ) returning every matching key in list order, implement looksLikeAgentShell as length > 0, and change the single shared refuseNonInteractiveMint message so every mint caller names those keys, includes an unset hint, and never prints values.",
+        "relieves: P3 — Keep GROK_AGENT on the denylist so dual-use false refuses stay diagnosable and recoverable through the P2 named-unset message, knowingly carrying the residual that a human profile export is still refused rather than dropping the strong marker."
+      ],
+      "admitted_source_sentences": [
+        "relieves: P1 — Add exact env names GROK_AGENT then GROK_SESSION_ID to AUTHZ_AGENT_SHELL_ENV_MARKERS after OPENAI_CODEX with non-empty-after-trim matching, no GROK_* prefix match, and both markers unconditional with the session-id-only fallback struck.",
+        "relieves: P2 — Export detectedAgentShellMarkers(environ) returning every matching key in list order, implement looksLikeAgentShell as length > 0, and change the single shared refuseNonInteractiveMint message so every mint caller names those keys, includes an unset hint, and never prints values.",
+        "relieves: P3 — Keep GROK_AGENT on the denylist so dual-use false refuses stay diagnosable and recoverable through the P2 named-unset message, knowingly carrying the residual that a human profile export is still refused rather than dropping the strong marker."
+      ],
+      "admitted_source_digest": "f1629bee14231454af192642625c38768de5c4a88b84081051ca7a88a7b85676",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "relieves: P1 — Add exact env names GROK_AGENT then GROK_SESSION_ID to AUTHZ_AGENT_SHELL_ENV_MARKERS after OPENAI_CODEX with non-empty-after-trim matching, no GROK_* prefix match, and both markers unconditional with the session-id-only fallback struck.",
+          "artifact_path": "packages/runtime/src/human-presence-mint.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "relieves: P2 — Export detectedAgentShellMarkers(environ) returning every matching key in list order, implement looksLikeAgentShell as length > 0, and change the single shared refuseNonInteractiveMint message so every mint caller names those keys, includes an unset hint, and never prints values.",
+          "artifact_path": "packages/runtime/src/human-presence-mint.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "relieves: P3 — Keep GROK_AGENT on the denylist so dual-use false refuses stay diagnosable and recoverable through the P2 named-unset message, knowingly carrying the residual that a human profile export is still refused rather than dropping the strong marker.",
+          "artifact_path": "packages/runtime/src/human-presence-mint.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "[framework-gap] Human-presence mint: agent-shell marker list has no Grok entry"
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/runtime/src/human-presence-mint.ts",
+          "packages/runtime/src/human-presence-mint.test.ts",
+          "packages/runtime/src/scope-record-approved-scope.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/runtime/src"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6065251499,
+        "origin": "deftai/directive#5983",
+        "id": "github.issue.6065251499"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "3a55f86f4c7be9fabf26d29226784668b37a1fcce40cbb09d68c06381ffb47b8"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "human-presence-mint-grok-agent-shell-markers",
+        "expected_outputs": [
+          "GROK_AGENT + GROK_SESSION_ID on AUTHZ_AGENT_SHELL_ENV_MARKERS",
+          "detectedAgentShellMarkers plural + named-unset refusal",
+          "T5 blank values return []",
+          "CHANGELOG Unreleased Fixed"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/runtime/src/human-presence-mint.test.ts packages/runtime/src/scope-record-approved-scope.test.ts"
+        ],
+        "file_scope": [
+          "packages/runtime/src/human-presence-mint.ts",
+          "packages/runtime/src/human-presence-mint.test.ts",
+          "packages/runtime/src/scope-record-approved-scope.test.ts",
+          "CHANGELOG.md"
+        ],
+        "size": "S",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5983",
+          "Prefer-A Recut-2 Bound 6453002013",
+          "T5 amend 6453463532",
+          "allocation through-merge-5983-2026-10-27"
+        ],
+        "parallel_safe": true,
+        "missing_traces_justification": []
+      }
+    },
+    "id": "github.issue.6065251499",
+    "updated": "2026-10-27T21:15:54Z"
+  }
+}
