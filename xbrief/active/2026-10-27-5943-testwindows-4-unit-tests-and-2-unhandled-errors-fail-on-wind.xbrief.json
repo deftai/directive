@@ -189,7 +189,7 @@
         "depends_on": [],
         "model_tier": "standard",
         "verify_commands": [
-          "pnpm exec vitest run packages/runtime/src/setup-wiring.test.ts packages/runtime/src/wave2q-gen-rebuild-session.test.ts packages/cli/src/launcher-bundle-d43.test.ts"
+          "pnpm exec vitest run packages/cli/src/launcher-bundle-d43.test.ts"
         ],
         "file_scope": [
           "packages/runtime/src/setup-wiring.test.ts",

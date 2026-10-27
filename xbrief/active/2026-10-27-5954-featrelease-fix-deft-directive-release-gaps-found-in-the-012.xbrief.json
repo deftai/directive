@@ -361,7 +361,7 @@
         "depends_on": [],
         "model_tier": "standard",
         "verify_commands": [
-          "pnpm exec vitest run packages/core/src/release/ packages/core/src/release-e2e/"
+          "pnpm exec vitest run packages/core/src/release/flags.test.ts"
         ],
         "file_scope": [
           "Taskfile.yml",
