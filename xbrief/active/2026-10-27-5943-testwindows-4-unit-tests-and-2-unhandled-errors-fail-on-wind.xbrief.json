@@ -159,8 +159,7 @@
           "packages/runtime/src/setup-wiring.test.ts",
           "packages/runtime/src/wave2q-gen-rebuild-session.test.ts",
           "packages/cli/src/launcher-bundle-d43.test.ts",
-          "CHANGELOG.md",
-          "packages/core/src/doctor/main.test.ts"
+          "CHANGELOG.md"
         ],
         "module_boundary": "packages/runtime/src/wave2q-gen-rebuild-session.test.ts",
         "cohesion_exemption": "CHANGELOG + Windows ts:check-lane test hardening"
@@ -185,8 +184,7 @@
           "win32-gated setup-wiring POSIX halves",
           "CRLF-safe npm-pack listing assert",
           "wave2q spawn via execPath+tsx JS entry",
-          "CHANGELOG Unreleased",
-          "doctor full-doctor host OpenClaw isolation"
+          "CHANGELOG Unreleased"
         ],
         "depends_on": [],
         "model_tier": "standard",
@@ -197,16 +195,14 @@
           "packages/runtime/src/setup-wiring.test.ts",
           "packages/runtime/src/wave2q-gen-rebuild-session.test.ts",
           "packages/cli/src/launcher-bundle-d43.test.ts",
-          "CHANGELOG.md",
-          "packages/core/src/doctor/main.test.ts"
+          "CHANGELOG.md"
         ],
         "size": "S",
         "file_scope_confidence": "high",
         "Traces": [
           "#5943",
           "Prefer-A Bound 6431020190",
-          "allocation through-merge-5953-5954-5943-2026-10-27",
-          "#5802 doctor OpenClaw isolation"
+          "allocation through-merge-5953-5954-5943-2026-10-27"
         ],
         "parallel_safe": true,
         "missing_traces_justification": []
