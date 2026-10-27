@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - Prepare Windows ts:check-lane so POSIX-only test assumptions and bare .bin/tsx spawns no longer fail the suite (#5943).
@@ -43,6 +45,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - Path B: widen Locked #5797/#5798 active xBRIEF `file_scope` to match FINAL footprints (allowBuilds PM-owned CLI paths; doctor failure-shaped remedy + f010 fixtures).
@@ -55,6 +59,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -96,6 +102,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - xbrief: land the activated #5853 brief; its ingest-stamped title line is named in plan.acceptance.confessions (one-off exception, expires when the #5856 ingest fix ships), and the 13 Recut-2 limbs map onto the 10 ingest-admitted acceptance ids without dropping any (#3550 / #5055)
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -309,6 +317,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Consumer deposit now includes ADR-003 for Continuity (#4892).** MUST cites resolve to `.deft/core/docs/decisions/ADR-003-a2a-nuclear-family-topology.md` via the content/docs flatten. Maintainer `docs/decisions/ADR-003` stays heavyweight SoT (dual-path; no root-docs prepack carve-out). Leaves #3940 as tracker; cross-links only #3847 / #4890. Closes #4892.
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **docs(authz): cite #5674 for #5542 pre-PR/hotspots waived-exit follow-up.** Gate-override hatch and released 0.125.1 CHANGELOG wording now name #5674 so closed #5542 is not over-read as consumer-wired. Refs #5674 / #5665 / #5542.
@@ -362,6 +372,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Prepare scope checks for #3906.** Records the reviewed brief so the follow-up product PR can pass scope checks after this activation merges. Tracking #3906. Refs #5192, #4774.
@@ -393,6 +405,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -457,6 +471,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - Typed `plan.policy.review.minGreptileConfidence=4` so Greptile CLEAN / merge-ready accept 4/5 for this cohort (#3095).
@@ -516,6 +532,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Design-critique later-arc closed-findings (#5489).** Later arcs on the same ticket no longer re-litigate findings the parent already closed: critics demote authorized restatements, and reopen needs evidence. Adjacent-polish hydra remainder deferred to #5493. Tracking #5489. Refs Prefer-A Bound 6065006497.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -581,6 +599,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
@@ -642,6 +662,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - Keep-active: Prefer-A Bound brief for #5393 (Path B activation).
@@ -674,6 +696,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Interview progress checkpoints without breaking one-question (#5353).** Interview and setup emit concise Rule 2 status-only progress checkpoints (phase, remaining decision-area labels, deferrals, addition reasons) at closed triggers; how-much-is-left answers with inventory status then re-renders the same pending question. Rule 1 coexistence keeps inventory labels allowed and concrete upcoming question text forbidden. Tracking #5353.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -775,6 +799,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
@@ -818,6 +844,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Fail-closed AGENTS header placeholder gate at first-ship (#4544).** `deft check` (cached and `--no-cache`) and `check:consumer` refuse when product-mutation completion still leaves the unmanaged header one-liner on the exact scaffold edit-me string; Process-only and custom headers pass. Durable Prefer-A marker (not occupancy `last_write_at`) is the product-mutation signal; marker write failure fails closed on markWrite only (heartbeat/grant lease refresh does not require a marker rewrite); unreadable/malformed Prefer-A marker fails closed only while the unmanaged header is still the scaffold placeholder (not silent Process-only; custom header and absent AGENTS.md still pass); CAS replaces the unmanaged-header one-liner only; unreadable AGENTS.md fails closed. Remediate via confirmed-Overview `compareAndSetConsumerHeaderOneLiner`. CLI: `verify:consumer-header-placeholder`. Tracking #4544.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -887,6 +915,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Clearer check-gate failure remedies (#1883).** Composition check failures now name a concrete next step instead of a generic re-run line; empty or opaque diagnostics stay marked as a named-cause seam bug. Extends #3282. Tracking #1883.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -1058,6 +1088,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Release Step 5 hang detector 20→30 minutes for suite growth (#5022).** Deliberate gate change to `RELEASE_CHECK_TIMEOUT_MS` / `RELEASE_CHECK_TIMEOUT_MINUTES`. Do not raise casually. GHA vitest coverage `timeout-minutes: 20` stays separate. Tracking #5022.
@@ -1111,6 +1143,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
@@ -1141,6 +1175,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Evidence-only `scope:stamp-evidence` records kind:test on glob file_scope skip rows (#4840).** Writes a non-glob file that `matchAny(file_scope)` accepts through `stampNamespacedEvidence`. Refuses glob-shaped pointers and directory stand-ins. No disposition argv; `--pr` / `--merge-commit` stay off this field. Null-path persist-default rows stay unstamped. Tracking #4840.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -1182,6 +1218,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Records #4765 complete after Class B residual bares landed.** Completes the tracked brief for merged PR 4828. Tracking #4765.
@@ -1222,6 +1260,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Records #4784 complete after completed-write pairing recut landed.** Completes the tracked brief for merged PR 4799. Refs #4784.
@@ -1240,6 +1280,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -1287,6 +1329,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Leftover-complete #4317.** Completes the Wave 2 brief after #4727. Refs #4164.
@@ -1332,6 +1376,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Maintainer .gitignore un-ignores provenance under .deft/approved-scope and .deft/intent-constraint.** Local scratch and reconstituted .deft/core stay ignored. Not consumer CANONICAL_GITIGNORE_BASELINE. Mint records show in git status without -f.
@@ -1369,6 +1415,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -1432,6 +1480,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Complete tracking for #4541.** After PR 4557. The #4541 xBRIEF stayed in xbrief/active/ on origin/master after squash. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
@@ -1476,6 +1526,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
@@ -1504,6 +1556,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Setup-created scopes: count unresolved origins, offer emit-hints, keep origin writes off the agent (#4426).** `verify:orphan-active` reports `noOrigin` of scanned briefs that resolved zero forge origins; scoped `--issue N` counts only briefs that name N. The unscoped sweep stays fail-open. `verify:completed-tracked` names briefs scanned versus origins resolved. Setup Phase 3 (including Add-scope) surfaces emit-hints (none / umbrella / per-vBRIEF). Origin references are operator-collected or `task issue:emit`; ⊗ agent-asserted `parent_issue`. Leaves #3826 complete-reader and the unknown-policy split in place. Closes #4426.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -1576,6 +1630,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Land leftover completed-tracked artifact for #4393 (#3264 / #3476).** The #4393 xBRIEF stayed in xbrief/active/ on origin/master after squash of PR 4413. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
@@ -1615,6 +1671,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Design-critique path selector is Spec-path:; Recut: stays a permanent alias (#4361).** Ingest still harvests Bound-remedy when that token is present and refuses a missing heading or empty list. No token stays body-normative. Later arc, rewrite the body, process-only skip class, and set-level-body replace the other English jobs. Close is not cancelled and is not an order in the summary. Yolo and auto-stamp stay. Closes #4361.
@@ -1644,6 +1702,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Cursor local implement is dest-placing, not Task dest (#4295).** Local Cursor workers start in a reserved linked worktree instead of unsupported Task destination keys. Consumer agents-entry pins dest-placing Cursor. agentsMdBudget.absoluteMaxBytes 17300→17600. Closes #4295.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -1682,6 +1742,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Design-critique exclusive catalog is mechanism-shaped, in-progress, ingest-ready (#4298).** One bind chip after a complete record: ingest-ready. judgmentGates stays on mechanism-shaped. in-progress flips on first panel-deposit or role: critic, not spawn intent. Recut: is a lean token, not a chip; auto-stamp writes ingest-ready. Old triage-ready / recut-needed fail closed. In-arc membership is thread-only. Halt leaves the standing in-flight chip. Closes #4298. Refs #3642, #4205, #3640, #3806.
@@ -1702,6 +1764,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
@@ -1720,6 +1784,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
@@ -1735,6 +1801,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -1768,6 +1836,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **RULE-MAP freshness fails closed on `task check` (#4095).** Regenerates `docs/RULE-MAP.md`. `task docs:rule-map:check` is wired into `FRAMEWORK_CHECK_GATES` and `check:framework-source`. The gate asserts byte-identical renderer output, filled grouping purposes, pack entries from named arrays, and Taskfile declaration counts. ROADMAP stays on `task roadmap:check` (residual [#4164](https://github.com/deftai/directive/issues/4164)). Closes #4095.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -1935,6 +2005,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
@@ -2099,6 +2171,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **`adoption-blocker` is the canonical consumer hard-stop label.** It now covers any intended Directive flow (install, first session, update, `task check`, ship) with no reasonable workaround, not only first session. The label means classified as a blocker; its absence means not classified, never that a workaround exists. Classification requires body evidence (attempted alternatives, or why documented alternatives are not reasonable). An upgrade-path hard stop wears this label plus `Upgrade Blocker`; `Upgrade Blocker` alone does not rank. Closes #3650.
@@ -2183,6 +2257,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Security
@@ -2234,6 +2310,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`pr-monitor` escalates on sustained `ci_absent_required` instead of polling to cap (#3389).** After a one-poll grace (first-poll absence is normal), consecutive absent required contexts exit `ABSENT-REQUIRED` and name the missing checks. Pending check-runs still wait. Consumes #3234; does not redefine it. Closes #3389.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -2315,6 +2393,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
@@ -2351,6 +2431,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
@@ -2376,6 +2458,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Overlap dispose via `decision:write` + list-before-recommend (#3315).** Portfolio-priority documents human overlap-cluster dispose (every member in `relatedIssues`, required `revisitTrigger`) and parks already-disposed pairs after `task decision:list -- --issue N`. Dedicated ledger deferred until a pass re-litigates despite a dispose record (#3310). Closes #3315. Refs #3310.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -2426,6 +2510,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **scope:complete acceptance evidence is namespaced under x-directive/ (#3305 / #1620 Option B).** Canonical per-item keys are `plan.items[].x-directive/evidence` and `plan.items[].x-directive/disposition` only (same typed shapes as #3240). Bare `evidence` / `disposition` are missing/invalid for the acceptance-evidence gate (no permanent dual-read) and continue to fail `verify:vbrief-conformance`. `ITEM_CORE` is **not** expanded with bare evidence/disposition (reverts the short-lived bare-core allow from the #3124 complete land). Writers/helpers stamp only namespaced keys. Cross-gate regression under vitest/`task check` proves a pending item with valid namespaced evidence passes both complete and `scanVbrief`. Docs/migration in `content/commands.md` § scope:complete. Closes #3305. Refs #3240, #1620, #3256, #3156.
@@ -2458,6 +2544,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`scope:complete` requires typed evidence or human disposition per acceptance criterion (#3240).** Non-terminal `plan.items` (and nested `subItems`/`items`) no longer auto-complete from merge ancestry alone. Each criterion needs either `evidence` (`kind` in `test|review|merge|deploy|smoke|uat|observed_behavior` + `pointer` + `recorded_at` + `recorded_by`) or `disposition` (`waived|deferred|not_applicable` + `reason` + human-origin `provenance` + `recorded_at`). `merge`/`review` alone cannot satisfy smoke/UAT/deploy/observed_behavior criteria (inferred from title/Acceptance text or explicit `requires`/`acceptanceAxis`). Fail-closed lists missing criteria; success output lists evidence/disposition per item. Core: `packages/core/src/scope/acceptance-evidence.ts` + `transition.ts` gate. Closes #3240. Refs #3237 Q3, #3041, #2862.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -2524,6 +2612,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
@@ -2544,6 +2634,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`task scope:record-approved-scope` first-adoption / renewal surface (#3205).** Operator CLI deposits human-origin `.deft/approved-scope/<plan-id>.json` digests (`--actor` required; agent stamps refused; pending→active path binding). Taskfile + dispatch alias; docs in `content/docs/scope-provenance.md` cover first-adoption and multi-PR expansion. Closes #3205.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -2570,6 +2662,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Project policy for coverage-debt hatch + local check resume with skippable session nudge (#3189).** `plan.policy.coverageDebt` (`status` unset|decided, `mode` off|warn|hatch, `autoFile`) and `plan.policy.checkResume` (`status`, `localStamp` off|on, `ciTrustsLocalStamp` fixed false in v1). Missing/unset is fail-closed (no hatch, no local stamp, CI never trusts laptop stamps) but still nags on interactive mutation session-start until Strict / Hatch-aware / dismiss-with-reason. Later does not decide. Headless/CI does not block. Surfaces: `policy:show --field=coverageDebt|checkResume`, doctor `coverage-check-resume-policy` (exit-exempt), docs in `content/docs/consumer-check-contract.md`. Non-goal: consumer never auto-files coverage-debt on deftai/directive. Closes #3189. Refs #3187, #3188, #2866.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -2601,6 +2695,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Maintainer dogfood: directive SCM label-mirror `actionLabels` + escalate/defer rules (#1423 / #3124 notes).** `xbrief/PROJECT-DEFINITION.xbrief.json` enables the full machine map (`triage:deferred` / `archived` / `lifecycle-linked` / `needs-human`) and repo-shaped `triageAutoClassify` escalate rules (`agent-safety`, `urgent`, `security`+`bug`, release gates) plus `hold` / `status:blocked` defer. Capture write-up: `docs/analysis/2026-08-06-scm-label-mirror-dogfood-capture.md` (dry-run evidence, consumer recommended baseline; no mass mirror `--apply`). Tracking #1423, #3124. Refs #2609, #2611. Discovery packaging tips on #3124 remain open.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -2637,6 +2733,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Bootstrap mass-triage on classify label mirror (#3125 / #1423 Wave 2).** `task triage:classify -- --mirror` is the documented bootstrap mass entrypoint: **open-only** default (opt-in `--include-closed`), dry-run operator digest with totals + breakdown by state/rule/action + samples, `--json` aggregates, and batched rate-limit-aware `--apply` (`--batch-size` / `--delay-ms`) with partial-failure reporting and missing-label hints. Still never calls `triage:accept` / never writes `proposed/` xBRIEFs. Wave 3 (agent comments) remains on #1423. Closes #3125. Refs #1423, #3118, #1129.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -2688,6 +2786,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
@@ -2728,6 +2828,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
@@ -2746,6 +2848,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Temporary test kill-switch `.deft-directive-disable` (#3039).** Root-only **local (untracked)** flag disables Directive **enforcement** (host SessionStart / PreToolUse / compact hooks, `session:start` ritual write, doctor short-circuit) while allowing the deposit to remain — distinct from permanent `.no-deft-directive` (#2926). A **tracked/committed** flag is misconfig: doctor warns and enforcement stays on (repo content cannot disable hooks for clones). Shared detector in `packages/core/src/policy/deft-directive-disable.ts`; recovery requires **delete the file** and a **new agent session**. Doctor reports `disabled-test-kill-switch` when active. AGENTS always-on contract via agents-entry; deposit gitignore baseline includes the flag path. Docs: `content/docs/deft-directive-disable.md`. Consumer note: A/B and DevHammer “without DD enforcement” arm. Closes #3039.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -2779,6 +2883,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
@@ -2808,6 +2914,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Inter-run learning surface design (Wave 0 bridge for epic #2741) (#2742).** Canonical design note `docs/analysis/2026-07-31-inter-run-learning-surface.md` inventories existing Directive memory SoTs (USER.md Personal, lessons/packs, triage cache, session ritual, decision/continue), defines hot/cold/operator-gated tiers with freeze-at-session-start and budgets, lists non-goals (no Mem0-default RAG, no revived #2700 agent-memory artifacts, no mid-session mutable hot memory), and retargets #688 #978 #832–#835 #479. Discovery pointer: `content/docs/inter-run-learning.md` + `REFERENCES.md`. Design + docs only; storage backends out of scope. Closes #2742. Refs #2741, #2700.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -2847,6 +2955,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Contained-write residual complete — leftovers + fail-closed check (#2980 wave D).** Migrates residual product sinks (triage writers/bootstrap, task-surface, capacity, category-b, codebase map, packs, session ritual-state, plan-sequence, product-signal, swarm, lifecycle hygiene, scope decompose/demote/undo, value/policy audit appends, and related leftovers) onto `containedWrite`. Wires `task verify:contained-writes -- --enforce` into `task check` / `check:framework-source` via `verify-contained-writes-enforce`. Allowlist retains containment/deposit primitives, lock/stream primitives, and temporary cited residual modules for shrink follow-ups. Go installer contained-write remains deferred/frozen. Closes #2980. Refs #2951.
@@ -2876,6 +2986,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Controlled English writing bar for docs and issues (#2927).** Canonical short page states four pragmatic rules (short sentences, active voice, one term = one meaning, first-use definitions) plus non-goals (no full STE certification, no big-bang rewrite, no red CI style gate in v1). Linked from `AGENTS.md`, `content/docs/getting-started.md`, and `content/QUICK-START.md`. Closes #2927.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -2917,6 +3029,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **OpenClaw poller/preamble + heartbeat templates (#2879).** Greptile poller template names OpenClaw `sessions_spawn` and parent push/announce completion channel (alongside Warp `start_agent` and grok-build `spawn_subagent`); agent preamble lists OpenClaw as a first-class provider-neutral backend with Gap D background-dispatch and §10.5 heartbeat mapping; `docs/subagent-heartbeat.md` documents OpenClaw file-heartbeat + supplementary native liveness and `REDISPATCH_OK` posture. Closes #2879. Refs #2874, #1365, #2824.
@@ -2945,6 +3059,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Doctor `--full` live-probes deposited agent hooks (#2852).** After structural registration checks pass, doctor spawns the configured `deft-hook` command with Cursor `tool.before` allow and deny fixtures and warns when stdout is empty, unparseable, or missing an expected deny — surfacing #2846-class packaging failures that structurally valid deposits hide. Closes #2852.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -2981,6 +3097,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Review-cycle ownership is GitHub-anchored (#2814).** Agents must succeed at `task review-monitor:register` on GitHub before claiming an active monitor; `task verify:review-monitor` requires an unexpired GitHub lease on Tier 1 (local heartbeat alone is insufficient).
@@ -3012,6 +3130,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Swarm/build/pre-pr gate policy (#1704).** Moves swarm-heavy workflows toward `O(merges × full-gate) + O(iterations × cheap-proxy)` from `O(commits × full-gate)`.
@@ -3035,6 +3155,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Persistent agent-host hook opt-out (#2752).** `plan.policy.hostHooks` lets consumers disable Directive hook deposit per host (`claude`, `cursor`, `grok`, `codex`). Opted-out hosts are skipped on `deft update` / `directive init`, managed entries are stripped without deleting unrelated settings, and doctor / `verify:hooks-installed` no longer recommend repair. Inspect with `deft policy:show --field=hostHooks`.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -3072,6 +3194,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
@@ -3097,6 +3221,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Consented product check-in to an internal partner sink (#2693).** Opt-in typed policy `plan.policy.productSignal` (default off) with `task product-signal:enable -- --confirm`, install-level consent file, CLI `task product-signal:status|consent|submit`, skill `deft-directive-product-signal`, versioned payload with minimized `localSignalSummary` (value/health/helped) and optional `skillsSummary` hook. Submits pulse/portrait standing threads to internal `deftai/product-signal` via `GitHubPrivateSinkAdapter`; fail-open on headless and sink unreachable. Refs #2603.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -3125,6 +3251,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
@@ -3140,6 +3268,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Consumer `deft coverage:hotspots` / `task coverage:hotspots` surfaces branch headroom before the global gate (#2683).** Reads `coverage/coverage-final.json`, compares global metrics to project vitest thresholds (default 85%), fails closed below the branch floor or below configured headroom (default 0.3pp), lists lowest modules and git-diff uncovered branch samples, and supports `--json`. Pre-PR skill guidance now steers targeted `--coverage` runs and headroom above the project floor; complements `verify:forward-coverage` (#1310) and `--allow-coverage-debt=#N` (#2573). Closes #2683.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -3170,6 +3300,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **CI TypeScript and Go jobs run on GitHub-hosted `ubuntu-latest`.** Required `CI` had been stuck `queued` for hours on Blacksmith `blacksmith-4vcpu-ubuntu-2404` with nothing `in_progress`; Windows already used `windows-latest`. Unblocks PR CI when Blacksmith capacity stalls.
@@ -3192,6 +3324,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`lifecycle:event` approval recorder on the consumer Taskfile/CLI surface (#2631).** Review-cycle merge-gate approval now records `plan:approved` via `task lifecycle:event` / `deft lifecycle:event`, with idempotent dedupe for repeated approvals on the same PR and HEAD SHA. Closes #2631.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -3222,6 +3356,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Release closeout commits `policy:enforce-branches` with a scoped push (#2623).** The release skill now requires committing the typed-flag restore in the same closeout (scoped `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` on those git commands only) so origin does not stay opted-in or leave a dirty enforce under protection ON.
@@ -3242,6 +3378,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Windows swarm guidance no longer prefers cloud or concurrency=1 (#2563 follow-up).** Preamble §3.8 and the swarm skill now treat local parallel Cursor Task cohorts as first-class on Windows; they document the shipped `windowsHide` + warm-dist mitigations and forbid regressing them, instead of steering agents to cloud or a single worker.
@@ -3255,6 +3393,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Explicit coverage-debt escape hatch for release preflight (#2573).** `task release … --allow-coverage-debt=#N` is the only soft-pass path when Vitest metrics sit below the 85% goal; the pipeline emits loud attribution (measured vs goal, issue `#N`) and warns when recent releases overuse the flag. Raw env bypass is scoped to release Step 5 only — no auto near-miss band, no open-debt oracle.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -3296,6 +3436,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
@@ -3316,6 +3458,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Helped and health metrics persist outside the project tree.** `crud-metrics.jsonl` and `health-history.jsonl` now append under the resolved user-data metrics home (`helped/` and `health/` subdirs) via `DEFT_METRICS_HOME` / platform AppData or XDG defaults; no fallback to `xbrief/.eval/results/`. Closes #2545. Refs #2544.
@@ -3326,6 +3470,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Ordered-plan continuation stops "next" from escaping an approved sequence.** Agents bind bare "what's next?" / "proceed" to the narrowest operator-approved plan via `plan-sequence:*` and `verify:plan-sequence`; exhausted plans fail closed instead of pulling the triage queue. AGENTS keeps a pointer-thin #1149 precedence line; full rules live in the preamble and skills. Closes #2402.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -3359,6 +3505,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Read-only Directive session posture defers ceremony until you start changing things.** Questions, Plan Mode, and ticket-shaping now default to alignment-only context loads without writing `.deft/ritual-state.json`, triage welcome, branch-policy dumps, or install side effects; the full mutable ritual still runs at mutation boundaries. Use `deft session:start -- --read-only` for explicit alignment-only mode. Closes #2176. Refs #2491.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -3413,6 +3561,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Universal always-on guardrails are pointer-thin.** Session ritual, WIP cap, branch policy, implementation-intent, and story-start rules in AGENTS.md / agents-entry compress to one-line imperatives plus gate/skill/doc pointers; bulk lives in `commands.md`, `scm/github.md`, and swarm skill. Closes #2453. Refs #2369.
@@ -3439,6 +3589,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Responsible disclosure policy for security reports.** A root `SECURITY.md` directs reporters away from public GitHub issues and documents private reporting via GitHub Private Vulnerability Reporting (preferred) and `security@deftai.dev`, plus supported versions, scope, response expectations, and safe-harbor language. Closes #2405.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -3472,6 +3624,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
@@ -3498,6 +3652,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `directive doctor` now checks that the consumer `.gitignore` carries the canonical Deft entries (`.deft-cache/`, `.deft/.cli/`, triage-cache, backup patterns, and xBRIEF-era eval paths). Missing coverage is flagged as an advisory finding with `directive update` as the one-step fix. Closes #2206.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -3527,6 +3683,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
@@ -3542,6 +3700,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Every structured or numbered agent question now carries an always-loaded Discuss/Back escape: AGENTS.md and the consumer template state the runtime obligation, the orchestrator preamble adds a pre-prompt self-check, and contract tests verify propagation. Closes #1470. Refs #767.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -3587,6 +3747,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **`task triage:metrics` help now matches the shipped command.** The help registry no longer describes the old summary-history.jsonl placeholder; it documents the value-feedback attribution-ledger trend (per-class and per-event counts over a window, gated on the opt-in policy). Refs #2338.
@@ -3606,6 +3768,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`triage:scope --set-preset small|mid|mega` sets your whole triage subscription in one command (#2301).** Instead of adding labels and milestones one at a time, you can now apply a named subscription preset — the same `small` / `mid` / `mega` presets the onboarding flow offers — directly from `triage:scope`. It writes through the shared preset writer (so the namespaced `x-directive/policy` key, audit trail, and lock all behave identically to onboarding) and is mutually exclusive with the other mutation flags. Closes #2301. Refs #2295.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -3646,6 +3810,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **`directive doctor` is now a strictly read-only, decision-oriented diagnostic (#2267).** It reports your operating mode (hybrid / vendored / greenfield / brownfield / pre-cutover) plus an engine/pin/VERSION reconciliation line, surfaces cross-platform `.deft/.cli/<platform>` engine skew, and derives its verdict from the shared `plan()` classifier so there is a single source of truth. When action is required it emits exactly one `Next command:` paired with a root-cause and a remediation "does / why safe" rationale, suppressing secondary migration advice until the primary blocker clears, never printing a bare `task` command in a project without Taskfile wiring, and never mutating project files. Refs #2267, #2203.
@@ -3663,6 +3829,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -3683,6 +3851,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`task swarm:finalize-cohort` auto-sweeps merged cohort briefs to `completed/` without a hand-authored lifecycle PR (#2225).** After a `stop-at: pr-open` swarm's PRs merge, the new surface resolves each merged story from its `Closes #N` link (or an explicit `--stories` list), runs the same deterministic `completeCohort(...)` sweep as `task swarm:complete-cohort`, and lands the `active/` -> `completed/` moves on a feature branch with an auto-opened PR — so WIP resets without the extra ceremony PR every cycle. `task swarm:complete-cohort` remains the idempotent manual primitive. Closes #2225. Refs #1880, #1487, #1369.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -3744,6 +3914,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **AGENTS.md stays leaner while keeping the same story and implementation gates (#2192).** The managed guidance now states the one-story-per-branch default once, keeps the swarm-cohort carve-out beside it, and shortens the preflight install-mechanism prose to pointers for ordering, workflow, and recovery. The line-budget ratchet tightens to the smaller generated surface. Closes #2192. Refs #2153, #645, #810, #1378.
@@ -3779,6 +3951,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
@@ -3796,6 +3970,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Issue ingest now fetches GitHub issue comments by default and folds the thread into the ingested overview, so corrective maintainer comments reach workers instead of a body-only snapshot. Closes #2143.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -3825,6 +4001,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Docs and skills now describe the xBRIEF layout and migration path (#2111).** Agent-facing guidance (skills, templates, commands, and key docs) uses xBRIEF prose, `xbrief/` lifecycle paths, `*.xbrief.json` artifacts, and `deft migrate:xbrief` for legacy trees still read-accepted under `vbrief/` / `x-vbrief/`. The consumer AGENTS.md managed section and propagation contract tests were refreshed to match. Closes #2111.
@@ -3845,6 +4023,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Directive policy/completedNote keys are now namespaced (#1650).** The two directive-owned plan keys are stored under the `x-directive/` extension prefix (`plan.policy` → `plan["x-directive/policy"]`, `plan.completedNote` → `plan["x-directive/completedNote"]`), and the conformance gate no longer grandfathers their bare forms — any future bare `plan.policy`/`plan.completedNote` now fails conformance. Engine readers tolerate the legacy bare form so unmigrated consumer project definitions keep working; run `deft migrate:category-b` to namespace an existing corpus. User-facing field names (e.g. `plan.policy.wipCap`) are unchanged. Refs #2034. Closes #1650.
@@ -3864,6 +4044,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Public contract layer on npm (#1799).** `@deftai/directive-types` now exports the v0.6 vBRIEF document model, policy types, reference shapes, gate exit codes, and a published `vbrief-core-0.6.schema.json` subpath so downstream TS and non-TS consumers stop hand-mirroring the canonical contract. Adds `verify:contract-drift` to keep the npm schema copy and TS constants aligned with `content/vbrief/schemas/vbrief-core.schema.json`. Closes #1799.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -3902,6 +4084,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
@@ -3917,6 +4101,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -3944,6 +4130,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **#2022 Python-purge tracker lifecycle reconciled** — Phase 2 consumer rewire and the #2022 execution-tracker epic vBRIEFs moved to `completed/` with `ExecutionStatus` reflecting shipped Phases 0–5; child `planRef` paths updated after the parent move. Refs #2022, #1860.
@@ -3964,6 +4152,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -3986,6 +4176,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Greenfield projects can export SPECIFICATION.md from PROJECT-DEFINITION** — `task project:export-spec` renders stakeholder-facing spec exports without creating `specification.vbrief.json`, filters config narratives, and includes proposed scopes only for `--audience=internal`. A migration-fidelity gate blocks silent spec deletion when premigrate snapshots still hold unmigrated product narratives. Refs #2013, #1502, #2005.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -4070,6 +4262,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - Release skill now treats tag push as the irrevocable npm gate and reframes Phase 5 as optional GitHub draft QA rather than a publish-authority gate; the happy path auto-publishes the GitHub release after draft assets verify. Closes #2002.
@@ -4089,6 +4283,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -4209,6 +4405,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Published npm packages now use product-scoped @deftai/directive* names (#11 #1670)** -- The three workspace packages rename to `@deftai/directive`, `@deftai/directive-core`, and `@deftai/directive-types`, with all cross-package imports updated. The CLI exposes `directive` as the canonical bin and retains `deft` as an alias, both routing to the same entrypoint. Refs #11 #1670.
@@ -4258,6 +4456,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -4392,6 +4592,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
@@ -4419,6 +4621,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Codebase structure now has a concrete authored metadata profile and validator (#1595)** -- `task codebase:validate-structure` validates the first `codeStructure` profile for stable module ids, safe globs/paths, module references, ownership conflicts, and invocation-agnostic projection manifest entries. Directive dogfoods the canonical record at `PROJECT-DEFINITION.plan.architecture.codeStructure`, keeping generated MAPs and future headers as projections rather than source-of-truth stores. Refs #1498, #1492, #1659.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -4488,6 +4692,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
@@ -4508,6 +4714,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
@@ -4526,6 +4734,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -4562,6 +4772,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`deft-install --maintainer` now bootstraps framework checkouts without consumer projections (#1554)** -- maintainers can run the published installer against a `deftai/directive` clone to check core and maintainer tooling while leaving maintainer-owned files like `AGENTS.md`, `.gitignore`, `.gitattributes`, guard workflows, and consumer vBRIEF scaffolding untouched. JSON output now identifies maintainer mode, skipped consumer projections, and maintainer-only tool status for Go, Node, and optional `ghx`; consumer installs still only require `gh`. Closes #1554.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -4601,6 +4813,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
@@ -4625,6 +4839,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`task triage:welcome` now flags stranded slices and stale epics at session start so partially-built features stop silently accruing debt (#1419)** -- a new offline, filesystem-truth detector reads your epic and child vBRIEF status and surfaces two budgeted session-start nudges: a partially-completed epic dormant past `epicStrandedDays` (default 30) gets a Tier-1 trichotomy nudge (finish / cancel-and-remove / accept-as-tech-debt), and an undecomposed epic older than `epicStalenessDays` (default 14) gets a Tier-2 needs-estimation nudge. Thresholds come from `plan.policy.capacityAllocation`. Accepting an epic as tech-debt records a durable follow-up reference and stops the detector re-nudging it. The session line stays budgeted (one headline plus a `+N more -> task capacity:show` overflow), and the nudges are advisory only -- never a gate. Sixth delivery slice of the agentic prioritization RFC. Refs #1419.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -4688,6 +4904,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
@@ -4703,6 +4921,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -4724,6 +4944,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
@@ -4740,6 +4962,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -4790,6 +5014,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -4850,6 +5076,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
@@ -4893,6 +5121,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **docs(agents,preamble,skills): Grok Build Windows capture limitations rule set (#1353)** -- agents on Windows + Grok Build now have explicit guidance that `run_terminal_command` strings must avoid `|`, `>`, or `2>&1` metacharacters, since the Grok Build harness leaks internal wrapper text (Get-Content fragments) when any pipeline or redirection is present. Three escape hatches are documented: Python `pathlib`/`subprocess.run(capture_output=True)` one-liners (preferred), user terminal handoff, or dedicated worktree isolation. The rule lands in `templates/agent-prompt-preamble.md` (section 3.5), `AGENTS.md` (## PowerShell), `templates/agents-entry.md` (mirrored per #1309), and one-liner callouts in the review-cycle and pre-pr skills. Refs #1353, #798.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -4940,6 +5170,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
@@ -4959,6 +5191,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **docs: add canonical v0.20 strategy output contract (Refs #1166)** -- Strategy authors and users now have one unambiguous source of truth for v0.20-conformant output (lifecycle folders, project definition, dated proposed scope vBRIEFs, deprecation redirects only for spec docs). Closes the inconsistency where most generated projects were immediately rejected by the build pre-cutover guard. Refs #1166.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -5015,6 +5249,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
@@ -5031,6 +5267,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **feat(directive): add story decomposition and swarm-readiness gates** -- introduces Phase 4.5 Story Decomposition / Swarm Readiness between Speckit phase/epic scope emission and swarm implementation. Adds deterministic `task scope:decompose` and `task swarm:readiness` commands, a canonical `plan.metadata.kind` / `plan.metadata.swarm` story contract, a new `deft-directive-decompose` skill, swarm Phase 0 readiness gating, acceptance-preserving spec rendering, and regression coverage for decomposition, readiness, Speckit translation, and stale vBRIEF template guidance.
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -5102,6 +5340,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
@@ -5122,6 +5362,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **feat(install): record `install_root` in `<install>/VERSION` manifest as single source of truth for install-layout contract (#1062)**
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -5152,6 +5394,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -5210,6 +5454,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 
@@ -5243,6 +5489,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -5294,6 +5542,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -5351,6 +5601,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Mermaid two-color theming model** (#826): Formalized `languages/mermaid.md` around a two-color foundation (`bg=#ffffff`, `fg=#000000`). Added Two-Color Foundation section with derivation table showing all theme variable values as mechanical gradients between `bg` and `fg`. Replaced opaque Color Palette hex list with principle-grounded derivation. Added `⊗` rule prohibiting setting individual theme variables without reference to the derivation table. Init directive values unchanged — they are the correct derived values for the grayscale-on-white instance of the model. Companion rename in the same PR: `skills/deft-article-review/` -> `skills/deft-directive-article-review/` and `skills/deft-write-skill/` -> `skills/deft-directive-write-skill/` (with matching `.agents/skills/` thin pointers and `name:` frontmatter updates) so all framework skills now use the canonical `deft-directive-*` prefix; closes the test_skills.py::test_no_bare_deft_skill_directories gate (#411 v0.19->v0.20 bridge whitelist did not cover these two stragglers).
@@ -5395,6 +5647,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **docs(upgrading): v0.25.x -> v0.26.0 migration section + tests(integration): cache layer e2e (#883 Story 4)** -- ships the consumer-facing migration guide for the v0.26.0 deft-cache unified layer cutover (closes the #883 R-C chain). New `## From v0.25.x -> v0.26.0` section in `UPGRADING.md` documents the surface removal (`task triage:cache` / `task triage:show`), the on-disk layout change (`.deft-cache/issues/<owner>-<repo>/<N>.{json,md}` flat sidecar -> `.deft-cache/<source>/<key>/{raw.json,content.md,meta.json}` per-entry directory), the operator recovery sequence (delete legacy tree; re-run `task cache:fetch-all`), audit-log preservation invariants, and the 13 unchanged `triage:*` aliases. New `tests/integration/test_cache_e2e.py` is the hermetic end-to-end fake-gh integration test parallel to v0.25.2's `test_triage_smoke.py`: 5 test functions cover (1) `cache:fetch-all` populates the new `.deft-cache/<source>/<key>/{raw.json,content.md,meta.json}` layout for a 5-issue fake-gh fixture; (2) `cache:get` returns the expected `meta.json` envelope (`scanner_version`, `stale`, `fetched_at`, validated against `vbrief/schemas/cache-meta.schema.json`); (3) the global `quarantine-audit.jsonl` audit log carries one `cache:put` record per fetched issue; (4) `cache:invalidate` removes the entry directory cleanly and appends an audit record; (5) idempotent re-run of `cache:fetch-all` skips fresh entries (TTL-based meta.json freshness check). Wave 4 (FINAL) of the #883 R-C chain. Release dispatch (CHANGELOG [Unreleased] -> [v0.26.0] promotion + tag + draft + publish + epic / story vBRIEFs lifecycle move to `vbrief/completed/`) is DEFERRED to the maintainer post-merge per the overnight R-C plan; the v0.26.0 release entry MUST lead with a `### Breaking` block (NOT `### Added`) framing the surface removal + layout change. Refs #883.
@@ -5434,6 +5688,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -5487,6 +5743,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 
@@ -5522,6 +5780,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -5570,6 +5830,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -5645,6 +5907,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **feat(skills,interview): plain-English UX pass -- jargon, approval menus, diff preface (#740, refs #151 playtest umbrella, refs #767 deterministic-questions framework rule)** -- closes the consumer-adoption defect cluster surfaced by the #151 playtest where non-technical users only completed the planning flow because they had a second AI translating jargon, decoding ambiguous approval actions, and explaining red/green diffs. Three coordinated UX rules across `skills/deft-directive-interview/SKILL.md` and `strategies/interview.md`: (1) **Jargon pass** -- every technical question MUST carry a one-line plain-English context note as preamble above the structured-tool call (per Rule 2 Preamble Placement), every acronym MUST be defined inline on first use (`PRD (Product Requirements Document)`, `NFR`, `FR`, `SPEC`, `API`, `DB`, `CI`, `MVP`), and every framework recommendation MUST either explain the rationale in plain-English terms the user actually cares about (cost, speed, hiring, hosting compatibility) OR remove the rationale entirely and present it as an overridable default -- one-word `industry-standard` / `modern` / `scalable` justifications are a ⊗ anti-pattern. (2) **Approval-menu pass** -- explicit numbered approval menu after PRD review AND after SPEC review with action-shaped labels (`1. Approve and continue` / `2. Suggest changes` / `3. Edit yourself` / `4. Discuss` / `5. Back`). The menus follow the **#767 deterministic-questions framework rule**: the final two numbered options MUST be `Discuss` and `Back`, in that order. The framework rule itself is being landed by Agent 1 in #767; this PR cross-references it with a `!` MUST cross-reference at every menu site so once `contracts/deterministic-questions.md` exists this surface defers to it for canonical wording. (3) **Diff-view preface pass** -- when a PRD or SPECIFICATION review surfaces a red/green diff, the agent MUST emit a one-line non-alarming preface above it (`Here's what changed since the previous draft. Red lines were removed, green lines were added. Nothing here is broken -- this is a normal review.`) OR hide the diff entirely on the first review pass and present a plain-English summary instead. New `references/plain-english-ux.md` codifies all six rules (plain-English context note, acronyms-on-first-use, framework justifications explained-or-removed, numbered approval menu with Discuss/Back final-two per #767, diff-view preface, audience test) plus canonical PRD-review and SPECIFICATION-review approval menus and an Anti-Patterns block. Tests: 30 content tests in `tests/content/test_plain_english_ux.py` covering reference-doc rule presence, acronym-on-first-use rule named in interview surfaces, approval-menu presence (PRD + SPEC), diff-preface presence (skill + strategy PRD section + strategy SPEC section), Discuss/Back-final-two assertion via regex extractor that walks numbered-menu blocks and checks `menu[-2]` contains `Discuss` and `menu[-1]` contains `Back` on every approval menu in interview SKILL + interview strategy + reference doc canonical menus, and #767 cross-reference assertions. Closes #740.
@@ -5704,6 +5968,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -5771,6 +6037,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **refactor(events): unify behavioral + detection-bound events into `events/registry.json` with `category` field** (#635, refs #642 workflow umbrella, refs #634 determinism-tier ladder, refs #709 Repair Authority [AXIOM] proposal, refs #710 data-file-convention check follow-up): Folds the 4 behavioral framework events (`session:interrupted` + `session:resumed` paired, `plan:approved`, `legacy:detected`) into the unified `events/registry.json` introduced for the 5 detection-bound events; the prior `events/behavioral.yaml` registry is dropped (`git rm`). Every entry in the registry now carries a required `category` enum value (`detection-bound` | `behavioral`); `events/registry.schema.json` is extended to mark `category` required and to list the two enum values, with future categories landing as additive enum extensions per the [#642 workflow comment](https://github.com/deftai/directive/issues/642#issuecomment-4330742436) gate-time decision and the Repair Authority [AXIOM] proposal in #709. `scripts/_events.py` no longer carries a hard-coded `KNOWN_EVENTS` frozenset -- the helper now reads `events/registry.json` and filters to `category="behavioral"` entries via lazy proxy objects (`KNOWN_EVENTS`, `REQUIRED_PAYLOAD`) so existing imports continue to work; `scripts/_event_detect.py` is unchanged structurally and continues to validate against the full registry. `scripts/migrate_vbrief.py` resolves a post-rebase shadow conflict by importing the behavioral emitter under the distinct alias `_emit_behavioral_event` so it does not collide with the detection-bound `_emit_event` lazy-import wrapper introduced by #707 -- both helpers consume the same unified registry but enforce different category boundaries. `events/README.md` documents the unified registry, the category convention, and the additive-enum extension policy. `tests/cli/test_behavioral_events.py` updated to point at `events/registry.json` (filter behavioral entries by `category`) and gains 3 new tests: (1) `events/behavioral.yaml` is dropped post-unification; (2) every event in the unified registry carries a valid `category` value; (3) every behavioral-category event references a runtime emission surface in its `trigger`, has a non-empty `REQUIRED_PAYLOAD` entry, and lists at least one consumer. `tests/cli/test_events.py` (the detection-bound surface from #707) splits its expected-name set into `EXPECTED_DETECTION_BOUND_NAMES` (5 entries, asserted as the full detection-bound bucket) and `EXPECTED_EVENT_NAMES` (the 9-entry union), so the existing `registered_event_names()` assertion continues to pass against the larger registry. `skills/deft-directive-sync/SKILL.md` and `skills/deft-directive-review-cycle/SKILL.md` `## Framework Events Emitted Here` sections continue to reference `scripts/_events.py` for behavioral emission. Implements the unification half of `vbrief/proposed/2026-04-27-635-events-behavioral-wiring.vbrief.json`; the detection-bound surface landed via #707. Refs #635 (epic), Refs #642 (workflow umbrella), Refs #634 (determinism-tier ladder T5/T6), Refs #709 (Repair Authority [AXIOM] -- the rule motivating fix-now over defer), Refs #710 (data-file-convention check follow-up).
@@ -5833,6 +6101,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **docs(vbrief): refinement session -- restore pre-v0.20 Phase 3-6 forward-plan structure in ROADMAP.md**: After the v0.20.0 self-migration left `vbrief/pending/` empty (all committed work landed in `vbrief/completed/`), rendered `ROADMAP.md` collapsed to a single `## Completed` section, losing the multi-phase forward-looking view that existed at commit `3925468` (tag `v0.20.0-pre-self-migration`). Walked the `deft-directive-refinement` skill end-to-end to remediate: Phase 1 ingested the 2 remaining Phase 3-6 issues that lacked scope vBRIEFs (#96, #100); Phase 2 bulk-confirmed the 31 Phase-mapped open issues with the user (Option B bulk-confirm; includes #100 added late as a Phase 6 item); Phase 4 attached `plan.metadata['x-migrator'].Phase` to each vBRIEF matching its pre-migration phase assignment (source: commit `3925468`), then ran `task scope:promote` to move all 31 from `vbrief/proposed/` to `vbrief/pending/`; Phase 5 re-ran `task roadmap:render` and `task project:render` to regenerate `ROADMAP.md` (now carrying `## Phase 3 -- Documentation & Content Fixes`, `## Phase 4`, `## Phase 5 -- Package Distribution & Install UX`, `## Phase 6 -- CLI Overhaul & New Features`, and the preserved `## Completed` section) and `vbrief/PROJECT-DEFINITION.vbrief.json` items registry (now 290 scope items, up from 288). Also normalized the two just-ingested vBRIEFs (#96, #100) from the legacy v0.5 `{type: github-issue, id: #N, url: api-url}` reference shape to the canonical v0.6 `{uri: html-url, type: x-vbrief/github-issue, title}` shape per `conventions/references.md` -- this surfaced a defect in `scripts/issue_ingest.py` that emits the legacy shape; follow-up fix tracked separately for v0.21. No items in `vbrief/completed/` were disturbed.
@@ -5894,6 +6164,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -6039,6 +6311,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **feat(strategies): convert speckit and enterprise to vBRIEF-centric outputs** (#361, #362, #364): Updated `strategies/speckit.md` Phase 1 output from `project.md` to `Principles` narrative in `vbrief/PROJECT-DEFINITION.vbrief.json`; Phase 2 output from `specs/[feature]/spec.md` to WHAT/WHY narratives in `vbrief/specification.vbrief.json`; Phase 3 output from `specs/[feature]/plan.md` to HOW narratives enriching `vbrief/specification.vbrief.json` with `task spec:render` for human review; removed all `specs/` directory references. Updated `strategies/enterprise.md` Stage 1 to write PRD narratives to `vbrief/specification.vbrief.json` with `task prd:render` for Gate 1 review; Stage 3 to enrich specification vBRIEF with `task spec:render` for Gate 3 review; updated output artifacts section -- `specification.vbrief.json` is primary, rendered `.md` files are read-only exports. ADRs in `docs/adr/` and approval gates preserved. Added 9 tests in `tests/content/test_strategy_vbrief.py`.
@@ -6076,6 +6350,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -6147,6 +6423,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Roadmap Refresh (2026-04-13)**: Triaged 8 items (23 individual issues including a 16-issue RFC bundle) -- #301 (Phase 1 Cleanup: tighten deft-interview routing keyword, t1.26.1), #302 (Phase 1 Cleanup: clarify deft-interview invocation contract embedded vs delegation modes, t1.27.1), #303 (Phase 1 Cleanup: fix deft-interview Rule 5 vs Rule 6 ok/confirmation-gate inconsistency, t1.28.1), #304 (Phase 1 Cleanup: regression test for deft-setup Phase 1/2 referencing deft-interview, t1.29.1), #305 (Phase 1 Adoption Blockers: Greptile review cycle bottlenecks -- 5-change bundle: mandatory deft-pre-pr, PR scope gate, adaptive poll cadence, parallel swarm cascade monitoring, .greptile/rules.md template, t1.30.1), #307 (Phase 1 Adoption Blockers: deft-review-cycle Approach 2 silent failure in interactive sessions -- add Approach 3 blocking fallback with user warning, t1.31.1), #309 + stories #310-#324 (Phase 2 vBRIEF Architecture Cutover RFC: 18 design decisions + 15 stories; big-bang cutover to vBRIEF lifecycle folders, ROADMAP.md as generated artifact, all skills renamed to deft-directive-*, t2.12.1); closed #308 (absorbed by #309 RFC); restructured roadmap phases -- inserted Phase 2 (vBRIEF Architecture Cutover), shifted Phases 2-5 to 3-6; stale cleanup: moved #293 and #298 (both closed) to Completed; analysis comments posted on all triaged issues
@@ -6178,6 +6456,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -6237,6 +6517,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Roadmap Refresh (2026-04-09)**: Triaged 4 new issues -- #256 (Phase 1 Adoption Blockers: `--body-file` temp file writes to worktree + `rm` denylist collision; fix: use OS temp dir, t1.13.2), #258 (Phase 2: Warp Drive global rules inventory for CONTRIBUTING.md, spinoff of #114, blocked on #89, t2.9.1), #261 + #263 (bundled, Phase 1 Adoption Blockers: swarm monitor bypassed Phase 5->6 gate under context pressure and merged untested code into master; separate crash at message ~158 left merge cascade in ambiguous state; both root-caused to long-context conversation corruption, t1.13.1); no stale entries; analysis comments posted on all 4 issues
@@ -6256,6 +6538,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -6305,6 +6589,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Roadmap Refresh (2026-04-09)**: Triaged 2 new issues -- #228 (bring run CLI into test coverage measurement, Phase 3 -- confirm #160 before implementing), #248 (roadmap refresh does not surface spec task coverage, Phase 2 -- strengthen swarm Phase 0 skeleton spec tasks); no stale entries; analysis comments posted on both issues
@@ -6334,6 +6620,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -6368,6 +6656,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -6410,6 +6700,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -6467,6 +6759,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Roadmap Refresh (2026-04-06)**: Triaged 14 new issues, promoted 1, closed 2, cleaned 1 stale entry — #192 (proactive test coverage after review-fix commits, Phase 1 Adoption Blockers), #191 (remove vBRIEF defensive workarounds, deftai/vBRIEF#2 resolved, Phase 1 Adoption Blockers), #189 (closed as superseded by #191), #184 (deft-review-cycle autonomous polling imperative after push, Phase 1 Adoption Blockers), #188 (deft-swarm runtime `start_agent` capability detection + Warp environment gate, Phase 2; reshaped from static Option D label to tool-presence-based detection), #182 (deft-rwldl skill: iterative pre-PR quality loop, Phase 2), #194 (user-facing best practices guide, Phase 2), #195 (review monitor orchestration, Phase 2), #196 (roadmap-refresh cleanup convention, Phase 2), #197 (scm/github.md with gh CLI rules and Windows encoding guidance, Phase 2 -- absorbs #201), #198 (instant-fix drift and skill-context bleed rules for main.md, Phase 1), #199 (deft-swarm mandatory analyze phase, Phase 1), #200 (scan skills/ before improvising workflows, Phase 1), #202 (ASCII convention for machine-editable sections, Phase 2); promoted #188 from Phase 2 to Phase 1 (user actively testing swarm); closed #201 (absorbed by #197); moved #166 to Completed (closed on GitHub); cleaned up 2 stale entries (#133 closed 2026-04-05, #58 closed 2026-04-06); updated #147 title and scope (expanded to cover keyword routing + 3 missing skills); analysis comments posted on all issues
@@ -6517,6 +6811,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **ROADMAP.md update convention** (#170): Changed PR conventions in `AGENTS.md` from "updates happen on merge" to "updates happen at release time — batch-move merged issues to Completed during the CHANGELOG promotion commit"; added Phase 6 Step 5 to `skills/deft-swarm/SKILL.md` codifying this as the release-time checkpoint; added ⊗ anti-pattern prohibiting ROADMAP.md edits during swarm close; added ⊗ to Phase 1 Step 2 excluding ROADMAP.md from swarm shared-file exceptions
@@ -6553,6 +6849,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Roadmap Refresh (2026-04-03)**: Triaged 5 new issues — #170 (move ROADMAP.md updates to release-time, Phase 2), #171 (hard gate against agent direct-to-master commits, Phase 1 Cleanup), #172 (deft-swarm skill oz agent run/run-cloud correction, Phase 1 Adoption Blockers — priority next), #174 (deft-roadmap-refresh review cycle chaining after PR push, Phase 2), #175 (deft-review-cycle no-push-during-review + polling cadence, Phase 1 Cleanup); analysis comments posted on all issues; meta/lessons.md updated with 3 new Windows/review-cycle encoding and monitoring lessons
@@ -6576,6 +6874,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -6661,6 +6961,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Yolo Strategy Deduplication**: Refactored `strategies/yolo.md` to reference `interview.md` for shared Light/Full path flows, SPECIFICATION guidelines, and Artifacts Summary — reduced from 165 to ~115 lines (#23)
@@ -6721,6 +7023,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Roadmap Triage**: Triaged issues #101–#108 into roadmap phases; #101 absorbed into #56; #105/#106 (directive gaps) and #107/#108 (language selection UX) added to Phase 1; #102/#103/#104 (docs/standards) added to Phase 2
@@ -6744,6 +7048,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -6800,6 +7106,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -6903,6 +7211,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Strategy Renames**: `default.md` → `interview.md`, `brownfield.md` → `map.md` (#16)
@@ -6920,6 +7230,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -7011,6 +7323,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **USER.md relocated**: Default path moved from `core/user.md` to `~/.config/deft/USER.md`
@@ -7073,6 +7387,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **TUI UX Improvements**: Enhanced form design and user experience
@@ -7130,6 +7446,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -7239,6 +7557,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Help System**: `-h`, `--help`, `-help` flags show usage (TUI no longer launches for `./run` with no args if textual not installed)
@@ -7262,6 +7582,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -7291,6 +7613,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **README Quick Start**: Updated run command examples
@@ -7309,6 +7633,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **README Structure**: Moved copyright notice to end of file for better flow
@@ -7325,6 +7651,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **README Formatting**: Consolidated file descriptions to one line per file for better readability
@@ -7340,6 +7668,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -7361,6 +7691,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **README TL;DR**: Added note about professional-grade defaults
@@ -7376,6 +7708,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -7406,6 +7740,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -7478,6 +7814,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -7565,6 +7903,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
+
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **SKILL.md Structure**: Enhanced with detailed workflow sections
@@ -7596,6 +7936,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -7652,6 +7994,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
@@ -7760,6 +8104,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Treat GitHub HTTP 410 as a deleted issue during reconcile so one gone ticket cannot hard-fail a release cut (#5912).
 
 - Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
