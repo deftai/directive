@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - Prepare Windows ts:check-lane so POSIX-only test assumptions and bare .bin/tsx spawns no longer fail the suite (#5943).
 
 - Prepare release local-checkout update so after a pin lands the maintainer primary checkout can fail-closed pull, install, upgrade, and verify hooks to the shipped version (#5953).
@@ -41,6 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - Path B: widen Locked #5797/#5798 active xBRIEF `file_scope` to match FINAL footprints (allowBuilds PM-owned CLI paths; doctor failure-shaped remedy + f010 fixtures).
 
 - Prepare self-repair preserve disclosure for tracked managed git hooks so check/self-complete can report kept hooks on stderr (#5885).
@@ -51,6 +55,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - Changed - Skills/UPGRADING that taught project-local `xbrief/schemas/…` now point at the OVPR pin schema SoT (`node_modules/@deftai/directive-runtime/vbrief/schemas/…`); install does not deposit that tree. Refs #4666.
 
@@ -90,6 +96,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - xbrief: land the activated #5853 brief; its ingest-stamped title line is named in plan.acceptance.confessions (one-off exception, expires when the #5856 ingest fix ships), and the 13 Recut-2 limbs map onto the 10 ingest-admitted acceptance ids without dropping any (#3550 / #5055)
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - Changed - The npm publish workflow now maps a stable `vX.Y.Z` tag to the `maintainer` dist-tag instead of `latest`, for tag pushes and manual re-publish alike, and refuses any version that would resolve to `latest`; prerelease mapping is unchanged and `latest` moves only by a separate, explicit promote. Part 2 (minimal) of #5852. Refs #5852.
 - Changed - `task release` validates the version through a channel-aware gate that admits publishable prereleases (`X.Y.Z-(alpha|beta|rc).N`) and refuses other spellings, and a new `releaseDistTag` helper maps stable to `maintainer` and a prerelease to its id, never `latest`; `validateVersion` stays strict for other callers. Part 1 of 2; the publish workflow and promote verb follow separately. Refs #5852.
@@ -301,6 +309,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Consumer deposit now includes ADR-003 for Continuity (#4892).** MUST cites resolve to `.deft/core/docs/decisions/ADR-003-a2a-nuclear-family-topology.md` via the content/docs flatten. Maintainer `docs/decisions/ADR-003` stays heavyweight SoT (dual-path; no root-docs prepack carve-out). Leaves #3940 as tracker; cross-links only #3847 / #4890. Closes #4892.
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **docs(authz): cite #5674 for #5542 pre-PR/hotspots waived-exit follow-up.** Gate-override hatch and released 0.125.1 CHANGELOG wording now name #5674 so closed #5542 is not over-read as consumer-wired. Refs #5674 / #5665 / #5542.
 - Activate Prefer-A Bound keep-active brief for #4962 (productPullRequest unset; concrete file_scope covering product + tests + bulk). Tracking #4962.
 - Widen Prefer-A Bound keep-active #5656 file_scope for companion hooks/tests/RULE-MAP (productPullRequest unset). Tracking #5656.
@@ -352,6 +362,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **Prepare scope checks for #3906.** Records the reviewed brief so the follow-up product PR can pass scope checks after this activation merges. Tracking #3906. Refs #5192, #4774.
 - **Keep active #3908 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #3908.
 
@@ -381,6 +393,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **docs(intent-constraint): Prefer-A throw+mint for invariant/corruption (#5574).** Operational denials stay returned-failure/filter; invariant / corruption / impossible-if-healthy keep fail-fast + attended mint (unattended parks). Bound 6159841941. Tracking #5574.
 - Bump `actions/setup-node` from 7.0.0 to 7.1.0 (#5557).
@@ -443,6 +457,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - Typed `plan.policy.review.minGreptileConfidence=4` so Greptile CLEAN / merge-ready accept 4/5 for this cohort (#3095).
 
 ### Fixed
@@ -500,6 +516,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Design-critique later-arc closed-findings (#5489).** Later arcs on the same ticket no longer re-litigate findings the parent already closed: critics demote authorized restatements, and reopen needs evidence. Adjacent-polish hydra remainder deferred to #5493. Tracking #5489. Refs Prefer-A Bound 6065006497.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - docs(design-critique,windows): name launcher-dependent CreateProcess/cmd argv ceilings + pointer-required Claude critic spawn; pong proves probe only; keep #5478 adjacent (#5492).
 - chore: leftover-complete #5465 after Tracking PR #5468 (completed xBRIEF + #3675 Prefer-A residual).
@@ -563,6 +581,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 ### Fixed
 
 - **stamp-evidence kind/pointer coherence for markdown (#5382).** `scope:stamp-evidence` stamps matchAny markdown/CHANGELOG/PR-prose pointers as `kind:review` (and repairs incoherent already-stamped `kind:test` markdown the same way) so stamp→complete no longer rejects rows the stamp verb just wrote under #5105. Keeps the hand-path kind:test ban and #4840 matchAny remedy. Tracking #5382. Refs #5105, #4840.
@@ -622,6 +642,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - Keep-active: Prefer-A Bound brief for #5393 (Path B activation).
 - **Leftover-complete #5387 after product #5388.** Record completion of the Path B activation versus productPullRequest catch-22 Prefer-A Bound brief after the product land. Tracking #5387.
 - xBRIEF: Path B activation land for hard-stop hatch Prefer-A Bound (#5373)
@@ -652,6 +674,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Interview progress checkpoints without breaking one-question (#5353).** Interview and setup emit concise Rule 2 status-only progress checkpoints (phase, remaining decision-area labels, deferrals, addition reasons) at closed triggers; how-much-is-left answers with inventory status then re-renders the same pending question. Rule 1 coexistence keeps inventory labels allowed and concrete upcoming question text forbidden. Tracking #5353.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Interview framework-gap briefs #5351–#5355 are complete.** Tracking records now show the shipped material-decision depth contract, durable phase/approval carrier, progress checkpoints, PRD polarity, and phase-boundary checks after their product merges.
 - **Interview strategy matches setup on PRD authority and promote (#5354).** Pack SoT + render remove Full-path Generate-PRD approval-gate and Light/Full promote-on-approval; approval leaves scopes in `proposed/`; `PRD.md` stays optional `task prd:render` export only. Workflow Overview routes through PROJECT-DEFINITION + proposed scopes (optional PRD export edge), not a PRD approval gate. Syncs `templates/make-spec.md`. Polarity content-contract locks strategy ↔ setup ↔ interview (including diagram). Tracking #5354.
@@ -751,6 +775,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 ### Fixed
 
 - **Pre-PR HMAC chmod-fail removes an unusable own-create secret; EXISTS race does not delete (#4912).** Exclusive create still loads a 0600 winner on EXISTS/EEXIST. chmod failure after this process created the secret retries, then containedRemove of leftover 0644 so the next start can create. A 0644 EXISTS winner is not loaded and is not deleted. `startControllerRun` and `deft pre-pr:run` report put deny instead of started. Tracking #4912.
@@ -792,6 +818,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Fail-closed AGENTS header placeholder gate at first-ship (#4544).** `deft check` (cached and `--no-cache`) and `check:consumer` refuse when product-mutation completion still leaves the unmanaged header one-liner on the exact scaffold edit-me string; Process-only and custom headers pass. Durable Prefer-A marker (not occupancy `last_write_at`) is the product-mutation signal; marker write failure fails closed on markWrite only (heartbeat/grant lease refresh does not require a marker rewrite); unreadable/malformed Prefer-A marker fails closed only while the unmanaged header is still the scaffold placeholder (not silent Process-only; custom header and absent AGENTS.md still pass); CAS replaces the unmanaged-header one-liner only; unreadable AGENTS.md fails closed. Remediate via confirmed-Overview `compareAndSetConsumerHeaderOneLiner`. CLI: `verify:consumer-header-placeholder`. Tracking #4544.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **process(swarm,review): bind multi-hour babysit via envelope + declared budgets (#3984).** No parent-turn-shape detector on this number. Approach 1 / review-monitor dispatch is the cheaper ownership path vs parent-as-leaf implement; cheaper one-liner requires live `pr:watch` + `verify:review-monitor --merge-path-arm --live-wait` (lease-only yield stays unarmed, #4882). `pr:watch` resolves declared wait via `--max-wait-minutes` / `DEFT_PR_WATCH_MAX_WAIT_MINUTES` (`resolveDeclaredWaitBudget`); rejects budgets whose seconds conversion is non-finite; `--help` still prints when env budget is invalid. #3153 wall-clock row fires only when a budget is declared (30m default stays a poll cap). agentsMdBudget managedMaxLines 189→190 / absoluteMaxBytes 22886→23600 for the agents-entry pin. #5219 stays separate. Tracking #3984.
 - **Windows Step 5 cold-worktree sequencing + unit git-tail cheapen (#5140).** Refresh committed Vitest file durations from a retained Step 5 tee; keep prior ≥30s timings the incomplete tee omitted; share-plus-reset the durable-effect unit git tail; keep unit/spawn-heavy overlapping (no `groupOrder` serial drain). Host probe and fixture notes: `docs/RELEASING.md`. Keep 60m hang detector and #5026 no-coverage host lane; first ship tracks reliable sub-60m without `--skip-ci`. Refs #5022, #5026, #5027, #5028, #4567. Tracking #5140.
@@ -859,6 +887,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Clearer check-gate failure remedies (#1883).** Composition check failures now name a concrete next step instead of a generic re-run line; empty or opaque diagnostics stay marked as a named-cause seam bug. Extends #3282. Tracking #1883.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
 - **fix(session): batch finalize-owed tip inventory; reverse Prefer-A defer skip (#5171).** Tip plan reads use chunked `showBlobsBatch` (bisect on truncate/parse miss; whole-N `git show` is not a green inventory path) with one list→Map for twin/completed lookups. `--defer-owed` / dest inherit only clear blocks after a real inventory; mutation `session:start` / `--rearm` keep scanning every time (no first-ship day-cache). Closes #5171. Refs #5145 #4919.
@@ -1028,6 +1058,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **Release Step 5 hang detector 20→30 minutes for suite growth (#5022).** Deliberate gate change to `RELEASE_CHECK_TIMEOUT_MS` / `RELEASE_CHECK_TIMEOUT_MINUTES`. Do not raise casually. GHA vitest coverage `timeout-minutes: 20` stays separate. Tracking #5022.
 - **Mid-build intent-constraint / observable-scope fail path prefers in-harness ask over leave-harness TTY mint (#5010).** Merge-base JSON + `humanApproval` stay the durable store. Attended: detect + ask in the parent chat; on yes the human lands the record on a real TTY (`mintedVia: in-harness-ask` — not an agent-shell bypass), commits it on the delivery-branch merge base, then rebases the implementation branch. Unattended/C1: rewrite or park. Returned-failure-only paths stay free in extract. `scope:record-*` remains for legacy repair. Remediation constants, `named-cause`, docs, build/setup/preamble/Phase 0, and CLI `--minted-via` updated. Supersedes leftovers #4597 / #4598 (already closed `not_planned`). Tracking #5010.
 
@@ -1079,6 +1111,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 ### Fixed
 
 - **verify:story-ready reads the durable one-PR-unit store (#4950).** The ordinary readiness path uses the same absolute store as human mint. A relative path, the forbidden `.deft/one-pr-unit` path, a failed directory create, and an unreadable or malformed claims file are configuration failures, not a request to mint again. A directory with no claims file, including one this check just created, stays a missing grant. Tracking #4950.
@@ -1107,6 +1141,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Evidence-only `scope:stamp-evidence` records kind:test on glob file_scope skip rows (#4840).** Writes a non-glob file that `matchAny(file_scope)` accepts through `stampNamespacedEvidence`. Refuses glob-shaped pointers and directory stand-ins. No disposition argv; `--pr` / `--merge-commit` stay off this field. Null-path persist-default rows stay unstamped. Tracking #4840.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Records #4707 complete after clause.N PlanItem ids landed.** Completes the tracked brief for merged PR 4836. Refs #4707.
 
@@ -1146,6 +1182,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **Records #4765 complete after Class B residual bares landed.** Completes the tracked brief for merged PR 4828. Tracking #4765.
 - **Restate spawn_subagent dest occupancy linger (#4782).** After an implement-class Grok child claims dest and the parent tool returns, dest occupancy.json can still be live under the child host-env id. spawn_subagent persist is dest-lock plus a parent-owner dispatch record. Leftover dest-lock still refuses a live occupant. Swarm finalize stays launcher-only. Dest-linger close-out is leftover #4792. Tracking #4782.
 - **Grok Build Gap D is background spawn then end the parent turn (#4796).** Phase 3 names `spawn_subagent` next to Cursor/Claude/OpenClaw. End the turn after the full planned launch set and any review-monitor lease register, not after the first spawn. Completion owner is Approach 1 sticky lease, parent-retained occupancy holder, or two-session occupancy-claim transfer with ack before turn end. Host notify stays Unknown. Steer inbox is child-steer only. Unmeasured matrix cells are Unknown. Do not invent `sessions_yield`. Tracking #4796.
@@ -1184,6 +1222,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **Records #4784 complete after completed-write pairing recut landed.** Completes the tracked brief for merged PR 4799. Refs #4784.
 
 
@@ -1200,6 +1240,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Records #4744 complete after ts:check-lane timeline and hang named-cause landed.** Completes the tracked brief for the merged product PR. Refs #4744.
 
@@ -1245,6 +1287,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **Leftover-complete #4317.** Completes the Wave 2 brief after #4727. Refs #4164.
 
 - **Release writes ROADMAP then CHANGELOG through retained descriptors (#4318).** Step 5 refuses unsafe CHANGELOG node types before any release-owned read (including `--skip-ci` and dry-run). Step 6 prepares both artifacts without writing. Step 7 completes ROADMAP before CHANGELOG. Refs #4164.
@@ -1288,6 +1332,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **Maintainer .gitignore un-ignores provenance under .deft/approved-scope and .deft/intent-constraint.** Local scratch and reconstituted .deft/core stay ignored. Not consumer CANONICAL_GITIGNORE_BASELINE. Mint records show in git status without -f.
 - **Solo leftover-land recovery names the post-merge land sequence (#4421).** Sanctioned close-out is unreachable from the solo path, not unsatisfiable. After merge: scope:complete, git add of that verb's diff, leftover-land lifecycle PR. Do not Edit/Write completed/ or mint a completing status. Greptile: active/ on a product PR is correct; completed/ before merge stays a defect; leftover-land after merge is sanctioned. Org dashboard rules cannot be overridden by rules.md. Closes #4421.
 - **Design-critique panel ceiling (#4435).** Multi-critic rounds now include the panel deposit in the round-1 input ceiling. Closes #4435.
@@ -1323,6 +1369,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Complete tracking for #4630.** Recorded the completed xBRIEF after PR 4633. Refs #2321, #3476.
 - **Complete tracking for #4621.** Recorded the completed xBRIEF after PR 4622. Refs #2321, #3476.
@@ -1384,6 +1432,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **Complete tracking for #4541.** After PR 4557. The #4541 xBRIEF stayed in xbrief/active/ on origin/master after squash. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Design-critique Handoff prints on same-P* relieves Recut-supersedes (#4554).** Unrelieved print stays. First relieves and relieves-after-does-not-relieve stay print-false. Class tokens are not a print input. Does not reopen #4531. Closes #4554.
 - **Complete tracking for #4554.** After PR 4556. The #4554 xBRIEF stayed in xbrief/active/ on origin/master after squash. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
@@ -1426,6 +1476,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 ### Fixed
 
 - **Ingest refuses complete while named Stop 1 pains are unrelieved (#4496).** Missing `pain:` fails closed. Chip ingest-ready stays list state. Closes #4496.
@@ -1452,6 +1504,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Setup-created scopes: count unresolved origins, offer emit-hints, keep origin writes off the agent (#4426).** `verify:orphan-active` reports `noOrigin` of scanned briefs that resolved zero forge origins; scoped `--issue N` counts only briefs that name N. The unscoped sweep stays fail-open. `verify:completed-tracked` names briefs scanned versus origins resolved. Setup Phase 3 (including Add-scope) surfaces emit-hints (none / umbrella / per-vBRIEF). Origin references are operator-collected or `task issue:emit`; ⊗ agent-asserted `parent_issue`. Leaves #3826 complete-reader and the unknown-policy split in place. Closes #4426.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Complete tracking for #4219.** After PR 4485. The #4219 xBRIEF stayed untracked after squash. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Complete tracking for #4398.** After PR 4489. Refs #2321, #3476.
@@ -1522,6 +1576,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **Land leftover completed-tracked artifact for #4393 (#3264 / #3476).** The #4393 xBRIEF stayed in xbrief/active/ on origin/master after squash of PR 4413. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Land leftover completed-tracked artifact for #4399 (#3264 / #3476).** The #4399 xBRIEF stayed in xbrief/active/ on origin/master after squash of PR 4420. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Land leftover completed-tracked artifact for #4266 (#3264 / #3476).** The #4266 xBRIEF stayed in xbrief/active/ on origin/master after squash of PR 4415. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
@@ -1559,6 +1615,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **Design-critique path selector is Spec-path:; Recut: stays a permanent alias (#4361).** Ingest still harvests Bound-remedy when that token is present and refuses a missing heading or empty list. No token stays body-normative. Later arc, rewrite the body, process-only skip class, and set-level-body replace the other English jobs. Close is not cancelled and is not an order in the summary. Yolo and auto-stamp stay. Closes #4361.
 
 - **Land leftover completed-tracked artifact for #4362 (#3264 / #3476).** The #4362 xBRIEF stayed in xbrief/active/ on origin/master after squash of PR 4368. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
@@ -1586,6 +1644,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Cursor local implement is dest-placing, not Task dest (#4295).** Local Cursor workers start in a reserved linked worktree instead of unsupported Task destination keys. Consumer agents-entry pins dest-placing Cursor. agentsMdBudget.absoluteMaxBytes 17300→17600. Closes #4295.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Land leftover completed-tracked artifact for #4344 (#3264 / #3476).** The #4344 xBRIEF stayed in `xbrief/active/` on origin/master after squash of PR 4346. Moved to `xbrief/completed/` via `scope:complete`. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Land leftover completed-tracked artifact for #4162 (#3264 / #3476).** The #4162 xBRIEF stayed in `xbrief/active/` on origin/master after the product land. Moved to `xbrief/completed/` so merge-gate orphan-active is green. Does not reopen or recut that issue. Refs #2321, #3476.
@@ -1622,6 +1682,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **Design-critique exclusive catalog is mechanism-shaped, in-progress, ingest-ready (#4298).** One bind chip after a complete record: ingest-ready. judgmentGates stays on mechanism-shaped. in-progress flips on first panel-deposit or role: critic, not spawn intent. Recut: is a lean token, not a chip; auto-stamp writes ingest-ready. Old triage-ready / recut-needed fail closed. In-arc membership is thread-only. Halt leaves the standing in-flight chip. Closes #4298. Refs #3642, #4205, #3640, #3806.
 
 ### Fixed
@@ -1640,6 +1702,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 ### Fixed
 
 - **Completed xBRIEF plan.items no longer land with status `complete` (#4284).** The #4258 brief now uses schema-legal `completed`. `scope:complete` rewrites `complete` to `completed` so release `vbrief:validate` stays closed. Closes #4284.
@@ -1656,6 +1720,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 ### Fixed
 
 - **Grok-applied spawn_subagent keeps the Grok dest contract when vendor-compat handlers run (#4272).** GROK hook-process env or the `spawn_subagent` tool applies cwd-only dest and emits no envelope rewrite even if argv `--host` is cursor or claude. Matcher-split is not the isolation. Vendor-compat handlers do not persist dest-lock; leftover-release stays on retry. Default-on vendor compat must work; `[compat.cursor] hooks = false` is not the product fix. Rewrite-shape (tool-arg `prompt` + dest `cwd`) is a backstop. Closes #4272.
@@ -1669,6 +1735,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **One suite at release pipeline Step 5, a 20-minute cached-path hang supervisor, and a full-mode pin (#4230).** Phase 1 no longer runs `task check`. Cached `runReleaseCheck` tees the suite, kills the tree at 20 minutes with exit 124 (`REAL_FAILURE`), and sets `DEFT_CHECK_MODE=full`. Worker load/exit failures notify the waiter instead of waiting out the backstop; in-memory capture is byte-capped. Fork (b): reporter stays text + text-summary. Residual [#4244](https://github.com/deftai/directive/issues/4244). Closes #4230.
 
@@ -1700,6 +1768,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **RULE-MAP freshness fails closed on `task check` (#4095).** Regenerates `docs/RULE-MAP.md`. `task docs:rule-map:check` is wired into `FRAMEWORK_CHECK_GATES` and `check:framework-source`. The gate asserts byte-identical renderer output, filled grouping purposes, pack entries from named arrays, and Taskfile declaration counts. ROADMAP stays on `task roadmap:check` (residual [#4164](https://github.com/deftai/directive/issues/4164)). Closes #4095.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Public docs navigation follows the #4100 journey matrix.** README keeps the #2273 cold-start, then three-command install plus a getting-started pointer. UPGRADING opens with the current path. Frozen hops stay in UPGRADING with section-level `LIVE_PROCEDURE_EXCLUSIONS` (not `history/archive/`). Docs-site primary bar stays What / Install / Concepts / Gates / Upgrade / License; Best practices is not a primary-bar item. Static-site nav equality is fail-closed. Closes #4100. Refs #4085, #2906, #4097, #4098, #4099.
 - **First-project tutorial walks install through one green `deft check` (#4097).** `content/docs/getting-started.md` is one consumer journey with Git/`verify:branch` preconditions. Strategies and Agent Configuration stay pointers. Optional backlog work is `plan-sequence:current` then a read-only `triage:queue`. Measured on a staged deposit. Snippet registry stays on #4094. Closes #4097. Refs #4085.
@@ -1865,6 +1935,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 ### Fixed
 - **Land completed-tracked artifact for #3983 (#3264 / #1358).** The #3983 xBRIEF stayed in `active/` after squash of PR 3990 (`a34131ce`). Moved to `xbrief/completed/` via scope:complete. Does not recut that issue. Refs #2321, #3476.
 - **PreToolUse now sees Grok Build shell writes as a cooperative guardrail, and in-flight elapsed is evaluated on the delivery-attempt ledger (#3983 / #3987).** The deposited matcher list was literal tool names and missed run_terminal_command, so a Write denied by occupancy could be reissued through the shell. Recognized in-repo dests (Set-Content, python pathlib, IO.WriteAllText) now go through the same mutation gates as Write (#3614 shape). Named PowerShell parameters are honoured in any order: `-Value` before `-Path` is not taken as the dest. git status, occupancy:release, and OS-temp body-file writes stay allowed. evaluateInFlight blocks a running attempt whose wall-clock meets maxElapsedSeconds. This does not close the shell write bypass; it narrows the cooperative reissue hole. Recogniser recall is about 47% (2,843 of 5,372 file-writing commands invisible; 17 of 29 probed in-repo shapes yielded no target). Destinations that are shell variables are not recovered (1,089 of 1,131 logged shell calls were dynamic, compound, or emitted no target). A directory junction created without elevation still defeats lexical `provablyExternal` -- that is re-entry polarity; `#3186` containment is escape polarity and does not close it. Fail-open at this predicate is the bound posture (#3997). Recall work stays on #3987. Refs #3987, #3997, #3186. Closes #3983. Refs #3614, #3143, #2646.
@@ -2027,6 +2099,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **`adoption-blocker` is the canonical consumer hard-stop label.** It now covers any intended Directive flow (install, first session, update, `task check`, ship) with no reasonable workaround, not only first session. The label means classified as a blocker; its absence means not classified, never that a workaround exists. Classification requires body evidence (attempted alternatives, or why documented alternatives are not reasonable). An upgrade-path hard stop wears this label plus `Upgrade Blocker`; `Upgrade Blocker` alone does not rank. Closes #3650.
 
 - **Stop 1 premises stay outside parent substantiation; Stop 1 records `refutation-target:` (#3672).** The contract now states why a pre-critic premise is excluded. Stop 1 write-backs record a non-binding `refutation-target:`. Not an audit marker; never blocks bind. Closes #3672.
@@ -2109,6 +2183,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 ### Security
 
 - **Release closed-verb gate fires on tag push / npm publish, not only the GitHub draft flip (#3527).** `task release` refuses Step 10–11 (`git tag` + `git push --atomic` of `v*`) without a human-origin `release-publish` grant or `DEFT_ALLOW_RELEASE_PUBLISH=1`. `--skip-tag` and dry-run stay ungated. `release:publish` draft-flip refusal is unchanged. The v0.105.0 sequence (tag push shipped npm with no authz; gate fired later on draft flip) is now a fail-closed test. Refs #716, #3110, #1095.
@@ -2158,6 +2234,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`pr-monitor` escalates on sustained `ci_absent_required` instead of polling to cap (#3389).** After a one-poll grace (first-poll absence is normal), consecutive absent required contexts exit `ABSENT-REQUIRED` and name the missing checks. Pending check-runs still wait. Consumes #3234; does not redefine it. Closes #3389.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Coverage floor is 75, measured under vitest 4 (#3512).** All four metrics drop 85 -> 75, identical on win32 and Linux CI. This is a recalibration, not a relaxation: vitest 4 replaced `v8-to-istanbul` with AST-aware `ast-v8-to-istanbul`, and the same suite reads **85.35% branches (46194/54121) under vitest 3** vs **81.23% (50892/62651) under vitest 4** — covered branches *rose* by 4,698 while the denominator grew by 8,530. The old number was never comparable to the new one. 75 is Google's published "commendable" band, an external anchor rather than a self-referential one; Inozemtseva & Holmes (ICSE 2014) found aggregate coverage only weakly predictive of defect detection once suite size is controlled. The floor is now a collapse detector, with per-change rigor belonging to the diff gate — a control that is **not yet at full strength** (`verify:forward-coverage` is new-file-existence only, #3514), so ~6pp of aggregate erosion is a knowingly accepted gap watched via `task coverage:hotspots`. The config stamps the instrument in-file, and the #2573 / #2630 contract tests now assert the *invariant* (one uniform floor, no platform carve) instead of a literal that rots on every recalibration. Refs #3512, #3514, #3480, #2573, #2630, #1310.
 - **Vitest 4 restores Windows coverage file parallelism (#3480).** Upgrade `vitest` and `@vitest/coverage-v8` ^3→^4. Drop `fileParallelism: false`, the coverage-tightened `winActiveMaxWorkers` cap, `coverage.processingConcurrency: 1`, and the removed `poolOptions.maxForks` (now just `maxWorkers`). Occupancy-stress children spawn via `tsx` (vitest 4 dropped vite-node). Floor is owned by #3512 (75); this PR does not set it. Keep the win32 `coverage/.tmp` globalSetup until a full run proves #10117 is enough. Refs #2546, #2580, #2634, #3501, #3472, #3512.
@@ -2237,6 +2315,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 ### Fixed
 
 - **`verify:ac` no longer fail-closes on historical completed xBRIEFs that lack `plan.metadata` (#3375).** Parseable pre-#3357 completed files are not this-session unreadable targets, so `task check` after `session:start` can soft-skip when nothing completed this session. Broken JSON and a same-session marker at an unreadable path still fail closed. Closes #3375. Refs #3357.
@@ -2271,6 +2351,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 ### Fixed
 
 - **verify:ac product-oracle check ids are namespaced per active scope (#3337).** Multi-active sessions no longer share one global `verify:ac` check id, so a fail from story A and a pass from story B cannot false-deny as an unresolved method-change sequence. Same-scope fail then different-method pass still fails closed without independent re-derivation. Residual of #3322 / PR #3333. Closes #3337. Refs #3322, #3333.
@@ -2294,6 +2376,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Overlap dispose via `decision:write` + list-before-recommend (#3315).** Portfolio-priority documents human overlap-cluster dispose (every member in `relatedIssues`, required `revisitTrigger`) and parks already-disposed pairs after `task decision:list -- --issue N`. Dedicated ledger deferred until a pass re-litigates despite a dispose record (#3310). Closes #3315. Refs #3310.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Retire the coverageDebt/checkResume consent ritual; keep two plain settings (#3314).** Session-start no longer quizzes Strict / Hatch-aware / Later. `policy:coverage-check-resume-preset|later|dismiss` and the nudge/preset modules are gone. `coverageDebt.mode` and `checkResume.localStamp` stay as optional fail-closed fields (default off). Interactive mutation ritual prints one disclosure line when either is non-default. Hatch and local stamp are reserved; live hatch is `--allow-coverage-debt=#N` (#2866). Closes #3314. Refs #3189, #3187, #2866.
 
@@ -2342,6 +2426,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **scope:complete acceptance evidence is namespaced under x-directive/ (#3305 / #1620 Option B).** Canonical per-item keys are `plan.items[].x-directive/evidence` and `plan.items[].x-directive/disposition` only (same typed shapes as #3240). Bare `evidence` / `disposition` are missing/invalid for the acceptance-evidence gate (no permanent dual-read) and continue to fail `verify:vbrief-conformance`. `ITEM_CORE` is **not** expanded with bare evidence/disposition (reverts the short-lived bare-core allow from the #3124 complete land). Writers/helpers stamp only namespaced keys. Cross-gate regression under vitest/`task check` proves a pending item with valid namespaced evidence passes both complete and `scanVbrief`. Docs/migration in `content/commands.md` § scope:complete. Closes #3305. Refs #3240, #1620, #3256, #3156.
 
 ### Fixed
@@ -2372,6 +2458,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`scope:complete` requires typed evidence or human disposition per acceptance criterion (#3240).** Non-terminal `plan.items` (and nested `subItems`/`items`) no longer auto-complete from merge ancestry alone. Each criterion needs either `evidence` (`kind` in `test|review|merge|deploy|smoke|uat|observed_behavior` + `pointer` + `recorded_at` + `recorded_by`) or `disposition` (`waived|deferred|not_applicable` + `reason` + human-origin `provenance` + `recorded_at`). `merge`/`review` alone cannot satisfy smoke/UAT/deploy/observed_behavior criteria (inferred from title/Acceptance text or explicit `requires`/`acceptanceAxis`). Fail-closed lists missing criteria; success output lists evidence/disposition per item. Core: `packages/core/src/scope/acceptance-evidence.ts` + `transition.ts` gate. Closes #3240. Refs #3237 Q3, #3041, #2862.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
@@ -2436,6 +2524,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 ### Fixed
 
 - **`pr:merge-ready` fails closed on absent ruleset/branch-protection required check contexts (#3234).** Resolves required status-check context names from REST (`rules/branches/{base}` + classic branch protection), compares them to exact-HEAD check runs, and blocks with `ci_absent_required` + named `absent_required` when a required context has no matching check run (path-filtered workflows never schedule). Preserves existing success / skipped / pending / failed / capacity-stall handling for observed runs. Surfaces `required_contexts` in CI partial_data. Closes #3234.
@@ -2454,6 +2544,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`task scope:record-approved-scope` first-adoption / renewal surface (#3205).** Operator CLI deposits human-origin `.deft/approved-scope/<plan-id>.json` digests (`--actor` required; agent stamps refused; pending→active path binding). Taskfile + dispatch alias; docs in `content/docs/scope-provenance.md` cover first-adoption and multi-PR expansion. Closes #3205.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
 
@@ -2478,6 +2570,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Project policy for coverage-debt hatch + local check resume with skippable session nudge (#3189).** `plan.policy.coverageDebt` (`status` unset|decided, `mode` off|warn|hatch, `autoFile`) and `plan.policy.checkResume` (`status`, `localStamp` off|on, `ciTrustsLocalStamp` fixed false in v1). Missing/unset is fail-closed (no hatch, no local stamp, CI never trusts laptop stamps) but still nags on interactive mutation session-start until Strict / Hatch-aware / dismiss-with-reason. Later does not decide. Headless/CI does not block. Surfaces: `policy:show --field=coverageDebt|checkResume`, doctor `coverage-check-resume-policy` (exit-exempt), docs in `content/docs/consumer-check-contract.md`. Non-goal: consumer never auto-files coverage-debt on deftai/directive. Closes #3189. Refs #3187, #3188, #2866.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Core-guard content-aware pin + lock follow-through (#3193).** Deposited `deft-core-guard` still path-allowlists package/lock + `.deft/GENERATION.json` for one-upgrade-PR co-travel (#3127), but when `.deft/core/**` is present it requires `package.json` diffs to be `@deftai/directive*` **dependency-key** pin-only (not scripts/settings that merely contain the substring) and lockfiles (`package-lock.json` / `pnpm-lock.yaml` / `yarn.lock`) to be pin follow-through — not unrelated direct product deps. TS classifier + deposited workflow python check + UPGRADING one-upgrade-PR docs. Closes #3193. Refs #3127, #1430, #3117.
 
@@ -2507,6 +2601,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Maintainer dogfood: directive SCM label-mirror `actionLabels` + escalate/defer rules (#1423 / #3124 notes).** `xbrief/PROJECT-DEFINITION.xbrief.json` enables the full machine map (`triage:deferred` / `archived` / `lifecycle-linked` / `needs-human`) and repo-shaped `triageAutoClassify` escalate rules (`agent-safety`, `urgent`, `security`+`bug`, release gates) plus `hold` / `status:blocked` defer. Capture write-up: `docs/analysis/2026-08-06-scm-label-mirror-dogfood-capture.md` (dry-run evidence, consumer recommended baseline; no mass mirror `--apply`). Tracking #1423, #3124. Refs #2609, #2611. Discovery packaging tips on #3124 remain open.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **article-review Step 5 body-level dedupe + citation verify (#3163).** Titles are a shortlist only; related/owning claims require full issue body reads (and recent comments when the body is a stub). Cited issue numbers must exist and match claimed state (anti-hallucination). Prefer amend/comment on owning open issues over new filings; optional `.deft-cache/github-issue/` offline body-read path. Pack source + `task packs:render`. Closes #3163.
 
@@ -2541,6 +2637,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Bootstrap mass-triage on classify label mirror (#3125 / #1423 Wave 2).** `task triage:classify -- --mirror` is the documented bootstrap mass entrypoint: **open-only** default (opt-in `--include-closed`), dry-run operator digest with totals + breakdown by state/rule/action + samples, `--json` aggregates, and batched rate-limit-aware `--apply` (`--batch-size` / `--delay-ms`) with partial-failure reporting and missing-label hints. Still never calls `triage:accept` / never writes `proposed/` xBRIEFs. Wave 3 (agent comments) remains on #1423. Closes #3125. Refs #1423, #3118, #1129.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Label quarantine: zero-open twins → lowercase `legacy:*`.** Renamed dead non-colon twins and unused defaults (e.g. `docs`→`legacy:docs`, `skills`→`legacy:skills`, `installer`→`legacy:installer`, `release`→`legacy:release`, plus `github` / `github-actions` / `packaging` / `testing` / unused GH defaults) so closed history stays filterable and new work cannot pick the bare names. Prefer colon facets (`area:*`, …). Catalog policy in `.github/ISSUE_LABELS.md`. Refs #2609, #3128.
 - **docs: npm v12 install-time security defaults.** UPGRADING documents `allowScripts` off, `--allow-git` / `--allow-remote` default none, Directive consumer path (no package allowlist for `@deftai/directive*`; app trees use `npm approve-scripts`), globals/`npx` config flags, monorepo pnpm `allowBuilds` (esbuild) as install-script SoT, and OIDC publish notes. CONTRIBUTING points monorepo install scripts at `allowBuilds`; README upgrade callout links the section.
@@ -2590,6 +2688,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 ### Fixed
 - **Functional agent-hook mutation readiness (#3100).** `deft verify:hooks-installed --scope=agent --live` now fail-closes enabled hosts on structural drift or installed-shim allow/deny failures across Claude, Grok, Cursor, and Codex. Init/update report the post-deposit result; `session:ready` and a non-deferrable gated ritual step require it without adding the probe to cold `session:start`. Codex trust and real interception remain honest separate states (`manual-review-required`, `not-directly-verified`), and `hostHooks` opt-out remains healthy/disabled. Closes #3100.
 
@@ -2628,6 +2728,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 ### Fixed
 - **Untangle RWLDL from `deft-directive-pre-pr` naming (#449).** Pre-pr skill prose uses **pre-PR / Read-Write-Lint-Diff** (not “RWLDL loop”); Formerly note points at `tools/RWLDL.md` for the broader micro/macro quality loop; Skills Index drops `rwldl` as a pre-pr trigger (keep `pre-pr`, `quality loop`, `self-review`); REFERENCES tools section loads `tools/RWLDL.md` for deep quality work. Pack source + `packs:render`. Closes #449.
 
@@ -2644,6 +2746,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Temporary test kill-switch `.deft-directive-disable` (#3039).** Root-only **local (untracked)** flag disables Directive **enforcement** (host SessionStart / PreToolUse / compact hooks, `session:start` ritual write, doctor short-circuit) while allowing the deposit to remain — distinct from permanent `.no-deft-directive` (#2926). A **tracked/committed** flag is misconfig: doctor warns and enforcement stays on (repo content cannot disable hooks for clones). Shared detector in `packages/core/src/policy/deft-directive-disable.ts`; recovery requires **delete the file** and a **new agent session**. Doctor reports `disabled-test-kill-switch` when active. AGENTS always-on contract via agents-entry; deposit gitignore baseline includes the flag path. Docs: `content/docs/deft-directive-disable.md`. Consumer note: A/B and DevHammer “without DD enforcement” arm. Closes #3039.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Through-merge / drive-to:merge-ready must dispatch a worker; N=1 uses swarm path (#3032).** AGENTS.md and `agents-entry` now carry always-on `!` / `⊗` bullets: parent conversation MUST NOT implement product code or babysit fix/CI loops when background subagent/worktree dispatch is available; parent MUST dispatch a `drive-to: merge-ready` worker (worktree, preflight, pre-pr, review-cycle, merge/`scope:complete`) even when cohort size is 1. Swarm Phase 0 + core-ops anti-patterns encode the same rule; skill-pin-policy cross-refs the false-negative class; lessons pack records the #3027 recurrence. Contract markers in `agents_entry_contract`. Refs #1880 Gap C/D, #2508, #954.
 
@@ -2675,6 +2779,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 ### Fixed
 
 - **Fail-closed consumer denylist on installerManagedMatchers (#3030).** Added `CONSUMER_GUARD_MUST_FIRE` + `assertInstallerAllowlistHonors1430()` (TS + Go) so re-allowlisting consumer PROJECT-DEFINITION or scope briefs fails unit tests and deposit-time ERE emission. `classifyMixedCoreAndApp` pins core+PD mixed vs core+`xbrief/.deft-version` not mixed (#2277). Builds on #3029 matcher removal. Init seed (#3013) unchanged — create ≠ allowlist. Closes #3030. Refs #1430, #3029, #3013, #2277.
@@ -2702,6 +2808,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Inter-run learning surface design (Wave 0 bridge for epic #2741) (#2742).** Canonical design note `docs/analysis/2026-07-31-inter-run-learning-surface.md` inventories existing Directive memory SoTs (USER.md Personal, lessons/packs, triage cache, session ritual, decision/continue), defines hot/cold/operator-gated tiers with freeze-at-session-start and budgets, lists non-goals (no Mem0-default RAG, no revived #2700 agent-memory artifacts, no mid-session mutable hot memory), and retargets #688 #978 #832–#835 #479. Discovery pointer: `content/docs/inter-run-learning.md` + `REFERENCES.md`. Design + docs only; storage backends out of scope. Closes #2742. Refs #2741, #2700.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Cold vs re-arm session ceremony tiers (#2992).** `session:start --rearm` (or `--tier=rearm`) refreshes ritual clock + HEAD/worktree bind without fat cold path (`verify:tools`, triage welcome, release probe, tickler) when prior state is on the same worktree with continuous HEAD and passing quick steps. Compact (#2113) marks `rearm_needed`; inspect/verify and PreToolUse denials prefer re-arm recovery messaging when full cold is unnecessary (missing state, worktree change, discontinuous HEAD still force cold). Docs: `content/commands.md` § Mutable ritual. Closes #2992. Parent epic #2990. Refs #2991, #2113.
 - **Slim mutation `session:start` hot path + step timings (#2991).** Optional network (npm release probe, triage cache empty-hydrate / self-heal) no longer blocks ritual-state write by default. Opt in with `--with-network` or `DEFT_SESSION_START_NETWORK=1`. `--json` exposes per-step `duration_ms` (`steps[]` + total) for attribution. Docs: `content/commands.md` § Mutable ritual. Closes #2991. Parent epic #2990.
@@ -2739,6 +2847,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **Contained-write residual complete — leftovers + fail-closed check (#2980 wave D).** Migrates residual product sinks (triage writers/bootstrap, task-surface, capacity, category-b, codebase map, packs, session ritual-state, plan-sequence, product-signal, swarm, lifecycle hygiene, scope decompose/demote/undo, value/policy audit appends, and related leftovers) onto `containedWrite`. Wires `task verify:contained-writes -- --enforce` into `task check` / `check:framework-source` via `verify-contained-writes-enforce`. Allowlist retains containment/deposit primitives, lock/stream primitives, and temporary cited residual modules for shrink follow-ups. Go installer contained-write remains deferred/frozen. Closes #2980. Refs #2951.
 - **Contained-write residual — init-deposit product sinks (#2980 wave A).** Migrates `packages/core/src/init-deposit` product raw writes (scaffold, gitignore, prettierignore, agent-hooks, headless-manifest, migrate, xbrief-projections) onto `containedWrite`. Leaves `deposit/copy-tree` and `deposit/contain` as allowlisted low-level primitives. Inventory: `task verify:contained-writes` no longer reports those init-deposit product modules. Part of residual #2980 / epic #2951 (does not close the epic).
 - **Contained-writes scanner hygiene — exclude e2e/parity harness noise (#2980).** `verify:contained-writes` drops `release-e2e/**`, `integration-e2e/**`, and `**/parity-scenarios.ts` from product findings via `NON_PRODUCT_HARNESS_PATH_MARKERS` so `--enforce` targets real product sinks. Docs state Go installer contained-write is deferred/frozen; residual scope is TS product + enforce. Implements scanner hygiene + docs of #2980 (epic #2951 residual; product migration waves remain open).
@@ -2766,6 +2876,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Controlled English writing bar for docs and issues (#2927).** Canonical short page states four pragmatic rules (short sentences, active voice, one term = one meaning, first-use definitions) plus non-goals (no full STE certification, no big-bang rewrite, no red CI style gate in v1). Linked from `AGENTS.md`, `content/docs/getting-started.md`, and `content/QUICK-START.md`. Closes #2927.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **xBRIEF is the sole public work-state name; vBRIEF is legacy (#2907).** Product guidance (README, CONCEPTS, ARCHITECTURE, glossary, UPGRADING, getting-started) teaches `xbrief/` / `.xbrief.json` / scope xBRIEF only. Single authoritative rename/history note in `content/UPGRADING.md` (migrate path, old extensions, deprecated `vbrief:*` aliases). Glossary lifecycle terms rewritten under xBRIEF with a **vBRIEF (legacy)** pointer. Schema reference `content/vbrief/vbrief.md` labeled legacy/schema-lineage. Content contracts guard public-canon surfaces. Closes #2907. Refs #2034, #2110.
 - **Swarm skill host-adapter progressive load + OpenClaw isolation/handoff gates (#2928, #2929, #2934).** `deft-directive-swarm` is split into a thin SKILL (detect + route table + hard gates) and hand-authored `references/core-*.md` + `references/host-*.md` adapters. Default load is core + **one** host adapter after detect; loading all hosts “just in case” is forbidden. OpenClaw adapter hard-requires worktree/worktree-map before parallel `sessions_spawn` and blocks shared-checkout DIY dispatch (#2929). After coding cohort complete, same-turn next-phase tool dispatch or explicit terminal status is required — prose-only “I will spawn…” handoff is forbidden (#2934). Write-skill documents the multi-host convention; `openclaw-agent-host.md` links the adapter without forking SoT. Content contracts read the ordered skill surface. Closes #2928. Closes #2929. Closes #2934.
@@ -2805,6 +2917,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **OpenClaw poller/preamble + heartbeat templates (#2879).** Greptile poller template names OpenClaw `sessions_spawn` and parent push/announce completion channel (alongside Warp `start_agent` and grok-build `spawn_subagent`); agent preamble lists OpenClaw as a first-class provider-neutral backend with Gap D background-dispatch and §10.5 heartbeat mapping; `docs/subagent-heartbeat.md` documents OpenClaw file-heartbeat + supplementary native liveness and `REDISPATCH_OK` posture. Closes #2879. Refs #2874, #1365, #2824.
 - **Babysit/review must not expand active story past xBRIEF AC (#2881).** Out-of-AC Greptile findings default to follow-up issue or consented brief amend; P0 carve-out limited to already-touched surfaces; confidence-only holds (0 P0/P1) do not authorize unbounded redesign; `issue:emit` related-ref footgun documented (github-issue type marks already tracked). Closes #2881.
 
@@ -2831,6 +2945,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Doctor `--full` live-probes deposited agent hooks (#2852).** After structural registration checks pass, doctor spawns the configured `deft-hook` command with Cursor `tool.before` allow and deny fixtures and warns when stdout is empty, unparseable, or missing an expected deny — surfacing #2846-class packaging failures that structurally valid deposits hide. Closes #2852.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Release Phase 1 routes fixable `task check` failures through file-and-merge (#2859).** When `task ci:local` / `task check` fails on a shippable defect during a cut, the release skill requires filing a tracked issue and merging a fix before resuming — not inline hotfix theater or untracked `--skip-ci`. AGENTS.md bulk for this reminder was considered and rejected. Closes #2859.
 - **Release Step 5 branch-coverage hairlines use open-issue ledger hatch (#2866).** When `task release` Step 5 fails only on Vitest branch coverage below 85% and no open coverage-debt issue exists, file `#N` and continue with `--allow-coverage-debt=#N` (PowerShell-safe); while a prior hatch debt issue remains open, soft-pass is forbidden until coverage is restored. Non-coverage failures stay under #2859 file-and-merge. Closes #2866.
@@ -2865,6 +2981,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **Review-cycle ownership is GitHub-anchored (#2814).** Agents must succeed at `task review-monitor:register` on GitHub before claiming an active monitor; `task verify:review-monitor` requires an unexpired GitHub lease on Tier 1 (local heartbeat alone is insufficient).
 
 ### Fixed
@@ -2894,6 +3012,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **Swarm/build/pre-pr gate policy (#1704).** Moves swarm-heavy workflows toward `O(merges × full-gate) + O(iterations × cheap-proxy)` from `O(commits × full-gate)`.
 
 ### Fixed
@@ -2915,6 +3035,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Persistent agent-host hook opt-out (#2752).** `plan.policy.hostHooks` lets consumers disable Directive hook deposit per host (`claude`, `cursor`, `grok`, `codex`). Opted-out hosts are skipped on `deft update` / `directive init`, managed entries are stripped without deleting unrelated settings, and doctor / `verify:hooks-installed` no longer recommend repair. Inspect with `deft policy:show --field=hostHooks`.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
 
@@ -2950,6 +3072,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 ### Fixed
 
 - **Orphan-active guard for stop-at:pr-open lifecycle leaks (#2321).** Dispatch doctrine now assigns post-merge `scope:complete` / `scope:cancel` ownership to orchestrators for `stop-at: pr-open` workers and requires `drive-to: merge-ready` workers to complete their xBRIEF; `task verify:orphan-active` fails when `xbrief/active/` still holds `plan.status == running` briefs whose referenced issues are all closed or whose linked PR merged. Completes three previously orphaned active briefs surfaced by the new gate (#2313, #2607, #2744). Closes #2321.
@@ -2973,6 +3097,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Consented product check-in to an internal partner sink (#2693).** Opt-in typed policy `plan.policy.productSignal` (default off) with `task product-signal:enable -- --confirm`, install-level consent file, CLI `task product-signal:status|consent|submit`, skill `deft-directive-product-signal`, versioned payload with minimized `localSignalSummary` (value/health/helped) and optional `skillsSummary` hook. Submits pulse/portrait standing threads to internal `deftai/product-signal` via `GitHubPrivateSinkAdapter`; fail-open on headless and sink unreachable. Refs #2603.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **`product-signal:bootstrap-sink` sets visibility to internal** after create (org-visible, not public). Docs match. Refs #2693.
 
@@ -2999,6 +3125,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 ### Fixed
 
 ### Removed
@@ -3012,6 +3140,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Consumer `deft coverage:hotspots` / `task coverage:hotspots` surfaces branch headroom before the global gate (#2683).** Reads `coverage/coverage-final.json`, compares global metrics to project vitest thresholds (default 85%), fails closed below the branch floor or below configured headroom (default 0.3pp), lists lowest modules and git-diff uncovered branch samples, and supports `--json`. Pre-PR skill guidance now steers targeted `--coverage` runs and headroom above the project floor; complements `verify:forward-coverage` (#1310) and `--allow-coverage-debt=#N` (#2573). Closes #2683.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Release skill Phase 1 / Phase 3 long steps must stay off the operator chat (#2692).** `deft-directive-release` now pins #1880 Gap D: background or subagent-dispatch `reconcile:issues`, ritual-stale cache refresh, `ci:local`/`check`, and `release:e2e` when the host supports it; keep version/`--summary`/dry-run gates interactive; avoid PowerShell `Select-Object -Last` buffering. Closes #2692.
 
@@ -3040,6 +3170,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **CI TypeScript and Go jobs run on GitHub-hosted `ubuntu-latest`.** Required `CI` had been stuck `queued` for hours on Blacksmith `blacksmith-4vcpu-ubuntu-2404` with nothing `in_progress`; Windows already used `windows-latest`. Unblocks PR CI when Blacksmith capacity stalls.
 - **Release-tag parsing lives in one module (#2525).** `packages/core/src/release/version.ts` now owns parse, publishability, PEP 440 normalization, and prerelease ordering; platform latest-tag selection and doctor release checks consume that contract instead of a duplicate parser in `resolve-version.ts`. Closes #2525.
 
@@ -3060,6 +3192,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`lifecycle:event` approval recorder on the consumer Taskfile/CLI surface (#2631).** Review-cycle merge-gate approval now records `plan:approved` via `task lifecycle:event` / `deft lifecycle:event`, with idempotent dedupe for repeated approvals on the same PR and HEAD SHA. Closes #2631.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
 
@@ -3088,6 +3222,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **Release closeout commits `policy:enforce-branches` with a scoped push (#2623).** The release skill now requires committing the typed-flag restore in the same closeout (scoped `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` on those git commands only) so origin does not stay opted-in or leave a dirty enforce under protection ON.
 - **PowerShell-safe coverage-debt flag examples (#2621).** Release help and the release skill document `--allow-coverage-debt=N` (no bare `#`) so Windows shells do not strip the issue number.
 
@@ -3106,6 +3242,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **Windows swarm guidance no longer prefers cloud or concurrency=1 (#2563 follow-up).** Preamble §3.8 and the swarm skill now treat local parallel Cursor Task cohorts as first-class on Windows; they document the shipped `windowsHide` + warm-dist mitigations and forbid regressing them, instead of steering agents to cloud or a single worker.
 
 ### Added
@@ -3117,6 +3255,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Explicit coverage-debt escape hatch for release preflight (#2573).** `task release … --allow-coverage-debt=#N` is the only soft-pass path when Vitest metrics sit below the 85% goal; the pipeline emits loud attribution (measured vs goal, issue `#N`) and warns when recent releases overuse the flag. Raw env bypass is scoped to release Step 5 only — no auto near-miss band, no open-debt oracle.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Agents must route bare "what's next?" through `triage:queue`, not xBRIEF- or GitHub-only scans (#2576).** AGENTS.md, the triage skill, and `commands.md` anti-patterns forbid concluding an empty backlog from lifecycle folder walks or live issue lists without the cache-backed ranked queue. Closes #2576.
 - **Branch-coverage floor is 85% on every platform.** Removed the Windows-only `84.85` branches carve in `vitest.config.ts`; hairline win32 misses are operator-owned via `--allow-coverage-debt=#N`, not config nibble.
@@ -3156,6 +3296,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 ### Fixed
 
 - **Session orientation reports the host OS and source-attributed shell context.** `session:start` now exposes structured environment metadata in text and JSON, distinguishes harness-provided execution shells from user defaults, and pairs detection with portable-shell guidance so agents do not assume Bash under macOS/zsh. Closes #2568.
@@ -3174,6 +3316,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **Helped and health metrics persist outside the project tree.** `crud-metrics.jsonl` and `health-history.jsonl` now append under the resolved user-data metrics home (`helped/` and `health/` subdirs) via `DEFT_METRICS_HOME` / platform AppData or XDG defaults; no fallback to `xbrief/.eval/results/`. Closes #2545. Refs #2544.
 
 ### Added
@@ -3182,6 +3326,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Ordered-plan continuation stops "next" from escaping an approved sequence.** Agents bind bare "what's next?" / "proceed" to the narrowest operator-approved plan via `plan-sequence:*` and `verify:plan-sequence`; exhausted plans fail closed instead of pulling the triage queue. AGENTS keeps a pointer-thin #1149 precedence line; full rules live in the preamble and skills. Closes #2402.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Always-on session bootstrap names the Windows USER.md path.** Managed Session routing now tells agents to resolve USER.md via `deft session:start` output (`%APPDATA%\deft\USER.md` on win32, not invented `~/.config/deft`); canonical table lives in `commands.md`. Closes #2544.
 
@@ -3213,6 +3359,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Read-only Directive session posture defers ceremony until you start changing things.** Questions, Plan Mode, and ticket-shaping now default to alignment-only context loads without writing `.deft/ritual-state.json`, triage welcome, branch-policy dumps, or install side effects; the full mutable ritual still runs at mutation boundaries. Use `deft session:start -- --read-only` for explicit alignment-only mode. Closes #2176. Refs #2491.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Process and reading cards in AGENTS.md are pointer-thin.** Umbrella status, triage queue, issue body→comments, development-process gates, and contextual guardrails collapse to `!` / `⊗` pointers at `commands.md`, the agent preamble, and SCM docs — clearing the Phase-2 managed ≤8192 B bar. Closes #2502. Refs #2491.
 
@@ -3265,6 +3413,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **Universal always-on guardrails are pointer-thin.** Session ritual, WIP cap, branch policy, implementation-intent, and story-start rules in AGENTS.md / agents-entry compress to one-line imperatives plus gate/skill/doc pointers; bulk lives in `commands.md`, `scm/github.md`, and swarm skill. Closes #2453. Refs #2369.
 
 - **Contextual guardrails lazy-load on runtime match.** PowerShell encoding, safe-subprocess capture, cascade automation, and SCM-boundary rules move out of the always-on AGENTS.md / agents-entry surface into `scm/github.md`; runtime-detect trigger pointers remain. Closes #2454. Refs #2369.
@@ -3289,6 +3439,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Responsible disclosure policy for security reports.** A root `SECURITY.md` directs reporters away from public GitHub issues and documents private reporting via GitHub Private Vulnerability Reporting (preferred) and `security@deftai.dev`, plus supported versions, scope, response expectations, and safe-harbor language. Closes #2405.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Onboarding no longer gates every user on a contributor question.** `QUICK-START.md` and the setup skill now default straight into the consumer project flow; framework contributors are routed via a non-blocking `CONTRIBUTING.md` / `--maintainer` pointer instead of an up-front fork. Closes #1813.
 - **Structured top-level `directive --help` for faster command discovery.** Running `directive` or `directive --help` now shows a curated page with version, usage, common options, and grouped everyday commands instead of dumping every registered verb; run `directive commands` for the full list. Closes #2172.
@@ -3320,6 +3472,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 ### Fixed
 
 - **Session/runtime tasks on unbuilt source checkouts now fall back to global deft.** When `packages/cli/dist/bin.js` is missing but a working global `deft`/`directive` is on PATH, ritual verbs (`session:start`, `verify:session-ritual`, `verify:tools`, `triage:summary`, `triage:welcome`, `verify:cache-fresh`) invoke the global CLI with a one-line version-skew warning instead of failing closed; build-gated verbs still require `task build`. Optional `DEFT_USE_GLOBAL_CLI=1` forces global for any verb. Closes #2409. Refs #2181.
@@ -3344,6 +3498,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `directive doctor` now checks that the consumer `.gitignore` carries the canonical Deft entries (`.deft-cache/`, `.deft/.cli/`, triage-cache, backup patterns, and xBRIEF-era eval paths). Missing coverage is flagged as an advisory finding with `directive update` as the one-step fix. Closes #2206.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Greenfield onboarding now reliably enters setup Phase 2 when USER.md already exists.** The AGENTS.md "First Session" routing for "USER.md exists but no PROJECT-DEFINITION.xbrief.json" is now a mandatory `!` directive with an explicit `⊗` prohibition against responding to user queries before completing setup — fixing the adoption-blocker where a pre-existing USER.md silently skipped Phase 2. Closes #2033.
 - **Stale Python-script references purged from docs, skills, and templates.** After the #2022 TS-native migration removed the `scripts/` directory, several docs and skills still cited deleted `.py` files as live surfaces (e.g. `uv run python scripts/preflight_branch.py`, `scripts/_events.py`, `scripts/policy.py::disclosure_line`). All audited references across AGENTS.md, agents-entry.md, agent-prompt-preamble.md, and SKILL.md files are now repointed to their `task`/TS successors or removed. The `registry-data.ts` banner no longer falsely claims generation from the deleted `scripts/triage_help.py`. Closes #2310.
@@ -3371,6 +3527,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 ### Fixed
 
 ### Removed
@@ -3384,6 +3542,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Every structured or numbered agent question now carries an always-loaded Discuss/Back escape: AGENTS.md and the consumer template state the runtime obligation, the orchestrator preamble adds a pre-prompt self-check, and contract tests verify propagation. Closes #1470. Refs #767.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Upgrade guide documents triage-cache relocation (#2349).** UPGRADING.md now explains the v0.71.0 move of the triage working-set from `.eval/` to `.triage-cache/`, the lazy automatic migration, and the canonical-wins conflict policy; stale operator-facing docs and task descriptions now cite `.triage-cache/` instead of legacy `.eval/` triage paths. Refs #1703. Closes #2349.
 
@@ -3427,6 +3587,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **`task triage:metrics` help now matches the shipped command.** The help registry no longer describes the old summary-history.jsonl placeholder; it documents the value-feedback attribution-ledger trend (per-class and per-event counts over a window, gated on the opt-in policy). Refs #2338.
 - **chore(triage): move triage working-set cache off `.eval` to `.triage-cache/` (#1703)** — Triage append-only logs and decomposition scratch now resolve under a dedicated `.triage-cache/` namespace with an idempotent migration from legacy `.eval/` paths, reclaiming `.eval/` for the version-eval results store. Refs #1703.
 
@@ -3444,6 +3606,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`triage:scope --set-preset small|mid|mega` sets your whole triage subscription in one command (#2301).** Instead of adding labels and milestones one at a time, you can now apply a named subscription preset — the same `small` / `mid` / `mega` presets the onboarding flow offers — directly from `triage:scope`. It writes through the shared preset writer (so the namespaced `x-directive/policy` key, audit trail, and lock all behave identically to onboarding) and is mutually exclusive with the other mutation flags. Closes #2301. Refs #2295.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **The framework default WIP cap is now 20, up from 10 (#2319).** The WIP cap limits how many scope xBRIEFs can be in flight at once (`pending/` + `active/`) before `scope:promote` refuses. Decomposing an epic into its swarm-ready story cohort routinely produces 6-10 child stories, so a default of 10 blocked staging even one or two epics for a swarm. Consumers can still set any cap per-project via the typed `plan.policy.wipCap`; this only moves the framework default. Closes #2319.
 - The frozen pre-v0.20 migration path is now durable-by-documentation. `deft doctor` / `task migrate:preflight` guidance now anchors recovery on the permanent `v0.59.0` git tag (GitHub serves a source tarball for any tag, so recovery no longer hinges on an uploaded release asset), spells out the two-hop migration chain (pre-v0.20 flat → vBRIEF v0.6 → xBRIEF), and adds a manual `directive init` fresh-start fallback for when the frozen payload is unreachable. Closes #2297.
@@ -3482,6 +3646,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **`directive doctor` is now a strictly read-only, decision-oriented diagnostic (#2267).** It reports your operating mode (hybrid / vendored / greenfield / brownfield / pre-cutover) plus an engine/pin/VERSION reconciliation line, surfaces cross-platform `.deft/.cli/<platform>` engine skew, and derives its verdict from the shared `plan()` classifier so there is a single source of truth. When action is required it emits exactly one `Next command:` paired with a root-cause and a remediation "does / why safe" rationale, suppressing secondary migration advice until the primary blocker clears, never printing a bare `task` command in a project without Taskfile wiring, and never mutating project files. Refs #2267, #2203.
 
 ### Fixed
@@ -3497,6 +3663,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
 
@@ -3515,6 +3683,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`task swarm:finalize-cohort` auto-sweeps merged cohort briefs to `completed/` without a hand-authored lifecycle PR (#2225).** After a `stop-at: pr-open` swarm's PRs merge, the new surface resolves each merged story from its `Closes #N` link (or an explicit `--stories` list), runs the same deterministic `completeCohort(...)` sweep as `task swarm:complete-cohort`, and lands the `active/` -> `completed/` moves on a feature branch with an auto-opened PR — so WIP resets without the extra ceremony PR every cycle. `task swarm:complete-cohort` remains the idempotent manual primitive. Closes #2225. Refs #1880, #1487, #1369.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **`deft install-upgrade` now redirects to `deft update`, ending the two-verb upgrade confusion (#2064).** The two commands used to overlap: `deft update` file-swaps the vendored payload, but `install-upgrade` only rewrote the version marker/manifest without swapping — so on a stale deposit it reported a confident false "Project already at X. Nothing to do." that steered operators away from the command that actually works. `install-upgrade` (and its `task upgrade` alias) now print a one-line notice and delegate to the exact `deft update` path, so `deft update` is the single canonical upgrade verb. Closes #2064. Refs #2057, #2058, #2053.
 - **TS-native `directive init` / `directive update` now stage the project-root `Taskfile.yml` deft include as installer-managed (#1576).** When the installer appends or repairs the `includes.deft` block in a consumer root Taskfile, that path is added to scoped staging and reported in `--json` `staged_paths`, and the deposited `deft-core-guard` allowlist exempts it alongside `.deft/core/**` so upgrade PRs do not look like mixed framework+app commits. The frozen Go installer is unchanged (#1912); this fix lands on the TS update path (#1933). Closes #1576. Refs #1453, #1912, #1933.
@@ -3574,6 +3744,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **AGENTS.md stays leaner while keeping the same story and implementation gates (#2192).** The managed guidance now states the one-story-per-branch default once, keeps the swarm-cohort carve-out beside it, and shortens the preflight install-mechanism prose to pointers for ordering, workflow, and recovery. The line-budget ratchet tightens to the smaller generated surface. Closes #2192. Refs #2153, #645, #810, #1378.
 - **New consumer installs no longer scaffold rot-prone AGENTS.md Status/Known Issues headers (#2065).** Fresh installs now emit a bounded unmanaged header — project one-liner plus a Session orientation pointer at `xbrief/`, triage, and GitHub issues — and the managed section tells agents not to treat the header as the work queue. Option A (retire the pattern); parent #1882. Closes #2065.
 
@@ -3607,6 +3779,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 ### Fixed
 
 - **npm consumer upgrade path no longer ships a dangling `.deft/core/main.md` reference, a broken `migrate:preflight` layout probe, or false-positive `verify:xbrief-drift` hits on vendored fixtures (#2146).** The content prepack now deposits repo-root `main.md` and `SKILL.md` into `.deft/core/`; bare `deft migrate:preflight` / `deft migrate:xbrief` resolve the consumer `.deft/core` deposit instead of probing `node_modules/vbrief/schemas`; and the xbrief drift gate excludes `.deft/core/**` from the consumer data-plane scan. Closes #2146.
@@ -3622,6 +3796,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Issue ingest now fetches GitHub issue comments by default and folds the thread into the ingested overview, so corrective maintainer comments reach workers instead of a body-only snapshot. Closes #2143.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
 
@@ -3649,6 +3825,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **Docs and skills now describe the xBRIEF layout and migration path (#2111).** Agent-facing guidance (skills, templates, commands, and key docs) uses xBRIEF prose, `xbrief/` lifecycle paths, `*.xbrief.json` artifacts, and `deft migrate:xbrief` for legacy trees still read-accepted under `vbrief/` / `x-vbrief/`. The consumer AGENTS.md managed section and propagation contract tests were refreshed to match. Closes #2111.
 
 ### Added
@@ -3667,6 +3845,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **Directive policy/completedNote keys are now namespaced (#1650).** The two directive-owned plan keys are stored under the `x-directive/` extension prefix (`plan.policy` → `plan["x-directive/policy"]`, `plan.completedNote` → `plan["x-directive/completedNote"]`), and the conformance gate no longer grandfathers their bare forms — any future bare `plan.policy`/`plan.completedNote` now fails conformance. Engine readers tolerate the legacy bare form so unmigrated consumer project definitions keep working; run `deft migrate:category-b` to namespace an existing corpus. User-facing field names (e.g. `plan.policy.wipCap`) are unchanged. Refs #2034. Closes #1650.
 
 - **xBRIEF v0.8 schema adoption (#2107).** The directive validator now accepts xBRIEF v0.8 documents alongside legacy v0.6 artifacts. New optional structural fields in v0.8 are validated when present; existing v0.6 files continue to pass unchanged. Refs #2034. Closes #2107.
@@ -3684,6 +3864,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Public contract layer on npm (#1799).** `@deftai/directive-types` now exports the v0.6 vBRIEF document model, policy types, reference shapes, gate exit codes, and a published `vbrief-core-0.6.schema.json` subpath so downstream TS and non-TS consumers stop hand-mirroring the canonical contract. Adds `verify:contract-drift` to keep the npm schema copy and TS constants aligned with `content/vbrief/schemas/vbrief-core.schema.json`. Closes #1799.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
 
@@ -3720,6 +3902,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 ### Fixed
 
 - Refreshed the project-identity narratives so they describe deft as TypeScript-native. `PROJECT-DEFINITION.vbrief.json` and `specification.vbrief.json` (and the rendered `SPECIFICATION.md` / `PRD.md`) previously still listed Python tooling, the `run`/`run.py`/`run.bat` launchers, and the #1530 migration as current — all removed at v0.63.0. The `codeStructure` metadata dropped the stale `python-tooling` module and now points its validator references at the TypeScript engine. Closes #2089.
@@ -3733,6 +3917,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Release dist packaging works under archiver v8** — the TypeScript release build (`build-dist`) was still calling archiver's removed v7 factory API, so `task release` failed at the packaging step with `TypeError: archiver is not a function`; it now uses archiver v8's per-format classes, creates the output directory if missing, and is covered by a real archive-build test so the calling convention can't silently regress. Refs #1860.
 
@@ -3758,6 +3944,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **#2022 Python-purge tracker lifecycle reconciled** — Phase 2 consumer rewire and the #2022 execution-tracker epic vBRIEFs moved to `completed/` with `ExecutionStatus` reflecting shipped Phases 0–5; child `planRef` paths updated after the parent move. Refs #2022, #1860.
 - **Pre-v0.20 document-model migration moves to a frozen release path** — current npm deposits no longer ship `task migrate:vbrief`; `task migrate:preflight` detects legacy state and points operators at pinned **v0.59.0** (Go installer or git tag) with Python + uv. Closes #2068. Refs #2022, #1860.
 
@@ -3776,6 +3964,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
 
@@ -3796,6 +3986,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Greenfield projects can export SPECIFICATION.md from PROJECT-DEFINITION** — `task project:export-spec` renders stakeholder-facing spec exports without creating `specification.vbrief.json`, filters config narratives, and includes proposed scopes only for `--audience=internal`. A migration-fidelity gate blocks silent spec deletion when premigrate snapshots still hold unmigrated product narratives. Refs #2013, #1502, #2005.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Rendered spec scope sections use the Scope outlook heading** — `task spec:render` and Python `spec_render.py` emit `## Scope outlook` with aligned bucket labels; PRD export filters stakeholder-excluded config narratives. Refs #2013.
 - **Setup and strategy docs steer greenfield export through `project:export-spec`** — Phase 3 export prompts, speckit Phase 3→4 gates, and the v0.20 contract now document `task project:export-spec` (with `--audience=internal` for proposed scopes) instead of legacy `task spec:render`; upgrade guidance tells v0.60.x consumers to run `deft update` for TS-native git hook refresh (#2049). Closes #2050.
@@ -3878,6 +4070,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - Release skill now treats tag push as the irrevocable npm gate and reframes Phase 5 as optional GitHub draft QA rather than a publish-authority gate; the happy path auto-publishes the GitHub release after draft assets verify. Closes #2002.
 
 ### Fixed
@@ -3895,6 +4089,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
 - **The `npx @deftai/directive` CLI works again for every command** — on a fresh npm install most verbs (`doctor`, `cache`, `triage`, `release`, `pr`) crashed with a "Cannot find module `@deftai/core`" error because the CLI loaded its sibling engine by a workspace-relative path that only resolves inside the source monorepo. The CLI now imports the engine by its published package name, so the npm-native path the freeze steers consumers toward actually runs. A new check fails the build if a workspace-relative cross-package import is ever reintroduced. Refs #1993.
@@ -4013,6 +4209,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **Published npm packages now use product-scoped @deftai/directive* names (#11 #1670)** -- The three workspace packages rename to `@deftai/directive`, `@deftai/directive-core`, and `@deftai/directive-types`, with all cross-package imports updated. The CLI exposes `directive` as the canonical bin and retains `deft` as an alias, both routing to the same entrypoint. Refs #11 #1670.
 - **Product slash commands now live under `/deft:directive:*`** — Directive framework commands (`change`, `run:<strategy>`, etc.) are namespaced under `/deft:directive:*` to match the `deft-directive-*` skills and leave room for sibling-product namespaces. Prior `/deft:*` product forms remain as deprecation-warning aliases; cross-product session commands (`/deft:continue`, `/deft:checkpoint`) stay at the umbrella `/deft:*` level. Refs #418 #1670.
 
@@ -4060,6 +4258,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
 - **`task release:publish` and `triage:scope` no longer fail with a blank error on large repos (#1867)** -- Several `gh api --paginate` capture sites inherited Node's 1 MB stdout limit, so once a repo's release or label/milestone list grew past ~1 MB the command aborted with an empty error message (this blocked the v0.53.0 publish until a manual workaround). All `gh`/git capture sites now share a single 64 MB ceiling and surface the real failure reason instead of a blank one, so publish, rollback, and `triage:scope --diff-from-upstream` work on mature repos. Refs #1867.
@@ -4192,6 +4392,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 ### Fixed
 - **Review cycles no longer exit or merge on a partial or stale bot review (#1259)** -- the review-cycle Step 6 exit check is now a fail-closed all-of that passes only when a single fresh fetch shows a terminal Greptile check-run, a reviewed SHA pinned to the current HEAD, a HEAD-matching `Last reviewed commit:` marker, confidence above 3, and zero P0/P1 findings; any missing or ambiguous field keeps the loop running. A new pre-merge re-poll gate re-checks review state immediately before `gh pr merge`, so a verdict observed earlier in the loop can no longer authorize a merge against stale state. The same terminal-check-run requirement now also gates the swarm-dispatched poller (the primary path for parallel review cycles), so an `INCOMPLETE_BUT_RATED` review -- rated and SHA-matched but whose Greptile check-run has not terminally landed -- no longer reports a premature clean exit. Closes #1259.
 - **A clean review whose commit title has bracketed text no longer reads as a stall (#1326)** -- the poller's `Last reviewed commit:` SHA regex is now non-greedy, so a commit subject containing escaped brackets (e.g. `\[Unreleased\]`) in its title link no longer breaks SHA extraction and triggers a false STALL/TIMEOUT on an otherwise-clean Greptile review. Closes #1326.
@@ -4217,6 +4419,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Codebase structure now has a concrete authored metadata profile and validator (#1595)** -- `task codebase:validate-structure` validates the first `codeStructure` profile for stable module ids, safe globs/paths, module references, ownership conflicts, and invocation-agnostic projection manifest entries. Directive dogfoods the canonical record at `PROJECT-DEFINITION.plan.architecture.codeStructure`, keeping generated MAPs and future headers as projections rather than source-of-truth stores. Refs #1498, #1492, #1659.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
 - **Consumer session ritual gates no longer depend on task namespace re-entry (#1648)** -- `task deft:verify:session-ritual -- --tier=gated` now records the doctor and cache-fresh checks by invoking their Python entrypoints in-process instead of reconstructing `task <prefix>:...` commands. Cache freshness preserves the framework wrapper's bootstrap allowance, so fresh checkouts keep passing while vendored consumers avoid nested Taskfile namespace failures. Closes #1648. Refs #1659.
@@ -4284,6 +4488,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 ### Fixed
 - **Session-start runtime files no longer dirty freshly installed consumer repositories (#1609)** -- the installer and relocator now deposit selective `.gitignore` entries for `.deft/ritual-state.json` and `.deft/last-session.json`, keeping the ritual sentinels local while preserving the tracked `.deft/core/` framework payload. Closes #1609.
 
@@ -4302,6 +4508,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 ### Fixed
 - **Greenfield swarm launches now explain how to proceed when full orchestration is unavailable (#1053)** -- the swarm skill now separates project-infrastructure readiness from machine-tool checks, defaults interactive worktrees to ignored `.deft-scratch/worktrees/` paths, and offers an explicitly labeled serial self-execution downgrade when only a generic terminal is available. Manual prompt paste remains available as an opt-in fallback, but the guidance no longer presents serial execution as true parallel swarm orchestration. Refs #1053.
 - **Lifecycle task commands now have a regression smoke for reliable success reporting (#1053)** -- the promote, activate, and implementation-preflight command trio is exercised through the actual Taskfile wrappers against an isolated fixture project, with captured output checked for zero-exit success and false failure markers. This gives Windows PowerShell 5.1 operators a portable guard against the harness treating successful lifecycle transitions as failed work. Refs #1053.
@@ -4318,6 +4526,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
 - **Vendored encoding checks no longer fail on framework-owned history after upgrade (#1382)** -- consumer installs now omit non-runtime framework history from the packaged payload, and the encoding verifier recognizes its own documented exception files when they live under `.deft/core/`. Consumer-owned mojibake still fails the gate, but packaged Deft artifacts no longer block `task deft:verify:encoding` immediately after upgrade. Closes #1382.
@@ -4352,6 +4562,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`deft-install --maintainer` now bootstraps framework checkouts without consumer projections (#1554)** -- maintainers can run the published installer against a `deftai/directive` clone to check core and maintainer tooling while leaving maintainer-owned files like `AGENTS.md`, `.gitignore`, `.gitattributes`, guard workflows, and consumer vBRIEF scaffolding untouched. JSON output now identifies maintainer mode, skipped consumer projections, and maintainer-only tool status for Go, Node, and optional `ghx`; consumer installs still only require `gh`. Closes #1554.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
 - **GitHub Markdown body posting now has a safe path for backticks and shell metacharacters (#1555)** -- agents can post issue bodies, PR bodies, and issue/PR comments through `task scm:body:*` without embedding Markdown in double-quoted shell commands, preserving literal backticks, dollar signs, quotes, and fenced code blocks. The helper performs live `gh` read-back after mutations so cached `ghx` GETs cannot hide stale body content. Closes #1555. Refs #1554.
@@ -4389,6 +4601,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 ### Fixed
 - **Desktop-app and TUI projects no longer silently fail the coverage gate over un-runnable GUI event loops (#1027)** -- pygame/tkinter entry points can't run headlessly, so they reported near-zero coverage and dragged the whole suite below the 85% threshold after an agent had already reported a passing run. The setup skill now warns when a project is a Desktop App or TUI and recommends excluding the display-bound entry point from coverage, and the Python guide documents the headless-test pattern (`SDL_VIDEODRIVER=dummy`) plus a `[tool.coverage.run] omit` example for event-loop modules. Closes #1027.
 - **Cascading rebases no longer accumulate duplicate CHANGELOG stubs (#1003)** -- the `task changelog:resolve-unreleased` union-merge helper could not deduplicate a truncated orphan header (one that opens `**` but never closes it and carries no `(#NNN)`), so each swarm-cascade rebase re-prepended a fresh copy -- two stray `gh_rest.py` stubs shipped in v0.26.2 this way. The helper now drops orphan stubs from both sides with a stderr warning and adds a content-prefix fallback that collapses issue-numberless duplicates. Closes #1003.
@@ -4411,6 +4625,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`task triage:welcome` now flags stranded slices and stale epics at session start so partially-built features stop silently accruing debt (#1419)** -- a new offline, filesystem-truth detector reads your epic and child vBRIEF status and surfaces two budgeted session-start nudges: a partially-completed epic dormant past `epicStrandedDays` (default 30) gets a Tier-1 trichotomy nudge (finish / cancel-and-remove / accept-as-tech-debt), and an undecomposed epic older than `epicStalenessDays` (default 14) gets a Tier-2 needs-estimation nudge. Thresholds come from `plan.policy.capacityAllocation`. Accepting an epic as tech-debt records a durable follow-up reference and stops the detector re-nudging it. The session line stays budgeted (one headline plus a `+N more -> task capacity:show` overflow), and the nudges are advisory only -- never a gate. Sixth delivery slice of the agentic prioritization RFC. Refs #1419.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
 
@@ -4472,6 +4688,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 ### Fixed
 - **`deft-install` now gitignores `*.premigrate.*` migration snapshots so they are not left as an untracked, guard-tripping artefact (#1450)** -- the vBRIEF migration / spec-render step run during install/upgrade writes pre-migration safety snapshots (`ROADMAP.premigrate.md`, `SPECIFICATION.premigrate.md`, `vbrief/specification.premigrate.vbrief.json`) into the consumer working tree, but the installer's canonical `.gitignore` deposit did not cover them -- so `git add -A` swept them in and, mixed with a `.deft/core/**` change, they tripped the deft-core-guard (#1440) as "app" files. The installer deposit now includes the leading-slash-free `*.premigrate.*` glob (matching both the repo-root snapshots and the nested `vbrief/` one at any depth), the same leaked-artefact hygiene class as the `vbrief/*.lock` (#1311) and `.deft/*.bak-*` (#1445) guards. Closes #1450.
 - **Vendored installs no longer bleed the consumer repo's git tag into the framework version, and the `0.0.0-dev` sentinel is never persisted into consumer markers/manifests (#1454)** -- on a vendored `.deft/core/` install with no `<install>/VERSION` manifest and no `.deft-version`, both `run::_resolve_version()` and its mirror `scripts/resolve_version.py` fell through to `git describe`, which -- because git discovers the enclosing `.git` by walking upward -- reported the *consumer's* latest tag as the framework version. The `git describe` fallback is now gated on the framework payload directory being its OWN git top-level (`git rev-parse --show-toplevel` resolving to the payload dir itself): a vendored payload skips git and resolves to `0.0.0-dev` instead of the consumer's tag, while framework-self-dev (where the payload IS the repo) still resolves the real tag. Separately, `_write_version_marker` and `_write_install_manifest` now refuse to write the `0.0.0-dev` sentinel into a consumer's `.deft-version` / `<install>/VERSION`, preserving any prior recorded value rather than clobbering it (the resolver may still RETURN the sentinel in-process; only the WRITE is suppressed). Salvaged from #1447. Closes #1454.
@@ -4485,6 +4703,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
 - **`task project:render` (and triage mutations) no longer leak a `vbrief/PROJECT-DEFINITION.vbrief.json.lock` file (#1311)** -- the PROJECT-DEFINITION mutation lock created its sidecar `.lock` file on acquisition but never removed it, so a clean render or policy mutation left an untracked 1-byte file in `vbrief/` that `git add -A` trapped on the next chore commit. The lock context manager now deletes the sidecar on exit (happy path and on exception), and the same cleanup discipline is applied to the `vbrief/.eval/*.lock` audit-log sidecars (candidates / slices / scope-lifecycle). The installer's canonical `.gitignore` deposit also gains `vbrief/*.lock` as a belt-and-suspenders guard so consumers are protected even on an interrupted render. Closes #1311.
@@ -4504,6 +4724,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 ### Fixed
 - **`task doctor` no longer emits a spurious AGENTS.md-freshness warning (#1389)** -- the freshness check now computes a real fresh/stale/unreadable verdict by comparing the installed managed section against the current framework template, instead of an interim stub that always reported `unreadable`. A consumer whose `AGENTS.md` managed section is present, readable, and current now sees no warning on `task doctor`; a genuinely stale section still points at `task agents:refresh`, and a genuinely unreadable or missing section still warns. Closes #1389.
 - **`deft-core-guard` no longer rejects `deft-install --upgrade` PRs (#1440)** -- the deposited guard counted every installer-managed root file as consumer "app" code, so a `deft-install --upgrade` could never land as a single green PR. The guard now treats installer-managed deposits (`AGENTS.md`, `.agents/`, `.gitattributes`/`.gitignore`, `greptile.json`, the CodeQL config, the guard workflow itself, and the `vbrief/` scaffolding plus `vbrief/.deft-version`) as part of the framework deposit, so an upgrade-only PR passes. Mixing `.deft/core/**` with genuine app files or consumer vBRIEF data (`vbrief/**/*.vbrief.json`) still fails, and the allowlist is rendered from a single in-installer source so the guard and the installer cannot drift. Closes #1440.
@@ -4518,6 +4740,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
 - **`deft-install --upgrade` no longer leaves a duplicate AGENTS.md managed section (#1437)** -- on a vendored install whose `AGENTS.md` already carried a managed section stamped with provenance attributes (the marker `run agents:refresh` and the relocator write), the upgrade appended a second managed section instead of refreshing the existing one, which left `task doctor` reporting the section as unreadable. The installer now recognises an attributed marker and rewrites it in place, and the rewrite is self-healing: an install already broken with two or more managed sections is collapsed back to exactly one on the next upgrade, with your own prose around the section preserved. Closes #1437.
@@ -4566,6 +4790,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
 - **`deft-install --upgrade` is now safe and works on vendored (webinstaller) installs (#1425)** -- upgrading a project installed via the webinstaller (a vendored `.deft/core/` with no `.git/` of its own) previously ran `git` against the *consumer's own repository* via git's upward `.git` discovery, failing with a misleading `pathspec` error and risking a silent checkout of the user's project. The installer now classifies the on-disk payload (clone / vendored / absent) before any git operation, refreshes vendored payloads through a git-free tarball file-swap with a timestamped backup, and never runs a mutating git command against anything but a genuine framework clone. `--json` now reports `payload_layout` and `strategy`. Closes #1425.
@@ -4624,6 +4850,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 ### Fixed
 - **fix(scripts,tests,skills): pr_merge_readiness layered fallbacks + monitor_pr.py resilient wait-until-ready (#1368)** -- long-running swarm monitors no longer report `head: None` for 15+ minutes when a single `gh` capture fails. `scripts/pr_merge_readiness.py` now cascades primary -> fallback1 (REST + Python-side comment parse) -> fallback2 (coarse PR-view + check-run signal) and emits a `via` discriminator on every JSON response; fallback2 is structurally never CLEAN and total failure produces a `{ error, partial_data, via: "error" }` envelope so monitors step forward instead of going blind. New `scripts/monitor_pr.py` is the canonical wait-until-ready helper with adaptive 1m/3m/5m cadence, routed through `_safe_subprocess.run_text` (#1366). Swarm SKILL.md Phase 5 + Phase 6 Step 1 document the contract. Closes #1368; depends on #1366; cross-refs #1166, #1353, #1365.
 - **fix(scripts,tests,docs): safe-subprocess helper closes the Windows `Thread-3 (_readerthread) UnicodeDecodeError` hole on `gh` capture (#1366)** -- swarm operators on Windows / Grok Build no longer see `Still waiting... (last reviewed: none, head: None)` from background monitors when Greptile rolling-summary bodies contain non-cp1252 glyphs. New `scripts/_safe_subprocess.py::run_text` forces `encoding="utf-8", errors="replace"` so undecodable bytes become U+FFFD instead of crashing Python's internal reader thread; `scripts/pr_merge_readiness.py` is the reference adopter. `AGENTS.md` and `templates/agent-prompt-preamble.md` carry the new rule so future scripts that shell out for parsable output route through the helper from day one. Closes #1366; cross-refs #1353, #1365, #1368, #1369.
@@ -4665,6 +4893,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **docs(agents,preamble,skills): Grok Build Windows capture limitations rule set (#1353)** -- agents on Windows + Grok Build now have explicit guidance that `run_terminal_command` strings must avoid `|`, `>`, or `2>&1` metacharacters, since the Grok Build harness leaks internal wrapper text (Get-Content fragments) when any pipeline or redirection is present. Three escape hatches are documented: Python `pathlib`/`subprocess.run(capture_output=True)` one-liners (preferred), user terminal handoff, or dedicated worktree isolation. The rule lands in `templates/agent-prompt-preamble.md` (section 3.5), `AGENTS.md` (## PowerShell), `templates/agents-entry.md` (mirrored per #1309), and one-liner callouts in the review-cycle and pre-pr skills. Refs #1353, #798.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
 
@@ -4710,6 +4940,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 ### Fixed
 - **fix(templates,agents-md,tests,scripts): propagate welcome / WIP cap / session-start ritual / skill routing from maintainer AGENTS.md into the consumer template (#1309)** -- consumer-installed AGENTS.md now carries the same session-start ritual, WIP cap, cache-as-authoritative work-selection, and skill-routing prescriptions the maintainer follows, so consumer agents see `task triage:welcome`, `task triage:queue`, `task doctor`, and the canonical 5-step ritual instead of a bootstrap-only surface. `task triage:welcome` gains a non-interactive default mode that emits the triage summary one-liner plus a state-conditional first-time / incomplete-onboarding nudge; the 6-phase interactive ritual now lives behind a new `--onboard` flag. A deterministic marker-list gate in `tests/content/test_agents_entry_contract.py` enforces the maintainer-to-template propagation so a future consumer-relevant rule cannot land on AGENTS.md without mirroring into `templates/agents-entry.md`. Closes #1309. Refs #1143, #1149, #1308.
 - **fix(triage): filesystem-truth in-flight count + scope-discrepancy line (#1270)** -- the session-start `task triage:summary` headline now reflects activated work correctly. `in-flight` reads from live `vbrief/active/*.vbrief.json` with `plan.status == "running"` (filesystem-truth) instead of the audit-log-scoped cache view, so activating a vBRIEF moves the count in lockstep with `WIP`. When the filesystem-truth and cache-scoped counts diverge, a second `[triage:scope]` line surfaces the gap and distinguishes whether `plan.policy.triageScope[]` is configured (`outside ...`) or absent/default (`not configured`). Closes #1270.
@@ -4727,6 +4959,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **docs: add canonical v0.20 strategy output contract (Refs #1166)** -- Strategy authors and users now have one unambiguous source of truth for v0.20-conformant output (lifecycle folders, project definition, dated proposed scope vBRIEFs, deprecation redirects only for spec docs). Closes the inconsistency where most generated projects were immediately rejected by the build pre-cutover guard. Refs #1166.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
 - **fix(triage,determinism): `task verify:cache-fresh` no longer false-fails on a backfill-only cache state (#1245)** -- the pre-`start_agent` freshness gate previously refused a fresh `task triage:bootstrap` whenever every cached open issue happened to fall outside the active `plan.policy.triageScope[]` subscription, even though the backfilled `accept` audit-log rows showed the consumer was actively triaging. The recovery hint ("widen the subscription") was wrong for that state. The gate now distinguishes a backfill-only cache (cached entries present, none in subscription, audit log populated) from a genuine misconfiguration (no in-scope entries AND no triage activity); the first state exits 0 with a state-aware message so the pre-`start_agent` gate stack composes, while downstream `--for-issue` dispatch still enforces per-issue scope + decision. Closes #1245.
@@ -4781,6 +5015,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 ### Fixed
 
 ### Removed
@@ -4795,6 +5031,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **feat(directive): add story decomposition and swarm-readiness gates** -- introduces Phase 4.5 Story Decomposition / Swarm Readiness between Speckit phase/epic scope emission and swarm implementation. Adds deterministic `task scope:decompose` and `task swarm:readiness` commands, a canonical `plan.metadata.kind` / `plan.metadata.swarm` story contract, a new `deft-directive-decompose` skill, swarm Phase 0 readiness gating, acceptance-preserving spec rendering, and regression coverage for decomposition, readiness, Speckit translation, and stale vBRIEF template guidance.
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 ### Fixed
 
@@ -4864,6 +5102,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 ### Fixed
 - **fix(security): supply-chain quick-wins -- PEM fixture remediation + `curl|bash` removal + `.github/dependabot.yml` deposit (#1070, parent #1069)** -- closes the AFK child of the 2026-05-12 supply-chain hygiene audit (parent #1069). Three coordinated edits in one PR: (1) `tests/test_cache_scanner.py` PEM fixtures at the previously-flagged gitleaks `private-key` hit (commit `90dc6a1e52ad`, lines 340-344) are now synthetic split-literal markers (`"-----BEGIN RSA" + " PRIVATE KEY-----\nREDACTED-FIXTURE-BODY"`) carrying a belt-and-braces `# gitleaks:allow` annotation -- the runtime-concatenated string still matches the scanner regex at `scripts/cache_scanner.py::_CREDENTIAL_PATTERNS` so `test_positive_credentials_hard_fail` continues to flag both PEM variants, but no single source line carries the canonical BEGIN sentinel that the gitleaks rule scans for. (2) `.github/workflows/ci.yml` ghx pre-install steps for both Linux and Windows replace the prior `curl | bash` (line 57) and `irm | iex` (line 178) live-pipe patterns with download-to-temp-file + SHA256-verify + execute-on-match flows; two new pinned-checksum env vars (`GHX_INSTALL_SH_SHA256` / `GHX_INSTALL_PS1_SHA256` for `v1.5.1`) sit alongside the existing `GHX_VERSION` pin so an immutable-tag force-move (supply-chain compromise signal) fails the step with a `::warning::` rather than executing tampered code. Soft-warn-on-failure contract preserved: a checksum mismatch falls back to the `gh` runtime ladder via `scripts/scm.py::resolve_binary` exactly as a network failure does today. (3) new `.github/dependabot.yml` configures weekly version + security update PRs for `pip` (root `pyproject.toml`), `gomod` (root `go.mod` covering `cmd/deft-install/`), and `github-actions` (the workflows at `.github/workflows/**`), with `open-pull-requests-limit: 5` per ecosystem and dependency-class labels for PR triage. Companion supply-chain hardening tracks: #1071 (OSV-advisory resolution on the existing dependency manifests, in-flight from agent2), #1072 (HITL Actions SHA-pinning + least-priv `permissions:` blocks + PyPI OIDC), #1073 (`docs/security.md` baseline). Closes #1070.
 - **fix(security): resolve 22 OSV advisories by bumping `go.mod` to Go 1.25 + `toolchain go1.25.10` (#1071)** -- closes the Go-stdlib slice of the security-audit cohort #1069. `osv-scanner scan source --recursive .` against post-v0.29.0 master surfaced 22 known-vulnerable stdlib advisories against the `go 1.22` directive in `go.mod` (the scanner pessimistically treats `go 1.22` as `stdlib 1.22.99` -- the latest 1.22.x patch -- so every fixed-in-1.23+ stdlib CVE matches). The 22 live advisories range from `GO-2025-3503` (fixed in 1.23.7) through `GO-2026-4971` (fixed in 1.25.10); the parent #1069 scope cited 40 advisories from an earlier scan against pre-merge state, so the live count is lower (no Python advisories surfaced -- `uv.lock`'s 20 packages all scan clean). One coordinated edit in `go.mod`: `go 1.22` -> `go 1.25` plus a new `toolchain go1.25.10` directive that pins the minimum patch covering the highest-patch advisory (`GO-2026-4918` / `GO-2026-4971` both fix at 1.25.10). The `toolchain` directive triggers `GOTOOLCHAIN=auto` (default since Go 1.21) to fetch + use 1.25.10 transparently on any host with Go 1.21+ installed -- which covers the v0.29.0 release pipeline's hardcoded `go-version: "1.22"` step (`.github/workflows/release.yml:43`) per the #1071 scope contract that forbids touching workflow files (owned by sibling slice #1072). Re-running `osv-scanner scan source --recursive .` returns `No issues found`. `task check` passes clean (4938 passed). Coordinates with #1072 (HITL Actions SHA-pinning -- blocked by this PR's manifest bumps landing first) and #1070 (supply-chain quick-wins -- disjoint partition; agent1 owns `tests/test_cache_scanner.py` + `.github/workflows/ci.yml` + `.github/dependabot.yml`). Refs #1069 (parent security-audit umbrella). Closes #1071.
@@ -4882,6 +5122,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **feat(install): record `install_root` in `<install>/VERSION` manifest as single source of truth for install-layout contract (#1062)**
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **fix(scripts,tests): framework_doctor `install-path-consistency` reads `install_root` from `<install>/VERSION` manifest first; legacy AGENTS.md parse becomes the fallback (#1062)** -- the doctor's check #4 (`install-path-consistency`) now probes `<project>/.deft/core/VERSION` and `<project>/deft/VERSION` for the new `install_root` field before falling back to `_parse_install_root_from_agents_md`. When the manifest is present but missing the field (pre-v0.29 shape), the doctor surfaces an INFO note in the check `detail` + `data.fallback_info_note` payload so operators can see when the legacy parse was taken. The check's narrow scope is preserved: it still only verifies the resolved install root resolves to a directory on disk -- the manifest-vs-bare-derivative cross-check stays owned by check #3 (`manifest-agreement`). New Python test `tests/cli/test_framework_doctor_install_root_fallback.py` (consumed alongside the existing `tests/cli/test_framework_doctor.py` suite) covers the manifest-wins / legacy-fallback / fallback-info-note paths. Refs #1062, #1046 PR-B AC-3 (predecessor check this evolves).
 
@@ -4910,6 +5152,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 
 ### Fixed
@@ -4966,6 +5210,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 
 
 ### Fixed
@@ -4997,6 +5243,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **feat(cli,tasks,events): CLI / Taskfile / events.json contract-string flip -- 9 deft/run references flipped to .deft/core/run; tests/contract/test_no_legacy_deft_run.py exclusion list narrowed (#992 PR4)** -- closes acceptance criterion 992-ac-9-pr4-cli-paths on the active scope vBRIEF `vbrief/active/2026-05-10-992-adopt-deftcore-as-canonical-install-layout-ship-relocator-an.vbrief.json`. PR4 of 4 in the v0.27 release-line cohort: post-PR1 follow-up that flips the 9 `deft/run` references PR1 deferred to non-doc surfaces. Concrete file:line targets (per the PR1 worker's grep -n output): `run` lines 65 / 655 / 1203 / 1768 / 1796 / 3004 / 3005 (CLI script docstring + upgrade-gate prose + cmd_upgrade comments + cmd_install info text); `tasks/framework.yml` line 8 (introspection-tasks header comment); `events/registry.json` line 56 (the `version:drift` event description string consumers parse for the recovery hint). The marker constant in `run` (`_AGENTS_MANAGED_OPEN`, bumped v1 -> v2 in PR1) is intentionally untouched -- this PR is a pure path-string flip, not a marker rebump. The `cmd_gate` state-detection logic in `run` (PR3's territory) is untouched -- only the literal `deft/run` substring is flipped, no logic refactor. Companion narrowing of `tests/contract/test_no_legacy_deft_run.py::_EXCLUDED_EXACT_PATHS`: removes `"run"`, `"tasks/framework.yml"`, and `"events/registry.json"` from the frozenset (they are now in scope and the contract regression sweep will fail-closed if a future change re-introduces a `deft/run` substring on any of the three surfaces); keeps the remaining exclusions (`run.py`, `run.bat`, AC-mandated `CHANGELOG.md` / `meta/lessons.md`, must-not-touch `vbrief/PROJECT-DEFINITION.vbrief.json` / `ROADMAP.md` / `SPECIFICATION.md`, scratch session logs `session.txt` / `session2.txt`, plus the directory-prefix exclusions for `history/**`, `vbrief/{active,pending,proposed,cancelled,completed,schemas}/**`, `cmd/deft-install/`, and `tests/`) verbatim. Module docstring's `Beyond-AC scope deviations` block updated to reflect the narrowed scope -- the three flipped surfaces are explicitly called out as no longer excluded. Refs #992 (parent issue stays OPEN until v0.27.0 GA); refs #411 (redirect-stub contract -- the eight legacy v0.19 -> v0.20 redirect stubs at `skills/deft-{sync,setup,build,review-cycle,roadmap-refresh,swarm,pre-pr,interview}/SKILL.md` retain their `deft/run` references per the deprecation-redirect contract; this PR does not touch them). Closes acceptance criterion 992-ac-9-pr4-cli-paths.
 
@@ -5046,6 +5294,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **docs(agents): new `## Multi-agent orchestration discipline (#954)` section in AGENTS.md with four MUST rules + meta-rule + ghx surface clarification** -- codifies the recurrence patterns surfaced during the 2026-05-07 multi-agent session into project-side rules so consumer-installed deft carries the discipline even when an orchestrator does not load the canonical preamble. Four `!` MUST rules: (1) REST-by-default for read-only `gh` calls -- forbid `gh issue view --json` / `gh pr view --json` / `gh pr ready` / `gh pr update-branch` (all GraphQL); use `gh api repos/<owner>/<repo>/issues/<N>` / `gh api repos/<owner>/<repo>/pulls/<N>` (REST) or `ghx api` (cached REST) instead -- the GraphQL bucket (5000 pts/hr) is the operational bottleneck under shared-identity workflows, not the REST `core` bucket; (2) at most one Draft↔Ready toggle per review cycle -- repeated toggles cost GraphQL mutations and trigger stale CheckRun states downstream (PR #652 merge-cascade incident traced back to a Draft re-toggle that hid a stale Greptile verdict); (3) rate-limit-aware throttle -- probe `gh api rate_limit` (the live, uncached form; do NOT use `ghx api rate_limit` for the throttle probe -- ghx is a cached read-only GET proxy and the cached value can be stale) before any GraphQL-heavy operation and HALT GraphQL paths when `graphql.remaining < 500`; the decision tree lives in `templates/agent-prompt-preamble.md` § 7; (4) dispatcher-level lifecycle hygiene -- workers MUST be all-or-nothing on their dispatch envelope; mid-scope user-approval gates require two separate dispatches (Scope A → worker reports back → user approves → Scope B) because a worker that finishes its tool loop with a `paused, awaiting reply` status message will be observed as `succeeded` (terminal) by the platform and its `agent_id` becomes unreachable -- splitting at the gate is the only enforceable mitigation (rule scope-expanded per scope-expansion comment 4399553752 on issue #954). Plus a meta-rule (`!` MUST) requiring orchestrators dispatching implementation sub-agents to include the canonical preamble verbatim or by reference in every worker's dispatch envelope, and a `⊗` MUST NOT prohibiting dispatch without the preamble -- the recurrence patterns above re-fire on every fresh dispatch that omits this institutional memory. Adds a **ghx surface clarification** distinguishing `ghx api` (cached read-only GET proxy; accepts a single positional path arg only) from `gh api -X POST/PATCH/PUT/DELETE` writes (which MUST fall through to `gh` directly because ghx multi-arg forms fail with `accepts 1 arg(s), received N`); the `scripts/scm.py::resolve_binary` ladder already encodes this distinction at runtime, this clarification mirrors it for human readers. Refs scope-expansion comment 4399553752; refs #884 (ghx adoption); refs #727 (sub-agent role separation); refs #810 (vBRIEF gate). Closes #954.
 
@@ -5101,6 +5351,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **Mermaid two-color theming model** (#826): Formalized `languages/mermaid.md` around a two-color foundation (`bg=#ffffff`, `fg=#000000`). Added Two-Color Foundation section with derivation table showing all theme variable values as mechanical gradients between `bg` and `fg`. Replaced opaque Color Palette hex list with principle-grounded derivation. Added `⊗` rule prohibiting setting individual theme variables without reference to the derivation table. Init directive values unchanged — they are the correct derived values for the grayscale-on-white instance of the model. Companion rename in the same PR: `skills/deft-article-review/` -> `skills/deft-directive-article-review/` and `skills/deft-write-skill/` -> `skills/deft-directive-write-skill/` (with matching `.agents/skills/` thin pointers and `name:` frontmatter updates) so all framework skills now use the canonical `deft-directive-*` prefix; closes the test_skills.py::test_no_bare_deft_skill_directories gate (#411 v0.19->v0.20 bridge whitelist did not cover these two stragglers).
 
 - **docs(meta): codify three session-emergent patterns — gh REST fallback, cross-machine parallel agents, ghx vs deft-cache layering** -- captures patterns surfaced during the 2026-05-07 multi-agent session running #884 closeout in parallel with #947 cache-cap work on a different machine. Three new sections in `meta/lessons.md` (~70 lines, CRLF-preserved): (1) `## gh CLI GraphQL Bucket Exhaustion + REST Fallback + UTF-8 Payload Pattern (2026-05)` — `gh issue create` and other write subcommands route through the `graphql` bucket (5000 pts/hr), separate from the `core` REST bucket (5000/hr); when `graphql` is exhausted the REST equivalents (`gh api repos/<owner>/<repo>/issues --method POST --input <payload.json>` for issue create, `--method PATCH -f state=closed -f state_reason=completed` for close, `gh api repos/.../pulls --method POST --input ...` for PR open) continue to work; canonical PS 5.1-safe `gh api --input` payload pattern uses Python `pathlib` to build both the markdown body and the JSON wrapper, avoiding the recurring PS 5.1 mojibake hazard (#236 / #240 / #283 / PR #795 / #798); (2) `## Cross-Machine Parallel Agents + Single-Agent Swarm Pattern (2026-05)` — agents on different machines but shared GitHub identity compete for the same `core` and `graphql` buckets even though file/branch isolation is automatic; explicit ownership of shared append-only files (CHANGELOG.md `[Unreleased]`) MUST be agreed before launching parallel work; the `skills/deft-directive-swarm/SKILL.md` Phase 6 Sub-Agent Role Separation pattern (#727) works as a general steerability primitive even at N=1 because parent-yields preserves conversation steerability while the sub-agent runs API-bound work; non-code closeout sub-agents do NOT require the #810 implementation preflight gate but MUST still receive an explicit action-verb directive before dispatch when shared-state side effects exist; sub-agent prompts MUST encode boundaries via explicit `⊗` MUST NOT lines around scope expansion + a halt-on-deliverable-missing rule rather than improvising fixes; (3) `## ghx Within-Session Cache vs deft-cache Cross-Session Persistence (2026-05)` — `ghx` (brunoborges/ghx, adopted via #884) and deft-cache (#883) target orthogonal failure modes — ghx is within-session in-memory read cache + singleflight coalescing + auto-invalidation on mutations; deft-cache is cross-session on-disk quarantine + ETag refresh + append-only audit log; the two layers stack (`scm:*` tasks (#881) -> `ghx` (within-session dedup) -> `cache:put` (cross-session persistence + quarantine) -> consumers); ghx does NOT save the rate-limit-during-mutation case since mutations invalidate cache entries rather than consume them — the right reflex for graphql-bucket exhaustion is REST fallback (section 1), not ghx adoption. Per Rule Authority [AXIOM] these are operational-pattern lessons with full prose bodies (not short deterministic-tier cross-references) since they describe agent-runtime coordination patterns rather than gateable rules. Refs #884 (closeout that surfaced the patterns), #883 (deft-cache layer), #881 (scm:* namespace), #727 (sub-agent role separation), #810 (implementation preflight gate), #236 / #240 / #283 / PR #795 / #798 (PS 5.1 encoding chain). Lands as `meta/lessons.md` change in companion docs PR #960.
@@ -5143,6 +5395,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **docs(upgrading): v0.25.x -> v0.26.0 migration section + tests(integration): cache layer e2e (#883 Story 4)** -- ships the consumer-facing migration guide for the v0.26.0 deft-cache unified layer cutover (closes the #883 R-C chain). New `## From v0.25.x -> v0.26.0` section in `UPGRADING.md` documents the surface removal (`task triage:cache` / `task triage:show`), the on-disk layout change (`.deft-cache/issues/<owner>-<repo>/<N>.{json,md}` flat sidecar -> `.deft-cache/<source>/<key>/{raw.json,content.md,meta.json}` per-entry directory), the operator recovery sequence (delete legacy tree; re-run `task cache:fetch-all`), audit-log preservation invariants, and the 13 unchanged `triage:*` aliases. New `tests/integration/test_cache_e2e.py` is the hermetic end-to-end fake-gh integration test parallel to v0.25.2's `test_triage_smoke.py`: 5 test functions cover (1) `cache:fetch-all` populates the new `.deft-cache/<source>/<key>/{raw.json,content.md,meta.json}` layout for a 5-issue fake-gh fixture; (2) `cache:get` returns the expected `meta.json` envelope (`scanner_version`, `stale`, `fetched_at`, validated against `vbrief/schemas/cache-meta.schema.json`); (3) the global `quarantine-audit.jsonl` audit log carries one `cache:put` record per fetched issue; (4) `cache:invalidate` removes the entry directory cleanly and appends an audit record; (5) idempotent re-run of `cache:fetch-all` skips fresh entries (TTL-based meta.json freshness check). Wave 4 (FINAL) of the #883 R-C chain. Release dispatch (CHANGELOG [Unreleased] -> [v0.26.0] promotion + tag + draft + publish + epic / story vBRIEFs lifecycle move to `vbrief/completed/`) is DEFERRED to the maintainer post-merge per the overnight R-C plan; the v0.26.0 release entry MUST lead with a `### Breaking` block (NOT `### Added`) framing the surface removal + layout change. Refs #883.
 
 - **refactor(triage): rebind v1 surface onto cache:* (#883 Story 3)** -- migrates the triage v1 read path off its bespoke `.deft-cache/issues/<owner>-<repo>/<N>.{json,md}` cache and onto the unified `cache:*` surface from #883 Story 2. DELETED `scripts/triage_cache.py`, `tasks/triage-cache.yml`, the parent `Taskfile.yml` `triage-cache:` include block, and the `triage:cache` / `triage:show` user-facing aliases (hard cutover; no deprecation shims; UPGRADING.md migration text owned by Story 4). REWROTE four scripts to consume `cache.cache_get` for per-issue payloads and `cache.cache_fetch_all` for orchestrated populate: `scripts/triage_bulk.py` walks the new `.deft-cache/github-issue/<owner>/<repo>/<N>/` layout via `cache:get` (the legacy `_list_cached_candidates` flat-sidecar helper is removed; the cache walk reads `meta.json` through schema validation and reloads `raw.json` for the issue payload); `scripts/triage_actions.py` validates `mark_duplicate` targets via `cache.cache_get` instead of `triage_cache.show`; `scripts/triage_refresh.py` reads `meta.json.fetched_at` via `cache.cache_get` and treats `live_updatedAt > cached_fetched_at` as drift (the previous `cached_updatedAt != live_updatedAt` heuristic is replaced); `scripts/triage_bootstrap.py` becomes a four-step orchestrator: `cache:fetch-all --source=github-issue` + audit-log backfill + dual gitignore-ensure for `.deft-cache/` and `vbrief/.eval/` (the legacy gitcrawl install path is dropped per the epic design). EDITED `skills/deft-directive-refinement/SKILL.md` Phase 0 prose: Tier 1 references now point at `task cache:fetch-all` / `task cache:get`; the auto-skip probe inspects `.deft-cache/github-issue/<owner>/<repo>/`; the recovery message routes to `task cache:fetch-all` (re-populate) instead of the removed `task triage:refresh`; the `gitcrawl-fallback.md` see-also is replaced with the unified-cache see-also; the three-tier inventory model + canonical numbered action menu (Accept / Reject / Defer / Needs-AC / Mark duplicate / Discuss / Back) are preserved verbatim. EXTERNAL SURFACE UNCHANGED for the 13 kept aliases: `triage:accept` / `triage:reject` / `triage:defer` / `triage:needs-ac` / `triage:mark-duplicate` / `triage:bulk-accept` / `triage:bulk-reject` / `triage:bulk-defer` / `triage:bulk-needs-ac` / `triage:status` / `triage:reset` / `triage:history` / `triage:refresh-active` / `triage:bootstrap`. EXTERNALLY REMOVED: `triage:cache` / `triage:show` (hard cutover; UPGRADING.md migration text in Story 4). New regression tests under `tests/test_triage_*.py` and `tests/integration/test_triage_smoke.py` use fake cache fixtures asserting `cache:get` is the new read path; new content tests on the refinement skill assert Phase 0 references `cache:*` and the three-tier model + action menu are intact. The #915 Tier-1-cache invariants (cache-empty hard-fail with exit 2; Tier-2 audit-log short-circuit on terminal records) are preserved verbatim. Refs #883, #845, #915.
@@ -5180,6 +5434,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 
 
@@ -5231,6 +5487,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 
 
 ### Removed
@@ -5264,6 +5522,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 
 
@@ -5310,6 +5570,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 
 
@@ -5383,6 +5645,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **feat(skills,interview): plain-English UX pass -- jargon, approval menus, diff preface (#740, refs #151 playtest umbrella, refs #767 deterministic-questions framework rule)** -- closes the consumer-adoption defect cluster surfaced by the #151 playtest where non-technical users only completed the planning flow because they had a second AI translating jargon, decoding ambiguous approval actions, and explaining red/green diffs. Three coordinated UX rules across `skills/deft-directive-interview/SKILL.md` and `strategies/interview.md`: (1) **Jargon pass** -- every technical question MUST carry a one-line plain-English context note as preamble above the structured-tool call (per Rule 2 Preamble Placement), every acronym MUST be defined inline on first use (`PRD (Product Requirements Document)`, `NFR`, `FR`, `SPEC`, `API`, `DB`, `CI`, `MVP`), and every framework recommendation MUST either explain the rationale in plain-English terms the user actually cares about (cost, speed, hiring, hosting compatibility) OR remove the rationale entirely and present it as an overridable default -- one-word `industry-standard` / `modern` / `scalable` justifications are a ⊗ anti-pattern. (2) **Approval-menu pass** -- explicit numbered approval menu after PRD review AND after SPEC review with action-shaped labels (`1. Approve and continue` / `2. Suggest changes` / `3. Edit yourself` / `4. Discuss` / `5. Back`). The menus follow the **#767 deterministic-questions framework rule**: the final two numbered options MUST be `Discuss` and `Back`, in that order. The framework rule itself is being landed by Agent 1 in #767; this PR cross-references it with a `!` MUST cross-reference at every menu site so once `contracts/deterministic-questions.md` exists this surface defers to it for canonical wording. (3) **Diff-view preface pass** -- when a PRD or SPECIFICATION review surfaces a red/green diff, the agent MUST emit a one-line non-alarming preface above it (`Here's what changed since the previous draft. Red lines were removed, green lines were added. Nothing here is broken -- this is a normal review.`) OR hide the diff entirely on the first review pass and present a plain-English summary instead. New `references/plain-english-ux.md` codifies all six rules (plain-English context note, acronyms-on-first-use, framework justifications explained-or-removed, numbered approval menu with Discuss/Back final-two per #767, diff-view preface, audience test) plus canonical PRD-review and SPECIFICATION-review approval menus and an Anti-Patterns block. Tests: 30 content tests in `tests/content/test_plain_english_ux.py` covering reference-doc rule presence, acronym-on-first-use rule named in interview surfaces, approval-menu presence (PRD + SPEC), diff-preface presence (skill + strategy PRD section + strategy SPEC section), Discuss/Back-final-two assertion via regex extractor that walks numbered-menu blocks and checks `menu[-2]` contains `Discuss` and `menu[-1]` contains `Back` on every approval menu in interview SKILL + interview strategy + reference doc canonical menus, and #767 cross-reference assertions. Closes #740.
 
 - **chore(vbrief): consistent `PhaseDescription` on every Phase 2 brief** -- set the same canonical text ("Near-up structural priority -- post-cutover stabilization, structural unblockers (items gating many others), and cross-cutting items whose effect spans multiple skills, strategies, or files.") on every Phase 2 brief in `pending/` (#481, #624, #627, #628, #629, #630, #762, plus the three #635 children promoted this session). Defends against the renderer's first-wins behaviour where different `PhaseDescription` values across same-phase briefs would silently surface whichever one sorts first by filename. The medium-term structural fix (centralise in PROJECT-DEFINITION) is tracked at #762.
@@ -5440,6 +5704,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **docs(readme): cleanup pass + split into docs/** (#704): README.md trimmed from 733 to ~165 lines (TL;DR + Getting Started + pointers); long-form material rebalanced into `docs/ARCHITECTURE.md` (layered architecture, separated rule hierarchy from project-requirements ladder per T2.1, vBRIEF tooling table split by Migration / Authoring / CI per T2.7, both mermaid diagrams), `docs/CONCEPTS.md` (TDD, SDD, Convention-Over-Configuration, Safety/Reversibility, example-workflow mermaids), `docs/FILES.md` (directory tree + per-area file index, niche `platforms/` deepened per T2.6, `glossary.md` location disambiguated, `RWLDL`/`swarm` dual-source-of-truth reconciled with explicit canonical-form notes per T1.5), and `docs/RELEASING.md` (release & smoke-test workflow). Tier-1 factual fixes: T1.1 stale Platform-compatibility note replaced with manual-clone `deft/QUICK-START.md` callout; T1.2 TL;DR identity reframed away from "SKILL.md" to "layered set of standards files plus deterministic task tooling"; T1.3 `SKILL.md` annotated as one of two AI-agent entry surfaces with `AGENTS.md` canonical inside this repo; T1.4 coverage threshold standardised to ≥85% (replaced the lingering ≥75% reference); T1.5 phantom `core/user.md` reference removed and rephrased to avoid the deprecated path string, top-level `glossary.md` (short canonical) disambiguated from `core/glossary.md` (detailed reference), `RWLDL`/`swarm` dual-source-of-truth reconciled (canonical form is the skill; paired prose lives in `tools/RWLDL.md` and `swarm/swarm.md`); T1.6 stale `ideas.md` `deft/run upgrade` example replaced with a not-yet-shipped "VS Code extension surfacing scope vBRIEFs" example; T1.7 mermaid layer diagram now carries the `vbrief/` prefix on the `PROJECT-DEFINITION.vbrief.json` node. Tier-2 structural cleanups: T2.1 rules ladder kept distinct from project-requirements ladder (both summarised in README "Layered Architecture (at a glance)" and fully diagrammed in `docs/ARCHITECTURE.md`); T2.2 the three overlapping "what is Deft" sections consolidated and reordered so identity (TL;DR) precedes Getting Started; T2.3 the duplicate manual-clone callout DRY'd to a single line in the Getting Started block; T2.4 Notation Legend moved to the top so it sits before the first `!` use in the document; T2.5 the "Same instrument, different mastery" tautology dropped; T2.6 `platforms/2600.md` + `platforms/unity.md` moved into a dedicated "Niche Platforms" subsection deeper in `docs/FILES.md`; T2.7 the doc-tooling table split into three audience-targeted tables (Migration / Authoring / CI). Tier-3 split (T3.1) implemented as the rebalance described above; T3.2 mermaid density resolves naturally because the diagrams now live in the docs they belong to. All original content preserved (no deletions); internal links updated. `task check` green (2995 passed, 1 xfailed); `task verify:links` reports only the 4 pre-existing broken-link warnings (CHANGELOG examples + `scm/changelog.md` template + `templates/swarm-greptile-poller-prompt.md`) -- none in the new docs.
 
@@ -5505,6 +5771,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **refactor(events): unify behavioral + detection-bound events into `events/registry.json` with `category` field** (#635, refs #642 workflow umbrella, refs #634 determinism-tier ladder, refs #709 Repair Authority [AXIOM] proposal, refs #710 data-file-convention check follow-up): Folds the 4 behavioral framework events (`session:interrupted` + `session:resumed` paired, `plan:approved`, `legacy:detected`) into the unified `events/registry.json` introduced for the 5 detection-bound events; the prior `events/behavioral.yaml` registry is dropped (`git rm`). Every entry in the registry now carries a required `category` enum value (`detection-bound` | `behavioral`); `events/registry.schema.json` is extended to mark `category` required and to list the two enum values, with future categories landing as additive enum extensions per the [#642 workflow comment](https://github.com/deftai/directive/issues/642#issuecomment-4330742436) gate-time decision and the Repair Authority [AXIOM] proposal in #709. `scripts/_events.py` no longer carries a hard-coded `KNOWN_EVENTS` frozenset -- the helper now reads `events/registry.json` and filters to `category="behavioral"` entries via lazy proxy objects (`KNOWN_EVENTS`, `REQUIRED_PAYLOAD`) so existing imports continue to work; `scripts/_event_detect.py` is unchanged structurally and continues to validate against the full registry. `scripts/migrate_vbrief.py` resolves a post-rebase shadow conflict by importing the behavioral emitter under the distinct alias `_emit_behavioral_event` so it does not collide with the detection-bound `_emit_event` lazy-import wrapper introduced by #707 -- both helpers consume the same unified registry but enforce different category boundaries. `events/README.md` documents the unified registry, the category convention, and the additive-enum extension policy. `tests/cli/test_behavioral_events.py` updated to point at `events/registry.json` (filter behavioral entries by `category`) and gains 3 new tests: (1) `events/behavioral.yaml` is dropped post-unification; (2) every event in the unified registry carries a valid `category` value; (3) every behavioral-category event references a runtime emission surface in its `trigger`, has a non-empty `REQUIRED_PAYLOAD` entry, and lists at least one consumer. `tests/cli/test_events.py` (the detection-bound surface from #707) splits its expected-name set into `EXPECTED_DETECTION_BOUND_NAMES` (5 entries, asserted as the full detection-bound bucket) and `EXPECTED_EVENT_NAMES` (the 9-entry union), so the existing `registered_event_names()` assertion continues to pass against the larger registry. `skills/deft-directive-sync/SKILL.md` and `skills/deft-directive-review-cycle/SKILL.md` `## Framework Events Emitted Here` sections continue to reference `scripts/_events.py` for behavioral emission. Implements the unification half of `vbrief/proposed/2026-04-27-635-events-behavioral-wiring.vbrief.json`; the detection-bound surface landed via #707. Refs #635 (epic), Refs #642 (workflow umbrella), Refs #634 (determinism-tier ladder T5/T6), Refs #709 (Repair Authority [AXIOM] -- the rule motivating fix-now over defer), Refs #710 (data-file-convention check follow-up).
 
 - **chore(vbrief): PR-A scaffolding for PR #401 trim arc** (#642, #635, #233): Pre-trim scaffolding commit that authors deterministic refs the trimmed PR #401 will reference in its body. Per the canonical [#642 workflow comment](https://github.com/deftai/directive/issues/642#issuecomment-4330742436): (1) narrowed vbrief/active/2026-04-24-642-tracking-framework-maintainability-rule-ownership-and-determ.vbrief.json from a 5-arc umbrella to a PR #401 trim tracker -- 3 hygiene plan.items[] (trim execution, RWLDL pre-PR, Greptile review cycle), plan.status: running, references[] gain epic #635, determinism-tier #634, the canonical workflow comment, and the existing PR #401 + #233 entries; (2) lifecycle-moved vbrief/proposed/2026-04-23-233-more-determinism-... -> vbrief/pending/ and applied the done/pending split -- removed the 8 v0.17.0-completed items (tasks/ restructure, toolchain:check, verify:stubs, verify:links, changelog:check, change:init, commit:lint, enhanced task check) and surfaced the 6 genuinely-remaining tasks as plan.items[] (Phase 0 generated per-phase gates, task doctor, build:verify, change:archive, task ci:local, task release) plus a reference back to the historical vbrief/completed/2026-04-23-233-partial-... record; (3) created 4 new vBRIEFs in vbrief/proposed/ under epic #635: 2026-04-27-635-events-detection-bound-wiring (5 events with existing detectors), 2026-04-27-635-events-behavioral-wiring (3 items: paired session:interrupted/resumed, plan:approved, legacy:detected), 2026-04-27-635-rule-ownership-map-data-file-and-lint (replaces the descriptive prose section being removed from REFERENCES.md), and 2026-04-27-635-phase-0-spec-scaffolding-rfc (needs-discussion-shaped RFC; runs design-question loop before swarm assignment); (4) added history/proposals/2026-04-18-more-determinism.md -- 2-line pointer to commit 47034134cc24d6549d00b838f37a242e35c53013 (no verbatim doc archive per maintainer direction; content reachable via git history); (5) added temp/ to .gitignore so the agent transient-file convention is durable. Refs #642 (tracking umbrella stays open until split children land), Refs #635 (epic anchor for the 4 new child vBRIEFs), Refs #233 (umbrella stays open as GitHub-side tracker for the 6 remaining pending items).
@@ -5565,6 +5833,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **docs(vbrief): refinement session -- restore pre-v0.20 Phase 3-6 forward-plan structure in ROADMAP.md**: After the v0.20.0 self-migration left `vbrief/pending/` empty (all committed work landed in `vbrief/completed/`), rendered `ROADMAP.md` collapsed to a single `## Completed` section, losing the multi-phase forward-looking view that existed at commit `3925468` (tag `v0.20.0-pre-self-migration`). Walked the `deft-directive-refinement` skill end-to-end to remediate: Phase 1 ingested the 2 remaining Phase 3-6 issues that lacked scope vBRIEFs (#96, #100); Phase 2 bulk-confirmed the 31 Phase-mapped open issues with the user (Option B bulk-confirm; includes #100 added late as a Phase 6 item); Phase 4 attached `plan.metadata['x-migrator'].Phase` to each vBRIEF matching its pre-migration phase assignment (source: commit `3925468`), then ran `task scope:promote` to move all 31 from `vbrief/proposed/` to `vbrief/pending/`; Phase 5 re-ran `task roadmap:render` and `task project:render` to regenerate `ROADMAP.md` (now carrying `## Phase 3 -- Documentation & Content Fixes`, `## Phase 4`, `## Phase 5 -- Package Distribution & Install UX`, `## Phase 6 -- CLI Overhaul & New Features`, and the preserved `## Completed` section) and `vbrief/PROJECT-DEFINITION.vbrief.json` items registry (now 290 scope items, up from 288). Also normalized the two just-ingested vBRIEFs (#96, #100) from the legacy v0.5 `{type: github-issue, id: #N, url: api-url}` reference shape to the canonical v0.6 `{uri: html-url, type: x-vbrief/github-issue, title}` shape per `conventions/references.md` -- this surfaced a defect in `scripts/issue_ingest.py` that emits the legacy shape; follow-up fix tracked separately for v0.21. No items in `vbrief/completed/` were disturbed.
 
 
@@ -5624,6 +5894,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **feat(vbrief): migrate emitted `vBRIEFInfo.version` to `"0.6"` + bulk sweep existing vBRIEFs** (#533, #561): Centralised `EMITTED_VBRIEF_VERSION = "0.6"` constant in `scripts/migrate_vbrief.py` and used it across every emission site (PROJECT-DEFINITION skeleton, PRD/fidelity/legacy-artifacts spec skeletons, speckit scope builder, speckit session-scaffold envelope). Applied the flip to `scripts/_vbrief_build.py::create_scope_vbrief`, `scripts/_vbrief_speckit.py`, and `scripts/project_render.py` skeleton. The speckit session-scaffold rewrite force-sets the envelope version (previously `setdefault`) so a v0.5 speckit plan migrated today produces a v0.6 session file. Bulk-swept 82 existing `.vbrief.json` files under `vbrief/` (root + lifecycle folders) and the golden expected fixture tree `tests/fixtures/pre_cutover_customized.expected/` so byte-for-byte comparisons continue to round-trip. `*.premigrate.*` backup copies and `tests/fixtures/migration/` INPUT fixtures are intentionally excluded (the latter stay at `"0.5"` so the migrator still exercises its pre-cutover v0.5 input path). Integration test assertions in `tests/cli/test_migrate_vbrief.py`, `tests/cli/test_project_render.py`, and `tests/cli/test_vbrief_routing.py` updated to expect `"0.6"` on migrator output. `scripts/issue_ingest.py` (Agent 3-owned) is not touched. Coordinates with Agent 2's #533 schema vendor PR.
 
@@ -5767,6 +6039,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **feat(strategies): convert speckit and enterprise to vBRIEF-centric outputs** (#361, #362, #364): Updated `strategies/speckit.md` Phase 1 output from `project.md` to `Principles` narrative in `vbrief/PROJECT-DEFINITION.vbrief.json`; Phase 2 output from `specs/[feature]/spec.md` to WHAT/WHY narratives in `vbrief/specification.vbrief.json`; Phase 3 output from `specs/[feature]/plan.md` to HOW narratives enriching `vbrief/specification.vbrief.json` with `task spec:render` for human review; removed all `specs/` directory references. Updated `strategies/enterprise.md` Stage 1 to write PRD narratives to `vbrief/specification.vbrief.json` with `task prd:render` for Gate 1 review; Stage 3 to enrich specification vBRIEF with `task spec:render` for Gate 3 review; updated output artifacts section -- `specification.vbrief.json` is primary, rendered `.md` files are read-only exports. ADRs in `docs/adr/` and approval gates preserved. Added 9 tests in `tests/content/test_strategy_vbrief.py`.
 
 - **feat(strategies): convert rapid, bdd, discuss to vBRIEF-centric outputs** (#363, #365, #366): Updated `strategies/rapid.md` Step 3 to write `vbrief/specification.vbrief.json` (Light path, status: draft) instead of directly authoring SPECIFICATION.md, added `task spec:render` for read-only export, updated output artifacts to list vBRIEF as primary artifact; updated `strategies/bdd.md` Step 4 to write locked decisions to `vbrief/proposed/{feature}-bdd.vbrief.json` with `Scenarios` and `LockedDecisions` narratives instead of `{feature}-bdd-context.md`, directed test files to project test directory instead of `specs/` folder, eliminated `specs/` as BDD output; updated `strategies/discuss.md` output to `vbrief/proposed/{scope}-context.vbrief.json` with `LockedDecisions` narrative, eliminated `{scope}-context.md` as hand-authored artifact, promoted SHOULD rule to MUST for vBRIEF persistence, updated chaining gate artifact registration; added 12 tests in `tests/content/test_strategy_outputs.py`
@@ -5802,6 +6076,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **feat(cli): update cmd_spec and cmd_project for vBRIEF-centric model** (#320, Part of #309): Rewrote `cmd_project` to output `vbrief/PROJECT-DEFINITION.vbrief.json` instead of `PROJECT.md` -- uses vBRIEF v0.5 schema with `narratives` for project identity (Overview, TechStack, Languages, Strategy, Coverage, optional Branching) and empty `items` array as scope registry; rewrote `cmd_spec` to output scope vBRIEFs to `vbrief/proposed/YYYY-MM-DD-descriptive-slug.vbrief.json` instead of INTERVIEW.md/PRD.md -- uses vBRIEF v0.5 schema with `proposed` status, features as items, strategy/sizing metadata, Light path creates minimal narratives, Full path adds rich narrative placeholders (ProblemStatement, Goals, UserStories, Requirements, SuccessMetrics); added `_slugify()` helper for filename convention; updated `get_default_paths()` to return `vbrief/PROJECT-DEFINITION.vbrief.json` and `vbrief/proposed/` defaults; updated `_read_project_strategy()` and `_read_project_process()` to read from vBRIEF JSON format with legacy PROJECT.md fallback; updated all CLI help text (usage, TUI, command descriptions) to reference new vBRIEF structure; rewrote `tests/cli/test_project.py` with 12 tests for vBRIEF output; created `tests/cli/test_cmd_spec.py` with 11 tests for scope vBRIEF output; updated `tests/cli/test_project_user_defaults.py` and `tests/conftest.py` for new paths
 
@@ -5871,6 +6147,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **Roadmap Refresh (2026-04-13)**: Triaged 8 items (23 individual issues including a 16-issue RFC bundle) -- #301 (Phase 1 Cleanup: tighten deft-interview routing keyword, t1.26.1), #302 (Phase 1 Cleanup: clarify deft-interview invocation contract embedded vs delegation modes, t1.27.1), #303 (Phase 1 Cleanup: fix deft-interview Rule 5 vs Rule 6 ok/confirmation-gate inconsistency, t1.28.1), #304 (Phase 1 Cleanup: regression test for deft-setup Phase 1/2 referencing deft-interview, t1.29.1), #305 (Phase 1 Adoption Blockers: Greptile review cycle bottlenecks -- 5-change bundle: mandatory deft-pre-pr, PR scope gate, adaptive poll cadence, parallel swarm cascade monitoring, .greptile/rules.md template, t1.30.1), #307 (Phase 1 Adoption Blockers: deft-review-cycle Approach 2 silent failure in interactive sessions -- add Approach 3 blocking fallback with user warning, t1.31.1), #309 + stories #310-#324 (Phase 2 vBRIEF Architecture Cutover RFC: 18 design decisions + 15 stories; big-bang cutover to vBRIEF lifecycle folders, ROADMAP.md as generated artifact, all skills renamed to deft-directive-*, t2.12.1); closed #308 (absorbed by #309 RFC); restructured roadmap phases -- inserted Phase 2 (vBRIEF Architecture Cutover), shifted Phases 2-5 to 3-6; stale cleanup: moved #293 and #298 (both closed) to Completed; analysis comments posted on all triaged issues
 
 - **Roadmap Refresh (2026-04-12)**: Triaged 1 new issue -- #298 (Phase 1 Cleanup: flip 5 stale `[pending]` spec task statuses to `[completed]` in SPECIFICATION.md -- t1.14.1, t1.15.1, t1.18.1, t1.19.1, t1.20.1 -- shipped v0.16.0 but SPECIFICATION.md not synced, t1.25.1); no stale entries; analysis comment posted on #298
@@ -5900,6 +6178,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Roadmap Refresh (2026-04-10)**: Triaged 6 new issues -- #288 (Phase 1 Cleanup: deft-swarm Phase 6 read-back verification after rebase conflict resolution, t1.21.1), #292 (Phase 1 Cleanup: auto-generate Slack release announcement after swarm release, t1.22.1), #293 (Phase 3: unit tests for v0.17.0 deterministic task scripts, t3.3.4), #294 (Phase 1 Cleanup: strengthen test-with-code rule across AGENTS.md/main.md/deft-swarm/deft-build, t1.23.1), #295 (Phase 1 Cleanup: resolve 5 untracked xfail gaps in known_failures.json, t1.24.1), #296 (Phase 2: skills/deft-interview/SKILL.md -- deterministic structured Q&A interview skill, t2.11.1); no stale entries; analysis comments posted on all 6 issues
 
@@ -5957,6 +6237,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **Roadmap Refresh (2026-04-09)**: Triaged 4 new issues -- #256 (Phase 1 Adoption Blockers: `--body-file` temp file writes to worktree + `rm` denylist collision; fix: use OS temp dir, t1.13.2), #258 (Phase 2: Warp Drive global rules inventory for CONTRIBUTING.md, spinoff of #114, blocked on #89, t2.9.1), #261 + #263 (bundled, Phase 1 Adoption Blockers: swarm monitor bypassed Phase 5->6 gate under context pressure and merged untested code into master; separate crash at message ~158 left merge cascade in ambiguous state; both root-caused to long-context conversation corruption, t1.13.1); no stale entries; analysis comments posted on all 4 issues
 
 - **Roadmap Refresh (2026-04-09, session 2)**: Triaged 3 new issues -- #266 (Phase 2: move installer asset links to top of README, t2.10.1), #268 (Phase 2: wrap install commands in fenced code blocks for copy button, t2.10.2), #270 (Phase 3: validate USER.md against current schema + artifact format versioning with `deft_version` field, t3.2.1); held #269 pending Warp team response (auto-approve silently skips interview questions -- investigating Mac-vs-Windows platform difference); closed #271 as duplicate of #269 (same root cause, deft-side sentry/guard mitigation tracked in #269); no stale entries; analysis comments posted on all triaged issues
@@ -5974,6 +6256,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Rename deft-rwldl skill to deft-pre-pr** (#226, t2.8.3): Renamed `skills/deft-rwldl/` to `skills/deft-pre-pr/` for clarity -- the acronym "RWLDL" was opaque and collided with the RWLDL tool pattern; updated frontmatter, `.agents/skills/` thin pointer, AGENTS.md Skill Routing table, and `tests/content/test_skills.py`; added auto-suggestion to AGENTS.md Development Process section
 
@@ -6021,6 +6305,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **Roadmap Refresh (2026-04-09)**: Triaged 2 new issues -- #228 (bring run CLI into test coverage measurement, Phase 3 -- confirm #160 before implementing), #248 (roadmap refresh does not surface spec task coverage, Phase 2 -- strengthen swarm Phase 0 skeleton spec tasks); no stale entries; analysis comments posted on both issues
 
 
@@ -6048,6 +6334,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Roadmap Refresh (2026-04-09)**: Triaged 5 issues -- #221 (deft-roadmap-refresh explicit row format template, Phase 2), #226 (deft-rwldl rename + auto-suggestion triggers, Phase 2), #233 (More Determinism full initiative, Phase 5), #234 (README artifacts section, Phase 2); filed #235 as Phase 3 split-off from #233 (toolchain:check + changelog:check); filed #236/#237/#238/#239/#240/#241 to Phase 1 (#236: Get-Content -Raw UTF-8 footgun; #237: ROADMAP.md em-dash migration; #238: roadmap-refresh batch changelog; #239: mandatory pre-commit file review; #240: multi-line PS string Warp block splitting; #241: main.md blocker carve-out for instant-fix rule; #243: skill completion gate for chaining instructions); analysis comments posted
 
@@ -6080,6 +6368,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **deft-review-cycle tiered review monitoring** (#195, t2.7.4): Replaced blocking `Start-Sleep`/`time.sleep()` shell polling in `skills/deft-review-cycle/SKILL.md` Step 4 with tiered monitoring -- Approach 1 (preferred): spawn sub-agent via `start_agent` to poll autonomously while main conversation stays interactive; Approach 2 (fallback): discrete `run_shell_command` (wait mode) calls with yield between checks; capability detection reuses `start_agent` tool-presence pattern from #188; existing exit conditions preserved; added 7 tests covering tiered monitoring section, both approaches, capability detection, and blocking sleep prohibition
 
@@ -6120,6 +6410,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Roadmap Refresh (2026-04-07)**: Triaged 5 new issues — #217 (pyproject.toml dev deps breaks task check in fresh worktrees, Phase 1 Adoption Blockers), #218 (deft-swarm release decision checkpoint, Phase 1 Adoption Blockers), #207 (Greptile re-review latency on swarm merge cascade, Phase 2), #219 (README.md stale content, Phase 2), #212 (process control in Directive discussion, Phase 5); cleanup: struck through #184/#188/#191/#192/#199 in index (completed v0.12.0), removed duplicate bare #198 entry, added #182 description; analysis comments posted on all 5 issues
 
@@ -6175,6 +6467,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **Roadmap Refresh (2026-04-06)**: Triaged 14 new issues, promoted 1, closed 2, cleaned 1 stale entry — #192 (proactive test coverage after review-fix commits, Phase 1 Adoption Blockers), #191 (remove vBRIEF defensive workarounds, deftai/vBRIEF#2 resolved, Phase 1 Adoption Blockers), #189 (closed as superseded by #191), #184 (deft-review-cycle autonomous polling imperative after push, Phase 1 Adoption Blockers), #188 (deft-swarm runtime `start_agent` capability detection + Warp environment gate, Phase 2; reshaped from static Option D label to tool-presence-based detection), #182 (deft-rwldl skill: iterative pre-PR quality loop, Phase 2), #194 (user-facing best practices guide, Phase 2), #195 (review monitor orchestration, Phase 2), #196 (roadmap-refresh cleanup convention, Phase 2), #197 (scm/github.md with gh CLI rules and Windows encoding guidance, Phase 2 -- absorbs #201), #198 (instant-fix drift and skill-context bleed rules for main.md, Phase 1), #199 (deft-swarm mandatory analyze phase, Phase 1), #200 (scan skills/ before improvising workflows, Phase 1), #202 (ASCII convention for machine-editable sections, Phase 2); promoted #188 from Phase 2 to Phase 1 (user actively testing swarm); closed #201 (absorbed by #197); moved #166 to Completed (closed on GitHub); cleaned up 2 stale entries (#133 closed 2026-04-05, #58 closed 2026-04-06); updated #147 title and scope (expanded to cover keyword routing + 3 missing skills); analysis comments posted on all issues
 
 
@@ -6223,6 +6517,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **ROADMAP.md update convention** (#170): Changed PR conventions in `AGENTS.md` from "updates happen on merge" to "updates happen at release time — batch-move merged issues to Completed during the CHANGELOG promotion commit"; added Phase 6 Step 5 to `skills/deft-swarm/SKILL.md` codifying this as the release-time checkpoint; added ⊗ anti-pattern prohibiting ROADMAP.md edits during swarm close; added ⊗ to Phase 1 Step 2 excluding ROADMAP.md from swarm shared-file exceptions
 
 - **Mermaid gist-rendering guidance**: Codified GitHub/Gist sequence-diagram readability rules in `languages/mermaid.md` as explicit RFC2119 MUST/SHOULD guidance: do not rely on `init.background`/`themeCSS` alone, use a grey participant-only `box ... end`, keep messages/notes outside the box, and keep sequence workarounds diagram-type-scoped; added regression tests in `tests/content/test_mermaid_guidance.py` (#102)
@@ -6257,6 +6553,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **Roadmap Refresh (2026-04-03)**: Triaged 5 new issues — #170 (move ROADMAP.md updates to release-time, Phase 2), #171 (hard gate against agent direct-to-master commits, Phase 1 Cleanup), #172 (deft-swarm skill oz agent run/run-cloud correction, Phase 1 Adoption Blockers — priority next), #174 (deft-roadmap-refresh review cycle chaining after PR push, Phase 2), #175 (deft-review-cycle no-push-during-review + polling cadence, Phase 1 Cleanup); analysis comments posted on all issues; meta/lessons.md updated with 3 new Windows/review-cycle encoding and monitoring lessons
 
 
@@ -6278,6 +6576,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **README restructure**: Moved Getting Started section (install, setup, spec, build) from below the architecture/layers documentation to immediately after the TL;DR; added prominent installer download callout at the top of the page (#137, t2.5.3)
 
@@ -6361,6 +6661,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **Yolo Strategy Deduplication**: Refactored `strategies/yolo.md` to reference `interview.md` for shared Light/Full path flows, SPECIFICATION guidelines, and Artifacts Summary — reduced from 165 to ~115 lines (#23)
 
 - **Chaining Gate Cleanup**: Removed "Brownfield" alias from `interview.md` chaining gate options — now just "Map"
@@ -6419,6 +6721,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **Roadmap Triage**: Triaged issues #101–#108 into roadmap phases; #101 absorbed into #56; #105/#106 (directive gaps) and #107/#108 (language selection UX) added to Phase 1; #102/#103/#104 (docs/standards) added to Phase 2
 
 
@@ -6440,6 +6744,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **PrintNextSteps**: Installer output updated to reflect auto-discovery — no longer tells users to manually say 'read AGENTS.md and follow it' (#94)
 
@@ -6494,6 +6800,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Bootstrap Parity**: Aligned CLI and agentic setup paths to produce consistent USER.md output (#45, #14, #61, #65)
 
@@ -6595,6 +6903,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **Strategy Renames**: `default.md` → `interview.md`, `brownfield.md` → `map.md` (#16)
 
 - **Command Prefix**: Change lifecycle uses `/deft:change` (not `/deft:run:change`); session uses `/deft:continue`/`/deft:checkpoint` (#20)
@@ -6610,6 +6920,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Branch sync**: Merged master (v0.2.3 through v0.4.3) into beta (v0.5.0/v0.5.1) to unify both branches after significant divergence from the v0.2.2 fork point
 
@@ -6699,6 +7011,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **USER.md relocated**: Default path moved from `core/user.md` to `~/.config/deft/USER.md`
 
   - Configurable via `DEFT_USER_PATH` env var
@@ -6759,6 +7073,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **TUI UX Improvements**: Enhanced form design and user experience
 
   - Replaced all y/n text inputs with checkboxes for boolean options
@@ -6814,6 +7130,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Documentation Optimization**: Reduced token usage across core documentation files
 
@@ -6921,6 +7239,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **Help System**: `-h`, `--help`, `-help` flags show usage (TUI no longer launches for `./run` with no args if textual not installed)
 
 - **Menu Design**: Aligned option labels with minimal dots (longest command name sets alignment)
@@ -6942,6 +7262,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **README Getting Started**: Complete rewrite with clearer workflow
 
@@ -6969,6 +7291,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **README Quick Start**: Updated run command examples
 
   - Changed from `run` to `deft/run` prefix for clarity
@@ -6985,6 +7309,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **README Structure**: Moved copyright notice to end of file for better flow
 
   - Copyright and license info now appears at bottom after main content
@@ -6999,6 +7325,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **README Formatting**: Consolidated file descriptions to one line per file for better readability
 
   - Core, Languages, Interfaces, Tools, Templates, and Meta sections now use single-line format
@@ -7012,6 +7340,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **README TL;DR Enhancements**:
 
@@ -7031,6 +7361,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **README TL;DR**: Added note about professional-grade defaults
 
   - Highlights that Deft works out of the box without customization
@@ -7044,6 +7376,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **MIT License**: Updated from temporary usage terms to full MIT License
 
@@ -7072,6 +7406,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Project renamed from Warping to Deft**: Complete rebrand across all files and documentation
 
@@ -7142,6 +7478,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Renamed `run.py` → `run`**: Removed .py extension for cleaner command
 
@@ -7227,6 +7565,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
+
 - **SKILL.md Structure**: Enhanced with detailed workflow sections
 
   - Step-by-step initialization workflow (init → bootstrap → project → spec)
@@ -7256,6 +7596,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **Spec Command Output**: Improved next steps messaging in `deft.sh spec`
 
@@ -7310,6 +7652,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 - **SCM Reorganization**: Moved `tools/git.md` and `tools/github.md` to `scm/` directory
 
@@ -7416,6 +7760,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
+
+- Clear finalize-owed session remedies so leftover claim branches and issue-read failures get real Taskfile guidance instead of a dead end (#5914).
 
 
 
