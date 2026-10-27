@@ -23,8 +23,7 @@
         "narrative": {
           "Acceptance": "Bound Recut-2 P1: chore pin PR; AgeExclude only after sha512+attestation",
           "Traces": "#5954"
-        },
-        "artifact_path": "Taskfile.yml"
+        }
       },
       {
         "id": "clause.2",
@@ -33,8 +32,7 @@
         "narrative": {
           "Acceptance": "Bound Recut-2 P1: same PR or named companion",
           "Traces": "#5954"
-        },
-        "artifact_path": "content/skills/deft-directive-release/SKILL.md"
+        }
       },
       {
         "id": "clause.3",
@@ -43,8 +41,7 @@
         "narrative": {
           "Acceptance": "Bound Recut-2 P2: maintainer=V unchanged latest; make_latest leftover #5852",
           "Traces": "#5954"
-        },
-        "artifact_path": "packages/core/src/release/native-steps.ts"
+        }
       },
       {
         "id": "clause.4",
@@ -53,8 +50,7 @@
         "narrative": {
           "Acceptance": "Bound Recut-2 P3: literal formatter/parser pair",
           "Traces": "#5954"
-        },
-        "artifact_path": "packages/core/src/release/skip-ci-incident.ts"
+        }
       },
       {
         "id": "clause.5",
@@ -63,8 +59,7 @@
         "narrative": {
           "Acceptance": "Bound Recut-2 P3: same-version section citations do not refuse resume",
           "Traces": "#5954"
-        },
-        "artifact_path": "packages/core/src/release/skip-ci-incident.ts"
+        }
       },
       {
         "id": "clause.6",
@@ -73,8 +68,7 @@
         "narrative": {
           "Acceptance": "Bound Recut-2 P3: notes carry that cite",
           "Traces": "#5954"
-        },
-        "artifact_path": "packages/core/src/release/pipeline.ts"
+        }
       },
       {
         "id": "clause.7",
@@ -83,8 +77,7 @@
         "narrative": {
           "Acceptance": "Bound Recut-2 P4: extractUnreleasedDashEntries excludes; promoteChangelog strips",
           "Traces": "#5954"
-        },
-        "artifact_path": "packages/core/src/release/changelog.ts"
+        }
       },
       {
         "id": "clause.8",
@@ -93,8 +86,7 @@
         "narrative": {
           "Acceptance": "Bound Recut-2 P4: refuse ordinary sentinel-only; never copy sentinel into notes",
           "Traces": "#5954"
-        },
-        "artifact_path": "packages/core/src/release/changelog.ts"
+        }
       },
       {
         "id": "clause.9",
@@ -103,8 +95,7 @@
         "narrative": {
           "Acceptance": "Bound Recut-2 P5",
           "Traces": "#5954"
-        },
-        "artifact_path": "content/skills/deft-directive-release/SKILL.md"
+        }
       },
       {
         "id": "clause.10",
@@ -113,8 +104,7 @@
         "narrative": {
           "Acceptance": "Bound Recut-2 P6",
           "Traces": "#5954"
-        },
-        "artifact_path": "Taskfile.yml"
+        }
       },
       {
         "id": "clause.11",
@@ -123,8 +113,7 @@
         "narrative": {
           "Acceptance": "Bound Recut-2 P6",
           "Traces": "#5954"
-        },
-        "artifact_path": "packages/core/src/release-e2e/npm-ops.ts"
+        }
       },
       {
         "id": "clause.12",
@@ -133,8 +122,7 @@
         "narrative": {
           "Acceptance": "Bound Recut-2 P6",
           "Traces": "#5954"
-        },
-        "artifact_path": "packages/core/src/release/preflight.ts"
+        }
       },
       {
         "id": "clause.13",
@@ -143,8 +131,7 @@
         "narrative": {
           "Acceptance": "Bound Recut-2 P6",
           "Traces": "#5954"
-        },
-        "artifact_path": ".github/release-notes/upgrade-banner.md"
+        }
       }
     ],
     "tags": [
@@ -406,8 +393,7 @@
         ],
         "parallel_safe": true,
         "missing_traces_justification": []
-      },
-      "activationPullRequest": null
+      }
     },
     "id": "github.issue.6048676452",
     "updated": "2026-10-27T00:48:10Z"
