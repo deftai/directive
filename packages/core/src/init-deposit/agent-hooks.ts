@@ -386,9 +386,8 @@ function isManagedCursorEntryForHost(value: unknown): boolean {
 
 type NestedHookHost = "claude" | "grok" | "codex";
 
-/** Grok tool.before deposits the outer-deny wrapper (./ form, #5715); other nested events use bin (AC9.1). */
+/** Nested hosts deposit pin-local hook-bin for every event, including Grok PreToolUse (#5956-A / AC9.1). */
 function nestedToolCommand(bin: string, host: NestedHookHost, event: HookEvent): string {
-  if (host === "grok" && event === "tool.before") return GROK_PRETOOLUSE_WRAPPER_COMMAND;
   return command(bin, host, event);
 }
 
@@ -694,7 +693,7 @@ export function writeAgentHookDeposit(
         mode: "replace",
         mutation: { kind: "wrote", path: GROK_PRETOOLUSE_WRAPPER_REL_PATH },
       });
-      // containedWrite opens 0o644; nestedToolCommand invokes the script directly.
+      // containedWrite opens 0o644; keep the unused wrapper executable for later #5956 slices.
       containedChmod({
         root: resolve(projectRoot),
         target: grokWrapperAbs,
@@ -1036,40 +1035,22 @@ export function inspectAgentHookDeposit(
     }
     try {
       const config = readConfig(absolute);
-      // #5656: Grok PreToolUse points at the wrapper script; missing wrapper is not healthy.
-      // #5715: command must resolve beside deft.json (./ form); REL_PATH doubles under .grok/hooks/.
+      // #5956-A: Grok PreToolUse must be pin-local hook-bin.js, never the .sh wrapper.
       if (definition.host === "grok") {
-        const wrapperAbs = join(projectRoot, GROK_PRETOOLUSE_WRAPPER_REL_PATH);
-        const hooksDir = dirname(absolute);
-        if (!existsSync(wrapperAbs)) {
-          return {
-            host: definition.host,
-            path: definition.path,
-            status: "drifted",
-            compactSupport: definition.compactSupport,
-            detail:
-              `${GROK_PRETOOLUSE_WRAPPER_REL_PATH} is missing while ${definition.path} is registered. ` +
-              "Recovery: run `directive install --repair` / `writeAgentHookDeposit` so the outer-deny wrapper is redeposited, then start a new Grok session." +
-              compactNote,
-          };
-        }
         const hooks = object(config.hooks);
         const preTool = Array.isArray(hooks?.PreToolUse) ? hooks.PreToolUse : [];
         const wrapperCommands = preTool.flatMap((entry) =>
           nestedCommands(entry).filter((cmd) => isGrokWrapperCommand(cmd)),
         );
-        const commandMissesBesideHooks = wrapperCommands.some(
-          (cmd) => resolve(hooksDir, cmd) !== wrapperAbs,
-        );
-        if (commandMissesBesideHooks) {
+        if (wrapperCommands.length > 0) {
           return {
             host: definition.host,
             path: definition.path,
             status: "drifted",
             compactSupport: definition.compactSupport,
             detail:
-              `Grok PreToolUse wrapper command does not resolve beside ${definition.path} ` +
-              `(expected ${GROK_PRETOOLUSE_WRAPPER_COMMAND}; repo-root ${GROK_PRETOOLUSE_WRAPPER_REL_PATH} doubles under .grok/hooks/). ` +
+              `Grok PreToolUse still references ${GROK_PRETOOLUSE_WRAPPER_MARKER} ` +
+              `(expected pin-local ${PACKAGE_RELATIVE_HOOK_BIN} — #5956-A / #5955). ` +
               "Recovery: run `directive install --repair` / redeposit, then start a new Grok session." +
               compactNote,
           };

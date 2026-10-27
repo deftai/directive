@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed - Init-deposit no longer rewrites Grok PreToolUse to `./deft-pretooluse-wrapper.sh`; setup/upgrade/`install --repair` emit pin-local `hook-bin.js` so regenerate matches the intentional deposit (#5956 / #5956-A). Refs #5955 #5958 #5968.
+
 - Pin doctor unit tests to a temp HOME so host ~/.openclaw and GROK identity no longer redden unrelated task check runs (#5802 / #5930).
 
 - Fixed - Grok PreToolUse hooks run the package-relative `hook-bin.js` via `node` directly again: Grok execs hook commands without a shell and Windows cannot spawn a `.sh` file, so the wrapper silently failed open. Timeout unchanged. Refs #5945 #5920.
