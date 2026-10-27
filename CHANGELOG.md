@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Prepare release local-checkout update so after a pin lands the maintainer primary checkout can fail-closed pull, install, upgrade, and verify hooks to the shipped version (#5953).
+- Prepare release closeout automation for provenance-gated pin+deposit, channel verify, skip-CI ledger, Unreleased sentinel promote, and e2e cleanup (#5954).
+
 - Changed - This repo now uses `@deftai/directive-runtime` 0.129.1 instead of 0.129.0 so its gates run the #5876 class-checks companion. This is the `maintainer` build; npm `latest` stays 0.127.0. Refs #5808 #5928.
 
 ### Fixed

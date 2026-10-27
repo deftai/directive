@@ -1,0 +1,306 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5953",
+    "updated": "2026-10-27T00:48:05Z"
+  },
+  "plan": {
+    "title": "feat(release): update the maintainer's local checkout to the new pin after every release",
+    "status": "running",
+    "narratives": {
+      "Description": "feat(release): update the maintainer's local checkout to the new pin after every release",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5953",
+      "Overview": "\n\n- relieves: P1 — Require `--checkout <path>` naming the maintainer primary occupancy root and refuse ambient release-worktree-only success.\n- relieves: P2 — Refuse when the target checkout holds a live foreign occupancy lease before any write.\n- relieves: P1 — Define `release:local-update` as inline Taskfile `cmds:` without `engine:invoke` or `deps: [ts:build]`, re-resolving the upgrade binary after frozen install.\n- relieves: P1 — Require the version-matched agent-hook deposit already merged on tip before upgrade, and keep Phase 7 local closeout incomplete until that deposit evidence exists.\n- relieves: P1 — Run `directive upgrade --target-version <version> --yes` against the checkout (never registry-latest resolution).\n- relieves: P1 — After upgrade, any tracked-file diff keeps closeout non-zero and incomplete while printing deposit-merge recovery paths for expected managed deposit files.\n- relieves: P1 — After upgrade, run `deft verify:hooks-installed --project-root <checkout> --scope=all` from the checkout post-install runtime and re-assert installed runtime equals `<version>`.\n- relieves: P2 — Keep ff-only pull, frozen-lockfile install, pin assert, and never reset, force-push, commit, or run global `npm i -g`.\n- relieves: P3 — Keep the local-update step required for maintainer non-latest cuts where npm latest will not advance the checkout by accident.\n- relieves: P4 — Anchor the Phase 7 step on tip-pin-equals-released observable rather than a phantom existing pin-PR step.\n\n\n",
+      "Labels": "enhancement, area:release, design-critique:ingest-ready",
+      "UserStory": "As a maintainer, after a release pin merges I want my named primary checkout ff-only updated to the released pin with frozen install, version-matched upgrade, and hooks verified fail-closed so commits run the shipped runtime.",
+      "ImplementationPlan": "Add release:local-update as inline Taskfile cmds (no pin-exclusive engine:invoke), require --checkout primary root, refuse foreign occupancy, require tip deposit evidence, run directive upgrade --target-version, treat any tracked diff as incomplete, verify hooks --project-root --scope=all; edit Phase 7 skill via pack render; unit-test refuse paths."
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Require named primary --checkout path and refuse release-worktree-only success",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Bound Recut-1: --checkout names maintainer primary occupancy root; ambient release-worktree-only success refused",
+          "Traces": "#5953"
+        },
+        "artifact_path": "Taskfile.yml"
+      },
+      {
+        "id": "clause.2",
+        "title": "Refuse live foreign occupancy lease on target checkout before writes",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Bound Recut-1: foreign occupancy lease refuses before any write",
+          "Traces": "#5953"
+        },
+        "artifact_path": "packages/core/src/release/native-steps.ts"
+      },
+      {
+        "id": "clause.3",
+        "title": "Define release:local-update as inline Taskfile cmds without engine:invoke or ts:build dep",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Bound Recut-1: inline cmds; re-resolve upgrade binary after frozen install",
+          "Traces": "#5953"
+        },
+        "artifact_path": "Taskfile.yml"
+      },
+      {
+        "id": "clause.4",
+        "title": "Require version-matched agent-hook deposit already merged before upgrade closeout",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Bound Recut-1: deposit evidence on tip required; closeout incomplete without it",
+          "Traces": "#5953"
+        },
+        "artifact_path": "packages/core/src/release/native-steps.ts"
+      },
+      {
+        "id": "clause.5",
+        "title": "Run directive upgrade with explicit --target-version against the checkout",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Bound Recut-1: never registry-latest resolution",
+          "Traces": "#5953"
+        },
+        "artifact_path": "packages/core/src/release/native-steps.ts"
+      },
+      {
+        "id": "clause.6",
+        "title": "Any post-upgrade tracked-file diff keeps closeout non-zero with deposit-merge recovery paths",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Bound Recut-1: never non-fatal green on managed deposit diffs",
+          "Traces": "#5953"
+        },
+        "artifact_path": "packages/core/src/release/native-steps.ts"
+      },
+      {
+        "id": "clause.7",
+        "title": "Verify hooks via deft verify:hooks-installed --project-root --scope=all and re-assert runtime version",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Bound Recut-1: from checkout post-install runtime",
+          "Traces": "#5953"
+        },
+        "artifact_path": "packages/core/src/release/native-steps.ts"
+      },
+      {
+        "id": "clause.8",
+        "title": "Keep ff-only pull, frozen-lockfile install, pin assert; never reset force-push commit or npm i -g",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Bound Recut-1: fail-closed safety envelope",
+          "Traces": "#5953"
+        },
+        "artifact_path": "packages/core/src/release/native-steps.ts"
+      },
+      {
+        "id": "clause.9",
+        "title": "Keep local-update required for maintainer non-latest cuts",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Bound Recut-1: npm latest will not advance checkout by accident",
+          "Traces": "#5953"
+        },
+        "artifact_path": "content/skills/deft-directive-release/SKILL.md"
+      },
+      {
+        "id": "clause.10",
+        "title": "Anchor Phase 7 step on tip-pin-equals-released observable",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Bound Recut-1: not a phantom existing pin-PR step",
+          "Traces": "#5953"
+        },
+        "artifact_path": "content/packs/skills/skills-pack-0.1.json"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "area:release",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5953",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5953: feat(release): update the maintainer's local checkout to the new pin after every release"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3919",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3919"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "directive upgrade --target-version <version> --yes",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L9"
+        },
+        {
+          "command": "deft verify:hooks-installed --project-root <checkout> --scope=all",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L11"
+        },
+        {
+          "command": "npm i -g",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L12"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "release-phase7-local-checkout-update-fail-closed",
+        "expected_outputs": [
+          "release:local-update fail-closed task",
+          "Phase 7 local-checkout step in release skill",
+          "unit tests for refuse paths",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/release/"
+        ],
+        "file_scope": [
+          "Taskfile.yml",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-release/SKILL.md",
+          "packages/core/src/release/cli.ts",
+          "packages/core/src/release/cli-drift-report.ts",
+          "packages/core/src/release/cli-drift-report.test.ts",
+          "packages/core/src/release/native-steps.ts",
+          "packages/core/src/release/native-steps.test.ts",
+          "packages/core/src/release/main.ts",
+          "CHANGELOG.md"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5953",
+          "Prefer-A Recut-1 Bound 6430511888",
+          "allocation through-merge-5953-5954-2026-10-27"
+        ],
+        "parallel_safe": true,
+        "missing_traces_justification": []
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "Taskfile.yml",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-release/SKILL.md",
+          "packages/core/src/release/cli.ts",
+          "packages/core/src/release/cli-drift-report.ts",
+          "packages/core/src/release/cli-drift-report.test.ts",
+          "packages/core/src/release/native-steps.ts",
+          "packages/core/src/release/native-steps.test.ts",
+          "packages/core/src/release/main.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/release/native-steps.ts",
+        "cohesion_exemption": "CHANGELOG + release skill pack + Taskfile local-update closeout"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6048674564,
+        "origin": "deftai/directive#5953",
+        "id": "github.issue.6048674564"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "27aa98ac615521c221eb9cd0491229047669e35cc09aec0ad19432fc8058a0d2"
+      },
+      "kind": "story",
+      "activationPullRequest": null
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Bound Recut-1: --checkout names maintainer primary occupancy root; ambient release-worktree-only success refused",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Bound Recut-1: foreign occupancy lease refuses before any write",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Bound Recut-1: inline cmds; re-resolve upgrade binary after frozen install",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Bound Recut-1: deposit evidence on tip required; closeout incomplete without it",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Bound Recut-1: never registry-latest resolution",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Bound Recut-1: never non-fatal green on managed deposit diffs",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Bound Recut-1: from checkout post-install runtime",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Bound Recut-1: fail-closed safety envelope",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Bound Recut-1: npm latest will not advance checkout by accident",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Bound Recut-1: not a phantom existing pin-PR step",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "derived_reason": "derived 10 independently testable clauses from the task statement before product edit (#3323)",
+      "source_rung": "derived"
+    },
+    "id": "github.issue.6048674564",
+    "updated": "2026-10-27T00:48:05Z"
+  }
+}
