@@ -224,9 +224,9 @@ const spawnHeavyGlobs = [
   "packages/runtime/src/cli-bin-symlink-entrypoint.test.ts",
   "packages/runtime/src/hook-host-identity-lifetime.test.ts",
   "packages/runtime/src/hook-dispatch-worktree.test.ts",
-  // Concurrent tsx self-complete children; unit 5s default flakes under coverage.
+  // Concurrent tsx self-complete children; unit default flakes under coverage.
   "packages/runtime/src/wave2q-gen-rebuild-session.test.ts",
-  // Install bookend dry-run: in-process runInstall; unit 5s/30s flakes under coverage load.
+  // Install bookend dry-run: in-process runInstall; unit default/30s flakes under coverage load.
   "packages/cli/src/install-bookend.test.ts",
   "packages/core/src/session/occupancy-stress.test.ts",
   "packages/core/src/session/spawn-occupancy.test.ts",
@@ -308,8 +308,8 @@ export default defineConfig({
         },
       },
     ],
-    // Windows git fixture suites (session:start) exceed the 5s default under
-    // full-suite parallelism; Linux CI stays on the default. Refs #2467.
+    // Windows git fixture suites (session:start) exceed the non-win32 default under
+    // full-suite parallelism; Darwin/Linux use 20s under coverage load. Refs #2467.
     //
     // 240s, not 20s (#3616). Windows process creation drains through a
     // fixed-rate chokepoint (AV filter drivers scan on execute), measured at
