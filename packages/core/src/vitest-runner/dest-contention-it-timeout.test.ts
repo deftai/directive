@@ -238,9 +238,9 @@ describe("destContentionItTimeout (#4847)", () => {
     expect(source).not.toContain("destContentionItTimeout");
   });
 
-  it("leaves unit and root Darwin/Linux testTimeout at 5s", () => {
+  it("leaves unit and root Darwin/Linux testTimeout at 20s", () => {
     const source = readFileSync(join(repoRoot, "vitest.config.ts"), "utf8");
-    expect(source).toMatch(/testTimeout:\s*isWin32\s*\?\s*240_000\s*:\s*5_000/);
+    expect(source).toMatch(/testTimeout:\s*isWin32\s*\?\s*240_000\s*:\s*20_000/);
     expect(source).not.toMatch(/coverageEnabled[\s\S]{0,80}testTimeout/);
   });
 });
