@@ -873,15 +873,25 @@ export function evaluateClassChecks(
   const githooksProtectedHit = protectedHits.some(
     (p) => p === ".githooks" || p.startsWith(".githooks/"),
   );
+  // #5994 host-hook deposit companions when paired with Cursor hook protected globs
+  // (and/or .githooks/ when the same landing rewrites helper + host outers).
+  const hostHookDepositProtectedHit = protectedHits.some(
+    (p) => p === ".cursor/hooks.json" || p.startsWith(".cursor/hooks/"),
+  );
+  const hookDepositCompanionHit = githooksProtectedHit || hostHookDepositProtectedHit;
+  const HOOK_DEPOSIT_COMPANIONS: ReadonlySet<string> = new Set([
+    "packages/runtime/src/setup-wiring.ts",
+    "packages/core/src/init-deposit/agent-hooks.ts",
+    "packages/core/src/init-deposit/host-hook-outer.ts",
+    "packages/core/src/init-deposit/hygiene.ts",
+    "packages/core/src/install-health/constants.ts",
+    "packages/core/src/install-health/wiring.ts",
+    "packages/core/src/coverage-applicability/evaluate.ts",
+  ]);
   const storyMix = changed.some((p) => {
     const posix = normalizeRepoRelPath(p);
     if (posix === "packages/cli/src/authz.ts" && authzProtectedHit) return false;
-    if (
-      githooksProtectedHit &&
-      (posix === "packages/runtime/src/setup-wiring.ts" ||
-        posix === "packages/core/src/init-deposit/agent-hooks.ts" ||
-        posix === "packages/core/src/install-health/constants.ts")
-    ) {
+    if (hookDepositCompanionHit && HOOK_DEPOSIT_COMPANIONS.has(posix)) {
       return false;
     }
     return isStoryProductPath(posix, baseTb, classPolicy.protectedGlobs);
