@@ -14,12 +14,12 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { INSTALLATION_RECOVERY_GUIDANCE } from "@deftai/directive-core/dist/install-health/constants.js";
 import {
   HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE,
   hostHookOuterCommand,
   hostHookOuterSha8,
 } from "@deftai/directive-core/dist/init-deposit/host-hook-outer.js";
+import { INSTALLATION_RECOVERY_GUIDANCE } from "@deftai/directive-core/dist/install-health/constants.js";
 import {
   checkFullInSync,
   RUNTIME_PIN_PACKAGE,

@@ -137,9 +137,9 @@ describe("exact Cursor adapter allowlist (#3393)", () => {
     // #3393: forbid whole-tree `.cursor/hooks/` so consumer hooks stay app.
     // #5994: narrow `deft-hook-` outer prefix is installer-managed.
     expect(prefixes).toContain(".cursor/hooks/deft-hook-");
-    expect(prefixes.some((prefix) => prefix === ".cursor/hooks/" || prefix === ".cursor/hooks")).toBe(
-      false,
-    );
+    expect(
+      prefixes.some((prefix) => prefix === ".cursor/hooks/" || prefix === ".cursor/hooks"),
+    ).toBe(false);
     expect(isInstallerManagedPath(".cursor/hooks/deft-hook-deadbeef.mjs")).toBe(true);
     expect(isInstallerManagedPath(".cursor/hooks/consumer-custom.mjs")).toBe(false);
     expect(isInstallerManagedPath(".cursor/hooks/other-hook.sh")).toBe(false);

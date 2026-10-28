@@ -80,4 +80,9 @@ const child = spawnSync(process.execPath, [pin, ...argv], {
   env: process.env,
   stdio: "inherit",
 });
+if (child.error) {
+  process.stderr.write(
+    "Directive hooks: failed to spawn pin hook-bin: " + child.error.message + "\n",
+  );
+}
 process.exit(child.status === null ? 1 : child.status);

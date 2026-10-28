@@ -3,14 +3,16 @@
  * Fail on pre-fix tip; Build turns green via ensureHostHooks upgrade/repair.
  */
 import { execFileSync } from "node:child_process";
-import { chmodSync,
+import {
+  chmodSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
-  readdirSync } from "node:fs";
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {

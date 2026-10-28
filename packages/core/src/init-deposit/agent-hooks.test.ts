@@ -1,4 +1,14 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 // readdirSync used below
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -44,7 +54,6 @@ import {
   isHostHookOuterCommand,
 } from "./host-hook-outer.js";
 
-
 const temps: string[] = [];
 afterEach(() => {
   for (const root of temps.splice(0)) rmSync(root, { recursive: true, force: true });
@@ -77,7 +86,6 @@ function writeProjectDefinition(root: string, hostHooks: Record<string, boolean>
     "utf8",
   );
 }
-
 
 function expectedOuterCmd(host: "claude" | "grok" | "cursor" | "codex", event: string): string {
   return `${hostHookOuterCommand(host, hostHookOuterSha8())} --host ${host} --event ${event}`;
@@ -1077,11 +1085,7 @@ describe("inspectAgentHookDeposit", () => {
     expect(commands.length).toBeGreaterThan(0);
     expect(commands.every((cmd) => !isGrokWrapperCommand(cmd))).toBe(true);
     expect(commands.every((cmd) => !cmd.includes(GROK_PRETOOLUSE_WRAPPER_MARKER))).toBe(true);
-    expect(
-      commands.every(
-        (cmd) => cmd === expectedOuterCmd("grok", "tool.before"),
-      ),
-    ).toBe(true);
+    expect(commands.every((cmd) => cmd === expectedOuterCmd("grok", "tool.before"))).toBe(true);
   });
 
   it("does not use write|search_replace exact-equality as the grok registration bar (#4574)", () => {

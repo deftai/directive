@@ -1,7 +1,7 @@
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import {
   HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE,
@@ -18,13 +18,11 @@ describe("host-hook-outer (#5994)", () => {
     const sha8 = hostHookOuterSha8(source);
     expect(sha8).toMatch(/^[a-f0-9]{8}$/);
     expect(hostHookOuterRelPath("grok", sha8)).toBe(`.grok/hooks/deft-hook-${sha8}.mjs`);
-    expect(hostHookOuterCommand("cursor", sha8)).toBe(
-      `node .cursor/hooks/deft-hook-${sha8}.mjs`,
-    );
+    expect(hostHookOuterCommand("cursor", sha8)).toBe(`node .cursor/hooks/deft-hook-${sha8}.mjs`);
     expect(isHostHookOuterCommand(hostHookOuterCommand("claude", sha8))).toBe(true);
-    expect(isHostHookOuterCommand("node node_modules/@deftai/directive-runtime/dist/hook-bin.js")).toBe(
-      false,
-    );
+    expect(
+      isHostHookOuterCommand("node node_modules/@deftai/directive-runtime/dist/hook-bin.js"),
+    ).toBe(false);
   });
 
   it("F1: disable quiet-allows without pin present", () => {
@@ -74,5 +72,11 @@ describe("host-hook-outer (#5994)", () => {
     expect(source).toContain("node_modules/@deftai/directive-runtime/dist/hook-bin.js");
     expect(source).toContain(".deft-directive-disable");
     expect(source).toContain(HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE);
+  });
+
+  it("logs spawn failure diagnostic when child.error is set (SLizard P1)", () => {
+    const source = hostHookOuterSource();
+    expect(source).toContain("failed to spawn pin hook-bin");
+    expect(source).toContain("child.error");
   });
 });

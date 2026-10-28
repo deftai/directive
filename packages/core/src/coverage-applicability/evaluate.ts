@@ -1002,8 +1002,7 @@ function isCanonicalNestedManagedGroup(
     );
   }
   if (eventKey === "PreToolUse") {
-    const expectedCmd =
-      deftHookCommand(host, "tool.before");
+    const expectedCmd = deftHookCommand(host, "tool.before");
     return (
       typeof entry.matcher === "string" &&
       (NESTED_PRE_TOOL_MATCHERS as readonly string[]).includes(entry.matcher) &&

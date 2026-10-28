@@ -14,10 +14,7 @@ import {
   CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
   CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS,
 } from "../init-deposit/agent-hooks.js";
-import {
-  hostHookOuterCommand,
-  hostHookOuterSha8,
-} from "../init-deposit/host-hook-outer.js";
+import { hostHookOuterCommand, hostHookOuterSha8 } from "../init-deposit/host-hook-outer.js";
 import {
   isClosedPlanSequenceShape,
   PLAN_SEQUENCE_CONTRACT,

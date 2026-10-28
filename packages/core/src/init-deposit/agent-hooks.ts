@@ -35,22 +35,21 @@ import {
 } from "./host-hook-outer.js";
 
 export {
+  DIRECT_WRITE_HOOK_MATCHER,
+  MCP_HOOK_MATCHER,
+  SHELL_HOOK_MATCHER,
+  SPAWN_HOOK_MATCHER,
+} from "../hooks/tools.js";
+export {
   HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE,
+  HOST_HOOK_OUTER_PIN_HOOK_BIN_REL,
   hostHookOuterCommand,
   hostHookOuterFileName,
   hostHookOuterRelPath,
   hostHookOuterSha8,
   hostHookOuterSource,
   isHostHookOuterCommand,
-  HOST_HOOK_OUTER_PIN_HOOK_BIN_REL,
 } from "./host-hook-outer.js";
-
-export {
-  DIRECT_WRITE_HOOK_MATCHER,
-  MCP_HOOK_MATCHER,
-  SHELL_HOOK_MATCHER,
-  SPAWN_HOOK_MATCHER,
-} from "../hooks/tools.js";
 /** Legacy bare PATH marker — rewritten to PACKAGE_RELATIVE_HOOK_BIN on deposit (AC9.2). */
 export const DEFT_HOOK_COMMAND_MARKER = "deft-hook";
 export const LEGACY_DEFT_HOOK_COMMAND_MARKER = "deft hook:dispatch";
@@ -1017,7 +1016,8 @@ export function inspectAgentHookDeposit(
       host: "claude",
       path: AGENT_HOOK_PATHS[0],
       compactSupport: "deposited",
-      valid: (config) => hasNestedRegistration(config, "claude", binFor("claude"), { compact: true }),
+      valid: (config) =>
+        hasNestedRegistration(config, "claude", binFor("claude"), { compact: true }),
     },
     {
       host: "grok",
@@ -1035,7 +1035,8 @@ export function inspectAgentHookDeposit(
       host: "codex",
       path: AGENT_HOOK_PATHS[3],
       compactSupport: "unsupported",
-      valid: (config) => hasNestedRegistration(config, "codex", binFor("codex"), { compact: false }),
+      valid: (config) =>
+        hasNestedRegistration(config, "codex", binFor("codex"), { compact: false }),
     },
   ];
 
