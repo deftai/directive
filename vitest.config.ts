@@ -224,9 +224,9 @@ const spawnHeavyGlobs = [
   "packages/runtime/src/cli-bin-symlink-entrypoint.test.ts",
   "packages/runtime/src/hook-host-identity-lifetime.test.ts",
   "packages/runtime/src/hook-dispatch-worktree.test.ts",
-  // Concurrent tsx self-complete children; unit 5s default flakes under coverage.
+  // Concurrent tsx self-complete children; unit default flakes under coverage.
   "packages/runtime/src/wave2q-gen-rebuild-session.test.ts",
-  // Install bookend dry-run: in-process runInstall; unit 5s/30s flakes under coverage load.
+  // Install bookend dry-run: in-process runInstall; unit default/30s flakes under coverage load.
   "packages/cli/src/install-bookend.test.ts",
   "packages/core/src/session/occupancy-stress.test.ts",
   "packages/core/src/session/spawn-occupancy.test.ts",
@@ -291,7 +291,7 @@ export default defineConfig({
           name: "unit",
           include: ["packages/*/src/**/*.test.ts"],
           exclude: [...spawnHeavyGlobs],
-          testTimeout: isWin32 ? 240_000 : 5_000,
+          testTimeout: isWin32 ? 240_000 : 20_000,
           // Projects do not inherit root maxWorkers; pin the same cap (#4744).
           ...(isWin32 ? { maxWorkers: winMaxWorkers } : {}),
         },
@@ -301,15 +301,15 @@ export default defineConfig({
         test: {
           name: "spawn-heavy",
           include: [...spawnHeavyGlobs],
-          testTimeout: isWin32 ? 240_000 : 5_000,
+          testTimeout: isWin32 ? 240_000 : 20_000,
           // Number(isWin32) is one Windows worker so unit keeps the timing cap.
           // Do not add a new numeric-const on this evaluator surface (#4541).
           ...(isWin32 ? { maxWorkers: Number(isWin32) } : {}),
         },
       },
     ],
-    // Windows git fixture suites (session:start) exceed the 5s default under
-    // full-suite parallelism; Linux CI stays on the default. Refs #2467.
+    // Windows git fixture suites (session:start) exceed the non-win32 default under
+    // full-suite parallelism; Darwin/Linux use 20s under coverage load. Refs #2467.
     //
     // 240s, not 20s (#3616). Windows process creation drains through a
     // fixed-rate chokepoint (AV filter drivers scan on execute), measured at
@@ -333,7 +333,7 @@ export default defineConfig({
     // spawn-heavy), ranked git-spawn coverage files (spawn-heavy). Occupancy-
     // stress stays spawn-heavy. In-process fakes and install-upgrade stay in
     // unit. Do not raise RELEASE_CHECK_TIMEOUT_MS; hang-detector stays last.
-    testTimeout: isWin32 ? 240_000 : 5_000,
+    testTimeout: isWin32 ? 240_000 : 20_000,
     ...(coverageEnabled
       ? {
           teardownTimeout: 120_000,

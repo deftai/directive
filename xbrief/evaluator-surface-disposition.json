@@ -1,18 +1,9 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 4980,
   "surfaces": [
-    "packages/core/src/observable-scope/**",
-    "packages/core/src/intent-constraint/**",
-    "packages/cli/src/verify-observable-scope.ts",
-    "packages/cli/src/verify-intent-constraint.ts",
-    "packages/core/src/pr-closing-keywords/**",
-    "packages/core/src/class-checks/evaluate.ts",
-    "packages/core/src/class-checks/evaluate.test.ts",
-    "packages/core/src/consumer-check-contract/evaluate.ts",
     "vitest.config.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renew disclosure for class-checks evaluate companion (#4980 Lane A githooks+setup-wiring). Disclosure only; not #3164 authorization."
+  "note": "Renew disclosure for darwin unit/spawn-heavy/root testTimeout 5s\u219220s + dest-contention guard alignment. Disclosure only; not #3164 authorization."
 }
