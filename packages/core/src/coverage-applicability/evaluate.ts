@@ -1192,7 +1192,6 @@ function readBlobText(
   return { ok: true, text: shown.stdout };
 }
 
-
 /** Legacy Directive host commands that the v261027 .mjs outer replaces (#5994). */
 const LEGACY_DIRECTIVE_HOST_COMMAND_RE =
   /(?:^|[\s"'`])(?:node\s+)?(?:\S*\/)?(?:hook-bin(?:\.js)?|deft-hook-[a-f0-9]{8}\.(?:mjs|sh)|\.grok\/hooks\/deft-pretooluse-wrapper\.sh)(?:\s|$)/;
@@ -1208,7 +1207,9 @@ function commandTextLooksLegacyDirective(value: unknown): boolean {
     return value.hooks.some((h) => commandTextLooksLegacyDirective(h));
   }
   if (Array.isArray(value.command)) {
-    return value.command.some((c) => typeof c === "string" && LEGACY_DIRECTIVE_HOST_COMMAND_RE.test(c));
+    return value.command.some(
+      (c) => typeof c === "string" && LEGACY_DIRECTIVE_HOST_COMMAND_RE.test(c),
+    );
   }
   return false;
 }
@@ -1239,7 +1240,8 @@ function isLegacyDirectiveHostMigration(
   const hadLegacy =
     isPlainObject(baseHooks) &&
     Object.values(baseHooks).some(
-      (entries) => Array.isArray(entries) && entries.some((e) => commandTextLooksLegacyDirective(e)),
+      (entries) =>
+        Array.isArray(entries) && entries.some((e) => commandTextLooksLegacyDirective(e)),
     );
   if (!hadLegacy) return false;
   const normalizedBase: Record<string, unknown> = { ...baseRemainder };
