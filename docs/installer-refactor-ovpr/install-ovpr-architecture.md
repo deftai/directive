@@ -1,5 +1,7 @@
 # Install OVPR — Architecture (active)
 
+**Document revision:** **v261027** (2026-10-27) — host-hook outer + entry-guard map. Tagged lines replace prior text.
+
 Compact map of the One Version Per Repo installer. Normative detail lives in [install-ovpr-requirements.md](./install-ovpr-requirements.md).
 
 ## Packages
@@ -32,10 +34,26 @@ Configured project + bare `install` without `--repair` → exit 2 naming repair 
 ## Layout on disk (consumer)
 
 - Exact pin: `devDependencies["@deftai/directive-runtime"] = "<version>"` (no range).
-- Wiring paths are package-relative: `node_modules/@deftai/directive-runtime/…` (AGENTS managed section, skill pointers, host hooks, git hooks, Taskfile).
+- **(v261027)** Product wiring paths are package-relative under `node_modules/@deftai/directive-runtime/…` (AGENTS managed section, skill pointers, git hooks / Taskfile resolution, pin `hook-bin.js`). **Registered host agent-hook commands** are committed per-host Node `.mjs` outers under the host deposit (for example `.grok/hooks/deft-hook-<sha8>.mjs`); see requirements AC9.1 / AC9.12.
 - Readiness: `.deft/directive/wiring-ready.<runtime-version>.json` (withheld when git/hooksPath cannot activate).
 - Ownership / generation: `GENERATION.json`.
 - **No** `.deft/core` content copy on the OVPR path.
+
+
+## Host agent hooks (v261027)
+
+```text
+Host (Grok / Claude / Cursor / Codex)
+  → node <host-deposit>/deft-hook-<sha8>.mjs --host … --event …
+       → entry guards: disable flag → missing pin (project PM install message) → else
+       → load node_modules/@deftai/directive-runtime/dist/hook-bin.js
+            → policy / allow-deny (dispatcher)
+```
+
+- The `.mjs` outer is deposited and committed; it must run with Node only (no shell `.sh`).
+- Pin product logic stays in `node_modules` (one version). Do not copy full `hook-bin` into `.deft/` or `.agents/`.
+- Git hooks use the deposited `.githooks` helper (Git provides `sh` on Windows); that is a different runner from Grok's no-shell host exec.
+- AC8.6 automatic setup when the pin is present but readiness is stale is unchanged.
 
 ## Preapproval
 
