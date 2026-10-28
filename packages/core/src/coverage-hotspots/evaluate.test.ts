@@ -690,7 +690,7 @@ describe("evaluateCoverageHotspots", () => {
     expect(result.applicability?.outcome).toBe("not-applicable");
   });
 
-  it("keeps Istanbul floor when inert diff still has a coverage report (#5421)", () => {
+  it("emits N/A for an inert diff even when a coverage report exists", () => {
     const root = gitRepo({
       "README.md": "# base\n",
       "coverage/coverage-final.json": JSON.stringify({
@@ -717,9 +717,10 @@ describe("evaluateCoverageHotspots", () => {
       inputBinding: { baseSha, headSha, treeHash },
       useDiffPaths: false,
     });
-    // Report exists → measured path; uncovered branch fails floor.
-    expect(result.exitCode).toBe(1);
-    expect(result.report).not.toBeNull();
+    // N/A rests on applicability alone; the report (failing floor) is not measured.
+    expect(result.exitCode).toBe(3);
+    expect(result.report).toBeNull();
+    expect(result.applicability?.outcome).toBe("not-applicable");
   });
 
   it("refuses unknown/mismatched diffs even when a coverage report exists", () => {

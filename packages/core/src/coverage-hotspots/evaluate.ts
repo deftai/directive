@@ -478,8 +478,9 @@ export function evaluateCoverageHotspots(options: CoverageHotspotsOptions): Cove
   let classifiedCoverablePaths: readonly string[] = [];
 
   // Prefer-A Bound limb 4: classify before requiring Istanbul when applicability is in scope.
-  // Caller pathFilter never authorizes N/A. Diff-level inert alone does not delete the
-  // global floor when a report exists (Istanbul dogfood).
+  // Caller pathFilter never authorizes N/A. N/A rests on applicability alone: an inert
+  // diff emits exit 3 whether or not a report exists (retires the #5421 inert-diff
+  // Istanbul floor; CI vitest coverage thresholds still apply at merge).
   if (checkApplicability && binding !== null) {
     const applicability = evaluateCoverageApplicability({
       projectRoot,
@@ -492,7 +493,7 @@ export function evaluateCoverageHotspots(options: CoverageHotspotsOptions): Cove
     }
     const artifact = buildApplicabilityArtifact(applicability, binding);
 
-    if (applicability.outcome === "not-applicable" && !reportExists) {
+    if (applicability.outcome === "not-applicable") {
       const payload = `${JSON.stringify(artifact, null, 2)}\n`;
       return {
         exitCode: 3,
