@@ -23,7 +23,9 @@ const CONTENT_PACKAGE_NAME = "@deftai/directive-content";
 /** Single remediation when a deposit has no global CLI (#3324 / #3265). */
 const DEPOSIT_REMEDIATION = "npm i -g @deftai/directive";
 const SOURCE_BUILD_REMEDIATION = "task build";
-/** Missing checkout pin remediation (#5994 / AC9.12): project PM first. */
+/** Missing checkout pin remediation (#5994 / AC9.12): project PM first.
+ * pin-bin path never recommends npm i -g (that is DEPOSIT_REMEDIATION only).
+ */
 const PIN_INSTALL_REMEDIATION =
   "Run npm install or pnpm install (or yarn) in this project (missing node_modules/@deftai/directive-runtime)";
 /** Tip dogfood secondary when project install is not enough (#5805). */

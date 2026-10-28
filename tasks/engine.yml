@@ -73,7 +73,8 @@ tasks:
     cmds:
       - |
         set -eu
-        # #5994 / AC9.12: disable BEFORE requiring pin bin.js; quiet skip.
+        # #5994 / AC9.12 / F1: disable BEFORE requiring pin bin.js; quiet skip.
+        # Untracked root .deft-directive-disable → exit 0 (no pin require, no global install).
         if node "{{.TASKFILE_DIR}}/engine-invoke.cjs" disable-active "{{.DEFT_ROOT}}"; then
           exit 0
         fi

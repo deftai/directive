@@ -1193,24 +1193,29 @@ function readBlobText(
 }
 
 /** Legacy Directive host commands that the v261027 .mjs outer replaces (#5994). */
-const LEGACY_DIRECTIVE_HOST_COMMAND_RE =
-  /(?:^|[\s"'`])(?:node\s+)?(?:\S*\/)?(?:hook-bin(?:\.js)?|deft-hook-[a-f0-9]{8}\.(?:mjs|sh)|\.grok\/hooks\/deft-pretooluse-wrapper\.sh)(?:\s|$)/;
-
 function commandTextLooksLegacyDirective(value: unknown): boolean {
-  if (typeof value === "string") return LEGACY_DIRECTIVE_HOST_COMMAND_RE.test(value);
+  if (typeof value === "string") return stringLooksLegacyDirectiveCommand(value);
   if (!isPlainObject(value)) return false;
   for (const key of ["command", "bash", "prompt"] as const) {
     const v = value[key];
-    if (typeof v === "string" && LEGACY_DIRECTIVE_HOST_COMMAND_RE.test(v)) return true;
+    if (typeof v === "string" && stringLooksLegacyDirectiveCommand(v)) return true;
   }
   if (Array.isArray(value.hooks)) {
     return value.hooks.some((h) => commandTextLooksLegacyDirective(h));
   }
   if (Array.isArray(value.command)) {
-    return value.command.some(
-      (c) => typeof c === "string" && LEGACY_DIRECTIVE_HOST_COMMAND_RE.test(c),
-    );
+    return value.command.some((c) => typeof c === "string" && stringLooksLegacyDirectiveCommand(c));
   }
+  return false;
+}
+
+/** Exact supported legacy forms repair still replaces (#5994 Greptile). */
+function stringLooksLegacyDirectiveCommand(text: string): boolean {
+  const s = text.trim();
+  if (s.includes("hook-bin.js") || /(^|[\s/`])hook-bin(?:\s|$)/.test(s)) return true;
+  if (s.includes("deft hook:dispatch")) return true;
+  if (/(?:^|[\s/`])deft-hook(?:-[a-f0-9]{8})?(?:\.(?:mjs|sh))?(?:\s|$)/.test(s)) return true;
+  if (s.includes("deft-pretooluse-wrapper.sh")) return true;
   return false;
 }
 
