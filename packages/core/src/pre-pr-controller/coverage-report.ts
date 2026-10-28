@@ -4,16 +4,9 @@
  * Every helper is total: any error maps to the refuse value (`null`).
  */
 
-import {
-  closeSync,
-  constants,
-  fstatSync,
-  lstatSync,
-  openSync,
-  readFileSync,
-  realpathSync,
-} from "node:fs";
+import { constants, lstatSync, realpathSync } from "node:fs";
 import { join } from "node:path";
+import { readRegularFileNoFollow } from "../fs/contained-write.js";
 
 /** `<projectRoot>/coverage/coverage-final.json`, the one path every pre-PR arm checks. */
 export function prePrCoverageReportPath(projectRoot: string): string {
@@ -44,29 +37,14 @@ export function resolveObservedRoot(projectRoot: string): string | null {
 
 /**
  * Read the report through one fd opened with O_NOFOLLOW, only if that fd is a
- * regular file. A symlinked final component (ELOOP), a non-regular file, or
- * any error returns null. win32 has no O_NOFOLLOW: lstat presence plus the
- * fstat check on the opened fd.
+ * regular file ({@link readRegularFileNoFollow}). A symlinked final component
+ * (ELOOP), a non-regular file, or any error returns null. win32 has no
+ * O_NOFOLLOW: lstat presence plus the fstat check on the opened fd.
  */
 export function readCoverageReportNoFollow(path: string): string | null {
   const noFollow = (constants as { O_NOFOLLOW?: number }).O_NOFOLLOW;
   if (noFollow === undefined && coverageReportPresence(path) !== "present") {
     return null;
   }
-  let fd: number | null = null;
-  try {
-    fd = openSync(path, constants.O_RDONLY | (noFollow ?? 0));
-    if (!fstatSync(fd).isFile()) return null;
-    return readFileSync(fd, "utf8");
-  } catch {
-    return null;
-  } finally {
-    if (fd !== null) {
-      try {
-        closeSync(fd);
-      } catch {
-        // already closed
-      }
-    }
-  }
+  return readRegularFileNoFollow(path);
 }

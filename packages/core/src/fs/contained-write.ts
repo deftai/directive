@@ -43,6 +43,7 @@ import {
   lstatSync,
   mkdirSync,
   openSync,
+  readFileSync,
   realpathSync,
   renameSync,
   rmSync,
@@ -814,6 +815,37 @@ export function fsyncContainedDirectory(dirAbs: string): boolean {
         closeSync(fd);
       } catch {
         /* already closed */
+      }
+    }
+  }
+}
+
+/**
+ * Read-only, no-follow read of one regular file as utf8. Opens `path` with
+ * `O_RDONLY | O_NOFOLLOW` (O_NOFOLLOW where the platform defines it), checks
+ * `fstat` on that same fd is a regular file, reads through the fd, and closes
+ * it in `finally`. Returns null on a symlinked final component (ELOOP), a
+ * non-regular file, or any other error. Never writes.
+ *
+ * Covers the final path component only: a symlinked parent directory is still
+ * followed. Without O_NOFOLLOW (win32) a symlinked final component is followed
+ * too, so callers there must check presence by lstat first.
+ */
+export function readRegularFileNoFollow(path: string): string | null {
+  const noFollow = (constants as { O_NOFOLLOW?: number }).O_NOFOLLOW;
+  let fd: number | null = null;
+  try {
+    fd = openSync(path, constants.O_RDONLY | (noFollow ?? 0));
+    if (!fstatSync(fd).isFile()) return null;
+    return readFileSync(fd, "utf8");
+  } catch {
+    return null;
+  } finally {
+    if (fd !== null) {
+      try {
+        closeSync(fd);
+      } catch {
+        // already closed
       }
     }
   }
