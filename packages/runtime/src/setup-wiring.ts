@@ -902,6 +902,7 @@ export function ensureHostHooks(
   return { created, modified };
 }
 
+// Taskfile F1 disable-first + project-PM pin miss: tasks/engine.yml + tasks/engine-invoke.cjs (#5994).
 const GITHOOK_HELPER = `#!/usr/bin/env sh
 # Package-relative Directive git-hook helper (AC9.9 / AC9.12 / #5994).
 # Sourced by pre-commit/pre-push; defines run_directive.
