@@ -428,13 +428,20 @@ export function run(argv: string[]): number {
         return 2;
       }
       const spec = phaseSpec(phase);
-      const d = observeCommandPhase(store, args.runId, {
-        phaseId: phase,
-        command: args.command.length > 0 ? args.command : (spec.command ?? ""),
-        exitCode: args.exitCode,
-        inputHash: args.inputHash ?? rec?.inputHash ?? "",
-        skipReason: args.skipReason,
-      });
+      // Same root rule as push-admit: one report path for observe and satisfy.
+      const projectRoot = args.projectRoot?.trim() || process.cwd();
+      const d = observeCommandPhase(
+        store,
+        args.runId,
+        {
+          phaseId: phase,
+          command: args.command.length > 0 ? args.command : (spec.command ?? ""),
+          exitCode: args.exitCode,
+          inputHash: args.inputHash ?? rec?.inputHash ?? "",
+          skipReason: args.skipReason,
+        },
+        { projectRoot },
+      );
       emit(args.json, d, d.message, !d.ok);
       return d.ok ? 0 : 1;
     }
