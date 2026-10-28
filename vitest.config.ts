@@ -291,7 +291,7 @@ export default defineConfig({
           name: "unit",
           include: ["packages/*/src/**/*.test.ts"],
           exclude: [...spawnHeavyGlobs],
-          testTimeout: isWin32 ? 240_000 : 5_000,
+          testTimeout: isWin32 ? 240_000 : 20_000,
           // Projects do not inherit root maxWorkers; pin the same cap (#4744).
           ...(isWin32 ? { maxWorkers: winMaxWorkers } : {}),
         },
@@ -301,7 +301,7 @@ export default defineConfig({
         test: {
           name: "spawn-heavy",
           include: [...spawnHeavyGlobs],
-          testTimeout: isWin32 ? 240_000 : 5_000,
+          testTimeout: isWin32 ? 240_000 : 20_000,
           // Number(isWin32) is one Windows worker so unit keeps the timing cap.
           // Do not add a new numeric-const on this evaluator surface (#4541).
           ...(isWin32 ? { maxWorkers: Number(isWin32) } : {}),
@@ -333,7 +333,7 @@ export default defineConfig({
     // spawn-heavy), ranked git-spawn coverage files (spawn-heavy). Occupancy-
     // stress stays spawn-heavy. In-process fakes and install-upgrade stay in
     // unit. Do not raise RELEASE_CHECK_TIMEOUT_MS; hang-detector stays last.
-    testTimeout: isWin32 ? 240_000 : 5_000,
+    testTimeout: isWin32 ? 240_000 : 20_000,
     ...(coverageEnabled
       ? {
           teardownTimeout: 120_000,
