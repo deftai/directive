@@ -27,6 +27,7 @@ import {
 } from "./init-deposit.js";
 import { type LegacyLayoutDetection, LegacyLayoutRefusedError } from "./legacy-detect.js";
 import { PIN_DEPENDENCY_NAME } from "./scaffold.js";
+import { hostHookOuterCommand, hostHookOuterSha8 } from "./host-hook-outer.js";
 import type { GitExecFn } from "./update-git-preflight.js";
 
 // `JSON.parse` returns top-level `null` (not a throw) for the literal `null`,
@@ -201,9 +202,9 @@ describe("runInitDeposit", destContentionItTimeout(), () => {
     const pkg = parseJsonObject(readFileSync(join(project, "package.json"), "utf8"));
     expect(pkg.private).toBe(true);
     expect((pkg.devDependencies as Record<string, string>)[PIN_DEPENDENCY_NAME]).toBe("0.53.0");
-    // Legacy init has no local @deftai/directive-runtime — keep working bare PATH.
+    // #5994 v261027: greenfield deposits the content-hash .mjs outer (F2).
     expect(readFileSync(join(project, ".codex", "hooks.json"), "utf8")).toContain(
-      "deft-hook --host codex --event tool.before",
+      `${hostHookOuterCommand("codex", hostHookOuterSha8())} --host codex --event tool.before`,
     );
     expect(result.taskfileWired).toBe(true);
     expect(lines.join("")).toContain("AGENTS.md created");

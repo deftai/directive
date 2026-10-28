@@ -902,7 +902,9 @@ export function ensureHostHooks(
   return { created, modified };
 }
 
-// Taskfile F1 disable-first + project-PM pin miss: tasks/engine.yml + tasks/engine-invoke.cjs (#5994).
+// Taskfile F1 disable-first + project-PM pin miss live in tasks/engine.yml +
+// tasks/engine-invoke.cjs (#5994) — disable-active runs BEFORE pin-bin / is-buildable-source;
+// pin-bin also quiet-exits when disable is active. This GITHOOK_HELPER is the .githooks twin.
 const GITHOOK_HELPER = `#!/usr/bin/env sh
 # Package-relative Directive git-hook helper (AC9.9 / AC9.12 / #5994).
 # Sourced by pre-commit/pre-push; defines run_directive.
