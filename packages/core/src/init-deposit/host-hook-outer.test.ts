@@ -78,5 +78,35 @@ describe("host-hook-outer (#5994)", () => {
     const source = hostHookOuterSource();
     expect(source).toContain("failed to spawn pin hook-bin");
     expect(source).toContain("child.error");
+    expect(source).toContain("failClosedUnusablePin");
+    expect(source).not.toContain("process.exit(child.status === null ? 1 : child.status)");
+  });
+
+  it("F1: unusable pin (non-zero child) emits Grok deny JSON", () => {
+    const root = mkdtempSync(join(tmpdir(), "outer-unusable-"));
+    try {
+      mkdirSync(join(root, ".grok", "hooks"), { recursive: true });
+      mkdirSync(join(root, "node_modules", "@deftai", "directive-runtime", "dist"), {
+        recursive: true,
+      });
+      writeFileSync(join(root, "package.json"), "{}\n");
+      // Exists but exits non-zero without a decision (broken import stand-in).
+      writeFileSync(
+        join(root, "node_modules/@deftai/directive-runtime/dist/hook-bin.js"),
+        "process.exit(2);\n",
+      );
+      const sha8 = hostHookOuterSha8();
+      const abs = join(root, hostHookOuterRelPath("grok", sha8));
+      writeFileSync(abs, hostHookOuterSource());
+      const r = spawnSync(process.execPath, [abs, "--host", "grok", "--event", "tool.before"], {
+        cwd: root,
+        encoding: "utf8",
+      });
+      expect(r.status).toBe(0);
+      expect(r.stdout).toContain(HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE);
+      expect(r.stdout).toContain('"decision":"deny"');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

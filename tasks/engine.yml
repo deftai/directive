@@ -73,6 +73,10 @@ tasks:
     cmds:
       - |
         set -eu
+        # #5994 / AC9.12: disable BEFORE requiring pin bin.js; quiet skip.
+        if node "{{.TASKFILE_DIR}}/engine-invoke.cjs" disable-active "{{.DEFT_ROOT}}"; then
+          exit 0
+        fi
         # #3324: deposit marker forces is_buildable_source=0 (consumer / OVPR path).
         is_buildable_source=0
         if node "{{.TASKFILE_DIR}}/engine-invoke.cjs" is-buildable-source "{{.DEFT_ROOT}}"; then

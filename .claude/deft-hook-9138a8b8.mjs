@@ -52,7 +52,10 @@ function quietAllow() {
   process.exit(0);
 }
 
-function failClosedMissingPin(host) {
+function failClosedUnusablePin(host, detail) {
+  if (detail) {
+    process.stderr.write(detail + "\n");
+  }
   if (host === "grok") {
     process.stdout.write(JSON.stringify({ decision: "deny", reason: GUIDANCE }) + "\n");
     process.exit(0);
@@ -72,7 +75,7 @@ if (existsSync(killPath) && !isSymlink(killPath) && !isGitTracked(root, FLAG)) {
 
 const pin = join(root, PIN_REL);
 if (!existsSync(pin)) {
-  failClosedMissingPin(host);
+  failClosedUnusablePin(host, "");
 }
 
 const child = spawnSync(process.execPath, [pin, ...argv], {
@@ -81,8 +84,20 @@ const child = spawnSync(process.execPath, [pin, ...argv], {
   stdio: "inherit",
 });
 if (child.error) {
-  process.stderr.write(
-    "Directive hooks: failed to spawn pin hook-bin: " + child.error.message + "\n",
+  failClosedUnusablePin(
+    host,
+    "Directive hooks: failed to spawn pin hook-bin: " + child.error.message,
   );
 }
-process.exit(child.status === null ? 1 : child.status);
+if (child.status === null) {
+  failClosedUnusablePin(
+    host,
+    "Directive hooks: pin hook-bin terminated without an exit status",
+  );
+}
+if (child.status !== 0) {
+  // Exists-but-unusable (e.g. broken import): Grok needs an explicit deny JSON
+  // when the child did not emit a decision (#5994 / Greptile P1).
+  failClosedUnusablePin(host, "");
+}
+process.exit(0);

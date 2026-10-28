@@ -615,5 +615,19 @@ describe("framework pin exclusive invoke (#5805)", () => {
     const r = spawnSync(process.execPath, [script, "pin-bin", root], { encoding: "utf8" });
     assert.equal(r.status, 2);
     assert.match(r.stderr, /missing checkout pin/);
+    assert.match(r.stderr, /npm install or pnpm install/);
+  });
+
+  it("disable-active / pin-bin quiet-skip when untracked disable flag present (#5994)", () => {
+    const root = pinTempRoot();
+    const script = join(__dirname, "engine-invoke.cjs");
+    writeFileSync(join(root, ".deft-directive-disable"), "1\n");
+    // Ensure git repo so ls-files --error-unmatch can run (untracked → active).
+    spawnSync("git", ["init"], { cwd: root, stdio: "ignore" });
+    const d = spawnSync(process.execPath, [script, "disable-active", root], { encoding: "utf8" });
+    assert.equal(d.status, 0);
+    const r = spawnSync(process.execPath, [script, "pin-bin", root], { encoding: "utf8" });
+    assert.equal(r.status, 0);
+    assert.equal((r.stdout || "").trim(), "");
   });
 });

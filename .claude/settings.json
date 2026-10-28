@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/deft-hook-b4402c77.mjs --host claude --event session.start",
+            "command": "node .claude/deft-hook-9138a8b8.mjs --host claude --event session.start",
             "timeout": 5
           }
         ]
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/deft-hook-b4402c77.mjs --host claude --event tool.before",
+            "command": "node .claude/deft-hook-9138a8b8.mjs --host claude --event tool.before",
             "timeout": 30
           }
         ]
@@ -27,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/deft-hook-b4402c77.mjs --host claude --event tool.before",
+            "command": "node .claude/deft-hook-9138a8b8.mjs --host claude --event tool.before",
             "timeout": 30
           }
         ]
@@ -37,7 +37,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/deft-hook-b4402c77.mjs --host claude --event tool.before",
+            "command": "node .claude/deft-hook-9138a8b8.mjs --host claude --event tool.before",
             "timeout": 30
           }
         ]
@@ -47,7 +47,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/deft-hook-b4402c77.mjs --host claude --event tool.before",
+            "command": "node .claude/deft-hook-9138a8b8.mjs --host claude --event tool.before",
             "timeout": 30
           }
         ]
@@ -57,7 +57,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/deft-hook-b4402c77.mjs --host claude --event tool.before",
+            "command": "node .claude/deft-hook-9138a8b8.mjs --host claude --event tool.before",
             "timeout": 30
           }
         ]
@@ -68,7 +68,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/deft-hook-b4402c77.mjs --host claude --event session.compact",
+            "command": "node .claude/deft-hook-9138a8b8.mjs --host claude --event session.compact",
             "timeout": 5
           }
         ]
@@ -79,7 +79,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/deft-hook-b4402c77.mjs --host claude --event session.compact",
+            "command": "node .claude/deft-hook-9138a8b8.mjs --host claude --event session.compact",
             "timeout": 5
           }
         ]

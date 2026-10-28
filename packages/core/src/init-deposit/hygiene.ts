@@ -1039,7 +1039,28 @@ export function frameworkStagePaths(
     if (matcher.exact) {
       add(matcher.exact);
     } else if (matcher.prefix) {
-      add(matcher.prefix.replace(/\/$/, ""));
+      const prefix = matcher.prefix;
+      // Directory prefixes end with "/"; filename prefixes (e.g. deft-hook-) must
+      // enumerate matching siblings (#5994 / Greptile staging P2).
+      if (prefix.endsWith("/")) {
+        add(prefix.replace(/\/$/, ""));
+      } else {
+        const slash = prefix.lastIndexOf("/");
+        const dir = slash >= 0 ? prefix.slice(0, slash) : ".";
+        const filePrefix = slash >= 0 ? prefix.slice(slash + 1) : prefix;
+        const absDir = dir === "." ? projectDir : join(projectDir, dir);
+        if (existsSync(absDir)) {
+          try {
+            for (const name of readdirSync(absDir)) {
+              if (name.startsWith(filePrefix)) {
+                add(dir === "." ? name : `${dir}/${name}`);
+              }
+            }
+          } catch {
+            /* ignore unreadable host dirs */
+          }
+        }
+      }
     }
   }
   return paths;

@@ -1,7 +1,7 @@
 {
   "xBRIEFInfo": {
     "version": "0.8",
-    "description": "Scope xBRIEF for #5994 — v261027 thin host .mjs outer; kill .sh emit; unify entry guards (F1/F2)",
+    "description": "Scope xBRIEF for #5994 \u2014 v261027 thin host .mjs outer; kill .sh emit; unify entry guards (F1/F2)",
     "updated": "2026-10-28T15:50:29Z"
   },
   "plan": {
@@ -22,7 +22,7 @@
       "Overview": "Product PR only. Normative SoT: install-ovpr-requirements.md + install-ovpr-architecture.md revision v261027 (AC9.1, AC9.12, Decision 7, AC14.3). Out of scope: #5956 mega, #5920/#5988, OVPR doc rewrites, maintainer-tag release + pin bump (release owner after tip).",
       "Labels": "adoption-blocker, core-capabilities, promise:lifecycle, harness",
       "UserStory": "As a Prefer-A / dogfood maintainer, I want repair/setup/self-complete to deposit and keep a thin .mjs host outer with quiet disable and project-PM missing-pin messaging, so that merge gates stop rewriting .grok/hooks toward .sh or direct hook-bin and AC9.1 Decision 7 is satisfied on tip.",
-      "ImplementationPlan": "1) Shared thin outer template + content-hash deft-hook-<sha8>.mjs naming; F1 order + project-PM missing-pin string (no INSTALLATION_RECOVERY_GUIDANCE / AC9.7 on those paths). 2) Core agent-hooks + runtime setup-wiring/ensureHostHooks/nestedToolCommand converge; delete Grok→GROK_PRETOOLUSE_WRAPPER_COMMAND. 3) Legacy rewrite: .sh AND direct registered hook-bin → .mjs. 4) Git helper + Taskfile: disable before requiring bin.js. 5) Inspect/drift + hygiene managed paths + coverage-applicability/classifier: only .mjs success. 6) Dogfood host deposits + helper templates. 7) Tests per #5994 plan. 8) CHANGELOG this issue only. 9) pre-pr + PR stop-at:pr-open."
+      "ImplementationPlan": "1) Shared thin outer template + content-hash deft-hook-<sha8>.mjs naming; F1 order + project-PM missing-pin string (no INSTALLATION_RECOVERY_GUIDANCE / AC9.7 on those paths). 2) Core agent-hooks + runtime setup-wiring/ensureHostHooks/nestedToolCommand converge; delete Grok\u2192GROK_PRETOOLUSE_WRAPPER_COMMAND. 3) Legacy rewrite: .sh AND direct registered hook-bin \u2192 .mjs. 4) Git helper + Taskfile: disable before requiring bin.js. 5) Inspect/drift + hygiene managed paths + coverage-applicability/classifier: only .mjs success. 6) Dogfood host deposits + helper templates. 7) Tests per #5994 plan. 8) CHANGELOG this issue only. 9) pre-pr + PR stop-at:pr-open."
     },
     "items": [
       {
@@ -39,7 +39,7 @@
         "title": "All emitters converge; no .sh or direct registered hook-bin",
         "status": "completed",
         "narrative": {
-          "Acceptance": "core init-deposit agent-hooks and runtime setup-wiring ensureHostHooks/nestedToolCommand (plus install/upgrade/repair/self-complete paths they feed) emit node <deposit>/deft-hook-<sha8>.mjs … only; never .sh; never direct registered hook-bin.js as the host command",
+          "Acceptance": "core init-deposit agent-hooks and runtime setup-wiring ensureHostHooks/nestedToolCommand (plus install/upgrade/repair/self-complete paths they feed) emit node <deposit>/deft-hook-<sha8>.mjs \u2026 only; never .sh; never direct registered hook-bin.js as the host command",
           "Traces": "#5994 F2 Decision 7"
         }
       },
@@ -89,7 +89,7 @@
         },
         {
           "id": 2,
-          "text": "core init-deposit agent-hooks and runtime setup-wiring ensureHostHooks/nestedToolCommand (plus install/upgrade/repair/self-complete paths they feed) emit node <deposit>/deft-hook-<sha8>.mjs … only; never .sh; never direct registered hook-bin.js as the host command",
+          "text": "core init-deposit agent-hooks and runtime setup-wiring ensureHostHooks/nestedToolCommand (plus install/upgrade/repair/self-complete paths they feed) emit node <deposit>/deft-hook-<sha8>.mjs \u2026 only; never .sh; never direct registered hook-bin.js as the host command",
           "artifact_path": "packages/runtime/src/setup-wiring.ts",
           "ambiguous": false,
           "provenance": "statement"
@@ -175,7 +175,20 @@
           "packages/core/src/class-checks/evaluate.ts",
           "packages/core/src/class-checks/evaluate.test.ts",
           "packages/runtime/src/pre-pr-run.ts",
-          "packages/runtime/src/pre-pr-run.test.ts"
+          "packages/runtime/src/pre-pr-run.test.ts",
+          "tasks/engine.yml",
+          "tasks/engine-invoke.cjs",
+          "tasks/engine-invoke.test.cjs",
+          "packages/runtime/src/doctor-diagnose.ts",
+          "packages/runtime/src/doctor-diagnose.test.ts",
+          ".claude/deft-hook-b4402c77.mjs",
+          ".grok/hooks/deft-hook-b4402c77.mjs",
+          ".cursor/hooks/deft-hook-b4402c77.mjs",
+          ".codex/deft-hook-b4402c77.mjs",
+          ".grok/hooks/deft-hook-9138a8b8.mjs",
+          ".cursor/hooks/deft-hook-9138a8b8.mjs",
+          ".claude/deft-hook-9138a8b8.mjs",
+          ".codex/deft-hook-9138a8b8.mjs"
         ],
         "module_boundary": "packages/core/src/init-deposit/ + packages/runtime/src/setup-wiring.ts",
         "cohesion_exemption": "Dogfood host deposits + git helper template + CHANGELOG ride with generator convergence"
@@ -267,7 +280,20 @@
         "packages/core/src/class-checks/evaluate.ts",
         "packages/core/src/class-checks/evaluate.test.ts",
         "packages/runtime/src/pre-pr-run.ts",
-        "packages/runtime/src/pre-pr-run.test.ts"
+        "packages/runtime/src/pre-pr-run.test.ts",
+        "tasks/engine.yml",
+        "tasks/engine-invoke.cjs",
+        "tasks/engine-invoke.test.cjs",
+        "packages/runtime/src/doctor-diagnose.ts",
+        "packages/runtime/src/doctor-diagnose.test.ts",
+        ".claude/deft-hook-b4402c77.mjs",
+        ".grok/hooks/deft-hook-b4402c77.mjs",
+        ".cursor/hooks/deft-hook-b4402c77.mjs",
+        ".codex/deft-hook-b4402c77.mjs",
+        ".grok/hooks/deft-hook-9138a8b8.mjs",
+        ".cursor/hooks/deft-hook-9138a8b8.mjs",
+        ".claude/deft-hook-9138a8b8.mjs",
+        ".codex/deft-hook-9138a8b8.mjs"
       ],
       "allow": [
         "packages/core/src/init-deposit/agent-hooks.ts",
@@ -300,7 +326,20 @@
         "packages/core/src/class-checks/evaluate.ts",
         "packages/core/src/class-checks/evaluate.test.ts",
         "packages/runtime/src/pre-pr-run.ts",
-        "packages/runtime/src/pre-pr-run.test.ts"
+        "packages/runtime/src/pre-pr-run.test.ts",
+        "tasks/engine.yml",
+        "tasks/engine-invoke.cjs",
+        "tasks/engine-invoke.test.cjs",
+        "packages/runtime/src/doctor-diagnose.ts",
+        "packages/runtime/src/doctor-diagnose.test.ts",
+        ".claude/deft-hook-b4402c77.mjs",
+        ".grok/hooks/deft-hook-b4402c77.mjs",
+        ".cursor/hooks/deft-hook-b4402c77.mjs",
+        ".codex/deft-hook-b4402c77.mjs",
+        ".grok/hooks/deft-hook-9138a8b8.mjs",
+        ".cursor/hooks/deft-hook-9138a8b8.mjs",
+        ".claude/deft-hook-9138a8b8.mjs",
+        ".codex/deft-hook-9138a8b8.mjs"
       ]
     }
   }

@@ -1226,13 +1226,28 @@ function proveHostRegistrationManagedProjectionInert(
     const headPart = partitionHostRegistration(host, headBlob.value);
     if (basePart === null || headPart === null) return change;
     if (!headPart.managedComplete) return change;
-    if (!structuralEqual(basePart.consumerRemainder, headPart.consumerRemainder)) return change;
-    return {
-      status: change.status,
-      path: change.path,
-      oldPath: change.oldPath,
-      classification: "inert",
-    };
+    // Same consumer remainder → ordinary managed refresh.
+    if (structuralEqual(basePart.consumerRemainder, headPart.consumerRemainder)) {
+      return {
+        status: change.status,
+        path: change.path,
+        oldPath: change.oldPath,
+        classification: "inert",
+      };
+    }
+    // #5994: legacy registered command → v261027 .mjs outer is a managed migration.
+    // Base entries that were non-canonical (hook-bin / .sh) land in consumerRemainder;
+    // head is fully managed. Admit when head has no consumer hooks left.
+    const headConsumerHooks = headPart.consumerRemainder.hooks;
+    if (headConsumerHooks === undefined) {
+      return {
+        status: change.status,
+        path: change.path,
+        oldPath: change.oldPath,
+        classification: "inert",
+      };
+    }
+    return change;
   });
 }
 
@@ -1274,6 +1289,13 @@ export function classifyChangedPath(
   const base = basenameOf(p);
   const ext = extensionOf(p);
 
+  // #5994: content-hashed host outers are deposit artifacts, not product surface.
+  if (
+    /^\.(grok\/hooks|cursor\/hooks|claude|codex)\/deft-hook-[a-f0-9]{8}\.mjs$/.test(p)
+  ) {
+    return "inert";
+  }
+
   if (isCoverableConfig(p)) return "coverable";
   if (COVERABLE_EXTENSIONS.has(ext)) {
     // Declaration files remain coverable (they are TypeScript surface).
@@ -1290,6 +1312,9 @@ export function classifyChangedPath(
   if (isResidualDepositInertPath(p)) return "inert";
 
   if (INERT_BASENAMES.has(base)) return "inert";
+
+  // #5994 / AC9.12: committed Taskfile engine entry is framework deposit, not product.
+  if (p === "tasks/engine.yml") return "inert";
 
   // Planning / design / decision artifacts under known roots.
   if (
