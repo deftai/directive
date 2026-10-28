@@ -5,5 +5,5 @@
     "vitest.config.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renew disclosure for darwin unit/spawn-heavy/root testTimeout 5s\u219220s under full-suite coverage load (merge_chokepoint flake unblock). Disclosure only; not #3164 authorization."
+  "note": "Renew disclosure for darwin unit/spawn-heavy/root testTimeout 5s\u219220s + dest-contention guard alignment. Disclosure only; not #3164 authorization."
 }
