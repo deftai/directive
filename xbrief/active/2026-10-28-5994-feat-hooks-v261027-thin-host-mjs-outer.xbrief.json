@@ -231,7 +231,8 @@
         "file_scope_confidence": "high",
         "effort": "M"
       },
-      "capacityBucket": "agentic-debt"
+      "capacityBucket": "agentic-debt",
+      "productPullRequest": 6016
     },
     "file_scope": {
       "schema": "deft.scope.file_scope.v1",
@@ -302,8 +303,5 @@
         "packages/runtime/src/pre-pr-run.test.ts"
       ]
     }
-  },
-  "metadata": {
-    "productPullRequest": 6016
   }
 }
