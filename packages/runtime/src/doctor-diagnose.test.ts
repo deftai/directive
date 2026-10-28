@@ -349,6 +349,16 @@ describe("POST-CONV-DOC / AC12.3 header vs skill pointers (AC10.3)", () => {
     expect(text).toMatch(/skill pointers: FAIL/);
   });
 
+  it("accepts v261027 host .mjs outer as hook command form (#5994)", () => {
+    const root = tempRoot();
+    const installed = runSetup({ operation: "install", from: "none", root });
+    pinRuntime(root, installed.runtimeVersion);
+    writeLockfileNpm(root, installed.runtimeVersion);
+    writeDataSchema(root, CURRENT_DATA_SCHEMA_VERSION);
+    const diag = runDoctorDiagnosis(root);
+    expect(diag.surfaces.hookCommandForm.ok).toBe(true);
+  });
+
   it("ignores stale .deft/core prose outside the managed section after convert", () => {
     const root = tempRoot();
     const installed = runSetup({ operation: "install", from: "none", root });
