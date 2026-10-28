@@ -73,7 +73,7 @@
     ],
     "acceptance": {
       "commands": [
-        "pnpm exec vitest run packages/core/src/init-deposit/agent-hooks.test.ts packages/core/src/init-deposit/hygiene.test.ts packages/core/src/coverage-applicability/evaluate.test.ts packages/runtime/src/setup-wiring.test.ts packages/runtime/src/setup-wiring-ovpr-hooks-red.test.ts"
+        "pnpm exec vitest run packages/core/src/init-deposit/agent-hooks.test.ts packages/core/src/init-deposit/hygiene.test.ts packages/core/src/init-deposit/host-hook-outer.test.ts packages/core/src/init-deposit/init-deposit.test.ts packages/core/src/init-deposit/refresh.test.ts packages/core/src/coverage-applicability/evaluate.test.ts packages/runtime/src/setup-wiring.test.ts packages/runtime/src/setup-wiring-ovpr-hooks-red.test.ts"
       ],
       "none_stated": false,
       "source_rung": "derived",
@@ -214,7 +214,7 @@
         "depends_on": [],
         "model_tier": "standard",
         "verify_commands": [
-          "pnpm exec vitest run packages/core/src/init-deposit/agent-hooks.test.ts packages/core/src/init-deposit/hygiene.test.ts packages/core/src/coverage-applicability/evaluate.test.ts packages/runtime/src/setup-wiring.test.ts packages/runtime/src/setup-wiring-ovpr-hooks-red.test.ts"
+          "pnpm exec vitest run packages/core/src/init-deposit/agent-hooks.test.ts packages/core/src/init-deposit/hygiene.test.ts packages/core/src/init-deposit/host-hook-outer.test.ts packages/core/src/init-deposit/init-deposit.test.ts packages/core/src/init-deposit/refresh.test.ts packages/core/src/coverage-applicability/evaluate.test.ts packages/runtime/src/setup-wiring.test.ts packages/runtime/src/setup-wiring-ovpr-hooks-red.test.ts"
         ],
         "file_scope": [
           "packages/core/src/init-deposit/agent-hooks.ts",
