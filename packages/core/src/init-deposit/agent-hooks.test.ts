@@ -1,13 +1,5 @@
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  statSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+// readdirSync used below
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -46,6 +38,12 @@ import {
   SPAWN_HOOK_MATCHER,
   writeAgentHookDeposit,
 } from "./agent-hooks.js";
+import {
+  hostHookOuterCommand,
+  hostHookOuterSha8,
+  isHostHookOuterCommand,
+} from "./host-hook-outer.js";
+
 
 const temps: string[] = [];
 afterEach(() => {
@@ -80,6 +78,11 @@ function writeProjectDefinition(root: string, hostHooks: Record<string, boolean>
   );
 }
 
+
+function expectedOuterCmd(host: "claude" | "grok" | "cursor" | "codex", event: string): string {
+  return `${hostHookOuterCommand(host, hostHookOuterSha8())} --host ${host} --event ${event}`;
+}
+
 describe("writeAgentHookDeposit", () => {
   it("deposits native Claude, Grok, Cursor, and Codex SessionStart/direct-write hooks", () => {
     const root = project();
@@ -107,7 +110,7 @@ describe("writeAgentHookDeposit", () => {
       ),
     );
     expect(preToolCommands.length).toBeGreaterThan(0);
-    const intentionalGrokPreTool = `${PACKAGE_RELATIVE_HOOK_BIN} --host grok --event tool.before`;
+    const intentionalGrokPreTool = expectedOuterCmd("grok", "tool.before");
     for (const cmd of preToolCommands) {
       expect(cmd).toBe(intentionalGrokPreTool);
       expect(isGrokWrapperCommand(cmd)).toBe(false);
@@ -121,18 +124,13 @@ describe("writeAgentHookDeposit", () => {
       true,
     );
     expect(sessionCommands.every((cmd) => !isGrokWrapperCommand(cmd))).toBe(true);
-    // Unused .sh wrapper file deposit remains OK for #5956-A (unreferenced by PreToolUse).
-    expect(existsSync(join(root, GROK_PRETOOLUSE_WRAPPER_REL_PATH))).toBe(true);
-    expect(readFileSync(join(root, GROK_PRETOOLUSE_WRAPPER_REL_PATH), "utf8")).toContain(
-      "node_modules/@deftai/directive-runtime/dist/hook-bin.js",
-    );
-    expect(readFileSync(join(root, GROK_PRETOOLUSE_WRAPPER_REL_PATH), "utf8")).not.toContain(
-      "command -v deft-hook",
-    );
-    expect(readFileSync(join(root, GROK_PRETOOLUSE_WRAPPER_REL_PATH), "utf8")).toContain("#5656");
-    if (process.platform !== "win32") {
-      expect(statSync(join(root, GROK_PRETOOLUSE_WRAPPER_REL_PATH)).mode & 0o111).not.toBe(0);
-    }
+    // #5994: live deposit no longer writes the legacy .sh wrapper.
+    expect(existsSync(join(root, GROK_PRETOOLUSE_WRAPPER_REL_PATH))).toBe(false);
+    expect(
+      readdirSync(join(root, ".grok/hooks")).some(
+        (f) => f.startsWith("deft-hook-") && f.endsWith(".mjs"),
+      ),
+    ).toBe(true);
     expect(readFileSync(join(root, ".cursor/hooks.json"), "utf8")).toContain(
       "--host cursor --event tool.before",
     );
@@ -396,9 +394,8 @@ describe("writeAgentHookDeposit", () => {
     for (const path of AGENT_HOOK_PATHS) {
       const deposit = readFileSync(join(root, path), "utf8");
       expect(deposit.split(DIRECT_WRITE_HOOK_MATCHER)).toHaveLength(2);
-      expect(deposit).toContain(
-        "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host",
-      );
+      expect(deposit).toMatch(/node \S*deft-hook-[a-f0-9]{8}\.mjs --host/);
+      expect(deposit).not.toContain("deft-pretooluse-wrapper.sh");
     }
   });
 
@@ -406,8 +403,8 @@ describe("writeAgentHookDeposit", () => {
     const root = project({ withRuntime: false });
     writeAgentHookDeposit(root);
     const claude = readFileSync(join(root, ".claude/settings.json"), "utf8");
-    expect(claude).toContain("deft-hook --host claude");
-    expect(claude).not.toContain("directive-runtime/dist/hook-bin.js");
+    expect(claude).toMatch(/node \.claude\/deft-hook-[a-f0-9]{8}\.mjs --host claude/);
+    expect(claude).not.toContain("deft-pretooluse-wrapper.sh");
   });
 
   it("replaces legacy Cursor adapter registrations with one fast direct-write hook", () => {
@@ -989,7 +986,7 @@ describe("inspectAgentHookDeposit", () => {
       status: "drifted",
     });
     expect(inspectAgentHookDeposit(root).find((entry) => entry.host === "grok")?.detail).toMatch(
-      /still references.*deft-pretooluse-wrapper\.sh/,
+      /legacy form|#5994|AC9\.1/,
     );
 
     writeAgentHookDeposit(root, { printf: () => undefined });
@@ -1003,7 +1000,7 @@ describe("inspectAgentHookDeposit", () => {
         typeof hook.command === "string" ? [hook.command] : [],
       ),
     );
-    const intentionalGrokPreTool = `${PACKAGE_RELATIVE_HOOK_BIN} --host grok --event tool.before`;
+    const intentionalGrokPreTool = expectedOuterCmd("grok", "tool.before");
     const managedCommands = commands.filter((cmd) => cmd !== "./custom-grok-check.sh");
     expect(managedCommands.length).toBeGreaterThan(0);
     expect(managedCommands.every((cmd) => cmd === intentionalGrokPreTool)).toBe(true);
@@ -1017,7 +1014,7 @@ describe("inspectAgentHookDeposit", () => {
   it("treats non-array Grok PreToolUse as registration drift (#5715)", () => {
     const root = project();
     writeAgentHookDeposit(root, { printf: () => undefined });
-    expect(existsSync(join(root, GROK_PRETOOLUSE_WRAPPER_REL_PATH))).toBe(true);
+    expect(existsSync(join(root, GROK_PRETOOLUSE_WRAPPER_REL_PATH))).toBe(false);
     const grokPath = join(root, ".grok/hooks/deft.json");
     const grok = JSON.parse(readFileSync(grokPath, "utf8")) as {
       hooks: Record<string, unknown>;
@@ -1051,8 +1048,8 @@ describe("inspectAgentHookDeposit", () => {
     expect(doubled).not.toBe(join(root, GROK_PRETOOLUSE_WRAPPER_REL_PATH));
     const grokInspect = inspectAgentHookDeposit(root).find((entry) => entry.host === "grok");
     expect(grokInspect).toMatchObject({ status: "drifted" });
-    expect(grokInspect?.detail).toMatch(/still references.*deft-pretooluse-wrapper\.sh/);
-    expect(grokInspect?.detail).toMatch(/hook-bin\.js/);
+    expect(grokInspect?.detail).toMatch(/legacy form|deft-hook-<sha8>\.mjs|#5994/);
+    expect(grokInspect?.detail).toMatch(/AC9\.1|#5994|legacy/);
     expect(grokInspect?.detail).toMatch(/directive install --repair/);
   });
 
@@ -1060,11 +1057,10 @@ describe("inspectAgentHookDeposit", () => {
     const root = project();
     writeAgentHookDeposit(root);
     const wrapper = join(root, ".grok/hooks/deft-pretooluse-wrapper.sh");
-    expect(existsSync(wrapper)).toBe(true);
-    rmSync(wrapper);
-    expect(inspectAgentHookDeposit(root).find((entry) => entry.host === "grok")).toMatchObject({
-      status: "healthy",
-    });
+    expect(existsSync(wrapper)).toBe(false);
+    expect(inspectAgentHookDeposit(root).find((entry) => entry.host === "grok")?.status).toBe(
+      "healthy",
+    );
   });
 
   it("never emits .sh PreToolUse for Grok (#5956-A)", () => {
@@ -1083,7 +1079,7 @@ describe("inspectAgentHookDeposit", () => {
     expect(commands.every((cmd) => !cmd.includes(GROK_PRETOOLUSE_WRAPPER_MARKER))).toBe(true);
     expect(
       commands.every(
-        (cmd) => cmd === `${PACKAGE_RELATIVE_HOOK_BIN} --host grok --event tool.before`,
+        (cmd) => cmd === expectedOuterCmd("grok", "tool.before"),
       ),
     ).toBe(true);
   });
@@ -1163,6 +1159,8 @@ describe("inspectAgentHookDeposit", () => {
   it("strips the Grok outer-deny wrapper when hostHooks.grok is false (#5656)", () => {
     const root = project();
     writeAgentHookDeposit(root, { printf: () => undefined });
+    // Seed leftover .sh; #5994 deposit no longer writes it, but disable must still strip.
+    writeFileSync(join(root, GROK_PRETOOLUSE_WRAPPER_REL_PATH), "#!/bin/sh\n", "utf8");
     expect(existsSync(join(root, GROK_PRETOOLUSE_WRAPPER_REL_PATH))).toBe(true);
     writeAgentHookDeposit(
       root,

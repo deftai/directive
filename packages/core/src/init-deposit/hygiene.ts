@@ -109,6 +109,11 @@ export function installerManagedMatchers(): InstallerManagedMatcher[] {
     { exact: ".grok/hooks/deft.json" },
     // #5656 Grok PreToolUse outer-deny wrapper travels with deft.json registration.
     { exact: ".grok/hooks/deft-pretooluse-wrapper.sh" },
+    // #5994 content-hashed host outers (sha8 varies with outer source).
+    { prefix: ".grok/hooks/deft-hook-" },
+    { prefix: ".cursor/hooks/deft-hook-" },
+    { prefix: ".claude/deft-hook-" },
+    { prefix: ".codex/deft-hook-" },
     { exact: ".cursor/hooks.json" },
     // Official Cursor adapter only (#3393). Exact paths — not a `.cursor/hooks/`
     // prefix — so consumer-authored hooks stay app. Consumers using

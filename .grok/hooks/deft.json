@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host grok --event session.start",
+            "command": "node .grok/hooks/deft-hook-dd4aa4d9.mjs --host grok --event session.start",
             "timeout": 5
           }
         ]
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host grok --event tool.before",
+            "command": "node .grok/hooks/deft-hook-dd4aa4d9.mjs --host grok --event tool.before",
             "timeout": 30
           }
         ]
@@ -27,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host grok --event tool.before",
+            "command": "node .grok/hooks/deft-hook-dd4aa4d9.mjs --host grok --event tool.before",
             "timeout": 30
           }
         ]
@@ -37,7 +37,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host grok --event tool.before",
+            "command": "node .grok/hooks/deft-hook-dd4aa4d9.mjs --host grok --event tool.before",
             "timeout": 30
           }
         ]
@@ -47,7 +47,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host grok --event tool.before",
+            "command": "node .grok/hooks/deft-hook-dd4aa4d9.mjs --host grok --event tool.before",
             "timeout": 30
           }
         ]
@@ -57,7 +57,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host grok --event tool.before",
+            "command": "node .grok/hooks/deft-hook-dd4aa4d9.mjs --host grok --event tool.before",
             "timeout": 30
           }
         ]
@@ -68,7 +68,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host grok --event session.compact",
+            "command": "node .grok/hooks/deft-hook-dd4aa4d9.mjs --host grok --event session.compact",
             "timeout": 5
           }
         ]
@@ -79,7 +79,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host grok --event session.compact",
+            "command": "node .grok/hooks/deft-hook-dd4aa4d9.mjs --host grok --event session.compact",
             "timeout": 5
           }
         ]

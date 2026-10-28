@@ -16,6 +16,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { INSTALLATION_RECOVERY_GUIDANCE } from "@deftai/directive-core/dist/install-health/constants.js";
 import {
+  HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE,
+  hostHookOuterCommand,
+  hostHookOuterSha8,
+} from "@deftai/directive-core/dist/init-deposit/host-hook-outer.js";
+import {
   checkFullInSync,
   RUNTIME_PIN_PACKAGE,
 } from "@deftai/directive-core/dist/install-health/index.js";
@@ -34,6 +39,10 @@ import {
 const TEMPS: string[] = [];
 const RUNTIME_PREFIX = "node_modules/@deftai/directive-runtime/";
 const HOOK_BIN = `node ${RUNTIME_PREFIX}dist/hook-bin.js`;
+const OUTER_SHA = hostHookOuterSha8();
+function outerCmd(host: "claude" | "cursor" | "codex" | "grok", event: string): string {
+  return `${hostHookOuterCommand(host, OUTER_SHA)} --host ${host} --event ${event}`;
+}
 
 function tempRoot(): string {
   const root = mkdtempSync(join(tmpdir(), "setup-2c-"));
@@ -197,7 +206,7 @@ describe("runSetup package-relative wiring (Wave 2c / R9)", { timeout: 30_000 },
     expect(readFileSync(path!, "utf8")).toContain("Session routing");
   });
 
-  it("writes host hooks as node …/hook-bin.js (AC9.1)", () => {
+  it("writes host hooks as node …/deft-hook-<sha8>.mjs (AC9.1 / #5994)", () => {
     const root = tempRoot();
     runSetup({ operation: "install", from: "none", root });
     for (const rel of [
@@ -207,9 +216,11 @@ describe("runSetup package-relative wiring (Wave 2c / R9)", { timeout: 30_000 },
       ".grok/hooks/deft.json",
     ]) {
       const body = readFileSync(join(root, rel), "utf8");
-      expect(body).toContain(HOOK_BIN);
+      expect(body).toMatch(/deft-hook-[a-f0-9]{8}\.mjs/);
+      expect(body).not.toContain(HOOK_BIN);
       expect(body).not.toMatch(/(^|[\s"`'])deft-hook([\s"`']|$)/);
     }
+    expect(existsSync(join(root, `.cursor/hooks/deft-hook-${OUTER_SHA}.mjs`))).toBe(true);
   });
 
   it("rewrites existing bare deft-hook entries (AC9.2)", () => {
@@ -271,12 +282,14 @@ describe("runSetup package-relative wiring (Wave 2c / R9)", { timeout: 30_000 },
     runSetup({ operation: "install", from: "none", root });
 
     const claude = readFileSync(join(root, ".claude", "settings.json"), "utf8");
-    expect(claude).toContain(`${HOOK_BIN} --host claude --event session.start`);
+    expect(claude).toContain(outerCmd("claude", "session.start"));
+    expect(claude).not.toContain(HOOK_BIN);
     expect(claude).not.toMatch(/(^|[\s"`'])deft-hook([\s"`']|$)/);
 
     const cursor = readFileSync(join(root, ".cursor", "hooks.json"), "utf8");
     expect(cursor).toContain("echo user-owned");
-    expect(cursor).toContain(`${HOOK_BIN} --host cursor --event session.start`);
+    expect(cursor).toContain(outerCmd("cursor", "session.start"));
+    expect(cursor).not.toContain(HOOK_BIN);
     expect(cursor).not.toMatch(/(^|[\s"`'])deft-hook([\s"`']|$)/);
   });
 
@@ -294,7 +307,8 @@ describe("runSetup package-relative wiring (Wave 2c / R9)", { timeout: 30_000 },
     const preCommit = readFileSync(join(root, ".githooks", "pre-commit"), "utf8");
     const helper = readFileSync(join(root, ".githooks", "_directive-run.sh"), "utf8");
     expect(helper).toContain(`${RUNTIME_PREFIX}dist/bin.js`);
-    expect(helper).toContain(INSTALLATION_RECOVERY_GUIDANCE);
+    expect(helper).toContain(HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE);
+    expect(helper).not.toContain(INSTALLATION_RECOVERY_GUIDANCE);
     expect(preCommit).toContain("_directive-run.sh");
     expect(helper).not.toContain(".deft/core/");
   });
@@ -324,9 +338,10 @@ describe("runSetup package-relative wiring (Wave 2c / R9)", { timeout: 30_000 },
         env: { ...process.env, REPO_ROOT: root },
       },
     );
-    expect(combined).toMatch(/DISABLED|skipping Directive CLI/i);
+    // #5994 F1: disable is quiet allow (no required message); still exit 0 and skip bin.
     expect(combined).toContain("EXIT:0");
     expect(combined).not.toContain("BIN_RAN");
+    expect(combined).not.toMatch(/DISABLED|skipping Directive CLI/i);
   });
 
   it("never creates .deft/core on install (AC13.1)", () => {

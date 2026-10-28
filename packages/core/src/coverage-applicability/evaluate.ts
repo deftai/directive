@@ -18,7 +18,8 @@ import {
   AGENT_HOOK_PATHS,
   CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
   CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS,
-  GROK_PRETOOLUSE_WRAPPER_COMMAND,
+  hostHookOuterCommand,
+  hostHookOuterSha8,
   NESTED_HOOK_TIMEOUT_SECONDS,
   NESTED_TOOL_BEFORE_TIMEOUT_SECONDS,
 } from "../init-deposit/agent-hooks.js";
@@ -861,7 +862,8 @@ function isPayloadRunPath(path: string): boolean {
 }
 
 function deftHookCommand(host: HookHost, event: string): string {
-  return `deft-hook --host ${host} --event ${event}`;
+  const sha8 = hostHookOuterSha8();
+  return `${hostHookOuterCommand(host, sha8)} --host ${host} --event ${event}`;
 }
 
 function hostForRegistrationPath(path: string): HookHost | null {
@@ -874,8 +876,7 @@ function hostForRegistrationPath(path: string): HookHost | null {
 
 function nestedManagedGroup(host: Exclude<HookHost, "cursor">, event: string, matcher?: string) {
   const toolBefore = event === "tool.before";
-  const command =
-    host === "grok" && toolBefore ? GROK_PRETOOLUSE_WRAPPER_COMMAND : deftHookCommand(host, event);
+  const command = deftHookCommand(host, event);
   return {
     ...(matcher !== undefined ? { matcher } : {}),
     hooks: [
@@ -1002,7 +1003,7 @@ function isCanonicalNestedManagedGroup(
   }
   if (eventKey === "PreToolUse") {
     const expectedCmd =
-      host === "grok" ? GROK_PRETOOLUSE_WRAPPER_COMMAND : deftHookCommand(host, "tool.before");
+      deftHookCommand(host, "tool.before");
     return (
       typeof entry.matcher === "string" &&
       (NESTED_PRE_TOOL_MATCHERS as readonly string[]).includes(entry.matcher) &&

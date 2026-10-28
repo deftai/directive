@@ -25,6 +25,25 @@ import {
 } from "../policy/host-hooks.js";
 import type { InitDepositIo } from "./constants.js";
 import { type HookRuntimeTravelSeams, inspectHookRuntimeTravel } from "./hook-runtime-travel.js";
+import {
+  HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE,
+  hostHookOuterCommand,
+  hostHookOuterRelPath,
+  hostHookOuterSha8,
+  hostHookOuterSource,
+  isHostHookOuterCommand,
+} from "./host-hook-outer.js";
+
+export {
+  HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE,
+  hostHookOuterCommand,
+  hostHookOuterFileName,
+  hostHookOuterRelPath,
+  hostHookOuterSha8,
+  hostHookOuterSource,
+  isHostHookOuterCommand,
+  HOST_HOOK_OUTER_PIN_HOOK_BIN_REL,
+} from "./host-hook-outer.js";
 
 export {
   DIRECT_WRITE_HOOK_MATCHER,
@@ -310,9 +329,11 @@ function command(bin: string, host: HookHost, event: HookEvent): string {
 
 function isManagedHookCommand(commandText: string): boolean {
   return (
+    isHostHookOuterCommand(commandText) ||
     commandText.includes(PACKAGE_RELATIVE_HOOK_BIN) ||
     commandText.includes(DEFT_HOOK_COMMAND_MARKER) ||
-    commandText.includes(LEGACY_DEFT_HOOK_COMMAND_MARKER)
+    commandText.includes(LEGACY_DEFT_HOOK_COMMAND_MARKER) ||
+    isGrokWrapperCommand(commandText)
   );
 }
 
@@ -602,7 +623,9 @@ export function writeAgentHookDeposit(
 ): AgentHookDepositResult {
   const changedPaths: AgentHookPath[] = [];
   const strippedPaths: AgentHookPath[] = [];
-  const bin = resolveAgentHookCommandBin(projectRoot);
+  const outerSource = hostHookOuterSource();
+  const outerSha8 = hostHookOuterSha8(outerSource);
+  const binFor = (host: HookHost): string => hostHookOuterCommand(host, outerSha8);
   const definitions: Array<{
     host: HookHost;
     path: AgentHookPath;
@@ -612,25 +635,28 @@ export function writeAgentHookDeposit(
     {
       host: "claude",
       path: AGENT_HOOK_PATHS[0],
-      merge: (config, path) => mergeNestedConfig(config, path, "claude", bin, { compact: true }),
+      merge: (config, path) =>
+        mergeNestedConfig(config, path, "claude", binFor("claude"), { compact: true }),
       strip: (config, path) => stripManagedNestedConfig(config, path, "claude"),
     },
     {
       host: "grok",
       path: AGENT_HOOK_PATHS[1],
-      merge: (config, path) => mergeNestedConfig(config, path, "grok", bin, { compact: true }),
+      merge: (config, path) =>
+        mergeNestedConfig(config, path, "grok", binFor("grok"), { compact: true }),
       strip: (config, path) => stripManagedNestedConfig(config, path, "grok"),
     },
     {
       host: "cursor",
       path: AGENT_HOOK_PATHS[2],
-      merge: (config, path) => mergeCursorConfig(config, path, bin),
+      merge: (config, path) => mergeCursorConfig(config, path, binFor("cursor")),
       strip: stripManagedCursorConfig,
     },
     {
       host: "codex",
       path: AGENT_HOOK_PATHS[3],
-      merge: (config, path) => mergeNestedConfig(config, path, "codex", bin, { compact: false }),
+      merge: (config, path) =>
+        mergeNestedConfig(config, path, "codex", binFor("codex"), { compact: false }),
       strip: (config, path) => stripManagedNestedConfig(config, path, "codex"),
     },
   ];
@@ -679,40 +705,40 @@ export function writeAgentHookDeposit(
     }
   }
 
-  // #5656: deposit or strip the Grok PreToolUse outer-deny wrapper beside deft.json.
+  // #5994 / AC9.1: deposit content-hashed host `.mjs` outer; remove legacy Grok `.sh`.
+  for (const host of ["claude", "grok", "cursor", "codex"] as const) {
+    const rel = hostHookOuterRelPath(host, outerSha8);
+    const abs = join(projectRoot, rel);
+    assertDepositContained(projectRoot, abs);
+    if (isHostHookDepositEnabled(host, hostHooksPolicy)) {
+      const previous = existsSync(abs) ? readFileSync(abs, "utf8") : null;
+      if (previous !== outerSource) {
+        containedWrite({
+          root: resolve(projectRoot),
+          target: abs,
+          data: outerSource,
+          mode: "replace",
+          mutation: { kind: "wrote", path: rel },
+        });
+        const hostPath = AGENT_HOOK_PATH_BY_HOST[host];
+        if (hostPath && !changedPaths.includes(hostPath)) changedPaths.push(hostPath);
+      }
+    } else if (existsSync(abs)) {
+      if (
+        containedRemove({
+          root: projectRoot,
+          target: abs,
+          mutation: { path: rel },
+        }).removed
+      ) {
+        const hostPath = AGENT_HOOK_PATH_BY_HOST[host];
+        if (hostPath && !strippedPaths.includes(hostPath)) strippedPaths.push(hostPath);
+      }
+    }
+  }
   const grokWrapperAbs = join(projectRoot, GROK_PRETOOLUSE_WRAPPER_REL_PATH);
   assertDepositContained(projectRoot, grokWrapperAbs);
-  if (isHostHookDepositEnabled("grok", hostHooksPolicy)) {
-    const wrapperBody = grokPretooluseWrapperScriptSource();
-    const previous = existsSync(grokWrapperAbs) ? readFileSync(grokWrapperAbs, "utf8") : null;
-    if (previous !== wrapperBody) {
-      containedWrite({
-        root: resolve(projectRoot),
-        target: grokWrapperAbs,
-        data: wrapperBody,
-        mode: "replace",
-        mutation: { kind: "wrote", path: GROK_PRETOOLUSE_WRAPPER_REL_PATH },
-      });
-      // containedWrite opens 0o644; keep the unused wrapper executable for later #5956 slices.
-      containedChmod({
-        root: resolve(projectRoot),
-        target: grokWrapperAbs,
-        mode: 0o755,
-        mutation: { path: GROK_PRETOOLUSE_WRAPPER_REL_PATH },
-      });
-      if (!changedPaths.includes(AGENT_HOOK_PATHS[1])) {
-        changedPaths.push(AGENT_HOOK_PATHS[1]);
-      }
-    } else if (existsSync(grokWrapperAbs)) {
-      // Refresh execute bit on already-current body (fresh POSIX clones / 0o644).
-      containedChmod({
-        root: resolve(projectRoot),
-        target: grokWrapperAbs,
-        mode: 0o755,
-        mutation: { path: GROK_PRETOOLUSE_WRAPPER_REL_PATH },
-      });
-    }
-  } else if (existsSync(grokWrapperAbs)) {
+  if (existsSync(grokWrapperAbs)) {
     if (
       containedRemove({
         root: projectRoot,
@@ -957,7 +983,7 @@ export function inspectSessionStartNotice(
   projectRoot: string,
   hostHooksPolicy: HostHooksPolicy = loadHostHooksPolicyFromProject(projectRoot),
 ): SessionStartNoticeInspection[] {
-  const bin = resolveAgentHookCommandBin(projectRoot);
+  const outerSha8 = hostHookOuterSha8();
   return (Object.keys(AGENT_HOOK_PATH_BY_HOST) as HookHost[]).map((host) => {
     if (!isHostHookDepositEnabled(host, hostHooksPolicy)) {
       return { host, registered: false };
@@ -967,7 +993,10 @@ export function inspectSessionStartNotice(
       return { host, registered: false };
     }
     const config = readConfig(absolute);
-    return { host, registered: hasSessionStartRegistration(config, host, bin) };
+    return {
+      host,
+      registered: hasSessionStartRegistration(config, host, hostHookOuterCommand(host, outerSha8)),
+    };
   });
 }
 
@@ -976,7 +1005,8 @@ export function inspectAgentHookDeposit(
   projectRoot: string,
   hostHooksPolicy: HostHooksPolicy = loadHostHooksPolicyFromProject(projectRoot),
 ): AgentHookInspection[] {
-  const bin = resolveAgentHookCommandBin(projectRoot);
+  const outerSha8 = hostHookOuterSha8();
+  const binFor = (host: HookHost): string => hostHookOuterCommand(host, outerSha8);
   const definitions: Array<{
     host: HookHost;
     path: AgentHookPath;
@@ -987,25 +1017,25 @@ export function inspectAgentHookDeposit(
       host: "claude",
       path: AGENT_HOOK_PATHS[0],
       compactSupport: "deposited",
-      valid: (config) => hasNestedRegistration(config, "claude", bin, { compact: true }),
+      valid: (config) => hasNestedRegistration(config, "claude", binFor("claude"), { compact: true }),
     },
     {
       host: "grok",
       path: AGENT_HOOK_PATHS[1],
       compactSupport: "deposited",
-      valid: (config) => hasNestedRegistration(config, "grok", bin, { compact: true }),
+      valid: (config) => hasNestedRegistration(config, "grok", binFor("grok"), { compact: true }),
     },
     {
       host: "cursor",
       path: AGENT_HOOK_PATHS[2],
       compactSupport: "deposited",
-      valid: (config) => hasCursorRegistration(config, bin),
+      valid: (config) => hasCursorRegistration(config, binFor("cursor")),
     },
     {
       host: "codex",
       path: AGENT_HOOK_PATHS[3],
       compactSupport: "unsupported",
-      valid: (config) => hasNestedRegistration(config, "codex", bin, { compact: false }),
+      valid: (config) => hasNestedRegistration(config, "codex", binFor("codex"), { compact: false }),
     },
   ];
 
@@ -1035,23 +1065,34 @@ export function inspectAgentHookDeposit(
     }
     try {
       const config = readConfig(absolute);
-      // #5956-A: Grok PreToolUse must be pin-local hook-bin.js, never the .sh wrapper.
-      if (definition.host === "grok") {
+      // #5994 / F2: host commands must be deft-hook-<sha8>.mjs; .sh and direct hook-bin are legacy.
+      {
         const hooks = object(config.hooks);
-        const preTool = Array.isArray(hooks?.PreToolUse) ? hooks.PreToolUse : [];
-        const wrapperCommands = preTool.flatMap((entry) =>
-          nestedCommands(entry).filter((cmd) => isGrokWrapperCommand(cmd)),
+        const managedCmds = [
+          ...(Array.isArray(hooks?.PreToolUse) ? hooks.PreToolUse : []),
+          ...(Array.isArray(hooks?.SessionStart) ? hooks.SessionStart : []),
+          ...(Array.isArray(hooks?.preToolUse) ? hooks.preToolUse : []),
+          ...(Array.isArray(hooks?.sessionStart) ? hooks.sessionStart : []),
+        ].flatMap((entry) => {
+          const direct = object(entry);
+          if (typeof direct?.command === "string") return [direct.command];
+          return nestedCommands(entry);
+        });
+        const legacy = managedCmds.filter(
+          (cmd) =>
+            isGrokWrapperCommand(cmd) ||
+            cmd.includes(PACKAGE_RELATIVE_HOOK_BIN) ||
+            (isManagedHookCommand(cmd) && !isHostHookOuterCommand(cmd)),
         );
-        if (wrapperCommands.length > 0) {
+        if (legacy.length > 0) {
           return {
             host: definition.host,
             path: definition.path,
             status: "drifted",
             compactSupport: definition.compactSupport,
             detail:
-              `Grok PreToolUse still references ${GROK_PRETOOLUSE_WRAPPER_MARKER} ` +
-              `(expected pin-local ${PACKAGE_RELATIVE_HOOK_BIN} — #5956-A / #5955). ` +
-              "Recovery: run `directive install --repair` / redeposit, then start a new Grok session." +
+              `Host hooks still register legacy form (expected node …/deft-hook-<sha8>.mjs — #5994 / AC9.1). ` +
+              "Recovery: run `directive install --repair` / redeposit, then start a new agent session." +
               compactNote,
           };
         }
