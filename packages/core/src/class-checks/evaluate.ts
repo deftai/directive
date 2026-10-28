@@ -881,6 +881,8 @@ export function evaluateClassChecks(
   const hookDepositCompanionHit = githooksProtectedHit || hostHookDepositProtectedHit;
   const HOOK_DEPOSIT_COMPANIONS: ReadonlySet<string> = new Set([
     "packages/runtime/src/setup-wiring.ts",
+    "packages/runtime/src/doctor-diagnose.ts",
+    "packages/runtime/src/pre-pr-run.ts",
     "packages/core/src/init-deposit/agent-hooks.ts",
     "packages/core/src/init-deposit/host-hook-outer.ts",
     "packages/core/src/init-deposit/hygiene.ts",

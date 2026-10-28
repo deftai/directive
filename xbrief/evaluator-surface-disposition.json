@@ -6,5 +6,5 @@
     "packages/core/src/class-checks/evaluate.test.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renew disclosure for #5994 class-4 host-hook deposit companion allow under class-checks evaluate. Disclosure only; not #3164 authorization."
+  "note": "Renew disclosure for #5994 class-4 host-hook deposit companions (doctor-diagnose + pre-pr-run). Disclosure only; not #3164 authorization."
 }
