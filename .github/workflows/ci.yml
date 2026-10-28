@@ -178,6 +178,17 @@ jobs:
       - name: Setup uv (toolchain gate in task check)
         uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
 
+      # Tip dogfood before Prefer-A pin-exclusive check:merge (#5805). Needed when
+      # this PR expands class-checks companions the published pin lacks (#5994).
+      - name: Tip dogfood materialize (#5805 / #5994)
+        run: |
+          set -eu
+          task materialize:runtime
+          DECLARED=$(node -e "const p=require('./package.json'); console.log((p.devDependencies||{})['@deftai/directive-runtime']||(p.dependencies||{})['@deftai/directive-runtime']||'')")
+          test -n "$DECLARED"
+          node -e "const fs=require('fs'); const v=process.argv[1]; const p='node_modules/@deftai/directive-runtime/package.json'; const j=JSON.parse(fs.readFileSync(p,'utf8')); j.version=v; fs.writeFileSync(p, JSON.stringify(j,null,2)+'\n');" "$DECLARED"
+          ( cd node_modules/@deftai/directive-runtime && npm install --omit=dev --ignore-scripts )
+
       - name: task check:merge (merge chokepoint SoT — #1704)
         run: task check:merge
         env:
@@ -468,6 +479,17 @@ jobs:
 
       - name: Setup uv (toolchain gate in task check)
         uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+
+      # Tip dogfood before Prefer-A pin-exclusive check:merge (#5805). Needed when
+      # this PR expands class-checks companions the published pin lacks (#5994).
+      - name: Tip dogfood materialize (#5805 / #5994)
+        run: |
+          set -eu
+          task materialize:runtime
+          DECLARED=$(node -e "const p=require('./package.json'); console.log((p.devDependencies||{})['@deftai/directive-runtime']||(p.dependencies||{})['@deftai/directive-runtime']||'')")
+          test -n "$DECLARED"
+          node -e "const fs=require('fs'); const v=process.argv[1]; const p='node_modules/@deftai/directive-runtime/package.json'; const j=JSON.parse(fs.readFileSync(p,'utf8')); j.version=v; fs.writeFileSync(p, JSON.stringify(j,null,2)+'\n');" "$DECLARED"
+          ( cd node_modules/@deftai/directive-runtime && npm install --omit=dev --ignore-scripts )
 
       - name: task check:merge (merge chokepoint SoT — #1704)
         run: task check:merge

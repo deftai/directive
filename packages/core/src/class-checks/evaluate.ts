@@ -491,6 +491,11 @@ function isStoryProductPath(
   if (/(^|\/)(infra|deploy|deployment|terraform|bicep|cloudformation)(\/|$)/i.test(posix)) {
     return true;
   }
+  // CI harness workflow basenames are gate/infra companions (like tasks/), not
+  // story product — tip-dogfood materialize steps in ci.yml must not flip class 4.
+  if (isCiHarnessGithubWorkflow(posix)) {
+    return false;
+  }
   if (/(^|\/)\.github\/workflows\//i.test(posix) && !isProtected(posix, protectedGlobs)) {
     return true;
   }
