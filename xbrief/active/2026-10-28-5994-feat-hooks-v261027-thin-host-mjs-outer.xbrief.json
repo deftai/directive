@@ -173,7 +173,9 @@
           ".cursor/hooks/deft-hook-dd4aa4d9.mjs",
           ".codex/deft-hook-dd4aa4d9.mjs",
           "packages/core/src/class-checks/evaluate.ts",
-          "packages/core/src/class-checks/evaluate.test.ts"
+          "packages/core/src/class-checks/evaluate.test.ts",
+          "packages/runtime/src/pre-pr-run.ts",
+          "packages/runtime/src/pre-pr-run.test.ts"
         ],
         "module_boundary": "packages/core/src/init-deposit/ + packages/runtime/src/setup-wiring.ts",
         "cohesion_exemption": "Dogfood host deposits + git helper template + CHANGELOG ride with generator convergence"

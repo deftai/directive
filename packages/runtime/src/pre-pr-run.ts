@@ -528,7 +528,12 @@ export function run(argv: string[]): number {
       process.stderr.write("pre_pr_run: --complete requires --run-id\n");
       return 2;
     }
-    const d = completeRun(store, controllerPublisher(), args.runId);
+    // #5804 / #5994: projectRoot is required so completeRun can stamp
+    // pushBinding.reviewedDeletedPaths from base..head.
+    const projectRoot = args.projectRoot?.trim() || process.cwd();
+    const d = completeRun(store, controllerPublisher(), args.runId, undefined, {
+      projectRoot,
+    });
     emit(args.json, d, d.message, !d.ok);
     return d.ok ? 0 : 1;
   }
