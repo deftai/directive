@@ -1,0 +1,207 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "OVPR docs v261027 entry-guard + host .mjs outer; persist problem ledger as decision record; close #5956 mega-spec",
+    "updated": "2026-10-28T01:00:44Z"
+  },
+  "plan": {
+    "id": "github.issue.6070448000",
+    "title": "docs(ovpr): v261027 entry-guard / host-outer requirements + problem ledger decision record",
+    "status": "completed",
+    "updated": "2026-10-28T01:00:44Z",
+    "tags": [
+      "docs",
+      "area:installer",
+      "ovpr"
+    ],
+    "narratives": {
+      "Description": "Persist the 2026-10-23 installer/OVPR problem ledger as a non-normative decision record under docs/installer-refactor-ovpr/. Minimally amend install-ovpr-requirements.md and install-ovpr-architecture.md with revision marker v261027 so host hooks may register a committed per-host .mjs outer, entry guards are disable then missing-pin (project PM install) then pin, and AC9.1 no longer forbids that outer. Update README. Do not import #5956 deadline/D-9/E1-E3/0.129.x mega-spec. Human-test plan only if a case asserts direct-only hook-bin.",
+      "Origin": "~/Projects/directive-failures/PLAN-ovpr-entry-guards-v261027-20261027.md; operator disposition 2026-10-27",
+      "Overview": "Docs-only. Product code for .mjs deposit remains #5807/#5809. Close #5956 separately with disposition comments.",
+      "UserStory": "As the OVPR owner, I want requirements and architecture to allow the locked entry-guard and host-outer end-state and to keep the 33-problem FINALs durable without treating them as ACs, so implement tickets cite one self-contained normative SoT.",
+      "ImplementationPlan": "1) Add install-ovpr-problem-ledger-2026-10-23.md (decision record only). 2) v261027 header + replace only wrong AC9.1 / A6.1 hook-command / A6.5 agent-hooks / §A9 missing-package rows; add minimal entry-guard AC. 3) Architecture short outer→pin map. 4) README authority. 5) HT only if required. 6) PR."
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Problem ledger decision record landed",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "docs/installer-refactor-ovpr/install-ovpr-problem-ledger-2026-10-23.md exists as decision record only and points to requirements/architecture as normative SoT",
+          "Traces": "ledger"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Docs criterion satisfied by merged product PR #5987 (aab60bf4b3e4af0b305443affc0db1739601d13c); leftover-complete tracking #5992. Markdown/docs ACs have no allowlisted executable oracle for scope:complete (#4870/#5403).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "polfer",
+            "mintedAt": "2026-10-28T01:00:22Z",
+            "mintedVia": "leftover-complete-after-5987"
+          },
+          "recorded_at": "2026-10-28T01:00:22Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Requirements v261027 minimal AC/prose fixes",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "install-ovpr-requirements.md defines v261027; replaced lines tagged (v261027); AC9.1 allows committed .mjs outer; entry-guard order present; AC8.6 unchanged",
+          "Traces": "v261027"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Docs criterion satisfied by merged product PR #5987 (aab60bf4b3e4af0b305443affc0db1739601d13c); leftover-complete tracking #5992. Markdown/docs ACs have no allowlisted executable oracle for scope:complete (#4870/#5403).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "polfer",
+            "mintedAt": "2026-10-28T01:00:22Z",
+            "mintedVia": "leftover-complete-after-5987"
+          },
+          "recorded_at": "2026-10-28T01:00:22Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Architecture + README updated",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "architecture maps outer→pin; README explains ledger vs normative docs and v261027",
+          "Traces": "v261027"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Docs criterion satisfied by merged product PR #5987 (aab60bf4b3e4af0b305443affc0db1739601d13c); leftover-complete tracking #5992. Markdown/docs ACs have no allowlisted executable oracle for scope:complete (#4870/#5403).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "polfer",
+            "mintedAt": "2026-10-28T01:00:22Z",
+            "mintedVia": "leftover-complete-after-5987"
+          },
+          "recorded_at": "2026-10-28T01:00:22Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "PR opened for docs",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "PR opened against master for this branch; docs-only",
+          "Traces": "PR"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Docs criterion satisfied by merged product PR #5987 (aab60bf4b3e4af0b305443affc0db1739601d13c); leftover-complete tracking #5992. Markdown/docs ACs have no allowlisted executable oracle for scope:complete (#4870/#5403).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "polfer",
+            "mintedAt": "2026-10-28T01:00:22Z",
+            "mintedVia": "leftover-complete-after-5987"
+          },
+          "recorded_at": "2026-10-28T01:00:22Z"
+        }
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "docs-only leftover-complete after #5987 merge; review-by-diff already shipped",
+      "sentences": [],
+      "clauses": [],
+      "ambiguity_attestation": "none_found"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5992",
+        "type": "x-xbrief/github-issue",
+        "title": "Leftover-complete tracking for OVPR v261027 docs"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/pull/5987",
+        "type": "x-xbrief/github-pr",
+        "title": "docs(ovpr): v261027 entry-guard / host .mjs outer + problem ledger"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5956",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5956 (mega-spec closed not_planned; docs pointer only)"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "docs/installer-refactor-ovpr/install-ovpr-problem-ledger-2026-10-23.md",
+          "docs/installer-refactor-ovpr/install-ovpr-requirements.md",
+          "docs/installer-refactor-ovpr/install-ovpr-architecture.md",
+          "docs/installer-refactor-ovpr/README.md",
+          "docs/installer-refactor-ovpr/install-ovpr-human-test-plan.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "docs/installer-refactor-ovpr",
+        "notes": "docs-only OVPR v261027 leftover-complete via #5992 after #5987"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6070448000,
+        "origin": "deftai/directive#5992",
+        "id": "github.issue.6070448000"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "ovpr-v261027-docs",
+        "expected_outputs": [
+          "problem ledger decision record",
+          "requirements/architecture v261027",
+          "README authority split",
+          "PR #5987 merged"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [],
+        "file_scope": [
+          "docs/installer-refactor-ovpr/install-ovpr-problem-ledger-2026-10-23.md",
+          "docs/installer-refactor-ovpr/install-ovpr-requirements.md",
+          "docs/installer-refactor-ovpr/install-ovpr-architecture.md",
+          "docs/installer-refactor-ovpr/README.md",
+          "docs/installer-refactor-ovpr/install-ovpr-human-test-plan.md",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "high",
+        "effort": "S"
+      },
+      "productPullRequest": 5987,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "f3c8a7d13ff026e798a8a03af8441c3b5984b1bf",
+        "prNumber": 5987,
+        "prBase": "master",
+        "mergeCommit": "aab60bf4b3e4af0b305443affc0db1739601d13c",
+        "deliveryBranch": "master",
+        "deliveryCommit": "aab60bf4b3e4af0b305443affc0db1739601d13c",
+        "verifiedAt": "2026-10-28T01:00:44Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTdmOGUtOGE4MC03YTQxLWIxMDYtM2RjOTgxZjlhZWE4"
+      },
+      "completedAt": "2026-10-28T01:00:44Z",
+      "completedSessionId": "host:grok:v1:MDFhMTdmOGUtOGE4MC03YTQxLWIxMDYtM2RjOTgxZjlhZWE4",
+      "capacityBucket": "cognitive-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-28T01:00:44Z"
+      }
+    }
+  }
+}
