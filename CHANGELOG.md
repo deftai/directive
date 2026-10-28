@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed - Bound pre-PR: the controller's coverage N/A arm now rests only on coverage-applicability returning not-applicable for the bound base/head/tree on a clean tree (re-derived by the controller; every error path refuses), so a coverage report left by the run's own `lint_iteration` no longer vetoes it in the controller. The exit-3 row must match the strict hotspots command, observe records the project root and satisfaction refuses a mismatch, and the report is checked with lstat and read with O_NOFOLLOW (regular file only). The symlink-swap test mocks lstatSync; there is no production hook between the check and the read. Refs #5804 #5421; related #5977.
+
 - Fixed - Init-deposit no longer rewrites Grok PreToolUse to `./deft-pretooluse-wrapper.sh`; setup/upgrade/`install --repair` emit pin-local `hook-bin.js` so regenerate matches the intentional deposit (#5956 / #5956-A). Refs #5955 #5958 #5968.
 
 - Pin doctor unit tests to a temp HOME so host ~/.openclaw and GROK identity no longer redden unrelated task check runs (#5802 / #5930).

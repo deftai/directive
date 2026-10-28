@@ -1,5 +1,4 @@
 import * as childProcess from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import {
   admitGateOverrideForAttempt,
@@ -16,6 +15,10 @@ import {
   isCoverageModeSkipAuthorized,
   resolveCoverageMode,
 } from "../policy/coverage-mode.js";
+import {
+  coverageReportPresence,
+  readCoverageReportNoFollow,
+} from "../pre-pr-controller/coverage-report.js";
 import {
   COVERAGE_HEADROOM_MODE_SKIP,
   COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP,
@@ -309,6 +312,10 @@ function evaluatePassFail(
   return reasons;
 }
 
+/** Fixed message for a report path that is not a readable regular file (symlink, dir, error). */
+export const COVERAGE_REPORT_NOT_REGULAR_FILE =
+  "coverage-hotspots: coverage report is not a regular file";
+
 function configError(message: string): CoverageHotspotsResult {
   return { exitCode: 2, report: null, message };
 }
@@ -461,7 +468,12 @@ export function evaluateCoverageHotspots(options: CoverageHotspotsOptions): Cove
   const binding = checkApplicability ? resolveApplicabilityBinding(projectRoot, options) : null;
 
   const reportPath = join(coverageDir, "coverage-final.json");
-  const reportExists = existsSync(reportPath);
+  // lstat presence: a symlink, directory or unreadable path refuses (never followed).
+  const presence = coverageReportPresence(reportPath);
+  if (presence === null) {
+    return configError(COVERAGE_REPORT_NOT_REGULAR_FILE);
+  }
+  const reportExists = presence === "present";
   let pendingWaived: CoverageApplicabilityArtifact | null = null;
   let classifiedCoverablePaths: readonly string[] = [];
 
@@ -587,12 +599,14 @@ export function evaluateCoverageHotspots(options: CoverageHotspotsOptions): Cove
     );
   }
 
+  // One no-follow fd read: a swap to a symlink after the presence check refuses.
+  const reportText = readCoverageReportNoFollow(reportPath);
+  if (reportText === null) {
+    return configError(COVERAGE_REPORT_NOT_REGULAR_FILE);
+  }
   let rawReport: Record<string, IstanbulFileCoverage>;
   try {
-    rawReport = JSON.parse(readFileSync(reportPath, "utf8")) as Record<
-      string,
-      IstanbulFileCoverage
-    >;
+    rawReport = JSON.parse(reportText) as Record<string, IstanbulFileCoverage>;
   } catch (err: unknown) {
     return configError(
       `coverage-hotspots: unreadable coverage report at ${reportPath}: ${String((err as Error).message)}`,

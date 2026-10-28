@@ -1,14 +1,24 @@
 import * as childProcess from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  lstatSync,
+  mkdirSync,
+  mkdtempSync,
+  openSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import { mintGateOverrideTemplateGrant } from "../authz/gate-override.js";
 import {
   COVERAGE_HEADROOM_MODE_SKIP,
   COVERAGE_HEADROOM_WAIVED_SKIP,
 } from "../pre-pr-controller/phases.js";
 import {
+  COVERAGE_REPORT_NOT_REGULAR_FILE,
   DEFAULT_MIN_HEADROOM_PP,
   evaluateCoverageHotspots,
   formatJsonReport,
@@ -16,6 +26,42 @@ import {
   summarizeCoverageFinal,
 } from "./evaluate.js";
 import { readProjectCoverageThresholds } from "./thresholds.js";
+
+// Pass-through fs spies so a test can make lstat or open misbehave for the report
+// path only. There is no production hook: the symlink-swap case mocks lstatSync.
+vi.mock("node:fs", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:fs")>();
+  return {
+    ...actual,
+    lstatSync: vi.fn(actual.lstatSync),
+    openSync: vi.fn(actual.openSync),
+    readFileSync: vi.fn(actual.readFileSync),
+  };
+});
+const realFs = await vi.importActual<typeof import("node:fs")>("node:fs");
+afterEach(() => {
+  vi.mocked(lstatSync).mockImplementation(realFs.lstatSync);
+  vi.mocked(openSync).mockImplementation(realFs.openSync);
+  vi.mocked(readFileSync).mockImplementation(realFs.readFileSync);
+});
+
+const PASSING_REPORT = JSON.stringify({
+  "packages/core/src/good.ts": {
+    s: { "0": 1, "1": 1 },
+    f: { "0": 1 },
+    b: { "0": [1, 1] },
+  },
+});
+
+function isReportPath(p: unknown): boolean {
+  return String(p).endsWith(join("coverage", "coverage-final.json"));
+}
+
+function eacces(): never {
+  const err = new Error("EACCES: permission denied") as NodeJS.ErrnoException;
+  err.code = "EACCES";
+  throw err;
+}
 
 function writeCoverageMode(root: string, mode: string): void {
   mkdirSync(join(root, "xbrief"), { recursive: true });
@@ -1153,6 +1199,87 @@ describe("evaluateCoverageHotspots", () => {
       useDiffPaths: false,
     });
     expect(floor.exitCode).toBe(1);
+  });
+
+  it("exits 2 when the coverage report path is a directory (regular file only)", () => {
+    const root = makeProject({ "README.md": "# r\n" });
+    mkdirSync(join(root, "coverage", "coverage-final.json"), { recursive: true });
+    const result = evaluateCoverageHotspots({ projectRoot: root, useDiffPaths: false });
+    expect(result.exitCode).toBe(2);
+    expect(result.message).toBe(COVERAGE_REPORT_NOT_REGULAR_FILE);
+  });
+
+  it("exits 2 when the coverage report path is a symlink (regular file only)", () => {
+    const root = makeProject({ "elsewhere/good.json": PASSING_REPORT });
+    mkdirSync(join(root, "coverage"), { recursive: true });
+    symlinkSync(join(root, "elsewhere/good.json"), join(root, "coverage", "coverage-final.json"));
+    const result = evaluateCoverageHotspots({ projectRoot: root, useDiffPaths: false });
+    expect(result.exitCode).toBe(2);
+    expect(result.message).toBe(COVERAGE_REPORT_NOT_REGULAR_FILE);
+  });
+
+  it("symlink swap at the read (mocked lstatSync, no production hook): exit 2, target never read", () => {
+    const root = makeProject({ "elsewhere/good.json": PASSING_REPORT });
+    const target = join(root, "elsewhere/good.json");
+    mkdirSync(join(root, "coverage"), { recursive: true });
+    const reportPath = join(root, "coverage", "coverage-final.json");
+    // The path is a symlink to a passing report; lstat is mocked to report a
+    // regular file, as if the swap happened between the presence check and the read.
+    symlinkSync(target, reportPath);
+    vi.mocked(lstatSync).mockImplementation(((p: Parameters<typeof lstatSync>[0], o?: object) =>
+      isReportPath(p)
+        ? realFs.lstatSync(target)
+        : realFs.lstatSync(p, o as undefined)) as typeof lstatSync);
+    vi.mocked(readFileSync).mockClear();
+    const result = evaluateCoverageHotspots({ projectRoot: root, useDiffPaths: false });
+    expect(result.exitCode).toBe(2);
+    expect(result.message).toBe(COVERAGE_REPORT_NOT_REGULAR_FILE);
+    const readPaths = vi.mocked(readFileSync).mock.calls.map((c) => String(c[0]));
+    expect(readPaths.some((p) => p === target || p === reportPath)).toBe(false);
+  });
+
+  it("read error: openSync EACCES on the report returns exit 2", () => {
+    const root = makeProject({ "coverage/coverage-final.json": PASSING_REPORT });
+    vi.mocked(openSync).mockImplementation(((p: Parameters<typeof openSync>[0], ...rest: []) =>
+      isReportPath(p) ? eacces() : realFs.openSync(p, ...rest)) as typeof openSync);
+    const result = evaluateCoverageHotspots({ projectRoot: root, useDiffPaths: false });
+    expect(result.exitCode).toBe(2);
+    expect(result.message).toBe(COVERAGE_REPORT_NOT_REGULAR_FILE);
+  });
+
+  it("presence error: lstatSync EACCES on the report returns exit 2 (regular file only)", () => {
+    const root = makeProject({ "coverage/coverage-final.json": PASSING_REPORT });
+    vi.mocked(lstatSync).mockImplementation(((p: Parameters<typeof lstatSync>[0], o?: object) =>
+      isReportPath(p) ? eacces() : realFs.lstatSync(p, o as undefined)) as typeof lstatSync);
+    const result = evaluateCoverageHotspots({ projectRoot: root, useDiffPaths: false });
+    expect(result.exitCode).toBe(2);
+    expect(result.message).toBe(COVERAGE_REPORT_NOT_REGULAR_FILE);
+  });
+
+  it("measures an applicable diff through the no-follow read when a coverage report exists", () => {
+    const root = gitRepo({
+      "README.md": "# base\n",
+      "coverage/coverage-final.json": PASSING_REPORT,
+    });
+    const baseSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    mkdirSync(join(root, "packages/core/src"), { recursive: true });
+    writeFileSync(join(root, "packages/core/src/good.ts"), "export const g = 1;\n");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: root });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "code"], { cwd: root });
+    const headSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    const treeHash = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD^{tree}"], { cwd: root, encoding: "utf8" })
+      .trim();
+    const result = evaluateCoverageHotspots({
+      projectRoot: root,
+      inputBinding: { baseSha, headSha, treeHash },
+    });
+    expect(result.report).not.toBeNull();
+    expect(result.exitCode).toBe(0);
   });
 });
 

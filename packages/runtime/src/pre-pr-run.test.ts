@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -267,6 +267,61 @@ describe("deft pre-pr:run", () => {
           "--json",
         ]),
       ).toBe(0);
+    } finally {
+      process.chdir(prevCwd);
+      rmSync(projectRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("--observe-command --project-root stores observedProjectRoot as the realpath of that root", () => {
+    const projectRoot = mkdtempSync(join(tmpdir(), "pre-pr-root-flag-"));
+    try {
+      expect(run([...START, "--run-id", "ppr_root_flag", "--json"])).toBe(0);
+      expect(
+        run([
+          "--observe-command",
+          "--run-id",
+          "ppr_root_flag",
+          "--phase",
+          "coverage_headroom",
+          "--exit-code",
+          "0",
+          "--project-root",
+          projectRoot,
+          "--json",
+        ]),
+      ).toBe(0);
+      const row = new FileBackedPrePrStore(tmpRoot)
+        .getById("ppr_root_flag")
+        ?.phaseEvidence.commands.find((c) => c.phaseId === "coverage_headroom");
+      expect(row?.observedProjectRoot).toBe(realpathSync(projectRoot));
+    } finally {
+      rmSync(projectRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("--observe-command without --project-root stores observedProjectRoot as the realpath of the cwd", () => {
+    const projectRoot = mkdtempSync(join(tmpdir(), "pre-pr-root-cwd-"));
+    const prevCwd = process.cwd();
+    try {
+      process.chdir(projectRoot);
+      expect(run([...START, "--run-id", "ppr_root_cwd", "--json"])).toBe(0);
+      expect(
+        run([
+          "--observe-command",
+          "--run-id",
+          "ppr_root_cwd",
+          "--phase",
+          "coverage_headroom",
+          "--exit-code",
+          "0",
+          "--json",
+        ]),
+      ).toBe(0);
+      const row = new FileBackedPrePrStore(tmpRoot)
+        .getById("ppr_root_cwd")
+        ?.phaseEvidence.commands.find((c) => c.phaseId === "coverage_headroom");
+      expect(row?.observedProjectRoot).toBe(realpathSync(projectRoot));
     } finally {
       process.chdir(prevCwd);
       rmSync(projectRoot, { recursive: true, force: true });

@@ -58,6 +58,13 @@ export interface CommandObservation {
   readonly inputHash: string;
   readonly completedAt: string;
   readonly skipReason: string | null;
+  /**
+   * realpath of the project root at observe time, for coverage_headroom and
+   * lint_iteration rows only. Set by the controller, never by the caller.
+   * A consistency check (observe and satisfy from the same root), not an
+   * authenticator: anyone who can edit the run store can set it.
+   */
+  readonly observedProjectRoot?: string | null;
 }
 
 export interface SemanticEvidence {

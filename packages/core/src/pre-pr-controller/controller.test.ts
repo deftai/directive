@@ -1,7 +1,18 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  lstatSync,
+  mkdirSync,
+  mkdtempSync,
+  openSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { revokeGrant } from "../authz/actions.js";
 import {
   admitGateOverrideForAttempt,
@@ -26,7 +37,26 @@ import {
   PRE_PR_PHASES,
 } from "./phases.js";
 import { InProcessPrePrStore, mintPublisher, type PrePrExecutionStore } from "./store.js";
-import { deny, type PrePrExecutionRecord } from "./types.js";
+import { type CommandObservation, deny, type PrePrExecutionRecord } from "./types.js";
+
+// Pass-through fs spies so a test can make lstat or open misbehave for the
+// coverage report path only. There is no production hook between the presence
+// check and the read: the symlink-swap case mocks lstatSync.
+vi.mock("node:fs", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:fs")>();
+  return {
+    ...actual,
+    lstatSync: vi.fn(actual.lstatSync),
+    openSync: vi.fn(actual.openSync),
+    readFileSync: vi.fn(actual.readFileSync),
+  };
+});
+const realFs = await vi.importActual<typeof import("node:fs")>("node:fs");
+afterEach(() => {
+  vi.mocked(lstatSync).mockImplementation(realFs.lstatSync);
+  vi.mocked(openSync).mockImplementation(realFs.openSync);
+  vi.mocked(readFileSync).mockImplementation(realFs.readFileSync);
+});
 
 const approved = digestApprovedCriteria({
   sourceRevisionSha: "base",
@@ -527,13 +557,18 @@ describe("controller observations", () => {
       for (const spec of PRE_PR_PHASES) {
         if (spec.kind !== "command-observable") continue;
         if (spec.id === "coverage_headroom") {
-          observeCommandPhase(store, rec.id, {
-            phaseId: spec.id,
-            command: spec.command ?? "",
-            exitCode: 3,
-            inputHash: rec.inputHash,
-            skipReason: ALLOWED_SKIP_REASONS.coverage_headroom ?? "",
-          });
+          observeCommandPhase(
+            store,
+            rec.id,
+            {
+              phaseId: spec.id,
+              command: spec.command ?? "",
+              exitCode: 3,
+              inputHash: rec.inputHash,
+              skipReason: ALLOWED_SKIP_REASONS.coverage_headroom ?? "",
+            },
+            { projectRoot },
+          );
         } else {
           observeCommandPhase(store, rec.id, {
             phaseId: spec.id,
@@ -579,7 +614,7 @@ describe("controller observations", () => {
     }
   });
 
-  it("coverage_headroom refuses authorized skip when a coverage report exists", () => {
+  it("coverage_headroom accepts authorized skip under not-applicable when a coverage report exists", () => {
     const projectRoot = mkdtempSync(join(tmpdir(), "pre-pr-cov-report-"));
     try {
       mkdirSync(join(projectRoot, "coverage"), { recursive: true });
@@ -589,13 +624,18 @@ describe("controller observations", () => {
       for (const spec of PRE_PR_PHASES) {
         if (spec.kind !== "command-observable") continue;
         if (spec.id === "coverage_headroom") {
-          observeCommandPhase(store, rec.id, {
-            phaseId: spec.id,
-            command: spec.command ?? "",
-            exitCode: 3,
-            inputHash: rec.inputHash,
-            skipReason: ALLOWED_SKIP_REASONS.coverage_headroom ?? "",
-          });
+          observeCommandPhase(
+            store,
+            rec.id,
+            {
+              phaseId: spec.id,
+              command: spec.command ?? "",
+              exitCode: 3,
+              inputHash: rec.inputHash,
+              skipReason: ALLOWED_SKIP_REASONS.coverage_headroom ?? "",
+            },
+            { projectRoot },
+          );
         } else {
           observeCommandPhase(store, rec.id, {
             phaseId: spec.id,
@@ -619,11 +659,23 @@ describe("controller observations", () => {
       const decided = runObservablesComplete(store.getById(rec.id) as PrePrExecutionRecord, {
         projectRoot,
         applicabilityDeps: {
-          runGit: () => ({ ok: true as const, stdout: "A\tdocs/design.md\n" }),
+          runGit: (args) => {
+            const joined = args.join(" ");
+            if (joined.includes("rev-parse") && joined.includes("^{tree}")) {
+              return { ok: true as const, stdout: "tree" };
+            }
+            if (joined.includes("rev-parse")) {
+              return { ok: true as const, stdout: args.includes("base") ? "base" : "head" };
+            }
+            if (joined.includes("name-status")) {
+              return { ok: true as const, stdout: "A\tdocs/design.md\n" };
+            }
+            return { ok: true as const, stdout: "" };
+          },
           classifyPath: () => "inert",
         },
       });
-      expect(decided.ok).toBe(false);
+      expect(decided.ok).toBe(true);
     } finally {
       rmSync(projectRoot, { recursive: true, force: true });
     }
@@ -749,21 +801,31 @@ describe("controller observations", () => {
       mkdirSync(join(projectRoot, "coverage"), { recursive: true });
       writeFileSync(join(projectRoot, "coverage", "coverage-final.json"), "{}");
 
-      const observed = observeCommandPhase(store, rec.id, {
-        phaseId: "coverage_headroom",
-        command: `deft coverage:hotspots --attempt-id ${attemptId}`,
-        exitCode: 4,
-        inputHash: rec.inputHash,
-        skipReason: COVERAGE_HEADROOM_WAIVED_SKIP,
-      });
+      const observed = observeCommandPhase(
+        store,
+        rec.id,
+        {
+          phaseId: "coverage_headroom",
+          command: `deft coverage:hotspots --attempt-id ${attemptId}`,
+          exitCode: 4,
+          inputHash: rec.inputHash,
+          skipReason: COVERAGE_HEADROOM_WAIVED_SKIP,
+        },
+        { projectRoot },
+      );
       expect(observed.ok).toBe(true);
       expect(store.getById(rec.id)?.state).toBe("running");
 
-      fillPhasesExceptCoverage(store, rec, {
-        command: `deft coverage:hotspots --attempt-id ${attemptId}`,
-        exitCode: 4,
-        skipReason: COVERAGE_HEADROOM_WAIVED_SKIP,
-      });
+      fillPhasesExceptCoverage(
+        store,
+        rec,
+        {
+          command: `deft coverage:hotspots --attempt-id ${attemptId}`,
+          exitCode: 4,
+          skipReason: COVERAGE_HEADROOM_WAIVED_SKIP,
+        },
+        { projectRoot },
+      );
       const decided = runObservablesComplete(store.getById(rec.id) as PrePrExecutionRecord, {
         projectRoot,
       });
@@ -810,11 +872,16 @@ describe("controller observations", () => {
       });
       expect(admitted.ok).toBe(true);
 
-      fillPhasesExceptCoverage(store, rec, {
-        command: `deft coverage:hotspots --attempt-id ${attemptId}`,
-        exitCode: 4,
-        skipReason: COVERAGE_HEADROOM_WAIVED_SKIP,
-      });
+      fillPhasesExceptCoverage(
+        store,
+        rec,
+        {
+          command: `deft coverage:hotspots --attempt-id ${attemptId}`,
+          exitCode: 4,
+          skipReason: COVERAGE_HEADROOM_WAIVED_SKIP,
+        },
+        { projectRoot },
+      );
       expect(
         runObservablesComplete(store.getById(rec.id) as PrePrExecutionRecord, {
           projectRoot,
@@ -862,11 +929,16 @@ describe("controller observations", () => {
       });
       expect(admitted.ok).toBe(true);
 
-      fillPhasesExceptCoverage(store, rec, {
-        command: `deft coverage:hotspots --attempt-id ${attemptId}`,
-        exitCode: 4,
-        skipReason: COVERAGE_HEADROOM_WAIVED_SKIP,
-      });
+      fillPhasesExceptCoverage(
+        store,
+        rec,
+        {
+          command: `deft coverage:hotspots --attempt-id ${attemptId}`,
+          exitCode: 4,
+          skipReason: COVERAGE_HEADROOM_WAIVED_SKIP,
+        },
+        { projectRoot },
+      );
       expect(
         runObservablesComplete(store.getById(rec.id) as PrePrExecutionRecord, {
           projectRoot,
@@ -882,11 +954,16 @@ describe("controller observations", () => {
     try {
       const store = new InProcessPrePrStore();
       const rec = start(store, "ppr_cov_waive_forge");
-      fillPhasesExceptCoverage(store, rec, {
-        command: "deft coverage:hotspots --attempt-id missing",
-        exitCode: 4,
-        skipReason: ALLOWED_SKIP_REASONS.coverage_headroom ?? "",
-      });
+      fillPhasesExceptCoverage(
+        store,
+        rec,
+        {
+          command: "deft coverage:hotspots --attempt-id missing",
+          exitCode: 4,
+          skipReason: ALLOWED_SKIP_REASONS.coverage_headroom ?? "",
+        },
+        { projectRoot },
+      );
       expect(
         runObservablesComplete(store.getById(rec.id) as PrePrExecutionRecord, { projectRoot }).ok,
       ).toBe(false);
@@ -911,11 +988,16 @@ describe("controller observations", () => {
         observedRefuseReason: "coverage-applicability: unknown path",
       });
       expect(admitted.ok).toBe(true);
-      fillPhasesExceptCoverage(store2, rec2, {
-        command: `deft coverage:hotspots --attempt-id ${rec2.id}`,
-        exitCode: 4,
-        skipReason: COVERAGE_HEADROOM_WAIVED_SKIP,
-      });
+      fillPhasesExceptCoverage(
+        store2,
+        rec2,
+        {
+          command: `deft coverage:hotspots --attempt-id ${rec2.id}`,
+          exitCode: 4,
+          skipReason: COVERAGE_HEADROOM_WAIVED_SKIP,
+        },
+        { projectRoot },
+      );
       expect(
         runObservablesComplete(store2.getById(rec2.id) as PrePrExecutionRecord, {
           projectRoot,
@@ -954,11 +1036,16 @@ describe("controller observations", () => {
       const revoked = revokeGrant({ projectRoot, grantId: minted.grant.id });
       expect(revoked.ok).toBe(true);
 
-      fillPhasesExceptCoverage(store, rec, {
-        command: `deft coverage:hotspots --attempt-id ${attemptId}`,
-        exitCode: 4,
-        skipReason: COVERAGE_HEADROOM_WAIVED_SKIP,
-      });
+      fillPhasesExceptCoverage(
+        store,
+        rec,
+        {
+          command: `deft coverage:hotspots --attempt-id ${attemptId}`,
+          exitCode: 4,
+          skipReason: COVERAGE_HEADROOM_WAIVED_SKIP,
+        },
+        { projectRoot },
+      );
       expect(
         runObservablesComplete(store.getById(rec.id) as PrePrExecutionRecord, {
           projectRoot,
@@ -1006,11 +1093,16 @@ describe("controller observations", () => {
         }),
       );
 
-      fillPhasesExceptCoverage(store, rec, {
-        command: `deft coverage:hotspots --attempt-id ${attemptId}`,
-        exitCode: 4,
-        skipReason: COVERAGE_HEADROOM_WAIVED_SKIP,
-      });
+      fillPhasesExceptCoverage(
+        store,
+        rec,
+        {
+          command: `deft coverage:hotspots --attempt-id ${attemptId}`,
+          exitCode: 4,
+          skipReason: COVERAGE_HEADROOM_WAIVED_SKIP,
+        },
+        { projectRoot },
+      );
       expect(
         runObservablesComplete(store.getById(rec.id) as PrePrExecutionRecord, {
           projectRoot,
@@ -1050,11 +1142,16 @@ describe("controller observations", () => {
       mkdirSync(join(projectRoot, "coverage"), { recursive: true });
       writeFileSync(join(projectRoot, "coverage", "coverage-final.json"), "{}");
 
-      fillPhasesExceptCoverage(store, rec, {
-        command: `deft coverage:hotspots --attempt-id default --attempt-id ${attemptId}`,
-        exitCode: 4,
-        skipReason: COVERAGE_HEADROOM_WAIVED_SKIP,
-      });
+      fillPhasesExceptCoverage(
+        store,
+        rec,
+        {
+          command: `deft coverage:hotspots --attempt-id default --attempt-id ${attemptId}`,
+          exitCode: 4,
+          skipReason: COVERAGE_HEADROOM_WAIVED_SKIP,
+        },
+        { projectRoot },
+      );
       expect(
         runObservablesComplete(store.getById(rec.id) as PrePrExecutionRecord, {
           projectRoot,
@@ -1413,5 +1510,484 @@ describe("controller observations", () => {
     } finally {
       rmSync(projectRoot, { recursive: true, force: true });
     }
+  });
+});
+
+// Bound pre-PR coverage N/A rests on applicability alone (#5804 / #5421).
+describe("coverage N/A rests on applicability; one report path and observed root", () => {
+  const NA = ALLOWED_SKIP_REASONS.coverage_headroom ?? "";
+  const roots: string[] = [];
+  afterEach(() => {
+    for (const r of roots.splice(0)) rmSync(r, { recursive: true, force: true });
+  });
+
+  function tmpRoot(prefix: string): string {
+    const r = mkdtempSync(join(tmpdir(), prefix));
+    roots.push(r);
+    return r;
+  }
+
+  function writeMode(root: string, mode: string): void {
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief/PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8", description: "t", updated: "2026-01-01T00:00:00Z" },
+        plan: { title: "t", status: "running", "x-directive/policy": { coverageMode: mode } },
+      }),
+    );
+  }
+
+  function writeReport(root: string, body = "{}"): string {
+    mkdirSync(join(root, "coverage"), { recursive: true });
+    const p = join(root, "coverage", "coverage-final.json");
+    writeFileSync(p, body);
+    return p;
+  }
+
+  interface Shape {
+    readonly tree?: string;
+    readonly dirty?: string;
+    readonly classify?: "inert" | "coverable" | "unknown";
+    readonly failOn?: string;
+    readonly throwOn?: string;
+  }
+
+  /** Mocked applicability. Defaults derive not-applicable for the bound base/head/tree. */
+  function deps(shape: Shape = {}) {
+    return {
+      runGit: (args: readonly string[]) => {
+        const joined = args.join(" ");
+        if (shape.throwOn !== undefined && joined.includes(shape.throwOn)) {
+          throw new Error("git exploded");
+        }
+        if (shape.failOn !== undefined && joined.includes(shape.failOn)) {
+          return { ok: false as const, message: "git failed" };
+        }
+        if (joined.includes("rev-parse") && joined.includes("^{tree}")) {
+          return { ok: true as const, stdout: shape.tree ?? "tree" };
+        }
+        if (joined.includes("rev-parse")) {
+          return { ok: true as const, stdout: args.includes("base") ? "base" : "head" };
+        }
+        if (joined.includes("name-status")) {
+          return { ok: true as const, stdout: "A\tdocs/design.md\n" };
+        }
+        if (joined.includes("status")) {
+          return { ok: true as const, stdout: shape.dirty ?? "" };
+        }
+        return { ok: true as const, stdout: "" };
+      },
+      classifyPath: () => shape.classify ?? "inert",
+    };
+  }
+
+  function naRecord(
+    runId: string,
+    observeRoot: string,
+    command = "deft coverage:hotspots",
+  ): { store: InProcessPrePrStore; rec: PrePrExecutionRecord } {
+    const store = new InProcessPrePrStore();
+    const rec = start(store, runId);
+    fillPhasesExceptCoverage(
+      store,
+      rec,
+      { command, exitCode: 3, skipReason: NA },
+      { projectRoot: observeRoot },
+    );
+    return { store, rec: store.getById(rec.id) as PrePrExecutionRecord };
+  }
+
+  function withRow(
+    rec: PrePrExecutionRecord,
+    phaseId: CommandObservation["phaseId"],
+    edit: (row: CommandObservation) => CommandObservation,
+  ): PrePrExecutionRecord {
+    return {
+      ...rec,
+      phaseEvidence: {
+        ...rec.phaseEvidence,
+        commands: rec.phaseEvidence.commands.map((c) => (c.phaseId === phaseId ? edit(c) : c)),
+      },
+    };
+  }
+
+  function dropRoot(row: CommandObservation): CommandObservation {
+    const { observedProjectRoot: _drop, ...rest } = row;
+    return rest;
+  }
+
+  describe("not-applicable arm", () => {
+    it("not-applicable, report replaced after lint observe: accepted", () => {
+      const root = tmpRoot("pre-pr-na-replaced-");
+      writeReport(root, '{"a":1}');
+      const { rec } = naRecord("ppr_na_replaced", root);
+      writeReport(root, '{"b":2}');
+      expect(runObservablesComplete(rec, { projectRoot: root, applicabilityDeps: deps() }).ok).toBe(
+        true,
+      );
+    });
+
+    it("not-applicable, report deleted after lint: accepted", () => {
+      const root = tmpRoot("pre-pr-na-deleted-");
+      const report = writeReport(root);
+      const { rec } = naRecord("ppr_na_deleted", root);
+      unlinkSync(report);
+      expect(runObservablesComplete(rec, { projectRoot: root, applicabilityDeps: deps() }).ok).toBe(
+        true,
+      );
+    });
+
+    it("not-applicable, no report at any point: accepted", () => {
+      const root = tmpRoot("pre-pr-na-none-");
+      const { rec } = naRecord("ppr_na_none", root);
+      expect(runObservablesComplete(rec, { projectRoot: root, applicabilityDeps: deps() }).ok).toBe(
+        true,
+      );
+    });
+
+    it.each([
+      ["with a report", true],
+      ["without a report", false],
+    ])("applicability applicable %s: refused", (_label, report) => {
+      const root = tmpRoot("pre-pr-na-applicable-");
+      if (report) writeReport(root);
+      const { rec } = naRecord("ppr_na_applicable", root);
+      expect(
+        runObservablesComplete(rec, {
+          projectRoot: root,
+          applicabilityDeps: deps({ classify: "coverable" }),
+        }).ok,
+      ).toBe(false);
+    });
+
+    it.each([
+      ["tree-mismatch", { tree: "other-tree" }],
+      ["dirty-tree", { dirty: " M src/a.ts\n" }],
+      ["unknown-path", { classify: "unknown" as const }],
+      ["git failure", { failOn: "name-status" }],
+    ])("applicability refuse (%s): refused", (_label, shape) => {
+      const root = tmpRoot("pre-pr-na-refuse-");
+      writeReport(root);
+      const { rec } = naRecord("ppr_na_refuse", root);
+      expect(
+        runObservablesComplete(rec, { projectRoot: root, applicabilityDeps: deps(shape) }).ok,
+      ).toBe(false);
+    });
+
+    it("applicability throws: refused, no exception escapes", () => {
+      const root = tmpRoot("pre-pr-na-throw-");
+      const { rec } = naRecord("ppr_na_throw", root);
+      const opts = { projectRoot: root, applicabilityDeps: deps({ throwOn: "rev-parse" }) };
+      expect(() => runObservablesComplete(rec, opts)).not.toThrow();
+      expect(runObservablesComplete(rec, opts).ok).toBe(false);
+    });
+
+    it("not-applicable binding mismatch: row inputHash differs from the record: refused", () => {
+      const root = tmpRoot("pre-pr-na-binding-");
+      const { rec } = naRecord("ppr_na_binding", root);
+      const opts = { projectRoot: root, applicabilityDeps: deps() };
+      expect(runObservablesComplete(rec, opts).ok).toBe(true);
+      const forged = withRow(rec, "coverage_headroom", (r) => ({ ...r, inputHash: "other" }));
+      expect(runObservablesComplete(forged, opts).ok).toBe(false);
+    });
+
+    it.each([
+      ["deft coverage:hotspots", true],
+      ["deft coverage:hotspots --json", true],
+      ["task deft:coverage:hotspots -- --json", true],
+      ["deft coverage:hotspots --json;", false],
+      ["deft coverage:hotspots --jsonx", false],
+      ["deft coverage:hotspots extra", false],
+      ["deft coverage:hotspotsx", false],
+      ["echo deft coverage:hotspots", false],
+      ["deft coverage:hotspots --project-root=/other", false],
+      ["deft coverage:hotspots --coverage-dir=elsewhere", false],
+      ["deft coverage:hotspots --attempt-id", false],
+      ["", false],
+    ])("exit-3 command %j accepted=%s", (command, accepted) => {
+      const root = tmpRoot("pre-pr-na-cmd-");
+      const { rec } = naRecord("ppr_na_cmd", root, command);
+      expect(runObservablesComplete(rec, { projectRoot: root, applicabilityDeps: deps() }).ok).toBe(
+        accepted,
+      );
+    });
+  });
+
+  // Per-arm root check. Each fixture is satisfiable when observed under the
+  // satisfy root, so the root is the only reason a case refuses.
+  type Arm = "exit 3" | "exit 4" | "exit 5" | "lint exit 5";
+  const ARM_PHASE: Record<Arm, CommandObservation["phaseId"]> = {
+    "exit 3": "coverage_headroom",
+    "exit 4": "coverage_headroom",
+    "exit 5": "coverage_headroom",
+    "lint exit 5": "lint_iteration",
+  };
+
+  function armFixture(arm: Arm, runId: string) {
+    const root = tmpRoot("pre-pr-arm-b-");
+    const other = tmpRoot("pre-pr-arm-a-");
+    for (const r of [root, other]) writeMode(r, "initial");
+    const attemptCmd = `deft coverage:hotspots --attempt-id ${runId}`;
+    if (arm === "exit 4") {
+      expect(
+        mintGateOverrideTemplateGrant({
+          projectRoot: root,
+          target: "unknown-path",
+          planRef: runId,
+          baseSha: "base",
+          headSha: "head",
+          treeHash: "tree",
+        }).ok,
+      ).toBe(true);
+      expect(
+        admitGateOverrideForAttempt(root, {
+          refuseCode: "unknown-path",
+          baseSha: "base",
+          headSha: "head",
+          treeHash: "tree",
+          attemptId: runId,
+          observedRefuseReason: "coverage-applicability: unknown path",
+        }).ok,
+      ).toBe(true);
+      writeReport(root);
+    }
+    const build = (observeRoot: string): PrePrExecutionRecord => {
+      const store = new InProcessPrePrStore();
+      const rec = start(store, runId);
+      if (arm === "lint exit 5") {
+        fillPhasesWithLintModeSkip(store, rec, { projectRoot: root });
+      } else {
+        const cov =
+          arm === "exit 3"
+            ? { command: "deft coverage:hotspots", exitCode: 3, skipReason: NA }
+            : arm === "exit 4"
+              ? { command: attemptCmd, exitCode: 4, skipReason: COVERAGE_HEADROOM_WAIVED_SKIP }
+              : {
+                  command: "deft coverage:hotspots",
+                  exitCode: 5,
+                  skipReason: COVERAGE_HEADROOM_MODE_SKIP,
+                };
+        fillPhasesExceptCoverage(store, rec, cov, { projectRoot: root });
+      }
+      if (observeRoot !== root) {
+        // Re-observe only the arm's row under the other root.
+        const row = store
+          .getById(rec.id)
+          ?.phaseEvidence.commands.find((c) => c.phaseId === ARM_PHASE[arm]);
+        if (row === undefined) throw new Error("missing row");
+        observeCommandPhase(
+          store,
+          rec.id,
+          {
+            phaseId: row.phaseId,
+            command: row.command,
+            exitCode: row.exitCode,
+            inputHash: row.inputHash,
+            skipReason: row.skipReason,
+          },
+          { projectRoot: observeRoot },
+        );
+      }
+      const out = store.getById(rec.id) as PrePrExecutionRecord;
+      expect(out.state).toBe("running");
+      return out;
+    };
+    const satisfy = { projectRoot: root, applicabilityDeps: deps() };
+    return { root, other, build, satisfy };
+  }
+
+  const ARMS: readonly Arm[] = ["exit 3", "exit 4", "exit 5", "lint exit 5"];
+
+  it.each(
+    ARMS,
+  )("%s root mismatch (observed under root A, satisfied under root B): refused", (arm) => {
+    const f = armFixture(arm, "ppr_arm_mismatch");
+    expect(runObservablesComplete(f.build(f.root), f.satisfy).ok).toBe(true);
+    const decided = runObservablesComplete(f.build(f.other), f.satisfy);
+    expect(decided.ok).toBe(false);
+    expect(decided.message).toContain(ARM_PHASE[arm]);
+  });
+
+  it.each(ARMS)("%s missing root (null or absent observedProjectRoot): refused", (arm) => {
+    const f = armFixture(arm, "ppr_arm_missing");
+    const good = f.build(f.root);
+    expect(runObservablesComplete(good, f.satisfy).ok).toBe(true);
+    const asNull = withRow(good, ARM_PHASE[arm], (r) => ({ ...r, observedProjectRoot: null }));
+    const absent = withRow(good, ARM_PHASE[arm], dropRoot);
+    for (const forged of [asNull, absent]) {
+      const decided = runObservablesComplete(forged, f.satisfy);
+      expect(decided.ok).toBe(false);
+      expect(decided.message).toContain(ARM_PHASE[arm]);
+    }
+  });
+
+  it("root mismatch control: exit 0 measured pass with a mismatched root is still accepted", () => {
+    const store = new InProcessPrePrStore();
+    const rec = start(store, "ppr_root_exit0");
+    const a = tmpRoot("pre-pr-exit0-a-");
+    const b = tmpRoot("pre-pr-exit0-b-");
+    fillPhasesExceptCoverage(
+      store,
+      rec,
+      { command: "deft coverage:hotspots", exitCode: 0, skipReason: null },
+      { projectRoot: a },
+    );
+    const stored = store.getById(rec.id) as PrePrExecutionRecord;
+    expect(runObservablesComplete(stored, { projectRoot: b }).ok).toBe(true);
+  });
+
+  it("observedProjectRoot cannot be supplied by the caller; an extra field is ignored", () => {
+    const root = tmpRoot("pre-pr-root-forge-");
+    const store = new InProcessPrePrStore();
+    const rec = start(store, "ppr_root_forge");
+    const observation = {
+      phaseId: "coverage_headroom" as const,
+      command: "deft coverage:hotspots",
+      exitCode: 3,
+      inputHash: rec.inputHash,
+      skipReason: NA,
+      observedProjectRoot: "/forged",
+    };
+    // @ts-expect-error observedProjectRoot is omitted from the observation type
+    observeCommandPhase(store, rec.id, { ...observation }, { projectRoot: root });
+    const row = store
+      .getById(rec.id)
+      ?.phaseEvidence.commands.find((c) => c.phaseId === "coverage_headroom");
+    expect(row?.observedProjectRoot).toBe(realpathSync(root));
+    const other = store
+      .getById(rec.id)
+      ?.phaseEvidence.commands.find((c) => c.phaseId !== row?.phaseId);
+    expect(other).toBeUndefined();
+  });
+
+  it("observe stores observedProjectRoot only for coverage_headroom and lint_iteration rows", () => {
+    const root = tmpRoot("pre-pr-root-scope-");
+    const store = new InProcessPrePrStore();
+    const rec = start(store, "ppr_root_scope");
+    fillPhasesExceptCoverage(
+      store,
+      rec,
+      { command: "deft coverage:hotspots", exitCode: 3, skipReason: NA },
+      { projectRoot: root },
+    );
+    for (const row of store.getById(rec.id)?.phaseEvidence.commands ?? []) {
+      if (row.phaseId === "coverage_headroom") {
+        expect(row.observedProjectRoot).toBe(realpathSync(root));
+      } else if (row.phaseId !== "lint_iteration") {
+        expect("observedProjectRoot" in row).toBe(false);
+      }
+    }
+  });
+
+  describe("presence helper (lstat, never followed)", () => {
+    type Kind = "symlink" | "directory" | "EACCES";
+    function breakReport(root: string, kind: Kind): void {
+      const report = join(root, "coverage", "coverage-final.json");
+      rmSync(report, { force: true, recursive: true });
+      mkdirSync(join(root, "coverage"), { recursive: true });
+      if (kind === "symlink") {
+        writeFileSync(join(root, "elsewhere.json"), "{}");
+        symlinkSync(join(root, "elsewhere.json"), report);
+      } else if (kind === "directory") {
+        mkdirSync(report);
+      } else {
+        writeFileSync(report, "{}");
+        vi.mocked(lstatSync).mockImplementation(((
+          p: Parameters<typeof lstatSync>[0],
+          o?: object,
+        ) => {
+          if (String(p) === report) {
+            const err = new Error("EACCES") as NodeJS.ErrnoException;
+            err.code = "EACCES";
+            throw err;
+          }
+          return realFs.lstatSync(p, o as undefined);
+        }) as typeof lstatSync);
+      }
+    }
+    const KINDS: readonly Kind[] = ["symlink", "directory", "EACCES"];
+    const PRESENCE_ARMS: readonly Arm[] = ["exit 4", "exit 5", "lint exit 5"];
+    for (const arm of PRESENCE_ARMS) {
+      it.each(KINDS)(`presence: report path is a %s: ${arm} arm refuses`, (kind) => {
+        const f = armFixture(arm, "ppr_presence");
+        const rec = f.build(f.root);
+        breakReport(f.root, kind);
+        expect(runObservablesComplete(rec, f.satisfy).ok).toBe(false);
+      });
+    }
+
+    it.each(KINDS)("presence: report path is a %s: not-applicable arm still accepted", (kind) => {
+      const f = armFixture("exit 3", "ppr_presence_na");
+      const rec = f.build(f.root);
+      breakReport(f.root, kind);
+      expect(runObservablesComplete(rec, f.satisfy).ok).toBe(true);
+    });
+  });
+
+  describe("waived arm reads the report without following a symlink", () => {
+    it("symlink swap at the read (mocked lstatSync, no production hook): exit 4 row refused", () => {
+      const f = armFixture("exit 4", "ppr_swap");
+      const rec = f.build(f.root);
+      expect(runObservablesComplete(rec, f.satisfy).ok).toBe(true);
+      const report = join(f.root, "coverage", "coverage-final.json");
+      const target = join(f.root, "passing.json");
+      writeFileSync(target, "{}");
+      rmSync(report);
+      symlinkSync(target, report);
+      vi.mocked(lstatSync).mockImplementation(((p: Parameters<typeof lstatSync>[0], o?: object) =>
+        String(p).endsWith(join("coverage", "coverage-final.json"))
+          ? realFs.lstatSync(target)
+          : realFs.lstatSync(p, o as undefined)) as typeof lstatSync);
+      vi.mocked(readFileSync).mockClear();
+      expect(runObservablesComplete(rec, f.satisfy).ok).toBe(false);
+      const readPaths = vi.mocked(readFileSync).mock.calls.map((c) => String(c[0]));
+      expect(readPaths.some((p) => p === target || p === report)).toBe(false);
+    });
+
+    it("read error: openSync EACCES on the report: exit 4 row refused", () => {
+      const f = armFixture("exit 4", "ppr_read_error");
+      const rec = f.build(f.root);
+      expect(runObservablesComplete(rec, f.satisfy).ok).toBe(true);
+      vi.mocked(openSync).mockImplementation(((p: Parameters<typeof openSync>[0], ...rest: []) => {
+        if (String(p).endsWith(join("coverage", "coverage-final.json"))) {
+          const err = new Error("EACCES") as NodeJS.ErrnoException;
+          err.code = "EACCES";
+          throw err;
+        }
+        return realFs.openSync(p, ...rest);
+      }) as typeof openSync);
+      expect(runObservablesComplete(rec, f.satisfy).ok).toBe(false);
+    });
+  });
+
+  describe("unchanged arms", () => {
+    it("exit 5 mode skip with a report present is still refused", () => {
+      const f = armFixture("exit 5", "ppr_unchanged_mode");
+      const rec = f.build(f.root);
+      writeReport(f.root);
+      expect(runObservablesComplete(rec, f.satisfy).ok).toBe(false);
+    });
+
+    it("lint exit 5 with a report present is still refused", () => {
+      const f = armFixture("lint exit 5", "ppr_unchanged_lint");
+      const rec = f.build(f.root);
+      writeReport(f.root);
+      expect(runObservablesComplete(rec, f.satisfy).ok).toBe(false);
+    });
+
+    it("waived exit 4 with a failing report is still refused", () => {
+      const f = armFixture("exit 4", "ppr_unchanged_waived");
+      const rec = f.build(f.root);
+      writeReport(
+        f.root,
+        JSON.stringify({ "src/a.ts": { s: { "0": 1 }, f: { "0": 1 }, b: { "0": [1, 0] } } }),
+      );
+      writeFileSync(
+        join(f.root, "vitest.config.ts"),
+        "export default { test: { coverage: { thresholds: { branches: 85 } } } };",
+      );
+      expect(runObservablesComplete(rec, f.satisfy).ok).toBe(false);
+    });
   });
 });

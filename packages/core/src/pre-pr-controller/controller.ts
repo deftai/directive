@@ -21,6 +21,11 @@ import {
 import { evaluateCoverageHotspots } from "../coverage-hotspots/evaluate.js";
 import { isCoverageModeSkipAuthorized, resolveCoverageMode } from "../policy/coverage-mode.js";
 import {
+  coverageReportPresence,
+  prePrCoverageReportPath,
+  resolveObservedRoot,
+} from "./coverage-report.js";
+import {
   COVERAGE_HEADROOM_MODE_SKIP,
   COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP,
   COVERAGE_HEADROOM_WAIVED_SKIP,
@@ -210,7 +215,9 @@ function mutate(
 export function observeCommandPhase(
   store: PrePrExecutionStore,
   runId: string,
-  observation: Omit<CommandObservation, "completedAt"> & { readonly now?: Date },
+  observation: Omit<CommandObservation, "completedAt" | "observedProjectRoot"> & {
+    readonly now?: Date;
+  },
   options?: { readonly projectRoot?: string },
 ): PrePrDecision {
   const spec = phaseSpec(observation.phaseId);
@@ -245,6 +252,8 @@ export function observeCommandPhase(
           : isAllowedSkip(observation.phaseId, observation.skipReason);
     // Exit 4 waived must not mark the run failed (#5674); exit 0 alone is measured pass.
     const failed = observation.exitCode !== 0 && !skipOk;
+    const recordsRoot =
+      observation.phaseId === "coverage_headroom" || observation.phaseId === "lint_iteration";
     const row: CommandObservation = {
       phaseId: observation.phaseId,
       command: observation.command,
@@ -252,6 +261,7 @@ export function observeCommandPhase(
       inputHash: observation.inputHash,
       skipReason: observation.skipReason,
       completedAt: utcIso(observation.now),
+      ...(recordsRoot ? { observedProjectRoot: resolveObservedRoot(projectRoot) } : {}),
     };
     const next: PrePrExecutionRecord = {
       ...record,
@@ -422,6 +432,14 @@ function coverageHotspotsCommandMatches(observed: string, specCommand: string): 
   return false;
 }
 
+/** Row was observed under the same (realpath) root that satisfaction runs under. */
+function observedRootMatches(row: CommandObservation, projectRoot: string): boolean {
+  const observed = row.observedProjectRoot;
+  if (observed === undefined || observed === null) return false;
+  const current = resolveObservedRoot(projectRoot);
+  return current !== null && observed === current;
+}
+
 /**
  * Coverage-scoped satisfaction (#5421 / #5674 Prefer-A Bound):
  * - measured pass: exit 0 only when command matches the phase spec (hotspots)
@@ -449,6 +467,12 @@ function commandSatisfied(
       return spec.command !== null && coverageHotspotsCommandMatches(row.command, spec.command);
     }
     const projectRoot = options?.projectRoot ?? process.cwd();
+    // Every non-zero coverage arm needs the row's observed root to match (one report path).
+    if (!observedRootMatches(row, projectRoot)) return false;
+    // lstat presence for the waived and mode arms (null: symlink, dir or error refuses).
+    // The N/A arm does not look at the report.
+    const reportPresence = (): "absent" | "present" | null =>
+      coverageReportPresence(prePrCoverageReportPath(projectRoot));
 
     // #5674 waived arm: exit 4 + distinct waived token + live grant inspect +
     // measured-report recheck (revoke/expiry and Istanbul floor dominate).
@@ -487,8 +511,9 @@ function commandSatisfied(
       // report under initial|disabled reaches mode-skip posture (#5791) because
       // hotspots returns exit 4 before exit 5 when a waiver admits; under full,
       // missing report stays unsatisfied.
-      const reportPath = join(projectRoot, "coverage", "coverage-final.json");
-      if (!existsSync(reportPath)) {
+      const presence = reportPresence();
+      if (presence === null) return false;
+      if (presence === "absent") {
         return isCoverageModeSkipAuthorized(resolveCoverageMode(projectRoot).mode);
       }
       const measured = evaluateCoverageHotspots({
@@ -507,7 +532,7 @@ function commandSatisfied(
       if (spec.command === null || !coverageHotspotsCommandMatches(row.command, spec.command)) {
         return false;
       }
-      if (existsSync(join(projectRoot, "coverage", "coverage-final.json"))) return false;
+      if (reportPresence() !== "absent") return false;
       if (!isCoverageModeSkipAuthorized(resolveCoverageMode(projectRoot).mode)) return false;
       const derived = evaluateCoverageApplicability(
         {
@@ -522,22 +547,29 @@ function commandSatisfied(
       return true;
     }
 
-    // Authorized N/A is exit 3 only (hotspots emits 3 when inert + no report).
-    // Exit 1 measured floor fails must not launder into skip via inert re-derivation.
-    // When coverage-final.json exists, Prefer-A keeps the Istanbul floor — refuse skip.
+    // Authorized N/A is exit 3 only. Exit 1 measured floor fails must not launder
+    // into skip via inert re-derivation. N/A rests on applicability alone: the
+    // controller re-derives not-applicable for the bound base/head/tree on a clean
+    // tree; a report left by the run's own lint_iteration does not veto it.
     if (row.exitCode !== 3) return false;
     if (row.skipReason !== COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP) return false;
-    if (existsSync(join(projectRoot, "coverage", "coverage-final.json"))) return false;
-    const derived = evaluateCoverageApplicability(
-      {
-        projectRoot,
-        baseSha: record.baseSha,
-        headSha: record.headSha,
-        treeHash: record.treeHash,
-      },
-      options?.applicabilityDeps,
-    );
-    return derived.outcome === "not-applicable";
+    if (spec.command === null || !coverageHotspotsCommandMatches(row.command, spec.command)) {
+      return false;
+    }
+    try {
+      const derived = evaluateCoverageApplicability(
+        {
+          projectRoot,
+          baseSha: record.baseSha,
+          headSha: record.headSha,
+          treeHash: record.treeHash,
+        },
+        options?.applicabilityDeps,
+      );
+      return derived.outcome === "not-applicable";
+    } catch {
+      return false;
+    }
   }
 
   // #5814 lint_iteration mode arm: exit 5 + distinct token; re-read coverageMode;
@@ -548,7 +580,8 @@ function commandSatisfied(
     if (row.skipReason !== LINT_ITERATION_MODE_SKIP) return false;
     if (!row.command.toLowerCase().includes("vitest")) return false;
     const projectRoot = options?.projectRoot ?? process.cwd();
-    if (existsSync(join(projectRoot, "coverage", "coverage-final.json"))) return false;
+    if (!observedRootMatches(row, projectRoot)) return false;
+    if (coverageReportPresence(prePrCoverageReportPath(projectRoot)) !== "absent") return false;
     return isCoverageModeSkipAuthorized(resolveCoverageMode(projectRoot).mode);
   }
 
