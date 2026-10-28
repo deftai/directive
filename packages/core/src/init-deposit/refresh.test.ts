@@ -40,8 +40,8 @@ import type { AgentHookReadinessResult } from "../verify-env/agent-hook-readines
 import { evaluate as evaluateHooksInstalled } from "../verify-env/verify-hooks-installed.js";
 import { destContentionItTimeout } from "../vitest-runner/dest-contention-it-timeout.helper.test.js";
 import { detectXbriefConvergence } from "../xbrief-migrate/detect.js";
-import { LOCKFILE_REFRESH_COMMANDS } from "./init-deposit.js";
 import { hostHookOuterCommand, hostHookOuterSha8 } from "./host-hook-outer.js";
+import { LOCKFILE_REFRESH_COMMANDS } from "./init-deposit.js";
 import { type LegacyLayoutDetection, LegacyLayoutRefusedError } from "./legacy-detect.js";
 import {
   buildDepositVersionSkewHeadline,

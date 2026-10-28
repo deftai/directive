@@ -15,6 +15,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { CONTENT_PACKAGE_NAME } from "../deposit/resolve-content.js";
 import type { AgentHookReadinessResult } from "../verify-env/agent-hook-readiness.js";
 import { destContentionItTimeout } from "../vitest-runner/dest-contention-it-timeout.helper.test.js";
+import { hostHookOuterCommand, hostHookOuterSha8 } from "./host-hook-outer.js";
 import { INIT_CONSUMER_INVARIANT_REFUSE_RECOVERY } from "./init-consumer-invariant.js";
 import {
   buildInstallSummaryJson,
@@ -27,7 +28,6 @@ import {
 } from "./init-deposit.js";
 import { type LegacyLayoutDetection, LegacyLayoutRefusedError } from "./legacy-detect.js";
 import { PIN_DEPENDENCY_NAME } from "./scaffold.js";
-import { hostHookOuterCommand, hostHookOuterSha8 } from "./host-hook-outer.js";
 import type { GitExecFn } from "./update-git-preflight.js";
 
 // `JSON.parse` returns top-level `null` (not a throw) for the literal `null`,
