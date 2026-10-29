@@ -14,6 +14,7 @@ import {
   CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
   CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS,
 } from "../init-deposit/agent-hooks.js";
+import { hostHookOuterCommand, hostHookOuterSha8 } from "../init-deposit/host-hook-outer.js";
 import {
   isClosedPlanSequenceShape,
   PLAN_SEQUENCE_CONTRACT,
@@ -41,10 +42,14 @@ const CURSOR_MATCHERS = [
   MCP_HOOK_MATCHER,
 ] as const;
 
+function cursorOuterCommand(event: string): string {
+  return `${hostHookOuterCommand("cursor", hostHookOuterSha8())} --host cursor --event ${event}`;
+}
+
 function canonicalCursorRegistration(extras?: { readonly customSession?: unknown }): string {
   const sessionStart: unknown[] = [
     {
-      command: "deft-hook --host cursor --event session.start",
+      command: cursorOuterCommand("session.start"),
       timeout: CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
     },
   ];
@@ -55,26 +60,26 @@ function canonicalCursorRegistration(extras?: { readonly customSession?: unknown
       hooks: {
         sessionStart,
         preToolUse: CURSOR_MATCHERS.map((matcher) => ({
-          command: "deft-hook --host cursor --event tool.before",
+          command: cursorOuterCommand("tool.before"),
           matcher,
           failClosed: true,
           timeout: CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS,
         })),
         preCompact: [
           {
-            command: "deft-hook --host cursor --event session.compact",
+            command: cursorOuterCommand("session.compact"),
             timeout: CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
           },
         ],
         beforeSubmitPrompt: [
           {
-            command: "deft-hook --host cursor --event prompt.submit",
+            command: cursorOuterCommand("prompt.submit"),
             timeout: CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
           },
         ],
         afterAgentResponse: [
           {
-            command: "deft-hook --host cursor --event agent.response",
+            command: cursorOuterCommand("agent.response"),
             timeout: CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
           },
         ],

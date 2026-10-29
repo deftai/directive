@@ -18,7 +18,9 @@ import {
   AGENT_HOOK_PATHS,
   CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
   CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS,
-  GROK_PRETOOLUSE_WRAPPER_COMMAND,
+  hostHookOuterCommand,
+  hostHookOuterSha8,
+  hostHookOuterSource,
   NESTED_HOOK_TIMEOUT_SECONDS,
   NESTED_TOOL_BEFORE_TIMEOUT_SECONDS,
 } from "../init-deposit/agent-hooks.js";
@@ -861,7 +863,8 @@ function isPayloadRunPath(path: string): boolean {
 }
 
 function deftHookCommand(host: HookHost, event: string): string {
-  return `deft-hook --host ${host} --event ${event}`;
+  const sha8 = hostHookOuterSha8();
+  return `${hostHookOuterCommand(host, sha8)} --host ${host} --event ${event}`;
 }
 
 function hostForRegistrationPath(path: string): HookHost | null {
@@ -874,8 +877,7 @@ function hostForRegistrationPath(path: string): HookHost | null {
 
 function nestedManagedGroup(host: Exclude<HookHost, "cursor">, event: string, matcher?: string) {
   const toolBefore = event === "tool.before";
-  const command =
-    host === "grok" && toolBefore ? GROK_PRETOOLUSE_WRAPPER_COMMAND : deftHookCommand(host, event);
+  const command = deftHookCommand(host, event);
   return {
     ...(matcher !== undefined ? { matcher } : {}),
     hooks: [
@@ -1001,8 +1003,7 @@ function isCanonicalNestedManagedGroup(
     );
   }
   if (eventKey === "PreToolUse") {
-    const expectedCmd =
-      host === "grok" ? GROK_PRETOOLUSE_WRAPPER_COMMAND : deftHookCommand(host, "tool.before");
+    const expectedCmd = deftHookCommand(host, "tool.before");
     return (
       typeof entry.matcher === "string" &&
       (NESTED_PRE_TOOL_MATCHERS as readonly string[]).includes(entry.matcher) &&
@@ -1191,6 +1192,76 @@ function readBlobText(
   return { ok: true, text: shown.stdout };
 }
 
+/** Legacy Directive host commands that the v261027 .mjs outer replaces (#5994). */
+function commandTextLooksLegacyDirective(value: unknown): boolean {
+  if (typeof value === "string") return stringLooksLegacyDirectiveCommand(value);
+  if (!isPlainObject(value)) return false;
+  for (const key of ["command", "bash", "prompt"] as const) {
+    const v = value[key];
+    if (typeof v === "string" && stringLooksLegacyDirectiveCommand(v)) return true;
+  }
+  if (Array.isArray(value.hooks)) {
+    return value.hooks.some((h) => commandTextLooksLegacyDirective(h));
+  }
+  if (Array.isArray(value.command)) {
+    return value.command.some((c) => typeof c === "string" && stringLooksLegacyDirectiveCommand(c));
+  }
+  return false;
+}
+
+/** Exact supported legacy forms repair still replaces (#5994 Greptile). */
+function stringLooksLegacyDirectiveCommand(text: string): boolean {
+  const s = text.trim();
+  if (s.includes("hook-bin.js") || /(^|[\s/`])hook-bin(?:\s|$)/.test(s)) return true;
+  if (s.includes("deft hook:dispatch")) return true;
+  if (/(?:^|[\s/`])deft-hook(?:-[a-f0-9]{8})?(?:\.(?:mjs|sh))?(?:\s|$)/.test(s)) return true;
+  if (s.includes("deft-pretooluse-wrapper.sh")) return true;
+  return false;
+}
+
+function stripLegacyDirectiveHookEntries(
+  consumerHooks: unknown,
+): Record<string, unknown[]> | undefined {
+  if (!isPlainObject(consumerHooks)) return undefined;
+  const out: Record<string, unknown[]> = {};
+  for (const [event, entries] of Object.entries(consumerHooks)) {
+    if (!Array.isArray(entries)) continue;
+    const kept = entries.filter((entry) => !commandTextLooksLegacyDirective(entry));
+    if (kept.length > 0) out[event] = kept;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+/**
+ * True when base→head only replaces legacy Directive hook commands with the
+ * managed .mjs outer, leaving any custom consumer remainder unchanged (#5994).
+ */
+function isLegacyDirectiveHostMigration(
+  baseRemainder: Record<string, unknown>,
+  headRemainder: Record<string, unknown>,
+): boolean {
+  const baseHooks = baseRemainder.hooks;
+  const strippedHooks = stripLegacyDirectiveHookEntries(baseHooks);
+  const hadLegacy =
+    isPlainObject(baseHooks) &&
+    Object.values(baseHooks).some(
+      (entries) =>
+        Array.isArray(entries) && entries.some((e) => commandTextLooksLegacyDirective(e)),
+    );
+  if (!hadLegacy) return false;
+  const normalizedBase: Record<string, unknown> = { ...baseRemainder };
+  if (strippedHooks === undefined) delete normalizedBase.hooks;
+  else normalizedBase.hooks = strippedHooks;
+  return structuralEqual(normalizedBase, headRemainder);
+}
+
+const HOST_HOOK_OUTER_PATH_RE =
+  /^\.(grok\/hooks|cursor\/hooks|claude|codex)\/deft-hook-[a-f0-9]{8}\.mjs$/;
+
+function isHostHookOuterDepositPath(path: string): boolean {
+  return HOST_HOOK_OUTER_PATH_RE.test(posixPath(path));
+}
+
 /**
  * Prefer-A #5677 Recut-1 limb 2: host registration unknown→inert only when A/M
  * managed-projection proof succeeds (verified base absence for A; remainder+canonical for M).
@@ -1226,7 +1297,65 @@ function proveHostRegistrationManagedProjectionInert(
     const headPart = partitionHostRegistration(host, headBlob.value);
     if (basePart === null || headPart === null) return change;
     if (!headPart.managedComplete) return change;
-    if (!structuralEqual(basePart.consumerRemainder, headPart.consumerRemainder)) return change;
+    // Same consumer remainder → ordinary managed refresh.
+    if (structuralEqual(basePart.consumerRemainder, headPart.consumerRemainder)) {
+      return {
+        status: change.status,
+        path: change.path,
+        oldPath: change.oldPath,
+        classification: "inert",
+      };
+    }
+    // #5994: legacy Directive command → v261027 .mjs outer is a managed migration.
+    // Base non-canonical Directive entries (hook-bin / .sh wrapper / old outer) land in
+    // consumerRemainder; admit only when stripping those legacy entries leaves the same
+    // consumer remainder as head (custom hook deletes stay coverable).
+    if (isLegacyDirectiveHostMigration(basePart.consumerRemainder, headPart.consumerRemainder)) {
+      return {
+        status: change.status,
+        path: change.path,
+        oldPath: change.oldPath,
+        classification: "inert",
+      };
+    }
+    return change;
+  });
+}
+
+/**
+ * #5994: deft-hook-<sha8>.mjs is inert only when blob bytes match hostHookOuterSource().
+ * Arbitrary JS under a matching name stays coverable/unknown.
+ */
+function looksLikeHostHookOuterSource(text: string): boolean {
+  return (
+    text.includes("Directive host-hook outer") &&
+    text.includes(".deft-directive-disable") &&
+    text.includes("hook-bin")
+  );
+}
+
+function proveHostHookOuterDepositInert(
+  changes: readonly ClassifiedChange[],
+  input: EvaluateCoverageApplicabilityInput,
+  runGit: (args: readonly string[], cwd: string) => GitRunResult,
+): ClassifiedChange[] {
+  const expected = hostHookOuterSource().replace(/\r\n/g, "\n");
+  return changes.map((change) => {
+    if (!isHostHookOuterDepositPath(change.path)) return change;
+    if (change.classification === "inert") return change;
+    if (change.status === "D") {
+      const blob = readBlobText(runGit, input.projectRoot, input.baseSha, change.path);
+      if (!blob.ok || !looksLikeHostHookOuterSource(blob.text)) return change;
+      return {
+        status: change.status,
+        path: change.path,
+        oldPath: change.oldPath,
+        classification: "inert",
+      };
+    }
+    const blob = readBlobText(runGit, input.projectRoot, input.headSha, change.path);
+    if (!blob.ok) return change;
+    if (blob.text.replace(/\r\n/g, "\n") !== expected) return change;
     return {
       status: change.status,
       path: change.path,
@@ -1274,6 +1403,9 @@ export function classifyChangedPath(
   const base = basenameOf(p);
   const ext = extensionOf(p);
 
+  // #5994 host outers: path alone is not inert — proveHostHookOuterDepositInert
+  // verifies blob bytes against hostHookOuterSource() before exempting.
+
   if (isCoverableConfig(p)) return "coverable";
   if (COVERABLE_EXTENSIONS.has(ext)) {
     // Declaration files remain coverable (they are TypeScript surface).
@@ -1290,6 +1422,9 @@ export function classifyChangedPath(
   if (isResidualDepositInertPath(p)) return "inert";
 
   if (INERT_BASENAMES.has(base)) return "inert";
+
+  // #5994 / AC9.12: committed Taskfile engine entry is framework deposit, not product.
+  if (p === "tasks/engine.yml") return "inert";
 
   // Planning / design / decision artifacts under known roots.
   if (
@@ -1597,7 +1732,8 @@ export function evaluateCoverageApplicability(
     input,
     runGit,
   );
-  const afterRunShimProof = proveRetiredRunShimDeletionInert(afterRegistrationProof, input, runGit);
+  const afterOuterProof = proveHostHookOuterDepositInert(afterRegistrationProof, input, runGit);
+  const afterRunShimProof = proveRetiredRunShimDeletionInert(afterOuterProof, input, runGit);
 
   if (afterRunShimProof.some((c) => c.classification === "unknown")) {
     const unknownPaths = afterRunShimProof

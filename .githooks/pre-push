@@ -5,8 +5,4 @@ REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 1
 . "$REPO_ROOT/.githooks/_directive-run.sh"
 run_directive verify:branch --project-root "$REPO_ROOT" || exit $?
 # Enrolled bound pre-PR arm: sole-stdin (do not redirect shared run_directive to /dev/null)
-# Pins older than #5804 lack --push-admit: keep the pre-#5804 hook there (verify:branch only).
-_pre_pr_help="$(run_directive pre-pr:run --help </dev/null 2>&1)" || exit $?
-case "$_pre_pr_help" in
-  *--push-admit*) run_directive pre-pr:run --push-admit --project-root "$REPO_ROOT" || exit $? ;;
-esac
+run_directive pre-pr:run --push-admit --project-root "$REPO_ROOT" || exit $?

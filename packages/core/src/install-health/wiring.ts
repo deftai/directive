@@ -10,6 +10,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseTaskfileIncludes } from "../check/consumer-gate-integrity.js";
+import { isHostHookOuterCommand } from "../init-deposit/host-hook-outer.js";
 import { RUNTIME_PACKAGE_PATH_PREFIX } from "./constants.js";
 import {
   MANAGED_SECTION_CLOSE,
@@ -192,6 +193,24 @@ function inspectTaskfileIncludesDeft(text: string): boolean {
   return taskfile.includes(prefix);
 }
 
+const HOST_HOOK_REGISTRATION_RELS: ReadonlySet<string> = new Set([
+  ".claude/settings.json",
+  ".cursor/hooks.json",
+  ".codex/hooks.json",
+  ".grok/hooks/deft.json",
+]);
+
+/** #5994 / F2: host registration success form is content-hashed `.mjs` outer only. */
+function isHostHookOuterRegistration(text: string): boolean {
+  if (text.includes(".deft/core/")) return false;
+  if (/(^|[\s"`'])deft-hook([\s"`']|$)/.test(text)) return false;
+  // Direct pin hook-bin as the registered host command is legacy.
+  if (text.includes("node_modules/@deftai/directive-runtime/dist/hook-bin.js")) {
+    return false;
+  }
+  return isHostHookOuterCommand(text);
+}
+
 function inspectProbe(rel: string, text: string): boolean {
   if (rel === "AGENTS.md") {
     const section = extractManagedSection(text);
@@ -205,6 +224,9 @@ function inspectProbe(rel: string, text: string): boolean {
     return inspectTaskfileIncludesDeft(text);
   }
   if (isGitHookShim(rel, text)) return true;
+  if (HOST_HOOK_REGISTRATION_RELS.has(rel)) {
+    return isHostHookOuterRegistration(text);
+  }
   return targetsRuntime(text);
 }
 
@@ -230,7 +252,12 @@ export function hasDirectiveWiringEvidence(projectRoot: string, seams: FsSeams =
       if (inspectTaskfileIncludesDeft(text)) return true;
       continue;
     }
-    if (isGitHookShim(rel, text) || targetsRuntime(text)) return true;
+    if (isGitHookShim(rel, text)) return true;
+    if (HOST_HOOK_REGISTRATION_RELS.has(rel)) {
+      if (isHostHookOuterRegistration(text)) return true;
+      continue;
+    }
+    if (targetsRuntime(text)) return true;
   }
   return false;
 }

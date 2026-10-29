@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host codex --event session.start",
+            "command": "node .codex/deft-hook-9138a8b8.mjs --host codex --event session.start",
             "timeout": 5
           }
         ]
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host codex --event tool.before",
+            "command": "node .codex/deft-hook-9138a8b8.mjs --host codex --event tool.before",
             "timeout": 30
           }
         ]
@@ -27,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host codex --event tool.before",
+            "command": "node .codex/deft-hook-9138a8b8.mjs --host codex --event tool.before",
             "timeout": 30
           }
         ]
@@ -37,7 +37,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host codex --event tool.before",
+            "command": "node .codex/deft-hook-9138a8b8.mjs --host codex --event tool.before",
             "timeout": 30
           }
         ]
@@ -47,7 +47,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host codex --event tool.before",
+            "command": "node .codex/deft-hook-9138a8b8.mjs --host codex --event tool.before",
             "timeout": 30
           }
         ]
@@ -57,7 +57,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node node_modules/@deftai/directive-runtime/dist/hook-bin.js --host codex --event tool.before",
+            "command": "node .codex/deft-hook-9138a8b8.mjs --host codex --event tool.before",
             "timeout": 30
           }
         ]

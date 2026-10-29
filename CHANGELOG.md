@@ -6,7 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- feat(hooks): v261027 thin host `.mjs` outer; kill `.sh`; unify entry guards (F1/F2). Refs #5994.
+- fix(doctor): accept v261027 host `.mjs` outer as hook command form (greenfield smoke). Refs #5994.
+- fix(hooks): Grok deny on unusable pin; Taskfile disable-first; clear spawn exit diagnostic. Refs #5994.
 - test(darwin): raise unit/spawn-heavy/root testTimeout 5s→20s under full-suite coverage load (unblocks merge_chokepoint flakes; win32 stays 240s).
+- chore(xbrief): activate #5994 thin v261027 host `.mjs` outer scope (product PR follows).
 - chore(dogfood): apply `directive upgrade` / repair deposit for pin 0.129.1 (Grok wrapper + hooks + residual xbriefs).
 
 

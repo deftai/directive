@@ -8,6 +8,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -131,26 +132,22 @@ describe("OVPR hooks red #5807 dual PreToolUse / stale deft-hook wrapper", () =>
         `matcher ${matcher} must have exactly one PreToolUse group after upgrade (#5807)`,
       ).toHaveLength(1);
       const command = forMatcher[0]?.hooks?.[0]?.command ?? "";
-      const isWrapper = command.includes("deft-pretooluse-wrapper.sh");
-      const isHookBin =
-        command.includes("node_modules/@deftai/directive-runtime/dist/hook-bin.js") &&
-        command.includes("--host grok") &&
-        command.includes("tool.before");
+      const isOuter = /deft-hook-[a-f0-9]{8}\.mjs/.test(command) && command.includes("--host grok");
       expect(
-        isWrapper || isHookBin,
-        `matcher ${matcher} command must be current wrapper or pin-relative hook-bin (#5807); got ${command}`,
+        isOuter,
+        `matcher ${matcher} command must be current .mjs outer (#5994 / #5807); got ${command}`,
       ).toBe(true);
       expect(command, "must not reintroduce bare deft-hook PreToolUse identity").not.toMatch(
         /(^|[\s"`'])deft-hook([\s"`']|$)/,
       );
     }
 
-    const wrapperPath = join(root, ".grok/hooks/deft-pretooluse-wrapper.sh");
-    expect(existsSync(wrapperPath)).toBe(true);
-    const wrapperBody = readFileSync(wrapperPath, "utf8");
-    expect(wrapperBody).toContain("node_modules/@deftai/directive-runtime/dist/hook-bin.js");
-    expect(wrapperBody).not.toMatch(/\bcommand -v deft-hook\b/);
-    expect(wrapperBody).not.toMatch(/\bexec deft-hook\b/);
+    expect(existsSync(join(root, ".grok/hooks/deft-pretooluse-wrapper.sh"))).toBe(false);
+    expect(
+      readdirSync(join(root, ".grok/hooks")).some(
+        (f) => f.startsWith("deft-hook-") && f.endsWith(".mjs"),
+      ),
+    ).toBe(true);
   });
 
   it("preserves custom commands co-located with the Grok wrapper in one PreToolUse group (Greptile P1 #5886)", () => {
@@ -217,8 +214,8 @@ describe("OVPR hooks red #5807 dual PreToolUse / stale deft-hook wrapper", () =>
       customCmd,
     );
     expect(
-      mergeCommands.some((cmd) => cmd.includes("deft-pretooluse-wrapper.sh")),
-      "merge must redeposit Grok wrapper",
+      mergeCommands.some((cmd) => /deft-hook-[a-f0-9]{8}\.mjs/.test(cmd)),
+      "merge must redeposit Grok .mjs outer",
     ).toBe(true);
 
     const disableGrok: HostHooksPolicy = { ...DEFAULT_HOST_HOOKS_POLICY, grok: false };

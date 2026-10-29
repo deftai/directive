@@ -21,10 +21,14 @@ import {
   SPAWN_HOOK_MATCHER,
 } from "@deftai/directive-core/dist/hooks/tools.js";
 import {
-  GROK_PRETOOLUSE_WRAPPER_COMMAND,
   GROK_PRETOOLUSE_WRAPPER_REL_PATH,
-  grokPretooluseWrapperScriptSource,
+  HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE,
+  hostHookOuterCommand,
+  hostHookOuterRelPath,
+  hostHookOuterSha8,
+  hostHookOuterSource,
   isGrokWrapperCommand,
+  isHostHookOuterCommand,
 } from "@deftai/directive-core/dist/init-deposit/agent-hooks.js";
 import {
   INSTALLATION_RECOVERY_GUIDANCE,
@@ -502,25 +506,45 @@ export function ensureOpenClawIntegrations(projectRoot: string): {
 }
 
 function hookCommand(host: string, event: string): string {
-  return `${HOOK_BIN_COMMAND} --host ${host} --event ${event}`;
+  const sha8 = hostHookOuterSha8();
+  return `${hostHookOuterCommand(host as HookHost, sha8)} --host ${host} --event ${event}`;
 }
 
 /** Rewrite bare `deft-hook` / legacy `deft hook:dispatch` to package-relative (AC9.2). */
 export function rewriteBareDeftHookCommand(command: string): string {
   const trimmed = command.trim();
-  if (trimmed.startsWith(HOOK_BIN_COMMAND)) return command;
+  if (isHostHookOuterCommand(trimmed)) return command;
+  const hostMatch = trimmed.match(/--host\s+(\w+)/);
+  const eventMatch = trimmed.match(/--event\s+([\w.]+)/);
+  const host = hostMatch?.[1];
+  const event = eventMatch?.[1];
+  const sha8 = hostHookOuterSha8();
+  const toOuter = (h: string, e: string) =>
+    `${hostHookOuterCommand(h as HookHost, sha8)} --host ${h} --event ${e}`;
+  // Legacy Grok .sh wrapper → outer
+  if (isGrokWrapperCommand(trimmed) && host && event) {
+    return toOuter(host, event);
+  }
+  if (isGrokWrapperCommand(trimmed)) {
+    return toOuter("grok", "tool.before");
+  }
+  // Direct hook-bin with host/event → outer
+  if (trimmed.includes(HOOK_BIN_COMMAND) && host && event) {
+    return toOuter(host, event);
+  }
   const bare = /^(?:deft-hook|deft\s+hook:dispatch)(\s+.*)?$/;
   const m = trimmed.match(bare);
   if (m) {
     const rest = (m[1] ?? "").trim();
+    if (host && event) return toOuter(host, event);
+    // bare without host/event: leave as package-relative interim only if no host
     return rest.length > 0 ? `${HOOK_BIN_COMMAND} ${rest}` : HOOK_BIN_COMMAND;
   }
-  // Inline occurrences inside longer strings (rare)
-  if (/\bdeft-hook\b/.test(trimmed) && !trimmed.includes(RUNTIME_PREFIX)) {
-    return trimmed.replace(/\bdeft-hook\b/g, HOOK_BIN_COMMAND);
+  if (/\bdeft-hook\b/.test(trimmed) && !isHostHookOuterCommand(trimmed) && host && event) {
+    return toOuter(host, event);
   }
-  if (/\bdeft\s+hook:dispatch\b/.test(trimmed) && !trimmed.includes(RUNTIME_PREFIX)) {
-    return trimmed.replace(/\bdeft\s+hook:dispatch\b/g, HOOK_BIN_COMMAND);
+  if (/\bdeft\s+hook:dispatch\b/.test(trimmed) && host && event) {
+    return toOuter(host, event);
   }
   return command;
 }
@@ -555,6 +579,7 @@ function rewriteCommandsInValue(value: unknown): { value: unknown; changed: bool
 
 function isManagedHookCommand(command: string): boolean {
   return (
+    isHostHookOuterCommand(command) ||
     command.includes(HOOK_BIN_COMMAND) ||
     isGrokWrapperCommand(command) ||
     /(^|[\s"`'])deft-hook([\s"`']|$)/.test(command) ||
@@ -601,8 +626,7 @@ function cursorManagedEntry(value: unknown): boolean {
 }
 
 function nestedToolCommand(host: string, event: string): string {
-  // Grok PreToolUse deposits the outer-deny wrapper (#5807 / #5656 / #5715).
-  if (host === "grok" && event === "tool.before") return GROK_PRETOOLUSE_WRAPPER_COMMAND;
+  // #5994 / AC9.1: every host/event uses the content-hashed `.mjs` outer.
   return hookCommand(host, event);
 }
 
@@ -843,26 +867,30 @@ export function ensureHostHooks(
     else modified.push(spec.rel);
   }
 
-  // #5807: rewrite/redeposit Grok outer-deny wrapper so leftover deft-hook deny
-  // bodies cannot sit beside a healthy PreToolUse registration.
-  const grokEnabled = isHostHookDepositEnabled("grok", hostHooksPolicy);
-  const wrapperRel = GROK_PRETOOLUSE_WRAPPER_REL_PATH;
-  if (grokEnabled) {
-    const wrapperBody = grokPretooluseWrapperScriptSource();
-    const wrapperPrior = readText(join(projectRoot, wrapperRel));
-    if (wrapperPrior !== wrapperBody) {
-      writeContained(projectRoot, wrapperRel, wrapperBody);
-      if (wrapperPrior === null) created.push(wrapperRel);
-      else modified.push(wrapperRel);
-    }
-    if (existsSync(join(projectRoot, wrapperRel))) {
+  // #5994: deposit content-hashed `.mjs` outers; strip legacy Grok `.sh`.
+  const outerSource = hostHookOuterSource();
+  const outerSha8 = hostHookOuterSha8(outerSource);
+  for (const host of ["claude", "grok", "cursor", "codex"] as const) {
+    const rel = hostHookOuterRelPath(host, outerSha8);
+    const enabled = isHostHookDepositEnabled(host, hostHooksPolicy);
+    if (enabled) {
+      const prior = readText(join(projectRoot, rel));
+      if (prior !== outerSource) {
+        writeContained(projectRoot, rel, outerSource);
+        if (prior === null) created.push(rel);
+        else modified.push(rel);
+      }
+    } else if (existsSync(join(projectRoot, rel))) {
       try {
-        containedChmod({ root: projectRoot, target: wrapperRel, mode: 0o755 });
+        containedRemove({ root: projectRoot, target: rel });
+        modified.push(rel);
       } catch {
-        /* best-effort on platforms without chmod */
+        /* best-effort strip */
       }
     }
-  } else if (existsSync(join(projectRoot, wrapperRel))) {
+  }
+  const wrapperRel = GROK_PRETOOLUSE_WRAPPER_REL_PATH;
+  if (existsSync(join(projectRoot, wrapperRel))) {
     try {
       containedRemove({ root: projectRoot, target: wrapperRel });
       modified.push(wrapperRel);
@@ -874,9 +902,13 @@ export function ensureHostHooks(
   return { created, modified };
 }
 
+// Taskfile F1 disable-first + project-PM pin miss live in tasks/engine.yml +
+// tasks/engine-invoke.cjs (#5994) — disable-active runs BEFORE pin-bin / is-buildable-source;
+// pin-bin also quiet-exits when disable is active. This GITHOOK_HELPER is the .githooks twin.
 const GITHOOK_HELPER = `#!/usr/bin/env sh
-# Package-relative Directive git-hook helper (AC9.9).
+# Package-relative Directive git-hook helper (AC9.9 / AC9.12 / #5994).
 # Sourced by pre-commit/pre-push; defines run_directive.
+# F1 order: disable → missing pin (project PM) → pin bin.js.
 if [ -z "\${REPO_ROOT:-}" ]; then
   REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
 fi
@@ -884,23 +916,19 @@ if [ -z "$REPO_ROOT" ]; then
   echo "directive hooks: unable to resolve repo root." >&2
   exit 1
 fi
-RUNTIME_BIN="$REPO_ROOT/${RUNTIME_BIN_REL}"
-if [ ! -f "$RUNTIME_BIN" ]; then
-  echo "directive hooks: missing $RUNTIME_BIN" >&2
-  echo "Recovery: ${INSTALLATION_RECOVERY_GUIDANCE}" >&2
-  exit 1
-fi
 run_directive() {
-  # #3039 / #5543: root local kill-switch — skip CLI spawn when flag is present,
-  # not a symlink, and not tracked by git (tracked flag must not disable clones).
+  # #3039 / #5543 / #5994 F1: disable BEFORE requiring pin bin.js; quiet skip.
   _kill="$REPO_ROOT/.deft-directive-disable"
   if [ -f "$_kill" ] && [ ! -L "$_kill" ]; then
     if ! git -C "$REPO_ROOT" ls-files --error-unmatch -- .deft-directive-disable >/dev/null 2>&1; then
-      echo "Directive is DISABLED for this project via root .deft-directive-disable (test/local kill-switch)." >&2
-      echo "Git hooks skipping Directive CLI spawn (#5543 / #3039). Deposit may remain." >&2
-      echo "Recovery: rm .deft-directive-disable && start a new agent session." >&2
       return 0
     fi
+  fi
+  RUNTIME_BIN="$REPO_ROOT/${RUNTIME_BIN_REL}"
+  if [ ! -f "$RUNTIME_BIN" ]; then
+    echo "directive hooks: missing $RUNTIME_BIN" >&2
+    echo "${HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE}" >&2
+    exit 1
   fi
   node "$RUNTIME_BIN" "$@"
 }

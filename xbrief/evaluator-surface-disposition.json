@@ -2,8 +2,9 @@
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
   "surfaces": [
-    "vitest.config.ts",
+    "packages/core/src/class-checks/evaluate.ts",
+    "packages/core/src/class-checks/evaluate.test.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renew disclosure for darwin unit/spawn-heavy/root testTimeout 5s\u219220s + dest-contention guard alignment. Disclosure only; not #3164 authorization."
+  "note": "Renew disclosure for #5994 class-4 companions + CI harness non-story-product. Disclosure only; not #3164 authorization."
 }

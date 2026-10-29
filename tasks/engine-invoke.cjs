@@ -23,11 +23,15 @@ const CONTENT_PACKAGE_NAME = "@deftai/directive-content";
 /** Single remediation when a deposit has no global CLI (#3324 / #3265). */
 const DEPOSIT_REMEDIATION = "npm i -g @deftai/directive";
 const SOURCE_BUILD_REMEDIATION = "task build";
-/** Missing checkout pin remediation (#5805 Prefer-A Bound P1). */
+/** Missing checkout pin remediation (#5994 / AC9.12): project PM first.
+ * pin-bin path never recommends npm i -g (that is DEPOSIT_REMEDIATION only).
+ */
 const PIN_INSTALL_REMEDIATION =
-  "npm i -g @deftai/directive, then directive install --repair (or package-manager install of @deftai/directive-runtime)";
+  "Run npm install or pnpm install (or yarn) in this project (missing node_modules/@deftai/directive-runtime)";
+/** Tip dogfood secondary when project install is not enough (#5805). */
 const PIN_MATERIALIZE_REMEDIATION = "task materialize:runtime";
 const PIN_BIN_REL = path.join("node_modules", "@deftai", "directive-runtime", "dist", "bin.js");
+const DISABLE_FLAG = ".deft-directive-disable";
 
 /**
  * cmd.exe command separators / metacharacters. Free-text DEFT_ENGINE_CMD_JSON
@@ -178,6 +182,29 @@ function resolveFrameworkPinBin(projectRoot, opts = {}) {
  * @param {string} projectRoot
  * @param {{ fs?: typeof fs, path?: typeof path }} [opts]
  */
+/**
+ * AC9.12 / #5994: untracked root .deft-directive-disable → quiet skip before pin require.
+ * @param {string} projectRoot
+ * @param {{ fs?: typeof fs, path?: typeof path, spawnSync?: typeof spawnSync }} [opts]
+ */
+function isDirectiveDisableActive(projectRoot, opts = {}) {
+  const io = opts.fs || fs;
+  const pathMod = opts.path || path;
+  const spawn = opts.spawnSync || spawnSync;
+  if (!projectRoot) return false;
+  const killPath = pathMod.join(projectRoot, DISABLE_FLAG);
+  try {
+    if (!io.existsSync(killPath)) return false;
+    if (io.lstatSync(killPath).isSymbolicLink()) return false;
+  } catch {
+    return false;
+  }
+  const r = spawn("git", ["-C", projectRoot, "ls-files", "--error-unmatch", "--", DISABLE_FLAG], {
+    stdio: ["ignore", "ignore", "ignore"],
+  });
+  return r.status !== 0;
+}
+
 function hasFrameworkPinBin(projectRoot, opts = {}) {
   const io = opts.fs || fs;
   const pin = resolveFrameworkPinBin(projectRoot, opts);
@@ -399,8 +426,14 @@ if (require.main === module) {
   if (mode === "is-buildable-source") {
     process.exit(isBuildableSource(process.argv[3] || "") ? 0 : 1);
   }
+  if (mode === "disable-active") {
+    process.exit(isDirectiveDisableActive(process.argv[3] || "") ? 0 : 1);
+  }
   if (mode === "pin-bin") {
     const root = process.argv[3] || "";
+    if (isDirectiveDisableActive(root)) {
+      process.exit(0);
+    }
     const pin = resolveFrameworkPinBin(root);
     if (hasFrameworkPinBin(root)) {
       process.stdout.write(pin);
@@ -433,4 +466,6 @@ module.exports = {
   SOURCE_BUILD_REMEDIATION,
   PIN_INSTALL_REMEDIATION,
   PIN_MATERIALIZE_REMEDIATION,
+  isDirectiveDisableActive,
+  DISABLE_FLAG,
 };

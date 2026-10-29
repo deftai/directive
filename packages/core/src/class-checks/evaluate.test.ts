@@ -299,6 +299,47 @@ describe("evaluateClassChecks (#4980)", () => {
     expect(result.findings.filter((f) => f.kind === "protected-glob")).toHaveLength(0);
   });
 
+  it("allows protected host-hook deposits + #5994 generator companions", () => {
+    const result = evaluateClassChecks("/tmp/proj", {
+      baseRef: "origin/master",
+      changedFiles: [
+        ".cursor/hooks.json",
+        ".cursor/hooks/deft-hook-deadbeef.mjs",
+        ".githooks/_directive-run.sh",
+        "packages/runtime/src/setup-wiring.ts",
+        "packages/runtime/src/doctor-diagnose.ts",
+        "packages/runtime/src/pre-pr-run.ts",
+        "packages/core/src/init-deposit/agent-hooks.ts",
+        "packages/core/src/init-deposit/host-hook-outer.ts",
+        "packages/core/src/init-deposit/hygiene.ts",
+        "packages/core/src/install-health/wiring.ts",
+        "packages/core/src/coverage-applicability/evaluate.ts",
+        "CHANGELOG.md",
+      ],
+      baseTestBoundaryPolicy: baseTb({
+        sourceRoots: ["packages/*/src/**"],
+        testRoots: ["packages/*/src/**/*.test.*"],
+      }),
+      classChecksPolicy: classPolicy,
+      fileContents: new Map([
+        [".cursor/hooks.json", "{}\n"],
+        [".cursor/hooks/deft-hook-deadbeef.mjs", "export {}\n"],
+        [".githooks/_directive-run.sh", "#!/bin/sh\n"],
+        ["packages/runtime/src/setup-wiring.ts", "export {}\n"],
+        ["packages/runtime/src/doctor-diagnose.ts", "export {}\n"],
+        ["packages/runtime/src/pre-pr-run.ts", "export {}\n"],
+        ["packages/core/src/init-deposit/agent-hooks.ts", "export {}\n"],
+        ["packages/core/src/init-deposit/host-hook-outer.ts", "export {}\n"],
+        ["packages/core/src/init-deposit/hygiene.ts", "export {}\n"],
+        ["packages/core/src/install-health/wiring.ts", "export {}\n"],
+        ["packages/core/src/coverage-applicability/evaluate.ts", "export {}\n"],
+        ["CHANGELOG.md", "## Unreleased\n"],
+      ]),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.findings.filter((f) => f.kind === "protected-glob")).toHaveLength(0);
+  });
+
   it("fails when setup-wiring mixes with non-githooks protected (#4980 Lane A)", () => {
     const result = evaluateClassChecks("/tmp/proj", {
       baseRef: "origin/master",

@@ -40,6 +40,7 @@ import type { AgentHookReadinessResult } from "../verify-env/agent-hook-readines
 import { evaluate as evaluateHooksInstalled } from "../verify-env/verify-hooks-installed.js";
 import { destContentionItTimeout } from "../vitest-runner/dest-contention-it-timeout.helper.test.js";
 import { detectXbriefConvergence } from "../xbrief-migrate/detect.js";
+import { hostHookOuterCommand, hostHookOuterSha8 } from "./host-hook-outer.js";
 import { LOCKFILE_REFRESH_COMMANDS } from "./init-deposit.js";
 import { type LegacyLayoutDetection, LegacyLayoutRefusedError } from "./legacy-detect.js";
 import {
@@ -345,8 +346,10 @@ describe("runRefreshDeposit", () => {
       expect(existsSync(join(result.deftDir, "main.md"))).toBe(true);
       const codexHooks = readFileSync(join(project, ".codex", "hooks.json"), "utf8");
       expect(codexHooks).toContain("./consumer-check.sh");
-      // Legacy refresh without local runtime keeps working bare PATH command.
-      expect(codexHooks).toContain("deft-hook --host codex --event tool.before");
+      // #5994 v261027: refresh deposits the content-hash .mjs outer (F2); keep consumer remainder.
+      expect(codexHooks).toContain(
+        `${hostHookOuterCommand("codex", hostHookOuterSha8())} --host codex --event tool.before`,
+      );
       expect(readFileSync(join(project, ".codex", "config.toml"), "utf8")).toBe(
         'model = "gpt-5"\n',
       );

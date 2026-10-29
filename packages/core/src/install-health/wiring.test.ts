@@ -359,17 +359,30 @@ describe("checkWiringTargetsRuntime companion probes (coverage for #5796 headroo
     expect(result.mismatched).toContain(".cursor/hooks.json");
   });
 
-  it("accepts hook JSON targeting the runtime prefix", () => {
+  it("accepts hook JSON with content-hashed .mjs outer (#5994)", () => {
     const root = tempRoot("wiring-cursor-ok-");
-    mkdirSync(join(root, ".cursor"), { recursive: true });
+    mkdirSync(join(root, ".cursor", "hooks"), { recursive: true });
     writeFileSync(
       join(root, ".cursor", "hooks.json"),
-      `{"hooks":{"preToolUse":["./${RUNTIME_PACKAGE_PATH_PREFIX}hooks/run"]}}\n`,
+      '{"hooks":{"preToolUse":["node .cursor/hooks/deft-hook-deadbeef.mjs --host cursor --event tool.before"]}}\n',
       "utf8",
     );
     const result = checkWiringTargetsRuntime(root);
     expect(result.ok).toBe(true);
     expect(hasDirectiveWiringEvidence(root)).toBe(true);
+  });
+
+  it("rejects host hook JSON that still registers pin hook-bin.js directly (#5994)", () => {
+    const root = tempRoot("wiring-cursor-hookbin-");
+    mkdirSync(join(root, ".cursor"), { recursive: true });
+    writeFileSync(
+      join(root, ".cursor", "hooks.json"),
+      `{"hooks":{"preToolUse":["node ./${RUNTIME_PACKAGE_PATH_PREFIX}dist/hook-bin.js --host cursor --event tool.before"]}}\n`,
+      "utf8",
+    );
+    const result = checkWiringTargetsRuntime(root);
+    expect(result.ok).toBe(false);
+    expect(result.mismatched).toContain(".cursor/hooks.json");
   });
 
   it("marks unreadable present probes as mismatched via seams", () => {

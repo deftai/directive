@@ -6,6 +6,7 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { isHostHookOuterCommand } from "@deftai/directive-core/dist/init-deposit/host-hook-outer.js";
 import {
   checkFullInSync,
   DEFT_DOCTOR_HOOK_DIAGNOSTIC,
@@ -131,7 +132,7 @@ function schemaSurface(dataStatus: DataStatusValue): DoctorSurface {
 }
 
 /**
- * Cheap read-only check that committed hook/skill wiring uses package-relative form.
+ * Cheap read-only check that committed hook/skill wiring uses host `.mjs` outer or package-relative form.
  * Does not spawn hooks; structural only (AC12.3 hook command form / skill pointers).
  */
 function inspectHookAndSkillForm(projectRoot: string): {
@@ -156,12 +157,14 @@ function inspectHookAndSkillForm(projectRoot: string): {
     sawHook = true;
     try {
       const text = readFileSync(abs, "utf8");
+      // #5994 / AC9.1: v261027 host `.mjs` outer is the registered form; pin hook-bin is spawned inside.
+      const hasOuter = isHostHookOuterCommand(text);
       const hasPkg = text.includes(prefix) && text.includes("hook-bin");
       const hasLegacy =
         text.includes(".deft/core/") || /(^|[\s"`'])deft-hook([\s"`']|$)/.test(text);
-      if (hasLegacy || !hasPkg) {
+      if (hasLegacy || !(hasOuter || hasPkg)) {
         hookOk = false;
-        hookDetail = `${rel} does not use package-relative hook-bin form`;
+        hookDetail = `${rel} does not use host .mjs outer or package-relative hook-bin form`;
         break;
       }
     } catch {
