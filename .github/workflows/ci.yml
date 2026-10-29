@@ -176,7 +176,7 @@ jobs:
           go-version-file: go.mod
 
       - name: Setup uv (toolchain gate in task check)
-        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
 
       # Tip dogfood before Prefer-A pin-exclusive check:merge (#5805). Needed when
       # this PR expands class-checks companions the published pin lacks (#5994).
@@ -478,7 +478,7 @@ jobs:
           go-version-file: go.mod
 
       - name: Setup uv (toolchain gate in task check)
-        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
 
       # Tip dogfood before Prefer-A pin-exclusive check:merge (#5805). Needed when
       # this PR expands class-checks companions the published pin lacks (#5994).
