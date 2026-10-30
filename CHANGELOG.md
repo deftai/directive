@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [0.129.2] - 2026-10-30
 - feat(hooks): v261027 thin host `.mjs` outer; kill `.sh`; unify entry guards (F1/F2). Refs #5994.
 - fix(doctor): accept v261027 host `.mjs` outer as hook command form (greenfield smoke). Refs #5994.
 - fix(hooks): Grok deny on unusable pin; Taskfile disable-first; clear spawn exit diagnostic. Refs #5994.
@@ -7535,7 +7545,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.129.1...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.129.2...HEAD
+[0.129.2]: https://github.com/deftai/directive/compare/v0.129.1...v0.129.2
 [0.129.1]: https://github.com/deftai/directive/compare/v0.129.0...v0.129.1
 [0.129.0]: https://github.com/deftai/directive/compare/v0.128.0...v0.129.0
 [0.128.0]: https://github.com/deftai/directive/compare/v0.127.0...v0.128.0

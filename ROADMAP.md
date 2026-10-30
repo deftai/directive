@@ -17,6 +17,7 @@
 - **#5853** -- verify:pack-drift compares against the installed runtime package's rewritten copies instead of repo content/ (still in 0.128.0) -- `[running]`
 - **#5854** -- directive upgrade appends a duplicate pnpm minimumReleaseAgeExclude entry for the runtime instead of replacing it (install fails for 24h after a release) -- `[running]`
 - **#5855** -- bug(pre-pr,check): with multiple active briefs, verify:ac refuses (no story selected), so no maintainer can pass the #5804 push gate -- `[running]`
+- **#5994** -- feat(hooks): v261027 thin host .mjs outer; kill .sh; unify entry guards -- `[running]`
 
 ## Proposed
 
@@ -46,8 +47,10 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 1872 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1874 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#5992** -- docs(ovpr): v261027 entry-guard / host-outer requirements + problem ledger decision record -- `[completed]`
+- **#5984** -- fix(hooks): #5956-A generator emit pin-local hook-bin.js for Grok PreToolUse (stop .sh rewrite) -- `[completed]`
 - **#5798** -- bug(installer,doctor): failure-shaped remedy map for doctor recovery -- `[completed]`
 - **#5797** -- bug(installer,upgrade): stop placeholder allowBuilds for directive-runtime -- `[completed]`
 - **#5795** -- bug(installer,migrate): hybrid vBRIEFInfo@0.8 equal-version migrate-clean -- `[completed]`
@@ -71,6 +74,4 @@ _Showing 25 of 1872 completed scopes (newest first). Full history: lifecycle `co
 - **#5490** -- #5490 human-test automation acceptance — ht-auto + harness home -- `[completed]`
 - **#5745** -- sec(codeql): HIGH clear polynomial-redos in pr-closing-keywords/detect.ts (alert #121) -- `[completed]`
 - **#5782** -- design(verify): merge-gate adopts plan-id from PR deft-story for intent-constraint -- `[completed]`
-- **#5743** -- sec(codeql): HIGH clear polynomial-redos in docs-impact.ts (alert #114) -- `[completed]`
-- **#5741** -- sec(codeql): HIGH clear bad-tag-filter in spec-authority.test.ts (alert #109) -- `[completed]`
 
