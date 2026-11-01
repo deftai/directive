@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { LabelClient } from "../../vbrief-reconcile/types.js";
 import {
   DEFAULT_IDEMPOTENCY_LABEL,
@@ -13,6 +13,13 @@ import {
   resolveLabelMirrorPolicy,
   validateLabelMirrorPolicy,
 } from "./index.js";
+
+// Fixed clock for every mirrorLabels call (#6020). The fixtures hard-code
+// `updated_at` stamps. Without `now`, classify falls back to the wall clock, so
+// the 2026-08-01 fixtures flip to the dormant rule once they age past
+// DORMANT_AGE_DAYS. This date keeps them 14 days old, and keeps the 2026-01-01
+// fixtures older than DORMANT_AGE_DAYS.
+const FIXED_NOW = new Date("2026-08-15T00:00:00Z");
 
 const temps: string[] = [];
 afterEach(() => {
@@ -165,6 +172,7 @@ describe("mirrorLabels", () => {
       client,
       // force cache labels even if client provided
       useLiveLabels: false,
+      now: FIXED_NOW,
     });
     expect(code).toBe(0);
     expect(outcome.dry_run).toBe(true);
@@ -195,7 +203,7 @@ describe("mirrorLabels", () => {
       labels: [],
       updated_at: "2026-01-01T00:00:00Z",
     });
-    const [, openOnly] = mirrorLabels(root, { dryRun: true, useLiveLabels: false });
+    const [, openOnly] = mirrorLabels(root, { dryRun: true, useLiveLabels: false, now: FIXED_NOW });
     expect(openOnly.planned).toBe(1);
     expect(openOnly.skipped_closed).toBe(1);
     expect(openOnly.items.find((i) => i.issue_number === 11)?.status).toBe("skipped_closed");
@@ -206,6 +214,7 @@ describe("mirrorLabels", () => {
       dryRun: true,
       useLiveLabels: false,
       includeClosed: true,
+      now: FIXED_NOW,
     });
     expect(withClosed.skipped_closed).toBe(0);
     expect(withClosed.planned).toBeGreaterThanOrEqual(2);
@@ -259,6 +268,7 @@ describe("mirrorLabels", () => {
       dryRun: true,
       useLiveLabels: false,
       authorFilter,
+      now: FIXED_NOW,
     });
     expect(outcome.filters.author).toBe("alice");
     expect(outcome.planned).toBe(1);
@@ -289,6 +299,7 @@ describe("mirrorLabels", () => {
       dryRun: true,
       useLiveLabels: false,
       sampleLimit: 2,
+      now: FIXED_NOW,
     });
     expect(outcome.planned).toBe(5);
     expect(outcome.digest.samples).toHaveLength(2);
@@ -337,6 +348,7 @@ describe("mirrorLabels", () => {
       sleepMs: (ms) => {
         sleeps.push(ms);
       },
+      now: FIXED_NOW,
     });
     expect(code).toBe(1);
     expect(outcome.applied).toBe(0);
@@ -355,7 +367,11 @@ describe("mirrorLabels", () => {
       labels: [{ name: "triaged" }],
       updated_at: "2026-08-01T00:00:00Z",
     });
-    const [code, outcome] = mirrorLabels(root, { dryRun: true, useLiveLabels: false });
+    const [code, outcome] = mirrorLabels(root, {
+      dryRun: true,
+      useLiveLabels: false,
+      now: FIXED_NOW,
+    });
     expect(code).toBe(0);
     expect(outcome.skipped_already_triaged).toBe(1);
     expect(outcome.planned).toBe(0);
@@ -389,7 +405,11 @@ describe("mirrorLabels", () => {
     });
 
     // Default path still skips the stamped issue.
-    const [, skipOutcome] = mirrorLabels(root, { dryRun: true, useLiveLabels: false });
+    const [, skipOutcome] = mirrorLabels(root, {
+      dryRun: true,
+      useLiveLabels: false,
+      now: FIXED_NOW,
+    });
     expect(skipOutcome.skipped_already_triaged).toBe(1);
     expect(skipOutcome.planned).toBe(1);
     expect(skipOutcome.re_enrich_planned).toBe(0);
@@ -398,6 +418,7 @@ describe("mirrorLabels", () => {
       dryRun: true,
       useLiveLabels: false,
       reEnrich: true,
+      now: FIXED_NOW,
     });
     expect(code).toBe(0);
     expect(outcome.filters.re_enrich).toBe(true);
@@ -453,6 +474,7 @@ describe("mirrorLabels", () => {
       useLiveLabels: true,
       reEnrich: true,
       delayMs: 0,
+      now: FIXED_NOW,
     });
     expect(code).toBe(1);
     expect(outcome.re_enrich_applied).toBe(0);
@@ -483,6 +505,7 @@ describe("mirrorLabels", () => {
       allowCrossRepo: true,
       useLiveLabels: true,
       delayMs: 0,
+      now: FIXED_NOW,
     });
     expect(code1).toBe(1);
     expect(outcome1.applied).toBe(0);
@@ -495,6 +518,7 @@ describe("mirrorLabels", () => {
       allowCrossRepo: true,
       useLiveLabels: true,
       delayMs: 0,
+      now: FIXED_NOW,
     });
     expect(code2).toBe(1);
     expect(outcome2.applied).toBe(0);
@@ -512,7 +536,7 @@ describe("mirrorLabels", () => {
       updated_at: "2026-01-01T00:00:00Z",
     });
     const client = new FakeLabelClient();
-    mirrorLabels(root, { dryRun: true, client, useLiveLabels: false });
+    mirrorLabels(root, { dryRun: true, client, useLiveLabels: false, now: FIXED_NOW });
     expect(client.applyCalls).toHaveLength(0);
   });
 
@@ -525,7 +549,7 @@ describe("mirrorLabels", () => {
       body: "BLOCKED",
       labels: [],
     });
-    const [code, outcome] = mirrorLabels(root, { dryRun: true });
+    const [code, outcome] = mirrorLabels(root, { dryRun: true, now: FIXED_NOW });
     expect(code).toBe(0);
     expect(outcome.items[0]?.status).toBe("skipped_disabled");
   });
@@ -539,7 +563,7 @@ describe("mirrorLabels", () => {
       body: "BLOCKED",
       labels: [],
     });
-    const [, outcome] = mirrorLabels(root, { dryRun: true, useLiveLabels: false });
+    const [, outcome] = mirrorLabels(root, { dryRun: true, useLiveLabels: false, now: FIXED_NOW });
     const report = renderLabelMirrorReport(outcome);
     expect(report).toContain("dry-run");
     expect(report).toContain("bootstrap mass-triage");
@@ -576,12 +600,49 @@ describe("mirrorLabels", () => {
         updated_at: "2026-08-01T00:00:00Z",
       });
     }
-    const [, outcome] = mirrorLabels(root, { dryRun: true, useLiveLabels: false });
+    const [, outcome] = mirrorLabels(root, { dryRun: true, useLiveLabels: false, now: FIXED_NOW });
     expect(outcome.planned).toBeGreaterThanOrEqual(1);
     expect(outcome.skipped_no_match).toBeGreaterThanOrEqual(1);
     const report = renderLabelMirrorReport(outcome);
     expect(report).toContain("Hint (#3124)");
     expect(report).toMatch(/actionLabels|alwaysLabels \(triaged\)/i);
+  });
+
+  it("#3124 digest counts hold with the wall clock far in the future (#6020)", () => {
+    // Only Date is faked, so fs and timers behave normally. With `now: FIXED_NOW`
+    // the 2026-08-01 fixtures stay 14 days old even when the wall clock is 2099.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(new Date("2099-01-01T00:00:00Z"));
+      expect(new Date().getUTCFullYear()).toBe(2099);
+      const root = tmpRoot();
+      writeProject(root);
+      writeCachedIssue(root, "acme/demo", 70, {
+        number: 70,
+        state: "open",
+        body: "BLOCKED planned",
+        labels: [],
+        updated_at: "2026-08-01T00:00:00Z",
+      });
+      for (let n = 71; n <= 75; n += 1) {
+        writeCachedIssue(root, "acme/demo", n, {
+          number: n,
+          state: "open",
+          body: "ordinary open issue with no classify signal",
+          labels: [{ name: "enhancement" }],
+          updated_at: "2026-08-01T00:00:00Z",
+        });
+      }
+      const [, outcome] = mirrorLabels(root, {
+        dryRun: true,
+        useLiveLabels: false,
+        now: FIXED_NOW,
+      });
+      expect(outcome.planned).toBeGreaterThanOrEqual(1);
+      expect(outcome.skipped_no_match).toBeGreaterThanOrEqual(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("digest omits empty-actionLabels cue when actionLabels configured (#3124)", () => {
@@ -603,7 +664,7 @@ describe("mirrorLabels", () => {
       labels: [],
       updated_at: "2026-08-01T00:00:00Z",
     });
-    const [, outcome] = mirrorLabels(root, { dryRun: true, useLiveLabels: false });
+    const [, outcome] = mirrorLabels(root, { dryRun: true, useLiveLabels: false, now: FIXED_NOW });
     expect(outcome.planned).toBe(1);
     const report = renderLabelMirrorReport(outcome);
     expect(report).not.toContain("alwaysLabels (triaged) will be added");
@@ -625,6 +686,7 @@ describe("mirrorLabels", () => {
       allowCrossRepo: false,
       useLiveLabels: true,
       delayMs: 0,
+      now: FIXED_NOW,
     });
     expect(code2).toBe(1);
     expect(client.applyCalls).toHaveLength(0);
@@ -672,6 +734,7 @@ describe("mirrorLabels", () => {
       dryRun: true,
       useLiveLabels: false,
       allowCrossRepo: true,
+      now: FIXED_NOW,
     });
     const foreign = outcome.items.find((i) => i.repo === "other/victim" && i.issue_number === 42);
     const project = outcome.items.find((i) => i.repo === "acme/demo" && i.issue_number === 42);
@@ -722,6 +785,7 @@ describe("mirrorLabels", () => {
       useLiveLabels: false,
       repo: "other/victim",
       allowCrossRepo: true,
+      now: FIXED_NOW,
     });
     const foreign = outcome.items.find((i) => i.repo === "other/victim" && i.issue_number === 55);
     expect(foreign).toBeDefined();
