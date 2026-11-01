@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - chore(dogfood): pin Directive to 0.129.2.
+- chore(policy): turn off the bound pre-PR push gate (`requireBoundPrePrPush: false` in PROJECT-DEFINITION); re-enable is tracked in #6025.
 
 ### Fixed
 
