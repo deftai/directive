@@ -1,8 +1,9 @@
 import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { join, resolve } from "node:path";
+import { describe, expect, it, vi } from "vitest";
+import { defaultRunGh } from "../pr-protected-issues/gh.js";
 import { EXIT_INCOMPLETE, EXIT_OK } from "./constants.js";
 import {
   bindUnmarkedFinalizePair,
@@ -949,6 +950,106 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
     expect(inventory.stories.some((s) => s.state === "unverified")).toBe(false);
     expect(inventoryHasBlockingOwed(inventory)).toBe(true);
     rmSync(root, { recursive: true, force: true });
+  });
+
+  // Seam test: the injected runGh wraps the real defaultRunGh with a stub binary.
+  // It does not exercise session:start's default runGh wiring (#6023).
+  it("seam: closed issue stays closed via real defaultRunGh, CLICOLOR_FORCE=1 (#6023)", () => {
+    const stub = resolve(
+      import.meta.dirname,
+      "..",
+      "pr-protected-issues",
+      "fixtures",
+      "color-gh-stub.mjs",
+    );
+    const root = mkdtempSync(join(tmpdir(), "finalize-owed-color-gh-"));
+    vi.stubEnv("CLICOLOR_FORCE", "1");
+    try {
+      writeTipBrief(root, "xbrief/active/story-a.xbrief.json", 4919, {
+        productPullRequest: 5100,
+      });
+      const tipBlobs = new Map<string, string>([
+        [
+          "xbrief/active/story-a.xbrief.json",
+          readFileSync(join(root, "xbrief/active/story-a.xbrief.json"), "utf8"),
+        ],
+      ]);
+      const nowMs = Date.parse("2026-09-27T12:00:00Z");
+      const runGit = (_projectRoot: string, args: readonly string[]) => {
+        if (args[0] === "ls-tree") {
+          const dash = args.indexOf("--");
+          const prefixes = dash >= 0 ? args.slice(dash + 1) : [];
+          const matched = [...tipBlobs.keys()].filter((p) =>
+            prefixes.some((pref) => p.startsWith(String(pref))),
+          );
+          return { code: 0, stdout: matched.join("\n"), stderr: "" };
+        }
+        if (args[0] === "show") {
+          const spec = String(args[1] ?? "");
+          const rel = spec.includes(":") ? spec.slice(spec.indexOf(":") + 1) : "";
+          const body = tipBlobs.get(rel);
+          return body !== undefined
+            ? { code: 0, stdout: body, stderr: "" }
+            : { code: 1, stdout: "", stderr: "missing" };
+        }
+        if (args[0] === "ls-remote") {
+          return { code: 0, stdout: "claimsha refs/heads/swarm/finalize/5100-4919\n", stderr: "" };
+        }
+        if (args[0] === "fetch" && args.some((a) => String(a).includes("finalize-owed-claim"))) {
+          return { code: 0, stdout: "", stderr: "" };
+        }
+        if (args[0] === "log" && args.some((a) => String(a).includes("%ct"))) {
+          // Older than FINALIZE_CLAIM_STALE_MS: a failed issue read would block.
+          return {
+            code: 0,
+            stdout: String(Math.floor((nowMs - 3 * 60 * 60 * 1000) / 1000)),
+            stderr: "",
+          };
+        }
+        return { code: 0, stdout: "", stderr: "" };
+      };
+      const issueReads: string[] = [];
+      const inventory = discoverFinalizeOwed(root, {
+        repo: "deftai/directive",
+        deliveryBranch: "master",
+        tip: "TIP",
+        now: () => nowMs,
+        runGit,
+        runGh: (cmd) => {
+          const joined = cmd.join(" ");
+          if (joined.includes("/pulls?")) {
+            return { returncode: 0, stdout: "[]", stderr: "" };
+          }
+          if (joined.includes("/pulls/")) {
+            return {
+              returncode: 0,
+              stdout: JSON.stringify({
+                merged_at: "2026-09-27T00:00:00Z",
+                merge_commit_sha: "abc",
+                base: { ref: "master" },
+              }),
+              stderr: "",
+            };
+          }
+          if (joined.includes("/issues/")) {
+            // Real runner, stub binary: node <stub> api repos/.../issues/<n>.
+            const result = defaultRunGh(["gh", stub, ...cmd.slice(1)], process.execPath);
+            issueReads.push(result.stdout);
+            return result;
+          }
+          return { returncode: 1, stdout: "", stderr: "unexpected" };
+        },
+      });
+      expect(issueReads).toHaveLength(1);
+      expect(issueReads[0]).not.toContain("\u001b");
+      expect(inventory.stories.some((s) => s.state === "stale-unverified")).toBe(false);
+      expect(inventoryHasBlockingOwed(inventory)).toBe(false);
+      expect(inventory.stories).toEqual([]);
+      expect(process.env.CLICOLOR_FORCE).toBe("1");
+    } finally {
+      vi.unstubAllEnvs();
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("keeps already-stale completed claims blocking when issue fetch fails (#4919)", () => {
