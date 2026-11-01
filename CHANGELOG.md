@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - test(triage): pin the clock in the label-mirror tests so the #3124 digest test no longer flips to the dormant rule as its fixed `updated_at` fixtures age; other dated-fixture tests checked and need no change. Refs #6020.
+- fix(gh): the shared `pr-protected-issues` gh runner now forces plain output (new `plainGhEnv()` child env), so `CLICOLOR_FORCE=1` no longer breaks the finalize-owed check in `session:start`. Refs #6023.
 
 ### Removed
 
