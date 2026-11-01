@@ -1,8 +1,9 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { describe, expect, it } from "vitest";
-import { computeDesiredLabels, reconcileLabels } from "./labels.js";
+import { dirname, join, resolve } from "node:path";
+import { describe, expect, it, vi } from "vitest";
+import { defaultWhich } from "../scm/binary.js";
+import { computeDesiredLabels, reconcileLabels, ScmLabelClient } from "./labels.js";
 import type { LabelClient } from "./types.js";
 
 class FakeLabelClient implements LabelClient {
@@ -132,5 +133,52 @@ describe("reconcileLabels", () => {
     const [code] = reconcileLabels(root, { client: new FakeLabelClient() });
     expect(code).toBe(2);
     rmSync(root, { recursive: true, force: true });
+  });
+});
+
+describe("ScmLabelClient.fetchLabels plain gh env (#6023)", () => {
+  it("reads labels via real call() and a PATH gh shim under CLICOLOR_FORCE=1", () => {
+    const stub = resolve(
+      import.meta.dirname,
+      "..",
+      "pr-protected-issues",
+      "fixtures",
+      "color-gh-stub.mjs",
+    );
+    // Shim dir under the workspace node_modules/.cache, not os.tmpdir(): a noexec
+    // /tmp would block the POSIX shim, while node_modules must already be exec-able
+    // for the vitest run itself (node_modules/.bin).
+    const cacheDir = join(process.cwd(), "node_modules", ".cache");
+    mkdirSync(cacheDir, { recursive: true });
+    const dir = mkdtempSync(join(cacheDir, "deft-6023-gh-shim-"));
+    try {
+      // `issue view` is a live-gh call shape, so call() resolves bare `gh`
+      // through PATH like the work-claim scan does.
+      if (process.platform === "win32") {
+        const cmd = `@echo off\r\n"${process.execPath}" "${stub}" %*\r\n`;
+        writeFileSync(join(dir, "gh.cmd"), cmd, "utf8");
+      } else {
+        const sh = `#!/bin/sh\nexec "${process.execPath}" "${stub}" "$@"\n`;
+        writeFileSync(join(dir, "gh"), sh, "utf8");
+        chmodSync(join(dir, "gh"), 0o755);
+      }
+      const sep = process.platform === "win32" ? ";" : ":";
+      vi.stubEnv("PATH", `${dir}${sep}${process.env.PATH ?? ""}`);
+      vi.stubEnv("CLICOLOR_FORCE", "1");
+      vi.stubEnv("NO_COLOR", "");
+      // Guard: fail before any spawn unless PATH resolves gh to the shim, so a
+      // missed shim can never fall through to a live gh call.
+      const found = defaultWhich("gh");
+      expect(found).not.toBeNull();
+      expect(resolve(dirname(found ?? "")).toLowerCase()).toBe(resolve(dir).toLowerCase());
+      // Non-existent repo: even a live gh could only make a failing read.
+      const labels = new ScmLabelClient().fetchLabels("example-invalid/no-such-repo-6023", 6023);
+      // Marker label only the stub returns: proves the shim ran.
+      expect(labels).toEqual(["x-stub-6023-marker"]);
+      expect(process.env.CLICOLOR_FORCE).toBe("1");
+    } finally {
+      vi.unstubAllEnvs();
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { assertNoDeftAllowEscape, CLAIMED_SET_REQUIRED } from "../one-pr-unit/close-via-app.js";
 import type { OriginRef } from "../one-pr-unit/types.js";
 import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
+import { plainGhEnv } from "../subprocess/plain-gh-env.js";
 import { defaultWhich, spawnScmBinary, type WhichFn } from "./binary.js";
 import { classifyScmArgv, resolveBinaryForRole } from "./call-shape.js";
 import { pyRepr } from "./py-format.js";
@@ -150,7 +151,8 @@ export function runGhApi(
   const spawnOpts: SpawnSyncOptions = {
     encoding: "utf8",
     timeout: timeoutMs,
-    env: process.env,
+    // Plain gh output for JSON.parse, on the first run and the gh retry (#6023).
+    env: plainGhEnv(),
     maxBuffer: SUBPROCESS_MAX_BUFFER,
     stdio: ["ignore", "pipe", "pipe"],
   };
