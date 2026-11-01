@@ -3,6 +3,7 @@ import { defaultWhich } from "../scm/binary.js";
 import { classifyScmArgv, resolveBinaryForArgv } from "../scm/call-shape.js";
 import { ghxSpawnFallbackBinary } from "../scm/spawn-status.js";
 import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
+import { plainGhEnv } from "../subprocess/plain-gh-env.js";
 import { GH_TIMEOUT_S } from "./constants.js";
 import type { RunGhFn, RunGhResult } from "./types.js";
 
@@ -18,6 +19,8 @@ export function defaultRunGh(cmd: readonly string[]): RunGhResult {
     timeout: GH_TIMEOUT_S * 1000,
     stdio: ["ignore", "pipe", "pipe"] as ["ignore", "pipe", "pipe"],
     maxBuffer: SUBPROCESS_MAX_BUFFER,
+    // Plain output for JSON.parse on first run and ghx fallback retry (#6023).
+    env: plainGhEnv(),
   };
   const runOnce = (bin: string) => execFileSync(bin, args, execOpts);
   try {
