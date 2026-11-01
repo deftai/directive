@@ -1,4 +1,5 @@
 import { resolveCaptureFailureStderr, SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
+import { plainGhEnv } from "../subprocess/plain-gh-env.js";
 import { defaultWhich, spawnScmBinary, type WhichFn } from "./binary.js";
 import { classifyScmArgv, resolveBinaryForRole } from "./call-shape.js";
 import { SUPPORTED_CALL_SOURCES } from "./constants.js";
@@ -58,11 +59,14 @@ export function call(
   const extra = args ?? [];
   const captureOutput = options.captureOutput ?? true;
   const timeoutMs = options.timeout !== undefined ? Math.round(options.timeout * 1000) : undefined;
+  // Captured output is parsed (often JSON): give gh a plain child env unless the
+  // caller passed its own env. Interactive (inherit) calls keep process.env (#6023).
+  const env = options.env ?? (captureOutput ? plainGhEnv() : process.env);
 
   const spawnOnce = (bin: string) =>
     spawnScmBinary(bin, [verb, ...extra], {
       cwd: options.cwd,
-      env: options.env ?? process.env,
+      env,
       input: options.input,
       encoding: (options.text ?? true) ? "utf8" : undefined,
       timeout: timeoutMs,

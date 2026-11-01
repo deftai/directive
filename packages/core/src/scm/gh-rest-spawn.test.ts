@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { resolve } from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { spawnScmBinary } from "./binary.js";
 import { GhRestError, type GhSpawnFn, type GhSpawnResult, runGhApi } from "./gh-rest.js";
 
 const bothPresent = (name: string) => `/usr/bin/${name}`;
@@ -96,5 +98,36 @@ describe("GhRestError diagnostic (#3737)", () => {
     expect(err.message).toContain("ghx");
     expect(err.message).toContain("0xC0000142 STATUS_DLL_INIT_FAILED");
     expect(err.binary).toBe("ghx");
+  });
+});
+
+describe("runGhApi plain gh env (#6023)", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("real spawn gets plain JSON under CLICOLOR_FORCE=1 in the parent env", () => {
+    const stub = resolve(
+      import.meta.dirname,
+      "..",
+      "pr-protected-issues",
+      "fixtures",
+      "color-gh-stub.mjs",
+    );
+    vi.stubEnv("CLICOLOR_FORCE", "1");
+    vi.stubEnv("NO_COLOR", "");
+    // Real spawn with runGhApi's own spawn options; only the binary is swapped.
+    const spawnFn: GhSpawnFn = (_command, args, options) =>
+      spawnScmBinary(process.execPath, [stub, ...args], options);
+    const result = runGhApi(["repos/deftai/directive/issues/6023"], {
+      whichFn: (name) => (name === "gh" ? "/usr/bin/gh" : null),
+      spawnFn,
+    });
+    expect(result.returncode).toBe(0);
+    expect(result.stdout).not.toContain("\u001b");
+    const payload = JSON.parse(result.stdout) as Record<string, unknown>;
+    expect(payload.state).toBe("closed");
+    expect(payload.stubNoColor).toBe("1");
+    expect(process.env.CLICOLOR_FORCE).toBe("1");
   });
 });

@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { resolve } from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 // The explicit no-op fixture is Unix-only; skip this assertion on Windows.
 const itNotWin32 = it.skipIf(process.platform === "win32");
@@ -49,5 +50,43 @@ describe("call", () => {
     });
     expect(result.returncode).toBe(1);
     expect(result.stderr.trim().length).toBeGreaterThan(0);
+  });
+});
+
+const COLOR_GH_STUB = resolve(
+  import.meta.dirname,
+  "..",
+  "pr-protected-issues",
+  "fixtures",
+  "color-gh-stub.mjs",
+);
+const ISSUE_PATH = "repos/deftai/directive/issues/6023";
+
+describe("call plain gh env (#6023)", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("returns parseable JSON under CLICOLOR_FORCE=1 when the caller passes no env", () => {
+    vi.stubEnv("CLICOLOR_FORCE", "1");
+    vi.stubEnv("NO_COLOR", "");
+    const result = call("github-issue", COLOR_GH_STUB, ["api", ISSUE_PATH], {
+      binary: process.execPath,
+    });
+    expect(result.returncode).toBe(0);
+    expect(result.stdout).not.toContain("\u001b");
+    const payload = JSON.parse(result.stdout) as Record<string, unknown>;
+    expect(payload.state).toBe("closed");
+    expect(payload.stubNoColor).toBe("1");
+    expect(process.env.CLICOLOR_FORCE).toBe("1");
+  });
+
+  it("passes an explicit caller env through unchanged (contract, not the bug)", () => {
+    const result = call("github-issue", COLOR_GH_STUB, ["api", ISSUE_PATH], {
+      binary: process.execPath,
+      env: { ...process.env, CLICOLOR_FORCE: "1" },
+    });
+    expect(result.returncode).toBe(0);
+    expect(result.stdout).toContain("\u001b");
   });
 });
