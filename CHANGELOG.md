@@ -10,6 +10,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
+### Fixed
+
+### Removed
+
+## [0.129.3] - 2026-11-02
+
+> Plain gh env for shared runners (#6023), label-mirror clock pin (#6020), bound pre-PR push gate off (#6026).
+
+### Added
+
+### Changed
 - chore(dogfood): pin Directive to 0.129.2.
 - chore(policy): turn off the bound pre-PR push gate (`requireBoundPrePrPush: false` in PROJECT-DEFINITION); re-enable is tracked in #6025.
 
@@ -7551,7 +7563,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.129.2...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.129.3...HEAD
+[0.129.3]: https://github.com/deftai/directive/compare/v0.129.2...v0.129.3
 [0.129.2]: https://github.com/deftai/directive/compare/v0.129.1...v0.129.2
 [0.129.1]: https://github.com/deftai/directive/compare/v0.129.0...v0.129.1
 [0.129.0]: https://github.com/deftai/directive/compare/v0.128.0...v0.129.0
