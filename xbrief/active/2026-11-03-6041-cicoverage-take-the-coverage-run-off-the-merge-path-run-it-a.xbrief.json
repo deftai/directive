@@ -1,0 +1,207 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6041",
+    "updated": "2026-11-03T17:11:15Z"
+  },
+  "plan": {
+    "title": "ci(coverage): take the coverage run off the merge path; run it at release Step 5 (\"release for now or on demand\")",
+    "status": "running",
+    "narratives": {
+      "Description": "ci(coverage): take the coverage run off the merge path; run it at release Step 5 (\"release for now or on demand\")",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6041",
+      "Overview": "\n\n- relieves: P1 — CI ci-lane and ordinary ts:check-lane run vitest without --coverage; invert today's Step-5 no-coverage polarity so only RELEASE_PREFLIGHT Step 5 sets hostCoverage true\n- relieves: P2 — Step 5 enforces host --coverage thresholds; remove tip-SHA GHA coverage-of-record cites from preflight success, stamp-hit, and auto-hatch success; flip suite-bound step5HostCoverage expectation to true in the same change so debt-hatch freshness matches the host report\n- relieves: P3 — verify:forward-coverage: missing/unreadable report without --enforce prints visible not-measured and exits 0; missing/unreadable report with --enforce exits non-zero even on an empty diff; new-file correspondence stays fail-closed always\n- relieves: P4 — Suite stamp skips only with a mechanical host-coverage witness old schemaVersion-1 stamps lack (bump or required field → miss); pass_with_debt requires a positive debtIssue on read; witness is minted only from a completed host coverage run or suite-bound debt classification, never from env selection alone\n\n\n",
+      "Labels": "bug, chore, process, area:release, dogfood, design-critique:ingest-ready, core-capabilities, promise:gates",
+      "UserStory": "As a maintainer, I want PR merge CI to run tests without --coverage and host coverage only at release Step 5, so every PR does not pay a double coverage tax.",
+      "ImplementationPlan": "Prefer-A Bound 6610301685: ci-lane + ordinary ts:check-lane without --coverage; Step 5 hostCoverage true; remove GHA coverage-of-record cites; forward-coverage missing-report honesty; suite-stamp host-coverage witness."
+    },
+    "items": [
+      {
+        "title": "relieves: P1 — CI ci-lane and ordinary ts:check-lane run vitest without --coverage; invert today's Step-5 no-coverage polarity so only RELEASE_PREFLIGHT Step 5 sets hostCoverage true",
+        "status": "pending",
+        "id": "clause.1",
+        "artifact_path": ".github/workflows/ci-lane.yml",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P1 — CI ci-lane and ordinary ts:check-lane run vitest without --coverage; invert today's Step-5 no-coverage polarity so only RELEASE_PREFLIGHT Step 5 sets hostCoverage true",
+          "Traces": "#6041"
+        }
+      },
+      {
+        "title": "relieves: P2 — Step 5 enforces host --coverage thresholds; remove tip-SHA GHA coverage-of-record cites from preflight success, stamp-hit, and auto-hatch success; flip suite-bound step5HostCoverage expectation to true in the same change so debt-hatch freshness matches the host report",
+        "status": "pending",
+        "id": "clause.2",
+        "artifact_path": ".github/workflows/ci-lane.yml",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P2 — Step 5 enforces host --coverage thresholds; remove tip-SHA GHA coverage-of-record cites from preflight success, stamp-hit, and auto-hatch success; flip suite-bound step5HostCoverage expectation to true in the same change so debt-hatch freshness matches the host report",
+          "Traces": "#6041"
+        }
+      },
+      {
+        "title": "relieves: P3 — verify:forward-coverage: missing/unreadable report without --enforce prints visible not-measured and exits 0; missing/unreadable report with --enforce exits non-zero even on an empty diff; new-file correspondence stays fail-closed always",
+        "status": "pending",
+        "id": "clause.3",
+        "artifact_path": ".github/workflows/ci-lane.yml",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P3 — verify:forward-coverage: missing/unreadable report without --enforce prints visible not-measured and exits 0; missing/unreadable report with --enforce exits non-zero even on an empty diff; new-file correspondence stays fail-closed always",
+          "Traces": "#6041"
+        }
+      },
+      {
+        "title": "relieves: P4 — Suite stamp skips only with a mechanical host-coverage witness old schemaVersion-1 stamps lack (bump or required field → miss); pass_with_debt requires a positive debtIssue on read; witness is minted only from a completed host coverage run or suite-bound debt classification, never from env selection alone",
+        "status": "pending",
+        "id": "clause.4",
+        "artifact_path": ".github/workflows/ci-lane.yml",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P4 — Suite stamp skips only with a mechanical host-coverage witness old schemaVersion-1 stamps lack (bump or required field → miss); pass_with_debt requires a positive debtIssue on read; witness is minted only from a completed host coverage run or suite-bound debt classification, never from env selection alone",
+          "Traces": "#6041"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "chore",
+      "process",
+      "area:release",
+      "dogfood",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6041",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6041: ci(coverage): take the coverage run off the merge path; run it at release Step 5 (\"release for now or on demand\")"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "ci(coverage): take the coverage run off the merge path; run it at release Step 5 (\"release for now or on demand\")",
+        "relieves: P1 — CI ci-lane and ordinary ts:check-lane run vitest without --coverage; invert today's Step-5 no-coverage polarity so only RELEASE_PREFLIGHT Step 5 sets hostCoverage true",
+        "relieves: P2 — Step 5 enforces host --coverage thresholds; remove tip-SHA GHA coverage-of-record cites from preflight success, stamp-hit, and auto-hatch success; flip suite-bound step5HostCoverage expectation to true in the same change so debt-hatch freshness matches the host report",
+        "relieves: P3 — verify:forward-coverage: missing/unreadable report without --enforce prints visible not-measured and exits 0; missing/unreadable report with --enforce exits non-zero even on an empty diff; new-file correspondence stays fail-closed always",
+        "relieves: P4 — Suite stamp skips only with a mechanical host-coverage witness old schemaVersion-1 stamps lack (bump or required field → miss); pass_with_debt requires a positive debtIssue on read; witness is minted only from a completed host coverage run or suite-bound debt classification, never from env selection alone"
+      ],
+      "admitted_source_sentences": [
+        "relieves: P1 — CI ci-lane and ordinary ts:check-lane run vitest without --coverage; invert today's Step-5 no-coverage polarity so only RELEASE_PREFLIGHT Step 5 sets hostCoverage true",
+        "relieves: P2 — Step 5 enforces host --coverage thresholds; remove tip-SHA GHA coverage-of-record cites from preflight success, stamp-hit, and auto-hatch success; flip suite-bound step5HostCoverage expectation to true in the same change so debt-hatch freshness matches the host report",
+        "relieves: P3 — verify:forward-coverage: missing/unreadable report without --enforce prints visible not-measured and exits 0; missing/unreadable report with --enforce exits non-zero even on an empty diff; new-file correspondence stays fail-closed always",
+        "relieves: P4 — Suite stamp skips only with a mechanical host-coverage witness old schemaVersion-1 stamps lack (bump or required field → miss); pass_with_debt requires a positive debtIssue on read; witness is minted only from a completed host coverage run or suite-bound debt classification, never from env selection alone"
+      ],
+      "admitted_source_digest": "f4dc1c1e3dff715853bfffda5bff4722de6552a04f0a2fe23a186ce22c0ebb9f",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "relieves: P1 — CI ci-lane and ordinary ts:check-lane run vitest without --coverage; invert today's Step-5 no-coverage polarity so only RELEASE_PREFLIGHT Step 5 sets hostCoverage true",
+          "artifact_path": ".github/workflows/ci-lane.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "relieves: P2 — Step 5 enforces host --coverage thresholds; remove tip-SHA GHA coverage-of-record cites from preflight success, stamp-hit, and auto-hatch success; flip suite-bound step5HostCoverage expectation to true in the same change so debt-hatch freshness matches the host report",
+          "artifact_path": ".github/workflows/ci-lane.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "relieves: P3 — verify:forward-coverage: missing/unreadable report without --enforce prints visible not-measured and exits 0; missing/unreadable report with --enforce exits non-zero even on an empty diff; new-file correspondence stays fail-closed always",
+          "artifact_path": ".github/workflows/ci-lane.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "relieves: P4 — Suite stamp skips only with a mechanical host-coverage witness old schemaVersion-1 stamps lack (bump or required field → miss); pass_with_debt requires a positive debtIssue on read; witness is minted only from a completed host coverage run or suite-bound debt classification, never from env selection alone",
+          "artifact_path": ".github/workflows/ci-lane.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          ".github/workflows/ci-lane.yml",
+          "packages/core/src/ts-check-lane/run-lane.ts",
+          "packages/core/src/ts-check-lane/run-lane.test.ts",
+          "packages/core/src/release/preflight.ts",
+          "packages/core/src/release/pipeline.ts",
+          "packages/core/src/release/suite-stamp.ts",
+          "packages/core/src/release/suite-stamp.test.ts",
+          "packages/core/src/release/types.ts",
+          "packages/core/src/forward-coverage/diff-coverage.ts",
+          "packages/core/src/forward-coverage/evaluate.ts",
+          "Taskfile.yml",
+          "content/skills/deft-directive-release/SKILL.md",
+          "docs/RELEASING.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/ts-check-lane/run-lane.ts",
+        "cohesion_exemption": "CHANGELOG + CI/release coverage polarity unit"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6172116271,
+        "origin": "deftai/directive#6041",
+        "id": "github.issue.6172116271"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "7417659407ad9bb61ce301cad2cd4bf6c321a701b75c1b196c1a34e5a3b9d603"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "ci-coverage-off-merge-path-host-at-release-step-5",
+        "expected_outputs": [
+          "ci-lane.yml without --coverage",
+          "run-lane polarity invert; Step 5 hostCoverage",
+          "preflight/pipeline cite removal + step5HostCoverage true",
+          "suite-stamp witness + debtIssue on read",
+          "forward-coverage missing/unreadable × enforce",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/ts-check-lane packages/core/src/release packages/core/src/forward-coverage --reporter=dot"
+        ],
+        "file_scope": [
+          ".github/workflows/ci-lane.yml",
+          "packages/core/src/ts-check-lane/run-lane.ts",
+          "packages/core/src/ts-check-lane/run-lane.test.ts",
+          "packages/core/src/release/preflight.ts",
+          "packages/core/src/release/pipeline.ts",
+          "packages/core/src/release/suite-stamp.ts",
+          "packages/core/src/release/suite-stamp.test.ts",
+          "packages/core/src/release/types.ts",
+          "packages/core/src/forward-coverage/diff-coverage.ts",
+          "packages/core/src/forward-coverage/evaluate.ts",
+          "Taskfile.yml",
+          "content/skills/deft-directive-release/SKILL.md",
+          "docs/RELEASING.md",
+          "CHANGELOG.md"
+        ],
+        "size": "L",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#6041",
+          "Prefer-A Bound 6610301685"
+        ],
+        "parallel_safe": true
+      }
+    },
+    "id": "github.issue.6172116271",
+    "updated": "2026-11-03T17:11:15Z"
+  }
+}

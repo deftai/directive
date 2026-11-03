@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
+- Pre-PR is the path-scoped Read-Write-Lint-Diff-Loop plus `verify:ac` on the active xBrief; the post-loop whole-repo check and coverage run are no longer required for a pre-PR pass (#6040).
+- PR CI and ordinary `ts:check-lane` run the test suite without `--coverage`; host coverage runs at release Step 5 (or on-demand `task test:coverage`) (#6041).
 - chore(pnpm): replace stale `@deftai/directive-runtime@0.129.2` AgeExclude with `@0.129.3` so same-day CI passes (#5854).
 
 ### Fixed

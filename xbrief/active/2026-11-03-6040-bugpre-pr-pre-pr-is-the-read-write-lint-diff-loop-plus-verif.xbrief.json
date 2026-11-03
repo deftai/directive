@@ -1,0 +1,221 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6040",
+    "updated": "2026-11-03T17:11:04Z"
+  },
+  "plan": {
+    "title": "bug(pre-pr): pre-PR is the Read-Write-Lint-Diff-Loop plus verify:ac on the active xBrief; drop the post-loop full task check and the coverage run",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(pre-pr): pre-PR is the Read-Write-Lint-Diff-Loop plus verify:ac on the active xBrief; drop the post-loop full task check and the coverage run",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6040",
+      "Overview": "\n\n- relieves: P1 — Set `merge_chokepoint.required` to false while keeping the row in `PRE_PR_PHASES` so a green required-set without that row publishes `outcome: pass` with a `pushBinding`.\n- relieves: P2 — Drop `--coverage` from `lint_iteration.command` and set `coverage_headroom.required` to false so no pre-PR step runs or requires coverage.\n- relieves: P3 — Edit pack-source pre-PR skill and `packs:render` so agents run only Expected 6 scoped loop commands with `tsc` kept in CI, stop prompting post-loop full check and coverage including reversing the soften-forbid line, and note a missing per-path linter visibly then continue without recording that absence as a failing required Vitest observation (Expected 7).\n- relieves: P4 — Keep conflict-resolve and behind-rebase local full gate on skill lines 67 and 70, flip line 68 so plain pre-push no longer requires the local full gate, leave `ALLOWED_CANDIDATE_VALIDATION_COMMANDS` unchanged, and keep `verify:ac -- <active-xbrief>` as a required local skill step.\n- Footnote: AGENTS.md merge-chokepoint clarify; CHANGELOG; re-point required-order tests; optional-red still fails if observed; leave lint_iteration skip arms unchanged; release+pin before #6025 re-enable.\n\n\n",
+      "Labels": "bug, process, area:skills, dogfood, design-critique:ingest-ready, core-capabilities, promise:gates",
+      "UserStory": "As an agent running pre-PR, I want RWDL plus verify:ac on the active xBrief without a post-loop full task check or coverage run, so review-fix cycles stay scoped to the change.",
+      "ImplementationPlan": "Prefer-A Bound 6610208589: soften merge_chokepoint and coverage_headroom to required:false; drop --coverage from lint_iteration; rewrite pack-source pre-PR skill + packs:render; keep conflict-resolve/behind-rebase full gate; CHANGELOG + AGENTS footnote."
+    },
+    "items": [
+      {
+        "title": "relieves: P1 — Set `merge_chokepoint.required` to false while keeping the row in `PRE_PR_PHASES` so a green required-set without that row publishes `outcome: pass` with a `pushBinding`.",
+        "status": "pending",
+        "id": "clause.1",
+        "artifact_path": "packages/core/src/pre-pr-controller/phases.ts",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P1 — Set `merge_chokepoint.required` to false while keeping the row in `PRE_PR_PHASES` so a green required-set without that row publishes `outcome: pass` with a `pushBinding`.",
+          "Traces": "#6040"
+        }
+      },
+      {
+        "title": "relieves: P2 — Drop `--coverage` from `lint_iteration.command` and set `coverage_headroom.required` to false so no pre-PR step runs or requires coverage.",
+        "status": "pending",
+        "id": "clause.2",
+        "artifact_path": "packages/core/src/pre-pr-controller/phases.ts",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P2 — Drop `--coverage` from `lint_iteration.command` and set `coverage_headroom.required` to false so no pre-PR step runs or requires coverage.",
+          "Traces": "#6040"
+        }
+      },
+      {
+        "title": "relieves: P3 — Edit pack-source pre-PR skill and `packs:render` so agents run only Expected 6 scoped loop commands with `tsc` kept in CI, stop prompting post-loop full check and coverage including reversing the soften-forbid line, and note a missing per-path linter visibly then continue without recording that absence as a failing required Vitest observation (Expected 7).",
+        "status": "pending",
+        "id": "clause.3",
+        "artifact_path": "packages/core/src/pre-pr-controller/phases.ts",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P3 — Edit pack-source pre-PR skill and `packs:render` so agents run only Expected 6 scoped loop commands with `tsc` kept in CI, stop prompting post-loop full check and coverage including reversing the soften-forbid line, and note a missing per-path linter visibly then continue without recording that absence as a failing required Vitest observation (Expected 7).",
+          "Traces": "#6040"
+        }
+      },
+      {
+        "title": "relieves: P4 — Keep conflict-resolve and behind-rebase local full gate on skill lines 67 and 70, flip line 68 so plain pre-push no longer requires the local full gate, leave `ALLOWED_CANDIDATE_VALIDATION_COMMANDS` unchanged, and keep `verify:ac -- <active-xbrief>` as a required local skill step.",
+        "status": "pending",
+        "id": "clause.4",
+        "artifact_path": "packages/core/src/pre-pr-controller/phases.ts",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P4 — Keep conflict-resolve and behind-rebase local full gate on skill lines 67 and 70, flip line 68 so plain pre-push no longer requires the local full gate, leave `ALLOWED_CANDIDATE_VALIDATION_COMMANDS` unchanged, and keep `verify:ac -- <active-xbrief>` as a required local skill step.",
+          "Traces": "#6040"
+        }
+      },
+      {
+        "title": "Footnote: AGENTS.md merge-chokepoint clarify; CHANGELOG; re-point required-order tests; optional-red still fails if observed; leave lint_iteration skip arms unchanged; release+pin before #6025 re-enable.",
+        "status": "pending",
+        "id": "clause.5",
+        "artifact_path": "AGENTS.md",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Footnote: AGENTS.md merge-chokepoint clarify; CHANGELOG; re-point required-order tests; optional-red still fails if observed; leave lint_iteration skip arms unchanged; release+pin before #6025 re-enable.",
+          "Traces": "#6040"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "process",
+      "area:skills",
+      "dogfood",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6040",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6040: bug(pre-pr): pre-PR is the Read-Write-Lint-Diff-Loop plus verify:ac on the active xBrief; drop the post-loop full task check and the coverage run"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "verify:ac -- <active-xbrief>",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L8"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "pre-pr-scoped-loop-plus-verify-ac-drop-full-check-coverage",
+        "expected_outputs": [
+          "phases.ts merge_chokepoint+coverage_headroom required false; lint_iteration without --coverage",
+          "rendered pre-PR skill + packs source",
+          "controller/phases tests re-pointed",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/pre-pr-controller --reporter=dot"
+        ],
+        "file_scope": [
+          "packages/core/src/pre-pr-controller/phases.ts",
+          "packages/core/src/pre-pr-controller/phases.test.ts",
+          "packages/core/src/pre-pr-controller/controller.test.ts",
+          "packages/core/src/pre-pr-controller/evaluate.test.ts",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-pre-pr/SKILL.md",
+          "content/templates/agents-entry.md",
+          "AGENTS.md",
+          "CHANGELOG.md"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#6040",
+          "Prefer-A Bound 6610208589"
+        ],
+        "parallel_safe": true
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/pre-pr-controller/phases.ts",
+          "packages/core/src/pre-pr-controller/phases.test.ts",
+          "packages/core/src/pre-pr-controller/controller.test.ts",
+          "packages/core/src/pre-pr-controller/evaluate.test.ts",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-pre-pr/SKILL.md",
+          "content/templates/agents-entry.md",
+          "AGENTS.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/pre-pr-controller/phases.ts",
+        "cohesion_exemption": "CHANGELOG + pre-PR skill pack rewrite unit"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6172067942,
+        "origin": "deftai/directive#6040",
+        "id": "github.issue.6172067942"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "f66e39dc67c9401e89b712676adcbfda7d984676e2e609379e229199547e1100"
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "bug(pre-pr): pre-PR is the Read-Write-Lint-Diff-Loop plus verify:ac on the active xBrief; drop the post-loop full task check and the coverage run",
+        "relieves: P1 — Set `merge_chokepoint.required` to false while keeping the row in `PRE_PR_PHASES` so a green required-set without that row publishes `outcome: pass` with a `pushBinding`.",
+        "relieves: P2 — Drop `--coverage` from `lint_iteration.command` and set `coverage_headroom.required` to false so no pre-PR step runs or requires coverage.",
+        "relieves: P3 — Edit pack-source pre-PR skill and `packs:render` so agents run only Expected 6 scoped loop commands with `tsc` kept in CI, stop prompting post-loop full check and coverage including reversing the soften-forbid line, and note a missing per-path linter visibly then continue without recording that absence as a failing required Vitest observation (Expected 7).",
+        "relieves: P4 — Keep conflict-resolve and behind-rebase local full gate on skill lines 67 and 70, flip line 68 so plain pre-push no longer requires the local full gate, leave `ALLOWED_CANDIDATE_VALIDATION_COMMANDS` unchanged, and keep `verify:ac -- <active-xbrief>` as a required local skill step.",
+        "Footnote: AGENTS.md merge-chokepoint clarify; CHANGELOG; re-point required-order tests; optional-red still fails if observed; leave lint_iteration skip arms unchanged; release+pin before #6025 re-enable."
+      ],
+      "admitted_source_sentences": [
+        "relieves: P1 — Set `merge_chokepoint.required` to false while keeping the row in `PRE_PR_PHASES` so a green required-set without that row publishes `outcome: pass` with a `pushBinding`.",
+        "relieves: P2 — Drop `--coverage` from `lint_iteration.command` and set `coverage_headroom.required` to false so no pre-PR step runs or requires coverage.",
+        "relieves: P3 — Edit pack-source pre-PR skill and `packs:render` so agents run only Expected 6 scoped loop commands with `tsc` kept in CI, stop prompting post-loop full check and coverage including reversing the soften-forbid line, and note a missing per-path linter visibly then continue without recording that absence as a failing required Vitest observation (Expected 7).",
+        "relieves: P4 — Keep conflict-resolve and behind-rebase local full gate on skill lines 67 and 70, flip line 68 so plain pre-push no longer requires the local full gate, leave `ALLOWED_CANDIDATE_VALIDATION_COMMANDS` unchanged, and keep `verify:ac -- <active-xbrief>` as a required local skill step.",
+        "Footnote: AGENTS.md merge-chokepoint clarify; CHANGELOG; re-point required-order tests; optional-red still fails if observed; leave lint_iteration skip arms unchanged; release+pin before #6025 re-enable."
+      ],
+      "admitted_source_digest": "9cb0d8d6d2b6a68db00c2f32e96ace4d872eea46425b8cb907c0f7262f46fe17",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "relieves: P1 — Set `merge_chokepoint.required` to false while keeping the row in `PRE_PR_PHASES` so a green required-set without that row publishes `outcome: pass` with a `pushBinding`.",
+          "artifact_path": "packages/core/src/pre-pr-controller/phases.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "relieves: P2 — Drop `--coverage` from `lint_iteration.command` and set `coverage_headroom.required` to false so no pre-PR step runs or requires coverage.",
+          "artifact_path": "packages/core/src/pre-pr-controller/phases.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "relieves: P3 — Edit pack-source pre-PR skill and `packs:render` so agents run only Expected 6 scoped loop commands with `tsc` kept in CI, stop prompting post-loop full check and coverage including reversing the soften-forbid line, and note a missing per-path linter visibly then continue without recording that absence as a failing required Vitest observation (Expected 7).",
+          "artifact_path": "packages/core/src/pre-pr-controller/phases.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "relieves: P4 — Keep conflict-resolve and behind-rebase local full gate on skill lines 67 and 70, flip line 68 so plain pre-push no longer requires the local full gate, leave `ALLOWED_CANDIDATE_VALIDATION_COMMANDS` unchanged, and keep `verify:ac -- <active-xbrief>` as a required local skill step.",
+          "artifact_path": "packages/core/src/pre-pr-controller/phases.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Footnote: AGENTS.md merge-chokepoint clarify; CHANGELOG; re-point required-order tests; optional-red still fails if observed; leave lint_iteration skip arms unchanged; release+pin before #6025 re-enable.",
+          "artifact_path": "AGENTS.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6172067942",
+    "updated": "2026-11-03T17:11:04Z"
+  }
+}
