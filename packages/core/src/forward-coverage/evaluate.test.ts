@@ -576,4 +576,26 @@ describe("evaluateForwardCoverage", () => {
     expect(result.exitCode).toBe(0);
     expect(result.missing).toEqual([]);
   });
+  it("prints not-measured and exits 0 when report missing without --enforce (#6041)", () => {
+    const root = buildRepo({});
+    const result = evaluateForwardCoverage(root, {
+      mode: "staged",
+      coverageReportPath: join(root, "coverage", "coverage-final.json"),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.message).toMatch(/not-measured/);
+  });
+
+  it("exits non-zero on missing report with --enforce even on empty diff (#6041)", () => {
+    const root = buildRepo({});
+    const result = evaluateForwardCoverage(root, {
+      mode: "staged",
+      enforceDiffCoverage: true,
+      coverageReportPath: join(root, "coverage", "coverage-final.json"),
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.message).toMatch(/not-measured/);
+    expect(result.message).toMatch(/FAIL: --enforce/);
+  });
+
 });

@@ -211,17 +211,17 @@ describe("tip-SHA GHA coverage-of-record (#5026)", () => {
 });
 
 describe("runReleaseCheck", () => {
-  it("returns ok when task check exits 0", () => {
+  it("returns ok when task check exits 0 without GHA coverage-of-record cite (#6041)", () => {
     const [ok, msg] = runReleaseCheck("/proj", {
       dispatchCheck: () => 0,
       resolveCoverageOfRecord: () => GREEN_CITE,
     });
     expect(ok).toBe(true);
     expect(msg).toContain("task check");
-    expect(msg).toContain("coverage-of-record gha-run=36086680776");
+    expect(msg).not.toContain("coverage-of-record");
   });
 
-  it("fail-closes when tip-SHA GHA coverage-of-record cite is missing (#5026)", () => {
+  it("does not fail closed when tip-SHA GHA coverage-of-record cite is missing (#6041)", () => {
     const [ok, msg] = runReleaseCheck("/proj", {
       dispatchCheck: () => 0,
       resolveCoverageOfRecord: () => ({
@@ -229,8 +229,9 @@ describe("runReleaseCheck", () => {
         reason: "no green tip-SHA GHA coverage-of-record check on deadbeef",
       }),
     });
-    expect(ok).toBe(false);
-    expect(msg).toMatch(/coverage-of-record/);
+    expect(ok).toBe(true);
+    expect(msg).toContain("task check");
+    expect(msg).not.toMatch(/coverage-of-record/);
   });
 
   it("returns timeout message on exit 124 (#2652)", () => {
@@ -303,7 +304,8 @@ describe("runReleaseCheck", () => {
       resolveCoverageOfRecord: () => GREEN_CITE,
     });
     expect(ok).toBe(true);
-    expect(msg).toContain("coverage-of-record");
+    expect(msg).toContain("task check");
+    expect(msg).not.toContain("coverage-of-record");
   });
 });
 
