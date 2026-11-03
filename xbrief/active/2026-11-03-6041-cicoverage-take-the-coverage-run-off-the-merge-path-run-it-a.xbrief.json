@@ -76,7 +76,6 @@
       "source_rung": "derived",
       "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
       "sentences": [
-        "ci(coverage): take the coverage run off the merge path; run it at release Step 5 (\"release for now or on demand\")",
         "relieves: P1 — CI ci-lane and ordinary ts:check-lane run vitest without --coverage; invert today's Step-5 no-coverage polarity so only RELEASE_PREFLIGHT Step 5 sets hostCoverage true",
         "relieves: P2 — Step 5 enforces host --coverage thresholds; remove tip-SHA GHA coverage-of-record cites from preflight success, stamp-hit, and auto-hatch success; flip suite-bound step5HostCoverage expectation to true in the same change so debt-hatch freshness matches the host report",
         "relieves: P3 — verify:forward-coverage: missing/unreadable report without --enforce prints visible not-measured and exits 0; missing/unreadable report with --enforce exits non-zero even on an empty diff; new-file correspondence stays fail-closed always",
