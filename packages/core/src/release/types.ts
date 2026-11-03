@@ -121,17 +121,17 @@ export interface ReleaseSeams {
   /** #3187 — CI detector; when true suite stamp is never trusted. */
   readonly isCi?: () => boolean;
   /**
-   * #5026 — tip-SHA GHA coverage-of-record cite. Required on stamp-hit and
-   * PASS_WITH_DEBT Step 5 success paths (suite skip must not bypass the cite).
-   * When omitted, production uses defaultResolveCoverageOfRecord.
+   * Legacy tip-SHA GHA coverage-of-record cite (#5026). Retired from Step 5
+   * success / stamp-hit / auto-hatch paths under #6041 (host coverage is SoT).
+   * Seam retained for tests and optional diagnostics.
    */
   readonly resolveCoverageOfRecord?: (
     projectRoot: string,
   ) => import("./preflight.js").CoverageOfRecordResult;
   /**
-   * #5239 F1 — whether Step 5 child lane wrote local coverage-final.json.
-   * Production defaults to false (#5026 no-coverage host lane). Tests inject
-   * true to exercise the "missing after suite" diagnostic without setting
+   * #5239 F1 / #6041 — whether Step 5 child lane wrote local coverage-final.json.
+   * Production defaults to true (host coverage at Step 5). Tests inject false
+   * to exercise the "not expected to write" diagnostic without setting
    * parent `DEFT_RELEASE_PREFLIGHT`.
    */
   readonly step5HostCoverage?: boolean;

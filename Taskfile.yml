@@ -419,7 +419,7 @@ tasks:
           ENGINE_CMD: 'check --framework-root "{{.TASKFILE_DIR}}" --project-root "{{.USER_WORKING_DIR}}"'
 
   test:coverage:
-    desc: "Run tests with coverage (alias for ts:test; canonical coverage path used by task check, #2528)"
+    desc: "On-demand tests with coverage (alias for ts:test). Merge path is coverage-free (#6041); release Step 5 and this task are the host coverage runs."
     cmds:
       - task: ts:test
 
