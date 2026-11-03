@@ -530,7 +530,7 @@ describe("controller observations", () => {
     expect(completeRun(store, mintPublisher(), rec.id).code).toBe("deny-failed");
   });
 
-    it("denies write, diff, and loop when supplied and observed hashes differ", () => {
+  it("denies write, diff, and loop when supplied and observed hashes differ", () => {
     for (const mismatch of ["write", "diff", "loop"] as const) {
       const store = new InProcessPrePrStore();
       const rec = start(store, `ppr_hash_${mismatch}`);
