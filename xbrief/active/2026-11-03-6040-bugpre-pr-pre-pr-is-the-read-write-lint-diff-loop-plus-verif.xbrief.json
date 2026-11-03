@@ -111,7 +111,8 @@
           "content/templates/agents-entry.md",
           "AGENTS.md",
           "CHANGELOG.md",
-          "docs/RULE-MAP.md"
+          "docs/RULE-MAP.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json"
         ],
         "size": "M",
         "file_scope_confidence": "high",
@@ -133,7 +134,8 @@
           "content/templates/agents-entry.md",
           "AGENTS.md",
           "CHANGELOG.md",
-          "docs/RULE-MAP.md"
+          "docs/RULE-MAP.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json"
         ],
         "module_boundary": "packages/core/src/pre-pr-controller/phases.ts",
         "cohesion_exemption": "CHANGELOG + pre-PR skill pack rewrite unit"
