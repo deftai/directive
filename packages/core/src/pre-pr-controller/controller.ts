@@ -624,24 +624,34 @@ export function runObservablesComplete(
   let previousAt: string | null = null;
   let previousId: string | null = null;
   for (const spec of PRE_PR_PHASES) {
-    if (!spec.required) continue;
+    const hasRow =
+      spec.kind === "command-observable"
+        ? record.phaseEvidence.commands.some((c) => c.phaseId === spec.id)
+        : record.phaseEvidence.semantic.some((s) => s.phaseId === spec.id);
+    // Omitted optional rows are fine; a present optional row must still satisfy (#6040).
+    if (!spec.required && !hasRow) continue;
     const ok =
       spec.kind === "command-observable"
         ? commandSatisfied(record, spec.id, options)
         : semanticSatisfied(record, spec.id);
     if (!ok) {
       return deny(
-        "deny-omitted-phase",
-        `required phase ${spec.id} has no controller-observed pass`,
+        spec.required ? "deny-omitted-phase" : "deny-incomplete",
+        spec.required
+          ? `required phase ${spec.id} has no controller-observed pass`
+          : `optional phase ${spec.id} observation is not satisfied`,
       );
     }
     const at = phaseObservedAt(record, spec);
     if (at === null || at.length === 0) {
       return deny(
-        "deny-omitted-phase",
-        `required phase ${spec.id} has no controller-observed pass`,
+        spec.required ? "deny-omitted-phase" : "deny-incomplete",
+        spec.required
+          ? `required phase ${spec.id} has no controller-observed pass`
+          : `optional phase ${spec.id} observation is not satisfied`,
       );
     }
+    if (!spec.required) continue;
     if (previousAt !== null && at < previousAt) {
       return deny(
         "deny-out-of-order",

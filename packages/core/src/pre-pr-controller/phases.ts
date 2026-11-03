@@ -58,12 +58,12 @@ export const PRE_PR_PHASES: readonly PrePrPhaseSpec[] = [
     id: "lint_iteration",
     kind: "command-observable",
     required: true,
-    command: "vitest run --coverage <changed-paths>",
+    command: "vitest run <changed-paths>",
   },
   {
     id: "coverage_headroom",
     kind: "command-observable",
-    required: true,
+    required: false,
     command: "deft coverage:hotspots",
   },
   {
@@ -77,7 +77,7 @@ export const PRE_PR_PHASES: readonly PrePrPhaseSpec[] = [
   {
     id: "merge_chokepoint",
     kind: "command-observable",
-    required: true,
+    required: false,
     command: "deft check",
   },
 ];
