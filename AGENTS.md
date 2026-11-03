@@ -106,6 +106,9 @@ Same as managed below; `task verify:story-ready`, `task scope:promote -- <path>`
 
 Same as managed below; `task verify:encoding`, `task verify:scm-boundary`, `task pr:wait-mergeable-and-merge`; three-axis `#4888` (`evaluateSemanticGreen` + conflict-resolve/behind-rebase full gate; ordinary pre-PR is RWDL + verify:ac per #6040); `content/scm/github.md` (#2157 / #2369).
 
+## Merge chokepoint (#6040)
+! Merge chokepoint (#4379 / #2893 / #6040): when the full gate runs (conflict-resolve / behind-rebase locally, or CI merge-gate (`check:merge`)), prefer `deft check`; else `task deft:check` on include-only consumers. Ordinary pre-PR is RWDL + `verify:ac` and does not require that full gate. One gate, not two runs.
+
 ## Headless swarm launch gate-stack (#1387)
 
 Rationale + cross-references: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Headless swarm launch gate-stack (#1387).
