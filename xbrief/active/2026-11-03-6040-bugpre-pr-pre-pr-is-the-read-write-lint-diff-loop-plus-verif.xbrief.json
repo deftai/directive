@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6040",
-    "updated": "2026-11-03T17:11:04Z"
+    "updated": "2026-11-03T19:41:17.689Z"
   },
   "plan": {
     "title": "bug(pre-pr): pre-PR is the Read-Write-Lint-Diff-Loop plus verify:ac on the active xBrief; drop the post-loop full task check and the coverage run",
@@ -110,7 +110,8 @@
           "content/skills/deft-directive-pre-pr/SKILL.md",
           "content/templates/agents-entry.md",
           "AGENTS.md",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "docs/RULE-MAP.md"
         ],
         "size": "M",
         "file_scope_confidence": "high",
@@ -131,7 +132,8 @@
           "content/skills/deft-directive-pre-pr/SKILL.md",
           "content/templates/agents-entry.md",
           "AGENTS.md",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "docs/RULE-MAP.md"
         ],
         "module_boundary": "packages/core/src/pre-pr-controller/phases.ts",
         "cohesion_exemption": "CHANGELOG + pre-PR skill pack rewrite unit"
