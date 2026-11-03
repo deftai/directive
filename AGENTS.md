@@ -166,7 +166,7 @@ Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after 
 
 <!-- placeholder -->
 
-<!-- deft:managed-section v3 sha=0.129.3 refreshed=2026-11-03T18:27:51Z session=344559045165 -->
+<!-- deft:managed-section v3 sha=0.129.3 refreshed=2026-11-03T20:54:24Z session=92742a602c28 -->
 # Deft — AI Development Framework
 
 Deft runtime is pinned as `@deftai/directive-runtime`. Full guidelines: node_modules/@deftai/directive-runtime/main.md
@@ -256,7 +256,7 @@ Deft runtime is pinned as `@deftai/directive-runtime`. Full guidelines: node_mod
 ! **Dual stop (#2442):** multi-iteration work MUST have success + failure/budget stop (max iters / no-progress / budget); single-turn exempt; halt with operator-visible report; ⊗ thrash. Defaults: build, swarm, review-cycle skills. See main.md Dual Stop Rule. Ledger #3143.
 ## Rule Authority [AXIOM]
 ! Prefer `task deft:*` over AGENTS.md prose. See main.md.
-! Merge chokepoint (#4379 / #2893 / #6040): when the full gate runs (conflict-resolve / behind-rebase locally, or CI merge-gate (`check:merge`)), prefer `deft check`; else `task deft:check` on include-only consumers. Ordinary pre-PR is RWDL + `verify:ac` and does not require that full gate. One gate, not two runs.
+! Merge chokepoint (#4379 / #2893): prefer `deft check`; else `task deft:check` on include-only consumers. One gate, not two runs.
 ## Thin Fail-Closed Design (#3265)
 ! One fail-closed `task deft:*` check + one remediation. See main.md.
 ## Writing bar (#3368)
