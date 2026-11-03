@@ -14,10 +14,12 @@
  *     coverage of new code; the project vitest floor (75) is a collapse
  *     detector for the aggregate -- they are not interchangeable.
  *
- * Missing coverage reports skip the diff half (existence still runs).
+ * Missing/unreadable coverage reports: visible not-measured notice; exit 0
+ * without `--enforce`, non-zero with `--enforce` even on an empty diff (#6041).
+ * New-file correspondence stays fail-closed always.
  * Pass `enforceDiffCoverage` / `--enforce` to fail closed on uncovered
  * changed branches. Three-state exit: 0 clean or warn / 1 missing
- * existence (or enforced diff findings) / 2 config error.
+ * existence (or enforced diff findings / not-measured under enforce) / 2 config error.
  */
 
 import { spawnSync } from "node:child_process";
@@ -249,7 +251,11 @@ function changedLinesByFile(projectRoot: string, mode: ForwardCoverageMode): Cha
 
 function formatDiffCoverage(report: DiffCoverageReport, enforce: boolean): string {
   if (!report.reportPresent) {
-    return "";
+    const why = report.skippedReason ?? "coverage report not measured";
+    const posture = enforce
+      ? "FAIL: --enforce is set; missing/unreadable coverage report is non-zero (#6041)."
+      : "ADVISORY (not-measured): exit 0 without --enforce; pass --enforce to fail closed (#6041).";
+    return `verify_forward_coverage: not-measured (${why}).\n${posture}`;
   }
   const findings = hasDiffCoverageFindings(report);
   if (!findings && report.changedBranchTotal === 0) {
@@ -475,7 +481,8 @@ export function evaluateForwardCoverage(
     `verify_forward_coverage: ${checked} new source file(s) checked -- ` +
     "all have forward coverage (#1310 / #4009).";
   const findings = hasDiffCoverageFindings(diffCoverage);
-  const exitCode: 0 | 1 = enforce && findings ? 1 : 0;
+  const notMeasured = !diffCoverage.reportPresent;
+  const exitCode: 0 | 1 = enforce && (findings || notMeasured) ? 1 : 0;
   const message = diffSection === "" ? existence : `${existence}\n${diffSection}`;
   return { exitCode, missing, message, diffCoverage };
 }

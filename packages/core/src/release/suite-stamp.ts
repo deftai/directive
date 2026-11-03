@@ -10,7 +10,7 @@ import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { containedWrite } from "../fs/contained-write.js";
 
-export const SUITE_STAMP_SCHEMA_VERSION = 1 as const;
+export const SUITE_STAMP_SCHEMA_VERSION = 2 as const;
 export const SUITE_STAMP_RELPATH = join(".deft", "release-suite-stamp.json");
 
 export type SuiteStampStatus = "pass" | "pass_with_debt";
@@ -20,6 +20,8 @@ export interface SuiteStamp {
   readonly headSha: string;
   readonly suite: SuiteStampStatus;
   readonly debtIssue: number | null;
+  /** Mechanical witness that host coverage completed (or debt classified) (#6041). */
+  readonly hostCoverageWitness: true;
   readonly recordedAt: string;
 }
 
@@ -67,19 +69,24 @@ export function isValidHeadSha(sha: string | null | undefined): sha is string {
 /** Parse stamp JSON; returns null when missing/corrupt. */
 export function parseSuiteStamp(raw: string): SuiteStamp | null {
   try {
-    const parsed = JSON.parse(raw) as Partial<SuiteStamp>;
+    const parsed = JSON.parse(raw) as Partial<SuiteStamp> & { hostCoverageWitness?: unknown };
     if (parsed.schemaVersion !== SUITE_STAMP_SCHEMA_VERSION) return null;
     if (!isValidHeadSha(parsed.headSha)) return null;
     if (parsed.suite !== "pass" && parsed.suite !== "pass_with_debt") return null;
+    // #6041: old schemaVersion-1 stamps lack this mechanical witness → miss.
+    if (parsed.hostCoverageWitness !== true) return null;
     const debt =
       parsed.debtIssue === null || parsed.debtIssue === undefined ? null : Number(parsed.debtIssue);
     if (debt !== null && (!Number.isFinite(debt) || debt <= 0)) return null;
+    // pass_with_debt requires a positive debtIssue on read (#6041 / Codex F2).
+    if (parsed.suite === "pass_with_debt" && (debt === null || debt <= 0)) return null;
     if (typeof parsed.recordedAt !== "string" || !parsed.recordedAt) return null;
     return {
       schemaVersion: SUITE_STAMP_SCHEMA_VERSION,
       headSha: parsed.headSha.trim().toLowerCase(),
       suite: parsed.suite,
       debtIssue: debt,
+      hostCoverageWitness: true,
       recordedAt: parsed.recordedAt,
     };
   } catch {
@@ -101,7 +108,10 @@ export function readSuiteStamp(projectRoot: string, io: SuiteStampIo = {}): Suit
 
 export function writeSuiteStamp(
   projectRoot: string,
-  stamp: Omit<SuiteStamp, "schemaVersion"> & { schemaVersion?: number },
+  stamp: Omit<SuiteStamp, "schemaVersion" | "hostCoverageWitness"> & {
+    schemaVersion?: number;
+    hostCoverageWitness?: true;
+  },
   io: SuiteStampIo = {},
 ): SuiteStamp {
   const full: SuiteStamp = {
@@ -109,6 +119,7 @@ export function writeSuiteStamp(
     headSha: stamp.headSha.trim().toLowerCase(),
     suite: stamp.suite,
     debtIssue: stamp.debtIssue,
+    hostCoverageWitness: true,
     recordedAt: stamp.recordedAt,
   };
   if (!isValidHeadSha(full.headSha)) {
@@ -116,6 +127,9 @@ export function writeSuiteStamp(
   }
   if (full.suite === "pass_with_debt" && (full.debtIssue === null || full.debtIssue <= 0)) {
     throw new Error("suite-stamp: pass_with_debt requires debtIssue");
+  }
+  if (stamp.hostCoverageWitness !== true && stamp.hostCoverageWitness !== undefined) {
+    throw new Error("suite-stamp: hostCoverageWitness must be true when set");
   }
   const path = suiteStampPath(projectRoot);
   const mkdirp = io.mkdirp ?? defaultMkdirp;

@@ -93,7 +93,8 @@ function branchLine(meta: IstanbulBranchMapEntry | undefined, pathIndex: number)
 
 /**
  * Measure coverage of Istanbul branch paths whose line is in the diff.
- * Missing or unreadable reports skip (warn-first); they are not a config error.
+ * Missing or unreadable reports set reportPresent=false with skippedReason (#6041).
+ * evaluateForwardCoverage turns that into not-measured notice / enforce fail.
  */
 export function evaluateDiffCoverage(options: DiffCoverageOptions): DiffCoverageReport {
   const threshold = options.threshold ?? DEFAULT_DIFF_COVERAGE_THRESHOLD;

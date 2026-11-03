@@ -42,15 +42,20 @@ import {
 } from "./progress.js";
 
 /**
- * Step-5-only host lane (#5026): when release preflight is set, drop host
- * vitest `--coverage` by invoking vitest directly instead of `pnpm run test`
- * (shared package.json `"test": "vitest run --coverage"` stays instrumented for GHA).
+ * Release Step 5 host coverage (#6041): when release preflight is set, run
+ * vitest with `--coverage` via `pnpm run test`. Ordinary / CI lanes run without
+ * coverage (`pnpm exec vitest run`). Reverses #5026 Step-5 no-coverage polarity.
  */
-export function isStep5HostNoCoverage(env: NodeJS.ProcessEnv = process.env): boolean {
+export function isStep5HostCoverage(env: NodeJS.ProcessEnv = process.env): boolean {
   return env[RELEASE_PREFLIGHT_ENV] === "1";
 }
 
-/** Host-lane test argv: coverage via `pnpm run test`, or Step-5 `pnpm exec vitest run`. */
+/** @deprecated Prefer isStep5HostCoverage (#6041 polarity invert). */
+export function isStep5HostNoCoverage(env: NodeJS.ProcessEnv = process.env): boolean {
+  return !isStep5HostCoverage(env);
+}
+
+/** Host-lane test argv: Step-5 coverage via `pnpm run test`, else `pnpm exec vitest run`. */
 export function resolveHostLaneTestCommand(
   projectRoot: string,
   options: {
@@ -228,7 +233,7 @@ export function runTsLane(projectRoot: string, options: RunTsLaneOptions): numbe
   const cpuCount = options.cpus ?? cpus().length;
   const tsbuildinfoExists = options.tsbuildinfoExists ?? existsSync;
   const laneEnv = options.env ?? process.env;
-  const hostCoverage = !isStep5HostNoCoverage(laneEnv);
+  const hostCoverage = isStep5HostCoverage(laneEnv);
   const tsbuildinfoRels = [
     "packages/core/dist/.tsbuildinfo",
     "packages/cli/dist/.tsbuildinfo",
