@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6041",
-    "updated": "2026-11-03T17:11:15Z"
+    "updated": "2026-11-03T18:39:48.234Z"
   },
   "plan": {
     "title": "ci(coverage): take the coverage run off the merge path; run it at release Step 5 (\"release for now or on demand\")",
@@ -137,7 +137,11 @@
           "Taskfile.yml",
           "content/skills/deft-directive-release/SKILL.md",
           "docs/RELEASING.md",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "packages/core/src/forward-coverage/diff-coverage.test.ts",
+          "packages/core/src/forward-coverage/evaluate.test.ts",
+          "packages/core/src/release/pipeline-auto-hatch.test.ts",
+          "packages/core/src/release/preflight.test.ts"
         ],
         "module_boundary": "packages/core/src/ts-check-lane/run-lane.ts",
         "cohesion_exemption": "CHANGELOG + CI/release coverage polarity unit"
@@ -185,7 +189,11 @@
           "Taskfile.yml",
           "content/skills/deft-directive-release/SKILL.md",
           "docs/RELEASING.md",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "packages/core/src/forward-coverage/diff-coverage.test.ts",
+          "packages/core/src/forward-coverage/evaluate.test.ts",
+          "packages/core/src/release/pipeline-auto-hatch.test.ts",
+          "packages/core/src/release/preflight.test.ts"
         ],
         "size": "L",
         "file_scope_confidence": "high",
@@ -197,6 +205,6 @@
       }
     },
     "id": "github.issue.6172116271",
-    "updated": "2026-11-03T17:11:15Z"
+    "updated": "2026-11-03T18:39:48.234Z"
   }
 }
