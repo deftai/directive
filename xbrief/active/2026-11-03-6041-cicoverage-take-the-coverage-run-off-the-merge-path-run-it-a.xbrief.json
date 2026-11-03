@@ -20,7 +20,6 @@
         "title": "relieves: P1 — CI ci-lane and ordinary ts:check-lane run vitest without --coverage; invert today's Step-5 no-coverage polarity so only RELEASE_PREFLIGHT Step 5 sets hostCoverage true",
         "status": "pending",
         "id": "clause.1",
-        "artifact_path": ".github/workflows/ci-lane.yml",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P1 — CI ci-lane and ordinary ts:check-lane run vitest without --coverage; invert today's Step-5 no-coverage polarity so only RELEASE_PREFLIGHT Step 5 sets hostCoverage true",
           "Traces": "#6041"
@@ -30,7 +29,6 @@
         "title": "relieves: P2 — Step 5 enforces host --coverage thresholds; remove tip-SHA GHA coverage-of-record cites from preflight success, stamp-hit, and auto-hatch success; flip suite-bound step5HostCoverage expectation to true in the same change so debt-hatch freshness matches the host report",
         "status": "pending",
         "id": "clause.2",
-        "artifact_path": ".github/workflows/ci-lane.yml",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P2 — Step 5 enforces host --coverage thresholds; remove tip-SHA GHA coverage-of-record cites from preflight success, stamp-hit, and auto-hatch success; flip suite-bound step5HostCoverage expectation to true in the same change so debt-hatch freshness matches the host report",
           "Traces": "#6041"
@@ -40,7 +38,6 @@
         "title": "relieves: P3 — verify:forward-coverage: missing/unreadable report without --enforce prints visible not-measured and exits 0; missing/unreadable report with --enforce exits non-zero even on an empty diff; new-file correspondence stays fail-closed always",
         "status": "pending",
         "id": "clause.3",
-        "artifact_path": ".github/workflows/ci-lane.yml",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P3 — verify:forward-coverage: missing/unreadable report without --enforce prints visible not-measured and exits 0; missing/unreadable report with --enforce exits non-zero even on an empty diff; new-file correspondence stays fail-closed always",
           "Traces": "#6041"
@@ -50,7 +47,6 @@
         "title": "relieves: P4 — Suite stamp skips only with a mechanical host-coverage witness old schemaVersion-1 stamps lack (bump or required field → miss); pass_with_debt requires a positive debtIssue on read; witness is minted only from a completed host coverage run or suite-bound debt classification, never from env selection alone",
         "status": "pending",
         "id": "clause.4",
-        "artifact_path": ".github/workflows/ci-lane.yml",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P4 — Suite stamp skips only with a mechanical host-coverage witness old schemaVersion-1 stamps lack (bump or required field → miss); pass_with_debt requires a positive debtIssue on read; witness is minted only from a completed host coverage run or suite-bound debt classification, never from env selection alone",
           "Traces": "#6041"
