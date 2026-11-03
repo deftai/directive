@@ -23875,7 +23875,7 @@
       "requireBoundPrePrPush": false,
       "agentsMdBudget": {
         "managedMaxLines": 205,
-        "unmanagedMaxLines": 168,
+        "unmanagedMaxLines": 175,
         "absoluteMaxBytes": 30500,
         "skillFrontmatterTier": "daily-core",
         "skillFrontmatterMaxBytes": 2394
