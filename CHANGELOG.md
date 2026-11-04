@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed — Mint intent-constraint for #6041 suite-stamp schema v2. Approval record only; no product behavior change. Refs #6041.
+
 ### Removed
 
 ## [0.129.3] - 2026-11-02
