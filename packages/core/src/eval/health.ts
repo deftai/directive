@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
-import { basename, dirname, isAbsolute, relative, resolve } from "node:path";
+import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { agentsRefreshPlan } from "../doctor/agents-md.js";
 import { evaluate as evaluateEncoding } from "../encoding/evaluate.js";
 import { readCorePackageVersion } from "../engine-version.js";
@@ -131,11 +131,18 @@ function probeVbriefConformance(projectRoot: string): GateProbeResult {
 }
 
 function probeAgentsMdFreshness(projectRoot: string, frameworkSource: boolean): GateProbeResult {
-  // Framework-source tip CI: prefer in-repo content/templates over the
-  // published deposit pin (#5802 / #6040). Consumers keep default lookup
-  // (DEFT_ROOT / installed package) so healthy installs do not fail.
+  // Framework-source tip CI: read in-repo content/templates directly so a
+  // staged/hoisted npm content package cannot shadow tip AGENTS (#5802 / #6040).
+  // Consumers keep default lookup (DEFT_ROOT / installed package).
   const plan = frameworkSource
-    ? agentsRefreshPlan(projectRoot, { frameworkRoot: projectRoot })
+    ? agentsRefreshPlan(projectRoot, {
+        frameworkRoot: projectRoot,
+        readTemplate: () => {
+          const path = join(projectRoot, "content", "templates", "agents-entry.md");
+          if (!existsSync(path)) return null;
+          return readFileSync(path, "utf8");
+        },
+      })
     : agentsRefreshPlan(projectRoot);
   const state = String(plan.state ?? "unknown");
   const pass = state === "current";
