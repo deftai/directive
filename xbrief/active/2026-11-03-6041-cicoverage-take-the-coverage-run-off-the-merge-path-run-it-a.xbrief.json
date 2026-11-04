@@ -141,7 +141,8 @@
           "packages/core/src/forward-coverage/diff-coverage.test.ts",
           "packages/core/src/forward-coverage/evaluate.test.ts",
           "packages/core/src/release/pipeline-auto-hatch.test.ts",
-          "packages/core/src/release/preflight.test.ts"
+          "packages/core/src/release/preflight.test.ts",
+          "content/packs/skills/skills-pack-0.1.json"
         ],
         "module_boundary": "packages/core/src/ts-check-lane/run-lane.ts",
         "cohesion_exemption": "CHANGELOG + CI/release coverage polarity unit"
@@ -193,7 +194,8 @@
           "packages/core/src/forward-coverage/diff-coverage.test.ts",
           "packages/core/src/forward-coverage/evaluate.test.ts",
           "packages/core/src/release/pipeline-auto-hatch.test.ts",
-          "packages/core/src/release/preflight.test.ts"
+          "packages/core/src/release/preflight.test.ts",
+          "content/packs/skills/skills-pack-0.1.json"
         ],
         "size": "L",
         "file_scope_confidence": "high",
@@ -202,7 +204,8 @@
           "Prefer-A Bound 6610301685"
         ],
         "parallel_safe": true
-      }
+      },
+      "productPullRequest": 6049
     },
     "id": "github.issue.6172116271",
     "updated": "2026-11-03T18:39:48.234Z"
