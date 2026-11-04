@@ -353,9 +353,9 @@ describe("evaluateHealth", () => {
     ].join("\n");
     writeFileSync(join(root, "content", "templates", "agents-entry.md"), managed, "utf8");
     writeFileSync(join(root, "AGENTS.md"), managed, "utf8");
-    // Minimal git repo so HEAD:AGENTS.md resolves to the committed body.
+    // Minimal git repo so HEAD:AGENTS.md + template resolve to the committed body.
     execFileSync("git", ["init"], { cwd: root });
-    execFileSync("git", ["add", "AGENTS.md"], { cwd: root });
+    execFileSync("git", ["add", "AGENTS.md", "content/templates/agents-entry.md"], { cwd: root });
     execFileSync(
       "git",
       ["-c", "user.email=t@example.com", "-c", "user.name=t", "commit", "-m", "seed"],

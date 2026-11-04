@@ -131,9 +131,9 @@ function probeVbriefConformance(projectRoot: string): GateProbeResult {
   };
 }
 
-function readCommittedAgentsMd(projectRoot: string): string | null {
+function readGitHeadFile(projectRoot: string, relPath: string): string | null {
   try {
-    return execFileSync("git", ["-C", projectRoot, "show", "HEAD:AGENTS.md"], {
+    return execFileSync("git", ["-C", projectRoot, "show", `HEAD:${relPath}`], {
       encoding: "utf8",
       maxBuffer: 2 * 1024 * 1024,
       stdio: ["ignore", "pipe", "pipe"],
@@ -143,31 +143,47 @@ function readCommittedAgentsMd(projectRoot: string): string | null {
   }
 }
 
+function readWorkingFile(path: string): string | null {
+  try {
+    if (!existsSync(path)) return null;
+    return readFileSync(path, "utf8");
+  } catch {
+    return null;
+  }
+}
+
 function probeAgentsMdFreshness(projectRoot: string, frameworkSource: boolean): GateProbeResult {
-  // Framework-source tip CI (#5802 / #6040): compare committed HEAD:AGENTS.md to
-  // in-repo content/templates so a self-complete/setup rewrite of the working
-  // tree (or staged npm content shadow) cannot fail tip CI. Fall back to
-  // frameworkRoot/contentRoot only when the in-repo template file is absent.
+  // Framework-source tip CI (#5802 / #6040): prefer in-repo content/templates.
+  // When the working-tree AGENTS.md was rewritten vs HEAD (self-complete/setup),
+  // compare both AGENTS and agents-entry from HEAD so the rewrite cannot fail
+  // tip CI — and a pre-commit template+refresh still uses the working tree.
   // Consumers keep default lookup (DEFT_ROOT / installed package).
+  const agentsPath = join(projectRoot, "AGENTS.md");
+  const templateRel = "content/templates/agents-entry.md";
+  const templatePath = join(projectRoot, templateRel);
+  const committedAgents = frameworkSource ? readGitHeadFile(projectRoot, "AGENTS.md") : null;
+  const workingAgents = readWorkingFile(agentsPath);
+  const agentsRewritten =
+    frameworkSource &&
+    committedAgents !== null &&
+    workingAgents !== null &&
+    committedAgents !== workingAgents;
+
   let plan = frameworkSource
     ? agentsRefreshPlan(projectRoot, {
         frameworkRoot: projectRoot,
         readTemplate: () => {
-          const path = join(projectRoot, "content", "templates", "agents-entry.md");
-          if (!existsSync(path)) return null;
-          return readFileSync(path, "utf8");
+          if (agentsRewritten) {
+            const committedTemplate = readGitHeadFile(projectRoot, templateRel);
+            if (committedTemplate !== null) return committedTemplate;
+          }
+          return readWorkingFile(templatePath);
         },
         readAgents: (path) => {
-          if (resolve(path) === resolve(projectRoot, "AGENTS.md")) {
-            const committed = readCommittedAgentsMd(projectRoot);
-            if (committed !== null) return committed;
+          if (resolve(path) === resolve(agentsPath) && agentsRewritten) {
+            return committedAgents;
           }
-          try {
-            if (!existsSync(path)) return null;
-            return readFileSync(path, "utf8");
-          } catch {
-            return null;
-          }
+          return readWorkingFile(path);
         },
       })
     : agentsRefreshPlan(projectRoot);
