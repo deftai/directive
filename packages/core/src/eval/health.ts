@@ -128,7 +128,9 @@ function probeVbriefConformance(projectRoot: string): GateProbeResult {
 }
 
 function probeAgentsMdFreshness(projectRoot: string): GateProbeResult {
-  const plan = agentsRefreshPlan(projectRoot);
+  // Tip CI / framework-source: prefer in-repo content/templates over the
+  // published deposit pin (#5802 / #6040 long merge-chokepoint).
+  const plan = agentsRefreshPlan(projectRoot, { frameworkRoot: projectRoot });
   const state = String(plan.state ?? "unknown");
   const pass = state === "current";
   return {
