@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Bump `astral-sh/setup-uv` GitHub Action from 10.3.0 to 10.3.3 in CI.
 - Land #6041 coverage-polarity product: suite-stamp hostCoverageWitness + forward-coverage honesty with coverage off the merge-path CI lane.
 - Widen #6041 scope so skills-pack projections and evaluator-surface disposition can land with the coverage-polarity change.
 - eval:health agents-md-freshness prefers in-repo templates on framework-source checkouts only, so tip CI stays aligned without failing healthy consumers (#5802).
