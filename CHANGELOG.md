@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Widen #6040 scope so RULE-MAP can refresh after the merge-chokepoint AGENTS wording change.
 - Widen #6041 coverage-polarity scope so Bound-named forward-coverage and release preflight/auto-hatch tests can land with the product change.
 - Pre-PR is the path-scoped Read-Write-Lint-Diff-Loop plus `verify:ac` on the active xBrief; the post-loop whole-repo check and coverage run are no longer required for a pre-PR pass (#6040).
+- Land #6041 product: take vitest --coverage off ci-lane/ts:check-lane; host coverage at release Step 5; forward-coverage missing-report honesty and suite-stamp witness (PR #6049).
 - PR CI and ordinary `ts:check-lane` run the test suite without `--coverage`; host coverage runs at release Step 5 (or on-demand `task test:coverage`) (#6041).
 - chore(pnpm): replace stale `@deftai/directive-runtime@0.129.2` AgeExclude with `@0.129.3` so same-day CI passes (#5854).
 
