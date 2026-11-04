@@ -119,7 +119,7 @@ describe("evaluateDiffCoverage", () => {
     expect(DEFAULT_DIFF_COVERAGE_THRESHOLD).toBeGreaterThan(75);
   });
 
-  it("skips an unreadable coverage report instead of failing closed", () => {
+  it("marks an unreadable coverage report as not present with skippedReason (#6041)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-diffcov-badjson-"));
     temps.push(root);
     const dir = join(root, "coverage");

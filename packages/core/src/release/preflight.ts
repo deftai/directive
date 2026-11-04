@@ -7,8 +7,8 @@
  * context, so the framework root equals the project root and the orchestrator
  * dispatches `check:framework-source`.
  *
- * #5026: Step 5 drops host vitest `--coverage`; tip-SHA GHA coverage is
- * coverage-of-record and is cited fail-closed on the success tee.
+ * #6041: Step 5 runs host vitest `--coverage` (thresholds enforced on host).
+ * Tip-SHA GHA coverage-of-record cites are retired from the success path.
  */
 import { spawnSync } from "node:child_process";
 import { extractGateCause } from "../check/named-cause.js";
@@ -332,15 +332,7 @@ export function runReleaseCheck(
         return [false, "suite gate did not run (ts:check-lane skip/SKIP_NOTICE)"];
       }
     }
-    const resolveCite = seams.resolveCoverageOfRecord ?? defaultResolveCoverageOfRecord;
-    const citeResult = resolveCite(projectRoot);
-    if (!citeResult.ok) {
-      return [false, citeResult.reason];
-    }
-    return [
-      true,
-      `ran native TypeScript task check; ${formatCoverageOfRecordCite(citeResult.cite)}`,
-    ];
+    return [true, "ran native TypeScript task check (host coverage at Step 5)"];
   }
   return [false, formatReleaseCheckFailureReason(code, completion)];
 }

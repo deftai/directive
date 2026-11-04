@@ -2,9 +2,8 @@
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
   "surfaces": [
-    "packages/core/src/class-checks/evaluate.ts",
-    "packages/core/src/class-checks/evaluate.test.ts",
+    "Taskfile.yml",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renew disclosure for #5994 class-4 companions + CI harness non-story-product. Disclosure only; not #3164 authorization."
+  "note": "Renew disclosure for #6041 Taskfile.yml coverage-lane wording. Disclosure only; not #3164 authorization."
 }

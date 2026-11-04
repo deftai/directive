@@ -13,25 +13,38 @@ describe("parseSuiteStamp / isValidHeadSha", () => {
   it("accepts valid stamp JSON", () => {
     const stamp = parseSuiteStamp(
       JSON.stringify({
-        schemaVersion: 1,
+        schemaVersion: 2,
         headSha: SHA,
         suite: "pass",
         debtIssue: null,
+        hostCoverageWitness: true,
         recordedAt: "2026-08-07T00:00:00.000Z",
       }),
     );
     expect(stamp).toEqual({
-      schemaVersion: 1,
+      schemaVersion: 2,
       headSha: SHA,
       suite: "pass",
       debtIssue: null,
+      hostCoverageWitness: true,
       recordedAt: "2026-08-07T00:00:00.000Z",
     });
   });
 
-  it("rejects corrupt / wrong schema", () => {
+  it("rejects corrupt / wrong schema / missing hostCoverageWitness (#6041)", () => {
     expect(parseSuiteStamp("{}")).toBeNull();
     expect(parseSuiteStamp("not-json")).toBeNull();
+    expect(
+      parseSuiteStamp(
+        JSON.stringify({
+          schemaVersion: 1,
+          headSha: SHA,
+          suite: "pass",
+          debtIssue: null,
+          recordedAt: "t",
+        }),
+      ),
+    ).toBeNull();
     expect(
       parseSuiteStamp(
         JSON.stringify({
@@ -39,6 +52,18 @@ describe("parseSuiteStamp / isValidHeadSha", () => {
           headSha: SHA,
           suite: "pass",
           debtIssue: null,
+          recordedAt: "t",
+        }),
+      ),
+    ).toBeNull();
+    expect(
+      parseSuiteStamp(
+        JSON.stringify({
+          schemaVersion: 2,
+          headSha: SHA,
+          suite: "pass_with_debt",
+          debtIssue: null,
+          hostCoverageWitness: true,
           recordedAt: "t",
         }),
       ),

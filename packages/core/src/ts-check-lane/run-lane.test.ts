@@ -21,6 +21,7 @@ import {
 } from "./progress.js";
 import { TsCheckLaneProgressReporter } from "./progress-reporter.js";
 import {
+  isStep5HostCoverage,
   isStep5HostNoCoverage,
   LANE_COMMANDS,
   resolveHostLaneTestCommand,
@@ -144,9 +145,17 @@ describe("runTsLane", () => {
     });
 
     expect(rc).toBe(0);
-    expect(runner.calls.map((c) => c.argv)).toEqual(
-      LANE_COMMANDS.map((cmd) => ["/usr/bin/pnpm", ...cmd]),
-    );
+    expect(runner.calls.map((c) => c.argv)).toEqual([
+      ["/usr/bin/pnpm", "run", "lint"],
+      ["/usr/bin/pnpm", "run", "build"],
+      [
+        "/usr/bin/pnpm",
+        ...resolveHostLaneTestCommand("/repo", {
+          hostCoverage: false,
+          reporterExists: () => true,
+        }),
+      ],
+    ]);
     expect(runner.calls.every((c) => c.cwd === "/repo")).toBe(true);
   });
 
@@ -173,14 +182,14 @@ describe("runTsLane", () => {
       });
 
       expect(rc).toBe(0);
-      // Step 5 drops host --coverage via pnpm exec vitest run (#5026).
+      // Step 5 runs host --coverage via pnpm run test (#6041).
       expect(runner.calls.map((c) => c.argv)).toEqual([
         ["/usr/bin/pnpm", "run", "lint"],
         ["/usr/bin/pnpm", "run", "build"],
         [
           "/usr/bin/pnpm",
           ...resolveHostLaneTestCommand("/repo", {
-            hostCoverage: false,
+            hostCoverage: true,
             reporterExists: () => true,
           }),
         ],
@@ -197,9 +206,10 @@ describe("runTsLane", () => {
     }
   });
 
-  it("drops host vitest --coverage under release Step 5 while leaving ambient lane on pnpm run test (#5026)", () => {
-    expect(isStep5HostNoCoverage({ [RELEASE_PREFLIGHT_ENV]: "1" })).toBe(true);
-    expect(isStep5HostNoCoverage({})).toBe(false);
+  it("runs host vitest --coverage only under release Step 5; ordinary lane is no-coverage (#6041)", () => {
+    expect(isStep5HostCoverage({ [RELEASE_PREFLIGHT_ENV]: "1" })).toBe(true);
+    expect(isStep5HostCoverage({})).toBe(false);
+    expect(isStep5HostNoCoverage({ [RELEASE_PREFLIGHT_ENV]: "1" })).toBe(false);
     expect(
       resolveHostLaneTestCommand("/repo", { hostCoverage: false, reporterExists: () => true }),
     ).toEqual([
@@ -225,8 +235,22 @@ describe("runTsLane", () => {
       env: { [RELEASE_PREFLIGHT_ENV]: "1" },
     });
     expect(rc).toBe(0);
-    expect(messages[0]).toContain("coverage=false");
-    expect(runner.calls[2]?.argv).toEqual([
+    expect(messages[0]).toContain("coverage=true");
+    expect(runner.calls[2]?.argv).toEqual(["/usr/bin/pnpm", ...buildTestLaneCommand()]);
+
+    const ambient = new Runner([0, 0, 0]);
+    const ambientMsgs: string[] = [];
+    const ambientRc = runTsLane("/repo", {
+      pnpm: "/usr/bin/pnpm",
+      runner: ambient.run,
+      out: (m) => ambientMsgs.push(m),
+      reporterExists: () => true,
+      env: {},
+    });
+    expect(ambientRc).toBe(0);
+    expect(ambientMsgs[0]).toContain("coverage=false");
+    expect(ambient.calls[2]?.argv.join(" ")).not.toContain("run test");
+    expect(ambient.calls[2]?.argv).toEqual([
       "/usr/bin/pnpm",
       "exec",
       "vitest",
@@ -236,7 +260,6 @@ describe("runTsLane", () => {
       "--reporter",
       "default",
     ]);
-    expect(runner.calls[2]?.argv.join(" ")).not.toContain("--coverage");
   });
 
   it("restores a prior DEFT_TS_LANE_COVERAGE_DEBT after the test step", () => {
@@ -273,7 +296,8 @@ describe("runTsLane", () => {
       reporterExists: () => false,
     });
     expect(rc).toBe(0);
-    expect(runner.calls[2]?.argv).toEqual(["/usr/bin/pnpm", "run", "test"]);
+    // Ordinary lane is no-coverage (#6041); without reporter source → bare vitest run.
+    expect(runner.calls[2]?.argv).toEqual(["/usr/bin/pnpm", "exec", "vitest", "run"]);
   });
 
   it("wires a flushed vitest progress reporter onto the test command (#3470)", () => {
