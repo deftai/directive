@@ -141,7 +141,9 @@
           "packages/core/src/forward-coverage/diff-coverage.test.ts",
           "packages/core/src/forward-coverage/evaluate.test.ts",
           "packages/core/src/release/pipeline-auto-hatch.test.ts",
-          "packages/core/src/release/preflight.test.ts"
+          "packages/core/src/release/preflight.test.ts",
+          "content/packs/skills/skills-pack-0.1.json",
+          "xbrief/evaluator-surface-disposition.json"
         ],
         "module_boundary": "packages/core/src/ts-check-lane/run-lane.ts",
         "cohesion_exemption": "CHANGELOG + CI/release coverage polarity unit"
@@ -193,7 +195,9 @@
           "packages/core/src/forward-coverage/diff-coverage.test.ts",
           "packages/core/src/forward-coverage/evaluate.test.ts",
           "packages/core/src/release/pipeline-auto-hatch.test.ts",
-          "packages/core/src/release/preflight.test.ts"
+          "packages/core/src/release/preflight.test.ts",
+          "content/packs/skills/skills-pack-0.1.json",
+          "xbrief/evaluator-surface-disposition.json"
         ],
         "size": "L",
         "file_scope_confidence": "high",
