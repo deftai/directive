@@ -1,0 +1,20 @@
+{
+  "schema": "deft.intent-constraint.v1",
+  "planId": "github.issue.6172116271",
+  "xbriefRelPath": "xbrief/active/2026-11-03-6041-cicoverage-take-the-coverage-run-off-the-merge-path-run-it-a.xbrief.json",
+  "approvedAt": "2026-11-04T03:42:04Z",
+  "constraints": [
+    {
+      "value": "2",
+      "unit": "suite-stamp-schema-version",
+      "rejectionScope": "invocation"
+    }
+  ],
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-11-04T03:42:04Z",
+    "mintedVia": "in-harness-ask"
+  },
+  "contractDigest": "71a9aded6799491e37adb51a375e9974c51e9ad14ef935aeb4fdb5813c45e82b"
+}
