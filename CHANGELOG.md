@@ -11,27 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Bump `astral-sh/setup-uv` GitHub Action from 10.3.0 to 10.3.3 in CI.
-- Land #6041 coverage-polarity product: suite-stamp hostCoverageWitness + forward-coverage honesty with coverage off the merge-path CI lane.
-- Widen #6041 scope so skills-pack projections and evaluator-surface disposition can land with the coverage-polarity change.
-- eval:health agents-md-freshness prefers in-repo templates on framework-source checkouts only, so tip CI stays aligned without failing healthy consumers (#5802).
-- Widen #6040 scope so eval:health can prefer in-repo agents-entry for tip CI freshness.
-- Reseed eval:health baseline at 100/100 after aligning AGENTS managed section and templates on the #6040 merge-chokepoint line.
-- Raise AGENTS.md unmanagedMaxLines ratchet 168→175 so the #6040 merge-chokepoint header can land; trim follow-up #6046.
-- Widen #6040 scope so PROJECT-DEFINITION can raise the AGENTS unmanaged line ratchet.
-- Widen #6040 scope so RULE-MAP can refresh after the merge-chokepoint AGENTS wording change.
-- Widen #6041 coverage-polarity scope so Bound-named forward-coverage and release preflight/auto-hatch tests can land with the product change.
-- Pre-PR is the path-scoped Read-Write-Lint-Diff-Loop plus `verify:ac` on the active xBrief; the post-loop whole-repo check and coverage run are no longer required for a pre-PR pass (#6040).
-- PR CI and ordinary `ts:check-lane` run the test suite without `--coverage`; host coverage runs at release Step 5 (or on-demand `task test:coverage`) (#6041).
-- chore(pnpm): replace stale `@deftai/directive-runtime@0.129.2` AgeExclude with `@0.129.3` so same-day CI passes (#5854).
-
 ### Fixed
 
-- Record completed tracked xBRIEF land for #6040 and #6041 after product merges (#6043, #6049).
-
-- Fixed — Mint intent-constraint for #6041 suite-stamp schema v2. Approval record only; no product behavior change. Refs #6041.
-
 ### Removed
+
+## [0.129.4] - 2026-11-04
+
+> Coverage off PR CI to release Step 5 (#6040/#6041); pre-PR is RWDL+verify:ac; eval:health in-repo templates; setup-uv 10.3.3; AgeExclude 0.129.3
+
+### Changed
+
+- Bump `astral-sh/setup-uv` GitHub Action from 10.3.0 to 10.3.3 in CI.
+- Pre-PR is the path-scoped Read-Write-Lint-Diff-Loop plus `verify:ac` on the active xBrief; the post-loop whole-repo check and coverage run are no longer required for a pre-PR pass (#6040).
+- PR CI and ordinary `ts:check-lane` run the test suite without `--coverage`; host coverage runs at release Step 5 (or on-demand `task test:coverage`) (#6041).
+- eval:health agents-md-freshness prefers in-repo templates on framework-source checkouts only, so tip CI stays aligned without failing healthy consumers (#5802).
+- chore(pnpm): replace stale `@deftai/directive-runtime@0.129.2` AgeExclude with `@0.129.3` so same-day CI passes (#5854).
 
 ## [0.129.3] - 2026-11-02
 
@@ -7581,7 +7575,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.129.3...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.129.4...HEAD
+[0.129.4]: https://github.com/deftai/directive/compare/v0.129.3...v0.129.4
 [0.129.3]: https://github.com/deftai/directive/compare/v0.129.2...v0.129.3
 [0.129.2]: https://github.com/deftai/directive/compare/v0.129.1...v0.129.2
 [0.129.1]: https://github.com/deftai/directive/compare/v0.129.0...v0.129.1

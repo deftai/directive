@@ -47,8 +47,10 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 1874 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1876 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#6040** -- bug(pre-pr): pre-PR is the Read-Write-Lint-Diff-Loop plus verify:ac on the active xBrief; drop the post-loop full task check and the coverage run -- `[completed]`
+- **#6041** -- ci(coverage): take the coverage run off the merge path; run it at release Step 5 ("release for now or on demand") -- `[completed]`
 - **#5992** -- docs(ovpr): v261027 entry-guard / host-outer requirements + problem ledger decision record -- `[completed]`
 - **#5984** -- fix(hooks): #5956-A generator emit pin-local hook-bin.js for Grok PreToolUse (stop .sh rewrite) -- `[completed]`
 - **#5798** -- bug(installer,doctor): failure-shaped remedy map for doctor recovery -- `[completed]`
@@ -72,6 +74,4 @@ _Showing 25 of 1874 completed scopes (newest first). Full history: lifecycle `co
 - **#5490** -- #5490 One Version Per Repo — product delivery (installer + runtime pin) -- `[completed]`
 - **#5490** -- #5490 installer core — install, repair, doctor, uninstall happy path -- `[completed]`
 - **#5490** -- #5490 human-test automation acceptance — ht-auto + harness home -- `[completed]`
-- **#5745** -- sec(codeql): HIGH clear polynomial-redos in pr-closing-keywords/detect.ts (alert #121) -- `[completed]`
-- **#5782** -- design(verify): merge-gate adopts plan-id from PR deft-story for intent-constraint -- `[completed]`
 
