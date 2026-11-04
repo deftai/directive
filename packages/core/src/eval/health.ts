@@ -163,8 +163,14 @@ function probeAgentsMdFreshness(projectRoot: string, frameworkSource: boolean): 
   const templatePath = join(projectRoot, templateRel);
   const committedAgents = frameworkSource ? readGitHeadFile(projectRoot, "AGENTS.md") : null;
   const workingAgents = readWorkingFile(agentsPath);
+  // Only tip CI self-complete/setup rewrites — not local header/template edits.
+  const onCi =
+    process.env.CI === "true" ||
+    process.env.GITHUB_ACTIONS === "true" ||
+    process.env.DEFT_EVAL_HEALTH_CI_REWRITE === "1";
   const agentsRewritten =
     frameworkSource &&
+    onCi &&
     committedAgents !== null &&
     workingAgents !== null &&
     committedAgents !== workingAgents;

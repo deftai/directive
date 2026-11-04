@@ -372,6 +372,8 @@ describe("evaluateHealth", () => {
       ].join("\n"),
       "utf8",
     );
+    const prevCi = process.env.DEFT_EVAL_HEALTH_CI_REWRITE;
+    process.env.DEFT_EVAL_HEALTH_CI_REWRITE = "1";
     try {
       const result = evaluateHealth({
         projectRoot: root,
@@ -382,6 +384,8 @@ describe("evaluateHealth", () => {
       const gate = result.report?.gates.find((g) => g.id === "agents-md-freshness");
       expect(gate?.pass).toBe(true);
     } finally {
+      if (prevCi === undefined) delete process.env.DEFT_EVAL_HEALTH_CI_REWRITE;
+      else process.env.DEFT_EVAL_HEALTH_CI_REWRITE = prevCi;
       if (prevRoot === undefined) delete process.env.DEFT_ROOT;
       else process.env.DEFT_ROOT = prevRoot;
     }
