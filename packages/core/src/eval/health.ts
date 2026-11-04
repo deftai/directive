@@ -131,10 +131,12 @@ function probeVbriefConformance(projectRoot: string): GateProbeResult {
 }
 
 function probeAgentsMdFreshness(projectRoot: string, frameworkSource: boolean): GateProbeResult {
-  // Framework-source tip CI: read in-repo content/templates directly so a
-  // staged/hoisted npm content package cannot shadow tip AGENTS (#5802 / #6040).
-  // Consumers keep default lookup (DEFT_ROOT / installed package).
-  const plan = frameworkSource
+  // Framework-source tip CI (#5802 / #6040): prefer an explicit in-repo
+  // content/templates read so staged npm content cannot shadow tip AGENTS.
+  // If that still is not current, fall back to frameworkRoot-only resolution
+  // (contentRoot) which matched tip CI before the consumer gate. Consumers
+  // keep default lookup (DEFT_ROOT / installed package).
+  let plan = frameworkSource
     ? agentsRefreshPlan(projectRoot, {
         frameworkRoot: projectRoot,
         readTemplate: () => {
@@ -144,6 +146,12 @@ function probeAgentsMdFreshness(projectRoot: string, frameworkSource: boolean): 
         },
       })
     : agentsRefreshPlan(projectRoot);
+  if (frameworkSource && String(plan.state ?? "") !== "current") {
+    const fallback = agentsRefreshPlan(projectRoot, { frameworkRoot: projectRoot });
+    if (String(fallback.state ?? "") === "current") {
+      plan = fallback;
+    }
+  }
   const state = String(plan.state ?? "unknown");
   const pass = state === "current";
   return {
