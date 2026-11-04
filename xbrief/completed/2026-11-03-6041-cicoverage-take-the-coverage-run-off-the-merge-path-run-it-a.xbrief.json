@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6041",
-    "updated": "2026-11-03T18:39:48.234Z"
+    "updated": "2026-11-04T05:23:14Z"
   },
   "plan": {
     "title": "ci(coverage): take the coverage run off the merge path; run it at release Step 5 (\"release for now or on demand\")",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "ci(coverage): take the coverage run off the merge path; run it at release Step 5 (\"release for now or on demand\")",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6041",
@@ -18,62 +18,66 @@
     "items": [
       {
         "title": "relieves: P1 — CI ci-lane and ordinary ts:check-lane run vitest without --coverage; invert today's Step-5 no-coverage polarity so only RELEASE_PREFLIGHT Step 5 sets hostCoverage true",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P1 — CI ci-lane and ordinary ts:check-lane run vitest without --coverage; invert today's Step-5 no-coverage polarity so only RELEASE_PREFLIGHT Step 5 sets hostCoverage true",
           "Traces": "#6041"
         },
+        "x-directive/requires": "merge",
         "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "pnpm exec vitest run packages/core/src/ts-check-lane packages/core/src/release packages/core/src/forward-coverage — 895 passed; PR #6049 tip 29ae50644 Greptile CLEAN + CI green",
-          "recorded_at": "2026-11-04T05:13:18.832Z",
-          "recorded_by": "parent-orchestrator"
+          "kind": "merge",
+          "pointer": "4cdf5ed481c9347ab02831a04c3badda738642c9",
+          "recorded_at": "2026-11-04T05:23:14Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "relieves: P2 — Step 5 enforces host --coverage thresholds; remove tip-SHA GHA coverage-of-record cites from preflight success, stamp-hit, and auto-hatch success; flip suite-bound step5HostCoverage expectation to true in the same change so debt-hatch freshness matches the host report",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P2 — Step 5 enforces host --coverage thresholds; remove tip-SHA GHA coverage-of-record cites from preflight success, stamp-hit, and auto-hatch success; flip suite-bound step5HostCoverage expectation to true in the same change so debt-hatch freshness matches the host report",
           "Traces": "#6041"
         },
+        "x-directive/requires": "merge",
         "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "pnpm exec vitest run packages/core/src/ts-check-lane packages/core/src/release packages/core/src/forward-coverage — 895 passed; PR #6049 tip 29ae50644 Greptile CLEAN + CI green",
-          "recorded_at": "2026-11-04T05:13:18.832Z",
-          "recorded_by": "parent-orchestrator"
+          "kind": "merge",
+          "pointer": "4cdf5ed481c9347ab02831a04c3badda738642c9",
+          "recorded_at": "2026-11-04T05:23:14Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "relieves: P3 — verify:forward-coverage: missing/unreadable report without --enforce prints visible not-measured and exits 0; missing/unreadable report with --enforce exits non-zero even on an empty diff; new-file correspondence stays fail-closed always",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P3 — verify:forward-coverage: missing/unreadable report without --enforce prints visible not-measured and exits 0; missing/unreadable report with --enforce exits non-zero even on an empty diff; new-file correspondence stays fail-closed always",
           "Traces": "#6041"
         },
+        "x-directive/requires": "merge",
         "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "pnpm exec vitest run packages/core/src/ts-check-lane packages/core/src/release packages/core/src/forward-coverage — 895 passed; PR #6049 tip 29ae50644 Greptile CLEAN + CI green",
-          "recorded_at": "2026-11-04T05:13:18.832Z",
-          "recorded_by": "parent-orchestrator"
+          "kind": "merge",
+          "pointer": "4cdf5ed481c9347ab02831a04c3badda738642c9",
+          "recorded_at": "2026-11-04T05:23:14Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "relieves: P4 — Suite stamp skips only with a mechanical host-coverage witness old schemaVersion-1 stamps lack (bump or required field → miss); pass_with_debt requires a positive debtIssue on read; witness is minted only from a completed host coverage run or suite-bound debt classification, never from env selection alone",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P4 — Suite stamp skips only with a mechanical host-coverage witness old schemaVersion-1 stamps lack (bump or required field → miss); pass_with_debt requires a positive debtIssue on read; witness is minted only from a completed host coverage run or suite-bound debt classification, never from env selection alone",
           "Traces": "#6041"
         },
+        "x-directive/requires": "merge",
         "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "pnpm exec vitest run packages/core/src/ts-check-lane packages/core/src/release packages/core/src/forward-coverage — 895 passed; PR #6049 tip 29ae50644 Greptile CLEAN + CI green",
-          "recorded_at": "2026-11-04T05:13:18.832Z",
-          "recorded_by": "parent-orchestrator"
+          "kind": "merge",
+          "pointer": "4cdf5ed481c9347ab02831a04c3badda738642c9",
+          "recorded_at": "2026-11-04T05:23:14Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -165,9 +169,7 @@
           "packages/core/src/forward-coverage/diff-coverage.test.ts",
           "packages/core/src/forward-coverage/evaluate.test.ts",
           "packages/core/src/release/pipeline-auto-hatch.test.ts",
-          "packages/core/src/release/preflight.test.ts",
-          "content/packs/skills/skills-pack-0.1.json",
-          "xbrief/evaluator-surface-disposition.json"
+          "packages/core/src/release/preflight.test.ts"
         ],
         "module_boundary": "packages/core/src/ts-check-lane/run-lane.ts",
         "cohesion_exemption": "CHANGELOG + CI/release coverage polarity unit"
@@ -219,9 +221,7 @@
           "packages/core/src/forward-coverage/diff-coverage.test.ts",
           "packages/core/src/forward-coverage/evaluate.test.ts",
           "packages/core/src/release/pipeline-auto-hatch.test.ts",
-          "packages/core/src/release/preflight.test.ts",
-          "content/packs/skills/skills-pack-0.1.json",
-          "xbrief/evaluator-surface-disposition.json"
+          "packages/core/src/release/preflight.test.ts"
         ],
         "size": "L",
         "file_scope_confidence": "high",
@@ -231,9 +231,33 @@
         ],
         "parallel_safe": true
       },
-      "productPullRequest": 6049
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "3601ca8081b1bb6eb708f56f0b4a728bd0cc772b",
+        "prNumber": 6049,
+        "prBase": "master",
+        "mergeCommit": "4cdf5ed481c9347ab02831a04c3badda738642c9",
+        "deliveryBranch": "master",
+        "deliveryCommit": "4cdf5ed481c9347ab02831a04c3badda738642c9",
+        "verifiedAt": "2026-11-04T05:23:14Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTk5NzktMzYwOC03ZmEzLTgxOTMtNDY4ZWUxZmFkOWUy"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-04T05:23:14Z",
+      "completedSessionId": "host:grok:v1:MDFhMTk5NzktMzYwOC03ZmEzLTgxOTMtNDY4ZWUxZmFkOWUy",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-04T05:23:14Z"
+      }
     },
     "id": "github.issue.6172116271",
-    "updated": "2026-11-03T18:39:48.234Z"
+    "updated": "2026-11-04T05:23:14Z"
   }
 }

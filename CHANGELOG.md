@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Record completed tracked xBRIEF land for #6040 and #6041 after product merges (#6043, #6049).
+
 - Fixed — Mint intent-constraint for #6041 suite-stamp schema v2. Approval record only; no product behavior change. Refs #6041.
 
 ### Removed
