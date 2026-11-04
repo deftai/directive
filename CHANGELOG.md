@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Raise AGENTS.md unmanagedMaxLines ratchet 168→175 so the #6040 merge-chokepoint header can land; trim follow-up #6046.
 - Widen #6040 scope so PROJECT-DEFINITION can raise the AGENTS unmanaged line ratchet.
 - Widen #6040 scope so RULE-MAP can refresh after the merge-chokepoint AGENTS wording change.
+- Widen #6041 file_scope for skills-pack SoT so the release-skill projection sync can land with the coverage polarity change.
 - Widen #6041 coverage-polarity scope so Bound-named forward-coverage and release preflight/auto-hatch tests can land with the product change.
 - Pre-PR is the path-scoped Read-Write-Lint-Diff-Loop plus `verify:ac` on the active xBrief; the post-loop whole-repo check and coverage run are no longer required for a pre-PR pass (#6040).
 - PR CI and ordinary `ts:check-lane` run the test suite without `--coverage`; host coverage runs at release Step 5 (or on-demand `task test:coverage`) (#6041).
