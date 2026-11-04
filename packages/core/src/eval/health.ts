@@ -127,10 +127,16 @@ function probeVbriefConformance(projectRoot: string): GateProbeResult {
   };
 }
 
-function probeAgentsMdFreshness(projectRoot: string): GateProbeResult {
-  // Tip CI / framework-source: prefer in-repo content/templates over the
-  // published deposit pin (#5802 / #6040 long merge-chokepoint).
-  const plan = agentsRefreshPlan(projectRoot, { frameworkRoot: projectRoot });
+function probeAgentsMdFreshness(
+  projectRoot: string,
+  frameworkSource: boolean,
+): GateProbeResult {
+  // Framework-source tip CI: prefer in-repo content/templates over the
+  // published deposit pin (#5802 / #6040). Consumers keep default lookup
+  // (DEFT_ROOT / installed package) so healthy installs do not fail.
+  const plan = frameworkSource
+    ? agentsRefreshPlan(projectRoot, { frameworkRoot: projectRoot })
+    : agentsRefreshPlan(projectRoot);
   const state = String(plan.state ?? "unknown");
   const pass = state === "current";
   return {
@@ -256,7 +262,7 @@ function collectStaticGates(projectRoot: string, frameworkSource: boolean): Gate
     probeEncoding(projectRoot),
     probeLinks(projectRoot),
     probeVbriefConformance(projectRoot),
-    probeAgentsMdFreshness(projectRoot),
+    probeAgentsMdFreshness(projectRoot, frameworkSource),
   ];
 
   if (frameworkSource) {

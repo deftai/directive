@@ -245,4 +245,91 @@ describe("evaluateHealth", () => {
     expect(result.message).toContain("score=");
     expect(result.message).toContain("failed to persist health history");
   });
+
+  it("consumer agents-md-freshness uses DEFT_ROOT templates, not projectRoot (#5802)", () => {
+    const prevRoot = process.env.DEFT_ROOT;
+    const framework = mkdtempSync(join(tmpdir(), "deft-eval-health-fw-"));
+    temps.push(framework);
+    mkdirSync(join(framework, "content", "templates"), { recursive: true });
+    writeFileSync(
+      join(framework, "content", "templates", "agents-entry.md"),
+      [
+        "<!-- deft:managed-section v3 -->",
+        "# Deft — AI Development Framework",
+        "<!-- /deft:managed-section -->",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+    const consumer = seedRepo();
+    writeFileSync(
+      join(consumer, "AGENTS.md"),
+      [
+        "<!-- deft:managed-section v3 -->",
+        "# Deft — AI Development Framework",
+        "<!-- /deft:managed-section -->",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+    process.env.DEFT_ROOT = framework;
+    try {
+      const result = evaluateHealth({
+        projectRoot: consumer,
+        frameworkSource: false,
+        persist: false,
+        now: () => new Date("2026-07-05T18:00:00Z"),
+      });
+      const gate = result.report?.gates.find((g) => g.id === "agents-md-freshness");
+      expect(gate).toBeDefined();
+      expect(gate?.detail).not.toBe("state=template-missing");
+    } finally {
+      if (prevRoot === undefined) delete process.env.DEFT_ROOT;
+      else process.env.DEFT_ROOT = prevRoot;
+    }
+  });
+
+  it("framework-source agents-md-freshness prefers in-repo templates (#5802)", () => {
+    const prevRoot = process.env.DEFT_ROOT;
+    const foreign = mkdtempSync(join(tmpdir(), "deft-eval-health-foreign-"));
+    temps.push(foreign);
+    // Foreign DEFT_ROOT with no templates — must not win on framework-source.
+    process.env.DEFT_ROOT = foreign;
+    const root = seedRepo();
+    mkdirSync(join(root, "content", "templates"), { recursive: true });
+    writeFileSync(
+      join(root, "content", "templates", "agents-entry.md"),
+      [
+        "<!-- deft:managed-section v3 -->",
+        "# Deft — AI Development Framework",
+        "<!-- /deft:managed-section -->",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+    writeFileSync(
+      join(root, "AGENTS.md"),
+      [
+        "<!-- deft:managed-section v3 -->",
+        "# Deft — AI Development Framework",
+        "<!-- /deft:managed-section -->",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+    try {
+      const result = evaluateHealth({
+        projectRoot: root,
+        frameworkSource: true,
+        persist: false,
+        now: () => new Date("2026-07-05T18:00:00Z"),
+      });
+      const gate = result.report?.gates.find((g) => g.id === "agents-md-freshness");
+      expect(gate).toBeDefined();
+      expect(gate?.detail).not.toBe("state=template-missing");
+    } finally {
+      if (prevRoot === undefined) delete process.env.DEFT_ROOT;
+      else process.env.DEFT_ROOT = prevRoot;
+    }
+  });
 });
