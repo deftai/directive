@@ -332,4 +332,52 @@ describe("evaluateHealth", () => {
       else process.env.DEFT_ROOT = prevRoot;
     }
   });
+
+  it("auto-detects framework-source via content/conventions manifest (#5802)", () => {
+    const prevRoot = process.env.DEFT_ROOT;
+    const foreign = mkdtempSync(join(tmpdir(), "deft-eval-health-auto-foreign-"));
+    temps.push(foreign);
+    process.env.DEFT_ROOT = foreign;
+    const root = seedRepo();
+    mkdirSync(join(root, "content", "conventions"), { recursive: true });
+    mkdirSync(join(root, "packages", "cli"), { recursive: true });
+    writeFileSync(join(root, "content", "conventions", "content-manifest.json"), "{}\n", "utf8");
+    writeFileSync(join(root, "packages", "cli", "package.json"), '{"name":"cli"}\n', "utf8");
+    mkdirSync(join(root, "content", "templates"), { recursive: true });
+    writeFileSync(
+      join(root, "content", "templates", "agents-entry.md"),
+      [
+        "<!-- deft:managed-section v3 -->",
+        "# Deft — AI Development Framework",
+        "<!-- /deft:managed-section -->",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+    writeFileSync(
+      join(root, "AGENTS.md"),
+      [
+        "<!-- deft:managed-section v3 -->",
+        "# Deft — AI Development Framework",
+        "<!-- /deft:managed-section -->",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+    try {
+      // Omit frameworkSource — detector must see content/conventions + packages/cli.
+      const result = evaluateHealth({
+        projectRoot: root,
+        persist: false,
+        now: () => new Date("2026-07-05T18:00:00Z"),
+      });
+      const freshness = result.report?.gates.find((g) => g.id === "agents-md-freshness");
+      const manifest = result.report?.gates.find((g) => g.id === "content-manifest");
+      expect(freshness?.detail).not.toBe("state=template-missing");
+      expect(manifest?.skipped).not.toBe(true);
+    } finally {
+      if (prevRoot === undefined) delete process.env.DEFT_ROOT;
+      else process.env.DEFT_ROOT = prevRoot;
+    }
+  });
 });

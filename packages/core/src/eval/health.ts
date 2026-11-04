@@ -63,9 +63,12 @@ function sanitizeOneLine(value: string): string {
 }
 
 function isFrameworkSourceCheckout(projectRoot: string): boolean {
-  const manifest = resolve(projectRoot, "conventions/content-manifest.json");
+  // Source layout after #1875: content/conventions/…; flattened deposit keeps
+  // conventions/ at the framework root. packages/cli marks maintainer checkout.
+  const sourceManifest = resolve(projectRoot, "content/conventions/content-manifest.json");
+  const flatManifest = resolve(projectRoot, "conventions/content-manifest.json");
   const cliPkg = resolve(projectRoot, "packages/cli/package.json");
-  return existsSync(manifest) && existsSync(cliPkg);
+  return (existsSync(sourceManifest) || existsSync(flatManifest)) && existsSync(cliPkg);
 }
 
 function loadPlan(projectRoot: string): { plan: unknown; filepath: string } | null {
@@ -127,10 +130,7 @@ function probeVbriefConformance(projectRoot: string): GateProbeResult {
   };
 }
 
-function probeAgentsMdFreshness(
-  projectRoot: string,
-  frameworkSource: boolean,
-): GateProbeResult {
+function probeAgentsMdFreshness(projectRoot: string, frameworkSource: boolean): GateProbeResult {
   // Framework-source tip CI: prefer in-repo content/templates over the
   // published deposit pin (#5802 / #6040). Consumers keep default lookup
   // (DEFT_ROOT / installed package) so healthy installs do not fail.
