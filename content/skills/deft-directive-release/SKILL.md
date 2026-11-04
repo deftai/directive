@@ -177,11 +177,11 @@ See [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Coverage debt hatch dur
 
 ### Routine vs hard cut for Step 5 (#2953)
 
-! Treat **hard cut** as the default: full Step 5 (`task check` + host Vitest `--coverage`, #6041) with no `--skip-ci`.
+! Treat **hard cut** as the default: full Step 5 (`task check` + Vitest coverage) with no `--skip-ci`.
 
 ~ Treat **routine cut** as the same full Step 5, sped up by default-excluding `.deft-scratch/` (and legacy `swarm-worktrees/`) from content/link/path/build-dist walks, plus pre-cut hygiene (green required checks on the tip SHA; prune stale `.deft-scratch/worktrees`).
 
-! Confirm required CI is green on the tip you will tag when aiming for a calm routine cut — green tip CI is a precondition, not a replacement for Step 5. PR CI no longer runs `--coverage` (#6041); host coverage is Step 5 / `task test:coverage`.
+! Confirm required CI is green on the tip you will tag when aiming for a calm routine cut — green tip CI is a precondition, not a replacement for Step 5.
 
 ⊗ Invent a silent lighter Step 5 that skips or soft-passes coverage without an explicit hatch (`--allow-coverage-debt=#N` for branch-only hairlines, or `--skip-ci` + `--allow-skip-ci=#N` for incidents). Silent soft-pass is forbidden in every mode.
 
