@@ -236,10 +236,7 @@ describe("runTsLane", () => {
     });
     expect(rc).toBe(0);
     expect(messages[0]).toContain("coverage=true");
-    expect(runner.calls[2]?.argv).toEqual([
-      "/usr/bin/pnpm",
-      ...buildTestLaneCommand(),
-    ]);
+    expect(runner.calls[2]?.argv).toEqual(["/usr/bin/pnpm", ...buildTestLaneCommand()]);
 
     const ambient = new Runner([0, 0, 0]);
     const ambientMsgs: string[] = [];
