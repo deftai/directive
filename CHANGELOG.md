@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Widen #6040 scope so eval:health can prefer in-repo agents-entry for tip CI freshness.
 - Widen #6040 scope so PROJECT-DEFINITION can raise the AGENTS unmanaged line ratchet.
 - Widen #6040 scope so RULE-MAP can refresh after the merge-chokepoint AGENTS wording change.
 - Widen #6041 coverage-polarity scope so Bound-named forward-coverage and release preflight/auto-hatch tests can land with the product change.

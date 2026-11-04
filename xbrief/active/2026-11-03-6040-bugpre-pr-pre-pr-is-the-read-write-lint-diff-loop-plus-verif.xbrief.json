@@ -112,7 +112,9 @@
           "AGENTS.md",
           "CHANGELOG.md",
           "docs/RULE-MAP.md",
-          "xbrief/PROJECT-DEFINITION.xbrief.json"
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "packages/core/src/eval/health.ts",
+          "packages/core/src/eval/health.test.ts"
         ],
         "size": "M",
         "file_scope_confidence": "high",
@@ -135,7 +137,9 @@
           "AGENTS.md",
           "CHANGELOG.md",
           "docs/RULE-MAP.md",
-          "xbrief/PROJECT-DEFINITION.xbrief.json"
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "packages/core/src/eval/health.ts",
+          "packages/core/src/eval/health.test.ts"
         ],
         "module_boundary": "packages/core/src/pre-pr-controller/phases.ts",
         "cohesion_exemption": "CHANGELOG + pre-PR skill pack rewrite unit"
