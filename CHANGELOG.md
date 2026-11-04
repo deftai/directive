@@ -11,7 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- eval:health agents-md-freshness prefers in-repo templates on framework-source checkouts only, so tip CI stays aligned without failing healthy consumers (#5802).
 - Widen #6040 scope so eval:health can prefer in-repo agents-entry for tip CI freshness.
+- Reseed eval:health baseline at 100/100 after aligning AGENTS managed section and templates on the #6040 merge-chokepoint line.
+- Raise AGENTS.md unmanagedMaxLines ratchet 168→175 so the #6040 merge-chokepoint header can land; trim follow-up #6046.
 - Widen #6040 scope so PROJECT-DEFINITION can raise the AGENTS unmanaged line ratchet.
 - Widen #6040 scope so RULE-MAP can refresh after the merge-chokepoint AGENTS wording change.
 - Widen #6041 coverage-polarity scope so Bound-named forward-coverage and release preflight/auto-hatch tests can land with the product change.

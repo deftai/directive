@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -244,5 +245,197 @@ describe("evaluateHealth", () => {
     expect(result.report).not.toBeNull();
     expect(result.message).toContain("score=");
     expect(result.message).toContain("failed to persist health history");
+  });
+
+  it("consumer agents-md-freshness uses DEFT_ROOT templates, not projectRoot (#5802)", () => {
+    const prevRoot = process.env.DEFT_ROOT;
+    const framework = mkdtempSync(join(tmpdir(), "deft-eval-health-fw-"));
+    temps.push(framework);
+    mkdirSync(join(framework, "content", "templates"), { recursive: true });
+    writeFileSync(
+      join(framework, "content", "templates", "agents-entry.md"),
+      [
+        "<!-- deft:managed-section v3 -->",
+        "# Deft — AI Development Framework",
+        "<!-- /deft:managed-section -->",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+    const consumer = seedRepo();
+    writeFileSync(
+      join(consumer, "AGENTS.md"),
+      [
+        "<!-- deft:managed-section v3 -->",
+        "# Deft — AI Development Framework",
+        "<!-- /deft:managed-section -->",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+    process.env.DEFT_ROOT = framework;
+    try {
+      const result = evaluateHealth({
+        projectRoot: consumer,
+        frameworkSource: false,
+        persist: false,
+        now: () => new Date("2026-07-05T18:00:00Z"),
+      });
+      const gate = result.report?.gates.find((g) => g.id === "agents-md-freshness");
+      expect(gate).toBeDefined();
+      expect(gate?.detail).not.toBe("state=template-missing");
+    } finally {
+      if (prevRoot === undefined) delete process.env.DEFT_ROOT;
+      else process.env.DEFT_ROOT = prevRoot;
+    }
+  });
+
+  it("framework-source agents-md-freshness prefers in-repo templates (#5802)", () => {
+    const prevRoot = process.env.DEFT_ROOT;
+    const foreign = mkdtempSync(join(tmpdir(), "deft-eval-health-foreign-"));
+    temps.push(foreign);
+    // Foreign DEFT_ROOT with no templates — must not win on framework-source.
+    process.env.DEFT_ROOT = foreign;
+    const root = seedRepo();
+    mkdirSync(join(root, "content", "templates"), { recursive: true });
+    writeFileSync(
+      join(root, "content", "templates", "agents-entry.md"),
+      [
+        "<!-- deft:managed-section v3 -->",
+        "# Deft — AI Development Framework",
+        "<!-- /deft:managed-section -->",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+    writeFileSync(
+      join(root, "AGENTS.md"),
+      [
+        "<!-- deft:managed-section v3 -->",
+        "# Deft — AI Development Framework",
+        "<!-- /deft:managed-section -->",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+    try {
+      const result = evaluateHealth({
+        projectRoot: root,
+        frameworkSource: true,
+        persist: false,
+        now: () => new Date("2026-07-05T18:00:00Z"),
+      });
+      const gate = result.report?.gates.find((g) => g.id === "agents-md-freshness");
+      expect(gate).toBeDefined();
+      expect(gate?.detail).not.toBe("state=template-missing");
+    } finally {
+      if (prevRoot === undefined) delete process.env.DEFT_ROOT;
+      else process.env.DEFT_ROOT = prevRoot;
+    }
+  });
+
+  it("framework-source freshness uses HEAD:AGENTS.md when the working tree was rewritten (#5802)", () => {
+    const prevRoot = process.env.DEFT_ROOT;
+    const foreign = mkdtempSync(join(tmpdir(), "deft-eval-health-dirty-foreign-"));
+    temps.push(foreign);
+    process.env.DEFT_ROOT = foreign;
+    const root = seedRepo();
+    mkdirSync(join(root, "content", "conventions"), { recursive: true });
+    mkdirSync(join(root, "packages", "cli"), { recursive: true });
+    writeFileSync(join(root, "content", "conventions", "content-manifest.json"), "{}\n", "utf8");
+    writeFileSync(join(root, "packages", "cli", "package.json"), '{"name":"cli"}\n', "utf8");
+    mkdirSync(join(root, "content", "templates"), { recursive: true });
+    const managed = [
+      "<!-- deft:managed-section v3 -->",
+      "# Deft — AI Development Framework",
+      "<!-- /deft:managed-section -->",
+      "",
+    ].join("\n");
+    writeFileSync(join(root, "content", "templates", "agents-entry.md"), managed, "utf8");
+    writeFileSync(join(root, "AGENTS.md"), managed, "utf8");
+    // Minimal git repo so HEAD:AGENTS.md + template resolve to the committed body.
+    execFileSync("git", ["init"], { cwd: root });
+    execFileSync("git", ["add", "AGENTS.md", "content/templates/agents-entry.md"], { cwd: root });
+    execFileSync(
+      "git",
+      ["-c", "user.email=t@example.com", "-c", "user.name=t", "commit", "-m", "seed"],
+      { cwd: root },
+    );
+    // Simulate self-complete rewriting the working tree to a short deposit body.
+    writeFileSync(
+      join(root, "AGENTS.md"),
+      [
+        "<!-- deft:managed-section v3 -->",
+        "# Deft — short deposit",
+        "<!-- /deft:managed-section -->",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+    const prevCi = process.env.DEFT_EVAL_HEALTH_CI_REWRITE;
+    process.env.DEFT_EVAL_HEALTH_CI_REWRITE = "1";
+    try {
+      const result = evaluateHealth({
+        projectRoot: root,
+        frameworkSource: true,
+        persist: false,
+        now: () => new Date("2026-07-05T18:00:00Z"),
+      });
+      const gate = result.report?.gates.find((g) => g.id === "agents-md-freshness");
+      expect(gate?.pass).toBe(true);
+    } finally {
+      if (prevCi === undefined) delete process.env.DEFT_EVAL_HEALTH_CI_REWRITE;
+      else process.env.DEFT_EVAL_HEALTH_CI_REWRITE = prevCi;
+      if (prevRoot === undefined) delete process.env.DEFT_ROOT;
+      else process.env.DEFT_ROOT = prevRoot;
+    }
+  });
+
+  it("auto-detects framework-source via content/conventions manifest (#5802)", () => {
+    const prevRoot = process.env.DEFT_ROOT;
+    const foreign = mkdtempSync(join(tmpdir(), "deft-eval-health-auto-foreign-"));
+    temps.push(foreign);
+    process.env.DEFT_ROOT = foreign;
+    const root = seedRepo();
+    mkdirSync(join(root, "content", "conventions"), { recursive: true });
+    mkdirSync(join(root, "packages", "cli"), { recursive: true });
+    writeFileSync(join(root, "content", "conventions", "content-manifest.json"), "{}\n", "utf8");
+    writeFileSync(join(root, "packages", "cli", "package.json"), '{"name":"cli"}\n', "utf8");
+    mkdirSync(join(root, "content", "templates"), { recursive: true });
+    writeFileSync(
+      join(root, "content", "templates", "agents-entry.md"),
+      [
+        "<!-- deft:managed-section v3 -->",
+        "# Deft — AI Development Framework",
+        "<!-- /deft:managed-section -->",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+    writeFileSync(
+      join(root, "AGENTS.md"),
+      [
+        "<!-- deft:managed-section v3 -->",
+        "# Deft — AI Development Framework",
+        "<!-- /deft:managed-section -->",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+    try {
+      // Omit frameworkSource — detector must see content/conventions + packages/cli.
+      const result = evaluateHealth({
+        projectRoot: root,
+        persist: false,
+        now: () => new Date("2026-07-05T18:00:00Z"),
+      });
+      const freshness = result.report?.gates.find((g) => g.id === "agents-md-freshness");
+      const manifest = result.report?.gates.find((g) => g.id === "content-manifest");
+      expect(freshness?.detail).not.toBe("state=template-missing");
+      expect(manifest?.skipped).not.toBe(true);
+    } finally {
+      if (prevRoot === undefined) delete process.env.DEFT_ROOT;
+      else process.env.DEFT_ROOT = prevRoot;
+    }
   });
 });

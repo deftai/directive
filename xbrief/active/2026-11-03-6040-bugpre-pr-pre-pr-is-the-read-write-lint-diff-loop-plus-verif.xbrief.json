@@ -114,7 +114,8 @@
           "docs/RULE-MAP.md",
           "xbrief/PROJECT-DEFINITION.xbrief.json",
           "packages/core/src/eval/health.ts",
-          "packages/core/src/eval/health.test.ts"
+          "packages/core/src/eval/health.test.ts",
+          "xbrief/.eval/results/eval-health-baseline.json"
         ],
         "size": "M",
         "file_scope_confidence": "high",
@@ -139,7 +140,8 @@
           "docs/RULE-MAP.md",
           "xbrief/PROJECT-DEFINITION.xbrief.json",
           "packages/core/src/eval/health.ts",
-          "packages/core/src/eval/health.test.ts"
+          "packages/core/src/eval/health.test.ts",
+          "xbrief/.eval/results/eval-health-baseline.json"
         ],
         "module_boundary": "packages/core/src/pre-pr-controller/phases.ts",
         "cohesion_exemption": "CHANGELOG + pre-PR skill pack rewrite unit"
@@ -156,7 +158,8 @@
         "algorithm": "sha256",
         "sha256": "f66e39dc67c9401e89b712676adcbfda7d984676e2e609379e229199547e1100"
       },
-      "kind": "story"
+      "kind": "story",
+      "productPullRequest": 6043
     },
     "acceptance": {
       "commands": [],

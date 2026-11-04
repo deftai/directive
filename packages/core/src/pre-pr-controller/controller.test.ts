@@ -138,7 +138,7 @@ function fillPhasesWithLintModeSkip(
         rec.id,
         {
           phaseId: spec.id,
-          command: "vitest run --coverage <changed-paths>",
+          command: "vitest run <changed-paths>",
           exitCode: 5,
           inputHash: rec.inputHash,
           skipReason: LINT_ITERATION_MODE_SKIP,
@@ -393,7 +393,7 @@ describe("controller observations", () => {
     const rec = start(store, "ppr_order");
     const at = (sec: number) => new Date(`2026-01-01T00:00:${String(sec).padStart(2, "0")}Z`);
     for (const [i, spec] of PRE_PR_PHASES.entries()) {
-      const now = spec.id === "merge_chokepoint" ? at(1) : at(10 + i);
+      const now = spec.id === "render_export" ? at(1) : at(10 + i);
       if (spec.kind === "command-observable") {
         observeCommandPhase(store, rec.id, {
           phaseId: spec.id,
@@ -418,6 +418,116 @@ describe("controller observations", () => {
     const decided = runObservablesComplete(store.getById(rec.id) as PrePrExecutionRecord);
     expect(decided.code).toBe("deny-out-of-order");
     expect(completeRun(store, mintPublisher(), rec.id).code).toBe("deny-out-of-order");
+  });
+
+  it("publishes pass with pushBinding when optional merge_chokepoint and coverage_headroom rows are omitted (#6040)", () => {
+    const store = new InProcessPrePrStore();
+    const rec = start(store, "ppr_omit_optional");
+    for (const spec of PRE_PR_PHASES) {
+      if (!spec.required) continue;
+      if (spec.kind === "command-observable") {
+        observeCommandPhase(store, rec.id, {
+          phaseId: spec.id,
+          command: spec.command ?? "",
+          exitCode: 0,
+          inputHash: rec.inputHash,
+          skipReason: null,
+        });
+      } else {
+        submitReviewerReport(store, rec.id, {
+          phaseId: spec.id,
+          reviewedFileManifest: ["a.ts"],
+          suppliedContentsHash: "h",
+          criteriaDigest: approved.digest,
+          reviewerReportRef: "r",
+          controllerObservedHash: "h",
+        });
+      }
+    }
+    expect(completeRun(store, mintPublisher(), rec.id).ok).toBe(true);
+    const published = store.getById(rec.id) as PrePrExecutionRecord;
+    expect(published.outcome).toBe("pass");
+    expect(published.pushBinding).not.toBeNull();
+    expect(published.pushBinding?.reviewedFileManifest).toEqual(["a.ts"]);
+    expect(published.pushBinding?.controllerObservedHash).toBe("h");
+    expect(published.phaseEvidence.commands.some((c) => c.phaseId === "merge_chokepoint")).toBe(
+      false,
+    );
+    expect(published.phaseEvidence.commands.some((c) => c.phaseId === "coverage_headroom")).toBe(
+      false,
+    );
+  });
+
+  it("still fails when an observed optional merge_chokepoint is red (#6040)", () => {
+    const store = new InProcessPrePrStore();
+    const rec = start(store, "ppr_optional_merge_red");
+    for (const spec of PRE_PR_PHASES) {
+      if (!spec.required) continue;
+      if (spec.kind === "command-observable") {
+        observeCommandPhase(store, rec.id, {
+          phaseId: spec.id,
+          command: spec.command ?? "",
+          exitCode: 0,
+          inputHash: rec.inputHash,
+          skipReason: null,
+        });
+      } else {
+        submitReviewerReport(store, rec.id, {
+          phaseId: spec.id,
+          reviewedFileManifest: ["a.ts"],
+          suppliedContentsHash: "h",
+          criteriaDigest: approved.digest,
+          reviewerReportRef: "r",
+          controllerObservedHash: "h",
+        });
+      }
+    }
+    expect(
+      observeCommandPhase(store, rec.id, {
+        phaseId: "merge_chokepoint",
+        command: "deft check",
+        exitCode: 1,
+        inputHash: rec.inputHash,
+        skipReason: null,
+      }).ok,
+    ).toBe(true);
+    expect(completeRun(store, mintPublisher(), rec.id).code).toBe("deny-failed");
+  });
+
+  it("still fails when an observed optional coverage_headroom is red (#6040)", () => {
+    const store = new InProcessPrePrStore();
+    const rec = start(store, "ppr_optional_cov_red");
+    for (const spec of PRE_PR_PHASES) {
+      if (!spec.required) continue;
+      if (spec.kind === "command-observable") {
+        observeCommandPhase(store, rec.id, {
+          phaseId: spec.id,
+          command: spec.command ?? "",
+          exitCode: 0,
+          inputHash: rec.inputHash,
+          skipReason: null,
+        });
+      } else {
+        submitReviewerReport(store, rec.id, {
+          phaseId: spec.id,
+          reviewedFileManifest: ["a.ts"],
+          suppliedContentsHash: "h",
+          criteriaDigest: approved.digest,
+          reviewerReportRef: "r",
+          controllerObservedHash: "h",
+        });
+      }
+    }
+    expect(
+      observeCommandPhase(store, rec.id, {
+        phaseId: "coverage_headroom",
+        command: "deft coverage:hotspots",
+        exitCode: 1,
+        inputHash: rec.inputHash,
+        skipReason: null,
+      }).ok,
+    ).toBe(true);
+    expect(completeRun(store, mintPublisher(), rec.id).code).toBe("deny-failed");
   });
 
   it("denies write, diff, and loop when supplied and observed hashes differ", () => {
@@ -1381,7 +1491,7 @@ describe("controller observations", () => {
         rec.id,
         {
           phaseId: "lint_iteration",
-          command: "vitest run --coverage <changed-paths>",
+          command: "vitest run <changed-paths>",
           exitCode: 5,
           inputHash: rec.inputHash,
           skipReason: LINT_ITERATION_MODE_SKIP,
@@ -1498,7 +1608,7 @@ describe("controller observations", () => {
         rec.id,
         {
           phaseId: "lint_iteration",
-          command: "vitest run --coverage <changed-paths>",
+          command: "vitest run <changed-paths>",
           exitCode: 1,
           inputHash: rec.inputHash,
           skipReason: LINT_ITERATION_MODE_SKIP,

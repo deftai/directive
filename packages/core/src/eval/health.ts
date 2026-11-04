@@ -1,5 +1,6 @@
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
-import { basename, dirname, isAbsolute, relative, resolve } from "node:path";
+import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { agentsRefreshPlan } from "../doctor/agents-md.js";
 import { evaluate as evaluateEncoding } from "../encoding/evaluate.js";
 import { readCorePackageVersion } from "../engine-version.js";
@@ -63,9 +64,12 @@ function sanitizeOneLine(value: string): string {
 }
 
 function isFrameworkSourceCheckout(projectRoot: string): boolean {
-  const manifest = resolve(projectRoot, "conventions/content-manifest.json");
+  // Source layout after #1875: content/conventions/…; flattened deposit keeps
+  // conventions/ at the framework root. packages/cli marks maintainer checkout.
+  const sourceManifest = resolve(projectRoot, "content/conventions/content-manifest.json");
+  const flatManifest = resolve(projectRoot, "conventions/content-manifest.json");
   const cliPkg = resolve(projectRoot, "packages/cli/package.json");
-  return existsSync(manifest) && existsSync(cliPkg);
+  return (existsSync(sourceManifest) || existsSync(flatManifest)) && existsSync(cliPkg);
 }
 
 function loadPlan(projectRoot: string): { plan: unknown; filepath: string } | null {
@@ -127,8 +131,74 @@ function probeVbriefConformance(projectRoot: string): GateProbeResult {
   };
 }
 
-function probeAgentsMdFreshness(projectRoot: string): GateProbeResult {
-  const plan = agentsRefreshPlan(projectRoot);
+function readGitHeadFile(projectRoot: string, relPath: string): string | null {
+  try {
+    return execFileSync("git", ["-C", projectRoot, "show", `HEAD:${relPath}`], {
+      encoding: "utf8",
+      maxBuffer: 2 * 1024 * 1024,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+  } catch {
+    return null;
+  }
+}
+
+function readWorkingFile(path: string): string | null {
+  try {
+    if (!existsSync(path)) return null;
+    return readFileSync(path, "utf8");
+  } catch {
+    return null;
+  }
+}
+
+function probeAgentsMdFreshness(projectRoot: string, frameworkSource: boolean): GateProbeResult {
+  // Framework-source tip CI (#5802 / #6040): prefer in-repo content/templates.
+  // When the working-tree AGENTS.md was rewritten vs HEAD (self-complete/setup),
+  // compare both AGENTS and agents-entry from HEAD so the rewrite cannot fail
+  // tip CI — and a pre-commit template+refresh still uses the working tree.
+  // Consumers keep default lookup (DEFT_ROOT / installed package).
+  const agentsPath = join(projectRoot, "AGENTS.md");
+  const templateRel = "content/templates/agents-entry.md";
+  const templatePath = join(projectRoot, templateRel);
+  const committedAgents = frameworkSource ? readGitHeadFile(projectRoot, "AGENTS.md") : null;
+  const workingAgents = readWorkingFile(agentsPath);
+  // Only tip CI self-complete/setup rewrites — not local header/template edits.
+  const onCi =
+    process.env.CI === "true" ||
+    process.env.GITHUB_ACTIONS === "true" ||
+    process.env.DEFT_EVAL_HEALTH_CI_REWRITE === "1";
+  const agentsRewritten =
+    frameworkSource &&
+    onCi &&
+    committedAgents !== null &&
+    workingAgents !== null &&
+    committedAgents !== workingAgents;
+
+  let plan = frameworkSource
+    ? agentsRefreshPlan(projectRoot, {
+        frameworkRoot: projectRoot,
+        readTemplate: () => {
+          if (agentsRewritten) {
+            const committedTemplate = readGitHeadFile(projectRoot, templateRel);
+            if (committedTemplate !== null) return committedTemplate;
+          }
+          return readWorkingFile(templatePath);
+        },
+        readAgents: (path) => {
+          if (resolve(path) === resolve(agentsPath) && agentsRewritten) {
+            return committedAgents;
+          }
+          return readWorkingFile(path);
+        },
+      })
+    : agentsRefreshPlan(projectRoot);
+  if (frameworkSource && String(plan.state ?? "") === "template-missing") {
+    const fallback = agentsRefreshPlan(projectRoot, { frameworkRoot: projectRoot });
+    if (String(fallback.state ?? "") === "current") {
+      plan = fallback;
+    }
+  }
   const state = String(plan.state ?? "unknown");
   const pass = state === "current";
   return {
@@ -254,7 +324,7 @@ function collectStaticGates(projectRoot: string, frameworkSource: boolean): Gate
     probeEncoding(projectRoot),
     probeLinks(projectRoot),
     probeVbriefConformance(projectRoot),
-    probeAgentsMdFreshness(projectRoot),
+    probeAgentsMdFreshness(projectRoot, frameworkSource),
   ];
 
   if (frameworkSource) {

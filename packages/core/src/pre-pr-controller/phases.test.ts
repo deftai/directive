@@ -37,7 +37,18 @@ describe("pre-pr-controller phases (Limb 2)", () => {
     expect(byId.branch_policy?.command).toBe("deft verify:branch");
     expect(byId.plan_sequence?.command).toBe("deft verify:plan-sequence");
     expect(byId.merge_chokepoint?.command).toBe("deft check");
-    expect(byId.lint_iteration?.command).toContain("vitest run");
+    expect(byId.lint_iteration?.command).toBe("vitest run <changed-paths>");
+    expect(byId.lint_iteration?.command).not.toContain("--coverage");
+  });
+
+  it("keeps merge_chokepoint and coverage_headroom optional while remaining in PRE_PR_PHASES (#6040)", () => {
+    const byId = Object.fromEntries(PRE_PR_PHASES.map((p) => [p.id, p]));
+    expect(byId.merge_chokepoint?.required).toBe(false);
+    expect(byId.coverage_headroom?.required).toBe(false);
+    expect(PRE_PR_PHASES.some((p) => p.id === "merge_chokepoint")).toBe(true);
+    expect(PRE_PR_PHASES.some((p) => p.id === "coverage_headroom")).toBe(true);
+    expect(requiredPhases().map((p) => p.id)).not.toContain("merge_chokepoint");
+    expect(requiredPhases().map((p) => p.id)).not.toContain("coverage_headroom");
   });
 
   it("allows only closed skip reasons", () => {
