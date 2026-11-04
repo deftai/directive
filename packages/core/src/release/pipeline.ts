@@ -48,9 +48,7 @@ import {
 } from "./git.js";
 import { checkVbriefLifecycleSyncNative, runBuildNative } from "./native-steps.js";
 import { todayIso } from "./paths.js";
-import {
-  runReleaseCheck,
-} from "./preflight.js";
+import { runReleaseCheck } from "./preflight.js";
 import {
   type PreparedArtifacts,
   prepareReleaseArtifacts,

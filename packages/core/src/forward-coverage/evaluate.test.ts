@@ -597,5 +597,4 @@ describe("evaluateForwardCoverage", () => {
     expect(result.message).toMatch(/not-measured/);
     expect(result.message).toMatch(/FAIL: --enforce/);
   });
-
 });
