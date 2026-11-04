@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6040",
-    "updated": "2026-11-03T19:41:17.689Z"
+    "updated": "2026-11-04T05:27:06.358Z"
   },
   "plan": {
     "title": "bug(pre-pr): pre-PR is the Read-Write-Lint-Diff-Loop plus verify:ac on the active xBrief; drop the post-loop full task check and the coverage run",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(pre-pr): pre-PR is the Read-Write-Lint-Diff-Loop plus verify:ac on the active xBrief; drop the post-loop full task check and the coverage run",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6040",
@@ -23,6 +23,12 @@
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P1 — Set `merge_chokepoint.required` to false while keeping the row in `PRE_PR_PHASES` so a green required-set without that row publishes `outcome: pass` with a `pushBinding`.",
           "Traces": "#6040"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0b36617575879ea986a50f2a20cc580f6d102537",
+          "recorded_at": "2026-11-04T05:26:10.532Z",
+          "recorded_by": "parent-orchestrator"
         }
       },
       {
@@ -32,6 +38,12 @@
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P2 — Drop `--coverage` from `lint_iteration.command` and set `coverage_headroom.required` to false so no pre-PR step runs or requires coverage.",
           "Traces": "#6040"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0b36617575879ea986a50f2a20cc580f6d102537",
+          "recorded_at": "2026-11-04T05:26:10.532Z",
+          "recorded_by": "parent-orchestrator"
         }
       },
       {
@@ -41,6 +53,12 @@
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P3 — Edit pack-source pre-PR skill and `packs:render` so agents run only Expected 6 scoped loop commands with `tsc` kept in CI, stop prompting post-loop full check and coverage including reversing the soften-forbid line, and note a missing per-path linter visibly then continue without recording that absence as a failing required Vitest observation (Expected 7).",
           "Traces": "#6040"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0b36617575879ea986a50f2a20cc580f6d102537",
+          "recorded_at": "2026-11-04T05:26:10.532Z",
+          "recorded_by": "parent-orchestrator"
         }
       },
       {
@@ -50,6 +68,12 @@
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P4 — Keep conflict-resolve and behind-rebase local full gate on skill lines 67 and 70, flip line 68 so plain pre-push no longer requires the local full gate, leave `ALLOWED_CANDIDATE_VALIDATION_COMMANDS` unchanged, and keep `verify:ac -- <active-xbrief>` as a required local skill step.",
           "Traces": "#6040"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0b36617575879ea986a50f2a20cc580f6d102537",
+          "recorded_at": "2026-11-04T05:26:10.532Z",
+          "recorded_by": "parent-orchestrator"
         }
       },
       {
@@ -59,6 +83,12 @@
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Footnote: AGENTS.md merge-chokepoint clarify; CHANGELOG; re-point required-order tests; optional-red still fails if observed; leave lint_iteration skip arms unchanged; release+pin before #6025 re-enable.",
           "Traces": "#6040"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0b36617575879ea986a50f2a20cc580f6d102537",
+          "recorded_at": "2026-11-04T05:26:10.532Z",
+          "recorded_by": "parent-orchestrator"
         }
       }
     ],
