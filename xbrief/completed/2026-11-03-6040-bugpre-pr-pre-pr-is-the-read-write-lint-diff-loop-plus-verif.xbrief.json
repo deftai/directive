@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6040",
-    "updated": "2026-11-04T05:27:06.358Z"
+    "updated": "2026-11-04T05:45:00Z"
   },
   "plan": {
     "title": "bug(pre-pr): pre-PR is the Read-Write-Lint-Diff-Loop plus verify:ac on the active xBrief; drop the post-loop full task check and the coverage run",
@@ -18,7 +18,7 @@
     "items": [
       {
         "title": "relieves: P1 — Set `merge_chokepoint.required` to false while keeping the row in `PRE_PR_PHASES` so a green required-set without that row publishes `outcome: pass` with a `pushBinding`.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P1 — Set `merge_chokepoint.required` to false while keeping the row in `PRE_PR_PHASES` so a green required-set without that row publishes `outcome: pass` with a `pushBinding`.",
@@ -27,13 +27,14 @@
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "0b36617575879ea986a50f2a20cc580f6d102537",
-          "recorded_at": "2026-11-04T05:26:10.532Z",
-          "recorded_by": "parent-orchestrator"
-        }
+          "recorded_at": "2026-11-04T05:45:00Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "title": "relieves: P2 — Drop `--coverage` from `lint_iteration.command` and set `coverage_headroom.required` to false so no pre-PR step runs or requires coverage.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P2 — Drop `--coverage` from `lint_iteration.command` and set `coverage_headroom.required` to false so no pre-PR step runs or requires coverage.",
@@ -42,13 +43,14 @@
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "0b36617575879ea986a50f2a20cc580f6d102537",
-          "recorded_at": "2026-11-04T05:26:10.532Z",
-          "recorded_by": "parent-orchestrator"
-        }
+          "recorded_at": "2026-11-04T05:45:00Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "title": "relieves: P3 — Edit pack-source pre-PR skill and `packs:render` so agents run only Expected 6 scoped loop commands with `tsc` kept in CI, stop prompting post-loop full check and coverage including reversing the soften-forbid line, and note a missing per-path linter visibly then continue without recording that absence as a failing required Vitest observation (Expected 7).",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P3 — Edit pack-source pre-PR skill and `packs:render` so agents run only Expected 6 scoped loop commands with `tsc` kept in CI, stop prompting post-loop full check and coverage including reversing the soften-forbid line, and note a missing per-path linter visibly then continue without recording that absence as a failing required Vitest observation (Expected 7).",
@@ -57,13 +59,14 @@
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "0b36617575879ea986a50f2a20cc580f6d102537",
-          "recorded_at": "2026-11-04T05:26:10.532Z",
-          "recorded_by": "parent-orchestrator"
-        }
+          "recorded_at": "2026-11-04T05:45:00Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "title": "relieves: P4 — Keep conflict-resolve and behind-rebase local full gate on skill lines 67 and 70, flip line 68 so plain pre-push no longer requires the local full gate, leave `ALLOWED_CANDIDATE_VALIDATION_COMMANDS` unchanged, and keep `verify:ac -- <active-xbrief>` as a required local skill step.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P4 — Keep conflict-resolve and behind-rebase local full gate on skill lines 67 and 70, flip line 68 so plain pre-push no longer requires the local full gate, leave `ALLOWED_CANDIDATE_VALIDATION_COMMANDS` unchanged, and keep `verify:ac -- <active-xbrief>` as a required local skill step.",
@@ -72,13 +75,14 @@
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "0b36617575879ea986a50f2a20cc580f6d102537",
-          "recorded_at": "2026-11-04T05:26:10.532Z",
-          "recorded_by": "parent-orchestrator"
-        }
+          "recorded_at": "2026-11-04T05:45:00Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "title": "Footnote: AGENTS.md merge-chokepoint clarify; CHANGELOG; re-point required-order tests; optional-red still fails if observed; leave lint_iteration skip arms unchanged; release+pin before #6025 re-enable.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Footnote: AGENTS.md merge-chokepoint clarify; CHANGELOG; re-point required-order tests; optional-red still fails if observed; leave lint_iteration skip arms unchanged; release+pin before #6025 re-enable.",
@@ -87,9 +91,10 @@
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "0b36617575879ea986a50f2a20cc580f6d102537",
-          "recorded_at": "2026-11-04T05:26:10.532Z",
-          "recorded_by": "parent-orchestrator"
-        }
+          "recorded_at": "2026-11-04T05:45:00Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       }
     ],
     "tags": [
@@ -189,7 +194,32 @@
         "sha256": "f66e39dc67c9401e89b712676adcbfda7d984676e2e609379e229199547e1100"
       },
       "kind": "story",
-      "productPullRequest": 6043
+      "productPullRequest": 6043,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "98ebc3e259369bd76a190a260b2aa42e88109f23",
+        "prNumber": 6043,
+        "prBase": "master",
+        "mergeCommit": "0b36617575879ea986a50f2a20cc580f6d102537",
+        "deliveryBranch": "master",
+        "deliveryCommit": "0b36617575879ea986a50f2a20cc580f6d102537",
+        "verifiedAt": "2026-11-04T05:45:00Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "01a1a507-7f8e-7960-af52-8a7ce39dad57"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-04T05:45:00Z",
+      "completedSessionId": "01a1a507-7f8e-7960-af52-8a7ce39dad57",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-04T05:45:00Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -251,6 +281,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6172067942",
-    "updated": "2026-11-03T17:11:04Z"
+    "updated": "2026-11-04T05:45:00Z"
   }
 }
