@@ -133,9 +133,8 @@ function probeVbriefConformance(projectRoot: string): GateProbeResult {
 function probeAgentsMdFreshness(projectRoot: string, frameworkSource: boolean): GateProbeResult {
   // Framework-source tip CI (#5802 / #6040): prefer an explicit in-repo
   // content/templates read so staged npm content cannot shadow tip AGENTS.
-  // If that still is not current, fall back to frameworkRoot-only resolution
-  // (contentRoot) which matched tip CI before the consumer gate. Consumers
-  // keep default lookup (DEFT_ROOT / installed package).
+  // Fall back to frameworkRoot/contentRoot only when that file is absent.
+  // Consumers keep default lookup (DEFT_ROOT / installed package).
   let plan = frameworkSource
     ? agentsRefreshPlan(projectRoot, {
         frameworkRoot: projectRoot,
@@ -146,7 +145,7 @@ function probeAgentsMdFreshness(projectRoot: string, frameworkSource: boolean): 
         },
       })
     : agentsRefreshPlan(projectRoot);
-  if (frameworkSource && String(plan.state ?? "") !== "current") {
+  if (frameworkSource && String(plan.state ?? "") === "template-missing") {
     const fallback = agentsRefreshPlan(projectRoot, { frameworkRoot: projectRoot });
     if (String(fallback.state ?? "") === "current") {
       plan = fallback;
