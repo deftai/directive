@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { agentsRefreshPlan } from "../doctor/agents-md.js";
@@ -130,10 +131,23 @@ function probeVbriefConformance(projectRoot: string): GateProbeResult {
   };
 }
 
+function readCommittedAgentsMd(projectRoot: string): string | null {
+  try {
+    return execFileSync("git", ["-C", projectRoot, "show", "HEAD:AGENTS.md"], {
+      encoding: "utf8",
+      maxBuffer: 2 * 1024 * 1024,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+  } catch {
+    return null;
+  }
+}
+
 function probeAgentsMdFreshness(projectRoot: string, frameworkSource: boolean): GateProbeResult {
-  // Framework-source tip CI (#5802 / #6040): prefer an explicit in-repo
-  // content/templates read so staged npm content cannot shadow tip AGENTS.
-  // Fall back to frameworkRoot/contentRoot only when that file is absent.
+  // Framework-source tip CI (#5802 / #6040): compare committed HEAD:AGENTS.md to
+  // in-repo content/templates so a self-complete/setup rewrite of the working
+  // tree (or staged npm content shadow) cannot fail tip CI. Fall back to
+  // frameworkRoot/contentRoot only when the in-repo template file is absent.
   // Consumers keep default lookup (DEFT_ROOT / installed package).
   let plan = frameworkSource
     ? agentsRefreshPlan(projectRoot, {
@@ -142,6 +156,18 @@ function probeAgentsMdFreshness(projectRoot: string, frameworkSource: boolean): 
           const path = join(projectRoot, "content", "templates", "agents-entry.md");
           if (!existsSync(path)) return null;
           return readFileSync(path, "utf8");
+        },
+        readAgents: (path) => {
+          if (resolve(path) === resolve(projectRoot, "AGENTS.md")) {
+            const committed = readCommittedAgentsMd(projectRoot);
+            if (committed !== null) return committed;
+          }
+          try {
+            if (!existsSync(path)) return null;
+            return readFileSync(path, "utf8");
+          } catch {
+            return null;
+          }
         },
       })
     : agentsRefreshPlan(projectRoot);

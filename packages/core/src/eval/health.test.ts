@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -327,6 +328,59 @@ describe("evaluateHealth", () => {
       const gate = result.report?.gates.find((g) => g.id === "agents-md-freshness");
       expect(gate).toBeDefined();
       expect(gate?.detail).not.toBe("state=template-missing");
+    } finally {
+      if (prevRoot === undefined) delete process.env.DEFT_ROOT;
+      else process.env.DEFT_ROOT = prevRoot;
+    }
+  });
+
+  it("framework-source freshness uses HEAD:AGENTS.md when the working tree was rewritten (#5802)", () => {
+    const prevRoot = process.env.DEFT_ROOT;
+    const foreign = mkdtempSync(join(tmpdir(), "deft-eval-health-dirty-foreign-"));
+    temps.push(foreign);
+    process.env.DEFT_ROOT = foreign;
+    const root = seedRepo();
+    mkdirSync(join(root, "content", "conventions"), { recursive: true });
+    mkdirSync(join(root, "packages", "cli"), { recursive: true });
+    writeFileSync(join(root, "content", "conventions", "content-manifest.json"), "{}\n", "utf8");
+    writeFileSync(join(root, "packages", "cli", "package.json"), '{"name":"cli"}\n', "utf8");
+    mkdirSync(join(root, "content", "templates"), { recursive: true });
+    const managed = [
+      "<!-- deft:managed-section v3 -->",
+      "# Deft — AI Development Framework",
+      "<!-- /deft:managed-section -->",
+      "",
+    ].join("\n");
+    writeFileSync(join(root, "content", "templates", "agents-entry.md"), managed, "utf8");
+    writeFileSync(join(root, "AGENTS.md"), managed, "utf8");
+    // Minimal git repo so HEAD:AGENTS.md resolves to the committed body.
+    execFileSync("git", ["init"], { cwd: root });
+    execFileSync("git", ["add", "AGENTS.md"], { cwd: root });
+    execFileSync(
+      "git",
+      ["-c", "user.email=t@example.com", "-c", "user.name=t", "commit", "-m", "seed"],
+      { cwd: root },
+    );
+    // Simulate self-complete rewriting the working tree to a short deposit body.
+    writeFileSync(
+      join(root, "AGENTS.md"),
+      [
+        "<!-- deft:managed-section v3 -->",
+        "# Deft — short deposit",
+        "<!-- /deft:managed-section -->",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+    try {
+      const result = evaluateHealth({
+        projectRoot: root,
+        frameworkSource: true,
+        persist: false,
+        now: () => new Date("2026-07-05T18:00:00Z"),
+      });
+      const gate = result.report?.gates.find((g) => g.id === "agents-md-freshness");
+      expect(gate?.pass).toBe(true);
     } finally {
       if (prevRoot === undefined) delete process.env.DEFT_ROOT;
       else process.env.DEFT_ROOT = prevRoot;
