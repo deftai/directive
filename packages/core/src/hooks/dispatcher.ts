@@ -49,6 +49,7 @@ import {
   type RuntimeAuthorityShellOp,
 } from "../policy/runtime-authority.js";
 import {
+  formatStoryWriteFenceBaseNote,
   hasPositiveGoverningStoryAllow,
   isStoryWriteFenceUnreadable,
   loadStoryWriteFenceFromMergeBase,
@@ -191,7 +192,6 @@ import {
   type InspectActiveScopeOptions,
   inspectActiveScope,
   POSITIVE_GOVERNING_ALLOW_REQUIRED,
-  selectedBriefHasPositiveGoverningAllow,
 } from "./scope.js";
 import { classifyShellWriteTargets, isInRepoShellWritePath } from "./shell-write-targets.js";
 import {
@@ -2336,7 +2336,8 @@ function inspectMutationGates(
   const requirePositiveGoverningAllow = (): HookDecision | null => {
     if (!(scope.ready && scope.path !== null)) return null;
     const loadFence = seams.loadStoryWriteFence ?? loadStoryWriteFenceFromMergeBase;
-    if (selectedBriefHasPositiveGoverningAllow(effectiveRoot, scope.path, loadFence)) {
+    const fence = loadFence(effectiveRoot, scope.path);
+    if (hasPositiveGoverningStoryAllow(fence)) {
       return null;
     }
     const denyCode = isSpawnTool(toolName) ? "spawn-not-ready" : "scope-not-ready";
@@ -2344,7 +2345,7 @@ function inspectMutationGates(
       input,
       denyCode,
       toolName,
-      `${POSITIVE_GOVERNING_ALLOW_REQUIRED}${rootsNote}`,
+      `${POSITIVE_GOVERNING_ALLOW_REQUIRED}${formatStoryWriteFenceBaseNote(fence)}${rootsNote}`,
       scope.path,
     );
   };
@@ -4860,7 +4861,7 @@ export function evaluateProspectiveScopeCover(
       ok: false,
       message:
         `Prospective scope-cover denied: story write fence unreadable (#5656). ` +
-        `${fence.unreadableDetail}`,
+        `${fence.unreadableDetail}${formatStoryWriteFenceBaseNote(fence)}`,
       uncovered: productStaged,
       scopePath: scope.path,
     };
@@ -4870,7 +4871,7 @@ export function evaluateProspectiveScopeCover(
       ok: false,
       message:
         `Prospective scope-cover denied: selected scope lacks positive governing ` +
-        `allow file_scope (#5656). ${POSITIVE_GOVERNING_ALLOW_REQUIRED}`,
+        `allow file_scope (#5656).${formatStoryWriteFenceBaseNote(fence)} ${POSITIVE_GOVERNING_ALLOW_REQUIRED}`,
       uncovered: productStaged,
       scopePath: scope.path,
     };
