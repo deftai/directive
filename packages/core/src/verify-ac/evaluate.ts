@@ -515,19 +515,23 @@ function remapInventoryToProjectRoot(
     }
     return { files: remapped, briefReadRoot: top };
   }
-  for (const row of [...underProject, ...gitRootBrief.map((row) => {
-    // Mixed nested + repo-root: project-relative view so shape stays honest.
-    const path = inventoryPathRelativeToProject(top, root, row.path);
-    const previousFilename =
-      typeof row.previousFilename === "string" && row.previousFilename.length > 0
-        ? inventoryPathRelativeToProject(top, root, row.previousFilename)
-        : undefined;
-    return {
-      status: row.status,
-      path,
-      ...(previousFilename !== undefined ? { previousFilename } : {}),
-    };
-  }), ...outside]) {
+  for (const row of [
+    ...underProject,
+    ...gitRootBrief.map((row) => {
+      // Mixed nested + repo-root: project-relative view so shape stays honest.
+      const path = inventoryPathRelativeToProject(top, root, row.path);
+      const previousFilename =
+        typeof row.previousFilename === "string" && row.previousFilename.length > 0
+          ? inventoryPathRelativeToProject(top, root, row.previousFilename)
+          : undefined;
+      return {
+        status: row.status,
+        path,
+        ...(previousFilename !== undefined ? { previousFilename } : {}),
+      };
+    }),
+    ...outside,
+  ]) {
     mergeInventoryPrDiffPath(remapped, row);
   }
   return { files: remapped, briefReadRoot: root };
@@ -542,9 +546,7 @@ export function collectBriefLandInventoryAsPrDiffPaths(input: {
   readonly projectRoot: string;
   readonly baseRef?: string | null;
   readonly runGit?: (cwd: string, args: readonly string[]) => GitRunnerResult;
-}):
-  | { ok: true; files: PrDiffPath[]; briefReadRoot: string }
-  | { ok: false; reason: string } {
+}): { ok: true; files: PrDiffPath[]; briefReadRoot: string } | { ok: false; reason: string } {
   const projectRoot = resolve(input.projectRoot);
   const runGit = input.runGit ?? defaultInventoryGitRunner;
   const inside = runGit(projectRoot, ["rev-parse", "--is-inside-work-tree"]);
