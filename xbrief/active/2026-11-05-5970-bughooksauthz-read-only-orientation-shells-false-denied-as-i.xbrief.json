@@ -1,0 +1,544 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5970",
+    "updated": "2026-11-05T18:00:17.115Z"
+  },
+  "plan": {
+    "title": "bug(hooks,authz): read-only orientation shells false-denied as inventoried authz dest-of-write (Approach1 babysit)",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(hooks,authz): read-only orientation shells false-denied as inventoried authz dest-of-write (Approach1 babysit)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5970",
+      "Overview": "\n\n- relieves: P1 — Extend isProvenReadOnlyArgv with closed existence-probe first-bins (Test-Path, test, [, Get-Item, dir/Get-ChildItem) so those segments with kill-switch or authz path operands do not emit dest-of-write unknown or inactive protected_store; exemption is segment-local and leaves independent write/redirect checks intact.\n- relieves: P2 — That same isProvenReadOnlyArgv extension is the sole classify mechanism for absolute payload-root kill-switch existence probes under #4188 harvest; do not add a second harvest-only skip list.\n- relieves: P1 — For test/[ existence-probe proof, ignore POSIX -o OR; do not reuse sort/awk READ_ONLY_PROOF_OUTPUT_DEST_FLAGS; keep real write/output-dest refusal for dir/Get-ChildItem.\n- relieves: P3 — Carry the matched harvested path or token from the classify/harvest route that set protected_store into the effective deny text (including the unknown-first active-UAT route); keep authz:grant only as the mint escape for real grants.\n- relieves: P4 — Regression fixtures cover recovered exact #5970 Approach1 denied command bytes (with provenance) plus supplemental shapes (compound git+Test-Path, bare Test-Path, test -f, Get-Item, dir), mixed probe+writer/redirect negatives, path-qualified lookalikes, and plant cases (touch/cp/Set-Content/redirect to kill-switch) that stay denied.\n\n\n",
+      "Labels": "bug, adoption-blocker, agent-experience, process, grok-build, urgent, dogfood, design-critique:ingest-ready",
+      "UserStory": "As an Approach1 babysit worker, I want read-only kill-switch existence probes (Test-Path / test / Get-Item / dir) to pass authz so orientation shells are not false-denied as dest-of-write against the protected store.",
+      "ImplementationPlan": "Extend isProvenReadOnlyArgv with closed existence-probe first-bins; reuse that sole mechanism for #4188 harvest; carry matched harvested token into protected_store deny text; lock with exact #5970 transcript plus supplemental fixtures."
+    },
+    "items": [
+      {
+        "title": "relieves: P1 — Extend isProvenReadOnlyArgv with closed existence-probe first-bins (Test-Path, test, [, Get-Item, dir/Get-ChildItem) so those segments with kill-switch or authz path operands do not emit dest-of-write unknown or inactive protected_store; exemption is segment-local and leaves independent write/redirect checks intact.",
+        "status": "pending",
+        "id": "clause.1",
+        "artifact_path": "packages/core/src/authz/classify.ts"
+      },
+      {
+        "title": "relieves: P2 — That same isProvenReadOnlyArgv extension is the sole classify mechanism for absolute payload-root kill-switch existence probes under #4188 harvest; do not add a second harvest-only skip list.",
+        "status": "pending",
+        "id": "clause.2",
+        "artifact_path": "packages/core/src/authz/classify.test.ts"
+      },
+      {
+        "title": "relieves: P1 — For test/[ existence-probe proof, ignore POSIX -o OR; do not reuse sort/awk READ_ONLY_PROOF_OUTPUT_DEST_FLAGS; keep real write/output-dest refusal for dir/Get-ChildItem.",
+        "status": "pending",
+        "id": "clause.3",
+        "artifact_path": "packages/core/src/authz/evaluate.ts"
+      },
+      {
+        "title": "relieves: P3 — Carry the matched harvested path or token from the classify/harvest route that set protected_store into the effective deny text (including the unknown-first active-UAT route); keep authz:grant only as the mint escape for real grants.",
+        "status": "pending",
+        "id": "clause.4",
+        "artifact_path": "packages/core/src/authz/evaluate.test.ts"
+      },
+      {
+        "title": "relieves: P4 — Regression fixtures cover recovered exact #5970 Approach1 denied command bytes (with provenance) plus supplemental shapes (compound git+Test-Path, bare Test-Path, test -f, Get-Item, dir), mixed probe+writer/redirect negatives, path-qualified lookalikes, and plant cases (touch/cp/Set-Content/redirect to kill-switch) that stay denied.",
+        "status": "pending",
+        "id": "clause.5",
+        "artifact_path": "packages/core/src/authz/incident-regression.test.ts"
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "agent-experience",
+      "process",
+      "grok-build",
+      "urgent",
+      "dogfood",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5970",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5970: bug(hooks,authz): read-only orientation shells false-denied as inventoried authz dest-of-write (Approach1 babysit)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "bug(hooks,authz): read-only orientation shells false-denied as inventoried authz dest-of-write (Approach1 babysit)",
+        "relieves: P1 — Extend isProvenReadOnlyArgv with closed existence-probe first-bins (Test-Path, test, [, Get-Item, dir/Get-ChildItem) so those segments with kill-switch or authz path operands do not emit dest-of-write unknown or inactive protected_store; exemption is segment-local and leaves independent write/redirect checks intact.",
+        "relieves: P2 — That same isProvenReadOnlyArgv extension is the sole classify mechanism for absolute payload-root kill-switch existence probes under #4188 harvest; do not add a second harvest-only skip list.",
+        "relieves: P1 — For test/[ existence-probe proof, ignore POSIX -o OR; do not reuse sort/awk READ_ONLY_PROOF_OUTPUT_DEST_FLAGS; keep real write/output-dest refusal for dir/Get-ChildItem.",
+        "relieves: P3 — Carry the matched harvested path or token from the classify/harvest route that set protected_store into the effective deny text (including the unknown-first active-UAT route); keep authz:grant only as the mint escape for real grants.",
+        "relieves: P4 — Regression fixtures cover recovered exact #5970 Approach1 denied command bytes (with provenance) plus supplemental shapes (compound git+Test-Path, bare Test-Path, test -f, Get-Item, dir), mixed probe+writer/redirect negatives, path-qualified lookalikes, and plant cases (touch/cp/Set-Content/redirect to kill-switch) that stay denied."
+      ],
+      "admitted_source_sentences": [
+        "relieves: P1 — Extend isProvenReadOnlyArgv with closed existence-probe first-bins (Test-Path, test, [, Get-Item, dir/Get-ChildItem) so those segments with kill-switch or authz path operands do not emit dest-of-write unknown or inactive protected_store; exemption is segment-local and leaves independent write/redirect checks intact.",
+        "relieves: P2 — That same isProvenReadOnlyArgv extension is the sole classify mechanism for absolute payload-root kill-switch existence probes under #4188 harvest; do not add a second harvest-only skip list.",
+        "relieves: P1 — For test/[ existence-probe proof, ignore POSIX -o OR; do not reuse sort/awk READ_ONLY_PROOF_OUTPUT_DEST_FLAGS; keep real write/output-dest refusal for dir/Get-ChildItem.",
+        "relieves: P3 — Carry the matched harvested path or token from the classify/harvest route that set protected_store into the effective deny text (including the unknown-first active-UAT route); keep authz:grant only as the mint escape for real grants.",
+        "relieves: P4 — Regression fixtures cover recovered exact #5970 Approach1 denied command bytes (with provenance) plus supplemental shapes (compound git+Test-Path, bare Test-Path, test -f, Get-Item, dir), mixed probe+writer/redirect negatives, path-qualified lookalikes, and plant cases (touch/cp/Set-Content/redirect to kill-switch) that stay denied."
+      ],
+      "admitted_source_digest": "4b5a4329ed60afbecb7f69a33ef010709591fec337c471f3ce09ed501ca767e2",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "relieves: P1 — Extend isProvenReadOnlyArgv with closed existence-probe first-bins (Test-Path, test, [, Get-Item, dir/Get-ChildItem) so those segments with kill-switch or authz path operands do not emit dest-of-write unknown or inactive protected_store; exemption is segment-local and leaves independent write/redirect checks intact.",
+          "artifact_path": "packages/core/src/authz/classify.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "relieves: P2 — That same isProvenReadOnlyArgv extension is the sole classify mechanism for absolute payload-root kill-switch existence probes under #4188 harvest; do not add a second harvest-only skip list.",
+          "artifact_path": "packages/core/src/authz/classify.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "relieves: P1 — For test/[ existence-probe proof, ignore POSIX -o OR; do not reuse sort/awk READ_ONLY_PROOF_OUTPUT_DEST_FLAGS; keep real write/output-dest refusal for dir/Get-ChildItem.",
+          "artifact_path": "packages/core/src/authz/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "relieves: P3 — Carry the matched harvested path or token from the classify/harvest route that set protected_store into the effective deny text (including the unknown-first active-UAT route); keep authz:grant only as the mint escape for real grants.",
+          "artifact_path": "packages/core/src/authz/evaluate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "relieves: P4 — Regression fixtures cover recovered exact #5970 Approach1 denied command bytes (with provenance) plus supplemental shapes (compound git+Test-Path, bare Test-Path, test -f, Get-Item, dir), mixed probe+writer/redirect negatives, path-qualified lookalikes, and plant cases (touch/cp/Set-Content/redirect to kill-switch) that stay denied.",
+          "artifact_path": "packages/core/src/authz/incident-regression.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/authz/classify.ts",
+          "packages/core/src/authz/classify.test.ts",
+          "packages/core/src/authz/evaluate.ts",
+          "packages/core/src/authz/evaluate.test.ts",
+          "packages/core/src/authz/incident-regression.test.ts",
+          "packages/core/src/authz/protected-dest-realpath.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/authz/classify.ts",
+        "cohesion_exemption": "CHANGELOG + classify proven-reader extension consumed by evaluate deny carrier"
+      },
+      "issueCommentThread": [
+        {
+          "body": "Reproduced live while filing this ticket: shells whose command text contain deft private-dir / kill-switch path literals were false-denied as inventoried authz dest-of-write even when writing under /tmp from the directive checkout. Workaround: author bodies from a non-hooked cwd without those literals in the command string. Epic: #5952.\n\n",
+          "id": 6447233427,
+          "html_url": "https://github.com/deftai/directive/issues/5970#issuecomment-6447233427",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-27T16:16:50Z",
+          "updated_at": "2026-10-27T16:16:50Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## Prefer-A draft\n\nconflict_group: approach1-readonly-orientation-shell-false-deny-protected-store\nSpec-path: packages/core/src/authz/classify.ts READ_ONLY existence-probe + evaluate protected_store deny text\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nmove-forward: yes\ndispatch-sha: 7f04a43075911dcacf72683e0e886152b8bc2fe8\ndest: .deft-scratch/worktrees/arc-5970\nTarget-digest: sha256:0a131fd269fe239b50830cdd7b1fb3cc58f59d23eb23bfc5b04be3ce4d57d230\nKISS ceiling: #5783 Prefer-A Bound 6280270826\n\n## In plain English\n\nApproach1 babysit leaves cannot orient: Test-Path / test / Get-Item / dir against the kill-switch basename (and absolute payload-root kill-switch via #4188 harvest) are classified as protected dest-of-write + protected_store, so read-only orientation shells are hard-denied with only an authz:grant hint. Carve proven existence-probe readers out of dest-of-write, keep real plants denied, name the harvested token on authentic deny, and lock the transcript strings in regression fixtures.\n\n## Bound remedy\n\n- relieves: P1 — Extend proven read-only argv so closed existence-probe first-bins (Test-Path, test, [, Get-Item, dir/Get-ChildItem without write/output-dest flags) with a kill-switch or authz path operand do not emit dest-of-write unknown or inactive protected_store.\n- relieves: P2 — Absolute payload-root kill-switch existence probes must not append protected_store via #4188 harvest when the segment is that proven existence-probe reader.\n- relieves: P3 — Authentic protected_store / inventoried-authz deny text must name the harvested path or token; keep authz:grant only as the mint escape for real grants.\n- relieves: P4 — Regression fixtures cover the exact denied Approach1 orientation strings from #5970 (compound git+Test-Path, bare Test-Path, test -f, Get-Item, dir) plus negative plant cases (touch/cp/Set-Content/redirect to kill-switch) that stay denied.\n\n## Reject\n\n- Reject: blanket allow whenever command text mentions a kill-switch basename.\n- Reject: authz:grant as the remediation for read-only orientation false-denies.\n- Reject: collapsing this into #5925 inspectable-lifecycle or #5935 wrapper-noise.\n- Reject: growing Bound remedy into a second design essay (#5783 / #3265).\n\n## Pointers\n\n| Topic | Where |\n|---|---|\n| classify empty git status not gated | packages/core/src/authz/classify.ts classifyHookAuthzOps |\n| unproven read-only dest-of-write | hasProtectedUnprovenReadOnlyDestOfWrite |\n| #4188 harvest realpath | shellCommandHasPayloadRootProtectedDestAfterRealpath |\n| #4709 inactive protected_store | inactiveShellTargetsProtectedStore / evaluate PROTECTED_STORE_EXTERNAL_DENY |\n| epic journey | #5952 |",
+          "id": 6663338891,
+          "html_url": "https://github.com/deftai/directive/issues/5970#issuecomment-6663338891",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:29:36Z",
+          "updated_at": "2026-11-05T16:29:59Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: triage\n```\n\n## Stop 1 — Gate\n\nmechanism-shaped: true\ndesign-critique: warranted, because Approach1 read-only orientation shells are hard-denied as inventoried authz / protected dest-of-write — a classifier false-positive with soft→hard impedance before any product mutation.\nrefutation-target: kill-switch or authz pathish anywhere in a Shell command implies protected dest-of-write / protected_store deny (including existence probes).\ncharter: refutation\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nspend-why: open remedy space (carve existence-probe readers without opening plant holes) plus high blast (Approach1 babysit soft→hard impedance across Grok leaves).\ndispatch-sha: 7f04a43075911dcacf72683e0e886152b8bc2fe8\ndest: .deft-scratch/worktrees/arc-5970\nTarget-digest: sha256:0a131fd269fe239b50830cdd7b1fb3cc58f59d23eb23bfc5b04be3ce4d57d230\nPrefer-A draft: 6663338891\nverification-path: pin-read git show 7f04a43075911dcacf72683e0e886152b8bc2fe8: ; dest cwd-without-occupy for on-pin file reads\ndual-stop-reserved: 1\n\npain: P1, P2, P3, P4\n- P1: Relative kill-switch existence probes (Test-Path / test / [ / Get-Item / dir) classify as dest-of-write unknown → protected_store.\n- P2: Absolute payload-root kill-switch existence probes still append protected_store via #4188 harvest.\n- P3: Authentic deny text names only authz:grant — never the harvested path/token.\n- P4: Missing regression fixtures for the exact Approach1 orientation strings from the #5970 transcript.\n\n## In plain English\n\nStop 1 clears a mechanism-shaped arc: refute the presumption that any kill-switch pathish in Shell is a protected dest-of-write, including read-only existence probes used by Approach1 babysit orientation.",
+          "id": 6663366682,
+          "html_url": "https://github.com/deftai/directive/issues/5970#issuecomment-6663366682",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:30:47Z",
+          "updated_at": "2026-11-05T16:30:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## spend-amend\n\nspend: N=2\nspend-ask: resolved\nspend-amend: N≥3→N=2\nseat-families: codex, grok\nreason: Claude launch-probe failed with expired OAuth (rc 1; Failed to authenticate: OAuth session expired and could not be refreshed). Reduced-panel unavailable class per #5478 / design-critique dispatch — do not seat a hung/unauth family. Codex pong OK; Grok dest-rooted pong OK.\nPrefer-A draft: 6663338891",
+          "id": 6663367210,
+          "html_url": "https://github.com/deftai/directive/issues/5970#issuecomment-6663367210",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:30:48Z",
+          "updated_at": "2026-11-05T16:30:48Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## panel-deposit\n\ninput-ceiling: 6663371692\nseat-families: codex, grok\nspend: N=2\nspend-amend: 6663367210\ncharter: refutation\nround: 1\nPrefer-A draft: 6663338891\nStop 1: 6663366682\ndispatch-sha: 7f04a43075911dcacf72683e0e886152b8bc2fe8\ndest: .deft-scratch/worktrees/arc-5970\nverification-path: pin-read git show 7f04a43075911dcacf72683e0e886152b8bc2fe8: ; dest cwd-without-occupy for on-pin file reads\nTarget-digest: sha256:0a131fd269fe239b50830cdd7b1fb3cc58f59d23eb23bfc5b04be3ce4d57d230\naudit-targets: none\nclosed-findings: none\nlauncher: spawn_subagent | cli last-resort after recorded native miss\n\n## In plain English\n\nPanel deposit for Round-1 reduced panel (Codex + Grok) after Claude OAuth launch-probe miss. Critics read only through this comment id ceiling against Prefer-A draft 6663338891 / Stop 1 6663366682.",
+          "id": 6663371692,
+          "html_url": "https://github.com/deftai/directive/issues/5970#issuecomment-6663371692",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:31:00Z",
+          "updated_at": "2026-11-05T16:31:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nRound 1; charter: refutation; input ceiling: 6663371692; dispatch SHA: 7f04a43075911dcacf72683e0e886152b8bc2fe8.\n\nPrefer-A is viable, with the sharpening findings below. No demonstrated blocks-the-design finding. This is a critique of draft 6663338891, not a successor Bound or a pain-audit clearance.\n\n## Verification and existing mechanisms\n\nRead issue #5970 and comments 6663338891, 6663366682, 6663367210, and 6663371692 through REST; pin-read classify.ts, evaluate.ts, and the realpath helper at the dispatch SHA. Read the Critic method / Successor lean contract and #5783 Bound 6280270826. Verification was static pin-read as dispatched; no fixture execution or transcript reproduction is claimed.\n\nThe refutation target is too broad as a description of current code: protected path presence alone is already insufficient for proven readers. `isProvenReadOnlyArgv` excludes existing readers in both `hasProtectedUnprovenReadOnlyDestOfWrite` and `harvestDestsOfWriteForRealpath`. The proposed probe names are absent from that proof. `inactiveShellTargetsProtectedStore` combines authz-store writes with protected destination classification; `classifyHookAuthzOps` separately adds realpath harvest. That supports extending the existing shared proof rather than creating a second exception path.\n\n## F1 — sharpens-framing — P1/P2/P4: prove the segment, preserve independent writes\n\nEvidence: both destination walkers skip a segment immediately when `isProvenReadOnlyArgv` succeeds. That helper rejects path-qualified argv0, but its ordinary reader branch does not establish that every argument is free of executable expansion. `zipStyleCommandSegments` removes redirections for argv analysis, while `hasWriteShapedProtectedSettingsDest` independently checks redirection and destination flags.\n\nFailure mode: interpreting the new first-bin list as permission for the entire shell, or as proof for arbitrary arguments, can suppress a genuine plant sharing the command with an orientation read. Standalone touch/cp/Set-Content negatives do not exercise that interaction. The shared-store boundary matters equally for a single leaf and concurrent leaves; process-only role is not proof of read-only syntax.\n\nDisposition: Prefer-A can bind with its existing word \"proven\" made explicit in implementation and fixtures: the exemption is segment-local and must retain the independent write checks. Pair an allowed probe with a protected redirect and with a later writer; retain rejection of path-qualified lookalikes and test executable argument/subexpression cases before admitting those shapes. These are tests of the existing safety boundary, not a request for a general shell interpreter or another allowlist.\n\n## F2 — sharpens-framing — P3: the diagnostic needs the matched witness\n\nEvidence: `classifyHookAuthzOps` returns operation strings, the realpath helper returns a boolean, and `EvaluateAuthzInput` carries `protectedStoreShellWrite?: boolean` without a Shell destination witness. Its `path` is documented for edit operations. `PROTECTED_STORE_EXTERNAL_DENY` is constant. Also, a protected destination may yield `[unknown, protected_store]`, and active-UAT evaluation of `unknown` uses a different denial before the protected-store branch.\n\nFailure mode: changing only the constant cannot name the actual Shell match; selecting an arbitrary path from a compound command can blame the harmless probe instead of its write destination. Testing only `op: protected_store` can miss the user-visible active-UAT denial.\n\nDisposition: keep P3, but scope its implementation to carrying the matched token/path from the existing detection route into the effective denial, including the unknown-first route. Assert the diagnostic against a compound read-plus-write and a realpath-resolved destination. Preserve the no-covering-grant escape; do not turn authz:grant into remediation for a kill-switch plant. This is evidence plumbing for the promised diagnostic, not a new policy mechanism.\n\n## F3 — sharpens-framing — P4: exact transcript coverage is not established\n\nEvidence: the ceiling issue supplies numbered command summaries with placeholders such as \"kill-switch probe\", plus a forensic-directory pointer. It does not supply the complete denied shell bytes. The draft calls compound git+Test-Path, bare Test-Path, test -f, Get-Item, and dir \"exact denied Approach1 orientation strings\"; those are currently candidate coverage shapes, not verified transcript quotations in this envelope.\n\nFailure mode: tests of simplified probes can pass while the original grouping, conditionals, quoting, or wrappers still false-deny. That leaves the actual Approach1 orientation failure unresolved despite a green regression suite.\n\nDisposition: retain the exact-string acceptance condition, but label the listed variants as supplemental coverage until the original command strings are recovered. Implementation needs those bytes and their source provenance before claiming P4 satisfied. The design can bind; exact incident reproduction remains unverified here.\n\n## F4 — footnote — panel record\n\nComment 6663371692 matches the envelope ceiling and records two seat families, but lacks the contract's operative `round:` and `siblings:` fields. Prose naming Round-1 and `spend: N=2` do not supply those fields. This is a panel-deposit record defect, not evidence against any P1–P4 remedy limb; I have not re-ceilinged or inspected later comments.\n\n## Road not taken\n\nA separate realpath-only exemption is unnecessary: the pinned realpath harvester already consumes the same read-only predicate as lexical destination classification. The strongest reason to keep the current deny is uncertainty about shell execution hidden in reader-shaped input. That argues for bounded proof and mixed-command negative fixtures, not blanket denial of literal existence probes. A reproduced plant admitted by the proposed proof would change this verdict to blocks-the-design; static inspection alone does not establish that the unimplemented draft admits one.\r\n\n",
+          "id": 6663446373,
+          "html_url": "https://github.com/deftai/directive/issues/5970#issuecomment-6663446373",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:34:14Z",
+          "updated_at": "2026-11-05T16:34:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nVerdict: Prefer-A draft 6663338891 stands against Stop 1 P1–P4. No `blocks-the-design`. Sharpen three framings so bind stays Thin Fail-Closed (#3265 / #5783): (1) one `isProvenReadOnlyArgv` extension covers both relative dest-of-write unknown (P1) and #4188 harvest (P2); (2) `test`/`[` must not inherit the sort/awk `-o` output-dest gate; (3) P3 must name the carrier that interpolates the harvested dest into `PROTECTED_STORE_EXTERNAL_DENY`. Do not invent a parallel Bound.\n\nPin-read (dest cwd-without-occupy; Shell/`git show` hook-denied): `packages/core/src/authz/classify.ts` + `evaluate.ts` + `protected-dest-realpath.ts` under `.deft-scratch/worktrees/arc-5970` @ dispatch-sha `7f04a43075911dcacf72683e0e886152b8bc2fe8` anchors. Ceiling through `6663371692`. Same-round siblings unread.\n\n### F1 — Medium — sharpens-framing: P1+P2 share one proven-reader mechanism\n\nEvidence: Prefer-A limbs split P1 (relative kill-switch existence probes → dest-of-write unknown / inactive `protected_store`) from P2 (absolute payload-root probes → `#4188` harvest). At pin: `hasProtectedUnprovenReadOnlyDestOfWrite` only fires on `isRelativePayloadProtectedDest` after failing `isProvenReadOnlyArgv`; `harvestDestsOfWriteForRealpath` already `continue`s proven readers, and `shellCommandHasPayloadRootProtectedDestAfterRealpath` consumes that harvest. `READ_ONLY_PROOF_BINS` has `cat`/`ls`/`get-content`/… and proves only `git log` — not `Test-Path` / `test` / `[` / `Get-Item` / `dir`/`Get-ChildItem`. Absolute kill-switch operands skip the relative gate, then land via harvest+realpath (`protected-dest-realpath.ts`).\n\nFailure mode: implementer grows a second harvest-only carve beside `isProvenReadOnlyArgv`, duplicating the reader list and drifting under Thin Fail-Closed.\n\nDisposition: keep both pain cites; bind that extending proven existence-probe readers in `isProvenReadOnlyArgv` is the sole classify mechanism for P1 and P2. No second harvest skip list.\n\n### F2 — Medium — sharpens-framing: do not reuse sort/awk `-o` for `test`/`[`\n\nEvidence: Prefer-A P1 carves closed existence-probe first-bins “without write/output-dest flags.” Today `argvHasOutputDestFlag` / `READ_ONLY_PROOF_OUTPUT_DEST_FLAGS` (`-o`, `--output`, …) apply only inside `isProvenReadOnlyArgv` for `sort`/`awk`/`gawk`/`nawk`. POSIX `test`/`[` use `-o` as OR (`test -f a -o -f .deft-directive-disable`).\n\nFailure mode: folding `test`/`[` into the sort/awk output-dest gate makes compound OR probes fail proven-read-only, fall through to `hasProtectedUnprovenReadOnlyDestOfWrite`, and re-deny Approach1 orientation strings Prefer-A claims to relieve.\n\nDisposition: sharpen P1 so existence-probe proof for `test`/`[` ignores POSIX `-o` OR; keep real write/output-dest refusal for `dir`/`Get-ChildItem` (`-OutFile`, redirects — already on `hasKillSwitchShellWrite`).\n\n### F3 — Medium — sharpens-framing: P3 needs a harvested-token carrier\n\nEvidence: Prefer-A P3 requires authentic deny text to name the harvested path/token. Pin `PROTECTED_STORE_EXTERNAL_DENY` in `evaluate.ts` is a static string naming only `deft authz:grant`. `classifyHookAuthzOps` returns op tokens (`unknown`/`protected_store`) with no dest payload; evaluate denies `op === \"protected_store\"` / `protectedStoreShellWrite` with that constant.\n\nFailure mode: a wording-only edit of the constant still cannot name the token; agents keep thrashing on grant mint for false-denies that should have shown the probe path.\n\nDisposition: sharpen P3 to interpolate the dest from the same classify/harvest path that set `protected_store` into the deny reason; keep `authz:grant` only as the mint escape for real grants. Still one limb — not a second essay.\n\n### F4 — Low — footnote: bare `git status` / `pwd` / `env` already empty or non-protected\n\nIssue Acceptance lists `git status`, `git rev-parse`, `pwd`, `env | rg DEFT_`. Pin: `hasProtectedDestOfWriteUnknown(\"git status\")` is false; `classifyHookAuthzOps` comments that empty classification is not gated. Transcript false-denies are compound shells whose existence-probe segment hits kill-switch pathish — Prefer-A’s carve. USER.md under the platform config dir is outside `pathishIsProtectedDest` (authz / approved-scope / kill-switch only). Footnote only.\n\n### F5 — Low — footnote: Reject list already closes plant holes\n\nReject (blanket basename allow; grant-as-remediation; collapse into #5925/#5935; Bound essay growth) matches inventory. Negative plant fixtures in P4 (`touch`/`cp`/`Set-Content`/redirect) stay on `hasKillSwitchShellWrite` / catalogued writers. Footnote.\n\n## Road-not-taken\n\nWidening proven-read-only to every unknown argv0 whose last positional is kill-switch pathish — steelman: one predicate, no bin list. Flip only if a closed first-bin list proves incomplete after P4 fixtures; otherwise it reopens plant holes Prefer-A Reject forbids (unknown writer with kill-switch operand). Parallel harvest skip set — duplicates `isProvenReadOnlyArgv`; F1 already refuses it.\n\nInjection/swarm lens: target changes authz / protected store / kill-switch / Shell classification. Prefer-A keeps plants denied via closed reader bins + negative fixtures; no authority widen beyond existence-probe proof.\n\nFiled for @MScottAdams\n\n",
+          "id": 6663460528,
+          "html_url": "https://github.com/deftai/directive/issues/5970#issuecomment-6663460528",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:34:50Z",
+          "updated_at": "2026-11-05T16:34:50Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## Prefer-A Bound\n\nconflict_group: approach1-readonly-orientation-shell-false-deny-protected-store\nSpec-path: packages/core/src/authz/classify.ts isProvenReadOnlyArgv existence-probe + evaluate harvested-token deny carrier\nLean: Prefer-A\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N=2\nmove-forward: yes\ndispatch-sha: 7f04a43075911dcacf72683e0e886152b8bc2fe8\ndest: .deft-scratch/worktrees/arc-5970\nTarget-digest: sha256:0a131fd269fe239b50830cdd7b1fb3cc58f59d23eb23bfc5b04be3ce4d57d230\nKISS ceiling: #5783 Prefer-A Bound 6280270826\nRound-1: Codex 6663446373; Grok 6663460528\npanel-deposit: 6663371692\nPrefer-A draft: 6663338891\n\n## In plain English\n\nBind Prefer-A: carve Approach1 kill-switch existence probes as proven readers via one shared isProvenReadOnlyArgv extension (covers relative dest-of-write and #4188 harvest), keep plants denied, carry the matched harvested token into authentic protected_store deny text, and lock transcript/regression coverage. Absorb Round-1 sharpenings; no blocks-the-design.\n\n## Takes\n\n| Finding | Disposition |\n|---|---|\n| Codex F1 / Grok F1 — one proven-reader mechanism for P1+P2; segment-local | accept-into-contract |\n| Grok F2 — test/[ must not inherit sort/awk -o output-dest gate | accept-into-contract |\n| Codex F2 / Grok F3 — P3 harvested-token carrier into effective deny (incl. unknown-first) | accept-into-contract |\n| Codex F3 — exact transcript bytes vs supplemental shapes for P4 | accept-into-contract |\n| Codex F4 / Grok F4–F5 — panel record / already-empty git status / Reject plant holes | footnote |\n\n## Bound remedy\n\n- relieves: P1 — Extend isProvenReadOnlyArgv with closed existence-probe first-bins (Test-Path, test, [, Get-Item, dir/Get-ChildItem) so those segments with kill-switch or authz path operands do not emit dest-of-write unknown or inactive protected_store; exemption is segment-local and leaves independent write/redirect checks intact.\n- relieves: P2 — That same isProvenReadOnlyArgv extension is the sole classify mechanism for absolute payload-root kill-switch existence probes under #4188 harvest; do not add a second harvest-only skip list.\n- relieves: P1 — For test/[ existence-probe proof, ignore POSIX -o OR; do not reuse sort/awk READ_ONLY_PROOF_OUTPUT_DEST_FLAGS; keep real write/output-dest refusal for dir/Get-ChildItem.\n- relieves: P3 — Carry the matched harvested path or token from the classify/harvest route that set protected_store into the effective deny text (including the unknown-first active-UAT route); keep authz:grant only as the mint escape for real grants.\n- relieves: P4 — Regression fixtures cover recovered exact #5970 Approach1 denied command bytes (with provenance) plus supplemental shapes (compound git+Test-Path, bare Test-Path, test -f, Get-Item, dir), mixed probe+writer/redirect negatives, path-qualified lookalikes, and plant cases (touch/cp/Set-Content/redirect to kill-switch) that stay denied.\n\n## Reject\n\n- Reject: blanket allow whenever command text mentions a kill-switch basename.\n- Reject: a second harvest-only carve duplicating isProvenReadOnlyArgv.\n- Reject: authz:grant as remediation for read-only orientation false-denies.\n- Reject: collapsing this into #5925 inspectable-lifecycle or #5935 wrapper-noise.\n- Reject: growing Bound remedy into a second design essay (#5783 / #3265).\n\n## Pointers\n\n| Topic | Where |\n|---|---|\n| proven read-only argv | isProvenReadOnlyArgv / READ_ONLY_PROOF_BINS |\n| unproven dest-of-write | hasProtectedUnprovenReadOnlyDestOfWrite |\n| #4188 harvest | harvestDestsOfWriteForRealpath / shellCommandHasPayloadRootProtectedDestAfterRealpath |\n| #4709 protected_store deny | inactiveShellTargetsProtectedStore / PROTECTED_STORE_EXTERNAL_DENY |\n| epic journey | #5952 |",
+          "id": 6663472185,
+          "html_url": "https://github.com/deftai/directive/issues/5970#issuecomment-6663472185",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:35:20Z",
+          "updated_at": "2026-11-05T16:35:20Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\nfinding-classes: none\nharvest-changed: false\n\nPain-audit verdict: Prefer-A Bound 6663472185 covers Stop 1 P1-P4. No blocking finding or mechanism/fail-closed association change is required.\n\nAudit basis: inclusive comment ceiling 6663472185; dispatch SHA 7f04a43075911dcacf72683e0e886152b8bc2fe8. Read the issue, Stop 1 6663366682, Bound (including Spec-path and Target-digest), and Round-1 comments 6663446373 / 6663460528 as context. Pin-read classify.ts, evaluate.ts, and protected-dest-realpath.ts via git show. This is design coverage, not a claim of implemented relief or executed regression tests.\n\n- **P1 — relieved by contract.** The limbs beginning \"Extend isProvenReadOnlyArgv with closed existence-probe first-bins\" and \"For test/[ existence-probe proof, ignore POSIX -o OR\" address relative probes at the existing shared proof point. The pinned relative destination walker skips proven readers. Segment-local exemption plus retained independent write/redirect checks preserves the distinction between an existence probe and a plant; POSIX OR is not mistaken for sort/awk output syntax.\n- **P2 — relieved by contract.** The limb beginning \"That same isProvenReadOnlyArgv extension is the sole classify mechanism\" reaches the absolute-path route: harvestDestsOfWriteForRealpath already skips the same proven readers before the realpath helper evaluates recovered destinations. No second skip list or relaxation of realpath protection is needed.\n- **P3 — relieved by contract.** The limb beginning \"Carry the matched harvested path or token\" binds the diagnostic to the detection route that actually set protected_store, including the effective unknown-first active-UAT denial. That addresses the pinned boolean/op-only interface and constant denial text rather than merely rewording the constant. The grant mint reference remains for real grants; it does not create a covering-grant escape for protected plants.\n- **P4 — relieved by contract; execution evidence remains due during implementation.** The limb beginning \"Regression fixtures cover recovered exact #5970 Approach1 denied command bytes (with provenance)\" explicitly distinguishes incident bytes from supplemental shapes and retains mixed writer/redirect, path-qualified lookalike, and plant negatives. The ceiling issue contains command summaries, so this audit does not certify that the exact bytes have been recovered or the fixtures pass. That existing acceptance obligation is not a missing remedy limb.\n\nThe accepted Round-1 map stands. No remint or Bound essay expansion is requested.",
+          "id": 6663506868,
+          "html_url": "https://github.com/deftai/directive/issues/5970#issuecomment-6663506868",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:36:49Z",
+          "updated_at": "2026-11-05T16:36:49Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\nfinding-classes: none\nharvest-changed: false\n\n## In plain English\n\nPain-audit of Prefer-A Bound 6663472185 against Stop 1 6663366682 P1–P4 clears. Each Stop 1 pain has Bound remedy limb coverage; fail-closed association stays plants-denied + segment-local proven readers. No remint. Round-1 Codex 6663446373 / Grok 6663460528 absorbed into Bound; not re-litigated as Round-1.\n\n## Verification\n\nPin-read (cwd-without-occupy file read; Shell/`git show` hook-denied): `packages/core/src/authz/classify.ts` + `evaluate.ts` under `.deft-scratch/worktrees/arc-5970` at dispatch-sha `7f04a43075911dcacf72683e0e886152b8bc2fe8`. Ceiling inclusive 6663472185. `READ_ONLY_PROOF_BINS` lacks Test-Path/test/[ /Get-Item/dir; both `hasProtectedUnprovenReadOnlyDestOfWrite` and `harvestDestsOfWriteForRealpath` skip on `isProvenReadOnlyArgv`; `PROTECTED_STORE_EXTERNAL_DENY` is a static grant-only string; `EvaluateAuthzInput` has no Shell dest witness today.\n\n## Pain relief\n\n- **pain-P1** — relieved by limbs `Extend isProvenReadOnlyArgv with closed existence-probe first-bins…` and `For test/[ existence-probe proof, ignore POSIX -o OR…`. Relative kill-switch existence probes stop emitting dest-of-write unknown / inactive protected_store via one shared proven-reader extension; segment-local; independent write/redirect checks intact; test/[ does not inherit sort/awk `-o` output-dest gate.\n- **pain-P2** — relieved by limb `That same isProvenReadOnlyArgv extension is the sole classify mechanism for absolute payload-root…`. Absolute payload-root probes under #4188 harvest use the same extension; Reject forbids a second harvest-only skip list. Pin confirms harvest already continues past proven readers.\n- **pain-P3** — relieved by limb `Carry the matched harvested path or token… into the effective deny text (including the unknown-first active-UAT route)…`. Matches pin: constant deny names only `authz:grant`; Bound requires a carrier from the classify/harvest route that set protected_store, including unknown-first. Grant stays mint escape for real grants only.\n- **pain-P4** — relieved by limb `Regression fixtures cover recovered exact #5970 Approach1 denied command bytes (with provenance) plus supplemental shapes…`. Exact bytes + provenance required; listed shapes stay supplemental until recovered; mixed probe+writer/redirect negatives and plant cases (touch/cp/Set-Content/redirect) stay denied.\n\n## Association check\n\nBound does not reopen plant holes (Reject + P4 negatives + hasKillSwitchShellWrite path). One `isProvenReadOnlyArgv` mechanism covers P1+P2. P3 is evidence plumbing into effective deny, not grant-as-remediation. No Bound essay growth demanded (#5783 / #3265).\n\nFiled for @MScottAdams\n\n",
+          "id": 6663513800,
+          "html_url": "https://github.com/deftai/directive/issues/5970#issuecomment-6663513800",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:37:06Z",
+          "updated_at": "2026-11-05T16:37:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Evidence |\n|---|---|\n| Stop 1 warranted mechanism-shaped arc on #5970 false-deny | Stop 1 6663366682; chip mechanism-shaped→in-progress |\n| Prefer-A Bound absorbs Round-1 sharpenings; no blocks-the-design | Bound 6663472185; Codex R1 6663446373; Grok R1 6663460528 |\n| Pain-audit clear: finding-classes none; harvest-changed false | Codex PA 6663506868; Grok PA 6663513800 |\n| Sole classify mechanism: extend isProvenReadOnlyArgv for existence-probe bins (P1+P2) | Bound remedy limbs; Grok F1 / Codex F1 accept-into-contract |\n| test/[ ignore POSIX -o OR; no second harvest skip list | Bound remedy; Grok F2 |\n| Deny text carries matched harvested token; authz:grant mint-only for real grants | Bound P3; Codex F2 / Grok F3 |\n| Fixtures: exact transcript bytes when recovered + supplemental shapes + plant negatives | Bound P4; Codex F3 |\n| Run posture no-ingest; ingest remains separate operator verb | arc-mode: no-ingest; spend-amend 6663367210 N=2 |\n\nCited Prefer-A Bound / successor lean: 6663472185\nBound-contract-digest: sha256:0a131fd269fe239b50830cdd7b1fb3cc58f59d23eb23bfc5b04be3ce4d57d230\ndispatch-sha: 7f04a43075911dcacf72683e0e886152b8bc2fe8",
+          "id": 6663521125,
+          "html_url": "https://github.com/deftai/directive/issues/5970#issuecomment-6663521125",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:37:25Z",
+          "updated_at": "2026-11-05T16:37:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set) on Prefer-A Bound after clear pain-audit.\n\nsuccessor lean: 6663472185\nverified-claims table: 6663521125\nPrefer-A draft: 6663338891\nStop 1: 6663366682\npanel-deposit: 6663371692\nRound-1: Codex 6663446373; Grok 6663460528\npain-audit: Codex 6663506868; Grok 6663513800\nspend-amend: 6663367210 (N≥3→N=2; Claude OAuth launch-probe miss)\ndispatch-sha: 7f04a43075911dcacf72683e0e886152b8bc2fe8\ndest: .deft-scratch/worktrees/arc-5970\nBound-contract-digest: sha256:0a131fd269fe239b50830cdd7b1fb3cc58f59d23eb23bfc5b04be3ce4d57d230\narc-mode: no-ingest\nyolo-standing: on\n\n## In plain English\n\nArc #5970 is complete for list state: Prefer-A Bound 6663472185 is the next-build contract for carving Approach1 kill-switch existence probes as proven readers, carrying harvested tokens into authentic protected_store denies, and locking regressions — without opening plant holes. Ingest stays a separate operator verb (`task issue:ingest`).\n\n## Pain coverage\n\n- P1 relieved by Bound existence-probe isProvenReadOnlyArgv extension (segment-local) + test/[ -o OR carve\n- P2 relieved by same sole isProvenReadOnlyArgv mechanism under #4188 harvest\n- P3 relieved by harvested-token carrier into effective deny text\n- P4 relieved by exact+supplemental+plant fixture limb",
+          "id": 6663521557,
+          "html_url": "https://github.com/deftai/directive/issues/5970#issuecomment-6663521557",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:37:26Z",
+          "updated_at": "2026-11-05T16:37:47Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nProcess-only Approach1 babysit orientation shells were **hard-denied** as inventoried authz / protected dest-of-write mutations — including commands that only ran `git rev-parse` / `git status` / kill-switch existence probes. No other humans were on the machine. The deny text offers only `deft authz:grant`, which cannot cover this class.\n\n## Journey\n\nApproach1 review-monitor babysit for https://github.com/deftai/directive/pull/5969 (#5956-A). Subagent `01a17e06-3f3e-7da1-909a-d56d306a6ef4`. Forensic dump: `~/Projects/directive-failures/postmortems/2026-10-27-5956a-approach1-babysit-transcript-20261027T160016Z/`.\n\n## Evidence (denied commands)\n\n1. kill-switch probe + `ls` of platform USER.md under the deft config dir + `pwd` + `git rev-parse` + `git status`\n2. `pwd && git rev-parse HEAD && git status -sb &&` kill-switch probe (no USER.md path)\n3. `env | rg` of DEFT/GROK markers + `git` + kill-switch probe\n4. **`git rev-parse HEAD && git status -sb &&` kill-switch probe only**\n\nDeny (same text each time): inventoried authz store / protected dest-of-write; no covering-grant escape; only human-presence `deft authz:grant`.\n\nCounts in that transcript: ~21 update lines carrying this deny class. `echo hello` and some `deft … --help` forms succeeded — classifier / harvest false-positive, not a total shell lockout.\n\nLikely harvest trigger candidates (confirm in classify / #4188 / #4709 path):\n\n- kill-switch filename that embeds the deft private-dir prefix\n- platform config USER.md path on early probes\n- compound `git` + existence-test shells mis-harvested as dest-of-write\n\nCode comments claim empty classification for `git status` is not gated; live dogfood contradicts that for these compound orientation shells.\n\n## Impact\n\nApproach1 / process-only leaves cannot even orient (`pwd` / `git status` / kill-switch probe) without thrashing into filesystem tools and help text. Soft→hard impedance before any product mutation.\n\n## Acceptance\n\n- [ ] Documented read-only orientation shells (`git status`, `git rev-parse`, `pwd`, kill-switch existence probe, `env | rg DEFT_`) are **not** classified as inventoried authz / protected dest-of-write.\n- [ ] Regression test covering the exact denied command strings from this transcript.\n- [ ] Deny text, when authentic, names the harvested path/token (not only `authz:grant`).\n\n## Related (not duplicates)\n\n- Epic journey: #5952\n- Inspectable lifecycle (different deny): #5925\n- Wrapper noise: #5935\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6063172964,
+        "origin": "deftai/directive#5970",
+        "id": "github.issue.6063172964"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "0a131fd269fe239b50830cdd7b1fb3cc58f59d23eb23bfc5b04be3ce4d57d230"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "approach1-readonly-orientation-shell-false-deny-protected-store",
+        "expected_outputs": [
+          "isProvenReadOnlyArgv existence-probe bins",
+          "harvested-token carrier in protected_store deny",
+          "Approach1 #5970 transcript regression",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "npx vitest run packages/core/src/authz/classify.test.ts packages/core/src/authz/evaluate.test.ts packages/core/src/authz/incident-regression.test.ts"
+        ],
+        "file_scope": [
+          "packages/core/src/authz/classify.ts",
+          "packages/core/src/authz/classify.test.ts",
+          "packages/core/src/authz/evaluate.ts",
+          "packages/core/src/authz/evaluate.test.ts",
+          "packages/core/src/authz/incident-regression.test.ts",
+          "packages/core/src/authz/protected-dest-realpath.ts",
+          "CHANGELOG.md"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5970",
+          "Prefer-A Bound 6663472185",
+          "#5952",
+          "#4188",
+          "#4709"
+        ],
+        "parallel_safe": true
+      }
+    },
+    "id": "github.issue.6063172964",
+    "updated": "2026-11-05T17:59:31Z"
+  }
+}

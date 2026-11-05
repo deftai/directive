@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5855",
-    "updated": "2026-10-23T06:05:04Z"
+    "updated": "2026-11-05T18:00:17.111Z"
   },
   "plan": {
     "title": "bug(pre-pr,check): with multiple active briefs, verify:ac refuses (no story selected), so no maintainer can pass the #5804 push gate",
@@ -11,28 +11,34 @@
       "Description": "bug(pre-pr,check): with multiple active briefs, verify:ac refuses (no story selected), so no maintainer can pass the #5804 push gate",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5855",
       "Overview": "\n\n- relieves: P1 — Branch identity plus untied-admission evidence: plan.id token equality then repo-scoped briefOwnsIssue issue token (exclude version-shaped/multi-token); unique match binds; no story token plus check-integrated plus no boundPath/dispatch-expectation markers admits untied; dispatch/spawn expectation without pin stays unresolved refuse\n- relieves: P2 — Opt-in shared soft-missing binder for check/pre-pr only; sor-preflight default stays need-pin; no parallel selector; no demote of parked actives\n- relieves: P3 — Soft-missing disposition: after completed-target none (run target / refuse cannot), admitted untied emits soft-missing once with fenced candidates and may satisfy check/pre-pr without asserting executed AC; push-admit may accept that soft-missing/no-obligation class and must refuse required-story skip/unresolved; pin-miss and ambiguous multi-match refuse\n- relieves: P4 — Regression: unique plan.id bind; version-token/detached no-token admitted-untied soft-skip; lost-pin/dispatch-without-pin refuses; completed-story AC failure propagates; soft-missing push-admit vs required-story skip refuse; sor-preflight default unchanged\n\n\n",
-      "Labels": "bug, area:release, design-critique:ingest-ready"
+      "Labels": "bug, area:release, design-critique:ingest-ready",
+      "UserStory": "As a maintainer with multiple active briefs parked, I want check/pre-pr to bind the branch story or soft-skip with proven untied worker-auth (foreign-live refuse only) so the #5804 push gate can pass without demoting cohort leftovers.",
+      "ImplementationPlan": "Remint Recut-8: unique plan.id/issue bind; admitted-untied only after verified worker-auth shows no assignment and no foreign live occupancy; ordinary pre-PR binds no-obligation from direct verify:ac disposition; optional merge_chokepoint when-present gets distinct exit; push admits bound evidence."
     },
     "items": [
       {
-        "title": "relieves: P1 — Branch identity plus untied-admission evidence: plan.id token equality then repo-scoped briefOwnsIssue issue token (exclude version-shaped/multi-token); unique match binds; no story token plus check-integrated plus no boundPath/dispatch-expectation markers admits untied; dispatch/spawn expectation without pin stays unresolved refuse",
-        "status": "proposed",
-        "id": "clause.1"
+        "id": "clause.1",
+        "title": "relieves: P1 — Branch identity plus verified worker-auth untied evidence with foreign-live refuse only (plan.id then briefOwnsIssue; admit untied when readWorkerAuthAssignment finds no registered assignment; refuse registered-without-pin, unreadable, missing-assignment-for-indexed-worktree, null commonDir; after cohort cleanup refuse admitted-untied only when liveOccupant is non-null AND occupancyAdmission is not the caller)",
+        "status": "pending",
+        "artifact_path": "packages/core/src/hooks/scope.ts"
       },
       {
-        "title": "relieves: P2 — Opt-in shared soft-missing binder for check/pre-pr only; sor-preflight default stays need-pin; no parallel selector; no demote of parked actives",
-        "status": "proposed",
-        "id": "clause.2"
+        "id": "clause.2",
+        "title": "relieves: P2 — Opt-in shared soft-missing binder for check/pre-pr only; sor-preflight default stays need-pin; ceremonied maintainer untied relief rides P1 foreign-live predicate",
+        "status": "pending",
+        "artifact_path": "packages/core/src/hooks/scope.test.ts"
       },
       {
-        "title": "relieves: P3 — Soft-missing disposition: after completed-target none (run target / refuse cannot), admitted untied emits soft-missing once with fenced candidates and may satisfy check/pre-pr without asserting executed AC; push-admit may accept that soft-missing/no-obligation class and must refuse required-story skip/unresolved; pin-miss and ambiguous multi-match refuse",
-        "status": "proposed",
-        "id": "clause.3"
+        "id": "clause.3",
+        "title": "relieves: P3 — Soft-missing disposition with direct-AC no-obligation carrier: ordinary pre-PR binds no-obligation from direct verify:ac disposition without requiring merge_chokepoint; when check runs use distinct non-zero exit neither 1 nor 2 nor 124; push-admit reads bound disposition evidence and refuses missing disposition",
+        "status": "pending",
+        "artifact_path": "packages/core/src/hooks/scope-bind.test.ts"
       },
       {
-        "title": "relieves: P4 — Regression: unique plan.id bind; version-token/detached no-token admitted-untied soft-skip; lost-pin/dispatch-without-pin refuses; completed-story AC failure propagates; soft-missing push-admit vs required-story skip refuse; sor-preflight default unchanged",
-        "status": "proposed",
-        "id": "clause.4"
+        "id": "clause.4",
+        "title": "relieves: P4 — Regression covering unique bind, admitted-untied self-lease and lease-free trees, foreign-live refuse, ordinary pre-PR omitted-merge_chokepoint, distinct check exit across both dispatch paths, enrolled multi-ref push refuse, and completed-story AC failure propagate",
+        "status": "pending",
+        "artifact_path": "packages/runtime/src/verify-ac.ts"
       }
     ],
     "tags": [
@@ -54,47 +60,47 @@
       "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
       "sentences": [
         "bug(pre-pr,check): with multiple active briefs, verify:ac refuses (no story selected), so no maintainer can pass the #5804 push gate",
-        "relieves: P1 — Branch identity plus untied-admission evidence: plan.id token equality then repo-scoped briefOwnsIssue issue token (exclude version-shaped/multi-token); unique match binds; no story token plus check-integrated plus no boundPath/dispatch-expectation markers admits untied; dispatch/spawn expectation without pin stays unresolved refuse",
-        "relieves: P2 — Opt-in shared soft-missing binder for check/pre-pr only; sor-preflight default stays need-pin; no parallel selector; no demote of parked actives",
-        "relieves: P3 — Soft-missing disposition: after completed-target none (run target / refuse cannot), admitted untied emits soft-missing once with fenced candidates and may satisfy check/pre-pr without asserting executed AC; push-admit may accept that soft-missing/no-obligation class and must refuse required-story skip/unresolved; pin-miss and ambiguous multi-match refuse",
-        "relieves: P4 — Regression: unique plan.id bind; version-token/detached no-token admitted-untied soft-skip; lost-pin/dispatch-without-pin refuses; completed-story AC failure propagates; soft-missing push-admit vs required-story skip refuse; sor-preflight default unchanged"
+        "relieves: P1 — Branch identity plus verified worker-auth untied evidence with foreign-live refuse only (plan.id then briefOwnsIssue; admit untied when readWorkerAuthAssignment finds no registered assignment; refuse registered-without-pin, unreadable, missing-assignment-for-indexed-worktree, null commonDir; after cohort cleanup refuse admitted-untied only when liveOccupant is non-null AND occupancyAdmission is not the caller)",
+        "relieves: P2 — Opt-in shared soft-missing binder for check/pre-pr only; sor-preflight default stays need-pin; ceremonied maintainer untied relief rides P1 foreign-live predicate",
+        "relieves: P3 — Soft-missing disposition with direct-AC no-obligation carrier: ordinary pre-PR binds no-obligation from direct verify:ac disposition without requiring merge_chokepoint; when check runs use distinct non-zero exit neither 1 nor 2 nor 124; push-admit reads bound disposition evidence and refuses missing disposition",
+        "relieves: P4 — Regression covering unique bind, admitted-untied self-lease and lease-free trees, foreign-live refuse, ordinary pre-PR omitted-merge_chokepoint, distinct check exit across both dispatch paths, enrolled multi-ref push refuse, and completed-story AC failure propagate"
       ],
       "confessions": [
         "bug(pre-pr,check): with multiple active briefs, verify:ac refuses (no story selected), so no maintainer can pass the #5804 push gate"
       ],
       "admitted_source_sentences": [
-        "relieves: P1 — Branch identity plus untied-admission evidence: plan.id token equality then repo-scoped briefOwnsIssue issue token (exclude version-shaped/multi-token); unique match binds; no story token plus check-integrated plus no boundPath/dispatch-expectation markers admits untied; dispatch/spawn expectation without pin stays unresolved refuse",
-        "relieves: P2 — Opt-in shared soft-missing binder for check/pre-pr only; sor-preflight default stays need-pin; no parallel selector; no demote of parked actives",
-        "relieves: P3 — Soft-missing disposition: after completed-target none (run target / refuse cannot), admitted untied emits soft-missing once with fenced candidates and may satisfy check/pre-pr without asserting executed AC; push-admit may accept that soft-missing/no-obligation class and must refuse required-story skip/unresolved; pin-miss and ambiguous multi-match refuse",
-        "relieves: P4 — Regression: unique plan.id bind; version-token/detached no-token admitted-untied soft-skip; lost-pin/dispatch-without-pin refuses; completed-story AC failure propagates; soft-missing push-admit vs required-story skip refuse; sor-preflight default unchanged"
+        "relieves: P1 — Branch identity plus verified worker-auth untied evidence with foreign-live refuse only (plan.id then briefOwnsIssue; admit untied when readWorkerAuthAssignment finds no registered assignment; refuse registered-without-pin, unreadable, missing-assignment-for-indexed-worktree, null commonDir; after cohort cleanup refuse admitted-untied only when liveOccupant is non-null AND occupancyAdmission is not the caller)",
+        "relieves: P2 — Opt-in shared soft-missing binder for check/pre-pr only; sor-preflight default stays need-pin; ceremonied maintainer untied relief rides P1 foreign-live predicate",
+        "relieves: P3 — Soft-missing disposition with direct-AC no-obligation carrier: ordinary pre-PR binds no-obligation from direct verify:ac disposition without requiring merge_chokepoint; when check runs use distinct non-zero exit neither 1 nor 2 nor 124; push-admit reads bound disposition evidence and refuses missing disposition",
+        "relieves: P4 — Regression covering unique bind, admitted-untied self-lease and lease-free trees, foreign-live refuse, ordinary pre-PR omitted-merge_chokepoint, distinct check exit across both dispatch paths, enrolled multi-ref push refuse, and completed-story AC failure propagate"
       ],
       "admitted_source_digest": "ea69242dc6fed8f14636718a5a90a78c3096ce08a8c4fb33e15ffb34e992d856",
       "clauses": [
         {
           "id": 1,
-          "text": "relieves: P1 — Branch identity plus untied-admission evidence: plan.id token equality then repo-scoped briefOwnsIssue issue token (exclude version-shaped/multi-token); unique match binds; no story token plus check-integrated plus no boundPath/dispatch-expectation markers admits untied; dispatch/spawn expectation without pin stays unresolved refuse",
-          "artifact_path": null,
+          "text": "relieves: P1 — Branch identity plus verified worker-auth untied evidence with foreign-live refuse only (plan.id then briefOwnsIssue; admit untied when readWorkerAuthAssignment finds no registered assignment; refuse registered-without-pin, unreadable, missing-assignment-for-indexed-worktree, null commonDir; after cohort cleanup refuse admitted-untied only when liveOccupant is non-null AND occupancyAdmission is not the caller)",
+          "artifact_path": "packages/core/src/hooks/scope.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 2,
-          "text": "relieves: P2 — Opt-in shared soft-missing binder for check/pre-pr only; sor-preflight default stays need-pin; no parallel selector; no demote of parked actives",
-          "artifact_path": null,
+          "text": "relieves: P2 — Opt-in shared soft-missing binder for check/pre-pr only; sor-preflight default stays need-pin; ceremonied maintainer untied relief rides P1 foreign-live predicate",
+          "artifact_path": "packages/core/src/hooks/scope.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 3,
-          "text": "relieves: P3 — Soft-missing disposition: after completed-target none (run target / refuse cannot), admitted untied emits soft-missing once with fenced candidates and may satisfy check/pre-pr without asserting executed AC; push-admit may accept that soft-missing/no-obligation class and must refuse required-story skip/unresolved; pin-miss and ambiguous multi-match refuse",
-          "artifact_path": null,
+          "text": "relieves: P3 — Soft-missing disposition with direct-AC no-obligation carrier: ordinary pre-PR binds no-obligation from direct verify:ac disposition without requiring merge_chokepoint; when check runs use distinct non-zero exit neither 1 nor 2 nor 124; push-admit reads bound disposition evidence and refuses missing disposition",
+          "artifact_path": "packages/core/src/hooks/scope-bind.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 4,
-          "text": "relieves: P4 — Regression: unique plan.id bind; version-token/detached no-token admitted-untied soft-skip; lost-pin/dispatch-without-pin refuses; completed-story AC failure propagates; soft-missing push-admit vs required-story skip refuse; sor-preflight default unchanged",
-          "artifact_path": null,
+          "text": "relieves: P4 — Regression covering unique bind, admitted-untied self-lease and lease-free trees, foreign-live refuse, ordinary pre-PR omitted-merge_chokepoint, distinct check exit across both dispatch paths, enrolled multi-ref push refuse, and completed-story AC failure propagate",
+          "artifact_path": "packages/runtime/src/verify-ac.ts",
           "ambiguous": false,
           "provenance": "statement"
         }
@@ -106,18 +112,26 @@
         "schema": "deft.scope.intended_placement.v1",
         "files": [
           "packages/core/src/hooks/scope.ts",
-          "packages/core/src/hooks/scope-bind.test.ts",
           "packages/core/src/hooks/scope.test.ts",
+          "packages/core/src/hooks/scope-bind.test.ts",
           "packages/runtime/src/verify-ac.ts",
           "packages/runtime/src/verify-ac.test.ts",
           "packages/core/src/product-first-done-gate/acceptance-resolver.ts",
           "packages/core/src/product-first-done-gate/index.ts",
+          "packages/core/src/swarm/worker-auth-assignment.ts",
+          "packages/core/src/swarm/worker-auth-assignment.test.ts",
+          "packages/core/src/session/occupancy.ts",
+          "packages/core/src/session/occupancy.test.ts",
+          "packages/core/src/pre-pr-controller/controller.ts",
+          "packages/core/src/pre-pr-controller/controller.test.ts",
+          "packages/core/src/pre-pr-controller/phases.ts",
           "packages/core/src/preflight-gh/pre-push.ts",
           "packages/core/src/preflight-gh/pre-push.test.ts",
+          "packages/runtime/src/pre-pr-run.ts",
           "CHANGELOG.md"
         ],
         "module_boundary": "packages/core/src/hooks/scope.ts",
-        "cohesion_exemption": "CHANGELOG + one binder in hooks/scope.ts consumed by verify:ac and enrolled push admission"
+        "cohesion_exemption": "CHANGELOG + soft-missing binder in hooks/scope consumed by verify:ac and pre-PR push admission"
       },
       "issueCommentThread": [
         {
@@ -747,40 +761,49 @@
         "readiness": "ready",
         "conflict_group": "check-pre-pr-multi-active-branch-brief-auto-bind",
         "expected_outputs": [
-          "branch-side story bind (plan.id / repo-scoped issue token) with untied admission",
-          "opt-in soft-missing binder for check/pre-pr; sor-preflight need-pin unchanged",
-          "push-admit story disposition (untied soft-missing admits; unresolved refuses)",
-          "regression tests",
+          "foreign-live refuse + worker-auth untied admission",
+          "direct-AC no-obligation carrier for ordinary pre-PR",
+          "distinct check no-obligation exit neither 1 nor 2 nor 124",
+          "push-admit bound disposition evidence",
           "CHANGELOG Unreleased"
         ],
         "depends_on": [],
         "model_tier": "standard",
         "verify_commands": [
-          "npx vitest run packages/core/src/hooks/scope-bind.test.ts packages/core/src/hooks/scope.test.ts packages/runtime/src/verify-ac.test.ts packages/core/src/preflight-gh/pre-push.test.ts"
+          "npx vitest run packages/core/src/hooks/scope-bind.test.ts packages/core/src/hooks/scope.test.ts packages/runtime/src/verify-ac.test.ts packages/core/src/preflight-gh/pre-push.test.ts packages/core/src/pre-pr-controller/controller.test.ts packages/core/src/swarm/worker-auth-assignment.test.ts packages/core/src/session/occupancy.test.ts"
         ],
         "file_scope": [
           "packages/core/src/hooks/scope.ts",
-          "packages/core/src/hooks/scope-bind.test.ts",
           "packages/core/src/hooks/scope.test.ts",
+          "packages/core/src/hooks/scope-bind.test.ts",
           "packages/runtime/src/verify-ac.ts",
           "packages/runtime/src/verify-ac.test.ts",
           "packages/core/src/product-first-done-gate/acceptance-resolver.ts",
           "packages/core/src/product-first-done-gate/index.ts",
+          "packages/core/src/swarm/worker-auth-assignment.ts",
+          "packages/core/src/swarm/worker-auth-assignment.test.ts",
+          "packages/core/src/session/occupancy.ts",
+          "packages/core/src/session/occupancy.test.ts",
+          "packages/core/src/pre-pr-controller/controller.ts",
+          "packages/core/src/pre-pr-controller/controller.test.ts",
+          "packages/core/src/pre-pr-controller/phases.ts",
           "packages/core/src/preflight-gh/pre-push.ts",
           "packages/core/src/preflight-gh/pre-push.test.ts",
+          "packages/runtime/src/pre-pr-run.ts",
           "CHANGELOG.md"
         ],
-        "size": "M",
+        "size": "L",
         "file_scope_confidence": "high",
         "Traces": [
           "#5855",
-          "Prefer-A Recut-2 6357639894",
+          "Prefer-A Recut-8 6663549978",
           "#5804",
-          "#4285",
+          "#6040",
           "#5783"
         ],
         "parallel_safe": false
-      }
+      },
+      "kind": "story"
     },
     "id": "github.issue.5991859945",
     "updated": "2026-10-23T06:05:04Z"
