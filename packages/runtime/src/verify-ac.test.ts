@@ -1,9 +1,10 @@
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { destContentionItTimeout } from "../../core/src/vitest-runner/dest-contention-it-timeout.helper.test.js";
-import { clampVerifyAcExit, parseArgs, run } from "./verify-ac.js";
+import { clampVerifyAcExit, parseArgs, run, VERIFY_AC_NO_OBLIGATION_EXIT } from "./verify-ac.js";
 
 describe("clampVerifyAcExit (#3449)", () => {
   it("maps a printed pass to exit 0 even when the raw code is 201", () => {
@@ -11,10 +12,13 @@ describe("clampVerifyAcExit (#3449)", () => {
     expect(clampVerifyAcExit(true, 0)).toBe(0);
   });
 
-  it("keeps fail/config inside 0/1/2", () => {
+  it("keeps fail/config inside 0/1/2 and preserves no-obligation exit 6 (#5855)", () => {
     expect(clampVerifyAcExit(false, 1)).toBe(1);
     expect(clampVerifyAcExit(false, 201)).toBe(1);
     expect(clampVerifyAcExit(false, 2)).toBe(2);
+    expect(clampVerifyAcExit(false, VERIFY_AC_NO_OBLIGATION_EXIT)).toBe(
+      VERIFY_AC_NO_OBLIGATION_EXIT,
+    );
   });
 });
 
@@ -157,7 +161,7 @@ describe("verify:ac run (#3284)", () => {
     expect(run(["--project-root", root])).toBe(1);
   });
 
-  it("untied maintainer multi-active soft-skips without claiming AC (#5855)", () => {
+  it("untied maintainer multi-active soft-skips with distinct no-obligation exit (#5855)", () => {
     vi.stubEnv("DEFT_ACTIVE_SCOPE", "");
     vi.stubEnv("DEFT_AGENT_ID", "");
     vi.stubEnv("DEFT_WORKER_CREDENTIAL_DELIVERY_ID", "");
@@ -173,13 +177,16 @@ describe("verify:ac run (#3284)", () => {
     });
     writeFileSync(join(active, "a.xbrief.json"), body, "utf8");
     writeFileSync(join(active, "b.xbrief.json"), body, "utf8");
+    // Init a git repo so commonDir is non-null; no worker-auth assignment → untied.
+    execFileSync("git", ["init"], { cwd: root, stdio: "ignore" });
     const out: string[] = [];
     vi.spyOn(process.stdout, "write").mockImplementation((c) => {
       out.push(String(c));
       return true;
     });
-    // Not a git checkout: no branch story token, no dispatch marker -> untied.
-    expect(run(["--project-root", root, "--soft-missing-xbrief"])).toBe(0);
+    expect(run(["--project-root", root, "--soft-missing-xbrief"])).toBe(
+      VERIFY_AC_NO_OBLIGATION_EXIT,
+    );
     expect(out.join("")).toContain("#3284 soft-missing");
     expect(out.join("")).toContain("no story AC executed");
     expect(out.join("")).not.toContain("verify:ac PASS");

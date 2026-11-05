@@ -19,6 +19,7 @@ import {
   evaluateCoverageApplicability,
 } from "../coverage-applicability/index.js";
 import { evaluateCoverageHotspots } from "../coverage-hotspots/evaluate.js";
+import { admittedUntiedWorktreeKey, type VerifyAcDispositionKind } from "../hooks/scope.js";
 import { isCoverageModeSkipAuthorized, resolveCoverageMode } from "../policy/coverage-mode.js";
 import {
   coverageReportPresence,
@@ -31,12 +32,14 @@ import {
   COVERAGE_HEADROOM_WAIVED_SKIP,
   isAllowedSkip,
   LINT_ITERATION_MODE_SKIP,
+  MERGE_CHOKPOINT_NO_OBLIGATION_SKIP,
   PRE_PR_CONTROLLER_VERSION,
   PRE_PR_PHASES,
   PRE_PR_WORKFLOW_VERSION,
   type PrePrPhaseId,
   type PrePrPhaseSpec,
   phaseSpec,
+  VERIFY_AC_NO_OBLIGATION_EXIT,
 } from "./phases.js";
 import {
   isPublisher,
@@ -585,6 +588,13 @@ function commandSatisfied(
     return isCoverageModeSkipAuthorized(resolveCoverageMode(projectRoot).mode);
   }
 
+  // #5855 Recut-8: merge_chokepoint no-obligation is exit 6 + closed skip token only.
+  if (phaseId === "merge_chokepoint") {
+    if (row.exitCode === 0) return true;
+    if (row.exitCode !== VERIFY_AC_NO_OBLIGATION_EXIT) return false;
+    return row.skipReason === MERGE_CHOKPOINT_NO_OBLIGATION_SKIP;
+  }
+
   if (row.exitCode === 0) return true;
   return isAllowedSkip(phaseId, row.skipReason);
 }
@@ -668,6 +678,90 @@ export function runObservablesComplete(
 }
 
 /**
+ * PushBinding fields for verify:ac disposition (#5855 Recut-8). Structural
+ * extension so types.ts (outside merge-base file_scope) stays put.
+ */
+export type PrePrPushBindingWithDisposition = PrePrPushBinding & {
+  readonly admittedUntiedWorktreeKey?: string;
+  readonly verifyAcDisposition?: VerifyAcDispositionKind;
+};
+
+/** Read disposition fields off a stored pushBinding without widening types.ts. */
+export function readPushBindingDisposition(binding: PrePrPushBinding | null | undefined): {
+  readonly verifyAcDisposition: VerifyAcDispositionKind | null;
+  readonly admittedUntiedWorktreeKey: string | null;
+} {
+  if (binding === null || binding === undefined) {
+    return { verifyAcDisposition: null, admittedUntiedWorktreeKey: null };
+  }
+  const row = binding as PrePrPushBindingWithDisposition;
+  const disposition = row.verifyAcDisposition;
+  const key = row.admittedUntiedWorktreeKey;
+  return {
+    verifyAcDisposition:
+      disposition === "executed-ac" || disposition === "no-obligation" ? disposition : null,
+    admittedUntiedWorktreeKey: typeof key === "string" && key.trim().length > 0 ? key.trim() : null,
+  };
+}
+
+/**
+ * Re-derive no-obligation from when-present merge_chokepoint, else accept a
+ * positively known direct verify:ac disposition (#5855 Recut-8 / #6040).
+ */
+export function deriveVerifyAcDisposition(input: {
+  readonly record: PrePrExecutionRecord;
+  readonly projectRoot?: string;
+  readonly directDisposition?: VerifyAcDispositionKind | null;
+}):
+  | {
+      readonly ok: true;
+      readonly disposition: VerifyAcDispositionKind;
+      readonly worktreeKey: string | null;
+    }
+  | { readonly ok: false; readonly message: string } {
+  const mergeRow = input.record.phaseEvidence.commands.find(
+    (c) => c.phaseId === "merge_chokepoint",
+  );
+  let fromMerge: VerifyAcDispositionKind | null = null;
+  if (mergeRow !== undefined) {
+    if (mergeRow.exitCode === 0) {
+      fromMerge = "executed-ac";
+    } else if (
+      mergeRow.exitCode === VERIFY_AC_NO_OBLIGATION_EXIT &&
+      mergeRow.skipReason === MERGE_CHOKPOINT_NO_OBLIGATION_SKIP
+    ) {
+      fromMerge = "no-obligation";
+    } else {
+      return {
+        ok: false,
+        message:
+          "merge_chokepoint observed but disposition is neither exit 0 nor no-obligation skip (#5855).",
+      };
+    }
+  }
+  const direct = input.directDisposition ?? null;
+  if (fromMerge !== null && direct !== null && fromMerge !== direct) {
+    return {
+      ok: false,
+      message: `check-time vs push-time verify:ac disposition disagreement (${fromMerge} vs ${direct}) (#5855).`,
+    };
+  }
+  const disposition = fromMerge ?? direct;
+  if (disposition === null) {
+    return {
+      ok: false,
+      message:
+        "verify:ac disposition evidence missing; refuse no-obligation admit without positively known disposition (#5855).",
+    };
+  }
+  if (disposition === "no-obligation") {
+    const root = input.projectRoot ?? process.cwd();
+    return { ok: true, disposition, worktreeKey: admittedUntiedWorktreeKey(root) };
+  }
+  return { ok: true, disposition, worktreeKey: null };
+}
+
+/**
  * Mint a pass only with publisher credentials. Incomplete/failed/interrupted
  * runs stay non-pass. Agent shells do not receive `publisher`.
  */
@@ -679,6 +773,8 @@ export function completeRun(
   options?: {
     readonly projectRoot?: string;
     readonly applicabilityDeps?: CoverageApplicabilityDeps;
+    /** Direct verify:ac disposition for ordinary pre-PR without merge_chokepoint (#5855). */
+    readonly verifyAcDisposition?: VerifyAcDispositionKind | null;
   },
 ): PrePrDecision {
   const creds = requirePublisher(publisher);
@@ -707,7 +803,24 @@ export function completeRun(
     current.headSha.length > 0
       ? listDeletedPathsBetween(options.projectRoot, current.baseSha, current.headSha)
       : [];
-  const pushBinding: PrePrPushBinding | null =
+  const derived = deriveVerifyAcDisposition({
+    record: current,
+    projectRoot: options?.projectRoot,
+    directDisposition: options?.verifyAcDisposition ?? null,
+  });
+  const wantsDisposition =
+    options?.verifyAcDisposition !== undefined ||
+    current.phaseEvidence.commands.some((c) => c.phaseId === "merge_chokepoint");
+  if (wantsDisposition && !derived.ok) {
+    return deny("deny-incomplete", derived.message);
+  }
+  if (derived.ok && derived.disposition === "no-obligation" && derived.worktreeKey === null) {
+    return deny(
+      "deny-incomplete",
+      "no-obligation disposition requires admittedUntiedWorktreeKey (#5855).",
+    );
+  }
+  let pushBinding: PrePrPushBinding | null =
     observed !== null && observed.length > 0 && manifest.length > 0
       ? {
           reviewedFileManifest: manifest,
@@ -716,6 +829,16 @@ export function completeRun(
           reviewedDeletedPaths,
         }
       : null;
+  if (pushBinding !== null && derived.ok) {
+    const withDisposition: PrePrPushBindingWithDisposition = {
+      ...pushBinding,
+      verifyAcDisposition: derived.disposition,
+      ...(derived.disposition === "no-obligation" && derived.worktreeKey !== null
+        ? { admittedUntiedWorktreeKey: derived.worktreeKey }
+        : {}),
+    };
+    pushBinding = withDisposition;
+  }
   const published: PrePrExecutionRecord = {
     ...current,
     state: "complete",

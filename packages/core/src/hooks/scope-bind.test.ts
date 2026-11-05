@@ -2,13 +2,36 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { GITHUB_AUTH_MODE_HOST_GH } from "../intake/github-auth-modes.js";
+import type { OccupancyRecord } from "../session/occupancy.js";
+import type { ReadWorkerAuthAssignmentResult } from "../swarm/worker-auth-assignment.js";
 import {
   ACTIVE_SCOPE_PIN_ENV,
   bindBranchToActiveStory,
   branchStoryTokens,
+  CALLER_SESSION_ENV,
   pushStoryAdmissionRefusal,
   resolveSoftMissingAcTargets,
 } from "./scope.js";
+
+const untiedAuth: ReadWorkerAuthAssignmentResult = {
+  ok: true,
+  assignment: null,
+  commonDir: "/tmp/fake-common",
+};
+
+function untiedOpts(
+  branch: string | null,
+  extra: Partial<Parameters<typeof bindBranchToActiveStory>[1]> = {},
+): Parameters<typeof bindBranchToActiveStory>[1] {
+  return {
+    branch,
+    env: {},
+    readWorkerAuthAssignment: () => untiedAuth,
+    liveOccupant: () => null,
+    ...extra,
+  };
+}
 
 const temps: string[] = [];
 afterEach(() => {
@@ -86,26 +109,105 @@ describe("bindBranchToActiveStory (#5855 P1)", () => {
     ).toMatchObject({ kind: "refuse", denyKind: "pin-miss" });
   });
 
-  it("admits untied for version-token and detached branches with no dispatch marker", () => {
+  it("admits untied for version-token and detached when worker-auth shows no assignment", () => {
     const { scanned } = twoActives();
-    expect(bindBranchToActiveStory(scanned, { branch: "chore/pin-0.128.0", env: {} })).toEqual({
+    expect(bindBranchToActiveStory(scanned, untiedOpts("chore/pin-0.128.0"))).toEqual({
       kind: "untied",
     });
-    expect(bindBranchToActiveStory(scanned, { branch: null, env: {} })).toEqual({ kind: "untied" });
+    expect(bindBranchToActiveStory(scanned, untiedOpts(null))).toEqual({ kind: "untied" });
   });
 
-  it("refuses a lost pin and a dispatch expectation without a pin", () => {
-    const { scanned } = twoActives();
+  it("refuses a lost pin; registered worker without pin; null commonDir; foreign live", () => {
+    const { scanned, a } = twoActives();
     expect(bindBranchToActiveStory(scanned, { branch: "fix/9999-gone", env: {} })).toMatchObject({
       kind: "refuse",
       denyKind: "pin-miss",
     });
-    const spawned = bindBranchToActiveStory(scanned, {
+    const registered = bindBranchToActiveStory(scanned, {
       branch: "chore/no-token",
-      env: { DEFT_AGENT_ID: "worker-1" },
+      env: {},
+      readWorkerAuthAssignment: () => ({
+        ok: true,
+        assignment: {
+          schema_version: 1,
+          dispatch_id: "d1",
+          story_id: "",
+          worktree_path: "/wt",
+          github_auth_mode: GITHUB_AUTH_MODE_HOST_GH,
+          expected_principal: { kind: "user", login: "x" },
+          credential_delivery_id: null,
+        },
+        commonDir: "/tmp/fake-common",
+      }),
     });
-    expect(spawned).toMatchObject({ kind: "refuse", denyKind: "pin-miss" });
-    if (spawned.kind === "refuse") expect(spawned.message).toContain(ACTIVE_SCOPE_PIN_ENV);
+    expect(registered).toMatchObject({ kind: "refuse", denyKind: "pin-miss" });
+    if (registered.kind === "refuse") expect(registered.message).toContain(ACTIVE_SCOPE_PIN_ENV);
+
+    expect(
+      bindBranchToActiveStory(scanned, {
+        branch: "chore/no-token",
+        env: {},
+        readWorkerAuthAssignment: () => ({ ok: true, assignment: null, commonDir: null }),
+      }),
+    ).toMatchObject({ kind: "refuse", denyKind: "pin-miss" });
+
+    const foreignLive: OccupancyRecord = {
+      schemaVersion: 1,
+      sessionId: "foreign-worker",
+      worktreePath: "/wt",
+      claimedAt: new Date(),
+      heartbeatAt: new Date(),
+      lastWriteAt: null,
+      intent: "mutation",
+      host: "none",
+      address: "none",
+      identityProvenance: "explicit",
+      joinProtocol: "none",
+      retainCapable: false,
+      grants: [],
+      raw: {},
+    };
+    expect(
+      bindBranchToActiveStory(
+        scanned,
+        untiedOpts("chore/no-token", {
+          env: { [CALLER_SESSION_ENV]: "maintainer" },
+          liveOccupant: () => foreignLive,
+        }),
+      ),
+    ).toMatchObject({ kind: "refuse", denyKind: "pin-miss" });
+
+    // Self-lease admits when worker-auth untied.
+    expect(
+      bindBranchToActiveStory(
+        scanned,
+        untiedOpts("chore/no-token", {
+          env: { [CALLER_SESSION_ENV]: "foreign-worker" },
+          liveOccupant: () => foreignLive,
+        }),
+      ),
+    ).toEqual({ kind: "untied" });
+
+    // Present story_id binds.
+    expect(
+      bindBranchToActiveStory(scanned, {
+        branch: "chore/no-token",
+        env: {},
+        readWorkerAuthAssignment: () => ({
+          ok: true,
+          assignment: {
+            schema_version: 1,
+            dispatch_id: "d1",
+            story_id: "github.issue.111",
+            worktree_path: "/wt",
+            github_auth_mode: GITHUB_AUTH_MODE_HOST_GH,
+            expected_principal: { kind: "user", login: "x" },
+            credential_delivery_id: null,
+          },
+          commonDir: "/tmp/fake-common",
+        }),
+      }),
+    ).toEqual({ kind: "bound", path: a });
   });
 
   it("refuses ambiguous multi-match and multi-token branches", () => {
@@ -138,7 +240,7 @@ describe("resolveSoftMissingAcTargets branch bind is opt-in (#5855 P2)", () => {
     ).toEqual({ kind: "one", path: a });
     const untied = resolveSoftMissingAcTargets(root, {
       env: {},
-      branchBind: { branch: "chore/pin-0.128.0", env: {} },
+      branchBind: untiedOpts("chore/pin-0.128.0"),
     });
     expect(untied.kind).toBe("untied");
     if (untied.kind === "untied") {
@@ -164,15 +266,13 @@ describe("resolveSoftMissingAcTargets branch bind is opt-in (#5855 P2)", () => {
 });
 
 describe("pushStoryAdmissionRefusal (#5855 P3)", () => {
-  it("admits untied soft-missing and refuses an unresolved required story", () => {
+  it("admits selection for bound stories and refuses unresolved required stories", () => {
     const { root } = twoActives();
-    expect(pushStoryAdmissionRefusal(root, "refs/heads/chore/pin-0.128.0", {})).toBeNull();
+    // Untied without git common dir refuses at selection (null commonDir).
+    expect(pushStoryAdmissionRefusal(root, "refs/heads/chore/pin-0.128.0", {})).not.toBeNull();
     expect(pushStoryAdmissionRefusal(root, "refs/heads/fix/5855-x", {})).toBeNull();
     const refused = pushStoryAdmissionRefusal(root, "refs/heads/fix/9999-gone", {});
     expect(refused).toContain("#4285");
-    expect(
-      pushStoryAdmissionRefusal(root, "refs/heads/chore/x", { DEFT_AGENT_ID: "w" }),
-    ).not.toBeNull();
   });
 
   it("does nothing with one or zero actives", () => {
