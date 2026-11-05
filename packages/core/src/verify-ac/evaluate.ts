@@ -327,6 +327,33 @@ function splitNulInventory(stdout: string): string[] {
   return stdout.split("\0").filter((entry) => entry.length > 0);
 }
 
+/**
+ * Merge inventory rows without dropping rename origins (#5792 Greptile P1).
+ * Later dirty/cached edits may replace status but must keep previousFilename
+ * and a removal record for the origin path when not already present.
+ */
+function mergeInventoryPrDiffPath(byPath: Map<string, PrDiffPath>, next: PrDiffPath): void {
+  const prev = byPath.get(next.path);
+  const previousFilename =
+    typeof next.previousFilename === "string" && next.previousFilename.length > 0
+      ? next.previousFilename
+      : typeof prev?.previousFilename === "string" && prev.previousFilename.length > 0
+        ? prev.previousFilename
+        : undefined;
+  byPath.set(next.path, {
+    status: next.status,
+    path: next.path,
+    ...(previousFilename !== undefined ? { previousFilename } : {}),
+  });
+  if (
+    previousFilename !== undefined &&
+    previousFilename !== next.path &&
+    !byPath.has(previousFilename)
+  ) {
+    byPath.set(previousFilename, { status: "removed", path: previousFilename });
+  }
+}
+
 function ingestNameStatusIntoPrDiff(stdout: string, byPath: Map<string, PrDiffPath>): void {
   const tokens = splitNulInventory(stdout);
   let i = 0;
@@ -340,9 +367,10 @@ function ingestNameStatusIntoPrDiff(stdout: string, byPath: Map<string, PrDiffPa
       const previousFilename = tokens[i + 1] ?? "";
       const path = tokens[i + 2] ?? "";
       if (path.length > 0) {
-        byPath.set(path.replace(/\\/g, "/"), {
+        const norm = path.replace(/\\/g, "/");
+        mergeInventoryPrDiffPath(byPath, {
           status: mapGitNameStatusLetter(status),
-          path: path.replace(/\\/g, "/"),
+          path: norm,
           ...(previousFilename.length > 0
             ? { previousFilename: previousFilename.replace(/\\/g, "/") }
             : {}),
@@ -354,7 +382,7 @@ function ingestNameStatusIntoPrDiff(stdout: string, byPath: Map<string, PrDiffPa
     const path = tokens[i + 1] ?? "";
     if (path.length > 0) {
       const norm = path.replace(/\\/g, "/");
-      byPath.set(norm, { status: mapGitNameStatusLetter(status), path: norm });
+      mergeInventoryPrDiffPath(byPath, { status: mapGitNameStatusLetter(status), path: norm });
     }
     i += 2;
   }
@@ -467,7 +495,7 @@ export function collectBriefLandInventoryAsPrDiffPaths(input: {
   for (const raw of splitNulInventory(untracked.stdout)) {
     const path = raw.replace(/\\/g, "/");
     if (path.length === 0) continue;
-    byPath.set(path, { status: "added", path });
+    mergeInventoryPrDiffPath(byPath, { status: "added", path });
   }
   return { ok: true, files: [...byPath.values()] };
 }

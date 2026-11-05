@@ -419,9 +419,11 @@ function removedNonterminalBriefPaths(files: readonly PrDiffPath[]): string[] {
 /**
  * Path B activation admit witness (#5387 / #5792): brief-land shape + no deleted
  * nonterminals + productPullRequest unset on every changed brief. When PR
- * bodyText is present, deft-story marks must cover each changed nonterminal.
- * When bodyText is absent (local check), inventory brief issue-ref identity
- * substitutes for mark coverage (#5792 Recut-1). Malformed stamps are not unset.
+ * bodyText is a non-null string (live/file body, including empty), deft-story
+ * marks must cover each changed nonterminal. When bodyText is null (local check),
+ * inventory brief issue-ref identity substitutes for mark coverage (#5792 Recut-1).
+ * Empty live bodies must not take the local fallback (Greptile P1 on #5792).
+ * Malformed stamps are not unset.
  */
 export function evaluatePathBActivationAdmit(args: {
   readonly bodyText: string | null;
@@ -449,10 +451,12 @@ export function evaluatePathBActivationAdmit(args: {
   if (changedNonterminal.length === 0) {
     return { ok: false, detail: "no nonterminal brief land" };
   }
-  // #5792: mark coverage only when a PR body exists; null/blank → issue-ref identity.
-  const bodyText =
-    typeof args.bodyText === "string" && args.bodyText.trim().length > 0 ? args.bodyText : null;
-  const marks = bodyText === null ? [] : parseAllDeftStoryMarks(bodyText);
+  // #5792: null bodyText → local issue-ref identity; "" / whitespace live body still needs marks.
+  const bodyText = args.bodyText;
+  const marks =
+    typeof bodyText === "string" && bodyText.trim().length > 0
+      ? parseAllDeftStoryMarks(bodyText)
+      : [];
   if (bodyText !== null && marks.length === 0) {
     return { ok: false, detail: "missing deft-story marks" };
   }

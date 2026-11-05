@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { evaluateVerifyAcFromPlan } from "../product-first-done-gate/evaluate.js";
 import { ENV_RUN_SUMMARY_PATH } from "../run-summary/index.js";
 import {
+  collectBriefLandInventoryAsPrDiffPaths,
   emitVerifyAcAttempts,
   evaluatePathBActivationAcDisposition,
   evaluateProductOracleIntegrity,
@@ -1206,6 +1207,82 @@ describe("Path B activation AC disposition (#5792)", () => {
     expect(disposition.apply).toBe(false);
     if (disposition.apply) return;
     expect(disposition.reason).toMatch(/productPullRequest/);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("refuses empty live PR bodyText instead of local issue-ref fallback", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-5792-empty-body-"));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "story-5792.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          title: "activation",
+          status: "running",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/5792",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const disposition = evaluatePathBActivationAcDisposition({
+      projectRoot: root,
+      bodyText: "",
+      prNumber: 6075,
+      repo: "deftai/directive",
+      files: [
+        { status: "added", path: "xbrief/active/story-5792.xbrief.json" },
+        { status: "modified", path: "CHANGELOG.md" },
+      ],
+    });
+    expect(disposition.apply).toBe(false);
+    if (disposition.apply) return;
+    expect(disposition.reason).toMatch(/missing deft-story marks/);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("preserves rename previousFilename when a later dirty edit replaces the path", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-5792-rename-merge-"));
+    const brief = "xbrief/active/story-5792.xbrief.json";
+    const origin = "packages/core/src/old-product.json";
+    const runGit = (_cwd: string, args: readonly string[]) => {
+      const joined = args.join(" ");
+      if (joined.includes("is-inside-work-tree")) {
+        return { code: 0, stdout: "true\n", stderr: "" };
+      }
+      if (joined.includes("show-toplevel")) {
+        return { code: 0, stdout: `${root}\n`, stderr: "" };
+      }
+      if (joined.includes("rev-parse") && joined.includes("verify")) {
+        return { code: 0, stdout: "abc\n", stderr: "" };
+      }
+      if (joined.includes("diff") && joined.includes("...")) {
+        return { code: 0, stdout: `R100\0${origin}\0${brief}\0`, stderr: "" };
+      }
+      if (joined.includes("diff") && joined.includes("HEAD") && !joined.includes("cached")) {
+        return { code: 0, stdout: `M\0${brief}\0`, stderr: "" };
+      }
+      if (joined.includes("--cached") || joined.includes("ls-files")) {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      return { code: 0, stdout: "", stderr: "" };
+    };
+    const inventory = collectBriefLandInventoryAsPrDiffPaths({
+      projectRoot: root,
+      baseRef: "origin/master",
+      runGit,
+    });
+    expect(inventory.ok).toBe(true);
+    if (!inventory.ok) return;
+    const entry = inventory.files.find((file) => file.path === brief);
+    expect(entry?.previousFilename).toBe(origin);
+    expect(
+      inventory.files.some((file) => file.path === origin && file.status === "removed"),
+    ).toBe(true);
     rmSync(root, { recursive: true, force: true });
   });
 });
