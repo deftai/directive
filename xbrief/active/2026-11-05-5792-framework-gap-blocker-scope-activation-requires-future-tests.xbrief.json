@@ -1,0 +1,637 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5792",
+    "updated": "2026-11-05T21:29:36Z"
+  },
+  "plan": {
+    "title": "[framework-gap] BLOCKER Scope activation requires future tests before merge-base write authority exists",
+    "status": "running",
+    "narratives": {
+      "Description": "[framework-gap] BLOCKER Scope activation requires future tests before merge-base write authority exists",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5792",
+      "Overview": "\n- relieves: P1 — Complete-set brief-land inventory maps merge-base..HEAD union working-tree and untracked paths with rename origins into PrDiffPath then isBriefLandShapedDiff; failed inventory yields no activation AC disposition.\n- relieves: P1 — One named activation AC disposition defers product command and artifact-clause execution before run after the witness; no opaque-npm selective forgiveness.\n- relieves: P3 — Local-or-PR Path B witness reuses brief-land + no-deleted-nonterminals + productPullRequest unset; deft-story mark coverage applies only when check has PR bodyText; when bodyText is absent, selected inventory brief issue-ref identity substitutes for mark coverage.\n- relieves: P2 — Concrete active-path brief land plus implement-branch start/rebase establishes merge-base write authority; loadStoryWriteFenceFromMergeBase stays unchanged; pending-to-active loader continuity stays out of scope.\n- relieves: P4 — Product path in inventory or productPullRequest set restores full verify:ac; activation disposition never banks as later product verified-pass; activation validation stays hard across full/pressure/rapid.\n\n\n",
+      "Labels": "adoption-blocker, design-critique:ingest-ready, core-capabilities",
+      "UserStory": "As a Path B activator, I want verify:ac to defer product acceptance while only brief-land shaped diffs are present, so merge-base write authority exists before product tests are required.",
+      "ImplementationPlan": "Prefer-A Recut-1 Bound 6352637003: complete-set brief-land inventory; named activation AC disposition; local-or-PR Path B witness; product path restores full verify:ac; docs + CHANGELOG."
+    },
+    "items": [
+      {
+        "title": "relieves: P1 — Complete-set brief-land inventory maps merge-base..HEAD union working-tree and untracked paths with rename origins into PrDiffPath then isBriefLandShapedDiff; failed inventory yields no activation AC disposition.",
+        "status": "pending",
+        "id": "clause.1"
+      },
+      {
+        "title": "relieves: P1 — One named activation AC disposition defers product command and artifact-clause execution before run after the witness; no opaque-npm selective forgiveness.",
+        "status": "pending",
+        "id": "clause.2"
+      },
+      {
+        "title": "relieves: P3 — Local-or-PR Path B witness reuses brief-land + no-deleted-nonterminals + productPullRequest unset; deft-story mark coverage applies only when check has PR bodyText; when bodyText is absent, selected inventory brief issue-ref identity substitutes for mark coverage.",
+        "status": "pending",
+        "id": "clause.3"
+      },
+      {
+        "title": "relieves: P2 — Concrete active-path brief land plus implement-branch start/rebase establishes merge-base write authority; loadStoryWriteFenceFromMergeBase stays unchanged; pending-to-active loader continuity stays out of scope.",
+        "status": "pending",
+        "id": "clause.4"
+      },
+      {
+        "title": "relieves: P4 — Product path in inventory or productPullRequest set restores full verify:ac; activation disposition never banks as later product verified-pass; activation validation stays hard across full/pressure/rapid.",
+        "status": "pending",
+        "id": "clause.5"
+      }
+    ],
+    "tags": [
+      "adoption-blocker",
+      "design-critique:ingest-ready",
+      "core-capabilities"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5792",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5792: [framework-gap] BLOCKER Scope activation requires future tests before merge-base write authority exists"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5791",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5791"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "[framework-gap] BLOCKER Scope activation requires future tests before merge-base write authority exists",
+        "relieves: P1 — Complete-set brief-land inventory maps merge-base..HEAD union working-tree and untracked paths with rename origins into PrDiffPath then isBriefLandShapedDiff; failed inventory yields no activation AC disposition.",
+        "relieves: P1 — One named activation AC disposition defers product command and artifact-clause execution before run after the witness; no opaque-npm selective forgiveness.",
+        "relieves: P3 — Local-or-PR Path B witness reuses brief-land + no-deleted-nonterminals + productPullRequest unset; deft-story mark coverage applies only when check has PR bodyText; when bodyText is absent, selected inventory brief issue-ref identity substitutes for mark coverage.",
+        "relieves: P2 — Concrete active-path brief land plus implement-branch start/rebase establishes merge-base write authority; loadStoryWriteFenceFromMergeBase stays unchanged; pending-to-active loader continuity stays out of scope.",
+        "relieves: P4 — Product path in inventory or productPullRequest set restores full verify:ac; activation disposition never banks as later product verified-pass; activation validation stays hard across full/pressure/rapid."
+      ],
+      "admitted_source_sentences": [
+        "relieves: P1 — Complete-set brief-land inventory maps merge-base..HEAD union working-tree and untracked paths with rename origins into PrDiffPath then isBriefLandShapedDiff; failed inventory yields no activation AC disposition.",
+        "relieves: P1 — One named activation AC disposition defers product command and artifact-clause execution before run after the witness; no opaque-npm selective forgiveness.",
+        "relieves: P3 — Local-or-PR Path B witness reuses brief-land + no-deleted-nonterminals + productPullRequest unset; deft-story mark coverage applies only when check has PR bodyText; when bodyText is absent, selected inventory brief issue-ref identity substitutes for mark coverage.",
+        "relieves: P2 — Concrete active-path brief land plus implement-branch start/rebase establishes merge-base write authority; loadStoryWriteFenceFromMergeBase stays unchanged; pending-to-active loader continuity stays out of scope.",
+        "relieves: P4 — Product path in inventory or productPullRequest set restores full verify:ac; activation disposition never banks as later product verified-pass; activation validation stays hard across full/pressure/rapid."
+      ],
+      "admitted_source_digest": "cf934aec4b95a95b6f38e9f13300eeff88cfec03764bd8a0d1211be6e32cbe96",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "relieves: P1 — Complete-set brief-land inventory maps merge-base..HEAD union working-tree and untracked paths with rename origins into PrDiffPath then isBriefLandShapedDiff; failed inventory yields no activation AC disposition.",
+          "artifact_path": "packages/core/src/check/cached-orchestrator.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "relieves: P1 — One named activation AC disposition defers product command and artifact-clause execution before run after the witness; no opaque-npm selective forgiveness.",
+          "artifact_path": "packages/core/src/check/orchestrator.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "relieves: P3 — Local-or-PR Path B witness reuses brief-land + no-deleted-nonterminals + productPullRequest unset; deft-story mark coverage applies only when check has PR bodyText; when bodyText is absent, selected inventory brief issue-ref identity substitutes for mark coverage.",
+          "artifact_path": "packages/core/src/verify-ac/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "relieves: P2 — Concrete active-path brief land plus implement-branch start/rebase establishes merge-base write authority; loadStoryWriteFenceFromMergeBase stays unchanged; pending-to-active loader continuity stays out of scope.",
+          "artifact_path": "packages/core/src/verify-ac/evaluate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "relieves: P4 — Product path in inventory or productPullRequest set restores full verify:ac; activation disposition never banks as later product verified-pass; activation validation stays hard across full/pressure/rapid.",
+          "artifact_path": "packages/core/src/verify-ac/index.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/check/cached-orchestrator.ts",
+          "packages/core/src/check/orchestrator.test.ts",
+          "packages/core/src/verify-ac/evaluate.ts",
+          "packages/core/src/verify-ac/evaluate.test.ts",
+          "packages/core/src/verify-ac/index.ts",
+          "packages/core/src/verify-ac/index.test.ts",
+          "packages/core/src/pr-closing-keywords/main.ts",
+          "packages/core/src/policy/write-fence.ts",
+          "content/docs/scope-provenance.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/check/cached-orchestrator.ts",
+        "cohesion_exemption": "CHANGELOG + Path B activation AC disposition across check/verify-ac/pr-closing-keywords"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-build\n```quarantined\nrole: parent\n```\n\n## Prefer-A draft\nconflict_group: path-b-scope-only-activation-verify-ac-before-merge-base-authority\nTarget-digest: sha256:81b3fc88a87ab4ca8acbc60143da06873883bf87b2cec56b748488f87271c16e\nSpec-path: packages/core/src/check + packages/core/src/verify-ac + packages/core/src/pr-closing-keywords + write-fence continuity\narc-mode: no-ingest\n\n## In plain English\nA consumer can prepare a reviewed scope-only activation brief, but cannot land it: deft check runs the future product acceptance commands and artifact clauses before any product files exist, while the write fence correctly refuses those product writes until the brief is on the merge base. Prefer-A should let a true brief-land-shaped Path B activation clear check without pretending the future product already passes tests, and keep mixed/product diffs on the hard acceptance path.\n\n## Approaches\n\n### Approach A (Prefer-A lean)\nReuse the existing brief-land shape (#5387 isBriefLandShapedDiff: nonterminal xbrief|vbrief under proposed|pending|active plus optional root CHANGELOG.md only). When the selected scope is Path B activation-shaped (productPullRequest unset; working tree / PR diff brief-land only), deft check must not hard-fail verify:ac on missing future product artifacts or on acceptance commands that target those not-yet-landed paths. Record an honest scope-only / activation AC disposition (named skip or deferred-until-product), keep hygiene + scope-provenance membership hard, and require full verify:ac once any product path appears or productPullRequest is set. Share the shape helper rather than inventing a second dialect. Preserve immutable merge-base write-fence authority (no head-brief widen).\n\n### Approach B\nForce Path B activation briefs to stamp empty acceptance / none_stated:true and ban derived product commands until a later product restamp. Operators must remember a second acceptance mint after product appears.\n\n### Approach C\nAllow first product writes from a pending or head-brief fence so tests can be authored before activation land. Weakens #4956 merge-base immutability.\n\n## Prefer-A\nBind Approach A.\n\n## Reject\nSoftening verify:ac for mixed scope+product diffs; trusting agent-widened working-tree briefs as write authority; blanket test exemption unrelated to brief-land shape; disabling hooks; inventing a second brief-land path vocabulary beside isBriefLandShapedDiff; Approach C head-brief write authority.\n\n## Draft file_scope (lean)\n- packages/core/src/check/cached-orchestrator.ts (and gate admission helpers as needed)\n- packages/core/src/verify-ac/** (clause/command gate for activation-shaped selection)\n- packages/core/src/pr-closing-keywords/main.ts (reuse isBriefLandShapedDiff; no second dialect)\n- packages/core/src/policy/write-fence.ts (continuity proof / keep-out of head widen — cite only)\n- content/docs/scope-provenance.md (Path B activation AC pointer)\n- CHANGELOG.md\n- matching unit tests under packages/core/src/check and packages/core/src/verify-ac\n\n## Keep-outs\n- #5387 productPullRequest closing-keywords carve (already shipped)\n- #5791 framework-only coverageMode (adjacent consumer unblock, different gate)\n- #5736 activation/widen PR merge latency\n- #4768 acceptance-activate clause derivation refuse\n- Weakening product PR verify:ac after product paths exist\n\n## Parent note\nBare arc 5792; spend-recommend N>=3 (open remedy + adoption-blocker blast); yolo no-ingest; dest .deft-scratch/worktrees/arc-5792 @ c7e79fe08ea94d4fb22f09320f0e4c7ac58ab5c4.",
+          "id": 6352358524,
+          "html_url": "https://github.com/deftai/directive/issues/5792#issuecomment-6352358524",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-22T22:06:55Z",
+          "updated_at": "2026-10-22T22:06:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-build\n```quarantined\nrole: triage\n```\nmechanism-shaped: true\ndesign-critique: warranted, because Path B scope-only activation and merge-base write authority deadlock on verify:ac before any product artifact exists — a framework admission/gate ordering gap, not a one-off consumer misconfig.\nrefutation-target: deft check on a Path B scope-only activation must hard-run the brief future product acceptance commands and artifact clauses before merge-base write authority can exist\ncharter: refutation\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\ndual-stop-reserved: yes\nverification-path: pin-read git show c7e79fe08ea94d4fb22f09320f0e4c7ac58ab5c4: ; dest cwd-without-occupy .deft-scratch/worktrees/arc-5792\ndispatch-sha: c7e79fe08ea94d4fb22f09320f0e4c7ac58ab5c4\npain: P1, P2, P3, P4\n\n## Pain\n- P1: Scope-only Path B activation (brief +/- CHANGELOG, productPullRequest unset) fails deft check / verify:ac on missing future product artifacts and acceptance commands before the brief can land.\n- P2: Write fence correctly loads file_scope only from merge-base brief bytes, so product source/test writes stay denied until that brief lands — closing the cycle with P1.\n- P3: Documented Path B / #5387 brief-land carve does not define an activation-time verify:ac disposition, so operators are pushed toward weakening acceptance, hook bypass, or head-brief write theater.\n- P4: Mixed scope+product diffs and same-PR file_scope widening must keep hard verify:ac and merge-base membership; any Prefer-A carve that softens those is a regression.\n\n## In plain English\nThe gate says you need passing product tests to publish the scope that authorizes writing those product files. That is the pain. We want a thin, shape-bound activation carve and keep real product acceptance hard afterward.",
+          "id": 6352358809,
+          "html_url": "https://github.com/deftai/directive/issues/5792#issuecomment-6352358809",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-22T22:06:56Z",
+          "updated_at": "2026-10-22T22:27:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-build\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 6352443547\nfamilies: grok, claude, codex\nseat: grok launcher: grok\nseat: claude launcher: claude\nseat: codex launcher: codex\nspend: N≥3\ndispatch-sha: c7e79fe08ea94d4fb22f09320f0e4c7ac58ab5c4\nverification-path: pin-read git show c7e79fe08ea94d4fb22f09320f0e4c7ac58ab5c4: ; dest cwd-without-occupy .deft-scratch/worktrees/arc-5792\nlaunch-probe: claude=pong@0; codex=pong@0; grok=pong@0\nPrefer-A draft: 6352358524\nStop 1: 6352358809\naudit-targets: none\nclosed-findings: none\n\n## Panel deposit\nN≥3 refutation panel seated after launch-probe pong on all three families from dest arc-5792 @ c7e79fe08ea94d4fb22f09320f0e4c7ac58ab5c4. Round-1 input ceiling is this comment. Critics read Prefer-A draft 6352358524 + Stop 1 6352358809; sibling posts are out of envelope.\n\n## In plain English\nThree independent critics will try to break or sharpen the Prefer-A lean before we bind it.",
+          "id": 6352443547,
+          "html_url": "https://github.com/deftai/directive/issues/5792#issuecomment-6352443547",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-22T22:12:12Z",
+          "updated_at": "2026-10-22T22:27:26Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\nPrefer-A is the right direction, but cannot bind as drafted. Publish the scope without claiming that its future implementation passed acceptance; keep acceptance unchanged and run it for product delivery. Before bind, define the complete change set that proves activation and replace the ambiguous test-command targeting rule. Otherwise a local product change can be missed, or the reported npm commands can remain blocked.\n\nRound 1; fresh critic; refutation charter. Inputs: issue body, Prefer-A 6352358524, triage 6352358809, and deposit 6352443547 only. Inclusive ceiling: 6352443547. Verification was pin-read at c7e79fe08ea94d4fb22f09320f0e4c7ac58ab5c4, not an executed consumer reproduction. No sibling comments read.\n\n## Existing mechanisms\n- [pr-closing-keywords/main.ts](https://github.com/deftai/directive/blob/c7e79fe08ea94d4fb22f09320f0e4c7ac58ab5c4/packages/core/src/pr-closing-keywords/main.ts): isBriefLandShapedDiff rejects an empty set, checks destination AND previousFilename against the allowlist, and requires a nonremoved nonterminal brief. It is a shape predicate. evaluatePathBActivationAdmit separately rejects removed briefs, parses each changed brief, checks productPullRequest is unset, and binds issue refs to deft-story marks. Reuse the vocabulary; do not mistake the predicate for all admission checks.\n- [cached-orchestrator.ts](https://github.com/deftai/directive/blob/c7e79fe08ea94d4fb22f09320f0e4c7ac58ab5c4/packages/core/src/check/cached-orchestrator.ts): verify:ac is product-first and fail-fast, soft-empty is not green, pressure can make hygiene advisory, and rapid has a separate zero-verified rejection after a successful AC gate.\n- [verify-ac/clauses.ts](https://github.com/deftai/directive/blob/c7e79fe08ea94d4fb22f09320f0e4c7ac58ab5c4/packages/core/src/verify-ac/clauses.ts): declared-scope clause walking explicitly fails a missing positive artifact. [literal-acceptance/run.ts](https://github.com/deftai/directive/blob/c7e79fe08ea94d4fb22f09320f0e4c7ac58ab5c4/packages/core/src/literal-acceptance/run.ts) executes commands with their existing cwd/output expectations and preserves safety refusals. [verify-ac/evaluate.ts](https://github.com/deftai/directive/blob/c7e79fe08ea94d4fb22f09320f0e4c7ac58ab5c4/packages/core/src/verify-ac/evaluate.ts) emits actual command-walk outcomes under scope-specific identities; a deferral is not a product pass.\n- [write-fence.ts](https://github.com/deftai/directive/blob/c7e79fe08ea94d4fb22f09320f0e4c7ac58ab5c4/packages/core/src/policy/write-fence.ts): loadStoryWriteFenceFromMergeBase reads the selected relative path at the resolved merge-base SHA; it does not resolve a pending-path predecessor by plan.id. [scope-provenance.md](https://github.com/deftai/directive/blob/c7e79fe08ea94d4fb22f09320f0e4c7ac58ab5c4/content/docs/scope-provenance.md) already specifies the committed + working-tree + untracked union, Path B's unset product stamp, and separate immutable membership authority.\n\n## F1 — blocks-the-design: scope-only proof needs one complete change set\nEvidence: the draft says “working tree / PR diff brief-land only”; the helper consumes caller-supplied paths and cannot establish completeness. Existing scope-provenance documentation explicitly unions base...HEAD, HEAD-to-working-tree, and untracked paths. The helper also needs rename origins.\nFailure mode: a committed product change with only a dirty brief, or a brief-only PR with an untracked product test, can qualify if either surface is used alone. Selecting one unstamped scope also cannot certify other changed briefs. In a shared worktree, a sibling writer can invalidate a previously computed disposition.\nDisposition consequence: block bind until admission uses the complete local change set (and the corresponding reviewed diff in CI), preserves rename origins/deletions, ties the selected scope to that activation set, and validates the relevant changed briefs. Missing/failed diff evidence must not produce deferral. Scope prose, environment selection, or an agent-authored “activation” assertion is not proof. Keep the existing merge-base membership/write fence hard; an AC disposition must never widen it. This is a caller contract around the existing shape helper, not a new path dialect.\n\n## F2 — blocks-the-design: “commands that target not-yet-landed paths” is not an executable admission rule\nEvidence: the reported commands are npm test and npm run test:coverage, with no product paths in their strings and no scripts yet present. The existing command runner executes commands and compares outcomes; the clause walker has artifact paths, but that does not establish command dependency graphs.\nFailure mode: conservative command matching leaves this exact consumer blocked; guessing from missing scripts/stderr can excuse unrelated command failures. Running commands first and forgiving failures also permits side effects before the purported activation-only check.\nDisposition consequence: replace selective failure forgiveness with an explicit pre-execution activation disposition for the selected scope's product command/clause execution after deterministic activation admission. Preserve acceptance structure, provenance/safety validation, and applicable scope/document checks. Do not rewrite commands, fabricate clause verification, or emit product-oracle pass evidence. A mixed/product diff or a product stamp must take the unchanged execution path. If selective command deferral is retained instead, bind a concrete classification rule that handles these opaque npm commands; the present wording is insufficient.\n\n## F3 — sharpens-framing: activation disposition must compose with check modes\nEvidence: cached-orchestrator applies mode filtering before iteration, permits advisory hygiene in pressure mode, and separately rejects zero verified clauses in rapid mode. The draft promises hygiene and scope-provenance remain hard.\nFailure mode: merely returning successful verify:ac can still leave activation red under rapid mode; merely skipping it can produce a green activation while required validation was filtered out or made advisory. Neither implements the promised disposition.\nDisposition consequence: retain A, but state that activation runs its required validation hard in every supported check mode and records a named non-product disposition. Test full/pressure/rapid admission and rejection through the real orchestrator; a command-level mock alone does not prove consumer recovery. Do not relax rapid product completion or general hygiene policy.\n\n## F4 — sharpens-framing: landing a pending brief is not runtime activation continuity\nEvidence: loadStoryWriteFenceFromMergeBase loads the exact selected path; the shared brief-land helper admits proposed, pending, and active paths. The issue explicitly distinguishes merge-time continuity from runtime loading.\nFailure mode: a pending-only publication goes green, then moving that brief to active still leaves its selected active path absent at merge base. Likewise, landing an activation on the delivery branch does not move an older implementation branch's merge base automatically. The consumer remains unable to write despite a successful scope review.\nDisposition consequence: keep write-fence.ts unchanged and scope the supported recovery to landing the concrete active-path brief, then starting/rebasing the implementation branch so that activation is actually in its merge base. Require a lifecycle regression that first proves missing-at-base denial, then authorized initial source/test writes, then failing product AC remains blocking. Keep same-PR file_scope widening plus product writes negative. Pending-to-active loader continuity is a separate design unless explicitly added and proven.\n\n## Road not taken / strongest objection\nKeeping verify:ac unconditional is strongest when a check is evidence of product completion: it prevents false green acceptance and preserves oracle integrity. It fails here because publication of the precommitment precedes permission to create the measured artifact. That objection would flip my verdict if the activation disposition could be reused as completion evidence or survive a product diff. Approach B loses the acceptance contract during bootstrap; Approach C changes write authority unnecessarily. A deterministic activation admission with an honest non-product disposition is narrower than either.\n\n## Short bindable mechanism\n1. Prove complete brief-land activation and selected-scope eligibility with the shared shape vocabulary; failed proof gets no deferral.\n2. Defer product execution before running it, preserve the acceptance contract, and run required activation validation hard with an honest disposition.\n3. Restore unchanged product acceptance on product/stamped changes; prove exact-active-path merge-base recovery without changing write authority.\n\nVerdict: amend A for F1/F2 before bind; incorporate F3/F4 as explicit scope and validation statements.\n\n",
+          "id": 6352490161,
+          "html_url": "https://github.com/deftai/directive/issues/5792#issuecomment-6352490161",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-22T22:15:06Z",
+          "updated_at": "2026-10-22T22:15:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: critic\n```\naudit-targets: none\nTarget: issue 5792\nPrefer-A draft: 6352358524\nStop 1: 6352358809\ninput-ceiling: 6352443547\ndispatch-sha: c7e79fe08ea94d4fb22f09320f0e4c7ac58ab5c4\n\n## Verdict\nPrefer-A Approach A is the right direction (reuse isBriefLandShapedDiff, keep merge-base write-fence immutable, reject Approach C). As drafted it cannot bind. Three blockers must remint into short Bound limbs before Approach A is safe for consumers. Several sharpens keep the carve Thin Fail-Closed.\n\n## Mechanism inventory (tip c7e79fe0)\n- isBriefLandShapedDiff (packages/core/src/pr-closing-keywords/main.ts): allowlist-only; every path (+ rename source) is nonterminal xbrief|vbrief under proposed|pending|active or exact root CHANGELOG.md; requires >=1 non-removed nonterminal brief.\n- evaluatePathBActivationAdmit / evaluateFullStoryMarkAdmission (same file): fuller Path B witness — brief-land shape + no deleted nonterminals + deft-story coverage + productPullRequest unset on every changed brief. Closing-keywords early-return only; does not speak to verify:ac.\n- loadStoryWriteFenceFromMergeBase (packages/core/src/policy/write-fence.ts): runtime fence from merge-base brief bytes only; missing-at-base yields empty fileScope (P2 cycle). Cite-only keep-out of head widen is correct.\n- verify:ac product path (packages/core/src/product-first-done-gate/evaluate.ts + literal-acceptance/run.ts + verify-ac/clauses.ts): hard-fails on (1) literal acceptance-command gate when stated commands miss scripts/exit, and (2) clause walk artifact missing at stated path. Observed bullhorn failure is both limbs. none_stated:true with non-empty derived commands still runs those commands. Check composition puts product AC first (cached-orchestrator.ts / #3284) and fail-closes before hygiene.\n- Docs Path B (#5387) in content/docs/scope-provenance.md: defines brief-land + unset productPullRequest for membership/closing-keywords; no activation-time verify:ac disposition (P3).\n\n## Findings\n\n### F1 — Local check has no named brief-land inventory source\nclassification: blocks-the-design\nevidence: Prefer-A says working tree / PR diff brief-land only but isBriefLandShapedDiff consumes PrDiffPath[]. Tip closing-keywords uses PR file lists; local DEFT_ACTIVE_SCOPE=… deft check (the observed consumer path) has no named adapter from status/diff to that shape. Envelope Reject already bans a second brief-land vocabulary.\nfailure mode: Without a single inventory function (e.g. merge-base..HEAD plus staged/unstaged/untracked mapped into PrDiffPath, or an existing check seam that already builds that list), the carve either never fires on the bullhorn sequence, or fires while untracked src/ / test/ / package.json sit beside the brief and silently skip product AC.\ndisposition consequence: Bound must name one reuse path: call isBriefLandShapedDiff on a concrete inventory helper already owned by check/closing-keywords, or add a thin adapter in draft file_scope that only maps paths to PrDiffPath and delegates. Do not invent a parallel allowlist regex.\n\n### F2 — Dual AC disposition tokens (named skip or deferred-until-product)\nclassification: blocks-the-design\nevidence: Prefer-A Approach A offers two honest dispositions. Tip already has soft_empty / empty-resolution (#3334), advisory check-integrated paths, and none_stated empty-command soft paths. Consumer brief already carries none_stated:true with non-empty derived npm test / test:coverage — emptying commands (Approach B) is rejected; Prefer-A must not leave two skip dialects.\nfailure mode: Implementers pick different tokens per call site; check stdout, run-summary, and later product re-entry disagree on whether AC was waived, deferred, or soft-empty. Pain P1 relief becomes non-deterministic.\ndisposition consequence: Bind exactly one disposition token (recommend one named activation skip/deferred code with exit 0 from check only under the shape witness) and require full verify:ac (commands + clauses) once the witness fails. Docs/alias wording stays footnote.\n\n### F3 — Activation predicate weaker than the existing Path B witness\nclassification: blocks-the-design\nevidence: Prefer-A predicates on productPullRequest unset + brief-land shape. Tip evaluatePathBActivationAdmit also refuses deleted nonterminals, requires deft-story coverage of each changed nonterminal, and treats malformed productPullRequest as not-unset. Swarm/injection lens: an agent can unset the stamp and stage only the brief while product paths remain untracked or on another index state if inventory is weak (pairs with F1).\nfailure mode: Check softens on a partial looks-like-activation signal that closing-keywords would still refuse, creating a split-brain Path B admit between publish stamps and local check.\ndisposition consequence: Prefer-A Bound should reuse the existing Path B activation witness predicates (or an exported shared helper from that module) for the check carve, not a thinner productPullRequest-only test. Keep write-fence merge-base loader cite-only.\n\n### F4 — Carve must cover both verify:ac limbs\nclassification: sharpens-framing\nevidence: Observed gate output fails clause walk (artifact missing at stated path on src/record-reference.js / test/record-reference.test.js) and literal command gate (Missing script: test / test:coverage). Prefer-A prose mentions missing future product artifacts or acceptance commands but draft Bound limbs are not explicit that both walkAcceptanceClauses failure and runLiteralAcceptanceCommands failure are in-scope for the single disposition.\nfailure mode: A commands-only skip still red-fails on clause walk (or the reverse), and the consumer stays blocked.\ndisposition consequence: One Bound limb must state that under the activation witness, both command-gate and clause-walk hard-fails are replaced by the single disposition; mixed/product diffs keep both hard.\n\n### F5 — Re-arm condition and selected-scope boundary\nclassification: sharpens-framing\nevidence: Prefer-A requires full verify:ac once any product path appears or productPullRequest is set. Check selects one story via DEFT_ACTIVE_SCOPE / multi-active composition (#4285). Tip product-oracle check_id is already scope-namespaced (#3337).\nfailure mode: Global check skip when one selected activation-shaped brief is present would waive AC for unrelated product work in the same tree; or carve sticks after product paths land because only productPullRequest was checked.\ndisposition consequence: Sharpen Bound: carve applies only to the selected scope verify:ac evaluation; witness fails closed if inventory is non-brief-land OR selected brief has productPullRequest set OR any non-allowlisted path is present. Hygiene + scope-provenance membership stay hard (already stated — keep).\n\n### F6 — Future AC retained in brief must still bind product delivery\nclassification: sharpens-framing\nevidence: Prefer-A keeps derived commands/clauses on the activation brief (rejects Approach B empty stamp). Product-oracle integrity fingerprints executed command sets (#3322 / #3397). After activation merges, write fence loads those same merge-base bytes and product writes proceed; later product PR must hard-run the retained commands.\nfailure mode: Activation skip recorded as a reusable bank/cache green (served_from=bank/cache) could satisfy a later product check without re-execution.\ndisposition consequence: Bound should forbid serving the activation disposition as a verified-pass bank/cache hit for a later non-activation witness; product path must execute commands/clauses anew.\n\n### F7 — soft_empty / none_stated message collision\nclassification: footnote\nevidence: Tip #3334 soft_empty and none_stated empty-command messaging already exist; consumer brief mixes none_stated:true with non-empty commands.\nfailure mode: Operators misread activation disposition as empty-AC soft_empty and weaken commands.\ndisposition consequence: Implementation note — distinct stdout token; no mechanism change.\n\n### F8 — Docs Path B pointer\nclassification: footnote\nevidence: content/docs/scope-provenance.md Path B section documents closing-keywords brief-land only (P3).\nfailure mode: Docs lag after mechanism lands.\ndisposition consequence: Pointer sentence after mechanism; harvest-changed:false unless limb title needed for discoverability.\n\n## Steelmans / accepts\n- Reject Approach C (head-brief write authority) — tip loadStoryWriteFenceFromMergeBase + #4956 are load-bearing; Prefer-A correctly preserves them.\n- Reuse isBriefLandShapedDiff rather than a second dialect — correct Thin Fail-Closed instinct; F1/F3 only demand the call-site witness be complete.\n- Keep hygiene + scope-provenance hard; keep mixed scope+product on full verify:ac — necessary for P4.\n- Keep future product AC on the brief instead of Approach B empty mint — better consumer continuity if F6 is locked.\n\n## Bind readiness\nCannot bind Prefer-A draft 6352358524 as written. Remint Approach A Bound with short limbs that (1) name the brief-land inventory to isBriefLandShapedDiff adapter, (2) pick one AC disposition token covering command+clause limbs, (3) reuse the fuller Path B activation witness, (4) selected-scope-only + re-arm on product path or productPullRequest, (5) forbid activation disposition as later verified-pass cache. Reject list already good; keep Approach C and second-dialect bans.\n\n## In plain English\nApproach A is the right idea: let a true brief-only Path B activation clear check without pretending future product tests already pass, and keep real product acceptance hard afterward. As drafted it does not yet say how local deft check proves brief-only, which skip token to print, or how to reuse the stronger existing Path B witness. Without those, consumers can still be stuck or can skip tests they should not. Sharpen those limbs, then bind.",
+          "id": 6352505793,
+          "html_url": "https://github.com/deftai/directive/issues/5792#issuecomment-6352505793",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-22T22:16:03Z",
+          "updated_at": "2026-10-22T22:27:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-build\n```quarantined\nrole: parent\n```\nspend-amend: N≥3 -> N=2\nseat-families: codex,grok\nreason: Claude Round-1 hung 0-byte stdout after launch-probe pong-ok (deftai/directive#5478 class); killed; bind from posted Codex 6352490161 + Grok 6352505793.\ndual-stop-reserved: yes\n\n## Spend amend\nPanel permission stays recorded; composition drops to two posted families for this arc. No Claude seat for Prefer-A Bound / first PA unless a later successful pointer-envelope completes.",
+          "id": 6352557649,
+          "html_url": "https://github.com/deftai/directive/issues/5792#issuecomment-6352557649",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-22T22:19:21Z",
+          "updated_at": "2026-10-22T22:19:21Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-build\n```quarantined\nrole: parent\n```\n\n## Prefer-A Bound\nconflict_group: path-b-scope-only-activation-verify-ac-before-merge-base-authority\nTarget-digest: sha256:81b3fc88a87ab4ca8acbc60143da06873883bf87b2cec56b748488f87271c16e\nSpec-path: packages/core/src/check + verify-ac + pr-closing-keywords Path B witness + write-fence cite-only\nSupersedes: 6352358524\nRound-1: Codex 6352490161; Grok 6352505793; Claude #5478 hang -> spend-amend N=2\narc-mode: no-ingest\ndual-stop-raise:+1\n\n## In plain English\nA true brief-only Path B activation may clear deft check with one honest non-product AC disposition. Mixed or stamped product work still runs full acceptance. Write authority stays merge-base-only. Binding Approach A after Round-1 remints the inventory, witness, and single disposition limbs the critics blocked on.\n\n## Bound remedy\n- relieves: P1 — Brief-land inventory: map the complete local change set (merge-base..HEAD union working-tree and untracked, with rename origins) into PrDiffPath and call isBriefLandShapedDiff; missing or failed inventory evidence yields no activation AC disposition.\n- relieves: P1 — Single activation AC disposition: after that witness, defer product command and artifact-clause execution before run with one named non-product check disposition; do not selectively forgive opaque npm commands by path-string matching.\n- relieves: P3 — Reuse Path B activation witness predicates from evaluatePathBActivationAdmit (brief-land shape, no deleted nonterminals, deft-story coverage, productPullRequest unset/malformed-as-not-unset) for the check carve; do not thin to productPullRequest-only.\n- relieves: P2 — Supported recovery is landing the concrete active-path brief then starting or rebasing the implementation branch onto that merge base; keep loadStoryWriteFenceFromMergeBase unchanged; pending-to-active loader continuity is out of scope.\n- relieves: P4 — Any product path in the inventory, or productPullRequest set, restores unchanged full verify:ac; activation disposition must not bank or cache as a later verified product pass; required activation validation stays hard across full/pressure/rapid modes.\n\n## Reject\nApproach C head-brief or pending write authority; second brief-land allowlist dialect; Approach B emptying acceptance for bootstrap; softening mixed scope+product verify:ac; serving activation disposition as product oracle green; hook disable / fabricated coverage.\n\n## file_scope\n- packages/core/src/check/cached-orchestrator.ts (and thin admission helpers as needed)\n- packages/core/src/verify-ac/** (activation disposition + command/clause defer before run)\n- packages/core/src/pr-closing-keywords/main.ts (export/reuse isBriefLandShapedDiff + Path B witness predicates; shared inventory adapter if required)\n- packages/core/src/policy/write-fence.ts (cite-only keep-out)\n- content/docs/scope-provenance.md (Path B activation AC pointer)\n- CHANGELOG.md\n- matching unit/orchestrator tests under packages/core/src/check and packages/core/src/verify-ac\n\n## Keep-outs\n#5387 closing-keywords productPullRequest carve; #5791 coverageMode; #5736 activation latency; #4768 acceptance-activate derivation; pending-path plan.id fence continuity; Approach C.\n\n## Parent note\nAbsorbs Codex F1/F2 blockers and Grok F1/F2/F3 blockers as Bound limbs; Codex F3/F4 and Grok F4-F6 as explicit scope statements on those limbs. Dest arc-5792 @ c7e79fe08ea94d4fb22f09320f0e4c7ac58ab5c4; Stop 1 6352358809; panel 6352443547.",
+          "id": 6352557908,
+          "html_url": "https://github.com/deftai/directive/issues/5792#issuecomment-6352557908",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-22T22:19:22Z",
+          "updated_at": "2026-10-22T22:19:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6-astra\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1,pain-P2,pain-P3,pain-P4\nfinding-classes: none\nharvest-changed: false\n\n## Pain audit\n\nAudited [Prefer-A Bound](https://github.com/deftai/directive/issues/5792#issuecomment-6352557908) against [Stop 1](https://github.com/deftai/directive/issues/5792#issuecomment-6352358809), with inclusive comment ceiling 6352557908. Issue-body SHA-256 matches 81b3fc88a87ab4ca8acbc60143da06873883bf87b2cec56b748488f87271c16e. Code inspection is pinned to c7e79fe08ea94d4fb22f09320f0e4c7ac58ab5c4.\n\n- **P1 — relieved by the design.** Complete committed, working-tree, and untracked inventory, including rename origins, establishes the brief-only boundary. The single activation disposition defers both future commands and artifact clauses before execution. This removes the reported first-gate deadlock without interpreting opaque npm command strings or weakening the stored acceptance contract.\n- **P2 — relieved by the design.** Landing the concrete active-path brief and starting or rebasing implementation onto that delivery base supplies the exact path the runtime loader reads. Keeping the loader unchanged preserves immutable authority; pending-only publication is correctly excluded as a claimed recovery.\n- **P3 — relieved by the design.** Reusing the full Path B witness supplies a defined activation disposition with existing identity checks. The pinned witness requires changed-brief/mark coverage in both directions, rejects deleted nonterminals, and treats malformed productPullRequest metadata as not unset. Reusing these predicates, rather than a stamp-only shortcut, closes the stated gap.\n- **P4 — preserved by the design.** Any product path or product stamp restores full acceptance. Rename-origin inventory prevents hiding a product move inside an allowed destination. The unchanged merge-base loader prevents same-PR widening from granting write authority. Non-bankable activation results and hard activation validation across all modes prevent the disposition from becoming later product green.\n\nPin-read evidence: packages/core/src/pr-closing-keywords/main.ts (isBriefLandShapedDiff and evaluatePathBActivationAdmit); packages/core/src/check/cached-orchestrator.ts (product AC first, fail-fast, caching and rapid-mode handling); packages/core/src/policy/write-fence.ts (loadStoryWriteFenceFromMergeBase exact-path read).\n\nNo missing mechanism limb or title remint. This is a design sufficiency verdict, not a claim that the pinned implementation already provides the remedy. The Bound already requires the relevant inventory, witness, mode, and cache behavior; implementation verification belongs to those limbs rather than an expanded remedy.\n\n",
+          "id": 6352580517,
+          "html_url": "https://github.com/deftai/directive/issues/5792#issuecomment-6352580517",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-22T22:20:50Z",
+          "updated_at": "2026-10-22T22:20:50Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1,pain-P2,pain-P3,pain-P4\nfinding-classes: blocking\nharvest-changed: true\nTarget: Prefer-A Bound 6352557908\nStop 1: 6352358809\ndispatch-sha: c7e79fe08ea94d4fb22f09320f0e4c7ac58ab5c4\nid-ceiling: 6352557908\nseat-family: grok\n\n## In plain English\nBound direction is right: brief-only Path B activation should clear check with one honest non-product AC disposition, keep merge-base write authority, and keep mixed/product verify:ac hard. As written, the check carve still cannot fire on the filed local pain path, because it reuses evaluatePathBActivationAdmit deft-story coverage and that helper reads marks only from PR bodyText. Remint one local no-bodyText witness limb, then P1/P3 clear.\n\n## Tip pin-read (c7e79fe0)\n- isBriefLandShapedDiff exported; evaluatePathBActivationAdmit private in packages/core/src/pr-closing-keywords/main.ts. Admit requires brief-land shape, no deleted nonterminals, parseAllDeftStoryMarks(bodyText), productPullRequest unset/malformed-as-not-unset, and mark↔brief issue coverage. Missing bodyText → missing deft-story marks → ok:false.\n- loadStoryWriteFenceFromMergeBase (packages/core/src/policy/write-fence.ts) loads exact relative path at merge-base SHA; missing-at-base → empty fileScope. Bound cite-only keep-out matches tip.\n- check product-first verify:ac (packages/core/src/check/cached-orchestrator.ts) fail-closes before hygiene; no activation AC disposition exists on tip.\n- collectLifecycleChangeSet (packages/core/src/check/session-completed-ac.ts) already unions merge-base...HEAD + HEAD dirty + cached + untracked with rename find; returns flat paths (adapter still needed for PrDiffPath previousFilename). Inventory limb is tip-grounded.\n- Live issue body Target-digest matches Bound (sha256:81b3fc88…).\n\n## Pain relief\n\n### pain-P1 — not relieved (blocking)\nStop 1 Observed: DEFT_ACTIVE_SCOPE=… deft check on a brief-only local tree fails verify:ac command + clause limbs before any PR exists.\nBound limbs name complete inventory → isBriefLandShapedDiff and a single pre-run activation disposition covering commands and clauses. Those limbs are the right shape.\nOperative P3/check-carve limb also requires evaluatePathBActivationAdmit predicates including deft-story coverage. Tip helper has no non-PR bodyText source. On the Observed local sequence there is no PR body, so the witness fails closed and the disposition never runs. P1 stays red for the filed consumer path.\nDo not read silent mark synthesis from brief Tracking as Bound authority — Bound lists deft-story coverage without a local substitute.\n\n### pain-P2 — relieved once P1 lands\nBound keeps loadStoryWriteFenceFromMergeBase unchanged and names supported recovery: land concrete active-path brief, then start/rebase implementation onto that merge base. Pending-to-active loader continuity stays out of scope. Fence behavior is correct; the cycle closes only after P1 lets the brief publish.\n\n### pain-P3 — not relieved (same blocker)\nBound adds the missing activation-time verify:ac disposition and file_scope docs pointer. Disposition admission is gated on the same Path B witness. Without a local no-bodyText rule, documented Path B still has no working local check carve on tip+Bound as written.\n\n### pain-P4 — relieved\nAny product path in inventory or productPullRequest set restores full verify:ac; activation disposition must not bank/cache as later verified product pass; required activation validation stays hard across full/pressure/rapid. Matches Stop 1 P4 and Round-1 mix/re-arm sharpens already absorbed.\n\n## Missing limb title remint (harvest-changed)\n- relieves: P1 — Local no-PR-body check witness: reuse evaluatePathBActivationAdmit brief-land + no-deleted-nonterminals + productPullRequest unset; apply deft-story mark coverage only when check has PR bodyText; when bodyText is absent, selected inventory brief issue-ref identity substitutes for mark coverage\n\n## Footnote (harvest-changed:false; do not grow Bound)\n- Inventory adapter may reuse collectLifecycleChangeSet as the path union source, then map into PrDiffPath with rename origins; naming that helper is implementation, not a new limb.\n- Distinct stdout token vs soft_empty / none_stated (#3334) remains dispose-wording.\n- Export evaluatePathBActivationAdmit (or shared predicate helper) is already implied by file_scope export/reuse.\n\n## Verdict\nVerdict summary: classes blocking; harvest changed. Remint the local no-PR-body witness limb above; keep inventory, single disposition, write-fence keep-out, and P4 re-arm limbs. Thin Fail-Closed: one remint title, no footnote accretion.\n\n",
+          "id": 6352617987,
+          "html_url": "https://github.com/deftai/directive/issues/5792#issuecomment-6352617987",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-22T22:23:10Z",
+          "updated_at": "2026-10-22T22:28:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1,pain-P2,pain-P3,pain-P4\nfinding-classes: blocking\nharvest-changed: true\nTarget: Prefer-A Bound 6352557908\nStop 1: 6352358809\ndispatch-sha: c7e79fe08ea94d4fb22f09320f0e4c7ac58ab5c4\nid-ceiling: 6352557908\nseat-family: grok\n\n## In plain English\nBound direction is right: brief-only Path B activation should clear check with one honest non-product AC disposition, keep merge-base write authority, and keep mixed/product verify:ac hard. As written, the check carve still cannot fire on the filed local pain path, because it reuses evaluatePathBActivationAdmit deft-story coverage and that helper reads marks only from PR bodyText. Remint one local no-bodyText witness limb, then P1/P3 clear.\n\n## Tip pin-read (c7e79fe0)\n- isBriefLandShapedDiff exported; evaluatePathBActivationAdmit private in packages/core/src/pr-closing-keywords/main.ts. Admit requires brief-land shape, no deleted nonterminals, parseAllDeftStoryMarks(bodyText), productPullRequest unset/malformed-as-not-unset, and mark↔brief issue coverage. Missing bodyText → missing deft-story marks → ok:false.\n- loadStoryWriteFenceFromMergeBase (packages/core/src/policy/write-fence.ts) loads exact relative path at merge-base SHA; missing-at-base → empty fileScope. Bound cite-only keep-out matches tip.\n- check product-first verify:ac (packages/core/src/check/cached-orchestrator.ts) fail-closes before hygiene; no activation AC disposition exists on tip.\n- collectLifecycleChangeSet (packages/core/src/check/session-completed-ac.ts) already unions merge-base...HEAD + HEAD dirty + cached + untracked with rename find; returns flat paths (adapter still needed for PrDiffPath previousFilename). Inventory limb is tip-grounded.\n- Live issue body Target-digest matches Bound (sha256:81b3fc88…).\n\n## Pain relief\n\n### pain-P1 — not relieved (blocking)\nStop 1 Observed: DEFT_ACTIVE_SCOPE=… deft check on a brief-only local tree fails verify:ac command + clause limbs before any PR exists.\nBound limbs name complete inventory → isBriefLandShapedDiff and a single pre-run activation disposition covering commands and clauses. Those limbs are the right shape.\nOperative P3/check-carve limb also requires evaluatePathBActivationAdmit predicates including deft-story coverage. Tip helper has no non-PR bodyText source. On the Observed local sequence there is no PR body, so the witness fails closed and the disposition never runs. P1 stays red for the filed consumer path.\nDo not read silent mark synthesis from brief Tracking as Bound authority — Bound lists deft-story coverage without a local substitute.\n\n### pain-P2 — relieved once P1 lands\nBound keeps loadStoryWriteFenceFromMergeBase unchanged and names supported recovery: land concrete active-path brief, then start/rebase implementation onto that merge base. Pending-to-active loader continuity stays out of scope. Fence behavior is correct; the cycle closes only after P1 lets the brief publish.\n\n### pain-P3 — not relieved (same blocker)\nBound adds the missing activation-time verify:ac disposition and file_scope docs pointer. Disposition admission is gated on the same Path B witness. Without a local no-bodyText rule, documented Path B still has no working local check carve on tip+Bound as written.\n\n### pain-P4 — relieved\nAny product path in inventory or productPullRequest set restores full verify:ac; activation disposition must not bank/cache as later verified product pass; required activation validation stays hard across full/pressure/rapid. Matches Stop 1 P4 and Round-1 mix/re-arm sharpens already absorbed.\n\n## Missing limb title remint (harvest-changed)\n- relieves: P1 — Local no-PR-body check witness: reuse evaluatePathBActivationAdmit brief-land + no-deleted-nonterminals + productPullRequest unset; apply deft-story mark coverage only when check has PR bodyText; when bodyText is absent, selected inventory brief issue-ref identity substitutes for mark coverage\n\n## Footnote (harvest-changed:false; do not grow Bound)\n- Inventory adapter may reuse collectLifecycleChangeSet as the path union source, then map into PrDiffPath with rename origins; naming that helper is implementation, not a new limb.\n- Distinct stdout token vs soft_empty / none_stated (#3334) remains dispose-wording.\n- Export evaluatePathBActivationAdmit (or shared predicate helper) is already implied by file_scope export/reuse.\n\n## Verdict\nVerdict summary: classes blocking; harvest changed. Remint the local no-PR-body witness limb above; keep inventory, single disposition, write-fence keep-out, and P4 re-arm limbs. Thin Fail-Closed: one remint title, no footnote accretion.\n\n",
+          "id": 6352624962,
+          "html_url": "https://github.com/deftai/directive/issues/5792#issuecomment-6352624962",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-22T22:23:36Z",
+          "updated_at": "2026-10-22T22:28:16Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-build\n```quarantined\nrole: parent\n```\n\n## Prefer-A Bound\nRecut: 1\nconflict_group: path-b-scope-only-activation-verify-ac-before-merge-base-authority\nTarget-digest: sha256:81b3fc88a87ab4ca8acbc60143da06873883bf87b2cec56b748488f87271c16e\nSpec-path: packages/core/src/check + verify-ac + pr-closing-keywords Path B witness + write-fence cite-only\nSupersedes: 6352557908\nDisposes harvest-changing audits: 6352617987, 6352624962 (local no-PR-body Path B witness). Codex PA 6352580517 was clear on prior harvest.\narc-mode: no-ingest\ndual-stop-raise:+1\n\n## In plain English\nSame Prefer-A as Bound 6352557908, reminted so local deft check without a PR body can still run the Path B activation witness. When a PR body exists, deft-story marks still cover changed briefs. Mixed or stamped product work still runs full acceptance.\n\n## Bound remedy\n- relieves: P1 — Complete-set brief-land inventory maps merge-base..HEAD union working-tree and untracked paths with rename origins into PrDiffPath then isBriefLandShapedDiff; failed inventory yields no activation AC disposition.\n- relieves: P1 — One named activation AC disposition defers product command and artifact-clause execution before run after the witness; no opaque-npm selective forgiveness.\n- relieves: P3 — Local-or-PR Path B witness reuses brief-land + no-deleted-nonterminals + productPullRequest unset; deft-story mark coverage applies only when check has PR bodyText; when bodyText is absent, selected inventory brief issue-ref identity substitutes for mark coverage.\n- relieves: P2 — Concrete active-path brief land plus implement-branch start/rebase establishes merge-base write authority; loadStoryWriteFenceFromMergeBase stays unchanged; pending-to-active loader continuity stays out of scope.\n- relieves: P4 — Product path in inventory or productPullRequest set restores full verify:ac; activation disposition never banks as later product verified-pass; activation validation stays hard across full/pressure/rapid.\n\n## Reject\nApproach C head-brief write authority; second brief-land dialect; Approach B empty acceptance; mixed-diff AC soften; activation-as-product-cache green; silent Tracking-only mark synthesis as Bound authority; hook disable.\n\n## file_scope\n- packages/core/src/check/cached-orchestrator.ts (and thin admission helpers as needed)\n- packages/core/src/verify-ac/**\n- packages/core/src/pr-closing-keywords/main.ts (isBriefLandShapedDiff + Path B witness predicates / shared helper)\n- packages/core/src/policy/write-fence.ts (cite-only)\n- content/docs/scope-provenance.md\n- CHANGELOG.md\n- matching tests under packages/core/src/check and packages/core/src/verify-ac\n\n## Keep-outs\n#5387; #5791; #5736; #4768; pending-path plan.id fence continuity; Approach C.",
+          "id": 6352637003,
+          "html_url": "https://github.com/deftai/directive/issues/5792#issuecomment-6352637003",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-22T22:24:22Z",
+          "updated_at": "2026-10-22T22:24:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1,pain-P2,pain-P3,pain-P4\nfinding-classes: none\nharvest-changed: false\n\nPain-audit PA-2 of [Prefer-A Recut-1](https://github.com/deftai/directive/issues/5792#issuecomment-6352637003), inclusive id ceiling 6352637003, against [Stop 1](https://github.com/deftai/directive/issues/5792#issuecomment-6352358809). Required prior audits 6352617987, 6352624962 and Codex clear 6352580517 read. Verification: pin-read git show c7e79fe08ea94d4fb22f09320f0e4c7ac58ab5c4; no implementation execution claimed.\n\n- P1: Relieved by the design. Complete committed, working-tree and untracked inventory with rename origins bounds the carve. The pre-execution disposition defers both product commands and artifact clauses without guessing opaque npm dependencies. The explicit local witness now allows this disposition before a PR body exists.\n- P2: Relieved by the design. Landing the concrete active-path brief and starting/rebasing implementation onto that base supplies the exact path read by loadStoryWriteFenceFromMergeBase. The loader remains unchanged; pending-only publication is not claimed to grant active-path authority.\n- P3: Relieved by the design. The Local-or-PR Path B witness explicitly substitutes selected inventory brief issue-ref identity when bodyText is absent and retains mark coverage when a PR body exists. This disposes the shared blocker in 6352617987 and 6352624962. The prior Codex clear was too broad on this point: the pinned helper alone rejects absent bodyText as missing deft-story marks. Recut-1 now supplies the missing mechanism rather than assuming it.\n- P4: Preserved by the design. Product paths or productPullRequest stamps restore full acceptance; rename origins prevent shape laundering. Activation validation remains hard across full/pressure/rapid, and its disposition cannot become later cached product green. Unchanged merge-base authority prevents same-PR scope widening from authorizing product writes.\n\nPinned evidence: packages/core/src/pr-closing-keywords/main.ts (isBriefLandShapedDiff checks both path ends; evaluatePathBActivationAdmit currently requires marks and validates changed briefs); packages/core/src/check/cached-orchestrator.ts (mode filtering, soft-empty rejection, rapid zero-verified gate); packages/core/src/policy/write-fence.ts (exact relative-path read at merge base).\n\nNo missing mechanism limb or title remint. This is design sufficiency, not a claim that the pinned implementation already delivers the remedy. No naming, alias, documentation, or disposition-wording additions are needed to change the harvest.\n\n",
+          "id": 6352655669,
+          "html_url": "https://github.com/deftai/directive/issues/5792#issuecomment-6352655669",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-22T22:25:34Z",
+          "updated_at": "2026-10-22T22:25:34Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1,pain-P2,pain-P3,pain-P4\nfinding-classes: none\nharvest-changed: false\nTarget: Prefer-A Recut-1 6352637003\nStop 1: 6352358809\ndispatch-sha: c7e79fe08ea94d4fb22f09320f0e4c7ac58ab5c4\nid-ceiling: 6352637003\nseat-family: grok\n\n## In plain English\nRecut-1 keeps Prefer-A and remints the local-or-PR Path B witness that prior blocking PA 6352617987 / 6352624962 required. Local deft check without a PR body can admit brief-land activation via inventory brief issue-ref identity; PR bodies still need deft-story mark coverage. P1–P4 clear on design. Tip still lacks the activation disposition and the no-bodyText branch — that is implement work under these limbs, not a harvest remint.\n\n## Tip pin-read (c7e79fe0)\n- evaluatePathBActivationAdmit (private) still requires parseAllDeftStoryMarks(bodyText ?? \"\") and fails closed on empty marks; no local issue-ref substitute on tip yet. isBriefLandShapedDiff exported; productPullRequest must stay unset; deleted nonterminals refused.\n- loadStoryWriteFenceFromMergeBase still reads exact merge-base brief bytes; missing-at-base → empty fileScope. Bound cite-only keep-out matches tip.\n- check product-first verify:ac remains fail-fast before hygiene; no activation AC disposition on tip.\n- collectLifecycleChangeSet already unions merge-base…HEAD + dirty + cached + untracked with rename find; inventory limb stays tip-grounded (adapter for PrDiffPath previousFilename is implement detail).\n- Live Target-digest matches Bound (sha256:81b3fc88…). Codex PA 6352580517 was clear on prior harvest; Recut Disposes 6352617987 / 6352624962.\n\n## Pain relief\n\n### pain-P1 — relieved by design\nStop 1 Observed: local DEFT_ACTIVE_SCOPE check fails verify:ac before any PR. Recut limbs keep complete inventory → isBriefLandShapedDiff and one pre-run activation disposition. The reminted Local-or-PR witness applies deft-story marks only when bodyText exists; when absent, selected inventory brief issue-ref identity substitutes. That is the filed local consumer path. Silent Tracking-only mark synthesis stays Rejected.\n\n### pain-P2 — relieved by design\nConcrete active-path brief land plus implement-branch start/rebase establishes merge-base write authority. loadStoryWriteFenceFromMergeBase stays unchanged; pending-to-active loader continuity stays out of scope.\n\n### pain-P3 — relieved by design\nSame reminted witness plus the named activation disposition and file_scope docs pointer close the documented Path B carve gap without a second brief-land dialect.\n\n### pain-P4 — relieved by design\nProduct path in inventory or productPullRequest set restores full verify:ac; activation disposition never banks as later product verified-pass; activation validation stays hard across full/pressure/rapid.\n\n## Footnote (harvest-changed:false; do not grow Bound)\n- Inventory may adapt collectLifecycleChangeSet into PrDiffPath with rename origins — implementation naming, not a new limb.\n- Distinct stdout token vs soft_empty / none_stated (#3334) remains dispose-wording.\n- Exporting evaluatePathBActivationAdmit (or a shared predicate helper) is already implied by file_scope reuse.\n\n## Verdict\nVerdict summary: classes none; harvest unchanged. Prior blocking harvest-changing audits disposed by Recut-1 Local-or-PR witness limb title. No mechanism remint.",
+          "id": 6352663963,
+          "html_url": "https://github.com/deftai/directive/issues/5792#issuecomment-6352663963",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-22T22:26:07Z",
+          "updated_at": "2026-10-22T22:28:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-build\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Evidence | Status |\n|---|---|---|\n| Path B scope-only activation deadlocks on verify:ac before merge-base write authority | Issue body + Stop 1 6352358809 P1/P2; tip loadStoryWriteFenceFromMergeBase + product-first verify:ac | accepted |\n| Prefer-A reuses brief-land / Path B witness rather than a second dialect | Recut-1 6352637003 Bound remedy; Round-1 Codex 6352490161 / Grok 6352505793 | accepted |\n| Local no-PR-body check needs issue-ref substitute for deft-story marks | Grok PA 6352617987 blocker; disposed by Recut-1 Local-or-PR Path B witness limb | accepted |\n| Pain coverage closed on Recut-1 harvest | PA-2 Codex 6352655669 / Grok 6352663963: finding-classes:none; harvest-changed:false | accepted |\n| Approach C / head-brief write authority rejected | Round-1 steelmans + Bound Reject | accepted |\n\n## In plain English\nVerified claims for Prefer-A Recut-1 on #5792. This table is not a successor lean.",
+          "id": 6352679061,
+          "html_url": "https://github.com/deftai/directive/issues/5792#issuecomment-6352679061",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-22T22:27:05Z",
+          "updated_at": "2026-10-22T22:27:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-build\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because Prefer-A Recut-1 6352637003 binds Approach A with Round-1 blockers absorbed, PA-2 clear on both seats (Codex 6352655669, Grok 6352663963), and verified-claims table 6352679061 shows empty disagreement on the Bound harvest.\n\nBound contract: successor lean 6352637003, confirmed by operator (yolo-standing), verified-claims table 6352679061.\n\nTrail: Prefer-A draft 6352358524; Stop 1 6352358809; panel-deposit 6352443547; Round-1 Codex 6352490161 + Grok 6352505793; spend-amend 6352557649; Bound 6352557908; PA-1 Codex 6352580517 clear / Grok 6352617987 blocking; Recut-1 6352637003; PA-2 clear Codex 6352655669 / Grok 6352663963.\n\n## In plain English\nThe arc accepts Prefer-A Recut-1 as the next-build contract for #5792. Ingest remains a separate operator verb.\n\narc-mode: no-ingest",
+          "id": 6352679385,
+          "html_url": "https://github.com/deftai/directive/issues/5792#issuecomment-6352679385",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-22T22:27:07Z",
+          "updated_at": "2026-10-22T22:27:07Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nScope activation requires future tests before merge-base write authority exists\n\n## Context\n\nConsumer: 3Ci-Consulting/bullhorn-mcp on macOS, Codex, Node 24.20.0. After the framework-only coverage blocker in #5791, the operator explicitly requested a simple class and test to produce genuine coverage. The intended change is one RecordReference data container, a node:test serialization assertion, and c8 coverage scripts. Bullhorn requirements remain stashed; no API integration or unresolved architecture decisions are part of this change.\n\nVersion boundary: the shared global CLI and implementation checkout report engine/package 0.126.2. The isolated scope-review checkout was created from the delivery branch, which still pins 0.126.1; it was not upgraded merely to publish the scope. The check below was invoked through the global 0.126.2 CLI in that checkout. This report discloses that local pin difference rather than claiming a clean all-0.126.2 end-to-end reproduction.\n\n## Expected behavior\n\nProvide a supported, reviewable bootstrap path for a new implementation scope: validate and review its concrete file_scope and acceptance contract before product writes are authorized, then require the unchanged product acceptance commands once implementation exists. A scope-only activation must not have to claim that future product code already passes its tests. Preserve immutable merge-base authority, fail-closed write checks, applicable scope/document validation, and full acceptance testing for mixed/product changes. The report does not prescribe trusting an agent-widened working-tree brief or a blanket test exemption.\n\n## Actual behavior / gap\n\nThe intended recovery forms a cycle: product writes need governing scope at merge base; landing that scope requires the not-yet-written product's acceptance tests.\n\nObserved sequence:\n1. Create the new xBRIEF with stable plan.id record-reference-coverage, explicit concrete file_scope covering src/record-reference.js, test/record-reference.test.js, package files and lifecycle paths; promote and activate it through native CLI verbs. xbrief:preflight and scope-provenance validation pass.\n2. Attempt the initial source/test writes in the 0.126.2 implementation checkout. The live Directive tool hook denies them. After native scope:block removes the stale setup brief from eligibility, the new scope is selected but still has no positive governing allow coverage at merge base. No source/test files are written.\n3. Follow the documented Path B scope-only activation route in a fresh worktree based on origin/master. Its only changed path is xbrief/active/2026-10-20-record-reference-coverage.xbrief.json. Keep metadata.productPullRequest unset. No product source, test files or package scripts are added.\n4. Run: DEFT_ACTIVE_SCOPE=xbrief/active/2026-10-20-record-reference-coverage.xbrief.json deft check\n5. The mandatory local check selects that scope and runs the future acceptance commands before the scope can be published through the normal review flow.\n\nObserved output:\n```text\nverify:ac clause walk (#3323): 0 verified, 1 unverifiable, 3 failed\n[failed] clause 1 @ src/record-reference.js: artifact missing at stated path\n[failed] clause 2 @ src/record-reference.js: artifact missing at stated path\n[failed] clause 3 @ test/record-reference.test.js: artifact missing at stated path\nLiteral acceptance-command gate FAILED (#3284/#3267): 2/2 command(s) did not pass.\nnpm test: Missing script: \"test\"\nnpm run test:coverage: Missing script: \"test:coverage\"\ncheck: gate verify:ac failed (exit 201)\ncheck: product AC gate verify:ac failed (exit 201); failing closed before hygiene (#3284)\n```\nThe brief's commands were derived from the user's requested class/test/coverage outcome; they were not literal commands supplied by the user. They remain in the brief and were not weakened to clear the gate.\n\nThe check failure is local pre-publication evidence, not a claim that a hosted PR/CI run occurred. No activation or implementation PR was opened.\n\n## Session notes\n\nRefs #5791.\n\nWhy this is a separate report: #5791 concerns a missing Istanbul report for a framework-only dependency upgrade. Adding actual tested source was the operator-authorized next step, and this distinct scope/write-authority versus pre-implementation acceptance cycle prevents it.\n\nRelated but different issues inspected: #5387 (closed) separates Path B activation from productPullRequest delivery binding; its brief-land allowance does not resolve the verify:ac failure here. #5656 (closed) requires positive governing allow coverage and explicitly preserves immutable authority for first-PR/absent-at-base cases. #5403 (closed) covers stale shipped actives; native scope:block removed that initial eligibility problem, but not the new scope's missing merge-base authority. #5736 (open) covers activation/widen review latency and offline checks, rather than this acceptance deadlock. #3714 (open) surfaces approval ordering earlier. #5477 (closed) concerns a just-completed brief in rapid mode, not a new active brief whose artifacts do not exist.\n\nInstalled-code evidence in 0.126.2: packages/core/src/policy/write-fence.ts (distributed as dist/policy/write-fence.js), loadStoryWriteFenceFromMergeBase, reads the selected brief's exact relative path with git show <merge-base>:<path>. Missing-at-base yields empty fileScope. This runtime loader does not use the plan.id lifecycle-continuity lookup described for merge-time membership. Therefore publishing a pending-only brief cannot by itself establish the active-path runtime authority; this is a code-inspection finding, not a separately executed pending-PR experiment.\n\nMinimal acceptance fragment in the new brief:\n```json\n{\"commands\":[{\"command\":\"npm test\"},{\"command\":\"npm run test:coverage\"}],\"none_stated\":true,\"source_rung\":\"derived\",\"ambiguity_attestation\":\"none_found\"}\n```\nArtifact clauses bind to src/record-reference.js and test/record-reference.test.js. plan.status is running and implementation items remain pending.\n\nSuggested regression: exercise the installed consumer lifecycle and hook path from a source-free repository through reviewed scope activation, authorized initial test/source writes, then real product acceptance. Include a negative mixed scope+product diff and same-PR file_scope widening; neither should gain a scope-only exemption. A pending-to-active solution must prove actual runtime authority continuity rather than merge-time membership alone. Keep failed product tests blocking delivery.\n\nEvidence is retained in local /tmp/bullhorn-scope-only-check.log and the uncommitted scope-review worktree; these are local artifacts, not public URLs. Delivery base: f987399e5b7810b355bebdbfdcc561fb7e36362d. No gate changes, hook disabling, alternate-writer bypass, fabricated coverage, acceptance edits, push, PR or merge were used.\n\n## Adoption impact\n\nThis report is a consumer hard-stop: the consumer cannot complete an intended Directive flow and has no reasonable workaround.\n\nTitle token: `BLOCKER`. This token does not apply the `adoption-blocker` ranking label. A privileged actor applies that label after the body-evidence test.\n\n### Affected consumer flow and version\n\nConsumer first executable class/test -> reviewed scope activation -> merge-base-authorized implementation -> genuine coverage -> normal PR delivery. Observed with global/implementation 0.126.2 and delivery-base scope-review pin 0.126.1 as disclosed above.\n\n### Documented alternatives attempted\n\nNative promote/activate/preflight succeeded but did not establish merge-base write authority. Native scope:block cleared the unrelated stale-active selection issue. A fresh scope-only Path B review candidate then failed required deft check at verify:ac on the future implementation. Pending-only planning was inspected against the installed exact-path runtime loader and does not independently resolve that active-path requirement. Disabling hooks, weakening acceptance, faking test scripts/reports, or writing around a denied tool are not reasonable workarounds.\n\n### Observed recovery cost\n\nTwo isolated delivery/planning worktrees and the native scope lifecycle were prepared, but no application class, test or coverage report could be created through the permitted path. Both implementation and scope publication remain blocked. Requirements stash and Freshservice were left unchanged.\n\n### Triage owner and date\n\n_(to be filled by a privileged actor when applying `adoption-blocker`)_\n\n---\n_Filed via `deft feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5948036296,
+        "origin": "deftai/directive#5792",
+        "id": "github.issue.5948036296"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "81b3fc88a87ab4ca8acbc60143da06873883bf87b2cec56b748488f87271c16e"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "path-b-scope-only-activation-verify-ac-before-merge-base-authority",
+        "expected_outputs": [
+          "brief-land inventory + activation AC disposition",
+          "local-or-PR Path B witness",
+          "product path restores full verify:ac",
+          "scope-provenance docs",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "npx vitest run packages/core/src/check/orchestrator.test.ts packages/core/src/verify-ac/evaluate.test.ts packages/core/src/verify-ac/index.test.ts"
+        ],
+        "file_scope": [
+          "packages/core/src/check/cached-orchestrator.ts",
+          "packages/core/src/check/orchestrator.test.ts",
+          "packages/core/src/verify-ac/evaluate.ts",
+          "packages/core/src/verify-ac/evaluate.test.ts",
+          "packages/core/src/verify-ac/index.ts",
+          "packages/core/src/verify-ac/index.test.ts",
+          "packages/core/src/pr-closing-keywords/main.ts",
+          "packages/core/src/policy/write-fence.ts",
+          "content/docs/scope-provenance.md",
+          "CHANGELOG.md"
+        ],
+        "size": "L",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5792",
+          "Prefer-A Bound Recut-1 6352637003",
+          "#5387",
+          "#5791"
+        ],
+        "parallel_safe": true
+      }
+    },
+    "id": "github.issue.5948036296",
+    "updated": "2026-11-05T21:29:36Z"
+  }
+}
