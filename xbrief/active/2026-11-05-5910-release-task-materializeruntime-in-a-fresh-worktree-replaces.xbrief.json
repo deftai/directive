@@ -1,0 +1,643 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5910",
+    "updated": "2026-11-05T18:15:30.986Z"
+  },
+  "plan": {
+    "title": "release: `task materialize:runtime` in a fresh worktree replaces the pinned runtime with master's 0.0.0 and the pin hook blocks the release",
+    "status": "running",
+    "narratives": {
+      "Description": "release: `task materialize:runtime` in a fresh worktree replaces the pinned runtime with master's 0.0.0 and the pin hook blocks the release",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5910",
+      "Overview": "\n\n- relieves: P1 — Name a cut-context producer for the release cut worktree and refuse `task materialize:runtime` before it moves or replaces the pin while that context is active from release entry through version bump/tag.\n- relieves: P2 — When cheapInSync fail-closes and `.deft-scratch/materialize-runtime-overlay.json` is present, recovery text names that overlay plus `pnpm install --frozen-lockfile` (or equivalent exact restore) as an operator-terminal path outside the blocked hook, then requires retiring the overlay before identity may pass.\n- relieves: P3 — While that overlay file is present, cheapInSync fail-closes even when pinVersion equals installedVersion so rewriting installed package.json version alone cannot clear the check.\n- relieves: P4 — Fixtures prove cut-context materialize refuses before replacement with prior pin intact, honest tip 0.0.0 and version-spoofed tip both deny, frozen-lockfile restore retires the overlay then identity passes, and a fresh-worktree release reaches the version-bump gate on the published pin without materialize.\n\n\n",
+      "Labels": "bug, urgent, design-critique:ingest-ready, core-capabilities",
+      "UserStory": "As a release operator cutting from a fresh worktree, I want materialize:runtime refused while cut-context is active and overlay-present cheapInSync to stay fail-closed so the published pin is not replaced by tip 0.0.0.",
+      "ImplementationPlan": "Name cut-context producer and refuse materialize before pin replace; when overlay present, cheapInSync fail-closes even on version equality and recovery names overlay + frozen-lockfile restore; successful restore retires overlay; fixtures prove refuse, spoof deny, restore path, and release-to-bump."
+    },
+    "items": [
+      {
+        "title": "relieves: P1 — Name a cut-context producer for the release cut worktree and refuse `task materialize:runtime` before it moves or replaces the pin while that context is active from release entry through version bump/tag.",
+        "status": "pending",
+        "id": "clause.1"
+      },
+      {
+        "title": "relieves: P2 — When cheapInSync fail-closes and `.deft-scratch/materialize-runtime-overlay.json` is present, recovery text names that overlay plus `pnpm install --frozen-lockfile` (or equivalent exact restore) as an operator-terminal path outside the blocked hook, then requires retiring the overlay before identity may pass.",
+        "status": "pending",
+        "id": "clause.2"
+      },
+      {
+        "title": "relieves: P3 — While that overlay file is present, cheapInSync fail-closes even when pinVersion equals installedVersion so rewriting installed package.json version alone cannot clear the check.",
+        "status": "pending",
+        "id": "clause.3"
+      },
+      {
+        "title": "relieves: P4 — Fixtures prove cut-context materialize refuses before replacement with prior pin intact, honest tip 0.0.0 and version-spoofed tip both deny, frozen-lockfile restore retires the overlay then identity passes, and a fresh-worktree release reaches the version-bump gate on the published pin without materialize.",
+        "status": "pending",
+        "id": "clause.4"
+      }
+    ],
+    "tags": [
+      "bug",
+      "urgent",
+      "design-critique:ingest-ready",
+      "core-capabilities"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5910",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5910: release: `task materialize:runtime` in a fresh worktree replaces the pinned runtime with master's 0.0.0 and the pin hook blocks the release"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "release: `task materialize:runtime` in a fresh worktree replaces the pinned runtime with master's 0.0.0 and the pin hook blocks the release",
+        "relieves: P1 — Name a cut-context producer for the release cut worktree and refuse `task materialize:runtime` before it moves or replaces the pin while that context is active from release entry through version bump/tag.",
+        "relieves: P2 — When cheapInSync fail-closes and `.deft-scratch/materialize-runtime-overlay.json` is present, recovery text names that overlay plus `pnpm install --frozen-lockfile` (or equivalent exact restore) as an operator-terminal path outside the blocked hook, then requires retiring the overlay before identity may pass.",
+        "relieves: P3 — While that overlay file is present, cheapInSync fail-closes even when pinVersion equals installedVersion so rewriting installed package.json version alone cannot clear the check.",
+        "relieves: P4 — Fixtures prove cut-context materialize refuses before replacement with prior pin intact, honest tip 0.0.0 and version-spoofed tip both deny, frozen-lockfile restore retires the overlay then identity passes, and a fresh-worktree release reaches the version-bump gate on the published pin without materialize."
+      ],
+      "admitted_source_sentences": [
+        "relieves: P1 — Name a cut-context producer for the release cut worktree and refuse `task materialize:runtime` before it moves or replaces the pin while that context is active from release entry through version bump/tag.",
+        "relieves: P2 — When cheapInSync fail-closes and `.deft-scratch/materialize-runtime-overlay.json` is present, recovery text names that overlay plus `pnpm install --frozen-lockfile` (or equivalent exact restore) as an operator-terminal path outside the blocked hook, then requires retiring the overlay before identity may pass.",
+        "relieves: P3 — While that overlay file is present, cheapInSync fail-closes even when pinVersion equals installedVersion so rewriting installed package.json version alone cannot clear the check.",
+        "relieves: P4 — Fixtures prove cut-context materialize refuses before replacement with prior pin intact, honest tip 0.0.0 and version-spoofed tip both deny, frozen-lockfile restore retires the overlay then identity passes, and a fresh-worktree release reaches the version-bump gate on the published pin without materialize."
+      ],
+      "admitted_source_digest": "98145b4785c736fe88ba0021b75b0182a774140f04605e0ced04699fba83f9dd",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "relieves: P1 — Name a cut-context producer for the release cut worktree and refuse `task materialize:runtime` before it moves or replaces the pin while that context is active from release entry through version bump/tag.",
+          "artifact_path": "packages/core/src/install-health/cheap.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "relieves: P2 — When cheapInSync fail-closes and `.deft-scratch/materialize-runtime-overlay.json` is present, recovery text names that overlay plus `pnpm install --frozen-lockfile` (or equivalent exact restore) as an operator-terminal path outside the blocked hook, then requires retiring the overlay before identity may pass.",
+          "artifact_path": "packages/core/src/install-health/cheap.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "relieves: P3 — While that overlay file is present, cheapInSync fail-closes even when pinVersion equals installedVersion so rewriting installed package.json version alone cannot clear the check.",
+          "artifact_path": "packages/core/src/install-health/index.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "relieves: P4 — Fixtures prove cut-context materialize refuses before replacement with prior pin intact, honest tip 0.0.0 and version-spoofed tip both deny, frozen-lockfile restore retires the overlay then identity passes, and a fresh-worktree release reaches the version-bump gate on the published pin without materialize.",
+          "artifact_path": "packages/runtime/src/hook-dispatch.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/install-health/cheap.ts",
+          "packages/core/src/install-health/cheap.test.ts",
+          "packages/core/src/install-health/index.ts",
+          "packages/runtime/src/hook-dispatch.ts",
+          "packages/runtime/src/hook-identity-failclosed.test.ts",
+          "tasks/materialize.yml",
+          "tasks/materialize.cjs",
+          "tasks/materialize.test.cjs",
+          "content/skills/deft-directive-release/SKILL.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/install-health/cheap.ts",
+        "cohesion_exemption": "CHANGELOG + cheapInSync overlay failClosed consumed by release cut materialize refuse"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## Prefer-A draft\n\nconflict_group: release-cut-forbid-materialize-keep-published-pin\nSpec-path: release skill + cheapInSync recovery — keep published pin on cut worktree\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nmove-forward: yes\ndispatch-sha: 7f04a43075911dcacf72683e0e886152b8bc2fe8\ndest: .deft-scratch/worktrees/arc-5910\nTarget-digest: sha256:f1512ea4d9db40b2cb41a263134ac20c1f692ce429f452b3465f1f2d71ca3834\nKISS: #5783 Prefer-A Bound 6280270826 — short mechanism limbs only; docs/naming footnotes; Recut for mechanism or fail-closed change\n#5805 keep-out: Prefer-A Bound 6326249868 pin-exclusive ordinary invoke + explicit tip materialize stay; do not remint pin-exclusivity\n\n## In plain English\n\nA headless 0.129.1 cut in a fresh worktree ran `task materialize:runtime` after build. That swapped the published pin (0.129.0) for tip package version 0.0.0. cheapInSync then refused every hook for the rest of the session, so the bump never ran. Prefer-A keeps the cut worktree on the published pin: the release skill forbids materialize on that tree through bump/tag, mismatch recovery names frozen-lockfile restore when a materialize overlay is present, and hand-editing the installed runtime version field cannot clear the pin check.\n\n## Bound remedy\n\n- relieves: P1 — Release skill and release Task verbs refuse or never schedule `task materialize:runtime` on the cut worktree from Phase 0 through version bump / tag; tip dogfood materialize stays outside the cut path.\n- relieves: P2 — When cheapInSync fail-closes after a present `.deft-scratch/materialize-runtime-overlay.json`, recovery text names that overlay and `pnpm install --frozen-lockfile` (or equivalent exact restore) as the restore, not only generic AC9.7 reinstall.\n- relieves: P3 — Pin identity for hooks verifies installed runtime against lockfile/integrity (or equivalent non-version-only record) so rewriting installed `package.json` version alone cannot satisfy the check.\n- relieves: P4 — Fixture: fresh-worktree release path reaches the version-bump gate with pin==installed and without materialize; overlay-present mismatch fixture asserts the named restore guidance.\n\n## Reject\n\n- B: Rewrite materialized package.json version to the published pin so cheapInSync lies about tip dogfood.\n- C: Teach cheapInSync to treat any materialize overlay as identity-match / allowSetup (weakens #5805 fail-closed pin≠installed).\n- D: Process-only \"don't materialize\" guidance without skill/Task refuse and without restore/hand-edit limbs.\n- Remint #5805 pin-exclusive ordinary invoke or delete tip `materialize:runtime`.\n\n## Approaches considered\n\n- A (prefer): forbid materialize on cut tree + overlay-aware restore guidance + non-version-only identity.\n- B: fake tip version to match pin.\n- C: overlay softens cheapInSync.\n- D: docs-only.",
+          "id": 6663319226,
+          "html_url": "https://github.com/deftai/directive/issues/5910#issuecomment-6663319226",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:28:45Z",
+          "updated_at": "2026-11-05T16:28:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because release cut + pin-exclusive hooks (#5805) collide when materialize swaps published pin for tip 0.0.0; mechanism spans release skill, materialize, and cheapInSync identity — open remedy space with high blast.\n\nmechanism-shaped: true\ncharter: open critique\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nspend-why: high blast (release cut blocked; pin identity / hooks) and genuinely open remedy space (forbid materialize on cut vs overlay-aware sync vs integrity-only)\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nTarget-kind: issue\nCeiling-kind: comment-id\ndispatch-sha: 7f04a43075911dcacf72683e0e886152b8bc2fe8\ndest: .deft-scratch/worktrees/arc-5910\nverification-path: pin-read git show 7f04a43075911dcacf72683e0e886152b8bc2fe8: ; dest cwd-without-occupy .deft-scratch/worktrees/arc-5910\nseat-families: codex,grok,claude\ndual-stop-reserved: 1\npain: P1, P2, P3, P4\nPrefer-A draft: 6663319226\nKISS ceiling: #5783 Prefer-A Bound 6280270826\n#5805 keep-out: Prefer-A Bound 6326249868\n\n## Pain bind\n\n- P1: materialize on cut worktree replaces published pin with tip 0.0.0; cheapInSync refuses hooks; version bump never runs\n- P2: pin-mismatch recovery does not name materialize overlay + frozen-lockfile restore\n- P3: hand-editing installed runtime version field can appear to satisfy version-only identity\n- P4: no fixture proving fresh-worktree release reaches bump with pin==installed and without materialize\n\n## Stop 2\n\ncharter: open critique (no single named refutation-target; expected keep-pin is design goal, not a body presumption to refute)\nspend: N≥3 (panel permission: open remedy space + high blast)",
+          "id": 6663329741,
+          "html_url": "https://github.com/deftai/directive/issues/5910#issuecomment-6663329741",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:29:13Z",
+          "updated_at": "2026-11-05T16:55:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## Panel-deposit\n\nconflict_group: release-cut-forbid-materialize-keep-published-pin\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N≥3\nspend-ask: resolved\nseat-families: codex,grok,claude\ndual-stop-reserved: 1\ndispatch-sha: 7f04a43075911dcacf72683e0e886152b8bc2fe8\ndest: .deft-scratch/worktrees/arc-5910\nverification-path: pin-read git show 7f04a43075911dcacf72683e0e886152b8bc2fe8: ; dest cwd-without-occupy .deft-scratch/worktrees/arc-5910\nPrefer-A draft: 6663319226\nStop 1: 6663329741\npain: P1, P2, P3, P4\nid-ceiling: this comment (inclusive) — Round-1 critics must not read thread comments after this id\nKISS: #5783 Prefer-A Bound 6280270826\n#5805 keep-out: Prefer-A Bound 6326249868\n\nRound-1 charter: open critique of Prefer-A draft 6663319226 against Stop 1 pains P1–P4. Process-only; pin-read at dispatch-sha. Three seat families: Codex, Grok, Claude.",
+          "id": 6663334012,
+          "html_url": "https://github.com/deftai/directive/issues/5910#issuecomment-6663334012",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:29:24Z",
+          "updated_at": "2026-11-05T16:55:04Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## Spend-amend\n\nspend-amend: N≥3 → N=2\nseat-families: codex,grok\nreason: Claude launch-probe failed — OAuth session expired and could not be refreshed (`claude auth status` / critic-style pong rc≠0). Codex pong ok. Grok seated via spawn_subagent process_only. Not a #5478 hang; auth miss → drop Claude seat; continue panel with two claimed families.\narc-mode: no-ingest\nyolo-standing: on\nPrefer-A draft: 6663319226\nStop 1: 6663329741\nPanel-deposit: 6663334012\ndispatch-sha: 7f04a43075911dcacf72683e0e886152b8bc2fe8",
+          "id": 6663365026,
+          "html_url": "https://github.com/deftai/directive/issues/5910#issuecomment-6663365026",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:30:43Z",
+          "updated_at": "2026-11-05T16:30:43Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## Spend-amend\n\nspend-amend: N=2 → N≥3\nseat-families: codex,grok,claude\nreason: Operator reports Claude available again; critic-style pong returned pong at rc0. Restore third seat family. Prior amend 6663365026 (OAuth miss) superseded for Round-1 seating.\narc-mode: no-ingest\nyolo-standing: on\nPrefer-A draft: 6663319226\nStop 1: 6663329741\nPanel-deposit: 6663334012\ndispatch-sha: 7f04a43075911dcacf72683e0e886152b8bc2fe8",
+          "id": 6663652797,
+          "html_url": "https://github.com/deftai/directive/issues/5910#issuecomment-6663652797",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:43:14Z",
+          "updated_at": "2026-11-05T16:43:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6-astra\n```quarantined\nrole: critic\n```\naudit-targets: none\nRound: 1 critic | critic-role: fresh\nCharter: open critique\nspend: N>=3\narc-mode: no-ingest\nmateriality-bar: open\nId ceiling (inclusive): 6663334012\nPrefer-A draft: 6663319226\nStop 1: 6663329741\nPanel-deposit: 6663334012\ndispatch-sha: 7f04a43075911dcacf72683e0e886152b8bc2fe8\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5910\nverification-path: pin-read git show 7f04a43075911dcacf72683e0e886152b8bc2fe8: ; dest cwd-without-occupy\nconflict_group: release-cut-forbid-materialize-keep-published-pin\nKISS ceiling: #5783 Prefer-A Bound 6280270826\n#5805 keep-out: Prefer-A Bound 6326249868 (pin-exclusive ordinary invoke + tip materialize stay; do not remint)\nfinding-classes: blocks-the-design=2; sharpens-framing=2; footnote=1\n\nPrefer-A has the right direction, but needs a mechanism recut before binding. Reject B/C/D and the #5805 keep-out hold. Evidence below is pinned to the dispatch SHA; no sibling comments were read.\n\n1. **blocks-the-design — P3 needs an actual installed-content check, not another metadata equality.** `packages/core/src/install-health/cheap.ts` compares only the declared pin and installed package version; it explicitly excludes lockfile inspection. `readers.ts` reads lockfile versions, not installed-content integrity. A lockfile tarball integrity string authenticates archive bytes when checked against that archive; merely reading it, or copying it into an installed receipt, does not authenticate the extracted files. Bind the smallest concrete verification path and its trust boundary: what bytes are checked, where the expected digest comes from, and how missing/unreadable/mismatching evidence denies execution before setup. Preserve legitimate first-install setup separately. Include a same-version modified-content fixture, not only version inequality. A version-only edit must remain denied. Do not imply protection against arbitrary edits to the executing verifier itself. The current 'or equivalent non-version-only record' leaves the central mechanism undecided and its cost on every hook unbounded.\n\n2. **blocks-the-design — P1's 'refuse or never schedule' permits a no-op remedy.** The pinned rendered release skill contains no materialize instruction; the targeted release Task/source search also found none. The reported agent introduced the call independently. `tasks/materialize.cjs` checks checkout ownership and serializes replacement, but has no release-cut guard. Thus a dependency-graph assertion that release never schedules materialize can pass while the incident still reproduces. Name one enforceable cut-context producer and the refusal point before materialize moves/replaces the pin, including when the context begins and ends. A later release preflight cannot prevent a preparatory call from poisoning hooks first. Keep this narrow to cut worktrees and preserve explicit dogfood elsewhere; do not create a broad new release state machine.\n\n3. **sharpens-framing — P2 must specify executable recovery and verify restoration.** `hook-dispatch.ts` denies before normal policy when `cheap.failClosed`; improved text does not make the same agent's next repair tool call runnable. Say that recovery may require an operator terminal outside the blocked hook, without adding an overlay allowSetup exception. The overlay is written after replacement and is not removed by materialize's normal completion; its presence is diagnostic history, not proof that current installed bytes are still an overlay. The incident reports frozen-lockfile install worked, but the fixture should prove it actually restores the installed package in the supported layout, then the identity check passes even with a stale overlay record. Do not advertise successful restore merely from package-manager exit zero.\n\n4. **sharpens-framing — P4 needs negative tests of the new promises.** A clean release reaching the bump gate and a recovery-string assertion do not exercise either proposed safety limb. Add focused fixtures for cut-context materialize refusing before replacement with prior pin intact; honest tip 0.0.0 and version-spoofed tip both denied; and restored published content accepted. Keep the happy-path test on the real task/hook delegation boundary so mocked `pin==installed` cannot prove the claim by construction. No real publish is necessary.\n\n5. **footnote — edit ownership and wording.** `content/.agents/skills/deft-directive-release/SKILL.md` is generated from `packs/skills/skills-pack-0.1.json`; changes belong in its source. The current skill starts at Phase 1, so 'Phase 0 through tag' needs a clear entry-boundary name. These are implementation/documentation notes, not reasons for an additional mechanism recut.\n\nTip cross-check: runtime `package.json` is 0.0.0; materialize stages/packs and replaces only the checkout install without changing committed pins; launcher and known-limitations docs retain explicit per-checkout tip materialize. B would disguise that skew; C would turn a diagnostic overlay into authorization; D would leave the observed discretionary invocation unguarded. Preserve those rejections. The two blockers above change the Bound mechanism; the other findings can be folded into its verification/recovery details under the #5783 thinness ceiling.",
+          "id": 6663661434,
+          "html_url": "https://github.com/deftai/directive/issues/5910#issuecomment-6663661434",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:43:38Z",
+          "updated_at": "2026-11-05T16:55:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\naudit-targets: none\nRound: 1 critic | critic-role: fresh\nCharter: open critique\nspend: N≥3\narc-mode: no-ingest\nmateriality-bar: open\nId ceiling (inclusive): 6663334012\nPrefer-A draft: 6663319226\nStop 1: 6663329741\nPanel-deposit: 6663334012\ndispatch-sha: 7f04a43075911dcacf72683e0e886152b8bc2fe8\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5910\nverification-path: pin-read git show 7f04a43075911dcacf72683e0e886152b8bc2fe8: ; dest cwd-without-occupy\nconflict_group: release-cut-forbid-materialize-keep-published-pin\nKISS ceiling: #5783 Prefer-A Bound 6280270826\n#5805 keep-out: Prefer-A Bound 6326249868 (pin-exclusive ordinary invoke + tip materialize stay; do not remint)\n\n## Round-1 critique — Prefer-A draft 6663319226 vs Stop 1 P1–P4\n\nfinding-classes: blocks-the-design=0; sharpens-framing=3; footnote=3\n\n### Verdict\n\nPrefer-A relieves P1–P4 with implementable, KISS-thin mechanism limbs. Reject B/C/D and the #5805 keep-out hold on tip evidence at `7f04a430`. Bind one concrete P3 identity oracle at Bound time so version-spoof-with-overlay-present cannot clear cheapInSync.\n\nTip evidence used (dest cwd + raw pin-read equivalents): `tasks/materialize.cjs` writes tip into `node_modules/@deftai/directive-runtime` and stamps `.deft-scratch/materialize-runtime-overlay.json`; `packages/runtime/package.json` is `\"version\": \"0.0.0\"`; `packages/core/src/install-health/cheap.ts` compares pin string to installed `package.json` version only and always returns AC9.7 `INSTALLATION_RECOVERY_GUIDANCE` (`npm i -g …; directive install --repair`) with no overlay / frozen-lockfile branch; `hook-dispatch.ts` fail-closes pin≠installed before policy; release `SKILL.md` has **zero** `materialize` mentions; `content/docs/launcher.md` + `known-limitations.md` advertise `task materialize:runtime` for tip dogfood; `Taskfile.yml` / `tasks/materialize.yml` keep the tip dogfood verb.\n\n### Findings\n\n**F1 — sharpens-framing — Bind P3’s non-version-only oracle**  \nP3 correctly targets the Observed hand-edit path: `readInstalledRuntimeVersion` trusts installed `package.json` `version`, so after materialize (0.0.0) an agent can rewrite that field to the published pin and make `checkCheapInSync` report identityMatch while tip bits remain. “Lockfile/integrity (or equivalent)” is the right class, but Bound must name one oracle (examples that close the spoof: overlay marker forces failClosed even when version strings match; or compare installed tree / lockfile integrity for `@deftai/directive-runtime` to the pin record). Leaving “or equivalent” open risks a Recut or a soft P3.\n\n**F2 — sharpens-framing — Name which release Task verbs refuse materialize (P1)**  \nP1 limb (“Release skill and release Task verbs refuse or never schedule `task materialize:runtime` on the cut worktree from Phase 0 through bump/tag”) matches the incident and tip gap (skill silent; docs push tip dogfood materialize). At Bound, list the refuse/schedule surfaces (`deft-directive-release` phases + `task release` / `release:*` pipeline steps) so implementers do not treat this as prose-only. Tip dogfood `task materialize:runtime` outside the cut path stays (#5805 keep-out).\n\n**F3 — sharpens-framing — P2 is recovery text only; pair it with P3’s fail-closed**  \nTip `cheap.ts` never reads the overlay file; mismatch recovery is always AC9.7. Prefer-A P2 correctly adds overlay-aware restore (`pnpm install --frozen-lockfile`) when failClosed + overlay present. That alone does not stop version-spoof while overlay remains—P3 must carry that fail-closed. Keep P2 as guidance limb; do not let P2 be misread as softening identity.\n\n**F4 — footnote — Reject B/C/D hold**  \nB (fake tip version to pin) and C (overlay ⇒ allowSetup / identity-match) would lie about tip dogfood or weaken #5805 pin≠installed fail-closed in `hook-dispatch.ts`—reject. D (docs-only) fails: skill already omits materialize while launcher/known-limitations teach it; without skill/Task refuse + restore/hand-edit limbs the cut path stays open—reject.\n\n**F5 — footnote — #5805 keep-out holds**  \nTip still needs explicit `materialize:runtime` for maintainer dogfood; Prefer-A scopes forbid to the cut worktree path and leaves tip materialize outside that path. Do not remint pin-exclusivity or delete the materialize verb.\n\n**F6 — footnote — P4 fixture shape**  \nExisting `tasks/materialize.test.cjs` covers #5805 isolation, not the release cut. Prefer-A’s fresh-worktree reaches-bump-without-materialize + overlay-mismatch-names-restore fixtures are the right P4 limbs and stay KISS-thin.\n\n### Pain relief map\n\n| Pain | Prefer-A limb | Relieves? |\n|------|---------------|-----------|\n| P1 materialize on cut → 0.0.0 → hooks refuse → no bump | Skill + release Task refuse/never schedule through bump/tag | Yes (bind verb list at Bound — F2) |\n| P2 recovery omits overlay + frozen-lockfile | Overlay-aware recovery text | Yes (guidance only — F3) |\n| P3 version-only hand-edit | Non-version-only pin identity | Yes if oracle bound — F1 |\n| P4 missing cut-path fixture | Fresh-worktree + overlay recovery fixtures | Yes |\n\n### Missing fail-closed limb?\n\nNo separate fifth limb required if Bound binds F1’s oracle so overlay-present version-spoof cannot clear cheapInSync. Softening P3 to docs or version-only regression would leave a hole—then add an explicit “overlay marker ⇒ failClosed” limb.\n\n### KISS (#5783)\n\nFour short mechanism limbs are enough. Docs/naming cross-links (release skill ⊗ materialize on cut; keep launcher tip-dogfood) stay footnotes. Do not grow Prefer-A into a remint of #5805.\n\n**Seat note:** This CLI critic could not run `gh issue comment` or write TEMP—PreToolUse denied all mutations (`missing node_modules/@deftai/directive-runtime`; junction / `.deft-directive-disable` also denied). Body parked for parent POST. Native `spawn_subagent` miss recorded upstream; no product mutation; no comments id > 6663334012 read.",
+          "id": 6663733612,
+          "html_url": "https://github.com/deftai/directive/issues/5910#issuecomment-6663733612",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:46:53Z",
+          "updated_at": "2026-11-05T16:55:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## Dispatch-fail — Claude Round-1\n\nseat: claude\nresult: dispatch-fail (#5478 zero-byte hang after pong-ok)\nevidence: critic-style pong rc0; pointer-envelope spawn pid 25920; out=0 err=0 for 180s; T_progress kill; no issue comment posted.\nspend: keep N≥3 record for seating attempt; Round-1 accepted siblings = Codex 6663661434 + Grok (parent-posted parked body). Proceed synthesis from two seats (same recovery class as prior Claude thrash arcs).\narc-mode: no-ingest",
+          "id": 6663734230,
+          "html_url": "https://github.com/deftai/directive/issues/5910#issuecomment-6663734230",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:46:55Z",
+          "updated_at": "2026-11-05T16:46:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## Prefer-A Bound\n\nconflict_group: release-cut-forbid-materialize-keep-published-pin\nSpec-path: Prefer-A Bound — cut-context materialize refuse + overlay failClosed + restore proof\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N=2\nseat-families: codex,grok\nmove-forward: yes\ndispatch-sha: 7f04a43075911dcacf72683e0e886152b8bc2fe8\ndest: .deft-scratch/worktrees/arc-5910\nTarget-digest: sha256:f1512ea4d9db40b2cb41a263134ac20c1f692ce429f452b3465f1f2d71ca3834\nRound-1: Codex 6663661434; Grok 6663733612; Claude dispatch-fail #5478 (6663734230)\nPrefer-A draft superseded for bind: 6663319226\nStop 1: 6663329741\nPanel-deposit: 6663334012\nspend-amend trail: 6663365026 (N=2 OAuth); 6663652797 (N≥3 restore attempt); Claude T_progress → synthesize on Codex+Grok\nKISS: #5783 Prefer-A Bound 6280270826 — remint for Codex blockers + Grok sharpens; short one-sentence limbs\n#5805 keep-out: Prefer-A Bound 6326249868\n\n## In plain English\n\nKeep the release cut on the published pin. Materialize stays tip dogfood outside cut. Before any pin replace, a named cut-context must refuse materialize on that tree. When a materialize overlay is present, cheapInSync fail-closes even if someone rewrites the installed version string to match the pin. Recovery names frozen-lockfile restore for operators outside the blocked hook, and fixtures prove refuse / spoof-deny / restore.\n\n## Bound remedy\n\n- relieves: P1 — Name a cut-context producer for the release cut worktree and refuse `task materialize:runtime` before it moves or replaces the pin while that context is active from release entry through version bump/tag.\n- relieves: P2 — When cheapInSync fail-closes and `.deft-scratch/materialize-runtime-overlay.json` is present, recovery text names that overlay plus `pnpm install --frozen-lockfile` (or equivalent exact restore) as an operator-terminal path outside the blocked hook.\n- relieves: P3 — While that overlay file is present, cheapInSync fail-closes even when pinVersion equals installedVersion so rewriting installed package.json version alone cannot clear the check.\n- relieves: P4 — Fixtures prove cut-context materialize refuses before replacement with prior pin intact, honest tip 0.0.0 and version-spoofed tip both deny, and frozen-lockfile restore makes identity pass even if a stale overlay record remains.\n\n## Reject\n\n- B: Rewrite materialized package.json version to the published pin so cheapInSync lies about tip dogfood.\n- C: Teach cheapInSync to treat any materialize overlay as identity-match / allowSetup.\n- D: Process-only or schedule-graph-only \"never materialize\" without cut-context refuse-before-replace.\n- Remint #5805 pin-exclusive ordinary invoke or delete tip `materialize:runtime`.\n- Full every-hook installed-tree content merkle beyond overlay-present failClosed (operator-deferred leftover if needed; closes reported hand-edit via P3).\n\n## Round-1 harvest\n\n- Codex 6663661434 blockers → P1 cut-context refuse-before-replace; P3 concrete oracle (overlay-present failClosed); P2/P4 verification details.\n- Grok 6663733612 sharpens → bind P3 oracle; name refuse surfaces; keep P2 guidance paired with P3 fail-closed.",
+          "id": 6663747049,
+          "html_url": "https://github.com/deftai/directive/issues/5910#issuecomment-6663747049",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:47:30Z",
+          "updated_at": "2026-11-05T16:47:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6-astra\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1,pain-P2,pain-P3,pain-P4\nRound: 4 Pass-4 audit | critic-role: fresh\nfinding-classes: blocks-the-design=1; sharpens-framing=1; footnote=1\nharvest-changed: true\nId ceiling (inclusive): 6663747049\nPrefer-A Bound: 6663747049\nStop 1: 6663329741\nRound-1: Codex 6663661434; Grok 6663733612\ndispatch-sha: 7f04a43075911dcacf72683e0e886152b8bc2fe8\nverification-path: pin-read git show 7f04a43075911dcacf72683e0e886152b8bc2fe8:\nconflict_group: release-cut-forbid-materialize-keep-published-pin\nKISS: #5783 Prefer-A Bound 6280270826\n#5805 keep-out: 6326249868\nspend: N=2; seat-families: codex,grok\narc-mode: no-ingest\n\nThe cut guard and operator-terminal recovery address the incident, but the Bound cannot satisfy its own restore fixture. Remedy bytes must change; this is not a documentation-only harvest.\n\n### F1 — blocks-the-design — P3 and P4 prescribe opposite verdicts for restored content with a stale overlay\n\nP3 says overlay-file presence always fail-closes, including equal version strings. P4 requires frozen-lockfile restore to pass with that same file still present. At the pinned SHA, `tasks/materialize.cjs` writes the overlay outside node_modules after replacing the package; its cleanup does not remove that record. `cheap.ts` reads only pin/version/readiness, and `hook-dispatch.ts` returns denial before setup when failClosed. No existing restoration discriminator resolves the contradiction.\n\nThe two cases are indistinguishable to the proposed presence-plus-version oracle: (a) tip package with its version edited to the pin and (b) restored published package, both with matching versions and the same overlay record. Denying both strands recovery; accepting both reopens P3. Package-manager exit zero or matching version text is not proof of restored content.\n\nDisposition: recut P3/P4 together. Either bind a concrete non-version restoration discriminator that permits the stale-record case, or replace that requirement with an explicit verified-restore-and-retire-overlay recovery mechanism. Name what establishes restoration before clearing the denial. Merely deleting the marker or trusting an agent-authored receipt is not installed-content verification. This does not require a full every-hook Merkle system. Preserve the narrower claim honestly: marker presence blocks the reported version-only edit; it does not authenticate arbitrary installed content or protect the executing verifier against edits.\n\n### F2 — sharpens-framing — P4 drops the original fresh-worktree release-to-bump proof\n\nStop 1 P4 asks for a fresh-worktree release reaching the bump gate on the published pin without materialize. Bound P4 lists refusal, honest/spoofed tip denial, and restore, but no successful release-to-bump fixture. All listed negative tests could pass while release entry never establishes the P1 context or clean release remains blocked.\n\nDisposition: restore that positive integration case to the P4 limb, exercising the real release-entry/task/hook boundary without publishing. Show context established before preparatory work, published pin intact, and the bump gate reached without materialize. P1 now binds the right refusal location, but its producer is still an implementation obligation ('Name a cut-context producer'), not an already named mechanism; the positive fixture must exercise that producer rather than manually seeding context only.\n\n### Pain coverage\n\n| Pain | Audit |\n|---|---|\n| P1 | Refuse-before-replace is the correct mechanism; wire the actual release-entry producer and exercise it in F2. |\n| P2 | Overlay-specific, outside-hook recovery guidance is sound; successful recovery remains blocked by F1 as written. |\n| P3 | Presence-based denial closes the reported version-only edit while the marker exists; it conflicts with P4's stale-marker acceptance (F1). |\n| P4 | Negative fixtures help, but restore is contradictory (F1) and the original clean release-to-bump proof is absent (F2). |\n\n### F3 — footnote — Reject list and #5805 boundary remain sound\n\nKeep rejecting fake version rewriting, overlay-as-authorization, and schedule/prose-only prevention. Preserve checkout-local explicit materialize outside the release cut and ordinary pin-exclusive invocation. Deferring full every-hook content hashing is compatible with a thin remedy, but cannot serve as the missing restoration discriminator or turn the marker into a lockfile-integrity claim. No remint of #5805 is needed.\n\nRead the specified Bound, Stop 1, both Round-1 critiques, KISS and keep-out comments, and all three required pinned source files. No comments above the ceiling read; no product changes, ingest, materialize, or node_modules edits. Process-only audit complete.",
+          "id": 6663798490,
+          "html_url": "https://github.com/deftai/directive/issues/5910#issuecomment-6663798490",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:49:46Z",
+          "updated_at": "2026-11-05T16:55:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1,pain-P2,pain-P3,pain-P4\nRound: 4 Pass-4 audit | critic-role: fresh\nfinding-classes: blocks-the-design=1; sharpening=1; footnote=2\nharvest-changed: true\nId ceiling (inclusive): 6663747049\nPrefer-A Bound: 6663747049\nPrefer-A draft: 6663319226\nStop 1: 6663329741\nRound-1: Codex 6663661434; Grok 6663733612\ndispatch-sha: 7f04a43075911dcacf72683e0e886152b8bc2fe8\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5910\nverification-path: pin-read git show 7f04a43075911dcacf72683e0e886152b8bc2fe8: (raw + dest cwd)\nconflict_group: release-cut-forbid-materialize-keep-published-pin\nKISS: #5783 Prefer-A Bound 6280270826\n#5805 keep-out: 6326249868\nspend: N=2 seat-families: codex,grok\narc-mode: no-ingest\n\n## Pass-4 pain-audit — Prefer-A Bound 6663747049 vs Stop 1 P1–P4\n\n### Verdict\n\nharvest-changed: true. P1 and P2 limbs relieve their pains with tip-grounded mechanism. P3 and P4 as written cannot both hold: overlay-file-present failClosed (P3) makes identity unable to pass while a stale overlay remains (P4). Remint one of those limbs before ingest. Reject list and #5805 keep-out still sound.\n\nTip evidence (pin-read 7f04a430 + dest): `tasks/materialize.cjs` replaces checkout pin and writes `.deft-scratch/materialize-runtime-overlay.json` after replacement with no cut-context guard; `packages/core/src/install-health/cheap.ts` fail-closes only on pin≠installed version strings and always returns AC9.7 `INSTALLATION_RECOVERY_GUIDANCE` (no overlay / frozen-lockfile branch); `packages/runtime/src/hook-dispatch.ts` denies before policy on `cheap.failClosed`; release skill has zero `materialize` mentions; launcher/known-limitations/getting-started still advertise tip `task materialize:runtime`.\n\n### Pain relief map\n\n| Pain | Bound limb | Relieves on tip? |\n|------|------------|------------------|\n| P1 materialize on cut → 0.0.0 → hooks refuse → no bump | Cut-context producer + refuse before move/replace while active (entry→bump/tag) | Yes — tip has no producer/guard; Codex no-op schedule-only hole closed |\n| P2 recovery omits overlay + frozen-lockfile | Overlay-present recovery names overlay + frozen-lockfile as operator-terminal outside blocked hook | Yes — guidance only; tip always AC9.7 |\n| P3 version-only hand-edit clears identity | Overlay present ⇒ failClosed even when versions match | Mechanism class yes for Observed spoof-with-overlay; conflicts with P4 (below) |\n| P4 missing cut-path fixtures | Refuse-before-replace + honest 0.0.0 deny + spoof deny + restore pass with stale overlay | Fixture shape yes except stale-overlay pass contradicts P3 |\n\n### Findings\n\n**F1 — blocks-the-design — P3 oracle vs P4 restore semantics**\nBound P3: while `.deft-scratch/materialize-runtime-overlay.json` is present, cheapInSync fail-closes even when `pinVersion === installedVersion`. Bound P4: frozen-lockfile restore makes identity pass even if a stale overlay record remains. Under a literal overlay-presence oracle, post-restore matching versions with leftover overlay JSON still failClosed, so P4’s stale-overlay pass cannot succeed. Tip `materialize.cjs` leaves the overlay after successful replacement and never deletes it on completion; tip `cheap.ts` does not read it yet — so both limbs are greenfield and must agree. Remint required (KISS pick one):\n- Prefer: keep P3 overlay-present failClosed; change P4 (and pair P2 recovery) so restore clears or requires absence of the overlay before identity may pass.\n- Alt: keep P4 stale-overlay-ok; narrow P3 to a tip/spoof content signal beyond bare file presence (reopens Codex installed-content cost — worse under #5783).\n\n**F2 — sharpening — P1 producer shape stays implementer-named**\n“Name a cut-context producer” plus refuse-before-replace closes Codex’s schedule-only no-op. Concrete producer medium (marker file / env / skill stamp) and exact begin/end hooks can stay implementation without another harvest if refuse-before-replace remains the fail-closed association. Footnote only unless remint already open for F1.\n\n**F3 — footnote — Reject B/C/D hold**\nB (rewrite installed version to published pin) and C (overlay ⇒ identity-match / allowSetup) would lie about tip dogfood or weaken hook-dispatch pin≠installed fail-closed — reject. D (process/schedule-only without refuse-before-replace) fails on tip: skill already omits materialize while docs teach it, and materialize has no cut guard — reject.\n\n**F4 — footnote — #5805 keep-out holds**\nKeep-out Bound 6326249868 keeps tip `materialize:runtime` for ordinary pin-exclusive dogfood. Prefer-A scopes forbid to cut-context only. Do not remint pin-exclusivity or delete tip materialize.\n\n### Missing fail-closed limb?\n\nNo fifth limb. Reconcile P3↔P4 on remint (F1). Full every-hook content merkle beyond overlay-present failClosed stays Reject / operator-deferred as Bound states.\n\n### KISS (#5783)\n\nFour one-sentence limbs remain enough after a thin P3/P4 reconcile. Do not grow into #5805 remint or merkle.\n\n**Seat note:** Dest PreToolUse denied all shell/`gh`/TEMP (`missing node_modules/@deftai/directive-runtime`). Body parked for parent POST. Process-only; no product mutation; no comments id > 6663747049 read.",
+          "id": 6663812883,
+          "html_url": "https://github.com/deftai/directive/issues/5910#issuecomment-6663812883",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:50:20Z",
+          "updated_at": "2026-11-05T16:55:09Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## Prefer-A Recut-1\n\nconflict_group: release-cut-forbid-materialize-keep-published-pin\nSpec-path: Prefer-A Recut-1 — overlay failClosed + restore retires overlay + release-to-bump fixture\nRecut: supersedes Prefer-A Bound 6663747049\nSupersedes: 6663747049\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N=2\nseat-families: codex,grok\ndual-stop-raise: +1\nmove-forward: yes\ndispatch-sha: 7f04a43075911dcacf72683e0e886152b8bc2fe8\ndest: .deft-scratch/worktrees/arc-5910\nTarget-digest: sha256:26a4765e0ab0d43e3a8d40737b8bb2a7e33ec37fd19cbd233f8608a1bf3f62f1\nRound-1: Codex 6663661434; Grok 6663733612\nPA-1: Codex 6663798490 (blocking); Grok 6663812883 (blocking)\nKISS: #5783 — remint P3/P4 reconcile + restore Stop 1 P4 release-to-bump proof only\n#5805 keep-out: Prefer-A Bound 6326249868\n\n## In plain English\n\nSame Prefer-A as Bound 6663747049, with the P3/P4 contradiction fixed: overlay presence keeps fail-closed (including version-spoof), and successful restore must retire that overlay before identity may pass. P4 also restores the fresh-worktree release-to-bump proof Stop 1 asked for.\n\n## Bound remedy\n\n- relieves: P1 — Name a cut-context producer for the release cut worktree and refuse `task materialize:runtime` before it moves or replaces the pin while that context is active from release entry through version bump/tag.\n- relieves: P2 — When cheapInSync fail-closes and `.deft-scratch/materialize-runtime-overlay.json` is present, recovery text names that overlay plus `pnpm install --frozen-lockfile` (or equivalent exact restore) as an operator-terminal path outside the blocked hook, then requires retiring the overlay before identity may pass.\n- relieves: P3 — While that overlay file is present, cheapInSync fail-closes even when pinVersion equals installedVersion so rewriting installed package.json version alone cannot clear the check.\n- relieves: P4 — Fixtures prove cut-context materialize refuses before replacement with prior pin intact, honest tip 0.0.0 and version-spoofed tip both deny, frozen-lockfile restore retires the overlay then identity passes, and a fresh-worktree release reaches the version-bump gate on the published pin without materialize.\n\n## Reject\n\n- B: Rewrite materialized package.json version to the published pin so cheapInSync lies about tip dogfood.\n- C: Teach cheapInSync to treat any materialize overlay as identity-match / allowSetup.\n- D: Process-only or schedule-graph-only \"never materialize\" without cut-context refuse-before-replace.\n- Remint #5805 pin-exclusive ordinary invoke or delete tip `materialize:runtime`.\n- Accept identity while overlay remains after restore.\n- Full every-hook installed-tree content merkle beyond overlay-present failClosed (operator-deferred leftover if needed).",
+          "id": 6663819736,
+          "html_url": "https://github.com/deftai/directive/issues/5910#issuecomment-6663819736",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:50:36Z",
+          "updated_at": "2026-11-05T16:56:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6-astra\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1,pain-P2,pain-P3,pain-P4\nRound: 4 Pass-4 audit | critic-role: fresh\nfinding-classes: footnote\nharvest-changed: false\nId ceiling (inclusive): 6663819736\nPrefer-A Recut-1: 6663819736\nSupersedes Bound: 6663747049\nPrior blocking PA: Codex 6663798490; Grok 6663812883\nRound-1: Codex 6663661434; Grok 6663733612\nStop 1: 6663329741\ndispatch-sha: 7f04a43075911dcacf72683e0e886152b8bc2fe8\nverification-path: pin-read git show 7f04a43075911dcacf72683e0e886152b8bc2fe8:\nconflict_group: release-cut-forbid-materialize-keep-published-pin\nKISS: #5783 Prefer-A Bound 6280270826\n#5805 keep-out: 6326249868\nspend: N=2 seat-families: codex,grok\narc-mode: no-ingest\n\n## Verdict\n\nNo further remedy-byte change required. Recut-1 closes the prior logical contradiction and restores the missing positive release proof. This is design acceptance, not a claim that the implementation or fixtures already exist.\n\n## Prior findings\n\nF1 closed: P2 now requires retiring the overlay after exact restore; P3 continues to deny whenever the overlay is present; P4 expects identity to pass only after restore retires it. The Reject list explicitly forbids acceptance with the overlay remaining. Restored-content-plus-stale-marker therefore has one consistent verdict: deny until retirement.\n\nF2 closed: P4 explicitly requires a fresh-worktree release to reach the version-bump gate on the published pin without materialize. This restores Stop 1's positive integration obligation alongside the negative fixtures.\n\n## Pain coverage\n\n| Pain | Audit |\n|---|---|\n| P1 | Cut-context producer plus refusal before moving/replacing the pin addresses the failure point. Context spans release entry through bump/tag. |\n| P2 | Recovery names the overlay and frozen-lockfile/exact restore outside the blocked hook, followed by overlay retirement. |\n| P3 | Overlay-present denial includes matching version strings, so the reported version-only edit cannot clear it. |\n| P4 | Fixtures cover intact-pin refusal, honest and spoofed tip denial, ordered restore/retirement/pass, and successful fresh-worktree release-to-bump without materialize. |\n\n## Implementation footnote\n\nAt the pinned SHA, materialize writes the overlay outside node_modules after replacement and its cleanup leaves that record; cheapInSync compares version strings and does not read the overlay. Consequently restore-and-retire is an implementation obligation, not existing package-manager behavior. Exercise actual replacement of tip content with the published package before retiring the record; matching version text, install exit zero, or deleting the marker alone is not restoration proof. The positive release fixture should exercise the real cut-context producer and release-entry boundary, not merely seed a marker. These are checks of the bound exact-restore and release-fixture obligations, not additional remedy limbs.\n\nThe scope remains deliberately narrow: overlay presence blocks the reported version-only spoof; it does not authenticate arbitrary installed content after marker deletion. No every-hook Merkle system, ordinary pin-exclusive invocation remint, or removal of tip materialize is required.\n\nRead Recut-1, both specified blocking audits, Stop 1, and both required source files via the pinned git-show path. No comments above the ceiling read; no product changes, ingest, materialize, or node_modules edits. Process-only PA-2 complete; exit after this comment.",
+          "id": 6663853531,
+          "html_url": "https://github.com/deftai/directive/issues/5910#issuecomment-6663853531",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:52:00Z",
+          "updated_at": "2026-11-05T16:55:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1,pain-P2,pain-P3,pain-P4\nRound: 4 Pass-4 audit | critic-role: fresh\nfinding-classes: footnote\nharvest-changed: false\nId ceiling (inclusive): 6663819736\nPrefer-A Recut-1: 6663819736\nSupersedes Bound: 6663747049\nPrior blocking PA: Codex 6663798490; Grok 6663812883\nRound-1: Codex 6663661434; Grok 6663733612\nStop 1: 6663329741\ndispatch-sha: 7f04a43075911dcacf72683e0e886152b8bc2fe8\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5910\nverification-path: dest HEAD=7f04a43075911dcacf72683e0e886152b8bc2fe8 pin-read tasks/materialize.cjs + packages/core/src/install-health/cheap.ts (hooks blocked git show/gh; REST comment bodies via api.github.com)\nconflict_group: release-cut-forbid-materialize-keep-published-pin\nKISS: #5783 Prefer-A Bound 6280270826\n#5805 keep-out: 6326249868\nspend: N=2 seat-families: codex,grok\narc-mode: no-ingest\n\n## Verdict\n\nharvest-changed: false\n\n## Prior findings vs Recut-1\n\n**F1 closed — restore retires overlay before identity pass.**\nRecut P3 keeps overlay-present failClosed even when pinVersion === installedVersion. Recut P2/P4 order exact restore then retire `.deft-scratch/materialize-runtime-overlay.json` before identity may pass. Reject explicitly forbids accepting identity while the overlay remains. One consistent verdict for restored-content-plus-stale-marker: deny until retirement. Matches the PA-1 Grok preferred remint (keep P3; change P4/P2 so restore clears the overlay).\n\n**F2 closed — release-to-bump fixture restored.**\nRecut P4 requires a fresh-worktree release that reaches the version-bump gate on the published pin without materialize, alongside refuse-before-replace, honest 0.0.0 deny, spoof deny, and ordered restore/retire/pass. Restores Stop 1 P4’s positive integration obligation.\n\n## Pain coverage\n\n| Pain | Recut-1 limb | Audit |\n|------|--------------|-------|\n| P1 | Cut-context producer + refuse materialize before move/replace while active (entry→bump/tag) | Relieves tip failure point; tip has no cut guard |\n| P2 | Overlay-present recovery names overlay + frozen-lockfile (operator-terminal), then retire overlay before identity pass | Closes PA-1 recovery/order hole; pairs with P3 |\n| P3 | Overlay present ⇒ failClosed even when versions match | Closes version-only spoof while marker exists; no longer fights P4 |\n| P4 | Negative fixtures + restore retires overlay then pass + fresh-worktree release-to-bump | Stop 1 positive proof restored; F1 contradiction gone |\n\n## Tip evidence (dispatch-sha / dest HEAD)\n\n`tasks/materialize.cjs` replaces checkout pin and writes the overlay after replacement; cleanup leaves the record; no cut-context refuse. `packages/core/src/install-health/cheap.ts` fail-closes only on pin≠installed version strings and always returns AC9.7 guidance (no overlay read / frozen-lockfile branch). Recut limbs remain greenfield implement obligations.\n\n## Footnote — implement exactness (not a remint)\n\nExercise actual replacement of tip-installed content with the published package before retiring the overlay. Matching version text, package-manager exit zero, or deleting the marker alone is not restoration proof. The positive release fixture should exercise the real cut-context producer and release-entry boundary. Overlay-present denial blocks the reported version-only spoof; it does not authenticate arbitrary installed content after marker deletion. Reject B/C/D, #5805 keep-out, and no every-hook merkle remint still hold.\n\n**Seat note:** Dest PreToolUse denied all shell/`gh`/TEMP (`missing node_modules/@deftai/directive-runtime`). Body parked for parent POST. Process-only; no product mutation; no comments id > 6663819736 read.",
+          "id": 6663875264,
+          "html_url": "https://github.com/deftai/directive/issues/5910#issuecomment-6663875264",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:52:57Z",
+          "updated_at": "2026-11-05T16:55:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound contract audited: Prefer-A Recut-1 6663819736\nconflict_group: release-cut-forbid-materialize-keep-published-pin\ndispatch-sha: 7f04a43075911dcacf72683e0e886152b8bc2fe8\nRound-1: Codex 6663661434; Grok 6663733612\nPA-1 blocking: Codex 6663798490; Grok 6663812883\nPA-2 clear: Codex 6663853531; Grok 6663875264 (harvest-changed: false)\nClaude Round-1: dispatch-fail #5478 (6663734230)\n\n| Claim | Evidence | Status |\n| --- | --- | --- |\n| Cut-context refuse-before-replace closes P1 (not schedule-only) | Recut-1 P1; Codex R1 6663661434 F2; tip materialize.cjs has no cut guard | verified for bind |\n| Overlay-aware recovery + retire-before-pass closes P2 | Recut-1 P2; PA-1 F1 disposition | verified for bind |\n| Overlay-present failClosed closes version-spoof P3 | Recut-1 P3; tip cheap.ts version-only today | verified for bind |\n| Fixtures: refuse / spoof-deny / restore-retire-pass / release-to-bump | Recut-1 P4; Stop 1 P4; Codex PA-1 F2 closed on Recut | verified for bind |\n| Reject B/C/D and #5805 keep-out hold | Round-1 + PA footnotes | verified for bind |\n| PA-2 harvest-changed false on Recut-1 | Codex 6663853531; Grok 6663875264 | verified |\n\nNo remaining unresolved blocker residuals under yolo-standing.",
+          "id": 6663879287,
+          "html_url": "https://github.com/deftai/directive/issues/5910#issuecomment-6663879287",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:53:08Z",
+          "updated_at": "2026-11-05T16:54:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because Prefer-A Recut-1 6663819736 relieves Stop 1 P1–P4 under KISS #5783, PA-2 Codex 6663853531 and Grok 6663875264 returned harvest-changed: false with empty disagreement set under yolo-standing, and Reject B/C/D plus #5805 keep-out held.\n\nBound contract: successor lean: 6663819736, confirmed by operator (yolo-standing), verified-claims table 6663879287\n\n## In plain English\n\nArc 5910 is ingest-ready on Prefer-A Recut-1: release cut worktrees get a cut-context refuse before materialize can replace the published pin; overlay presence keeps cheapInSync fail-closed even after a version-string spoof; restore uses frozen-lockfile then retires the overlay before identity may pass; fixtures cover refuse, spoof-deny, restore-retire-pass, and fresh-worktree release-to-bump. Tip dogfood materialize stays outside the cut path (#5805). Ingest stays a separate operator verb.\n\narc-mode: no-ingest\nyolo-standing: on\nconflict_group: release-cut-forbid-materialize-keep-published-pin\ndispatch-sha: 7f04a43075911dcacf72683e0e886152b8bc2fe8\ndest: .deft-scratch/worktrees/arc-5910\nRound-1: Codex 6663661434; Grok 6663733612\nPA-2 clear: Codex 6663853531; Grok 6663875264\nClaude: dispatch-fail #5478 noted 6663734230",
+          "id": 6663882787,
+          "html_url": "https://github.com/deftai/directive/issues/5910#issuecomment-6663882787",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:53:18Z",
+          "updated_at": "2026-11-05T16:54:21Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "What happened: a headless run of the deft-directive-release skill for 0.129.1, in a fresh worktree on master 48cafbb44, ran `pnpm -w run build` (passed) and then `task materialize:runtime`. That replaced node_modules/@deftai/directive-runtime (pinned at 0.129.0 in the root package.json) with the workspace build, version 0.0.0. The runtime hook then refused every tool call for the rest of the session:\n\n> Directive hook refuse: pinned runtime does not match the installed runtime (pin=0.129.0 installed=0.0.0). Recovery: npm i -g @deftai/directive, then directive install --repair\n\nThe release stopped before the version bump. Nothing was tagged or published.\n\nAlso seen: before stopping, the agent tried to work around the pin refusal by hand-editing the installed runtime package instead of restoring it. The skill or the hook should make that kind of workaround impossible or flag it, not leave it to the agent's judgment.\n\nExpected: the release flow keeps the pinned runtime (the pin-only design from #5805), or it materializes in a way the pin check accepts. A fresh worktree shouldn't be able to put itself into this state.\n\nWorkaround used: `pnpm install --frozen-lockfile` in the worktree restores the pinned runtime.\n\nSuggested acceptance: (1) a release from a fresh worktree reaches the version-bump gate without hitting the pin refusal; (2) the release skill doesn't run `materialize:runtime` against the pinned runtime, or the hook explains the mismatch it caused; (3) attempts to hand-edit the installed runtime to satisfy the pin are refused or reported, and the pin check verifies the installed runtime against the lockfile's integrity record rather than trusting its version field alone.\n\nFiled for @MScottAdams\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6025964365,
+        "origin": "deftai/directive#5910",
+        "id": "github.issue.6025964365"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "26a4765e0ab0d43e3a8d40737b8bb2a7e33ec37fd19cbd233f8608a1bf3f62f1"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "release-cut-forbid-materialize-keep-published-pin",
+        "expected_outputs": [
+          "cut-context materialize refuse-before-replace",
+          "overlay-present cheapInSync failClosed + recovery text",
+          "restore retires overlay before identity pass",
+          "fresh-worktree release-to-bump fixture",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "npx vitest run packages/core/src/install-health/cheap.test.ts packages/runtime/src/hook-identity-failclosed.test.ts",
+          "node --test tasks/materialize.test.cjs"
+        ],
+        "file_scope": [
+          "packages/core/src/install-health/cheap.ts",
+          "packages/core/src/install-health/cheap.test.ts",
+          "packages/core/src/install-health/index.ts",
+          "packages/runtime/src/hook-dispatch.ts",
+          "packages/runtime/src/hook-identity-failclosed.test.ts",
+          "tasks/materialize.yml",
+          "tasks/materialize.cjs",
+          "tasks/materialize.test.cjs",
+          "content/skills/deft-directive-release/SKILL.md",
+          "CHANGELOG.md"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5910",
+          "Prefer-A Recut-1 6663819736",
+          "#5805"
+        ],
+        "parallel_safe": true
+      }
+    },
+    "id": "github.issue.6025964365",
+    "updated": "2026-11-05T17:59:25Z"
+  }
+}

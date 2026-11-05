@@ -1,0 +1,510 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6011",
+    "updated": "2026-11-05T18:15:30.989Z"
+  },
+  "plan": {
+    "title": "Commit gate reads a story's file_scope from the merge-base with origin/main, not the repo's delivery branch",
+    "status": "running",
+    "narratives": {
+      "Description": "Commit gate reads a story's file_scope from the merge-base with origin/main, not the repo's delivery branch",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6011",
+      "Overview": "\n- relieves: P1 — Insert delivery candidates in selectBaseRefForFence only when resolveDeliveryBranch returns source typed with error null and nonempty branch, after env overrides and before hardcoded master|main.\n- relieves: P2 — Carry selected baseRef (and typed delivery when used) on StoryWriteFenceView for successful and empty fence loads, and name that base in positive-governing and prospective empty-fence refuse copy.\n- relieves: P1 — Extend the merge-base memo key with the same resolved typed delivery candidate used for selection so an in-process typed deliveryBranch change cannot reuse a stale main memo.\n- relieves: P1 — Add write-fence and dispatcher tests for typed develop-only brief load, unset-policy master|main coexistence, env override wins, and same-process memo invalidation after typed delivery appears without clearing memos.\n\n\n",
+      "Labels": "bug, adoption-blocker, triaged, design-critique:ingest-ready",
+      "UserStory": "As a maintainer on a repo whose delivery branch is develop (not main), I want the commit write-fence to load story file_scope from the typed delivery branch so agents are not blocked by an empty merge-base with origin/main.",
+      "ImplementationPlan": "Wire resolveDeliveryBranch typed candidates into selectBaseRefForFence after env overrides and before master|main; surface selected baseRef on StoryWriteFenceView; extend memo key; add write-fence and dispatcher tests."
+    },
+    "items": [
+      {
+        "title": "relieves: P1 — Insert delivery candidates in selectBaseRefForFence only when resolveDeliveryBranch returns source typed with error null and nonempty branch, after env overrides and before hardcoded master|main.",
+        "status": "pending",
+        "id": "clause.1"
+      },
+      {
+        "title": "relieves: P2 — Carry selected baseRef (and typed delivery when used) on StoryWriteFenceView for successful and empty fence loads, and name that base in positive-governing and prospective empty-fence refuse copy.",
+        "status": "pending",
+        "id": "clause.2"
+      },
+      {
+        "title": "relieves: P1 — Extend the merge-base memo key with the same resolved typed delivery candidate used for selection so an in-process typed deliveryBranch change cannot reuse a stale main memo.",
+        "status": "pending",
+        "id": "clause.3"
+      },
+      {
+        "title": "relieves: P1 — Add write-fence and dispatcher tests for typed develop-only brief load, unset-policy master|main coexistence, env override wins, and same-process memo invalidation after typed delivery appears without clearing memos.",
+        "status": "pending",
+        "id": "clause.4"
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "triaged",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6011",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6011: Commit gate reads a story's file_scope from the merge-base with origin/main, not the repo's delivery branch"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "Commit gate reads a story's file_scope from the merge-base with origin/main, not the repo's delivery branch",
+        "relieves: P1 — Insert delivery candidates in selectBaseRefForFence only when resolveDeliveryBranch returns source typed with error null and nonempty branch, after env overrides and before hardcoded master|main.",
+        "relieves: P2 — Carry selected baseRef (and typed delivery when used) on StoryWriteFenceView for successful and empty fence loads, and name that base in positive-governing and prospective empty-fence refuse copy.",
+        "relieves: P1 — Extend the merge-base memo key with the same resolved typed delivery candidate used for selection so an in-process typed deliveryBranch change cannot reuse a stale main memo.",
+        "relieves: P1 — Add write-fence and dispatcher tests for typed develop-only brief load, unset-policy master|main coexistence, env override wins, and same-process memo invalidation after typed delivery appears without clearing memos."
+      ],
+      "admitted_source_sentences": [
+        "relieves: P1 — Insert delivery candidates in selectBaseRefForFence only when resolveDeliveryBranch returns source typed with error null and nonempty branch, after env overrides and before hardcoded master|main.",
+        "relieves: P2 — Carry selected baseRef (and typed delivery when used) on StoryWriteFenceView for successful and empty fence loads, and name that base in positive-governing and prospective empty-fence refuse copy.",
+        "relieves: P1 — Extend the merge-base memo key with the same resolved typed delivery candidate used for selection so an in-process typed deliveryBranch change cannot reuse a stale main memo.",
+        "relieves: P1 — Add write-fence and dispatcher tests for typed develop-only brief load, unset-policy master|main coexistence, env override wins, and same-process memo invalidation after typed delivery appears without clearing memos."
+      ],
+      "admitted_source_digest": "8280223bbcf79825b7ed18b6eb2471718aafad3ac488a5d887819a43494a044d",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "relieves: P1 — Insert delivery candidates in selectBaseRefForFence only when resolveDeliveryBranch returns source typed with error null and nonempty branch, after env overrides and before hardcoded master|main.",
+          "artifact_path": "packages/core/src/policy/write-fence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "relieves: P2 — Carry selected baseRef (and typed delivery when used) on StoryWriteFenceView for successful and empty fence loads, and name that base in positive-governing and prospective empty-fence refuse copy.",
+          "artifact_path": "packages/core/src/policy/write-fence.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "relieves: P1 — Extend the merge-base memo key with the same resolved typed delivery candidate used for selection so an in-process typed deliveryBranch change cannot reuse a stale main memo.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "relieves: P1 — Add write-fence and dispatcher tests for typed develop-only brief load, unset-policy master|main coexistence, env override wins, and same-process memo invalidation after typed delivery appears without clearing memos.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/policy/write-fence.ts",
+          "packages/core/src/policy/write-fence.test.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/policy/write-fence.ts",
+        "cohesion_exemption": "CHANGELOG + write-fence base selector consumed by dispatcher prospective cover"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## Prefer-A draft (pre-Stop-1)\nSpec-path: packages/core/src/policy/write-fence.ts\nconflict_group: write-fence-base-ref-ignores-typed-delivery-branch\ncharter: open critique\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nspend-why: adoption-blocker wrong-base fail-closed on develop delivery; panel permission (high blast / open remedy space around which shared base helper).\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\ndispatch-sha: 7f04a43075911dcacf72683e0e886152b8bc2fe8\ndest: .deft-scratch/worktrees/arc-6011\norigin-ref: origin/HEAD\n\n## Observed mechanism\nPreToolUse story write fence (loadStoryWriteFenceFromMergeBase → selectBaseRefForFence) picks base as DEFT_BASE_REF / GITHUB_BASE_REF then hardcoded origin/master|main|master|main. It never consults typed plan.policy.deliveryBranch (#5520).\nscope-provenance resolveDefaultBaseRef already inserts origin/<deliveryBranch> after env and before master|main. Consumer develop-delivery repos activate briefs on develop; merge-base(HEAD, origin/main) lacks that brief → empty/missing fence → positive-governing / prospective scope-cover refuse.\n\n## Bound remedy (draft limbs; bind after Round-1)\n- relieves: P1 — Teach selectBaseRefForFence to prefer typed plan.policy.deliveryBranch (origin/<branch> then branch) after env overrides and before hardcoded master|main, mirroring scope-provenance resolveDefaultBaseRef via resolveDeliveryBranch.\n- relieves: P2 — Include the selected baseRef (and typed delivery when used) in write-fence unreadable / no-base copy and in prospective scope-cover messages that surface fence emptiness or unreadableDetail so the refusal names which base was read.\n- relieves: P1 — Extend the process-local merge-base memo key with the resolved delivery candidate so a typed deliveryBranch change cannot reuse a stale main memo in-process.\n- relieves: P1 — Add write-fence tests: typed deliveryBranch=develop loads fence from merge-base with origin/develop when the brief exists only there; unset deliveryBranch keeps master|main behavior; env DEFT_BASE_REF still wins.\n\n## Reject\n- Reading working-tree HEAD brief as fence authority (#4956 merge-base SoT stays).\n- Making DEFT_BASE_REF the only supported consumer fix (typed delivery must work without per-shell env).\n- Softening #5656 git commit -a / pathspec / compound refuses (intentional index-snapshot gate; out of this Bound).\n- Importing scope-provenance into policy/write-fence (use resolveDeliveryBranch in-policy; optional later shared helper leftover).\n\n## file_scope (draft)\npackages/core/src/policy/write-fence.ts\npackages/core/src/policy/write-fence.test.ts\nCHANGELOG.md\n\n## Plain-language summary\nThe commit/write gate looks up the story scope against the wrong branch base when the repo delivers on develop. Prefer-A makes that lookup use the configured delivery branch and say which base it used.",
+          "id": 6663229272,
+          "html_url": "https://github.com/deftai/directive/issues/6011#issuecomment-6663229272",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:24:57Z",
+          "updated_at": "2026-11-05T16:24:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because adoption-blocker PreToolUse fence base ignores typed deliveryBranch while merge-base authority is otherwise sound (#4956); mechanism-shaped base-ref + deny-copy fix.\nrefutation-target: selectBaseRefForFence hardcodes origin/master|main after env and never consults plan.policy.deliveryBranch\ncharter: open critique\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nspend-why: high blast wrong-base fail-closed on develop-delivery consumers; open remedy on shared vs local helper\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\ndispatch-sha: 7f04a43075911dcacf72683e0e886152b8bc2fe8\nverification-path: pin-read git show 7f04a43075911dcacf72683e0e886152b8bc2fe8: ; dest cwd-without-occupy .deft-scratch/worktrees/arc-6011\ndual-stop-reserved: yes\npain: P1, P2\n- P1: selectBaseRefForFence ignores typed plan.policy.deliveryBranch so merge-base(HEAD, origin/main) misses briefs activated on develop → empty/missing story fence → Write/commit positive-governing refuse\n- P2: fence unreadable / no-base and prospective empty-fence copy do not name which baseRef was selected, so operators cannot see main-vs-develop mismatch\n\n## Plain-language summary\nWarranted. Two pains: wrong default base for develop-delivery repos, and refusals that hide which base was used. Spend N≥3. No-ingest yolo.",
+          "id": 6663229715,
+          "html_url": "https://github.com/deftai/directive/issues/6011#issuecomment-6663229715",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:24:58Z",
+          "updated_at": "2026-11-05T16:24:58Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## Spend-amend\nspend-amend: N≥3 → N=2\nseat-families: codex, grok\nreason: Claude launch-probe failed before Round-1 (OAuth session expired; rc 1; not a posted-seat cut).\nreduced-panel: yes (hang/unavailable class; #5478 containment adjacent)\nCite: Claude pong out Failed to authenticate: OAuth session expired and could not be refreshed\nCodex pong ok; Grok pong ok.\nProceed Round-1 with Codex + Grok only. Claude remains seated-unavailable, not dropped after posting.",
+          "id": 6663248299,
+          "html_url": "https://github.com/deftai/directive/issues/6011#issuecomment-6663248299",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:25:46Z",
+          "updated_at": "2026-11-05T16:25:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 2\ninput-ceiling: 6663248735\nfamilies: codex, grok\nseat: codex launcher: codex\nseat: grok launcher: grok\nspend: N=2 (amended from N≥3; Claude OAuth unavailable)\nreduced-panel: yes\ndispatch-sha: 7f04a43075911dcacf72683e0e886152b8bc2fe8\nverification-path: pin-read git show 7f04a43075911dcacf72683e0e886152b8bc2fe8: ; dest cwd-without-occupy .deft-scratch/worktrees/arc-6011\naudit-targets: none\nclosed-findings: none\ncharter: open critique\ntarget: issue 6011\nPrefer-A draft: 6663229272\nStop 1: 6663229715\nspend-amend: 6663248299\n\nRound-1 critics read inclusive comment-id ceiling only; do not read later thread comments.",
+          "id": 6663248735,
+          "html_url": "https://github.com/deftai/directive/issues/6011#issuecomment-6663248735",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:25:47Z",
+          "updated_at": "2026-11-05T16:26:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\n## In plain English\n\n**Verdict: sharpen Prefer-A.** The pinned code confirms P1: the fence selector skips the configured delivery branch. The existing in-policy resolver is the thin fix. P2 also needs a small data-flow change: an empty fence currently loses the base name before the commit gate renders its refusal.\n\nReviewed the issue body and mandatory comments 6663229272, 6663229715, 6663248299, and 6663248735 only; inclusive ceiling 6663248735. Verification used git show 7f04a43075911dcacf72683e0e886152b8bc2fe8: for all four named source files. No sibling critic posts read.\n\n### F1 — Medium / sharpens-framing — Carry base context through empty results\n\nEvidence: [write-fence.ts](https://github.com/deftai/directive/blob/7f04a43075911dcacf72683e0e886152b8bc2fe8/packages/core/src/policy/write-fence.ts): StoryWriteFenceView carries only allow/deny arrays and optional unreadableDetail. loadStoryWriteFenceFromMergeBase retains resolved.baseRef in its cache key but drops it from the returned successful/empty view. [dispatcher.ts](https://github.com/deftai/directive/blob/7f04a43075911dcacf72683e0e886152b8bc2fe8/packages/core/src/hooks/dispatcher.ts): evaluateProspectiveScopeCover forwards unreadableDetail but constructs the empty-positive-allow refusal itself.\n\nFailure mode: loader error-string edits alone leave the ordinary missing-brief/empty-file_scope refusal without its selected base, so P2 remains. Turning a readable empty fence into an unreadable error just to transport text changes semantics for other callers.\n\nConsequence: keep the P2 limb, explicitly carry optional selected-base context on the existing fence view, including cached empty results, and render it in the dispatcher refusal. Add dispatcher and its relevant tests to file_scope. If selection fails entirely, report no selected ref and attempted candidates rather than claiming a base was read. This is data plumbing, not another evaluator.\n\n### F2 — Medium / sharpens-framing — Preserve the typed-only guard\n\nEvidence: [resolveDefaultBaseRef](https://github.com/deftai/directive/blob/7f04a43075911dcacf72683e0e886152b8bc2fe8/packages/core/src/scope-provenance/evaluate.ts) inserts delivery candidates only for source === \"typed\", error === null, and a nonempty branch. [resolveDeliveryBranch](https://github.com/deftai/directive/blob/7f04a43075911dcacf72683e0e886152b8bc2fe8/packages/core/src/policy/delivery-branch.ts) also returns git-default/default-fallback results; its git default can prefer main while the existing fence fallback prefers master.\n\nFailure mode: unconditionally inserting the returned branch changes unset-policy behavior when main and master coexist, contradicting the compatibility promise.\n\nConsequence: state the existing typed-success guard explicitly. Verify unset policy with both refs present, local-only develop, and both environment override forms. Do not expand this patch into a shared resolver refactor or a new invalid-policy fallback policy.\n\n### F3 — Low / sharpens-framing — Test policy changes without clearing the memo\n\nEvidence: resolveMergeBaseCommitForFence consults its five-second process-local memo, keyed by root and environment, before selecting a base. The fence-load memo already includes baseRef and immutable SHA.\n\nFailure mode: separate fresh-process develop/main tests can pass while a same-process delivery-policy change still returns the old fence.\n\nConsequence: retain the first-memo key change and add one regression that loads with unset policy, changes typed delivery to develop, and loads again within the TTL without clearing memos. Reuse the same resolved typed candidate for the key and selection; no broader cache redesign is needed.\n\nThe rejected shared-helper approach offers eventual deduplication, but adds cross-module scope without improving these two pains. Keep immutable merge-base brief authority and all intentional #5656 command-form refusals intact.\n\nFiled for @MScottAdams",
+          "id": 6663318935,
+          "html_url": "https://github.com/deftai/directive/issues/6011#issuecomment-6663318935",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:28:45Z",
+          "updated_at": "2026-11-05T16:28:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\n## In plain English\nThe Prefer-A draft correctly targets the real bug: write-fence base selection skips typed `plan.policy.deliveryBranch`, so develop-delivery repos merge-base against main and see an empty story fence. The Bound can bind after two sharpens: (1) insert delivery candidates only under the same typed+error-null gate `resolveDefaultBaseRef` already uses, and (2) surface the selected baseRef on the successful empty-fence path that feeds positive-governing / prospective refuses — wrong-base misses are empty, not unreadable.\n\nVerdict on Prefer-A: **sharpen**\n\n## Findings\n\n### F1 — Typed-only delivery insert must mirror resolveDefaultBaseRef gate\n- severity: medium\n- class: sharpens-framing\n- evidence: pin-read `packages/core/src/scope-provenance/evaluate.ts` `resolveDefaultBaseRef` inserts `origin/<branch>` then `branch` only when `delivery.source === \"typed\" && delivery.error === null && delivery.branch.trim().length > 0`. `resolveDeliveryBranch` returns `source: \"git-default\" | \"default-fallback\" | \"default-on-error\"` with a branch string in non-typed cases, and returns `source: \"typed\"` with `branch: \"\"` plus error when the typed name fails `assertSafeBranchName`. pin-read `selectBaseRefForFence` today has no delivery consult.\n- failure mode: a Bound that always pushes `resolveDeliveryBranch().branch` into the candidate list would reorder master|main probing for repos with no typed delivery, or probe an empty ref when typed policy is hostile — changing fail-closed association beyond P1.\n- disposition: keep limb 1; state the typed+error-null+non-empty gate explicitly (same as #5520), still via in-policy `resolveDeliveryBranch` without importing scope-provenance.\n\n### F2 — Wrong-base miss is empty fence; baseRef must ride the success path\n- severity: medium\n- class: sharpens-framing\n- evidence: pin-read `loadStoryWriteFenceFromMergeBase` → missing brief on the resolved merge-base commit yields `raw.kind === \"missing\"` → `loadStoryWriteFenceFromBaseRaw(null)` → `{ fileScope: [], denyPaths: [] }` with no `unreadableDetail`. `evaluateProspectiveScopeCover` then denies via `hasPositiveGoverningStoryAllow` with copy that names neither baseRef nor delivery (`selected scope lacks positive governing allow file_scope`). Issue body and Stop 1 P1/P2 describe exactly this empty/missing-fence refuse, not only unreadableDetail. Merge-base compute failure already interpolates `${baseRef}` in one unreadable path; the consumer-visible empty path does not.\n- failure mode: limb 2 scoped only to unreadable/no-base helpers leaves P2 unrelieved on the primary develop-delivery refuse path; operators still cannot see main-vs-develop mismatch when the fence loads \"successfully\" empty.\n- disposition: keep limb 2; require selected baseRef (and typed delivery when used) to be available after a successful merge-base resolve — including empty file_scope — and named in positive-governing / prospective empty-fence refuse copy. Do not invent HEAD-brief authority.\n\n### F3 — Memo key + tests + Reject list\n- severity: low\n- class: footnote\n- evidence: pin-read memo key is `${projectRoot}\\0${envKey}` only (DEFT_BASE_REF|GITHUB_BASE_REF); no delivery component. Reject list correctly keeps #4956 merge-base SoT, keeps #5656 `-a`/pathspec/compound refuses, and bars scope-provenance import.\n- failure mode: none material if F1/F2 land; memo limb already relieves stale main reuse after typed delivery appears mid-process.\n- disposition: accept limbs 3–4 and Reject as written; CHANGELOG/docs stay footnotes.\n\n## Road-not-taken\nShared helper extracted from `resolveDefaultBaseRef` into policy/ — rejected for this Bound (Prefer-A Reject already says optional leftover). In-policy `resolveDeliveryBranch` + mirrored gate is thinner and relieves P1 without a cross-package move.\n\n## Injection / swarm lens\nBase-ref selection is shared hook state for Write and prospective git-commit cover. Env overrides remain first (CI-safe). Typed delivery after env matches scope-provenance order. No new trust in untrusted brief bytes; merge-base SoT unchanged. Do not soften intentional #5656 index-snapshot refuses.\n\n## Accept / sharpen / block\n**sharpen** Prefer-A draft 6663229272 — bind after absorbing F1 (typed-only gate) and F2 (success-path baseRef on empty-fence refuse). Bound stays thin (#3265 / #5783).\n\nFiled for @MScottAdams",
+          "id": 6663332014,
+          "html_url": "https://github.com/deftai/directive/issues/6011#issuecomment-6663332014",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:29:18Z",
+          "updated_at": "2026-11-05T16:29:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A Bound\n\n## Prefer-A Bound\nSpec-path: packages/core/src/policy/write-fence.ts\nconflict_group: write-fence-base-ref-ignores-typed-delivery-branch\nlean: Approach A bind\ncites Round-1: Codex 6663318935; Grok 6663332014\ndisposes: Codex F1/F2/F3 + Grok F1/F2 (absorb); Grok F3 footnote\nreduced-panel: yes (Claude OAuth unavailable; spend-amend 6663248299)\ndispatch-sha: 7f04a43075911dcacf72683e0e886152b8bc2fe8\narc-mode: no-ingest\nyolo-standing: on\ndual-stop-reserved: seating first pain-audit\n\n## Bound remedy\n- relieves: P1 — Insert delivery candidates in selectBaseRefForFence only when resolveDeliveryBranch returns source typed with error null and nonempty branch, after env overrides and before hardcoded master|main.\n- relieves: P2 — Carry selected baseRef (and typed delivery when used) on StoryWriteFenceView for successful and empty fence loads, and name that base in positive-governing and prospective empty-fence refuse copy.\n- relieves: P1 — Extend the merge-base memo key with the same resolved typed delivery candidate used for selection so an in-process typed deliveryBranch change cannot reuse a stale main memo.\n- relieves: P1 — Add write-fence and dispatcher tests for typed develop-only brief load, unset-policy master|main coexistence, env override wins, and same-process memo invalidation after typed delivery appears without clearing memos.\n\n## Reject\n- Reading working-tree HEAD brief as fence authority.\n- Making DEFT_BASE_REF the only consumer fix.\n- Softening intentional #5656 git commit -a / pathspec / compound refuses.\n- Importing scope-provenance into policy/write-fence (optional shared-helper leftover).\n- Unconditionally inserting resolveDeliveryBranch().branch for non-typed sources.\n\n## file_scope\npackages/core/src/policy/write-fence.ts\npackages/core/src/policy/write-fence.test.ts\npackages/core/src/hooks/dispatcher.ts\npackages/core/src/hooks/dispatcher.test.ts (or the existing prospective-cover test module)\nCHANGELOG.md\n\n## In plain English\nBind Prefer-A: use typed deliveryBranch for the write-fence base the same way scope-provenance already does, put the chosen base on empty-fence refuses, and lock it with memo + tests. First pain-audit next under Dual-stop reserved.",
+          "id": 6663345897,
+          "html_url": "https://github.com/deftai/directive/issues/6011#issuecomment-6663345897",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:29:54Z",
+          "updated_at": "2026-11-05T16:35:37Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 4\nsiblings: 1\ninput-ceiling: 6663356014\nfamilies: codex\nseat: codex launcher: codex\nkind: pain-audit\naudit-targets: pain-P1, pain-P2\ntarget: Prefer-A Bound 6663345897\ndispatch-sha: 7f04a43075911dcacf72683e0e886152b8bc2fe8\ndual-stop-reserved: consuming first reserved pain-audit seat",
+          "id": 6663356014,
+          "html_url": "https://github.com/deftai/directive/issues/6011#issuecomment-6663356014",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:30:20Z",
+          "updated_at": "2026-11-05T16:30:21Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\nfinding-classes: sharpening\nharvest-changed: false\naudit-targets: pain-P1, pain-P2\n\n## In plain English\n\nPrefer-A Bound addresses the wrong-base pain and makes the common empty-fence refusal explain its base. Keep the remedy. One small diagnostic clarification remains for unreadable/no-base failures; it changes no admission decision or fail-closed association.\n\nP1: covered. The pinned selectBaseRefForFence probes env then master/main without consulting delivery policy. The Bound's typed-success guard matches resolveDefaultBaseRef, preserves unset-policy ordering and env precedence, and keys the memo with the same delivery candidate. Immutable merge-base brief authority remains intact. This relieves the reported develop-base mismatch when the brief is present at that merge-base; it does not authorize a brief created only on the feature branch.\n\nP2: covered for the primary missing/empty-brief path. The pinned loader drops resolved.baseRef from its returned view, and evaluateProspectiveScopeCover constructs the positive-allow refusal itself. Carrying base context through successful and cached empty results to that refusal closes this gap.\n\n### S1 - Sharpen diagnostic coverage only\n\nStop 1 also names unreadable/no-base copy. The draft included it, but the Bound's P2 limb now explicitly covers only successful/empty loads and empty-fence refusals. At the pinned SHA, merge-base signal failures and git-show/JSON failures can omit the selected ref; total selection failure names only the old fallback/env choices. Retain the draft's diagnostic intent: name the selected ref when selection succeeded, or say no ref was selected and list attempted candidates when none resolved. Keep empty and unreadable states distinct. One refusal assertion for each case suffices; no new resolver or evaluator is needed.\n\nVerification: fetched issue #6011 and all six envelope-named comments via gh api, through inclusive ceiling 6663356014; read no later or sibling pain-audit posts. Pin-read write-fence.ts, resolveDefaultBaseRef in scope-provenance/evaluate.ts, and evaluateProspectiveScopeCover in hooks/dispatcher.ts at 7f04a43075911dcacf72683e0e886152b8bc2fe8. Target: [Prefer-A Bound](https://github.com/deftai/directive/issues/6011#issuecomment-6663345897). This is a design audit, not implementation verification.\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6663390807,
+          "html_url": "https://github.com/deftai/directive/issues/6011#issuecomment-6663390807",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:31:49Z",
+          "updated_at": "2026-11-05T16:31:49Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## Parent takes (pain-audit)\ncites: Codex PA 6663390807\nfinding-classes: sharpening\nharvest-changed: false\n\n## In plain English\nPain-audit is clear for bind: harvest unchanged. Record S1 as an implementation footnote on P2 diagnostics (name selected base on unreadable paths when selection succeeded; list attempted candidates when none resolved). No Recut.\n\ntake: S1 — accept-as-implementation-footnote (does not remint Bound remedy limbs; harvest-changed:false)\nP1 coverage: accepted\nP2 coverage: accepted (primary empty-fence path in Bound; S1 widens diagnostic only)",
+          "id": 6663407115,
+          "html_url": "https://github.com/deftai/directive/issues/6011#issuecomment-6663407115",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:32:31Z",
+          "updated_at": "2026-11-05T16:32:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n## In plain English\nRound-1 and pain-audit agree Prefer-A Bound 6663345897 relieves P1/P2 with harvest unchanged after a non-blocking sharpen footnote.\n\n| Claim | Method | Result |\n|---|---|---|\n| P1 wrong base ignores typed deliveryBranch | pin-read selectBaseRefForFence vs resolveDefaultBaseRef at 7f04a43075911dcacf72683e0e886152b8bc2fe8; Round-1 Codex 6663318935 + Grok 6663332014 | confirmed; Bound limb inserts typed-only delivery candidates |\n| P2 empty-fence refuse omits baseRef | pin-read StoryWriteFenceView + evaluateProspectiveScopeCover; Round-1 + PA 6663390807 | confirmed; Bound carries baseRef on empty success path; S1 footnote for unreadable diagnostics |\n| #5656 -a/pathspec refuses stay out of Bound | issue body + Reject list; Round-1 accept | confirmed out-of-scope |\n| Reduced panel N=2 | Claude OAuth launch-probe fail; spend-amend 6663248299; Codex+Grok posted | recorded hang/unavailable class |\n| Pain-audit harvest | Codex PA finding-classes:sharpening harvest-changed:false | clear; no Recut |\n\nbound-ref: Prefer-A Bound 6663345897\ndispatch-sha: 7f04a43075911dcacf72683e0e886152b8bc2fe8\nreduced-panel: yes",
+          "id": 6663407467,
+          "html_url": "https://github.com/deftai/directive/issues/6011#issuecomment-6663407467",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:32:32Z",
+          "updated_at": "2026-11-05T16:35:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## In plain English\nAgents agreed on Prefer-A Bound 6663345897: wire typed deliveryBranch into the write-fence base selector, surface that base on empty-fence refuses, and lock with memo + tests. Ingest stays a separate operator verb.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\ncites Prefer-A Bound lean: 6663345897\ncites verified-claims table: 6663407467\ncites Round-1: 6663318935, 6663332014\ncites pain-audit: 6663390807\ncites parent takes: 6663407115\nmaterial-findings: none (blocking)\narc-mode: no-ingest\nNext operator verb: task issue:ingest (not auto)",
+          "id": 6663407814,
+          "html_url": "https://github.com/deftai/directive/issues/6011#issuecomment-6663407814",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-05T16:32:33Z",
+          "updated_at": "2026-11-05T16:32:33Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "Found on 0.129.1 in a consumer repo whose delivery branch is `develop` (default branch `main`).\n\n**What happens.** The PreToolUse commit gate (prospective scope-cover, #5656) reads the story's `file_scope` from the merge-base of HEAD and `origin/main` (unless `DEFT_BASE_REF` / `GITHUB_BASE_REF` is set in the hook's environment). A scope brief that is activated on `develop` is not on that base, so the gate refuses the commit (\"no scope\" / \"lacks file_scope\") even though the brief is active and correct on the branch being worked on.\n\nIt also rejects `git commit -a`, trailing pathspecs, pipes and add+commit compounds, each with a different message.\n\n**Impact.** The only way forward was a separate activation PR merged first, then rebasing. For a repo with a develop -> main model, every story needs that extra round trip.\n\n**Suggested fix.** Resolve the base from the repo's configured delivery branch (the same source `verify:branch` uses) instead of assuming `origin/main`, and say in the refusal which base it read.\n\nObserved 2026-10-27/28 during the 0.127.0 -> 0.129.1 upgrade of one consumer repo.",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6086301377,
+        "origin": "deftai/directive#6011",
+        "id": "github.issue.6086301377"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "write-fence-base-ref-ignores-typed-delivery-branch",
+        "expected_outputs": [
+          "typed deliveryBranch in selectBaseRefForFence",
+          "baseRef on StoryWriteFenceView + empty-fence refuse copy",
+          "memo key includes typed delivery",
+          "write-fence + dispatcher regression tests",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "npx vitest run packages/core/src/policy/write-fence.test.ts packages/core/src/hooks/dispatcher.test.ts"
+        ],
+        "file_scope": [
+          "packages/core/src/policy/write-fence.ts",
+          "packages/core/src/policy/write-fence.test.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "CHANGELOG.md"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#6011",
+          "Prefer-A Bound 6663345897"
+        ],
+        "parallel_safe": true
+      }
+    },
+    "id": "github.issue.6086301377",
+    "updated": "2026-11-05T17:59:37Z"
+  }
+}
