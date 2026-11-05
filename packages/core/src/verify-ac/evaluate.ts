@@ -12,9 +12,10 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { relative, resolve } from "node:path";
 import { isSafetyRefusalRun } from "../literal-acceptance/run.js";
 import type { LiteralAcceptanceRunResult } from "../literal-acceptance/types.js";
+import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
 import {
   evaluatePathBActivationAdmit,
   isBriefLandShapedDiff,
@@ -415,12 +416,63 @@ function resolveInventoryBaseRef(
       candidates.push(raw);
     }
   }
+  // Prefer typed deliveryBranch / git remote default before master|main (#5792 Greptile P1).
+  const delivery = resolveDeliveryBranch(projectRoot, (root, args) => runGit(root, args));
+  if (delivery.error === null && delivery.branch.trim().length > 0) {
+    candidates.push(`origin/${delivery.branch}`, delivery.branch);
+  }
+  const abbrev = runGit(projectRoot, ["rev-parse", "--abbrev-ref", "origin/HEAD"]);
+  if (abbrev.code === 0) {
+    const name = abbrev.stdout.trim();
+    if (name.length > 0 && name !== "origin/HEAD") {
+      candidates.push(name);
+    }
+  }
   candidates.push("origin/master", "origin/main", "master", "main");
   for (const cand of candidates) {
     const ran = runGit(projectRoot, ["rev-parse", "--verify", "-q", `${cand}^{commit}`]);
     if (ran.code === 0) return cand;
   }
   return null;
+}
+
+/** Map a git-toplevel-relative path onto projectRoot (nested consumers / subdir cwd). */
+function inventoryPathRelativeToProject(
+  gitToplevel: string,
+  projectRoot: string,
+  gitRelPath: string,
+): string {
+  return relative(projectRoot, resolve(gitToplevel, gitRelPath)).replace(/\\/g, "/");
+}
+
+/**
+ * Remap inventory rows from git-toplevel-relative to project-relative (#5792 Greptile P1).
+ * Sibling paths outside projectRoot stay visible (../…) so brief-land shape still fails closed.
+ */
+function remapInventoryToProjectRoot(
+  byPath: Map<string, PrDiffPath>,
+  gitToplevel: string,
+  projectRoot: string,
+): Map<string, PrDiffPath> {
+  const top = resolve(gitToplevel);
+  const root = resolve(projectRoot);
+  if (top === root) {
+    return byPath;
+  }
+  const remapped = new Map<string, PrDiffPath>();
+  for (const entry of byPath.values()) {
+    const path = inventoryPathRelativeToProject(top, root, entry.path);
+    const previousFilename =
+      typeof entry.previousFilename === "string" && entry.previousFilename.length > 0
+        ? inventoryPathRelativeToProject(top, root, entry.previousFilename)
+        : undefined;
+    mergeInventoryPrDiffPath(remapped, {
+      status: entry.status,
+      path,
+      ...(previousFilename !== undefined ? { previousFilename } : {}),
+    });
+  }
+  return remapped;
 }
 
 /**
@@ -506,7 +558,8 @@ export function collectBriefLandInventoryAsPrDiffPaths(input: {
     if (path.length === 0) continue;
     mergeInventoryPrDiffPath(byPath, { status: "added", path });
   }
-  return { ok: true, files: [...byPath.values()] };
+  const projectRelative = remapInventoryToProjectRoot(byPath, gitToplevel, projectRoot);
+  return { ok: true, files: [...projectRelative.values()] };
 }
 
 /**
