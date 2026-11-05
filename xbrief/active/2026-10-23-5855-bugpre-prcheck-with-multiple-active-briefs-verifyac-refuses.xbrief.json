@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5855",
-    "updated": "2026-11-05T18:00:17.111Z"
+    "updated": "2026-11-05T18:15:30.982Z"
   },
   "plan": {
     "title": "bug(pre-pr,check): with multiple active briefs, verify:ac refuses (no story selected), so no maintainer can pass the #5804 push gate",
@@ -19,26 +19,22 @@
       {
         "id": "clause.1",
         "title": "relieves: P1 — Branch identity plus verified worker-auth untied evidence with foreign-live refuse only (plan.id then briefOwnsIssue; admit untied when readWorkerAuthAssignment finds no registered assignment; refuse registered-without-pin, unreadable, missing-assignment-for-indexed-worktree, null commonDir; after cohort cleanup refuse admitted-untied only when liveOccupant is non-null AND occupancyAdmission is not the caller)",
-        "status": "pending",
-        "artifact_path": "packages/core/src/hooks/scope.ts"
+        "status": "pending"
       },
       {
         "id": "clause.2",
         "title": "relieves: P2 — Opt-in shared soft-missing binder for check/pre-pr only; sor-preflight default stays need-pin; ceremonied maintainer untied relief rides P1 foreign-live predicate",
-        "status": "pending",
-        "artifact_path": "packages/core/src/hooks/scope.test.ts"
+        "status": "pending"
       },
       {
         "id": "clause.3",
         "title": "relieves: P3 — Soft-missing disposition with direct-AC no-obligation carrier: ordinary pre-PR binds no-obligation from direct verify:ac disposition without requiring merge_chokepoint; when check runs use distinct non-zero exit neither 1 nor 2 nor 124; push-admit reads bound disposition evidence and refuses missing disposition",
-        "status": "pending",
-        "artifact_path": "packages/core/src/hooks/scope-bind.test.ts"
+        "status": "pending"
       },
       {
         "id": "clause.4",
         "title": "relieves: P4 — Regression covering unique bind, admitted-untied self-lease and lease-free trees, foreign-live refuse, ordinary pre-PR omitted-merge_chokepoint, distinct check exit across both dispatch paths, enrolled multi-ref push refuse, and completed-story AC failure propagate",
-        "status": "pending",
-        "artifact_path": "packages/runtime/src/verify-ac.ts"
+        "status": "pending"
       }
     ],
     "tags": [
