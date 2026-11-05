@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -409,5 +409,26 @@ describe("write-fence typed deliveryBranch base (#6011)", () => {
     expect(second.typedDeliveryBranch).toBe("develop");
     expect(second.fileScope).toEqual(["packages/core/src/policy/**"]);
   });
-});
 
+  it("refuses bare local feature as typed base when origin/<feature> is missing (#6065 P1)", () => {
+    const { root, briefRel } = repoDevelopOnlyBrief();
+    // Widen working-tree brief on the feature tip; attack would read HEAD if
+    // typed delivery accepted the bare local feature ref.
+    writeFileSync(
+      join(root, briefRel),
+      briefDoc(["packages/**", "secrets/**", "xbrief/**"]),
+      "utf8",
+    );
+    execFileSync("git", ["add", briefRel], { cwd: root });
+    execFileSync("git", ["commit", "-q", "-m", "widen feature brief"], { cwd: root });
+    writePd(root, { deliveryBranch: "feature/6011" });
+    delete process.env.DEFT_BASE_REF;
+    delete process.env.GITHUB_BASE_REF;
+    clearWriteFenceMemosForTests();
+
+    const fence = loadStoryWriteFenceFromMergeBase(root, join(root, briefRel));
+    expect(fence.baseRef).toBe("origin/master");
+    expect(fence.typedDeliveryBranch).toBeUndefined();
+    expect(fence.fileScope).toEqual([]);
+  });
+});

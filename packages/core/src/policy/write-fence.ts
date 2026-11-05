@@ -310,8 +310,10 @@ function gitSpawnUnreadable(scopePath: string, err: Error | undefined): StoryWri
 
 /**
  * Typed delivery candidates for fence base selection (#6011).
- * Mirrors scope-provenance resolveDefaultBaseRef: insert only when
- * resolveDeliveryBranch returns source typed, error null, nonempty branch.
+ * Insert only when resolveDeliveryBranch returns source typed, error null,
+ * nonempty branch. Prefer `origin/<branch>` only — a bare local ref would let
+ * deliveryBranch=<feature> collapse merge-base to HEAD and read a widened
+ * head brief (Greptile P1 on #6065). Remote-tracking is the governing base.
  */
 function typedDeliveryForFence(projectRoot: string): {
   readonly candidates: readonly string[];
@@ -323,7 +325,7 @@ function typedDeliveryForFence(projectRoot: string): {
   });
   if (delivery.source === "typed" && delivery.error === null && delivery.branch.trim().length > 0) {
     const branch = delivery.branch.trim();
-    return { candidates: [`origin/${branch}`, branch], typedBranch: branch };
+    return { candidates: [`origin/${branch}`], typedBranch: branch };
   }
   return { candidates: [], typedBranch: null };
 }
@@ -537,7 +539,9 @@ export function loadStoryWriteFenceFromMergeBase(
     return { fileScope: [], denyPaths: [] };
   }
 
-  const loadKey = `${root}\0${resolved.baseRef}\0${resolved.sha}\0${rel}`;
+  // Include typed delivery in the load key so annotation changes cannot reuse
+  // a stale fence view when baseRef/sha stay the same (Greptile P2 / #6011).
+  const loadKey = `${root}\0${resolved.baseRef}\0${resolved.sha}\0${rel}\0${resolved.typedDeliveryBranch ?? ""}`;
   const cached = memoGet(fenceLoadMemo, loadKey);
   if (cached !== undefined) return cached;
 

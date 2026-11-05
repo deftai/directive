@@ -3574,7 +3574,7 @@ describe("runtime authority policy (#1394)", () => {
     expect(decision.message).toMatch(/story file_scope/);
   });
 
-    it("denies Write empty-allow and names fence base (#6011)", () => {
+  it("denies Write empty-allow and names fence base (#6011)", () => {
     const decision = decideHook(
       {
         host: "grok",
@@ -3596,10 +3596,12 @@ describe("runtime authority policy (#1394)", () => {
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
     expect(decision.message).toContain("positive governing");
-    expect(decision.message).toMatch(/Fence base: origin\/develop \(typed deliveryBranch=develop\)/);
+    expect(decision.message).toMatch(
+      /Fence base: origin\/develop \(typed deliveryBranch=develop\)/,
+    );
   });
 
-it("denies Write when sole brief is pathless / empty-allow (#5656)", () => {
+  it("denies Write when sole brief is pathless / empty-allow (#5656)", () => {
     const decision = decideHook(
       {
         host: "grok",
@@ -3689,7 +3691,7 @@ it("denies Write when sole brief is pathless / empty-allow (#5656)", () => {
     expect(covered.uncovered).toEqual([]);
   });
 
-    it("evaluateProspectiveScopeCover names fence base on empty positive-allow refuse (#6011)", () => {
+  it("evaluateProspectiveScopeCover names fence base on empty positive-allow refuse (#6011)", () => {
     const pathless = evaluateProspectiveScopeCover({
       projectRoot: "/project",
       stagedRelPaths: ["src/a.ts"],
@@ -3721,7 +3723,7 @@ it("denies Write when sole brief is pathless / empty-allow (#5656)", () => {
     expect(typed.message).toMatch(/Fence base: origin\/develop \(typed deliveryBranch=develop\)/);
   });
 
-it("evaluateProspectiveScopeCover refuses pathless / deny-only governing allow (#5656)", () => {
+  it("evaluateProspectiveScopeCover refuses pathless / deny-only governing allow (#5656)", () => {
     const pathless = evaluateProspectiveScopeCover({
       projectRoot: "/project",
       stagedRelPaths: ["src/a.ts"],
