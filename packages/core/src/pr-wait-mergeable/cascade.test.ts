@@ -364,13 +364,20 @@ describe("waitMergeableAndMerge", () => {
   });
 
   it("monitor config error propagates to exit two", () => {
+    // #6069: skipHumanMergeGate belongs on waitMergeableAndMerge options — nesting it
+    // inside the monitor payload left live approval/head gates on; under suite load
+    // gh api could block past the 20s vitest timeout before the fake monitor ran.
     const mergeFn = makeMergeFn(0);
     const result = waitMergeableAndMerge(1370, "deftai/directive", {
       capMinutes: 30,
       protected: [],
       protectedFn: makeProtectedFn(0),
-      monitorFn: makeMonitorFn(2, { monitor_result: "CONFIG-ERROR", skipHumanMergeGate: true }),
+      monitorFn: makeMonitorFn(2, { monitor_result: "CONFIG-ERROR" }),
       mergeFn,
+      skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
+      umbrellaReconcileFn: null,
     });
 
     expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);

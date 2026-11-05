@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Unit tests no longer hang on live GitHub under Merge gate load (#6069).** Cascade config-error and open-umbrella scope:complete tests stay offline (skip live approval/reconcile/work-claim) so the 20s vitest cap is enough.
 - **Brief retirement/restamp stays brief-only under scope:complete (#5890).** Zero-eligible recovery no longer steers borrow-another-brief; CHANGELOG close-out remains a named residual.
 - **Multi-active check/pre-PR can bind the branch story or soft-skip with proven untied worker-auth (#5855 Recut-8).** Foreign live occupancy still refuses; ordinary pre-PR carries no-obligation from direct verify:ac without requiring full merge_chokepoint.
 - **Write-fence base selection honors typed deliveryBranch (#6011).** Empty-fence refuses name the selected base so develop-delivery repos are not stuck on origin/main merge-base.
