@@ -402,7 +402,8 @@ export function evaluateEnrolledBoundPrePrPush(
   }
 
   // #5855 P3: untied soft-missing may push only with positively known disposition
-  // evidence on pushBinding; unresolved / required-story skip may not.
+  // evidence on pushBinding; unresolved / required-story skip may not. Story
+  // selection (kind=one) must not reuse stale no-obligation from an earlier untied pass.
   const storyRefusal = pushStoryAdmissionRefusal(projectRoot, liveRefs[0]?.localRef, options.env);
   if (storyRefusal !== null) {
     return [
@@ -457,6 +458,18 @@ export function evaluateEnrolledBoundPrePrPush(
           ].join("\n"),
         ];
       }
+    } else if (
+      resolved.kind === "one" &&
+      disposition.verifyAcDisposition === "no-obligation"
+    ) {
+      return [
+        1,
+        [
+          "deft bound pre-PR push gate: story selection cannot reuse no-obligation disposition (#5855).",
+          "  Detail: push-time selection requires a story; stale untied no-obligation evidence is not executed-ac.",
+          "  Recovery: deft pre-pr:run with executed verify:ac for the selected story, then retry.",
+        ].join("\n"),
+      ];
     }
   }
 
