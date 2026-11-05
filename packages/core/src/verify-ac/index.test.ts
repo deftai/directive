@@ -1,13 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
   bindClausesToDeclaredScope,
+  collectBriefLandInventoryAsPrDiffPaths,
   commandCountFromFingerprint,
   deriveAcceptanceClauses,
   emitVerifyAcAttempts,
+  evaluatePathBActivationAcDisposition,
   evaluateProductOracleIntegrity,
   flagPassAfterFailFromJsonl,
+  isPathBActivationAcDispositionText,
   mergeOracleVerdict,
   methodFingerprintForWalk,
+  PATH_B_ACTIVATION_AC_DISPOSITION,
   stampDerivedClausesOnAcceptance,
   VERIFY_AC_CHECK_ID_PREFIX,
   verifyAcCheckId,
@@ -28,5 +32,12 @@ describe("verify-ac public exports (#3322 / #3323 / #3337)", () => {
     expect(typeof stampDerivedClausesOnAcceptance).toBe("function");
     expect(typeof verifyAcCheckId).toBe("function");
     expect(VERIFY_AC_CHECK_ID_PREFIX).toBe("verify:ac");
+  });
+
+  it("re-exports Path B activation disposition helpers (#5792)", () => {
+    expect(typeof collectBriefLandInventoryAsPrDiffPaths).toBe("function");
+    expect(typeof evaluatePathBActivationAcDisposition).toBe("function");
+    expect(typeof isPathBActivationAcDispositionText).toBe("function");
+    expect(PATH_B_ACTIVATION_AC_DISPOSITION).toBe("path_b_activation_deferred");
   });
 });

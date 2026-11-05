@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -6,7 +6,9 @@ import { evaluateVerifyAcFromPlan } from "../product-first-done-gate/evaluate.js
 import { ENV_RUN_SUMMARY_PATH } from "../run-summary/index.js";
 import {
   emitVerifyAcAttempts,
+  evaluatePathBActivationAcDisposition,
   evaluateProductOracleIntegrity,
+  isPathBActivationAcDispositionText,
   mergeOracleVerdict,
   methodFingerprintForWalk,
   resetInProcessVerificationBuffer,
@@ -1054,5 +1056,156 @@ describe("safety-refusal is not a product-oracle measurement (#3615)", () => {
     expect(text).toMatch(/\.deft-run-summary\.json/);
     expect(text).toMatch(/independent_rederivation=true/);
     expect(text).toMatch(/refused side never executed/i);
+  });
+});
+
+describe("Path B activation AC disposition (#5792)", () => {
+  it("admits local no-bodyText brief-land via issue-ref identity and defers product AC", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-5792-activation-"));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "story-5792.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          title: "activation",
+          status: "running",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/5792",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const files = [
+      { status: "added", path: "xbrief/active/story-5792.xbrief.json" },
+      { status: "modified", path: "CHANGELOG.md" },
+    ];
+    const disposition = evaluatePathBActivationAcDisposition({
+      projectRoot: root,
+      bodyText: null,
+      repo: "deftai/directive",
+      files,
+    });
+    expect(disposition.apply).toBe(true);
+    if (!disposition.apply) return;
+    expect(disposition.message).toMatch(/path_b_activation_deferred \(#5792\)/);
+    expect(disposition.witnessDetail).toMatch(/local issue-ref identity #5792/);
+    expect(isPathBActivationAcDispositionText(disposition.message)).toBe(true);
+    expect(isPathBActivationAcDispositionText("verify:ac soft_empty (#3334)")).toBe(false);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("restores full verify:ac when inventory includes a product path", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-5792-product-"));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "story-5792.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          title: "mixed",
+          status: "running",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/5792",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const disposition = evaluatePathBActivationAcDisposition({
+      projectRoot: root,
+      bodyText: null,
+      repo: "deftai/directive",
+      files: [
+        { status: "added", path: "xbrief/active/story-5792.xbrief.json" },
+        { status: "added", path: "src/record-reference.js" },
+      ],
+    });
+    expect(disposition.apply).toBe(false);
+    if (disposition.apply) return;
+    expect(disposition.reason).toMatch(/not brief-land shaped|product path/i);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("still requires deft-story marks when PR bodyText is present", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-5792-body-"));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "story-5792.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          title: "activation",
+          status: "running",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/5792",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const missing = evaluatePathBActivationAcDisposition({
+      projectRoot: root,
+      bodyText: "Tracking #5792\n",
+      repo: "deftai/directive",
+      files: [
+        { status: "added", path: "xbrief/active/story-5792.xbrief.json" },
+        { status: "modified", path: "CHANGELOG.md" },
+      ],
+    });
+    expect(missing.apply).toBe(false);
+    const admitted = evaluatePathBActivationAcDisposition({
+      projectRoot: root,
+      bodyText: "Tracking #5792\n\ndeft-story: 5792\n",
+      repo: "deftai/directive",
+      files: [
+        { status: "added", path: "xbrief/active/story-5792.xbrief.json" },
+        { status: "modified", path: "CHANGELOG.md" },
+      ],
+    });
+    expect(admitted.apply).toBe(true);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("refuses disposition when productPullRequest is stamped", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-5792-stamped-"));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "story-5792.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          title: "product",
+          status: "running",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/5792",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+          metadata: { productPullRequest: 9999 },
+        },
+      }),
+      "utf8",
+    );
+    const disposition = evaluatePathBActivationAcDisposition({
+      projectRoot: root,
+      bodyText: null,
+      repo: "deftai/directive",
+      files: [
+        { status: "modified", path: "xbrief/active/story-5792.xbrief.json" },
+        { status: "modified", path: "CHANGELOG.md" },
+      ],
+    });
+    expect(disposition.apply).toBe(false);
+    if (disposition.apply) return;
+    expect(disposition.reason).toMatch(/productPullRequest/);
+    rmSync(root, { recursive: true, force: true });
   });
 });

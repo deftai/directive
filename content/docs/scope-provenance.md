@@ -73,6 +73,10 @@ When an active implementation brief is **outside** the change set, membership is
 
 Membership-land (Path B activation) PRs that only touch nonterminal `xbrief|vbrief` under `proposed|pending|active` plus optional root `CHANGELOG.md` leave `metadata.productPullRequest` **unset**. Closing-keywords admits that brief-land shape when body has `deft-story: N` covering each changed nonterminal (`isBriefLandShapedDiff` + early return in `evaluateFullStoryMarkAdmission`). Optional `metadata.activationPullRequest` is provenance only — delivery readers ignore it. The stacked product PR stamps virgin `productPullRequest` on the existing null path; leftover keeps the original product stamp. ⊗ Write the activation PR number into `productPullRequest`. Legacy stamped activations unstamp once, then product stamps. Depth: `packages/core/src/pr-closing-keywords/main.ts`.
 
+### Path B activation vs product `verify:ac` (#5792)
+
+Scope-only Path B activation must be able to clear `deft check` before merge-base write authority exists. Check inventories the complete local change set (merge-base..HEAD ∪ dirty ∪ cached ∪ untracked, with rename origins) into `PrDiffPath`, then reuses the Path B witness (`evaluatePathBActivationAdmit`). When the inventory is brief-land shaped and the witness admits, check records one named disposition `path_b_activation_deferred` and **defers** product acceptance commands and artifact-clause execution — it does not selectively forgive opaque npm failures and does not bank as a later product verified-pass. Local check without a PR body uses inventory brief issue-ref identity instead of `deft-story` marks; when a PR body is present, mark coverage still applies. Any product path in the inventory, or `productPullRequest` set, restores full `verify:ac`. Write authority stays merge-base-only (`loadStoryWriteFenceFromMergeBase` unchanged). Depth: `packages/core/src/verify-ac/evaluate.ts`, `packages/core/src/check/cached-orchestrator.ts`.
+
 
 ## Historical ship-closeout for stale merged actives (#5403)
 

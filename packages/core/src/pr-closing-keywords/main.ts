@@ -417,13 +417,13 @@ function removedNonterminalBriefPaths(files: readonly PrDiffPath[]): string[] {
 }
 
 /**
- * Path B activation admit witness (#5387): brief-land shape + deft-story covers
- * each changed nonterminal + productPullRequest key absent on every changed brief.
- * Short-circuits both stamp gates when true. Malformed stamps are not unset.
- * Refuses when the diff also deletes a nonterminal brief, and when a deft-story
- * mark has no matching changed brief (Greptile P1 on #5388).
+ * Path B activation admit witness (#5387 / #5792): brief-land shape + no deleted
+ * nonterminals + productPullRequest unset on every changed brief. When PR
+ * bodyText is present, deft-story marks must cover each changed nonterminal.
+ * When bodyText is absent (local check), inventory brief issue-ref identity
+ * substitutes for mark coverage (#5792 Recut-1). Malformed stamps are not unset.
  */
-function evaluatePathBActivationAdmit(args: {
+export function evaluatePathBActivationAdmit(args: {
   readonly bodyText: string | null;
   readonly prNumber: number | null;
   readonly projectRoot: string;
@@ -449,8 +449,11 @@ function evaluatePathBActivationAdmit(args: {
   if (changedNonterminal.length === 0) {
     return { ok: false, detail: "no nonterminal brief land" };
   }
-  const marks = parseAllDeftStoryMarks(args.bodyText ?? "");
-  if (marks.length === 0) {
+  // #5792: mark coverage only when a PR body exists; null/blank → issue-ref identity.
+  const bodyText =
+    typeof args.bodyText === "string" && args.bodyText.trim().length > 0 ? args.bodyText : null;
+  const marks = bodyText === null ? [] : parseAllDeftStoryMarks(bodyText);
+  if (bodyText !== null && marks.length === 0) {
     return { ok: false, detail: "missing deft-story marks" };
   }
   const coveredIssues = new Set<number>();
@@ -488,7 +491,7 @@ function evaluatePathBActivationAdmit(args: {
       for (const n of matchedIssues) {
         coveredIssues.add(n);
       }
-      if (!matchedIssues.some((n) => marks.includes(n))) {
+      if (bodyText !== null && !matchedIssues.some((n) => marks.includes(n))) {
         return {
           ok: false,
           detail: `changed brief ${relPath} issue #${String(matchedIssues[0])} is not covered by deft-story marks`,
@@ -501,15 +504,24 @@ function evaluatePathBActivationAdmit(args: {
       };
     }
   }
-  for (const issue of marks) {
-    if (!coveredIssues.has(issue)) {
-      return {
-        ok: false,
-        detail: `deft-story: ${String(issue)} has no matching changed nonterminal brief on Path B activation`,
-      };
+  if (bodyText !== null) {
+    for (const issue of marks) {
+      if (!coveredIssues.has(issue)) {
+        return {
+          ok: false,
+          detail: `deft-story: ${String(issue)} has no matching changed nonterminal brief on Path B activation`,
+        };
+      }
     }
+  } else if (coveredIssues.size === 0) {
+    return { ok: false, detail: "no inventory brief issue-ref identity for local Path B witness" };
   }
-  const offlineNote = args.prNumber === null ? " (offline identity #5736)" : "";
+  const offlineNote =
+    bodyText === null
+      ? " (local issue-ref identity #5792)"
+      : args.prNumber === null
+        ? " (offline identity #5736)"
+        : "";
   return {
     ok: true,
     detail: `Path B brief-land activation admitted (#5387)${offlineNote}`,
