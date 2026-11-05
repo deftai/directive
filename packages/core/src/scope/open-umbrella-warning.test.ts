@@ -2,6 +2,44 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
+// #6069: scope:complete after the warning runs live umbrella reconcile + work-claim
+// release (and can block 10–60s). Keep this suite offline under the 20s vitest cap.
+vi.mock("../vbrief-reconcile/umbrellas.js", async (importOriginal) => {
+  const mod = await importOriginal();
+  return {
+    ...mod,
+    reconcileUmbrellas: vi.fn(() => [
+      0,
+      {
+        changed: [],
+        unchanged: [],
+        skipped_no_ref: [],
+        errors: [],
+        dry_run: false,
+      },
+    ]),
+  };
+});
+vi.mock("../scm/work-claim.js", async (importOriginal) => {
+  const mod = await importOriginal();
+  return {
+    ...mod,
+    releaseWorkClaimForBrief: vi.fn(() => ({ released: false, message: "" })),
+  };
+});
+vi.mock("../staleness-tickler/run.js", async (importOriginal) => {
+  const mod = await importOriginal();
+  return {
+    ...mod,
+    maybeRunStalenessTickler: vi.fn(() => ({
+      lines: [],
+      prompted: false,
+      skippedReason: "test-offline",
+    })),
+  };
+});
+
 import { lifecycleMain } from "./main.js";
 import {
   completedPathForScopeMove,
