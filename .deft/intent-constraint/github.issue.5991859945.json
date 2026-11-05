@@ -1,0 +1,20 @@
+{
+  "schema": "deft.intent-constraint.v1",
+  "planId": "github.issue.5991859945",
+  "xbriefRelPath": "xbrief/active/2026-10-23-5855-bugpre-prcheck-with-multiple-active-briefs-verifyac-refuses.xbrief.json",
+  "approvedAt": "2026-11-05T21:32:33Z",
+  "constraints": [
+    {
+      "value": "6",
+      "unit": "numeric-const",
+      "rejectionScope": "operation"
+    }
+  ],
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-11-05T21:32:33Z",
+    "mintedVia": "in-harness-ask"
+  },
+  "contractDigest": "b027b1ab6706eadcfb68d2f1f2055eea5069cffa685e6ada54b18167f2b715bd"
+}

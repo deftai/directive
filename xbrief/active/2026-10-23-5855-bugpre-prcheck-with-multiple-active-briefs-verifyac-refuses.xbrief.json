@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5855",
-    "updated": "2026-11-05T18:15:30.982Z"
+    "updated": "2026-11-05T21:23:53.238Z"
   },
   "plan": {
     "title": "bug(pre-pr,check): with multiple active briefs, verify:ac refuses (no story selected), so no maintainer can pass the #5804 push gate",
@@ -802,6 +802,15 @@
       "kind": "story"
     },
     "id": "github.issue.5991859945",
-    "updated": "2026-10-23T06:05:04Z"
+    "updated": "2026-10-23T06:05:04Z",
+    "x-directive/intentConstraint": {
+      "constraints": [
+        {
+          "value": "6",
+          "unit": "numeric-const",
+          "rejectionScope": "operation"
+        }
+      ]
+    }
   }
 }
