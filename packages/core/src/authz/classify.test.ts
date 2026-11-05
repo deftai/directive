@@ -2571,6 +2571,20 @@ describe("Approach1 existence-probe proven readers (#5970)", () => {
     expect(hasProtectedDestOfWriteUnknown(`test -f a -o -f ${killSwitch}`)).toBe(false);
   });
 
+  it("rejects command substitution nested writers from the reader proof (#5970 P1)", () => {
+    const command = "test -n $(mkfile 1k .deft/authz/grants/evil.json)";
+    expect(hasProtectedDestOfWriteUnknown(command), command).toBe(true);
+    expect(inactiveShellTargetsProtectedStore(command), command).toBe(true);
+    expect(hasProtectedDestOfWriteUnknown("test -f $HOME/.deft-directive-disable")).toBe(false);
+    expect(hasProtectedDestOfWriteUnknown("test -n $((1+1))")).toBe(false);
+  });
+
+  it("names redirect dest over earlier protected read operands (#5970 P2)", () => {
+    expect(
+      matchProtectedStoreShellDest("cat .deft/authz/state.json > .deft/authz/grants/evil.json"),
+    ).toBe(".deft/authz/grants/evil.json");
+  });
+
   it("names the matched protected dest from the classify route (#5970 P3)", () => {
     expect(matchProtectedStoreShellDest(`mkfile 1k .deft/authz/grants/evil.json`)).toBe(
       ".deft/authz/grants/evil.json",

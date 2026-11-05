@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Brief retirement/restamp stays brief-only under scope:complete (#5890).** Zero-eligible recovery no longer steers borrow-another-brief; CHANGELOG close-out remains a named residual.
 - **Multi-active check/pre-PR can bind the branch story or soft-skip with proven untied worker-auth (#5855 Recut-8).** Foreign live occupancy still refuses; ordinary pre-PR carries no-obligation from direct verify:ac without requiring full merge_chokepoint.
 - **Write-fence base selection honors typed deliveryBranch (#6011).** Empty-fence refuses name the selected base so develop-delivery repos are not stuck on origin/main merge-base.
+- **Approach1 proven readers reject argv command substitution (#5970).** `$(mkfile …)` / backticks void the reader proof; redirect-matched denies prefer the redirect dest over earlier read operands.
 - **Approach1 read-only kill-switch existence probes are proven readers (#5970).** Test-Path / test / `[` / Get-Item / dir are segment-local proven readers (test/`[` ignore POSIX `-o` OR); authentic protected_store denies can name the matched harvested dest while authz:grant stays mint-only for real grants.
 - **Release cut refuses materialize:runtime while cut-context is active (#5910).** Overlay-present cheapInSync stays fail-closed until frozen-lockfile restore retires the overlay, so tip 0.0.0 cannot replace the published pin mid-cut.
 - chore(dogfood): pin Directive to 0.129.4.

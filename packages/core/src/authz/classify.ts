@@ -1527,6 +1527,44 @@ function zipShellWithoutLineContinuations(command: string): string {
   return result;
 }
 
+/**
+ * True for executable command substitution (`$(…)` / backticks) outside single
+ * quotes. Arithmetic `$((…))` and plain `$VAR` / `${VAR}` do not qualify —
+ * those cannot run a nested writer before the outer argv0 (#5970 P1).
+ */
+function zipShellWordHasCommandSubstitution(raw: string): boolean {
+  let quote: ZipShellQuote = null;
+  for (let i = 0; i < raw.length; i++) {
+    const char = raw[i] as string;
+    if (char === "\\" && quote !== "'" && i + 1 < raw.length) {
+      i++;
+      continue;
+    }
+    if (quote === null && char === "$" && raw[i + 1] === "'") {
+      quote = "$'";
+      i++;
+      continue;
+    }
+    if (char === "'" || char === '"') {
+      if (quote === null) quote = char;
+      else if (quote === "$'" && char === "'") quote = null;
+      else if (quote === char) quote = null;
+      continue;
+    }
+    if (quote === "'" || quote === "$'") continue;
+    if (char === "`") return true;
+    if (char === "$" && raw[i + 1] === "(" && raw[i + 2] !== "(") return true;
+  }
+  return false;
+}
+
+function argvHasCommandSubstitution(words: readonly string[], execIndex: number): boolean {
+  for (let i = execIndex + 1; i < words.length; i++) {
+    if (zipShellWordHasCommandSubstitution(words[i] as string)) return true;
+  }
+  return false;
+}
+
 /** True for shell expansion syntax outside single quotes and not escaped. */
 function zipShellWordHasExpansion(raw: string): boolean {
   let quote: ZipShellQuote = null;
@@ -2387,6 +2425,8 @@ function isArStyleArchiveBin(name: string): boolean {
 function isProvenReadOnlyArgv(words: readonly string[], execIndex: number): boolean {
   const literal = argv0Literal(words, execIndex);
   if (literal === null || argv0IsPathQualified(literal)) return false;
+  // Nested writers in argv (`$(mkfile …)` / backticks) void the reader proof (#5970 P1).
+  if (argvHasCommandSubstitution(words, execIndex)) return false;
   const name = writeBinName(literal);
   if (isArStyleArchiveBin(name)) {
     const rawMode = words[execIndex + 1];
@@ -5039,14 +5079,15 @@ export function matchProtectedStoreShellDest(
 
   const tokens = shellTokens(cmd);
   if (hasWriteShapedProtectedSettingsDest(cmd, tokens)) {
-    for (const raw of tokens) {
-      const pathish = pathishToken(raw);
-      if (pathishIsProtectedMutationDest(pathish)) return pathishToken(raw);
-    }
+    // Prefer redirect destinations over earlier read operands (#5970 P2).
     for (let i = 0; i < cmd.length; i++) {
       if (cmd[i] !== ">") continue;
       const dest = redirectDestSlice(cmd.toLowerCase().replace(/\\/g, "/"), i).trim();
       if (dest.length > 0 && pathishIsProtectedMutationDest(dest)) return dest;
+    }
+    for (const raw of tokens) {
+      const pathish = pathishToken(raw);
+      if (pathishIsProtectedMutationDest(pathish)) return pathishToken(raw);
     }
   }
 
