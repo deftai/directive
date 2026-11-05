@@ -12,6 +12,17 @@ import {
 } from "../policy/write-fence.js";
 import { evaluate } from "../preflight/evaluate.js";
 import { fenceUntrustedAcceptanceText } from "../scope/acceptance-evidence.js";
+import {
+  liveOccupant,
+  type OccupancyAdmission,
+  type OccupancyRecord,
+  occupancyAdmission,
+} from "../session/occupancy.js";
+import {
+  type ReadWorkerAuthAssignmentResult,
+  readWorkerAuthAssignment,
+  resolveWorkerAuthDestPath,
+} from "../swarm/worker-auth-assignment.js";
 
 export { hasPositiveGoverningStoryAllow } from "../policy/write-fence.js";
 
@@ -589,7 +600,10 @@ export function resolveSoftMissingAcTargets(
     };
   }
   if (options?.branchBind !== undefined) {
-    const bind = bindBranchToActiveStory(scanned, options.branchBind);
+    const bind = bindBranchToActiveStory(scanned, {
+      ...options.branchBind,
+      projectRoot: options.branchBind.projectRoot ?? projectRoot,
+    });
     if (bind.kind === "bound") {
       return { kind: "one", path: bind.path };
     }
@@ -618,11 +632,30 @@ export function resolveSoftMissingAcTargets(
   };
 }
 
-/** Spawn / dispatch markers that expect a pinned story; never untied (#5855). */
+/**
+ * Legacy spawn/dispatch env keys retained for disclosure only (#5855 Recut-8).
+ * Untied admission keys off verified worker-auth + foreign-live, not these markers.
+ */
 export const DISPATCH_EXPECTATION_ENV_KEYS = [
   "DEFT_AGENT_ID",
   "DEFT_WORKER_CREDENTIAL_DELIVERY_ID",
 ] as const;
+
+/** Session id presented for foreign-live occupancy consult (#5855 Recut-8). */
+export const CALLER_SESSION_ENV = "DEFT_SESSION_ID";
+
+/**
+ * Distinct non-zero exit for admitted-untied soft-missing no-obligation (#5855 Recut-8).
+ * Neither 1 (fail), 2 (config), nor 124 (timeout). Exit 0 still means executed AC only.
+ */
+export const VERIFY_AC_NO_OBLIGATION_EXIT = 6;
+
+/** Closed skipReason when merge_chokepoint observes no-obligation (#5855 Recut-8). */
+export const MERGE_CHOKPOINT_NO_OBLIGATION_SKIP =
+  "admitted-untied soft-missing no-obligation (#5855)" as const;
+
+/** Positively known verify:ac disposition for pushBinding (#5855 Recut-8). */
+export type VerifyAcDispositionKind = "executed-ac" | "no-obligation";
 
 const VERSION_SHAPED_SEGMENT = /^v?\d+(?:\.\d+)+(?:[-+][0-9A-Za-z.-]+)?$/;
 
@@ -658,6 +691,14 @@ export interface BranchStoryBindOptions {
   readonly env?: NodeJS.ProcessEnv;
   /** `owner/repo` for repo-scoped issue ownership; null keeps number-only. */
   readonly repoSlug?: string | null;
+  /** Worktree root for worker-auth + occupancy consult (#5855 Recut-8). */
+  readonly projectRoot?: string;
+  /** Injectable worker-auth reader (tests). */
+  readonly readWorkerAuthAssignment?: (cwd: string) => ReadWorkerAuthAssignmentResult;
+  /** Injectable live occupancy reader (tests). */
+  readonly liveOccupant?: (projectRoot: string) => OccupancyRecord | null;
+  /** Injectable occupancy admission (tests). */
+  readonly occupancyAdmission?: (record: OccupancyRecord, sessionId: string) => OccupancyAdmission;
 }
 
 export type BranchStoryBind =
@@ -688,10 +729,10 @@ function fencedCandidates(paths: readonly string[]): string {
 }
 
 /**
- * Bind a check / pre-PR run to the branch's own active story (#5855 P1).
- * plan.id equality first, then a single repo-scoped issue token. A branch with
- * no story token is untied only when no dispatch expectation is present;
- * ambiguous or missing matches refuse.
+ * Bind a check / pre-PR run to the branch's own active story (#5855 Recut-8 P1).
+ * plan.id equality first, then a single repo-scoped issue token. No story token
+ * admits untied only after verified worker-auth shows no registered assignment
+ * and there is no foreign live occupancy lease (self-lease admits).
  */
 export function bindBranchToActiveStory(
   scanned: readonly string[],
@@ -740,16 +781,86 @@ export function bindBranchToActiveStory(
       denyKind: owners.length > 1 ? "multiple-eligible" : "pin-miss",
     };
   }
-  const env = options.env ?? process.env;
-  const markers = DISPATCH_EXPECTATION_ENV_KEYS.filter(
-    (key) => (env[key]?.trim() ?? "").length > 0,
-  );
-  if (markers.length > 0) {
+  return admitUntiedWithWorkerAuth(scanned, briefs, options);
+}
+
+function matchStoryIdToActive(
+  briefs: readonly { path: string; data: Record<string, unknown> | null }[],
+  storyId: string,
+): BranchStoryBind {
+  const id = storyId.trim();
+  if (id.length === 0) {
     return {
       kind: "refuse",
-      message: `dispatch expectation (${markers.join(", ")}) without a story pin; dispatched workers must set ${ACTIVE_SCOPE_PIN_ENV}.`,
+      message: `registered worker-auth assignment without a story pin; set ${ACTIVE_SCOPE_PIN_ENV}.`,
       denyKind: "pin-miss",
     };
+  }
+  const owners = briefs.filter((brief) => briefPlanId(brief.data) === id);
+  const only = owners[0];
+  if (owners.length === 1 && only !== undefined) {
+    return { kind: "bound", path: only.path };
+  }
+  if (owners.length > 1) {
+    return {
+      kind: "refuse",
+      message: `worker-auth story_id ${id} matches ${owners.length} active briefs: ${fencedCandidates(owners.map((b) => b.path))}.`,
+      denyKind: "multiple-eligible",
+    };
+  }
+  return {
+    kind: "refuse",
+    message: `worker-auth story_id ${id} does not match an active brief (lost pin?). Active: ${fencedCandidates(briefs.map((b) => b.path))}.`,
+    denyKind: "pin-miss",
+  };
+}
+
+/**
+ * Worker-auth untied + foreign-live refuse (#5855 Recut-8). Successful absence
+ * admits; null commonDir / unreadable / indexed-missing refuse; present story_id
+ * binds; foreign live lease refuses; self-lease and absent/stale occupancy admit.
+ */
+function admitUntiedWithWorkerAuth(
+  scanned: readonly string[],
+  briefs: readonly { path: string; data: Record<string, unknown> | null }[],
+  options: BranchStoryBindOptions,
+): BranchStoryBind {
+  const projectRoot = options.projectRoot ?? process.cwd();
+  const reader = options.readWorkerAuthAssignment ?? readWorkerAuthAssignment;
+  const read = reader(projectRoot);
+  if (!read.ok) {
+    return {
+      kind: "refuse",
+      message: `worker-auth assignment unreadable or incomplete (${read.failureKind}): ${read.detail}`,
+      denyKind: "pin-miss",
+    };
+  }
+  if (read.commonDir === null) {
+    return {
+      kind: "refuse",
+      message: "worker-auth: null Git common dir; refuse admitted-untied (#5855).",
+      denyKind: "pin-miss",
+    };
+  }
+  if (read.assignment !== null) {
+    return matchStoryIdToActive(briefs, read.assignment.story_id);
+  }
+  const liveReader = options.liveOccupant ?? liveOccupant;
+  const live = liveReader(projectRoot);
+  if (live !== null) {
+    const env = options.env ?? process.env;
+    const caller = (env[CALLER_SESSION_ENV] ?? "").trim();
+    const admissionFn = options.occupancyAdmission ?? occupancyAdmission;
+    const admission = admissionFn(live, caller);
+    if (admission === "stranger") {
+      return {
+        kind: "refuse",
+        message:
+          `foreign live occupancy lease on worktree (occupant=${live.sessionId}); ` +
+          `refuse admitted-untied soft-missing (#5855). Active: ${fencedCandidates(scanned)}.`,
+        denyKind: "pin-miss",
+      };
+    }
   }
   return { kind: "untied" };
 }
@@ -786,10 +897,18 @@ export function readBranchBindContext(projectRoot: string): {
 }
 
 /**
- * Push-admit story disposition (#5855 P3): with several actives, a push is
- * admitted only when the branch binds one story or is admitted untied
- * (soft-missing, no obligation). Unresolved / required-story selection refuses.
- * Returns the refusal text, or null when the push may proceed.
+ * Canonical worktree key for admitted-untied pushBinding evidence (#5855 Recut-8).
+ */
+export function admittedUntiedWorktreeKey(projectRoot: string): string {
+  return resolveWorkerAuthDestPath(projectRoot);
+}
+
+/**
+ * Push-admit story selection (#5855 P3): with several actives, a push is
+ * refused when selection is need-pin / unresolved. Bound or admitted-untied
+ * selection alone is not enough for no-obligation — push also requires
+ * positively known disposition evidence on PrePrPushBinding (see pre-push).
+ * Returns the refusal text, or null when selection may proceed.
  */
 export function pushStoryAdmissionRefusal(
   projectRoot: string,
@@ -799,14 +918,13 @@ export function pushStoryAdmissionRefusal(
   const scanned = listActiveLifecycleArtifacts(projectRoot).paths;
   if (scanned.length <= 1) return null;
   const context = readBranchBindContext(projectRoot);
-  const branch =
-    localRef !== null && localRef !== undefined && localRef.startsWith("refs/heads/")
-      ? localRef.slice("refs/heads/".length)
-      : context.branch;
+  const branch = localRef?.startsWith("refs/heads/")
+    ? localRef.slice("refs/heads/".length)
+    : context.branch;
   const resolved = resolveSoftMissingAcTargets(projectRoot, {
     env,
     scannedPaths: scanned,
-    branchBind: { branch, env, repoSlug: context.repoSlug },
+    branchBind: { branch, env, repoSlug: context.repoSlug, projectRoot },
   });
   return resolved.kind === "need-pin" ? resolved.message : null;
 }

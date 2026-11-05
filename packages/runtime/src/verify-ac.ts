@@ -24,7 +24,10 @@ import {
   readPlanAcceptance,
   resolveAcceptanceGateProfile,
   resolveSoftMissingAcTargets,
+  VERIFY_AC_NO_OBLIGATION_EXIT,
 } from "@deftai/directive-core/product-first-done-gate";
+
+export { VERIFY_AC_NO_OBLIGATION_EXIT };
 
 interface ParsedArgs {
   projectRoot: string;
@@ -122,9 +125,14 @@ function listActiveXbriefs(projectRoot: string): FindActiveXbriefResult {
   };
 }
 
-/** Three-state exit: pass=0, fail=1, config=2. A printed pass must not leak 201. */
+/**
+ * Three-state exit: pass=0, fail=1, config=2, plus deliberate no-obligation=6.
+ * A printed pass must not leak 201. No-obligation is a named clamp exception so
+ * both check dispatch paths keep the distinct exit (#5855 Recut-8).
+ */
 export function clampVerifyAcExit(ok: boolean, code: number): number {
   if (ok) return 0;
+  if (code === VERIFY_AC_NO_OBLIGATION_EXIT) return VERIFY_AC_NO_OBLIGATION_EXIT;
   if (code === 2) return 2;
   return 1;
 }
@@ -331,10 +339,10 @@ export function run(argv: string[]): number {
         const selected = resolveSoftMissingAcTargets(projectRoot, {
           env: process.env,
           scannedPaths: found.paths,
-          branchBind: { ...bindContext, env: process.env },
+          branchBind: { ...bindContext, env: process.env, projectRoot },
         });
         if (selected.kind === "untied") {
-          // #5855 P3: completed-target precedence, then soft-missing (no AC claimed).
+          // #5855 P3: completed-target precedence, then soft-missing no-obligation.
           const completed = resolveSessionCompletedVerifyAcTarget({
             projectRoot,
             env: process.env,
@@ -355,7 +363,8 @@ export function run(argv: string[]): number {
               process.stdout.write(`${selected.message}\n`);
             }
             emitVerifyAcTerminalOutcome({ projectRoot, env: process.env, outcome: "soft-missing" });
-            return 0;
+            // Distinct non-zero: exit 0 keeps meaning executed AC only (#5855 Recut-8).
+            return VERIFY_AC_NO_OBLIGATION_EXIT;
           }
         } else if (selected.kind === "one") {
           paths = [selected.path];
