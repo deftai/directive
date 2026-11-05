@@ -19,7 +19,10 @@ import {
   listShellOps,
   type RuntimeAuthorityShellOp,
 } from "../policy/runtime-authority.js";
-import { shellCommandHasPayloadRootProtectedDestAfterRealpath } from "./protected-dest-realpath.js";
+import {
+  resolvedDestIsPayloadRootProtected,
+  shellCommandHasPayloadRootProtectedDestAfterRealpath,
+} from "./protected-dest-realpath.js";
 import type { AuthzOperation } from "./types.js";
 
 export type AuthzClassifiedOp =
@@ -2280,6 +2283,24 @@ const READ_ONLY_PROOF_BINS = new Set([
   "nawk",
 ]);
 
+/**
+ * #5970 Approach1 existence probes. Sole classify carve for relative dest-of-write
+ * and #4188 harvest (no second harvest-only skip list). test/[ ignore POSIX -o OR;
+ * dir/Get-ChildItem still refuse sort/awk-style output-dest flags.
+ */
+const EXISTENCE_PROBE_READ_ONLY_BINS = new Set([
+  "test-path",
+  "test",
+  "[",
+  "get-item",
+  "gi",
+  "dir",
+  "get-childitem",
+  "gci",
+]);
+
+const EXISTENCE_PROBE_IGNORE_OUTPUT_DEST_FLAGS = new Set(["test", "["]);
+
 const READ_ONLY_PROOF_OUTPUT_DEST_FLAGS = new Set(["-o", "--output", "--pretty-print"]);
 
 function argvHasOutputDestFlag(words: readonly string[], execIndex: number): boolean {
@@ -2375,6 +2396,10 @@ function isProvenReadOnlyArgv(words: readonly string[], execIndex: number): bool
       /^[abcdfilmnpqrstuvx]+$/.test(mode) &&
       ![...mode].some((letter) => ARCHIVE_WRITE_OPERATIONS.has(letter))
     );
+  }
+  if (EXISTENCE_PROBE_READ_ONLY_BINS.has(name)) {
+    if (EXISTENCE_PROBE_IGNORE_OUTPUT_DEST_FLAGS.has(name)) return true;
+    return !argvHasOutputDestFlag(words, execIndex);
   }
   if (READ_ONLY_PROOF_BINS.has(name)) {
     if (name === "sort" || name === "awk" || name === "gawk" || name === "nawk") {
@@ -4792,7 +4817,13 @@ const EMPTY_OPS_DEST_ASSIGNMENT_KEYS = new Set(["of"]);
 
 function emptyOpsSegmentIsReadShaped(tokens: readonly string[], index: number): boolean {
   const first = firstCommandBin(segmentSliceAround(tokens, index));
-  return READ_SHAPED_FILE_FLAG_BINS.has(first) || DEST_ASSIGNMENT_NON_WRITER_FIRST_BINS.has(first);
+  // #5970: POSIX test/[ use -f/-o as predicates, not EMPTY_OPS_DEST_FLAGS writers.
+  // dir/Get-ChildItem stay off this carve so -o/--output dest plants still deny.
+  return (
+    READ_SHAPED_FILE_FLAG_BINS.has(first) ||
+    DEST_ASSIGNMENT_NON_WRITER_FIRST_BINS.has(first) ||
+    EXISTENCE_PROBE_IGNORE_OUTPUT_DEST_FLAGS.has(first)
+  );
 }
 
 function destFlagOperandIsProtectedSettings(tokens: readonly string[]): boolean {
@@ -4967,6 +4998,81 @@ export function hasProtectedDestOfWriteUnknown(command: string): boolean {
  */
 export function inactiveShellTargetsProtectedStore(command: string): boolean {
   return hasAuthzDirShellWrite(command) || hasProtectedDestOfWriteUnknown(command);
+}
+
+/**
+ * First matched protected dest/token from the same classify/harvest routes that
+ * set protected_store (#5970 P3). Lexical dest-of-write first; #4188 realpath
+ * harvest when projectRoot is provided. Proven readers yield null.
+ */
+export function matchProtectedStoreShellDest(
+  command: string,
+  projectRoot?: string | null,
+): string | null {
+  const cmd = command.trim();
+  if (cmd.length === 0) return null;
+
+  for (const segment of zipStyleCommandSegments(cmd)) {
+    if (isProvenReadOnlyArgv(segment.words, segment.execIndex)) continue;
+    const jarDest = jarCreateArchiveDest(segment.words, segment.execIndex);
+    if (jarDest !== null && isRelativePayloadProtectedDest(jarDest)) return jarDest;
+    const archiveDest = firstArchiveOperandDest(segment.words, segment.execIndex);
+    if (archiveDest !== null && isRelativePayloadProtectedDest(archiveDest)) return archiveDest;
+    for (const doubleColonDest of doubleColonCreateArchiveDests(segment.words, segment.execIndex)) {
+      if (isRelativePayloadProtectedDest(doubleColonDest)) return doubleColonDest;
+    }
+    for (const dest of harvestInterpreterPayloadDests(segment.words, segment.execIndex)) {
+      if (isRelativePayloadProtectedDest(dest)) return dest;
+    }
+    const name = argv0BareName(segment.words, segment.execIndex);
+    if (name !== null) {
+      for (const dest of harvestUnknownDestFlagValues(segment.words, segment.execIndex, name)) {
+        if (isRelativePayloadProtectedDest(dest)) return dest;
+      }
+    }
+    const last = lastDestOfWritePositional(segment.words, segment.execIndex);
+    if (last !== null && isRelativePayloadProtectedDest(last)) {
+      const lit = zipShellWordLiteral(last);
+      return lit ?? last;
+    }
+  }
+
+  const tokens = shellTokens(cmd);
+  if (hasWriteShapedProtectedSettingsDest(cmd, tokens)) {
+    for (const raw of tokens) {
+      const pathish = pathishToken(raw);
+      if (pathishIsProtectedMutationDest(pathish)) return pathishToken(raw);
+    }
+    for (let i = 0; i < cmd.length; i++) {
+      if (cmd[i] !== ">") continue;
+      const dest = redirectDestSlice(cmd.toLowerCase().replace(/\\/g, "/"), i).trim();
+      if (dest.length > 0 && pathishIsProtectedMutationDest(dest)) return dest;
+    }
+  }
+
+  if (commandHasAuthzDirShellWrite(cmd, tokens)) {
+    for (const raw of tokens) {
+      const pathish = pathishToken(raw);
+      if (pathishIsAuthzDir(pathish) || pathishIsApprovedScopeDir(pathish)) return pathish;
+    }
+  }
+
+  if (hasKillSwitchShellWrite(cmd, tokens)) {
+    for (const raw of tokens) {
+      const pathish = pathishToken(raw);
+      if (pathishMentionsKillSwitch(pathish)) return pathish;
+    }
+  }
+
+  const harvestRoot = (projectRoot ?? "").trim();
+  if (harvestRoot.length > 0) {
+    for (const dest of harvestDestsOfWriteForRealpath(cmd)) {
+      if (destLiteralIsRelativeProtected(dest)) continue;
+      if (resolvedDestIsPayloadRootProtected(harvestRoot, dest)) return dest;
+    }
+  }
+
+  return null;
 }
 
 /** Re-export #2711 classifiers for composition docs/tests. */

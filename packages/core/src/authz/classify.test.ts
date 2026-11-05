@@ -10,6 +10,7 @@ import {
   hasAuthzDirShellWrite,
   hasProtectedDestOfWriteUnknown,
   inactiveShellTargetsProtectedStore,
+  matchProtectedStoreShellDest,
 } from "./classify.js";
 
 describe("classifyShellAuthzOps (#2944)", () => {
@@ -2502,5 +2503,79 @@ describe("inactive Shell classifiers (#4709)", () => {
       rmSync(cwdRoot, { recursive: true, force: true });
       rmSync(payload, { recursive: true, force: true });
     }
+  });
+});
+
+describe("Approach1 existence-probe proven readers (#5970)", () => {
+  const killSwitch = ".deft-directive-disable";
+
+  it("does not classify closed existence-probe first-bins as dest-of-write unknown", () => {
+    for (const command of [
+      `Test-Path ${killSwitch}`,
+      `test -f ${killSwitch}`,
+      `test -f a -o -f ${killSwitch}`,
+      `[ -f ${killSwitch} ]`,
+      `Get-Item ${killSwitch}`,
+      `gi ${killSwitch}`,
+      `dir ${killSwitch}`,
+      `Get-ChildItem ${killSwitch}`,
+      `gci ${killSwitch}`,
+      `git rev-parse HEAD && git status -sb && Test-Path ${killSwitch}`,
+      `pwd && git rev-parse HEAD && git status -sb && Test-Path ${killSwitch}`,
+    ]) {
+      expect(hasProtectedDestOfWriteUnknown(command), command).toBe(false);
+      expect(inactiveShellTargetsProtectedStore(command), command).toBe(false);
+      expect(
+        classifyHookAuthzOps({
+          toolName: "Bash",
+          shellCommand: command,
+          isDirectWrite: false,
+        }),
+        command,
+      ).not.toContain("protected_store");
+      expect(harvestDestsOfWriteForRealpath(command), command).not.toContain(killSwitch);
+    }
+  });
+
+  it("keeps path-qualified lookalikes and mixed probe+writer/redirect plants denied", () => {
+    for (const command of [
+      `./Test-Path ${killSwitch}`,
+      `/bin/test -f ${killSwitch}`,
+      `Test-Path ${killSwitch} && touch ${killSwitch}`,
+      `test -f ${killSwitch}; cp /tmp/x ${killSwitch}`,
+      `Get-Item ${killSwitch}; Set-Content -Path ${killSwitch} -Value x`,
+      `dir ${killSwitch} > ${killSwitch}`,
+      `touch ${killSwitch}`,
+      `cp /tmp/x ${killSwitch}`,
+      `echo x > ${killSwitch}`,
+    ]) {
+      const ops = classifyHookAuthzOps({
+        toolName: "Bash",
+        shellCommand: command,
+        isDirectWrite: false,
+      });
+      expect(
+        ops.includes("protected_store") ||
+          ops.includes("settings") ||
+          ops.includes("unknown") ||
+          hasProtectedDestOfWriteUnknown(command) ||
+          inactiveShellTargetsProtectedStore(command),
+        command,
+      ).toBe(true);
+    }
+  });
+
+  it("refuses dir/Get-ChildItem proof when sort/awk-style output-dest flags are present", () => {
+    expect(hasProtectedDestOfWriteUnknown(`dir -o ${killSwitch}`)).toBe(true);
+    expect(hasProtectedDestOfWriteUnknown(`Get-ChildItem --output ${killSwitch}`)).toBe(true);
+    expect(hasProtectedDestOfWriteUnknown(`test -f a -o -f ${killSwitch}`)).toBe(false);
+  });
+
+  it("names the matched protected dest from the classify route (#5970 P3)", () => {
+    expect(matchProtectedStoreShellDest(`mkfile 1k .deft/authz/grants/evil.json`)).toBe(
+      ".deft/authz/grants/evil.json",
+    );
+    expect(matchProtectedStoreShellDest(`Test-Path ${killSwitch}`)).toBeNull();
+    expect(matchProtectedStoreShellDest(`cp /tmp/x ${killSwitch}`)).toMatch(/directive-disable/);
   });
 });

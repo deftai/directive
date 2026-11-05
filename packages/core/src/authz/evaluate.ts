@@ -56,6 +56,11 @@ export interface EvaluateAuthzInput {
    * Not evaluate path glob. Not opt-in shellDestForms.
    */
   readonly protectedStoreShellWrite?: boolean;
+  /**
+   * #5970: matched harvested path/token from classify/harvest that set protected_store.
+   * Carried into effective deny text (including unknown-first active-UAT).
+   */
+  readonly protectedStoreMatchedDest?: string | null;
 }
 
 function deny(
@@ -307,6 +312,16 @@ const PROTECTED_STORE_EXTERNAL_DENY =
   "may create grant authority. saveGrant is persistence; dest workers load grants already " +
   "on the tree.";
 
+function matchedProtectedDestSuffix(matchedDest: string | null | undefined): string {
+  const token = matchedDest?.trim();
+  if (token === undefined || token.length === 0) return "";
+  return ` Matched protected dest: ${token}.`;
+}
+
+function protectedStoreExternalDeny(matchedDest?: string | null): string {
+  return PROTECTED_STORE_EXTERNAL_DENY + matchedProtectedDestSuffix(matchedDest);
+}
+
 /**
  * Write/Edit HOW (#4709): path-at-evaluate after realpath of the tool dest.
  * Does not use harvestDestsOfWriteForRealpath (Shell-only).
@@ -347,18 +362,30 @@ export function evaluateAuthzMutation(input: EvaluateAuthzInput): AuthzDecision 
 
   // Write/Edit of the inventoried store: always-on, no findCoveringGrant (#4709).
   if (isProtectedStoreEditDest(input)) {
-    return deny("authz-uat-deny", PROTECTED_STORE_EXTERNAL_DENY, input);
+    return deny(
+      "authz-uat-deny",
+      protectedStoreExternalDeny(input.protectedStoreMatchedDest ?? input.path),
+      input,
+    );
   }
 
   // Shell half classified by classifyHookAuthzOps (not evaluate path glob).
   if (input.op === "protected_store") {
-    return deny("authz-uat-deny", PROTECTED_STORE_EXTERNAL_DENY, input);
+    return deny(
+      "authz-uat-deny",
+      protectedStoreExternalDeny(input.protectedStoreMatchedDest),
+      input,
+    );
   }
 
   if (uat === null) {
     // Shell half on the inactive path: classifiers, not evaluate path glob.
     if (input.protectedStoreShellWrite === true) {
-      return deny("authz-uat-deny", PROTECTED_STORE_EXTERNAL_DENY, input);
+      return deny(
+        "authz-uat-deny",
+        protectedStoreExternalDeny(input.protectedStoreMatchedDest),
+        input,
+      );
     }
     // Outside UAT: Wave 1 does not require grants for every edit (that would
     // break normal implement sessions). Self-authored evidence still never
@@ -377,14 +404,19 @@ export function evaluateAuthzMutation(input: EvaluateAuthzInput): AuthzDecision 
       "authz-uat-deny",
       `Directive denied unclassifiable mutation under active UAT campaign ${uat.campaignId}. ` +
         "Fail closed: use a classifiable form, or explicitly suspend UAT after human review " +
-        "(`deft authz:uat-suspend`).",
+        "(`deft authz:uat-suspend`)." +
+        matchedProtectedDestSuffix(input.protectedStoreMatchedDest),
       input,
     );
   }
 
   // Store-targeting Shell settings: do not reuse findCoveringGrant (#4709).
   if (input.protectedStoreShellWrite === true) {
-    return deny("authz-uat-deny", PROTECTED_STORE_EXTERNAL_DENY, input);
+    return deny(
+      "authz-uat-deny",
+      protectedStoreExternalDeny(input.protectedStoreMatchedDest),
+      input,
+    );
   }
 
   // Safe write paths (defect capture / evidence) stay open without a cohort grant.

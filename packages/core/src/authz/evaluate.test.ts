@@ -408,6 +408,34 @@ describe("inactive grant-store deny (#4709)", () => {
     expect(active.humanApprovalRef).toBeNull();
   });
 
+  it("carries matched harvested dest into protected_store and unknown-first deny text (#5970)", () => {
+    const matched = ".deft/authz/grants/evil.json";
+    const inactive = evaluateAuthzMutation({
+      state: inactiveState(),
+      grants: [],
+      op: "protected_store",
+      path: null,
+      protectedStoreMatchedDest: matched,
+    });
+    expect(inactive.allowed).toBe(false);
+    expect(inactive.reason).toContain(`Matched protected dest: ${matched}`);
+    expect(inactive.reason).toMatch(/authz:grant/);
+
+    const root = tempRoot();
+    startUatLease({ projectRoot: root, campaignId: "uat-5970", actor: "operator" });
+    const unknownFirst = evaluateAuthzMutation({
+      state: loadAuthzState(root),
+      grants: [coveringGrant()],
+      op: "unknown",
+      path: null,
+      protectedStoreShellWrite: true,
+      protectedStoreMatchedDest: matched,
+    });
+    expect(unknownFirst.allowed).toBe(false);
+    expect(unknownFirst.reason).toMatch(/classifiable form/i);
+    expect(unknownFirst.reason).toContain(`Matched protected dest: ${matched}`);
+  });
+
   it("Write HOW uses worktree when projectRoot is omitted", () => {
     const root = tempRoot();
     mkdirSync(join(root, ".deft", "authz", "grants"), { recursive: true });
