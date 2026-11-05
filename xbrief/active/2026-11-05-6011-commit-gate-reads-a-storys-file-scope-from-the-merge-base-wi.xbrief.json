@@ -99,7 +99,10 @@
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "Commit gate reads a story's file_scope from the merge-base with origin/main, not the repo's delivery branch"
+      ]
     },
     "metadata": {
       "intended_placement": {
@@ -502,7 +505,8 @@
           "Prefer-A Bound 6663345897"
         ],
         "parallel_safe": true
-      }
+      },
+      "productPullRequest": 6065
     },
     "id": "github.issue.6086301377",
     "updated": "2026-11-05T17:59:37Z"
