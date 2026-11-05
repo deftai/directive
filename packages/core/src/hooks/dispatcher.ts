@@ -704,6 +704,50 @@ function allMutationTargetsAreCompletedLifecycleWrites(
   return allMutationTargetsMatch(projectRoot, payload, isCompletedLifecycleWrite);
 }
 
+/** Exact CHANGELOG.md relative path for Prefer-A #5890 retirement-shaped harvest. */
+const CHANGELOG_REL = "CHANGELOG.md";
+
+function isChangelogRelPath(relPosix: string): boolean {
+  const p = relPosix.replace(/\\/g, "/").replace(/^\.\//, "");
+  return p === CHANGELOG_REL;
+}
+
+/**
+ * Prefer-A #5890 retirement-shaped harvest: every target is completed/ lifecycle
+ * or CHANGELOG.md, and at least one is CHANGELOG.md. Pure completed/ is exempt
+ * upstream (#4422) before inspectActiveScope; cancelled/ and product paths stay
+ * on the ungated zero-eligible arm.
+ */
+function isRetirementShapedMutationTargets(projectRoot: string, payload: unknown): boolean {
+  if (applyPatchBodyUnclassified(payload)) return false;
+  const harvested = hookMutationTargetPaths(payload);
+  const normalized = normalizeMutationTargetPaths(harvested);
+  if (!normalized.ok || normalized.paths.length === 0) return false;
+  let sawChangelog = false;
+  for (const target of normalized.paths) {
+    const rel = toProjectRelativePosix(projectRoot, target);
+    if (rel.startsWith("..")) return false;
+    if (isChangelogRelPath(rel)) {
+      sawChangelog = true;
+      continue;
+    }
+    if (!isCompletedLifecycleWrite(projectRoot, target)) return false;
+  }
+  return sawChangelog;
+}
+
+/**
+ * Prefer-A #5890 P3 gated zero-eligible lead. Names leftover-land / scope:complete
+ * for brief-only completed/; CHANGELOG staging stays a ready-scope residual.
+ * Do not emit LEFTOVER_LAND_PR_REMEDIATION (lifecycle-write.ts) verbatim here —
+ * that constant still claims optional CHANGELOG as lifecycle-only (#6061).
+ */
+const ZERO_ELIGIBLE_RETIREMENT_SHAPED_RECOVERY =
+  " Recovery: leftover-land / `task scope:complete` owns the reachable brief-only " +
+  "completed/ sequence (active→completed retirement and already-completed restamp). " +
+  "Staging CHANGELOG.md alongside still requires a ready scope and remains a named residual. " +
+  "Do not select an unrelated active brief for this work.";
+
 function authzForMutationTargets(
   input: HookDispatchInput,
   toolName: string,
@@ -2281,6 +2325,13 @@ function inspectMutationGates(
         // #5386: recovery copy is composed in inspectActiveScope (source-aware;
         // S1 — do not string-sniff evaluator prose here). Suppress promote/activate.
         proposedPathHint = "";
+      } else if (
+        scope.denyKind === "zero-eligible" &&
+        isRetirementShapedMutationTargets(effectiveRoot, input.payload)
+      ) {
+        // Prefer-A #5890 P3: gated lead for completed/+CHANGELOG or CHANGELOG-only.
+        // Suppress promote/activate and invent-scope/proposal tails on this arm.
+        proposedPathHint = ZERO_ELIGIBLE_RETIREMENT_SHAPED_RECOVERY;
       } else {
         proposedPathHint = options.proposedLifecycleExempt
           ? " Recovery: no approved xBRIEF is available to activate " +
