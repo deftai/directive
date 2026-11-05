@@ -1280,9 +1280,9 @@ describe("Path B activation AC disposition (#5792)", () => {
     if (!inventory.ok) return;
     const entry = inventory.files.find((file) => file.path === brief);
     expect(entry?.previousFilename).toBe(origin);
-    expect(
-      inventory.files.some((file) => file.path === origin && file.status === "removed"),
-    ).toBe(true);
+    expect(inventory.files.some((file) => file.path === origin && file.status === "removed")).toBe(
+      true,
+    );
     rmSync(root, { recursive: true, force: true });
   });
 
