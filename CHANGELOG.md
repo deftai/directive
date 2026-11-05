@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Read-only path probes no longer hide nested shell writers (#5970).** Commands like `test -n $(mkfile …)` are denied again when the substitution targets a protected store path; redirect denies name the redirect destination, not an earlier read operand.
 - **Orientation shells that only check whether a kill-switch file exists are allowed (#5970).** `Test-Path` / `test` / `[` / `Get-Item` / `dir` are treated as read-only probes (with `test`/`[` ignoring POSIX `-o`); real protected-store write denials can name the matched path, while `authz:grant` remains the only mint path for grants.
 - **Release cut refuses materialize:runtime while cut-context is active (#5910).** Overlay-present cheapInSync stays fail-closed until frozen-lockfile restore retires the overlay, so tip 0.0.0 cannot replace the published pin mid-cut.
+- **Release cut-context shares the materialize lock and survives packs:render (#5910).** Cut entry and pin replace serialize on the same lock; skills-pack SoT keeps the cut-context instructions.
 - chore(dogfood): pin Directive to 0.129.4.
 
 ## [0.129.4] - 2026-11-04
