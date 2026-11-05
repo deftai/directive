@@ -33,22 +33,28 @@ function isCutContextActive(projectRoot) {
  * Named cut-context producer for the release cut worktree (#5910 P1).
  * Write at release entry; clear after version bump/tag. While active,
  * materialize:runtime refuses before it moves or replaces the pin.
+ * Shares the materialize lock so cut entry cannot race an in-flight replace.
  */
 function writeReleaseCutContext(projectRoot, meta = {}) {
   const root = path.resolve(projectRoot);
   const dest = path.join(root, CUT_CONTEXT_REL);
-  fs.mkdirSync(path.dirname(dest), { recursive: true });
-  const body = {
-    schema: CUT_CONTEXT_SCHEMA,
-    writtenAt: new Date().toISOString(),
-    projectRoot: root,
-    phase: meta.phase || "release-entry",
-    note:
-      meta.note ||
-      "Release cut-context active through version bump/tag; task materialize:runtime refuses pin replace (#5910).",
-  };
-  fs.writeFileSync(dest, `${JSON.stringify(body, null, 2)}\n`);
-  return body;
+  const lockPath = acquireLock(root);
+  try {
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    const body = {
+      schema: CUT_CONTEXT_SCHEMA,
+      writtenAt: new Date().toISOString(),
+      projectRoot: root,
+      phase: meta.phase || "release-entry",
+      note:
+        meta.note ||
+        "Release cut-context active through version bump/tag; task materialize:runtime refuses pin replace (#5910).",
+    };
+    fs.writeFileSync(dest, `${JSON.stringify(body, null, 2)}\n`);
+    return body;
+  } finally {
+    releaseLock(lockPath);
+  }
 }
 
 function clearReleaseCutContext(projectRoot) {
@@ -171,23 +177,16 @@ function movePath(src, dest) {
 
 function materialize(projectRoot, opts = {}) {
   const root = path.resolve(projectRoot);
-  // Refuse before any pin move/replace while release cut-context is active (#5910 P1).
-  if (isCutContextActive(root)) {
-    throw new Error(
-      `refusing materialize:runtime while release cut-context is active (${CUT_CONTEXT_REL}); keep the published pin through version bump/tag (#5910)`,
-    );
-  }
   const stageScript = path.join(root, "packages", "runtime", "scripts", "stage-bundle.mjs");
   const packScript = path.join(root, "packages", "runtime", "scripts", "pack-staged-runtime.mjs");
-  if (!fs.existsSync(stageScript) || !fs.existsSync(packScript)) {
-    throw new Error("stage-bundle/pack-staged-runtime scripts missing; run from framework-source checkout");
-  }
 
   const pinDir = path.join(root, PIN_PKG);
   if (fs.existsSync(pinDir) && !isCheckoutOwnedDir(pinDir, root)) {
     throw new Error(`refusing to mutate linked/shared pin at ${pinDir}`);
   }
 
+  // Hold the same lock as cut entry; check cut-context under the lock so a
+  // mid-flight cut cannot outlive an unlocked pre-check (#5910 Greptile P1).
   const lockPath = acquireLock(root);
   const priorPinUsable = fs.existsSync(path.join(pinDir, "dist", "bin.js"));
   let priorBackup = null;
@@ -195,6 +194,14 @@ function materialize(projectRoot, opts = {}) {
   let packDir;
   let extractDir;
   try {
+    if (isCutContextActive(root)) {
+      throw new Error(
+        `refusing materialize:runtime while release cut-context is active (${CUT_CONTEXT_REL}); keep the published pin through version bump/tag (#5910)`,
+      );
+    }
+    if (!fs.existsSync(stageScript) || !fs.existsSync(packScript)) {
+      throw new Error("stage-bundle/pack-staged-runtime scripts missing; run from framework-source checkout");
+    }
     stageDir = fs.mkdtempSync(path.join(os.tmpdir(), "deft-materialize-stage-"));
     packDir = fs.mkdtempSync(path.join(os.tmpdir(), "deft-materialize-pack-"));
     runNode(stageScript, [stageDir], { cwd: root });
@@ -213,6 +220,13 @@ function materialize(projectRoot, opts = {}) {
     const entries = fs.readdirSync(extractDir);
     if (entries.length !== 1) throw new Error(`expected one package folder in tgz, got ${entries.join(",")}`);
     const extracted = path.join(extractDir, entries[0]);
+
+    // Final cut-context check under lock immediately before pin move/replace.
+    if (isCutContextActive(root)) {
+      throw new Error(
+        `refusing materialize:runtime while release cut-context is active (${CUT_CONTEXT_REL}); keep the published pin through version bump/tag (#5910)`,
+      );
+    }
 
     const parent = path.dirname(pinDir);
     fs.mkdirSync(parent, { recursive: true });

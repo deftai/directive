@@ -149,6 +149,21 @@ describe("release cut-context refuse (#5910 P1/P4)", () => {
     assert.equal(existsSync(join(root, OVERLAY_REL)), false);
   });
 
+  it("cut entry shares the materialize lock (refuses while materialize holds it)", () => {
+    const root = tempRoot();
+    seedPublishedPin(root);
+    const lock = acquireLock(root);
+    assert.throws(
+      () => writeReleaseCutContext(root, { phase: "release-entry" }),
+      /another materialize|second writer|EEXIST|in progress/i,
+    );
+    assert.equal(isCutContextActive(root), false);
+    releaseLock(lock);
+    const body = writeReleaseCutContext(root, { phase: "release-entry" });
+    assert.equal(body.schema, "deft.release.cut-context.v1");
+    assert.equal(existsSync(join(root, LOCK_REL)), false);
+  });
+
   it("without cut-context, missing stage scripts still fail after the cut guard", () => {
     const root = tempRoot();
     seedPublishedPin(root);
@@ -174,9 +189,10 @@ describe("release cut-context refuse (#5910 P1/P4)", () => {
     assert.equal(retireMaterializeOverlay(root), false);
   });
 
-  it("fresh-worktree release reaches version-bump on published pin without materialize", () => {
-    // Positive release-to-bump proof (#5910 P4): cut-context at entry, pin stays
-    // published, no materialize, cheap identity path remains available for bump.
+  it("cut-context keeps published pin intact (bump-gate preconditions; not a full release run)", () => {
+    // Narrow pin-preservation proof (#5910 P4 / Greptile P2): cut-context at entry,
+    // materialize refuses, published pin + pin declaration stay aligned, no overlay.
+    // Full release-to-bump coverage stays on task release:e2e / release skill path.
     const root = tempRoot();
     const pinDir = seedPublishedPin(root, "0.129.0");
     writeReleaseCutContext(root, { phase: "release-entry" });
@@ -186,7 +202,7 @@ describe("release cut-context refuse (#5910 P1/P4)", () => {
     assert.equal(installed.version, "0.129.0");
     assert.equal(existsSync(join(root, OVERLAY_REL)), false);
 
-    // Version-bump gate precondition: published pin intact, no overlay, cut active.
+    // Version-bump gate preconditions only (not an executed bump).
     const rootPkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
     assert.equal(rootPkg.devDependencies["@deftai/directive-runtime"], "0.129.0");
     assert.equal(installed.version, rootPkg.devDependencies["@deftai/directive-runtime"]);
