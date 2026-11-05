@@ -1,7 +1,8 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   evaluateRuntimeAuthorityDirectWrite,
   evaluateRuntimeAuthorityPath,
@@ -10,6 +11,7 @@ import {
 import {
   clearWriteFenceMemosForTests,
   extractStoryFileScope,
+  formatStoryWriteFenceBaseNote,
   isStoryWriteFenceUnreadable,
   loadStoryWriteFenceFromBaseRaw,
   loadStoryWriteFenceFromMergeBase,
@@ -268,3 +270,144 @@ describe("story write fence fail-closed (#4956)", () => {
     expect(loadStoryWriteFenceFromPath(path).fileScope).toEqual(["packages/core/src/a.ts"]);
   });
 });
+
+describe("write-fence typed deliveryBranch base (#6011)", () => {
+  const roots: string[] = [];
+  const prevDeft = process.env.DEFT_BASE_REF;
+  const prevGithub = process.env.GITHUB_BASE_REF;
+
+  afterEach(() => {
+    clearWriteFenceMemosForTests();
+    for (const r of roots.splice(0)) {
+      rmSync(r, { recursive: true, force: true });
+    }
+    if (prevDeft === undefined) delete process.env.DEFT_BASE_REF;
+    else process.env.DEFT_BASE_REF = prevDeft;
+    if (prevGithub === undefined) delete process.env.GITHUB_BASE_REF;
+    else process.env.GITHUB_BASE_REF = prevGithub;
+  });
+
+  function writePd(root: string, policy?: Record<string, unknown>): void {
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "t",
+          status: "running",
+          ...(policy === undefined ? {} : { policy }),
+        },
+      }),
+      "utf8",
+    );
+  }
+
+  function briefDoc(fileScope: string[]): string {
+    return JSON.stringify({
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "story",
+        status: "running",
+        metadata: { swarm: { file_scope: fileScope } },
+      },
+    });
+  }
+
+  /** master tip without brief; develop tip with brief; feature off develop. */
+  function repoDevelopOnlyBrief(): { root: string; briefRel: string } {
+    const root = mkdtempSync(join(tmpdir(), "wf-6011-"));
+    roots.push(root);
+    execFileSync("git", ["init", "-q", "-b", "master"], { cwd: root });
+    execFileSync("git", ["config", "user.email", "t@t.local"], { cwd: root });
+    execFileSync("git", ["config", "user.name", "T"], { cwd: root });
+    writeFileSync(join(root, "README"), "base\n", "utf8");
+    writePd(root, {});
+    execFileSync("git", ["add", "README", "xbrief"], { cwd: root });
+    execFileSync("git", ["commit", "-q", "-m", "master tip"], { cwd: root });
+
+    execFileSync("git", ["branch", "develop"], { cwd: root });
+    execFileSync("git", ["checkout", "-q", "develop"], { cwd: root });
+    const briefRel = "xbrief/active/story-6011.xbrief.json";
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(join(root, briefRel), briefDoc(["packages/core/src/policy/**"]), "utf8");
+    execFileSync("git", ["add", briefRel], { cwd: root });
+    execFileSync("git", ["commit", "-q", "-m", "develop activates brief"], { cwd: root });
+
+    // Coexistence: also publish origin/main at the master tip.
+    execFileSync("git", ["branch", "main", "master"], { cwd: root });
+
+    const bare = mkdtempSync(join(tmpdir(), "wf-6011-bare-"));
+    roots.push(bare);
+    execFileSync("git", ["clone", "--bare", "-q", root, bare], { cwd: tmpdir() });
+    execFileSync("git", ["remote", "add", "origin", bare], { cwd: root });
+    execFileSync("git", ["fetch", "-q", "origin"], { cwd: root });
+
+    execFileSync("git", ["checkout", "-q", "-b", "feature/6011", "develop"], { cwd: root });
+    return { root, briefRel };
+  }
+
+  it("loads fence from origin/develop when typed deliveryBranch=develop and brief is develop-only", () => {
+    const { root, briefRel } = repoDevelopOnlyBrief();
+    writePd(root, { deliveryBranch: "develop" });
+    delete process.env.DEFT_BASE_REF;
+    delete process.env.GITHUB_BASE_REF;
+    clearWriteFenceMemosForTests();
+
+    const fence = loadStoryWriteFenceFromMergeBase(root, join(root, briefRel));
+    expect(isStoryWriteFenceUnreadable(fence)).toBe(false);
+    expect(fence.fileScope).toEqual(["packages/core/src/policy/**"]);
+    expect(fence.baseRef).toBe("origin/develop");
+    expect(fence.typedDeliveryBranch).toBe("develop");
+    expect(formatStoryWriteFenceBaseNote(fence)).toMatch(/origin\/develop/);
+    expect(formatStoryWriteFenceBaseNote(fence)).toMatch(/typed deliveryBranch=develop/);
+  });
+
+  it("keeps origin/master before origin/main when deliveryBranch is unset", () => {
+    const { root, briefRel } = repoDevelopOnlyBrief();
+    writePd(root, {});
+    delete process.env.DEFT_BASE_REF;
+    delete process.env.GITHUB_BASE_REF;
+    clearWriteFenceMemosForTests();
+
+    const fence = loadStoryWriteFenceFromMergeBase(root, join(root, briefRel));
+    expect(isStoryWriteFenceUnreadable(fence)).toBe(false);
+    expect(fence.baseRef).toBe("origin/master");
+    expect(fence.typedDeliveryBranch).toBeUndefined();
+    // Brief exists only on develop; master merge-base is empty.
+    expect(fence.fileScope).toEqual([]);
+  });
+
+  it("lets DEFT_BASE_REF win over typed deliveryBranch", () => {
+    const { root, briefRel } = repoDevelopOnlyBrief();
+    writePd(root, { deliveryBranch: "develop" });
+    process.env.DEFT_BASE_REF = "origin/master";
+    delete process.env.GITHUB_BASE_REF;
+    clearWriteFenceMemosForTests();
+
+    const fence = loadStoryWriteFenceFromMergeBase(root, join(root, briefRel));
+    expect(fence.baseRef).toBe("origin/master");
+    expect(fence.typedDeliveryBranch).toBeUndefined();
+    expect(fence.fileScope).toEqual([]);
+  });
+
+  it("invalidates merge-base memo when typed delivery appears without clearing memos", () => {
+    const { root, briefRel } = repoDevelopOnlyBrief();
+    writePd(root, {});
+    delete process.env.DEFT_BASE_REF;
+    delete process.env.GITHUB_BASE_REF;
+    clearWriteFenceMemosForTests();
+
+    const first = loadStoryWriteFenceFromMergeBase(root, join(root, briefRel));
+    expect(first.baseRef).toBe("origin/master");
+    expect(first.fileScope).toEqual([]);
+
+    // Same process, within TTL: typed delivery appears; memos must not stick on master.
+    writePd(root, { deliveryBranch: "develop" });
+    const second = loadStoryWriteFenceFromMergeBase(root, join(root, briefRel));
+    expect(second.baseRef).toBe("origin/develop");
+    expect(second.typedDeliveryBranch).toBe("develop");
+    expect(second.fileScope).toEqual(["packages/core/src/policy/**"]);
+  });
+});
+

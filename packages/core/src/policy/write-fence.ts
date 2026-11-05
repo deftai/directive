@@ -13,6 +13,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, relative, resolve } from "node:path";
+import { resolveDeliveryBranch } from "./delivery-branch.js";
 import {
   DEFAULT_RUNTIME_AUTHORITY_POLICY,
   DEFAULT_RUNTIME_AUTHORITY_SCOPES,
@@ -107,12 +108,29 @@ export function extractStoryFileScope(storyData: unknown): {
  * Story write-fence load view (#4956).
  * `unreadableDetail` set → callers MUST fail closed (do not empty-allow).
  * Returned failure avoids new throw-sites for verify:intent-constraint.
+ * `baseRef` / `typedDeliveryBranch` ride successful and empty loads (#6011).
  */
 export type StoryWriteFenceView = {
   readonly fileScope: string[];
   readonly denyPaths: string[];
   readonly unreadableDetail?: string;
+  /** Selected merge-base candidate when resolve succeeded (#6011). */
+  readonly baseRef?: string;
+  /** Typed deliveryBranch when that candidate was the selected base (#6011). */
+  readonly typedDeliveryBranch?: string;
 };
+
+/** Operator-facing base note for empty-fence / unreadable refuses (#6011). */
+export function formatStoryWriteFenceBaseNote(fence: StoryWriteFenceView): string {
+  if (typeof fence.baseRef !== "string" || fence.baseRef.trim().length === 0) {
+    return "";
+  }
+  const typed =
+    typeof fence.typedDeliveryBranch === "string" && fence.typedDeliveryBranch.trim().length > 0
+      ? ` (typed deliveryBranch=${fence.typedDeliveryBranch})`
+      : "";
+  return ` Fence base: ${fence.baseRef}${typed}.`;
+}
 
 export function isStoryWriteFenceUnreadable(
   fence: StoryWriteFenceView,
@@ -234,7 +252,12 @@ function gitFenceSpawn(
 const WRITE_FENCE_MEMO_TTL_MS = Number("5000");
 
 type MergeBaseMemoHit =
-  | { readonly kind: "sha"; readonly baseRef: string; readonly sha: string }
+  | {
+      readonly kind: "sha";
+      readonly baseRef: string;
+      readonly sha: string;
+      readonly typedDeliveryBranch?: string;
+    }
   | { readonly kind: "inactive" };
 
 type MergeBaseResolveResult =
@@ -285,17 +308,46 @@ function gitSpawnUnreadable(scopePath: string, err: Error | undefined): StoryWri
   return unreadableFence(scopePath, "git spawn failed");
 }
 
+/**
+ * Typed delivery candidates for fence base selection (#6011).
+ * Mirrors scope-provenance resolveDefaultBaseRef: insert only when
+ * resolveDeliveryBranch returns source typed, error null, nonempty branch.
+ */
+function typedDeliveryForFence(projectRoot: string): {
+  readonly candidates: readonly string[];
+  readonly typedBranch: string | null;
+} {
+  const delivery = resolveDeliveryBranch(projectRoot, (root, args) => {
+    const result = gitFenceSpawn(root, args);
+    return { code: result.status, stdout: result.stdout, stderr: result.stderr };
+  });
+  if (delivery.source === "typed" && delivery.error === null && delivery.branch.trim().length > 0) {
+    const branch = delivery.branch.trim();
+    return { candidates: [`origin/${branch}`, branch], typedBranch: branch };
+  }
+  return { candidates: [], typedBranch: null };
+}
+
+/** Same typed candidate string used for select + merge-base memo key (#6011). */
+function typedDeliveryMemoToken(projectRoot: string): string {
+  return typedDeliveryForFence(projectRoot).typedBranch ?? "";
+}
+
 function selectBaseRefForFence(
   projectRoot: string,
 ):
-  | { readonly ok: true; readonly baseRef: string }
+  | { readonly ok: true; readonly baseRef: string; readonly typedDeliveryBranch?: string }
   | { readonly ok: false; readonly fence: StoryWriteFenceView } {
   const envCandidates = [
     process.env.DEFT_BASE_REF,
     process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : undefined,
     process.env.GITHUB_BASE_REF,
   ].filter((x): x is string => typeof x === "string" && x.trim().length > 0);
-  for (const cand of [...envCandidates, "origin/master", "origin/main", "master", "main"]) {
+  const delivery = typedDeliveryForFence(projectRoot);
+  const fallbacks = ["origin/master", "origin/main", "master", "main"] as const;
+  const attempted: string[] = [];
+  for (const cand of [...envCandidates, ...delivery.candidates, ...fallbacks]) {
+    attempted.push(cand);
     const probe = gitFenceSpawn(projectRoot, ["rev-parse", "--verify", "-q", cand]);
     if (probe.error) return { ok: false, fence: gitSpawnUnreadable("merge-base", probe.error) };
     if (probe.signal) {
@@ -307,13 +359,25 @@ function selectBaseRefForFence(
         ),
       };
     }
-    if (probe.status === 0) return { ok: true, baseRef: cand };
+    if (probe.status === 0) {
+      const typedUsed =
+        delivery.typedBranch !== null &&
+        (cand === `origin/${delivery.typedBranch}` || cand === delivery.typedBranch)
+          ? delivery.typedBranch
+          : undefined;
+      return {
+        ok: true,
+        baseRef: cand,
+        ...(typedUsed !== undefined ? { typedDeliveryBranch: typedUsed } : {}),
+      };
+    }
   }
   return {
     ok: false,
     fence: unreadableFence(
       "merge-base",
-      "no merge-base ref (origin/master|main or DEFT_BASE_REF/GITHUB_BASE_REF); " +
+      `no merge-base ref selected (attempted: ${attempted.join(", ") || "(none)"}); ` +
+        "set DEFT_BASE_REF/GITHUB_BASE_REF or typed plan.policy.deliveryBranch; " +
         "cannot establish story write fence",
     ),
   };
@@ -328,9 +392,22 @@ function selectBaseRefForFence(
  * path. Inside a git worktree, missing base ref / merge-base failure →
  * unreadable (fail closed).
  */
+function attachFenceBase(
+  fence: StoryWriteFenceView,
+  baseRef: string,
+  typedDeliveryBranch: string | undefined,
+): StoryWriteFenceView {
+  return {
+    ...fence,
+    baseRef,
+    ...(typedDeliveryBranch !== undefined ? { typedDeliveryBranch } : {}),
+  };
+}
+
 function resolveMergeBaseCommitForFence(projectRoot: string): MergeBaseResolveResult {
   const envKey = [process.env.DEFT_BASE_REF ?? "", process.env.GITHUB_BASE_REF ?? ""].join("|");
-  const memoKey = `${projectRoot}\0${envKey}`;
+  // Include the same typed delivery token used for selection (#6011 memo limb).
+  const memoKey = `${projectRoot}\0${envKey}\0${typedDeliveryMemoToken(projectRoot)}`;
   const cached = memoGet(mergeBaseMemo, memoKey);
   if (cached !== undefined) return cached;
 
@@ -353,14 +430,26 @@ function resolveMergeBaseCommitForFence(projectRoot: string): MergeBaseResolveRe
   const selected = selectBaseRefForFence(projectRoot);
   if (!selected.ok) return { kind: "unreadable", fence: selected.fence };
   const baseRef = selected.baseRef;
+  const typedDeliveryBranch = selected.typedDeliveryBranch;
   const mb = gitFenceSpawn(projectRoot, ["merge-base", "HEAD", baseRef]);
   if (mb.error) {
-    return { kind: "unreadable", fence: gitSpawnUnreadable("merge-base", mb.error) };
+    return {
+      kind: "unreadable",
+      fence: attachFenceBase(
+        gitSpawnUnreadable("merge-base", mb.error),
+        baseRef,
+        typedDeliveryBranch,
+      ),
+    };
   }
   if (mb.signal) {
     return {
       kind: "unreadable",
-      fence: unreadableFence("merge-base", `git merge-base killed by signal ${String(mb.signal)}`),
+      fence: attachFenceBase(
+        unreadableFence("merge-base", `git merge-base killed by signal ${String(mb.signal)}`),
+        baseRef,
+        typedDeliveryBranch,
+      ),
     };
   }
   const sha = mb.stdout.trim();
@@ -368,13 +457,22 @@ function resolveMergeBaseCommitForFence(projectRoot: string): MergeBaseResolveRe
     const detail = `${mb.stdout}\n${mb.stderr}`.trim();
     return {
       kind: "unreadable",
-      fence: unreadableFence(
-        "merge-base",
-        detail.length > 0 ? detail : `could not compute merge-base of HEAD and ${baseRef}`,
+      fence: attachFenceBase(
+        unreadableFence(
+          "merge-base",
+          detail.length > 0 ? detail : `could not compute merge-base of HEAD and ${baseRef}`,
+        ),
+        baseRef,
+        typedDeliveryBranch,
       ),
     };
   }
-  return memoSet(mergeBaseMemo, memoKey, { kind: "sha", baseRef, sha });
+  return memoSet(mergeBaseMemo, memoKey, {
+    kind: "sha",
+    baseRef,
+    sha,
+    ...(typedDeliveryBranch !== undefined ? { typedDeliveryBranch } : {}),
+  });
 }
 
 function readMergeBaseBriefRaw(
@@ -443,17 +541,24 @@ export function loadStoryWriteFenceFromMergeBase(
   const cached = memoGet(fenceLoadMemo, loadKey);
   if (cached !== undefined) return cached;
 
+  const withBase = (fence: StoryWriteFenceView): StoryWriteFenceView =>
+    attachFenceBase(fence, resolved.baseRef, resolved.typedDeliveryBranch);
+
   const raw = readMergeBaseBriefRaw(root, resolved.sha, rel);
-  if (raw.kind === "unreadable") return raw.fence;
+  if (raw.kind === "unreadable") return withBase(raw.fence);
   const loaded = loadStoryWriteFenceFromBaseRaw(
     raw.kind === "text" ? raw.text : null,
     `merge-base:${rel}`,
   );
-  if (isStoryWriteFenceUnreadable(loaded)) return loaded;
-  return memoSet(fenceLoadMemo, loadKey, {
-    fileScope: [...loaded.fileScope],
-    denyPaths: [...loaded.denyPaths],
-  });
+  if (isStoryWriteFenceUnreadable(loaded)) return withBase(loaded);
+  return memoSet(
+    fenceLoadMemo,
+    loadKey,
+    withBase({
+      fileScope: [...loaded.fileScope],
+      denyPaths: [...loaded.denyPaths],
+    }),
+  );
 }
 
 export interface ResolveWriteFenceOptions {
