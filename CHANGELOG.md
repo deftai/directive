@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Tracked completion record for multi-active check/pre-PR Recut-8 after product merge (#5855, #6063).**
 - Changed — Mint intent-constraint VERIFY_AC_NO_OBLIGATION_EXIT=6 (numeric-const) for #5855. Approval record only; no product behavior change. Refs #5855.
 - **Path B brief-land activation can defer product verify:ac until merge-base write authority exists (#5792).** Ordinary product paths still require full acceptance.
 - **Unit tests no longer hang on live GitHub under Merge gate load (#6069).** Cascade config-error and open-umbrella scope:complete tests stay offline (skip live approval/reconcile/work-claim) so the 20s vitest cap is enough.
