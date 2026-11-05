@@ -445,34 +445,92 @@ function inventoryPathRelativeToProject(
   return relative(projectRoot, resolve(gitToplevel, gitRelPath)).replace(/\\/g, "/");
 }
 
+function pathEscapesProjectRoot(projectRel: string): boolean {
+  const p = projectRel.replace(/\\/g, "/");
+  return p === ".." || p.startsWith("../") || /^[A-Za-z]:/.test(p) || p.startsWith("/");
+}
+
 /**
- * Remap inventory rows from git-toplevel-relative to project-relative (#5792 Greptile P1).
- * Sibling paths outside projectRoot stay visible (../…) so brief-land shape still fails closed.
+ * Remap inventory for nested projectRoot vs git toplevel (#5792 Greptile P1).
+ * Nested consumer: strip the project prefix (project-relative paths + read at projectRoot).
+ * Subdir cwd with repo-root briefs: keep git-relative allowlisted paths + read at git toplevel.
+ * Sibling / product paths outside projectRoot stay visible so brief-land shape fails closed.
  */
 function remapInventoryToProjectRoot(
   byPath: Map<string, PrDiffPath>,
   gitToplevel: string,
   projectRoot: string,
-): Map<string, PrDiffPath> {
+): { files: Map<string, PrDiffPath>; briefReadRoot: string } {
   const top = resolve(gitToplevel);
   const root = resolve(projectRoot);
   if (top === root) {
-    return byPath;
+    return { files: byPath, briefReadRoot: root };
   }
-  const remapped = new Map<string, PrDiffPath>();
+  const underProject: PrDiffPath[] = [];
+  const gitRootBrief: PrDiffPath[] = [];
+  const outside: PrDiffPath[] = [];
   for (const entry of byPath.values()) {
     const path = inventoryPathRelativeToProject(top, root, entry.path);
     const previousFilename =
       typeof entry.previousFilename === "string" && entry.previousFilename.length > 0
         ? inventoryPathRelativeToProject(top, root, entry.previousFilename)
         : undefined;
-    mergeInventoryPrDiffPath(remapped, {
+    const destEscapes = pathEscapesProjectRoot(path);
+    const originEscapes =
+      previousFilename !== undefined ? pathEscapesProjectRoot(previousFilename) : false;
+    if (!destEscapes && !originEscapes) {
+      underProject.push({
+        status: entry.status,
+        path,
+        ...(previousFilename !== undefined ? { previousFilename } : {}),
+      });
+      continue;
+    }
+    const gitDest = entry.path.replace(/\\/g, "/");
+    const gitOrigin =
+      typeof entry.previousFilename === "string" && entry.previousFilename.length > 0
+        ? entry.previousFilename.replace(/\\/g, "/")
+        : undefined;
+    if (
+      isBriefLandAllowlistedInventoryPath(gitDest) &&
+      (gitOrigin === undefined || isBriefLandAllowlistedInventoryPath(gitOrigin))
+    ) {
+      gitRootBrief.push({
+        status: entry.status,
+        path: gitDest,
+        ...(gitOrigin !== undefined ? { previousFilename: gitOrigin } : {}),
+      });
+      continue;
+    }
+    outside.push({
       status: entry.status,
       path,
       ...(previousFilename !== undefined ? { previousFilename } : {}),
     });
   }
-  return remapped;
+  const remapped = new Map<string, PrDiffPath>();
+  if (gitRootBrief.length > 0 && underProject.length === 0) {
+    for (const row of [...gitRootBrief, ...outside]) {
+      mergeInventoryPrDiffPath(remapped, row);
+    }
+    return { files: remapped, briefReadRoot: top };
+  }
+  for (const row of [...underProject, ...gitRootBrief.map((row) => {
+    // Mixed nested + repo-root: project-relative view so shape stays honest.
+    const path = inventoryPathRelativeToProject(top, root, row.path);
+    const previousFilename =
+      typeof row.previousFilename === "string" && row.previousFilename.length > 0
+        ? inventoryPathRelativeToProject(top, root, row.previousFilename)
+        : undefined;
+    return {
+      status: row.status,
+      path,
+      ...(previousFilename !== undefined ? { previousFilename } : {}),
+    };
+  }), ...outside]) {
+    mergeInventoryPrDiffPath(remapped, row);
+  }
+  return { files: remapped, briefReadRoot: root };
 }
 
 /**
@@ -484,7 +542,9 @@ export function collectBriefLandInventoryAsPrDiffPaths(input: {
   readonly projectRoot: string;
   readonly baseRef?: string | null;
   readonly runGit?: (cwd: string, args: readonly string[]) => GitRunnerResult;
-}): { ok: true; files: PrDiffPath[] } | { ok: false; reason: string } {
+}):
+  | { ok: true; files: PrDiffPath[]; briefReadRoot: string }
+  | { ok: false; reason: string } {
   const projectRoot = resolve(input.projectRoot);
   const runGit = input.runGit ?? defaultInventoryGitRunner;
   const inside = runGit(projectRoot, ["rev-parse", "--is-inside-work-tree"]);
@@ -558,8 +618,12 @@ export function collectBriefLandInventoryAsPrDiffPaths(input: {
     if (path.length === 0) continue;
     mergeInventoryPrDiffPath(byPath, { status: "added", path });
   }
-  const projectRelative = remapInventoryToProjectRoot(byPath, gitToplevel, projectRoot);
-  return { ok: true, files: [...projectRelative.values()] };
+  const remapped = remapInventoryToProjectRoot(byPath, gitToplevel, projectRoot);
+  return {
+    ok: true,
+    files: [...remapped.files.values()],
+    briefReadRoot: remapped.briefReadRoot,
+  };
 }
 
 /**
@@ -578,6 +642,7 @@ export function evaluatePathBActivationAcDisposition(input: {
 }): PathBActivationAcDisposition {
   const projectRoot = resolve(input.projectRoot);
   let files: readonly PrDiffPath[];
+  let briefReadRoot = projectRoot;
   if (input.files !== undefined) {
     files = input.files;
   } else {
@@ -590,6 +655,7 @@ export function evaluatePathBActivationAcDisposition(input: {
       return { apply: false, reason: `inventory failed: ${inventory.reason}` };
     }
     files = inventory.files;
+    briefReadRoot = inventory.briefReadRoot;
   }
   if (files.length === 0) {
     return { apply: false, reason: "empty inventory" };
@@ -604,7 +670,7 @@ export function evaluatePathBActivationAcDisposition(input: {
   const witness = evaluatePathBActivationAdmit({
     bodyText: input.bodyText ?? null,
     prNumber: input.prNumber ?? null,
-    projectRoot,
+    projectRoot: briefReadRoot,
     repo,
     files,
   });
