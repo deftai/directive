@@ -458,10 +458,7 @@ export function evaluateEnrolledBoundPrePrPush(
           ].join("\n"),
         ];
       }
-    } else if (
-      resolved.kind === "one" &&
-      disposition.verifyAcDisposition === "no-obligation"
-    ) {
+    } else if (resolved.kind === "one" && disposition.verifyAcDisposition === "no-obligation") {
       return [
         1,
         [
