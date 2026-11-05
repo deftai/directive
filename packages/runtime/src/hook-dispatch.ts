@@ -312,16 +312,21 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
   }
 
   // Wave 2k / AC9.4+AC14.8: pin≠installed → fail closed before policy.
+  // #5910: overlay-present also fail-closes (even when versions match); recovery
+  // names frozen-lockfile restore then overlay retirement.
   const cheap = (seams.cheapInSync ?? checkCheapInSync)(projectRoot);
   if (cheap.failClosed) {
     const guidance = cheap.recoveryGuidance ?? INSTALLATION_RECOVERY_GUIDANCE;
+    const identityLine = cheap.identityMatch
+      ? `Directive hook refuse: materialize-runtime overlay is present; identity cannot pass until the overlay is retired after exact restore ` +
+        `(pin=${cheap.pinVersion ?? "?"} installed=${cheap.installedVersion ?? "?"}). `
+      : `Directive hook refuse: pinned runtime does not match the installed runtime ` +
+        `(pin=${cheap.pinVersion ?? "?"} installed=${cheap.installedVersion ?? "?"}). `;
     const decision = installationIdentityDeny(
       args.host,
       args.event,
       projectRoot,
-      `Directive hook refuse: pinned runtime does not match the installed runtime ` +
-        `(pin=${cheap.pinVersion ?? "?"} installed=${cheap.installedVersion ?? "?"}). ` +
-        `Recovery: ${guidance}`,
+      `${identityLine}Recovery: ${guidance}`,
     );
     const rendered = renderHostDecision(args.host, decision);
     if (rendered.length > 0) writeOut(`${rendered}\n`);

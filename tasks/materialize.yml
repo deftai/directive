@@ -5,9 +5,21 @@ vars:
 
 tasks:
   runtime:
-    desc: "Build tip staged-runtime and replace this checkout node_modules/@deftai/directive-runtime only (#5805). No lockfile/location-spec mutation."
+    desc: "Build tip staged-runtime and replace this checkout node_modules/@deftai/directive-runtime only (#5805). No lockfile/location-spec mutation. Refuses while release cut-context is active (#5910)."
     dir: "{{.USER_WORKING_DIR}}"
     deps:
       - task: :engine:_ts-build
     cmds:
       - node "{{.TASKFILE_DIR}}/materialize.cjs" "{{.USER_WORKING_DIR}}"
+
+  cut-context:
+    desc: "Write release cut-context marker (#5910). materialize:runtime refuses pin replace while active (entry through version bump/tag)."
+    dir: "{{.USER_WORKING_DIR}}"
+    cmds:
+      - node "{{.TASKFILE_DIR}}/materialize.cjs" --write-cut-context "{{.USER_WORKING_DIR}}"
+
+  clear-cut-context:
+    desc: "Clear release cut-context marker after version bump/tag (#5910)."
+    dir: "{{.USER_WORKING_DIR}}"
+    cmds:
+      - node "{{.TASKFILE_DIR}}/materialize.cjs" --clear-cut-context "{{.USER_WORKING_DIR}}"

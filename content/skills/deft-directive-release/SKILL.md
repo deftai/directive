@@ -41,6 +41,29 @@ or `task session:start -- --primary-claim-exception=release-cut`. Sibling values
 ⊗ Name the exception in spawn JSON.
 ⊗ Run `task policy:allow-direct-commits` (or any other mutation) before mutation `session:start --primary-claim-exception=release-cut` on a contended primary.
 
+## Release cut-context — keep published pin (#5910)
+
+! At **release entry** (Phase 1 after the version is confirmed, before Phase 4 / `task release` mutations that reach version bump/tag), write the cut-context marker via the named producer:
+
+```
+task materialize:cut-context
+```
+
+or `node tasks/materialize.cjs --write-cut-context <checkout-root>`. That writes `.deft-scratch/release-cut-context.json`. While the marker is present, `task materialize:runtime` **refuses before** it moves or replaces `node_modules/@deftai/directive-runtime`, so tip `0.0.0` cannot displace the published pin mid-cut.
+
+! Keep cut-context active from release entry through version bump/tag. Clear after the bump/tag lands:
+
+```
+task materialize:clear-cut-context
+```
+
+! Tip dogfood `materialize:runtime` stays outside the cut path (#5805 keep-out). Do not remint pin-exclusive ordinary invoke.
+
+⊗ Run `task materialize:runtime` on the cut worktree while cut-context is active.
+⊗ Treat schedule-graph-only "never materialize" docs as a substitute for the cut-context refuse-before-replace guard.
+
+! If a materialize overlay (`.deft-scratch/materialize-runtime-overlay.json`) is already present, cheapInSync fail-closes even when version strings match. Recovery is operator-terminal outside the blocked hook: `pnpm install --frozen-lockfile` (or equivalent exact restore), then retire the overlay before identity may pass.
+
 ## Branch-Protection Policy Guard
 
 ! Before any Phase 1 state mutation, run the skill-level branch-policy guard documented in `task policy:show` / dual-invoke `deft verify:branch` (#746 / #747). Releases run on the configured base branch (default `master`), so the operator MUST be on the explicit-opt-in side of the policy before the pipeline starts writing files.

@@ -7,7 +7,12 @@
  * Primary pin package: `@deftai/directive-runtime` (UNIFIED target architecture).
  */
 
-export { checkCheapInSync } from "./cheap.js";
+export {
+  checkCheapInSync,
+  MATERIALIZE_RUNTIME_OVERLAY_REL,
+  OVERLAY_RESTORE_RECOVERY_GUIDANCE,
+  RELEASE_CUT_CONTEXT_REL,
+} from "./cheap.js";
 export {
   DEFT_DOCTOR_HOOK_DIAGNOSTIC,
   GENERATION_REL,

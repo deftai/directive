@@ -20,7 +20,14 @@ const {
   isCheckoutOwnedDir,
   movePath,
   materialize,
+  writeReleaseCutContext,
+  clearReleaseCutContext,
+  isCutContextActive,
+  retireMaterializeOverlay,
   LOCK_REL,
+  OVERLAY_REL,
+  CUT_CONTEXT_REL,
+  PIN_PKG,
 } = require("./materialize.cjs");
 
 const roots = [];
@@ -99,5 +106,90 @@ describe("materialize isolation (#5805 P4)", () => {
     assert.equal(existsSync(join(root, LOCK_REL)), false);
     const lock = acquireLock(root);
     releaseLock(lock);
+  });
+});
+
+describe("release cut-context refuse (#5910 P1/P4)", () => {
+  function seedPublishedPin(root, version = "0.129.0") {
+    const pinDir = join(root, PIN_PKG);
+    mkdirSync(join(pinDir, "dist"), { recursive: true });
+    writeFileSync(
+      join(pinDir, "package.json"),
+      `${JSON.stringify({ name: "@deftai/directive-runtime", version }, null, 2)}\n`,
+    );
+    writeFileSync(join(pinDir, "dist", "bin.js"), "console.log('pin');\n");
+    writeFileSync(
+      join(root, "package.json"),
+      `${JSON.stringify(
+        { private: true, devDependencies: { "@deftai/directive-runtime": version } },
+        null,
+        2,
+      )}\n`,
+    );
+    return pinDir;
+  }
+
+  it("cut-context producer writes marker; materialize refuses before replace with prior pin intact", () => {
+    const root = tempRoot();
+    const pinDir = seedPublishedPin(root);
+    const priorPkg = readFileSync(join(pinDir, "package.json"), "utf8");
+    const body = writeReleaseCutContext(root, { phase: "release-entry" });
+    assert.equal(body.schema, "deft.release.cut-context.v1");
+    assert.equal(isCutContextActive(root), true);
+    assert.ok(existsSync(join(root, CUT_CONTEXT_REL)));
+
+    assert.throws(
+      () => materialize(root),
+      /refusing materialize:runtime while release cut-context is active|cut-context/i,
+    );
+    // Prior pin untouched — refuse happened before move/replace.
+    assert.equal(readFileSync(join(pinDir, "package.json"), "utf8"), priorPkg);
+    assert.equal(JSON.parse(priorPkg).version, "0.129.0");
+    assert.equal(existsSync(join(root, LOCK_REL)), false);
+    assert.equal(existsSync(join(root, OVERLAY_REL)), false);
+  });
+
+  it("without cut-context, missing stage scripts still fail after the cut guard", () => {
+    const root = tempRoot();
+    seedPublishedPin(root);
+    assert.equal(isCutContextActive(root), false);
+    assert.throws(() => materialize(root), /stage-bundle|pack-staged|missing/i);
+  });
+
+  it("clearReleaseCutContext retires the marker so materialize can proceed past the cut guard", () => {
+    const root = tempRoot();
+    seedPublishedPin(root);
+    writeReleaseCutContext(root);
+    assert.equal(clearReleaseCutContext(root), true);
+    assert.equal(isCutContextActive(root), false);
+    assert.throws(() => materialize(root), /stage-bundle|pack-staged|missing/i);
+  });
+
+  it("retireMaterializeOverlay removes the overlay marker after restore", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, ".deft-scratch"), { recursive: true });
+    writeFileSync(join(root, OVERLAY_REL), `${JSON.stringify({ schema: "overlay" })}\n`);
+    assert.equal(retireMaterializeOverlay(root), true);
+    assert.equal(existsSync(join(root, OVERLAY_REL)), false);
+    assert.equal(retireMaterializeOverlay(root), false);
+  });
+
+  it("fresh-worktree release reaches version-bump on published pin without materialize", () => {
+    // Positive release-to-bump proof (#5910 P4): cut-context at entry, pin stays
+    // published, no materialize, cheap identity path remains available for bump.
+    const root = tempRoot();
+    const pinDir = seedPublishedPin(root, "0.129.0");
+    writeReleaseCutContext(root, { phase: "release-entry" });
+
+    assert.throws(() => materialize(root), /cut-context/i);
+    const installed = JSON.parse(readFileSync(join(pinDir, "package.json"), "utf8"));
+    assert.equal(installed.version, "0.129.0");
+    assert.equal(existsSync(join(root, OVERLAY_REL)), false);
+
+    // Version-bump gate precondition: published pin intact, no overlay, cut active.
+    const rootPkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+    assert.equal(rootPkg.devDependencies["@deftai/directive-runtime"], "0.129.0");
+    assert.equal(installed.version, rootPkg.devDependencies["@deftai/directive-runtime"]);
+    assert.equal(isCutContextActive(root), true);
   });
 });
