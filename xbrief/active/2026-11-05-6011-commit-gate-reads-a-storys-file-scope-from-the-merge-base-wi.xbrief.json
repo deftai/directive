@@ -99,7 +99,10 @@
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "Commit gate reads a story's file_scope from the merge-base with origin/main, not the repo's delivery branch"
+      ]
     },
     "metadata": {
       "intended_placement": {
