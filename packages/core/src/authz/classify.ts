@@ -2438,6 +2438,8 @@ function isProvenReadOnlyArgv(words: readonly string[], execIndex: number): bool
     );
   }
   if (EXISTENCE_PROBE_READ_ONLY_BINS.has(name)) {
+    // Visible refuse for nested writers (Greptile #5970 P1); also gated above.
+    if (argvHasCommandSubstitution(words, execIndex)) return false;
     if (EXISTENCE_PROBE_IGNORE_OUTPUT_DEST_FLAGS.has(name)) return true;
     return !argvHasOutputDestFlag(words, execIndex);
   }
@@ -5087,7 +5089,7 @@ export function matchProtectedStoreShellDest(
     }
     for (const raw of tokens) {
       const pathish = pathishToken(raw);
-      if (pathishIsProtectedMutationDest(pathish)) return pathishToken(raw);
+      if (pathishIsProtectedMutationDest(pathish)) return pathish;
     }
   }
 
