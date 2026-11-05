@@ -11,7 +11,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 \- **Brief retirement/restamp stays brief-only under scope:complete (#5890).** Zero-eligible recovery no longer steers borrow-another-brief; CHANGELOG close-out remains a named residual.
 - **Multi-active check/pre-PR can bind the branch story or soft-skip with proven untied worker-auth (#5855 Recut-8).** Foreign live occupancy still refuses; ordinary pre-PR carries no-obligation from direct verify:ac without requiring full merge_chokepoint.
-- **Typed deliveryBranch fence bases are origin-only (#6011).** `selectBaseRefForFence` inserts `origin/<deliveryBranch>` only (no bare local ref), so a working-tree policy edit cannot collapse merge-base to HEAD and widen the production fence.
 - **Write-fence base selection honors typed deliveryBranch (#6011).** Empty-fence refuses name the selected base so develop-delivery repos are not stuck on origin/main merge-base.
 - **Read-only path probes no longer hide nested shell writers (#5970).** Commands like `test -n $(mkfile …)` are denied again when the substitution targets a protected store path; redirect denies name the redirect destination, not an earlier read operand.
 - **Orientation shells that only check whether a kill-switch file exists are allowed (#5970).** `Test-Path` / `test` / `[` / `Get-Item` / `dir` are treated as read-only probes (with `test`/`[` ignoring POSIX `-o`); real protected-store write denials can name the matched path, while `authz:grant` remains the only mint path for grants.
