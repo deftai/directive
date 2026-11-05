@@ -26,7 +26,9 @@ function startUatLease(...args: Parameters<typeof startUatLeaseResult>): {
 import {
   classifyHookAuthzOps,
   harvestDestsOfWriteForRealpath,
+  hasProtectedDestOfWriteUnknown,
   inactiveShellTargetsProtectedStore,
+  matchProtectedStoreShellDest,
 } from "./classify.js";
 import { evaluateAuthzMutation } from "./evaluate.js";
 import { evidenceSatisfiesImplementationApproval } from "./origin.js";
@@ -2165,5 +2167,102 @@ describe("UAT protected dest-of-write fail-closed (#4188)", () => {
     expect(decision.verdict).toBe("deny");
     expect(decision.code).toMatch(/^authz-/);
     expect(decision.message).toMatch(/covering-grant escape|inventoried authz store/i);
+  });
+});
+
+describe("Approach1 orientation false-deny regression (#5970)", () => {
+  /**
+   * Provenance: issue #5970 body Evidence items summarize denied orientation shells as
+   * `git rev-parse` / `git status -sb` plus a kill-switch existence probe. Exact transcript
+   * bytes were not recovered from the forensic dump path on this host; shapes below are
+   * supplemental reconstructions of those summaries (Prefer-A Bound 6663472185 P4) until
+   * exact bytes land.
+   */
+  const killSwitch = ".deft-directive-disable";
+  const temps5970: string[] = [];
+  afterEach(() => {
+    for (const root of temps5970.splice(0)) {
+      try {
+        rmSync(root, { recursive: true, force: true });
+      } catch {
+        /* ignore */
+      }
+    }
+  });
+  const supplementalOrientation = [
+    `git rev-parse HEAD && git status -sb && Test-Path ${killSwitch}`,
+    `pwd && git rev-parse HEAD && git status -sb && Test-Path ${killSwitch}`,
+    `Test-Path ${killSwitch}`,
+    `test -f ${killSwitch}`,
+    `Get-Item ${killSwitch}`,
+    `dir ${killSwitch}`,
+  ] as const;
+
+  it("allows supplemental #5970 Approach1 orientation shells through classify", () => {
+    for (const command of supplementalOrientation) {
+      expect(hasProtectedDestOfWriteUnknown(command), command).toBe(false);
+      expect(inactiveShellTargetsProtectedStore(command), command).toBe(false);
+      expect(
+        classifyHookAuthzOps({
+          toolName: "Shell",
+          shellCommand: command,
+          isDirectWrite: false,
+        }),
+        command,
+      ).not.toContain("protected_store");
+      expect(matchProtectedStoreShellDest(command), command).toBeNull();
+    }
+  });
+
+  it("keeps plant negatives denied and names matched dest on evaluate (#5970 P3/P4)", () => {
+    for (const command of [
+      `touch ${killSwitch}`,
+      `cp /tmp/planted ${killSwitch}`,
+      `Set-Content -Path ${killSwitch} -Value planted`,
+      `echo planted > ${killSwitch}`,
+      `Test-Path ${killSwitch} && touch ${killSwitch}`,
+    ]) {
+      const ops = classifyHookAuthzOps({
+        toolName: "Shell",
+        shellCommand: command,
+        isDirectWrite: false,
+      });
+      expect(
+        ops.includes("settings") ||
+          ops.includes("protected_store") ||
+          ops.includes("unknown") ||
+          inactiveShellTargetsProtectedStore(command),
+        command,
+      ).toBe(true);
+    }
+
+    const matched = matchProtectedStoreShellDest("mkfile 1k .deft/authz/grants/evil.json");
+    expect(matched).toBe(".deft/authz/grants/evil.json");
+    const decision = evaluateAuthzMutation({
+      state: { schemaVersion: 1, uat: null, activeGrantIds: [] },
+      grants: [],
+      op: "protected_store",
+      path: null,
+      protectedStoreMatchedDest: matched,
+    });
+    expect(decision.allowed).toBe(false);
+    expect(decision.reason).toContain("Matched protected dest: .deft/authz/grants/evil.json");
+  });
+
+  it("uses the same proven-reader skip for payload-root harvest probes (#5970 P2)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-5970-harvest-"));
+    temps5970.push(root);
+    writeFileSync(join(root, killSwitch), "\n");
+    const relProbe = `Test-Path ${killSwitch}`;
+    expect(harvestDestsOfWriteForRealpath(relProbe)).not.toContain(killSwitch);
+    expect(shellCommandHasPayloadRootProtectedDestAfterRealpath(root, relProbe)).toBe(false);
+    expect(
+      classifyHookAuthzOps({
+        toolName: "Shell",
+        shellCommand: relProbe,
+        isDirectWrite: false,
+        projectRoot: root,
+      }),
+    ).not.toContain("protected_store");
   });
 });
