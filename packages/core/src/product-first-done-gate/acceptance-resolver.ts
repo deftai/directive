@@ -507,10 +507,13 @@ export type AcceptanceReaderProfile =
  */
 export {
   listActiveLifecycleArtifacts,
+  MERGE_CHOKPOINT_NO_OBLIGATION_SKIP,
   type ResolveSoftMissingAcTargetsOptions,
   readBranchBindContext,
   resolveSoftMissingAcTargets,
   type SoftMissingAcTargetResolution,
+  VERIFY_AC_NO_OBLIGATION_EXIT,
+  type VerifyAcDispositionKind,
 } from "../hooks/scope.js";
 
 export interface AcceptanceGateProfileOptions {

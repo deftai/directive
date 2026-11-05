@@ -23,6 +23,7 @@ import {
   submitReviewerReport,
 } from "@deftai/directive-core/pre-pr-controller";
 import { evaluatePrePush, parsePrePushStdin } from "@deftai/directive-core/preflight";
+import type { VerifyAcDispositionKind } from "@deftai/directive-core/product-first-done-gate";
 import { isDirectEntrypoint } from "./entrypoint.js";
 
 const USAGE = `Usage: deft pre-pr:run [options]
@@ -58,6 +59,8 @@ Options:
   --criteria-digest <hex>
   --reviewed-file <path>  (repeatable)
   --reviewer-report-ref <ref>
+  --verify-ac-disposition <executed-ac|no-obligation>
+                          direct verify:ac disposition for ordinary pre-PR (#5855)
   --mark-complete         always refuses; cannot mint a pass
   --skill-open            always refuses; opening the skill is not completion
   --evaluate              evaluate live binding against the private store
@@ -99,6 +102,7 @@ interface ParsedArgs {
   evaluate: boolean;
   pushAdmit: boolean;
   projectRoot: string | null;
+  verifyAcDisposition: VerifyAcDispositionKind | null;
   json: boolean;
   help: boolean;
   error?: string;
@@ -137,6 +141,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
     evaluate: false,
     pushAdmit: false,
     projectRoot: null,
+    verifyAcDisposition: null,
     json: false,
     help: false,
   };
@@ -344,6 +349,22 @@ export function parseArgs(argv: string[]): ParsedArgs {
         return { ...parsed, error: "argument --run-id: expected one argument" };
       parsed.runId = value;
       if (arg === "--run-id") i += 1;
+    } else if (arg === "--verify-ac-disposition" || arg?.startsWith("--verify-ac-disposition=")) {
+      const value =
+        arg === "--verify-ac-disposition"
+          ? argv[i + 1]
+          : arg.slice("--verify-ac-disposition=".length);
+      if (value === undefined) {
+        return { ...parsed, error: "argument --verify-ac-disposition: expected one argument" };
+      }
+      if (value !== "executed-ac" && value !== "no-obligation") {
+        return {
+          ...parsed,
+          error: "argument --verify-ac-disposition: expected executed-ac|no-obligation",
+        };
+      }
+      parsed.verifyAcDisposition = value;
+      if (arg === "--verify-ac-disposition") i += 1;
     } else {
       return { ...parsed, error: `unrecognized argument: ${arg}` };
     }
@@ -533,6 +554,9 @@ export function run(argv: string[]): number {
     const projectRoot = args.projectRoot?.trim() || process.cwd();
     const d = completeRun(store, controllerPublisher(), args.runId, undefined, {
       projectRoot,
+      ...(args.verifyAcDisposition !== null
+        ? { verifyAcDisposition: args.verifyAcDisposition }
+        : {}),
     });
     emit(args.json, d, d.message, !d.ok);
     return d.ok ? 0 : 1;

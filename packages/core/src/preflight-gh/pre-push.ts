@@ -10,11 +10,18 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { pushStoryAdmissionRefusal } from "../hooks/scope.js";
+import {
+  admittedUntiedWorktreeKey,
+  listActiveLifecycleArtifacts,
+  pushStoryAdmissionRefusal,
+  readBranchBindContext,
+  resolveSoftMissingAcTargets,
+} from "../hooks/scope.js";
 import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
 import { resolveAllowDestructiveGhVerbs } from "../policy/destructive-gh-verbs.js";
 import { readPlanPolicy } from "../policy/plan-extensions.js";
 import { policyColonInvocation } from "../policy/policy-invocation.js";
+import { readPushBindingDisposition } from "../pre-pr-controller/controller.js";
 import { getDefaultPrePrStore } from "../pre-pr-controller/store.js";
 import { PRE_PR_PUSH_STAGE_MARKER, sha256Hex } from "../pre-pr-controller/types.js";
 import { DEFAULT_BRANCHES, ENV_BYPASS } from "./classifier.js";
@@ -394,7 +401,8 @@ export function evaluateEnrolledBoundPrePrPush(
     ];
   }
 
-  // #5855 P3: untied soft-missing may push; unresolved / required-story skip may not.
+  // #5855 P3: untied soft-missing may push only with positively known disposition
+  // evidence on pushBinding; unresolved / required-story skip may not.
   const storyRefusal = pushStoryAdmissionRefusal(projectRoot, liveRefs[0]?.localRef, options.env);
   if (storyRefusal !== null) {
     return [
@@ -405,6 +413,51 @@ export function evaluateEnrolledBoundPrePrPush(
         "  Recovery: bind the branch to its brief (plan.id or issue token) or set DEFT_ACTIVE_SCOPE, then retry.",
       ].join("\n"),
     ];
+  }
+  const scannedActives = listActiveLifecycleArtifacts(projectRoot).paths.length;
+  if (scannedActives > 1) {
+    const disposition = readPushBindingDisposition(record.pushBinding);
+    const context = readBranchBindContext(projectRoot);
+    const branch = liveRefs[0]?.localRef?.startsWith("refs/heads/")
+      ? liveRefs[0].localRef.slice("refs/heads/".length)
+      : context.branch;
+    const resolved = resolveSoftMissingAcTargets(projectRoot, {
+      env: options.env ?? process.env,
+      branchBind: {
+        branch,
+        env: options.env ?? process.env,
+        repoSlug: context.repoSlug,
+        projectRoot,
+      },
+    });
+    if (resolved.kind === "untied") {
+      if (disposition.verifyAcDisposition !== "no-obligation") {
+        return [
+          1,
+          [
+            "deft bound pre-PR push gate: admitted-untied requires positively known no-obligation disposition on pushBinding (#5855).",
+            disposition.verifyAcDisposition === null
+              ? "  Detail: disposition evidence missing (exit-0 alone is not no-obligation)."
+              : `  Detail: disposition=${disposition.verifyAcDisposition}.`,
+            "  Recovery: deft pre-pr:run with direct verify:ac disposition (or merge_chokepoint no-obligation skip), then retry.",
+          ].join("\n"),
+        ];
+      }
+      const expectedKey = admittedUntiedWorktreeKey(projectRoot);
+      if (
+        disposition.admittedUntiedWorktreeKey === null ||
+        disposition.admittedUntiedWorktreeKey !== expectedKey
+      ) {
+        return [
+          1,
+          [
+            "deft bound pre-PR push gate: admittedUntiedWorktreeKey missing or mismatched (#5855).",
+            `  Expected worktree key: ${expectedKey}`,
+            "  Recovery: deft pre-pr:run on this worktree, then retry push.",
+          ].join("\n"),
+        ];
+      }
+    }
   }
 
   const committed = computeCommittedObservedHash(

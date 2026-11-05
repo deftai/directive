@@ -3,9 +3,15 @@
  * Written before implementation of the controller and pass predicate.
  */
 
+import {
+  MERGE_CHOKPOINT_NO_OBLIGATION_SKIP as SCOPE_MERGE_CHOKPOINT_NO_OBLIGATION_SKIP,
+  VERIFY_AC_NO_OBLIGATION_EXIT,
+} from "../hooks/scope.js";
+
 export const PRE_PR_WORKFLOW_VERSION = "deft.pre-pr-workflow.v1" as const;
 export const PRE_PR_SKILL_ID = "deft-directive-pre-pr" as const;
 export const PRE_PR_CONTROLLER_VERSION = "1" as const;
+export { VERIFY_AC_NO_OBLIGATION_EXIT };
 
 /**
  * Closed render/export rule recorded in the workflow version.
@@ -118,10 +124,17 @@ export const COVERAGE_HEADROOM_MODE_SKIP = "coverageMode posture skip (initial|d
 export const LINT_ITERATION_MODE_SKIP =
   "lint_iteration coverageMode posture skip (initial|disabled)" as const;
 
+/**
+ * Distinct closed skip token when merge_chokepoint observes admitted-untied
+ * no-obligation (#5855 Recut-8). Same string as hooks/scope (SoT).
+ */
+export const MERGE_CHOKPOINT_NO_OBLIGATION_SKIP = SCOPE_MERGE_CHOKPOINT_NO_OBLIGATION_SKIP;
+
 export const ALLOWED_SKIP_REASONS: Partial<Record<PrePrPhaseId, string>> = {
   plan_sequence: "no active ordered-plan sequence",
   render_export: "no existing export files to refresh",
   coverage_headroom: COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP,
+  merge_chokepoint: MERGE_CHOKPOINT_NO_OBLIGATION_SKIP,
 };
 
 /** Command-observable skip is legal only for the closed skip reason of that phase. */
@@ -136,6 +149,9 @@ export function isAllowedSkip(phaseId: PrePrPhaseId, skipReason: string | null):
     return true;
   }
   if (phaseId === "lint_iteration" && skipReason === LINT_ITERATION_MODE_SKIP) {
+    return true;
+  }
+  if (phaseId === "merge_chokepoint" && skipReason === MERGE_CHOKPOINT_NO_OBLIGATION_SKIP) {
     return true;
   }
   const allowed = ALLOWED_SKIP_REASONS[phaseId];

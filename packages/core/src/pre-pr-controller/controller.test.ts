@@ -23,6 +23,7 @@ import {
   computeControllerObservedHash,
   failRun,
   observeCommandPhase,
+  readPushBindingDisposition,
   runObservablesComplete,
   startControllerRun,
   submitReviewerReport,
@@ -34,7 +35,9 @@ import {
   COVERAGE_HEADROOM_MODE_SKIP,
   COVERAGE_HEADROOM_WAIVED_SKIP,
   LINT_ITERATION_MODE_SKIP,
+  MERGE_CHOKPOINT_NO_OBLIGATION_SKIP,
   PRE_PR_PHASES,
+  VERIFY_AC_NO_OBLIGATION_EXIT,
 } from "./phases.js";
 import { InProcessPrePrStore, mintPublisher, type PrePrExecutionStore } from "./store.js";
 import { type CommandObservation, deny, type PrePrExecutionRecord } from "./types.js";
@@ -455,6 +458,95 @@ describe("controller observations", () => {
     );
     expect(published.phaseEvidence.commands.some((c) => c.phaseId === "coverage_headroom")).toBe(
       false,
+    );
+  });
+
+  it("stamps no-obligation from direct verify:ac disposition without merge_chokepoint (#5855)", () => {
+    const store = new InProcessPrePrStore();
+    const rec = start(store, "ppr_direct_no_obl");
+    const root = mkdtempSync(join(tmpdir(), "pre-pr-no-obl-"));
+    writeFileSync(join(root, "a.ts"), "export {}\n");
+    for (const spec of PRE_PR_PHASES) {
+      if (!spec.required) continue;
+      if (spec.kind === "command-observable") {
+        observeCommandPhase(store, rec.id, {
+          phaseId: spec.id,
+          command: spec.command ?? "",
+          exitCode: 0,
+          inputHash: rec.inputHash,
+          skipReason: null,
+        });
+      } else {
+        submitReviewerReport(store, rec.id, {
+          phaseId: spec.id,
+          reviewedFileManifest: ["a.ts"],
+          suppliedContentsHash: computeControllerObservedHash({
+            reviewedFiles: ["a.ts"],
+            cwd: root,
+          }) as string,
+          criteriaDigest: approved.digest,
+          reviewerReportRef: "r",
+          controllerObservedHash: computeControllerObservedHash({
+            reviewedFiles: ["a.ts"],
+            cwd: root,
+          }) as string,
+        });
+      }
+    }
+    expect(
+      completeRun(store, mintPublisher(), rec.id, undefined, {
+        projectRoot: root,
+        verifyAcDisposition: "no-obligation",
+      }).ok,
+    ).toBe(true);
+    const published = store.getById(rec.id) as PrePrExecutionRecord;
+    const disposition = readPushBindingDisposition(published.pushBinding);
+    expect(disposition.verifyAcDisposition).toBe("no-obligation");
+    expect(disposition.admittedUntiedWorktreeKey).not.toBeNull();
+    expect(published.phaseEvidence.commands.some((c) => c.phaseId === "merge_chokepoint")).toBe(
+      false,
+    );
+  });
+
+  it("re-derives no-obligation from merge_chokepoint exit 6 + closed skip (#5855)", () => {
+    const store = new InProcessPrePrStore();
+    const rec = start(store, "ppr_merge_no_obl");
+    const root = mkdtempSync(join(tmpdir(), "pre-pr-merge-no-obl-"));
+    writeFileSync(join(root, "a.ts"), "export {}\n");
+    const hash = computeControllerObservedHash({ reviewedFiles: ["a.ts"], cwd: root }) as string;
+    for (const spec of PRE_PR_PHASES) {
+      if (!spec.required) continue;
+      if (spec.kind === "command-observable") {
+        observeCommandPhase(store, rec.id, {
+          phaseId: spec.id,
+          command: spec.command ?? "",
+          exitCode: 0,
+          inputHash: rec.inputHash,
+          skipReason: null,
+        });
+      } else {
+        submitReviewerReport(store, rec.id, {
+          phaseId: spec.id,
+          reviewedFileManifest: ["a.ts"],
+          suppliedContentsHash: hash,
+          criteriaDigest: approved.digest,
+          reviewerReportRef: "r",
+          controllerObservedHash: hash,
+        });
+      }
+    }
+    observeCommandPhase(store, rec.id, {
+      phaseId: "merge_chokepoint",
+      command: "deft check",
+      exitCode: VERIFY_AC_NO_OBLIGATION_EXIT,
+      inputHash: rec.inputHash,
+      skipReason: MERGE_CHOKPOINT_NO_OBLIGATION_SKIP,
+    });
+    expect(completeRun(store, mintPublisher(), rec.id, undefined, { projectRoot: root }).ok).toBe(
+      true,
+    );
+    expect(readPushBindingDisposition(store.getById(rec.id)?.pushBinding).verifyAcDisposition).toBe(
+      "no-obligation",
     );
   });
 
@@ -1992,29 +2084,41 @@ describe("coverage N/A rests on applicability; one report path and observed root
 
   describe("presence helper (lstat, never followed)", () => {
     type Kind = "symlink" | "directory" | "EACCES";
-    function breakReport(root: string, kind: Kind): void {
+    /** Win32 without SeCreateSymbolicLinkPrivilege cannot create symlinks. */
+    function trySymlink(target: string, path: string): boolean {
+      try {
+        symlinkSync(target, path);
+        return true;
+      } catch (err) {
+        return (err as NodeJS.ErrnoException).code === "EPERM"
+          ? false
+          : (() => {
+              throw err;
+            })();
+      }
+    }
+    function breakReport(root: string, kind: Kind): boolean {
       const report = join(root, "coverage", "coverage-final.json");
       rmSync(report, { force: true, recursive: true });
       mkdirSync(join(root, "coverage"), { recursive: true });
       if (kind === "symlink") {
         writeFileSync(join(root, "elsewhere.json"), "{}");
-        symlinkSync(join(root, "elsewhere.json"), report);
-      } else if (kind === "directory") {
-        mkdirSync(report);
-      } else {
-        writeFileSync(report, "{}");
-        vi.mocked(lstatSync).mockImplementation(((
-          p: Parameters<typeof lstatSync>[0],
-          o?: object,
-        ) => {
-          if (String(p) === report) {
-            const err = new Error("EACCES") as NodeJS.ErrnoException;
-            err.code = "EACCES";
-            throw err;
-          }
-          return realFs.lstatSync(p, o as undefined);
-        }) as typeof lstatSync);
+        return trySymlink(join(root, "elsewhere.json"), report);
       }
+      if (kind === "directory") {
+        mkdirSync(report);
+        return true;
+      }
+      writeFileSync(report, "{}");
+      vi.mocked(lstatSync).mockImplementation(((p: Parameters<typeof lstatSync>[0], o?: object) => {
+        if (String(p) === report) {
+          const err = new Error("EACCES") as NodeJS.ErrnoException;
+          err.code = "EACCES";
+          throw err;
+        }
+        return realFs.lstatSync(p, o as undefined);
+      }) as typeof lstatSync);
+      return true;
     }
     const KINDS: readonly Kind[] = ["symlink", "directory", "EACCES"];
     const PRESENCE_ARMS: readonly Arm[] = ["exit 4", "exit 5", "lint exit 5"];
@@ -2022,7 +2126,7 @@ describe("coverage N/A rests on applicability; one report path and observed root
       it.each(KINDS)(`presence: report path is a %s: ${arm} arm refuses`, (kind) => {
         const f = armFixture(arm, "ppr_presence");
         const rec = f.build(f.root);
-        breakReport(f.root, kind);
+        if (!breakReport(f.root, kind)) return;
         expect(runObservablesComplete(rec, f.satisfy).ok).toBe(false);
       });
     }
@@ -2030,7 +2134,7 @@ describe("coverage N/A rests on applicability; one report path and observed root
     it.each(KINDS)("presence: report path is a %s: not-applicable arm still accepted", (kind) => {
       const f = armFixture("exit 3", "ppr_presence_na");
       const rec = f.build(f.root);
-      breakReport(f.root, kind);
+      if (!breakReport(f.root, kind)) return;
       expect(runObservablesComplete(rec, f.satisfy).ok).toBe(true);
     });
   });
@@ -2044,7 +2148,12 @@ describe("coverage N/A rests on applicability; one report path and observed root
       const target = join(f.root, "passing.json");
       writeFileSync(target, "{}");
       rmSync(report);
-      symlinkSync(target, report);
+      try {
+        symlinkSync(target, report);
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException).code === "EPERM") return;
+        throw err;
+      }
       vi.mocked(lstatSync).mockImplementation(((p: Parameters<typeof lstatSync>[0], o?: object) =>
         String(p).endsWith(join("coverage", "coverage-final.json"))
           ? realFs.lstatSync(target)

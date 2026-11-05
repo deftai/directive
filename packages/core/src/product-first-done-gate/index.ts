@@ -32,6 +32,7 @@ export {
   formatAcceptanceVerdict,
   formatPassLeadClauseCounts,
   listActiveLifecycleArtifacts,
+  MERGE_CHOKPOINT_NO_OBLIGATION_SKIP,
   type ResolveSoftMissingAcTargetsOptions,
   readBranchBindContext,
   relabelVerifyAcPassLead,
@@ -41,6 +42,8 @@ export {
   resolvedAcceptanceCommandCount,
   resolveSoftMissingAcTargets,
   type SoftMissingAcTargetResolution,
+  VERIFY_AC_NO_OBLIGATION_EXIT,
+  type VerifyAcDispositionKind,
 } from "./acceptance-resolver.js";
 export {
   applyProductFirstGateMode,
