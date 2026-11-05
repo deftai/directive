@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Changed — Mint intent-constraint VERIFY_AC_NO_OBLIGATION_EXIT=6 (numeric-const) for #5855. Approval record only; no product behavior change. Refs #5855.
 - **Path B brief-land activation can defer product verify:ac until merge-base write authority exists (#5792).** Ordinary product paths still require full acceptance.
-- **Path B activation inventory keeps rename origins across dirty/cached edits; empty live PR bodies still require deft-story marks (#5792).** Local null-body issue-ref identity stays for offline check only.
+- **Path B activation inventory keeps rename origins across dirty/cached edits; empty live PR bodies still require deft-story marks (#5792).** Product-path origins stay visible; brief→brief moves do not look like deletions. Local null-body issue-ref identity stays for offline check only.
 - **Unit tests no longer hang on live GitHub under Merge gate load (#6069).** Cascade config-error and open-umbrella scope:complete tests stay offline (skip live approval/reconcile/work-claim) so the 20s vitest cap is enough.
 - **Brief retirement/restamp stays brief-only under scope:complete (#5890).** Zero-eligible recovery no longer steers borrow-another-brief; CHANGELOG close-out remains a named residual.
 - **Multi-active check/pre-PR can bind the branch story or soft-skip with proven untied worker-auth (#5855 Recut-8).** Foreign live occupancy still refuses; ordinary pre-PR carries no-obligation from direct verify:ac without requiring full merge_chokepoint.

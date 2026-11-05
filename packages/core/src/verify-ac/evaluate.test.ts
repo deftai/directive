@@ -1285,4 +1285,43 @@ describe("Path B activation AC disposition (#5792)", () => {
     ).toBe(true);
     rmSync(root, { recursive: true, force: true });
   });
+
+  it("keeps brief→brief rename previousFilename without a deleted-nonterminal row", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-5792-brief-move-"));
+    const from = "xbrief/pending/story-5792.xbrief.json";
+    const to = "xbrief/active/story-5792.xbrief.json";
+    const runGit = (_cwd: string, args: readonly string[]) => {
+      const joined = args.join(" ");
+      if (joined.includes("is-inside-work-tree")) {
+        return { code: 0, stdout: "true\n", stderr: "" };
+      }
+      if (joined.includes("show-toplevel")) {
+        return { code: 0, stdout: `${root}\n`, stderr: "" };
+      }
+      if (joined.includes("rev-parse") && joined.includes("verify")) {
+        return { code: 0, stdout: "abc\n", stderr: "" };
+      }
+      if (joined.includes("diff") && joined.includes("...")) {
+        return { code: 0, stdout: `R100\0${from}\0${to}\0`, stderr: "" };
+      }
+      if (joined.includes("diff") && joined.includes("HEAD") && !joined.includes("cached")) {
+        return { code: 0, stdout: `M\0${to}\0`, stderr: "" };
+      }
+      if (joined.includes("--cached") || joined.includes("ls-files")) {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      return { code: 0, stdout: "", stderr: "" };
+    };
+    const inventory = collectBriefLandInventoryAsPrDiffPaths({
+      projectRoot: root,
+      baseRef: "origin/master",
+      runGit,
+    });
+    expect(inventory.ok).toBe(true);
+    if (!inventory.ok) return;
+    const entry = inventory.files.find((file) => file.path === to);
+    expect(entry?.previousFilename).toBe(from);
+    expect(inventory.files.some((file) => file.path === from)).toBe(false);
+    rmSync(root, { recursive: true, force: true });
+  });
 });

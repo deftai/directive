@@ -327,10 +327,18 @@ function splitNulInventory(stdout: string): string[] {
   return stdout.split("\0").filter((entry) => entry.length > 0);
 }
 
+/** Brief-land allowlist mirror for inventory origin rows (pending|proposed|active|CHANGELOG). */
+function isBriefLandAllowlistedInventoryPath(path: string): boolean {
+  const p = path.replace(/\\/g, "/");
+  if (p === "CHANGELOG.md") return true;
+  return /^(xbrief|vbrief)\/(proposed|pending|active)\//.test(p);
+}
+
 /**
  * Merge inventory rows without dropping rename origins (#5792 Greptile P1).
- * Later dirty/cached edits may replace status but must keep previousFilename
- * and a removal record for the origin path when not already present.
+ * Later dirty/cached edits may replace status but must keep previousFilename.
+ * Product-path origins get a synthetic removal so brief-land shape still sees
+ * them; brief→brief moves keep previousFilename only (no deleted-nonterminal refuse).
  */
 function mergeInventoryPrDiffPath(byPath: Map<string, PrDiffPath>, next: PrDiffPath): void {
   const prev = byPath.get(next.path);
@@ -348,7 +356,8 @@ function mergeInventoryPrDiffPath(byPath: Map<string, PrDiffPath>, next: PrDiffP
   if (
     previousFilename !== undefined &&
     previousFilename !== next.path &&
-    !byPath.has(previousFilename)
+    !byPath.has(previousFilename) &&
+    !isBriefLandAllowlistedInventoryPath(previousFilename)
   ) {
     byPath.set(previousFilename, { status: "removed", path: previousFilename });
   }
