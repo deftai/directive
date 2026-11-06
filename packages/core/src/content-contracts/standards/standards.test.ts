@@ -733,9 +733,6 @@ describe("test_standards.py", () => {
   it("docs/getting-started.md no deprecated user path", () => {
     expect(readText("docs/getting-started.md").toLowerCase()).not.toContain("core/user.md");
   });
-  it("docs/gitcrawl-fallback.md no deprecated user path", () => {
-    expect(readText("docs/gitcrawl-fallback.md").toLowerCase()).not.toContain("core/user.md");
-  });
   it("docs/good-agents-md.md no deprecated user path", () => {
     expect(readText("docs/good-agents-md.md").toLowerCase()).not.toContain("core/user.md");
   });
@@ -1907,9 +1904,6 @@ describe("test_standards.py", () => {
   });
   it("docs/getting-started.md no warping", () => {
     expect(readText("docs/getting-started.md").toLowerCase()).not.toContain("warping");
-  });
-  it("docs/gitcrawl-fallback.md no warping", () => {
-    expect(readText("docs/gitcrawl-fallback.md").toLowerCase()).not.toContain("warping");
   });
   it("docs/good-agents-md.md no warping", () => {
     expect(readText("docs/good-agents-md.md").toLowerCase()).not.toContain("warping");

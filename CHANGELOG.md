@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Removed
+- **Stale gitcrawl fallback maintainer doc (#1092).** Deleted `docs/gitcrawl-fallback.md` after the v0.26 cache rebind made its gh-only install/recovery path misleading. UPGRADING From v0.25.x → v0.26.0 now points operators at `cache:*` instead; matching content-contract pins in `standards.test.ts` dropped.
 
 ## [0.129.5] - 2026-11-06
 
