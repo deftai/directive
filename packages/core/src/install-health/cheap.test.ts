@@ -200,6 +200,3 @@ describe("checkCheapInSync overlay failClosed (#5910)", () => {
     expect(result.recoveryGuidance).not.toBe(INSTALLATION_RECOVERY_GUIDANCE);
   });
 });
-
-// retrigger TypeScript required check for #6064
-
