@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #1092",
-    "updated": "2026-11-06T18:41:20Z"
+    "updated": "2026-11-06T19:25:00.000Z"
   },
   "plan": {
     "title": "chore(docs): remove or rewrite misleading docs/gitcrawl-fallback.md",
@@ -112,14 +112,20 @@
       },
       "productPullRequest": 6103,
       "completionProvenance": {
-        "schema": "deft.scope.completion-provenance.v1",
-        "productPullRequest": 6103,
-        "mergeCommit": "fc9b64fa75bd5f72b97262c6f8325b8618eaa75b",
+        "disposition": "delivered",
+        "verifiedAt": "2026-11-06T19:25:00.000Z",
+        "verifier": "leftover-land after #6103",
         "deliveryBranch": "master",
-        "completedAt": "2026-11-06T18:41:20Z"
+        "mergeCommit": "fc9b64fa75bd5f72b97262c6f8325b8618eaa75b",
+        "deliveryCommit": "fc9b64fa75bd5f72b97262c6f8325b8618eaa75b",
+        "pullRequestNumber": 6103
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-06T19:25:00.000Z"
       }
     },
     "id": "github.issue.4431734591",
-    "updated": "2026-11-06T18:41:20Z"
+    "updated": "2026-11-06T19:25:00.000Z"
   }
 }
