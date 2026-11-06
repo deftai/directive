@@ -1,0 +1,117 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #1092",
+    "updated": "2026-11-06T17:07:53Z"
+  },
+  "plan": {
+    "title": "chore(docs): remove or rewrite misleading docs/gitcrawl-fallback.md",
+    "status": "running",
+    "narratives": {
+      "Description": "chore(docs): remove or rewrite misleading docs/gitcrawl-fallback.md",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1092",
+      "Overview": "Prefer-A Bound 6689034160 Option 1 delete-and-redirect for conflict_group docs-gitcrawl-fallback-delete-and-redirect.",
+      "Labels": "documentation, chore, design-critique:ingest-ready",
+      "UserStory": "As a maintainer, I can follow UPGRADING for the v0.26 cache rebind without being sent to a deleted gitcrawl install/recovery path.",
+      "ImplementationPlan": "Delete docs/gitcrawl-fallback.md; add one UPGRADING pointer under From v0.25.x to v0.26.0; drop the two standards.test.ts pins; grep-clean live refs; CHANGELOG Docs/Removed for #1092."
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "Delete the stale gitcrawl fallback maintainer doc from the tree",
+        "status": "pending"
+      },
+      {
+        "id": "2",
+        "title": "Add one negative pointer under From v0.25.x to v0.26.0 that gitcrawl fallback semantics no longer apply after the cache rebind",
+        "status": "pending"
+      },
+      {
+        "id": "3",
+        "title": "Remove the two content-contract it cases that still require the gitcrawl fallback doc path",
+        "status": "pending"
+      },
+      {
+        "id": "4",
+        "title": "Confirm no live skill or docs refs remain and record Unreleased Docs Removed for issue 1092",
+        "status": "pending"
+      }
+    ],
+    "tags": [
+      "documentation",
+      "chore",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1092",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1092: chore(docs): remove or rewrite misleading docs/gitcrawl-fallback.md"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "clauses": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A Bound limbs hand-stamped after Prefer-A Bound harvest (#4374)"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "docs/gitcrawl-fallback.md",
+          "content/UPGRADING.md",
+          "packages/core/src/content-contracts/standards/standards.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "docs/gitcrawl-fallback.md",
+        "cohesion_exemption": "DELETE of stale doc plus UPGRADING pointer, standards pin drop, and CHANGELOG Docs/Removed for the same Bound unit"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 4431734591,
+        "origin": "deftai/directive#1092",
+        "id": "github.issue.4431734591"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "53c73c1e053239e9d021d1a1ae9cb40c625c4a27fb7a098c210b48e62d9fc63d"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "docs-gitcrawl-fallback-delete-and-redirect",
+        "expected_outputs": [
+          "docs/gitcrawl-fallback.md deleted",
+          "UPGRADING v0.25->v0.26 gitcrawl fallback pointer",
+          "standards.test.ts pins removed",
+          "CHANGELOG Unreleased Docs/Removed #1092"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "npx vitest run packages/core/src/content-contracts/standards/standards.test.ts"
+        ],
+        "file_scope": [
+          "docs/gitcrawl-fallback.md",
+          "content/UPGRADING.md",
+          "packages/core/src/content-contracts/standards/standards.test.ts",
+          "CHANGELOG.md"
+        ],
+        "size": "S",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#1092",
+          "Prefer-A Bound 6689034160",
+          "PA 6689061799"
+        ],
+        "parallel_safe": true
+      }
+    },
+    "id": "github.issue.4431734591",
+    "updated": "2026-11-06T17:07:53Z"
+  }
+}
