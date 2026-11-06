@@ -17,6 +17,7 @@ import {
   FIRST_HOTFIX_BOOTSTRAP_RECOVERY,
   HOTFIX_LABEL,
   HOTFIX_SHAPE_A_RE,
+  HOTFIX_SHAPE_B_ISSUE_REPO,
   HOTFIX_SHAPE_B_RE,
   MERGE_GATE_TASK_CHECK_NAME,
   OUTCOME_FIRST_HOTFIX_BOOTSTRAP,
@@ -1317,10 +1318,11 @@ export function evaluateHotfixAdmission(
         outcome: OUTCOME_HOTFIX_SHAPE_INVALID,
       };
     }
+    // Citations are always deftai/directive#N (HOTFIX_SHAPE_B_RE); do not look up N in the PR repo.
     const issueRc = runGh([
       "gh",
       "api",
-      `repos/${repo}/issues/${skipIssue}`,
+      `repos/${HOTFIX_SHAPE_B_ISSUE_REPO}/issues/${skipIssue}`,
       "--jq",
       "{state:.state,body:.body,created_at:.created_at}",
     ]);
@@ -1330,7 +1332,7 @@ export function evaluateHotfixAdmission(
         shape: "B",
         skipIssue,
         actorLogin: labeled.actor.login,
-        reason: `hotfix shape (B) issue #${skipIssue} unreadable; refuse (#6071).`,
+        reason: `hotfix shape (B) ${HOTFIX_SHAPE_B_ISSUE_REPO}#${skipIssue} unreadable; refuse (#6071).`,
         outcome: OUTCOME_HOTFIX_SHAPE_INVALID,
       };
     }
@@ -1357,7 +1359,7 @@ export function evaluateHotfixAdmission(
         shape: "B",
         skipIssue,
         actorLogin: labeled.actor.login,
-        reason: `hotfix shape (B) issue #${skipIssue} is ${String(issue.state)}; refuse (#6071).`,
+        reason: `hotfix shape (B) ${HOTFIX_SHAPE_B_ISSUE_REPO}#${skipIssue} is ${String(issue.state)}; refuse (#6071).`,
         outcome: OUTCOME_HOTFIX_SHAPE_INVALID,
       };
     }
@@ -1368,7 +1370,7 @@ export function evaluateHotfixAdmission(
         shape: "B",
         skipIssue,
         actorLogin: labeled.actor.login,
-        reason: `hotfix shape (B) issue #${skipIssue} lacks skipped-tests block; refuse (#6071).`,
+        reason: `hotfix shape (B) ${HOTFIX_SHAPE_B_ISSUE_REPO}#${skipIssue} lacks skipped-tests block; refuse (#6071).`,
         outcome: OUTCOME_HOTFIX_SHAPE_INVALID,
       };
     }

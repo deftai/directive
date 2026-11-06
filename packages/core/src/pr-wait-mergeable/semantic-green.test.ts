@@ -889,9 +889,10 @@ describe("always-on named Merge gate (#6071)", () => {
   });
 
   it("refuses shape B when cited issue lacks skipped-tests (#6071)", () => {
+    const fork = "acme/fork";
     const runGh = (args: readonly string[]) => {
       const path = args.join(" ");
-      if (path.includes(`/pulls/${PR}`)) {
+      if (path.includes(`repos/${fork}/pulls/${PR}`)) {
         return {
           returncode: 0,
           stdout: JSON.stringify({
@@ -901,7 +902,7 @@ describe("always-on named Merge gate (#6071)", () => {
           stderr: "",
         };
       }
-      if (path.includes(`/issues/${PR}/events`)) {
+      if (path.includes(`repos/${fork}/issues/${PR}/events`)) {
         return {
           returncode: 0,
           stdout: JSON.stringify([
@@ -915,7 +916,7 @@ describe("always-on named Merge gate (#6071)", () => {
           stderr: "",
         };
       }
-      if (path.includes("/issues/6066")) {
+      if (path.includes("repos/deftai/directive/issues/6066")) {
         return {
           returncode: 0,
           stdout: JSON.stringify({
@@ -928,13 +929,14 @@ describe("always-on named Merge gate (#6071)", () => {
       }
       return { returncode: 1, stdout: "", stderr: `unexpected ${path}` };
     };
-    const missingBlock = evaluateHotfixAdmission(PR, REPO, {
+    const missingBlock = evaluateHotfixAdmission(PR, fork, {
       runGh,
       maintainerLogins: ["MScottAdams"],
     });
     expect(missingBlock.admitted).toBe(false);
     expect(missingBlock.outcome).toBe(OUTCOME_HOTFIX_SHAPE_INVALID);
     expect(missingBlock.reason).toMatch(/skipped-tests/);
+    expect(missingBlock.reason).toMatch(/deftai\/directive#6066/);
   });
 
   it("parses exactly one hotfix shape A or B", () => {

@@ -20,6 +20,9 @@ export const HOTFIX_SHAPE_A_RE = /^Hotfix for red Merge gate \(task check\):\s+\
 /** Shape (B) cited-skip body line (#6071). */
 export const HOTFIX_SHAPE_B_RE = /^Hotfix skip:\s+deftai\/directive#(\d+)\s*$/m;
 
+/** Citation host for shape-B skipped-test issues (never the PR fork/consumer repo). */
+export const HOTFIX_SHAPE_B_ISSUE_REPO = "deftai/directive" as const;
+
 export const FIRST_HOTFIX_BOOTSTRAP_RECOVERY =
   "First-hotfix bootstrap: a human maintainer must open a draft PR, apply the " +
   "`hotfix` label, and include exactly one shape body line — " +
