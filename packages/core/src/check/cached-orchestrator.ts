@@ -338,7 +338,8 @@ export function dispatchCachedTaskCheck(
     const citedSkipScanResult =
       options.precomputedCitedSkipScan ??
       evaluateCitedSkipScan({
-        projectRoot: resolvedProject,
+        // Baseline paths are framework-root-relative (#6071).
+        projectRoot: resolvedFramework,
         changedFiles: options.citedSkipChangedFiles,
         hotfixShapeB: options.citedSkipHotfixShapeB === true,
         fetchIssue: options.citedSkipFetchIssue,

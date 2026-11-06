@@ -82,8 +82,10 @@ export function dispatchTaskCheck(
   // so a refuse does not lose the check summary (#6071 Greptile P2).
   let precomputedCitedSkipScan: CheckOrchestratorSeams["precomputedCitedSkipScan"] = null;
   if (target === "check:framework-source" && seams.skipCitedSkipScan !== true) {
+    // Baseline paths are framework-root-relative (#6071); scan from resolvedFramework
+    // so subdirectory --project-root does not reject allowed skips.
     const cited = evaluateCitedSkipScan({
-      projectRoot: resolvedProject,
+      projectRoot: resolvedFramework,
       changedFiles: seams.citedSkipChangedFiles,
       hotfixShapeB: seams.citedSkipHotfixShapeB === true,
       fetchIssue: seams.citedSkipFetchIssue,
