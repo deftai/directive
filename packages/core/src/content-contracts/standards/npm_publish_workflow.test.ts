@@ -95,11 +95,12 @@ describe("npm_publish_workflow (#5365 Prefer-A Bound)", () => {
     expect(prepare).toMatch(/is not on origin\/master ancestry[\s\S]*?exit 1/);
   });
 
-  it("resolves dist-tag via the committed script read from the workflow ref (#5852)", () => {
-    expect(prepare).toContain("node _workflow-ref/.github/scripts/resolve-npm-dist-tag.mjs");
-    expect(prepare).toMatch(/ref:\s*\$\{\{\s*github\.workflow_sha\s*\}\}/);
-    expect(prepare.indexOf("github.workflow_sha")).toBeLessThan(prepare.indexOf("id: identity"));
+  it("keeps Class-4 inline Resolve: stable->maintainer, never SemVer-implicit latest (#5852 / #6110)", () => {
+    // Workflow-ref script extraction is a pure-protected follow-up (class-4); #6110
+    // landed inline Resolve so this residual stays story-product without npm-publish.yml.
+    expect(prepare).toMatch(/DIST_TAG=maintainer/);
     expect(prepare).not.toMatch(/DIST_TAG=latest/);
+    expect(prepare).toMatch(/if \[ "\$\{DIST_TAG\}" = "latest" \]; then[\s\S]*?exit 1/);
     expect(code).not.toMatch(/inputs\.dist_tag/);
   });
 
@@ -122,7 +123,6 @@ describe("npm_publish_workflow (#5365 Prefer-A Bound)", () => {
   });
 
   it("never resolves publish channel to latest and shares one DIST_TAG (#5852)", () => {
-    expect(prepare).toContain("resolve-npm-dist-tag.mjs");
     expect(prepare).not.toMatch(/DIST_TAG=latest/);
     expect(prepare).toMatch(/if \[ "\$\{DIST_TAG\}" = "latest" \]; then[\s\S]*?exit 1/);
     expect(code).not.toMatch(/dist_tag:\s*\n\s*description:/);
