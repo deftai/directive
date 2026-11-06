@@ -338,7 +338,10 @@ export function runReleaseCheck(
         if (result.status === 0) {
           const url = (result.stdout ?? "").trim();
           const m = /github\.com[:/]([^/]+\/[^/.]+)/i.exec(url);
-          if (m) return m[1].replace(/\.git$/i, "");
+          const captured = m?.[1];
+          if (captured !== undefined && captured.length > 0) {
+            return captured.replace(/\.git$/i, "");
+          }
         }
       } catch {
         /* fall through */
