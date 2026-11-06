@@ -31,6 +31,7 @@ import {
 } from "./consumer-header-placeholder.js";
 import {
   type CheckOrchestratorSeams,
+  isFrameworkRepoRoot,
   resolveCheckTarget,
   runSanctionedSkipCountBaselineGate,
   SANCTIONED_SKIP_COUNT_BASELINE_GATE_ID,
