@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "release: `task materialize:runtime` in a fresh worktree replaces the pinned runtime with master's 0.0.0 and the pin hook blocks the release",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "release: `task materialize:runtime` in a fresh worktree replaces the pinned runtime with master's 0.0.0 and the pin hook blocks the release",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5910",
@@ -18,22 +18,22 @@
     "items": [
       {
         "title": "relieves: P1 — Name a cut-context producer for the release cut worktree and refuse `task materialize:runtime` before it moves or replaces the pin while that context is active from release entry through version bump/tag.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.1"
       },
       {
         "title": "relieves: P2 — When cheapInSync fail-closes and `.deft-scratch/materialize-runtime-overlay.json` is present, recovery text names that overlay plus `pnpm install --frozen-lockfile` (or equivalent exact restore) as an operator-terminal path outside the blocked hook, then requires retiring the overlay before identity may pass.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.2"
       },
       {
         "title": "relieves: P3 — While that overlay file is present, cheapInSync fail-closes even when pinVersion equals installedVersion so rewriting installed package.json version alone cannot clear the check.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.3"
       },
       {
         "title": "relieves: P4 — Fixtures prove cut-context materialize refuses before replacement with prior pin intact, honest tip 0.0.0 and version-spoofed tip both deny, frozen-lockfile restore retires the overlay then identity passes, and a fresh-worktree release reaches the version-bump gate on the published pin without materialize.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.4"
       }
     ],
@@ -635,7 +635,8 @@
           "#5805"
         ],
         "parallel_safe": true
-      }
+      },
+      "productPullRequest": 6064
     },
     "id": "github.issue.6025964365",
     "updated": "2026-11-05T17:59:25Z"
