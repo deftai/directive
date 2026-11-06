@@ -1183,7 +1183,14 @@ describe("armed coverage aggregate preserves real required outcomes (#5079)", ()
 
 describe("cited-skip scanner (#6071)", () => {
   it("accepts it.skip with citation when issue open and title listed", () => {
-    const source = `// skip: deftai/directive#6066\nit.skip("waitMergeableAndMerge > monitor config error propagates to exit two", () => {});`;
+    // Build fixture at runtime so tree inventory does not treat this file as a real skip.
+    const source = [
+      "// skip: deftai/directive#",
+      "6066",
+      "\n",
+      "it",
+      '.skip("waitMergeableAndMerge > monitor config error propagates to exit two", () => {});',
+    ].join("");
     const sites = inventoryCitedSkipsInSource(source, "packages/core/src/demo.test.ts");
     expect(sites).toHaveLength(1);
     expect(sites[0]?.issue).toBe(6066);
