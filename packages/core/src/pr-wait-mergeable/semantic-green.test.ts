@@ -963,9 +963,8 @@ describe("always-on named Merge gate (#6071)", () => {
       ).ambiguous,
     ).toBe(true);
     expect(
-      parseHotfixShape(
-        "Hotfix skip: deftai/directive#1\nHotfix skip: deftai/directive#2\n",
-      ).ambiguous,
+      parseHotfixShape("Hotfix skip: deftai/directive#1\nHotfix skip: deftai/directive#2\n")
+        .ambiguous,
     ).toBe(true);
     expect(
       parseHotfixShape(

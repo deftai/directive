@@ -1181,16 +1181,18 @@ describe("cited-skip scanner (#6071)", () => {
     writeFileSync(
       abs,
       [
-        'describe.skip("baseline slot one", () => {});',
-        'describe.skip("extra unsanctioned suite", () => {});',
+        ["describe", '.skip("baseline slot one", () => {});'].join(""),
+        ["describe", '.skip("extra unsanctioned suite", () => {});'].join(""),
         "",
       ].join("\n"),
       "utf8",
     );
     const result = evaluateCitedSkipScan({ projectRoot: root, changedFiles: [rel] });
     expect(result.ok).toBe(false);
-    expect(result.failures.some((f) => f.includes("extra unsanctioned suite") || f.includes("describe.skip"))).toBe(
-      true,
-    );
+    expect(
+      result.failures.some(
+        (f) => f.includes("extra unsanctioned suite") || f.includes("describe.skip"),
+      ),
+    ).toBe(true);
   });
 });
