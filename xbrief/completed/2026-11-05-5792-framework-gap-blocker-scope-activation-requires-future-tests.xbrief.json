@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "[framework-gap] BLOCKER Scope activation requires future tests before merge-base write authority exists",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "[framework-gap] BLOCKER Scope activation requires future tests before merge-base write authority exists",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5792",
@@ -629,7 +629,8 @@
           "#5791"
         ],
         "parallel_safe": true
-      }
+      },
+      "productPullRequest": 6075
     },
     "id": "github.issue.5948036296",
     "updated": "2026-11-05T21:29:36Z"
