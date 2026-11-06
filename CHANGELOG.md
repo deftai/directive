@@ -7,11 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-
-- release(#5852): promoting a cut to npm `latest` now needs its own approval (not the publish grant), and the publish path refuses unsafe SemVer tag parsing.
-
-
 ### Added
 
 ### Changed
@@ -23,24 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore(dogfood): pin Directive to 0.129.5.
 
 ### Fixed
-- The shipped gitcrawl fallback documentation cleanup no longer appears as unfinished work (#1092).
-
-### Removed
-- **Stale gitcrawl fallback maintainer doc (#1092).** Deleted `docs/gitcrawl-fallback.md` after the v0.26 cache rebind made its gh-only install/recovery path misleading. UPGRADING From v0.25.x → v0.26.0 now points operators at `cache:*` instead; matching content-contract pins in `standards.test.ts` dropped.
-
-## [Unreleased]
-
-### Added
-
-### Changed
-- Widen #1037 file_scope so packs:render may refresh docs/RULE-MAP.md with the lessons-pack entry (#1037).
-- Prepare release-path gh JSON reads so CLICOLOR_FORCE in the parent env cannot break draft/tag/rollback lookups (#6032).
-- Capture the edit_files short-search truncation hazard as a lessons-pack entry maintainers can find in meta/lessons.md (#1037).
-- Activate running work brief for gitcrawl-fallback doc delete-and-redirect (#1092).
-- chore(dogfood): pin Directive to 0.129.5.
-
-### Fixed
-- Record tracked completion for gitcrawl-fallback doc delete-and-redirect (#1092).
+- Stable cuts publish to the maintainer npm tag by default; moving latest needs a separate promote approval (#5852).
+- `--promote-latest` now spends its approval before queuing the promote workflow (so one approval cannot promote twice), keeps Class-4 publish tips on the inline dist-tag rule, and documents the promote flag on `--help` (#5852).
+- Record tracked completion for edit_files truncation lessons-pack entry (#1037).
+- Release draft checks and rollback release lookups now read GitHub responses correctly when the parent environment forces terminal colors. This extends the color-output fix released in 0.129.3 to these two release paths. The release-publish lookup is unchanged and will be addressed separately. Refs #6032.
 
 ### Removed
 - **Stale gitcrawl fallback maintainer doc (#1092).** Deleted `docs/gitcrawl-fallback.md` after the v0.26 cache rebind made its gh-only install/recovery path misleading. UPGRADING From v0.25.x → v0.26.0 now points operators at `cache:*` instead; matching content-contract pins in `standards.test.ts` dropped.
@@ -198,7 +179,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed - Doctor recovery is failure-shaped: schema-only → `directive upgrade`; wiring-only (e.g. Taskfile.yml) → wiring/probe + repair without `npm i -g`; install skew / missing readiness still get AC9.7. Refs #5798.
 - Fixed - On `ERR_PNPM_IGNORED_BUILDS`, install/upgrade fail closed with pnpm-shaped recovery (`pnpm approve-builds` / real `allowBuilds` boolean); Directive does not write `allowBuilds`. Refs #5797.
 
-- Fixed - Finish #5852 Prefer-A Recut-6 P1–P4 on top of #5863: committed Resolve script (read from github.workflow_sha) owns dist-tag mapping (stable→maintainer, never SemVer-implicit latest); promote-latest is a distinct workflow_dispatch job + release-promote-latest closed verb (DEFT_ALLOW_RELEASE_PROMOTE_LATEST; release-publish grant does not authorize); release-publish uses the channel-aware gate and draft-flips with make_latest=false; Phase 7 asks promote-now or explicit decline. Named leftover: channel-following upgrade advisory/hints. Refs #5852 Prefer-A Recut-6 6393543742 / #5365 / #5805.
 - Fixed - `migrate:xbrief` skips strip-plan refuse for dual `vBRIEFInfo`+`xBRIEFInfo` both@0.6 so hybrid rewrite owns the file. Refs #5795.
 - Fixed - Equal-version upgrade/migrate clears hybrid and mis-keyed `vBRIEFInfo@0.8` (including under `xbrief/completed/`) so doctor schema currency is not stuck `migration_needed`. Refs #5795.
 - Fixed - After product merge #5886, record #5807 complete so operators can close the issue and active scope no longer lists it. Refs #5807.
