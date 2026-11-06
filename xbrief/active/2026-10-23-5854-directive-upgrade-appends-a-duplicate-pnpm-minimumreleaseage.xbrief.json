@@ -1,0 +1,644 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5854",
+    "updated": "2026-10-23T06:32:37Z"
+  },
+  "plan": {
+    "title": "directive upgrade appends a duplicate pnpm minimumReleaseAgeExclude entry for the runtime instead of replacing it (install fails for 24h after a release)",
+    "status": "running",
+    "narratives": {
+      "Description": "directive upgrade appends a duplicate pnpm minimumReleaseAgeExclude entry for the runtime instead of replacing it (install fails for 24h after a release)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5854",
+      "Overview": "\n\n- relieves: P1 — AgeExclude-block prior-entry replace: within the minimumReleaseAgeExclude list only, if ≥1 exact @deftai/directive-runtime@* items exist, remove those runtime exacts and ensure exactly one quoted @deftai/directive-runtime@<targetVersion> item; never touch allowBuilds or other keys; no create-if-absent; leave unrelated exclude rows; line-scoped edit (no YAML round-trip).\n- relieves: P2 — Shared add+repair heal seams: invoke P1 upsert from every runPmExactAdd caller (upgrade version-change, first-install, repair-when-adding) immediately before add when the gate is true and again after successful add before setup/migrate; also invoke the same prior-entry upsert on runRepair after approval/plan even when needsPmRestore is false (stranded stale/dual exclude heal); dry-run/plan disclosure when upsert will fire.\n- relieves: P3 — Fail-closed fixtures + CHANGELOG: old-only and old+target → exactly one @new; gate-false fixtures (no AgeExclude key; key with no runtime exact) assert byte-identical yaml; injected runPmAdd fake asserts pre-add yaml already holds exactly one quoted target; dual-entry/leave-old fail; CHANGELOG [Unreleased].\n\n\n",
+      "Labels": "bug, area:release, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "relieves: P1 — AgeExclude-block prior-entry replace: within the minimumReleaseAgeExclude list only, if ≥1 exact @deftai/directive-runtime@* items exist, remove those runtime exacts and ensure exactly one quoted @deftai/directive-runtime@<targetVersion> item; never touch allowBuilds or other keys; no create-if-absent; leave unrelated exclude rows; line-scoped edit (no YAML round-trip).",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "relieves: P2 — Shared add+repair heal seams: invoke P1 upsert from every runPmExactAdd caller (upgrade version-change, first-install, repair-when-adding) immediately before add when the gate is true and again after successful add before setup/migrate; also invoke the same prior-entry upsert on runRepair after approval/plan even when needsPmRestore is false (stranded stale/dual exclude heal); dry-run/plan disclosure when upsert will fire.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "relieves: P3 — Fail-closed fixtures + CHANGELOG: old-only and old+target → exactly one @new; gate-false fixtures (no AgeExclude key; key with no runtime exact) assert byte-identical yaml; injected runPmAdd fake asserts pre-add yaml already holds exactly one quoted target; dual-entry/leave-old fail; CHANGELOG [Unreleased].",
+        "status": "proposed",
+        "id": "clause.3"
+      }
+    ],
+    "tags": [
+      "bug",
+      "area:release",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5854",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5854: directive upgrade appends a duplicate pnpm minimumReleaseAgeExclude entry for the runtime instead of replacing it (install fails for 24h after a release)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "directive upgrade appends a duplicate pnpm minimumReleaseAgeExclude entry for the runtime instead of replacing it (install fails for 24h after a release)",
+        "relieves: P1 — AgeExclude-block prior-entry replace: within the minimumReleaseAgeExclude list only, if ≥1 exact @deftai/directive-runtime@* items exist, remove those runtime exacts and ensure exactly one quoted @deftai/directive-runtime@<targetVersion> item; never touch allowBuilds or other keys; no create-if-absent; leave unrelated exclude rows; line-scoped edit (no YAML round-trip).",
+        "relieves: P2 — Shared add+repair heal seams: invoke P1 upsert from every runPmExactAdd caller (upgrade version-change, first-install, repair-when-adding) immediately before add when the gate is true and again after successful add before setup/migrate; also invoke the same prior-entry upsert on runRepair after approval/plan even when needsPmRestore is false (stranded stale/dual exclude heal); dry-run/plan disclosure when upsert will fire.",
+        "relieves: P3 — Fail-closed fixtures + CHANGELOG: old-only and old+target → exactly one @new; gate-false fixtures (no AgeExclude key; key with no runtime exact) assert byte-identical yaml; injected runPmAdd fake asserts pre-add yaml already holds exactly one quoted target; dual-entry/leave-old fail; CHANGELOG [Unreleased]."
+      ],
+      "confessions": [
+        "directive upgrade appends a duplicate pnpm minimumReleaseAgeExclude entry for the runtime instead of replacing it (install fails for 24h after a release)"
+      ],
+      "admitted_source_sentences": [
+        "relieves: P1 — AgeExclude-block prior-entry replace: within the minimumReleaseAgeExclude list only, if ≥1 exact @deftai/directive-runtime@* items exist, remove those runtime exacts and ensure exactly one quoted @deftai/directive-runtime@<targetVersion> item; never touch allowBuilds or other keys; no create-if-absent; leave unrelated exclude rows; line-scoped edit (no YAML round-trip).",
+        "relieves: P2 — Shared add+repair heal seams: invoke P1 upsert from every runPmExactAdd caller (upgrade version-change, first-install, repair-when-adding) immediately before add when the gate is true and again after successful add before setup/migrate; also invoke the same prior-entry upsert on runRepair after approval/plan even when needsPmRestore is false (stranded stale/dual exclude heal); dry-run/plan disclosure when upsert will fire.",
+        "relieves: P3 — Fail-closed fixtures + CHANGELOG: old-only and old+target → exactly one @new; gate-false fixtures (no AgeExclude key; key with no runtime exact) assert byte-identical yaml; injected runPmAdd fake asserts pre-add yaml already holds exactly one quoted target; dual-entry/leave-old fail; CHANGELOG [Unreleased]."
+      ],
+      "admitted_source_digest": "4f5791fc0b07867c0abaa9e8581f9d6deddd536307dc0a799ef9e6558048e366",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "relieves: P1 — AgeExclude-block prior-entry replace: within the minimumReleaseAgeExclude list only, if ≥1 exact @deftai/directive-runtime@* items exist, remove those runtime exacts and ensure exactly one quoted @deftai/directive-runtime@<targetVersion> item; never touch allowBuilds or other keys; no create-if-absent; leave unrelated exclude rows; line-scoped edit (no YAML round-trip).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "relieves: P2 — Shared add+repair heal seams: invoke P1 upsert from every runPmExactAdd caller (upgrade version-change, first-install, repair-when-adding) immediately before add when the gate is true and again after successful add before setup/migrate; also invoke the same prior-entry upsert on runRepair after approval/plan even when needsPmRestore is false (stranded stale/dual exclude heal); dry-run/plan disclosure when upsert will fire.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "relieves: P3 — Fail-closed fixtures + CHANGELOG: old-only and old+target → exactly one @new; gate-false fixtures (no AgeExclude key; key with no runtime exact) assert byte-identical yaml; injected runPmAdd fake asserts pre-add yaml already holds exactly one quoted target; dual-entry/leave-old fail; CHANGELOG [Unreleased].",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/cli/src/age-exclude.ts",
+          "packages/cli/src/age-exclude.test.ts",
+          "packages/cli/src/bookends.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/cli/src/age-exclude.ts",
+        "cohesion_exemption": "CHANGELOG + bookends seam wiring for the zero-dep AgeExclude helper"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A (draft)\nTarget-digest: sha256:b7730d616b7d37b525af649c0454b00a608a47da6e92254e593ff1a292b594dc\nconflict_group: upgrade-pnpm-runtime-age-exclude-replace-not-append\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\ndest: .deft-scratch/worktrees/arc-5854\ndispatch-sha: f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\nKISS ceiling: #5783 Prefer-A Bound 6280270826 (Thin Fail-Closed #3265 / writing-bar #3368)\n\n## In plain English\n\nSame-day directive upgrade to a fresh @deftai/directive-runtime pin fails pnpm install / frozen CI for up to 24h because pnpm-workspace.yaml minimumReleaseAgeExclude keeps the old runtime version (or gains a second exact entry). pnpm 11 honours the first matching package entry, so the new exclude is inert. Prefer-A makes the version-changing upgrade path **replace** any prior @deftai/directive-runtime@* AgeExclude entries with exactly one @deftai/directive-runtime@<target> entry. Unrelated excludes stay untouched. Naming/docs are footnotes under #5783.\n\n## Draft remedy sketch\n\n1. After successful version-changing upgrade PM add (pnpm workspace roots), upsert pnpm-workspace.yaml minimumReleaseAgeExclude: remove every existing @deftai/directive-runtime@* exact entry, then ensure exactly one @deftai/directive-runtime@<targetVersion> entry (create the key/list if absent).\n2. Leave non-runtime AgeExclude rows alone; do not widen to a bare-name @deftai/directive-runtime exclude; npm-only / non-workspace paths that lack the file stay no-ops.\n3. Bookend/unit regression: fixture starts with @old, upgrade target @new → yaml has exactly one runtime exclude and it is @new; dual-entry / leave-old shapes fail the assertion.\n4. CHANGELOG [Unreleased].\n\n## Reject (draft)\n\n- Relying on manual post-upgrade yaml edits as the standing fix.\n- Patching pnpm itself or waiting on upstream first-match semantics.\n- Bare-name AgeExclude for the runtime (widens maturity gate).\n- Rewriting unrelated vite/brace-expansion/postcss/source-map-js excludes.\n\n## file_scope (lean)\n\n- packages/cli/src/bookends.ts and/or packages/cli/src/pm.ts (post-add upsert call site)\n- new/adjacent helper + tests under packages/cli (or shared core helper if already the yaml owner)\n- CHANGELOG.md",
+          "id": 6357397661,
+          "html_url": "https://github.com/deftai/directive/issues/5854#issuecomment-6357397661",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:29:07Z",
+          "updated_at": "2026-10-23T04:29:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because version-changing directive upgrade leaves a stale or duplicate @deftai/directive-runtime@* minimumReleaseAgeExclude entry so same-day pnpm install/CI fails — a mechanism-shaped upgrade bookend gap, not prose triage.\nmechanism-shaped: true\nrefutation-target: packages/cli upgrade bookend / PM-add follow-through does not upsert pnpm-workspace.yaml minimumReleaseAgeExclude to a single @deftai/directive-runtime@<target> entry; Prefer-A primary clear path is replace-not-append (not manual yaml hygiene)\ncharter: refutation\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nTarget-kind: issue\nCeiling-kind: comment-id\ndest: .deft-scratch/worktrees/arc-5854\ndispatch-sha: f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\nverification-path: pin-read git show f0b2a3623a6be6ab2952bcafca0c8114b2b058cf: (dest cwd-without-occupy for on-pin file reads)\ndual-stop-reserved: yes\nKISS ceiling: #5783 Prefer-A Bound 6280270826\n\npain:\n- P1\n- P2\n- P3\n\n## Stop 1 — Gate\n\n- P1 — Observed: upgrade from 0.127.0 → 0.128.0 on tip f0b2a362 left/appended AgeExclude so pnpm 11 still gated @0.128.0 (ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION); removing the stale @0.127.0 line fixed frozen install. Tip pnpm-workspace.yaml still lists only @deftai/directive-runtime@0.127.0 after the 0.128.0 release commit.\n- P2 — No Directive-owned replace/upsert after version-changing upgrade PM add: tip packages/cli has no minimumReleaseAgeExclude writer; pnpm workspace-manifest writer can append via ^GddedMinimumReleaseAgeExcludes, and leave-old / dual-exact entries remain a same-day install footgun.\n- P3 — Missing fail-closed regression that old→new upgrade yields exactly one runtime AgeExclude entry equal to the target (dual-entry and leave-old must fail).\n\nRefs: #5848 (pin/master skew context); KISS Bound #5783 comment 6280270826.",
+          "id": 6357397898,
+          "html_url": "https://github.com/deftai/directive/issues/5854#issuecomment-6357397898",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:29:09Z",
+          "updated_at": "2026-10-23T04:29:09Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit: round-1\ninput-ceiling: 6357403601\nseat-families: claude,codex,grok\nspend: N≥3\nspend-ask: resolved\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\ndest: .deft-scratch/worktrees/arc-5854\ndispatch-sha: f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\nPrefer-A draft: 6357397661\nStop 1: 6357397898\nverification-path: pin-read\ndual-stop-reserved: yes\nKISS ceiling: #5783 Prefer-A Bound 6280270826\n\n## Panel deposit\n\nRound-1 N≥3 refutation panel against Prefer-A draft 6357397661. Id ceiling is this comment (inclusive). Critics: read issue body + draft + Stop 1 only; pin-read at dispatch-sha; EXIT after posting.",
+          "id": 6357403601,
+          "html_url": "https://github.com/deftai/directive/issues/5854#issuecomment-6357403601",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:29:38Z",
+          "updated_at": "2026-10-23T04:29:39Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\nfamily: codex\nid-ceiling: 6357403601\ndispatch-sha: f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\n\nVerdict: accept Prefer-A's replace-not-append mechanism, with one regression sharpening. No blocks-the-design finding.\n\nVerification: read the issue body and the three named comments only; used the recorded SHA-pinned read path. The pinned workspace contains the old runtime exclusion. In [bookends.ts](https://github.com/deftai/directive/blob/f0b2a3623a6be6ab2952bcafca0c8114b2b058cf/packages/cli/src/bookends.ts#L1218-L1246), successful PM add proceeds to pin/installation checks and setup without exclusion normalization. [pm.ts](https://github.com/deftai/directive/blob/f0b2a3623a6be6ab2952bcafca0c8114b2b058cf/packages/cli/src/pm.ts#L710-L720) delegates add to pnpm and interprets its exit status; it supplies no exclusion writer. This supports the missing-bookend premise. The pnpm 11 first-match behavior remains the issue author's reported observation; I did not independently execute pnpm.\n\n### C1 — sharpens-framing: exercise the post-add duplicate input\n\nEvidence: the issue's failing artifact already contains both old and target entries, whereas draft item 3 explicitly starts its fixture with only old. The existing runPmAdd injection seam allows the regression to model pnpm appending target before the proposed normalization runs.\n\nFailure mode: a helper that replaces the first old entry with target passes an old-only fixture but produces target,target when pnpm has already appended target. Likewise, an early return upon finding target leaves old,target unchanged. Both violate the draft's exactly-one postcondition.\n\nDisposition: retain the mechanism and strengthen the existing regression to have successful PM add leave old,target before normalization; assert exactly one target afterward and preservation of unrelated entries. Keep the old-only case too. This is a test-input clarification within item 3, not a new subsystem or a longer Bound.\n\n### C2 — footnote: reuse the existing mutation boundary\n\nThe upgrade already checks dry-run, approval, and plan invalidation before PM add; pnpm-workspace.yaml is already fingerprinted by planCriticalRelPaths. Place the upsert inside that admitted version-changing pnpm path. These existing controls cover the pre-mutation shared-file boundary; no new approval or coordination mechanism is warranted.\n\nRoad not taken: a bare-package exemption is simpler and survives future upgrades, but deliberately exempts every runtime version. The exact target upsert preserves the draft's narrower exception. A requirement to support multiple simultaneous runtime pins would change that tradeoff; none is present in this envelope.\n\nCritic complete; returning to the parent for Round-1 synthesis.",
+          "id": 6357445024,
+          "html_url": "https://github.com/deftai/directive/issues/5854#issuecomment-6357445024",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:33:08Z",
+          "updated_at": "2026-10-23T04:33:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\naudit-targets: none\nfamily: grok\nid-ceiling: 6357403601\ndispatch-sha: f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\n\nCharter: refutation of Prefer-A draft 6357397661. Mandatory reads only (issue body, draft 6357397661, Stop 1 6357397898, panel-deposit 6357403601, design-critique Critic method + Bound thinness #3265 + writing-bar #3368). Pin-read at dispatch-sha: packages/cli/src/bookends.ts (runUpgrade / post-add), packages/cli/src/pm.ts, pnpm-workspace.yaml. No post-ceiling thread input; no product edits.\n\n## Inventory (pin-read)\n\n- pnpm-workspace.yaml already carries minimumReleaseAgeExclude with exact @deftai/directive-runtime@0.127.0 plus unrelated vite/brace-expansion/postcss/source-map-js rows; package.json pins @deftai/directive-runtime 0.127.0 and packageManager pnpm@11.8.0.\n- packages/cli/src/bookends.ts runUpgrade versionChange path calls runPmExactAdd then pin/install verify then handOffSetup/migrate — no AgeExclude read or write.\n- packages/cli/src/pm.ts knows isPnpmWorkspaceRoot / buildPmExactAddArgs (-w) / plan-critical pnpm-workspace.yaml fingerprint; no AgeExclude helper.\n- Repo-wide git grep for minimumReleaseAgeExclude under *.ts at the pin hits only the yaml file (no Directive writer). Stop 1 P2 matches: gap is missing upsert, not a mis-aimed append helper.\n- Existing thinner gate pattern elsewhere: isFrameworkRepoRoot in packages/core/src/check/context.ts (packages/cli + biome.json + Taskfile.yml).\n\nPrefer-A replace-not-append for version-changing upgrade is the right primary clear path for P1–P3 under KISS #5783. It cannot bind as written because of create-if-absent consumer injection; timing should move pre-add.\n\n### F1 — blocks-the-design: create-if-absent injects AgeExclude into consumer workspaces\n\nEvidence: Draft remedy sketch limb 1 upserts on all pnpm workspace roots and explicitly \"create the key/list if absent\". Limb 2 only no-ops when the workspace file is absent (npm-only / non-workspace). Tip AgeExclude is maintainer supply-chain policy on the framework checkout; consumer pnpm workspaces commonly have pnpm-workspace.yaml with no minimumReleaseAgeExclude and no prior @deftai/directive-runtime@* exclude.\n\nFailure mode: every consumer directive upgrade on a pnpm workspace root that lacks the key (or lacks a runtime exact entry) gains a Directive-authored maturity-gate bypass for the runtime. That widens authority over consumer manifests beyond the observed framework-repo leave-old / dual-entry pain (injection / shared-state lens).\n\nDisposition consequence: Prefer-A cannot bind create-if-absent / ensure-one when no prior exact @deftai/directive-runtime@* AgeExclude entry exists. Gate the upsert: when ≥1 prior exact runtime AgeExclude entries exist, remove them and write exactly one @deftai/directive-runtime@<targetVersion>; otherwise no-op (leave unrelated rows and absent keys untouched). That still closes P1–P3 on the repro without consumer policy injection. Road-not-taken: hard isFrameworkRepoRoot-only gate — thinner blast radius on paper; flip only if prior-entry repos that are not framework roots must not be healed (they should). Prior-entry is the thinner fail-closed association.\n\n### F2 — sharpens-framing: replace before runPmExactAdd, not only after success\n\nEvidence: Issue body — pnpm 11 honours the first matching package AgeExclude entry; with @…@0.127.0 first, @…@0.128.0 is inert and frozen install fails ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION. Tip yaml lists only @0.127.0. Draft limb 1 schedules upsert \"After successful version-changing upgrade PM add\". runUpgrade performs the add at the versionChange branch before any yaml heal would run under that wording.\n\nFailure mode: post-only upsert leaves the same-day add (and any install that runs under first-match-old) gated by the stale first entry. Observed upgrade exit 0 then failed frozen install is one failure shape; first-match-old during add is the adjacent shape the Bound must not leave optional.\n\nDisposition consequence: Bound can still Prefer-A replace-not-append, but the call site is the version-changing upgrade path immediately before runPmExactAdd when the F1 prior-entry gate is true. Regression: fixture with @old → upgrade target @new yields exactly one runtime exclude @new (dual-entry / leave-old fail); assert relative to the add, not only a late post-success rewrite. CHANGELOG limb stays.\n\n### F3 — footnote: \"appends\" titles a missing writer\n\nEvidence: pin-read shows no minimumReleaseAgeExclude writer in packages/cli (or other *.ts). Stop 1 already names the missing writer. Failure mode: none for the remedy once F1/F2 land. Disposition: omit from Bound; keep replace-upsert framing.\n\n### F4 — footnote: install/repair first-pin keep-out under KISS\n\nEvidence: Stop 1 pains and issue Expected target version-changing upgrade; runInstall also PM-adds with no AgeExclude heal. Failure mode: same-day first install on a repo that already has a stale runtime AgeExclude is theoretically adjacent. Disposition: leftover/footnote unless bind evidence appears; do not grow Prefer-A Bound (#3265 / #3368).\n\n## Verdict\n\nRefute Prefer-A draft 6357397661 as written (F1 blocks). Accept the replace-not-append core once Bound gates on prior exact runtime AgeExclude entries (no create-if-absent) and performs that replace before PM add (F2). Reject list and CHANGELOG limb survive. Empty road-not-taken beyond F1 steelman.",
+          "id": 6357465001,
+          "html_url": "https://github.com/deftai/directive/issues/5854#issuecomment-6357465001",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:34:48Z",
+          "updated_at": "2026-10-23T04:34:48Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\naudit-targets: none\nfamily: claude\nid-ceiling: 6357403601\ndispatch-sha: f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\n\nVerdict: Prefer-A binds. Replace-not-append is the right primary clear path and the right file. One `blocks-the-design` on where the mechanism is sited; the rest sharpen the limb wording.\n\n## Re-verification (pin-read at f0b2a362)\n\n- **P1 confirmed as state, not as cause.** `pnpm-workspace.yaml` at the pin carries exactly one runtime row, `- '@deftai/directive-runtime@0.127.0'`, while the tip commit is the v0.128.0 release. Root `package.json` devDeps also still pin `@deftai/directive-runtime: 0.127.0`, so pin and exclude are mutually consistent at the pin; the dual-entry shape is produced during the upgrade run, not committed. The exclude row was last written by `cc4bd5db5 chore(ovpr): Phase 10 self-host pin`, i.e. by hand, never by a Directive mechanism.\n- **P2 confirmed, and stronger than stated.** A pin-read grep for minimumReleaseAge / AgeExclude across `packages/`, `content/`, `docs/`, `skills/`, `templates/` returns **zero** hits. Directive owns no reader, no writer, no fixture. The only launcher touches of `pnpm-workspace.yaml` are read-only: `isPnpmWorkspaceRoot` (`existsSync`, pm.ts:571) and `fileDigest` via `planCriticalRelPaths` (pm.ts:486-496), which already lists the file as plan-critical. The remedy would be the launcher's first *write* to that file.\n- **Policy source.** `minimumReleaseAge` itself is set nowhere in the repo (no `.npmrc` at the pin; the yaml sets only packages / overrides / allowBuilds / minimumReleaseAgeExclude), so the gate is pnpm 11 default behaviour and the committed exclude list is the only lever. Prefer-A is aimed at the right surface.\n\n## Inventory\n\n`packages/cli` declares an empty `dependencies` map and bundles to a single `dist/bin.js`. There is no YAML parser in the launcher and no existing yaml writer to reuse, so any upsert helper is a hand-rolled, dependency-free text edit. That constraint belongs in the Bound, not in the implementer's discovery.\n\n## blocks-the-design\n\n**Siting the upsert in upgrade's version-change branch leaves the same failure reachable on the install path and strands a half-finished upgrade with no repair route.**\n\nEvidence (pin-read): `runPmExactAdd` has three call sites, not one. `runFirstInstall` (bookends.ts:625), `runRepair` (bookends.ts:741, gated on `needsPmRestore`), `runUpgrade` (bookends.ts:1220). All three add an exact `@deftai/directive-runtime` version into a possibly-pnpm-workspace root. Draft step 1 scopes the upsert to \"after successful version-changing upgrade PM add\", which covers one of them.\n\nFailure mode 1 - install day. `directive install` into a pnpm workspace pins a runtime younger than the cutoff with no Directive-written exclude at all. Same `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION` on the next frozen install, and the draft's mechanism never runs.\n\nFailure mode 2 - stranding. In `runUpgrade` the add succeeds at :1220, pin and installed-package verification pass, then `handOffSetup` returns non-zero at :1257 and the function returns. The repo now holds the new pin in `package.json` plus lockfile and the old exclude row - exactly the broken state in the issue. The printed recovery is to re-run `directive upgrade --yes`, but pin now equals target, so `versionChange` is false and control takes the equal-version path (:1313), which performs no PM add. A mechanism gated on \"version-changing PM add\" can never repair what a mid-upgrade failure created. `directive repair` only adds when `needsPmRestore`, so it is not a dependable repair either. The remaining route is hand-editing the yaml, which the draft's own Reject list rules out as the standing fix.\n\nDisposition consequence: the Bound limb should name the **shared post-add seam** - one upsert reached by every `runPmExactAdd` caller, invoked immediately after the add and before the setup/migrate hand-off - rather than `runUpgrade`'s version-change branch. This is thinner than the draft, not thicker: one site instead of a branch-specific patch, and it stays a single mechanism sentence under #3265. If the panel keeps upgrade-only scope, say so explicitly and book install-day and stranded repos as leftover-pain, rather than leaving them implied as covered.\n\n## sharpens-framing\n\n**\"Create the key/list if absent\" writes supply-chain policy into projects that configured none, and nothing ever prunes it.**\n\nEvidence: the draft's no-op rule keys on file presence, the same `existsSync` predicate `isPnpmWorkspaceRoot` already uses (pm.ts:571). File presence is not policy presence: a pnpm workspace root that never set a maturity gate would gain a Directive-authored `minimumReleaseAgeExclude:` key. Failure mode: Directive writes a supply-chain policy surface the project did not opt into, and since no removal path prunes it (`runPmRemove` touches package.json and lockfiles only, pm.ts:733-768), the row outlives the dependency and drifts stale permanently. Consequence: narrow the limb to update-if-present - rewrite the runtime rows when the key already exists, otherwise no-op silently. That also keeps the mechanism honest about coverage: it fixes projects that configured the gate here, and claims nothing about projects that configure it elsewhere.\n\n## sharpens-framing\n\n**The Bound must name the edit strategy; comment loss or an unparseable file is a worse outcome than the bug being fixed.**\n\nEvidence: the pin's `pnpm-workspace.yaml` carries the Dependabot rationale comments for #1989 / #5737 / #1717 inline above `overrides` and `allowBuilds`, and the single runtime row is quoted (`- '@deftai/directive-runtime@0.127.0'`) because a plain YAML scalar cannot begin with an at-sign. Failure modes: a parse-and-restringify helper silently drops every one of those security comments on the first upgrade; a hand-rolled line writer - which the zero-dep inventory above forces - that emits the row unquoted produces a `pnpm-workspace.yaml` that no longer parses, converting a 24h install failure into a permanently broken workspace. Consequence: one clause in the Bound (line-scoped edit of the existing list, quoted entry, no YAML round-trip), and step 3's regression asserts comment preservation and quoting next to the single-entry assertion, not entry count alone.\n\n## sharpens-framing\n\n**Plan and `--dry-run` do not mention the file the command would now rewrite.**\n\nEvidence: `runUpgrade` presents the plan, fingerprints (:1162), then honours `--dry-run` (:1164) before any write; the upgrade plan fields in `plan-present.ts` (:435-458) name the pin change only. Failure mode: `--dry-run` reports \"no changes made\" while the real run rewrites a supply-chain policy file, understating the blast radius for the one file a reviewer is most likely watching. Consequence: name the yaml row in the presented plan and dry-run lines when the upsert will fire.\n\n## footnote\n\nThe first-entry-wins reading of pnpm 11 comes from one manual repro and is not checkable under this arc's pin-read verification path. It does not need to be: replacing to exactly one entry is correct under first-wins, last-wins, or match-all. Keep it out of the CHANGELOG and commit message as an asserted upstream fact - describe the Directive-side behaviour (one row per package, equal to the pin) and leave pnpm's matching order unclaimed.\n\n## footnote\n\nHelper naming and any docs row stay footnotes under the #5783 Prefer-A Bound.\n\n## Injection / swarm lens\n\nTriggered - the change writes a supply-chain gate from a CLI-supplied value. `--target-version` is already narrowed by `validateTargetVersionSpec` before it reaches the add (bookends.ts:1039), and the upsert consumes that same validated string, so no new untrusted-input surface opens. The residual is the quoting hazard above, which is a correctness control on the writer, not an input control.\n\n## Road not taken\n\nPrune-only: let pnpm's own add-time append write the new row, and have Directive delete only stale non-target `@deftai/directive-runtime` rows. Strictly thinner, and it matches the repro, where pnpm did append the new row unprompted.\n\nSteelman: if pnpm appends on every `pnpm add` of an age-gated package, prune-only is the smaller mechanism and leaves the write to the tool that owns the file.\n\nWhat flips it: that append is upstream behaviour this arc cannot verify under pin-read, and it is conditional at minimum on the policy being active at add time. If it does not fire, prune-only deletes the old row and leaves none - a harder failure than today's. Idempotent upsert is the fail-closed choice and costs one line more in the writer.\n\n",
+          "id": 6357512379,
+          "html_url": "https://github.com/deftai/directive/issues/5854#issuecomment-6357512379",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:38:48Z",
+          "updated_at": "2026-10-23T04:38:48Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Prefer-A Bound\n\nLean: Prefer-A Bound\nconflict_group: upgrade-pnpm-runtime-age-exclude-replace-not-append\nSpec-path: Prefer-A Bound — replace-not-append runtime AgeExclude on PM add\nTarget-digest: sha256:b7730d616b7d37b525af649c0454b00a608a47da6e92254e593ff1a292b594dc\ndispatch-sha: f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\ndest: .deft-scratch/worktrees/arc-5854\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N≥3\nspend-ask: resolved\nprefer-a-draft: 6357397661\nstop-1: 6357397898\npanel-deposit: 6357403601\nRound-1: Codex 6357445024; Grok 6357465001; Claude 6357512379\nKISS ceiling: #5783 Prefer-A Bound 6280270826\nmove-forward: yes\n\n## In plain English\n\nWhen a project already lists exact @deftai/directive-runtime@* rows under minimumReleaseAgeExclude, every successful exact runtime PM-add path (upgrade / install / repair) must leave exactly one quoted @deftai/directive-runtime@<target> entry — replace before add so the add is not gated by a stale first-match, and upsert again after add so a pnpm-appended dual entry collapses. Never create the AgeExclude key or a first runtime exclude where none existed. Unrelated excludes and inline rationale comments stay. Plan/dry-run name the yaml rewrite when the upsert will fire. CHANGELOG records it.\n\n## Bound remedy\n\n- relieves: P1 — Prior-entry gated replace-not-append: if pnpm-workspace.yaml has ≥1 exact @deftai/directive-runtime@* minimumReleaseAgeExclude entries, remove those runtime exacts and ensure exactly one quoted @deftai/directive-runtime@<targetVersion> entry; no create-if-absent / no ensure-key; leave unrelated exclude rows; line-scoped edit (no YAML round-trip that drops #1989/#5737/#1717 rationale comments).\n- relieves: P2 — Shared pre+post runPmExactAdd seam: invoke that upsert from every runPmExactAdd caller (runUpgrade version-change, runFirstInstall, runRepair needsPmRestore) immediately before add when the P1 gate is true, and again immediately after successful add (idempotent dual-entry collapse) before setup/migrate handoff; dry-run/plan disclosure when the upsert will fire.\n- relieves: P3 — Regression + CHANGELOG: fixtures cover old-only and old+target pre-normalization → exactly one @new afterward; unrelated rows + comment preservation + quoted entry asserted; dual-entry/leave-old shapes fail; CHANGELOG [Unreleased].\n\n## Accept-into-contract (Round-1)\n\n- Grok F1: prior-entry gate; no create-if-absent consumer injection (blocks draft as written).\n- Grok F2: replace before runPmExactAdd when gate true.\n- Codex C1: post-add dual-entry (old,target) regression / idempotent collapse.\n- Claude blocks: shared seam across install/repair/upgrade (not upgrade-only); line-scoped quoted edit; plan/dry-run disclosure.\n- Claude/Grok footnotes: first-match order unclaimed; helper naming/docs footnote; install-day absent-key keep-out under prior-entry gate.\n\n## Reject\n\n- Create-if-absent / ensure-key AgeExclude on consumer workspaces that had no runtime exact exclude.\n- Bare-name @deftai/directive-runtime AgeExclude (widens maturity gate).\n- Upgrade-only siting that leaves install/repair and stranded mid-upgrade unrepaired.\n- YAML parse-and-restringify that drops workspace rationale comments.\n- Patching pnpm upstream or manual post-upgrade yaml as the standing fix.\n- Rewriting unrelated vite/brace-expansion/postcss/source-map-js excludes.\n\n## file_scope\n\n- packages/cli/src/bookends.ts\n- packages/cli/src/pm.ts (or adjacent zero-dep AgeExclude helper colocated with launcher)\n- packages/cli/src/plan-present.ts (dry-run/plan disclosure when upsert fires)\n- packages/cli tests (upgrade-bookend / pm / adjacent)\n- CHANGELOG.md",
+          "id": 6357525566,
+          "html_url": "https://github.com/deftai/directive/issues/5854#issuecomment-6357525566",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:39:54Z",
+          "updated_at": "2026-10-23T04:39:54Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfamily: codex\nid-ceiling: 6357525566\ndispatch-sha: f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\nfinding-classes: none\nharvest-changed: false\n\nPain-audit verdict: Prefer-A Bound 6357525566 covers Stop 1 P1-P3. No blocking or sharpening finding; no Bound-remedy change required.\n\nP1: Covered. The prior-exact-entry gate admits the reported old-only and old+target states. Replacing all exact runtime entries with one quoted target removes both stale-first and duplicate outcomes while preserving unrelated policy. Pre-add normalization addresses the stale exclusion during the add; post-success normalization addresses entries appended by pnpm. This does not depend on independently proving pnpm's reported first-match semantics.\n\nP2: Covered. The Bound names the shared pre+post PM-add seam across upgrade, first install, and repair, with post-add normalization before setup/migrate. At the dispatch pin, pm.ts:710-720 only spawns the package manager, and bookends.ts:1218 onward advances from successful add into verification and setup without normalization. The proposed seam closes that missing ownership directly. A later setup failure no longer strands an exclusion that this successful add left stale. Repositories already stranded before this fix, and paths that perform no PM add, are not promised retrospective repair by this mechanism; that does not leave the named version-changing-upgrade pain uncovered.\n\nP3: Covered. The Bound requires old-only and old+target fixtures, exactly one target afterward, failure for leave-old/dual-entry results, and preservation/quoting assertions. Its explicit acceptance of Round-1 Codex C1 also retains the post-add duplicate regression: the injected successful PM add must be allowed to append a runtime row before the second normalization, rather than testing only a helper's initial input. These assertions distinguish the remedy from replace-first and target-present early-return implementations. CHANGELOG is included.\n\nThe no-first-exclusion rule is an intentional authority boundary, not missing relief for the observed prior-entry repro. The shared seam and existing mutation boundary need no additional subsystem. Read the issue body, Stop 1, all three specified Round-1 critiques, the Bound, and contract Pain coverage; code verification used the dispatch SHA. No runtime pnpm reproduction or implementation verification is claimed.\n\nPain-audit complete; returning to the parent for disposition. EXIT.",
+          "id": 6357555549,
+          "html_url": "https://github.com/deftai/directive/issues/5854#issuecomment-6357555549",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:42:24Z",
+          "updated_at": "2026-10-23T04:42:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfamily: grok\nid-ceiling: 6357525566\ndispatch-sha: f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\nfinding-classes: none\nharvest-changed: false\n\nPain-audit of Prefer-A Bound 6357525566 against Stop 1 6357397898 (P1–P3).\nMandatory reads: issue body, Stop 1, Round-1 Codex 6357445024 / Grok 6357465001 / Claude 6357512379, Bound 6357525566, contract Pain coverage (#4496 / #5783 footnote posture).\nPin-read at f0b2a362: packages/cli/src/bookends.ts (runFirstInstall:625, runRepair needsPmRestore:741, runUpgrade versionChange:1220 all call runPmExactAdd; handOffSetup after add), packages/cli/src/pm.ts (runPmExactAdd / isPnpmWorkspaceRoot / planCriticalRelPaths; no AgeExclude writer), pnpm-workspace.yaml (exact quoted `@deftai/directive-runtime@0.127.0` plus unrelated rows and #1989/#5737/#1717 rationale comments). Honor ceiling 6357525566.\n\n## Coverage\n\n**pain-P1** — Bound limb `relieves: P1` prior-entry gated replace-not-append closes the observed leave-old / first-match-old AgeExclude footgun. Gate (≥1 exact `@deftai/directive-runtime@*` rows) plus no create-if-absent / no ensure-key absorbs Grok Round-1 F1 (blocks draft create-if-absent consumer injection) without widening maturity policy into workspaces that never opted in. Line-scoped quoted edit preserves unrelated excludes and inline rationale comments (Claude sharpening). Pin confirms tip still carries only `@0.127.0` with no Directive writer — mechanism gap, not mis-aimed append helper.\n\n**pain-P2** — Bound limb `relieves: P2` shared pre+post seam on every `runPmExactAdd` caller matches pin call sites (install / repair-when-needsPmRestore / upgrade version-change). Pre-add when the P1 gate is true absorbs Grok F2 (stale first-match during add). Post-add before setup/migrate handoff absorbs Codex C1 dual-entry collapse and Claude blocks-the-design (upgrade-only siting / stranding when handOffSetup fails after a successful add — yaml is already normalized). Plan/dry-run disclosure when the upsert will fire is named; file_scope includes plan-present.ts. Reject upgrade-only and create-if-absent survive.\n\n**pain-P3** — Bound limb `relieves: P3` requires old-only and old+target pre-normalization fixtures → exactly one `@new`, plus unrelated-row / comment-preservation / quoted-entry asserts, dual-entry/leave-old fail shapes, and CHANGELOG [Unreleased]. Matches Codex C1 regression sharpening and Claude quoting/comment assertion.\n\n## Census\n\nNo new `blocks-the-design` or `sharpens-framing` against Bound 6357525566. Round-1 accepted footnotes (first-match order unclaimed; helper naming/docs; install-day absent-key keep-out under the prior-entry gate) stay footnotes under KISS #5783 / writing-bar #3368 — they do not change Bound-remedy mechanism or fail-closed association, so `harvest-changed: false`.\n\nVerdict: Prefer-A Bound 6357525566 relieves pain-P1, pain-P2, and pain-P3 as written.",
+          "id": 6357574886,
+          "html_url": "https://github.com/deftai/directive/issues/5854#issuecomment-6357574886",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:44:02Z",
+          "updated_at": "2026-10-23T04:44:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfamily: claude\nid-ceiling: 6357525566\ndispatch-sha: f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\nfinding-classes: blocking, sharpening, footnote\nharvest-changed: true\n\nPain-audit of Prefer-A Bound 6357525566 against Stop 1 P1–P3. Read: issue body, Stop 1 6357397898, draft 6357397661, panel-deposit 6357403601, Round-1 6357445024 / 6357465001 / 6357512379, Bound 6357525566. Pin-read at `f0b2a3623` only; no post-ceiling input; no product edits.\n\nThree Round-1 worries are now closed by the Bound's own wording and I withdraw them: siting the post-add upsert **before setup/migrate handoff** removes the stranded-mid-upgrade shape I raised (the yaml is already correct when `handOffSetup` fails at bookends.ts:1246); the prior-entry gate closes create-if-absent; the pre-add limb closes first-match-old during the add. The pre-add write is also safe against the plan guard — `assertPlanStillValid` runs once per path (bookends.ts:615, :735, :1179) strictly before the mutation point at all three sites, and `--dry-run` returns before each, so a Directive write to the plan-critical `pnpm-workspace.yaml` (pm.ts:486-496) cannot invalidate its own run.\n\n## pain-P1 — relieved on the forward path; **blocking** gap on the already-broken population\n\nThe remedy fires only where `runPmExactAdd` fires. At the pin that is three sites and no more (`git grep` at `f0b2a3623`, non-test: bookends.ts:625, :741, :1220). A repo that is already in the issue's end state — new pin, lockfile and installed package agreeing, stale or dual runtime row in the yaml — reaches none of them:\n\n- `directive upgrade` → `versionChange` is false (`versionOrd !== 0` fails, not oldStyle), so control takes the equal-version path at :1313, which performs no PM add.\n- `directive repair` → `lockOk` and `installedOk` are both true, so `needsPmRestore` is false (:696) and the add at :741 is skipped.\n- `directive install` on an existing exact pin routes to `runRepair` (:531/:535), i.e. the same no-op.\n\nSo the remedy heals the yaml on the *next* version bump and never heals the state the issue actually reports. The Bound's Reject list already claims this ground — \"Upgrade-only siting that leaves install/repair and stranded mid-upgrade unrepaired\" — but the P2 limb re-gates repair behind `needsPmRestore`, which is exactly the condition that is false whenever the yaml row is the only thing wrong. Reject clause and mechanism disagree.\n\nDisposition consequence: ungate the repair-side upsert — run the P1 prior-entry-gated upsert on every `runRepair` that passes approval and the plan check, not only when `needsPmRestore`. That is thinner than it sounds: repair's charter is drift reconciliation, the yaml row becomes Directive-owned drift the moment this lands, repair already presents a plan and already honours dry-run, and no new call site or file enters `file_scope`. If the panel prefers to keep repair add-gated, say so and book \"repos already holding a stale runtime AgeExclude\" as leftover-pain explicitly, and drop the third Reject bullet, rather than leaving the population implied as covered.\n\n## pain-P2 — seam is right; one **sharpening** on writer anchoring\n\nShared pre+post seam across the three callers is the correct reach and `deps.runPmAdd` (:623, :739, :1218) gives the implementer the seam without new plumbing.\n\nThe P1 limb says \"line-scoped edit\" and \"leave unrelated exclude rows\", which under-specifies the anchor. At the pin, the string `@deftai/directive-runtime` occurs **twice** in `pnpm-workspace.yaml`: once as `'@deftai/directive-runtime': true` under `allowBuilds`, once as `- '@deftai/directive-runtime@0.127.0'` under `minimumReleaseAgeExclude`. A line-scoped writer that matches the package name file-wide rather than within the exclude block can rewrite or drop the `allowBuilds` row, which re-arms pnpm 11 strictDepBuilds against the runtime's postinstall (the #1717 keep-out recorded in the comment above that block) — a permanent install failure traded for a 24h one, the same shape as the quoting hazard the Bound already guards. Consequence: one clause — the edit is scoped to the `minimumReleaseAgeExclude` block, matched on exact `@deftai/directive-runtime@<version>` list items within it; everything outside that block is untouched.\n\n## pain-P3 — **sharpening**: the two accepted blocks have no fail-closed test\n\nThe listed fixtures (old-only, old+target) assert the postcondition of the *whole* path. Two of the Bound's own accepted findings survive those assertions unbroken:\n\n1. **Reject #1 (no create-if-absent) is untested.** Neither fixture has a gate-false input, so an implementation that cheerfully creates `minimumReleaseAgeExclude:` in a workspace that never had it passes the entire suite. Grok F1 was accepted as blocking the draft; nothing fails closed on it. Add two gate-false fixtures — yaml with no `minimumReleaseAgeExclude` key, and yaml with the key but no runtime exact row — each asserting the file comes back **byte-identical**. Byte-identity also subsumes the comment-preservation and unrelated-row assertions more cheaply than asserting them severally, and it is the assertion that would have caught the `allowBuilds` hazard above. (Note the pin's rationale comments sit above `overrides` and `allowBuilds`, not inside the exclude list, so \"comment preservation\" alone is nearly free and proves little.)\n2. **The pre-add half of P2 is untested.** Every listed assertion is on the final state, which a post-add-only implementation satisfies in both fixtures — while leaving the same-day add gated by the stale first-match, the precise cause Grok F2 was accepted for. Assert ordering at the existing `deps.runPmAdd` seam: the injected fake reads `pnpm-workspace.yaml` when it is called and asserts it already holds exactly one quoted runtime row equal to target. One line inside the fake, no new harness.\n\n## Footnotes\n\n- **Workspace-member shape.** The gate necessarily keys on `projectRoot`'s yaml (`isPnpmWorkspaceRoot`, pm.ts:571, a bare `existsSync`), but the file pnpm honours is the workspace *root*'s. Directive installed into a member package of a pnpm workspace gets gate-false and the stale row at the real root survives. Correct keep-out under the prior-entry gate and under KISS; book as leftover-pain, do not grow the Bound.\n- **Ordering constraint worth one clause**, since it is invariant rather than discovery: the upsert sits after `assertPlanStillValid` at each site. Verified safe today; naming it stops a later refactor from hoisting the write above the guard and turning every gated upgrade into \"Plan invalidated\".\n- Match rule for prior rows (single- vs double-quoted, non-exact specifiers) stays implementer detail under #5783.\n\nFootnote-class items above are harvest-changed-neutral; **harvest-changed: true** rests on the P1 blocking (repair call-site gating) and the P3 fail-closed associations, both of which change the Bound remedy mechanism rather than its prose.\n\nCritic complete; returning to the parent.\n\n",
+          "id": 6357587496,
+          "html_url": "https://github.com/deftai/directive/issues/5854#issuecomment-6357587496",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:45:04Z",
+          "updated_at": "2026-10-23T04:45:04Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nspend-amend: N≥3 → N=2\nseat-families: codex,grok\nreason: Claude PA-1 6357587496 harvest-changed:true thrash containment (same class as #5478 / #5783 KISS Remut pattern on #5852/#5804/#5810); Codex 6357555549 and Grok 6357574886 returned finding-classes: none / harvest-changed: false\nKISS ceiling: #5783 Prefer-A Bound 6280270826\nprior-bound: 6357525566\npain-audit-disposed: 6357587496",
+          "id": 6357598382,
+          "html_url": "https://github.com/deftai/directive/issues/5854#issuecomment-6357598382",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:45:57Z",
+          "updated_at": "2026-10-23T04:45:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Prefer-A Bound\n\nLean: Prefer-A Recut-1\nconflict_group: upgrade-pnpm-runtime-age-exclude-replace-not-append\nSpec-path: Prefer-A Recut-1 — repair-side prior-entry AgeExclude heal + fail-closed fixtures\nRecut: supersedes Prefer-A Bound 6357525566\nSupersedes: 6357525566\nTarget-digest: sha256:b7730d616b7d37b525af649c0454b00a608a47da6e92254e593ff1a292b594dc\ndispatch-sha: f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\ndest: .deft-scratch/worktrees/arc-5854\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N=2\nspend-ask: resolved\nseat-families: codex,grok\nprefer-a-draft: 6357397661\nstop-1: 6357397898\npanel-deposit: 6357403601\nRound-1: Codex 6357445024; Grok 6357465001; Claude 6357512379\nprior-bound: 6357525566\npain-audit-disposed: 6357587496\nPA-1 clear retained: Codex 6357555549; Grok 6357574886\ndual-stop-raise:+1\nKISS ceiling: #5783 Prefer-A Bound 6280270826\nmove-forward: yes\n\n## In plain English\n\nSame Prefer-A core as Bound 6357525566: prior-entry gated replace-not-append of exact runtime AgeExclude rows to one quoted target, with pre+post runPmExactAdd seams. Recut-1 remints for Claude PA-1 fail-closed associations only: (1) runRepair also heals prior-entry AgeExclude drift when needsPmRestore is false, so already-stranded tip states heal without waiting for the next version bump; (2) regressions add gate-false byte-identical fixtures and a pre-add seam assertion. AgeExclude-block scoping (not allowBuilds) stays in the replace limb. N=2 seats Codex+Grok after Claude thrash.\n\n## Bound remedy\n\n- relieves: P1 — AgeExclude-block prior-entry replace: within the minimumReleaseAgeExclude list only, if ≥1 exact @deftai/directive-runtime@* items exist, remove those runtime exacts and ensure exactly one quoted @deftai/directive-runtime@<targetVersion> item; never touch allowBuilds or other keys; no create-if-absent; leave unrelated exclude rows; line-scoped edit (no YAML round-trip).\n- relieves: P2 — Shared add+repair heal seams: invoke P1 upsert from every runPmExactAdd caller (upgrade version-change, first-install, repair-when-adding) immediately before add when the gate is true and again after successful add before setup/migrate; also invoke the same prior-entry upsert on runRepair after approval/plan even when needsPmRestore is false (stranded stale/dual exclude heal); dry-run/plan disclosure when upsert will fire.\n- relieves: P3 — Fail-closed fixtures + CHANGELOG: old-only and old+target → exactly one @new; gate-false fixtures (no AgeExclude key; key with no runtime exact) assert byte-identical yaml; injected runPmAdd fake asserts pre-add yaml already holds exactly one quoted target; dual-entry/leave-old fail; CHANGELOG [Unreleased].\n\n## Accept-into-contract\n\n- Claude PA-1 P1 blocking: ungate repair-side upsert from needsPmRestore (reminted P2 title).\n- Claude PA-1 P2 sharpening: AgeExclude-block scoping (reminted into P1 title).\n- Claude PA-1 P3 sharpening: gate-false byte-identical + pre-add seam assertion (reminted P3 title).\n- Codex/Grok PA-1 clear retained on prior Bound; Recut remints titles so harvest digest changes.\n\n## Reject\n\n- Create-if-absent / ensure-key on workspaces with no prior exact runtime AgeExclude.\n- Bare-name runtime AgeExclude.\n- YAML round-trip that drops rationale comments or rewrites allowBuilds.\n- Patching pnpm upstream or manual yaml as the standing fix.\n- Workspace-member root-discovery widen (footnote/leftover under KISS).\n\n## file_scope\n\n- packages/cli/src/bookends.ts\n- packages/cli/src/pm.ts (or adjacent zero-dep helper)\n- packages/cli/src/plan-present.ts\n- packages/cli tests\n- CHANGELOG.md",
+          "id": 6357598598,
+          "html_url": "https://github.com/deftai/directive/issues/5854#issuecomment-6357598598",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:45:58Z",
+          "updated_at": "2026-10-23T04:45:58Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfamily: codex\nid-ceiling: 6357598598\ndispatch-sha: f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\nfinding-classes: none\nharvest-changed: false\n\nPain-audit verdict: Prefer-A Recut-1 6357598598 covers Stop 1 P1-P3. No further mechanism change required.\n\nRead: issue body; Stop 1 6357397898; prior Bound 6357525566; Claude PA 6357587496; Codex/Grok PA-1 6357555549/6357574886; Recut-1 6357598598. Code checks used the dispatch SHA; no post-ceiling design input used.\n\n- pain-P1: Covered. Prior-entry replacement within minimumReleaseAgeExclude produces one quoted target and preserves the no-first-exclusion boundary. The added runRepair limb reaches the already-stranded state even when package, pin, and lockfile agree. At the pin, needsPmRestore is computed solely from lock/installed agreement and guards the add; Recut explicitly places healing outside that condition, after approval and plan validation. Claude PA-1's blocking repair-gating finding is disposed by this mechanism change.\n- pain-P2: Covered. Shared pre-add normalization removes stale entries before the add; post-success normalization collapses PM-appended duplicates before setup/migrate. Repair without an add now has its own invocation of the same helper. Explicit AgeExclude-block scoping and the prohibition on touching allowBuilds dispose Claude's writer-anchoring sharpening. Plan/dry-run disclosure remains named. No new subsystem is needed.\n- pain-P3: Covered. Old-only and old+target fixtures reject stale/dual outcomes. Gate-false byte-identical fixtures and the injected add's pre-call target assertion dispose both Claude fail-closed sharpenings. The retained prior-Bound/Codex C1 post-add duplicate regression remains relevant: a successful fake add that appends an old runtime row must still finish with one target. Recut describes the same pre+post core and adds fixtures; it does not withdraw that accepted regression. CHANGELOG is included.\n\nPrior PA disposition: Claude 6357587496's blocking and sharpening findings are absorbed by Recut-1. Codex/Grok PA-1 clear conclusions remain valid for the forward upgrade path; Recut additionally covers retrospective repair. Workspace-member root discovery remains explicit leftover pain under the Reject list. Guard ordering, quote variants, and helper naming require no further remedy remint; under KISS #5783 those implementation details remain harvest-neutral.\n\nThis is design coverage, not implementation validation or a runtime pnpm reproduction. harvest-changed:false is relative to Recut-1, whose changes already absorb the prior PA.\n\nPain-audit complete. EXIT.",
+          "id": 6357613279,
+          "html_url": "https://github.com/deftai/directive/issues/5854#issuecomment-6357613279",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:47:14Z",
+          "updated_at": "2026-10-23T04:47:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfamily: grok\nid-ceiling: 6357598598\ndispatch-sha: f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\nfinding-classes: none\nharvest-changed: false\n\nPain-audit of Prefer-A Recut-1 6357598598 (supersedes 6357525566) against Stop 1 6357397898 (P1–P3). Disposes prior blocking Claude PA 6357587496. Mandatory reads: issue body, Stop 1, prior Bound 6357525566, Claude PA 6357587496, Codex/Grok PA-1 clear 6357555549/6357574886, Recut-1 6357598598. Pin-read at f0b2a362: bookends.ts runFirstInstall:625 / runRepair needsPmRestore:696+741 / runUpgrade versionChange:1220; pm.ts runPmExactAdd / isPnpmWorkspaceRoot; pnpm-workspace.yaml allowBuilds + AgeExclude `@0.127.0`. Honor ceiling 6357598598. KISS #5783 Prefer-A Bound 6280270826.\n\n## Coverage\n\n**pain-P1** — Recut limb `relieves: P1` AgeExclude-block prior-entry replace closes Stop 1 leave-old / first-match-old. Gate (≥1 exact `@deftai/directive-runtime@*` inside `minimumReleaseAgeExclude` only) plus never-touch allowBuilds / no create-if-absent absorbs Claude PA-1 P2 sharpening and keeps the #1717 allowBuilds keep-out. Pin still shows package name under both allowBuilds and AgeExclude — block scoping is the required writer anchor.\n\n**pain-P2** — Recut limb `relieves: P2` keeps shared pre+post `runPmExactAdd` seams (upgrade version-change, first-install, repair-when-adding) and remints Claude PA-1 P1 blocking: same prior-entry upsert on `runRepair` after approval/plan even when `needsPmRestore` is false. That heals the already-stranded tip population (install → runRepair; lockOk+installedOk with stale/dual yaml) without waiting for the next version bump. Plan/dry-run disclosure retained. Reject create-if-absent and YAML round-trip survive.\n\n**pain-P3** — Recut limb `relieves: P3` keeps old-only / old+target → exactly one `@new`, dual-entry/leave-old fail, CHANGELOG, and remints Claude PA-1 P3 sharpening: gate-false byte-identical fixtures (no AgeExclude key; key with no runtime exact) plus injected `runPmAdd` fake asserting pre-add yaml already holds exactly one quoted target.\n\n## Census\n\nClaude PA 6357587496 blocking + sharpenings are Accept-into-contract on Recut-1 with reminted Bound-remedy titles. No new blocks-the-design or fail-closed association against Recut-1. Workspace-member root-discovery stays Reject/footnote under KISS. Equal-version upgrade still routes heal through repair (the reminted charter), not a second upgrade call site — footnote only.\n\nfinding-classes: none\nharvest-changed: false\n\nVerdict: Prefer-A Recut-1 6357598598 relieves pain-P1, pain-P2, and pain-P3; prior blocking PA 6357587496 disposed.\n\nPain-audit complete; returning to the parent. EXIT.",
+          "id": 6357630578,
+          "html_url": "https://github.com/deftai/directive/issues/5854#issuecomment-6357630578",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:48:41Z",
+          "updated_at": "2026-10-23T04:48:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfamily: grok\nid-ceiling: 6357598598\ndispatch-sha: f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\nfinding-classes: none\nharvest-changed: false\n\nPain-audit of Prefer-A Recut-1 6357598598 (supersedes 6357525566) against Stop 1 6357397898 (P1-P3). Disposes prior blocking Claude PA 6357587496. Mandatory reads: issue body, Stop 1, prior Bound 6357525566, Claude PA 6357587496, Codex/Grok PA-1 clear 6357555549/6357574886, Recut-1 6357598598. Pin-read at f0b2a362: bookends.ts runFirstInstall:625 / runRepair needsPmRestore:696+741 / runUpgrade versionChange:1220; pm.ts runPmExactAdd / isPnpmWorkspaceRoot; pnpm-workspace.yaml allowBuilds + AgeExclude @0.127.0. Honor ceiling 6357598598. KISS #5783 Prefer-A Bound 6280270826.\n\n## Coverage\n\n**pain-P1** — Recut limb relieves: P1 AgeExclude-block prior-entry replace closes Stop 1 leave-old / first-match-old. Gate (one or more exact @deftai/directive-runtime@* inside minimumReleaseAgeExclude only) plus never-touch allowBuilds / no create-if-absent absorbs Claude PA-1 P2 sharpening and keeps the #1717 allowBuilds keep-out. Pin still shows package name under both allowBuilds and AgeExclude — block scoping is the required writer anchor.\n\n**pain-P2** — Recut limb relieves: P2 keeps shared pre+post runPmExactAdd seams (upgrade version-change, first-install, repair-when-adding) and remints Claude PA-1 P1 blocking: same prior-entry upsert on runRepair after approval/plan even when needsPmRestore is false. That heals the already-stranded tip population (install routes to runRepair; lockOk+installedOk with stale/dual yaml) without waiting for the next version bump. Plan/dry-run disclosure retained. Reject create-if-absent and YAML round-trip survive.\n\n**pain-P3** — Recut limb relieves: P3 keeps old-only / old+target to exactly one @new, dual-entry/leave-old fail, CHANGELOG, and remints Claude PA-1 P3 sharpening: gate-false byte-identical fixtures (no AgeExclude key; key with no runtime exact) plus injected runPmAdd fake asserting pre-add yaml already holds exactly one quoted target.\n\n## Census\n\nClaude PA 6357587496 blocking + sharpenings are Accept-into-contract on Recut-1 with reminted Bound-remedy titles. No new blocks-the-design or fail-closed association against Recut-1. Workspace-member root-discovery stays Reject/footnote under KISS. Equal-version upgrade still routes heal through repair (the reminted charter), not a second upgrade call site — footnote only.\n\nfinding-classes: none\nharvest-changed: false\n\nVerdict: Prefer-A Recut-1 6357598598 relieves pain-P1, pain-P2, and pain-P3; prior blocking PA 6357587496 disposed.\n\nPain-audit complete; returning to the parent. EXIT.",
+          "id": 6357634072,
+          "html_url": "https://github.com/deftai/directive/issues/5854#issuecomment-6357634072",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:48:59Z",
+          "updated_at": "2026-10-23T04:50:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Evidence | Status |\n|---|---|---|\n| Prior-entry gated replace-not-append of exact runtime AgeExclude rows is the Prefer-A mechanism | Issue body repro; Stop 1 P1–P3; Round-1 Grok F1/F2 6357465001; Prefer-A Recut-1 6357598598 limb P1 | verified |\n| Shared pre+post runPmExactAdd seams plus repair-side prior-entry heal (even when needsPmRestore false) close upgrade/install/repair and stranded tip states | Round-1 Claude 6357512379; Claude PA-1 6357587496; Recut-1 limb P2 | verified |\n| Fail-closed fixtures (old-only, old+target, gate-false byte-identical, pre-add seam assert) + CHANGELOG lock the association | Codex C1 6357445024; Claude PA-1 P3; Recut-1 limb P3 | verified |\n| No create-if-absent / bare-name / allowBuilds rewrite / pnpm upstream patch | Reject lists on Bound/Recut; PA-2 Codex 6357613279 + Grok 6357634072 clear | verified |\n| PA-2 clear with harvest-changed: false disposes Claude PA-1 blocking harvest | Codex 6357613279; Grok 6357634072; spend-amend 6357598382 | verified |\n\ndispatch-sha: f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\nsuccessor-lean: Prefer-A Recut-1 6357598598\narc-mode: no-ingest",
+          "id": 6357656198,
+          "html_url": "https://github.com/deftai/directive/issues/5854#issuecomment-6357656198",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:50:51Z",
+          "updated_at": "2026-10-23T04:50:51Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "design-critique: synthesis accepted, because agents agreed (empty disagreement set) citing Prefer-A Recut-1 successor lean 6357598598 and verified-claims table 6357656198\n\n## In plain English\n\n#5854 Prefer-A will make every exact runtime PM-add path (and repair even without needsPmRestore) leave exactly one quoted @deftai/directive-runtime@<target> under minimumReleaseAgeExclude when prior exact runtime rows already exist — replace before add, collapse after add, never create the key for consumers that never opted in, never touch allowBuilds. Fail-closed fixtures and CHANGELOG lock it. Ingest remains a separate operator verb.\n\n## Completed-arc record\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N=2 (amended from N≥3 after Claude PA thrash)\ndest: .deft-scratch/worktrees/arc-5854\ndispatch-sha: f0b2a3623a6be6ab2952bcafca0c8114b2b058cf\nBound contract: successor lean 6357598598, confirmed by operator, verified-claims table 6357656198\nStop 1: 6357397898\npanel-deposit: 6357403601\nPrefer-A draft: 6357397661\nRound-1: Codex 6357445024; Grok 6357465001; Claude 6357512379\nPrefer-A Bound: 6357525566\nPA-1: Codex 6357555549 (clear); Grok 6357574886 (clear); Claude 6357587496 (blocking → Recut)\nspend-amend: 6357598382\nPrefer-A Recut-1: 6357598598\nPA-2: Codex 6357613279 (clear); Grok 6357634072 (clear)\nverified-claims table: 6357656198\nKISS ceiling: #5783 Prefer-A Bound 6280270826\n\ndisagree: (empty)\ndefer: (empty)",
+          "id": 6357656369,
+          "html_url": "https://github.com/deftai/directive/issues/5854#issuecomment-6357656369",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-23T04:50:52Z",
+          "updated_at": "2026-10-23T04:50:52Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\n`directive upgrade --target-version <ver>` **appends** a new `minimumReleaseAgeExclude` entry for `@deftai/directive-runtime@<ver>` in `pnpm-workspace.yaml` and keeps the old version's entry. In our test, pnpm 11 honoured only the first entry for the package, which is the old one, so the new exclusion had no effect. For the first 24h after a release, `pnpm install` (and `pnpm install --frozen-lockfile` in CI) therefore fails.\n\n## Repro (upgrade 0.127.0 → 0.128.0 on deftai/directive master `f0b2a3623`, pnpm 11.8.0)\n\nUpgrade output (exit 0) changed `pnpm-workspace.yaml` to:\n\n```yaml\nminimumReleaseAgeExclude:\n  ...\n  - '@deftai/directive-runtime@0.127.0'\n  - '@deftai/directive-runtime@0.128.0'\n```\n\nThen:\n\n```\n$ pnpm install --frozen-lockfile\n✗ Lockfile failed supply-chain policy check (173 entries)\n[ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION] 1 lockfile entries failed verification:\n  @deftai/directive-runtime@0.128.0 was published at 2026-10-23T03:15:37.000Z, within the minimumReleaseAge cutoff\n```\n\n`pnpm config get minimumReleaseAgeExclude` listed both entries. Removing the stale `@0.127.0` line, so the list has a single `@deftai/directive-runtime@0.128.0` entry, fixed it:\n\n```\n✓ Lockfile passes supply-chain policies (173 entries)\nDone in 1s using pnpm v11.8.0\n```\n\n## Expected\n\nThe upgrader **replaces** the previous `@deftai/directive-runtime@<old>` exclude entry with the target version. Alternatively it could write a single merged selector, but replacing is simpler, since the old version is the outgoing pin. The result should be one entry per package, so a same-day pin bump installs locally and in frozen CI installs.\n\nPart of the pin/master skew tracked in #5848.\n\n_Filed by Grok Bot (Engineering) for @MScottAdams_\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5991776980,
+        "origin": "deftai/directive#5854",
+        "id": "github.issue.5991776980"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "b7730d616b7d37b525af649c0454b00a608a47da6e92254e593ff1a292b594dc"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "upgrade-pnpm-runtime-age-exclude-replace-not-append",
+        "expected_outputs": [
+          "prior-entry gated, line-scoped replace of exact runtime minimumReleaseAgeExclude rows with one quoted target",
+          "shared pre+post heal seam around every runPmExactAdd caller; repair-side heal when needsPmRestore is false; plan/dry-run disclosure",
+          "fail-closed fixtures (old-only, old+target, gate-false byte-identical, pre-add seam assert)",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "npx vitest run packages/cli/src/age-exclude.test.ts packages/cli/src/install-bookend.test.ts packages/cli/src/bookend-robustness-2p.test.ts"
+        ],
+        "file_scope": [
+          "packages/cli/src/age-exclude.ts",
+          "packages/cli/src/age-exclude.test.ts",
+          "packages/cli/src/bookends.ts",
+          "CHANGELOG.md"
+        ],
+        "size": "S",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5854",
+          "Prefer-A Recut-1 6357598598",
+          "#5848",
+          "#5783"
+        ],
+        "parallel_safe": false
+      }
+    },
+    "id": "github.issue.5991776980",
+    "updated": "2026-10-23T06:32:37Z"
+  }
+}

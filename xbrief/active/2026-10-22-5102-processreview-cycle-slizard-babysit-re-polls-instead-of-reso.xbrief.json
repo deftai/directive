@@ -1,0 +1,189 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5102",
+    "updated": "2026-10-22T15:35:22Z"
+  },
+  "plan": {
+    "title": "process(review-cycle): SLizard babysit re-polls instead of resolving carried fingerprints",
+    "status": "running",
+    "narratives": {
+      "Description": "On SLizard merge-blocking findings, babysit must read the tip review body and resolve Previously mentioned fingerprints before re-arming wait-mergeable. #3167 weather carve-out must not over-license ignoring parseable blocking findings when Greptile is clean.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5102",
+      "Overview": "Prefer-A Bound lean 5872632888 / synthesis 5872759241: merge-ready tip-body MUST, #3167 vs #4387 rewrite, compose existing falsify HOW, residual fixture.",
+      "Labels": "bug, agent-experience, review-cycle, process, source-of-truth, area:cli, design-critique:ingest-ready, framework-gap, core-capabilities",
+      "UserStory": "As a review-cycle babysitter, I want merge-ready SLizard blocks to force tip-body fingerprint work before re-arming wait, so that Previously mentioned P1s cannot idle-poll forever under a Greptile-clean #3167 ignore license.",
+      "ImplementationPlan": "1. Edit content/skills/deft-directive-review-cycle/SKILL.md for merge-ready/wait-mergeable SLizard tip-body MUST and #3167 weather vs residual split; recut matching anti-pattern catalog bullet.\n2. Add one-liner cross-link in packages/core/src/slizard/slizard-gate.ts and/or scm docs if needed.\n3. Compose existing head-blob falsify HOW; add regression/fixture that carried-open fingerprint is unfinished residual.\n4. Mirror consumer-relevant always-pin text via content/templates/agents-entry.md + task agents:refresh; CHANGELOG.md Unreleased."
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "relieves: P1 — On pr:merge-ready / wait-mergeable SLizard-blocked (parseable request_changes or merge_impact=blocking), before re-arming wait the owner MUST read tip SLizard review body, enumerate new and Previously mentioned fingerprints, falsify with git show <head>:<path> or fix in one residual batch; keep pr:watch Greptile ownership unchanged",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P1 — On pr:merge-ready / wait-mergeable SLizard-blocked (parseable request_changes or merge_impact=blocking), before re-arming wait the owner MUST read tip SLizard review body, enumerate new and Previously mentioned fingerprints, falsify with git show <head>:<path> or fix in one residual batch; keep pr:watch Greptile ownership unchanged",
+          "Traces": "#5102"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "relieves: P2 — Compose existing head-blob check (slizard#2694), same-fingerprint stop, and --skip-slizard override; do not invent a third poller",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P2 — Compose existing head-blob check (slizard#2694), same-fingerprint stop, and --skip-slizard override; do not invent a third poller",
+          "Traces": "#5102"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "relieves: P3 — Rewrite #3167 advisory so weather is only timeout/cancelled/unparseable/zero-finding/missing-check; parseable blocking findings with open tip fingerprints are unfinished residual under #2189/#4387; recut matching always-pin anti-pattern catalog bullet with that rewrite",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P3 — Rewrite #3167 advisory so weather is only timeout/cancelled/unparseable/zero-finding/missing-check; parseable blocking findings with open tip fingerprints are unfinished residual under #2189/#4387; recut matching always-pin anti-pattern catalog bullet with that rewrite",
+          "Traces": "#5102"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Regression/fixture proves carried-open fingerprint is unfinished residual, not weather",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Regression/fixture proves carried-open fingerprint is unfinished residual, not weather",
+          "Traces": "#5102"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "CHANGELOG Unreleased for #5102; non-goals: no global non-blocking flip; no default --skip-slizard; no silent merge of P1+request_changes",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: CHANGELOG Unreleased for #5102; non-goals: no global non-blocking flip; no default --skip-slizard; no silent merge of P1+request_changes",
+          "Traces": "#5102"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "review-cycle",
+      "process",
+      "source-of-truth",
+      "area:cli",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5102",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5102: process(review-cycle): SLizard babysit re-polls instead of resolving carried fingerprints"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P1 — On pr:merge-ready / wait-mergeable SLizard-blocked (parseable request_changes or merge_impact=blocking), before re-arming wait the owner MUST read tip SLizard review body, enumerate new and Previously mentioned fingerprints, falsify with git show <head>:<path> or fix in one residual batch; keep pr:watch Greptile ownership unchanged",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P2 — Compose existing head-blob check (slizard#2694), same-fingerprint stop, and --skip-slizard override; do not invent a third poller",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P3 — Rewrite #3167 advisory so weather is only timeout/cancelled/unparseable/zero-finding/missing-check; parseable blocking findings with open tip fingerprints are unfinished residual under #2189/#4387; recut matching always-pin anti-pattern catalog bullet with that rewrite",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Given Prefer-A Bound limbs, when this clause ships, then: Regression/fixture proves carried-open fingerprint is unfinished residual, not weather",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Given Prefer-A Bound limbs, when this clause ships, then: CHANGELOG Unreleased for #5102; non-goals: no global non-blocking flip; no default --skip-slizard; no silent merge of P1+request_changes",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/skills/deft-directive-review-cycle/SKILL.md",
+          "content/templates/agents-entry.md",
+          "packages/core/src/slizard/slizard-gate.ts",
+          "packages/core/src/content-contracts/skills/agents_entry_contract.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "content/skills/deft-directive-review-cycle/SKILL.md",
+        "cohesion_exemption": "CHANGELOG + review-cycle always-pin rewrite unit"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5616559139,
+        "origin": "deftai/directive#5102",
+        "id": "github.issue.5616559139"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "0a45538212d1e5b6c790d991dcd6e0ae344b0ab6e5f5a0c40ccab09cbe6feec3"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "slizard-babysit-merge-ready-tip-body-fingerprint",
+        "expected_outputs": [
+          "merge-ready SLizard tip-body MUST before re-arm",
+          "#3167 vs #4387 advisory rewrite + anti-pattern catalog",
+          "compose existing falsify HOW",
+          "carried-fingerprint residual fixture",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts/skills packages/core/src/slizard --reporter=dot"
+        ],
+        "file_scope": [
+          "content/skills/deft-directive-review-cycle/SKILL.md",
+          "content/templates/agents-entry.md",
+          "packages/core/src/slizard/slizard-gate.ts",
+          "packages/core/src/content-contracts/skills/agents_entry_contract.test.ts",
+          "CHANGELOG.md"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5102",
+          "Prefer-A Bound 5872632888 / synthesis 5872759241"
+        ],
+        "parallel_safe": true
+      },
+      "activationPullRequest": 5834
+    },
+    "id": "github.issue.5616559139",
+    "updated": "2026-10-22T15:35:22Z"
+  }
+}
