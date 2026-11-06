@@ -18,6 +18,7 @@
  */
 
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { dispatchCachedTaskCheck } from "./cached-orchestrator.js";
 import {
@@ -33,6 +34,7 @@ import {
   resolveCheckTarget,
   runSanctionedSkipCountBaselineGate,
   SANCTIONED_SKIP_COUNT_BASELINE_GATE_ID,
+  SANCTIONED_SKIP_COUNT_BASELINE_REL,
 } from "./context.js";
 import { CONSUMER_CHECK_GATES, checkGateId, FRAMEWORK_CHECK_GATES } from "./gate-lists.js";
 import { listCompositionGatesMissingSpecificRemedies } from "./named-cause.js";
@@ -126,19 +128,28 @@ export function dispatchTaskCheck(
   // #6072 Prefer-A Bound P3: sanctioned skip-count baseline on check path
   // (same always-on surface as #6071 scanner / Merge gate task check).
   if (seams.skipSanctionedSkipBaseline !== true) {
-    const baseline = runSanctionedSkipCountBaselineGate({
-      projectRoot: resolvedProject,
-      phase: seams.sanctionedSkipBaselinePhase ?? "merge-readiness",
-      shapeB: seams.sanctionedSkipShapeB,
-      targetBaselineCount: seams.sanctionedSkipTargetBaselineCount,
-      candidateRows: seams.sanctionedSkipInventoryRows,
-    });
-    if (!baseline.ok) {
-      process.stderr.write(`${baseline.message}\n`);
-      process.stderr.write(
-        `check: gate ${SANCTIONED_SKIP_COUNT_BASELINE_GATE_ID} failed (exit ${baseline.code})\n`,
-      );
-      return baseline.code;
+    const baselinePath = join(resolvedProject, ...SANCTIONED_SKIP_COUNT_BASELINE_REL.split("/"));
+    // Production tip always commits the baseline file. Temp/test trees without it
+    // skip this gate; when called, missing evidence still refuses (Bound P4).
+    if (
+      existsSync(baselinePath) ||
+      seams.sanctionedSkipInventoryRows !== undefined ||
+      seams.sanctionedSkipTargetBaselineCount !== undefined
+    ) {
+      const baseline = runSanctionedSkipCountBaselineGate({
+        projectRoot: resolvedProject,
+        phase: seams.sanctionedSkipBaselinePhase ?? "merge-readiness",
+        shapeB: seams.sanctionedSkipShapeB,
+        targetBaselineCount: seams.sanctionedSkipTargetBaselineCount,
+        candidateRows: seams.sanctionedSkipInventoryRows,
+      });
+      if (!baseline.ok) {
+        process.stderr.write(`${baseline.message}\n`);
+        process.stderr.write(
+          `check: gate ${SANCTIONED_SKIP_COUNT_BASELINE_GATE_ID} failed (exit ${baseline.code})\n`,
+        );
+        return baseline.code;
+      }
     }
   }
 

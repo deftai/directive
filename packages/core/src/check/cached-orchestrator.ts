@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
   lintShippedRegistry,
@@ -51,6 +52,7 @@ import {
   resolveCheckTarget,
   runSanctionedSkipCountBaselineGate,
   SANCTIONED_SKIP_COUNT_BASELINE_GATE_ID,
+  SANCTIONED_SKIP_COUNT_BASELINE_REL,
 } from "./context.js";
 import {
   checkGateId,
@@ -333,24 +335,31 @@ export function dispatchCachedTaskCheck(
 
   // #6072 Prefer-A Bound P3: sanctioned skip-count baseline on cached check path.
   if (options.skipSanctionedSkipBaseline !== true) {
-    const baseline = runSanctionedSkipCountBaselineGate({
-      projectRoot: resolvedProject,
-      phase: options.sanctionedSkipBaselinePhase ?? "merge-readiness",
-      shapeB: options.sanctionedSkipShapeB,
-      targetBaselineCount: options.sanctionedSkipTargetBaselineCount,
-      candidateRows: options.sanctionedSkipInventoryRows,
-    });
-    if (!baseline.ok) {
-      process.stderr.write(`${baseline.message}\n`);
-      gateOutcomes.push({
-        id: SANCTIONED_SKIP_COUNT_BASELINE_GATE_ID,
-        status: "failed",
-        exit_code: baseline.code,
-        cause: baseline.message,
-        remedy:
-          "Align citation-shaped skip count with committed baseline or shape-(B) bump (#6072)",
+    const baselinePath = join(resolvedProject, ...SANCTIONED_SKIP_COUNT_BASELINE_REL.split("/"));
+    if (
+      existsSync(baselinePath) ||
+      options.sanctionedSkipInventoryRows !== undefined ||
+      options.sanctionedSkipTargetBaselineCount !== undefined
+    ) {
+      const baseline = runSanctionedSkipCountBaselineGate({
+        projectRoot: resolvedProject,
+        phase: options.sanctionedSkipBaselinePhase ?? "merge-readiness",
+        shapeB: options.sanctionedSkipShapeB,
+        targetBaselineCount: options.sanctionedSkipTargetBaselineCount,
+        candidateRows: options.sanctionedSkipInventoryRows,
       });
-      return finish(baseline.code, false);
+      if (!baseline.ok) {
+        process.stderr.write(`${baseline.message}\n`);
+        gateOutcomes.push({
+          id: SANCTIONED_SKIP_COUNT_BASELINE_GATE_ID,
+          status: "failed",
+          exit_code: baseline.code,
+          cause: baseline.message,
+          remedy:
+            "Align citation-shaped skip count with committed baseline or shape-(B) bump (#6072)",
+        });
+        return finish(baseline.code, false);
+      }
     }
   }
 
