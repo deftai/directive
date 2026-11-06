@@ -18,8 +18,7 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { readdirSync, readFileSync as readFileSyncFs, statSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { dispatchCachedTaskCheck } from "./cached-orchestrator.js";
 import {
   evaluateConsumerGateIntegrity,
@@ -67,6 +66,27 @@ export function auditCheckCompositionNamedRemedies(): readonly string[] {
  *   - framework-source: cwd = frameworkRoot (USER_WORKING_DIR = frameworkRoot ✓)
  *   - consumer:         cwd = projectRoot  (USER_WORKING_DIR = projectRoot  ✓)
  */
+function runCitedSkipScanOrFail(projectRoot: string, seams: CheckOrchestratorSeams): number | null {
+  const cited = evaluateCitedSkipScan({
+    projectRoot,
+    changedFiles: seams.citedSkipChangedFiles,
+    hotfixShapeB: seams.citedSkipHotfixShapeB === true,
+    fetchIssue: seams.citedSkipFetchIssue,
+    skipCommitTimeIso: seams.citedSkipCommitTimeIso,
+  });
+  process.stderr.write(`${cited.listing}\n`);
+  if (cited.ok) return null;
+  for (const failure of cited.failures) {
+    process.stderr.write(`check: ${failure}\n`);
+  }
+  process.stderr.write(
+    "check: gate cited-skip-scan failed (exit 1)\n" +
+      "  cause: unsanctioned or unvalidated test skips (#6071)\n" +
+      "  remedy: cite open deftai/directive#N with skipped-tests block under admitted shape B, or remove the skip\n",
+  );
+  return 1;
+}
+
 export function dispatchTaskCheck(
   frameworkRoot: string,
   projectRoot: string,
@@ -74,17 +94,28 @@ export function dispatchTaskCheck(
 ): number {
   const resolvedFramework = resolve(frameworkRoot);
   const resolvedProject = resolve(projectRoot);
+  const target = resolveCheckTarget(resolvedFramework, resolvedProject);
+
+  // #6071 PRODUCTION: every framework-source `task check` calls evaluateCitedSkipScan
+  // here on the dispatch entry, before the cache fork (cached + uncached paths).
+  if (target === "check:framework-source" && seams.skipCitedSkipScan !== true) {
+    const citedFail = runCitedSkipScanOrFail(resolvedProject, seams);
+    if (citedFail !== null) return citedFail;
+  }
+
   const useTaskCache = seams.useTaskCache !== false && !seams.noCache;
 
   if (useTaskCache) {
-    // Default production path: cited-skip scan runs inside dispatchCachedTaskCheck (#6071).
-    return dispatchCachedTaskCheck(resolvedFramework, resolvedProject, seams);
+    // Entry already ran cited-skip; skip the duplicate inside the cached runner.
+    return dispatchCachedTaskCheck(resolvedFramework, resolvedProject, {
+      ...seams,
+      skipCitedSkipScan: true,
+    });
   }
 
   const taskfilePath = join(resolvedFramework, "Taskfile.yml");
   const taskBin = seams.taskBin ?? "task";
 
-  const target = resolveCheckTarget(resolvedFramework, resolvedProject);
   const cwd = target === "check:framework-source" ? resolvedFramework : resolvedProject;
 
   // #3070: pre-flight consumer check-graph integrity (same path as cached
@@ -123,29 +154,6 @@ export function dispatchTaskCheck(
         `  remedy: ${headerPlaceholder.message}\n`,
     );
     return 1;
-  }
-
-  // #6071: uncached path also inventories skipped tests (cached path does the same).
-  if (target === "check:framework-source" && seams.skipCitedSkipScan !== true) {
-    const cited = evaluateCitedSkipScan({
-      projectRoot: resolvedProject,
-      changedFiles: seams.citedSkipChangedFiles,
-      hotfixShapeB: seams.citedSkipHotfixShapeB === true,
-      fetchIssue: seams.citedSkipFetchIssue,
-      skipCommitTimeIso: seams.citedSkipCommitTimeIso,
-    });
-    process.stderr.write(`${cited.listing}\n`);
-    if (!cited.ok) {
-      for (const failure of cited.failures) {
-        process.stderr.write(`check: ${failure}\n`);
-      }
-      process.stderr.write(
-        "check: gate cited-skip-scan failed (exit 1)\n" +
-          "  cause: unsanctioned or unvalidated test skips (#6071)\n" +
-          "  remedy: cite open deftai/directive#N with skipped-tests block under admitted shape B, or remove the skip\n",
-      );
-      return 1;
-    }
   }
 
   const spawn = seams.spawnFn ?? defaultSpawn;

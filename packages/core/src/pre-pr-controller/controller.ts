@@ -807,12 +807,15 @@ export function completeRun(
   }
   // #6071: pre-PR refuses ordinary changes while master's named Merge gate is red.
   if (options?.skipNamedMergeGate !== true) {
+    // Numeric PR only — pass opaque prNodeId so resolveNumericPrNumber can ignore it
+    // (never digit-parse GraphQL node_id; #6071 Greptile sticky).
     const prNumber = resolveNumericPrNumber({
       explicit: options?.prNumber,
       env: options?.env,
       repo: current.repo,
       headSha: current.headSha,
       runGh: options?.runGh,
+      prNodeId: current.prNodeId,
     });
     const namedFn = options?.namedMergeGateFn ?? evaluateAlwaysOnNamedMergeGate;
     const named = namedFn(prNumber, current.repo, {
