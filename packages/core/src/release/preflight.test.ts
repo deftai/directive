@@ -212,7 +212,7 @@ describe("tip-SHA GHA coverage-of-record (#5026)", () => {
 
 describe("runReleaseCheck", () => {
   it("returns ok when task check exits 0 without GHA coverage-of-record cite (#6041)", () => {
-    const [ok, msg] = runReleaseCheck("/proj", {
+    const [ok, msg] = runReleaseCheck("/proj", { skipNamedMergeGate: true,
       dispatchCheck: () => 0,
       resolveCoverageOfRecord: () => GREEN_CITE,
     });
@@ -222,7 +222,7 @@ describe("runReleaseCheck", () => {
   });
 
   it("does not fail closed when tip-SHA GHA coverage-of-record cite is missing (#6041)", () => {
-    const [ok, msg] = runReleaseCheck("/proj", {
+    const [ok, msg] = runReleaseCheck("/proj", { skipNamedMergeGate: true,
       dispatchCheck: () => 0,
       resolveCoverageOfRecord: () => ({
         ok: false,
@@ -235,7 +235,7 @@ describe("runReleaseCheck", () => {
   });
 
   it("returns timeout message on exit 124 (#2652)", () => {
-    const [ok, msg] = runReleaseCheck("/proj", {
+    const [ok, msg] = runReleaseCheck("/proj", { skipNamedMergeGate: true,
       dispatchCheck: (_fw, _proj, seams) => {
         expect(seams?.timeoutMs).toBe(RELEASE_CHECK_TIMEOUT_MS);
         return 124;
@@ -248,7 +248,7 @@ describe("runReleaseCheck", () => {
   });
 
   it("returns generic failure for other non-zero exits", () => {
-    const [ok, msg] = runReleaseCheck("/proj", {
+    const [ok, msg] = runReleaseCheck("/proj", { skipNamedMergeGate: true,
       dispatchCheck: () => 42,
       resolveCoverageOfRecord: () => GREEN_CITE,
     });
@@ -257,7 +257,7 @@ describe("runReleaseCheck", () => {
   });
 
   it("encodes failed-test count from suite tee without raw suite bytes (#4244)", () => {
-    const [ok, msg] = runReleaseCheck("/proj", {
+    const [ok, msg] = runReleaseCheck("/proj", { skipNamedMergeGate: true,
       dispatchCheck: (_fw, _proj, seams) => {
         seams?.onCheckComplete?.({
           exitCode: 1,
@@ -276,7 +276,7 @@ describe("runReleaseCheck", () => {
   });
 
   it("does not treat SKIP_NOTICE plus status run as suite-ran", () => {
-    const [ok, msg] = runReleaseCheck("/proj", {
+    const [ok, msg] = runReleaseCheck("/proj", { skipNamedMergeGate: true,
       dispatchCheck: (_fw, _proj, seams) => {
         seams?.onCheckComplete?.({
           exitCode: 0,
@@ -292,7 +292,7 @@ describe("runReleaseCheck", () => {
   });
 
   it("stamps a successful full-suite when the collector reports run without SKIP_NOTICE", () => {
-    const [ok, msg] = runReleaseCheck("/proj", {
+    const [ok, msg] = runReleaseCheck("/proj", { skipNamedMergeGate: true,
       dispatchCheck: (_fw, _proj, seams) => {
         seams?.onCheckComplete?.({
           exitCode: 0,
@@ -331,7 +331,7 @@ describe("runReleaseCheck hang bound (#4801)", () => {
   it("mints one absolute deadline at entry", () => {
     const now = 5_000_000;
     let seen: number | undefined;
-    runReleaseCheck("/proj", {
+    runReleaseCheck("/proj", { skipNamedMergeGate: true,
       nowMs: () => now,
       dispatchCheck: (_fw, _proj, seams) => {
         seen = seams?.deadlineAtMs;
@@ -346,7 +346,7 @@ describe("runReleaseCheck hang bound (#4801)", () => {
   });
 
   it("names the timed-out gate from completion.gates", () => {
-    const [ok, msg] = runReleaseCheck("/proj", {
+    const [ok, msg] = runReleaseCheck("/proj", { skipNamedMergeGate: true,
       dispatchCheck: (_fw, _proj, seams) => {
         seams?.onCheckComplete?.({
           exitCode: 124,
@@ -361,6 +361,88 @@ describe("runReleaseCheck hang bound (#4801)", () => {
     expect(msg).toContain("verify:ac");
     expect(msg).not.toMatch(/vitest coverage hang/i);
     expect(msg).toContain("RELEASING.md");
+  });
+
+  it("refuses release when Merge gate (task check) is red on the release commit (#6071)", () => {
+    const [ok, msg] = runReleaseCheck("/proj", {
+      tipSha: "a".repeat(40),
+      namedMergeGateFn: () => ({
+        ok: false,
+        outcome: "master-merge-gate-red",
+        exitCode: 1,
+        error: "Merge gate (task check) is completed/failure",
+        status: {
+          disposition: "red",
+          tipSha: "a".repeat(40),
+          checkName: "Merge gate (task check)",
+          status: "completed",
+          conclusion: "failure",
+          error: "red",
+          pendingAgeMs: null,
+        },
+        hotfix: null,
+      }),
+      dispatchCheck: () => 0,
+    });
+    expect(ok).toBe(false);
+    expect(msg).toContain("Merge gate (task check)");
+    expect(msg).toContain("release refused");
+  });
+
+  it("refuses release when Merge gate (task check) is pending past timeout (#6071)", () => {
+    const [ok, msg] = runReleaseCheck("/proj", {
+      tipSha: "b".repeat(40),
+      namedMergeGateFn: () => ({
+        ok: false,
+        outcome: "master-merge-gate-red",
+        exitCode: 1,
+        error: "Merge gate (task check) still pending past timeout",
+        status: {
+          disposition: "pending",
+          tipSha: "b".repeat(40),
+          checkName: "Merge gate (task check)",
+          status: "in_progress",
+          conclusion: "none",
+          error: "pending",
+          pendingAgeMs: 3_600_000,
+        },
+        hotfix: null,
+      }),
+      dispatchCheck: () => 0,
+    });
+    expect(ok).toBe(false);
+    expect(msg).toContain("pending");
+  });
+
+  it("allows release when Merge gate (task check) is green on the exact release commit (#6071)", () => {
+    let dispatched = false;
+    const [ok, msg] = runReleaseCheck("/proj", {
+      tipSha: "c".repeat(40),
+      namedMergeGateFn: () => ({
+        ok: true,
+        outcome: null,
+        exitCode: null,
+        error: null,
+        status: {
+          disposition: "green",
+          tipSha: "c".repeat(40),
+          checkName: "Merge gate (task check)",
+          status: "completed",
+          conclusion: "success",
+          error: null,
+          pendingAgeMs: null,
+        },
+        hotfix: null,
+      }),
+      dispatchCheck: () => {
+        dispatched = true;
+        return 0;
+      },
+      resolveCoverageOfRecord: () => GREEN_CITE,
+    });
+    expect(ok).toBe(true);
+    expect(dispatched).toBe(true);
+    expect(msg).toContain("task check");
   });
 });
 
@@ -478,3 +560,4 @@ describe("cached remaining-time hang kill (#4801)", () => {
     errWrite.mockRestore();
   });
 });
+

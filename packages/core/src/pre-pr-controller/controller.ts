@@ -21,6 +21,13 @@ import {
 import { evaluateCoverageHotspots } from "../coverage-hotspots/evaluate.js";
 import { admittedUntiedWorktreeKey, type VerifyAcDispositionKind } from "../hooks/scope.js";
 import { isCoverageModeSkipAuthorized, resolveCoverageMode } from "../policy/coverage-mode.js";
+import type { RunGhFn } from "../pr-merge-readiness/types.js";
+import {
+  evaluateAlwaysOnNamedMergeGate,
+  type HotfixAdmission,
+  type NamedMergeGateFn,
+} from "../pr-wait-mergeable/semantic-green.js";
+import { FIRST_HOTFIX_BOOTSTRAP_RECOVERY } from "../pr-wait-mergeable/constants.js";
 import {
   coverageReportPresence,
   prePrCoverageReportPath,
@@ -775,6 +782,13 @@ export function completeRun(
     readonly applicabilityDeps?: CoverageApplicabilityDeps;
     /** Direct verify:ac disposition for ordinary pre-PR without merge_chokepoint (#5855). */
     readonly verifyAcDisposition?: VerifyAcDispositionKind | null;
+    /** Always-on named Merge gate (#6071). */
+    readonly namedMergeGateFn?: NamedMergeGateFn;
+    readonly runGh?: RunGhFn;
+    readonly hotfixAdmission?: HotfixAdmission | null;
+    readonly skipNamedMergeGate?: boolean;
+    readonly env?: Readonly<Record<string, string | undefined>>;
+    readonly firstHotfixBootstrap?: boolean;
   },
 ): PrePrDecision {
   const creds = requirePublisher(publisher);
@@ -784,6 +798,31 @@ export function completeRun(
   const current = store.getById(runId);
   if (current === null) {
     return deny("deny-missing-record", `pre-PR run ${runId} is not in the private store`);
+  }
+  // #6071: pre-PR refuses ordinary changes while master's named Merge gate is red.
+  if (options?.skipNamedMergeGate !== true) {
+    const prNumber = (() => {
+      const node = current.prNodeId?.trim() ?? "";
+      // Prefer numeric PR from node id suffix when present; else null → bootstrap path.
+      const m = /(\d+)$/.exec(node);
+      return m ? Number(m[1]) : null;
+    })();
+    const namedFn = options?.namedMergeGateFn ?? evaluateAlwaysOnNamedMergeGate;
+    const named = namedFn(prNumber, current.repo, {
+      runGh: options?.runGh,
+      projectRoot: options?.projectRoot,
+      hotfixAdmission: options?.hotfixAdmission,
+      env: options?.env,
+      firstHotfixBootstrap:
+        options?.firstHotfixBootstrap === true || prNumber === null,
+    });
+    if (!named.ok) {
+      const bootstrap =
+        named.outcome === "first-hotfix-bootstrap"
+          ? FIRST_HOTFIX_BOOTSTRAP_RECOVERY
+          : (named.error ?? "named Merge gate refused");
+      return deny("deny-master-merge-gate-red", bootstrap);
+    }
   }
   const observables = runObservablesComplete(current, options);
   if (!observables.ok) return observables;

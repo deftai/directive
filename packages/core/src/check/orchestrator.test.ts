@@ -7,9 +7,14 @@ import { COMPOSED_GATE_IDS } from "../presentation-coverage/gates.js";
 import { dispatchCachedTaskCheck } from "./cached-orchestrator.js";
 import { isSuiteCheckGate } from "./gate-lists.js";
 import {
+  CITED_SKIP_BASELINE,
   dispatchTaskCheck,
+  evaluateCitedSkipScan,
+  formatCitedSkipListing,
+  inventoryCitedSkipsInSource,
   isFrameworkRepoRoot,
   isFrameworkSourceContext,
+  parseSkippedTestsBlock,
   resolveCheckTarget,
 } from "./orchestrator.js";
 import { recordProductMutationCompletion } from "./product-mutation-completion.js";
@@ -1105,6 +1110,68 @@ describe("armed coverage aggregate preserves real required outcomes (#5079)", ()
         env: { DEFT_CHECK_MODE: "rapid" },
         gateSpawnFn: () => ({ exitCode: 0, stdout: "", stderr: "" }),
       }),
+    ).toBe(2);
+  });
+});
+
+describe("cited-skip scanner (#6071)", () => {
+  it("accepts it.skip with citation when issue open and title listed", () => {
+    const source = `// skip: deftai/directive#6066\nit.skip("waitMergeableAndMerge > monitor config error propagates to exit two", () => {});`;
+    const sites = inventoryCitedSkipsInSource(source, "packages/core/src/demo.test.ts");
+    expect(sites).toHaveLength(1);
+    expect(sites[0]?.issue).toBe(6066);
+    expect(sites[0]?.title).toBe(
+      "waitMergeableAndMerge > monitor config error propagates to exit two",
+    );
+    const titles = parseSkippedTestsBlock(
+      "```skipped-tests:\n- waitMergeableAndMerge > monitor config error propagates to exit two\n```",
+    );
+    expect(titles).toContain(
+      "waitMergeableAndMerge > monitor config error propagates to exit two",
+    );
+    void evaluateCitedSkipScan;
+  });
+
+  it("refuses describe.skip and does not treat skipIf as skip", () => {
+    const source = `
+describe.skip("suite", () => {});
+it.skipIf(process.platform === "win32")("symlink", () => {});
+`;
+    const sites = inventoryCitedSkipsInSource(source, "x.test.ts");
+    expect(sites.some((s) => s.kind === "describe.skip")).toBe(true);
+    expect(sites.every((s) => s.kind !== "it.skip" || s.title !== "symlink")).toBe(true);
+    expect(source).toContain("skipIf");
+    expect(sites.some((s) => s.title === "symlink")).toBe(false);
+  });
+
+  it("refuses skip whose title is not in the issue skipped-tests block", () => {
+    const titles = parseSkippedTestsBlock("```skipped-tests:\n- allowed title\n```");
+    expect(titles).toEqual(["allowed title"]);
+    expect(titles.includes("other title")).toBe(false);
+  });
+
+  it("lists sanctioned skips shape on every run", () => {
+    const listing = formatCitedSkipListing([
+      {
+        file: "a.test.ts",
+        kind: "it.skip",
+        title: "t",
+        dynamicTitle: false,
+        issue: 1,
+        line: 3,
+      },
+    ]);
+    expect(listing).toContain("cited-skips:");
+    expect(listing).toContain("a.test.ts:3");
+  });
+
+  it("pins four-site baseline including yoloSterile aliases", () => {
+    expect(CITED_SKIP_BASELINE).toHaveLength(4);
+    expect(
+      CITED_SKIP_BASELINE.filter((b) => b.file.includes("legacy-bridge-leg")).length,
+    ).toBe(2);
+    expect(
+      CITED_SKIP_BASELINE.filter((b) => b.dynamicTitle).length,
     ).toBe(2);
   });
 });

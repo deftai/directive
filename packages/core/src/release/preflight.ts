@@ -22,6 +22,11 @@ import {
   ENV_CHECK_MODE,
   ENV_HYGIENE_ADVISORY,
 } from "../product-first-done-gate/index.js";
+import {
+  evaluateAlwaysOnNamedMergeGate,
+  type NamedMergeGateFn,
+} from "../pr-wait-mergeable/semantic-green.js";
+import { MERGE_GATE_TASK_CHECK_NAME } from "../pr-wait-mergeable/constants.js";
 import { countFailedTestsFromSanitizedOutput } from "./auto-hatch.js";
 import {
   COVERAGE_DEBT_ENV,
@@ -77,6 +82,11 @@ export type CoverageOfRecordResult =
 
 /** Seams for test isolation of the native release pre-flight. */
 export interface ReleasePreflightSeams {
+  /** Override named Merge gate tip read (#6071). */
+  readonly namedMergeGateFn?: NamedMergeGateFn;
+  readonly runGh?: RunGhFn;
+  readonly tipSha?: string | null;
+  readonly skipNamedMergeGate?: boolean;
   /** Override the check dispatcher (default: dispatchTaskCheck from check/orchestrator). */
   readonly dispatchCheck?: (
     frameworkRoot: string,
@@ -297,6 +307,37 @@ export function runReleaseCheck(
   seams: ReleasePreflightSeams = {},
   allowCoverageDebtIssue: number | null = null,
 ): [boolean, string] {
+  // #6071 P5: refuse unless named Merge gate is successful completed on tip
+  // (outside skipCi/suite-stamp callers — those skip runReleaseCheck entirely).
+  if (seams.skipNamedMergeGate !== true) {
+    const tipSha =
+      seams.tipSha ??
+      (() => {
+        const result = spawnSync("git", ["rev-parse", "HEAD"], {
+          cwd: projectRoot,
+          encoding: "utf8",
+          shell: false,
+        });
+        if (result.status !== 0) return null;
+        const sha = (result.stdout ?? "").trim();
+        return sha.length > 0 ? sha : null;
+      })();
+    const namedFn = seams.namedMergeGateFn ?? evaluateAlwaysOnNamedMergeGate;
+    const named = namedFn(null, DEFAULT_REPO, {
+      runGh: seams.runGh ?? defaultRunGh,
+      tipSha,
+      projectRoot,
+      env: seams.checkSeams?.env,
+    });
+    if (!named.ok) {
+      return [
+        false,
+        `${MERGE_GATE_TASK_CHECK_NAME} not successful completed on tip ${tipSha ?? "<unknown>"}; ` +
+          `release refused (#6071). ${named.error ?? ""}`.trim(),
+      ];
+    }
+  }
+
   const dispatch = seams.dispatchCheck ?? dispatchTaskCheck;
   let completion: CachedCheckCompletion | undefined;
   const priorComplete = seams.checkSeams?.onCheckComplete;

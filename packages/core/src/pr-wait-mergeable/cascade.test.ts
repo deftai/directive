@@ -591,6 +591,42 @@ describe("waitMergeableAndMerge", () => {
     expect((mergeFn as { calls: unknown[] }).calls).toEqual([]);
     expect(result.error).toContain("behind the current target branch HEAD");
   });
+
+  it("cascade path surfaces master-merge-gate-red and does not merge (#6071)", () => {
+    const monitorFn = makeMonitorFn(0, cleanMonitorPayload());
+    const mergeFn = makeMergeFn(0);
+    const semanticGreenFn = (): SemanticGreenResult => ({
+      ok: false,
+      outcome: "master-merge-gate-red",
+      exitCode: EXIT_TIMEOUT_OR_ESCALATION,
+      error: "Merge gate (task check) is completed/failure on tip",
+      payload: {
+        pr_base_sha: "a".repeat(40),
+        target_branch: "master",
+        target_head_sha: "b".repeat(40),
+        master_ci: {},
+        named_merge_gate: { disposition: "red" },
+      },
+    });
+
+    const result = waitMergeableAndMerge(2379, "deftai/directive", {
+      capMinutes: 30,
+      protected: [],
+      cascadeMode: true,
+      protectedFn: makeProtectedFn(0),
+      monitorFn,
+      mergeFn,
+      semanticGreenFn,
+      skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
+    });
+
+    expect(result.exitCode).toBe(EXIT_TIMEOUT_OR_ESCALATION);
+    expect(result.outcome).toBe("master-merge-gate-red");
+    expect((monitorFn as { calls: unknown[] }).calls).toEqual([]);
+    expect((mergeFn as { calls: unknown[] }).calls).toEqual([]);
+  });
 });
 
 describe("toResultDict", () => {

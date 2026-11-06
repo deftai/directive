@@ -16,6 +16,12 @@ import {
   type MergeApprovalHeadResult,
 } from "../policy/merge-approval-head.js";
 import { evaluateAgentMerge } from "../policy/require-human-merge.js";
+import type { RunGhFn } from "../pr-merge-readiness/types.js";
+import {
+  evaluateAlwaysOnNamedMergeGate,
+  type HotfixAdmission,
+  type NamedMergeGateFn,
+} from "../pr-wait-mergeable/semantic-green.js";
 import {
   EXIT_CLEAN,
   EXIT_NEW_P0_P1,
@@ -61,6 +67,11 @@ export interface PrFinishLoopOptions {
   readonly fetchPrHeadShaFn?: (prNumber: number, repo: string | null) => string | null;
   readonly writeProgress?: boolean;
   readonly iteration?: number;
+  /** Always-on named Merge gate before mergeFn (#6071). */
+  readonly namedMergeGateFn?: NamedMergeGateFn;
+  readonly runGh?: RunGhFn;
+  readonly hotfixAdmission?: HotfixAdmission | null;
+  readonly skipNamedMergeGate?: boolean;
 }
 
 export function runPrFinishLoop(options: PrFinishLoopOptions): PrFinishLoopResult {
@@ -367,6 +378,33 @@ export function runPrFinishLoop(options: PrFinishLoopOptions): PrFinishLoopResul
       }
     }
     const pinnedHead = liveHead;
+    // #6071: same named-check refuse set before mergeFn (finish-loop reachability).
+    if (options.skipNamedMergeGate !== true && repo !== null && repo.length > 0) {
+      const namedFn = options.namedMergeGateFn ?? evaluateAlwaysOnNamedMergeGate;
+      const named = namedFn(prNumber, repo, {
+        runGh: options.runGh,
+        projectRoot,
+        hotfixAdmission: options.hotfixAdmission,
+        env: options.env,
+      });
+      if (!named.ok) {
+        disablePullRequestAutoMerge(prNumber, repo);
+        const message =
+          `pr:finish-loop ACTION_REQUIRED on PR #${prNumber}: named Merge gate refused ` +
+          `before merge (${named.outcome ?? "master-merge-gate-red"}). ${named.error ?? ""}`.trim();
+        log("merge", "error", message);
+        return {
+          exitCode: EXIT_ACTION_REQUIRED,
+          haltReason: "error",
+          message,
+          prNumber,
+          watchVerdict: VERDICT_CLEAN,
+          mergeAttempted: false,
+          mergeSkippedReason: named.outcome ?? "master-merge-gate-red",
+          grantId: null,
+        };
+      }
+    }
     const rc = options.mergeFn(prNumber, repo, { matchHeadCommit: pinnedHead });
     if (rc === 0) {
       const message = `pr:finish-loop MERGED PR #${prNumber}`;

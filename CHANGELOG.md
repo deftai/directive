@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Lifecycle uninspectable denies teach a usable next step (#5925).** When the host owner is known, deny copy keeps the true miss label, points at a simple re-run, and publishes the matching-owner hatch with launcher-correct `task <verb> -- … --session-id=<owner>` (or `deft …`) recovery so `| tee` / `&&` forms stop recursive-flail; unresolved `<host-published-id>` is omitted; owner-mismatch denies use the same spelling. Compound lifecycle without a matching owner stays fail-closed. Defer-owed form/hint remains on #5918.
 
 ### Changed
+- **Ordinary merges, pre-PR, finish-loop, and release refuse while master's Merge gate (task check) is red (#6071).** Always-on status read of that named check (paginated check-runs); only a maintainer-labeled hotfix of shape A (restore-green) or B (cited skip) may proceed; DEFT_NO_NETWORK refuses rather than soft-skips; cited-skip scanner inventories it.skip/test.skip with a skipIf token boundary and a four-site baseline. Refs Prefer-A Bound 6669973193 / #6082.
 - Activate running work briefs for lifecycle shell recovery (#5925), master merge-gate hotfix rules (#6071), and sanctioned skip-count baseline tracking (#6072).
 
 - **Issue #6011 is recorded completed and no longer active.** Typed deliveryBranch write-fence shipped; tracked completion is on the delivery branch.
