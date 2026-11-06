@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6011",
-    "updated": "2026-11-05T18:15:30.989Z"
+    "updated": "2026-11-06T03:36:53.384Z"
   },
   "plan": {
     "title": "Commit gate reads a story's file_scope from the merge-base with origin/main, not the repo's delivery branch",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Commit gate reads a story's file_scope from the merge-base with origin/main, not the repo's delivery branch",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6011",
@@ -18,22 +18,22 @@
     "items": [
       {
         "title": "relieves: P1 — Insert delivery candidates in selectBaseRefForFence only when resolveDeliveryBranch returns source typed with error null and nonempty branch, after env overrides and before hardcoded master|main.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.1"
       },
       {
         "title": "relieves: P2 — Carry selected baseRef (and typed delivery when used) on StoryWriteFenceView for successful and empty fence loads, and name that base in positive-governing and prospective empty-fence refuse copy.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.2"
       },
       {
         "title": "relieves: P1 — Extend the merge-base memo key with the same resolved typed delivery candidate used for selection so an in-process typed deliveryBranch change cannot reuse a stale main memo.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.3"
       },
       {
         "title": "relieves: P1 — Add write-fence and dispatcher tests for typed develop-only brief load, unset-policy master|main coexistence, env override wins, and same-process memo invalidation after typed delivery appears without clearing memos.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.4"
       }
     ],
@@ -506,7 +506,26 @@
         ],
         "parallel_safe": true
       },
-      "productPullRequest": 6065
+      "productPullRequest": 6065,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-06T03:36:53.384Z"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "09bb1cb414f76e407be2ef702f3aca19bcc297ba",
+        "prNumber": 6065,
+        "prBase": "master",
+        "mergeCommit": "6c21c0fbcc9f0fa5d54c53df500cb4398f47f2d2",
+        "deliveryBranch": "master",
+        "deliveryCommit": "17d28221fdab7da36a10957b6089c1d7a643e5d8",
+        "verifiedAt": "2026-11-06T03:36:53.384Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      }
     },
     "id": "github.issue.6086301377",
     "updated": "2026-11-05T17:59:37Z"

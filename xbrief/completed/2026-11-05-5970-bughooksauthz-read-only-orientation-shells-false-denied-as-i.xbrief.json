@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5970",
-    "updated": "2026-11-05T18:15:30.987Z"
+    "updated": "2026-11-06T03:36:53.384Z"
   },
   "plan": {
     "title": "bug(hooks,authz): read-only orientation shells false-denied as inventoried authz dest-of-write (Approach1 babysit)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(hooks,authz): read-only orientation shells false-denied as inventoried authz dest-of-write (Approach1 babysit)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5970",
@@ -18,27 +18,27 @@
     "items": [
       {
         "title": "relieves: P1 — Extend isProvenReadOnlyArgv with closed existence-probe first-bins (Test-Path, test, [, Get-Item, dir/Get-ChildItem) so those segments with kill-switch or authz path operands do not emit dest-of-write unknown or inactive protected_store; exemption is segment-local and leaves independent write/redirect checks intact.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.1"
       },
       {
         "title": "relieves: P2 — That same isProvenReadOnlyArgv extension is the sole classify mechanism for absolute payload-root kill-switch existence probes under #4188 harvest; do not add a second harvest-only skip list.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.2"
       },
       {
         "title": "relieves: P1 — For test/[ existence-probe proof, ignore POSIX -o OR; do not reuse sort/awk READ_ONLY_PROOF_OUTPUT_DEST_FLAGS; keep real write/output-dest refusal for dir/Get-ChildItem.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.3"
       },
       {
         "title": "relieves: P3 — Carry the matched harvested path or token from the classify/harvest route that set protected_store into the effective deny text (including the unknown-first active-UAT route); keep authz:grant only as the mint escape for real grants.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.4"
       },
       {
         "title": "relieves: P4 — Regression fixtures cover recovered exact #5970 Approach1 denied command bytes (with provenance) plus supplemental shapes (compound git+Test-Path, bare Test-Path, test -f, Get-Item, dir), mixed probe+writer/redirect negatives, path-qualified lookalikes, and plant cases (touch/cp/Set-Content/redirect to kill-switch) that stay denied.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.5"
       }
     ],
@@ -531,6 +531,26 @@
           "#4709"
         ],
         "parallel_safe": true
+      },
+      "productPullRequest": 6066,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-06T03:36:53.384Z"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "ea76f0fdbb22c3a84a07c6fa100779c5930848ed",
+        "prNumber": 6066,
+        "prBase": "master",
+        "mergeCommit": "d67e668c1be41f6b8ccccbb1fc300d0a7a129bb0",
+        "deliveryBranch": "master",
+        "deliveryCommit": "17d28221fdab7da36a10957b6089c1d7a643e5d8",
+        "verifiedAt": "2026-11-06T03:36:53.384Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
       }
     },
     "id": "github.issue.6063172964",
