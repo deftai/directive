@@ -124,14 +124,18 @@ function listDeletedPathsBetween(projectRoot: string, baseSha: string, headSha: 
 /**
  * Resolve a numeric PR number without parsing opaque GraphQL `node_id` (#6071).
  * Order: explicit option → GITHUB_PR_NUMBER env → commits/<sha>/pulls REST.
+ * ⊗ Digits from `prNodeId` (e.g. PR_kwDO…123) — those are not PR numbers.
  */
-function resolveNumericPrNumber(input: {
+export function resolveNumericPrNumber(input: {
   readonly explicit?: number | null;
   readonly env?: Readonly<Record<string, string | undefined>>;
   readonly repo: string;
   readonly headSha: string;
   readonly runGh?: RunGhFn;
+  /** Ignored on purpose — opaque GraphQL ids are never numeric PR sources. */
+  readonly prNodeId?: string | null;
 }): number | null {
+  void input.prNodeId;
   if (typeof input.explicit === "number" && Number.isFinite(input.explicit) && input.explicit > 0) {
     return Math.trunc(input.explicit);
   }

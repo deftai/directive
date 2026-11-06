@@ -6,6 +6,7 @@ import {
   EXIT_CONFIG_ERROR,
   EXIT_TIMEOUT_OR_ESCALATION,
   MERGE_GATE_TASK_CHECK_NAME,
+  OUTCOME_HOTFIX_SHAPE_INVALID,
   OUTCOME_MASTER_MERGE_GATE_RED,
 } from "./constants.js";
 import {
@@ -885,6 +886,55 @@ describe("always-on named Merge gate (#6071)", () => {
       },
     });
     expect(sameAuthor.admitted).toBe(true);
+  });
+
+  it("refuses shape B when cited issue lacks skipped-tests (#6071)", () => {
+    const runGh = (args: readonly string[]) => {
+      const path = args.join(" ");
+      if (path.includes(`/pulls/${PR}`)) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({
+            labels: [{ name: "hotfix" }],
+            body: "Hotfix skip: deftai/directive#6066\n",
+          }),
+          stderr: "",
+        };
+      }
+      if (path.includes(`/issues/${PR}/events`)) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify([
+            {
+              event: "labeled",
+              label: { name: "hotfix" },
+              actor: { login: "MScottAdams", type: "User" },
+              author_association: "MEMBER",
+            },
+          ]),
+          stderr: "",
+        };
+      }
+      if (path.includes("/issues/6066")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({
+            state: "open",
+            body: "no skipped-tests fence",
+            created_at: "2026-01-01T00:00:00Z",
+          }),
+          stderr: "",
+        };
+      }
+      return { returncode: 1, stdout: "", stderr: `unexpected ${path}` };
+    };
+    const missingBlock = evaluateHotfixAdmission(PR, REPO, {
+      runGh,
+      maintainerLogins: ["MScottAdams"],
+    });
+    expect(missingBlock.admitted).toBe(false);
+    expect(missingBlock.outcome).toBe(OUTCOME_HOTFIX_SHAPE_INVALID);
+    expect(missingBlock.reason).toMatch(/skipped-tests/);
   });
 
   it("parses exactly one hotfix shape A or B", () => {

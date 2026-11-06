@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { parseSkippedTestsBlock } from "../check/gate-lists.js";
 import { readPlanPolicy } from "../policy/plan-extensions.js";
 import {
   type ResolveLifecycleDirtyFn,
@@ -1302,6 +1303,75 @@ export function evaluateHotfixAdmission(
         "(OWNER/MEMBER or plan.policy.maintainerLogins); refuse (#6071).",
       outcome: OUTCOME_HOTFIX_ACTOR_DENIED,
     };
+  }
+  // #6071 Greptile: shape B must live-validate the cited issue (open + skipped-tests).
+  if (parsed.shape === "B") {
+    const skipIssue = parsed.skipIssue;
+    if (skipIssue === null || !Number.isFinite(skipIssue) || skipIssue <= 0) {
+      return {
+        admitted: false,
+        shape: "B",
+        skipIssue: null,
+        actorLogin: labeled.actor.login,
+        reason: "hotfix shape (B) missing deftai/directive#N citation; refuse (#6071).",
+        outcome: OUTCOME_HOTFIX_SHAPE_INVALID,
+      };
+    }
+    const issueRc = runGh([
+      "gh",
+      "api",
+      `repos/${repo}/issues/${skipIssue}`,
+      "--jq",
+      "{state:.state,body:.body,created_at:.created_at}",
+    ]);
+    if (issueRc.returncode !== 0 || !issueRc.stdout.trim()) {
+      return {
+        admitted: false,
+        shape: "B",
+        skipIssue,
+        actorLogin: labeled.actor.login,
+        reason: `hotfix shape (B) issue #${skipIssue} unreadable; refuse (#6071).`,
+        outcome: OUTCOME_HOTFIX_SHAPE_INVALID,
+      };
+    }
+    let issue: { state?: unknown; body?: unknown; created_at?: unknown };
+    try {
+      issue = JSON.parse(issueRc.stdout) as {
+        state?: unknown;
+        body?: unknown;
+        created_at?: unknown;
+      };
+    } catch {
+      return {
+        admitted: false,
+        shape: "B",
+        skipIssue,
+        actorLogin: labeled.actor.login,
+        reason: `hotfix shape (B) issue #${skipIssue} payload unreadable; refuse (#6071).`,
+        outcome: OUTCOME_HOTFIX_SHAPE_INVALID,
+      };
+    }
+    if (issue.state !== "open") {
+      return {
+        admitted: false,
+        shape: "B",
+        skipIssue,
+        actorLogin: labeled.actor.login,
+        reason: `hotfix shape (B) issue #${skipIssue} is ${String(issue.state)}; refuse (#6071).`,
+        outcome: OUTCOME_HOTFIX_SHAPE_INVALID,
+      };
+    }
+    const titles = parseSkippedTestsBlock(typeof issue.body === "string" ? issue.body : "");
+    if (titles.length === 0) {
+      return {
+        admitted: false,
+        shape: "B",
+        skipIssue,
+        actorLogin: labeled.actor.login,
+        reason: `hotfix shape (B) issue #${skipIssue} lacks skipped-tests block; refuse (#6071).`,
+        outcome: OUTCOME_HOTFIX_SHAPE_INVALID,
+      };
+    }
   }
   return {
     admitted: true,

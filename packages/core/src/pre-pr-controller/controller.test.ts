@@ -24,6 +24,7 @@ import {
   failRun,
   observeCommandPhase,
   readPushBindingDisposition,
+  resolveNumericPrNumber,
   runObservablesComplete,
   startControllerRun,
   submitReviewerReport,
@@ -2226,5 +2227,53 @@ describe("coverage N/A rests on applicability; one report path and observed root
       );
       expect(runObservablesComplete(rec, f.satisfy).ok).toBe(false);
     });
+  });
+});
+
+describe("resolveNumericPrNumber (#6071)", () => {
+  it("prefers explicit then GITHUB_PR_NUMBER and never parses opaque prNodeId digits", () => {
+    expect(
+      resolveNumericPrNumber({
+        explicit: 6088,
+        env: { GITHUB_PR_NUMBER: "1" },
+        repo: "deftai/directive",
+        headSha: "abc",
+        prNodeId: "PR_kwDOQx1qZc6abc6088",
+      }),
+    ).toBe(6088);
+    expect(
+      resolveNumericPrNumber({
+        explicit: null,
+        env: { GITHUB_PR_NUMBER: "6088" },
+        repo: "deftai/directive",
+        headSha: "abc",
+        prNodeId: "PR_kwDOQx1qZc6abc9999",
+      }),
+    ).toBe(6088);
+    expect(
+      resolveNumericPrNumber({
+        explicit: null,
+        env: {},
+        repo: "deftai/directive",
+        headSha: "abc",
+        prNodeId: "PR_kwDOQx1qZc6abc6088",
+      }),
+    ).toBeNull();
+  });
+
+  it("reads numeric number from commits/<sha>/pulls REST", () => {
+    const n = resolveNumericPrNumber({
+      explicit: null,
+      env: {},
+      repo: "deftai/directive",
+      headSha: "deadbeef",
+      prNodeId: "PR_kwDO_not_a_number",
+      runGh: () => ({
+        returncode: 0,
+        stdout: JSON.stringify([{ number: 6088, node_id: "PR_kwDO_not_a_number" }]),
+        stderr: "",
+      }),
+    });
+    expect(n).toBe(6088);
   });
 });

@@ -8,6 +8,7 @@ export {
   markComplete,
   noteSkillFileOpen,
   observeCommandPhase,
+  resolveNumericPrNumber,
   runObservablesComplete,
   type StartControllerRunInput,
   type StartControllerRunResult,
