@@ -2,55 +2,80 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6071",
-    "updated": "2026-11-06T04:21:28Z"
+    "updated": "2026-11-06T04:34:18Z"
   },
   "plan": {
     "title": "fix(merge,release,pre-pr): block ordinary merges while master's Merge gate is red; hotfix-only until green, with a cited skip fallback",
     "status": "running",
     "narratives": {
-      "Description": "Ordinary merges refuse while master Merge gate (task check) is red; hotfix A/B cited-skip escape only.",
+      "Description": "As a maintainer, I want ordinary merges blocked while master Merge gate is red, with a narrow hotfix cited-skip escape, so that broken master cannot absorb routine landings.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6071",
-      "Overview": "Ordinary merges refuse while master Merge gate (task check) is red; hotfix A/B cited-skip escape only.",
+      "Overview": "As a maintainer, I want ordinary merges blocked while master Merge gate is red, with a narrow hotfix cited-skip escape, so that broken master cannot absorb routine landings.",
       "Labels": "bug, design-critique:ingest-ready, core-capabilities",
-      "UserStory": "Ordinary merges refuse while master Merge gate (task check) is red; hotfix A/B cited-skip escape only.",
-      "ImplementationPlan": "Prefer-A Recut-2 6669973193: always-on named Merge gate + cited-skip scanner + hotfix shapes; finish-loop before mergeFn."
+      "UserStory": "As a maintainer, I want ordinary merges blocked while master Merge gate is red, with a narrow hotfix cited-skip escape, so that broken master cannot absorb routine landings.",
+      "ImplementationPlan": "1) Prefer-A Bound limbs already stamped.\n2) Product PR (not this activation) wires always-on named Merge-gate reads, pre-PR refuse, hotfix A/B, cited-skip scanner, and release Step-5 tip check.\n3) CHANGELOG Unreleased activation note only on this PR.",
+      "Acceptance": "Bound remedy limbs are the acceptance set; product PR must satisfy each limb under declared file_scope."
     },
     "items": [
       {
+        "id": "clause.1",
         "title": "relieves: P1 — Always-on exact-name status read of Merge gate (task check) on master's tip on ordinary wait-mergeable / merge-readiness AND before mergeFn in pr:finish-loop / finish-loop (same refuse set: red, missing, pending past timeout, API fail, skipped); independent of cascadeMode and requireMasterCiGreen; paginated check-runs (per_page=100 + Link).",
         "status": "pending",
-        "id": "clause.1",
-        "artifact_path": "packages/core/src/pr-wait-mergeable/semantic-green.ts"
+        "narrative": {
+          "Acceptance": "relieves: P1 — Always-on exact-name status read of Merge gate (task check) on master's tip on ordinary wait-mergeable / merge-readiness AND before mergeFn in pr:finish-loop / finish-loop (same refuse set: red, missing, pending past timeout, API fail, skipped); independent of cascadeMode and requireMasterCiGreen; paginated check-runs (per_page=100 + Link).",
+          "Traces": "#6071",
+          "Description": "Primary touch: packages/core/src/pr-wait-mergeable/semantic-green.ts"
+        }
       },
       {
+        "id": "clause.2",
         "title": "relieves: P2 — Same always-on named-check refuse at pre-PR for ordinary (non A/B) changes; under DEFT_NO_NETWORK=1 refuse with the same unreadable/API-fail closed outcome (do not soft-skip); whole-tree skip listing stays static; live probes cover every skip added or changed in the candidate diff.",
         "status": "pending",
-        "id": "clause.2",
-        "artifact_path": "packages/core/src/pre-pr-controller/controller.ts"
+        "narrative": {
+          "Acceptance": "relieves: P2 — Same always-on named-check refuse at pre-PR for ordinary (non A/B) changes; under DEFT_NO_NETWORK=1 refuse with the same unreadable/API-fail closed outcome (do not soft-skip); whole-tree skip listing stays static; live probes cover every skip added or changed in the candidate diff.",
+          "Traces": "#6071",
+          "Description": "Primary touch: packages/core/src/pre-pr-controller/controller.ts"
+        }
       },
       {
+        "id": "clause.3",
         "title": "relieves: P3 — Hotfix escape when label hotfix is present, the effective labeled-timeline actor is a non-Bot maintainer-class account (OWNER/MEMBER or closed plan.policy maintainerLogins), provenance readable, and body matches exactly one shape (A) or (B); do not require actor≠author; re-validate at merge; fixtures cover Bot actor and unauthorized-human refuses; first-hotfix bootstrap is pre-PR refuse with recovery text that a human opens/labels the draft PR (no PR-create inside pre-pr-controller file_scope).",
         "status": "pending",
-        "id": "clause.3",
-        "artifact_path": "packages/core/src/pre-pr-controller/controller.ts"
+        "narrative": {
+          "Acceptance": "relieves: P3 — Hotfix escape when label hotfix is present, the effective labeled-timeline actor is a non-Bot maintainer-class account (OWNER/MEMBER or closed plan.policy maintainerLogins), provenance readable, and body matches exactly one shape (A) or (B); do not require actor≠author; re-validate at merge; fixtures cover Bot actor and unauthorized-human refuses; first-hotfix bootstrap is pre-PR refuse with recovery text that a human opens/labels the draft PR (no PR-create inside pre-pr-controller file_scope).",
+          "Traces": "#6071",
+          "Description": "Primary touch: packages/core/src/pre-pr-controller/controller.ts"
+        }
       },
       {
+        "id": "clause.4",
         "title": "relieves: P4 — Cited-skip scanner inventories skipped tests with token boundary excluding skipIf helpers; pins baseline allowlist for the three legacy yoloSterile alias sites with dynamic-title reason; refuses new uncited skips and new describe-level skips; authorizes added or changed skips only under admitted A/B with B touch-set; live-validates every added or changed skip including same-issue or changed-title; lists sanctioned skips every run without network on unchanged inventory.",
         "status": "pending",
-        "id": "clause.4",
-        "artifact_path": "packages/core/src/check/orchestrator.ts"
+        "narrative": {
+          "Acceptance": "relieves: P4 — Cited-skip scanner inventories skipped tests with token boundary excluding skipIf helpers; pins baseline allowlist for the three legacy yoloSterile alias sites with dynamic-title reason; refuses new uncited skips and new describe-level skips; authorizes added or changed skips only under admitted A/B with B touch-set; live-validates every added or changed skip including same-issue or changed-title; lists sanctioned skips every run without network on unchanged inventory.",
+          "Traces": "#6071",
+          "Description": "Primary touch: packages/core/src/check/orchestrator.ts"
+        }
       },
       {
+        "id": "clause.5",
         "title": "relieves: P5 — Release admission refuses unless Merge gate (task check) on the pre-release master tip is successful completed at Step 5 outside skipCi/suite-stamp; same fail-closed dispositions; refuse stale closed/missing/absent-title skips except pinned baseline.",
         "status": "pending",
-        "id": "clause.5",
-        "artifact_path": "packages/core/src/release/pipeline.ts"
+        "narrative": {
+          "Acceptance": "relieves: P5 — Release admission refuses unless Merge gate (task check) on the pre-release master tip is successful completed at Step 5 outside skipCi/suite-stamp; same fail-closed dispositions; refuse stale closed/missing/absent-title skips except pinned baseline.",
+          "Traces": "#6071",
+          "Description": "Primary touch: packages/core/src/release/pipeline.ts"
+        }
       },
       {
+        "id": "clause.6",
         "title": "Footnote: bookkeeping reds accepted v1 cost; release commits after Step-5 tip read are not individually gated (accepted v1); skipIf/alias-resistant beyond token boundary leftover; baseline count ratchet follow-up; tickets-only; forge UI / bare gh pr merge enrollment leftover.",
         "status": "pending",
-        "id": "clause.6",
-        "artifact_path": "packages/core/src/finish-loop/pr-finish-loop.ts"
+        "narrative": {
+          "Acceptance": "Footnote: bookkeeping reds accepted v1 cost; release commits after Step-5 tip read are not individually gated (accepted v1); skipIf/alias-resistant beyond token boundary leftover; baseline count ratchet follow-up; tickets-only; forge UI / bare gh pr merge enrollment leftover.",
+          "Traces": "#6071",
+          "Description": "Primary touch: packages/core/src/finish-loop/pr-finish-loop.ts"
+        }
       }
     ],
     "tags": [
@@ -67,53 +92,8 @@
     ],
     "acceptance": {
       "none_stated": true,
-      "clauses": [
-        {
-          "id": 1,
-          "text": "relieves: P1 — Always-on exact-name status read of Merge gate (task check) on master's tip on ordinary wait-mergeable / merge-readiness AND before mergeFn in pr:finish-loop / finish-loop (same refuse set: red, missing, pending past timeout, API fail, skipped); independent of cascadeMode and requireMasterCiGreen; paginated check-runs (per_page=100 + Link).",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 2,
-          "text": "relieves: P2 — Same always-on named-check refuse at pre-PR for ordinary (non A/B) changes; under DEFT_NO_NETWORK=1 refuse with the same unreadable/API-fail closed outcome (do not soft-skip); whole-tree skip listing stays static; live probes cover every skip added or changed in the candidate diff.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 3,
-          "text": "relieves: P3 — Hotfix escape when label hotfix is present, the effective labeled-timeline actor is a non-Bot maintainer-class account (OWNER/MEMBER or closed plan.policy maintainerLogins), provenance readable, and body matches exactly one shape (A) or (B); do not require actor≠author; re-validate at merge; fixtures cover Bot actor and unauthorized-human refuses; first-hotfix bootstrap is pre-PR refuse with recovery text that a human opens/labels the draft PR (no PR-create inside pre-pr-controller file_scope).",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 4,
-          "text": "relieves: P4 — Cited-skip scanner inventories skipped tests with token boundary excluding skipIf helpers; pins baseline allowlist for the three legacy yoloSterile alias sites with dynamic-title reason; refuses new uncited skips and new describe-level skips; authorizes added or changed skips only under admitted A/B with B touch-set; live-validates every added or changed skip including same-issue or changed-title; lists sanctioned skips every run without network on unchanged inventory.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 5,
-          "text": "relieves: P5 — Release admission refuses unless Merge gate (task check) on the pre-release master tip is successful completed at Step 5 outside skipCi/suite-stamp; same fail-closed dispositions; refuse stale closed/missing/absent-title skips except pinned baseline.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 6,
-          "text": "Footnote: bookkeeping reds accepted v1 cost; release commits after Step-5 tip read are not individually gated (accepted v1); skipIf/alias-resistant beyond token boundary leftover; baseline count ratchet follow-up; tickets-only; forge UI / bare gh pr merge enrollment leftover.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        }
-      ],
+      "clauses": [],
       "commands": [],
-      "source_rung": "derived",
-      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
       "ambiguity_attestation": "none_found"
     },
     "metadata": {
@@ -240,7 +220,8 @@
           "packages/core/src/content-contracts/skills/agents_md_session_start.test.ts",
           "packages/core/src/content-contracts/standards/branch_gate.test.ts"
         ],
-        "module_boundary": "packages/core/src/pr-wait-mergeable"
+        "module_boundary": "packages/core/src/pr-wait-mergeable",
+        "cohesion_exemption": "Thin activation Prefer-A Bound briefs; product modules exceed 1000-line review threshold by Spec-path; split_plan deferred to product PR."
       },
       "x-directive/plan-id": {
         "version": 1,
@@ -398,6 +379,6 @@
       "derived_reason": "Prefer-A Bound limbs hand-stamped after Prefer-A Bound harvest (#4374)"
     },
     "id": "github.issue.6231497602",
-    "updated": "2026-11-06T04:21:28Z"
+    "updated": "2026-11-06T04:34:18Z"
   }
 }
