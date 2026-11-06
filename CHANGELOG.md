@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Changed
+- Record Issue #6071 completed after product merge (#6088).
 - **Ordinary merges, pre-PR, finish-loop, and release refuse while master's Merge gate is red (#6071).** Only a maintainer-labeled hotfix (restore-green or cited skip) may proceed; offline/no-network refuses instead of soft-skipping.
 - Activate running work briefs for lifecycle shell recovery (#5925), master merge-gate hotfix rules (#6071), and sanctioned skip-count baseline tracking (#6072).
 
