@@ -66,27 +66,6 @@ export function auditCheckCompositionNamedRemedies(): readonly string[] {
  *   - framework-source: cwd = frameworkRoot (USER_WORKING_DIR = frameworkRoot ✓)
  *   - consumer:         cwd = projectRoot  (USER_WORKING_DIR = projectRoot  ✓)
  */
-function runCitedSkipScanOrFail(projectRoot: string, seams: CheckOrchestratorSeams): number | null {
-  const cited = evaluateCitedSkipScan({
-    projectRoot,
-    changedFiles: seams.citedSkipChangedFiles,
-    hotfixShapeB: seams.citedSkipHotfixShapeB === true,
-    fetchIssue: seams.citedSkipFetchIssue,
-    skipCommitTimeIso: seams.citedSkipCommitTimeIso,
-  });
-  process.stderr.write(`${cited.listing}\n`);
-  if (cited.ok) return null;
-  for (const failure of cited.failures) {
-    process.stderr.write(`check: ${failure}\n`);
-  }
-  process.stderr.write(
-    "check: gate cited-skip-scan failed (exit 1)\n" +
-      "  cause: unsanctioned or unvalidated test skips (#6071)\n" +
-      "  remedy: cite open deftai/directive#N with skipped-tests block under admitted shape B, or remove the skip\n",
-  );
-  return 1;
-}
-
 export function dispatchTaskCheck(
   frameworkRoot: string,
   projectRoot: string,
@@ -95,21 +74,34 @@ export function dispatchTaskCheck(
   const resolvedFramework = resolve(frameworkRoot);
   const resolvedProject = resolve(projectRoot);
   const target = resolveCheckTarget(resolvedFramework, resolvedProject);
-
-  // #6071 PRODUCTION: every framework-source `task check` calls evaluateCitedSkipScan
-  // here on the dispatch entry, before the cache fork (cached + uncached paths).
-  if (target === "check:framework-source" && seams.skipCitedSkipScan !== true) {
-    const citedFail = runCitedSkipScanOrFail(resolvedProject, seams);
-    if (citedFail !== null) return citedFail;
-  }
-
   const useTaskCache = seams.useTaskCache !== false && !seams.noCache;
 
+  // #6071 PRODUCTION: evaluateCitedSkipScan is called here on every
+  // framework-source `task check` entry (cached + uncached). Cached runner
+  // stamps cited-skip-scan onto onCheckComplete from this precomputed result
+  // so a refuse does not lose the check summary (#6071 Greptile P2).
+  let precomputedCitedSkipScan: CheckOrchestratorSeams["precomputedCitedSkipScan"] = null;
+  if (target === "check:framework-source" && seams.skipCitedSkipScan !== true) {
+    const cited = evaluateCitedSkipScan({
+      projectRoot: resolvedProject,
+      changedFiles: seams.citedSkipChangedFiles,
+      hotfixShapeB: seams.citedSkipHotfixShapeB === true,
+      fetchIssue: seams.citedSkipFetchIssue,
+      skipCommitTimeIso: seams.citedSkipCommitTimeIso,
+    });
+    precomputedCitedSkipScan = {
+      ok: cited.ok,
+      failures: cited.failures,
+      listing: cited.listing,
+    };
+    process.stderr.write(`${cited.listing}\n`);
+  }
+
   if (useTaskCache) {
-    // Entry already ran cited-skip; skip the duplicate inside the cached runner.
     return dispatchCachedTaskCheck(resolvedFramework, resolvedProject, {
       ...seams,
       skipCitedSkipScan: true,
+      precomputedCitedSkipScan,
     });
   }
 
@@ -152,6 +144,18 @@ export function dispatchTaskCheck(
       `check: gate ${CONSUMER_HEADER_PLACEHOLDER_GATE_ID} failed (exit 1)\n` +
         `  cause: ${headerPlaceholder.reason}\n` +
         `  remedy: ${headerPlaceholder.message}\n`,
+    );
+    return 1;
+  }
+
+  if (precomputedCitedSkipScan !== null && !precomputedCitedSkipScan.ok) {
+    for (const failure of precomputedCitedSkipScan.failures) {
+      process.stderr.write(`check: ${failure}\n`);
+    }
+    process.stderr.write(
+      "check: gate cited-skip-scan failed (exit 1)\n" +
+        "  cause: unsanctioned or unvalidated test skips (#6071)\n" +
+        "  remedy: cite open deftai/directive#N with skipped-tests block under admitted shape B, or remove the skip\n",
     );
     return 1;
   }

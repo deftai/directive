@@ -37,6 +37,15 @@ export interface CheckOrchestratorSeams extends CheckOrchestratorOptions {
     readonly body: string;
   } | null;
   readonly citedSkipCommitTimeIso?: string;
+  /**
+   * Precomputed cited-skip result from dispatchTaskCheck entry (#6071).
+   * Cached runner stamps onCheckComplete from this instead of re-scanning.
+   */
+  readonly precomputedCitedSkipScan?: {
+    readonly ok: boolean;
+    readonly failures: readonly string[];
+    readonly listing: string;
+  } | null;
 }
 
 /** Completion snapshot forwarded to release Step 5 (suite-ran vs skip). */
