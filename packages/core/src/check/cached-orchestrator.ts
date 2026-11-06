@@ -29,6 +29,10 @@ import {
 } from "../session/toolchain-preflight.js";
 import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import {
+  evaluatePathBActivationAcDisposition,
+  PATH_B_ACTIVATION_AC_DISPOSITION,
+} from "../verify-ac/evaluate.js";
+import {
   checkGateCliArgv,
   cliSpawnPlan,
   resolveGateDispatch,
@@ -407,6 +411,29 @@ export function dispatchCachedTaskCheck(
     }
     if (isProductAcGate(gateId)) {
       process.stderr.write(`check: product AC gate ${gateId} first (#3284)\n`);
+      // #5792: Path B brief-land activation defers product AC before spawn.
+      // Failed inventory / mixed product diffs keep the full verify:ac path.
+      const activation = evaluatePathBActivationAcDisposition({
+        projectRoot: resolvedProject,
+        bodyText: options.env?.DEFT_PR_BODY ?? process.env.DEFT_PR_BODY ?? null,
+      });
+      if (activation.apply) {
+        process.stderr.write(
+          `check: ${PATH_B_ACTIVATION_AC_DISPOSITION} (#5792) — ${activation.witnessDetail}\n`,
+        );
+        process.stderr.write(`${activation.message}\n`);
+        gateOutcomes.push({
+          id: gateId,
+          status: "run",
+          exit_code: 0,
+          cause: PATH_B_ACTIVATION_AC_DISPOSITION,
+          remedy:
+            "Land the active-path brief on the delivery merge base, then re-run product verify:ac",
+        });
+        options.onGateStart?.(gateId);
+        options.onGateComplete?.(gateId, 0, false);
+        continue;
+      }
     }
     options.onGateStart?.(gateId);
     const contract = resolveTaskContract(gateId);

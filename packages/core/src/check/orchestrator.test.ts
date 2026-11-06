@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -806,6 +807,219 @@ describe("dispatchCachedTaskCheck rapid zero-verified walk (#4866)", () => {
     expect(pressure.code).toBe(0);
     expect(pressure.started).toContain("verify:branch");
     expect(pressure.logs).not.toContain(RAPID_ZERO_VERIFIED_CHECK_NOTICE);
+  });
+});
+
+describe("dispatchCachedTaskCheck Path B activation AC disposition (#5792)", () => {
+  function writeMinimalFramework(framework: string): void {
+    mkdirSync(join(framework, "tasks"), { recursive: true });
+    writeFileSync(
+      join(framework, "Taskfile.yml"),
+      `version: '3'
+includes:
+  verify:
+    taskfile: ./tasks/verify.yml
+  toolchain:
+    taskfile: ./tasks/toolchain.yml
+  vbrief:
+    taskfile: ./tasks/vbrief.yml
+tasks:
+  doctor:
+    cmds: [echo doctor]
+  verify-strategy-output:
+    cmds: [echo strategy]
+`,
+      "utf8",
+    );
+    writeFileSync(
+      join(framework, "tasks", "verify.yml"),
+      `version: '3'
+tasks:
+  ac:
+    cmds: [echo ok]
+  branch:
+    cmds: [echo ok]
+  cache-fresh:
+    cmds: [echo ok]
+  wip-cap:
+    cmds: [echo ok]
+  orphan-active:
+    cmds: [echo ok]
+  completed-write-guard:
+    cmds: [echo ok]
+  test-boundary:
+    cmds: [echo ok]
+  class-checks:
+    cmds: [echo ok]
+  scope-provenance:
+    cmds: [echo ok]
+  consumer-check-contract:
+    cmds: [echo ok]
+  evaluator-surface:
+    cmds: [echo ok]
+  observable-scope:
+    cmds: [echo ok]
+  intent-constraint:
+    cmds: [echo ok]
+  presentation-ceiling:
+    cmds: [echo ok]
+  durable-effect-acquisition:
+    cmds: [echo ok]
+  presentation-coverage:
+    cmds: [echo ok]
+  consumer-test-lane:
+    cmds: [echo ok]
+`,
+      "utf8",
+    );
+    writeFileSync(
+      join(framework, "tasks", "toolchain.yml"),
+      "version: '3'\ntasks:\n  check-consumer:\n    cmds: [echo ok]\n",
+      "utf8",
+    );
+    writeFileSync(
+      join(framework, "tasks", "vbrief.yml"),
+      "version: '3'\ntasks:\n  validate:\n    cmds: [echo ok]\n",
+      "utf8",
+    );
+  }
+
+  it("defers verify:ac spawn on brief-land git inventory and continues hygiene", () => {
+    const framework = mkdtempSync(join(tmpdir(), "deft-5792-fw-"));
+    tempDirs.push(framework);
+    writeMinimalFramework(framework);
+
+    const project = mkdtempSync(join(tmpdir(), "consumer-5792-"));
+    tempDirs.push(project);
+    execFileSync("git", ["init", "-b", "master"], { cwd: project, stdio: "ignore" });
+    execFileSync("git", ["config", "user.email", "test@example.com"], {
+      cwd: project,
+      stdio: "ignore",
+    });
+    execFileSync("git", ["config", "user.name", "test"], { cwd: project, stdio: "ignore" });
+    writeFileSync(join(project, "README.md"), "base\n", "utf8");
+    execFileSync("git", ["add", "README.md"], { cwd: project, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: project, stdio: "ignore" });
+    execFileSync("git", ["remote", "add", "origin", "https://github.com/deftai/directive.git"], {
+      cwd: project,
+      stdio: "ignore",
+    });
+    // Pin delivery tip before the activation land so inventory is non-empty.
+    execFileSync("git", ["update-ref", "refs/remotes/origin/master", "HEAD"], {
+      cwd: project,
+      stdio: "ignore",
+    });
+
+    mkdirSync(join(project, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(project, "xbrief", "active", "story-5792.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          title: "activation",
+          status: "running",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/5792",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    writeFileSync(join(project, "CHANGELOG.md"), "# Changelog\n", "utf8");
+    execFileSync("git", ["add", "xbrief/active/story-5792.xbrief.json", "CHANGELOG.md"], {
+      cwd: project,
+      stdio: "ignore",
+    });
+    execFileSync("git", ["commit", "-m", "Path B activation"], {
+      cwd: project,
+      stdio: "ignore",
+    });
+
+    const started: string[] = [];
+    let acSpawned = 0;
+    let acOutcome: { status?: string; cause?: string; exit_code?: number } | undefined;
+    const errWrite = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    dispatchCachedTaskCheck(framework, project, {
+      noCache: true,
+      preflight: null,
+      onGateStart: (id) => started.push(id),
+      onCheckComplete: ({ gates }) => {
+        acOutcome = gates.find((g) => g.id === "verify:ac");
+      },
+      gateSpawnFn: (gateId) => {
+        if (gateId === "verify:ac") {
+          acSpawned += 1;
+          return {
+            exitCode: 201,
+            stdout: "",
+            stderr: "verify:ac FAILED — must not spawn under activation disposition\n",
+          };
+        }
+        return { exitCode: 0, stdout: `${gateId} ok\n`, stderr: "" };
+      },
+    });
+    const logs = errWrite.mock.calls.map((c) => String(c[0])).join("");
+    errWrite.mockRestore();
+    expect(acSpawned).toBe(0);
+    expect(started[0]).toBe("verify:ac");
+    expect(started).toContain("verify:branch");
+    expect(logs).toMatch(/path_b_activation_deferred \(#5792\)/);
+    expect(acOutcome?.status).toBe("run");
+    expect(acOutcome?.exit_code).toBe(0);
+    expect(acOutcome?.cause).toBe("path_b_activation_deferred");
+  });
+
+  it("keeps full verify:ac when inventory includes product paths", () => {
+    const framework = mkdtempSync(join(tmpdir(), "deft-5792-fw-prod-"));
+    tempDirs.push(framework);
+    writeMinimalFramework(framework);
+
+    const project = mkdtempSync(join(tmpdir(), "consumer-5792-prod-"));
+    tempDirs.push(project);
+    execFileSync("git", ["init", "-b", "master"], { cwd: project, stdio: "ignore" });
+    execFileSync("git", ["config", "user.email", "test@example.com"], {
+      cwd: project,
+      stdio: "ignore",
+    });
+    execFileSync("git", ["config", "user.name", "test"], { cwd: project, stdio: "ignore" });
+    writeFileSync(join(project, "README.md"), "base\n", "utf8");
+    execFileSync("git", ["add", "README.md"], { cwd: project, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: project, stdio: "ignore" });
+    execFileSync("git", ["remote", "add", "origin", "https://github.com/deftai/directive.git"], {
+      cwd: project,
+      stdio: "ignore",
+    });
+    execFileSync("git", ["update-ref", "refs/remotes/origin/master", "HEAD"], {
+      cwd: project,
+      stdio: "ignore",
+    });
+    mkdirSync(join(project, "src"), { recursive: true });
+    writeFileSync(join(project, "src", "record-reference.js"), "export {}\n", "utf8");
+    execFileSync("git", ["add", "src/record-reference.js"], { cwd: project, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "product"], { cwd: project, stdio: "ignore" });
+
+    let acSpawned = 0;
+    const logs: string[] = [];
+    const errWrite = vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      logs.push(String(chunk));
+      return true;
+    });
+    dispatchCachedTaskCheck(framework, project, {
+      noCache: true,
+      preflight: null,
+      gateSpawnFn: (gateId) => {
+        if (gateId === "verify:ac") {
+          acSpawned += 1;
+          return { exitCode: 0, stdout: "verify:ac passed (#3284)\n", stderr: "" };
+        }
+        return { exitCode: 0, stdout: `${gateId} ok\n`, stderr: "" };
+      },
+    });
+    errWrite.mockRestore();
+    expect(acSpawned).toBe(1);
+    expect(logs.join("")).not.toMatch(/path_b_activation_deferred \(#5792\)/);
   });
 });
 
