@@ -347,7 +347,8 @@ export function dispatchCachedTaskCheck(
         status: "failed",
         exit_code: baseline.code,
         cause: baseline.message,
-        remedy: "Align citation-shaped skip count with committed baseline or shape-(B) bump (#6072)",
+        remedy:
+          "Align citation-shaped skip count with committed baseline or shape-(B) bump (#6072)",
       });
       return finish(baseline.code, false);
     }
