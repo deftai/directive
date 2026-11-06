@@ -131,7 +131,10 @@ export function dispatchTaskCheck(
     const baselinePath = join(resolvedProject, ...SANCTIONED_SKIP_COUNT_BASELINE_REL.split("/"));
     // Production tip always commits the baseline file. Temp/test trees without it
     // skip this gate; when called, missing evidence still refuses (Bound P4).
+    // Framework tip must always run (Bound P4 refuse-missing). Non-framework
+    // trees without the committed file are test/consumer fixtures.
     if (
+      target === "check:framework-source" ||
       existsSync(baselinePath) ||
       seams.sanctionedSkipInventoryRows !== undefined ||
       seams.sanctionedSkipTargetBaselineCount !== undefined

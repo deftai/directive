@@ -337,6 +337,7 @@ export function dispatchCachedTaskCheck(
   if (options.skipSanctionedSkipBaseline !== true) {
     const baselinePath = join(resolvedProject, ...SANCTIONED_SKIP_COUNT_BASELINE_REL.split("/"));
     if (
+      target === "check:framework-source" ||
       existsSync(baselinePath) ||
       options.sanctionedSkipInventoryRows !== undefined ||
       options.sanctionedSkipTargetBaselineCount !== undefined
