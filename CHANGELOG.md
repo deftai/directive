@@ -9,11 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-=======
 - **Issue #5890 is recorded completed and no longer active.** Brief-only retirement/restamp shipped; tracked completion is on the delivery branch.
 - **Clearer recovery advice when no active brief exists (#5890).** For edits to completed briefs and the changelog, the recovery message now points users to `deft scope:complete` instead of suggesting an unrelated active brief.
 - **Tracked completion record for Path B activation deferral after product merge (#5792, #6075).**
-=======
 - **CLI bin symlink hook test accepts either deny code (#6064 unblock).** Symlink entrypoint still must deny (not silent empty stdout); under suite load identity-deny may win before stdin-empty.
 - **Tracked completion record for multi-active check/pre-PR Recut-8 after product merge (#5855, #6063).**
 - Changed — Mint intent-constraint VERIFY_AC_NO_OBLIGATION_EXIT=6 (numeric-const) for #5855. Approval record only; no product behavior change. Refs #5855.
