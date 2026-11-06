@@ -853,6 +853,32 @@ describe("always-on named Merge gate (#6071)", () => {
     const result = evaluateAlwaysOnNamedMergeGate(PR, REPO, {
       tipSha: CURRENT_HEAD,
       checkRuns: [{ name: "CI", status: "completed", conclusion: "success" }],
+      hotfixAdmission: {
+        admitted: false,
+        shape: null,
+        skipIssue: null,
+        actorLogin: null,
+        reason: null,
+        outcome: null,
+      },
+    });
+    expect(result.ok).toBe(false);
+    expect(result.outcome).toBe(OUTCOME_MASTER_MERGE_GATE_RED);
+    expect(result.status.disposition).toBe("missing");
+  });
+
+  it("still refuses differently-cased deftai/directive when named gate is absent", () => {
+    const result = evaluateAlwaysOnNamedMergeGate(PR, "DeftAI/Directive", {
+      tipSha: CURRENT_HEAD,
+      checkRuns: [{ name: "CI", status: "completed", conclusion: "success" }],
+      hotfixAdmission: {
+        admitted: false,
+        shape: null,
+        skipIssue: null,
+        actorLogin: null,
+        reason: null,
+        outcome: null,
+      },
     });
     expect(result.ok).toBe(false);
     expect(result.outcome).toBe(OUTCOME_MASTER_MERGE_GATE_RED);
