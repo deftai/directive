@@ -1,0 +1,356 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6032",
+    "updated": "2026-11-06T17:52:09Z"
+  },
+  "plan": {
+    "title": "fix(gh): release, release-publish and release-rollback gh reads still inherit the color env (#6023 follow-up)",
+    "status": "running",
+    "narratives": {
+      "Description": "fix(gh): release, release-publish and release-rollback gh reads still inherit the color env (#6023 follow-up)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6032",
+      "Overview": "Prefer-A Bound 6689366054 Approach A for conflict_group release-path-gh-reads-plainGhEnv-color-env (#6023 follow-up).",
+      "Labels": "bug, design-critique:ingest-ready",
+      "UserStory": "As a release operator, JSON-parse gh reads on the release path stay parseable under parent CLICOLOR_FORCE=1.",
+      "ImplementationPlan": "plainGhEnv() on three parse sites; one color-env fixture per site; Unreleased Fixed naming the three sites without rewriting 0.129.3."
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "Pass plainGhEnv() into the three JSON-parse release gh reads",
+        "status": "pending"
+      },
+      {
+        "id": "2",
+        "title": "Add one color-env parse fixture per parse site",
+        "status": "pending"
+      },
+      {
+        "id": "3",
+        "title": "Record Unreleased Fixed for the three release-path parse sites",
+        "status": "pending"
+      }
+    ],
+    "tags": [
+      "bug",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6032",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6032: fix(gh): release, release-publish and release-rollback gh reads still inherit the color env (#6023 follow-up)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6023",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6023"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Pass plainGhEnv() into the three JSON-parse release gh reads",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Add one color-env parse fixture per parse site",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Record Unreleased Fixed for the three release-path parse sites",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/release/gh.ts",
+          "packages/core/src/release-publish/gh-api.ts",
+          "packages/core/src/release-rollback/gh.ts",
+          "packages/core/src/subprocess/plain-gh-env.ts",
+          "packages/core/src/release/gh.test.ts",
+          "packages/core/src/release-publish/gh-api.test.ts",
+          "packages/core/src/release-rollback/rollback.test.ts",
+          "packages/core/src/subprocess/plain-gh-env.test.ts",
+          "packages/core/src/pr-protected-issues/fixtures/color-gh-stub.mjs",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/release/gh.ts",
+        "cohesion_exemption": "Three release-path parse sites share plainGhEnv + color fixtures and one CHANGELOG Fixed for the same Bound unit"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\nPrefer-A draft\nLean: Approach A\nTarget-digest: sha256:bf737b0c8b6afade704b1c1caba3953228915de3e510a00132d31916930c09c6\nconflict_group: release-path-gh-reads-plainGhEnv-color-env\nSpec-path: packages/core/src/release/gh.ts; packages/core/src/release-publish/gh-api.ts; packages/core/src/release-rollback/gh.ts; packages/core/src/subprocess/plain-gh-env.ts; CHANGELOG.md\n\n## In plain English\nThree release-path gh reads still pass the full parent env into gh and then JSON.parse the stdout. When CLICOLOR_FORCE is set, those reads get colored JSON and fail the same way #6023 already fixed for the shared runners. Swap those three (and optionally the non-parsed siblings in the same files) to plainGhEnv(), add one color-stub test per parse site, and correct the overclaiming Unreleased CHANGELOG line.\n\n## Bound remedy\n- Three JSON-parse release gh reads — At release/gh.ts ghReleaseViewIsDraft, release-publish/gh-api.ts ghApiFindReleaseByTag, and release-rollback/gh.ts ghReleaseViewJson, pass env: plainGhEnv() instead of env: { ...process.env }; import plainGhEnv from subprocess/plain-gh-env; leave process.env unchanged. relieves: P1\n- Color-env parse fixtures — Add one test per parse site (color-gh-stub.mjs or spawnText seam) that proves the read returns parseable JSON under parent CLICOLOR_FORCE=1 and fails the same path on the pre-fix base. relieves: P1\n- Non-parsed sibling env consistency — Optionally apply plainGhEnv() to the non-parsed gh spawns in the same three files (release create/edit, publish PATCH, rollback delete) for the same child-env hygiene. relieves: P1\n- CHANGELOG wording — Reword the #6030 Unreleased claim that every shared engine gh read forces plain output so it no longer overstates #6023 coverage, and add a Fixed line for this follow-up. relieves: P2\n\nReject:\n- New flags, features, or a fourth shared gh runner abstraction in this ticket\n- Mutating process.env / parent NO_COLOR as the fix\n- Skipping fixtures because the change is \"obvious\"\n- Expanding scope into non-release engine gh call sites already covered by #6023/#6028-#6030",
+          "id": 6689283734,
+          "html_url": "https://github.com/deftai/directive/issues/6032#issuecomment-6689283734",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-06T16:02:19Z",
+          "updated_at": "2026-11-06T16:02:19Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\narc-mode: no-ingest\nmateriality-bar: open\nyolo-standing: on\ndispatch-sha: 76909c9e4da30614d454b686b5c48cf79898f756\nverification-path: pin-read git show <dispatch-sha>: and dest cwd-without-occupy on .deft-scratch/worktrees/arc-6032\nclosed-findings:\npain: P1, P2\n- P1: release, release-publish, and release-rollback JSON-parse gh reads still inherit color-forcing env and break JSON.parse under CLICOLOR_FORCE (follow-up of #6023)\n- P2: Unreleased CHANGELOG wording from #6030 overclaims that every shared engine gh read forces plain output\n\nWhy N=1: drafted MUSTs with a closed remedy space (plainGhEnv at named sites matching #6028-#6030); Stop 2 panel permission does not apply.\nPrefer-A draft cites the same conflict_group; Round-1 critic audits that draft against pin-read tip.",
+          "id": 6689284184,
+          "html_url": "https://github.com/deftai/directive/issues/6032#issuecomment-6689284184",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-06T16:02:20Z",
+          "updated_at": "2026-11-06T16:02:20Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## Charter\nOpen critique of Prefer-A draft 6689283734 against Stop 1 P1/P2 (ceiling 6689284184) at dispatch SHA 76909c9e4da30614d454b686b5c48cf79898f756: release-path JSON-parse gh reads still inherit color-forcing env; CHANGELOG overclaim from the #6023 wave.\n\n## Findings\n1. Wrong P2 call-site vs tip — Prefer-A draft CHANGELOG limb says reword the \"#6030 Unreleased\" \"every shared engine gh read forces plain output\" claim. Pin-read of CHANGELOG.md at this dest shows that sentence already shipped under ## [0.129.3] Fixed (the pr-closing-keywords / pr-merge-readiness line), with no matching Unreleased row. Amend the limb to add an Unreleased Fixed for this follow-up that corrects coverage relative to that released overclaim; do not treat a released 0.129.3 line as an Unreleased reword, and do not require historical rewrite of 0.129.3 as the P2 mechanism.\n2. False P1 relief / Bound thinness (#5783) — the \"Non-parsed sibling env consistency\" limb is optional and claims relieves: P1, but create/edit/PATCH/delete paths do not JSON.parse stdout, so they do not relieve P1. Demote that limb to a footnote (or residual) without a P1 association; keep Bound remedy to the three named parse sites, one color-env fixture per site, and the corrected CHANGELOG Fixed.\n\n## Residual\nOther release-tree env: { ...process.env } + parse helpers (e.g. release/coverage-debt-ledger.ts) stay outside Stop 1 closed three-site charter; leave them rejected-widen / operator-deferred. Reusing color-gh-stub.mjs needs release-view / releases-list argv coverage, or use the already-allowed spawnText seam.\n\n## Recommendation\nAmend Prefer-A draft → Bound: drop or footnote the optional non-parsed sibling limb (no relieves: P1), and retarget the CHANGELOG limb to an Unreleased Fixed for this follow-up against the already-shipped 0.129.3 overclaim.",
+          "id": 6689358951,
+          "html_url": "https://github.com/deftai/directive/issues/6032#issuecomment-6689358951",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-06T16:05:33Z",
+          "updated_at": "2026-11-06T16:05:33Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\nPrefer-A Bound\nLean: Approach A\nTarget-digest: sha256:bf737b0c8b6afade704b1c1caba3953228915de3e510a00132d31916930c09c6\nconflict_group: release-path-gh-reads-plainGhEnv-color-env\nSpec-path: packages/core/src/release/gh.ts; packages/core/src/release-publish/gh-api.ts; packages/core/src/release-rollback/gh.ts; packages/core/src/subprocess/plain-gh-env.ts; CHANGELOG.md\nRound-1 critic: 6689358951 (amend into Bound)\n\n## In plain English\nThree release-path gh reads still pass the full parent env into gh and then JSON.parse stdout, so CLICOLOR_FORCE breaks them the same way #6023 already fixed for shared runners. Swap those three to plainGhEnv(), add one color-stub or spawnText fixture per parse site, and add an Unreleased Fixed that states this follow-up without rewriting the already-shipped 0.129.3 overclaim line.\n\n## Bound remedy\n- Three JSON-parse release gh reads — At release/gh.ts ghReleaseViewIsDraft, release-publish/gh-api.ts ghApiFindReleaseByTag, and release-rollback/gh.ts ghReleaseViewJson, pass env: plainGhEnv() instead of env: { ...process.env }; import plainGhEnv from subprocess/plain-gh-env; leave process.env unchanged. relieves: P1\n- Color-env parse fixtures — Add one test per parse site (color-gh-stub.mjs with release-view/releases-list argv coverage, or a spawnText seam) that proves the read returns parseable JSON under parent CLICOLOR_FORCE=1 and fails the same path on the pre-fix base. relieves: P1\n- Unreleased CHANGELOG Fixed — Add an Unreleased Fixed line for this follow-up that names the three release-path parse sites and corrects coverage relative to the already-shipped 0.129.3 \"every shared engine gh read\" overclaim; do not historically rewrite 0.129.3. relieves: P2\n\nFootnote (no relieves association): optional plainGhEnv() on non-parsed gh spawns in the same three files (create/edit, publish PATCH, rollback delete) for child-env hygiene only.\n\nReject:\n- New flags, features, or a fourth shared gh runner abstraction in this ticket\n- Mutating process.env / parent NO_COLOR as the fix\n- Skipping fixtures because the change is \"obvious\"\n- Expanding scope into non-release engine gh call sites already covered by #6023/#6028-#6030\n- Historical rewrite of shipped 0.129.3 CHANGELOG wording as the P2 mechanism\n- Claiming relieves: P1 for non-parsed sibling env swaps",
+          "id": 6689366054,
+          "html_url": "https://github.com/deftai/directive/issues/6032#issuecomment-6689366054",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-06T16:05:51Z",
+          "updated_at": "2026-11-06T16:05:51Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2\nfinding-classes: none\nharvest-changed: false\n\n## Pain-audit Prefer-A Bound 6689366054\n\nPin-read dest `.deft-scratch/worktrees/arc-6032` at dispatch SHA `76909c9e4da30614d454b686b5c48cf79898f756`: three parse sites still pass `env: { ...process.env }` then `JSON.parse` (`release/gh.ts` `ghReleaseViewIsDraft`, `release-publish/gh-api.ts` `ghApiFindReleaseByTag`, `release-rollback/gh.ts` `ghReleaseViewJson`). `plainGhEnv()` strips color keys and sets `NO_COLOR=1`. CHANGELOG \"every shared engine gh read forces plain output\" lives under shipped `## [0.129.3] Fixed`, not Unreleased.\n\n### P1 limbs\n- Three JSON-parse release gh reads → `plainGhEnv()`: true relief; after ship those three child envs are plain and parse stays reachable under parent `CLICOLOR_FORCE=1`.\n- Color-env parse fixtures (one per site via `color-gh-stub.mjs` or `spawnText`): true relief/proof; Bound rejects skip-fixtures.\n\n### P2 limb\n- Unreleased CHANGELOG Fixed naming the three sites and correcting coverage vs the shipped 0.129.3 overclaim (no historical rewrite): true relief; Round-1 wrong-call-site amend is absorbed.\n\n### Footnote\nNon-parsed sibling env swaps stay footnote-only with no `relieves:` association; Reject blocks false P1 claims. Round-1 false-relief finding absorbed. KISS #5783 / writing-bar #3368: no harvest change.\n\nClear for P1 and P2.",
+          "id": 6689395911,
+          "html_url": "https://github.com/deftai/directive/issues/6032#issuecomment-6689395911",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-06T16:07:12Z",
+          "updated_at": "2026-11-06T16:07:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| claim | evidence | disposition |\n|---|---|---|\n| P1 three release-path JSON-parse gh reads inherit color env | tip pin-read release/gh.ts ghReleaseViewIsDraft, release-publish/gh-api.ts ghApiFindReleaseByTag, release-rollback/gh.ts ghReleaseViewJson still use env: { ...process.env } then JSON.parse; Round-1 6689358951; Prefer-A Bound 6689366054 limbs 1-2 | accepted |\n| P2 CHANGELOG overclaim vs actual release-path coverage | shipped 0.129.3 Fixed still says every shared engine gh read; Bound limb 3 adds Unreleased Fixed for this follow-up without historical rewrite; Round-1 finding 1 absorbed | accepted |\n| Non-parsed sibling env is footnote-only | Round-1 finding 2; Bound footnote with no relieves: P1; Reject list | accepted |\n| Pain-audit clear for P1/P2 | PA 6689395911 finding-classes: none; harvest-changed: false | accepted |",
+          "id": 6689403121,
+          "html_url": "https://github.com/deftai/directive/issues/6032#issuecomment-6689403121",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-06T16:07:32Z",
+          "updated_at": "2026-11-06T16:07:32Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because Round-1 amend findings were absorbed into Prefer-A Bound and pain-audit returned finding-classes: none with harvest-changed: false for P1/P2.\nsuccessor lean: 6689366054\nverified-claims table: 6689403121\nRound-1 critic: 6689358951\npain-audit: 6689395911\nStop 1: 6689284184\nPrefer-A draft: 6689283734\nconflict_group: release-path-gh-reads-plainGhEnv-color-env\ndispatch-sha: 76909c9e4da30614d454b686b5c48cf79898f756\narc-mode: no-ingest\nspend: N=1\n\n## In plain English\nThree release-path gh JSON reads still inherit a color-forcing env and break under CLICOLOR_FORCE. Prefer-A Bound locks plainGhEnv() at those three sites, one color-env fixture each, and an Unreleased Fixed that corrects coverage against the shipped 0.129.3 overclaim without rewriting history. Non-parsed sibling env swaps stay a footnote. Ingest remains a separate operator verb.",
+          "id": 6689403581,
+          "html_url": "https://github.com/deftai/directive/issues/6032#issuecomment-6689403581",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-06T16:07:33Z",
+          "updated_at": "2026-11-06T16:07:33Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\n#6023 made the engine's shared gh runners spawn gh with `plainGhEnv()`, so a color-forcing env (for example `CLICOLOR_FORCE` set to a non-zero value) can't break `JSON.parse` of gh output. Three gh reads on the release paths were not covered. They still pass `{ ...process.env }` to gh and then parse its stdout as JSON:\n\n| Site (master `8381e3ac`) | Call | Parse |\n|---|---|---|\n| `packages/core/src/release/gh.ts:134` | `gh release view <tag> --json isDraft` | `JSON.parse` at :145 |\n| `packages/core/src/release-publish/gh-api.ts:29` | `gh api --paginate <releases endpoint>` | `JSON.parse` at :40 |\n| `packages/core/src/release-rollback/gh.ts:34` | `gh release view <tag> --json isDraft,name,…` | `JSON.parse` at :41 |\n\ngh documents that `CLICOLOR_FORCE` (any value but `0`) keeps ANSI color when stdout is piped, and it wins over `NO_COLOR` (see the comment in `packages/core/src/subprocess/plain-gh-env.ts`). With it set, each read above gets colored JSON and the parse fails:\n\n- `release:publish` stops with a non-JSON `gh-error` before it changes anything.\n- `release:rollback` reads the release as an error rather than present or not found, and halts.\n- The release draft-state read returns an error state instead of the draft state.\n\n`release:publish` and `release:rollback` fail closed, so nothing is published or deleted by mistake. But neither command can be used in such an env, and the error doesn't name the cause.\n\nThe `[Unreleased]` CHANGELOG line from #6030 (\"so every shared engine gh read forces plain output\") overstates the #6023 coverage, since these three reads are not included.\n\n## Fix\n\nBug fix only, no new features or flags:\n\n- At each of the three sites, pass `env: plainGhEnv()` instead of `env: { ...process.env }`, as #6028-#6030 did for the other runners. `process.env` stays unchanged.\n- Optional, same change for consistency: the non-parsed gh spawns in the same files (`release/gh.ts:99` and `:166`, `release-publish/gh-api.ts:111`, `release-rollback/gh.ts:84`).\n- Reword the `[Unreleased]` CHANGELOG line so it no longer claims every engine gh read, and add a `Fixed` line for this change.\n\n## Acceptance\n\n- [ ] The three reads above spawn gh with an env built by `plainGhEnv()` (no `CLICOLOR_FORCE`, `FORCE_COLOR` or caller `NO_COLOR`; `NO_COLOR=1`).\n- [ ] One test per site, using the existing `pr-protected-issues/fixtures/color-gh-stub.mjs` pattern or a `spawnText` seam, shows the read parses under a parent env with `CLICOLOR_FORCE=1` and fails on base.\n- [ ] Existing release, release-publish and release-rollback tests pass unchanged.\n- [ ] The CHANGELOG wording is corrected.\n\nRefs #6023\n\nFiled for @MScottAdams\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6153667451,
+        "origin": "deftai/directive#6032",
+        "id": "github.issue.6153667451"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "bf737b0c8b6afade704b1c1caba3953228915de3e510a00132d31916930c09c6"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "release-path-gh-reads-plainGhEnv-color-env",
+        "expected_outputs": [
+          "plainGhEnv on three JSON-parse gh reads",
+          "color-env fixtures per parse site",
+          "CHANGELOG Unreleased Fixed #6032"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "npx vitest run packages/core/src/release/gh.test.ts packages/core/src/release-publish/gh-api.test.ts packages/core/src/release-rollback/rollback.test.ts packages/core/src/subprocess/plain-gh-env.test.ts"
+        ],
+        "file_scope": [
+          "packages/core/src/release/gh.ts",
+          "packages/core/src/release-publish/gh-api.ts",
+          "packages/core/src/release-rollback/gh.ts",
+          "packages/core/src/subprocess/plain-gh-env.ts",
+          "packages/core/src/release/gh.test.ts",
+          "packages/core/src/release-publish/gh-api.test.ts",
+          "packages/core/src/release-rollback/rollback.test.ts",
+          "packages/core/src/subprocess/plain-gh-env.test.ts",
+          "packages/core/src/pr-protected-issues/fixtures/color-gh-stub.mjs",
+          "CHANGELOG.md"
+        ],
+        "size": "S",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#6032",
+          "Prefer-A Bound 6689366054",
+          "PA 6689395911"
+        ],
+        "parallel_safe": true
+      }
+    },
+    "id": "github.issue.6153667451",
+    "updated": "2026-11-06T17:52:09Z"
+  }
+}
