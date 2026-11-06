@@ -7,7 +7,11 @@ import {
   shasMatch,
 } from "../pr-closeout-attestable/pr-head-assert.js";
 import { buildCiSummaryLine, evaluateCiGate } from "../pr-merge-readiness/ci-gate.js";
-import { type CheckRunRecord, defaultRunGh, fetchCheckRunsRest } from "../pr-merge-readiness/gh.js";
+import {
+  type CheckRunRecord,
+  defaultRunGh,
+  fetchCheckRunsRest,
+} from "../pr-merge-readiness/gh.js";
 import type { RunGhFn } from "../pr-merge-readiness/types.js";
 import { DEFAULT_MAX_WAIT_MINUTES } from "../pr-watch/constants.js";
 import {
@@ -1062,7 +1066,11 @@ function isMaintainerClassActor(
   return maintainerLogins.some((m) => m.toLowerCase() === needle);
 }
 
-function fetchCollaboratorAssociation(repo: string, login: string, runGh: RunGhFn): string | null {
+function fetchCollaboratorAssociation(
+  repo: string,
+  login: string,
+  runGh: RunGhFn,
+): string | null {
   const rc = runGh(["gh", "api", `repos/${repo}/collaborators/${login}/permission`]);
   if (rc.returncode !== 0 || !rc.stdout.trim()) return null;
   try {
@@ -1070,10 +1078,10 @@ function fetchCollaboratorAssociation(repo: string, login: string, runGh: RunGhF
     if (payload === null || typeof payload !== "object" || Array.isArray(payload)) return null;
     const permission = (payload as Record<string, unknown>).permission;
     if (typeof permission !== "string") return null;
-    // Map collaborator permission → author_association class used by hotfix admit.
-    if (permission === "admin") return "OWNER";
-    if (permission === "maintain" || permission === "write") return "MEMBER";
-    return permission.toUpperCase();
+    const p = permission.toLowerCase();
+    if (p === "admin" || p === "maintain") return "MEMBER";
+    if (p === "write") return "COLLABORATOR";
+    return null;
   } catch {
     return null;
   }
@@ -1087,8 +1095,11 @@ function fetchLatestHotfixLabelActor(
   actor: { login: string; type: string | null; association: string | null } | null;
   error: string | null;
 } {
-  let latest: { login: string; type: string | null; association: string | null } | null = null;
-  for (let page = 1; page <= 50; page += 1) {
+  // Paginate issue events — busy PRs can push the current hotfix label past page 1.
+  const allEvents: unknown[] = [];
+  let page = 1;
+  const maxPages = 20;
+  while (page <= maxPages) {
     const rc = runGh([
       "gh",
       "api",
@@ -1111,31 +1122,33 @@ function fetchLatestHotfixLabelActor(
     if (!Array.isArray(payload)) {
       return { actor: null, error: "unexpected events JSON shape (not a list)" };
     }
-    if (payload.length === 0) break;
-    for (const event of payload) {
-      if (event === null || typeof event !== "object" || Array.isArray(event)) continue;
-      const rec = event as Record<string, unknown>;
-      if (rec.event !== "labeled") continue;
-      const label = rec.label;
-      if (label === null || typeof label !== "object" || Array.isArray(label)) continue;
-      if ((label as Record<string, unknown>).name !== HOTFIX_LABEL) continue;
-      const actor = rec.actor;
-      if (actor === null || typeof actor !== "object" || Array.isArray(actor)) continue;
-      const a = actor as Record<string, unknown>;
-      const login = typeof a.login === "string" ? a.login : "";
-      if (login.length === 0) continue;
-      // issues/<N>/events does not carry author_association; resolve via collaborators API.
-      const association =
-        typeof rec.author_association === "string"
-          ? rec.author_association
-          : fetchCollaboratorAssociation(repo, login, runGh);
-      latest = {
-        login,
-        type: typeof a.type === "string" ? a.type : null,
-        association,
-      };
-    }
+    allEvents.push(...payload);
     if (payload.length < 100) break;
+    page += 1;
+  }
+  let latest: { login: string; type: string | null; association: string | null } | null = null;
+  for (const event of allEvents) {
+    if (event === null || typeof event !== "object" || Array.isArray(event)) continue;
+    const rec = event as Record<string, unknown>;
+    if (rec.event !== "labeled") continue;
+    const label = rec.label;
+    if (label === null || typeof label !== "object" || Array.isArray(label)) continue;
+    if ((label as Record<string, unknown>).name !== HOTFIX_LABEL) continue;
+    const actor = rec.actor;
+    if (actor === null || typeof actor !== "object" || Array.isArray(actor)) continue;
+    const a = actor as Record<string, unknown>;
+    const login = typeof a.login === "string" ? a.login : "";
+    if (login.length === 0) continue;
+    // issues/<N>/events omits author_association; resolve via collaborators permission.
+    const association =
+      typeof rec.author_association === "string"
+        ? rec.author_association
+        : fetchCollaboratorAssociation(repo, login, runGh);
+    latest = {
+      login,
+      type: typeof a.type === "string" ? a.type : null,
+      association,
+    };
   }
   return { actor: latest, error: null };
 }
@@ -1249,7 +1262,8 @@ export function evaluateHotfixAdmission(
       shape: null,
       skipIssue: null,
       actorLogin: null,
-      reason: "hotfix label present without a matching shape (A) or (B) body line; refuse (#6071).",
+      reason:
+        "hotfix label present without a matching shape (A) or (B) body line; refuse (#6071).",
       outcome: OUTCOME_HOTFIX_SHAPE_INVALID,
     };
   }
@@ -1270,7 +1284,8 @@ export function evaluateHotfixAdmission(
       shape: parsed.shape,
       skipIssue: parsed.skipIssue,
       actorLogin: null,
-      reason: "hotfix label present but labeled-timeline actor provenance missing; refuse (#6071).",
+      reason:
+        "hotfix label present but labeled-timeline actor provenance missing; refuse (#6071).",
       outcome: OUTCOME_HOTFIX_ACTOR_DENIED,
     };
   }
@@ -1286,7 +1301,9 @@ export function evaluateHotfixAdmission(
   }
   const maintainerLogins =
     options.maintainerLogins ?? loadMaintainerLogins(options.projectRoot ?? process.cwd());
-  if (!isMaintainerClassActor(labeled.actor.association, labeled.actor.login, maintainerLogins)) {
+  if (
+    !isMaintainerClassActor(labeled.actor.association, labeled.actor.login, maintainerLogins)
+  ) {
     return {
       admitted: false,
       shape: parsed.shape,

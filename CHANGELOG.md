@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Ordinary merges, pre-PR, finish-loop, and release refuse while master's Merge gate (task check) is red (#6071).** Always-on status read of that named check (paginated check-runs); only a maintainer-labeled hotfix of shape A (restore-green) or B (cited skip) may proceed; DEFT_NO_NETWORK refuses rather than soft-skips; cited-skip scanner inventories it.skip/test.skip with a skipIf token boundary and a four-site baseline. Refs Prefer-A Bound 6669973193 / #6082.
 - Activate running work briefs for lifecycle shell recovery (#5925), master merge-gate hotfix rules (#6071), and sanctioned skip-count baseline tracking (#6072).
 
+- **Issue #5925 is recorded completed and no longer active.** Lifecycle uninspectable deny recovery shipped; tracked completion is on the delivery branch.
 - **Issue #6011 is recorded completed and no longer active.** Typed deliveryBranch write-fence shipped; tracked completion is on the delivery branch.
 - **Issue #5970 is recorded completed and no longer active.** Approach1 existence probes as proven readers shipped; tracked completion is on the delivery branch.
 - **Issue #5910 is recorded completed and no longer active.** Release cut-context materialize refuse shipped; tracked completion is on the delivery branch.

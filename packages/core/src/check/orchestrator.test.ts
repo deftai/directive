@@ -1126,7 +1126,9 @@ describe("cited-skip scanner (#6071)", () => {
     const titles = parseSkippedTestsBlock(
       "```skipped-tests:\n- waitMergeableAndMerge > monitor config error propagates to exit two\n```",
     );
-    expect(titles).toContain("waitMergeableAndMerge > monitor config error propagates to exit two");
+    expect(titles).toContain(
+      "waitMergeableAndMerge > monitor config error propagates to exit two",
+    );
     void evaluateCitedSkipScan;
   });
 
@@ -1165,7 +1167,11 @@ it.skipIf(process.platform === "win32")("symlink", () => {});
 
   it("pins four-site baseline including yoloSterile aliases", () => {
     expect(CITED_SKIP_BASELINE).toHaveLength(4);
-    expect(CITED_SKIP_BASELINE.filter((b) => b.file.includes("legacy-bridge-leg")).length).toBe(2);
-    expect(CITED_SKIP_BASELINE.filter((b) => b.dynamicTitle).length).toBe(2);
+    expect(
+      CITED_SKIP_BASELINE.filter((b) => b.file.includes("legacy-bridge-leg")).length,
+    ).toBe(2);
+    expect(
+      CITED_SKIP_BASELINE.filter((b) => b.dynamicTitle).length,
+    ).toBe(2);
   });
 });

@@ -1,5 +1,16 @@
 export { type CachedCheckOptions, dispatchCachedTaskCheck } from "./cached-orchestrator.js";
 export {
+  CITED_SKIP_BASELINE,
+  type CitedSkipScanOptions,
+  type CitedSkipScanResult,
+  type CitedSkipSite,
+  evaluateCitedSkipScan,
+  formatCitedSkipListing,
+  inventoryCitedSkipsInSource,
+  inventoryCitedSkipsInTree,
+  parseSkippedTestsBlock,
+} from "./orchestrator.js";
+export {
   allGatesCliDispatchable,
   checkGateCliArgv,
   cliSpawnPlan,

@@ -69,17 +69,6 @@ export function dispatchTaskCheck(
 ): number {
   const resolvedFramework = resolve(frameworkRoot);
   const resolvedProject = resolve(projectRoot);
-
-  // #6071: always-on cited-skip inventory before cache or aggregate dispatch.
-  const citedSkipEarly = evaluateCitedSkipScan({ projectRoot: resolvedProject });
-  process.stderr.write(`${citedSkipEarly.listing}\n`);
-  if (!citedSkipEarly.ok) {
-    for (const failure of citedSkipEarly.failures) {
-      process.stderr.write(`check: ${failure}\n`);
-    }
-    return 1;
-  }
-
   const useTaskCache = seams.useTaskCache !== false && !seams.noCache;
 
   if (useTaskCache) {
@@ -128,6 +117,29 @@ export function dispatchTaskCheck(
         `  remedy: ${headerPlaceholder.message}\n`,
     );
     return 1;
+  }
+
+  // #6071: cited-skip inventory every framework-source check; refuse unsanctioned.
+  if (target === "check:framework-source" && seams.skipCitedSkipScan !== true) {
+    const cited = evaluateCitedSkipScan({
+      projectRoot: resolvedProject,
+      changedFiles: seams.citedSkipChangedFiles,
+      hotfixShapeB: seams.citedSkipHotfixShapeB === true,
+      fetchIssue: seams.citedSkipFetchIssue,
+      skipCommitTimeIso: seams.citedSkipCommitTimeIso,
+    });
+    process.stderr.write(`${cited.listing}\n`);
+    if (!cited.ok) {
+      for (const failure of cited.failures) {
+        process.stderr.write(`check: ${failure}\n`);
+      }
+      process.stderr.write(
+        "check: gate cited-skip-scan failed (exit 1)\n" +
+          "  cause: unsanctioned or unvalidated test skips (#6071)\n" +
+          "  remedy: cite open deftai/directive#N with skipped-tests block under admitted shape B, or remove the skip\n",
+      );
+      return 1;
+    }
   }
 
   const spawn = seams.spawnFn ?? defaultSpawn;
@@ -242,12 +254,14 @@ function lineNumberAt(source: string, index: number): number {
 }
 
 /** Inventory it.skip/test.skip/describe.skip with token boundary excluding skipIf. */
-export function inventoryCitedSkipsInSource(source: string, file: string): CitedSkipSite[] {
+export function inventoryCitedSkipsInSource(
+  source: string,
+  file: string,
+): CitedSkipSite[] {
   const sites: CitedSkipSite[] = [];
   const re = new RegExp(SKIP_CALL_RE.source, SKIP_CALL_RE.flags);
-  for (;;) {
-    const match = re.exec(source);
-    if (match === null) break;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(source)) !== null) {
     const kind = match[1] as CitedSkipSite["kind"];
     const title = match[3] ?? null;
     const dynamicTitle = title === null && match[4] !== undefined;
@@ -267,9 +281,8 @@ export function inventoryCitedSkipsInSource(source: string, file: string): Cited
   }
   // yoloSterile alias form: `const itX = cond ? it.skip : it` (dynamic title; not a call).
   const aliasRe = /\byoloSterile\s*\?\s*it\.skip\b/g;
-  for (;;) {
-    const alias = aliasRe.exec(source);
-    if (alias === null) break;
+  let alias: RegExpExecArray | null;
+  while ((alias = aliasRe.exec(source)) !== null) {
     sites.push({
       file: file.replaceAll("\\", "/"),
       kind: "it.skip",
@@ -292,7 +305,7 @@ function walkTestFiles(root: string, dir: string, out: string[]): void {
   for (const name of entries) {
     if (name === "node_modules" || name === "dist" || name === ".git") continue;
     const full = join(dir, name);
-    let st: ReturnType<typeof statSync>;
+    let st;
     try {
       st = statSync(full);
     } catch {
@@ -328,21 +341,16 @@ export function inventoryCitedSkipsInTree(projectRoot: string): CitedSkipSite[] 
 function isBaselineSite(site: CitedSkipSite): boolean {
   return CITED_SKIP_BASELINE.some(
     (b) =>
-      b.file === site.file && b.kind === site.kind && (b.dynamicTitle ? site.dynamicTitle : true),
+      b.file === site.file &&
+      b.kind === site.kind &&
+      (b.dynamicTitle ? site.dynamicTitle : true),
   );
 }
 
 export interface CitedSkipScanOptions {
   readonly projectRoot: string;
-  /**
-   * When set, only these relative paths are live-validated for issue probes.
-   * When omitted, inventory is listed and only describe.skip fails closed
-   * (unchanged sites stay inventory-only). Pass `liveValidateAll` to probe
-   * the whole tree.
-   */
+  /** When set, only these relative paths are live-validated for issue probes. */
   readonly changedFiles?: readonly string[];
-  /** When true, live-validate every non-baseline site (ignores changedFiles). */
-  readonly liveValidateAll?: boolean;
   readonly hotfixShapeB?: boolean;
   readonly fetchIssue?: (
     issue: number,
@@ -374,9 +382,10 @@ export function evaluateCitedSkipScan(options: CitedSkipScanOptions): CitedSkipS
   const inventory = inventoryCitedSkipsInTree(options.projectRoot);
   const listing = formatCitedSkipListing(inventory);
   const failures: string[] = [];
-  const changedFilesProvided = options.changedFiles !== undefined;
+  // undefined changedFiles => inventory-only (list every run; no live probes).
+  // provided list (including []) => live-validate only those paths (#6071 Bound).
+  const liveProbe = options.changedFiles !== undefined;
   const changed = new Set((options.changedFiles ?? []).map((f) => f.replaceAll("\\", "/")));
-  const liveAll = options.liveValidateAll === true;
 
   for (const site of inventory) {
     if (isBaselineSite(site)) {
@@ -388,10 +397,8 @@ export function evaluateCitedSkipScan(options: CitedSkipScanOptions): CitedSkipS
       );
       continue;
     }
-    const inDiff =
-      liveAll || (changedFilesProvided && changed.has(site.file.replaceAll("\\", "/")));
-    if (!inDiff) {
-      // Static inventory only when not live-validating this path.
+    if (!liveProbe || !changed.has(site.file)) {
+      // Static inventory only for unchanged / inventory-only runs.
       continue;
     }
     if (!options.hotfixShapeB) {

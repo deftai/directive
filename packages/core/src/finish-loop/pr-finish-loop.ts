@@ -380,14 +380,10 @@ export function runPrFinishLoop(options: PrFinishLoopOptions): PrFinishLoopResul
     const pinnedHead = liveHead;
     // #6071: same named-check refuse set before mergeFn (finish-loop reachability).
     if (options.skipNamedMergeGate !== true) {
-      const resolvedRepo =
-        repo !== null && repo.length > 0
-          ? repo
-          : options.env?.GITHUB_REPOSITORY?.trim() || process.env.GITHUB_REPOSITORY?.trim() || "";
-      if (resolvedRepo.length === 0) {
+      if (repo === null || repo.length === 0) {
         const message =
-          `pr:finish-loop ACTION_REQUIRED on PR #${prNumber}: named Merge gate requires ` +
-          `a repository (repo option or GITHUB_REPOSITORY); refusing merge (#6071).`;
+          `pr:finish-loop ACTION_REQUIRED on PR #${prNumber}: named Merge gate requires a ` +
+          `resolved repository before merge (#6071); refuse rather than skip.`;
         log("merge", "error", message);
         return {
           exitCode: EXIT_ACTION_REQUIRED,
@@ -396,19 +392,19 @@ export function runPrFinishLoop(options: PrFinishLoopOptions): PrFinishLoopResul
           prNumber,
           watchVerdict: VERDICT_CLEAN,
           mergeAttempted: false,
-          mergeSkippedReason: "master-merge-gate-red",
+          mergeSkippedReason: "master-merge-gate-repo-missing",
           grantId: null,
         };
       }
       const namedFn = options.namedMergeGateFn ?? evaluateAlwaysOnNamedMergeGate;
-      const named = namedFn(prNumber, resolvedRepo, {
+      const named = namedFn(prNumber, repo, {
         runGh: options.runGh,
         projectRoot,
         hotfixAdmission: options.hotfixAdmission,
         env: options.env,
       });
       if (!named.ok) {
-        disablePullRequestAutoMerge(prNumber, resolvedRepo);
+        disablePullRequestAutoMerge(prNumber, repo);
         const message =
           `pr:finish-loop ACTION_REQUIRED on PR #${prNumber}: named Merge gate refused ` +
           `before merge (${named.outcome ?? "master-merge-gate-red"}). ${named.error ?? ""}`.trim();

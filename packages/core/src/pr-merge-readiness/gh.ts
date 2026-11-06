@@ -615,8 +615,8 @@ export function fetchCheckRunsRest(
       nextUrl = linkNext;
       continue;
     }
-    // Use raw page entry count (not successfully parsed runs) so a full page
-    // with malformed entries still advances pagination (#6071 SLizard).
+    // Use raw page entry count (not only successfully parsed runs) so a full
+    // page with some malformed entries still continues pagination (#6071 / SLizard).
     if (
       parsed.totalCount !== null &&
       allRuns.length < parsed.totalCount &&
